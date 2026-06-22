@@ -175,12 +175,109 @@
 
 ## Traceability
 
-Populated during roadmap creation (see ROADMAP.md).
+Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending` until executed.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| INFRA-05 | Phase 4 | Pending |
+| XCUT-01 | Phase 1 | Pending |
+| XCUT-02 | Phase 1 | Pending |
+| XCUT-03 | Phase 1 | Pending |
+| XCUT-04 | Phase 1 | Pending |
+| XCUT-05 | Phase 1 | Pending |
+| XCUT-06 | Phase 1 | Pending |
+| LIB-01 | Phase 1 | Pending |
+| LIB-02 | Phase 1 | Pending |
+| LIB-03 | Phase 1 | Pending |
+| LIB-04 | Phase 1 | Pending |
+| LIB-05 | Phase 1 | Pending |
+| LIB-06 | Phase 1 | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| AUTH-05 | Phase 2 | Pending |
+| AUTH-06 | Phase 2 | Pending |
+| AUTH-07 | Phase 2 | Pending |
+| AUTH-08 | Phase 2 | Pending |
+| AUTH-09 | Phase 2 | Pending |
+| AUTHZ-01 | Phase 2 | Pending |
+| AUTHZ-02 | Phase 2 | Pending |
+| AUTHZ-03 | Phase 2 | Pending |
+| AUTHZ-04 | Phase 2 | Pending |
+| GW-01 | Phase 3 | Pending |
+| GW-02 | Phase 3 | Pending |
+| GW-03 | Phase 3 | Pending |
+| GW-04 | Phase 3 | Pending |
+| GW-05 | Phase 3 | Pending |
+| GW-06 | Phase 3 | Pending |
+| PLATFORM-01 | Phase 3 | Pending |
+| PLATFORM-02 | Phase 3 | Pending |
+| PLATFORM-03 | Phase 3 | Pending |
+| PLATFORM-04 | Phase 3 | Pending |
+| PLATFORM-05 | Phase 3 | Pending |
+| PLATFORM-06 | Phase 3 | Pending |
+| PLATFORM-07 | Phase 3 | Pending |
+| USER-01 | Phase 3 | Pending |
+| USER-02 | Phase 3 | Pending |
+| USER-03 | Phase 3 | Pending |
+| FE-01 | Phase 4 | Pending |
+| FE-02 | Phase 4 | Pending |
+| FE-03 | Phase 4 | Pending |
+| FE-04 | Phase 4 | Pending |
+| FE-05 | Phase 4 | Pending |
+| FE-06 | Phase 4 | Pending |
+| FE-07 | Phase 4 | Pending |
+| FE-08 | Phase 4 | Pending |
+| NOTIF-01 | Phase 5 | Pending |
+| AUDIT-01 | Phase 5 | Pending |
+| FILE-01 | Phase 5 | Pending |
+| FIN-01 | Phase 6 | Pending |
+| FIN-02 | Phase 6 | Pending |
+| FIN-04 | Phase 6 | Pending |
+| FIN-06 | Phase 6 | Pending |
+| POS-01 | Phase 7 | Pending |
+| POS-02 | Phase 7 | Pending |
+| POS-03 | Phase 7 | Pending |
+| POS-04 | Phase 7 | Pending |
+| POS-05 | Phase 7 | Pending |
+| POS-06 | Phase 7 | Pending |
+| POS-07 | Phase 7 | Pending |
+| POS-08 | Phase 7 | Pending |
+| KDS-01 | Phase 7 | Pending |
+| KDS-02 | Phase 7 | Pending |
+| INV-01 | Phase 8 | Pending |
+| INV-02 | Phase 8 | Pending |
+| INV-03 | Phase 8 | Pending |
+| INV-04 | Phase 8 | Pending |
+| INV-05 | Phase 8 | Pending |
+| INV-06 | Phase 8 | Pending |
+| INV-07 | Phase 8 | Pending |
+| FIN-03 | Phase 9 | Pending |
+| CRM-01 | Phase 9 | Pending |
+| CRM-02 | Phase 9 | Pending |
+| PUR-01 | Phase 10 | Pending |
+| PUR-02 | Phase 10 | Pending |
+| PUR-03 | Phase 10 | Pending |
+| PUR-04 | Phase 10 | Pending |
+| FIN-05 | Phase 10 | Pending |
+| HR-01 | Phase 11 | Pending |
+| HR-02 | Phase 11 | Pending |
+| HR-03 | Phase 11 | Pending |
+| RPT-01 | Phase 12 | Pending |
+| RPT-02 | Phase 12 | Pending |
+| NLQ-01 | Phase 12 | Pending |
+| NLQ-02 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: ~80 across 18 categories
-- Mapped to phases: (pending roadmap)
-- Unmapped: (pending roadmap)
+- v1 requirements: 93 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
+- Mapped to phases: 93/93 (100%) — each requirement mapped to exactly one phase
+- Unmapped: 0
+- v2 requirements (deferred, not mapped): NOTIF-02, NOTIF-03, PLATFORM-08, PLATFORM-09, INV-08, RPT-03, AUTHZ-05, AUDIT-02
 
 ---
 *Requirements defined: 2026-06-22*

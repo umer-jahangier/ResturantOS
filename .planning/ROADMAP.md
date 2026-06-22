@@ -1,0 +1,245 @@
+# Roadmap: RestaurantOS
+
+## Overview
+
+RestaurantOS is built bottom-up from its non-negotiable foundations to its event-driven business modules. The first four phases stand up the platform that everything else depends on — containerized infrastructure, the `shared-lib` that encodes tenancy/money/event invariants, authentication + OPA authorization, the API gateway, platform/tenant administration, the Next.js shell, and CI/CD — strictly before any tenant business module exists. Cross-cutting services (notifications, audit, files) then come online to consume the events the platform already publishes. From there the dependency graph drives the order: the General Ledger and Chart of Accounts are established before any auto-posting consumer; POS produces `ORDER_CLOSED`, which inventory depletion and the auto-posting engine consume to deliver the core value (order → stock depletion → balanced double-entry JE); purchasing, HR/payroll, and finally reporting + NLQ (which consume events from everything upstream) complete the system.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Infrastructure Foundation & Shared Library** - Dev infra up; `shared-lib` enforces tenancy/money/event invariants
+- [ ] **Phase 2: Authentication & Authorization** - Login/JWT/JWKS/2FA + OPA fail-closed ABAC with tenant+branch isolation
+- [ ] **Phase 3: API Gateway, Platform Admin & Tenant/User Management** - Gateway edge security + tenant provisioning + branch/role management
+- [ ] **Phase 4: Frontend Shell & CI/CD** - Next.js shell with four-layer API abstraction + quality-gated pipeline
+- [ ] **Phase 5: Cross-Cutting Services (Notifications, Audit, Files)** - Event-driven email/in-app, immutable audit, MinIO storage
+- [ ] **Phase 6: Finance Core — General Ledger & Periods** - Seeded COA, balanced+immutable JEs, period locking
+- [ ] **Phase 7: Point of Sale & Kitchen Display** - Orders, split-tender, tills, offline sync, KDS routing
+- [ ] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts
+- [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
+- [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP
+- [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
+- [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
+
+## Phase Details
+
+### Phase 1: Infrastructure Foundation & Shared Library
+**Goal**: Stand up the complete dev infrastructure and the `shared-lib` so that every downstream service inherits multi-tenant isolation, BIGINT-paisa money handling, and the event/outbox primitives by default — with nothing tenant-business yet built.
+**Depends on**: Nothing (first phase)
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, XCUT-01, XCUT-02, XCUT-03, XCUT-04, XCUT-05, XCUT-06, LIB-01, LIB-02, LIB-03, LIB-04, LIB-05, LIB-06
+**Success Criteria** (what must be TRUE):
+  1. `make dev-up` brings PostgreSQL 16, Redis 7, RabbitMQ 3.13, MinIO, OPA, Eureka, Config Server, ClickHouse and pgAdmin to healthy; `psql` shows all 13 service databases, each owned by a least-privilege role that has the `app.current_tenant_id` SET parameter.
+  2. The RabbitMQ management UI shows every exchange, queue, and per-consumer DLQ pre-created on first start; `generate-keys.sh` writes an RS256 keypair + AES-256 key into `.env`, and `.env.example` documents every variable.
+  3. A sample service importing `shared-lib` resolves `TenantAuditableEntity`, `TenantContext`, `MoneyUtils`, `OpaClient`, `IdempotencyService`, and `DomainEventPublisher`, and tenant context propagates intact through an `@Async` call and a RabbitMQ consumer.
+  4. A unit test proves `MoneyUtils` computes per-line floored tax with half-up rounding on `BIGINT` paisa, and a tenant-scoped table created without an immediate RLS changeset fails the migration/build check.
+  5. A published domain event carries the standard envelope and is delivered exactly once to an idempotent consumer (duplicate delivery is a no-op via `processed_events`), proving the transactional outbox publishes on commit.
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01: docker-compose infra + Maven parent POM scaffold
+- [ ] 01-02: DB init — 13 databases, per-service roles, RLS convention + `TenantAuditableEntity`
+- [ ] 01-03: RabbitMQ topology, key generation, `.env`/`.env.example`
+- [ ] 01-04: `shared-lib` — tenant context/async propagation, JWT filter, feature flags, OPA client, idempotency, outbox, MoneyUtils
+
+### Phase 2: Authentication & Authorization
+**Goal**: A user can securely obtain a verifiable identity (RS256 JWT + JWKS, refresh, branch context, 2FA) and every access decision is mediated by a fail-closed OPA policy that enforces tenant AND branch isolation.
+**Depends on**: Phase 1
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06, AUTH-07, AUTH-08, AUTH-09, AUTHZ-01, AUTHZ-02, AUTHZ-03, AUTHZ-04
+**Success Criteria** (what must be TRUE):
+  1. A seeded user logs in with email + password + tenant slug and receives a 15-minute RS256 access JWT plus a 7-day HttpOnly refresh cookie; `/.well-known/jwks.json` serves the public key; bcrypt cost 12 and lockout are enforced.
+  2. Refresh succeeds via the HttpOnly cookie, logout revokes the refresh session, and branch switch reissues a JWT with the new branch context; every attempt publishes `USER_LOGIN_SUCCEEDED` or `USER_LOGIN_FAILED`.
+  3. A user sets up and verifies TOTP (the `totp_secret` is stored AES-256-GCM encrypted); `rbac.manage` and `finance.period.close` are refused without a valid TOTP step, and password reset via emailed token works.
+  4. `POST /internal/authorize` returns an OPA decision that denies cross-tenant and cross-branch access and fails closed (deny) on OPA timeout (2s).
+  5. `opa test` reports 100% policy coverage across common/pos/finance/vendor/rbac, with `same_tenant`, `same_branch`, and `has_permission` helpers exercised.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01: Auth service — login, RS256 JWT + JWKS, refresh sessions, lockout, login events
+- [ ] 02-02: 2FA (TOTP, encrypted), password reset, branch switch
+- [ ] 02-03: Authorization service + OPA Rego policies (tenant+branch, 100% coverage)
+
+### Phase 3: API Gateway, Platform Admin & Tenant/User Management
+**Goal**: The platform edge is secured and operable — the gateway authenticates/route/rate-limits every request, the SuperAdmin can provision and operate tenants, and Tenant Admins can manage branches and per-branch roles that feed JWT issuance.
+**Depends on**: Phase 2
+**Requirements**: GW-01, GW-02, GW-03, GW-04, GW-05, GW-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, USER-01, USER-02, USER-03
+**Success Criteria** (what must be TRUE):
+  1. A request with a missing/invalid JWT to any protected route returns 401 at the gateway, while `auth/login`, refresh, `/.well-known/*`, and health pass through; the gateway resolves the tenant (JWT claim or custom-domain Host) and propagates `X-Tenant-Id`.
+  2. The gateway routes each public prefix to its upstream behind per-upstream circuit breakers, rate-limits (100/min/IP auth, 600/min/IP general) via Redis token bucket, returns 403 `FEATURE_DISABLED` with `X-Upgrade-CTA-URL` for disabled features, and 429 `QUOTA_EXCEEDED` for NLQ over quota; Nginx terminates TLS in front.
+  3. A SuperAdmin provisions a tenant in under 60s — tier features seeded, Tenant Admin + HQ branch created, COA seeded, `TENANT_PROVISIONED` published — and can list/paginate tenants, suspend/reactivate/cancel, update feature flags (cache invalidated immediately), impersonate (JWT stamped `impersonated_by`, 30-min expiry, logged), and view telemetry.
+  4. `platform_db` contains no `tenant_id` columns and only platform-admin-service can connect to it.
+  5. A Tenant Admin CRUDs branches and assigns roles per branch, and the internal endpoints return branch details + computed user permissions used for JWT issuance.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 03-01: API gateway — routing, JWT validation, tenant resolution, rate limits, feature/quota enforcement, Nginx TLS
+- [ ] 03-02: Platform admin service — provisioning (FD-1), lifecycle, feature flags, impersonation, telemetry, `platform_db`
+- [ ] 03-03: User & branch service — branch CRUD, role assignment, internal permission endpoints
+
+### Phase 4: Frontend Shell & CI/CD
+**Goal**: Deliver the Next.js shell with its enforced four-layer API abstraction and route protection, and a fully automated quality-gated pipeline — completing the verified Sprint-1 "GO" set before any tenant business module is built.
+**Depends on**: Phase 2, Phase 3
+**Requirements**: FE-01, FE-02, FE-03, FE-04, FE-05, FE-06, FE-07, FE-08, INFRA-05
+**Success Criteria** (what must be TRUE):
+  1. The shell renders auth/platform/tenant route groups; visiting a tenant or platform route without a valid session redirects to login; the login page reads the tenant slug from subdomain/`?tenant=` and shows the conditional TOTP step.
+  2. Sidebar nav plus `FeatureGuard`/`PermissionGuard` hide items by permission and feature flag; `BranchSwitcher` reissues the JWT and invalidates the query cache.
+  3. Every API response is Zod-parsed through the four-layer abstraction before adaptation, MSW mocks back auth in dev, ESLint blocks components importing `lib/api-client` or `lib/repositories`, and `tsc --noEmit` passes with zero `any`.
+  4. The CI pipeline runs lint → test → build → schema-sync with no manual intervention, enforcing coverage gates (finance/inventory ≥75%, others ≥60%, OPA 100%) and producing signed images.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 04-01: Next.js shell — route groups, middleware protection, login/TOTP, guards, four-layer API abstraction, MSW
+- [ ] 04-02: CI/CD pipeline — lint, coverage-gated tests, signed image build, schema-sync
+
+### Phase 5: Cross-Cutting Services (Notifications, Audit, Files)
+**Goal**: Bring the cross-cutting consumers online to act on the events the platform already publishes — templated notifications, an immutable audit trail, and tenant-scoped file storage.
+**Depends on**: Phase 1, Phase 3
+**Requirements**: NOTIF-01, AUDIT-01, FILE-01
+**Success Criteria** (what must be TRUE):
+  1. A triggering event (e.g., tenant provisioning, password reset, low-stock, PO approval) produces a templated per-tenant email and an in-app notification.
+  2. Significant actions (login, impersonation, provisioning, voids/refunds) are written to an append-only audit log with 7-year retention/archival and cannot be mutated or deleted.
+  3. A user uploads a file to MinIO scoped to their tenant, and an upload that would exceed the tenant's quota is rejected.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01: Notification service — templated email + in-app, rules engine, event consumers
+- [ ] 05-02: Audit service — immutable log, 7-year retention/archival
+- [ ] 05-03: File service — MinIO storage, per-tenant quota enforcement
+
+### Phase 6: Finance Core — General Ledger & Periods
+**Goal**: Establish the immutable, balanced double-entry ledger and accounting periods that every auto-posting consumer depends on — before any consumer exists to post into it.
+**Depends on**: Phase 1, Phase 3
+**Requirements**: FIN-01, FIN-02, FIN-04, FIN-06
+**Success Criteria** (what must be TRUE):
+  1. Each provisioned tenant has the Pakistan Chart of Accounts seeded, and accounts are queryable.
+  2. A manual journal entry that does not balance is rejected by the deferred DB trigger; posted entries are immutable and can only be corrected by a reversal entry.
+  3. 12 accounting periods per fiscal year (Pakistan Jul–Jun) are seeded, and closing a period sets it LOCKED only after internal-API pre-checks pass (no cross-service SQL).
+  4. Any attempt to post to a LOCKED period returns 423 `PERIOD_LOCKED`.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 06-01: COA seeding + balanced/immutable JE engine (deferred balance trigger, reversal-only)
+- [ ] 06-02: Accounting periods (Jul–Jun) + period close/lock with internal-API pre-checks
+
+### Phase 7: Point of Sale & Kitchen Display
+**Goal**: Staff can run the floor end-to-end — open orders, route to the kitchen, take split-tender payments, manage tills, and operate offline — emitting the events (`ORDER_CLOSED`, `TILL_*`) that downstream modules consume.
+**Depends on**: Phase 3
+**Requirements**: POS-01, POS-02, POS-03, POS-04, POS-05, POS-06, POS-07, POS-08, KDS-01, KDS-02
+**Success Criteria** (what must be TRUE):
+  1. Staff open a table/order and add items with the order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED), and a discount can never push a line below zero.
+  2. Sending an order to the kitchen publishes `ORDER_SENT_TO_KDS` and routes items to station queues that progress PENDING→COOKING→READY, with `ORDER_READY` notifying POS.
+  3. Split-tender payments close an order with defined 1-paisa rounding resolution and an idempotent close; voids/refunds respect permission + OPA thresholds and publish idempotent events.
+  4. Till open/close reconciles cash and emits `TILL_OPENED`/`TILL_CLOSED`, and `ORDER_CLOSED` is published carrying `customerId`.
+  5. An order taken while offline (Service Worker + IndexedDB) syncs once connectivity returns using `client_order_id` as the idempotency key, creating no duplicate orders.
+**Plans**: 4 plans
+
+Plans:
+- [ ] 07-01: Orders, tables, order state machine, discount floor
+- [ ] 07-02: Split-tender payments, idempotent close, voids/refunds, tills
+- [ ] 07-03: Offline POS — Service Worker + IndexedDB sync with `client_order_id`
+- [ ] 07-04: Kitchen Display System — station routing, item progression, `ORDER_READY`
+
+### Phase 8: Inventory & Recipe Management
+**Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
+**Depends on**: Phase 6, Phase 7
+**Requirements**: INV-01, INV-02, INV-03, INV-04, INV-05, INV-06, INV-07
+**Success Criteria** (what must be TRUE):
+  1. Managers manage ingredients, UOM, and reorder points, and opening stock is recorded via an `OPENING_BALANCE` movement.
+  2. Recipes/BOM are versioned, and depletion uses the recipe version that was effective at order time.
+  3. On `ORDER_CLOSED` the inventory consumer depletes stock with `SELECT FOR UPDATE`, maintains moving-average cost, and is idempotent on duplicate delivery.
+  4. Stock receipts update MAC and publish `STOCK_RECEIVED`, and transfers ship/receive with in-transit accounting and variance handling.
+  5. Stock counts post variances, and low-stock and expiry alerts fire.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 08-01: Ingredients, UOM, reorder points, versioned recipes/BOM, opening balance
+- [ ] 08-02: `ORDER_CLOSED` depletion consumer with `SELECT FOR UPDATE` + MAC
+- [ ] 08-03: Receipts (MAC + `STOCK_RECEIVED`), transfers, counts, alerts
+
+### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
+**Goal**: Close the core-value loop — when an order closes, a balanced revenue + COGS journal entry is auto-posted idempotently, and customer loyalty reacts to the same event.
+**Depends on**: Phase 6, Phase 7, Phase 8
+**Requirements**: FIN-03, CRM-01, CRM-02
+**Success Criteria** (what must be TRUE):
+  1. On `ORDER_CLOSED` the finance consumer auto-posts a balanced revenue + COGS journal entry, and refund/wastage/stock-count/transfer events each post their own balanced entries.
+  2. Re-delivering the same source event produces no duplicate journal entry (idempotent via `posted_source_events`).
+  3. Customers can be created and managed and are linked to orders via `customer_id`.
+  4. Loyalty points accrue on `ORDER_CLOSED` and are debited back on refund.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01: Auto-posting engine — order close (revenue+COGS), refund, wastage, stock count, transfer; idempotent
+- [ ] 09-02: CRM — customers linked by `customer_id`, loyalty accrual/debit on close/refund
+
+### Phase 10: Purchasing & Accounts Payable
+**Goal**: Procurement runs end-to-end with financial integrity — vendors, approval-gated POs, GRN that posts GR/IR, 3-way matched vendor invoices feeding AP, and OPA-limited expense approvals.
+**Depends on**: Phase 6, Phase 8
+**Requirements**: PUR-01, PUR-02, PUR-03, PUR-04, FIN-05
+**Success Criteria** (what must be TRUE):
+  1. Managers manage vendors with the bank account stored field-encrypted.
+  2. A PO moves DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval enforced by OPA.
+  3. A GRN receipt posts GR/IR, and a vendor-invoice 3-way match creates AP; payment posts and publishes `AP_PAYMENT_PROCESSED`.
+  4. AP/AR balances are tracked, and expense approvals respect OPA approval limits.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval
+- [ ] 10-02: GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP/AR + expense approval (FIN-05)
+
+### Phase 11: HR & Payroll
+**Goal**: Run compliant Pakistan payroll — employees with encrypted PII, config-driven income-tax/EOBI computation, and approved payroll that posts a balanced journal entry.
+**Depends on**: Phase 6
+**Requirements**: HR-01, HR-02, HR-03
+**Success Criteria** (what must be TRUE):
+  1. Employees are managed with `cnic` and `bank_account_no` stored field-encrypted.
+  2. A payroll run computes Pakistan income-tax slabs + EOBI from the config-driven annual `tax_config`.
+  3. Payroll approval/payment posts a balanced JE and publishes `PAYROLL_RUN_PAID`, which Finance consumes.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01: Employees with field-encrypted `cnic`/`bank_account_no`
+- [ ] 11-02: Payroll run (tax slabs + EOBI from `tax_config`), approval/payment, `PAYROLL_RUN_PAID` + JE
+
+### Phase 12: Reporting, Dashboards & NLQ
+**Goal**: Turn the system's events into insight safely — ClickHouse-backed reports (including FBR), a realtime dashboard, and a natural-language query path that is read-only and tenant/branch-safe by construction.
+**Depends on**: Phase 7, Phase 8, Phase 9
+**Requirements**: RPT-01, RPT-02, NLQ-01, NLQ-02
+**Success Criteria** (what must be TRUE):
+  1. Events ETL into ClickHouse analytics facts and named reports — including the FBR Tax Summary — return within their P95 latency targets, using the business-day boundary formula.
+  2. The dashboard WebSocket pushes updates within 5 seconds of `ORDER_CLOSED`/`TILL_CLOSED`.
+  3. An NLQ request converts NL→SQL via Claude and passes 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject); a query missing the tenant or branch filter is rejected.
+  4. NLQ enforces read-only execution, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas, a 60s result cache, and stamps impersonation in `nlq_query_log`.
+**Plans**: 3 plans
+
+Plans:
+- [ ] 12-01: ClickHouse ETL from events + named/FBR reports (business-day boundary)
+- [ ] 12-02: Realtime dashboard WebSocket (<5s of close events)
+- [ ] 12-03: NLQ service — NL→SQL, 7-stage AST validation, quotas/cache/read-only
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+
+With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 10 and 11 may proceed in parallel (both depend only on already-completed phases); Phase 12 runs last as it consumes events from POS/Inventory/Finance.
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Infrastructure Foundation & Shared Library | 0/4 | Not started | - |
+| 2. Authentication & Authorization | 0/3 | Not started | - |
+| 3. API Gateway, Platform Admin & Tenant/User Mgmt | 0/3 | Not started | - |
+| 4. Frontend Shell & CI/CD | 0/2 | Not started | - |
+| 5. Cross-Cutting Services (Notifications, Audit, Files) | 0/3 | Not started | - |
+| 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
+| 7. Point of Sale & Kitchen Display | 0/4 | Not started | - |
+| 8. Inventory & Recipe Management | 0/3 | Not started | - |
+| 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
+| 10. Purchasing & Accounts Payable | 0/2 | Not started | - |
+| 11. HR & Payroll | 0/2 | Not started | - |
+| 12. Reporting, Dashboards & NLQ | 0/3 | Not started | - |
+
+---
+*Roadmap created: 2026-06-22 — comprehensive depth, 12 phases, 93/93 v1 requirements mapped*
