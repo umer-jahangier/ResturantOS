@@ -17,3 +17,5 @@
 ## User reminders
 - Global: `agentmemory` running, `GITHUB_PERSONAL_ACCESS_TOKEN` for GitHub MCP
 - Re-index after major refactors: `bash ~/.cursor/get-shit-done/scripts/cursor-powerup-reindex.sh`
+
+## Last re-index: 2026-06-23T01:51
