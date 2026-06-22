@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 1 of 12 (Infrastructure Foundation & Shared Library)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-06-23 — Completed 01-03-PLAN.md (RabbitMQ topology + generate-keys.sh + .env.example)
+Plan: 4 of 4 in current phase
+Status: Phase 1 COMPLETE — ready to begin Phase 2 (Auth Service + Authorization)
+Last activity: 2026-06-23 — Completed 01-04-PLAN.md (shared-lib full implementation + Testcontainers harness SC3/SC4/SC5)
 
-Progress: [███░░░░░░░] 9% (3/33 plans)
+Progress: [████░░░░░░] 12% (4/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~9 min
-- Total execution time: 0.5 hours
+- Total plans completed: 4
+- Phase 1: COMPLETE (4/4 plans)
+- Total execution time: ~4.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-foundation-shared-library | 3/4 | ~35 min | ~12 min |
+| 01-infrastructure-foundation-shared-library | 4/4 ✅ | ~4.5 hours | ~68 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01, 01-02, 01-03
-- Trend: On track
+- Last 5 plans: 01-01, 01-02, 01-03, 01-04
+- Trend: On track — Phase 1 complete
 
 *Updated after each plan completion*
 
@@ -55,6 +55,10 @@ Recent decisions affecting current work:
 - [01-02]: AbstractRlsCoverageTest has no Testcontainers/Spring bootstrap — that lives in 01-04's BaseIntegrationTest; this class only provides query+assert logic.
 - [01-03]: Users/permissions omitted from rabbitmq-definitions.json; RabbitMQ creates the user from RABBITMQ_DEFAULT_USER/PASS env vars (auto-granted / vhost access).
 - [01-03]: PEM stored as base64 in .env (not \n-escaped); JwksKeyProvider/JwtProperties in 01-04 must Base64-decode before parsing.
+- [01-04]: Security beans (JwtAuthenticationFilter, JwksKeyProvider) shipped in shared-lib but NOT wired — Phase 2 (auth-service) wires them into SecurityFilterChain.
+- [01-04]: OutboxRelay publishes raw bytes via `rabbitTemplate.send(...)` to avoid double-encoding by Jackson2JsonMessageConverter.
+- [01-04]: OPA client is @ConditionalOnProperty(name="restaurantos.opa.url") — absent in tests; enabled when OPA_URL set in production.
+- [01-04]: SharedLibTestApplication (in src/test/java) bootstraps Spring context for shared-lib Testcontainers tests; no main class needed in shared-lib itself.
 
 ### Pending Todos
 
@@ -72,5 +76,6 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-06-23
-Stopped at: Completed 01-03-PLAN.md — RabbitMQ topology (9 exchanges + DLX + DLQs), generate-keys.sh, .env.example.
+Stopped at: Completed 01-04-PLAN.md — shared-lib full implementation (TenantContext, feature flags, OPA, idempotency, JWT, MoneyUtils, outbox, AutoConfiguration) + Testcontainers harness (BaseIntegrationTest, SharedLibVerificationIT). Phase 1 complete.
+Next: Phase 2 — Auth Service + Authorization (01-02 roadmap phase)
 Resume file: None
