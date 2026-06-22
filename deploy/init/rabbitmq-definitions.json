@@ -1,0 +1,116 @@
+{
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "exchanges": [
+    { "name": "pos.topic",           "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "inventory.topic",     "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "finance.topic",       "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "purchasing.topic",    "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "hr.topic",            "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "auth.topic",          "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "platform.topic",      "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "kitchen.topic",       "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "notifications.topic", "vhost": "/", "type": "topic",  "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "restaurantos.dlx",    "vhost": "/", "type": "direct", "durable": true, "auto_delete": false, "internal": false, "arguments": {} }
+  ],
+  "queues": [
+    {
+      "name": "inventory.order-closed.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "inventory.order-closed.queue.dlq" }
+    },
+    { "name": "inventory.order-closed.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.order-closed.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.order-closed.queue.dlq" }
+    },
+    { "name": "finance.order-closed.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "crm.order-closed.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "crm.order-closed.queue.dlq" }
+    },
+    { "name": "crm.order-closed.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "reporting.order-closed.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "reporting.order-closed.queue.dlq" }
+    },
+    { "name": "reporting.order-closed.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "kitchen.order-sent.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "kitchen.order-sent.queue.dlq" }
+    },
+    { "name": "kitchen.order-sent.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.stock-received.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.stock-received.queue.dlq" }
+    },
+    { "name": "finance.stock-received.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "notification.low-stock.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "notification.low-stock.queue.dlq" }
+    },
+    { "name": "notification.low-stock.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.invoice-matched.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.invoice-matched.queue.dlq" }
+    },
+    { "name": "finance.invoice-matched.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.payroll-approved.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.payroll-approved.queue.dlq" }
+    },
+    { "name": "finance.payroll-approved.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "audit.all-events.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "audit.all-events.queue.dlq" }
+    },
+    { "name": "audit.all-events.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} }
+  ],
+  "bindings": [
+    { "source": "pos.topic",        "vhost": "/", "destination": "inventory.order-closed.queue", "destination_type": "queue", "routing_key": "pos.order.closed",             "arguments": {} },
+    { "source": "pos.topic",        "vhost": "/", "destination": "finance.order-closed.queue",   "destination_type": "queue", "routing_key": "pos.order.closed",             "arguments": {} },
+    { "source": "pos.topic",        "vhost": "/", "destination": "crm.order-closed.queue",       "destination_type": "queue", "routing_key": "pos.order.closed",             "arguments": {} },
+    { "source": "pos.topic",        "vhost": "/", "destination": "reporting.order-closed.queue", "destination_type": "queue", "routing_key": "pos.order.closed",             "arguments": {} },
+    { "source": "pos.topic",        "vhost": "/", "destination": "kitchen.order-sent.queue",     "destination_type": "queue", "routing_key": "pos.order.sent_to_kds",        "arguments": {} },
+    { "source": "inventory.topic",  "vhost": "/", "destination": "finance.stock-received.queue", "destination_type": "queue", "routing_key": "inventory.stock.received",     "arguments": {} },
+    { "source": "inventory.topic",  "vhost": "/", "destination": "notification.low-stock.queue", "destination_type": "queue", "routing_key": "inventory.stock.low",          "arguments": {} },
+    { "source": "purchasing.topic", "vhost": "/", "destination": "finance.invoice-matched.queue","destination_type": "queue", "routing_key": "purchasing.invoice.matched",    "arguments": {} },
+    { "source": "hr.topic",         "vhost": "/", "destination": "finance.payroll-approved.queue","destination_type": "queue","routing_key": "hr.payroll.approved",           "arguments": {} },
+
+    { "source": "pos.topic",           "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "inventory.topic",     "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "finance.topic",       "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "purchasing.topic",    "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "hr.topic",            "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "auth.topic",          "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "platform.topic",      "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "kitchen.topic",       "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+    { "source": "notifications.topic", "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
+
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "inventory.order-closed.queue.dlq",  "destination_type": "queue", "routing_key": "inventory.order-closed.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.order-closed.queue.dlq",    "destination_type": "queue", "routing_key": "finance.order-closed.queue.dlq",    "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "crm.order-closed.queue.dlq",        "destination_type": "queue", "routing_key": "crm.order-closed.queue.dlq",        "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "reporting.order-closed.queue.dlq",  "destination_type": "queue", "routing_key": "reporting.order-closed.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "kitchen.order-sent.queue.dlq",      "destination_type": "queue", "routing_key": "kitchen.order-sent.queue.dlq",      "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.stock-received.queue.dlq",  "destination_type": "queue", "routing_key": "finance.stock-received.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "notification.low-stock.queue.dlq",  "destination_type": "queue", "routing_key": "notification.low-stock.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.invoice-matched.queue.dlq", "destination_type": "queue", "routing_key": "finance.invoice-matched.queue.dlq", "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.payroll-approved.queue.dlq","destination_type": "queue", "routing_key": "finance.payroll-approved.queue.dlq","arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "audit.all-events.queue.dlq",        "destination_type": "queue", "routing_key": "audit.all-events.queue.dlq",        "arguments": {} }
+  ],
+  "policies": [],
+  "parameters": [],
+  "global_parameters": [],
+  "users": [],
+  "permissions": [],
+  "topic_permissions": []
+}
