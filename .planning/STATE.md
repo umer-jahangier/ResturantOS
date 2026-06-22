@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 1 of 12 (Infrastructure Foundation & Shared Library)
-Plan: 4 of 4 in current phase
-Status: Phase 1 COMPLETE — ready to begin Phase 2 (Auth Service + Authorization)
-Last activity: 2026-06-23 — Completed 01-04-PLAN.md (shared-lib full implementation + Testcontainers harness SC3/SC4/SC5)
+Plan: 4 of 4 executed; verification 4/5 must-haves
+Status: Gaps found — SC5 `processed_events` consumer dedup not implemented
+Last activity: 2026-06-23 — Phase 1 execution complete; verifier found SC5 gap (see 01-VERIFICATION.md)
 
 Progress: [████░░░░░░] 12% (4/33 plans)
 
@@ -20,18 +20,18 @@ Progress: [████░░░░░░] 12% (4/33 plans)
 
 **Velocity:**
 - Total plans completed: 4
-- Phase 1: COMPLETE (4/4 plans)
+- Phase 1: 4/4 plans executed; verification gaps_found (4/5)
 - Total execution time: ~4.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-infrastructure-foundation-shared-library | 4/4 ✅ | ~4.5 hours | ~68 min |
+| 01-infrastructure-foundation-shared-library | 4/4 (verify 4/5) | ~4.5 hours | ~68 min |
 
 **Recent Trend:**
 - Last 5 plans: 01-01, 01-02, 01-03, 01-04
-- Trend: On track — Phase 1 complete
+- Trend: Phase 1 plans done; gap closure needed for SC5
 
 *Updated after each plan completion*
 
@@ -70,12 +70,13 @@ None yet.
 
 - ~~**01-02 must create** `deploy/init/01-create-databases.sql` and `deploy/init/02-create-roles.sql`~~ ✅ RESOLVED in 01-02.
 - ~~**01-03 must create** `deploy/.env` (via generate-keys.sh), `deploy/init/rabbitmq-definitions.json`, and `deploy/init/rabbitmq.conf`~~ ✅ RESOLVED in 01-03.
+- **SC5 gap (verification):** `processed_events` table exists in schema but has no Java entity/repository or consumer-side dedup logic. SC5 test uses `idempotency_keys` instead. Fix via `/gsd-plan-phase 1 --gaps`.
 - **Docker Hub availability:** `maven:3.9-eclipse-temurin-25` and `eclipse-temurin:25-jre` must be available for Dockerfile builds. These are standard Temurin images but should be verified on first `docker compose build`.
 - **JDK 25 required:** Local environment has JDK 21.0.11. Maven compilation (`mvn compile`, `mvn test-compile`) fails for all modules until JDK 25 is installed. Code is syntactically correct; this is a toolchain constraint only.
 
 ## Session Continuity
 
 Last session: 2026-06-23
-Stopped at: Completed 01-04-PLAN.md — shared-lib full implementation (TenantContext, feature flags, OPA, idempotency, JWT, MoneyUtils, outbox, AutoConfiguration) + Testcontainers harness (BaseIntegrationTest, SharedLibVerificationIT). Phase 1 complete.
-Next: Phase 2 — Auth Service + Authorization (01-02 roadmap phase)
+Stopped at: Phase 1 all 4 plans executed; verifier score 4/5 — SC5 `processed_events` consumer dedup missing.
+Next: `/gsd-plan-phase 1 --gaps` then re-run `/gsd-execute-phase 1 --gaps-only`
 Resume file: None
