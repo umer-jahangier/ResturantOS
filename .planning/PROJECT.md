@@ -1,0 +1,80 @@
+# RestaurantOS
+
+## What This Is
+
+RestaurantOS is a production-grade, white-label, **multi-tenant SaaS ERP for the restaurant industry**, sold on a recurring subscription model. It is built as 16 Java 21 / Spring Boot 3 microservices plus a Python FastAPI NLQ service and a Next.js 14 frontend, communicating via RabbitMQ events and OpenFeign internal APIs. It serves three audiences: the **SuperAdmin** (platform operator — Praivox) who manages tenants/features/billing; the **Tenant Admin** (restaurant owner) who manages branches and staff; and **Branch Staff** (cashier, chef, manager, accountant, inventory/HR/CRM managers) who run daily operations.
+
+## Core Value
+
+A restaurant tenant can run real operations end-to-end — take an order at the POS, have it deplete inventory and auto-post a balanced double-entry journal entry, all correctly isolated to that tenant and branch — without any cross-tenant data leakage or accounting imbalance.
+
+## Requirements
+
+### Validated
+
+<!-- Shipped and confirmed valuable. -->
+
+(None yet — ship to validate)
+
+### Active
+
+<!-- Current scope. Full requirement list with REQ-IDs lives in REQUIREMENTS.md. -->
+
+- [ ] Multi-tenant isolation (Hibernate tenant filter + PostgreSQL RLS, `tenant_id` never client-supplied)
+- [ ] Platform Admin: tenant provisioning, feature flags, impersonation, telemetry
+- [ ] Auth: login, RS256 JWT + JWKS, refresh sessions, 2FA, password reset, branch switch
+- [ ] Authorization: OPA/ABAC (fail-closed) with tenant + branch checks, RBAC
+- [ ] User/Branch management + internal endpoints
+- [ ] POS: orders, tables, split-tender payments, till sessions, offline sync
+- [ ] Kitchen Display System (station routing)
+- [ ] Inventory: stock, recipes/BOM, MAC, depletion, transfers, counts
+- [ ] Purchasing: vendors, POs, GRN, vendor-invoice 3-way match
+- [ ] Finance: GL, immutable balanced journal entries, AP/AR, period close, auto-posting recipes
+- [ ] HR: employees, payroll (Pakistan tax slabs via config)
+- [ ] CRM: customers, loyalty
+- [ ] Reporting: ClickHouse ETL + named reports (FBR-compliant)
+- [ ] NLQ: natural-language query with 7-stage SQL AST validation
+- [ ] Notifications, Audit (7-year immutable), File storage (MinIO)
+- [ ] Next.js frontend shell + four-layer API abstraction + per-module UIs
+- [ ] CI/CD pipeline (lint, test w/ coverage gates, build, schema-sync)
+
+### Out of Scope
+
+<!-- Explicit boundaries. -->
+
+- Mobile native apps — web-first (PWA/offline POS covers field use); native deferred.
+- Designing new architecture/data models/contracts — already decided in the specs; this is implementation, not design.
+- Multi-currency / non-Pakistan tax regimes in v1 — system is Pakistan-first (PKR paisa, FBR, EOBI/PESSI).
+- Payment-gateway integrations beyond recording tenders — out of v1.
+
+## Context
+
+- **Source of truth (superior to any prompt):**
+  - `Docs/RestaurantERP_SaaS_Specification.md` — full PRD + technical spec (architecture, 16 services, data models, security, deployment).
+  - `Docs/RestaurantERP_UserStories_FlowDiagrams.md` — 51 user stories w/ acceptance criteria, 20 Mermaid flow diagrams, 10 business-logic rule sets, checklists.
+  - `Docs/agent-specs/01..11` — agent-ready implementation docs we generated and verified: project scaffold, event schema registry, shared-lib spec, internal API contracts, env vars, dev docker-compose, coding standards, DB migration guide (Liquibase), security implementation guide, test architecture, seed data.
+- A Pre-Sprint Readiness review was completed; critical fixes (async tenant propagation, JE balance trigger timing, cross-service DB access via Feign, OPA branch isolation, transactional outbox, shared infra-table migrations) are already baked into `Docs/agent-specs/`.
+- Decision protocol when uncertain: re-read spec → check acceptance criteria → choose conservative/secure option → verify financial arithmetic → otherwise stop and ask. Never invent field names, endpoints, env vars, or skip security checks.
+
+## Constraints
+
+- **Tech stack**: Java 21, Spring Boot 3.3.x, Spring Cloud (Gateway/Config/Eureka), JPA/Hibernate 6, Liquibase, MapStruct, Lombok; Next.js 14 App Router + React 18 + TypeScript 5 strict; Python 3.12 + FastAPI for NLQ. PostgreSQL 16, Redis 7, RabbitMQ 3.13, MinIO, ClickHouse 24, OPA 0.65. No version substitutions.
+- **Tenancy**: every tenant-scoped table has RLS enabled immediately after creation; every entity extends `TenantAuditableEntity`; `platform_db` has no `tenant_id` and is touched only by platform-admin-service.
+- **Money**: all monetary values are `BIGINT` paisa (Java `Long`); never `Double`/`Float`/`DECIMAL`; tax floored per line with half-up rounding; display only via `MoneyUtils`.
+- **Accounting**: journal entries are balanced (DB trigger) and immutable; corrections via reversal only; auto-posting idempotent via `posted_source_events`.
+- **Boundaries**: no cross-service SQL; cross-service via `/internal/*` REST (OpenFeign) or RabbitMQ; consumers idempotent via `processed_events`; DLQ per consumer.
+- **Security**: JWT validated at gateway AND each service (defence in depth); OPA fail-closed; bcrypt cost 12; AES-256-GCM field encryption for `totp_secret`, `cnic`, `bank_account_no`.
+- **Time**: `TIMESTAMPTZ` (UTC) in DB, `Instant` in Java; business-day boundary = `DATE(opened_at AT TIME ZONE branch.timezone - INTERVAL '4 hours')`.
+- **Quality gates (CI)**: finance + inventory ≥ 75% line coverage, all others ≥ 60%; OPA policies 100% coverage.
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Specs in `Docs/` are the single source of truth, superior to prompts | Avoid hallucination; all design is already decided | — Pending |
+| Skip GSD research phase | Domain/stack/architecture fully specified + 11 agent-specs already produced | ✓ Good |
+| Comprehensive roadmap, parallel execution, all quality gates, Quality (Opus) profile | Production ERP; correctness > speed | — Pending |
+| Phase 1 scope = infra + shared-lib + Auth + Gateway + Platform Admin + User/Authz(OPA) + Next.js shell + CI/CD | Matches readiness report's Sprint-1 GO set | — Pending |
+
+---
+*Last updated: 2026-06-22 after initialization*
