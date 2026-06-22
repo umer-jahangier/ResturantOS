@@ -1,32 +1,27 @@
-.env
-.env.*
-!.env.example
-.codegraph/
-.cursor/projects/
-__pycache__/
-*.py[cod]
-*.pyo
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-node_modules/
-dist/
-build/
-.next/
-out/
-.turbo/
-*.log
-logs/
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
+# Dev secrets — never commit
+deploy/.env
+*.pem
+
+# Maven build output
+target/
+**/target/
+
+# IDE directories
 .idea/
 .vscode/
-output/
-*.egg-info/
-target/
-venv/
-.venv/
+*.iml
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / frontend
+node_modules/
+.next/
+.turbo/
+dist/
