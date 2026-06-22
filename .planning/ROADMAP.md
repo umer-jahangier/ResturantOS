@@ -40,10 +40,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: docker-compose infra + Maven parent POM scaffold
-- [ ] 01-02: DB init — 13 databases, per-service roles, RLS convention + `TenantAuditableEntity`
-- [ ] 01-03: RabbitMQ topology, key generation, `.env`/`.env.example`
-- [ ] 01-04: `shared-lib` — tenant context/async propagation, JWT filter, feature flags, OPA client, idempotency, outbox, MoneyUtils
+- [ ] 01-01-PLAN.md (wave 1) — docker-compose infra (9 services incl. locally-built eureka/config) + Maven parent POM scaffold + `make dev-up`
+- [ ] 01-02-PLAN.md (wave 2) — DB init (13 databases + least-privilege roles), RLS convention, `TenantAuditableEntity`, RLS-or-fail guard
+- [ ] 01-03-PLAN.md (wave 2) — RabbitMQ full topology (`definitions.json`), `generate-keys.sh` (RS256 + AES-256), `.env`/`.env.example`
+- [ ] 01-04-PLAN.md (wave 3) — `shared-lib` (tenant context/async + RabbitMQ propagation, feature flags, OPA, idempotency, outbox, MoneyUtils, JWT classes) + §8.9 infra tables + Testcontainers harness (SC3/SC4/SC5)
 
 ### Phase 2: Authentication & Authorization
 **Goal**: A user can securely obtain a verifiable identity (RS256 JWT + JWKS, refresh, branch context, 2FA) and every access decision is mediated by a fail-closed OPA policy that enforces tenant AND branch isolation.
