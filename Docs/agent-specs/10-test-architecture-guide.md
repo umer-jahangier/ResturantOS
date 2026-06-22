@@ -27,12 +27,12 @@ import org.testcontainers.utility.DockerImageName;
 public abstract class BaseIntegrationTest {
 
     static final PostgreSQLContainer<?> POSTGRES =
-        new PostgreSQLContainer<>(DockerImageName.parse("postgres:16.4"))
+        new PostgreSQLContainer<>(DockerImageName.parse("postgres:18.4"))
             .withDatabaseName("pos_db").withUsername("pos_user").withPassword("test-pass");
     static final GenericContainer<?> REDIS =
-        new GenericContainer<>(DockerImageName.parse("redis:7.4")).withExposedPorts(6379);
+        new GenericContainer<>(DockerImageName.parse("redis:8.2")).withExposedPorts(6379);
     static final RabbitMQContainer RABBIT =
-        new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.13-management"));
+        new RabbitMQContainer(DockerImageName.parse("rabbitmq:4.3-management"));
 
     static { POSTGRES.start(); REDIS.start(); RABBIT.start(); }
 

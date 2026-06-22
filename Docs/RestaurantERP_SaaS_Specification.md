@@ -453,9 +453,9 @@ Services never call the API Gateway to reach another service — they call each 
 
 | Concern | Choice | Rationale |
 |---|---|---|
-| Framework | Next.js 14+ (App Router) + React 18 | SSR for initial load performance; RSC for server-side data fetching without waterfalls |
+| Framework | Next.js 16+ (App Router, Turbopack) + React 19 | SSR for initial load performance; RSC for server-side data fetching without waterfalls. Next.js 16 requires Node.js 20+; request APIs (`cookies()`, `headers()`, `params`, `searchParams`) are async-only |
 | Language | TypeScript 5.x (strict mode) | Type safety end-to-end; strict mode catches API contract drift at compile time |
-| Styling | Tailwind CSS 3.x | Utility-first; trivial to theme per tenant via CSS custom properties |
+| Styling | Tailwind CSS 4.x | Utility-first; CSS-first config (`@import "tailwindcss"` + `@theme` in `globals.css`, NO `tailwind.config.js`); trivial to theme per tenant via CSS custom properties |
 | Component library | shadcn/ui (Radix primitives) | Accessible, unstyled at the primitive level, easy to override for white-label |
 | Forms | React Hook Form + Zod | Performant form state; Zod schemas shared across form validation AND API response parsing |
 | Server state | TanStack Query v5 | Caching, background refetch, optimistic updates, stale-while-revalidate |
@@ -1194,10 +1194,10 @@ All repository classes follow the same conventions:
 
 | Concern | Choice | Rationale |
 |---|---|---|
-| Language / Platform | Java 21 LTS | Virtual threads (Project Loom), record types, long-term support |
-| Framework | Spring Boot 3.3.x | De-facto Java microservice standard; mature ecosystem |
-| Security | Spring Security 6.x | Stateless JWT filter chain per service |
-| ORM | Spring Data JPA + Hibernate 6.x | Hibernate filters for tenant isolation; Criteria API for dynamic queries |
+| Language / Platform | Java 25 LTS | Virtual threads, record patterns, scoped values; LTS (GA Sept 2025, premier support to 2030) |
+| Framework | Spring Boot 4.0.x (Spring Framework 7) | De-facto Java microservice standard; pairs with Spring Cloud 2025.1.x (Oakwood). NOTE: Boot 4.1.0 exists but Spring Cloud's current release train only certifies 4.0.x — bump to 4.1 once Oakwood certifies it |
+| Security | Spring Security 7.x | Stateless JWT filter chain per service. Security 7 changes the config DSL (lambda-only `SecurityFilterChain`, renamed `requestMatchers`/authorization APIs) — follow Security 7 patterns, not 6.x |
+| ORM | Spring Data JPA + Hibernate 7.x | Hibernate filters for tenant isolation; Criteria API for dynamic queries |
 | Multi-tenancy enforcement | Hibernate filters + PostgreSQL RLS | Filter injected automatically; RLS as backstop |
 | Validation | Jakarta Bean Validation 3 | Annotation-based; consistent with OpenAPI schema generation |
 | Service-to-service | OpenFeign + Resilience4j | Declarative HTTP clients with circuit breaking |
@@ -1209,11 +1209,11 @@ All repository classes follow the same conventions:
 
 | Concern | Choice |
 |---|---|
-| Framework | Python 3.12 + FastAPI 0.110+ |
+| Framework | Python 3.14 + FastAPI 0.138+ |
 | LLM SDK | `anthropic` (official Python SDK) |
 | SQL AST validation | `sqlglot` |
 | DB driver | `psycopg[binary]` (psycopg3) for PostgreSQL; `clickhouse-connect` for ClickHouse |
-| Cache | Redis 7 |
+| Cache | Redis 8 |
 
 Registered in Eureka as `nlq-service`. Proxied by the API Gateway. See M6 for full design.
 
@@ -1221,13 +1221,13 @@ Registered in Eureka as `nlq-service`. Proxied by the API Gateway. See M6 for fu
 
 | Layer | Technology |
 |---|---|
-| Primary DB | PostgreSQL 16 |
-| Cache | Redis 7 |
-| Message broker | RabbitMQ 3.13 |
+| Primary DB | PostgreSQL 18 |
+| Cache | Redis 8 |
+| Message broker | RabbitMQ 4.3 (quorum queues default; classic mirrored queues removed in 4.x) |
 | Object storage | MinIO (S3-compatible) |
-| Analytics DB | ClickHouse 24.x |
-| Authorization engine | Open Policy Agent (OPA) 0.65 |
-| API Gateway | Spring Cloud Gateway 4.x |
+| Analytics DB | ClickHouse 25.9 |
+| Authorization engine | Open Policy Agent (OPA) 1.17 (Rego v1 is the default dialect) |
+| API Gateway | Spring Cloud Gateway 5.x (Spring Cloud 2025.1.x Oakwood) |
 | Service discovery | Eureka Server (dev) / K8s DNS (prod) |
 | Config management | Spring Cloud Config Server + Git |
 | Secrets | HashiCorp Vault (prod) / K8s Secrets (dev) |
@@ -1538,23 +1538,25 @@ Sample Rego policies:
 ```rego
 package restaurantos.pos
 
-default allow = false
+# Rego v1 (OPA 1.x default): rule bodies require the `if` keyword.
+
+default allow := false
 
 # Cashiers can void their own OPEN orders
-allow {
-    input.user.permissions[_] == "pos.order.void.own"
+allow if {
+    "pos.order.void.own" in input.user.permissions
     input.resource.created_by == input.user.id
     input.resource.status == "OPEN"
     same_tenant_and_branch
 }
 
 # Managers can void any order at their branch
-allow {
-    input.user.permissions[_] == "pos.order.void.any"
+allow if {
+    "pos.order.void.any" in input.user.permissions
     same_tenant_and_branch
 }
 
-same_tenant_and_branch {
+same_tenant_and_branch if {
     input.resource.tenant_id == input.user.tenant_id
     input.resource.branch_id == input.user.branch_id
 }
@@ -1563,17 +1565,17 @@ same_tenant_and_branch {
 ```rego
 package restaurantos.finance
 
-default allow = false
+default allow := false
 
 # Expense approval: user's approval limit must cover the amount
-allow {
+allow if {
     input.action == "approve"
-    input.user.permissions[_] == "finance.expense.approve"
+    "finance.expense.approve" in input.user.permissions
     input.resource.amount_paisa <= input.user.attributes.approval_limit_paisa
     same_tenant
 }
 
-same_tenant { input.resource.tenant_id == input.user.tenant_id }
+same_tenant if { input.resource.tenant_id == input.user.tenant_id }
 ```
 
 OPA policies live in the Git Config repo and sync to OPA via the bundle API. Policy updates deploy without restarting any Java service.

@@ -9,7 +9,7 @@
 
 ### Infrastructure & Cross-Cutting (INFRA / XCUT)
 
-- [ ] **INFRA-01**: `make dev-up` starts all infra (PostgreSQL 16, Redis 7, RabbitMQ 3.13, MinIO, OPA, Eureka, Config Server, ClickHouse, pgAdmin) with healthy status
+- [ ] **INFRA-01**: `make dev-up` starts all infra (PostgreSQL 18, Redis 8, RabbitMQ 4.3, MinIO, OPA 1.17, Eureka, Config Server, ClickHouse 25.9, pgAdmin) with healthy status
 - [ ] **INFRA-02**: DB init creates all 13 service databases and one least-privilege role per service with `SET ON PARAMETER app.current_tenant_id`
 - [ ] **INFRA-03**: RabbitMQ topology (exchanges, queues, per-consumer DLQs) pre-created from definitions on first start
 - [ ] **INFRA-04**: `generate-keys.sh` produces RS256 JWT keypair + AES-256 key into `.env`; `.env.example` documents every variable
@@ -76,7 +76,7 @@
 
 ### Frontend Shell (FE)
 
-- [ ] **FE-01**: Next.js 14 App Router shell with TS strict, Tailwind, shadcn/ui, route groups (auth/platform/tenant)
+- [ ] **FE-01**: Next.js 16 App Router shell with TS strict, Tailwind CSS 4, shadcn/ui, route groups (auth/platform/tenant)
 - [ ] **FE-02**: Four-layer API abstraction (client/request/errors/types + schemas/adapters/models/repositories/hooks) wired
 - [ ] **FE-03**: `middleware.ts` protects tenant and platform routes (redirect to login without valid session)
 - [ ] **FE-04**: Login page (tenant slug from subdomain/`?tenant=`), conditional TOTP step

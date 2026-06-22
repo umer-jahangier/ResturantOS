@@ -2,7 +2,7 @@
 
 ## What This Is
 
-RestaurantOS is a production-grade, white-label, **multi-tenant SaaS ERP for the restaurant industry**, sold on a recurring subscription model. It is built as 16 Java 21 / Spring Boot 3 microservices plus a Python FastAPI NLQ service and a Next.js 14 frontend, communicating via RabbitMQ events and OpenFeign internal APIs. It serves three audiences: the **SuperAdmin** (platform operator — Praivox) who manages tenants/features/billing; the **Tenant Admin** (restaurant owner) who manages branches and staff; and **Branch Staff** (cashier, chef, manager, accountant, inventory/HR/CRM managers) who run daily operations.
+RestaurantOS is a production-grade, white-label, **multi-tenant SaaS ERP for the restaurant industry**, sold on a recurring subscription model. It is built as 16 Java 25 / Spring Boot 4 microservices plus a Python FastAPI NLQ service and a Next.js 16 frontend, communicating via RabbitMQ events and OpenFeign internal APIs. It serves three audiences: the **SuperAdmin** (platform operator — Praivox) who manages tenants/features/billing; the **Tenant Admin** (restaurant owner) who manages branches and staff; and **Branch Staff** (cashier, chef, manager, accountant, inventory/HR/CRM managers) who run daily operations.
 
 ## Core Value
 
@@ -58,7 +58,7 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 
 ## Constraints
 
-- **Tech stack**: Java 21, Spring Boot 3.3.x, Spring Cloud (Gateway/Config/Eureka), JPA/Hibernate 6, Liquibase, MapStruct, Lombok; Next.js 14 App Router + React 18 + TypeScript 5 strict; Python 3.12 + FastAPI for NLQ. PostgreSQL 16, Redis 7, RabbitMQ 3.13, MinIO, ClickHouse 24, OPA 0.65. No version substitutions.
+- **Tech stack**: Java 25 LTS, Spring Boot 4.0.x (Spring Framework 7 / Spring Security 7), Spring Cloud 2025.1.x Oakwood (Gateway/Config/Eureka), JPA/Hibernate 7, Liquibase, MapStruct 1.7.0.Beta1, Lombok 1.18.38+; Next.js 16 App Router (Turbopack) + React 19 + TypeScript 5 strict + Tailwind CSS 4 (CSS-first); Python 3.14 + FastAPI 0.138+ for NLQ. PostgreSQL 18, Redis 8, RabbitMQ 4.3 (quorum queues), MinIO, ClickHouse 25.9, OPA 1.17 (Rego v1). Latest stable versions across the board; Spring Boot stays on 4.0.x until Spring Cloud certifies 4.1. No downgrades.
 - **Tenancy**: every tenant-scoped table has RLS enabled immediately after creation; every entity extends `TenantAuditableEntity`; `platform_db` has no `tenant_id` and is touched only by platform-admin-service.
 - **Money**: all monetary values are `BIGINT` paisa (Java `Long`); never `Double`/`Float`/`DECIMAL`; tax floored per line with half-up rounding; display only via `MoneyUtils`.
 - **Accounting**: journal entries are balanced (DB trigger) and immutable; corrections via reversal only; auto-posting idempotent via `posted_source_events`.

@@ -28,7 +28,7 @@ restaurantos/
 ├── gateway/                     # Spring Cloud Gateway
 ├── config-server/               # Spring Cloud Config
 ├── eureka-server/               # Service discovery
-├── frontend/                    # Next.js 14 (App Router)
+├── frontend/                    # Next.js 16 (App Router, Turbopack)
 ├── policies/                    # OPA Rego policies
 ├── deploy/                      # docker-compose, init scripts, helm
 └── docs/                        # specifications and agent docs
@@ -53,14 +53,16 @@ The parent POM centralizes dependency versions through `dependencyManagement`. C
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
+        <version>4.0.7</version>
         <relativePath/>
     </parent>
 
     <properties>
-        <java.version>21</java.version>
-        <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <mapstruct.version>1.6.2</mapstruct.version>
+        <java.version>25</java.version>
+        <spring-cloud.version>2025.1.0</spring-cloud.version>
+        <mapstruct.version>1.7.0.Beta1</mapstruct.version>
+        <!-- Lombok ≥ 1.18.38 is REQUIRED on JDK 25/26 (older versions throw ExceptionInInitializerError under javac). -->
+        <lombok.version>1.18.38</lombok.version>
         <jjwt.version>0.12.6</jjwt.version>
         <testcontainers.version>1.20.3</testcontainers.version>
     </properties>
@@ -168,7 +170,7 @@ shared-lib/src/main/java/io/restaurantos/shared/
 └── config/        # SharedAutoConfiguration, AuditorAware, Feign config
 ```
 
-## 1.5 Frontend `src/` Directory Tree (Next.js 14 App Router)
+## 1.5 Frontend `src/` Directory Tree (Next.js 16 App Router)
 
 ```
 frontend/src/

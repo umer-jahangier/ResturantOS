@@ -1,6 +1,6 @@
 # RestaurantOS — Document 3: Shared Library (`shared-lib`) Specification
 
-> Every Java microservice imports `shared-lib`. Every interface, class, annotation, and config component below is normative. Inconsistency here propagates to all services. All code is Java 21, Spring Boot 3.3.5, complete and compilable.
+> Every Java microservice imports `shared-lib`. Every interface, class, annotation, and config component below is normative. Inconsistency here propagates to all services. All code is Java 25, Spring Boot 4.0.x (Spring Framework 7), complete and compilable.
 
 ## 3.1 Maven Artifact
 

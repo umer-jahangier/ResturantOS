@@ -1,6 +1,10 @@
 # RestaurantOS — Document 9: Security Implementation Guide
 
-> Concrete implementation patterns for auth and authorisation. Agents MUST NOT invent their own JWT filter, OPA integration, or tenant filter — use these patterns. All code is Java 21 / Spring Security 6 / Spring Boot 3.3.5.
+> Concrete implementation patterns for auth and authorisation. Agents MUST NOT invent their own JWT filter, OPA integration, or tenant filter — use these patterns. All code is Java 25 / Spring Security 7 / Spring Boot 4.0.x (Spring Framework 7).
+>
+> **Spring Security 7 migration note:** the lambda DSL shown below is the canonical Security 7 style (`http.authorizeHttpRequests(auth -> …)`, `Customizer.withDefaults()`, `csrf(AbstractHttpConfigurer::disable)`). Do NOT use the removed Security 5/6 chained-method or `WebSecurityConfigurerAdapter` style. `requestMatchers(...)` (not `antMatchers`) is correct.
+>
+> **OPA 1.x / Rego v1 note:** all `.rego` policies target OPA 1.17 where **Rego v1 is the default dialect**. Every rule that has a body MUST use the `if` keyword and multi-value rules MUST use `contains` (e.g. `allow if { … }`, `deny contains msg if { … }`). The pre-1.0 bodies-without-`if` syntax is rejected by default. `import rego.v1` is optional under 1.x but harmless.
 
 ## 9.1 Spring Security Filter Chain
 
@@ -375,17 +379,20 @@ Standard Rego structure. `policies/restaurantos/common.rego`:
 ```rego
 package restaurantos.common
 
-same_tenant_and_branch(input) {
+# Rego v1 (OPA 1.x default): rule/function bodies require the `if` keyword.
+
+same_tenant_and_branch(input) if {
     input.resource.tenant_id == input.user.tenant_id
     input.resource.branch_id == input.user.branch_id
 }
 
-same_tenant(input) {
+same_tenant(input) if {
     input.resource.tenant_id == input.user.tenant_id
 }
 
-has_permission(input, perm) {
-    input.user.permissions[_] == perm
+has_permission(input, perm) if {
+    some p in input.user.permissions
+    p == perm
 }
 ```
 
@@ -396,16 +403,16 @@ package restaurantos.pos
 
 import data.restaurantos.common
 
-default allow = false
+default allow := false
 
-allow {
+allow if {
     common.has_permission(input, "pos.order.void.own")
     input.resource.created_by == input.user.id
     input.resource.status == "OPEN"
     common.same_tenant_and_branch(input)
 }
 
-allow {
+allow if {
     common.has_permission(input, "pos.order.void.any")
     common.same_tenant_and_branch(input)
 }
@@ -418,16 +425,16 @@ package restaurantos.finance
 
 import data.restaurantos.common
 
-default allow = false
+default allow := false
 
-allow {
+allow if {
     input.action == "approve"
     common.has_permission(input, "finance.expense.approve")
     common.same_tenant_and_branch(input)
     input.resource.amount_paisa <= input.user.attributes.approval_limit_paisa
 }
 
-allow {
+allow if {
     input.action == "close_period"
     common.has_permission(input, "finance.period.close")
     common.same_tenant(input)

@@ -16,7 +16,7 @@ networks:
 
 services:
   postgres:
-    image: postgres:16.4
+    image: postgres:18.4
     container_name: restaurantos-postgres
     restart: unless-stopped
     environment:
@@ -50,7 +50,7 @@ services:
     networks: [restaurantos]
 
   redis:
-    image: redis:7.4
+    image: redis:8.2
     container_name: restaurantos-redis
     restart: unless-stopped
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "900", "1"]
@@ -66,7 +66,7 @@ services:
     networks: [restaurantos]
 
   rabbitmq:
-    image: rabbitmq:3.13-management
+    image: rabbitmq:4.3-management
     container_name: restaurantos-rabbitmq
     restart: unless-stopped
     environment:
@@ -108,7 +108,7 @@ services:
     networks: [restaurantos]
 
   opa:
-    image: openpolicyagent/opa:0.65.0
+    image: openpolicyagent/opa:1.17.1
     container_name: restaurantos-opa
     restart: unless-stopped
     command:
@@ -164,7 +164,7 @@ services:
     networks: [restaurantos]
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24.8
+    image: clickhouse/clickhouse-server:25.9
     container_name: restaurantos-clickhouse
     restart: unless-stopped
     environment:
@@ -312,6 +312,8 @@ The `audit_user` is further restricted to INSERT-only on `audit_events` by a Liq
 ```ini
 load_definitions = /etc/rabbitmq/definitions.json
 ```
+
+> **RabbitMQ 4.x note:** the queues below are **classic durable** queues, which remain fully supported in RabbitMQ 4.3 — only *mirrored* classic queues (the old `ha-mode` HA policy) were removed in 4.x, and these definitions never used mirroring. To opt into the 4.x-recommended replicated type instead, add `"x-queue-type": "quorum"` to each work/DLQ queue's `arguments` (quorum queues support the `x-dead-letter-exchange` / `x-dead-letter-routing-key` args used here). Do NOT add `ha-mode`/`ha-policy` — those are removed.
 
 `deploy/init/rabbitmq-definitions.json` (representative set; extend with the full §2.2 table):
 

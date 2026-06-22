@@ -1,16 +1,16 @@
 # Phase 1: Infrastructure Foundation & Shared Library - Research
 
 **Researched:** 2026-06-23
-**Domain:** Java 21 / Spring Boot 3.3 multi-module platform foundation; Docker-Compose dev infra (Postgres RLS, RabbitMQ, OPA, ClickHouse, MinIO); transactional outbox + multi-tenant `shared-lib`
+**Domain:** Java 25 / Spring Boot 4.0 multi-module platform foundation; Docker-Compose dev infra (Postgres RLS, RabbitMQ, OPA, ClickHouse, MinIO); transactional outbox + multi-tenant `shared-lib`
 **Confidence:** HIGH (the four agent-specs — 01, 02, 03, 05, 06, 08, 09, 10 — contain the exact intended implementation; this research distills them and flags the gaps the specs leave as implementation decisions)
 
 ## Summary
 
-Phase 1 has two halves that the four plans split cleanly: (1) **dev infrastructure** — a `deploy/docker-compose.yml` plus init scripts that stand up Postgres 16 (13 databases + least-privilege roles + RLS-ready GUC), Redis 7, RabbitMQ 3.13 (topology pre-loaded), MinIO, OPA 0.65, ClickHouse 24, Eureka, Config Server, pgAdmin, Mailpit; and (2) the **`shared-lib`** jar that every later service imports, encoding tenant isolation (`TenantAuditableEntity` + Hibernate `@Filter` + Postgres RLS), BIGINT-paisa money, the transactional outbox, idempotency, the JWT filter, the OPA client, feature-flag aspect, and a Spring Boot auto-configuration that wires it all so importing the jar is sufficient.
+Phase 1 has two halves that the four plans split cleanly: (1) **dev infrastructure** — a `deploy/docker-compose.yml` plus init scripts that stand up Postgres 18 (13 databases + least-privilege roles + RLS-ready GUC), Redis 8, RabbitMQ 4.3 (topology pre-loaded), MinIO, OPA 1.17, ClickHouse 25.9, Eureka, Config Server, pgAdmin, Mailpit; and (2) the **`shared-lib`** jar that every later service imports, encoding tenant isolation (`TenantAuditableEntity` + Hibernate `@Filter` + Postgres RLS), BIGINT-paisa money, the transactional outbox, idempotency, the JWT filter, the OPA client, feature-flag aspect, and a Spring Boot auto-configuration that wires it all so importing the jar is sufficient.
 
 The specs are unusually complete: every class in `shared-lib` is given verbatim (spec 03 + 09), the full compose file and init SQL are given (spec 06), every env var and `.env.example` is given (spec 05), and the Liquibase RLS/outbox/idempotency/processed_events patterns are given (spec 08 §8.6, §8.9). The planner's job is therefore **transcription with version pinning**, plus resolving a handful of genuine gaps the specs deliberately leave open: how `shared-lib` is verified with no real service, how SC4's "RLS-or-fail" guard is concretely enforced, and how many Maven modules the Phase-1 parent should declare.
 
-**Primary recommendation:** Pin exactly `spring-boot-starter-parent 3.3.5` + `spring-cloud-dependencies 2023.0.3` (compatibility confirmed) and transcribe the spec classes 1:1. Verify `shared-lib` with a **test-only Spring Boot app inside `shared-lib/src/test`** driving Testcontainers (Postgres + RabbitMQ + Redis), a sample `TenantAuditableEntity` table, and a test Liquibase changelog — this single harness proves SC3 (bean resolution + `@Async`/Rabbit tenant propagation), SC4 (Money math + RLS-coverage guard), and SC5 (outbox exactly-once to an idempotent consumer). Scope the Phase-1 parent `<modules>` to only what exists now (`shared-lib`, `eureka-server`, `config-server`), not all 16 services.
+**Primary recommendation:** Pin exactly `spring-boot-starter-parent 4.0.7` + `spring-cloud-dependencies 2025.1.0` (Oakwood; official pairing for Boot 4.0.x) and transcribe the spec classes 1:1. Verify `shared-lib` with a **test-only Spring Boot app inside `shared-lib/src/test`** driving Testcontainers (Postgres + RabbitMQ + Redis), a sample `TenantAuditableEntity` table, and a test Liquibase changelog — this single harness proves SC3 (bean resolution + `@Async`/Rabbit tenant propagation), SC4 (Money math + RLS-coverage guard), and SC5 (outbox exactly-once to an idempotent consumer). Scope the Phase-1 parent `<modules>` to only what exists now (`shared-lib`, `eureka-server`, `config-server`), not all 16 services.
 
 ---
 
@@ -21,14 +21,14 @@ These are **fixed by the specs — no substitutions** (context confirms). Versio
 ### Core (pinned in parent POM)
 | Library / Tool | Version | Source of version | Notes |
 |---|---|---|---|
-| Java | 21 | spec 01 `<java.version>21` | LTS; toolchain target |
-| Spring Boot (parent) | 3.3.5 | spec 01 `spring-boot-starter-parent` | provides `spring-boot-dependencies` BOM (manages Hibernate 6.5.x, Liquibase 4.29.x, Jackson, AMQP, Awaitility, AssertJ, Lombok) |
-| Spring Cloud | 2023.0.3 (Leyton) | spec 01 `spring-cloud.version` | **BOM import** in `dependencyManagement`; Gateway/Config/Eureka/OpenFeign |
-| MapStruct | **1.6.2** | spec 01 `mapstruct.version` | ⚠️ context said "1.5.x" — spec (superior) says **1.6.2**; use 1.6.2 (see Open Questions) |
-| Lombok | Boot-managed | — | needs annotation-processor ordering with MapStruct (see Pitfalls) |
+| Java | 25 | spec 01 `<java.version>25` | LTS (GA Sept 2025); toolchain target |
+| Spring Boot (parent) | 4.0.7 | spec 01 `spring-boot-starter-parent` | provides `spring-boot-dependencies` BOM (manages Hibernate 7.x, Liquibase 4.x, Jackson, AMQP, Awaitility, AssertJ, Lombok). NOTE: Boot 4.1.0 exists but Spring Cloud's current train only certifies 4.0.x — stay on 4.0.x |
+| Spring Cloud | 2025.1.x (Oakwood) | spec 01 `spring-cloud.version` (`2025.1.0`) | **BOM import** in `dependencyManagement`; Gateway/Config/Eureka/OpenFeign. Spring Cloud Gateway is 5.0.x under this train |
+| MapStruct | **1.7.0.Beta1** | spec 01 `mapstruct.version` | only MapStruct line that supports JDK 25/26 (1.6.x fails under javac on JDK 25) |
+| Lombok | **1.18.38+** | spec 01 `lombok.version` | ≥1.18.38 REQUIRED on JDK 25/26; needs annotation-processor ordering with MapStruct (see Pitfalls) |
 | jjwt (api/impl/jackson) | 0.12.6 | spec 01 `jjwt.version` | uses 0.12.x API (`Jwts.parser().verifyWith(..).build().parseSignedClaims(..)`) |
-| Liquibase | 4.29.x (Boot-managed) | spec 08 uses `dbchangelog-4.29.xsd` | do NOT pin; inherit from Boot 3.3.5 |
-| Hibernate ORM | 6.5.x (Boot-managed) | — | `@FilterDef`/`@Filter` for tenant filter |
+| Liquibase | 4.x (Boot-managed) | spec 08 changelogs | do NOT pin; inherit from Boot 4.0.x BOM |
+| Hibernate ORM | 7.x (Boot-managed) | — | `@FilterDef`/`@Filter` for tenant filter |
 | Testcontainers | 1.20.3 | spec 01 `testcontainers.version` | **add `testcontainers-bom` import** (property is set but BOM import is missing from the shown POM — see Pitfalls) |
 | JUnit 5 + AssertJ + Awaitility | Boot-managed | spec 10 | Awaitility used for async/Rabbit assertions |
 
@@ -42,15 +42,15 @@ These are **fixed by the specs — no substitutions** (context confirms). Versio
 `spring-boot-starter-web`, `-data-jpa`, `-security`, `-amqp`, `-aop`, `-data-redis`; `jjwt-api/impl/jackson`; `mapstruct`; `lombok`; `logstash-logback-encoder`. Packaging `jar`. Registers beans via auto-config (§3.12) → no `@ComponentScan` change in services.
 
 ### Infra images (spec 06, all multi-arch / Apple-Silicon OK unless flagged)
-`postgres:16.4`, `redis:7.4`, `rabbitmq:3.13-management`, `minio/minio:RELEASE.2024-09-13T20-26-02Z`, `openpolicyagent/opa:0.65.0`, `clickhouse/clickhouse-server:24.8`, `axllent/mailpit:v1.20`, `dpage/pgadmin4:8.12`, plus **custom** `ghcr.io/restaurantos/eureka-server:1.0.0` and `config-server:1.0.0` (see Open Questions — these do not exist yet).
+`postgres:18.4`, `redis:8.2`, `rabbitmq:4.3-management`, `minio/minio:RELEASE.2024-09-13T20-26-02Z`, `openpolicyagent/opa:1.17.1`, `clickhouse/clickhouse-server:25.9`, `axllent/mailpit:v1.20`, `dpage/pgadmin4:8.12`, plus **custom** `ghcr.io/restaurantos/eureka-server:1.0.0` and `config-server:1.0.0` (see Open Questions — these do not exist yet).
 
 **Installation (parent `dependencyManagement` the planner must produce):**
 ```xml
-<!-- in addition to spring-boot-starter-parent 3.3.5 -->
+<!-- in addition to spring-boot-starter-parent 4.0.7 -->
 <dependencyManagement><dependencies>
   <dependency><groupId>org.springframework.cloud</groupId>
     <artifactId>spring-cloud-dependencies</artifactId>
-    <version>2023.0.3</version><type>pom</type><scope>import</scope></dependency>
+    <version>2025.1.0</version><type>pom</type><scope>import</scope></dependency>
   <dependency><groupId>org.testcontainers</groupId>
     <artifactId>testcontainers-bom</artifactId>
     <version>1.20.3</version><type>pom</type><scope>import</scope></dependency>
@@ -150,7 +150,7 @@ Build this harness:
 1. `src/test/.../TestApp` — a `@SpringBootApplication` (+ `@EnableScheduling`, `@EnableAsync`) that pulls in `SharedAutoConfiguration`.
 2. A sample entity `WidgetEntity extends TenantAuditableEntity` (proves the mapped-superclass + filter compile and map).
 3. A test Liquibase changelog creating `widgets` (+ its RLS changeset), `event_outbox`, `idempotency_keys`, `processed_events` — exactly per spec 08 §8.6/§8.9.
-4. `BaseIntegrationTest` per spec 10 §10.1: Testcontainers `postgres:16.4` + `redis:7.4` + `rabbitmq:3.13-management`, Liquibase on context start, `set_config('app.current_tenant_id', …, false)` in `@BeforeEach`.
+4. `BaseIntegrationTest` per spec 10 §10.1: Testcontainers `postgres:18.4` + `redis:8.2` + `rabbitmq:4.3-management`, Liquibase on context start, `set_config('app.current_tenant_id', …, false)` in `@BeforeEach`.
 5. Stub external calls so the context starts without a live Auth/OPA: provide a test `FeatureFlagService` bean (or real Redis-backed one against the Redis container), a test `JwksKeyProvider`/`OpaClient`, or avoid the web-security slice entirely for the JPA/outbox tests.
 
 Then the verification tests:
@@ -203,20 +203,20 @@ Spec 06 says `docker compose up -d`; SC1 says `make dev-up`. Add a `Makefile` wi
 ### Pitfall 6: Seed inserts under `FORCE ROW LEVEL SECURITY`
 A policy with only `USING` is also applied as `WITH CHECK` for INSERT. Inserting a row when `app.current_tenant_id` is unset (e.g., Liquibase seed running after RLS is enabled) → `current_setting(...,true)` is NULL → predicate false → **INSERT blocked**. Not a Phase-1 blocker (Phase-1 system seeds like roles are non-tenant-scoped), but flag for Finance/HR seeds (spec 08 §8.6 COA uses `tenant_id='000…0'`): either seed before enabling RLS, or `SET app.current_tenant_id` to the system tenant during the seed changeset, or add a `WITH CHECK` exception.
 
-### Pitfall 7: Lombok + MapStruct annotation-processor ordering
-MapStruct 1.6.2 + Lombok require `maven-compiler-plugin` `annotationProcessorPaths` in order: `lombok`, then `mapstruct-processor`, plus `org.projectlombok:lombok-mapstruct-binding`. Omitting the binding → MapStruct can't see Lombok getters/setters and silently maps nulls.
+### Pitfall 7: Lombok + MapStruct annotation-processor ordering (and JDK 25 Lombok floor)
+MapStruct 1.7.0.Beta1 + Lombok **1.18.38+** require `maven-compiler-plugin` `annotationProcessorPaths` in order: `lombok`, then `mapstruct-processor`, plus `org.projectlombok:lombok-mapstruct-binding`. Omitting the binding → MapStruct can't see Lombok getters/setters and silently maps nulls. Lombok < 1.18.38 throws `ExceptionInInitializerError` (com.sun.tools.javac.code.TypeTag) under JDK 25/26 — pin ≥1.18.38.
 
 ### Pitfall 8: Testcontainers BOM not imported
 Spec 01 sets `<testcontainers.version>` but the shown `dependencyManagement` only imports spring-cloud + shared-lib. Without the `testcontainers-bom` import (or per-artifact versions) `postgresql`/`rabbitmq`/`junit-jupiter` Testcontainers artifacts won't resolve. Add the BOM (shown above).
 
 ### Pitfall 9: OPA empty policy dir
-OPA 0.65 `run --server /policies` starts fine with an empty dir, but spec 06 §6.6 verifies `GET /v1/policies | grep restaurantos`. Phase-1 `policies/` should contain at least a placeholder `restaurantos/common.rego` so the OPA mount is demonstrably loaded (real Rego arrives in Phase 2).
+OPA 1.17 `run --server /policies` starts fine with an empty dir, but spec 06 §6.6 verifies `GET /v1/policies | grep restaurantos`. Phase-1 `policies/` should contain at least a placeholder `restaurantos/common.rego` so the OPA mount is demonstrably loaded (real Rego arrives in Phase 2). The placeholder MUST be **Rego v1** (rule bodies use `if`) — OPA 1.x rejects pre-1.0 syntax by default and a parse failure stops the policy from loading.
 
 ### Pitfall 10: Multiline RS256 PEM in `.env`
 `JWT_PRIVATE_KEY` is a multi-line PEM; `.env`/Docker env do not handle newlines cleanly. Decide a storage form (base64-encode the PEM into one line and decode in-app, or single-line `\n`-escaped). `generate-keys.sh` should emit whatever form the app expects. (Auth-service consumes this in Phase 2, but `generate-keys.sh` is a Phase-1 SC2 deliverable.)
 
 ### Pitfall 11: ClickHouse init file must exist + `nofile` ulimits
-`./init/clickhouse-init.sql` is mounted read-only; if missing, the container errors. Provide at least a minimal file. Keep `ulimits.nofile 262144`. `clickhouse-server:24.8` has arm64 images (Apple-Silicon OK). `/docker-entrypoint-initdb.d` runs only on first init (empty volume) — re-running needs a volume reset.
+`./init/clickhouse-init.sql` is mounted read-only; if missing, the container errors. Provide at least a minimal file. Keep `ulimits.nofile 262144`. `clickhouse-server:25.9` has arm64 images (Apple-Silicon OK). `/docker-entrypoint-initdb.d` runs only on first init (empty volume) — re-running needs a volume reset.
 
 ---
 
@@ -258,11 +258,13 @@ public void onEvent(EventEnvelope<Payload> env) {
 | Old / wrong | Current (spec-mandated) | Impact |
 |---|---|---|
 | jjwt 0.11 `parserBuilder().setSigningKey()` | jjwt 0.12.6 `parser().verifyWith().build().parseSignedClaims()` | spec 09 code uses 0.12 API |
-| RestTemplate | `RestClient` (OPA client, JWKS) | spec 03/09 use `RestClient` (Boot 3.2+) |
-| Spring Cloud 2022.x | **2023.0.3 (Leyton)** with Boot 3.3.x | confirmed compatible (below) |
-| `password_hash`-only Rabbit definitions | `password` field auto-hashed on import (3.13) | works, but sync gotcha (Pitfall 3) |
+| RestTemplate | `RestClient` (OPA client, JWKS) | spec 03/09 use `RestClient` |
+| Spring Cloud 2023.0.x (Leyton) | **2025.1.x (Oakwood)** with Boot 4.0.x | confirmed compatible (below) |
+| Spring Security 6 chained DSL / `WebSecurityConfigurerAdapter` | Spring Security 7 lambda DSL | Boot 4 ships Security 7 — use lambda config only |
+| OPA pre-1.0 Rego (`allow { }`) | OPA 1.x **Rego v1** (`allow if { }`) | 1.x rejects old syntax by default |
+| `password_hash`-only Rabbit definitions | `password` field auto-hashed on import (4.x) | works, but sync gotcha (Pitfall 3) |
 
-**Confirmed compatibility (HIGH):** Spring Cloud release-train **2023.0.x (Leyton) supports Spring Boot 3.2.x and 3.3.x**; maintainer confirmed **2023.0.3 works with Spring Boot 3.3.x** (spring.io project page; spring-cloud-release "Supported Versions" wiki; spring-cloud-config issue #2559). The spec's pin of Boot 3.3.5 + Cloud 2023.0.3 is correct — use it as-is.
+**Confirmed compatibility (HIGH):** Spring Cloud release-train **2025.1.x (Oakwood) supports Spring Boot 4.0.x** (spring.io project page "Release train Spring Boot compatibility" table; spring-cloud-release "Supported Versions" wiki — spring-cloud-gateway/config/commons are 5.0.x / 4.3.x under this train). Spring Boot 4.1.0 is released but the current Spring Cloud train does not yet list 4.1.x, so the spec pins **Boot 4.0.7 + Cloud 2025.1.0** — use it as-is; bump to 4.1 only after Oakwood certifies it.
 
 ---
 
@@ -276,7 +278,7 @@ public void onEvent(EventEnvelope<Payload> env) {
 
 4. **SC4 enforcement mechanism** is unspecified by the docs. Recommended = runtime `AbstractRlsCoverageTest` querying `pg_class`/`pg_policies` after Liquibase (+ optional static scanner). Confirm this is acceptable as the "build check."
 
-5. **MapStruct version conflict.** Phase context says "MapStruct 1.5.x"; agent-spec 01 (source of truth, declared superior) pins **1.6.2**. **Recommendation:** use 1.6.2 (spec wins). Flag so the planner doesn't accidentally pin 1.5.x from the prompt.
+5. **MapStruct / Lombok versions for JDK 25.** Agent-spec 01 (source of truth) pins **MapStruct 1.7.0.Beta1** and **Lombok 1.18.38+** — these are the versions that compile under JDK 25 (1.6.x MapStruct + Lombok < 1.18.38 fail on JDK 25/26). **Recommendation:** use exactly those pins; do NOT downgrade to 1.6.x even though it is the latest *stable* MapStruct.
 
 6. **`SecurityConfig`/`JwtAuthenticationFilter` auto-config boundary.** Spec 03 §3.12's auto-config `@Bean` list does **not** include `SecurityConfig`/`JwtAuthenticationFilter`/`JwksKeyProvider` (those live in `shared-lib.security`, spec 09). Unclear whether the security chain is auto-applied to every importing service or opted-in per service. For Phase-1 verification this is avoidable (test the JPA/tenant/outbox slices without the web-security layer), but the planner should decide the wiring contract for downstream services.
 
@@ -296,10 +298,10 @@ public void onEvent(EventEnvelope<Payload> env) {
 - `Docs/agent-specs/09-security-implementation-guide.md` — JWT filter, JWKS, tenant interceptor, OPA integration, AES-GCM
 - `Docs/agent-specs/07-coding-standards.md` — Java/TS conventions, money/timestamp rules, BLR-2 note
 - `Docs/agent-specs/10-test-architecture-guide.md` — `BaseIntegrationTest`, fixtures, Rabbit consumer test pattern, coverage gates
-- spring.io / spring-cloud-release wiki / spring-cloud-config #2559 — Boot 3.3.x ↔ Cloud 2023.0.3 compatibility
+- spring.io / spring-cloud-release wiki — Boot 4.0.x ↔ Spring Cloud 2025.1.x (Oakwood) compatibility
 
 ### Secondary (MEDIUM)
-- Coding Steve "Spring Version Compatibility Cheatsheet"; Azure spring-cloud timeline — corroborate 2023.0.3↔3.3.x pairing
+- marcobehler "Spring and Spring Boot Versions" (Jun 2026); OpenJDK JDK 25 GA; MapStruct/Lombok JDK 25 support notes — corroborate Boot 4.0.x↔Oakwood and JDK 25 toolchain pins
 
 ## Metadata
 **Confidence breakdown:**
