@@ -15,15 +15,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -55,10 +56,20 @@ public abstract class BaseIntegrationTest {
         new GenericContainer<>(DockerImageName.parse("openpolicyagent/opa:1.17.1"))
             .withCommand("run", "--server", "--addr=0.0.0.0:8181", "/policies")
             .withExposedPorts(8181)
-            .withFileSystemBind(
-                Path.of(System.getProperty("user.dir")).resolve("../../policies").normalize().toAbsolutePath().toString(),
-                "/policies",
-                BindMode.READ_ONLY);
+            .withCopyToContainer(MountableFile.forHostPath(policiesDir()), "/policies");
+
+    private static Path policiesDir() {
+        Path cwd = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        for (Path candidate : List.of(
+            cwd.resolve("../../policies").normalize(),
+            cwd.resolve("policies").normalize(),
+            cwd.resolve("../../../policies").normalize())) {
+            if (candidate.resolve("restaurantos/pos.rego").toFile().exists()) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Could not locate policies/ from " + cwd);
+    }
 
     static String opaBaseUrl() {
         return "http://" + OPA.getHost() + ":" + OPA.getMappedPort(8181);

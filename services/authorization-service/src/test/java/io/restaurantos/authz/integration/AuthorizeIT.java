@@ -25,7 +25,7 @@ class AuthorizeIT extends BaseIntegrationTest {
             INTERNAL_SECRET);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(readAllow(response.getBody())).as(response.getBody()).isTrue();
+        assertThat(readAllow(response.getBody())).isTrue();
     }
 
     @Test

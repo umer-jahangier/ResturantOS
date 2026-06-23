@@ -3,7 +3,6 @@ package io.restaurantos.authz.integration;
 import io.restaurantos.shared.authz.DefaultOpaClient;
 import io.restaurantos.shared.authz.OpaInput;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -16,8 +15,7 @@ class OpaDirectIT extends BaseIntegrationTest {
 
     @Test
     void opaContainerEvaluatesPosVoidAny() {
-        RestClient restClient = RestClient.builder().baseUrl(opaBaseUrl()).build();
-        var client = new DefaultOpaClient(restClient);
+        var client = new DefaultOpaClient(RestClient.builder().baseUrl(opaBaseUrl()).build());
         OpaInput input = OpaInput.builder()
             .user(new OpaInput.User(
                 TestFixtures.cashierUserId(),
