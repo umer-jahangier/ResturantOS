@@ -39,8 +39,10 @@ key-files:
 commits:
   - 066c7ea feat(02-03): add Rego v1 authz policies for pos/finance/vendor/rbac
   - ba9244a test(02-03): Rego policy tests at 100% opa coverage
+  - e7c291b feat(02-03): authorization-service with fail-closed OPA authorize
+  - f779b83 fix(02-03): copy OPA policies into Testcontainers for Colima ITs
 
-opa-ci-gate: "opa test policies/ --coverage --format=json | python3 -c \"import json,sys; print(json.load(sys.stdin)['coverage'])\""
+opa-ci-gate: "opa test policies/ --coverage --format=json | jq '.coverage'  # must equal 100"
 
 opa-client-timeout:
   connect: 2s
@@ -53,8 +55,9 @@ authorize-resource-contract:
   headers: "Authorization: Bearer <JWT>, X-Internal-Service: <INTERNAL_SERVICE_SECRET>"
 
 verification:
-  opa_test: "100% coverage (30/30 tests)"
-  authz_its: "7/7 pass (AuthorizeIT×6, OpaTimeoutFailClosedIT×1)"
+  opa_test: "100% coverage (38/38 tests)"
+  authz_its: "8/8 pass (AuthorizeIT×6, OpaTimeoutFailClosedIT×1, OpaDirectIT×1)"
+  mvn_verify: "DOCKER_HOST=unix://$HOME/.colima/default/docker.sock TESTCONTAINERS_RYUK_DISABLED=true mvn -pl services/authorization-service -am -Pcoverage verify"
   requirements: AUTHZ-01, AUTHZ-02, AUTHZ-03, AUTHZ-04
 ---
 
@@ -70,7 +73,8 @@ Stand up `authorization-service` with `/internal/authorize`, Rego policies enfor
 - `finance.close_period` tenant-wide exception (same tenant, different branch allowed)
 - authorization-service proxies to OPA with 2s fail-closed timeout
 - Shared `AuthorizationService` helper for downstream modules
-- ITs prove allow/deny, cross-tenant/branch denials, close_period exception, and fail-closed on unreachable OPA
+- ITs prove allow/deny, cross-tenant/branch denials, close_period exception, and fail-closed on 2s OPA read timeout
+- Testcontainers OPA uses `withCopyToContainer` (not bind mount) for Colima compatibility
 
 ## Notes for Phase 4 CI
 
