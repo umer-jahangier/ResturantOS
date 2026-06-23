@@ -1,23 +1,21 @@
 package restaurantos.common
 
-# Rego v1 syntax (OPA 1.x default) — rule bodies use the `if` keyword.
-# Real per-domain policies (pos.rego, finance.rego, …) arrive in Phase 2.
-# This placeholder ensures `GET /v1/policies | grep restaurantos` returns a hit.
+# Rego v1 (OPA 1.x default): rule bodies use the `if` keyword.
 
-# True when the resource and the requesting user belong to the same tenant AND branch.
-same_tenant_and_branch(req) if {
-    req.resource.tenant_id == req.user.tenant_id
-    req.resource.branch_id == req.user.branch_id
+same_tenant(inp) if {
+    inp.resource.tenant_id == inp.user.tenant_id
 }
 
-# True when the resource and the requesting user belong to the same tenant
-# (tenant-wide operations that span branches, e.g. period close).
-same_tenant(req) if {
-    req.resource.tenant_id == req.user.tenant_id
+same_branch(inp) if {
+    inp.resource.branch_id == inp.user.branch_id
 }
 
-# True when the user's permission set contains the requested permission string.
-has_permission(req, perm) if {
-    some p in req.user.permissions
+same_tenant_and_branch(inp) if {
+    same_tenant(inp)
+    same_branch(inp)
+}
+
+has_permission(inp, perm) if {
+    some p in inp.user.permissions
     p == perm
 }
