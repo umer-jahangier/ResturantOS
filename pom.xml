@@ -33,6 +33,7 @@
         <module>eureka-server</module>
         <module>config-server</module>
         <module>services/auth-service</module>
+        <module>services/authorization-service</module>
     </modules>
 
     <dependencyManagement>

@@ -1,16 +1,25 @@
 package io.restaurantos.shared.authz;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record OpaInput(User user, Resource resource, String action, Environment environment) {
 
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record User(UUID id, UUID tenantId, UUID branchId,
                        List<String> permissions, Map<String, Object> attributes) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Resource(String type, UUID id, UUID tenantId, UUID branchId,
                            UUID createdBy, String status, Long amountPaisa) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Environment(Instant time, String ip) {}
 
     public static Builder builder() { return new Builder(); }

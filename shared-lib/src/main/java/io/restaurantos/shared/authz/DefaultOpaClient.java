@@ -1,7 +1,14 @@
 package io.restaurantos.shared.authz;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.restaurantos.shared.exception.PermissionDeniedException;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
+
+import java.util.Map;
 
 /**
  * Fail-closed OPA client: any HTTP error, timeout, or missing OPA_URL results in deny.
@@ -9,15 +16,26 @@ import org.springframework.web.client.RestClient;
  */
 public class DefaultOpaClient implements OpaClient {
 
-    private final RestClient restClient; // baseUrl = OPA_URL
-    public DefaultOpaClient(RestClient restClient) { this.restClient = restClient; }
+    private final RestClient restClient;
+    private final ObjectMapper objectMapper;
+
+    public DefaultOpaClient(RestClient restClient) {
+        this(restClient, opaObjectMapper());
+    }
+
+    public DefaultOpaClient(RestClient restClient, ObjectMapper objectMapper) {
+        this.restClient = restClient;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public OpaDecision evaluate(String module, OpaInput input) {
         try {
+            String body = objectMapper.writeValueAsString(Map.of("input", input));
             OpaResponse resp = restClient.post()
                 .uri("/v1/data/restaurantos/{module}/allow", module)
-                .body(new OpaRequest(input))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
                 .retrieve()
                 .body(OpaResponse.class);
             return new OpaDecision(resp != null && Boolean.TRUE.equals(resp.result()));
@@ -27,6 +45,12 @@ public class DefaultOpaClient implements OpaClient {
         }
     }
 
-    private record OpaRequest(OpaInput input) {}
+    private static ObjectMapper opaObjectMapper() {
+        return new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
     private record OpaResponse(Boolean result) {}
 }
