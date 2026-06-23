@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.security.interfaces.RSAPrivateKey;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtSigningService {
@@ -25,6 +26,7 @@ public class JwtSigningService {
         Instant expiry = now.plusSeconds(jwtProperties.getAccessTtlSeconds());
         return Jwts.builder()
             .header().keyId(jwtProperties.getPublicKeyId()).and()
+            .id(UUID.randomUUID().toString())
             .subject(claims.subject().toString())
             .claim("tenant_id", claims.tenantId().toString())
             .claim("branch_id", claims.branchId().toString())

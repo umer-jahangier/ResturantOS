@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class})
     public LoginResult login(LoginRequest request, String userAgent, String ip) {
         try {
             AuthTenantEntity tenant = authTenantRepository.findBySlug(request.tenantSlug())
