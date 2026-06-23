@@ -102,6 +102,7 @@ public abstract class BaseIntegrationTest {
         r.add("restaurantos.auth.jwt.private-key-base64", TestFixtures::privateKeyBase64);
         r.add("restaurantos.auth.jwt.public-key-base64", TestFixtures::publicKeyBase64);
         r.add("restaurantos.auth.jwt.public-key-id", () -> "test-key-1");
+        r.add("restaurantos.encryption.key", TestFixtures::fieldEncryptionKeyBase64);
         r.add("logging.level.org.apache.coyote", () -> "DEBUG");
         r.add("logging.level.org.apache.tomcat.util.net", () -> "DEBUG");
     }
