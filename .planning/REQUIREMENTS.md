@@ -42,22 +42,22 @@
 
 ### Auth (AUTH)
 
-- [ ] **AUTH-01**: User can log in with email + password + tenant slug (+ optional TOTP) per FD-2 (tenant-status check, bcrypt cost 12, lockout)
-- [ ] **AUTH-02**: Service issues RS256 access JWT (15-min) and HttpOnly refresh session (7-day); `/.well-known/jwks.json` serves the public key
-- [ ] **AUTH-03**: User can refresh session via HttpOnly cookie
-- [ ] **AUTH-04**: User can log out (refresh session revoked)
-- [ ] **AUTH-05**: User can switch branch (JWT reissued with new branch context)
-- [ ] **AUTH-06**: User can request/perform password reset via emailed token
-- [ ] **AUTH-07**: User can set up / verify / disable 2FA (TOTP); mandatory for `rbac.manage` and `finance.period.close`
-- [ ] **AUTH-08**: `USER_LOGIN_SUCCEEDED` / `USER_LOGIN_FAILED` published on every attempt
-- [ ] **AUTH-09**: `totp_secret` stored field-encrypted (AES-256-GCM)
+- [x] **AUTH-01**: User can log in with email + password + tenant slug (+ optional TOTP) per FD-2 (tenant-status check, bcrypt cost 12, lockout)
+- [x] **AUTH-02**: Service issues RS256 access JWT (15-min) and HttpOnly refresh session (7-day); `/.well-known/jwks.json` serves the public key
+- [x] **AUTH-03**: User can refresh session via HttpOnly cookie
+- [x] **AUTH-04**: User can log out (refresh session revoked)
+- [x] **AUTH-05**: User can switch branch (JWT reissued with new branch context)
+- [x] **AUTH-06**: User can request/perform password reset via emailed token
+- [x] **AUTH-07**: User can set up / verify / disable 2FA (TOTP); mandatory for `rbac.manage` and `finance.period.close`
+- [x] **AUTH-08**: `USER_LOGIN_SUCCEEDED` / `USER_LOGIN_FAILED` published on every attempt
+- [x] **AUTH-09**: `totp_secret` stored field-encrypted (AES-256-GCM)
 
 ### Authorization (AUTHZ)
 
-- [ ] **AUTHZ-01**: Authorization Service proxies OPA decisions via `POST /internal/authorize`, fail-closed
-- [ ] **AUTHZ-02**: Rego policies exist for common/pos/finance/vendor/rbac with `same_tenant`, `same_branch`, `has_permission` helpers
-- [ ] **AUTHZ-03**: Every OPA policy enforces tenant AND branch isolation
-- [ ] **AUTHZ-04**: OPA policy test suite passes at 100% coverage
+- [x] **AUTHZ-01**: Authorization Service proxies OPA decisions via `POST /internal/authorize`, fail-closed
+- [x] **AUTHZ-02**: Rego policies exist for common/pos/finance/vendor/rbac with `same_tenant`, `same_branch`, `has_permission` helpers
+- [x] **AUTHZ-03**: Every OPA policy enforces tenant AND branch isolation
+- [x] **AUTHZ-04**: OPA policy test suite passes at 100% coverage
 
 ### API Gateway (GW)
 
@@ -196,19 +196,19 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | LIB-04 | Phase 1 | Pending |
 | LIB-05 | Phase 1 | Pending |
 | LIB-06 | Phase 1 | Pending |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| AUTH-06 | Phase 2 | Pending |
-| AUTH-07 | Phase 2 | Pending |
-| AUTH-08 | Phase 2 | Pending |
-| AUTH-09 | Phase 2 | Pending |
-| AUTHZ-01 | Phase 2 | Pending |
-| AUTHZ-02 | Phase 2 | Pending |
-| AUTHZ-03 | Phase 2 | Pending |
-| AUTHZ-04 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
+| AUTH-03 | Phase 2 | Complete |
+| AUTH-04 | Phase 2 | Complete |
+| AUTH-05 | Phase 2 | Complete |
+| AUTH-06 | Phase 2 | Complete |
+| AUTH-07 | Phase 2 | Complete |
+| AUTH-08 | Phase 2 | Complete |
+| AUTH-09 | Phase 2 | Complete |
+| AUTHZ-01 | Phase 2 | Complete |
+| AUTHZ-02 | Phase 2 | Complete |
+| AUTHZ-03 | Phase 2 | Complete |
+| AUTHZ-04 | Phase 2 | Complete |
 | GW-01 | Phase 3 | Pending |
 | GW-02 | Phase 3 | Pending |
 | GW-03 | Phase 3 | Pending |

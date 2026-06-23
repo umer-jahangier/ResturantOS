@@ -13,7 +13,7 @@ RestaurantOS is built bottom-up from its non-negotiable foundations to its event
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Infrastructure Foundation & Shared Library** - Dev infra up; `shared-lib` enforces tenancy/money/event invariants
-- [ ] **Phase 2: Authentication & Authorization** - Login/JWT/JWKS/2FA + OPA fail-closed ABAC with tenant+branch isolation
+- [x] **Phase 2: Authentication & Authorization** - Login/JWT/JWKS/2FA + OPA fail-closed ABAC with tenant+branch isolation
 - [ ] **Phase 3: API Gateway, Platform Admin & Tenant/User Management** - Gateway edge security + tenant provisioning + branch/role management
 - [ ] **Phase 4: Frontend Shell & CI/CD** - Next.js shell with four-layer API abstraction + quality-gated pipeline
 - [ ] **Phase 5: Cross-Cutting Services (Notifications, Audit, Files)** - Event-driven email/in-app, immutable audit, MinIO storage
@@ -58,9 +58,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Auth service — login, RS256 JWT + JWKS, refresh sessions, lockout, login events
-- [ ] 02-02: 2FA (TOTP, encrypted), password reset, branch switch
-- [ ] 02-03: Authorization service + OPA Rego policies (tenant+branch, 100% coverage)
+- [x] 02-01: Auth service — login, RS256 JWT + JWKS, refresh sessions, lockout, login events
+- [x] 02-02: 2FA (TOTP, encrypted), password reset, branch switch
+- [x] 02-03: Authorization service + OPA Rego policies (tenant+branch, 100% coverage)
 
 ### Phase 3: API Gateway, Platform Admin & Tenant/User Management
 **Goal**: The platform edge is secured and operable — the gateway authenticates/route/rate-limits every request, the SuperAdmin can provision and operate tenants, and Tenant Admins can manage branches and per-branch roles that feed JWT issuance.
