@@ -1,5 +1,6 @@
 package io.restaurantos.shared.authz;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -32,13 +33,14 @@ public class DefaultOpaClient implements OpaClient {
     public OpaDecision evaluate(String module, OpaInput input) {
         try {
             String body = objectMapper.writeValueAsString(Map.of("input", input));
-            OpaResponse resp = restClient.post()
+            String responseBody = restClient.post()
                 .uri("/v1/data/restaurantos/{module}/allow", module)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
-                .body(OpaResponse.class);
-            return new OpaDecision(resp != null && Boolean.TRUE.equals(resp.result()));
+                .body(String.class);
+            JsonNode root = objectMapper.readTree(responseBody);
+            return new OpaDecision(root.path("result").asBoolean(false));
         } catch (Exception e) {
             // BLR-5: OPA failure = deny. Never default to allow.
             throw new PermissionDeniedException("Authorization service unavailable");
@@ -51,6 +53,4 @@ public class DefaultOpaClient implements OpaClient {
             .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
-
-    private record OpaResponse(Boolean result) {}
 }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Refresh/logout resolve session by token hash before app.current_tenant_id is set. -->
+    <changeSet id="auth-1.0.0-052-refresh-session-lookup-function" author="restaurantos-agent">
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION auth_lookup_refresh_tenant(p_token_hash TEXT)
+            RETURNS UUID
+            LANGUAGE sql
+            SECURITY DEFINER
+            SET search_path = public
+            STABLE
+            AS $body$
+              SELECT tenant_id FROM refresh_sessions WHERE token_hash = p_token_hash LIMIT 1;
+            $body$;
+
+            REVOKE ALL ON FUNCTION auth_lookup_refresh_tenant(TEXT) FROM PUBLIC;
+            GRANT EXECUTE ON FUNCTION auth_lookup_refresh_tenant(TEXT) TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="false">
+                REVOKE ALL ON FUNCTION auth_lookup_refresh_tenant(TEXT) FROM auth_user;
+                DROP FUNCTION IF EXISTS auth_lookup_refresh_tenant(TEXT);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

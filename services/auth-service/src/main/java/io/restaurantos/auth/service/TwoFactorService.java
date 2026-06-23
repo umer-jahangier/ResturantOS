@@ -6,6 +6,7 @@ import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.repository.UserRepository;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -19,13 +20,16 @@ public class TwoFactorService {
     private final UserRepository userRepository;
     private final TotpService totpService;
     private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
     public TwoFactorService(UserRepository userRepository,
                             TotpService totpService,
-                            TenantContext tenantContext) {
+                            TenantContext tenantContext,
+                            EntityManager entityManager) {
         this.userRepository = userRepository;
         this.totpService = totpService;
         this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -71,6 +75,11 @@ public class TwoFactorService {
             throw new AuthenticationFailedException("Not authenticated");
         }
         tenantContext.set(claims.tenantId(), claims.branchId(), claims.subject(), claims.impersonatedBy());
+        if (claims.tenantId() != null) {
+            entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+                .setParameter("tid", claims.tenantId().toString())
+                .getSingleResult();
+        }
         return claims.subject();
     }
 }

@@ -33,6 +33,7 @@ services:
       - postgres-data:/var/lib/postgresql
       - ./init/01-create-databases.sql:/docker-entrypoint-initdb.d/01-create-databases.sql:ro
       - ./init/02-create-roles.sql:/docker-entrypoint-initdb.d/02-create-roles.sql:ro
+      - ./init/03-grant-schema-privileges.sql:/docker-entrypoint-initdb.d/03-grant-schema-privileges.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER} -d postgres"]
       interval: 10s

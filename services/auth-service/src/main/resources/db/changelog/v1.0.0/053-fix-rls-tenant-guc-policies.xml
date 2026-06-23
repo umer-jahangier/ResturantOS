@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Empty GUC must not cast to uuid (""::uuid throws). Use NULLIF for safe deny-by-default. -->
+    <changeSet id="auth-1.0.0-053-fix-rls-tenant-guc-policies" author="restaurantos-agent">
+        <sql splitStatements="false">
+            DROP POLICY IF EXISTS tenant_isolation ON users;
+            CREATE POLICY tenant_isolation ON users
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON roles;
+            CREATE POLICY tenant_isolation ON roles
+                USING (tenant_id IS NULL OR tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON user_branch_roles;
+            CREATE POLICY tenant_isolation ON user_branch_roles
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON refresh_sessions;
+            CREATE POLICY tenant_isolation ON refresh_sessions
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON password_reset_tokens;
+            CREATE POLICY tenant_isolation ON password_reset_tokens
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON password_history;
+            CREATE POLICY tenant_isolation ON password_history
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+        </sql>
+        <rollback>
+            <sql splitStatements="false">
+                DROP POLICY IF EXISTS tenant_isolation ON users;
+                CREATE POLICY tenant_isolation ON users
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON roles;
+                CREATE POLICY tenant_isolation ON roles
+                    USING (tenant_id IS NULL OR tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON user_branch_roles;
+                CREATE POLICY tenant_isolation ON user_branch_roles
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON refresh_sessions;
+                CREATE POLICY tenant_isolation ON refresh_sessions
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON password_reset_tokens;
+                CREATE POLICY tenant_isolation ON password_reset_tokens
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON password_history;
+                CREATE POLICY tenant_isolation ON password_history
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

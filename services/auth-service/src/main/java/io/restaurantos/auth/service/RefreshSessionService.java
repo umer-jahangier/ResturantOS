@@ -2,7 +2,9 @@ package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.config.AuthJwtProperties;
 import io.restaurantos.auth.entity.RefreshSessionEntity;
+import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.repository.RefreshSessionRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -18,12 +20,15 @@ public class RefreshSessionService {
 
     private final RefreshSessionRepository refreshSessionRepository;
     private final AuthJwtProperties jwtProperties;
+    private final EntityManager entityManager;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public RefreshSessionService(RefreshSessionRepository refreshSessionRepository,
-                                 AuthJwtProperties jwtProperties) {
+                                 AuthJwtProperties jwtProperties,
+                                 EntityManager entityManager) {
         this.refreshSessionRepository = refreshSessionRepository;
         this.jwtProperties = jwtProperties;
+        this.entityManager = entityManager;
     }
 
     public String issue(UUID userId, UUID tenantId, UUID branchId, String userAgent, String ip) {
@@ -42,17 +47,34 @@ public class RefreshSessionService {
     }
 
     public RefreshSessionEntity validate(String rawToken) {
-        return refreshSessionRepository.findByTokenHash(hashToken(rawToken))
+        String hash = hashToken(rawToken);
+        bootstrapTenantGuc(hash);
+        return refreshSessionRepository.findByTokenHash(hash)
             .filter(s -> s.getRevokedAt() == null)
             .filter(s -> s.getExpiresAt().isAfter(Instant.now()))
-            .orElseThrow(() -> new io.restaurantos.auth.exception.AuthenticationFailedException("Invalid refresh session"));
+            .orElseThrow(() -> new AuthenticationFailedException("Invalid refresh session"));
     }
 
     public void revoke(String rawToken) {
-        refreshSessionRepository.findByTokenHash(hashToken(rawToken)).ifPresent(session -> {
+        String hash = hashToken(rawToken);
+        bootstrapTenantGuc(hash);
+        refreshSessionRepository.findByTokenHash(hash).ifPresent(session -> {
             session.setRevokedAt(Instant.now());
             refreshSessionRepository.save(session);
         });
+    }
+
+    private void bootstrapTenantGuc(String tokenHash) {
+        Object tenantId = entityManager.createNativeQuery(
+                "SELECT auth_lookup_refresh_tenant(:hash)")
+            .setParameter("hash", tokenHash)
+            .getSingleResult();
+        if (tenantId == null) {
+            throw new AuthenticationFailedException("Invalid refresh session");
+        }
+        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+            .setParameter("tid", tenantId.toString())
+            .getSingleResult();
     }
 
     static String hashToken(String rawToken) {

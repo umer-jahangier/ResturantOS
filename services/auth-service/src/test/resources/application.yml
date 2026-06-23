@@ -1,0 +1,4 @@
+restaurantos:
+  auth:
+    cookie:
+      secure: true

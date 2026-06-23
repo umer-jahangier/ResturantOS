@@ -6,7 +6,7 @@
 
 COMPOSE := docker compose
 
-.PHONY: dev-up dev-down dev-logs dev-ps _check-env _pgpass
+.PHONY: dev-up dev-down dev-logs dev-ps dev-fix-infra _check-env _pgpass
 
 # Guard: fail early with a clear message if .env is missing.
 # .env is produced by deploy/generate-keys.sh (01-03 deliverable).
@@ -36,8 +36,12 @@ dev-up: _check-env _pgpass
 	$(COMPOSE) exec -T minio sh -c \
 		"mc alias set local http://localhost:9000 \"\$$MINIO_ROOT_USER\" \"\$$MINIO_ROOT_PASSWORD\" && \
 		 mc mb --ignore-existing local/$$BUCKET" || true
+	@$(MAKE) dev-fix-infra
 	@echo ""
 	@echo "=== Stack started. Run 'make dev-ps' to check health status. ==="
+
+dev-fix-infra: _check-env
+	@bash scripts/ensure-dev-infra.sh
 
 dev-down:
 	$(COMPOSE) down

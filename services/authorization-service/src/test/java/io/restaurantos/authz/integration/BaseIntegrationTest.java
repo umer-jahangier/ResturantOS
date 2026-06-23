@@ -20,7 +20,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
+import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -56,7 +57,8 @@ public abstract class BaseIntegrationTest {
         new GenericContainer<>(DockerImageName.parse("openpolicyagent/opa:1.17.1"))
             .withCommand("run", "--server", "--addr=0.0.0.0:8181", "/policies")
             .withExposedPorts(8181)
-            .withCopyToContainer(MountableFile.forHostPath(policiesDir()), "/policies");
+            .withFileSystemBind(policiesDir().toString(), "/policies", BindMode.READ_ONLY)
+            .waitingFor(Wait.forHttp("/health").forPort(8181));
 
     private static Path policiesDir() {
         Path cwd = Path.of(System.getProperty("user.dir")).toAbsolutePath();

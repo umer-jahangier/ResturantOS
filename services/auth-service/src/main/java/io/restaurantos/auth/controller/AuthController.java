@@ -1,5 +1,6 @@
 package io.restaurantos.auth.controller;
 
+import io.restaurantos.auth.config.AuthCookieProperties;
 import io.restaurantos.auth.config.AuthJwtProperties;
 import io.restaurantos.auth.dto.request.LoginRequest;
 import io.restaurantos.auth.dto.response.LoginResponse;
@@ -26,10 +27,14 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthJwtProperties jwtProperties;
+    private final AuthCookieProperties cookieProperties;
 
-    public AuthController(AuthService authService, AuthJwtProperties jwtProperties) {
+    public AuthController(AuthService authService,
+                          AuthJwtProperties jwtProperties,
+                          AuthCookieProperties cookieProperties) {
         this.authService = authService;
         this.jwtProperties = jwtProperties;
+        this.cookieProperties = cookieProperties;
     }
 
     @PostMapping("/login")
@@ -38,7 +43,7 @@ public class AuthController {
         AuthService.LoginResult result = authService.login(
             request, httpRequest.getHeader("User-Agent"), clientIp(httpRequest));
         return ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, refreshCookie(result.refreshToken(), jwtProperties.getRefreshTtlSeconds()).toString())
+            .header(HttpHeaders.SET_COOKIE, refreshCookie(result.refreshToken(), jwtProperties.getRefreshTtlSeconds(), cookieProperties.isSecure()).toString())
             .body(ApiResponse.ok(result.body()));
     }
 
@@ -53,17 +58,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest httpRequest) {
         authService.logout(readRefreshCookie(httpRequest));
         ResponseCookie cleared = ResponseCookie.from(REFRESH_COOKIE, "")
-            .httpOnly(true).secure(true).sameSite("Strict")
+            .httpOnly(true).secure(cookieProperties.isSecure()).sameSite("Strict")
             .path("/api/v1/auth").maxAge(0).build();
         return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, cleared.toString())
             .body(ApiResponse.ok(null));
     }
 
-    static ResponseCookie refreshCookie(String value, long maxAgeSeconds) {
+    static ResponseCookie refreshCookie(String value, long maxAgeSeconds, boolean secure) {
         return ResponseCookie.from(REFRESH_COOKIE, value)
             .httpOnly(true)
-            .secure(true)
+            .secure(secure)
             .sameSite("Strict")
             .path("/api/v1/auth")
             .maxAge(maxAgeSeconds)
