@@ -55,7 +55,7 @@ public abstract class AbstractRlsCoverageTest {
     }
 
     @Test
-    void allTenantScopedTablesMustHaveForceRlsAndAPolicy() {
+    public void allTenantScopedTablesMustHaveForceRlsAndAPolicy() {
         EntityManager em = entityManager();
 
         @SuppressWarnings("unchecked")
