@@ -1,5 +1,6 @@
 # Dev secrets — never commit
 deploy/.env
+deploy/.pgpass
 *.pem
 
 # Maven build output

@@ -4,11 +4,15 @@ server:
 spring:
   application:
     name: config-server
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:native}
   cloud:
     config:
       server:
+        native:
+          search-locations: ${CONFIG_SEARCH_LOCATIONS:file:/config,classpath:/config}
         git:
-          uri: ${CONFIG_GIT_URI}
+          uri: ${CONFIG_GIT_URI:https://github.com/restaurantos/restaurantos-config.git}
 
 eureka:
   client:
@@ -24,3 +28,16 @@ management:
     health:
       probes:
         enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: git
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ""
+        git:
+          uri: ${CONFIG_GIT_URI}

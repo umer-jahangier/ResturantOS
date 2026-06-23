@@ -21,8 +21,11 @@ COPY eureka-server/src eureka-server/src
 # Build — include shared-lib (-am) and skip tests
 RUN mvn -pl eureka-server -am -q -DskipTests package
 
-# Stage 2: Minimal JRE runtime image
+# Stage 2: Minimal JRE runtime image (wget for compose healthcheck)
 FROM eclipse-temurin:25-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /build/eureka-server/target/eureka-server-*.jar app.jar
 EXPOSE 8761

@@ -15,11 +15,12 @@ ENV_EXAMPLE="$SCRIPT_DIR/.env.example"
 TMPDIR_KEYS="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_KEYS"' EXIT
 
-# ── Bootstrap .env from .env.example if absent ───────────────────────────────
-if [ ! -f "$ENV_FILE" ]; then
+# ── Bootstrap .env from .env.example if absent or incomplete ────────────────
+# Keys-only .env (3 lines) breaks docker compose — infra vars must be present.
+if [ ! -f "$ENV_FILE" ] || ! grep -q '^POSTGRES_SUPERUSER=' "$ENV_FILE"; then
   if [ -f "$ENV_EXAMPLE" ]; then
     cp "$ENV_EXAMPLE" "$ENV_FILE"
-    echo "Created deploy/.env from deploy/.env.example"
+    echo "Initialized deploy/.env from deploy/.env.example"
   else
     touch "$ENV_FILE"
     echo "Created empty deploy/.env"
@@ -61,3 +62,11 @@ done
 } >> "$ENV_FILE"
 
 echo "Wrote 3 keys to deploy/.env (JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, FIELD_ENCRYPTION_KEY)"
+
+# ── pgAdmin pgpass (Postgres connection for pre-registered server) ───────────
+PG_USER="$(grep '^POSTGRES_SUPERUSER=' "$ENV_FILE" | cut -d= -f2-)"
+PG_PASS="$(grep '^POSTGRES_SUPERUSER_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)"
+PGPASS_FILE="$SCRIPT_DIR/.pgpass"
+printf 'postgres:5432:*:%s:%s\n' "$PG_USER" "$PG_PASS" > "$PGPASS_FILE"
+chmod 600 "$PGPASS_FILE"
+echo "Wrote deploy/.pgpass for pgAdmin auto-connect"

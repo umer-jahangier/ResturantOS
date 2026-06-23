@@ -30,7 +30,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
       - ./init/01-create-databases.sql:/docker-entrypoint-initdb.d/01-create-databases.sql:ro
       - ./init/02-create-roles.sql:/docker-entrypoint-initdb.d/02-create-roles.sql:ro
     healthcheck:
@@ -113,11 +113,7 @@ services:
       - "8181:8181"
     volumes:
       - ../policies:/policies:ro
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8181/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
+    # OPA image is static (no shell/wget); /health is verified externally in dev-up checks
     networks: [restaurantos]
 
   eureka:
@@ -147,10 +143,13 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: 8888
-      CONFIG_GIT_URI: ${CONFIG_GIT_URI:-https://github.com/restaurantos/restaurantos-config.git}
+      SPRING_PROFILES_ACTIVE: native
+      CONFIG_SEARCH_LOCATIONS: file:/config
       EUREKA_URL: http://eureka:8761/eureka
     ports:
       - "8888:8888"
+    volumes:
+      - ./config-repo:/config:ro
     depends_on:
       eureka:
         condition: service_healthy
@@ -203,6 +202,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
     ports:
       - "5050:80"
     depends_on:
@@ -210,6 +211,8 @@ services:
         condition: service_healthy
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+      - ./init/pgadmin-servers.json:/pgadmin4/servers.json:ro
+      - ./.pgpass:/pgpass:ro
     networks: [restaurantos]
 
 volumes:

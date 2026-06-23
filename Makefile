@@ -1,7 +1,12 @@
 # RestaurantOS root Makefile — delegates to deploy/Makefile.
 # SC1 wording: `make dev-up` from the repository root.
 
-.PHONY: dev-up dev-down dev-logs dev-ps
+# Pin JDK 25 for all Make targets (Homebrew keg-only openjdk@25).
+JAVA_HOME ?= /opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home
+export JAVA_HOME
+export PATH := $(JAVA_HOME)/bin:$(PATH)
+
+.PHONY: dev-up dev-down dev-logs dev-ps java-version mvn-compile
 
 dev-up:
 	$(MAKE) -C deploy dev-up
@@ -14,3 +19,9 @@ dev-logs:
 
 dev-ps:
 	$(MAKE) -C deploy dev-ps
+
+java-version:
+	@java -version
+
+mvn-compile:
+	mvn -pl shared-lib,eureka-server,config-server -am -DskipTests compile
