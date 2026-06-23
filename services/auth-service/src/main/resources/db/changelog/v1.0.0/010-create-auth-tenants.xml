@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Phase 2/3 seam: NON-RLS tenant lookup before app.current_tenant_id exists.
+         Phase 3 platform-admin-service supersedes status checks via internal call. -->
+    <changeSet id="auth-1.0.0-010-create-auth-tenants" author="restaurantos-agent">
+        <createTable tableName="auth_tenants">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="slug" type="VARCHAR(100)"><constraints nullable="false" unique="true"/></column>
+            <column name="name" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+        <sql>GRANT SELECT, INSERT, UPDATE, DELETE ON auth_tenants TO auth_user;</sql>
+        <rollback>
+            <dropTable tableName="auth_tenants"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-011-seed-demo-tenant" author="restaurantos-agent" runOnChange="false" context="seed">
+        <insert tableName="auth_tenants">
+            <column name="id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="slug" value="demo"/>
+            <column name="name" value="Demo Restaurant"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <rollback>
+            <delete tableName="auth_tenants"><where>slug = 'demo'</where></delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

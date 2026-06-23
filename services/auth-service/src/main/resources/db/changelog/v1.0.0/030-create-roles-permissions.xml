@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- permissions: global NON-RLS catalogue -->
+    <changeSet id="auth-1.0.0-030-create-permissions" author="restaurantos-agent">
+        <createTable tableName="permissions">
+            <column name="code" type="VARCHAR(100)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="module" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="description" type="VARCHAR(255)"/>
+        </createTable>
+        <sql>GRANT SELECT ON permissions TO auth_user;</sql>
+        <rollback><dropTable tableName="permissions"/></rollback>
+    </changeSet>
+
+    <!-- roles: system rows have tenant_id NULL; tenant-scoped rows use RLS -->
+    <changeSet id="auth-1.0.0-031-create-roles" author="restaurantos-agent">
+        <createTable tableName="roles">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"/>
+            <column name="code" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="is_system" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint tableName="roles" columnNames="tenant_id, code" constraintName="uk_roles_tenant_code"/>
+        <rollback><dropTable tableName="roles"/></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-032-enable-rls-roles" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE roles FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON roles
+                USING (tenant_id IS NULL OR tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON roles TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON roles;
+                ALTER TABLE roles NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE roles DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!-- role_permissions: NON-RLS junction (system role codes + global permission codes) -->
+    <changeSet id="auth-1.0.0-033-create-role-permissions" author="restaurantos-agent">
+        <createTable tableName="role_permissions">
+            <column name="role_code" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="permission_code" type="VARCHAR(100)"><constraints nullable="false"/></column>
+        </createTable>
+        <addPrimaryKey tableName="role_permissions" columnNames="role_code, permission_code"
+                       constraintName="pk_role_permissions"/>
+        <sql>GRANT SELECT ON role_permissions TO auth_user;</sql>
+        <rollback><dropTable tableName="role_permissions"/></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-034-seed-permissions" author="restaurantos-agent" runOnChange="false" context="seed">
+        <insert tableName="permissions"><column name="code" value="rbac.manage"/><column name="module" value="rbac"/><column name="description" value="Manage RBAC"/></insert>
+        <insert tableName="permissions"><column name="code" value="finance.period.close"/><column name="module" value="finance"/><column name="description" value="Close accounting period"/></insert>
+        <insert tableName="permissions"><column name="code" value="pos.order.create"/><column name="module" value="pos"/><column name="description" value="Create POS orders"/></insert>
+        <insert tableName="permissions"><column name="code" value="pos.order.close"/><column name="module" value="pos"/><column name="description" value="Close POS orders"/></insert>
+        <insert tableName="permissions"><column name="code" value="pos.order.view"/><column name="module" value="pos"/><column name="description" value="View POS orders"/></insert>
+        <insert tableName="permissions"><column name="code" value="pos.order.void"/><column name="module" value="pos"/><column name="description" value="Void POS orders"/></insert>
+        <insert tableName="permissions"><column name="code" value="inventory.item.view"/><column name="module" value="inventory"/><column name="description" value="View inventory"/></insert>
+        <insert tableName="permissions"><column name="code" value="inventory.item.manage"/><column name="module" value="inventory"/><column name="description" value="Manage inventory"/></insert>
+        <insert tableName="permissions"><column name="code" value="finance.journal.view"/><column name="module" value="finance"/><column name="description" value="View journal entries"/></insert>
+        <insert tableName="permissions"><column name="code" value="finance.journal.post"/><column name="module" value="finance"/><column name="description" value="Post journal entries"/></insert>
+        <rollback><delete tableName="permissions"/></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-035-seed-system-roles" author="restaurantos-agent" runOnChange="false" context="seed">
+        <insert tableName="roles"><column name="code" value="OWNER"/><column name="name" value="Owner"/><column name="is_system" valueBoolean="true"/></insert>
+        <insert tableName="roles"><column name="code" value="TENANT_ADMIN"/><column name="name" value="Tenant Admin"/><column name="is_system" valueBoolean="true"/></insert>
+        <insert tableName="roles"><column name="code" value="MANAGER"/><column name="name" value="Manager"/><column name="is_system" valueBoolean="true"/></insert>
+        <insert tableName="roles"><column name="code" value="ACCOUNTANT"/><column name="name" value="Accountant"/><column name="is_system" valueBoolean="true"/></insert>
+        <insert tableName="roles"><column name="code" value="INVENTORY_MANAGER"/><column name="name" value="Inventory Manager"/><column name="is_system" valueBoolean="true"/></insert>
+        <insert tableName="roles"><column name="code" value="CASHIER"/><column name="name" value="Cashier"/><column name="is_system" valueBoolean="true"/></insert>
+        <rollback><delete tableName="roles"><where>is_system = true</where></delete></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-036-seed-role-permissions" author="restaurantos-agent" runOnChange="false" context="seed">
+        <!-- OWNER: all permissions -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'OWNER', code FROM permissions;
+        </sql>
+        <!-- TENANT_ADMIN: all except rbac.manage -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'TENANT_ADMIN', code FROM permissions WHERE code != 'rbac.manage';
+        </sql>
+        <!-- MANAGER -->
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.create"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.close"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.view"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.void"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="inventory.item.view"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="inventory.item.manage"/></insert>
+        <!-- ACCOUNTANT: finance.period.close + finance permissions -->
+        <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.period.close"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.journal.view"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.journal.post"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="pos.order.view"/></insert>
+        <!-- INVENTORY_MANAGER -->
+        <insert tableName="role_permissions"><column name="role_code" value="INVENTORY_MANAGER"/><column name="permission_code" value="inventory.item.view"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="INVENTORY_MANAGER"/><column name="permission_code" value="inventory.item.manage"/></insert>
+        <!-- CASHIER: NON-privileged — NO rbac.manage, NO finance.period.close -->
+        <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.create"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.close"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.view"/></insert>
+        <rollback><delete tableName="role_permissions"/></rollback>
+    </changeSet>
+
+</databaseChangeLog>

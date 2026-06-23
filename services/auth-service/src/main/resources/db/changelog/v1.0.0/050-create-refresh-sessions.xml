@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="auth-1.0.0-050-create-refresh-sessions" author="restaurantos-agent">
+        <createTable tableName="refresh_sessions">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="user_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="token_hash" type="VARCHAR(64)"><constraints nullable="false"/></column>
+            <column name="branch_id" type="UUID"/>
+            <column name="expires_at" type="TIMESTAMPTZ"><constraints nullable="false"/></column>
+            <column name="revoked_at" type="TIMESTAMPTZ"/>
+            <column name="user_agent" type="VARCHAR(512)"/>
+            <column name="ip" type="VARCHAR(45)"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="refresh_sessions" indexName="idx_refresh_sessions_token_hash">
+            <column name="token_hash"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="refresh_sessions" indexName="idx_refresh_sessions_token_hash"/>
+            <dropTable tableName="refresh_sessions"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-051-enable-rls-refresh-sessions" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE refresh_sessions ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE refresh_sessions FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON refresh_sessions
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON refresh_sessions TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON refresh_sessions;
+                ALTER TABLE refresh_sessions NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE refresh_sessions DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- RLS-protected seed: set tenant GUC before INSERTs (FORCE RLS tables). -->
+    <changeSet id="auth-1.0.0-900-seed-dev-users" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <!-- non-privileged login user — keep free of step-up permissions so SC1 doesn't regress in 02-02 -->
+        <insert tableName="users">
+            <column name="id" value="c0000001-0000-4000-8000-000000000001"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="cashier@demo.local"/>
+            <column name="password_hash" value="$2a$12$HvDkD2g7oob7I/NXk3Oo/u6lcPoOVcBVa.Tb.dgQgCoiCua/fkII6"/>
+            <column name="full_name" value="Demo Cashier"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="users">
+            <column name="id" value="c0000002-0000-4000-8000-000000000002"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="owner@demo.local"/>
+            <column name="password_hash" value="$2a$12$30NEKQUBNQ0aS8a.1m.XIOkXjgeoRl3862toRrGPjE/hrFsjdybNa"/>
+            <column name="full_name" value="Demo Owner"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="users">
+            <column name="id" value="c0000003-0000-4000-8000-000000000003"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="accountant@demo.local"/>
+            <column name="password_hash" value="$2a$12$huhN.lpsSzervZpDxZDT.O8UECsmSSoX.kvlaSY9VDEDVbyBLBBOm"/>
+            <column name="full_name" value="Demo Accountant"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="users"><where>tenant_id = 'a0000001-0000-4000-8000-000000000001'</where></delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-901-seed-user-branch-roles" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <!-- Branch Main/HQ: b0000001, Branch 2: b0000002 -->
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000001-0000-4000-8000-000000000001"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000001-0000-4000-8000-000000000001"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="CASHIER"/>
+            <column name="approval_limit_paisa" valueNumeric="5000000"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000002-0000-4000-8000-000000000002"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000002-0000-4000-8000-000000000002"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="OWNER"/>
+            <column name="approval_limit_paisa" valueNumeric="100000000"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000003-0000-4000-8000-000000000003"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000002-0000-4000-8000-000000000002"/>
+            <column name="branch_id" value="b0000002-0000-4000-8000-000000000002"/>
+            <column name="role_code" value="OWNER"/>
+            <column name="approval_limit_paisa" valueNumeric="100000000"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000004-0000-4000-8000-000000000004"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000003-0000-4000-8000-000000000003"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="approval_limit_paisa" valueNumeric="50000000"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000005-0000-4000-8000-000000000005"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000003-0000-4000-8000-000000000003"/>
+            <column name="branch_id" value="b0000002-0000-4000-8000-000000000002"/>
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="approval_limit_paisa" valueNumeric="50000000"/>
+        </insert>
+        <rollback>
+            <delete tableName="user_branch_roles"><where>tenant_id = 'a0000001-0000-4000-8000-000000000001'</where></delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="auth-1.0.0-040-create-user-branch-roles" author="restaurantos-agent">
+        <createTable tableName="user_branch_roles">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="user_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="branch_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="role_code" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="approval_limit_paisa" type="BIGINT"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="created_by" type="UUID"/>
+            <column name="updated_by" type="UUID"/>
+            <column name="deleted_at" type="TIMESTAMPTZ"/>
+        </createTable>
+        <addUniqueConstraint tableName="user_branch_roles"
+                             columnNames="tenant_id, user_id, branch_id, role_code"
+                             constraintName="uk_user_branch_roles"/>
+        <addForeignKeyConstraint baseTableName="user_branch_roles" baseColumnNames="user_id"
+                                 referencedTableName="users" referencedColumnNames="id"
+                                 constraintName="fk_user_branch_roles_user"/>
+        <rollback><dropTable tableName="user_branch_roles"/></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-041-enable-rls-user-branch-roles" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE user_branch_roles ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE user_branch_roles FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON user_branch_roles
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON user_branch_roles TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON user_branch_roles;
+                ALTER TABLE user_branch_roles NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE user_branch_roles DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
