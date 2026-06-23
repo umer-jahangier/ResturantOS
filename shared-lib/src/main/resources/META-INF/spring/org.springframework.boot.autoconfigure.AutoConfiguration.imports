@@ -1,3 +1,2 @@
 io.restaurantos.shared.config.SharedAutoConfiguration
 io.restaurantos.shared.config.EncryptionAutoConfiguration
-io.restaurantos.shared.config.EncryptionAutoConfiguration

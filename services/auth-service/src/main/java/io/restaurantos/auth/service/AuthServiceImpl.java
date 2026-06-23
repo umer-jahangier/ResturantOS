@@ -9,6 +9,7 @@ import io.restaurantos.auth.entity.RefreshSessionEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AccountLockedException;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
+import io.restaurantos.auth.exception.TotpRequiredException;
 import io.restaurantos.auth.repository.AuthTenantRepository;
 import io.restaurantos.auth.repository.UserRepository;
 import io.restaurantos.shared.security.JwtClaims;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -38,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshSessionService refreshSessionService;
     private final LoginEventPublisher loginEventPublisher;
     private final AuthJwtProperties jwtProperties;
+    private final TotpService totpService;
 
     public AuthServiceImpl(AuthTenantRepository authTenantRepository,
                            UserRepository userRepository,
@@ -48,7 +51,8 @@ public class AuthServiceImpl implements AuthService {
                            JwtSigningService jwtSigningService,
                            RefreshSessionService refreshSessionService,
                            LoginEventPublisher loginEventPublisher,
-                           AuthJwtProperties jwtProperties) {
+                           AuthJwtProperties jwtProperties,
+                           TotpService totpService) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
         this.entityManager = entityManager;
@@ -59,10 +63,11 @@ public class AuthServiceImpl implements AuthService {
         this.refreshSessionService = refreshSessionService;
         this.loginEventPublisher = loginEventPublisher;
         this.jwtProperties = jwtProperties;
+        this.totpService = totpService;
     }
 
     @Override
-    @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class})
+    @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class, TotpRequiredException.class})
     public LoginResult login(LoginRequest request, String userAgent, String ip) {
         try {
             AuthTenantEntity tenant = authTenantRepository.findBySlug(request.tenantSlug())
@@ -102,6 +107,8 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
 
             ResolvedBranchAuth resolved = permissionResolver.resolveDefault(user.getId());
+            enforceTotpStepUp(user, request, resolved.permissions(), tenantId, request.email(), ip);
+
             JwtClaims claims = new JwtClaims(
                 user.getId(), tenantId, resolved.branchId(),
                 resolved.roles(), resolved.permissions(), resolved.attributes(), null);
@@ -172,5 +179,25 @@ public class AuthServiceImpl implements AuthService {
         entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
             .setParameter("tid", tenantId.toString())
             .getSingleResult();
+    }
+
+    private void enforceTotpStepUp(UserEntity user, LoginRequest request, List<String> permissions,
+                                   UUID tenantId, String email, String ip) {
+        if (!requiresTotpStepUp(permissions, user.isTotpEnabled())) {
+            return;
+        }
+        if (user.getTotpSecret() == null
+            || request.totpCode() == null
+            || request.totpCode().isBlank()
+            || !totpService.verify(user.getTotpSecret(), request.totpCode())) {
+            loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
+            throw new TotpRequiredException("TOTP code required");
+        }
+    }
+
+    private static boolean requiresTotpStepUp(List<String> permissions, boolean totpEnabled) {
+        return totpEnabled
+            || permissions.contains("rbac.manage")
+            || permissions.contains("finance.period.close");
     }
 }

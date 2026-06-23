@@ -37,7 +37,9 @@ public class JwksKeyProvider {
     }
 
     public PublicKey getKey(String kid) {
-        if (Instant.now().isAfter(lastFetch.plus(TTL)) || !cache.containsKey(kid)) refresh();
+        if (jwksUrl != null && (Instant.now().isAfter(lastFetch.plus(TTL)) || !cache.containsKey(kid))) {
+            refresh();
+        }
         PublicKey key = cache.get(kid);
         if (key == null) throw new IllegalStateException("Unknown JWT kid: " + kid);
         return key;

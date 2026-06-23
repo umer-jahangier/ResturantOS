@@ -1,7 +1,9 @@
 package io.restaurantos.auth.entity;
 
 import io.restaurantos.shared.entity.TenantAuditableEntity;
+import io.restaurantos.shared.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -32,8 +34,9 @@ public class UserEntity extends TenantAuditableEntity {
 
     private String locale;
 
-    @Column(name = "totp_secret")
-    private byte[] totpSecret;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "totp_secret", columnDefinition = "bytea")
+    private String totpSecret;
 
     @Column(name = "totp_enabled", nullable = false)
     private boolean totpEnabled;
