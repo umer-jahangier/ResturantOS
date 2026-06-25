@@ -1,0 +1,171 @@
+name: CI
+
+# INFRA-05 / SC4: lint -> test -> build(signed) -> schema-sync as a single automated
+# pipeline with NO manual intervention in the core path. The only manual gate is
+# promote-to-prod (environment: production), which is a deliberate GitHub approval
+# BY DESIGN (D6, spec D1.4) and is NOT part of the automated core.
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "25"
+  NODE_VERSION: "22"
+  OPA_VERSION: "1.17.0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # lint: Java static analysis + frontend eslint/prettier/tsc (FE-08 enforced in CI)
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint (Java static analysis + frontend eslint/prettier/tsc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }} (Temurin) + Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      # Java static analysis. checkstyle/spotbugs/pmd are NOT yet wired into the
+      # parent POM (gap documented in 04-03-SUMMARY); we run what exists — a clean
+      # compile across all modules — which fails the job on any compilation error.
+      # Once the analysis plugins are wired, replace this with the dedicated goals:
+      #   mvn -B -ntp checkstyle:check spotbugs:check pmd:check
+      - name: Java static analysis (compile + any wired analysis)
+        run: mvn -B -ntp -DskipTests verify
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Set up Node ${{ env.NODE_VERSION }} + pnpm store cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: ESLint (FE-08 layer-boundary; a skip-layer import fails)
+        run: pnpm --dir frontend run lint
+
+      - name: Prettier --check
+        run: pnpm --dir frontend run format:check
+
+      - name: tsc --noEmit (zero any)
+        run: pnpm --dir frontend exec tsc --noEmit
+
+  # ---------------------------------------------------------------------------
+  # test: data-driven per-area coverage gates (Java + frontend + OPA)
+  #   finance/inventory >= 75, all other Java modules + frontend (Vitest) >= 60,
+  #   OPA == 100. Thresholds are read from coverage-gates.json (Pitfall 9) so later
+  #   phases raise gates WITHOUT editing this workflow.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test (data-driven coverage gates)
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }} (Temurin) + Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      # JUnit5 + Testcontainers. The GitHub-hosted runner has a working Docker
+      # daemon (no Colima/Ryuk quirk), so Testcontainers runs unmodified.
+      - name: Java tests + JaCoCo (mvn -Pcoverage verify)
+        run: mvn -B -ntp -Pcoverage verify
+
+      - name: Generate JaCoCo CSV reports
+        run: mvn -B -ntp -Pcoverage org.jacoco:jacoco-maven-plugin:0.8.14:report
+
+      # Data-driven per-module gate: parse each module's jacoco.csv and compare its
+      # LINE coverage to the gate from coverage-gates.json (per-path override else
+      # the java.default). finance/inventory entries are forward-declared (Phases 6/8).
+      - name: Enforce Java per-module coverage gates
+        run: |
+          python3 - <<'PY'
+          import csv, glob, json, sys, os
+          gates = json.load(open(".github/workflows/coverage-gates.json"))["java"]
+          default = gates["default"]
+          failures = []
+          csvs = glob.glob("**/target/site/jacoco/jacoco.csv", recursive=True)
+          if not csvs:
+              print("No jacoco.csv reports found — nothing to gate.")
+          for path in csvs:
+              module = path.split("/target/")[0]
+              gate = gates.get(module, default)
+              covered = missed = 0
+              with open(path) as fh:
+                  for row in csv.DictReader(fh):
+                      covered += int(row["LINE_COVERED"])
+                      missed += int(row["LINE_MISSED"])
+              total = covered + missed
+              pct = (covered / total * 100) if total else 100.0
+              status = "OK" if pct >= gate else "FAIL"
+              print(f"[{status}] {module}: {pct:.2f}% (gate {gate}%)")
+              if pct < gate:
+                  failures.append(f"{module}: {pct:.2f}% < {gate}%")
+          if failures:
+              print("Coverage gate failures:\n  " + "\n  ".join(failures))
+              sys.exit(1)
+          PY
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Set up Node ${{ env.NODE_VERSION }} + pnpm store cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      # Vitest coverage thresholds are enforced by frontend/vitest.config.ts, which
+      # mirrors the "frontend" gate (60) in coverage-gates.json — the source of truth.
+      - name: Frontend tests + coverage (Vitest, gate >= frontend)
+        run: |
+          FRONTEND_GATE=$(python3 -c "import json;print(json.load(open('.github/workflows/coverage-gates.json'))['frontend'])")
+          echo "frontend coverage gate (coverage-gates.json) = ${FRONTEND_GATE}%"
+          pnpm --dir frontend run test:coverage
+
+      - name: Install OPA ${{ env.OPA_VERSION }}
+        run: |
+          curl -fsSL -o /usr/local/bin/opa \
+            "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
+          chmod +x /usr/local/bin/opa
+          opa version
+
+      # OPA must be EXACTLY 100% policy coverage (SC4). Parse the JSON coverage field.
+      - name: OPA policy tests (coverage must == 100)
+        run: |
+          opa test policies/ --coverage --format json > opa-coverage.json
+          python3 - <<'PY'
+          import json, sys
+          cov = json.load(open("opa-coverage.json")).get("coverage")
+          print(f"OPA coverage: {cov}%")
+          if cov is None or float(cov) < 100.0:
+              print("OPA policy coverage gate FAILED — must be exactly 100%.")
+              sys.exit(1)
+          PY

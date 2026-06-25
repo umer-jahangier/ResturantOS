@@ -1,0 +1,10 @@
+{
+  "_comment": "Data-driven per-area coverage gates (Pitfall 9). LATER phases raise thresholds here WITHOUT editing ci.yml. Values are minimum LINE coverage percentages. OPA must be exactly 100. finance/inventory modules do NOT exist yet (Phases 6/8) — their entries are FORWARD-DECLARED so the gate is ready the moment those modules land.",
+  "java": {
+    "default": 60,
+    "services/finance-service": 75,
+    "services/inventory-service": 75
+  },
+  "frontend": 60,
+  "opa": 100
+}
