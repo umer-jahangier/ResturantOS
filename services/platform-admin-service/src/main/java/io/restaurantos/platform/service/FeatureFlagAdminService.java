@@ -65,8 +65,8 @@ public class FeatureFlagAdminService {
         feature.setEnabled(enabled);
         featureRepository.save(feature);
 
-        // Dual-key invalidation: delete both Redis key shapes synchronously
-        invalidateBothKeyShapes(tenantId, featureCode);
+        // Dual-key SET: write both Redis key shapes synchronously (SC6 mandate)
+        invalidateBothKeyShapes(tenantId, featureCode, enabled);
 
         log.info("[feature-flag] tenant={} feature={} enabled={} — Redis invalidated", tenantId, featureCode, enabled);
         return enabled;
@@ -78,20 +78,24 @@ public class FeatureFlagAdminService {
     @Transactional
     public void invalidateAll(UUID tenantId) {
         featureRepository.findByTenantId(tenantId).forEach(f ->
-            invalidateBothKeyShapes(tenantId, f.getFeatureCode())
+            invalidateBothKeyShapes(tenantId, f.getFeatureCode(), f.isEnabled())
         );
         log.info("[feature-flag] All Redis cache entries invalidated for tenant={}", tenantId);
     }
 
     // --- Private helpers ---
 
-    private void invalidateBothKeyShapes(UUID tenantId, String featureCode) {
+    private void invalidateBothKeyShapes(UUID tenantId, String featureCode, boolean enabled) {
+        String value = enabled ? "true" : "false";
         // Gateway key shape (03-01 SUMMARY §Redis keys)
         String gatewayKey  = "tenant_features:" + tenantId + ":" + featureCode;
         // Aspect / service key shape (shared-lib RedisFeatureFlagService)
         String serviceKey  = "feature:" + tenantId + ":" + featureCode;
 
-        redis.delete(gatewayKey);
-        redis.delete(serviceKey);
+        // SET (not DELETE) the actual new value so the gateway and @RequiresFeature aspect see the change
+        // immediately on the next request. DELETE would cause RedisFeatureFlagService to fail-close to "false"
+        // on cache miss, silently disabling the feature until TTL expiry (SC6 violation).
+        redis.opsForValue().set(gatewayKey, value);
+        redis.opsForValue().set(serviceKey, value);
     }
 }

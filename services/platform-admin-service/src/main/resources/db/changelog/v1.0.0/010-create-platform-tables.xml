@@ -143,7 +143,7 @@
             <not><tableExists tableName="impersonation_log"/></not>
         </preConditions>
         <createTable tableName="impersonation_log">
-            <column name="id" type="BIGINT" autoIncrement="true">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="platform_user_id" type="UUID">
@@ -159,6 +159,7 @@
                 <constraints nullable="false"/>
             </column>
             <column name="ended_at" type="TIMESTAMPTZ"/>
+            <column name="expires_at" type="TIMESTAMPTZ"/>
             <column name="reason" type="VARCHAR(500)"/>
         </createTable>
         <rollback>
