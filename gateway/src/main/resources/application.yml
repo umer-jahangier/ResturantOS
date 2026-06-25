@@ -1,0 +1,233 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: gateway
+
+  # Reactive Redis for RequestRateLimiter (Lua token-bucket) + feature-flag cache
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Pitfall 2: X-Forwarded-* is disabled by default in SC 2025.1.0.
+          # Trust Nginx (docker-compose internal network is 172.x.x.x).
+          trusted-proxies: "127\\.0\\.0\\.1|::1|172\\..*"
+
+          default-filters:
+            # Strip X-Internal-Service from ALL public traffic (Doc 4 §4.1).
+            # Internal services use this header to identify each other; do not let
+            # external clients forge it.
+            - RemoveRequestHeader=X-Internal-Service
+            # General-tier rate limiter: ~600 req/min per IP
+            # replenishRate=10 tokens/sec, burstCapacity=600 (initial burst)
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_API_PER_MIN:600}
+                key-resolver: "#{@ipKeyResolver}"
+
+          routes:
+            # ── Auth Service ────────────────────────────────────────────────────────
+            - id: auth-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                # Tighter rate limit for auth endpoints: ~100 req/min per IP
+                # replenishRate=2 tokens/sec, burstCapacity=100
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 2
+                    redis-rate-limiter.burstCapacity: ${RATE_LIMIT_AUTH_PER_MIN:100}
+                    key-resolver: "#{@ipKeyResolver}"
+                - name: CircuitBreaker
+                  args:
+                    name: authCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── JWKS public endpoint (served by auth-service) ────────────────────
+            - id: jwks-route
+              uri: lb://auth-service
+              predicates:
+                - Path=/.well-known/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+
+            # ── Authorization Service ────────────────────────────────────────────
+            - id: authorization-route
+              uri: lb://authorization-service
+              predicates:
+                - Path=/api/v1/authorization/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authorizationCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── Platform Admin Service ───────────────────────────────────────────
+            - id: platform-admin-route
+              uri: lb://platform-admin-service
+              predicates:
+                - Path=/api/v1/platform/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: platformAdminCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── User Service ─────────────────────────────────────────────────────
+            - id: user-route
+              uri: lb://user-service
+              predicates:
+                - Path=/api/v1/users/**, /api/v1/branches/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: userCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── Feature-flagged routes (later phases) — commented stubs ──────────
+            # - id: hr-route
+            #   uri: lb://hr-service
+            #   predicates:
+            #     - Path=/api/v1/hr/**
+            #   filters:
+            #     - name: CircuitBreaker
+            #       args:
+            #         name: hrCircuitBreaker
+            #         fallbackUri: forward:/fallback/service-unavailable
+            #
+            # - id: crm-route
+            #   uri: lb://crm-service
+            #   predicates:
+            #     - Path=/api/v1/crm/**
+            #   filters:
+            #     - name: CircuitBreaker
+            #       args:
+            #         name: crmCircuitBreaker
+            #         fallbackUri: forward:/fallback/service-unavailable
+            #
+            # - id: nlq-route
+            #   uri: lb://nlq-service
+            #   predicates:
+            #     - Path=/api/v1/nlq/**
+            #   filters:
+            #     - name: CircuitBreaker
+            #       args:
+            #         name: nlqCircuitBreaker
+            #         fallbackUri: forward:/fallback/service-unavailable
+            #
+            # - id: pos-route
+            #   uri: lb://pos-service
+            #   predicates:
+            #     - Path=/api/v1/pos/**, /api/v1/orders/**
+            #   filters:
+            #     - name: CircuitBreaker
+            #       args:
+            #         name: posCircuitBreaker
+            #         fallbackUri: forward:/fallback/service-unavailable
+            #
+            # - id: inventory-route
+            #   uri: lb://inventory-service
+            #   predicates:
+            #     - Path=/api/v1/inventory/**
+            #   filters:
+            #     - name: CircuitBreaker
+            #       args:
+            #         name: inventoryCircuitBreaker
+            #         fallbackUri: forward:/fallback/service-unavailable
+            #
+            # - id: finance-route
+            #   uri: lb://finance-service
+            #   predicates:
+            #     - Path=/api/v1/finance/**
+            #   filters:
+            #     - name: CircuitBreaker
+            #       args:
+            #         name: financeCircuitBreaker
+            #         fallbackUri: forward:/fallback/service-unavailable
+
+    # Eureka: register with service discovery so other services can find the gateway
+    netflix:
+      eureka:
+        client:
+          service-url:
+            defaultZone: ${EUREKA_URI:http://eureka-server:8761/eureka}
+          fetch-registry: true
+          register-with-eureka: true
+
+# Actuator: expose health (public — listed in JwtGlobalFilter.isPublicPath) + prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, info
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Resilience4j circuit-breaker instances (one per upstream that exists in Phase 3)
+resilience4j:
+  circuitbreaker:
+    instances:
+      authCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      authorizationCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      platformAdminCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      userCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+
+# Gateway-specific properties
+restaurantos:
+  jwks:
+    uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+  platform-admin:
+    uri: ${PLATFORM_ADMIN_URI:http://platform-admin-service:8083}
+  # fail-open-on-platform-down: when true (dev profile), treat tenant as ACTIVE with no
+  # feature restrictions when platform-admin-service is unreachable. NEVER set true in prod.
+  fail-open-on-platform-down: ${FAIL_OPEN_ON_PLATFORM_DOWN:false}
+
+logging:
+  level:
+    io.restaurantos.gateway: ${LOG_LEVEL_GATEWAY:INFO}
+    org.springframework.cloud.gateway: ${LOG_LEVEL_SCG:WARN}

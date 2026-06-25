@@ -26,14 +26,14 @@
         <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
-    <!-- Phase-1 modules only: shared-lib, eureka-server, config-server.
-         Services and gateway are added in their respective phases. -->
+    <!-- Phase-1/2 modules + gateway (Phase 3). Services and future modules added per phase. -->
     <modules>
         <module>shared-lib</module>
         <module>eureka-server</module>
         <module>config-server</module>
         <module>services/auth-service</module>
         <module>services/authorization-service</module>
+        <module>gateway</module>
     </modules>
 
     <dependencyManagement>
