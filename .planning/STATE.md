@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 4 of 8 (gap-closure wave 1 of 3)
-Status: In progress (gap-closure DS-01..07 underway)
-Last activity: 2026-06-26 — Completed 04-04-PLAN.md (design-system CSS foundation + all gap-closure deps)
+Plan: 6 of 8 (gap-closure wave 2 complete)
+Status: In progress (gap-closure DS-01..07 underway; DS-04 closed)
+Last activity: 2026-06-26 — Completed 04-06-PLAN.md (6 UI primitives: CommandPalette, AnimatedNumber, StatusBadge, MoneyDisplay, DataTable, EmptyState)
 
-Progress: [████████████░] 42% (14/33 plans)
+Progress: [████████████████░] 49% (16/33 plans)
 
 ## Performance Metrics
 
@@ -23,7 +23,7 @@ Progress: [████████████░] 42% (14/33 plans)
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
-- Phase 4: 3/3 plans executed; verification 16/16 (human_needed → approved via live browser + container UAT)
+- Phase 4: 6/8 plans executed; verification passing (tsc/lint/build green, gap-closure DS-01..04 closed)
 
 **By Phase:**
 
@@ -84,7 +84,10 @@ Recent decisions affecting current work:
 - [04-04-A]: `useSyncExternalStore` for SSR mounted check in ThemeToggle — project ESLint rule `react-hooks/set-state-in-effect` prohibits `setState` directly in effects; `useSyncExternalStore(noop, () => true, () => false)` is the correct SSR-safe alternative.
 - [04-04-B]: OKLCH values for semantic state tokens: warning≈oklch(0.795 0.184 86°) amber, success≈oklch(0.723 0.191 149°) green, info≈oklch(0.685 0.169 237°) blue (approximate conversions of DS doc HSL intent).
 - [04-04-C]: `.skeleton` uses `var(--muted)`/`var(--border)` directly — NOT `oklch(var(...))` which is invalid CSS.
-- [04-04-D]: `StatusAnnouncer` uses module-level `globalSetMessage` reference to avoid React context for a low-frequency aria-live side-effect. Stack reconciliation = ADAPT (user-approved): keep Next 16 + Tailwind 4 CSS-first + OKLCH + flat `frontend/{app,components,lib}` + enforced four-layer boundary; the doc's Next 14 / Tailwind 3.4 / `tailwind.config.ts` / HSL / `src/` / `geist`-package lines are superseded (see doc §0). Rollout = save-as-reference + Phase-4 shell gap-closure (DS-01..07); module UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into phases 5–12.
+- [04-04-D]: `StatusAnnouncer` uses module-level `globalSetMessage` reference
+- [04-06-A]: `BigInt(100)` function call (not literal `100n`) for ES2017 tsconfig compat in MoneyDisplay.
+- [04-06-B]: React Compiler warning on `useReactTable` is expected — TanStack Table v8 returns non-memoizable functions; warning only, not error.
+- [04-06-C]: `CommandPalette` wraps cmdk inside existing shadcn `Dialog` for consistent overlay/animation/keyboard-trap. to avoid React context for a low-frequency aria-live side-effect. Stack reconciliation = ADAPT (user-approved): keep Next 16 + Tailwind 4 CSS-first + OKLCH + flat `frontend/{app,components,lib}` + enforced four-layer boundary; the doc's Next 14 / Tailwind 3.4 / `tailwind.config.ts` / HSL / `src/` / `geist`-package lines are superseded (see doc §0). Rollout = save-as-reference + Phase-4 shell gap-closure (DS-01..07); module UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into phases 5–12.
 
 ### Pending Todos
 
@@ -108,5 +111,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-26
-Stopped at: Completed 04-04-PLAN.md — design-system CSS foundation (OKLCH tokens, keyframes, skeleton, a11y), all 5 gap-closure deps installed, WCAG validator + ThemeToggle + StatusAnnouncer created; tsc/lint/build green.
+Stopped at: Completed 04-06-PLAN.md — 6 DS-04 UI primitives (CommandPalette/cmdk, AnimatedNumber/react-countup, StatusBadge, MoneyDisplay/BigInt, DataTable/TanStack, EmptyState); tsc/lint/build green.
 Resume file: None
