@@ -89,11 +89,12 @@ Plans:
   2. Sidebar nav plus `FeatureGuard`/`PermissionGuard` hide items by permission and feature flag; `BranchSwitcher` reissues the JWT and invalidates the query cache.
   3. Every API response is Zod-parsed through the four-layer abstraction before adaptation, MSW mocks back auth in dev, ESLint blocks components importing `lib/api-client` or `lib/repositories`, and `tsc --noEmit` passes with zero `any`.
   4. The CI pipeline runs lint → test → build → schema-sync with no manual intervention, enforcing coverage gates (finance/inventory ≥75%, others ≥60%, OPA 100%) and producing signed images.
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Next.js shell — route groups, middleware protection, login/TOTP, guards, four-layer API abstraction, MSW
-- [ ] 04-02: CI/CD pipeline — lint, coverage-gated tests, signed image build, schema-sync
+- [ ] 04-01-PLAN.md (wave 1) — Next.js 16 shell: scaffold + Tailwind 4/shadcn, route groups, `proxy.ts` + DAL protection, four-layer API abstraction (auth domain), MSW dev+test, ESLint boundary + strict tsc (FE-01/02/03/07-infra/08)
+- [ ] 04-02-PLAN.md (wave 2) — Auth UX & guards: login + conditional TOTP, PermissionGuard/FeatureGuard, permission/feature-conditioned Sidebar, BranchSwitcher (JWT reissue + cache invalidation), MSW contract tests (FE-04/05/06/07)
+- [ ] 04-03-PLAN.md (wave 2) — CI/CD pipeline: lint → test → build → schema-sync, data-driven coverage gates (finance/inventory ≥75%, others ≥60%, OPA 100%), cosign-signed multi-arch GHCR images, Playwright scaffold (INFRA-05)
 
 ### Phase 5: Cross-Cutting Services (Notifications, Audit, Files)
 **Goal**: Bring the cross-cutting consumers online to act on the events the platform already publishes — templated notifications, an immutable audit trail, and tenant-scoped file storage.
@@ -239,7 +240,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 1. Infrastructure Foundation & Shared Library | 0/4 | Not started | - |
 | 2. Authentication & Authorization | 0/3 | Not started | - |
 | 3. API Gateway, Platform Admin & Tenant/User Mgmt | 0/3 | Not started | - |
-| 4. Frontend Shell & CI/CD | 0/2 | Not started | - |
+| 4. Frontend Shell & CI/CD | 0/3 | Not started | - |
 | 5. Cross-Cutting Services (Notifications, Audit, Files) | 0/3 | Not started | - |
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 0/4 | Not started | - |
