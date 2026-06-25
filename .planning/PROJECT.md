@@ -21,17 +21,18 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 <!-- Current scope. Full requirement list with REQ-IDs lives in REQUIREMENTS.md. -->
 
 - [ ] Multi-tenant isolation (Hibernate tenant filter + PostgreSQL RLS, `tenant_id` never client-supplied)
-- [ ] Platform Admin: tenant provisioning, feature flags, impersonation, telemetry
+- [ ] All six business modules (POS, Inventory, Finance, Vendor, HR, CRM) — plus KDS — are core/mandatory: built for and shipped to every tenant; tier only seeds access defaults
+- [ ] Platform Admin: tenant provisioning, feature flags, impersonation, telemetry, **SuperAdmin tier-independent per-tenant module enable/disable** (authoritative override; immediate cache invalidation; audited)
 - [ ] Auth: login, RS256 JWT + JWKS, refresh sessions, 2FA, password reset, branch switch
 - [ ] Authorization: OPA/ABAC (fail-closed) with tenant + branch checks, RBAC
 - [ ] User/Branch management + internal endpoints
 - [ ] POS: orders, tables, split-tender payments, till sessions, offline sync
 - [ ] Kitchen Display System (station routing)
 - [ ] Inventory: stock, recipes/BOM, MAC, depletion, transfers, counts
-- [ ] Purchasing: vendors, POs, GRN, vendor-invoice 3-way match
+- [ ] Purchasing / Vendor & Supply Chain: vendors, POs, GRN, vendor-invoice 3-way match, performance scorecard, spend analytics
 - [ ] Finance: GL, immutable balanced journal entries, AP/AR, period close, auto-posting recipes
-- [ ] HR: employees, payroll (Pakistan tax slabs via config)
-- [ ] CRM: customers, loyalty
+- [ ] HR: employees, payroll (Pakistan tax slabs via config), shift scheduling, time & attendance (incl. biometric devices — LAN ADMS push + USB bridge agent, edge matching, no central raw biometrics), leave management, labour-cost % vs revenue
+- [ ] CRM: customers, loyalty (Bronze/Silver/Gold tiers), promotion engine, feedback collection
 - [ ] Reporting: ClickHouse ETL + named reports (FBR-compliant)
 - [ ] NLQ: natural-language query with 7-stage SQL AST validation
 - [ ] Notifications, Audit (7-year immutable), File storage (MinIO)
@@ -77,4 +78,4 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 | Phase 1 scope = infra + shared-lib + Auth + Gateway + Platform Admin + User/Authz(OPA) + Next.js shell + CI/CD | Matches readiness report's Sprint-1 GO set | — Pending |
 
 ---
-*Last updated: 2026-06-22 after initialization*
+*Last updated: 2026-06-25 — all six business modules made core/mandatory; added SuperAdmin tier-independent per-tenant module enable/disable; HR/Vendor/CRM operational sub-features added*

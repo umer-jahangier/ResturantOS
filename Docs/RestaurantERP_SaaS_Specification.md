@@ -75,19 +75,22 @@ Single-tenant ERP systems are deployed once, for one client, on client hardware.
 | Chef / Kitchen | KDS with priority queuing, recipe reference |
 | Accountant | Double-entry GL, FBR/tax reporting, three-way match, period close |
 
-## P0.4 Seven Core Modules (Required in All Tiers)
+## P0.4 Core Modules (Built for Every Tenant)
 
-Every tenant subscription includes:
+The platform ships **every** functional module in every deployment. The following modules are mandatory parts of the product — they are built for, and available to, every tenant. A SuperAdmin enables or disables each module **per tenant** (see P1.2, P2.4, and CC.6); subscription tier only sets the *defaults* applied at provisioning, and the SuperAdmin override is authoritative (it can grant a module above the tenant's tier or revoke one).
 
 1. POS & Order Management
 2. Inventory Management
 3. Financial System (GL, AP/AR, COGS)
 4. Vendor & Supply Chain
-5. Reporting & Analytics
-6. Natural Language Query Interface
-7. Multi-Branch Architecture & Granular RBAC
+5. HR & Payroll
+6. CRM & Loyalty
+7. Kitchen Display System (KDS)
+8. Reporting & Analytics
+9. Natural Language Query Interface
+10. Multi-Branch Architecture & Granular RBAC
 
-Additional modules (HR, CRM, KDS, Notifications, Audit) are gated by subscription tier.
+Cross-cutting platform services (Notifications, Audit, File storage) back every module. Advanced add-ons (WhatsApp/SMS notifications, white-label custom domain, public API, lot/batch tracking, consolidated multi-branch reporting, custom roles) remain tier-gated by default and are likewise SuperAdmin-controllable per tenant.
 
 ## P0.5 Scope Statement
 
@@ -142,6 +145,7 @@ Additional modules (HR, CRM, KDS, Notifications, Audit) are gated by subscriptio
 The platform operator. Has no direct restaurant operations role. Key jobs:
 - Provision and deactivate tenants.
 - Set subscription tier and feature flags per tenant.
+- **Enable or disable any module for any tenant, independent of subscription tier.** Every module is built for every tenant; the SuperAdmin's per-tenant module switches are authoritative — they can grant a module above the tenant's tier or revoke one. Changes take effect immediately (feature cache invalidated) and are written to the audit log. Tier only sets the defaults applied at provisioning.
 - Set per-tenant usage limits (branches, users, storage, NLQ queries).
 - Impersonate a Tenant Admin for support (audited).
 - View platform-wide telemetry: total tenants, MAU, API call volume, error rates.
@@ -257,7 +261,7 @@ Provisioning is fully automated. Total time from SuperAdmin click to tenant ACTI
 
 ## P2.4 Subscription Tiers
 
-Three publicly sold tiers. SuperAdmin can create custom tiers for enterprise clients.
+Three publicly sold tiers. SuperAdmin can create custom tiers for enterprise clients. Tier values below are **defaults** only; a SuperAdmin can enable or disable any module for any individual tenant regardless of its tier (see P1.2 and CC.6).
 
 | Feature | STARTER | GROWTH | ENTERPRISE |
 |---|---|---|---|
@@ -265,10 +269,7 @@ Three publicly sold tiers. SuperAdmin can create custom tiers for enterprise cli
 | Users | Up to 10 | Up to 50 | Unlimited |
 | Storage (MinIO) | 5 GB | 25 GB | Custom |
 | NLQ queries/month | 500 | 2,000 | Custom |
-| Core 7 modules | ✅ | ✅ | ✅ |
-| HR & Payroll | | ✅ | ✅ |
-| CRM & Loyalty | | ✅ | ✅ |
-| KDS | ✅ | ✅ | ✅ |
+| Core modules (POS, Inventory, Finance, Vendor, HR, CRM, KDS, Reporting, NLQ, RBAC) | ✅ | ✅ | ✅ |
 | Advanced Reports | | ✅ | ✅ |
 | Consolidated multi-branch | | ✅ | ✅ |
 | White-label domain | | ✅ | ✅ |
@@ -277,7 +278,7 @@ Three publicly sold tiers. SuperAdmin can create custom tiers for enterprise cli
 | Custom NLQ model | | | ✅ |
 | SLA | Best-effort | 99.5% | 99.9% |
 
-Full feature flag matrix is in Appendix C.
+Every functional module is built for and shipped to every tenant; the tier defaults and the SuperAdmin per-tenant overrides only govern *access*, never whether the module exists. Full feature flag matrix is in Appendix C.
 
 ## P2.5 Usage Metering
 
@@ -2046,12 +2047,14 @@ $$ LANGUAGE plpgsql;
 
 ## M4.1 Purpose
 
-End-to-end purchasing: vendor master, PO approval workflow, goods receipt, three-way match, and AP payment.
+End-to-end purchasing: vendor master, PO approval workflow, goods receipt, three-way match, AP payment, vendor performance scorecards, and spend analytics. A core module built for every tenant; enabled by default in all tiers and toggleable per tenant by a SuperAdmin.
 
 ## M4.2 Key Functional Requirements
 
 - Vendor master with NTN/STRN, payment terms, lead time, performance rating.
-- Vendor catalogue: item-price mappings per vendor with valid date ranges.
+- Vendor catalogue: item-price mappings per vendor with valid date ranges (tiered pricing contracts).
+- Vendor performance scorecard: on-time delivery (lead-time adherence), fill rate, and price variance per vendor.
+- Spend analytics: spend by vendor and by category, with period comparison.
 - PO workflow: DRAFT → PENDING_APPROVAL → APPROVED → SENT → PARTIALLY_RECEIVED → FULLY_RECEIVED → CLOSED.
 - Multi-tier PO approval by amount threshold (configurable per tenant).
 - GRN with partial receiving.
@@ -2330,13 +2333,15 @@ Safety guard: the last user with `rbac.manage` cannot revoke their own assignmen
 
 ## M8.1 Purpose
 
-Employee lifecycle, attendance, leave, and payroll. Available in GROWTH and ENTERPRISE tiers.
+Employee lifecycle, shift scheduling, attendance, leave, and payroll. A core module built for every tenant; enabled by default in all tiers and toggleable per tenant by a SuperAdmin.
 
 ## M8.2 Key Functional Requirements
 
 - Employee master: personal info (CNIC encrypted), contract type, department, salary structure.
-- Attendance: clock-in/clock-out (manual or biometric webhook). Auto-deduct for late arrival per policy.
+- Shift scheduling: role-based shift planning on a drag-and-drop calendar, per branch.
+- Attendance: clock-in/clock-out — manual, or via biometric devices (network ADMS/iClock push over LAN, or USB readers through a local bridge agent; see M8.4). Auto-deduct for late arrival per policy.
 - Leave: types (annual, sick, unpaid, maternity, paternity), accrual rules, approval workflow.
+- Labour-cost tracking: labour cost as a % of revenue, by shift and by branch.
 - Payroll run: gross from salary + overtime; EOBI/PESSI contribution deductions; Pakistan income tax slabs (updated annually via config, not code); net pay.
 - Payslip generation (PDF, stored in MinIO, emailed).
 - GL posting on payroll approval: `DR Salary Expense / CR Wages Payable`. On disbursement: `DR Wages Payable / CR Bank`.
@@ -2392,13 +2397,76 @@ CREATE TABLE payslips (
 );
 ```
 
+## M8.4 Biometric Attendance Integration
+
+Attendance punches can originate from biometric devices (fingerprint or face). Because a web browser **cannot** read a raw fingerprint/face scanner directly (WebUSB/WebHID require Chromium + a user gesture and have no usable protocol for these readers; WebAuthn only verifies the logged-in user's own credential, not arbitrary employees on a shared device), the platform supports two device-connection modes and treats both as **device-authenticated ingest**, never user-authenticated.
+
+### Mode A — Network device (over LAN/Internet) via ADMS/iClock push (default)
+
+A network biometric terminal (e.g., ZKTeco/ESSL/Suprema, "ADMS"/"Cloud Server"/"iClock" capable) performs enrollment and 1:N matching **on the device** and pushes punches over HTTPS to a per-tenant webhook. The device is configured only with our server address, port 443, HTTPS on, and its device token ("stamp"); no static IP or inbound firewall rule is needed because the device initiates all calls.
+
+The HR Service exposes the ADMS adapter endpoints (plain-text, tab-delimited, serial-number addressed):
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/iclock/cdata?SN={serial}` | GET | Handshake; server returns config (`Delay`, `Realtime=1`, `ATTLOGStamp`, …) |
+| `/iclock/cdata?SN={serial}&table=ATTLOG` | POST | Device pushes attendance logs; server parses and replies `OK` |
+| `/iclock/getrequest?SN={serial}` | GET | Device polls for queued server commands (enroll-sync, reboot, time-sync) |
+| `/iclock/devicecmd?SN={serial}` | POST | Device reports command execution result |
+
+### Mode B — USB device via local bridge agent
+
+For a USB fingerprint reader attached to the branch's POS/manager PC, a small signed **local bridge agent** (installable Windows service / tray app) talks to the reader through the vendor SDK, performs capture + 1:N matching **locally**, and relays only the resolved `{employee_ref, device_id, punched_at}` to the platform. The browser POS receives live punches by subscribing to the agent on `wss://127.0.0.1:{port}`; the agent (or the browser on its behalf) then POSTs the punch to the device-authenticated ingest endpoint. The browser never accesses the scanner hardware itself. The bridge agent is distributed as a separate component and buffers punches while offline.
+
+### Device registry, tenancy & security
+
+- **Device registry** (`attendance_devices`): a Tenant Admin (or SuperAdmin) registers a device by serial number and receives a device token + the server URL to enter on the device. The registry maps `serial → device_token → branch_id → tenant_id`.
+- **Tenant/branch are resolved from the registry**, never from client input (upholds the "`tenant_id` never client-supplied" rule). Ingest requests carry no user JWT, so the API Gateway treats the ingest path (`/iclock/*` and `/internal/attendance/ingest`) as a JWT-exempt but **device-authenticated** path class: the device token / HMAC is verified, unknown serials are rejected, and the path is rate-limited per device.
+- **No central biometric data by default.** Matching happens at the edge (on-device for Mode A, in the agent for Mode B); the platform stores only `employee_id + device_id + punched_at`. Central fingerprint/face templates are **not** stored unless a tenant explicitly opts in, in which case templates are AES-256-GCM encrypted (same field-encryption discipline as `cnic`) in a dedicated RLS-scoped table with restricted access and a retention policy.
+
+### Processing rules
+
+- **Idempotent**: punches are de-duplicated on `(device_id, employee_id, punched_at)` (or the device's own record id), so device offline-buffer replays and retries create no duplicate attendance rows — consistent with the platform's `processed_events` discipline.
+- **Clock skew**: both `device_reported_at` and `server_received_at` are stored; devices are time-synced to the server/NTP.
+- **Unmapped punches**: a device user-id not yet mapped to an `employee_id` is parked in a quarantine queue for admin mapping rather than dropped.
+- **Downstream**: each accepted punch persists to `attendance_punches`, publishes `ATTENDANCE_PUNCHED`, and feeds time-&-attendance (late-arrival/early-leave detection → payroll deductions). Biometric attendance is part of the HR module and is gated by `FEATURE_HR` (and therefore the SuperAdmin per-tenant module toggle).
+
+```sql
+CREATE TABLE attendance_devices (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL,
+  branch_id       UUID NOT NULL,
+  serial_no       TEXT NOT NULL,
+  model           TEXT,
+  connection_mode TEXT NOT NULL,            -- NETWORK_ADMS|USB_BRIDGE
+  device_token    BYTEA NOT NULL,           -- AES-256-GCM encrypted shared secret
+  last_seen_at    TIMESTAMPTZ,
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+  UNIQUE (serial_no)
+);
+
+CREATE TABLE attendance_punches (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id          UUID NOT NULL,
+  branch_id          UUID NOT NULL,
+  device_id          UUID NOT NULL REFERENCES attendance_devices(id),
+  employee_id        UUID REFERENCES employees(id),   -- NULL until mapped (quarantine)
+  device_user_ref    TEXT NOT NULL,                   -- the id reported by the device
+  punch_type         TEXT NOT NULL,                   -- IN|OUT|UNKNOWN
+  device_reported_at TIMESTAMPTZ NOT NULL,
+  server_received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  source_record_id   TEXT,                            -- device-provided id for idempotency
+  UNIQUE (device_id, device_user_ref, device_reported_at)
+);
+```
+
 ---
 
 # M9. CRM & Loyalty
 
 ## M9.1 Purpose
 
-Customer relationship management, loyalty programme, and targeted promotions. Available in GROWTH and ENTERPRISE tiers.
+Customer relationship management, loyalty programme, targeted promotions, and feedback collection. A core module built for every tenant; enabled by default in all tiers and toggleable per tenant by a SuperAdmin.
 
 ## M9.2 Key Functional Requirements
 
@@ -2408,6 +2476,7 @@ Customer relationship management, loyalty programme, and targeted promotions. Av
 - Points redemption at POS as a payment method.
 - Promotion engine: time-limited discounts by day/hour, item-specific, tier-specific.
 - Birthday vouchers: auto-generate and dispatch via Notification Service.
+- Feedback collection: post-order feedback capture, rating/comment storage, and reporting.
 - Customer segmentation: RFM scoring in ClickHouse.
 - Marketing blast: email/SMS to a segment via Notification Service.
 
@@ -2659,7 +2728,7 @@ public class FeatureFlagAspect {
 public ResponseEntity<List<PayrollRunDto>> listPayrollRuns() { ... }
 ```
 
-Feature flags are cached in Redis with a 5-minute TTL per tenant. The cache is invalidated immediately when a SuperAdmin changes a tenant's feature set.
+Feature flags are cached in Redis with a 5-minute TTL per tenant. The cache is invalidated immediately when a SuperAdmin changes a tenant's feature set. The SuperAdmin's per-tenant module switches are authoritative and tier-independent: `FeatureFlagService.isEnabled(...)` resolves the tenant's effective `tenant_features` (tier defaults merged with SuperAdmin overrides), so enabling a module above the tenant's tier — or revoking one — takes effect immediately for both the API Gateway and the `@RequiresFeature` aspect. Every such change is written to the audit log.
 
 ---
 
@@ -2920,9 +2989,9 @@ Auth via `Authorization: Bearer` header. Heartbeat every 30s. Reconnect on misse
 | `FEATURE_REPORTING_BASIC` | ✅ | ✅ | ✅ |
 | `FEATURE_NLQ` | ✅ | ✅ | ✅ |
 | `FEATURE_KDS` | ✅ | ✅ | ✅ |
+| `FEATURE_HR` | ✅ | ✅ | ✅ |
+| `FEATURE_CRM` | ✅ | ✅ | ✅ |
 | `FEATURE_MULTI_BRANCH` | | ✅ | ✅ |
-| `FEATURE_HR` | | ✅ | ✅ |
-| `FEATURE_CRM` | | ✅ | ✅ |
 | `FEATURE_REPORTING_ADVANCED` | | ✅ | ✅ |
 | `FEATURE_WHITE_LABEL_DOMAIN` | | ✅ | ✅ |
 | `FEATURE_WHATSAPP_NOTIFICATIONS` | | ✅ | ✅ |
@@ -2932,6 +3001,8 @@ Auth via `Authorization: Bearer` header. Heartbeat every 30s. Reconnect on misse
 | `FEATURE_AUDIT_EXPORT` | | ✅ | ✅ |
 | `FEATURE_LOT_TRACKING` | | ✅ | ✅ |
 | `FEATURE_CONSOLIDATED_REPORTING` | | ✅ | ✅ |
+
+The columns above are the **defaults seeded at provisioning** for each tier. They are not hard limits: a SuperAdmin can flip any `FEATURE_*` flag on or off for any individual tenant from the Platform Console, independent of the tenant's tier. The override is persisted on the tenant's `tenant_features`, invalidates the Redis feature cache immediately, is written to the audit log, and is enforced identically at the API Gateway and via the `@RequiresFeature` aspect. The six primary business modules (`FEATURE_POS`, `FEATURE_INVENTORY`, `FEATURE_FINANCE`, `FEATURE_VENDOR`, `FEATURE_HR`, `FEATURE_CRM`) plus `FEATURE_KDS` are built for every tenant and default to enabled in all tiers.
 
 ---
 
@@ -2947,7 +3018,7 @@ Auth via `Authorization: Bearer` header. Heartbeat every 30s. Reconnect on misse
 `JOURNAL_POSTED`, `PERIOD_CLOSED`, `AP_PAYMENT_PROCESSED`, `EXPENSE_APPROVED`
 
 ## D.4 HR Events (`hr.topic`)
-`PAYROLL_RUN_APPROVED`, `PAYROLL_RUN_PAID`, `EMPLOYEE_JOINED`, `EMPLOYEE_LEFT`
+`PAYROLL_RUN_APPROVED`, `PAYROLL_RUN_PAID`, `EMPLOYEE_JOINED`, `EMPLOYEE_LEFT`, `ATTENDANCE_PUNCHED`
 
 ## D.5 Auth Events (`auth.topic`)
 `USER_LOGIN_SUCCEEDED`, `USER_LOGIN_FAILED`, `USER_LOCKED`, `RBAC_CHANGED`, `IMPERSONATION_STARTED`, `IMPERSONATION_ENDED`

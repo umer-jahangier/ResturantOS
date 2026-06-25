@@ -19,3 +19,11 @@
 - Re-index after major refactors: `bash ~/.cursor/get-shit-done/scripts/cursor-powerup-reindex.sh`
 
 ## Last re-index: 2026-06-23T01:51
+
+## Last re-index: 2026-06-24T00:16
+
+## Last re-index: 2026-06-25T22:47
+
+## Last re-index: 2026-06-26T00:57
+
+## Last re-index: 2026-06-26T02:43
