@@ -1,0 +1,29 @@
+# Test profile: suppress Eureka registration and set minimal config
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration
+  cloud:
+    discovery:
+      enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6370   # non-existent port — overridden by @DynamicPropertySource in IT tests
+
+# Suppress Eureka registration during tests
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Silence verbose startup logging in tests
+logging:
+  level:
+    root: WARN
+    io.restaurantos: DEBUG
+    org.springframework.cloud.gateway: WARN
+    com.netflix: WARN

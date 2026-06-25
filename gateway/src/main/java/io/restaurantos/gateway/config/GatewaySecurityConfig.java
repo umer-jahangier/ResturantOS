@@ -8,8 +8,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import org.springframework.web.reactive.function.client.WebClient;
-
 /**
  * Spring Security 7 reactive {@link SecurityWebFilterChain} for the gateway.
  *
@@ -32,9 +30,13 @@ public class GatewaySecurityConfig {
      * Provides a {@link JwksKeyProvider} bean that fetches and caches RS256 public keys
      * from the auth-service JWKS endpoint. JwtGlobalFilter uses this for JWT signature
      * verification (reuse shared-lib; do NOT re-implement key caching).
+     *
+     * <p>{@code @ConditionalOnMissingBean} allows test configurations to provide a
+     * pre-seeded test keypair without HTTP fetching.
      */
     @Bean
-    public JwksKeyProvider jwksKeyProvider(WebClient.Builder webClientBuilder) {
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(JwksKeyProvider.class)
+    public JwksKeyProvider jwksKeyProvider() {
         org.springframework.web.client.RestClient restClient =
                 org.springframework.web.client.RestClient.builder()
                         .baseUrl(jwksUri)

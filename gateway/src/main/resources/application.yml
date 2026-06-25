@@ -21,10 +21,8 @@ spring:
           trusted-proxies: "127\\.0\\.0\\.1|::1|172\\..*"
 
           default-filters:
-            # Strip X-Internal-Service from ALL public traffic (Doc 4 §4.1).
-            # Internal services use this header to identify each other; do not let
-            # external clients forge it.
-            - RemoveRequestHeader=X-Internal-Service
+            # X-Internal-Service stripping is handled by StripInternalHeaderFilter (GlobalFilter)
+            # so it applies to ALL routes (YAML + programmatic). See §4.1 enforcement note.
             # General-tier rate limiter: ~600 req/min per IP
             # replenishRate=10 tokens/sec, burstCapacity=600 (initial burst)
             - name: RequestRateLimiter
