@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 3 of 3 complete
-Status: Phase 4 original scope complete & verified (16/16, UAT). REOPENED with a UI/UX design-system gap-closure for the shell (DS-01..07) — plan via `/gsd-plan-phase 4 --gaps`
-Last activity: 2026-06-26 — Adopted UI/UX Design System (Docs/RestaurantOS_UI_UX_Design_System.md, authoritative; stack-adapted to Next 16 + Tailwind 4 CSS-first + OKLCH + flat dir + four-layer boundary). Logged DS-01..07 (Phase-4 gap) + design-system gaps in 04-VERIFICATION.md (status → gaps_found; original FE-01..08/INFRA-05 PASS preserved)
+Plan: 4 of 8 (gap-closure wave 1 of 3)
+Status: In progress (gap-closure DS-01..07 underway)
+Last activity: 2026-06-26 — Completed 04-04-PLAN.md (design-system CSS foundation + all gap-closure deps)
 
-Progress: [████████████] 39% (13/33 plans)
+Progress: [████████████░] 42% (14/33 plans)
 
 ## Performance Metrics
 
@@ -81,7 +81,10 @@ Recent decisions affecting current work:
 - [04-03-C]: D6 — Playwright scaffold + ONE `/app/dashboard`→`/login` smoke only; full ~50-journey staging suite is cross-phase. promote-to-prod is a deliberate manual `environment: production` gate (not a pipeline failure).
 - [04-03-D]: cosign keyless OIDC (`id-token: write`) signs multi-arch (amd64+arm64) GHCR images over a DRY 8-image matrix; PRs build-only (no push/sign).
 - [04-03-E]: Java checkstyle/spotbugs/pmd NOT wired in parent POM — CI lint runs a clean multi-module compile; wiring the dedicated goals (and data-driven JaCoCo check) is deferred tech debt.
-- [DS-2026-06-26]: Adopted `Docs/RestaurantOS_UI_UX_Design_System.md` as the AUTHORITATIVE frontend design system. Stack reconciliation = ADAPT (user-approved): keep Next 16 + Tailwind 4 CSS-first + OKLCH + flat `frontend/{app,components,lib}` + enforced four-layer boundary; the doc's Next 14 / Tailwind 3.4 / `tailwind.config.ts` / HSL / `src/` / `geist`-package lines are superseded (see doc §0). Rollout = save-as-reference + Phase-4 shell gap-closure (DS-01..07); module UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into phases 5–12.
+- [04-04-A]: `useSyncExternalStore` for SSR mounted check in ThemeToggle — project ESLint rule `react-hooks/set-state-in-effect` prohibits `setState` directly in effects; `useSyncExternalStore(noop, () => true, () => false)` is the correct SSR-safe alternative.
+- [04-04-B]: OKLCH values for semantic state tokens: warning≈oklch(0.795 0.184 86°) amber, success≈oklch(0.723 0.191 149°) green, info≈oklch(0.685 0.169 237°) blue (approximate conversions of DS doc HSL intent).
+- [04-04-C]: `.skeleton` uses `var(--muted)`/`var(--border)` directly — NOT `oklch(var(...))` which is invalid CSS.
+- [04-04-D]: `StatusAnnouncer` uses module-level `globalSetMessage` reference to avoid React context for a low-frequency aria-live side-effect. Stack reconciliation = ADAPT (user-approved): keep Next 16 + Tailwind 4 CSS-first + OKLCH + flat `frontend/{app,components,lib}` + enforced four-layer boundary; the doc's Next 14 / Tailwind 3.4 / `tailwind.config.ts` / HSL / `src/` / `geist`-package lines are superseded (see doc §0). Rollout = save-as-reference + Phase-4 shell gap-closure (DS-01..07); module UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into phases 5–12.
 
 ### Pending Todos
 
@@ -104,7 +107,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-25
-Stopped at: Phase 4 executed (3/3) AND verified — gsd-verifier 16/16 must-haves in code (tsc/eslint/vitest 21-pass@68%/next build all green) + live browser UAT against MSW (SC1 proxy redirect, FE-04 conditional TOTP reveal+resubmit, FE-05/06 permission+feature-gated sidebar, FE-05 BranchSwitcher reissue+cache clear) + production Docker container smoke. Phase 4 complete.
-Next: `/gsd-plan-phase 4 --gaps` to plan the design-system shell gap-closure (DS-01..07), THEN `/gsd-plan-phase 5` for Cross-Cutting Services. Read `Docs/RestaurantOS_UI_UX_Design_System.md` before any frontend planning.
+Last session: 2026-06-26
+Stopped at: Completed 04-04-PLAN.md — design-system CSS foundation (OKLCH tokens, keyframes, skeleton, a11y), all 5 gap-closure deps installed, WCAG validator + ThemeToggle + StatusAnnouncer created; tsc/lint/build green.
 Resume file: None
