@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 8 of 8 (gap-closure wave 3 complete — DS-06 closed)
-Status: In progress (gap-closure DS-01..07; DS-06 now closed; 04-07 pending)
-Last activity: 2026-06-26 — Completed 04-08-PLAN.md (OKLCH palette generator, /api/theme route, Settings → Appearance page + form)
+Plan: 8 of 8 (gap-closure wave 3 complete — DS-05, DS-06, DS-07 all closed)
+Status: Phase 4 complete (all 8 plans executed; DS-01..07 gap-closure done)
+Last activity: 2026-06-26 — Completed 04-07-PLAN.md (DS-05 shell chrome: collapsible sidebar, TopBar, MobileBottomNav, DS-06 theme injection, DS-07 ThemeToggle mount)
 
-Progress: [█████████████████░] 52% (17/33 plans)
+Progress: [██████████████████░] 55% (18/33 plans)
 
 ## Performance Metrics
 
@@ -23,7 +23,7 @@ Progress: [█████████████████░] 52% (17/33 pl
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
-- Phase 4: 6/8 plans executed; verification passing (tsc/lint/build green, gap-closure DS-01..04 closed)
+- Phase 4: 8/8 plans executed; verification passing (tsc/lint/build green, gap-closure DS-01..07 all closed)
 
 **By Phase:**
 
@@ -95,6 +95,10 @@ Recent decisions affecting current work:
 - [04-08-A]: Palette-generator test placed at `__tests__/lib/theme/` (vitest include pattern requires `__tests__/**`; `lib/theme/__tests__/` would not be discovered).
 - [04-08-B]: AppearanceForm hex input fully-controlled (no useEffect+setState) — applyColor() atomically updates brandColor, hexInput, and palette; complies with react-hooks/set-state-in-effect rule.
 - [04-08-C]: AppearancePage is RSC; onSave handled entirely within AppearanceForm (RSC cannot pass function props to client components); localStorage stub with Phase 7 backend contract: PUT /api/v1/tenants/:id/theme.
+- [04-07-A]: Tooltip built from radix-ui unified package (not @radix-ui/react-tooltip sub-package) — created tooltip.tsx importing from 'radix-ui' directly.
+- [04-07-B]: TenantThemeInjector reads localStorage client-side in 'use client' layout; SSR returns null (globals.css tokens provide defaults).
+- [04-07-C]: Tenant layout converted to 'use client' for mobileOpen useState (acceptable — layout is auth-gated by proxy.ts).
+- [04-07-D]: navGroups exports alongside tenantNavItems flat array for backward compat.
 
 ### Pending Todos
 
@@ -118,5 +122,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-26
-Stopped at: Completed 04-08-PLAN.md — OKLCH palette generator + /api/theme CSS endpoint + Settings → Appearance UI (8 presets, hex input, live preview, WCAG guard, localStorage stub); DS-06 closed; tsc/lint/build/tests green.
+Stopped at: Completed 04-07-PLAN.md — Collapsible grouped Sidebar (brand area, collapse toggle, badges, tooltips), TopBar (breadcrumb/⌘K/notifications/ThemeToggle/profile), MobileBottomNav (5 guarded icons), integrated tenant layout (Suspense skeleton, DS-06 theme CSS injection); DS-05/06/07 all closed; tsc/lint/build green.
 Resume file: None
