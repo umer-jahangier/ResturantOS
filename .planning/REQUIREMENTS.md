@@ -32,13 +32,14 @@
 
 ### Platform Admin (PLATFORM)
 
-- [ ] **PLATFORM-01**: SuperAdmin can provision a tenant (FD-1): seed features from tier, create Tenant Admin, HQ branch, seed COA, publish `TENANT_PROVISIONED`, welcome email, < 60s
-- [ ] **PLATFORM-02**: SuperAdmin can list/paginate tenants with status, tier, usage
-- [ ] **PLATFORM-03**: SuperAdmin can suspend/reactivate/cancel a tenant (status state machine)
-- [ ] **PLATFORM-04**: SuperAdmin can update tenant feature flags (invalidates cache immediately)
-- [ ] **PLATFORM-05**: SuperAdmin can impersonate a tenant user (JWT stamped `impersonated_by`, logged, 30-min expiry)
-- [ ] **PLATFORM-06**: SuperAdmin can view platform telemetry
-- [ ] **PLATFORM-07**: `platform_db` has no tenant scoping; only platform-admin-service connects to it
+- [x] **PLATFORM-01**: SuperAdmin can provision a tenant (FD-1): seed features from tier, create Tenant Admin, HQ branch, seed COA, publish `TENANT_PROVISIONED`, welcome email, < 60s
+- [x] **PLATFORM-02**: SuperAdmin can list/paginate tenants with status, tier, usage
+- [x] **PLATFORM-03**: SuperAdmin can suspend/reactivate/cancel a tenant (status state machine)
+- [x] **PLATFORM-04**: SuperAdmin can update tenant feature flags (invalidates cache immediately)
+- [x] **PLATFORM-10**: Every business module is built for every tenant; SuperAdmin can enable/disable ANY module (`FEATURE_*`) for ANY tenant independent of subscription tier (tier seeds defaults at provisioning, SuperAdmin override is authoritative — can grant above tier or revoke). Override persists on `tenant_features`, invalidates Redis cache immediately, is audited, and is enforced identically at the gateway and the `@RequiresFeature` aspect. The six primary modules (`FEATURE_POS`, `FEATURE_INVENTORY`, `FEATURE_FINANCE`, `FEATURE_VENDOR`, `FEATURE_HR`, `FEATURE_CRM`) + `FEATURE_KDS` default ON in all tiers
+- [x] **PLATFORM-05**: SuperAdmin can impersonate a tenant user (JWT stamped `impersonated_by`, logged, 30-min expiry)
+- [x] **PLATFORM-06**: SuperAdmin can view platform telemetry
+- [x] **PLATFORM-07**: `platform_db` has no tenant scoping; only platform-admin-service connects to it
 
 ### Auth (AUTH)
 
@@ -61,18 +62,18 @@
 
 ### API Gateway (GW)
 
-- [ ] **GW-01**: Gateway routes every public path prefix to its upstream with per-upstream circuit breaker
-- [ ] **GW-02**: Gateway validates JWT on every request except auth/login, refresh, `/.well-known/*`, health; returns 401 when missing/invalid
-- [ ] **GW-03**: Gateway resolves tenant (JWT claim or custom-domain Host) and propagates `X-Tenant-Id`
-- [ ] **GW-04**: Gateway rate-limits (100/min/IP auth, 600/min/IP general) via Redis token bucket
-- [ ] **GW-05**: Gateway enforces feature flags (403 `FEATURE_DISABLED` + `X-Upgrade-CTA-URL`) and NLQ quotas (429 `QUOTA_EXCEEDED`)
-- [ ] **GW-06**: Nginx terminates TLS and forwards to the gateway
+- [x] **GW-01**: Gateway routes every public path prefix to its upstream with per-upstream circuit breaker
+- [x] **GW-02**: Gateway validates JWT on every request except auth/login, refresh, `/.well-known/*`, health, and the **device-authenticated** ingest path class (`/iclock/*`, `/internal/attendance/ingest`) which is JWT-exempt but verifies a per-device token/HMAC and resolves tenant/branch from the device registry; returns 401 when missing/invalid
+- [x] **GW-03**: Gateway resolves tenant (JWT claim or custom-domain Host) and propagates `X-Tenant-Id`
+- [x] **GW-04**: Gateway rate-limits (100/min/IP auth, 600/min/IP general) via Redis token bucket
+- [x] **GW-05**: Gateway enforces feature flags (403 `FEATURE_DISABLED` + `X-Upgrade-CTA-URL`) and NLQ quotas (429 `QUOTA_EXCEEDED`)
+- [x] **GW-06**: Nginx terminates TLS and forwards to the gateway
 
 ### User & Branch (USER)
 
-- [ ] **USER-01**: Tenant Admin can CRUD branches (tenant-scoped)
-- [ ] **USER-02**: Tenant Admin can manage user profiles and assign roles per branch
-- [ ] **USER-03**: Internal endpoints expose branch details and computed user permissions for JWT issuance
+- [x] **USER-01**: Tenant Admin can CRUD branches (tenant-scoped)
+- [x] **USER-02**: Tenant Admin can manage user profiles and assign roles per branch
+- [x] **USER-03**: Internal endpoints expose branch details and computed user permissions for JWT issuance
 
 ### Frontend Shell (FE)
 
@@ -117,6 +118,8 @@
 - [ ] **PUR-02**: PO lifecycle DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval (OPA)
 - [ ] **PUR-03**: GRN receipt posts GR/IR
 - [ ] **PUR-04**: Vendor-invoice 3-way match → AP; payment posts and `AP_PAYMENT_PROCESSED`
+- [ ] **PUR-05**: Vendor performance scorecard — lead-time adherence (on-time delivery), fill rate, price variance per vendor
+- [ ] **PUR-06**: Spend analytics by vendor and by category, with period comparison
 
 ### Finance (FIN)
 
@@ -132,11 +135,19 @@
 - [ ] **HR-01**: Manage employees (`cnic`, `bank_account_no` field-encrypted)
 - [ ] **HR-02**: Payroll run lifecycle; Pakistan income-tax slabs + EOBI from `tax_config` (annual, config-driven)
 - [ ] **HR-03**: Payroll approval/payment posts JE; `PAYROLL_RUN_PAID` consumed by Finance
+- [ ] **HR-04**: Role-based shift scheduling on a drag-and-drop calendar, per branch
+- [ ] **HR-05**: Time & attendance (clock-in/out) and leave/absence management (types, accrual, approval workflow); late-arrival deductions feed payroll
+- [ ] **HR-06**: Labour-cost % vs revenue tracking by shift and branch
+- [ ] **HR-07**: Biometric attendance device integration — register devices (`attendance_devices`: serial→token→branch→tenant); ingest punches from (a) network terminals pushing ADMS/iClock over HTTPS (`/iclock/*`) and (b) USB readers via a local bridge agent (`wss://127.0.0.1` → device-authenticated ingest). Device-authenticated (not JWT); tenant/branch resolved from registry (never client input); idempotent on `(device_id, device_user_ref, device_reported_at)`; offline-buffer/replay safe; stores both device + server timestamps; unmapped punches quarantined; each punch persists to `attendance_punches`, publishes `ATTENDANCE_PUNCHED`, and feeds attendance/payroll; gated by `FEATURE_HR`
+- [ ] **HR-08**: Biometric privacy — matching happens at the edge (on-device for network terminals, in the agent for USB); the platform stores ONLY `employee_id + device_id + punched_at` and NO raw biometrics by default. Central templates are opt-in only and, when stored, are AES-256-GCM encrypted in a dedicated RLS table with restricted access + retention
 
 ### CRM (CRM)
 
 - [ ] **CRM-01**: Manage customers; link to orders via `customer_id`
 - [ ] **CRM-02**: Loyalty points accrue on `ORDER_CLOSED` and are debited back on refund
+- [ ] **CRM-03**: Loyalty tiers (Bronze/Silver/Gold) with configurable thresholds; tier upgrade checked on accrual
+- [ ] **CRM-04**: Promotion engine — time-limited discounts by day/hour, item-specific and tier-specific
+- [ ] **CRM-05**: Customer feedback collection (post-order rating/comment capture, storage, reporting)
 
 ### Reporting & NLQ (RPT / NLQ)
 
@@ -209,22 +220,23 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | AUTHZ-02 | Phase 2 | Complete |
 | AUTHZ-03 | Phase 2 | Complete |
 | AUTHZ-04 | Phase 2 | Complete |
-| GW-01 | Phase 3 | Pending |
-| GW-02 | Phase 3 | Pending |
-| GW-03 | Phase 3 | Pending |
-| GW-04 | Phase 3 | Pending |
-| GW-05 | Phase 3 | Pending |
-| GW-06 | Phase 3 | Pending |
-| PLATFORM-01 | Phase 3 | Pending |
-| PLATFORM-02 | Phase 3 | Pending |
-| PLATFORM-03 | Phase 3 | Pending |
-| PLATFORM-04 | Phase 3 | Pending |
-| PLATFORM-05 | Phase 3 | Pending |
-| PLATFORM-06 | Phase 3 | Pending |
-| PLATFORM-07 | Phase 3 | Pending |
-| USER-01 | Phase 3 | Pending |
-| USER-02 | Phase 3 | Pending |
-| USER-03 | Phase 3 | Pending |
+| GW-01 | Phase 3 | Complete |
+| GW-02 | Phase 3 | Complete |
+| GW-03 | Phase 3 | Complete |
+| GW-04 | Phase 3 | Complete |
+| GW-05 | Phase 3 | Complete |
+| GW-06 | Phase 3 | Complete |
+| PLATFORM-01 | Phase 3 | Complete |
+| PLATFORM-02 | Phase 3 | Complete |
+| PLATFORM-03 | Phase 3 | Complete |
+| PLATFORM-04 | Phase 3 | Complete |
+| PLATFORM-05 | Phase 3 | Complete |
+| PLATFORM-06 | Phase 3 | Complete |
+| PLATFORM-07 | Phase 3 | Complete |
+| PLATFORM-10 | Phase 3 | Complete |
+| USER-01 | Phase 3 | Complete |
+| USER-02 | Phase 3 | Complete |
+| USER-03 | Phase 3 | Complete |
 | FE-01 | Phase 4 | Pending |
 | FE-02 | Phase 4 | Pending |
 | FE-03 | Phase 4 | Pending |
@@ -260,25 +272,37 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |
+| CRM-03 | Phase 9 | Pending |
+| CRM-04 | Phase 9 | Pending |
+| CRM-05 | Phase 9 | Pending |
 | PUR-01 | Phase 10 | Pending |
 | PUR-02 | Phase 10 | Pending |
 | PUR-03 | Phase 10 | Pending |
 | PUR-04 | Phase 10 | Pending |
+| PUR-05 | Phase 10 | Pending |
+| PUR-06 | Phase 10 | Pending |
 | FIN-05 | Phase 10 | Pending |
 | HR-01 | Phase 11 | Pending |
 | HR-02 | Phase 11 | Pending |
 | HR-03 | Phase 11 | Pending |
+| HR-04 | Phase 11 | Pending |
+| HR-05 | Phase 11 | Pending |
+| HR-06 | Phase 11 | Pending |
+| HR-07 | Phase 11 | Pending |
+| HR-08 | Phase 11 | Pending |
 | RPT-01 | Phase 12 | Pending |
 | RPT-02 | Phase 12 | Pending |
 | NLQ-01 | Phase 12 | Pending |
 | NLQ-02 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: 93 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
-- Mapped to phases: 93/93 (100%) — each requirement mapped to exactly one phase
+- v1 requirements: 104 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
+- Mapped to phases: 104/104 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
+- 2026-06-25 addition (+9): PLATFORM-10 (SuperAdmin tier-independent per-tenant module enable/disable); HR-04/05/06 (shift scheduling, attendance & leave, labour-cost tracking); PUR-05/06 (vendor scorecard, spend analytics); CRM-03/04/05 (loyalty tiers, promotion engine, feedback) — all six primary modules are now core/mandatory in every tenant build
+- 2026-06-25 addition (+2): HR-07 (biometric attendance device integration — LAN ADMS push + USB bridge agent, device-authenticated ingest); HR-08 (biometric privacy — edge matching, no central raw biometrics); GW-02 extended for the device-authenticated ingest path class
 - v2 requirements (deferred, not mapped): NOTIF-02, NOTIF-03, PLATFORM-08, PLATFORM-09, INV-08, RPT-03, AUTHZ-05, AUDIT-02
 
 ---
 *Requirements defined: 2026-06-22*
-*Last updated: 2026-06-22 after initial definition*
+*Last updated: 2026-06-25 — all six business modules made core/mandatory; added SuperAdmin tier-independent per-tenant module control (PLATFORM-10), operational sub-features for HR/Vendor/CRM, and biometric attendance device integration (HR-07/08, GW-02 device-auth ingest)*

@@ -5,23 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 3 — API Gateway, Platform Admin & Tenant/User Management
+**Current focus:** Phase 4 — Frontend Shell & CI/CD
 
 ## Current Position
 
-Phase: 3 of 12 (API Gateway, Platform Admin & Tenant/User Management)
-Plan: 3 of 3 (03-02 platform-admin COMPLETE — Phase 3 fully done)
-Status: Phase 3 complete — gateway (03-01) + platform-admin (03-02) + user-service (03-03); 21 platform-admin ITs green; full reactor BUILD SUCCESS
-Last activity: 2026-06-25 — 03-02-PLAN.md executed; platform-admin provisioning saga + all 21 ITs green
+Phase: 4 of 12 (Frontend Shell & CI/CD)
+Plan: 0 of 3 planned
+Status: Phase 3 verified passed (24/24 must-haves; runtime `mvn verify` green)
+Last activity: 2026-06-25 — Phase 3 execution + verification complete
 
 Progress: [█████████░] 30% (10/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 10
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
+- Phase 3: 3/3 plans executed; verification passed (24/24)
 
 **By Phase:**
 
@@ -29,11 +30,11 @@ Progress: [█████████░] 30% (10/33 plans)
 |-------|-------|--------|
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
-| 03-api-gateway-platform-admin-tenant-user-management | 3/3 | passed |
+| 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
 
 **Recent Trend:**
-- Last 5 plans: 02-03, 03-01, 03-03 (skipping 03-02; 03-02 platform-admin next)
-- Trend: user-service complete; platform-admin provisioning saga next
+- Last 5 plans: 03-01, 03-03, 03-02
+- Trend: Platform edge + tenant provisioning + branch/role management complete; frontend shell next
 
 *Updated after each plan completion*
 
@@ -65,7 +66,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Execute Phase 4 (finance-service / accounting) — finance seed-coa seam already stubbed in platform-admin
+- Execute Phase 4 (Frontend Shell & CI/CD)
 - Resolve Phase 1 SC5 gap (open from Phase 1 verification)
 
 ### Blockers/Concerns
@@ -76,6 +77,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-25
-Stopped at: 03-02 complete — platform-admin-service (21 IT tests green), Phase 3 fully complete.
-Next: Execute Phase 4 plans (finance-service / accounting)
+Stopped at: Phase 3 verified passed — gateway + user-service + platform-admin complete.
+Next: `/gsd-discuss-phase 4` or `/gsd-plan-phase 4`
 Resume file: None
