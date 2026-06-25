@@ -44,6 +44,8 @@ management:
         include: health,prometheus
 
 restaurantos:
+  internal:
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   auth:
     cookie:
       secure: ${AUTH_COOKIE_SECURE:true}

@@ -1,0 +1,3 @@
+restaurantos:
+  internal:
+    secret: dev-internal-secret

@@ -24,9 +24,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final InternalServiceFilter internalServiceFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          InternalServiceFilter internalServiceFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.internalServiceFilter = internalServiceFilter;
     }
 
     @Bean
@@ -38,8 +41,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/.well-known/jwks.json").permitAll()
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/reset-password/**").permitAll()
+                // /internal/auth/** is gated by InternalServiceFilter (constant-time X-Internal-Service secret check)
+                // rather than JWT auth; permitAll here so the filter chain reaches InternalServiceFilter.
+                .requestMatchers("/internal/auth/**").permitAll()
                 .anyRequest().authenticated())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // InternalServiceFilter must run BEFORE JwtAuthenticationFilter so internal paths
+            // are rejected at secret check without attempting JWT validation.
+            .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwtAuthenticationFilter, InternalServiceFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, e) -> writeError(res, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED"))
                 .accessDeniedHandler((req, res, e) -> writeError(res, HttpStatus.FORBIDDEN, "PERMISSION_DENIED")));

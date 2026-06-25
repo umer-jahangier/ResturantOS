@@ -14,4 +14,6 @@ public interface UserBranchRoleRepository extends JpaRepository<UserBranchRoleEn
     List<UserBranchRoleEntity> findByUserIdAndActiveTrue(UUID userId);
 
     Optional<UserBranchRoleEntity> findByUserIdAndBranchIdAndActiveTrue(UUID userId, UUID branchId);
+
+    Optional<UserBranchRoleEntity> findByUserIdAndBranchIdAndRoleCode(UUID userId, UUID branchId, String roleCode);
 }
