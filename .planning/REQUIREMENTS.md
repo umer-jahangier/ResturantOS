@@ -90,13 +90,13 @@
 
 > Adopted 2026-06-26 from `Docs/RestaurantOS_UI_UX_Design_System.md` (authoritative; stack-adapted to Next 16 + Tailwind 4 CSS-first + OKLCH + flat dir + four-layer boundary). Shell-level DS requirements are a **Phase-4 design-system gap-closure**. Module-specific UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor §7–8) folds into the respective module phases (5–12), tracked under those modules' requirements.
 
-- [ ] **DS-01**: Design tokens complete in `globals.css` (Tailwind 4 `@theme`, OKLCH) — semantic `--warning/--success/--info` (+fg) + DS keyframes/utilities (skeleton-shimmer, count-up, slide-in-right, fade-in, scale-in, bounce-subtle); `prefers-reduced-motion` honored
-- [ ] **DS-02**: Skeleton-first loading — `Skeleton` primitive + per-view skeletons mirroring loaded shape; no spinners/blank on data states (Rule 1)
-- [ ] **DS-03**: Motion — `framer-motion` `PageTransition` on every page + §9 micro-interaction catalogue (reduced-motion safe)
-- [ ] **DS-04**: Core primitives — Command palette (`cmdk` ⌘K), `AnimatedNumber` (`react-countup`), `StatusBadge`, `MoneyDisplay` (paisa→PKR, Rule 2), `DataTable` (`@tanstack/react-table`), `EmptyState` (§14)
-- [ ] **DS-05**: Shell chrome — grouped/branded collapsible Sidebar (keeps PermissionGuard+FeatureGuard composition) + Top Bar (breadcrumb, notifications, profile/theme, ⌘K) + mobile bottom-nav
-- [ ] **DS-06**: Tenant theming — OKLCH palette generator (`colorjs.io`), `/api/theme` route + layout injection, Settings→Appearance UI + 6 presets + logo upload + WCAG-AA colour validator
-- [ ] **DS-07**: A11y + dark-mode polish — focus-visible rings, 44px touch-target floor, `aria-live` status, light/dark/system toggle UI (WCAG 2.1 AA, §11–12)
+- [x] **DS-01**: Design tokens complete in `globals.css` (Tailwind 4 `@theme`, OKLCH) — semantic `--warning/--success/--info` (+fg) + DS keyframes/utilities (skeleton-shimmer, count-up, slide-in-right, fade-in, scale-in, bounce-subtle); `prefers-reduced-motion` honored
+- [x] **DS-02**: Skeleton-first loading — `Skeleton` primitive + per-view skeletons mirroring loaded shape; no spinners/blank on data states (Rule 1)
+- [x] **DS-03**: Motion — `framer-motion` `PageTransition` on every page + §9 micro-interaction catalogue (reduced-motion safe)
+- [x] **DS-04**: Core primitives — Command palette (`cmdk` ⌘K), `AnimatedNumber` (`react-countup`), `StatusBadge`, `MoneyDisplay` (paisa→PKR, Rule 2), `DataTable` (`@tanstack/react-table`), `EmptyState` (§14)
+- [x] **DS-05**: Shell chrome — grouped/branded collapsible Sidebar (keeps PermissionGuard+FeatureGuard composition) + Top Bar (breadcrumb, notifications, profile/theme, ⌘K) + mobile bottom-nav
+- [x] **DS-06**: Tenant theming — OKLCH palette generator (`colorjs.io`), `/api/theme` route + layout injection, Settings→Appearance UI + 6 presets + logo upload + WCAG-AA colour validator
+- [x] **DS-07**: A11y + dark-mode polish — focus-visible rings, 44px touch-target floor, `aria-live` status, light/dark/system toggle UI (WCAG 2.1 AA, §11–12)
 
 ### POS (POS)
 
@@ -257,13 +257,13 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FE-06 | Phase 4 | Complete |
 | FE-07 | Phase 4 | Complete |
 | FE-08 | Phase 4 | Complete |
-| DS-01 | Phase 4 (gap) | Pending |
-| DS-02 | Phase 4 (gap) | Pending |
-| DS-03 | Phase 4 (gap) | Pending |
-| DS-04 | Phase 4 (gap) | Pending |
-| DS-05 | Phase 4 (gap) | Pending |
-| DS-06 | Phase 4 (gap) | Pending |
-| DS-07 | Phase 4 (gap) | Pending |
+| DS-01 | Phase 4 (gap) | Complete |
+| DS-02 | Phase 4 (gap) | Complete |
+| DS-03 | Phase 4 (gap) | Complete |
+| DS-04 | Phase 4 (gap) | Complete |
+| DS-05 | Phase 4 (gap) | Complete |
+| DS-06 | Phase 4 (gap) | Complete |
+| DS-07 | Phase 4 (gap) | Complete |
 | NOTIF-01 | Phase 5 | Pending |
 | AUDIT-01 | Phase 5 | Pending |
 | FILE-01 | Phase 5 | Pending |

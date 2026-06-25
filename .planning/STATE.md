@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 4 — Frontend Shell & CI/CD
+**Current focus:** Phase 5 — Cross-Cutting Services (Notifications, Audit, Files)
 
 ## Current Position
 
-Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 8 of 8 (gap-closure wave 3 complete — DS-05, DS-06, DS-07 all closed)
-Status: Phase 4 complete (all 8 plans executed; DS-01..07 gap-closure done)
-Last activity: 2026-06-26 — Completed 04-07-PLAN.md (DS-05 shell chrome: collapsible sidebar, TopBar, MobileBottomNav, DS-06 theme injection, DS-07 ThemeToggle mount)
+Phase: 5 of 12 (Cross-Cutting Services)
+Plan: 0 of 3
+Status: Phase 4 complete — all 8 plans + DS-01..07 gap-closure verified (7/7)
+Last activity: 2026-06-26 — Phase 4 gap-closure finalized: PageTransition + StatusAnnouncer wired; DS-03/DS-07 closed; gates green
 
 Progress: [██████████████████░] 55% (18/33 plans)
 
@@ -23,7 +23,7 @@ Progress: [██████████████████░] 55% (18/33
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
-- Phase 4: 8/8 plans executed; verification passing (tsc/lint/build green, gap-closure DS-01..07 all closed)
+- Phase 4: 8/8 plans executed; verification passed (16/16 FE + 7/7 DS gap-closure; tsc/lint/vitest green)
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: [██████████████████░] 55% (18/33
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
-| 04-frontend-shell-ci-cd | 3/3 | 16/16 passed (UAT) |
+| 04-frontend-shell-ci-cd | 8/8 | 16/16 FE + 7/7 DS passed |
 
 **Recent Trend:**
 - Last 5 plans: 03-02, 04-01, 04-02, 04-03
@@ -102,7 +102,6 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- **Plan + execute the Phase-4 design-system shell gap-closure (DS-01..07):** `/gsd-plan-phase 4 --gaps` → reads 04-VERIFICATION.md `gaps:` (DS-SHELL-01..07) → creates `gap_closure: true` plans (04-04+) → `/gsd-execute-phase 4 --gaps-only`. New deps land in `frontend/package.json`: framer-motion, recharts, react-countup, cmdk, date-fns, react-dropzone, @tanstack/react-virtual, @tanstack/react-table, colorjs.io.
 - When planning future module phases, READ `Docs/RestaurantOS_UI_UX_Design_System.md` first; pull the relevant §7–8 module UX into that phase's plan (POS/KDS→7, Finance→6, Inventory→8, Vendor→10, HR→11, NLQ/Reports/Owner-dashboard→12).
 
 - Confirm feature-flags endpoint path/shape `/api/v1/feature-flags` (04-01 D4 / 04-02-A) against live Phase-3 contract
@@ -122,5 +121,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-26
-Stopped at: Completed 04-07-PLAN.md — Collapsible grouped Sidebar (brand area, collapse toggle, badges, tooltips), TopBar (breadcrumb/⌘K/notifications/ThemeToggle/profile), MobileBottomNav (5 guarded icons), integrated tenant layout (Suspense skeleton, DS-06 theme CSS injection); DS-05/06/07 all closed; tsc/lint/build green.
+Stopped at: Phase 4 complete — gap-closure 04-04..08 executed; orchestrator wired PageTransition + StatusAnnouncer; DS 7/7 verified; ready for Phase 5 planning.
 Resume file: None

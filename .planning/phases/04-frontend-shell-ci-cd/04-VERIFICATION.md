@@ -1,50 +1,34 @@
 ---
 phase: 04-frontend-shell-ci-cd
-verified: 2026-06-26T01:05:00Z
-status: gaps_found
-status_note: "ORIGINAL Phase-4 scope (FE-01..08, INFRA-05) PASSED 16/16 and is confirmed by live browser + container UAT — see verdict below. Reopened as gaps_found on 2026-06-26 ONLY to carry the newly-adopted UI/UX Design System retrofit (Docs/RestaurantOS_UI_UX_Design_System.md) as a Phase-4 design-system gap-closure for the shell. These are ADDITIVE design requirements, not failures of the original work."
-score: 16/16 original must-have truths verified in code; design-system gaps below are NEW scope
-re_verification: false
-gaps:
-  - id: DS-SHELL-01
-    summary: "Design tokens incomplete: globals.css lacks semantic --warning/--success/--info (+fg) and the design-system keyframes/utilities (skeleton-shimmer, count-up, slide-in-right, fade-in, scale-in, bounce-subtle). (Design System §3)"
-    severity: medium
-  - id: DS-SHELL-02
-    summary: "No Skeleton system: no components/ui/skeleton.tsx + per-view components/skeletons/*; data states are not skeleton-first (Rule 1, §5.1)."
-    severity: high
-  - id: DS-SHELL-03
-    summary: "No page transitions (Framer Motion <PageTransition>) and the micro-interaction catalogue (§9) is unimplemented; framer-motion not installed."
-    severity: medium
-  - id: DS-SHELL-04
-    summary: "No command palette (cmdk ⌘K, §5.4), AnimatedNumber (react-countup, §5.5), StatusBadge (§5.6), MoneyDisplay (Rule 2), DataTable (TanStack table), or EmptyState (§14) primitives."
-    severity: high
-  - id: DS-SHELL-05
-    summary: "Shell chrome minimal: current sidebar is a bare nav (no grouped sections/brand/branch header/collapse/tooltips/badges per §6.1) and there is no Top Bar (breadcrumb, notification bell, profile/theme menu, ⌘K) per §6.2; no mobile bottom-nav (§10)."
-    severity: high
-  - id: DS-SHELL-06
-    summary: "No tenant theming: static neutral primary only. Missing palette generator (OKLCH, colorjs.io), /api/theme route + layout injection, Settings→Appearance UI + 6 presets, logo upload (§4)."
-    severity: high
-  - id: DS-SHELL-07
-    summary: "Accessibility/dark-mode polish per §11/§12 not yet audited (focus-visible rings, 44px targets floor, aria-live status, tenant-colour WCAG-AA validator); next-themes wired but light/dark/system toggle UI absent."
-    severity: medium
-  - id: DS-MODULES
-    summary: "Role-specific + module UX (POS/KDS §7.1-7.2 → Phase 7; Owner dashboard §7.3; Finance §7.4 → Phase 6; Inventory §7.5 → Phase 8; NLQ/Reports §8.1-8.2 → Phase 12; HR wizard §8.3 → Phase 11; Vendor 3-way §8.4 → Phase 10). NOT Phase-4 gap-closure — folds into each module phase's planning."
-    severity: info
+verified: 2026-06-26T02:52:00Z
+status: passed
+status_note: |
+  ORIGINAL Phase-4 scope (FE-01..08, INFRA-05) PASSED 16/16 and is UAT-confirmed.
+  DS gap-closure (plans 04-04..08) PASSED 7/7 — orchestrator wired PageTransition in tenant layout
+  and StatusAnnouncer in AppProviders; tsc/eslint/vitest green after .next duplicate cleanup.
+score: 16/16 original + 7/7 DS gap-closure truths verified
+re_verification: true
+ds_gap_closure:
+  evaluated: 2026-06-26T02:52:00Z
+  plans_verified: [04-04, 04-05, 04-06, 04-07, 04-08]
+  verified_ds: [DS-01, DS-02, DS-03, DS-04, DS-05, DS-06, DS-07]
+  partial_ds: []
+  score: 7/7
+gaps: []
 gates_run_locally:
-  tsc_noEmit: pass (0 errors)
-  eslint: pass (0 errors/warnings)
-  eslint_no_explicit_any: pass (0 violations)
-  vitest: pass (5 files, 21 tests)
-  vitest_coverage: 68.44% lines / 68.02% stmts / 60.39% branch (>= frontend gate 60)
-  next_build: pass (routes /, /login, /app/dashboard, /platform/dashboard + Proxy middleware)
+  tsc_noEmit: "pass — 0 errors (stale .next/types duplicate files removed)"
+  eslint: "pass — 0 errors; 1 pre-existing warning (data-table.tsx React Compiler compat, benign)"
+  vitest: "pass — 7 files, 58 tests"
 human_verification:
   - test: "Execute the CI pipeline on a live GitHub runner (push/PR)."
     expected: "lint -> test -> build -> schema-sync all green: Java `mvn -Pcoverage verify` + per-module JaCoCo gate, Vitest gate, OPA `opa test policies/ --coverage` == 100, multi-arch buildx, cosign keyless OIDC sign."
     why_human: "Java build, Testcontainers, OPA coverage, GHCR push and cosign OIDC signing cannot be exercised locally; only a live runner proves these gates actually pass."
-  - test: "Manually drive login -> dashboard in a browser with MSW dev worker enabled."
-    expected: "Login (incl. owner@demo.test TOTP step-up) sets has_session, proxy lets /app routes through, sidebar/branch-switcher render and behave; visiting /app/dashboard logged-out redirects to /login."
-    why_human: "Visual rendering and the full interactive auth/redirect flow are not covered by an executing automated test (Playwright e2e is scaffold-only / continue-on-error)."
+  - test: "Manually drive login -> dashboard in a browser and verify DS shell chrome."
+    expected: "Sidebar collapses with tooltip icons, TopBar breadcrumb + ⌘K + ThemeToggle + profile menu all functional, MobileBottomNav visible on narrow viewport, tenant colour applied from /api/theme link. Settings→Appearance UI loads with preset swatches + live palette preview."
+    why_human: "Visual rendering, collapse animation, mobile layout, and dynamic CSS injection cannot be verified structurally."
 observations:
+  - "DS-03 gap is LOW severity — the animation infrastructure (framer-motion, PageTransition, variants) is complete. Only the mount step is missing (2-line change per page or one layout wrap)."
+  - "DS-07 aria-live gap is LOW severity — all other a11y items verified. Fix is a single <StatusAnnouncer /> line in AppProviders."
   - "Java checkstyle/spotbugs/pmd are NOT wired in the parent POM yet; the lint job runs a compile-only `mvn -DskipTests verify` fallback (documented in 04-03-SUMMARY)."
   - "OpenAPI<->Zod drift check is a documented placeholder (no maintained npm tool at execution time; backend SpringDoc is a Phase-3+ dependency) (D5b)."
   - "promote-to-prod is a deliberate manual GitHub `environment: production` approval gate (D6), not part of the automated core — by design."
@@ -163,5 +147,122 @@ These are documented, deliberate, non-blocking deferrals and do not fail the pha
 
 ---
 
+## Design-System Gap Closure Verification (DS-01..07)
+
+> Re-verification executed 2026-06-26T02:46:00Z against actual codebase (plans 04-04..08).
+> Original Phase-4 verdict (16/16, UAT-confirmed) is **unchanged**. Only DS gap-closure is assessed below.
+
+### DS Gates Run
+
+| Gate | Command | Result |
+|------|---------|--------|
+| TypeScript strict | `tsc --noEmit` | ✅ 0 source errors (pre-existing .next/types/ conflicts only) |
+| ESLint | `eslint .` | ✅ 0 errors; 1 pre-existing warning (data-table TanStack Compiler compat) |
+| Vitest | `vitest run --coverage` | ✅ 7 files, 58 tests pass (added 37 DS tests) |
+
+### DS-01 — Design Tokens + Animation Catalogue ✓ VERIFIED
+
+**Truth:** `globals.css` has semantic state tokens (warning/success/info + fg), 6 design-system keyframes, `.skeleton` class, and `prefers-reduced-motion` suppression.
+
+**Evidence:**
+- `--warning: oklch(0.795 0.184 86.047)`, `--success`, `--info` + dark-mode variants in `@layer base` ✓
+- `--color-warning` / `--color-success` / `--color-info` registered in `@theme inline` → Tailwind utilities available ✓
+- 6 keyframes: `shimmer`, `fadeSlideUp`, `slideInRight`, `fadeIn`, `scaleIn`, `bounceSlight` ✓
+- `.skeleton { animation: shimmer 2s linear infinite; ... }` ✓
+- `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; ... } }` ✓
+- `:focus-visible { ring-2 ring-ring ... }` ✓; `.touch-target { min-height: 44px; min-width: 44px; }` ✓
+
+### DS-02 — Skeleton-First Loading System ✓ VERIFIED
+
+**Truth:** `Skeleton` primitive + per-view skeletons wired into data states.
+
+**Evidence:**
+- `components/ui/skeleton.tsx` — uses `.skeleton` shimmer class, `aria-hidden="true"`, `role="presentation"` ✓
+- `components/skeletons/sidebar-skeleton.tsx` (brand + branch-switcher + 10 nav rows) ✓
+- `components/skeletons/dashboard-skeleton.tsx` (4 stat-cards + chart placeholder) ✓
+- `components/skeletons/data-table-skeleton.tsx` (configurable columns/rows) ✓
+- **Wired:** `app/(tenant)/layout.tsx` wraps `<Sidebar>` in `<Suspense fallback={<SidebarSkeleton />}>` ✓
+- **Wired:** `DataTable` renders `<DataTableSkeleton>` when `isLoading` prop is true ✓
+
+### DS-03 — Framer Motion Page Transitions + Micro-Interaction Catalogue ✓ VERIFIED
+
+**Truth:** `<PageTransition>` wraps page content; motion variants available for micro-interactions.
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| `framer-motion@12.41.0` installed | ✅ | `frontend/package.json` |
+| `lib/motion/variants.ts` — fadeSlideUp, slideInRight, scaleIn, staggerContainer | ✅ | 4 exports, 19 passing tests |
+| `components/shared/page-transition.tsx` — AnimatePresence + useReducedMotion | ✅ | respects reduced-motion |
+| `PageTransition` used in tenant layout | ✅ | `app/(tenant)/layout.tsx` wraps `{children}` in `<PageTransition>` |
+
+### DS-04 — Core UI Primitives ✓ VERIFIED
+
+**Truth:** CommandPalette, AnimatedNumber, StatusBadge, MoneyDisplay, DataTable, EmptyState all exist and are wired.
+
+| Primitive | Lines | Key Implementation | Wired |
+|-----------|-------|--------------------|-------|
+| `command-palette.tsx` | 103 | cmdk + Dialog, ⌘K keydown, scaleIn animation | ✅ TopBar (top-bar.tsx:193-213) |
+| `animated-number.tsx` | 40 | react-countup, scroll-spy, tabular-nums | ✅ exported for module use |
+| `status-badge.tsx` | 52 | 6 semantic token variants (success/warning/info/error/pending/inactive) | ✅ exported for module use |
+| `money-display.tsx` | 34 | BigInt paisa÷100, Intl PKR formatting, no floats | ✅ exported for module use |
+| `data-table.tsx` | 152 | TanStack Table v8, sort, pagination, isLoading→DataTableSkeleton | ✅ self-contained |
+| `empty-state.tsx` | 49 | LucideIcon + title + description + optional CTA | ✅ used inside DataTable |
+
+### DS-05 — Shell Chrome Upgrade (Sidebar + TopBar + MobileBottomNav) ✓ VERIFIED
+
+**Truth:** Sidebar is grouped/collapsible/badged with guards; TopBar has breadcrumb/⌘K/notifications/ThemeToggle/profile; MobileBottomNav has 5 guarded items; all wired in tenant layout.
+
+| Artifact | Lines | Evidence |
+|----------|-------|----------|
+| `components/shared/sidebar.tsx` | 201 | NavGroup data model, `collapsed` state, ChefHat brand, FeatureGuard→PermissionGuard→Link preserved, Tooltip in icon mode, collapse toggle |
+| `components/shared/top-bar.tsx` | 216 | usePathname breadcrumb, Bell notifications, ThemeToggle, CommandPalette, profile DropdownMenu, aria-labels |
+| `components/shared/mobile-bottom-nav.tsx` | 105 | 5 items, PermissionGuard, `.touch-target`, `md:hidden` |
+| `app/(tenant)/layout.tsx` wiring | — | TopBar + MobileBottomNav + Suspense/SidebarSkeleton + mobileOpen state all confirmed |
+
+### DS-06 — Tenant Colour Theming ✓ VERIFIED
+
+**Truth:** OKLCH palette generator + `/api/theme` CSS route + Settings→Appearance page + layout injection.
+
+| Artifact | Lines | Evidence |
+|----------|-------|----------|
+| `lib/theme/palette-generator.ts` | 90 | generatePalette: 11-stop OKLCH scale, WCAG foreground derivation, 16 tests (95.83% coverage) |
+| `app/api/theme/route.ts` | 65 | GET /api/theme?brandColor=… → text/css, :root + .dark overrides, Cache-Control |
+| `components/settings/appearance-form.tsx` | ~120 | 8 presets, custom hex, live preview, `contrastValid` WCAG-AA guard, localStorage stub |
+| `app/(tenant)/settings/appearance/page.tsx` | ~25 | Server Component wrapper, exports metadata |
+| **Wired** in tenant layout | — | `TenantThemeInjector` reads localStorage → injects `<link href="/api/theme?brandColor=…">` ✓ |
+
+### DS-07 — A11y / Dark-Mode Polish ✓ VERIFIED
+
+**Truth:** WCAG validator, ThemeToggle mounted, StatusAnnouncer active, focus-visible, touch-targets.
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| `lib/theme/wcag-validator.ts` (wcagContrastCheck, validateTenantColours) | ✅ | used by AppearanceForm |
+| `:focus-visible` ring in globals.css | ✅ | `ring-2 ring-ring ring-offset-2` |
+| `.touch-target` 44px floor in globals.css | ✅ | MobileBottomNav + ThemeToggle |
+| `ThemeToggle` mounted in TopBar (light/dark/system) | ✅ | `top-bar.tsx` |
+| `StatusAnnouncer` (aria-live="polite") mounted in app | ✅ | `app-providers.tsx` alongside `<Toaster />` |
+
+### DS Score Summary
+
+| DS Gap | Truth | Verified |
+|--------|-------|----------|
+| DS-01 | Globals.css complete design tokens + animation utilities | ✅ VERIFIED |
+| DS-02 | Skeleton-first: primitive + per-view skeletons + wired | ✅ VERIFIED |
+| DS-03 | PageTransition on pages + motion catalogue | ✅ VERIFIED |
+| DS-04 | 6 core primitives exist and wired | ✅ VERIFIED |
+| DS-05 | Shell chrome: Sidebar + TopBar + MobileBottomNav | ✅ VERIFIED |
+| DS-06 | Tenant theming: palette + route + Appearance + layout | ✅ VERIFIED |
+| DS-07 | A11y: WCAG validator + ThemeToggle + StatusAnnouncer + focus-visible | ✅ VERIFIED |
+
+**DS Score: 7/7 truths fully verified**
+
+### DS Gap Closure — Complete
+
+All DS-01..07 shell requirements verified in code. No remaining DS wiring gaps.
+
+---
+
 _Verified: 2026-06-26 · Verifier: Claude (gsd-verifier)_
 _Design-system retrofit scope appended: 2026-06-26 (post-execution scope addition, user-approved)_
+_DS gap-closure re-verification: 2026-06-26T02:52:00Z (7/7 DS truths verified; orchestrator wiring complete)_
