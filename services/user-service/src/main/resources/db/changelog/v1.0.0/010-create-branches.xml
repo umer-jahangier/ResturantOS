@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="user-1.0.0-010-create-branches" author="restaurantos-agent">
+        <createTable tableName="branches">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(150)"><constraints nullable="false"/></column>
+            <column name="is_hq" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="address" type="JSONB"/>
+            <column name="fbr_strn" type="VARCHAR(50)"/>
+            <column name="ntn" type="VARCHAR(50)"/>
+            <column name="phone" type="VARCHAR(30)"/>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="timezone" type="VARCHAR(64)" defaultValue="Asia/Karachi"><constraints nullable="false"/></column>
+            <column name="currency_config" type="JSONB"/>
+            <column name="receipt_config" type="JSONB"/>
+            <column name="opened_on" type="DATE"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="created_by" type="UUID"/>
+            <column name="updated_by" type="UUID"/>
+            <column name="deleted_at" type="TIMESTAMPTZ"/>
+        </createTable>
+        <addUniqueConstraint tableName="branches"
+                             columnNames="tenant_id, name"
+                             constraintName="uk_branches_tenant_name"/>
+        <createIndex tableName="branches" indexName="idx_branches_tenant_id">
+            <column name="tenant_id"/>
+        </createIndex>
+        <rollback><dropTable tableName="branches"/></rollback>
+    </changeSet>
+
+</databaseChangeLog>
