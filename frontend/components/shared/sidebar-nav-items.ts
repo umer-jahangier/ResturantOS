@@ -4,6 +4,8 @@ import {
   Building2,
   Contact,
   LayoutDashboard,
+  Palette,
+  Settings,
   ShieldCheck,
   ShoppingCart,
   Truck,
@@ -23,8 +25,16 @@ export interface NavItem {
   icon: LucideIcon;
   permission?: string;
   feature?: string;
+  badge?: number | string;
 }
 
+// NavGroup groups items under a labelled section heading in the sidebar.
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+// ─── Flat list (kept for backward compat — existing consumers) ────────────────
 export const tenantNavItems: NavItem[] = [
   { label: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
   {
@@ -75,6 +85,80 @@ export const tenantNavItems: NavItem[] = [
     icon: BarChart3,
     permission: "reporting:read",
     feature: "FEATURE_REPORTING",
+  },
+];
+
+// ─── Grouped nav (used by upgraded Sidebar for DS-05 shell chrome) ─────────────
+export const navGroups: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { label: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Orders",
+    items: [
+      {
+        label: "POS",
+        href: "/app/pos",
+        icon: ShoppingCart,
+        permission: "order:create",
+        feature: "FEATURE_POS",
+      },
+    ],
+  },
+  {
+    label: "Menu",
+    items: [
+      {
+        label: "Inventory",
+        href: "/app/inventory",
+        icon: Boxes,
+        permission: "inventory:read",
+        feature: "FEATURE_INVENTORY",
+      },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      {
+        label: "Finance",
+        href: "/app/finance",
+        icon: Wallet,
+        permission: "finance:read",
+        feature: "FEATURE_FINANCE",
+      },
+      {
+        label: "Purchasing",
+        href: "/app/purchasing",
+        icon: Truck,
+        permission: "purchasing:read",
+        feature: "FEATURE_PURCHASING",
+      },
+    ],
+  },
+  {
+    label: "Settings",
+    items: [
+      {
+        label: "General",
+        href: "/app/settings",
+        icon: Settings,
+      },
+      {
+        label: "Appearance",
+        href: "/settings/appearance",
+        icon: Palette,
+      },
+      {
+        label: "Users",
+        href: "/app/settings/users",
+        icon: Users,
+        permission: "users:manage",
+      },
+    ],
   },
 ];
 
