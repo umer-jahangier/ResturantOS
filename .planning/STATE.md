@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 3 of 12 (API Gateway, Platform Admin & Tenant/User Management)
-Plan: 2 of 3 planned (03-03 complete; 03-02 platform-admin pending)
-Status: 03-03 complete — user-service + auth internal endpoints + 28 IT tests green
-Last activity: 2026-06-25 — 03-03-PLAN.md executed; user-service fully operational
+Plan: 3 of 3 (03-02 platform-admin COMPLETE — Phase 3 fully done)
+Status: Phase 3 complete — gateway (03-01) + platform-admin (03-02) + user-service (03-03); 21 platform-admin ITs green; full reactor BUILD SUCCESS
+Last activity: 2026-06-25 — 03-02-PLAN.md executed; platform-admin provisioning saga + all 21 ITs green
 
-Progress: [████████░░] 27% (9/33 plans)
+Progress: [█████████░] 30% (10/33 plans)
 
 ## Performance Metrics
 
@@ -29,7 +29,7 @@ Progress: [████████░░] 27% (9/33 plans)
 |-------|-------|--------|
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
-| 03-api-gateway-platform-admin-tenant-user-management | 2/3 | in-progress |
+| 03-api-gateway-platform-admin-tenant-user-management | 3/3 | passed |
 
 **Recent Trend:**
 - Last 5 plans: 02-03, 03-01, 03-03 (skipping 03-02; 03-02 platform-admin next)
@@ -58,10 +58,14 @@ Recent decisions affecting current work:
 - [03-03-B]: Testcontainers `POSTGRES_USER` creates a superuser — RLS row visibility tests replaced with `pg_policies` metadata checks; production RLS enforcement deferred to staging with non-superuser roles.
 - [03-03-C]: `saveAndFlush()` required in BranchService.createInternal to catch `DataIntegrityViolationException` inside try-catch (JPA batches flush otherwise).
 - [03-03-D]: `FeignInternalConfig` and `UserInternalServiceFilter` are duplicated in user-service; extraction to shared-lib is tech debt.
+- [03-02-A]: `noRollbackFor=ProvisioningException.class` on provision() so PROVISIONING_FAILED state commits when saga throws.
+- [03-02-B]: Never set entity ID manually before `save()` with `@GeneratedValue(UUID)` — Spring Data calls `merge()` (not `persist()`) if ID is non-null, issuing an UPDATE for non-existent row → StaleObjectStateException.
+- [03-02-C]: `@JdbcTypeCode(SqlTypes.JSON)` required on String fields mapped to PostgreSQL JSONB columns; `columnDefinition` alone insufficient.
+- [03-02-D]: Do not add `@EnableJpaAuditing` to any service's Application class; `SharedAutoConfiguration` is authoritative — duplicate causes BeanDefinitionOverrideException.
 
 ### Pending Todos
 
-- Execute 03-02 (platform-admin provisioning saga) — depends on user-service `/internal/users/branches` (now complete)
+- Execute Phase 4 (finance-service / accounting) — finance seed-coa seam already stubbed in platform-admin
 - Resolve Phase 1 SC5 gap (open from Phase 1 verification)
 
 ### Blockers/Concerns
@@ -72,6 +76,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-25
-Stopped at: 03-01 complete — gateway module (12 tests green), SUMMARY.md created.
-Next: Execute 03-02-PLAN.md (platform-admin-service)
+Stopped at: 03-02 complete — platform-admin-service (21 IT tests green), Phase 3 fully complete.
+Next: Execute Phase 4 plans (finance-service / accounting)
 Resume file: None
