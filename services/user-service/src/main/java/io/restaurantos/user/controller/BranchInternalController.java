@@ -57,8 +57,10 @@ public class BranchInternalController {
      */
     @GetMapping("/branches/{branchId}")
     public ResponseEntity<BranchEntity> getBranch(@PathVariable UUID branchId,
-                                                   @RequestHeader("X-Tenant-Id") UUID tenantId) {
-        setTenantGuc(tenantId);
+                                                   @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
+        if (tenantId != null) {
+            setTenantGuc(tenantId);
+        }
         BranchEntity branch = branchService.get(branchId);
         return ResponseEntity.ok(branch);
     }

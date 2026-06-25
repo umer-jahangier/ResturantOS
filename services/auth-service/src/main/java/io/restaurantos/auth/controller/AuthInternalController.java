@@ -62,6 +62,11 @@ public class AuthInternalController {
      * Compute permissions for a user at a specific branch (or default branch when branchId omitted).
      * Wraps the existing PermissionResolver — authoritative source for JWT issuance.
      */
+    /**
+     * Compute permissions for a user at a specific branch.
+     * Caller (user-service via Feign) must supply X-Tenant-Id so TenantFilterInterceptor
+     * sets the Postgres GUC. In tests, GUC is already set by @BeforeEach setRls().
+     */
     @GetMapping("/users/{userId}/permissions")
     public ResponseEntity<ResolvedBranchAuth> getUserPermissions(
             @PathVariable UUID userId,

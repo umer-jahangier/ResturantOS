@@ -1,0 +1,7 @@
+restaurantos:
+  internal:
+    secret: test-internal-secret
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none

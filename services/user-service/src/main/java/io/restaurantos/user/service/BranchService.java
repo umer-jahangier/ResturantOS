@@ -100,7 +100,7 @@ public class BranchService {
         branch.setActive(true);
         branch.setTimezone("Asia/Karachi");
         try {
-            return branchRepository.save(branch);
+            return branchRepository.saveAndFlush(branch);
         } catch (DataIntegrityViolationException e) {
             throw new StateInvalidException("Branch '" + req.name() + "' already exists for tenant " + req.tenantId());
         }
