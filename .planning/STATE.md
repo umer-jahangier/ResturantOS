@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 1 of 3 complete
-Status: In progress — 04-01 executed (shell + four-layer abstraction + proxy/DAL + MSW + Vitest + Dockerfile)
-Last activity: 2026-06-26 — Completed 04-01-PLAN.md (3/3 tasks; build/tsc/lint/vitest/docker all green)
+Plan: 2 of 3 complete
+Status: In progress — 04-02 executed (login + conditional TOTP, Permission/Feature guards, Sidebar, BranchSwitcher)
+Last activity: 2026-06-26 — Completed 04-02-PLAN.md (3/3 tasks; tsc/lint/vitest+coverage all green)
 
-Progress: [█████████░] 33% (11/33 plans)
+Progress: [██████████] 36% (12/33 plans)
 
 ## Performance Metrics
 
@@ -31,11 +31,11 @@ Progress: [█████████░] 33% (11/33 plans)
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
-| 04-frontend-shell-ci-cd | 1/3 | — in progress |
+| 04-frontend-shell-ci-cd | 2/3 | — in progress |
 
 **Recent Trend:**
-- Last 5 plans: 03-01, 03-03, 03-02, 04-01
-- Trend: Backend platform complete; frontend shell + four-layer API abstraction now landed (wave-1 foundation for 04-02/04-03)
+- Last 5 plans: 03-03, 03-02, 04-01, 04-02
+- Trend: Frontend wave 2 landed — login/conditional-TOTP, permission/feature guards, Sidebar, BranchSwitcher (JWT reissue + cache clear); 04-03 (CI/CD + E2E) remains
 
 *Updated after each plan completion*
 
@@ -70,11 +70,18 @@ Recent decisions affecting current work:
 - [04-01-D]: Live auth-service error codes (supersede §7.4): `UNAUTHENTICATED` 401 (bad creds + suspended-tenant masked), `ACCOUNT_LOCKED` 423, `TOTP_REQUIRED` 401, `BRANCH_ACCESS_DENIED` 403, `PASSWORD_REUSE` 400 — flagged §7.4 reconciliation.
 - [04-01-E]: Four-layer abstraction enforced via ESLint `no-restricted-imports` on `components/**`; repositories always `.parse()` (never the non-throwing variant) before adapting.
 - [04-01-F]: Tailwind 4 CSS-first (no tailwind.config.js); removed shadcn radix-base `@import "shadcn/tailwind.css"` (uninstalled pkg broke build). pnpm 11 needs `allowBuilds` map.
+- [04-02-A]: D4 resolved — FeatureGuard uses `useFeatureFlags()` (proactive UI hiding); gateway stays authoritative (403 FEATURE_DISABLED). Live `/api/v1/feature-flags` shape still a Phase-3 contract to confirm.
+- [04-02-B]: Branch switch invalidation = `queryClient.clear()` (full clear) — all server-state keys are branch-scoped; `setSession` on the reissued JWT also sets the active branch (no separate active-branch store).
+- [04-02-C]: Components branch on `ApiError` guard methods via TanStack-mutation type inference — never import `@/lib/api-client` (FE-08 boundary preserved).
+- [04-02-D]: Used a hand-rolled `createZodResolver` (frontend/lib/forms/zod-resolver.ts) instead of `@hookform/resolvers` (package.json owned by 04-03). Optional to swap later.
+- [04-02-E]: BranchSwitcher available-branches are a Phase-4 static stub (ids match MSW); live list is a Phase-3 contract (e.g. `/api/v1/branches`).
 
 ### Pending Todos
 
-- Execute Phase 4 remaining plans: 04-02 (login UI, guards, BranchSwitcher), 04-03 (CI/CD + E2E)
-- Confirm feature-flags endpoint path/shape `/api/v1/feature-flags` (04-01 D4) against live Phase-3 contract
+- Execute Phase 4 remaining plan: 04-03 (CI/CD + E2E)
+- Confirm feature-flags endpoint path/shape `/api/v1/feature-flags` (04-01 D4 / 04-02-A) against live Phase-3 contract
+- Confirm available-branches source/endpoint (e.g. `/api/v1/branches`) to replace the BranchSwitcher static stub (04-02-E)
+- Consider adding `@hookform/resolvers` in 04-03 to replace the hand-rolled resolver (04-02-D)
 - Update FE-03 wording (`middleware.ts` → `proxy.ts`) and reconcile spec §7.4 error catalogue with live auth-service codes
 - Resolve Phase 1 SC5 gap (open from Phase 1 verification)
 
@@ -86,6 +93,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-26
-Stopped at: Completed 04-01-PLAN.md — frontend shell + four-layer abstraction + proxy/DAL + MSW + Vitest + Dockerfile (all checks green).
-Next: `/gsd-plan-phase 4` for 04-02 (login UI, guards, BranchSwitcher)
+Stopped at: Completed 04-02-PLAN.md — login + conditional TOTP, Permission/Feature guards, Sidebar, BranchSwitcher (JWT reissue + cache clear); tsc/lint/vitest+coverage green.
+Next: `/gsd-plan-phase 4` for 04-03 (CI/CD + E2E)
 Resume file: None
