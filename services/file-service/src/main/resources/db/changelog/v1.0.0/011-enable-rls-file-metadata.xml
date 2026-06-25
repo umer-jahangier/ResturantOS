@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="file-1.0.0-011-enable-rls-file-metadata" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE file_metadata ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE file_metadata FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON file_metadata
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON file_metadata TO file_service;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON file_metadata;
+                ALTER TABLE file_metadata NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE file_metadata DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

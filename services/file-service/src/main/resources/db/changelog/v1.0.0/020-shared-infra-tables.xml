@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="file-1.0.0-020-create-event-outbox" author="restaurantos-agent">
+        <createTable tableName="event_outbox">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="event_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="exchange" type="TEXT"><constraints nullable="false"/></column>
+            <column name="routing_key" type="TEXT"><constraints nullable="false"/></column>
+            <column name="event_type" type="TEXT"><constraints nullable="false"/></column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="branch_id" type="UUID"/>
+            <column name="correlation_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="source" type="TEXT"><constraints nullable="false"/></column>
+            <column name="envelope_json" type="TEXT"><constraints nullable="false"/></column>
+            <column name="status" type="TEXT" defaultValue="PENDING"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="sent_at" type="TIMESTAMPTZ"/>
+        </createTable>
+        <createIndex tableName="event_outbox" indexName="idx_file_event_outbox_status_created">
+            <column name="status"/>
+            <column name="created_at"/>
+        </createIndex>
+        <sql>GRANT SELECT, INSERT, UPDATE, DELETE ON event_outbox TO file_service;</sql>
+        <rollback>
+            <dropIndex tableName="event_outbox" indexName="idx_file_event_outbox_status_created"/>
+            <dropTable tableName="event_outbox"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="file-1.0.0-020b-create-idempotency-keys" author="restaurantos-agent">
+        <createTable tableName="idempotency_keys">
+            <column name="idem_key" type="VARCHAR(200)"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="request_hash" type="VARCHAR(64)"><constraints nullable="false"/></column>
+            <column name="status" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="response_json" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="expires_at" type="TIMESTAMPTZ"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="idempotency_keys" indexName="idx_file_idempotency_expires_at">
+            <column name="expires_at"/>
+        </createIndex>
+        <sql>GRANT SELECT, INSERT, UPDATE, DELETE ON idempotency_keys TO file_service;</sql>
+        <rollback>
+            <dropIndex tableName="idempotency_keys" indexName="idx_file_idempotency_expires_at"/>
+            <dropTable tableName="idempotency_keys"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="file-1.0.0-020c-create-processed-events" author="restaurantos-agent">
+        <createTable tableName="processed_events">
+            <column name="consumer" type="TEXT"><constraints nullable="false"/></column>
+            <column name="event_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="source_type" type="TEXT"/>
+            <column name="source_id" type="UUID"/>
+            <column name="processed_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+        <addPrimaryKey tableName="processed_events" columnNames="consumer, event_id"
+                       constraintName="pk_file_processed_events"/>
+        <sql>GRANT SELECT, INSERT ON processed_events TO file_service;</sql>
+        <rollback>
+            <dropTable tableName="processed_events"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="file-1.0.0-010-create-file-metadata" author="restaurantos-agent">
+        <createTable tableName="file_metadata">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="uploaded_by" type="UUID"><constraints nullable="false"/></column>
+            <!-- MinIO object key: {tenantId}/{fileId}/{filename} -->
+            <column name="object_key" type="VARCHAR(1024)"><constraints nullable="false"/></column>
+            <column name="original_filename" type="VARCHAR(512)"><constraints nullable="false"/></column>
+            <column name="content_type" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="size_bytes" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="sha256" type="VARCHAR(64)"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="UUID"/>
+            <column name="updated_by" type="UUID"/>
+            <!-- Soft-delete marker. NULL = live row. -->
+            <column name="deleted_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- Composite index for tenant-scoped queries ordered by creation time -->
+        <createIndex tableName="file_metadata" indexName="idx_file_metadata_tenant_created">
+            <column name="tenant_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <rollback><dropTable tableName="file_metadata"/></rollback>
+    </changeSet>
+
+</databaseChangeLog>

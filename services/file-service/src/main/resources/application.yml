@@ -1,0 +1,65 @@
+server:
+  port: ${SERVER_PORT:8095}
+
+spring:
+  application:
+    name: file-service
+  datasource:
+    url: ${FILE_DB_URL:jdbc:postgresql://localhost:5432/file_db}
+    username: ${FILE_DB_USER:file_service}
+    password: ${FILE_DB_PASSWORD:file_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    contexts: ${LIQUIBASE_CONTEXTS:seed}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+# MinIO configuration
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:restaurantos-files}
+
+restaurantos:
+  internal:
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  platform-admin-service:
+    uri: ${PLATFORM_ADMIN_SERVICE_URI:http://platform-admin-service:8096}
+  jwks:
+    uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+  # Storage limits in bytes by tier (used for quota enforcement).
+  # These are defaults when platform-admin returns only tier name.
+  tier-storage:
+    STARTER: 10737418240       # 10 GB
+    GROWTH: 53687091200        # 50 GB
+    ENTERPRISE: 536870912000   # 500 GB
+    CUSTOM: 107374182400       # 100 GB
