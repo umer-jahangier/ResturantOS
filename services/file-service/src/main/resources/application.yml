@@ -57,9 +57,10 @@ restaurantos:
   jwks:
     uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
   # Storage limits in bytes by tier (used for quota enforcement).
-  # These are defaults when platform-admin returns only tier name.
+  # Keys must be lowercase to match Spring property binding normalization.
   tier-storage:
-    STARTER: 10737418240       # 10 GB
-    GROWTH: 53687091200        # 50 GB
-    ENTERPRISE: 536870912000   # 500 GB
-    CUSTOM: 107374182400       # 100 GB
+    limits:
+      starter: 10737418240       # 10 GB
+      growth: 53687091200        # 50 GB
+      enterprise: 536870912000   # 500 GB
+      custom: 107374182400       # 100 GB

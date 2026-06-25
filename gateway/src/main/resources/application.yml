@@ -106,6 +106,20 @@ spring:
                       - 500
                       - 503
 
+            # ── File Service ──────────────────────────────────────────────────────
+            - id: file-route
+              uri: lb://file-service
+              predicates:
+                - Path=/api/v1/files/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: fileCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
             # - id: hr-route
             #   uri: lb://hr-service
@@ -210,6 +224,11 @@ resilience4j:
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
       userCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      fileCircuitBreaker:
         slidingWindowSize: 10
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
