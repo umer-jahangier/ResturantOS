@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Platform DB Tables — NO RLS, NO tenant-isolation policy (SC4/PLATFORM-07).
+        platform_db is the SuperAdmin control plane: entities here are NOT tenant-scoped.
+        DO NOT add tenant isolation policies or app.current_tenant_id anywhere in this file.
+    -->
+
+    <changeSet id="010-001" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="tenants"/></not>
+        </preConditions>
+        <createTable tableName="tenants">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="slug" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="brand_name" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tier" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="theme_config" type="JSONB"/>
+            <column name="email_config" type="JSONB"/>
+            <column name="billing_ref" type="VARCHAR(255)"/>
+            <column name="trial_ends_at" type="TIMESTAMPTZ"/>
+            <column name="custom_domain" type="VARCHAR(255)"/>
+            <column name="domain_verified" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="max_branches" type="INT"/>
+            <column name="max_users" type="INT"/>
+            <column name="storage_gb" type="INT"/>
+            <column name="nlq_quota" type="INT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="suspended_at" type="TIMESTAMPTZ"/>
+            <column name="cancelled_at" type="TIMESTAMPTZ"/>
+        </createTable>
+        <sql>ALTER TABLE tenants ADD CONSTRAINT chk_tenants_status
+            CHECK (status IN ('PENDING_SETUP','ACTIVE','SUSPENDED','CANCELLED','PURGED','PROVISIONING_FAILED'))</sql>
+        <sql>ALTER TABLE tenants ADD CONSTRAINT chk_tenants_tier
+            CHECK (tier IN ('STARTER','GROWTH','ENTERPRISE','CUSTOM'))</sql>
+        <rollback>
+            <dropTable tableName="tenants"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="010-002" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="tenant_features"/></not>
+        </preConditions>
+        <createTable tableName="tenant_features">
+            <column name="tenant_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="feature_code" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_enabled" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="config_json" type="JSONB"/>
+        </createTable>
+        <addPrimaryKey tableName="tenant_features" columnNames="tenant_id,feature_code"/>
+        <addForeignKeyConstraint
+            baseTableName="tenant_features" baseColumnNames="tenant_id"
+            referencedTableName="tenants" referencedColumnNames="id"
+            constraintName="fk_tenant_features_tenant"
+            onDelete="CASCADE"/>
+        <rollback>
+            <dropTable tableName="tenant_features"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="010-003" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="platform_users"/></not>
+        </preConditions>
+        <createTable tableName="platform_users">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <sql>ALTER TABLE platform_users ADD CONSTRAINT chk_platform_users_role
+            CHECK (role IN ('SUPER_ADMIN','SUPPORT','BILLING'))</sql>
+        <rollback>
+            <dropTable tableName="platform_users"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="010-004" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="usage_records"/></not>
+        </preConditions>
+        <createTable tableName="usage_records">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="resource" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="qty" type="NUMERIC(20,4)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="recorded_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="usage_records"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="010-005" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="impersonation_log"/></not>
+        </preConditions>
+        <createTable tableName="impersonation_log">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="platform_user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_user_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ended_at" type="TIMESTAMPTZ"/>
+            <column name="reason" type="VARCHAR(500)"/>
+        </createTable>
+        <rollback>
+            <dropTable tableName="impersonation_log"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,76 @@
+server:
+  port: ${SERVER_PORT:8096}
+
+spring:
+  application:
+    name: platform-admin-service
+  datasource:
+    url: ${PLATFORM_DB_URL:jdbc:postgresql://localhost:5432/platform_db}
+    username: ${PLATFORM_DB_USER:platform_admin}
+    password: ${PLATFORM_DB_PASSWORD:platform_admin_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: UTC
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 10000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+
+restaurantos:
+  internal:
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  jwks:
+    uri: ${JWKS_URI:http://auth-service/api/v1/auth/.well-known/jwks.json}
+  feature-flag:
+    cache-ttl-seconds: 300
+  auth-service:
+    uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+  user-service:
+    uri: ${USER_SERVICE_URI:http://localhost:8082}
+  finance-service:
+    uri: ${FINANCE_SERVICE_URI:http://localhost:8086}
+  provisioning:
+    seed-coa:
+      enabled: ${PROVISIONING_SEED_COA_ENABLED:false}

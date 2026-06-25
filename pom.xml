@@ -35,6 +35,7 @@
         <module>services/authorization-service</module>
         <module>gateway</module>
         <module>services/user-service</module>
+        <module>services/platform-admin-service</module>
     </modules>
 
     <dependencyManagement>

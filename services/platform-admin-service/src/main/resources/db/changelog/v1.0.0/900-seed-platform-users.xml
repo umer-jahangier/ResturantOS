@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Seed platform_users — SUPER_ADMIN account for bootstrap.
+        Password hash is BCrypt of "SuperAdmin@restaurantos#2024" (cost 12).
+        CRITICAL: credentials must be rotated before any production deployment.
+        Lives in platform_db only (Doc 11 §11.1). Context: seed.
+    -->
+    <changeSet id="platform-900-001-seed-super-admin" author="restaurantos-agent" context="seed">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM platform_users WHERE email = 'superadmin@restaurantos.io'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="platform_users">
+            <column name="id" valueComputed="gen_random_uuid()"/>
+            <column name="email" value="superadmin@restaurantos.io"/>
+            <!-- BCrypt(12) of SuperAdmin@restaurantos#2024 -->
+            <column name="password_hash" value="$2a$12$9nQm3GHdOKm2HHvE4/xvxeJpGz7mS1AO8lQGm5e8JvdR2DmN3k2Oy"/>
+            <column name="role" value="SUPER_ADMIN"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <rollback>
+            <delete tableName="platform_users">
+                <where>email = 'superadmin@restaurantos.io'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
