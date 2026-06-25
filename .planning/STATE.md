@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 0 of 3 planned
-Status: Phase 3 verified passed (24/24 must-haves; runtime `mvn verify` green)
-Last activity: 2026-06-25 — Phase 3 execution + verification complete
+Plan: 1 of 3 complete
+Status: In progress — 04-01 executed (shell + four-layer abstraction + proxy/DAL + MSW + Vitest + Dockerfile)
+Last activity: 2026-06-26 — Completed 04-01-PLAN.md (3/3 tasks; build/tsc/lint/vitest/docker all green)
 
-Progress: [█████████░] 30% (10/33 plans)
+Progress: [█████████░] 33% (11/33 plans)
 
 ## Performance Metrics
 
@@ -31,10 +31,11 @@ Progress: [█████████░] 30% (10/33 plans)
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
+| 04-frontend-shell-ci-cd | 1/3 | — in progress |
 
 **Recent Trend:**
-- Last 5 plans: 03-01, 03-03, 03-02
-- Trend: Platform edge + tenant provisioning + branch/role management complete; frontend shell next
+- Last 5 plans: 03-01, 03-03, 03-02, 04-01
+- Trend: Backend platform complete; frontend shell + four-layer API abstraction now landed (wave-1 foundation for 04-02/04-03)
 
 *Updated after each plan completion*
 
@@ -63,10 +64,18 @@ Recent decisions affecting current work:
 - [03-02-B]: Never set entity ID manually before `save()` with `@GeneratedValue(UUID)` — Spring Data calls `merge()` (not `persist()`) if ID is non-null, issuing an UPDATE for non-existent row → StaleObjectStateException.
 - [03-02-C]: `@JdbcTypeCode(SqlTypes.JSON)` required on String fields mapped to PostgreSQL JSONB columns; `columnDefinition` alone insufficient.
 - [03-02-D]: Do not add `@EnableJpaAuditing` to any service's Application class; `SharedAutoConfiguration` is authoritative — duplicate causes BeanDefinitionOverrideException.
+- [04-01-A]: Next 16 uses `proxy.ts` (not `middleware.ts`), exported fn `proxy` — recommend updating FE-03 wording.
+- [04-01-B]: `proxy.ts`/DAL read a non-HttpOnly `has_session` marker (UX hint only); `refresh_token` is HttpOnly Path=/api/v1/auth and invisible on app routes — real gate is DAL + gateway 401 (CVE-2025-29927).
+- [04-01-C]: Auth contract frozen — `refresh_token` cookie, `{email,password,tenantSlug,totpCode?}`, `ApiResponse<{accessToken,expiresInSeconds,userId,tenantId,branchId}>`; permissions from JWT decode, no `/me`. Wire format is camelCase (no global snake_case Jackson config).
+- [04-01-D]: Live auth-service error codes (supersede §7.4): `UNAUTHENTICATED` 401 (bad creds + suspended-tenant masked), `ACCOUNT_LOCKED` 423, `TOTP_REQUIRED` 401, `BRANCH_ACCESS_DENIED` 403, `PASSWORD_REUSE` 400 — flagged §7.4 reconciliation.
+- [04-01-E]: Four-layer abstraction enforced via ESLint `no-restricted-imports` on `components/**`; repositories always `.parse()` (never the non-throwing variant) before adapting.
+- [04-01-F]: Tailwind 4 CSS-first (no tailwind.config.js); removed shadcn radix-base `@import "shadcn/tailwind.css"` (uninstalled pkg broke build). pnpm 11 needs `allowBuilds` map.
 
 ### Pending Todos
 
-- Execute Phase 4 (Frontend Shell & CI/CD)
+- Execute Phase 4 remaining plans: 04-02 (login UI, guards, BranchSwitcher), 04-03 (CI/CD + E2E)
+- Confirm feature-flags endpoint path/shape `/api/v1/feature-flags` (04-01 D4) against live Phase-3 contract
+- Update FE-03 wording (`middleware.ts` → `proxy.ts`) and reconcile spec §7.4 error catalogue with live auth-service codes
 - Resolve Phase 1 SC5 gap (open from Phase 1 verification)
 
 ### Blockers/Concerns
@@ -76,7 +85,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-25
-Stopped at: Phase 3 verified passed — gateway + user-service + platform-admin complete.
-Next: `/gsd-discuss-phase 4` or `/gsd-plan-phase 4`
+Last session: 2026-06-26
+Stopped at: Completed 04-01-PLAN.md — frontend shell + four-layer abstraction + proxy/DAL + MSW + Vitest + Dockerfile (all checks green).
+Next: `/gsd-plan-phase 4` for 04-02 (login UI, guards, BranchSwitcher)
 Resume file: None
