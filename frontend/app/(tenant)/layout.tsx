@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { TopBar } from "@/components/shared/top-bar";
 import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav";
 import { SidebarSkeleton } from "@/components/skeletons/sidebar-skeleton";
+import { PageTransition } from "@/components/shared/page-transition";
 
 // Protected tenant app area. Real pages live under /app/* so the route group
 // has distinct, non-colliding URLs. proxy.ts gates this prefix.
@@ -78,7 +79,7 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
         <div className="flex flex-1 flex-col overflow-hidden">
           <TopBar onMobileMenuToggle={handleMobileMenuToggle} />
           <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 md:pb-6">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
         </div>
 

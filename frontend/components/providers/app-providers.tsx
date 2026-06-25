@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { StatusAnnouncer } from "@/components/ui/status-announcer";
 import { MswProvider } from "./msw-provider";
 import { QueryProvider } from "./query-provider";
 import { ThemeProvider } from "./theme-provider";
@@ -16,7 +17,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <MswProvider>
           <QueryProvider>
             {children}
-            <Toaster richColors position="top-right" />
+            <StatusAnnouncer />
+            <Toaster richColors position="bottom-right" />
           </QueryProvider>
         </MswProvider>
       </IntlProvider>
