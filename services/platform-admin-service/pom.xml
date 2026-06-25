@@ -162,6 +162,14 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
+                    <!-- Colima: disable Ryuk bind-mount reaper (no /var/run/docker.sock bind support) -->
+                    <systemPropertyVariables>
+                        <ryuk.disabled>true</ryuk.disabled>
+                    </systemPropertyVariables>
+                    <environmentVariables>
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                        <DOCKER_HOST>unix://${user.home}/.colima/default/docker.sock</DOCKER_HOST>
+                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>

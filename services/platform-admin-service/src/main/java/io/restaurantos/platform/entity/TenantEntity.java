@@ -3,6 +3,8 @@ package io.restaurantos.platform.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -37,9 +39,11 @@ public class TenantEntity {
     private TierType tier;
 
     @Column(name = "theme_config", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String themeConfig;
 
     @Column(name = "email_config", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String emailConfig;
 
     @Column(name = "billing_ref")

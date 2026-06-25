@@ -1,0 +1,14 @@
+restaurantos:
+  internal:
+    secret: test-internal-secret
+  jwks:
+    uri: http://localhost:${wiremock.server.port:9999}/test-jwks
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    contexts: seed
+provisioning:
+  seed-coa:
+    enabled: false
