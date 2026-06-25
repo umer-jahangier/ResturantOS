@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 3 of 12 (API Gateway, Platform Admin & Tenant/User Management)
-Plan: 1 of 3 planned
-Status: 03-01 complete — gateway module + all tests (12/12) green
-Last activity: 2026-06-25 — 03-01-PLAN.md executed; gateway edge service fully operational
+Plan: 2 of 3 planned (03-03 complete; 03-02 platform-admin pending)
+Status: 03-03 complete — user-service + auth internal endpoints + 28 IT tests green
+Last activity: 2026-06-25 — 03-03-PLAN.md executed; user-service fully operational
 
-Progress: [███████░░░] 24% (8/33 plans)
+Progress: [████████░░] 27% (9/33 plans)
 
 ## Performance Metrics
 
@@ -29,11 +29,11 @@ Progress: [███████░░░] 24% (8/33 plans)
 |-------|-------|--------|
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
-| 03-api-gateway-platform-admin-tenant-user-management | 1/3 | in-progress |
+| 03-api-gateway-platform-admin-tenant-user-management | 2/3 | in-progress |
 
 **Recent Trend:**
-- Last 5 plans: 02-01, 02-02, 02-03 (+ Phase 1 gap still open)
-- Trend: Auth + authz stack complete; gateway/platform next
+- Last 5 plans: 02-03, 03-01, 03-03 (skipping 03-02; 03-02 platform-admin next)
+- Trend: user-service complete; platform-admin provisioning saga next
 
 *Updated after each plan completion*
 
@@ -54,10 +54,15 @@ Recent decisions affecting current work:
 - [03-01-B]: `SharedAutoConfiguration` excluded from gateway — it requires EntityManager (JPA) + WebMvcConfigurer (servlet), incompatible with reactive gateway.
 - [03-01-C]: `WebClientConfig` provides `WebClient.Builder` bean — Spring Boot 4 removed auto-configuration of this bean.
 - [03-01-D]: `TESTCONTAINERS_RYUK_DISABLED=true` required for Colima Docker environment (no bind mount support for Ryuk).
+- [03-03-A]: auth-service is system of record for `user_branch_roles`; user-service owns ONLY `branches` and delegates all role/permission operations via Feign to `/internal/auth/**`.
+- [03-03-B]: Testcontainers `POSTGRES_USER` creates a superuser — RLS row visibility tests replaced with `pg_policies` metadata checks; production RLS enforcement deferred to staging with non-superuser roles.
+- [03-03-C]: `saveAndFlush()` required in BranchService.createInternal to catch `DataIntegrityViolationException` inside try-catch (JPA batches flush otherwise).
+- [03-03-D]: `FeignInternalConfig` and `UserInternalServiceFilter` are duplicated in user-service; extraction to shared-lib is tech debt.
 
 ### Pending Todos
 
-None yet.
+- Execute 03-02 (platform-admin provisioning saga) — depends on user-service `/internal/users/branches` (now complete)
+- Resolve Phase 1 SC5 gap (open from Phase 1 verification)
 
 ### Blockers/Concerns
 

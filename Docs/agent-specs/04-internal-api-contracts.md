@@ -28,10 +28,14 @@ Convention summary: all internal paths are prefixed `/internal/`; internal endpo
 | Method + Path | Request | Response | Called by |
 |---|---|---|---|
 | `POST /internal/auth/verify-token` | `{ "token": string }` | `{ "valid": bool, "claims": JwtClaims }` | Gateway, any service |
-| `GET /internal/auth/users/{userId}/permissions?branchId=` | path+query | `{ "permissions": string[], "attributes": object }` | OPA-using services |
+| `GET /internal/auth/users/{userId}/permissions?branchId=` | path+query | `{ "branchId": UUID, "roles": string[], "permissions": string[], "attributes": object }` | user-service, OPA-using services |
+| `POST /internal/auth/users/{userId}/branch-roles` | `{ "branchId": UUID, "roleCode": string, "approvalLimitPaisa": long? }` + `X-Tenant-Id` | `UserBranchRoleEntity` (200 OK) | user-service `UserAdminService` |
+| `DELETE /internal/auth/users/{userId}/branch-roles?branchId=&roleCode=` | query + `X-Tenant-Id` | 204 No Content | user-service `UserAdminService` |
 | `GET /internal/auth/users?branchId={branchId}&roleCode={roleCode}` | query | `{ "users": [{ "userId", "email", "fullName" }] }` | Notification |
 | `POST /internal/auth/tenants/{tenantId}/provision-admin` | `{ "email": string }` | `{ "userId": UUID, "tempPassword": string }` | Platform Admin (FD-1) |
 | `POST /internal/auth/service-token` | `{ "service": string }` | `{ "token": string, "expiresIn": 300 }` | any service |
+
+> **§4.2 security note (03-03):** All `/internal/auth/**` endpoints require `X-Internal-Service: {restaurantos.internal.secret}` header, enforced by `InternalServiceFilter` (constant-time comparison). Branch-role write endpoints additionally require `X-Tenant-Id` for RLS scoping. `auth-service` is the **system of record** for `user_branch_roles`; no other service writes this table directly.
 
 ```java
 package io.restaurantos.notification.client;
@@ -56,10 +60,12 @@ public interface AuthClient {
 
 | Method + Path | Request | Response | Called by |
 |---|---|---|---|
-| `GET /internal/users/branches/{branchId}` | path | `{ "branchId", "tenantId", "name", "isHq", "timezone", "fbrStrn", "ntn", "currencyConfig" }` | POS, Finance, Reporting |
-| `GET /internal/users/tenants/{tenantId}/branches` | path | `{ "branches": [BranchSummary] }` | Reporting, Platform |
-| `GET /internal/users/{userId}/profile` | path | `{ "userId", "fullName", "email", "locale", "branchIds": UUID[] }` | Notification, HR |
-| `POST /internal/users/branches` | `{ "tenantId", "name", "isHq" }` | `{ "branchId" }` | Platform Admin (FD-1) |
+| `POST /internal/users/branches` | `{ "tenantId": UUID, "name": string, "isHq": bool }` | `{ "branchId": UUID }` (201) | Platform Admin FD-1 (step 4) |
+| `GET /internal/users/branches/{branchId}` | path + optional `X-Tenant-Id` | `BranchEntity` JSON | POS, Finance, Reporting |
+| `GET /internal/users/tenants/{tenantId}/branches` | path | `[ BranchEntity ]` | Reporting, Platform Admin |
+| `GET /internal/users/{userId}/profile` | path | `{ "userId", "fullName", "email", "locale", "branchIds": UUID[] }` | Notification, HR (planned) |
+
+> **§4.2 note (03-03):** All `/internal/users/**` endpoints require `X-Internal-Service` header (same contract as auth-service). user-service does **not** own `user_branch_roles` and never writes it; all role operations are delegated to `/internal/auth/**` via `AuthInternalClient` (Feign).
 
 ### Inventory Service (`inventory-service`, `http://inventory-service:8085`)
 
