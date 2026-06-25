@@ -14,6 +14,7 @@
     <include file="db/changelog/v1.0.0/052-refresh-session-lookup-function.xml"/>
     <include file="db/changelog/v1.0.0/060-create-password-reset-tokens.xml"/>
     <include file="db/changelog/v1.0.0/070-create-password-history.xml"/>
+    <include file="db/changelog/v1.0.0/080-add-must-change-password.xml"/>
     <include file="db/changelog/v1.0.0/053-fix-rls-tenant-guc-policies.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-auth-dev-data.xml"/>
 

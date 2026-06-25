@@ -53,6 +53,9 @@ public class UserEntity extends TenantAuditableEntity {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
+
     @Version
     private Long version;
 }
