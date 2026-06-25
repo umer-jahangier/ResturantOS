@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="audit-1.0.0-010-create-audit-events" author="restaurantos-agent">
+        <!-- audit_events is append-only, partitioned by range on occurred_at.
+             PRIMARY KEY must include partition key (id, occurred_at) for PostgreSQL partitioning. -->
+        <sql splitStatements="false">
+            CREATE TABLE audit_events (
+                id             BIGSERIAL                NOT NULL,
+                tenant_id      UUID                     NOT NULL,
+                branch_id      UUID,
+                user_id        UUID,
+                action         VARCHAR(255)             NOT NULL,
+                resource_type  VARCHAR(255),
+                resource_id    VARCHAR(255),
+                before_state   JSONB,
+                after_state    JSONB,
+                ip_address     VARCHAR(45),
+                user_agent     TEXT,
+                occurred_at    TIMESTAMPTZ              NOT NULL DEFAULT NOW(),
+                metadata       JSONB,
+                PRIMARY KEY (id, occurred_at)
+            ) PARTITION BY RANGE (occurred_at);
+        </sql>
+
+        <!-- Indexes for common query patterns -->
+        <sql>CREATE INDEX idx_audit_events_tenant_occurred ON audit_events (tenant_id, occurred_at DESC);</sql>
+        <sql>CREATE INDEX idx_audit_events_action ON audit_events (action, occurred_at DESC);</sql>
+        <sql>CREATE INDEX idx_audit_events_resource ON audit_events (resource_type, resource_id, occurred_at DESC);</sql>
+
+        <!-- INSERT-only grants for runtime user (audit_writer).
+             Liquibase runs as audit_admin (superuser), grants are defense-in-depth. -->
+        <sql>GRANT INSERT ON audit_events TO audit_writer;</sql>
+        <sql>REVOKE UPDATE, DELETE ON audit_events FROM audit_writer;</sql>
+        <sql>GRANT USAGE, SELECT ON SEQUENCE audit_events_id_seq TO audit_writer;</sql>
+
+        <rollback>
+            <sql>DROP TABLE IF EXISTS audit_events;</sql>
+        </rollback>
+    </changeSet>
+
+    <!-- Create initial monthly partitions: current month + next 12 months -->
+    <changeSet id="audit-1.0.0-010b-initial-partitions" author="restaurantos-agent">
+        <sql splitStatements="true">
+            CREATE TABLE audit_events_2026_01 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+            CREATE TABLE audit_events_2026_02 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
+            CREATE TABLE audit_events_2026_03 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
+            CREATE TABLE audit_events_2026_04 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
+            CREATE TABLE audit_events_2026_05 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+            CREATE TABLE audit_events_2026_06 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+            CREATE TABLE audit_events_2026_07 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+            CREATE TABLE audit_events_2026_08 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+            CREATE TABLE audit_events_2026_09 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+            CREATE TABLE audit_events_2026_10 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');
+            CREATE TABLE audit_events_2026_11 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
+            CREATE TABLE audit_events_2026_12 PARTITION OF audit_events
+                FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
+            CREATE TABLE audit_events_2027_01 PARTITION OF audit_events
+                FOR VALUES FROM ('2027-01-01') TO ('2027-02-01');
+        </sql>
+        <!-- Grant INSERT on each partition table to audit_writer -->
+        <sql splitStatements="true">
+            GRANT INSERT ON audit_events_2026_01 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_02 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_03 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_04 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_05 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_06 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_07 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_08 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_09 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_10 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_11 TO audit_writer;
+            GRANT INSERT ON audit_events_2026_12 TO audit_writer;
+            GRANT INSERT ON audit_events_2027_01 TO audit_writer;
+        </sql>
+        <rollback>
+            <sql splitStatements="true">
+                DROP TABLE IF EXISTS audit_events_2026_01;
+                DROP TABLE IF EXISTS audit_events_2026_02;
+                DROP TABLE IF EXISTS audit_events_2026_03;
+                DROP TABLE IF EXISTS audit_events_2026_04;
+                DROP TABLE IF EXISTS audit_events_2026_05;
+                DROP TABLE IF EXISTS audit_events_2026_06;
+                DROP TABLE IF EXISTS audit_events_2026_07;
+                DROP TABLE IF EXISTS audit_events_2026_08;
+                DROP TABLE IF EXISTS audit_events_2026_09;
+                DROP TABLE IF EXISTS audit_events_2026_10;
+                DROP TABLE IF EXISTS audit_events_2026_11;
+                DROP TABLE IF EXISTS audit_events_2026_12;
+                DROP TABLE IF EXISTS audit_events_2027_01;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Consumer dedup table (NON-RLS) — per Doc 8 §8.9 pattern -->
+    <changeSet id="audit-1.0.0-020-create-processed-events" author="restaurantos-agent">
+        <createTable tableName="processed_events">
+            <column name="consumer" type="TEXT"><constraints nullable="false"/></column>
+            <column name="event_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="source_type" type="TEXT"/>
+            <column name="source_id" type="UUID"/>
+            <column name="processed_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="processed_events" columnNames="consumer, event_id"
+                       constraintName="pk_audit_processed_events"/>
+        <sql>GRANT SELECT, INSERT ON processed_events TO audit_writer;</sql>
+        <rollback>
+            <dropTable tableName="processed_events"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

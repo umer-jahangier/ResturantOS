@@ -36,6 +36,8 @@
         <module>gateway</module>
         <module>services/user-service</module>
         <module>services/platform-admin-service</module>
+        <module>services/notification-service</module>
+        <module>services/audit-service</module>
     </modules>
 
     <dependencyManagement>

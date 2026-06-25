@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Helper function used by AuditArchivalService to create monthly partitions dynamically.
+         Called at startup and by the monthly scheduled job to provision future partitions. -->
+    <changeSet id="audit-1.0.0-012-partition-helper-function" author="restaurantos-agent">
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION create_audit_partition(month_start DATE) RETURNS VOID AS $$
+            DECLARE
+                partition_name TEXT;
+                month_end      DATE;
+                grant_sql      TEXT;
+            BEGIN
+                partition_name := 'audit_events_' || to_char(month_start, 'YYYY_MM');
+                month_end      := month_start + INTERVAL '1 month';
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE c.relname = partition_name
+                      AND n.nspname = 'public'
+                ) THEN
+                    EXECUTE format(
+                        'CREATE TABLE %I PARTITION OF audit_events FOR VALUES FROM (%L) TO (%L)',
+                        partition_name, month_start, month_end
+                    );
+                    grant_sql := format('GRANT INSERT ON %I TO audit_writer', partition_name);
+                    EXECUTE grant_sql;
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>
+            <sql>DROP FUNCTION IF EXISTS create_audit_partition(DATE);</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
