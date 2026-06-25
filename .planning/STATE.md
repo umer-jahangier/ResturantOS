@@ -10,19 +10,20 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 2 of 3 complete
-Status: In progress — 04-02 executed (login + conditional TOTP, Permission/Feature guards, Sidebar, BranchSwitcher)
-Last activity: 2026-06-26 — Completed 04-02-PLAN.md (3/3 tasks; tsc/lint/vitest+coverage all green)
+Plan: 3 of 3 complete
+Status: Phase complete — 04-03 executed (quality-gated CI/CD: lint→test→build(signed)→schema-sync + Playwright scaffold)
+Last activity: 2026-06-26 — Completed 04-03-PLAN.md (2/2 tasks; ci.yml YAML valid, app+e2e tsc/lint/prettier green)
 
-Progress: [██████████] 36% (12/33 plans)
+Progress: [████████████] 39% (13/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 13
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
+- Phase 4: 3/3 plans executed; verification pending
 
 **By Phase:**
 
@@ -31,11 +32,11 @@ Progress: [██████████] 36% (12/33 plans)
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
-| 04-frontend-shell-ci-cd | 2/3 | — in progress |
+| 04-frontend-shell-ci-cd | 3/3 | — phase complete |
 
 **Recent Trend:**
-- Last 5 plans: 03-03, 03-02, 04-01, 04-02
-- Trend: Frontend wave 2 landed — login/conditional-TOTP, permission/feature guards, Sidebar, BranchSwitcher (JWT reissue + cache clear); 04-03 (CI/CD + E2E) remains
+- Last 5 plans: 03-02, 04-01, 04-02, 04-03
+- Trend: Phase 4 complete — frontend shell + login/guards/BranchSwitcher, then quality-gated CI/CD (lint→test→build(cosign multi-arch)→schema-sync, data-driven coverage gates, Playwright scaffold). Sprint-1 "GO" CI set delivered.
 
 *Updated after each plan completion*
 
@@ -75,13 +76,20 @@ Recent decisions affecting current work:
 - [04-02-C]: Components branch on `ApiError` guard methods via TanStack-mutation type inference — never import `@/lib/api-client` (FE-08 boundary preserved).
 - [04-02-D]: Used a hand-rolled `createZodResolver` (frontend/lib/forms/zod-resolver.ts) instead of `@hookform/resolvers` (package.json owned by 04-03). Optional to swap later.
 - [04-02-E]: BranchSwitcher available-branches are a Phase-4 static stub (ids match MSW); live list is a Phase-3 contract (e.g. `/api/v1/branches`).
+- [04-03-A]: CI coverage gates are data-driven from `.github/workflows/coverage-gates.json` (finance/inventory ≥75 forward-declared, others + frontend ≥60, OPA ==100) — later phases raise gates without editing the workflow.
+- [04-03-B]: D5 — `openapi-to-zod-check` verified ABSENT on npm (404); schema-sync ships Zod-schema `tsc --noEmit` + a documented OpenAPI↔Zod placeholder (backend SpringDoc OpenAPI is Phase-3+).
+- [04-03-C]: D6 — Playwright scaffold + ONE `/app/dashboard`→`/login` smoke only; full ~50-journey staging suite is cross-phase. promote-to-prod is a deliberate manual `environment: production` gate (not a pipeline failure).
+- [04-03-D]: cosign keyless OIDC (`id-token: write`) signs multi-arch (amd64+arm64) GHCR images over a DRY 8-image matrix; PRs build-only (no push/sign).
+- [04-03-E]: Java checkstyle/spotbugs/pmd NOT wired in parent POM — CI lint runs a clean multi-module compile; wiring the dedicated goals (and data-driven JaCoCo check) is deferred tech debt.
 
 ### Pending Todos
 
-- Execute Phase 4 remaining plan: 04-03 (CI/CD + E2E)
 - Confirm feature-flags endpoint path/shape `/api/v1/feature-flags` (04-01 D4 / 04-02-A) against live Phase-3 contract
 - Confirm available-branches source/endpoint (e.g. `/api/v1/branches`) to replace the BranchSwitcher static stub (04-02-E)
-- Consider adding `@hookform/resolvers` in 04-03 to replace the hand-rolled resolver (04-02-D)
+- Wire Java static-analysis plugins (checkstyle/spotbugs/pmd) into the parent POM + make JaCoCo `check` data-driven from coverage-gates.json (04-03-E)
+- Implement the real OpenAPI↔Zod drift check once backend SpringDoc OpenAPI exists (04-03-B / D5b)
+- Run the CI pipeline on a live GitHub runner (validated locally by YAML parse + greps; actionlint/yamllint unavailable on dev host)
+- Consider adding `@hookform/resolvers` to replace the hand-rolled resolver (04-02-D, optional)
 - Update FE-03 wording (`middleware.ts` → `proxy.ts`) and reconcile spec §7.4 error catalogue with live auth-service codes
 - Resolve Phase 1 SC5 gap (open from Phase 1 verification)
 
@@ -93,6 +101,6 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-26
-Stopped at: Completed 04-02-PLAN.md — login + conditional TOTP, Permission/Feature guards, Sidebar, BranchSwitcher (JWT reissue + cache clear); tsc/lint/vitest+coverage green.
-Next: `/gsd-plan-phase 4` for 04-03 (CI/CD + E2E)
+Stopped at: Completed 04-03-PLAN.md — quality-gated CI/CD (lint→test→build(cosign multi-arch)→schema-sync, data-driven coverage gates, OPA 100%) + Playwright scaffold (isolated e2e tsconfig + /app/dashboard→/login smoke). Phase 4 complete (3/3).
+Next: `/gsd-verify-phase 4` (or `/gsd-plan-phase 5` to begin the next phase)
 Resume file: None
