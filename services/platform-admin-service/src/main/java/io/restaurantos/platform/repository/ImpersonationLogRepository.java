@@ -8,6 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ImpersonationLogRepository extends JpaRepository<ImpersonationLogEntity, Long> {
+public interface ImpersonationLogRepository extends JpaRepository<ImpersonationLogEntity, UUID> {
     List<ImpersonationLogEntity> findByTenantIdOrderByStartedAtDesc(UUID tenantId);
 }

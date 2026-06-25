@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface TenantFeatureRepository extends JpaRepository<TenantFeatureEntity, TenantFeatureEntity.TenantFeatureKey> {
     List<TenantFeatureEntity> findByTenantId(UUID tenantId);
     Optional<TenantFeatureEntity> findByTenantIdAndFeatureCode(UUID tenantId, String featureCode);
+    void deleteAllByTenantId(UUID tenantId);
 }

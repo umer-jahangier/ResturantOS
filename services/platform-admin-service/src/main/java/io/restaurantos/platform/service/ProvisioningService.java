@@ -1,0 +1,296 @@
+package io.restaurantos.platform.service;
+
+import io.restaurantos.platform.client.AuthInternalClient;
+import io.restaurantos.platform.client.FinanceInternalClient;
+import io.restaurantos.platform.client.UserInternalClient;
+import io.restaurantos.platform.config.TierFeatureDefaults;
+import io.restaurantos.platform.entity.TenantEntity;
+import io.restaurantos.platform.entity.TenantEntity.TenantStatus;
+import io.restaurantos.platform.entity.TenantEntity.TierType;
+import io.restaurantos.platform.entity.TenantFeatureEntity;
+import io.restaurantos.platform.repository.TenantFeatureRepository;
+import io.restaurantos.platform.repository.TenantRepository;
+import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.idempotency.IdempotencyService;
+import io.restaurantos.shared.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
+/**
+ * Sequential provisioning saga for creating a new tenant (PLATFORM-01 / SC1).
+ * Steps:
+ *   1. Persist PENDING_SETUP tenant record
+ *   2. Seed per-tier feature flags
+ *   3. Create default branch via user-service /internal/users/branches
+ *   4. Provision admin user via auth-service /internal/auth/tenants/{id}/provision-admin
+ *   5. Seed Chart of Accounts via finance-service (optional, guarded by seed-coa.enabled)
+ *   6. Mark ACTIVE + publish TENANT_PROVISIONED event
+ * On any step failure: mark PROVISIONING_FAILED and attempt compensation.
+ */
+@Service
+public class ProvisioningService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProvisioningService.class);
+
+    private static final String TENANT_PROVISIONED_EVENT  = "TENANT_PROVISIONED";
+    private static final String EXCHANGE                  = "platform.events";
+    private static final String ROUTING_KEY               = "tenant.provisioned";
+
+    private final TenantRepository tenantRepository;
+    private final TenantFeatureRepository featureRepository;
+    private final TierFeatureDefaults tierFeatureDefaults;
+    private final AuthInternalClient authClient;
+    private final UserInternalClient userClient;
+    private final FinanceInternalClient financeClient;
+    private final EventPublisher eventPublisher;
+    private final IdempotencyService idempotencyService;
+    private final TenantContext tenantContext;
+    private final StringRedisTemplate redis;
+
+    @Value("${provisioning.seed-coa.enabled:true}")
+    private boolean seedCoaEnabled;
+
+    public ProvisioningService(
+            TenantRepository tenantRepository,
+            TenantFeatureRepository featureRepository,
+            TierFeatureDefaults tierFeatureDefaults,
+            AuthInternalClient authClient,
+            UserInternalClient userClient,
+            FinanceInternalClient financeClient,
+            EventPublisher eventPublisher,
+            IdempotencyService idempotencyService,
+            TenantContext tenantContext,
+            StringRedisTemplate redis) {
+        this.tenantRepository = tenantRepository;
+        this.featureRepository = featureRepository;
+        this.tierFeatureDefaults = tierFeatureDefaults;
+        this.authClient = authClient;
+        this.userClient = userClient;
+        this.financeClient = financeClient;
+        this.eventPublisher = eventPublisher;
+        this.idempotencyService = idempotencyService;
+        this.tenantContext = tenantContext;
+        this.redis = redis;
+    }
+
+    /**
+     * Execute the provisioning saga. Idempotent — repeated calls with the same
+     * idempotency key are no-ops; the stored result is returned.
+     */
+    @Transactional
+    public ProvisionResult provision(String idempotencyKey, String brandName, String adminEmail, String tier) {
+        // Idempotency guard
+        String hash = hash(brandName + adminEmail + tier);
+        var existing = idempotencyService.getCompletedResponse(idempotencyKey);
+        if (existing.isPresent()) {
+            return ProvisionResult.fromJson(existing.get());
+        }
+        if (!idempotencyService.checkAndLock(idempotencyKey, hash, 3600)) {
+            throw new IllegalStateException("Idempotency key in-flight: " + idempotencyKey);
+        }
+
+        // Step 1: persist PENDING_SETUP tenant
+        TenantEntity tenant = new TenantEntity();
+        tenant.setId(UUID.randomUUID());
+        tenant.setSlug(slugify(brandName));
+        tenant.setBrandName(brandName);
+        tenant.setStatus(TenantStatus.PENDING_SETUP);
+        tenant.setTier(TierType.valueOf(tier.toUpperCase()));
+        applyTierLimits(tenant);
+        tenantRepository.save(tenant);
+
+        UUID tenantId = tenant.getId();
+        List<CompensationAction> compensation = new ArrayList<>();
+
+        try {
+            // Step 2: seed feature flags
+            Map<String, Boolean> defaults = tierFeatureDefaults.defaultsFor(tier.toUpperCase());
+            List<TenantFeatureEntity> features = new ArrayList<>();
+            for (Map.Entry<String, Boolean> entry : defaults.entrySet()) {
+                TenantFeatureEntity f = new TenantFeatureEntity();
+                f.setTenantId(tenantId);
+                f.setFeatureCode(entry.getKey());
+                f.setEnabled(entry.getValue());
+                features.add(f);
+            }
+            featureRepository.saveAll(features);
+            compensation.add(() -> featureRepository.deleteAllByTenantId(tenantId));
+
+            // Step 3: create default branch
+            var branchResult = userClient.createBranch(
+                Map.of("name", brandName + " HQ", "addressLine1", "TBD", "tenantId", tenantId.toString()));
+            UUID branchId = extractBranchId(branchResult);
+            compensation.add(() -> log.warn("Compensation: branch {} created but saga failed — manual cleanup needed", branchId));
+
+            // Step 4: provision admin user
+            var adminResult = authClient.provisionAdmin(tenantId, Map.of("email", adminEmail));
+            String tempPassword = extractTempPassword(adminResult);
+            compensation.add(() -> log.warn("Compensation: admin user created for tenant {} — manual cleanup needed", tenantId));
+
+            // Step 5: seed Chart of Accounts (optional — skipped when finance-service not yet deployed)
+            if (seedCoaEnabled) {
+                try {
+                    financeClient.seedCoa(tenantId);
+                } catch (Exception ex) {
+                    log.warn("[saga] CoA seeding failed for tenant {} — non-fatal, continuing: {}", tenantId, ex.getMessage());
+                }
+            }
+
+            // Step 6: mark ACTIVE + publish outbox event
+            tenant.setStatus(TenantStatus.ACTIVE);
+            tenantRepository.save(tenant);
+
+            // DomainEventPublisher requires TenantContext; set it to the new tenant for outbox insert
+            tenantContext.set(tenantId, null, null, null);
+            try {
+                eventPublisher.publish(EXCHANGE, ROUTING_KEY, TENANT_PROVISIONED_EVENT, branchId,
+                    Map.of("tenantId", tenantId.toString(), "adminEmail", adminEmail, "tier", tier, "slug", tenant.getSlug()));
+            } finally {
+                tenantContext.clear();
+            }
+
+            var result = new ProvisionResult(tenantId, tenant.getSlug(), tempPassword);
+            idempotencyService.markComplete(idempotencyKey, result.toJson());
+            return result;
+
+        } catch (Exception ex) {
+            log.error("[saga] Provisioning failed for tenant {}: {}", tenantId, ex.getMessage(), ex);
+            tenant.setStatus(TenantStatus.PROVISIONING_FAILED);
+            tenantRepository.save(tenant);
+            // Run compensation actions in reverse
+            for (int i = compensation.size() - 1; i >= 0; i--) {
+                try {
+                    compensation.get(i).run();
+                } catch (Exception ce) {
+                    log.warn("[saga] Compensation action failed: {}", ce.getMessage());
+                }
+            }
+            throw new ProvisioningException("Provisioning saga failed for " + brandName + ": " + ex.getMessage(), ex);
+        }
+    }
+
+    // --- Retry: re-run a PROVISIONING_FAILED tenant ---
+
+    @Transactional
+    public ProvisionResult retry(UUID tenantId) {
+        TenantEntity tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+        if (tenant.getStatus() != TenantStatus.PROVISIONING_FAILED) {
+            throw new IllegalStateException("Tenant is not in PROVISIONING_FAILED state: " + tenant.getStatus());
+        }
+        // Reset to PENDING_SETUP and retry — delete existing feature records first to avoid duplicates
+        featureRepository.deleteAllByTenantId(tenantId);
+        tenant.setStatus(TenantStatus.PENDING_SETUP);
+        tenantRepository.save(tenant);
+        // Re-execute saga with a fresh idempotency key
+        return provision("retry:" + tenantId + ":" + System.currentTimeMillis(),
+            tenant.getBrandName(), "(retry)", tenant.getTier().name());
+    }
+
+    // --- Helpers ---
+
+    private void applyTierLimits(TenantEntity t) {
+        switch (t.getTier()) {
+            case STARTER    -> { t.setMaxBranches(1);  t.setMaxUsers(10); t.setStorageGb(5);   t.setNlqQuota(1000); }
+            case GROWTH     -> { t.setMaxBranches(5);  t.setMaxUsers(50); t.setStorageGb(20);  t.setNlqQuota(5000); }
+            case ENTERPRISE -> { t.setMaxBranches(50); t.setMaxUsers(500); t.setStorageGb(100); t.setNlqQuota(50000); }
+            case CUSTOM     -> { t.setMaxBranches(999); t.setMaxUsers(9999); t.setStorageGb(999); t.setNlqQuota(999999); }
+        }
+    }
+
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
+
+    private String slugify(String name) {
+        String normalized = Normalizer.normalize(name.toLowerCase(Locale.ROOT), Normalizer.Form.NFD);
+        String slug = NON_ALPHANUMERIC.matcher(normalized).replaceAll("-");
+        slug = slug.replaceAll("^-|-$", "");
+        // Ensure unique slug
+        String base = slug;
+        int attempt = 0;
+        while (tenantRepository.existsBySlug(slug)) {
+            slug = base + "-" + (++attempt);
+        }
+        return slug;
+    }
+
+    @SuppressWarnings("unchecked")
+    private UUID extractBranchId(Object result) {
+        if (result instanceof Map<?,?> map) {
+            Object data = map.get("data");
+            if (data instanceof Map<?,?> dataMap) {
+                Object id = dataMap.get("id");
+                if (id != null) return UUID.fromString(id.toString());
+            }
+        }
+        return UUID.randomUUID(); // fallback — saga continues, branch was created
+    }
+
+    @SuppressWarnings("unchecked")
+    private String extractTempPassword(Object result) {
+        if (result instanceof Map<?,?> map) {
+            Object data = map.get("data");
+            if (data instanceof Map<?,?> dataMap) {
+                Object pw = dataMap.get("tempPassword");
+                if (pw != null) return pw.toString();
+            }
+        }
+        return "(see admin)";
+    }
+
+    private String hash(String input) {
+        try {
+            var md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            var sb = new StringBuilder();
+            for (byte b : digest) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return String.valueOf(input.hashCode());
+        }
+    }
+
+    @FunctionalInterface
+    interface CompensationAction {
+        void run() throws Exception;
+    }
+
+    // --- Result types ---
+
+    public record ProvisionResult(UUID tenantId, String slug, String tempPassword) {
+        public String toJson() {
+            return "{\"tenantId\":\"" + tenantId + "\",\"slug\":\"" + slug + "\",\"tempPassword\":\"" + tempPassword + "\"}";
+        }
+        public static ProvisionResult fromJson(String json) {
+            // Minimal parse for idempotency cache hit — full Jackson not needed for this record
+            String tid = extract(json, "tenantId");
+            String sl  = extract(json, "slug");
+            String pw  = extract(json, "tempPassword");
+            return new ProvisionResult(UUID.fromString(tid), sl, pw);
+        }
+        private static String extract(String json, String key) {
+            int i = json.indexOf("\"" + key + "\":\"");
+            if (i < 0) return "";
+            int start = i + key.length() + 4;
+            int end = json.indexOf("\"", start);
+            return json.substring(start, end);
+        }
+    }
+
+    public static class ProvisioningException extends RuntimeException {
+        public ProvisioningException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+}

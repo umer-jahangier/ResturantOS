@@ -17,4 +17,5 @@ public interface UsageRecordRepository extends JpaRepository<UsageRecordEntity, 
     BigDecimal sumQtyByTenantIdAndResource(@Param("tenantId") UUID tenantId, @Param("resource") String resource);
 
     List<UsageRecordEntity> findByTenantId(UUID tenantId);
+    long countByTenantIdAndResource(UUID tenantId, String resource);
 }

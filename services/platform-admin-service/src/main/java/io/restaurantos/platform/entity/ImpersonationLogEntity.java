@@ -18,11 +18,11 @@ import java.util.UUID;
 public class ImpersonationLogEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "platform_user_id", nullable = false)
-    private UUID platformUserId;
+    private UUID adminUserId;
 
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
@@ -35,6 +35,9 @@ public class ImpersonationLogEntity {
 
     @Column(name = "ended_at")
     private Instant endedAt;
+
+    @Column(name = "expires_at")
+    private Instant expiresAt;
 
     @Column(length = 500)
     private String reason;
