@@ -1,23 +1,21 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { headers } from "next/headers";
+
+import { resolveTenantSlug } from "@/lib/auth/tenant-slug";
+import { LoginForm } from "@/components/auth/login-form";
 
 // URL: /login (the (auth) route group adds no path segment).
-// Placeholder server component — the real login form lands in plan 04-02.
-export default function LoginPage() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sign in to RestaurantOS</CardTitle>
-        <CardDescription>The login form arrives in plan 04-02.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">Authentication shell placeholder.</p>
-      </CardContent>
-    </Card>
-  );
+// Server component: resolves the tenant slug from the subdomain / `?tenant=`
+// (awaiting `searchParams` + `headers()` per Next 16) and hands it to the form.
+interface LoginPageProps {
+  searchParams: Promise<{ tenant?: string; reason?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const headerList = await headers();
+  const host = headerList.get("host");
+
+  const tenantSlug = resolveTenantSlug({ host, searchParam: params.tenant });
+
+  return <LoginForm tenantSlug={tenantSlug} reason={params.reason} />;
 }
