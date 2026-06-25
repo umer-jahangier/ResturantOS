@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 3 of 12 (API Gateway, Platform Admin & Tenant/User Management)
-Plan: 0 of 3 planned
-Status: Phase 2 verified passed (5/5 SC)
-Last activity: 2026-06-24 — Phase 2 execution complete; all 3 plans + verification passed
+Plan: 1 of 3 planned
+Status: 03-01 complete — gateway module + all tests (12/12) green
+Last activity: 2026-06-25 — 03-01-PLAN.md executed; gateway edge service fully operational
 
-Progress: [██████░░░░] 21% (7/33 plans)
+Progress: [███████░░░] 24% (8/33 plans)
 
 ## Performance Metrics
 
@@ -29,6 +29,7 @@ Progress: [██████░░░░] 21% (7/33 plans)
 |-------|-------|--------|
 | 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
 | 02-authentication-authorization | 3/3 | 5/5 passed |
+| 03-api-gateway-platform-admin-tenant-user-management | 1/3 | in-progress |
 
 **Recent Trend:**
 - Last 5 plans: 02-01, 02-02, 02-03 (+ Phase 1 gap still open)
@@ -49,6 +50,10 @@ Recent decisions affecting current work:
 - [02-02]: `EncryptionService` in shared-lib via opt-in `EncryptionAutoConfiguration` (not SharedAutoConfiguration).
 - [02-03]: `DefaultOpaClient` serializes OPA input with snake_case JSON; 2s connect+read timeout fail-closed.
 - [01-04]: Security beans shipped in shared-lib but wired in auth-service SecurityFilterChain.
+- [03-01-A]: `StripInternalHeaderFilter` as GlobalFilter (not YAML default-filter) — applies to ALL routes including programmatic.
+- [03-01-B]: `SharedAutoConfiguration` excluded from gateway — it requires EntityManager (JPA) + WebMvcConfigurer (servlet), incompatible with reactive gateway.
+- [03-01-C]: `WebClientConfig` provides `WebClient.Builder` bean — Spring Boot 4 removed auto-configuration of this bean.
+- [03-01-D]: `TESTCONTAINERS_RYUK_DISABLED=true` required for Colima Docker environment (no bind mount support for Ryuk).
 
 ### Pending Todos
 
@@ -61,7 +66,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-24
-Stopped at: Phase 2 complete — auth-service (11 ITs) + authorization-service (7 ITs) + opa test 100%.
-Next: `/gsd-discuss-phase 3` or `/gsd-plan-phase 3`
+Last session: 2026-06-25
+Stopped at: 03-01 complete — gateway module (12 tests green), SUMMARY.md created.
+Next: Execute 03-02-PLAN.md (platform-admin-service)
 Resume file: None
