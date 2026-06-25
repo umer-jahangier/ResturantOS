@@ -45,8 +45,8 @@ public class ProvisioningService {
     private static final Logger log = LoggerFactory.getLogger(ProvisioningService.class);
 
     private static final String TENANT_PROVISIONED_EVENT  = "TENANT_PROVISIONED";
-    private static final String EXCHANGE                  = "platform.events";
-    private static final String ROUTING_KEY               = "tenant.provisioned";
+    private static final String EXCHANGE                  = "platform.topic";
+    private static final String ROUTING_KEY               = "platform.tenant.provisioned";
 
     private final TenantRepository tenantRepository;
     private final TenantFeatureRepository featureRepository;
