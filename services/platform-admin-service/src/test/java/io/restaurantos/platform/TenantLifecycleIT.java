@@ -29,9 +29,9 @@ class TenantLifecycleIT extends BasePlatformIT {
         assertThat(suspended.getStatus()).isEqualTo(TenantStatus.SUSPENDED);
         assertThat(suspended.getSuspendedAt()).isNotNull();
 
-        // Redis status key deleted after suspend so gateway re-fetches
+        // Redis status key set immediately after suspend
         String redisKey = "tenant:status:" + tenantId;
-        assertThat(redis.opsForValue().get(redisKey)).isNull();
+        assertThat(redis.opsForValue().get(redisKey)).isEqualTo("SUSPENDED");
     }
 
     @Test
@@ -45,7 +45,7 @@ class TenantLifecycleIT extends BasePlatformIT {
         assertThat(reactivated.getSuspendedAt()).isNull();
 
         String redisKey = "tenant:status:" + tenantId;
-        assertThat(redis.opsForValue().get(redisKey)).isNull();
+        assertThat(redis.opsForValue().get(redisKey)).isEqualTo("ACTIVE");
     }
 
     @Test

@@ -34,6 +34,7 @@ Convention summary: all internal paths are prefixed `/internal/`; internal endpo
 | `GET /internal/auth/users?branchId={branchId}&roleCode={roleCode}` | query | `{ "users": [{ "userId", "email", "fullName" }] }` | Notification |
 | `POST /internal/auth/tenants/{tenantId}/provision-admin` | `{ "email": string }` | `{ "userId": UUID, "tempPassword": string }` | Platform Admin (FD-1) |
 | `POST /internal/auth/service-token` | `{ "service": string }` | `{ "token": string, "expiresIn": 300 }` | any service |
+| `POST /internal/auth/users/{userId}/impersonate` | `{ "impersonatedBy": UUID, "expiresInSeconds": 1800 }` | `{ "token": string, "expiresIn": 1800 }` | Platform Admin (PLATFORM-05) |
 
 > **§4.2 security note (03-03):** All `/internal/auth/**` endpoints require `X-Internal-Service: {restaurantos.internal.secret}` header, enforced by `InternalServiceFilter` (constant-time comparison). Branch-role write endpoints additionally require `X-Tenant-Id` for RLS scoping. `auth-service` is the **system of record** for `user_branch_roles`; no other service writes this table directly.
 
@@ -81,7 +82,7 @@ public interface AuthClient {
 | `POST /internal/finance/journal-entries` | `{ "branchId", "entryDate", "description", "sourceType", "sourceId", "lines": [{ "accountCode", "debitPaisa", "creditPaisa", "description" }] }` | `{ "jeId", "entryNo" }` | synchronous corrections |
 | `GET /internal/finance/periods/status?branchId=&date=` | query | `{ "periodId", "status": "OPEN\|LOCKED\|CLOSED", "fiscalYear", "periodNo" }` | POS, HR, Purchasing |
 
-### Platform Admin Service (`platform-admin-service`, `http://platform-admin-service:8080`)
+### Platform Admin Service (`platform-admin-service`, `http://platform-admin-service:8096`)
 
 | Method + Path | Request | Response | Called by |
 |---|---|---|---|

@@ -21,8 +21,8 @@ import java.util.UUID;
  *   ACTIVE/SUSPENDED → CANCELLED
  *   CANCELLED        → PURGED   (hard-delete on explicit request only)
  *
- * On suspend/cancel the tenant status key is also deleted from Redis so the gateway
- * picks up the new status immediately on the next request.
+ * On suspend/reactivate/cancel the tenant status key is written to Redis immediately
+ * ({@code tenant:status:{tenantId}}) so the gateway enforces the new status on the next request.
  */
 @Service
 public class TenantLifecycleService {
@@ -48,7 +48,7 @@ public class TenantLifecycleService {
         tenant.setStatus(TenantStatus.SUSPENDED);
         tenant.setSuspendedAt(Instant.now());
         tenantRepository.save(tenant);
-        invalidateStatusKey(tenantId);
+        updateStatusKey(tenantId, TenantStatus.SUSPENDED);
         featureFlagAdminService.invalidateAll(tenantId);
         log.info("[lifecycle] tenant={} → SUSPENDED reason={}", tenantId, reason);
         return tenant;
@@ -61,7 +61,7 @@ public class TenantLifecycleService {
         tenant.setStatus(TenantStatus.ACTIVE);
         tenant.setSuspendedAt(null);
         tenantRepository.save(tenant);
-        invalidateStatusKey(tenantId);
+        updateStatusKey(tenantId, TenantStatus.ACTIVE);
         log.info("[lifecycle] tenant={} → ACTIVE (reactivated)", tenantId);
         return tenant;
     }
@@ -76,7 +76,7 @@ public class TenantLifecycleService {
         tenant.setStatus(TenantStatus.CANCELLED);
         tenant.setCancelledAt(Instant.now());
         tenantRepository.save(tenant);
-        invalidateStatusKey(tenantId);
+        updateStatusKey(tenantId, TenantStatus.CANCELLED);
         featureFlagAdminService.invalidateAll(tenantId);
         log.info("[lifecycle] tenant={} → CANCELLED reason={}", tenantId, reason);
         return tenant;
@@ -88,7 +88,7 @@ public class TenantLifecycleService {
         requireStatus(tenant, TenantStatus.CANCELLED, "purge");
         tenant.setStatus(TenantStatus.PURGED);
         tenantRepository.save(tenant);
-        invalidateStatusKey(tenantId);
+        updateStatusKey(tenantId, TenantStatus.PURGED);
         log.info("[lifecycle] tenant={} → PURGED", tenantId);
     }
 
@@ -107,8 +107,8 @@ public class TenantLifecycleService {
         }
     }
 
-    /** Delete gateway tenant status key so next gateway lookup re-fetches from platform-admin. */
-    private void invalidateStatusKey(UUID tenantId) {
-        redis.delete("tenant:status:" + tenantId);
+    /** Write current status to gateway Redis key so suspension takes effect immediately at the edge. */
+    private void updateStatusKey(UUID tenantId, TenantStatus status) {
+        redis.opsForValue().set("tenant:status:" + tenantId, status.name());
     }
 }
