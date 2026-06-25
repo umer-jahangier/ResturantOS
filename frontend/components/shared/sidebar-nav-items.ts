@@ -1,0 +1,94 @@
+import {
+  BarChart3,
+  Boxes,
+  Building2,
+  Contact,
+  LayoutDashboard,
+  ShieldCheck,
+  ShoppingCart,
+  Truck,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
+
+// Typed nav config. An item shows only if its `permission` is held AND its
+// `feature` is enabled (composed by the Sidebar); an item with neither is always
+// shown. Tenant hrefs use the real `/app/*` prefix and platform-admin entries
+// use `/platform/*` (matches the 04-01 URL scheme + the proxy.ts matcher).
+// Concrete module pages land in later phases — these are links/placeholders.
+export interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  permission?: string;
+  feature?: string;
+}
+
+export const tenantNavItems: NavItem[] = [
+  { label: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
+  {
+    label: "POS",
+    href: "/app/pos",
+    icon: ShoppingCart,
+    permission: "order:create",
+    feature: "FEATURE_POS",
+  },
+  {
+    label: "Inventory",
+    href: "/app/inventory",
+    icon: Boxes,
+    permission: "inventory:read",
+    feature: "FEATURE_INVENTORY",
+  },
+  {
+    label: "Finance",
+    href: "/app/finance",
+    icon: Wallet,
+    permission: "finance:read",
+    feature: "FEATURE_FINANCE",
+  },
+  {
+    label: "Purchasing",
+    href: "/app/purchasing",
+    icon: Truck,
+    permission: "purchasing:read",
+    feature: "FEATURE_PURCHASING",
+  },
+  {
+    label: "HR",
+    href: "/app/hr",
+    icon: Users,
+    permission: "hr:read",
+    feature: "FEATURE_HR",
+  },
+  {
+    label: "CRM",
+    href: "/app/crm",
+    icon: Contact,
+    permission: "crm:read",
+    feature: "FEATURE_CRM",
+  },
+  {
+    label: "Reporting",
+    href: "/app/reporting",
+    icon: BarChart3,
+    permission: "reporting:read",
+    feature: "FEATURE_REPORTING",
+  },
+];
+
+export const platformNavItems: NavItem[] = [
+  {
+    label: "Tenants",
+    href: "/platform/tenants",
+    icon: Building2,
+    permission: "platform:tenant:read",
+  },
+  {
+    label: "Platform Admin",
+    href: "/platform/dashboard",
+    icon: ShieldCheck,
+    permission: "platform:admin",
+  },
+];
