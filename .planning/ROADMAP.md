@@ -65,19 +65,20 @@ Plans:
 ### Phase 3: API Gateway, Platform Admin & Tenant/User Management
 **Goal**: The platform edge is secured and operable — the gateway authenticates/route/rate-limits every request, the SuperAdmin can provision and operate tenants, and Tenant Admins can manage branches and per-branch roles that feed JWT issuance.
 **Depends on**: Phase 2
-**Requirements**: GW-01, GW-02, GW-03, GW-04, GW-05, GW-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, USER-01, USER-02, USER-03
+**Requirements**: GW-01, GW-02, GW-03, GW-04, GW-05, GW-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, PLATFORM-10, USER-01, USER-02, USER-03
 **Success Criteria** (what must be TRUE):
   1. A request with a missing/invalid JWT to any protected route returns 401 at the gateway, while `auth/login`, refresh, `/.well-known/*`, and health pass through; the gateway resolves the tenant (JWT claim or custom-domain Host) and propagates `X-Tenant-Id`.
   2. The gateway routes each public prefix to its upstream behind per-upstream circuit breakers, rate-limits (100/min/IP auth, 600/min/IP general) via Redis token bucket, returns 403 `FEATURE_DISABLED` with `X-Upgrade-CTA-URL` for disabled features, and 429 `QUOTA_EXCEEDED` for NLQ over quota; Nginx terminates TLS in front.
   3. A SuperAdmin provisions a tenant in under 60s — tier features seeded, Tenant Admin + HQ branch created, COA seeded, `TENANT_PROVISIONED` published — and can list/paginate tenants, suspend/reactivate/cancel, update feature flags (cache invalidated immediately), impersonate (JWT stamped `impersonated_by`, 30-min expiry, logged), and view telemetry.
   4. `platform_db` contains no `tenant_id` columns and only platform-admin-service can connect to it.
   5. A Tenant Admin CRUDs branches and assigns roles per branch, and the internal endpoints return branch details + computed user permissions used for JWT issuance.
+  6. A SuperAdmin can enable or disable any module (`FEATURE_*`) for any tenant independent of its tier — granting a module above the tenant's tier or revoking one — and the change persists on `tenant_features`, invalidates the Redis cache immediately, is audited, and is enforced at both the gateway and the `@RequiresFeature` aspect; the six primary modules + KDS default ON in all tiers.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: API gateway — routing, JWT validation, tenant resolution, rate limits, feature/quota enforcement, Nginx TLS
-- [ ] 03-02: Platform admin service — provisioning (FD-1), lifecycle, feature flags, impersonation, telemetry, `platform_db`
-- [ ] 03-03: User & branch service — branch CRUD, role assignment, internal permission endpoints
+- [ ] 03-01-PLAN.md (wave 1) — API gateway: routing, JWT validation, tenant resolution, rate limits, feature/quota enforcement, Nginx TLS (GW-01..06)
+- [ ] 03-03-PLAN.md (wave 2) — User & branch service: branch CRUD (RLS), per-branch role assignment delegated to auth-service, internal branch/permission endpoints feeding JWT issuance (USER-01..03)
+- [ ] 03-02-PLAN.md (wave 3) — Platform admin service: provisioning saga (FD-1), lifecycle, feature flags + tier-independent module enable/disable with immediate dual-key cache invalidation (PLATFORM-10), impersonation, telemetry, non-RLS `platform_db` (PLATFORM-01..07)
 
 ### Phase 4: Frontend Shell & CI/CD
 **Goal**: Deliver the Next.js shell with its enforced four-layer API abstraction and route protection, and a fully automated quality-gated pipeline — completing the verified Sprint-1 "GO" set before any tenant business module is built.
@@ -162,46 +163,53 @@ Plans:
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 **Goal**: Close the core-value loop — when an order closes, a balanced revenue + COGS journal entry is auto-posted idempotently, and customer loyalty reacts to the same event.
 **Depends on**: Phase 6, Phase 7, Phase 8
-**Requirements**: FIN-03, CRM-01, CRM-02
+**Requirements**: FIN-03, CRM-01, CRM-02, CRM-03, CRM-04, CRM-05
 **Success Criteria** (what must be TRUE):
   1. On `ORDER_CLOSED` the finance consumer auto-posts a balanced revenue + COGS journal entry, and refund/wastage/stock-count/transfer events each post their own balanced entries.
   2. Re-delivering the same source event produces no duplicate journal entry (idempotent via `posted_source_events`).
   3. Customers can be created and managed and are linked to orders via `customer_id`.
   4. Loyalty points accrue on `ORDER_CLOSED` and are debited back on refund.
+  5. Loyalty tiers (Bronze/Silver/Gold) upgrade on configurable thresholds; a time-limited, item/tier-specific promotion applies at POS; and post-order customer feedback is captured and reportable.
 **Plans**: 2 plans
 
 Plans:
 - [ ] 09-01: Auto-posting engine — order close (revenue+COGS), refund, wastage, stock count, transfer; idempotent
-- [ ] 09-02: CRM — customers linked by `customer_id`, loyalty accrual/debit on close/refund
+- [ ] 09-02: CRM — customers linked by `customer_id`, loyalty accrual/debit on close/refund, loyalty tiers, promotion engine, feedback collection
 
 ### Phase 10: Purchasing & Accounts Payable
 **Goal**: Procurement runs end-to-end with financial integrity — vendors, approval-gated POs, GRN that posts GR/IR, 3-way matched vendor invoices feeding AP, and OPA-limited expense approvals.
 **Depends on**: Phase 6, Phase 8
-**Requirements**: PUR-01, PUR-02, PUR-03, PUR-04, FIN-05
+**Requirements**: PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, PUR-06, FIN-05
 **Success Criteria** (what must be TRUE):
   1. Managers manage vendors with the bank account stored field-encrypted.
   2. A PO moves DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval enforced by OPA.
   3. A GRN receipt posts GR/IR, and a vendor-invoice 3-way match creates AP; payment posts and publishes `AP_PAYMENT_PROCESSED`.
   4. AP/AR balances are tracked, and expense approvals respect OPA approval limits.
+  5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
 **Plans**: 2 plans
 
 Plans:
 - [ ] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval
-- [ ] 10-02: GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP/AR + expense approval (FIN-05)
+- [ ] 10-02: GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP/AR + expense approval (FIN-05), vendor scorecard + spend analytics
 
 ### Phase 11: HR & Payroll
 **Goal**: Run compliant Pakistan payroll — employees with encrypted PII, config-driven income-tax/EOBI computation, and approved payroll that posts a balanced journal entry.
 **Depends on**: Phase 6
-**Requirements**: HR-01, HR-02, HR-03
+**Requirements**: HR-01, HR-02, HR-03, HR-04, HR-05, HR-06, HR-07, HR-08
 **Success Criteria** (what must be TRUE):
   1. Employees are managed with `cnic` and `bank_account_no` stored field-encrypted.
   2. A payroll run computes Pakistan income-tax slabs + EOBI from the config-driven annual `tax_config`.
   3. Payroll approval/payment posts a balanced JE and publishes `PAYROLL_RUN_PAID`, which Finance consumes.
-**Plans**: 2 plans
+  4. Managers schedule role-based shifts on a drag-and-drop calendar per branch; staff clock in/out and request leave through an approval workflow, and late-arrival deductions feed the payroll run.
+  5. Labour cost as a % of revenue is reported by shift and by branch.
+  6. A registered biometric device — a network terminal pushing ADMS/iClock over HTTPS or a USB reader via the local bridge agent — ingests a punch through the device-authenticated path (no user JWT; tenant/branch resolved from `attendance_devices`); the punch is idempotent on replay, survives device offline buffering, stores device + server timestamps, quarantines unmapped users, persists to `attendance_punches`, publishes `ATTENDANCE_PUNCHED`, and feeds attendance/payroll. Matching is at the edge; no raw biometrics are stored centrally.
+**Plans**: 4 plans
 
 Plans:
 - [ ] 11-01: Employees with field-encrypted `cnic`/`bank_account_no`
 - [ ] 11-02: Payroll run (tax slabs + EOBI from `tax_config`), approval/payment, `PAYROLL_RUN_PAID` + JE
+- [ ] 11-03: Shift scheduling (drag-drop), time & attendance (clock-in/out), leave/absence workflow, labour-cost % vs revenue
+- [ ] 11-04: Biometric attendance — device registry, ADMS/iClock push adapter (Mode A) + USB bridge-agent ingest contract (Mode B), device-authenticated ingest, idempotent/offline-safe punches, quarantine, `ATTENDANCE_PUNCHED` (HR-07/08)
 
 ### Phase 12: Reporting, Dashboards & NLQ
 **Goal**: Turn the system's events into insight safely — ClickHouse-backed reports (including FBR), a realtime dashboard, and a natural-language query path that is read-only and tenant/branch-safe by construction.
@@ -238,8 +246,10 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 8. Inventory & Recipe Management | 0/3 | Not started | - |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 0/2 | Not started | - |
-| 11. HR & Payroll | 0/2 | Not started | - |
+| 11. HR & Payroll | 0/4 | Not started | - |
 | 12. Reporting, Dashboards & NLQ | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-06-22 — comprehensive depth, 12 phases, 93/93 v1 requirements mapped*
+*Updated 2026-06-25 — all six business modules made core/mandatory; +9 requirements (PLATFORM-10 SuperAdmin per-tenant module control; HR-04/05/06; PUR-05/06; CRM-03/04/05); 102/102 v1 requirements mapped*
+*Updated 2026-06-25 — biometric attendance device integration: +2 requirements (HR-07/08), GW-02 extended for device-authenticated ingest, Phase 11 plan 11-04 added; 104/104 v1 requirements mapped*
