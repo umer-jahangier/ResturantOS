@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
-Plan: 6 of 8 (gap-closure wave 2 complete)
-Status: In progress (gap-closure DS-01..07 underway; DS-04 closed)
-Last activity: 2026-06-26 — Completed 04-06-PLAN.md (6 UI primitives: CommandPalette, AnimatedNumber, StatusBadge, MoneyDisplay, DataTable, EmptyState)
+Plan: 8 of 8 (gap-closure wave 3 complete — DS-06 closed)
+Status: In progress (gap-closure DS-01..07; DS-06 now closed; 04-07 pending)
+Last activity: 2026-06-26 — Completed 04-08-PLAN.md (OKLCH palette generator, /api/theme route, Settings → Appearance page + form)
 
-Progress: [████████████████░] 49% (16/33 plans)
+Progress: [█████████████████░] 52% (17/33 plans)
 
 ## Performance Metrics
 
@@ -92,6 +92,9 @@ Recent decisions affecting current work:
 - [04-06-A]: `BigInt(100)` function call (not literal `100n`) for ES2017 tsconfig compat in MoneyDisplay.
 - [04-06-B]: React Compiler warning on `useReactTable` is expected — TanStack Table v8 returns non-memoizable functions; warning only, not error.
 - [04-06-C]: `CommandPalette` wraps cmdk inside existing shadcn `Dialog` for consistent overlay/animation/keyboard-trap. to avoid React context for a low-frequency aria-live side-effect. Stack reconciliation = ADAPT (user-approved): keep Next 16 + Tailwind 4 CSS-first + OKLCH + flat `frontend/{app,components,lib}` + enforced four-layer boundary; the doc's Next 14 / Tailwind 3.4 / `tailwind.config.ts` / HSL / `src/` / `geist`-package lines are superseded (see doc §0). Rollout = save-as-reference + Phase-4 shell gap-closure (DS-01..07); module UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into phases 5–12.
+- [04-08-A]: Palette-generator test placed at `__tests__/lib/theme/` (vitest include pattern requires `__tests__/**`; `lib/theme/__tests__/` would not be discovered).
+- [04-08-B]: AppearanceForm hex input fully-controlled (no useEffect+setState) — applyColor() atomically updates brandColor, hexInput, and palette; complies with react-hooks/set-state-in-effect rule.
+- [04-08-C]: AppearancePage is RSC; onSave handled entirely within AppearanceForm (RSC cannot pass function props to client components); localStorage stub with Phase 7 backend contract: PUT /api/v1/tenants/:id/theme.
 
 ### Pending Todos
 
@@ -115,5 +118,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-26
-Stopped at: Completed 04-06-PLAN.md — 6 DS-04 UI primitives (CommandPalette/cmdk, AnimatedNumber/react-countup, StatusBadge, MoneyDisplay/BigInt, DataTable/TanStack, EmptyState); tsc/lint/build green.
+Stopped at: Completed 04-08-PLAN.md — OKLCH palette generator + /api/theme CSS endpoint + Settings → Appearance UI (8 presets, hex input, live preview, WCAG guard, localStorage stub); DS-06 closed; tsc/lint/build/tests green.
 Resume file: None
