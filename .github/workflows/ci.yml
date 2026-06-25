@@ -169,3 +169,167 @@ jobs:
               print("OPA policy coverage gate FAILED — must be exactly 100%.")
               sys.exit(1)
           PY
+
+  # ---------------------------------------------------------------------------
+  # schema-sync: typecheck the Zod schemas + best-effort OpenAPI<->Zod drift (D5).
+  #   (a) tsc --noEmit confirms frontend/lib/api-client/schemas/** typecheck.
+  #   (b) A maintained OpenAPI<->Zod diff tool was verified absent on npm at
+  #       execution time (`openapi-to-zod-check` -> 404), so we ship a documented
+  #       placeholder; the backend SpringDoc OpenAPI is a Phase-3+ dependency.
+  # ---------------------------------------------------------------------------
+  schema-sync:
+    name: Schema sync (Zod typecheck + OpenAPI drift placeholder)
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Set up Node ${{ env.NODE_VERSION }} + pnpm store cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: Typecheck Zod schemas (frontend/lib/api-client/schemas/**)
+        run: pnpm --dir frontend exec tsc --noEmit -p tsconfig.json
+
+      - name: OpenAPI<->Zod drift check (D5b placeholder)
+        run: |
+          echo "schema-sync: OpenAPI<->Zod cross-repo diff deferred — backend SpringDoc OpenAPI is a Phase-3+ dependency."
+          echo "(No maintained OpenAPI<->Zod diff tool verified on npm at execution time: openapi-to-zod-check -> 404.)"
+
+  # ---------------------------------------------------------------------------
+  # build: cosign-signed multi-arch (amd64+arm64) GHCR images (SC4, Pitfall 10).
+  #   On pull_request: build WITHOUT push/sign (validate Dockerfiles only — keeps the
+  #   core path green without registry creds on forks). On push/tags: push + sign.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build & sign image (${{ matrix.image.name }})
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # cosign keyless OIDC
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - { name: eureka-server, context: ".", dockerfile: eureka-server/Dockerfile }
+          - { name: config-server, context: ".", dockerfile: config-server/Dockerfile }
+          - { name: auth-service, context: ".", dockerfile: services/auth-service/Dockerfile }
+          - { name: authorization-service, context: ".", dockerfile: services/authorization-service/Dockerfile }
+          - { name: gateway, context: ".", dockerfile: gateway/Dockerfile }
+          - { name: user-service, context: ".", dockerfile: services/user-service/Dockerfile }
+          - { name: platform-admin-service, context: ".", dockerfile: services/platform-admin-service/Dockerfile }
+          - { name: frontend, context: frontend, dockerfile: frontend/Dockerfile }
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/restaurantos-${{ matrix.image.name }}
+      # Push (and therefore sign) on everything except pull_request validation builds.
+      PUSH: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags ({sha}, {semver}, {branch}-latest)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,format=short
+            type=semver,pattern={{version}}
+            type=raw,value=${{ github.ref_name }}-latest,enable=${{ github.event_name == 'push' && github.ref_type == 'branch' }}
+
+      - name: Build (+ push on non-PR) multi-arch image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUSH }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Install cosign
+        if: env.PUSH == 'true'
+        uses: sigstore/cosign-installer@v3
+
+      # Keyless OIDC signing of the pushed digest (Pitfall 10).
+      - name: Sign image (cosign keyless OIDC)
+        if: env.PUSH == 'true'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+  # ---------------------------------------------------------------------------
+  # e2e: Playwright scaffold + ONE smoke journey (D6/W1). Non-blocking: the full
+  #   ~50-journey suite runs against STAGING and spans every later phase — it is
+  #   explicitly NOT a Phase-4 deliverable.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: E2E smoke (Playwright scaffold)
+    needs: [build]
+    runs-on: ubuntu-latest
+    continue-on-error: true # scaffold only; full staging suite is cross-phase
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Set up Node ${{ env.NODE_VERSION }} + pnpm store cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: Typecheck E2E sources (isolated e2e/tsconfig.json)
+        run: pnpm --dir frontend exec tsc --noEmit -p e2e/tsconfig.json
+
+      - name: Install Playwright browser (chromium)
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+
+      - name: Run Playwright smoke
+        run: pnpm --dir frontend run e2e
+
+  # ---------------------------------------------------------------------------
+  # deploy-prod: PLACEHOLDER — the promote-to-prod gate is a DELIBERATE manual
+  #   GitHub `environment: production` approval BY DESIGN (D6, spec D1.4). It is NOT
+  #   part of the automated core (lint -> test -> build -> schema-sync) and performs
+  #   NO real deploy here; the actual helm promotion lands in a later infra phase.
+  # ---------------------------------------------------------------------------
+  deploy-prod:
+    name: Promote to production (manual approval placeholder)
+    needs: [build, schema-sync]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production # GitHub manual approval gate (by design)
+    steps:
+      - name: Promotion placeholder
+        run: echo "Manual production promotion gate — real helm promote is a later-phase deliverable (D6)."
