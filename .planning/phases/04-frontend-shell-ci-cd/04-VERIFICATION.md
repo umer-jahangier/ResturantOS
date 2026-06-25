@@ -1,9 +1,35 @@
 ---
 phase: 04-frontend-shell-ci-cd
 verified: 2026-06-26T01:05:00Z
-status: human_needed
-score: 16/16 must-have truths verified in code (all 4 success criteria + FE-01..08 + INFRA-05 satisfied)
+status: gaps_found
+status_note: "ORIGINAL Phase-4 scope (FE-01..08, INFRA-05) PASSED 16/16 and is confirmed by live browser + container UAT — see verdict below. Reopened as gaps_found on 2026-06-26 ONLY to carry the newly-adopted UI/UX Design System retrofit (Docs/RestaurantOS_UI_UX_Design_System.md) as a Phase-4 design-system gap-closure for the shell. These are ADDITIVE design requirements, not failures of the original work."
+score: 16/16 original must-have truths verified in code; design-system gaps below are NEW scope
 re_verification: false
+gaps:
+  - id: DS-SHELL-01
+    summary: "Design tokens incomplete: globals.css lacks semantic --warning/--success/--info (+fg) and the design-system keyframes/utilities (skeleton-shimmer, count-up, slide-in-right, fade-in, scale-in, bounce-subtle). (Design System §3)"
+    severity: medium
+  - id: DS-SHELL-02
+    summary: "No Skeleton system: no components/ui/skeleton.tsx + per-view components/skeletons/*; data states are not skeleton-first (Rule 1, §5.1)."
+    severity: high
+  - id: DS-SHELL-03
+    summary: "No page transitions (Framer Motion <PageTransition>) and the micro-interaction catalogue (§9) is unimplemented; framer-motion not installed."
+    severity: medium
+  - id: DS-SHELL-04
+    summary: "No command palette (cmdk ⌘K, §5.4), AnimatedNumber (react-countup, §5.5), StatusBadge (§5.6), MoneyDisplay (Rule 2), DataTable (TanStack table), or EmptyState (§14) primitives."
+    severity: high
+  - id: DS-SHELL-05
+    summary: "Shell chrome minimal: current sidebar is a bare nav (no grouped sections/brand/branch header/collapse/tooltips/badges per §6.1) and there is no Top Bar (breadcrumb, notification bell, profile/theme menu, ⌘K) per §6.2; no mobile bottom-nav (§10)."
+    severity: high
+  - id: DS-SHELL-06
+    summary: "No tenant theming: static neutral primary only. Missing palette generator (OKLCH, colorjs.io), /api/theme route + layout injection, Settings→Appearance UI + 6 presets, logo upload (§4)."
+    severity: high
+  - id: DS-SHELL-07
+    summary: "Accessibility/dark-mode polish per §11/§12 not yet audited (focus-visible rings, 44px targets floor, aria-live status, tenant-colour WCAG-AA validator); next-themes wired but light/dark/system toggle UI absent."
+    severity: medium
+  - id: DS-MODULES
+    summary: "Role-specific + module UX (POS/KDS §7.1-7.2 → Phase 7; Owner dashboard §7.3; Finance §7.4 → Phase 6; Inventory §7.5 → Phase 8; NLQ/Reports §8.1-8.2 → Phase 12; HR wizard §8.3 → Phase 11; Vendor 3-way §8.4 → Phase 10). NOT Phase-4 gap-closure — folds into each module phase's planning."
+    severity: info
 gates_run_locally:
   tsc_noEmit: pass (0 errors)
   eslint: pass (0 errors/warnings)
@@ -120,4 +146,22 @@ These are documented, deliberate, non-blocking deferrals and do not fail the pha
 
 ---
 
+## Design-System Retrofit — Gap-Closure Scope (added 2026-06-26)
+
+> The original Phase-4 verdict above (16/16, UAT-confirmed) stands. This section is **additive**: a UI/UX Design System was adopted *after* Phase-4 execution (`Docs/RestaurantOS_UI_UX_Design_System.md`, authoritative; stack-adapted to Next 16 + Tailwind 4 CSS-first + OKLCH + flat dir + four-layer boundary). It introduces shell-level UX requirements the current shell does not yet meet. Per decision (user-approved), these are tracked as a **Phase-4 design-system gap-closure**; module-specific UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into the respective module phases (5–12), NOT here.
+
+**Shell gap-closure scope (plan via `/gsd-plan-phase 4 --gaps`):** see the `gaps:` block in the frontmatter (DS-SHELL-01..07). In short:
+1. **Tokens & motion (DS-SHELL-01):** add `--warning/--success/--info` + design-system keyframes/utilities to `globals.css` (OKLCH, Tailwind-4 `@theme`).
+2. **Skeleton system (DS-SHELL-02):** `Skeleton` primitive + per-view skeletons; make all data states skeleton-first (Rule 1).
+3. **Motion (DS-SHELL-03):** add `framer-motion`, `PageTransition` on every page, implement the §9 micro-interaction catalogue (respecting reduced-motion).
+4. **Core primitives (DS-SHELL-04):** Command palette (`cmdk`), `AnimatedNumber` (`react-countup`), `StatusBadge`, `MoneyDisplay`, `DataTable` (`@tanstack/react-table`), `EmptyState`.
+5. **Shell chrome (DS-SHELL-05):** upgrade Sidebar (grouped sections, brand, branch header, collapse + tooltips, badges) keeping the existing PermissionGuard/FeatureGuard composition; add Top Bar (breadcrumb, notifications, profile/theme, ⌘K) + mobile bottom-nav.
+6. **Tenant theming (DS-SHELL-06):** OKLCH palette generator (`colorjs.io`), `/api/theme` route + layout injection, Settings→Appearance UI + 6 presets + logo upload + WCAG-AA colour validator.
+7. **A11y/dark-mode polish (DS-SHELL-07):** focus-visible rings, 44px target floor, `aria-live` status, light/dark/system toggle UI.
+
+**Constraints for the gap-closure planner/executor:** keep Next 16 / Tailwind 4 CSS-first / flat `frontend/{app,components,lib}`; respect the four-layer API boundary (no api-client/axios in components — go through hooks→repositories); paisa never rendered raw (`MoneyDisplay`); brand elements use `primary`/`accent` tokens only; all gates (tsc zero-`any`, eslint boundary, vitest ≥60%) must stay green; `frontend/package.json` is the dependency owner.
+
+---
+
 _Verified: 2026-06-26 · Verifier: Claude (gsd-verifier)_
+_Design-system retrofit scope appended: 2026-06-26 (post-execution scope addition, user-approved)_

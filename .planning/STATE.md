@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 Phase: 4 of 12 (Frontend Shell & CI/CD)
 Plan: 3 of 3 complete
-Status: Phase complete & verified — 16/16 must-haves in code; live browser + production-container UAT passed
-Last activity: 2026-06-25 — Phase 4 verified: gsd-verifier 16/16 (all local gates green) + live browser UAT (proxy redirect, conditional TOTP, permission/feature-gated sidebar, BranchSwitcher JWT reissue + cache clear) + production Docker container smoke (build/run/standalone + proxy redirect)
+Status: Phase 4 original scope complete & verified (16/16, UAT). REOPENED with a UI/UX design-system gap-closure for the shell (DS-01..07) — plan via `/gsd-plan-phase 4 --gaps`
+Last activity: 2026-06-26 — Adopted UI/UX Design System (Docs/RestaurantOS_UI_UX_Design_System.md, authoritative; stack-adapted to Next 16 + Tailwind 4 CSS-first + OKLCH + flat dir + four-layer boundary). Logged DS-01..07 (Phase-4 gap) + design-system gaps in 04-VERIFICATION.md (status → gaps_found; original FE-01..08/INFRA-05 PASS preserved)
 
 Progress: [████████████] 39% (13/33 plans)
 
@@ -81,8 +81,12 @@ Recent decisions affecting current work:
 - [04-03-C]: D6 — Playwright scaffold + ONE `/app/dashboard`→`/login` smoke only; full ~50-journey staging suite is cross-phase. promote-to-prod is a deliberate manual `environment: production` gate (not a pipeline failure).
 - [04-03-D]: cosign keyless OIDC (`id-token: write`) signs multi-arch (amd64+arm64) GHCR images over a DRY 8-image matrix; PRs build-only (no push/sign).
 - [04-03-E]: Java checkstyle/spotbugs/pmd NOT wired in parent POM — CI lint runs a clean multi-module compile; wiring the dedicated goals (and data-driven JaCoCo check) is deferred tech debt.
+- [DS-2026-06-26]: Adopted `Docs/RestaurantOS_UI_UX_Design_System.md` as the AUTHORITATIVE frontend design system. Stack reconciliation = ADAPT (user-approved): keep Next 16 + Tailwind 4 CSS-first + OKLCH + flat `frontend/{app,components,lib}` + enforced four-layer boundary; the doc's Next 14 / Tailwind 3.4 / `tailwind.config.ts` / HSL / `src/` / `geist`-package lines are superseded (see doc §0). Rollout = save-as-reference + Phase-4 shell gap-closure (DS-01..07); module UX (POS/KDS/Finance/Inventory/NLQ/Reports/HR/Vendor) folds into phases 5–12.
 
 ### Pending Todos
+
+- **Plan + execute the Phase-4 design-system shell gap-closure (DS-01..07):** `/gsd-plan-phase 4 --gaps` → reads 04-VERIFICATION.md `gaps:` (DS-SHELL-01..07) → creates `gap_closure: true` plans (04-04+) → `/gsd-execute-phase 4 --gaps-only`. New deps land in `frontend/package.json`: framer-motion, recharts, react-countup, cmdk, date-fns, react-dropzone, @tanstack/react-virtual, @tanstack/react-table, colorjs.io.
+- When planning future module phases, READ `Docs/RestaurantOS_UI_UX_Design_System.md` first; pull the relevant §7–8 module UX into that phase's plan (POS/KDS→7, Finance→6, Inventory→8, Vendor→10, HR→11, NLQ/Reports/Owner-dashboard→12).
 
 - Confirm feature-flags endpoint path/shape `/api/v1/feature-flags` (04-01 D4 / 04-02-A) against live Phase-3 contract
 - Confirm available-branches source/endpoint (e.g. `/api/v1/branches`) to replace the BranchSwitcher static stub (04-02-E)
@@ -102,5 +106,5 @@ Recent decisions affecting current work:
 
 Last session: 2026-06-25
 Stopped at: Phase 4 executed (3/3) AND verified — gsd-verifier 16/16 must-haves in code (tsc/eslint/vitest 21-pass@68%/next build all green) + live browser UAT against MSW (SC1 proxy redirect, FE-04 conditional TOTP reveal+resubmit, FE-05/06 permission+feature-gated sidebar, FE-05 BranchSwitcher reissue+cache clear) + production Docker container smoke. Phase 4 complete.
-Next: `/gsd-plan-phase 5` to begin Cross-Cutting Services (Notifications, Audit, Files)
+Next: `/gsd-plan-phase 4 --gaps` to plan the design-system shell gap-closure (DS-01..07), THEN `/gsd-plan-phase 5` for Cross-Cutting Services. Read `Docs/RestaurantOS_UI_UX_Design_System.md` before any frontend planning.
 Resume file: None

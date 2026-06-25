@@ -96,6 +96,8 @@ Plans:
 - [x] 04-02-PLAN.md (wave 2) — Auth UX & guards: login + conditional TOTP, PermissionGuard/FeatureGuard, permission/feature-conditioned Sidebar, BranchSwitcher (JWT reissue + cache invalidation), MSW contract tests (FE-04/05/06/07)
 - [x] 04-03-PLAN.md (wave 2) — CI/CD pipeline: lint → test → build → schema-sync, data-driven coverage gates (finance/inventory ≥75%, others ≥60%, OPA 100%), cosign-signed multi-arch GHCR images, Playwright scaffold (INFRA-05)
 
+> **Design-system gap-closure (added 2026-06-26):** original Phase-4 scope (FE-01..08, INFRA-05) is complete + UAT-verified. A UI/UX Design System was adopted (`Docs/RestaurantOS_UI_UX_Design_System.md`, authoritative, stack-adapted) → shell-level DS-01..07 tracked as a Phase-4 gap-closure (see 04-VERIFICATION.md `gaps:`). Plan via `/gsd-plan-phase 4 --gaps`. Module UX (§7–8) folds into phases 5–12.
+
 ### Phase 5: Cross-Cutting Services (Notifications, Audit, Files)
 **Goal**: Bring the cross-cutting consumers online to act on the events the platform already publishes — templated notifications, an immutable audit trail, and tenant-scoped file storage.
 **Depends on**: Phase 1, Phase 3
