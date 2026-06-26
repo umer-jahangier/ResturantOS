@@ -2,6 +2,11 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
+  main:
+    # shared-lib transitively pulls in spring-boot-starter-web (servlet); force the
+    # reactive context so Spring Cloud Gateway (WebFlux) loads without the
+    # servlet/reactive security bean clash (conversionServicePostProcessor).
+    web-application-type: reactive
   application:
     name: gateway
 
@@ -21,6 +26,11 @@ spring:
           trusted-proxies: "127\\.0\\.0\\.1|::1|172\\..*"
 
           default-filters:
+            # The gateway sets CORS at the edge (GatewaySecurityConfig) AND each downstream
+            # service also sets CORS, so proxied responses carry two identical
+            # Access-Control-Allow-* headers. Browsers reject multiple values, so collapse
+            # duplicates to a single value here. RETAIN_UNIQUE keeps one entry per unique value.
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
             # X-Internal-Service stripping is handled by StripInternalHeaderFilter (GlobalFilter)
             # so it applies to ALL routes (YAML + programmatic). See §4.1 enforcement note.
             # General-tier rate limiter: ~600 req/min per IP

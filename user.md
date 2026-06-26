@@ -1,0 +1,1 @@
+cashier@demo.local / Cashier#2026 / demo

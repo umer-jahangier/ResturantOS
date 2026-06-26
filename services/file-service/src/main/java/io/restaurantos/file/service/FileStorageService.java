@@ -96,7 +96,7 @@ public class FileStorageService {
                     PutObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
-                            .stream(new java.io.ByteArrayInputStream(fileBytes), fileSize, -1)
+                            .stream(new java.io.ByteArrayInputStream(fileBytes), fileSize, -1L)
                             .contentType(contentType)
                             .build());
         } catch (Exception e) {

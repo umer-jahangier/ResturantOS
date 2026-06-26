@@ -1,0 +1,10 @@
+﻿{
+    "user-service":  22984,
+    "gateway":  20092,
+    "auth-service":  30432,
+    "file-service":  20680,
+    "audit-service":  30820,
+    "frontend":  27388,
+    "authorization-service":  25728,
+    "platform-admin-service":  12796
+}

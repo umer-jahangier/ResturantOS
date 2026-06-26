@@ -13,6 +13,17 @@ const PROTECTED = ["/platform", "/app"];
 
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
+
+  // Bare `/dashboard` is not a real route — the tenant dashboard lives at
+  // `/app/dashboard`. Without this, typing `/dashboard` (or a bookmark) 404s
+  // instead of being gated. Normalise it (and any subpath) to the canonical
+  // `/app/*` URL; the redirected request then re-enters this proxy and gets the
+  // standard has_session check below (→ /login when logged out).
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    const rest = pathname.slice("/dashboard".length);
+    return NextResponse.redirect(new URL(`/app/dashboard${rest}`, request.url));
+  }
+
   const isProtected = PROTECTED.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -26,5 +37,5 @@ export function proxy(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ["/platform/:path*", "/app/:path*"],
+  matcher: ["/platform/:path*", "/app/:path*", "/dashboard", "/dashboard/:path*"],
 };

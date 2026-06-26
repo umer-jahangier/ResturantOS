@@ -11,8 +11,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableScheduling
-@EntityScan(basePackages = "io.restaurantos.audit.entity")
-@EnableJpaRepositories(basePackages = "io.restaurantos.audit.repository")
+@EntityScan(basePackages = {"io.restaurantos.audit.entity", "io.restaurantos.shared"})
+@EnableJpaRepositories(basePackages = {"io.restaurantos.audit.repository", "io.restaurantos.shared"})
 public class AuditServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(AuditServiceApplication.class, args);

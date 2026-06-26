@@ -26,8 +26,12 @@ import java.util.UUID;
 @AllArgsConstructor
 public class AuditEventEntity {
 
+    // Hibernate 7 (Spring Boot 4) forbids IDENTITY generation on a composite id (@IdClass),
+    // so use the table's existing sequence (BIGSERIAL-created audit_events_id_seq) with
+    // allocationSize=1 to match its increment-by-1 semantics.
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "audit_events_id_gen")
+    @SequenceGenerator(name = "audit_events_id_gen", sequenceName = "audit_events_id_seq", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Long id;
 

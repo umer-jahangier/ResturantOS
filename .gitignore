@@ -31,3 +31,6 @@ dist/
 **/blob-report/
 **/playwright/.cache/
 coverage/
+
+#logs
+.dev-logs/

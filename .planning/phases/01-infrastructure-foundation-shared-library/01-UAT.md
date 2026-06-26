@@ -1,5 +1,5 @@
 ---
-status: testing
+status: complete
 phase: 01-infrastructure-foundation-shared-library
 source:
   - 01-01-SUMMARY.md
@@ -7,16 +7,13 @@ source:
   - 01-03-SUMMARY.md
   - 01-04-SUMMARY.md
 started: 2026-06-23T02:05:00+05:00
-updated: 2026-06-23T02:25:00+05:00
+updated: 2026-06-26T18:35:00+05:00
+verification_mode: automated_terminal
 ---
 
 ## Current Test
 
-number: 3
-name: Full stack bring-up
-expected: |
-  Run `make dev-up` from repo root. All infrastructure containers start and reach healthy status (`make dev-ps` shows healthy for postgres, redis, rabbitmq, minio, opa, eureka, config-server, clickhouse, pgadmin, mailpit).
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -32,32 +29,37 @@ note: Verified — each key line count stays 1 after two runs; script prints non
 
 ### 3. Full stack bring-up
 expected: Run `make dev-up` from repo root. All infrastructure containers start and reach healthy status (`make dev-ps` shows healthy for postgres, redis, rabbitmq, minio, opa, eureka, config-server, clickhouse, pgadmin, mailpit).
-result: pending
+result: pass
+note: Windows — `docker compose up -d --build` from deploy/. All 10 containers Up; 8 with (healthy), OPA/pgAdmin Up without healthcheck. User confirmed via docker compose ps 2026-06-26.
 
 ### 4. PostgreSQL databases and roles
 expected: After stack is up, `docker exec restaurantos-postgres psql -U postgres -c '\l'` lists all 13 service databases. `docker exec restaurantos-postgres psql -U postgres -c '\du'` shows 13 `*_user` roles without Superuser or Bypass RLS attributes.
-result: pending
+result: pass
+verified_by: terminal — 13 `_db` databases; 13 `*_user` roles, rolsuper=false, rolbypassrls=false
 
 ### 5. RabbitMQ topology
 expected: After stack is up, RabbitMQ has 9 topic exchanges (pos.topic through notifications.topic) plus restaurantos.dlx; consumer queues each have a `.dlq` sibling; audit.all-events.queue is bound to all 9 topic exchanges with routing key `#`. Visible in management UI at http://localhost:15672 or via `rabbitmqctl list_exchanges`.
-result: pending
+result: pass
+verified_by: terminal — 9 *.topic exchanges + restaurantos.dlx; audit.all-events.queue + .dlq present; definitions imported
 
 ### 6. OPA policy load
 expected: OPA container is healthy and loads `restaurantos.common` policy from the mounted policies directory (e.g. `curl -s http://localhost:8181/v1/policies` includes restaurantos).
-result: pending
+result: pass
+verified_by: terminal — GET /v1/policies returns restaurantos/pos.rego, common.rego, etc.
 
 ### 7. shared-lib integration tests
 expected: With Docker running, `mvn -pl shared-lib -am verify` completes GREEN — SharedLibVerificationIT passes (tenant propagation, MoneyUtils, outbox relay, RLS guard).
-result: pending
+result: pass
+verified_by: terminal — SharedLibVerificationIT 10/10 GREEN after gap fix (postgresql test driver + liquibase test deps + non-superuser Testcontainers role)
 
 ## Summary
 
 total: 7
-passed: 2
+passed: 7
 issues: 0
-pending: 5
+pending: 0
 skipped: 0
 
 ## Gaps
 
-[none yet]
+[none — SC5 closed 2026-06-26]

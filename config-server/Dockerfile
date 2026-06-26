@@ -6,10 +6,20 @@ WORKDIR /build
 # Copy parent POM first so Maven can resolve the reactor
 COPY pom.xml .
 
-# Copy only the modules needed for this build to maximise layer cache hits
+# Copy ALL module POMs the parent reactor declares. Maven's reactor validates every
+# <module> in the parent pom.xml even with -pl/-am, so all child POMs must be present
+# or the build fails with "Child module ... does not exist".
 COPY shared-lib/pom.xml shared-lib/pom.xml
 COPY eureka-server/pom.xml eureka-server/pom.xml
 COPY config-server/pom.xml config-server/pom.xml
+COPY gateway/pom.xml gateway/pom.xml
+COPY services/auth-service/pom.xml services/auth-service/pom.xml
+COPY services/authorization-service/pom.xml services/authorization-service/pom.xml
+COPY services/user-service/pom.xml services/user-service/pom.xml
+COPY services/platform-admin-service/pom.xml services/platform-admin-service/pom.xml
+COPY services/notification-service/pom.xml services/notification-service/pom.xml
+COPY services/audit-service/pom.xml services/audit-service/pom.xml
+COPY services/file-service/pom.xml services/file-service/pom.xml
 
 # Pre-download dependencies (runs before sources are copied)
 RUN mvn -pl config-server -am -q dependency:go-offline -DskipTests || true

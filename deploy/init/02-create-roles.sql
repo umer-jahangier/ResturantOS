@@ -26,6 +26,14 @@ CREATE ROLE audit_user       LOGIN PASSWORD :'audit_pw'    NOSUPERUSER NOBYPASSR
 CREATE ROLE file_user        LOGIN PASSWORD :'file_pw'     NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE platform_user    LOGIN PASSWORD :'platform_pw' NOSUPERUSER NOBYPASSRLS;
 
+-- Least-privilege runtime roles referenced by service Liquibase GRANTs.
+-- user-service connects as user_service (its application.yml default) and runs Liquibase as it.
+CREATE ROLE user_service     LOGIN PASSWORD :'user_pw'    NOSUPERUSER NOBYPASSRLS;
+-- audit-service runtime user is INSERT-only on audit_events; DDL is run by an admin datasource.
+CREATE ROLE audit_writer     LOGIN PASSWORD :'audit_pw'   NOSUPERUSER NOBYPASSRLS;
+-- file-service connects + runs Liquibase as file_service (its application.yml default).
+CREATE ROLE file_service     LOGIN PASSWORD :'file_pw'    NOSUPERUSER NOBYPASSRLS;
+
 GRANT ALL PRIVILEGES ON DATABASE auth_db        TO auth_user;
 GRANT ALL PRIVILEGES ON DATABASE user_db        TO user_user;
 GRANT ALL PRIVILEGES ON DATABASE pos_db         TO pos_user;
@@ -39,4 +47,7 @@ GRANT ALL PRIVILEGES ON DATABASE notification_db TO notification_user;
 GRANT ALL PRIVILEGES ON DATABASE audit_db       TO audit_user;
 GRANT ALL PRIVILEGES ON DATABASE file_db        TO file_user;
 GRANT ALL PRIVILEGES ON DATABASE platform_db    TO platform_user;
+GRANT ALL PRIVILEGES ON DATABASE user_db        TO user_service;
+GRANT ALL PRIVILEGES ON DATABASE file_db        TO file_service;
+GRANT CONNECT        ON DATABASE audit_db        TO audit_writer;
 -- The authorization-service also connects to auth_db using auth_user.

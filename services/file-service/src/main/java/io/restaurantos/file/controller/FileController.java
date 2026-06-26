@@ -66,8 +66,11 @@ public class FileController {
         var items = page.getContent().stream().map(this::toMeta).toList();
         return ResponseEntity.ok(ApiResponse.paginated(items,
                 new io.restaurantos.shared.api.PageMeta(
-                        page.getNumber(), page.getSize(),
-                        (int) page.getTotalElements(), page.getTotalPages())));
+                        new io.restaurantos.shared.api.PageMeta.Page(
+                                String.valueOf(page.getNumber()),
+                                page.hasNext() ? String.valueOf(page.getNumber() + 1) : null,
+                                page.getSize()),
+                        page.getTotalElements())));
     }
 
     /** Stream file content from MinIO with correct Content-Type and Content-Disposition. */

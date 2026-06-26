@@ -13,6 +13,11 @@ GRANT ALL ON SCHEMA public TO user_user;
 GRANT CREATE ON SCHEMA public TO user_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO user_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO user_user;
+-- user_service is the application.yml default runtime/migration role for user-service.
+GRANT ALL ON SCHEMA public TO user_service;
+GRANT CREATE ON SCHEMA public TO user_service;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO user_service;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO user_service;
 
 \c pos_db
 GRANT ALL ON SCHEMA public TO pos_user;
@@ -67,12 +72,20 @@ GRANT ALL ON SCHEMA public TO audit_user;
 GRANT CREATE ON SCHEMA public TO audit_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO audit_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO audit_user;
+-- audit_writer is the INSERT-only runtime role; needs schema USAGE (table/sequence
+-- INSERT grants are issued by the audit-service Liquibase migrations).
+GRANT USAGE ON SCHEMA public TO audit_writer;
 
 \c file_db
 GRANT ALL ON SCHEMA public TO file_user;
 GRANT CREATE ON SCHEMA public TO file_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO file_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO file_user;
+-- file_service is the application.yml default runtime/migration role for file-service.
+GRANT ALL ON SCHEMA public TO file_service;
+GRANT CREATE ON SCHEMA public TO file_service;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO file_service;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO file_service;
 
 \c platform_db
 GRANT ALL ON SCHEMA public TO platform_user;
