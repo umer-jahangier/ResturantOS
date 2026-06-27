@@ -21,10 +21,10 @@ export function useSwitchBranch() {
   return useMutation<Session, ApiError, string>({
     mutationFn: (branchId) => SessionRepository.switchBranch(branchId),
     onSuccess: (session) => {
-      // setSession stores the reissued JWT AND sets the active branch
-      // (session.branchId) — there is no separate active-branch store.
-      setSession(session);
+      // Clear stale branch-scoped data FIRST, then install the new session
+      // so components re-render with the new branch context from scratch.
       queryClient.clear();
+      setSession(session);
     },
     onError: (error) => {
       if (error.isBranchAccessDenied()) {
