@@ -44,7 +44,7 @@ spring:
           routes:
             # ── Auth Service ────────────────────────────────────────────────────────
             - id: auth-route
-              uri: lb://auth-service
+              uri: ${AUTH_SERVICE_URI:lb://auth-service}
               predicates:
                 - Path=/api/v1/auth/**
               filters:
