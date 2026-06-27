@@ -5,25 +5,26 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 5 — Cross-Cutting Services (Notifications, Audit, Files)
+**Current focus:** Phase 6 — Finance Core (General Ledger + Accounting Periods)
 
 ## Current Position
 
-Phase: 5 of 12 (Cross-Cutting Services)
-Plan: 0 of 3
-Status: Phase 4 complete — all 8 plans + DS-01..07 gap-closure verified (7/7)
-Last activity: 2026-06-26 — Phase 4 gap-closure finalized: PageTransition + StatusAnnouncer wired; DS-03/DS-07 closed; gates green
+Phase: 6 of 12 (Finance Core — General Ledger + Accounting Periods)
+Plan: 1 of 2
+Status: Phase 6 Plan 1 complete — finance-service scaffold + JE engine + GL service deployed
+Last activity: 2026-06-27 — Completed 06-01: finance-service scaffold, COA seeding, JE engine, GL service, IT suite
 
-Progress: [██████████████████░] 55% (18/33 plans)
+Progress: [████████████████████░] 58% (19/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 19
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
 - Phase 4: 8/8 plans executed; verification passed (16/16 FE + 7/7 DS gap-closure; tsc/lint/vitest green)
+- Phase 6: 1/2 plans executed (06-01 complete; finance-service scaffold + JE engine)
 
 **By Phase:**
 
@@ -33,10 +34,11 @@ Progress: [██████████████████░] 55% (18/33
 | 02-authentication-authorization | 3/3 | 5/5 passed |
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
 | 04-frontend-shell-ci-cd | 8/8 | 16/16 FE + 7/7 DS passed |
+| 06-finance-core-general-ledger-periods | 1/2 | in-progress |
 
 **Recent Trend:**
-- Last 5 plans: 03-02, 04-01, 04-02, 04-03
-- Trend: Phase 4 complete — frontend shell + login/guards/BranchSwitcher, then quality-gated CI/CD (lint→test→build(cosign multi-arch)→schema-sync, data-driven coverage gates, Playwright scaffold). Sprint-1 "GO" CI set delivered.
+- Last completed plan: 06-01
+- Trend: Phase 6 underway — finance-service scaffolded with Flyway DDL (5 tables + 3 DB triggers + RLS), 55-account Pakistan COA provisioning, full JE lifecycle (DRAFT→POST→REVERSE), GL read API, and IT suite proving deferred balance trigger and immutability trigger.
 
 *Updated after each plan completion*
 
@@ -99,6 +101,11 @@ Recent decisions affecting current work:
 - [04-07-B]: TenantThemeInjector reads localStorage client-side in 'use client' layout; SSR returns null (globals.css tokens provide defaults).
 - [04-07-C]: Tenant layout converted to 'use client' for mobileOpen useState (acceptable — layout is auth-gated by proxy.ts).
 - [04-07-D]: navGroups exports alongside tenantNavItems flat array for backward compat.
+- [06-01-A]: Flyway (not Liquibase) for finance-service — single SQL migration file cleaner for complex DDL with triggers and RLS.
+- [06-01-B]: DEFERRABLE INITIALLY DEFERRED constraint trigger for JE balance — allows inserting multiple lines in one txn before check fires at COMMIT.
+- [06-01-C]: Class-level @Transactional on JournalEntryServiceImpl — ensures post() runs in a transaction so deferred trigger fires at Spring transaction commit.
+- [06-01-D]: PakistanRestaurantCoaTemplate returns 55 accounts (1000–7200 range): Assets/Liabilities/Equity/Revenue/COGS/Expenses/Non-Operating, 17 system-tagged.
+- [06-01-E]: Immutability trigger exemption: reversed_by_je UPDATE on a POSTED JE is allowed (needed for the reversal workflow link-back).
 
 ### Pending Todos
 
@@ -120,6 +127,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-26
-Stopped at: Phase 4 complete — gap-closure 04-04..08 executed; orchestrator wired PageTransition + StatusAnnouncer; DS 7/7 verified; ready for Phase 5 planning.
+Last session: 2026-06-27
+Stopped at: Phase 6 Plan 1 complete — finance-service scaffold, Flyway DDL (triggers+RLS), 55-account COA, JE engine, GL service; 3 commits (67568d5, 7bd611a, 04ca5a0); ready for Phase 6 Plan 2 (accounting periods + period locking).
 Resume file: None
