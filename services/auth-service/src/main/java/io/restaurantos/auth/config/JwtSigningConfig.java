@@ -11,7 +11,7 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
 @Configuration
-@EnableConfigurationProperties({AuthJwtProperties.class, AuthCookieProperties.class})
+@EnableConfigurationProperties({AuthJwtProperties.class, AuthCookieProperties.class, EncryptionProperties.class})
 public class JwtSigningConfig {
 
     @Bean
