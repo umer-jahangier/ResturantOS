@@ -11,24 +11,28 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Base class for finance-service integration tests.
- * Provides a Postgres Testcontainer, runs Flyway migrations explicitly,
- * and mocks shared infrastructure beans (Redis, RabbitMQ, idempotency/outbox repos)
- * that are auto-configured by SharedAutoConfiguration but not needed in finance tests.
+ * Uses a static singleton container (no @Container/@Testcontainers) so the container
+ * is shared across ALL subclasses in the same JVM run. This prevents Spring context
+ * caching conflicts where a cached context points to a stopped container's port.
+ *
+ * Decision [06-02-A]: Static singleton Testcontainers pattern — container starts once
+ * via static initializer and lives until JVM exit. All subclasses share the same Spring
+ * context (same JDBC URL), eliminating "Connection refused" errors between test classes.
  */
 @SpringBootTest
-@Testcontainers
 public abstract class FinanceTestBase {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("finance_db")
             .withUsername("finance_user")
             .withPassword("finance_pass");
+
+    static {
+        postgres.start();
+    }
 
     @BeforeAll
     static void applyMigrations() {

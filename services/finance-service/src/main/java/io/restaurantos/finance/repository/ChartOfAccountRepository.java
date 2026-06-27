@@ -25,4 +25,6 @@ public interface ChartOfAccountRepository extends JpaRepository<ChartOfAccount, 
     List<ChartOfAccount> findBySystemTag(String systemTag);
 
     boolean existsByCode(String code);
+
+    boolean existsByTenantIdAndCode(UUID tenantId, String code);
 }

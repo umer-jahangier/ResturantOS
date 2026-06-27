@@ -33,7 +33,7 @@ public class CoaServiceImpl implements CoaService {
         List<ChartOfAccount> template = PakistanRestaurantCoaTemplate.build(tenantId);
         int count = 0;
         for (ChartOfAccount account : template) {
-            if (!coaRepo.existsByCode(account.getCode())) {
+            if (!coaRepo.existsByTenantIdAndCode(tenantId, account.getCode())) {
                 coaRepo.save(account);
                 count++;
             }

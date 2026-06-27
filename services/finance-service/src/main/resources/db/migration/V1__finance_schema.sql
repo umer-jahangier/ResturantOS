@@ -122,22 +122,32 @@ CREATE INDEX idx_jl_tenant_account  ON journal_lines (tenant_id, account_code);
 CREATE INDEX idx_period_tenant_fy ON accounting_periods (tenant_id, fiscal_year);
 
 -- ============================================================
--- TRIGGER 1: Deferred balance check (DEFERRABLE INITIALLY DEFERRED)
--- Fires at transaction COMMIT — allows inserting lines within txn.
+-- TRIGGER 1a: Deferred balance check on journal_lines
+-- Fires at transaction COMMIT — but only for POSTED entries.
+-- DRAFT entries skip the check so create() can insert unbalanced lines.
 -- ============================================================
 CREATE OR REPLACE FUNCTION fn_check_je_balance()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
-    v_dr BIGINT;
-    v_cr BIGINT;
+    v_dr     BIGINT;
+    v_cr     BIGINT;
+    v_status TEXT;
 BEGIN
+    -- Only enforce balance for POSTED entries (DRAFT lines skip)
+    SELECT status INTO v_status FROM journal_entries WHERE id = NEW.je_id;
+    IF v_status IS DISTINCT FROM 'POSTED' THEN
+        RETURN NEW;
+    END IF;
+
     SELECT COALESCE(SUM(debit_paisa), 0), COALESCE(SUM(credit_paisa), 0)
     INTO v_dr, v_cr
     FROM journal_lines
     WHERE je_id = NEW.je_id;
 
     IF v_dr <> v_cr THEN
-        RAISE EXCEPTION 'JE_UNBALANCED: entry % DR=% CR=%', NEW.je_id, v_dr, v_cr;
+        -- ERRCODE 'check_violation' (23514) → Spring maps to DataIntegrityViolationException
+        RAISE EXCEPTION 'JE_UNBALANCED: entry % DR=% CR=%', NEW.je_id, v_dr, v_cr
+            USING ERRCODE = 'check_violation';
     END IF;
     RETURN NEW;
 END;
@@ -147,6 +157,37 @@ CREATE CONSTRAINT TRIGGER trg_je_balance
     AFTER INSERT OR UPDATE ON journal_lines
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION fn_check_je_balance();
+
+-- ============================================================
+-- TRIGGER 1b: Deferred balance check on journal_entries status → POSTED
+-- This is the primary balance gate: fires at COMMIT when post() sets status=POSTED.
+-- DEFERRABLE so it checks the final aggregated state at transaction commit.
+-- ============================================================
+CREATE OR REPLACE FUNCTION fn_check_balance_on_post()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_dr BIGINT;
+    v_cr BIGINT;
+BEGIN
+    -- Only fire when status transitions to POSTED
+    IF NEW.status = 'POSTED' AND OLD.status <> 'POSTED' THEN
+        SELECT COALESCE(SUM(debit_paisa), 0), COALESCE(SUM(credit_paisa), 0)
+        INTO v_dr, v_cr
+        FROM journal_lines WHERE je_id = NEW.id;
+
+        IF v_dr <> v_cr THEN
+            RAISE EXCEPTION 'JE_UNBALANCED: entry % DR=% CR=%', NEW.id, v_dr, v_cr
+                USING ERRCODE = 'check_violation';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+CREATE CONSTRAINT TRIGGER trg_je_balance_on_post
+    AFTER UPDATE OF status ON journal_entries
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION fn_check_balance_on_post();
 
 -- ============================================================
 -- TRIGGER 2: Immutability — block UPDATE/DELETE on POSTED journal_entries
