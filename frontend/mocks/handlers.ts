@@ -1,7 +1,8 @@
 import { http, HttpResponse } from "msw";
 
-// Shared MSW handlers for the auth + feature-flags endpoints (FE-07). Used by
-// both the dev worker (mocks/browser.ts) and the Vitest server (mocks/server.ts).
+// MSW request handlers for the auth + feature-flags endpoints (FE-07).
+// TEST-ONLY: consumed by the Vitest server (mocks/server.ts). There is no
+// runtime/browser mocking — the app always talks to the live gateway.
 
 const TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const BRANCH_ID = "33333333-3333-4333-8333-333333333333";

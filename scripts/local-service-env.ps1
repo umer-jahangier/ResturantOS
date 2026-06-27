@@ -56,4 +56,16 @@ $env:FILE_DB_URL = "jdbc:postgresql://127.0.0.1:5432/file_db"
 $env:FILE_DB_USER = "file_service"
 $env:FILE_DB_PASSWORD = $env:FILE_DB_PASSWORD
 
+# finance-service (Flyway + runtime as finance_user). NOTE: finance-service reads
+# EUREKA_URI / JWKS_URI / CONFIG_URI (distinct names from EUREKA_URL above), so set
+# them to localhost for host-run mode. FINANCE_DB_PASSWORD comes from deploy/.env.
+$env:FINANCE_DB_URL = "jdbc:postgresql://127.0.0.1:5432/finance_db"
+$env:FINANCE_DB_USER = "finance_user"
+$env:FINANCE_DB_PASSWORD = $env:FINANCE_DB_PASSWORD
+$env:EUREKA_URI = "http://127.0.0.1:8761/eureka/"
+$env:JWKS_URI = "http://127.0.0.1:8081/.well-known/jwks.json"
+$env:PLATFORM_ADMIN_URI = "http://127.0.0.1:8083"
+$env:CONFIG_URI = "http://127.0.0.1:8888"
+$env:FAIL_OPEN_ON_PLATFORM_DOWN = "true"
+
 Write-Host "Loaded deploy/.env + localhost service overrides" -ForegroundColor Green

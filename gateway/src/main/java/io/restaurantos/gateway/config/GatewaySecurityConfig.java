@@ -43,11 +43,10 @@ public class GatewaySecurityConfig {
     @Bean
     @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(JwksKeyProvider.class)
     public JwksKeyProvider jwksKeyProvider() {
-        org.springframework.web.client.RestClient restClient =
-                org.springframework.web.client.RestClient.builder()
-                        .baseUrl(jwksUri)
-                        .build();
-        return new JwksKeyProvider(jwksUri, restClient);
+        // Use a plain RestClient (no baseUrl) — JwksKeyProvider passes the full JWKS URL
+        // to RestClient.get().uri(...). Other services (user, finance, file) use the same
+        // pattern. Setting baseUrl to the full JWKS path breaks key fetch on some hosts.
+        return new JwksKeyProvider(jwksUri, org.springframework.web.client.RestClient.create());
     }
 
     @Bean

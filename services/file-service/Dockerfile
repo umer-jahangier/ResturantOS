@@ -11,6 +11,7 @@ COPY gateway/pom.xml gateway/pom.xml
 COPY services/user-service/pom.xml services/user-service/pom.xml
 COPY services/platform-admin-service/pom.xml services/platform-admin-service/pom.xml
 COPY services/file-service/pom.xml services/file-service/pom.xml
+COPY services/finance-service/pom.xml services/finance-service/pom.xml
 
 RUN mvn -pl services/file-service -am -q dependency:go-offline -DskipTests || true
 

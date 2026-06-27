@@ -44,14 +44,14 @@ export const tenantNavItems: NavItem[] = [
     label: "POS",
     href: "/app/pos",
     icon: ShoppingCart,
-    permission: "order:create",
+    permission: "pos.order.create",
     feature: "FEATURE_POS",
   },
   {
     label: "Inventory",
     href: "/app/inventory",
     icon: Boxes,
-    permission: "inventory:read",
+    permission: "inventory.item.view",
     feature: "FEATURE_INVENTORY",
   },
   {
@@ -106,7 +106,7 @@ export const navGroups: NavGroup[] = [
         label: "POS",
         href: "/app/pos",
         icon: ShoppingCart,
-        permission: "order:create",
+        permission: "pos.order.create",
         feature: "FEATURE_POS",
       },
     ],
@@ -118,7 +118,7 @@ export const navGroups: NavGroup[] = [
         label: "Inventory",
         href: "/app/inventory",
         icon: Boxes,
-        permission: "inventory:read",
+        permission: "inventory.item.view",
         feature: "FEATURE_INVENTORY",
       },
     ],
@@ -154,6 +154,11 @@ export const navGroups: NavGroup[] = [
         permission: "finance.journal.view",
         feature: "FEATURE_FINANCE",
       },
+    ],
+  },
+  {
+    label: "Purchasing",
+    items: [
       {
         label: "Purchasing",
         href: "/app/purchasing",

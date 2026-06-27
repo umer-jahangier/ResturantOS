@@ -7,6 +7,7 @@ COPY eureka-server/pom.xml eureka-server/pom.xml
 COPY config-server/pom.xml config-server/pom.xml
 COPY services/auth-service/pom.xml services/auth-service/pom.xml
 COPY services/authorization-service/pom.xml services/authorization-service/pom.xml
+COPY services/finance-service/pom.xml services/finance-service/pom.xml
 
 RUN mvn -pl services/authorization-service -am -q dependency:go-offline -DskipTests || true
 

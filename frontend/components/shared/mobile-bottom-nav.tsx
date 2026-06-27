@@ -12,6 +12,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { PermissionGuard } from "./permission-guard";
+import { FeatureGuard } from "./feature-guard";
 
 // Mobile bottom navigation bar — only visible below `md` breakpoint (DS-05).
 // Shows 5 primary nav icons with active-state highlighting. Each item is wrapped
@@ -21,6 +22,7 @@ interface BottomNavItem {
   href: string;
   icon: React.ElementType;
   permission?: string;
+  feature?: string;
 }
 
 const BOTTOM_NAV_ITEMS: BottomNavItem[] = [
@@ -33,19 +35,22 @@ const BOTTOM_NAV_ITEMS: BottomNavItem[] = [
     label: "Orders",
     href: "/app/pos",
     icon: ShoppingCart,
-    permission: "order:create",
+    permission: "pos.order.create",
+    feature: "FEATURE_POS",
   },
   {
     label: "Menu",
     href: "/app/inventory",
     icon: UtensilsCrossed,
-    permission: "inventory:read",
+    permission: "inventory.item.view",
+    feature: "FEATURE_INVENTORY",
   },
   {
     label: "Finance",
-    href: "/app/finance",
+    href: "/app/finance/accounts",
     icon: DollarSign,
-    permission: "finance:read",
+    permission: "finance.journal.view",
+    feature: "FEATURE_FINANCE",
   },
   {
     label: "Settings",
@@ -90,15 +95,23 @@ export function MobileBottomNav() {
           pathname === item.href || pathname.startsWith(`${item.href}/`);
         const link = <BottomNavLink key={item.href} item={item} active={active} />;
 
+        const withFeature = item.feature ? (
+          <FeatureGuard key={`${item.href}-feature`} feature={item.feature} failOpenOnError>
+            {link}
+          </FeatureGuard>
+        ) : (
+          link
+        );
+
         if (item.permission) {
           return (
             <PermissionGuard key={item.href} require={item.permission}>
-              {link}
+              {withFeature}
             </PermissionGuard>
           );
         }
 
-        return link;
+        return withFeature;
       })}
     </nav>
   );

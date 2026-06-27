@@ -11,10 +11,17 @@ import { useFeatureFlags } from "@/lib/hooks/auth/use-feature-flags";
 interface FeatureGuardProps {
   feature: string;
   fallback?: ReactNode;
+  /** When true, render children if the feature-flags API fails (gateway still enforces). */
+  failOpenOnError?: boolean;
   children: ReactNode;
 }
 
-export function FeatureGuard({ feature, fallback = null, children }: FeatureGuardProps) {
+export function FeatureGuard({
+  feature,
+  fallback = null,
+  failOpenOnError = false,
+  children,
+}: FeatureGuardProps) {
   const { data: features, isPending, isError } = useFeatureFlags();
 
   if (isPending) {
@@ -22,7 +29,7 @@ export function FeatureGuard({ feature, fallback = null, children }: FeatureGuar
   }
 
   if (isError || !features) {
-    return <>{fallback}</>;
+    return <>{failOpenOnError ? children : fallback}</>;
   }
 
   return <>{features.includes(feature) ? children : fallback}</>;

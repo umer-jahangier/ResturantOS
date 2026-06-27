@@ -216,35 +216,10 @@ services:
       - ./.pgpass:/pgpass:ro
     networks: [restaurantos]
 
-  finance-service:
-    build:
-      context: ..
-      dockerfile: services/finance-service/Dockerfile
-    image: restaurantos/finance-service:1.0.0
-    container_name: restaurantos-finance-service
-    restart: unless-stopped
-    environment:
-      SERVER_PORT: 8086
-      FINANCE_DB_URL: jdbc:postgresql://postgres:5432/finance_db
-      FINANCE_DB_USER: finance_user
-      FINANCE_DB_PASSWORD: ${FINANCE_DB_PASSWORD}
-      EUREKA_URI: http://eureka:8761/eureka
-      CONFIG_URI: http://config-server:8888
-      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
-      JWKS_URI: http://auth-service:8081/.well-known/jwks.json
-    ports:
-      - "8086:8086"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      eureka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8086/actuator/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-    networks: [restaurantos]
+# NOTE: Application services (auth, authorization, user, platform-admin, audit,
+# file, finance, gateway) run on the HOST via scripts/start-dev.ps1 — only
+# infrastructure runs in Docker here. finance-service was previously defined here
+# but is now host-run for consistency with the other Spring Boot services.
 
 volumes:
   postgres-data:

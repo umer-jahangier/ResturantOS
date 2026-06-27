@@ -130,6 +130,39 @@ spring:
                       - 500
                       - 503
 
+            # ── Feature Flags (public, tenant-scoped) — served by platform-admin ──
+            # The frontend reads enabled FEATURE_* codes to decide which modules to
+            # render. Authenticated by any tenant JWT (not SUPER_ADMIN). No feature
+            # gate on this route itself (it IS the feature lookup).
+            - id: feature-flags-route
+              uri: lb://platform-admin-service
+              predicates:
+                - Path=/api/v1/feature-flags
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: platformAdminCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── Finance Service ───────────────────────────────────────────────────
+            # Gated by FEATURE_FINANCE (RouteFeatureMap) — FeatureFlagGlobalFilter
+            # enforces it before proxying. COA, journal entries, periods, GL.
+            - id: finance-route
+              uri: lb://finance-service
+              predicates:
+                - Path=/api/v1/finance/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: financeCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
             # - id: hr-route
             #   uri: lb://hr-service
@@ -243,13 +276,18 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
+      financeCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
 
 # Gateway-specific properties
 restaurantos:
   jwks:
-    uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+    uri: ${JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}
   platform-admin:
-    uri: ${PLATFORM_ADMIN_URI:http://platform-admin-service:8083}
+    uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8083}
   # fail-open-on-platform-down: when true (dev profile), treat tenant as ACTIVE with no
   # feature restrictions when platform-admin-service is unreachable. NEVER set true in prod.
   fail-open-on-platform-down: ${FAIL_OPEN_ON_PLATFORM_DOWN:false}

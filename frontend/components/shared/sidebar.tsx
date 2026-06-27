@@ -10,6 +10,7 @@ import { PermissionGuard } from "./permission-guard";
 import { FeatureGuard } from "./feature-guard";
 import { BranchSwitcher } from "./branch-switcher";
 import { navGroups, type NavItem, type NavGroup } from "./sidebar-nav-items";
+import { useNavGroupVisibility } from "@/lib/hooks/auth/use-nav-visibility";
 import {
   Tooltip,
   TooltipContent,
@@ -96,7 +97,9 @@ function GuardedNavItem({ item, collapsed, pathname }: GuardedNavItemProps) {
   const link = <NavLink item={item} active={active} collapsed={collapsed} />;
 
   const withFeature = item.feature ? (
-    <FeatureGuard feature={item.feature}>{link}</FeatureGuard>
+    <FeatureGuard feature={item.feature} failOpenOnError>
+      {link}
+    </FeatureGuard>
   ) : (
     link
   );
@@ -108,6 +111,42 @@ function GuardedNavItem({ item, collapsed, pathname }: GuardedNavItemProps) {
   );
 
   return <div>{guarded}</div>;
+}
+
+interface NavGroupSectionProps {
+  group: NavGroup;
+  collapsed: boolean;
+  pathname: string;
+}
+
+function NavGroupSection({ group, collapsed, pathname }: NavGroupSectionProps) {
+  const { hasVisibleItems, isItemVisible } = useNavGroupVisibility(group);
+
+  if (!hasVisibleItems) {
+    return null;
+  }
+
+  return (
+    <div>
+      {!collapsed && (
+        <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {group.label}
+        </p>
+      )}
+      <div className="flex flex-col gap-0.5">
+        {group.items.map((item) =>
+          isItemVisible(item) ? (
+            <GuardedNavItem
+              key={item.href}
+              item={item}
+              collapsed={collapsed}
+              pathname={pathname}
+            />
+          ) : null,
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps) {
@@ -154,23 +193,12 @@ export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps
           aria-label="Primary"
         >
           {groups.map((group) => (
-            <div key={group.label}>
-              {!collapsed && (
-                <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {group.label}
-                </p>
-              )}
-              <div className="flex flex-col gap-0.5">
-                {group.items.map((item) => (
-                  <GuardedNavItem
-                    key={item.href}
-                    item={item}
-                    collapsed={collapsed}
-                    pathname={pathname}
-                  />
-                ))}
-              </div>
-            </div>
+            <NavGroupSection
+              key={group.label}
+              group={group}
+              collapsed={collapsed}
+              pathname={pathname}
+            />
           ))}
         </nav>
 

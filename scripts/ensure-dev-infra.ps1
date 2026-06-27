@@ -42,14 +42,25 @@ Write-Host "==> Ensuring auth refresh lookup owner (no-op until auth-service mig
 Invoke-PsqlFile "auth_db" "init/04-auth-refresh-lookup-owner.sql"
 
 Write-Host "==> Ensuring RabbitMQ user + topology..." -ForegroundColor Cyan
-docker exec restaurantos-rabbitmq rabbitmqctl await_startup *> $null
-# add_user fails if it exists -> fall back to change_password to sync with .env.
-docker exec restaurantos-rabbitmq rabbitmqctl add_user $rmqUser $rmqPass *> $null
-if ($LASTEXITCODE -ne 0) {
-    docker exec restaurantos-rabbitmq rabbitmqctl change_password $rmqUser $rmqPass *> $null
+# rabbitmqctl writes to stderr and exits non-zero by design on re-runs (e.g. add_user when the
+# user already exists). Under EAP=Stop, native stderr can surface as a terminating error in some
+# PowerShell hosts, so run this whole block under EAP=Continue and gate everything on exit codes.
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+    docker exec restaurantos-rabbitmq rabbitmqctl await_startup 2>&1 | Out-Null
+    # add_user fails if it exists -> fall back to change_password to sync with .env.
+    docker exec restaurantos-rabbitmq rabbitmqctl add_user $rmqUser $rmqPass 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        docker exec restaurantos-rabbitmq rabbitmqctl change_password $rmqUser $rmqPass 2>&1 | Out-Null
+    }
+    docker exec restaurantos-rabbitmq rabbitmqctl set_user_tags $rmqUser administrator 2>&1 | Out-Null
+    docker exec restaurantos-rabbitmq rabbitmqctl set_permissions -p / $rmqUser ".*" ".*" ".*" 2>&1 | Out-Null
+    docker exec restaurantos-rabbitmq rabbitmqctl import_definitions /etc/rabbitmq/definitions.json 2>&1 | Out-Null
+} finally {
+    $ErrorActionPreference = $prevEap
+    # Reset so a benign non-zero rabbitmqctl exit doesn't trip the caller's error handling.
+    $global:LASTEXITCODE = 0
 }
-docker exec restaurantos-rabbitmq rabbitmqctl set_user_tags $rmqUser administrator *> $null
-docker exec restaurantos-rabbitmq rabbitmqctl set_permissions -p / $rmqUser ".*" ".*" ".*" *> $null
-docker exec restaurantos-rabbitmq rabbitmqctl import_definitions /etc/rabbitmq/definitions.json *> $null
 
 Write-Host "==> Dev infra ready." -ForegroundColor Green

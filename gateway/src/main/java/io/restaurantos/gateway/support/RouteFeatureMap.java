@@ -32,6 +32,7 @@ public class RouteFeatureMap {
     static {
         // Phase 3 routes (auth/user/platform-admin have no feature gate — always accessible
         // for ACTIVE tenants). Feature-flagged routes appear in later phases.
+        PREFIX_TO_FEATURE.put("/api/v1/finance/",    "FEATURE_FINANCE");
         PREFIX_TO_FEATURE.put("/api/v1/hr/",         "FEATURE_HR");
         PREFIX_TO_FEATURE.put("/api/v1/crm/",        "FEATURE_CRM");
         PREFIX_TO_FEATURE.put("/api/v1/nlq/",        "FEATURE_NLQ");

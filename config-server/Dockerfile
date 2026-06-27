@@ -20,6 +20,7 @@ COPY services/platform-admin-service/pom.xml services/platform-admin-service/pom
 COPY services/notification-service/pom.xml services/notification-service/pom.xml
 COPY services/audit-service/pom.xml services/audit-service/pom.xml
 COPY services/file-service/pom.xml services/file-service/pom.xml
+COPY services/finance-service/pom.xml services/finance-service/pom.xml
 
 # Pre-download dependencies (runs before sources are copied)
 RUN mvn -pl config-server -am -q dependency:go-offline -DskipTests || true

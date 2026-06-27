@@ -7,10 +7,4 @@ export const env = {
     process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080",
   NEXT_PUBLIC_WS_BASE_URL:
     process.env.NEXT_PUBLIC_WS_BASE_URL ?? "ws://localhost:8080",
-  NEXT_PUBLIC_ENABLE_MSW: process.env.NEXT_PUBLIC_ENABLE_MSW ?? "false",
 } as const;
-
-/** True when the MSW mock worker should run (dev/test only — never prod). */
-export function isMswEnabled(): boolean {
-  return env.NEXT_PUBLIC_ENABLE_MSW === "true" && process.env.NODE_ENV !== "production";
-}

@@ -13,6 +13,7 @@ COPY config-server/pom.xml config-server/pom.xml
 COPY services/auth-service/pom.xml services/auth-service/pom.xml
 COPY services/authorization-service/pom.xml services/authorization-service/pom.xml
 COPY gateway/pom.xml gateway/pom.xml
+COPY services/finance-service/pom.xml services/finance-service/pom.xml
 
 # Pre-download dependencies (runs before sources are copied)
 RUN mvn -pl gateway -am -q dependency:go-offline -DskipTests || true
