@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="user-1.0.0-900-seed-demo-branches" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <insert tableName="branches">
+            <column name="id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="name" value="Main Branch (HQ)"/>
+            <column name="is_hq" valueBoolean="true"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="timezone" value="Asia/Karachi"/>
+        </insert>
+        <insert tableName="branches">
+            <column name="id" value="b0000002-0000-4000-8000-000000000002"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="name" value="Downtown Branch"/>
+            <column name="is_hq" valueBoolean="false"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="timezone" value="Asia/Karachi"/>
+        </insert>
+        <rollback>
+            <delete tableName="branches">
+                <where>tenant_id = 'a0000001-0000-4000-8000-000000000001'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
