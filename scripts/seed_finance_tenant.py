@@ -12,12 +12,15 @@ import os
 import sys
 import urllib.error
 import urllib.request
+import uuid
 from datetime import date
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_TENANT_ID = "a0000001-0000-4000-8000-000000000001"
+DEFAULT_SLUG = "dev"
+UUID_NS = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+DEFAULT_TENANT_ID = str(uuid.uuid5(UUID_NS, f"restaurantos/tenant/{DEFAULT_SLUG}"))
 DEFAULT_FINANCE_URL = "http://127.0.0.1:8086"
 DEFAULT_INTERNAL_SECRET = "dev-internal-secret"
 
