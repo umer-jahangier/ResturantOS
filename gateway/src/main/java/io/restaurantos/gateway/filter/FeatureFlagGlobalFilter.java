@@ -36,7 +36,7 @@ import java.util.UUID;
  *       miss → platform-admin → cache 5-min.
  *       Disabled → 403 FEATURE_DISABLED + X-Upgrade-CTA-URL header.</li>
  *   <li>For quota-bearing routes (NLQ): read {@code nlq_quota:{tenantId}:monthly_count}
- *       against tenant limit. Over → 403 QUOTA_EXCEEDED.
+ *       against tenant limit. Over → 429 QUOTA_EXCEEDED.
  *       (Counter increments are owned by NLQ service; gateway reads-only here.)</li>
  * </ol>
  *
@@ -147,7 +147,7 @@ public class FeatureFlagGlobalFilter implements GlobalFilter, Ordered {
                         count = 0;
                     }
                     if (count >= NLQ_DEFAULT_MONTHLY_LIMIT) {
-                        return writeError(exchange, HttpStatus.FORBIDDEN,
+                        return writeError(exchange, HttpStatus.TOO_MANY_REQUESTS,
                                 "{\"error\":{\"code\":\"QUOTA_EXCEEDED\"," +
                                 "\"message\":\"Monthly NLQ quota exceeded. Upgrade for more.\"}}",
                                 "X-Upgrade-CTA-URL", CTA_BASE_URL + "FEATURE_NLQ");
