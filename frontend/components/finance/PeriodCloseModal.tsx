@@ -5,6 +5,7 @@ import { useClosePeriod } from "@/lib/hooks/finance/use-periods";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatUserFacingError } from "@/lib/api-client/errors";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 interface PeriodCloseModalProps {
@@ -72,10 +73,8 @@ function PeriodCloseModal({ period, onClose, onSuccess }: PeriodCloseModalProps)
             </div>
 
             {error && (
-              <p className="text-sm text-destructive">
-                {error instanceof Error
-                  ? error.message
-                  : "Failed to close period. Check your TOTP code."}
+              <p className="text-sm text-destructive" role="alert">
+                {formatUserFacingError(error)}
               </p>
             )}
 

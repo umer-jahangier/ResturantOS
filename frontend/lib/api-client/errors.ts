@@ -1,4 +1,5 @@
 import { AxiosError } from "axios";
+import { ZodError } from "zod";
 import type { ApiErrorBody, ApiFieldError } from "./types";
 
 // Normalised API error. Wraps the `{error:{code,message,details,traceId}}`
@@ -72,6 +73,72 @@ function isApiErrorBody(value: unknown): value is ApiErrorBody {
   );
 }
 
+/** Finance-service flat error shape: `{ code, message, timestamp }`. */
+function isFlatErrorBody(
+  value: unknown,
+): value is { code: string; message: string; traceId?: string | null } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "code" in value &&
+    "message" in value &&
+    typeof (value as { code: unknown }).code === "string" &&
+    typeof (value as { message: unknown }).message === "string"
+  );
+}
+
+const USER_FACING_BY_CODE: Record<string, string> = {
+  JE_UNBALANCED: "Journal entry lines must balance (total debit must equal total credit).",
+  PERIOD_LOCKED: "This accounting period is locked. Posting is not allowed.",
+  JE_ALREADY_POSTED: "This journal entry has already been posted.",
+  PERIOD_ALREADY_LOCKED: "This period is already closed.",
+  PERIOD_PRE_CHECK_FAILED: "Period cannot be closed yet. Resolve open items first.",
+  INVALID_OPERATION: "This action is not allowed in the current state.",
+  PERMISSION_DENIED: "You don't have permission to perform this action.",
+  UNAUTHENTICATED: "Please sign in again.",
+  TOTP_REQUIRED: "A verification code is required for this action.",
+  VALIDATION_FAILED: "Please check your input and try again.",
+  INTERNAL_ERROR: "Something went wrong. Please try again.",
+  NETWORK_ERROR: "Unable to reach the server. Check your connection and try again.",
+  UNKNOWN_ERROR: "Something went wrong. Please try again.",
+};
+
+function looksLikeValidationDump(message: string): boolean {
+  const trimmed = message.trim();
+  return (
+    trimmed.startsWith("[") ||
+    trimmed.includes('"invalid_type"') ||
+    trimmed.includes('"code":"invalid_type"')
+  );
+}
+
+/** Map any thrown value to a short, user-safe message (never raw Zod/JSON dumps). */
+export function formatUserFacingError(error: unknown): string {
+  if (error instanceof ApiError) {
+    return USER_FACING_BY_CODE[error.code] ?? sanitizeMessage(error.message);
+  }
+  if (error instanceof ZodError) {
+    return "We couldn't read the server response. Please refresh and try again.";
+  }
+  if (error instanceof Error) {
+    if (looksLikeValidationDump(error.message)) {
+      return "We couldn't read the server response. Please refresh and try again.";
+    }
+    return sanitizeMessage(error.message);
+  }
+  return USER_FACING_BY_CODE.UNKNOWN_ERROR;
+}
+
+function sanitizeMessage(message: string): string {
+  if (!message || looksLikeValidationDump(message)) {
+    return USER_FACING_BY_CODE.UNKNOWN_ERROR;
+  }
+  if (message.length > 160) {
+    return USER_FACING_BY_CODE.UNKNOWN_ERROR;
+  }
+  return message;
+}
+
 /** Convert any thrown value (typically an AxiosError) into a typed {@link ApiError}. */
 export function parseApiError(error: unknown): ApiError {
   if (error instanceof AxiosError) {
@@ -85,6 +152,16 @@ export function parseApiError(error: unknown): ApiError {
         status,
         traceId: body.error.traceId ?? null,
         fieldErrors: Array.isArray(body.error.details) ? body.error.details : [],
+      });
+    }
+
+    if (isFlatErrorBody(body)) {
+      return new ApiError({
+        code: body.code,
+        message: body.message,
+        status,
+        traceId: body.traceId ?? null,
+        fieldErrors: [],
       });
     }
 

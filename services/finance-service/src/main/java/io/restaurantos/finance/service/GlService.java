@@ -3,7 +3,11 @@ package io.restaurantos.finance.service;
 import io.restaurantos.finance.dto.GlBalanceDto;
 import io.restaurantos.finance.dto.JournalLineDto;
 import io.restaurantos.finance.mapper.JournalEntryMapper;
+import io.restaurantos.finance.repository.ChartOfAccountRepository;
 import io.restaurantos.finance.repository.JournalLineRepository;
+import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.tenant.TenantGucHelper;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,27 +21,49 @@ import java.util.UUID;
 public class GlService {
 
     private final JournalLineRepository lineRepo;
+    private final ChartOfAccountRepository coaRepo;
     private final JournalEntryMapper mapper;
+    private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
-    public GlService(JournalLineRepository lineRepo, JournalEntryMapper mapper) {
+    public GlService(JournalLineRepository lineRepo,
+                     ChartOfAccountRepository coaRepo,
+                     JournalEntryMapper mapper,
+                     TenantContext tenantContext,
+                     EntityManager entityManager) {
         this.lineRepo = lineRepo;
+        this.coaRepo = coaRepo;
         this.mapper = mapper;
+        this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
     }
 
-    public List<GlBalanceDto> getGlBalances(UUID periodId) {
-        List<Object[]> raw = lineRepo.findGlBalancesRaw(periodId);
+    private void ensureTenantGuc() {
+        TenantGucHelper.apply(entityManager, tenantContext);
+    }
+
+    public List<GlBalanceDto> getGlBalances(UUID periodId, UUID branchId) {
+        ensureTenantGuc();
+        List<Object[]> raw = lineRepo.findGlBalancesRaw(periodId, branchId);
         return raw.stream()
                 .map(row -> {
                     String code = (String) row[0];
                     long dr = ((Number) row[1]).longValue();
                     long cr = ((Number) row[2]).longValue();
-                    return new GlBalanceDto(code, dr, cr, dr - cr);
+                    String accountName = coaRepo.findByCode(code)
+                            .map(a -> a.getName())
+                            .orElse(code);
+                    return new GlBalanceDto(code, accountName, dr, cr, dr - cr);
                 })
                 .toList();
     }
 
-    public Page<JournalLineDto> getGlEntries(String accountCode, UUID periodId, Pageable pageable) {
-        return lineRepo.findPostedByAccountCodeAndPeriodId(accountCode, periodId, pageable)
+    public Page<JournalLineDto> getGlEntries(
+            String accountCode, UUID periodId, UUID branchId, Pageable pageable) {
+        ensureTenantGuc();
+        return lineRepo
+                .findPostedByAccountCodeAndPeriodIdAndBranchId(
+                        accountCode, periodId, branchId, pageable)
                 .map(mapper::toLineDto);
     }
 }

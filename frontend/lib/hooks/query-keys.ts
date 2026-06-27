@@ -28,5 +28,11 @@ export const queryKeys = {
       ["finance", branchId, "journal-entries", id] as const,
     gl: (branchId: string, periodId: string) =>
       ["finance", branchId, "gl", periodId] as const,
+    accountSearch: (branchId: string, query: string) =>
+      ["finance", branchId, "accounts", "search", query] as const,
+    openPeriods: (branchId: string) =>
+      ["finance", branchId, "periods", "open"] as const,
+    setupStatus: (branchId: string) =>
+      ["finance", branchId, "setup", "status"] as const,
   },
 } as const;

@@ -23,16 +23,27 @@ export const apiJournalLineSchema = z.object({
   creditPaisa: z.number().int().nonnegative(),
 });
 
-export const apiJournalEntrySchema = z.object({
+const apiJournalEntryBaseSchema = z.object({
   id: z.string().uuid(),
   entryNo: z.string().nullable(),
   entryDate: z.string(),
   description: z.string(),
   status: z.enum(["DRAFT", "POSTED"]),
-  totalDebitPaisa: z.number().int().nonnegative(),
-  totalCreditPaisa: z.number().int().nonnegative(),
+  totalDebitPaisa: z.number().int().nonnegative().optional(),
+  totalCreditPaisa: z.number().int().nonnegative().optional(),
   lines: z.array(apiJournalLineSchema),
 });
+
+/** Totals may be omitted by older API responses — derive from lines when missing. */
+export const apiJournalEntrySchema = apiJournalEntryBaseSchema.transform((raw) => ({
+  ...raw,
+  totalDebitPaisa:
+    raw.totalDebitPaisa ??
+    raw.lines.reduce((sum, line) => sum + line.debitPaisa, 0),
+  totalCreditPaisa:
+    raw.totalCreditPaisa ??
+    raw.lines.reduce((sum, line) => sum + line.creditPaisa, 0),
+}));
 
 export const apiAccountingPeriodSchema = z.object({
   id: z.string().uuid(),
@@ -60,6 +71,12 @@ export const apiCreateJeLineSchema = z.object({
   creditPaisa: z.number().int().nonnegative(),
 });
 
+export const apiFinanceSetupStatusSchema = z.object({
+  accountCount: z.number().int().nonnegative(),
+  periodCount: z.number().int().nonnegative(),
+  provisioned: z.boolean(),
+});
+
 export const apiCreateJeSchema = z.object({
   entryDate: z.string(),
   description: z.string(),
@@ -71,4 +88,5 @@ export type ApiJournalLine = z.infer<typeof apiJournalLineSchema>;
 export type ApiJournalEntry = z.infer<typeof apiJournalEntrySchema>;
 export type ApiAccountingPeriod = z.infer<typeof apiAccountingPeriodSchema>;
 export type ApiGlBalance = z.infer<typeof apiGlBalanceSchema>;
+export type ApiFinanceSetupStatus = z.infer<typeof apiFinanceSetupStatusSchema>;
 export type ApiCreateJeRequest = z.infer<typeof apiCreateJeSchema>;

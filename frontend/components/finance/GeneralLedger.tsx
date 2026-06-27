@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGlBalances } from "@/lib/hooks/finance/use-gl";
 import { usePeriods } from "@/lib/hooks/finance/use-periods";
+import { useFinanceSetupStatus } from "@/lib/hooks/finance/use-accounts";
+import { currentPakistanFiscalYear } from "@/lib/utils/pakistan-fiscal-year";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { FinanceEmptyState } from "./FinanceEmptyState";
 
 function GeneralLedger() {
   const router = useRouter();
-  const { data: periods } = usePeriods();
+  const fiscalYear = currentPakistanFiscalYear();
+  const { data: periods, isLoading: periodsLoading } = usePeriods(fiscalYear);
+  const { data: setupStatus } = useFinanceSetupStatus();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
 
   const activePeriodId =
@@ -18,7 +22,26 @@ function GeneralLedger() {
     periods?.[0]?.id ||
     "";
 
+  useEffect(() => {
+    if (!selectedPeriodId && activePeriodId) {
+      setSelectedPeriodId(activePeriodId);
+    }
+  }, [activePeriodId, selectedPeriodId]);
+
   const { data: balances, isLoading, isError } = useGlBalances(activePeriodId);
+
+  if (!periodsLoading && !periods?.length) {
+    return (
+      <FinanceEmptyState
+        title="No accounting periods"
+        description={
+          setupStatus?.provisioned
+            ? "No periods match the current fiscal year."
+            : "System Admin need to run the script to load COA and periods."
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -31,10 +54,11 @@ function GeneralLedger() {
           value={activePeriodId}
           onChange={(e) => setSelectedPeriodId(e.target.value)}
           className="rounded border border-input bg-background px-3 py-1.5 text-sm"
+          disabled={periodsLoading || !periods?.length}
         >
           {periods?.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.startDate} – {p.endDate} ({p.status})
+              P{p.periodNo}: {p.startDate} – {p.endDate} ({p.status})
             </option>
           ))}
         </select>
@@ -51,7 +75,7 @@ function GeneralLedger() {
       {isError && (
         <FinanceEmptyState
           title="Could not load GL balances"
-          description="Select a period to view balances."
+          description="Select a period to view branch-scoped balances."
         />
       )}
 
@@ -109,7 +133,7 @@ function GeneralLedger() {
               {balances.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                    No balances for this period.
+                    No posted activity for this branch and period.
                   </td>
                 </tr>
               )}

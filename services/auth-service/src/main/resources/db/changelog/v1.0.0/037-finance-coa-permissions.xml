@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-037-finance-coa-permissions" author="restaurantos-agent" runOnChange="false">
+        <insert tableName="permissions">
+            <column name="code" value="finance.coa.view"/>
+            <column name="module" value="finance"/>
+            <column name="description" value="View chart of accounts"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="finance.coa.manage"/>
+            <column name="module" value="finance"/>
+            <column name="description" value="Manage chart of accounts"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="finance.journal.reverse"/>
+            <column name="module" value="finance"/>
+            <column name="description" value="Reverse posted journal entries"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="finance.coa.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="finance.coa.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="finance.journal.reverse"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="finance.coa.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="finance.coa.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="finance.journal.reverse"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="finance.coa.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="finance.coa.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="finance.journal.reverse"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="FINANCE_VIEWER"/>
+            <column name="permission_code" value="finance.coa.view"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 
 /**
  * The ONLY sanctioned way to process a tenant-scoped event in a @RabbitListener.
- * Sets TenantContext, enables the Hibernate tenant filter, and sets app.current_tenant_id
- * for PostgreSQL RLS on the SAME connection used by the consumer transaction.
+ * Sets TenantContext and enables the Hibernate tenant filter on the SAME connection
+ * used by the consumer transaction. RLS GUC is applied by {@link TenantAwareDataSource}.
  * Resolves CRIT-01 (RabbitMQ consumer half).
  */
 public class TenantAwareMessageProcessor {
@@ -32,9 +32,6 @@ public class TenantAwareMessageProcessor {
             tenantContext.set(tenantId, branchId, null, null);
             Session session = entityManager.unwrap(Session.class);
             session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
-            entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
-                .setParameter("tid", tenantId.toString())
-                .getSingleResult();
             handler.accept(envelope);
         } finally {
             tenantContext.clear();

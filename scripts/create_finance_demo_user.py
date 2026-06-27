@@ -25,8 +25,8 @@ cur.execute("""
     ON CONFLICT DO NOTHING
 """)
 
-# 2. Permissions: view + post journal entries (NOT finance.period.close — that triggers TOTP)
-for perm in ("finance.journal.view", "finance.journal.post"):
+# 2. Permissions: COA view + journal view/post (NOT finance.period.close — that triggers TOTP)
+for perm in ("finance.coa.view", "finance.journal.view", "finance.journal.post"):
     cur.execute("""
         INSERT INTO role_permissions (role_code, permission_code)
         VALUES ('FINANCE_VIEWER', %s) ON CONFLICT DO NOTHING

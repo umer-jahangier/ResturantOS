@@ -34,3 +34,18 @@ Run from repo root (`D:\GitHub\ResturantOS`).
 ```powershell
 Get-Content .dev-logs\auth-service.log -Tail 50 -Wait
 ```
+
+
+
+# 5. Onboarding / provisioning
+
+# Script: scripts/seed_finance_tenant.py
+# Calls POST /internal/tenants/{tenantId}/provision with Pakistan FY.
+# API status: GET /api/v1/finance/accounts/setup/status → { accountCount, periodCount, provisioned }
+# Demo user: create_finance_demo_user.py now grants finance.coa.view
+# Frontend: Accounts & Periods pages show setup status and seed instructions when empty
+# To seed locally (finance-service must be running):
+
+python D:\GitHub\ResturantOS\scripts\seed_finance_tenant.py
+
+python D:\GitHub\ResturantOS\scripts\create_finance_demo_user.py

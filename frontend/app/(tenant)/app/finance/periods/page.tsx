@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { usePeriods } from "@/lib/hooks/finance/use-periods";
+import { useFinanceSetupStatus } from "@/lib/hooks/finance/use-accounts";
+import { currentPakistanFiscalYear } from "@/lib/utils/pakistan-fiscal-year";
 import { PeriodStatusChip } from "@/components/finance/PeriodStatusChip";
 import { PeriodCloseModal } from "@/components/finance/PeriodCloseModal";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
@@ -10,10 +12,9 @@ import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 // URL: /app/finance/periods
 export default function PeriodsPage() {
-  const currentYear = new Date().getFullYear();
-  const fiscalYear =
-    new Date().getMonth() >= 6 ? currentYear + 1 : currentYear;
+  const fiscalYear = currentPakistanFiscalYear();
   const { data: periods, isLoading } = usePeriods(fiscalYear);
+  const { data: setupStatus } = useFinanceSetupStatus();
   const [closingPeriod, setClosingPeriod] = useState<AccountingPeriod | null>(null);
 
   return (
@@ -38,7 +39,11 @@ export default function PeriodsPage() {
       {!isLoading && !periods?.length && (
         <FinanceEmptyState
           title="No periods found"
-          description="Periods are seeded automatically when a tenant is provisioned."
+          description={
+            setupStatus?.provisioned
+              ? "No periods for the current fiscal year."
+              : "System Admin need to run the script to load COA and periods."
+          }
         />
       )}
 

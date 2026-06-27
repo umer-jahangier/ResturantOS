@@ -11,7 +11,10 @@ import io.restaurantos.finance.feign.PosInternalClient;
 import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.mapper.PeriodMapper;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
+import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.tenant.TenantGucHelper;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,25 +25,39 @@ import java.util.UUID;
 @Transactional
 public class PeriodCloseService {
 
+    private static final String FINANCE_EXCHANGE = "finance.topic";
+    private static final String PERIOD_CLOSED_KEY = "finance.period.closed";
+    private static final String PERIOD_CLOSED_TYPE = "PERIOD_CLOSED";
+
     private final AccountingPeriodRepository periodRepo;
     private final PeriodMapper periodMapper;
     private final PosInternalClient posClient;
     private final InventoryInternalClient inventoryClient;
     private final PurchasingInternalClient purchasingClient;
     private final TenantContext tenantContext;
+    private final EventPublisher eventPublisher;
+    private final EntityManager entityManager;
 
     public PeriodCloseService(AccountingPeriodRepository periodRepo,
                                PeriodMapper periodMapper,
                                PosInternalClient posClient,
                                InventoryInternalClient inventoryClient,
                                PurchasingInternalClient purchasingClient,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               EventPublisher eventPublisher,
+                               EntityManager entityManager) {
         this.periodRepo = periodRepo;
         this.periodMapper = periodMapper;
         this.posClient = posClient;
         this.inventoryClient = inventoryClient;
         this.purchasingClient = purchasingClient;
         this.tenantContext = tenantContext;
+        this.eventPublisher = eventPublisher;
+        this.entityManager = entityManager;
+    }
+
+    private void ensureTenantGuc() {
+        TenantGucHelper.apply(entityManager, tenantContext);
     }
 
     /**
@@ -48,6 +65,7 @@ public class PeriodCloseService {
      * Requires TOTP verification, passes all pre-close checks, then sets status=LOCKED.
      */
     public AccountingPeriodDto close(UUID periodId, boolean totpVerified) {
+        ensureTenantGuc();
         if (!totpVerified) {
             throw new TotpRequiredException();
         }
@@ -55,7 +73,7 @@ public class PeriodCloseService {
         var period = periodRepo.findById(periodId)
                 .orElseThrow(() -> new PeriodNotFoundException(periodId));
 
-        if (period.getStatus() == PeriodStatus.LOCKED) {
+        if (period.getStatus() != PeriodStatus.OPEN) {
             throw new PeriodAlreadyLockedException(periodId);
         }
 
@@ -75,9 +93,24 @@ public class PeriodCloseService {
         }
 
         period.setStatus(PeriodStatus.LOCKED);
-        period.setLockedBy(tenantContext.getUserId().orElse(null));
+        UUID closedBy = tenantContext.getUserId().orElse(null);
+        period.setLockedBy(closedBy);
         period.setLockedAt(Instant.now());
         periodRepo.save(period);
+
+        var payload = new java.util.HashMap<String, Object>();
+        payload.put("periodId", period.getId());
+        payload.put("fiscalYear", period.getFiscalYear());
+        payload.put("periodNo", period.getPeriodNo());
+        if (closedBy != null) {
+            payload.put("closedBy", closedBy);
+        }
+        eventPublisher.publish(
+                FINANCE_EXCHANGE,
+                PERIOD_CLOSED_KEY,
+                PERIOD_CLOSED_TYPE,
+                null,
+                payload);
 
         return periodMapper.toDto(period);
     }

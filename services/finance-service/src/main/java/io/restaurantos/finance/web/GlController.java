@@ -3,6 +3,9 @@ package io.restaurantos.finance.web;
 import io.restaurantos.finance.dto.GlBalanceDto;
 import io.restaurantos.finance.dto.JournalLineDto;
 import io.restaurantos.finance.service.GlService;
+import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.api.PageMeta;
+import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -18,23 +21,39 @@ import java.util.UUID;
 public class GlController {
 
     private final GlService glService;
+    private final TenantContext tenantContext;
 
-    public GlController(GlService glService) {
+    public GlController(GlService glService, TenantContext tenantContext) {
         this.glService = glService;
+        this.tenantContext = tenantContext;
     }
 
-    @GetMapping
-    @PreAuthorize("hasAuthority('finance.gl.read')")
-    public ResponseEntity<List<GlBalanceDto>> getBalances(@RequestParam UUID periodId) {
-        return ResponseEntity.ok(glService.getGlBalances(periodId));
+    @GetMapping({"/balances", ""})
+    @PreAuthorize("hasAuthority('finance.journal.view')")
+    public ResponseEntity<ApiResponse<List<GlBalanceDto>>> getBalances(@RequestParam UUID periodId) {
+        UUID branchId = requireBranchId();
+        return ResponseEntity.ok(ApiResponse.ok(glService.getGlBalances(periodId, branchId)));
     }
 
     @GetMapping("/{accountCode}/entries")
-    @PreAuthorize("hasAuthority('finance.gl.read')")
-    public ResponseEntity<Page<JournalLineDto>> getEntries(
+    @PreAuthorize("hasAuthority('finance.journal.view')")
+    public ResponseEntity<ApiResponse<List<JournalLineDto>>> getEntries(
             @PathVariable String accountCode,
             @RequestParam UUID periodId,
             @PageableDefault(size = 50) Pageable pageable) {
-        return ResponseEntity.ok(glService.getGlEntries(accountCode, periodId, pageable));
+        UUID branchId = requireBranchId();
+        Page<JournalLineDto> page =
+                glService.getGlEntries(accountCode, periodId, branchId, pageable);
+        return ResponseEntity.ok(ApiResponse.paginated(page.getContent(), new PageMeta(
+                new PageMeta.Page(
+                        String.valueOf(page.getNumber()),
+                        page.hasNext() ? String.valueOf(page.getNumber() + 1) : null,
+                        page.getSize()),
+                page.getTotalElements())));
+    }
+
+    private UUID requireBranchId() {
+        return tenantContext.getBranchId()
+                .orElseThrow(() -> new IllegalStateException("Branch context required"));
     }
 }

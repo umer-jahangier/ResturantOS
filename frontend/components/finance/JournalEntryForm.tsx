@@ -1,33 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCreateJe } from "@/lib/hooks/finance/use-journal-entries";
+import { useOpenPeriods } from "@/lib/hooks/finance/use-periods";
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { AccountCodeSelect } from "@/components/finance/AccountCodeSelect";
+import { OpenPeriodDatePicker } from "@/components/finance/OpenPeriodDatePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatUserFacingError } from "@/lib/api-client/errors";
 import type { CreateJeLineRequest } from "@/lib/models/finance.model";
 
 interface JeLineState {
   accountCode: string;
+  accountName: string;
   description: string;
   debitPaisa: string;
   creditPaisa: string;
 }
 
 function emptyLine(): JeLineState {
-  return { accountCode: "", description: "", debitPaisa: "0", creditPaisa: "0" };
+  return {
+    accountCode: "",
+    accountName: "",
+    description: "",
+    debitPaisa: "0",
+    creditPaisa: "0",
+  };
 }
 
 function JournalEntryForm() {
   const router = useRouter();
+  const { branchId } = useCurrentUser();
   const { mutate: createJe, isPending, error } = useCreateJe();
+  const { data: openPeriods } = useOpenPeriods();
 
-  const [entryDate, setEntryDate] = useState<string>(
-    new Date().toISOString().split("T")[0] ?? "",
-  );
+  const defaultDate = useMemo(() => {
+    const first = openPeriods?.[0];
+    if (!first) return "";
+    const today = new Date().toISOString().split("T")[0] ?? "";
+    if (today >= first.startDate && today <= first.endDate) return today;
+    return first.startDate;
+  }, [openPeriods]);
+
+  const [entryDate, setEntryDate] = useState("");
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<JeLineState[]>([emptyLine(), emptyLine()]);
+
+  useEffect(() => {
+    if (defaultDate && !entryDate) {
+      setEntryDate(defaultDate);
+    }
+  }, [defaultDate, entryDate]);
 
   const totalDebit = lines.reduce(
     (sum, l) => sum + (parseInt(l.debitPaisa || "0", 10) || 0),
@@ -38,6 +64,7 @@ function JournalEntryForm() {
     0,
   );
   const isBalanced = totalDebit === totalCredit && totalDebit > 0;
+  const hasValidAccounts = lines.every((line) => line.accountCode.length > 0);
 
   function updateLine(index: number, field: keyof JeLineState, value: string) {
     setLines((prev) =>
@@ -56,7 +83,7 @@ function JournalEntryForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isBalanced) return;
+    if (!isBalanced || !hasValidAccounts || !branchId || !entryDate) return;
 
     const jeLines: CreateJeLineRequest[] = lines.map((l) => ({
       accountCode: l.accountCode,
@@ -66,7 +93,7 @@ function JournalEntryForm() {
     }));
 
     createJe(
-      { entryDate, description, lines: jeLines },
+      { entryDate, description, branchId, lines: jeLines },
       {
         onSuccess: (je) => {
           router.push(`/app/finance/journal-entries/${je.id}`);
@@ -77,16 +104,10 @@ function JournalEntryForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="entryDate">Entry Date</Label>
-          <Input
-            id="entryDate"
-            type="date"
-            value={entryDate}
-            onChange={(e) => setEntryDate(e.target.value)}
-            required
-          />
+          <Label>Entry Date (open periods only)</Label>
+          <OpenPeriodDatePicker value={entryDate} onChange={setEntryDate} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="description">Description</Label>
@@ -102,7 +123,7 @@ function JournalEntryForm() {
 
       <div className="space-y-2">
         <div className="grid grid-cols-[1fr_1fr_7rem_7rem_2rem] gap-2 text-xs font-medium text-muted-foreground">
-          <span>Account Code</span>
+          <span>Account</span>
           <span>Description</span>
           <span className="text-right">Debit (paisa)</span>
           <span className="text-right">Credit (paisa)</span>
@@ -114,12 +135,23 @@ function JournalEntryForm() {
             key={i}
             className="grid grid-cols-[1fr_1fr_7rem_7rem_2rem] gap-2"
           >
-            <Input
+            <AccountCodeSelect
               value={line.accountCode}
-              onChange={(e) => updateLine(i, "accountCode", e.target.value)}
-              placeholder="e.g. 1000"
+              selectedName={line.accountName}
               required
-              className="font-mono"
+              onChange={(account) => {
+                setLines((prev) =>
+                  prev.map((row, index) =>
+                    index === i
+                      ? {
+                          ...row,
+                          accountCode: account.code,
+                          accountName: account.name,
+                        }
+                      : row,
+                  ),
+                );
+              }}
             />
             <Input
               value={line.description}
@@ -186,13 +218,16 @@ function JournalEntryForm() {
       </div>
 
       {error && (
-        <p className="text-sm text-destructive">
-          {error instanceof Error ? error.message : "Failed to create journal entry"}
+        <p className="text-sm text-destructive" role="alert">
+          {formatUserFacingError(error)}
         </p>
       )}
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={!isBalanced || isPending}>
+        <Button
+          type="submit"
+          disabled={!isBalanced || !hasValidAccounts || !entryDate || isPending}
+        >
           {isPending ? "Saving…" : "Save as Draft"}
         </Button>
         <Button

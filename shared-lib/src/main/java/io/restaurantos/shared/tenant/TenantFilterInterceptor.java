@@ -9,9 +9,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.UUID;
 
 /**
- * HTTP path: enables the Hibernate tenantFilter and sets app.current_tenant_id for RLS
- * after JwtAuthenticationFilter has populated TenantContext.
- * Registered for all controllers by SharedAutoConfiguration / WebMvcSharedConfig.
+ * HTTP path: enables the Hibernate tenantFilter after JwtAuthenticationFilter has
+ * populated TenantContext. PostgreSQL RLS GUC is applied by {@link TenantAwareDataSource}
+ * at JDBC connection checkout (same connection as {@code @Transactional} work).
  */
 public class TenantFilterInterceptor implements HandlerInterceptor {
 
@@ -29,9 +29,6 @@ public class TenantFilterInterceptor implements HandlerInterceptor {
         UUID tenantId = tenantContext.requireTenantId();
         Session session = entityManager.unwrap(Session.class);
         session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
-        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
-            .setParameter("tid", tenantId.toString())
-            .getSingleResult();
         return true;
     }
 }

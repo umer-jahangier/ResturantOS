@@ -83,3 +83,51 @@ test_close_period_missing_permission_deny if {
         "resource": base_resource({}),
     }
 }
+
+test_view_coa_allow if {
+    finance.allow with input as {
+        "action": "view_coa",
+        "user": base_user(["finance.coa.view"], 0),
+        "resource": base_resource({}),
+    }
+}
+
+test_view_coa_cross_tenant_deny if {
+    not finance.allow with input as {
+        "action": "view_coa",
+        "user": base_user(["finance.coa.view"], 0),
+        "resource": base_resource({"tenant_id": other_tenant}),
+    }
+}
+
+test_post_journal_allow if {
+    finance.allow with input as {
+        "action": "post_journal",
+        "user": base_user(["finance.journal.post"], 0),
+        "resource": base_resource({}),
+    }
+}
+
+test_post_journal_cross_branch_deny if {
+    not finance.allow with input as {
+        "action": "post_journal",
+        "user": base_user(["finance.journal.post"], 0),
+        "resource": base_resource({"branch_id": other_branch}),
+    }
+}
+
+test_reverse_journal_allow if {
+    finance.allow with input as {
+        "action": "reverse_journal",
+        "user": base_user(["finance.journal.reverse"], 0),
+        "resource": base_resource({}),
+    }
+}
+
+test_reverse_journal_missing_permission_deny if {
+    not finance.allow with input as {
+        "action": "reverse_journal",
+        "user": base_user(["finance.journal.view"], 0),
+        "resource": base_resource({}),
+    }
+}

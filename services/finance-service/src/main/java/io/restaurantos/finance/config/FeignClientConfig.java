@@ -13,6 +13,6 @@ public class FeignClientConfig {
 
     @Bean
     public RequestInterceptor internalServiceInterceptor() {
-        return template -> template.header("X-Internal-Secret", internalSecret);
+        return template -> template.header("X-Internal-Service", internalSecret);
     }
 }

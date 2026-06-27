@@ -11,12 +11,14 @@ import {
   apiJournalEntrySchema,
   apiAccountingPeriodSchema,
   apiGlBalanceSchema,
+  apiFinanceSetupStatusSchema,
 } from "@/lib/api-client/schemas/finance.schema";
 import {
   adaptAccount,
   adaptJournalEntry,
   adaptAccountingPeriod,
   adaptGlBalance,
+  adaptFinanceSetupStatus,
 } from "@/lib/adapters/finance.adapter";
 import type {
   Account,
@@ -26,6 +28,7 @@ import type {
   AccountFilters,
   JeFilters,
   CreateJeRequest,
+  FinanceSetupStatus,
 } from "@/lib/models/finance.model";
 
 // Layer-2 Finance repository. Calls Layer-1 request helpers, parses via Zod,
@@ -50,6 +53,19 @@ export const FinanceRepository = {
   async getAccount(code: string): Promise<Account> {
     const raw = await get(`/api/v1/finance/accounts/${code}`);
     return adaptAccount(apiAccountSchema.parse(raw));
+  },
+
+  async searchAccounts(query: string): Promise<Account[]> {
+    const result = await getPaginated<unknown>("/api/v1/finance/accounts/search", {
+      q: query,
+      size: 20,
+    });
+    return result.data.map((raw) => adaptAccount(apiAccountSchema.parse(raw)));
+  },
+
+  async getSetupStatus(): Promise<FinanceSetupStatus> {
+    const raw = await get<unknown>("/api/v1/finance/accounts/setup/status");
+    return adaptFinanceSetupStatus(apiFinanceSetupStatusSchema.parse(raw));
   },
 
   // ── Journal Entries ────────────────────────────────────────────────────────
@@ -95,6 +111,11 @@ export const FinanceRepository = {
     const params: Record<string, unknown> = {};
     if (fiscalYear) params.fiscalYear = fiscalYear;
     const raw = await get<unknown[]>("/api/v1/finance/periods", params);
+    return (raw ?? []).map((item) => adaptAccountingPeriod(apiAccountingPeriodSchema.parse(item)));
+  },
+
+  async listOpenPeriods(): Promise<AccountingPeriod[]> {
+    const raw = await get<unknown[]>("/api/v1/finance/periods/open");
     return (raw ?? []).map((item) => adaptAccountingPeriod(apiAccountingPeriodSchema.parse(item)));
   },
 

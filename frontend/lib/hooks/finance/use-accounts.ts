@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FinanceRepository } from "@/lib/repositories/finance.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import type { AccountFilters } from "@/lib/models/finance.model";
 
 export function useAccounts(filters?: AccountFilters) {
@@ -24,15 +25,21 @@ export function useAccount(code: string) {
   });
 }
 
-export function useCreateJournalEntry() {
-  const { branchId } = useCurrentUser();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: FinanceRepository.createJournalEntry,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ["finance", branchId, "journal-entries"],
-      });
-    },
+export function useAccountSearch(query: string) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
+  return useQuery({
+    queryKey: queryKeys.finance.accountSearch(branchId, debouncedQuery),
+    queryFn: () => FinanceRepository.searchAccounts(debouncedQuery),
+    enabled: isAuthenticated && !!branchId && debouncedQuery.length >= 1,
+  });
+}
+
+export function useFinanceSetupStatus() {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery({
+    queryKey: queryKeys.finance.setupStatus(branchId),
+    queryFn: () => FinanceRepository.getSetupStatus(),
+    enabled: isAuthenticated && !!branchId,
   });
 }

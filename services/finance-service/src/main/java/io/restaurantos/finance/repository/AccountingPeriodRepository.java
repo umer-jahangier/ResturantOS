@@ -23,4 +23,9 @@ public interface AccountingPeriodRepository extends JpaRepository<AccountingPeri
             UUID tenantId, LocalDate date1, LocalDate date2);
 
     boolean existsByTenantIdAndFiscalYearAndPeriodNo(UUID tenantId, int fiscalYear, int periodNo);
+
+    long countByTenantId(UUID tenantId);
+
+    List<AccountingPeriod> findByTenantIdAndStatusOrderByStartDateAsc(
+            UUID tenantId, PeriodStatus status);
 }

@@ -14,11 +14,13 @@ import java.util.UUID;
 @Repository
 public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID> {
 
-    Page<JournalEntry> findByPeriodId(UUID periodId, Pageable pageable);
+    Page<JournalEntry> findByPeriodIdAndBranchId(UUID periodId, UUID branchId, Pageable pageable);
 
-    Page<JournalEntry> findByStatus(JeStatus status, Pageable pageable);
-
-    Page<JournalEntry> findByEntryDateBetween(LocalDate from, LocalDate to, Pageable pageable);
+    Page<JournalEntry> findByEntryDateBetweenAndBranchId(
+            LocalDate from, LocalDate to, UUID branchId, Pageable pageable);
 
     Optional<JournalEntry> findByEntryNo(String entryNo);
+
+    Optional<JournalEntry> findByTenantIdAndSourceTypeAndSourceId(
+            UUID tenantId, String sourceType, UUID sourceId);
 }

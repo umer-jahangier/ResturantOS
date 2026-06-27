@@ -3,10 +3,13 @@ package io.restaurantos.finance.service;
 import io.restaurantos.finance.domain.enums.PeriodStatus;
 import io.restaurantos.finance.domain.model.AccountingPeriod;
 import io.restaurantos.finance.dto.AccountingPeriodDto;
+import io.restaurantos.finance.dto.PeriodStatusResponse;
 import io.restaurantos.finance.exception.PeriodNotFoundException;
 import io.restaurantos.finance.mapper.PeriodMapper;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.tenant.TenantGucHelper;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +25,20 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     private final AccountingPeriodRepository periodRepo;
     private final PeriodMapper periodMapper;
     private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
     public AccountingPeriodServiceImpl(AccountingPeriodRepository periodRepo,
                                         PeriodMapper periodMapper,
-                                        TenantContext tenantContext) {
+                                        TenantContext tenantContext,
+                                        EntityManager entityManager) {
         this.periodRepo = periodRepo;
         this.periodMapper = periodMapper;
         this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
+    }
+
+    private void ensureTenantGuc() {
+        TenantGucHelper.apply(entityManager, tenantContext);
     }
 
     /**
@@ -39,6 +49,7 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
      */
     @Override
     public int seedForTenant(UUID tenantId, int fiscalYear) {
+        ensureTenantGuc();
         int seeded = 0;
         int startCalYear = fiscalYear - 1;
         for (int periodNo = 1; periodNo <= 12; periodNo++) {
@@ -66,6 +77,7 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     @Override
     @Transactional(readOnly = true)
     public List<AccountingPeriodDto> listByFiscalYear(int fiscalYear) {
+        ensureTenantGuc();
         UUID tid = tenantContext.requireTenantId();
         return periodRepo.findByTenantIdAndFiscalYearOrderByPeriodNo(tid, fiscalYear)
                 .stream()
@@ -76,8 +88,9 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     @Override
     @Transactional(readOnly = true)
     public List<AccountingPeriodDto> listByStatus(PeriodStatus status) {
+        ensureTenantGuc();
         UUID tid = tenantContext.requireTenantId();
-        return periodRepo.findByTenantIdAndStatus(tid, status)
+        return periodRepo.findByTenantIdAndStatusOrderByStartDateAsc(tid, status)
                 .stream()
                 .map(periodMapper::toDto)
                 .toList();
@@ -85,7 +98,14 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<AccountingPeriodDto> listOpenPeriods() {
+        return listByStatus(PeriodStatus.OPEN);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AccountingPeriodDto getById(UUID id) {
+        ensureTenantGuc();
         return periodRepo.findById(id)
                 .map(periodMapper::toDto)
                 .orElseThrow(() -> new PeriodNotFoundException(id));
@@ -94,7 +114,20 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     @Override
     @Transactional(readOnly = true)
     public Optional<AccountingPeriod> getCurrentOpenPeriod() {
+        ensureTenantGuc();
         UUID tid = tenantContext.requireTenantId();
         return periodRepo.findFirstByTenantIdAndStatusOrderByEndDateDesc(tid, PeriodStatus.OPEN);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PeriodStatusResponse getPeriodStatus(UUID branchId, LocalDate date) {
+        ensureTenantGuc();
+        UUID tid = tenantContext.requireTenantId();
+        AccountingPeriod period = periodRepo
+                .findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tid, date, date)
+                .orElseThrow(() -> new PeriodNotFoundException(null));
+        return new PeriodStatusResponse(
+                period.getId(), period.getStatus(), period.getFiscalYear(), period.getPeriodNo());
     }
 }

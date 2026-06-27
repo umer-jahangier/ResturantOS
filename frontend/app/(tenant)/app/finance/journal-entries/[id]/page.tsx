@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import { formatUserFacingError } from "@/lib/api-client/errors";
 import { useJournalEntry, usePostJe, useReverseJe } from "@/lib/hooks/finance/use-journal-entries";
 import { DrCrCell } from "@/components/finance/DrCrCell";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
@@ -16,8 +17,8 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
   const { data: je, isLoading, isError } = useJournalEntry(id);
-  const { mutate: postJe, isPending: isPosting } = usePostJe();
-  const { mutate: reverseJe, isPending: isReversing } = useReverseJe();
+  const { mutate: postJe, isPending: isPosting, error: postError } = usePostJe();
+  const { mutate: reverseJe, isPending: isReversing, error: reverseError } = useReverseJe();
 
   if (isLoading) {
     return (
@@ -74,6 +75,12 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
           )}
         </div>
       </div>
+
+      {(postError || reverseError) && (
+        <p className="text-sm text-destructive" role="alert">
+          {formatUserFacingError(postError ?? reverseError)}
+        </p>
+      )}
 
       <div className="rounded border p-4 text-sm">
         <div className="grid grid-cols-3 gap-4">

@@ -71,7 +71,14 @@ export interface CreateJeLineRequest {
 export interface CreateJeRequest {
   entryDate: string;
   description: string;
+  branchId?: string;
   lines: CreateJeLineRequest[];
+}
+
+export interface FinanceSetupStatus {
+  accountCount: number;
+  periodCount: number;
+  provisioned: boolean;
 }
 
 export interface AccountFilters {

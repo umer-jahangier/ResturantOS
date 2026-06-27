@@ -7,6 +7,7 @@ import type {
   ApiJournalLine,
   ApiAccountingPeriod,
   ApiGlBalance,
+  ApiFinanceSetupStatus,
 } from "@/lib/api-client/schemas/finance.schema";
 import type {
   Account,
@@ -15,6 +16,7 @@ import type {
   JournalLine,
   AccountingPeriod,
   GlBalance,
+  FinanceSetupStatus,
 } from "@/lib/models/finance.model";
 
 export function adaptAccount(raw: ApiAccount): Account {
@@ -73,5 +75,13 @@ export function adaptGlBalance(raw: ApiGlBalance): GlBalance {
     debitTotal: raw.debitTotal,
     creditTotal: raw.creditTotal,
     netBalance: raw.netBalance,
+  };
+}
+
+export function adaptFinanceSetupStatus(raw: ApiFinanceSetupStatus): FinanceSetupStatus {
+  return {
+    accountCount: raw.accountCount,
+    periodCount: raw.periodCount,
+    provisioned: raw.provisioned,
   };
 }

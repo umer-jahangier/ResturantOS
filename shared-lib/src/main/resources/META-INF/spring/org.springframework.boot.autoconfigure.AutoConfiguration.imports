@@ -1,2 +1,3 @@
 io.restaurantos.shared.config.SharedAutoConfiguration
+io.restaurantos.shared.config.TenantDataSourceAutoConfiguration
 io.restaurantos.shared.config.EncryptionAutoConfiguration

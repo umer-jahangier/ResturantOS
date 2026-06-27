@@ -18,6 +18,12 @@ import org.springframework.web.client.RestClient;
 @EnableMethodSecurity
 public class FinanceSecurityConfig {
 
+    private final FinanceInternalServiceFilter internalServiceFilter;
+
+    public FinanceSecurityConfig(FinanceInternalServiceFilter internalServiceFilter) {
+        this.internalServiceFilter = internalServiceFilter;
+    }
+
     @Bean
     public JwksKeyProvider jwksKeyProvider(@Value("${restaurantos.jwks.uri}") String jwksUri) {
         return new JwksKeyProvider(jwksUri, RestClient.create());
@@ -41,7 +47,8 @@ public class FinanceSecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwtAuthenticationFilter, FinanceInternalServiceFilter.class);
         return http.build();
     }
 }

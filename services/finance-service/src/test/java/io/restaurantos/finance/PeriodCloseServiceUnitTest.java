@@ -10,7 +10,10 @@ import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.mapper.PeriodMapper;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
 import io.restaurantos.finance.service.PeriodCloseService;
+import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +44,12 @@ class PeriodCloseServiceUnitTest {
     private PurchasingInternalClient purchasingClient;
     @Mock
     private TenantContext tenantContext;
+    @Mock
+    private EventPublisher eventPublisher;
+    @Mock
+    private EntityManager entityManager;
+    @Mock
+    private Query nativeQuery;
 
     private PeriodCloseService service;
 
@@ -49,10 +58,17 @@ class PeriodCloseServiceUnitTest {
 
     @BeforeEach
     void setUp() {
+        UUID tenantId = UUID.randomUUID();
+        when(tenantContext.getTenantId()).thenReturn(Optional.of(tenantId));
+        when(tenantContext.requireTenantId()).thenReturn(tenantId);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), any())).thenReturn(nativeQuery);
+        when(nativeQuery.getSingleResult()).thenReturn("");
+
         service = new PeriodCloseService(
                 periodRepo, periodMapper,
                 posClient, inventoryClient, purchasingClient,
-                tenantContext
+                tenantContext, eventPublisher, entityManager
         );
 
         periodId = UUID.randomUUID();

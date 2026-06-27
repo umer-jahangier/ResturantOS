@@ -69,6 +69,12 @@ public class FinanceGlobalExceptionHandler {
         return ResponseEntity.notFound().build();
     }
 
+    @ExceptionHandler(InvalidAccountCodeException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidAccountCode(InvalidAccountCodeException ex) {
+        return ResponseEntity.badRequest()
+                .body(errorBody("INVALID_ACCOUNT_CODE", ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.badRequest()

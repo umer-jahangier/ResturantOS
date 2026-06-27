@@ -16,3 +16,33 @@ allow if {
     common.has_permission(input, "finance.period.close")
     common.same_tenant(input)
 }
+
+allow if {
+    input.action == "view_coa"
+    common.has_permission(input, "finance.coa.view")
+    common.same_tenant(input)
+}
+
+allow if {
+    input.action == "manage_coa"
+    common.has_permission(input, "finance.coa.manage")
+    common.same_tenant(input)
+}
+
+allow if {
+    input.action == "view_journal"
+    common.has_permission(input, "finance.journal.view")
+    common.same_tenant_and_branch(input)
+}
+
+allow if {
+    input.action == "post_journal"
+    common.has_permission(input, "finance.journal.post")
+    common.same_tenant_and_branch(input)
+}
+
+allow if {
+    input.action == "reverse_journal"
+    common.has_permission(input, "finance.journal.reverse")
+    common.same_tenant_and_branch(input)
+}

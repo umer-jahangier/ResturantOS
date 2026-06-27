@@ -19,5 +19,7 @@ public record JournalEntryDto(
         boolean reversal,
         UUID reversalOfJe,
         UUID reversedByJe,
+        long totalDebitPaisa,
+        long totalCreditPaisa,
         List<JournalLineDto> lines
 ) {}

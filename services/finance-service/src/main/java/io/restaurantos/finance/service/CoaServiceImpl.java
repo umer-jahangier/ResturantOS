@@ -4,10 +4,15 @@ import io.restaurantos.finance.domain.enums.AccountType;
 import io.restaurantos.finance.domain.model.ChartOfAccount;
 import io.restaurantos.finance.dto.AccountDto;
 import io.restaurantos.finance.dto.CreateAccountRequest;
+import io.restaurantos.finance.dto.FinanceSetupStatusDto;
 import io.restaurantos.finance.exception.AccountNotFoundException;
 import io.restaurantos.finance.mapper.AccountMapper;
+import io.restaurantos.finance.repository.AccountingPeriodRepository;
 import io.restaurantos.finance.repository.ChartOfAccountRepository;
 import io.restaurantos.finance.seed.PakistanRestaurantCoaTemplate;
+import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.tenant.TenantGucHelper;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,15 +26,30 @@ import java.util.UUID;
 public class CoaServiceImpl implements CoaService {
 
     private final ChartOfAccountRepository coaRepo;
+    private final AccountingPeriodRepository periodRepo;
     private final AccountMapper mapper;
+    private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
-    public CoaServiceImpl(ChartOfAccountRepository coaRepo, AccountMapper mapper) {
+    public CoaServiceImpl(ChartOfAccountRepository coaRepo,
+                          AccountingPeriodRepository periodRepo,
+                          AccountMapper mapper,
+                          TenantContext tenantContext,
+                          EntityManager entityManager) {
         this.coaRepo = coaRepo;
+        this.periodRepo = periodRepo;
         this.mapper = mapper;
+        this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
+    }
+
+    private void ensureTenantGuc() {
+        TenantGucHelper.apply(entityManager, tenantContext);
     }
 
     @Override
     public int seedForTenant(UUID tenantId) {
+        ensureTenantGuc();
         List<ChartOfAccount> template = PakistanRestaurantCoaTemplate.build(tenantId);
         int count = 0;
         for (ChartOfAccount account : template) {
@@ -44,6 +64,7 @@ public class CoaServiceImpl implements CoaService {
     @Override
     @Transactional(readOnly = true)
     public Page<AccountDto> listAccounts(AccountType type, Boolean active, Pageable pageable) {
+        ensureTenantGuc();
         Page<ChartOfAccount> page;
         if (type != null && active != null) {
             page = coaRepo.findByAccountTypeAndActive(type, active, pageable);
@@ -60,6 +81,7 @@ public class CoaServiceImpl implements CoaService {
     @Override
     @Transactional(readOnly = true)
     public AccountDto getAccountByCode(String code) {
+        ensureTenantGuc();
         return coaRepo.findByCode(code)
                 .map(mapper::toDto)
                 .orElseThrow(() -> new AccountNotFoundException(code));
@@ -67,6 +89,7 @@ public class CoaServiceImpl implements CoaService {
 
     @Override
     public AccountDto createCustomAccount(CreateAccountRequest req) {
+        ensureTenantGuc();
         ChartOfAccount account = new ChartOfAccount();
         account.setCode(req.code());
         account.setName(req.name());
@@ -80,9 +103,30 @@ public class CoaServiceImpl implements CoaService {
     @Override
     @Transactional(readOnly = true)
     public AccountDto getAccountBySystemTag(String tag) {
+        ensureTenantGuc();
         return coaRepo.findBySystemTag(tag).stream()
                 .findFirst()
                 .map(mapper::toDto)
                 .orElseThrow(() -> new AccountNotFoundException("systemTag:" + tag));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AccountDto> searchActiveAccounts(String query, Pageable pageable) {
+        ensureTenantGuc();
+        if (query == null || query.isBlank()) {
+            return Page.empty(pageable);
+        }
+        return coaRepo.searchActiveByCodeOrName(query.trim(), pageable).map(mapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FinanceSetupStatusDto getSetupStatus() {
+        ensureTenantGuc();
+        UUID tenantId = tenantContext.requireTenantId();
+        long accountCount = coaRepo.countByTenantId(tenantId);
+        long periodCount = periodRepo.countByTenantId(tenantId);
+        return new FinanceSetupStatusDto(accountCount, periodCount, accountCount > 0 && periodCount > 0);
     }
 }

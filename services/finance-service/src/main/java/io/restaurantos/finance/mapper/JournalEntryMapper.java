@@ -16,6 +16,8 @@ public class JournalEntryMapper {
         List<JournalLineDto> lineDtos = je.getLines().stream()
                 .map(this::toLineDto)
                 .toList();
+        long totalDebit = je.getLines().stream().mapToLong(JournalLine::getDebitPaisa).sum();
+        long totalCredit = je.getLines().stream().mapToLong(JournalLine::getCreditPaisa).sum();
         return new JournalEntryDto(
                 je.getId(),
                 je.getEntryNo(),
@@ -29,6 +31,8 @@ public class JournalEntryMapper {
                 je.isReversal(),
                 je.getReversalOfJe(),
                 je.getReversedByJe(),
+                totalDebit,
+                totalCredit,
                 lineDtos
         );
     }
