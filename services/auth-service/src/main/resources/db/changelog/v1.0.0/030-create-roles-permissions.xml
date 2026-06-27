@@ -83,6 +83,8 @@
         <insert tableName="roles"><column name="code" value="ACCOUNTANT"/><column name="name" value="Accountant"/><column name="is_system" valueBoolean="true"/></insert>
         <insert tableName="roles"><column name="code" value="INVENTORY_MANAGER"/><column name="name" value="Inventory Manager"/><column name="is_system" valueBoolean="true"/></insert>
         <insert tableName="roles"><column name="code" value="CASHIER"/><column name="name" value="Cashier"/><column name="is_system" valueBoolean="true"/></insert>
+        <!-- Dev-only: view+post journal entries without TOTP step-up (no rbac.manage / finance.period.close) -->
+        <insert tableName="roles"><column name="code" value="FINANCE_VIEWER"/><column name="name" value="Finance Viewer"/><column name="is_system" valueBoolean="true"/></insert>
         <rollback><delete tableName="roles"><where>is_system = true</where></delete></rollback>
     </changeSet>
 
@@ -116,6 +118,9 @@
         <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.create"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.close"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.view"/></insert>
+        <!-- FINANCE_VIEWER: read + post journal entries — no period.close, no rbac.manage → no TOTP step-up -->
+        <insert tableName="role_permissions"><column name="role_code" value="FINANCE_VIEWER"/><column name="permission_code" value="finance.journal.view"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="FINANCE_VIEWER"/><column name="permission_code" value="finance.journal.post"/></insert>
         <rollback><delete tableName="role_permissions"/></rollback>
     </changeSet>
 

@@ -38,6 +38,16 @@
             <column name="locale" value="en"/>
             <column name="totp_enabled" valueBoolean="false"/>
         </insert>
+        <!-- Finance Viewer: journal view+post only — no TOTP step-up (no rbac.manage/finance.period.close) -->
+        <insert tableName="users">
+            <column name="id" value="c0000004-0000-4000-8000-000000000004"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="finance_demo@demo.local"/>
+            <column name="password_hash" value="$2a$12$placeholderHashReplaceOnFirstDeploy.XXXXXXXXXXXXXXXXXXXXa"/>
+            <column name="full_name" value="Demo Finance Viewer"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
         <rollback>
             <delete tableName="users"><where>tenant_id = 'a0000001-0000-4000-8000-000000000001'</where></delete>
         </rollback>
@@ -87,6 +97,14 @@
             <column name="branch_id" value="b0000002-0000-4000-8000-000000000002"/>
             <column name="role_code" value="ACCOUNTANT"/>
             <column name="approval_limit_paisa" valueNumeric="50000000"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000006-0000-4000-8000-000000000006"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000004-0000-4000-8000-000000000004"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="FINANCE_VIEWER"/>
+            <column name="approval_limit_paisa" valueNumeric="25000000"/>
         </insert>
         <rollback>
             <delete tableName="user_branch_roles"><where>tenant_id = 'a0000001-0000-4000-8000-000000000001'</where></delete>
