@@ -41,6 +41,12 @@ public class BranchController {
         return ResponseEntity.ok(ApiResponse.ok(branches));
     }
 
+    /** Branches assigned to the signed-in user (branch switcher). */
+    @GetMapping("/mine")
+    public ResponseEntity<ApiResponse<List<BranchDtos.MineBranchResponse>>> listMine() {
+        return ResponseEntity.ok(ApiResponse.ok(branchService.listMine()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BranchResponse>> get(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(toResponse(branchService.get(id))));

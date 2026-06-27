@@ -4,6 +4,7 @@ import io.restaurantos.user.dto.BranchDtos;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -40,6 +41,15 @@ public interface AuthInternalClient {
         @RequestHeader("X-Tenant-Id") UUID tenantId,
         @RequestParam("branchId") UUID branchId,
         @RequestParam("roleCode") String roleCode
+    );
+
+    /**
+     * List active branch-role assignments for a user (auth-service system of record).
+     */
+    @GetMapping("/internal/auth/users/{userId}/branch-roles")
+    List<BranchDtos.BranchRoleAssignment> listBranchRoles(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId
     );
 
     /**

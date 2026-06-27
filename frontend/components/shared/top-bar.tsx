@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   CommandPalette,
   CommandGroup,
@@ -26,12 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
 import { useLogout } from "@/lib/hooks/auth/use-logout";
-
-const BRANCH_NAMES: Record<string, string> = {
-  "b0000001-0000-4000-8000-000000000001": "Main Branch (HQ)",
-  "b0000002-0000-4000-8000-000000000002": "Downtown Branch",
-};
 
 interface TopBarProps {
   onMobileMenuToggle?: () => void;
@@ -89,12 +86,15 @@ const NAV_COMMANDS = [
 export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const { userId, branchId } = useCurrentUser();
+  const { data: myBranches = [], isLoading: branchesLoading } = useMyBranches();
   const logout = useLogout();
 
   // User initial for avatar circle — fallback to "U"
   const userInitial = userId ? userId.slice(0, 1).toUpperCase() : "U";
-  // Branch name resolved from known seed branches; Phase-3 will use live API data
-  const branchName = branchId ? (BRANCH_NAMES[branchId] ?? "Unknown Branch") : null;
+  const branchName =
+    branchId != null
+      ? (myBranches.find((branch) => branch.id === branchId)?.name ?? null)
+      : null;
 
   function handleLogout() {
     logout.mutate();
@@ -119,11 +119,13 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
         </div>
 
         {/* Active branch indicator — always visible so users know their ABAC scope */}
-        {branchName && (
+        {branchesLoading ? (
+          <Skeleton className="hidden h-6 w-28 sm:inline-flex" aria-label="Loading branch" />
+        ) : branchName ? (
           <span className="hidden sm:inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             {branchName}
           </span>
-        )}
+        ) : null}
 
         {/* Right actions */}
         <div className="flex items-center gap-2">

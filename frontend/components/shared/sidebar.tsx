@@ -180,13 +180,11 @@ export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps
           )}
         </div>
 
-        {/* Branch switcher — only visible to users with rbac.manage (OWNER/TENANT_ADMIN) */}
+        {/* Branch switcher — US-1.3: only when user has >1 assigned branch */}
         {!collapsed && (
-          <PermissionGuard require="rbac.manage">
-            <div className="border-b px-3 py-3">
-              <BranchSwitcher />
-            </div>
-          </PermissionGuard>
+          <div className="border-b px-3 py-3">
+            <BranchSwitcher />
+          </div>
         )}
 
         {/* Grouped navigation */}

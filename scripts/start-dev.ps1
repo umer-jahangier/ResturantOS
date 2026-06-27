@@ -99,6 +99,23 @@ if (-not (Wait-HttpOk "http://localhost:8761/" 180)) {
     Write-Warning "Eureka health check timed out - continuing anyway"
 }
 
+function Test-BootJar([string]$JarPath) {
+    if (-not (Test-Path $JarPath)) { return $false }
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("ros-bootjar-" + [Guid]::NewGuid().ToString("n"))
+    New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+    try {
+        Push-Location $tmp
+        jar xf $JarPath META-INF/MANIFEST.MF 2>$null | Out-Null
+        if (-not (Test-Path "META-INF/MANIFEST.MF")) { return $false }
+        return Select-String -Path "META-INF/MANIFEST.MF" -Pattern "^Main-Class:" -Quiet
+    } catch {
+        return $false
+    } finally {
+        Pop-Location
+        Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Start-ServiceWindow(
     [string]$Name,
     [string]$MavenModule,
@@ -107,16 +124,26 @@ function Start-ServiceWindow(
     $logFile = Join-Path $LogDir "$Name.log"
     $artifact = Split-Path $MavenModule -Leaf
     $jarPath = Join-Path $RepoRoot "$MavenModule/target/$artifact-1.0.0.jar"
+    $needsBuild = -not $SkipBuild.IsPresent -or -not (Test-BootJar $jarPath)
+    if ($needsBuild) {
+        Write-Host "  Building $Name..."
+        Push-Location $RepoRoot
+        mvn -pl $MavenModule -am -DskipTests package -q
+        if ($LASTEXITCODE -ne 0) {
+            Pop-Location
+            Write-Error "Maven build failed for $Name"
+        }
+        Pop-Location
+        if (-not (Test-BootJar $jarPath)) {
+            Write-Error "Expected executable Spring Boot jar at $jarPath (missing Main-Class). Re-run without -SkipBuild."
+        }
+    }
     $cmd = @"
 Set-Location '$RepoRoot'
 . '$PSScriptRoot\dev-env.ps1'
 . '$PSScriptRoot\local-service-env.ps1'
 `$Host.UI.RawUI.WindowTitle = 'RestaurantOS - $Name'
 $ExtraEnvBlock
-if (-not (Test-Path '$jarPath')) {
-    mvn -pl $MavenModule -am -DskipTests package -q
-    if (`$LASTEXITCODE -ne 0) { exit `$LASTEXITCODE }
-}
 java -jar '$jarPath' *>&1 | Tee-Object -FilePath '$logFile'
 "@
     $proc = Start-Process powershell -PassThru -WindowStyle Hidden -ArgumentList @(

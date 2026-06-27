@@ -3,26 +3,40 @@ package io.restaurantos.user.service;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.user.client.AuthInternalClient;
 import io.restaurantos.user.dto.BranchDtos;
 import io.restaurantos.user.entity.BranchEntity;
 import io.restaurantos.user.repository.BranchRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class BranchService {
 
     private final BranchRepository branchRepository;
     private final TenantContext tenantContext;
+    private final AuthInternalClient authInternalClient;
+    private final EntityManager entityManager;
 
-    public BranchService(BranchRepository branchRepository, TenantContext tenantContext) {
+    public BranchService(BranchRepository branchRepository,
+                         TenantContext tenantContext,
+                         AuthInternalClient authInternalClient,
+                         EntityManager entityManager) {
         this.branchRepository = branchRepository;
         this.tenantContext = tenantContext;
+        this.authInternalClient = authInternalClient;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -50,6 +64,46 @@ public class BranchService {
     @Transactional(readOnly = true)
     public List<BranchEntity> list() {
         return branchRepository.findAllByDeletedAtIsNull();
+    }
+
+    /** Branches the signed-in user is assigned to (US-1.3 branch switcher). */
+    @Transactional(readOnly = true)
+    public List<BranchDtos.MineBranchResponse> listMine() {
+        UUID userId = tenantContext.getUserId()
+            .orElseThrow(() -> new IllegalStateException("User id not set in tenant context"));
+        UUID tenantId = tenantContext.requireTenantId();
+        setTenantGuc(tenantId);
+
+        Map<UUID, String> roleByBranch = new LinkedHashMap<>();
+        for (BranchDtos.BranchRoleAssignment assignment : authInternalClient.listBranchRoles(userId, tenantId)) {
+            roleByBranch.putIfAbsent(assignment.branchId(), assignment.roleCode());
+        }
+        if (roleByBranch.isEmpty()) {
+            return List.of();
+        }
+
+        // Re-set GUC after the outbound Feign call — interceptor GUC is transaction-local
+        // and may not survive the external HTTP round-trip before this JPA query (RLS).
+        setTenantGuc(tenantId);
+
+        Map<UUID, BranchEntity> branchesById = branchRepository
+            .findAllByIdInAndDeletedAtIsNull(roleByBranch.keySet()).stream()
+            .collect(Collectors.toMap(BranchEntity::getId, Function.identity()));
+
+        return roleByBranch.entrySet().stream()
+            .map(entry -> toMineResponse(entry.getKey(), entry.getValue(), branchesById.get(entry.getKey())))
+            .sorted(Comparator.comparing(BranchDtos.MineBranchResponse::isHq).reversed()
+                .thenComparing(BranchDtos.MineBranchResponse::name))
+            .toList();
+    }
+
+    private static BranchDtos.MineBranchResponse toMineResponse(
+            UUID branchId, String roleCode, BranchEntity branch) {
+        if (branch != null) {
+            return new BranchDtos.MineBranchResponse(
+                branch.getId(), branch.getName(), branch.isHq(), roleCode);
+        }
+        return new BranchDtos.MineBranchResponse(branchId, "Branch " + branchId.toString().substring(0, 8), false, roleCode);
     }
 
     @Transactional(readOnly = true)
@@ -109,5 +163,11 @@ public class BranchService {
     @Transactional(readOnly = true)
     public List<BranchEntity> listByTenantId(UUID tenantId) {
         return branchRepository.findAllByTenantIdAndDeletedAtIsNull(tenantId);
+    }
+
+    private void setTenantGuc(UUID tenantId) {
+        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+            .setParameter("tid", tenantId.toString())
+            .getSingleResult();
     }
 }

@@ -1,7 +1,9 @@
 package io.restaurantos.auth.controller;
 
 import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
+import io.restaurantos.auth.dto.response.BranchRoleAssignmentResponse;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
+import io.restaurantos.auth.service.BranchAssignmentService;
 import io.restaurantos.auth.service.BranchRoleAdminService;
 import io.restaurantos.auth.service.PermissionResolver;
 import io.restaurantos.auth.service.ResolvedBranchAuth;
@@ -9,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,11 +27,14 @@ import java.util.UUID;
 public class AuthInternalController {
 
     private final BranchRoleAdminService branchRoleAdminService;
+    private final BranchAssignmentService branchAssignmentService;
     private final PermissionResolver permissionResolver;
 
     public AuthInternalController(BranchRoleAdminService branchRoleAdminService,
+                                  BranchAssignmentService branchAssignmentService,
                                   PermissionResolver permissionResolver) {
         this.branchRoleAdminService = branchRoleAdminService;
+        this.branchAssignmentService = branchAssignmentService;
         this.permissionResolver = permissionResolver;
     }
 
@@ -58,10 +64,14 @@ public class AuthInternalController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Compute permissions for a user at a specific branch (or default branch when branchId omitted).
-     * Wraps the existing PermissionResolver — authoritative source for JWT issuance.
-     */
+    /** List active branch-role assignments for a user (branch-switcher / mine branches). */
+    @GetMapping("/users/{userId}/branch-roles")
+    public ResponseEntity<List<BranchRoleAssignmentResponse>> listBranchRoles(
+            @PathVariable UUID userId,
+            @RequestHeader("X-Tenant-Id") UUID tenantId) {
+        return ResponseEntity.ok(branchAssignmentService.listActive(tenantId, userId));
+    }
+
     /**
      * Compute permissions for a user at a specific branch.
      * Caller (user-service via Feign) must supply X-Tenant-Id so TenantFilterInterceptor

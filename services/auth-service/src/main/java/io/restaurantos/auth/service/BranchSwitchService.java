@@ -6,6 +6,7 @@ import io.restaurantos.auth.repository.UserBranchRoleRepository;
 import io.restaurantos.auth.config.AuthJwtProperties;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -21,17 +22,20 @@ public class BranchSwitchService {
     private final JwtSigningService jwtSigningService;
     private final AuthJwtProperties jwtProperties;
     private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
     public BranchSwitchService(UserBranchRoleRepository userBranchRoleRepository,
                                PermissionResolver permissionResolver,
                                JwtSigningService jwtSigningService,
                                AuthJwtProperties jwtProperties,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               EntityManager entityManager) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.permissionResolver = permissionResolver;
         this.jwtSigningService = jwtSigningService;
         this.jwtProperties = jwtProperties;
         this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
     }
 
     @Transactional(readOnly = true)
@@ -39,6 +43,7 @@ public class BranchSwitchService {
         JwtClaims claims = currentClaims();
         UUID userId = claims.subject();
         UUID tenantId = claims.tenantId();
+        setTenantGuc(tenantId);
 
         userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, targetBranchId)
             .orElseThrow(() -> new BranchSwitchDeniedException("Branch not assigned to user"));
@@ -58,5 +63,12 @@ public class BranchSwitchService {
         }
         tenantContext.set(claims.tenantId(), claims.branchId(), claims.subject(), claims.impersonatedBy());
         return claims;
+    }
+
+    /** Sets the RLS tenant GUC inside the active transaction (matches AuthServiceImpl.login). */
+    private void setTenantGuc(UUID tenantId) {
+        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+            .setParameter("tid", tenantId.toString())
+            .getSingleResult();
     }
 }

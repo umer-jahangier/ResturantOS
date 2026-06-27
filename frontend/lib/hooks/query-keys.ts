@@ -12,6 +12,9 @@ export const queryKeys = {
   features: {
     all: (branchId: string) => ["features", branchId] as const,
   },
+  branches: {
+    mine: () => ["branches", "mine"] as const,
+  },
   finance: {
     accounts: (branchId: string, filters?: AccountFilters) =>
       ["finance", branchId, "accounts", filters] as const,

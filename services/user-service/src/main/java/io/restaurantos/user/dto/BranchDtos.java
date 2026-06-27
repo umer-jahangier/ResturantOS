@@ -68,4 +68,18 @@ public final class BranchDtos {
         @NotBlank String roleCode,
         Long approvalLimitPaisa
     ) {}
+
+    /** Active branch-role row from auth-service (internal + Feign). */
+    public record BranchRoleAssignment(
+        UUID branchId,
+        String roleCode
+    ) {}
+
+    /** Branches the current user is assigned to (GET /api/v1/branches/mine). */
+    public record MineBranchResponse(
+        UUID id,
+        String name,
+        boolean isHq,
+        String roleCode
+    ) {}
 }

@@ -47,6 +47,6 @@ restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   auth-service:
-    uri: ${AUTH_SERVICE_URI:http://auth-service:8081}
+    uri: ${AUTH_SERVICE_URI:http://127.0.0.1:8081}
   jwks:
-    uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+    uri: ${JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}

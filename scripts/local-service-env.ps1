@@ -23,6 +23,7 @@ $env:RABBITMQ_USER = if ($env:RABBITMQ_USERNAME) { $env:RABBITMQ_USERNAME } else
 $env:EUREKA_URL = "http://127.0.0.1:8761/eureka/"
 $env:OPA_URL = "http://127.0.0.1:8181"
 $env:JWT_JWKS_URL = "http://127.0.0.1:8081/.well-known/jwks.json"
+$env:AUTH_SERVICE_URI = "http://127.0.0.1:8081"
 $env:AUTH_COOKIE_SECURE = "false"
 $env:MINIO_ENDPOINT = "http://127.0.0.1:9000"
 

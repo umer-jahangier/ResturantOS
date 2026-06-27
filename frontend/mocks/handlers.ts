@@ -181,6 +181,27 @@ export const handlers = [
     }),
   ),
 
+  http.get("*/api/v1/branches/mine", () =>
+    HttpResponse.json({
+      data: [
+        {
+          id: BRANCH_ID,
+          name: "Main Branch (HQ)",
+          isHq: true,
+          roleCode: "OWNER",
+        },
+        {
+          id: ALT_BRANCH_ID,
+          name: "Downtown Branch",
+          isHq: false,
+          roleCode: "OWNER",
+        },
+      ],
+      meta: null,
+      warnings: [],
+    }),
+  ),
+
   http.get("*/api/v1/feature-flags", () =>
     HttpResponse.json({
       data: {
