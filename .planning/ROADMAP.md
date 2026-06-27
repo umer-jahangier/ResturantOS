@@ -130,8 +130,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: COA seeding + balanced/immutable JE engine (deferred balance trigger, reversal-only)
-- [ ] 06-02: Accounting periods (Jul–Jun) + period close/lock with internal-API pre-checks
+- [ ] 06-01-PLAN.md — Finance service scaffold + COA seeding (55 accounts) + balanced/immutable JE engine (deferred trigger, reversal-only) + GL API + IT suite (Wave 1)
+- [ ] 06-02-PLAN.md — Accounting periods (Jul–Jun) + period close/lock (TOTP-gated, Feign stubs) + Finance frontend pages §7.4 (Wave 2, depends on 06-01)
 
 ### Phase 7: Point of Sale & Kitchen Display
 **Goal**: Staff can run the floor end-to-end — open orders, route to the kitchen, take split-tender payments, manage tills, and operate offline — emitting the events (`ORDER_CLOSED`, `TILL_*`) that downstream modules consume.
