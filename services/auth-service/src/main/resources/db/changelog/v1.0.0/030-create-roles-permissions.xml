@@ -68,11 +68,15 @@
         <insert tableName="permissions"><column name="code" value="pos.order.create"/><column name="module" value="pos"/><column name="description" value="Create POS orders"/></insert>
         <insert tableName="permissions"><column name="code" value="pos.order.close"/><column name="module" value="pos"/><column name="description" value="Close POS orders"/></insert>
         <insert tableName="permissions"><column name="code" value="pos.order.view"/><column name="module" value="pos"/><column name="description" value="View POS orders"/></insert>
-        <insert tableName="permissions"><column name="code" value="pos.order.void"/><column name="module" value="pos"/><column name="description" value="Void POS orders"/></insert>
+        <insert tableName="permissions"><column name="code" value="pos.order.void.own"/><column name="module" value="pos"/><column name="description" value="Void own POS orders"/></insert>
+        <insert tableName="permissions"><column name="code" value="pos.order.void.any"/><column name="module" value="pos"/><column name="description" value="Void any POS order (manager-level)"/></insert>
         <insert tableName="permissions"><column name="code" value="inventory.item.view"/><column name="module" value="inventory"/><column name="description" value="View inventory"/></insert>
         <insert tableName="permissions"><column name="code" value="inventory.item.manage"/><column name="module" value="inventory"/><column name="description" value="Manage inventory"/></insert>
         <insert tableName="permissions"><column name="code" value="finance.journal.view"/><column name="module" value="finance"/><column name="description" value="View journal entries"/></insert>
         <insert tableName="permissions"><column name="code" value="finance.journal.post"/><column name="module" value="finance"/><column name="description" value="Post journal entries"/></insert>
+        <insert tableName="permissions"><column name="code" value="finance.expense.approve"/><column name="module" value="finance"/><column name="description" value="Approve expense requests"/></insert>
+        <insert tableName="permissions"><column name="code" value="vendor.manage"/><column name="module" value="vendor"/><column name="description" value="Manage vendors"/></insert>
+        <insert tableName="permissions"><column name="code" value="vendor.po.approve"/><column name="module" value="vendor"/><column name="description" value="Approve purchase orders"/></insert>
         <rollback><delete tableName="permissions"/></rollback>
     </changeSet>
 
@@ -99,22 +103,27 @@
             INSERT INTO role_permissions (role_code, permission_code)
             SELECT 'TENANT_ADMIN', code FROM permissions WHERE code != 'rbac.manage';
         </sql>
-        <!-- MANAGER -->
+        <!-- MANAGER: void own + any orders; approve expenses + vendor POs -->
         <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.create"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.close"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.view"/></insert>
-        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.void"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.void.own"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="pos.order.void.any"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="inventory.item.view"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="inventory.item.manage"/></insert>
-        <!-- ACCOUNTANT: finance.period.close + finance permissions -->
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="finance.expense.approve"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="vendor.manage"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="MANAGER"/><column name="permission_code" value="vendor.po.approve"/></insert>
+        <!-- ACCOUNTANT: finance.period.close + finance permissions + expense approval -->
         <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.period.close"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.journal.view"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.journal.post"/></insert>
+        <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="finance.expense.approve"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="ACCOUNTANT"/><column name="permission_code" value="pos.order.view"/></insert>
         <!-- INVENTORY_MANAGER -->
         <insert tableName="role_permissions"><column name="role_code" value="INVENTORY_MANAGER"/><column name="permission_code" value="inventory.item.view"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="INVENTORY_MANAGER"/><column name="permission_code" value="inventory.item.manage"/></insert>
-        <!-- CASHIER: NON-privileged — NO rbac.manage, NO finance.period.close -->
+        <!-- CASHIER: NON-privileged — NO void permissions, NO rbac.manage, NO finance.period.close -->
         <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.create"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.close"/></insert>
         <insert tableName="role_permissions"><column name="role_code" value="CASHIER"/><column name="permission_code" value="pos.order.view"/></insert>
