@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 6 of 12 (Finance Core — General Ledger + Accounting Periods)
-Plan: 1 of 2
-Status: Phase 6 Plan 1 complete — finance-service scaffold + JE engine + GL service deployed
-Last activity: 2026-06-27 — Completed 06-01: finance-service scaffold, COA seeding, JE engine, GL service, IT suite
+Plan: 2 of 2
+Status: Phase 6 COMPLETE — accounting periods + close/lock + TOTP gate + Finance frontend
+Last activity: 2026-06-27 — Completed 06-02: 12-period seeding, PeriodCloseService, Feign stubs, 7 Finance pages, 8 components
 
-Progress: [████████████████████░] 58% (19/33 plans)
+Progress: [█████████████████████░] 61% (20/33 plans)
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [████████████████████░] 58% 
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
 - Phase 4: 8/8 plans executed; verification passed (16/16 FE + 7/7 DS gap-closure; tsc/lint/vitest green)
-- Phase 6: 1/2 plans executed (06-01 complete; finance-service scaffold + JE engine)
+- Phase 6: 2/2 plans executed (COMPLETE — periods + close/lock + Finance frontend)
 
 **By Phase:**
 
@@ -34,11 +34,11 @@ Progress: [████████████████████░] 58% 
 | 02-authentication-authorization | 3/3 | 5/5 passed |
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
 | 04-frontend-shell-ci-cd | 8/8 | 16/16 FE + 7/7 DS passed |
-| 06-finance-core-general-ledger-periods | 1/2 | in-progress |
+| 06-finance-core-general-ledger-periods | 2/2 | complete |
 
 **Recent Trend:**
-- Last completed plan: 06-01
-- Trend: Phase 6 underway — finance-service scaffolded with Flyway DDL (5 tables + 3 DB triggers + RLS), 55-account Pakistan COA provisioning, full JE lifecycle (DRAFT→POST→REVERSE), GL read API, and IT suite proving deferred balance trigger and immutability trigger.
+- Last completed plan: 06-02
+- Trend: Phase 6 COMPLETE — 12-period seeding (Jul-Jun Pakistan FY), PeriodCloseService with TOTP gate, Feign stubs (POS/Inventory/Purchasing return 0), 7 Finance frontend pages, 8 components (DrCrCell font-mono, PeriodStatusChip emerald/amber, JournalEntryTable keyboard nav). pnpm build exits 0. AccountingPeriodIT + PeriodCloseServiceUnitTest all green.
 
 *Updated after each plan completion*
 
@@ -106,6 +106,12 @@ Recent decisions affecting current work:
 - [06-01-C]: Class-level @Transactional on JournalEntryServiceImpl — ensures post() runs in a transaction so deferred trigger fires at Spring transaction commit.
 - [06-01-D]: PakistanRestaurantCoaTemplate returns 55 accounts (1000–7200 range): Assets/Liabilities/Equity/Revenue/COGS/Expenses/Non-Operating, 17 system-tagged.
 - [06-01-E]: Immutability trigger exemption: reversed_by_je UPDATE on a POSTED JE is allowed (needed for the reversal workflow link-back).
+- [06-02-A]: Pakistan FY formula: period 1 = July of (fiscalYear-1). Month = ((6 + periodNo - 1) % 12) + 1. Year = startCalYear for periods 1-6 (Jul-Dec), fiscalYear for periods 7-12 (Jan-Jun).
+- [06-02-B]: TOTP gate via header-only in Phase 6 (X-TOTP-Verified=true); real step-up from Phase 2 auth-service (02-02) to be wired in Phase 7+.
+- [06-02-C]: Feign pre-close stubs return 0 with TODO comments for Phase 7/8/10; circuit breaker enabled (spring.cloud.openfeign.circuitbreaker.enabled=true).
+- [06-02-D]: Frontend follows existing 4-layer pattern: Zod schema → adapter → repository → TanStack Query hook → component (ESLint-enforced by no-restricted-imports on components/**).
+- [06-02-E]: Integration tests re-set TenantContext after provision() calls (finally block clears it); pattern: tenantContext.set(tenantId, null, null, null) after each provision().
+- [06-02-F]: Finance pages at /app/finance/* (tenant route group is (tenant)/app/*); proxy.ts PROTECTED=['/platform','/app'].
 
 ### Pending Todos
 
@@ -128,5 +134,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-27
-Stopped at: Phase 6 Plan 1 complete — finance-service scaffold, Flyway DDL (triggers+RLS), 55-account COA, JE engine, GL service; 3 commits (67568d5, 7bd611a, 04ca5a0); ready for Phase 6 Plan 2 (accounting periods + period locking).
+Stopped at: Phase 6 Plan 2 complete — 12-period seeding, PeriodCloseService, Feign stubs, Finance UI; commits 67eef48 (backend) + 2a86381 (frontend); awaiting human verification checkpoint.
 Resume file: None
