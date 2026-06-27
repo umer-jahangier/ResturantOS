@@ -27,9 +27,10 @@ export interface BranchOption {
   name: string;
 }
 
+// TODO(Phase-3): replace with live GET /api/v1/branches response
 const DEFAULT_BRANCHES: BranchOption[] = [
-  { id: "33333333-3333-4333-8333-333333333333", name: "Main Branch" },
-  { id: "44444444-4444-4444-8444-444444444444", name: "Downtown Branch" },
+  { id: "b0000001-0000-4000-8000-000000000001", name: "Main Branch (HQ)" },
+  { id: "b0000002-0000-4000-8000-000000000002", name: "Downtown Branch" },
 ];
 
 interface BranchSwitcherProps {
