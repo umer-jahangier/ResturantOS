@@ -43,7 +43,7 @@
             <column name="id" value="c0000004-0000-4000-8000-000000000004"/>
             <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
             <column name="email" value="finance_demo@demo.local"/>
-            <column name="password_hash" value="$2a$12$placeholderHashReplaceOnFirstDeploy.XXXXXXXXXXXXXXXXXXXXa"/>
+            <column name="password_hash" value="$2a$12$uBF0CzhgyoEIeIeH5OJdp.xCeBrFrXgO8bj40FPke/SrcEWR2yhUu"/>
             <column name="full_name" value="Demo Finance Viewer"/>
             <column name="locale" value="en"/>
             <column name="totp_enabled" valueBoolean="false"/>
