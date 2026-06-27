@@ -36,11 +36,8 @@ function mockAccessToken(branchId: string): string {
       tenant_id: TENANT_ID,
       branch_id: branchId,
       roles: ["TENANT_OWNER"],
-      permissions: [
-        "order:create", "order:read",
-        "finance:read", "finance:write", "finance.period.close",
-        "inventory:read", "reporting:read",
-      ],
+      // Real DB permission codes from role_permissions table (CASHIER role)
+      permissions: ["pos.order.create", "pos.order.close", "pos.order.view"],
       attributes: { approval_limit_paisa: 5_000_000 },
     }),
   );
