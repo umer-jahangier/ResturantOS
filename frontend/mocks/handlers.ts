@@ -4,9 +4,9 @@ import { http, HttpResponse } from "msw";
 // TEST-ONLY: consumed by the Vitest server (mocks/server.ts). There is no
 // runtime/browser mocking — the app always talks to the live gateway.
 
-const TENANT_ID = "22222222-2222-4222-8222-222222222222";
-const BRANCH_ID = "33333333-3333-4333-8333-333333333333";
-const ALT_BRANCH_ID = "44444444-4444-4444-8444-444444444444";
+const TENANT_ID = "a0000001-0000-4000-8000-000000000001";
+const BRANCH_ID = "b0000001-0000-4000-8000-000000000001";
+const ALT_BRANCH_ID = "b0000002-0000-4000-8000-000000000002";
 
 // The privileged users require TOTP step-up (FD-2) — mirrors real DB behaviour.
 // owner@demo.local  → has rbac.manage → TOTP_REQUIRED
@@ -32,9 +32,12 @@ const DEMO_USERS: Record<string, DemoUser> = {
     roles: ["OWNER"],
     // OWNER: all permissions — but requires TOTP step-up at login
     permissions: [
-      "pos.order.create", "pos.order.close", "pos.order.view", "pos.order.void",
+      "pos.order.create", "pos.order.close", "pos.order.view",
+      "pos.order.void.own", "pos.order.void.any",
       "inventory.item.view", "inventory.item.manage",
       "finance.journal.view", "finance.journal.post", "finance.period.close",
+      "finance.expense.approve",
+      "vendor.manage", "vendor.po.approve",
       "rbac.manage",
     ],
     approvalLimit: 100_000_000,
