@@ -62,31 +62,31 @@ export const tenantNavItems: NavItem[] = [
     feature: "FEATURE_FINANCE",
   },
   {
+    // Phase 5+: purchasing permissions not yet in DB catalog — gate by feature only
     label: "Purchasing",
     href: "/app/purchasing",
     icon: Truck,
-    permission: "purchasing:read",
     feature: "FEATURE_PURCHASING",
   },
   {
+    // Phase 5+: HR permissions not yet in DB catalog — gate by feature only
     label: "HR",
     href: "/app/hr",
     icon: Users,
-    permission: "hr:read",
     feature: "FEATURE_HR",
   },
   {
+    // Phase 5+: CRM permissions not yet in DB catalog — gate by feature only
     label: "CRM",
     href: "/app/crm",
     icon: Contact,
-    permission: "crm:read",
     feature: "FEATURE_CRM",
   },
   {
+    // Phase 5+: reporting permissions not yet in DB catalog — gate by feature only
     label: "Reporting",
     href: "/app/reporting",
     icon: BarChart3,
-    permission: "reporting:read",
     feature: "FEATURE_REPORTING",
   },
 ];
@@ -160,11 +160,42 @@ export const navGroups: NavGroup[] = [
     label: "Purchasing",
     items: [
       {
+        // Phase 5+: purchasing permissions not yet in DB catalog — gate by feature only
         label: "Purchasing",
         href: "/app/purchasing",
         icon: Truck,
-        permission: "purchasing:read",
         feature: "FEATURE_PURCHASING",
+      },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      {
+        // Phase 5+: HR permissions not yet in DB catalog — gate by feature only
+        label: "HR",
+        href: "/app/hr",
+        icon: Users,
+        feature: "FEATURE_HR",
+      },
+      {
+        // Phase 5+: CRM permissions not yet in DB catalog — gate by feature only
+        label: "CRM",
+        href: "/app/crm",
+        icon: Contact,
+        feature: "FEATURE_CRM",
+      },
+    ],
+  },
+  {
+    label: "Reporting",
+    items: [
+      {
+        // Phase 5+: reporting permissions not yet in DB catalog — gate by feature only
+        label: "Reports",
+        href: "/app/reporting",
+        icon: BarChart3,
+        feature: "FEATURE_REPORTING",
       },
     ],
   },
@@ -185,7 +216,7 @@ export const navGroups: NavGroup[] = [
         label: "Users",
         href: "/app/settings/users",
         icon: Users,
-        permission: "users:manage",
+        permission: "rbac.manage",
       },
     ],
   },
