@@ -1,18 +1,26 @@
 package io.restaurantos.finance.repository;
 
+import io.restaurantos.finance.domain.enums.PeriodStatus;
 import io.restaurantos.finance.domain.model.AccountingPeriod;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface AccountingPeriodRepository extends JpaRepository<AccountingPeriod, UUID> {
 
-    Optional<AccountingPeriod> findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
-            LocalDate date1, LocalDate date2);
+    List<AccountingPeriod> findByTenantIdAndFiscalYearOrderByPeriodNo(UUID tenantId, int fiscalYear);
 
-    boolean existsByFiscalYearAndPeriodNo(int fiscalYear, int periodNo);
+    List<AccountingPeriod> findByTenantIdAndStatus(UUID tenantId, PeriodStatus status);
+
+    Optional<AccountingPeriod> findFirstByTenantIdAndStatusOrderByEndDateDesc(UUID tenantId, PeriodStatus status);
+
+    Optional<AccountingPeriod> findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            UUID tenantId, LocalDate date1, LocalDate date2);
+
+    boolean existsByTenantIdAndFiscalYearAndPeriodNo(UUID tenantId, int fiscalYear, int periodNo);
 }

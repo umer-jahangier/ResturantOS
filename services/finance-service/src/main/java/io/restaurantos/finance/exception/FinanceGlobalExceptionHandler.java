@@ -30,6 +30,29 @@ public class FinanceGlobalExceptionHandler {
                         "Period " + ex.getPeriodId() + " is locked for posting"));
     }
 
+    @ExceptionHandler(TotpRequiredException.class)
+    public ResponseEntity<Map<String, Object>> handleTotpRequired(TotpRequiredException ex) {
+        return ResponseEntity.status(403)
+                .body(errorBody("TOTP_REQUIRED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(PeriodAlreadyLockedException.class)
+    public ResponseEntity<Map<String, Object>> handlePeriodAlreadyLocked(PeriodAlreadyLockedException ex) {
+        return ResponseEntity.status(409)
+                .body(errorBody("PERIOD_ALREADY_LOCKED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(PeriodPreCheckException.class)
+    public ResponseEntity<Map<String, Object>> handlePeriodPreCheck(PeriodPreCheckException ex) {
+        return ResponseEntity.status(409)
+                .body(errorBody("PERIOD_PRE_CHECK_FAILED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(PeriodNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePeriodNotFound(PeriodNotFoundException ex) {
+        return ResponseEntity.notFound().build();
+    }
+
     @ExceptionHandler(JeAlreadyPostedException.class)
     public ResponseEntity<Map<String, Object>> handleAlreadyPosted(JeAlreadyPostedException ex) {
         return ResponseEntity.status(409)

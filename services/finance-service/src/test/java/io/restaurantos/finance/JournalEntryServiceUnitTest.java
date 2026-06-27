@@ -60,7 +60,7 @@ class JournalEntryServiceUnitTest {
         period.setStatus(PeriodStatus.OPEN);
 
         when(tenantContext.requireTenantId()).thenReturn(tenantId);
-        when(periodRepo.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(any(), any()))
+        when(periodRepo.findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(any(), any(), any()))
                 .thenReturn(Optional.of(period));
 
         JournalEntry savedJe = new JournalEntry();

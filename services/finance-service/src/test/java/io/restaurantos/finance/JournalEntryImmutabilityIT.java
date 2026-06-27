@@ -4,6 +4,9 @@ import io.restaurantos.finance.domain.enums.JeStatus;
 import io.restaurantos.finance.dto.CreateJeLineRequest;
 import io.restaurantos.finance.dto.CreateJeRequest;
 import io.restaurantos.finance.dto.JournalEntryDto;
+import io.restaurantos.finance.feign.InventoryInternalClient;
+import io.restaurantos.finance.feign.PosInternalClient;
+import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.repository.JournalEntryRepository;
 import io.restaurantos.finance.service.JournalEntryService;
 import io.restaurantos.finance.service.ProvisioningService;
@@ -11,12 +14,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,26 +27,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Proves that the immutability trigger blocks UPDATE on POSTED JEs,
  * but allows the reversal link-back update (reversed_by_je).
  */
-@SpringBootTest
-@Testcontainers
-class JournalEntryImmutabilityIT {
+class JournalEntryImmutabilityIT extends FinanceTestBase {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
-            .withDatabaseName("finance_db")
-            .withUsername("finance_user")
-            .withPassword("finance_pass");
+    @MockitoBean
+    private PosInternalClient posClient;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("eureka.client.enabled", () -> "false");
-        registry.add("spring.cloud.config.enabled", () -> "false");
-    }
+    @MockitoBean
+    private InventoryInternalClient inventoryClient;
+
+    @MockitoBean
+    private PurchasingInternalClient purchasingClient;
 
     @Autowired
     private JournalEntryService jeService;

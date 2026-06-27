@@ -54,8 +54,10 @@ public class JournalEntryServiceImpl implements JournalEntryService {
 
     @Override
     public JournalEntryDto create(CreateJeRequest req) {
+        UUID currentTenantId = tenantContext.requireTenantId();
         AccountingPeriod period = periodRepo
-                .findByStartDateLessThanEqualAndEndDateGreaterThanEqual(req.entryDate(), req.entryDate())
+                .findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        currentTenantId, req.entryDate(), req.entryDate())
                 .orElseThrow(() -> new RuntimeException("No accounting period found for date: " + req.entryDate()));
 
         if (period.getStatus() == PeriodStatus.LOCKED) {

@@ -1,0 +1,17 @@
+spring:
+  config:
+    import: "optional:configserver:"
+  cloud:
+    config:
+      enabled: false
+      fail-fast: false
+
+eureka:
+  client:
+    enabled: false
+
+restaurantos:
+  internal:
+    secret: test-internal-secret
+  jwks:
+    uri: http://localhost:8081/.well-known/jwks.json

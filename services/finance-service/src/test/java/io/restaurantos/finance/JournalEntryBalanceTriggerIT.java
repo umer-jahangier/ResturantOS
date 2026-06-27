@@ -1,9 +1,5 @@
 package io.restaurantos.finance;
 
-import io.restaurantos.finance.domain.enums.PeriodStatus;
-import io.restaurantos.finance.domain.model.AccountingPeriod;
-import io.restaurantos.finance.domain.model.JournalEntry;
-import io.restaurantos.finance.domain.model.JournalLine;
 import io.restaurantos.finance.domain.enums.JeStatus;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
 import io.restaurantos.finance.repository.JournalEntryRepository;
@@ -11,17 +7,15 @@ import io.restaurantos.finance.service.JournalEntryService;
 import io.restaurantos.finance.service.ProvisioningService;
 import io.restaurantos.finance.dto.CreateJeRequest;
 import io.restaurantos.finance.dto.CreateJeLineRequest;
+import io.restaurantos.finance.feign.InventoryInternalClient;
+import io.restaurantos.finance.feign.PosInternalClient;
+import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,31 +23,23 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
  * Proves that the DEFERRABLE INITIALLY DEFERRED balance trigger fires at commit.
  * CRITICAL: lines must be added AND post() called within the SAME @Transactional scope.
  */
-@SpringBootTest
-@Testcontainers
-class JournalEntryBalanceTriggerIT {
+class JournalEntryBalanceTriggerIT extends FinanceTestBase {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
-            .withDatabaseName("finance_db")
-            .withUsername("finance_user")
-            .withPassword("finance_pass");
+    @MockitoBean
+    private PosInternalClient posClient;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("eureka.client.enabled", () -> "false");
-        registry.add("spring.cloud.config.enabled", () -> "false");
-    }
+    @MockitoBean
+    private InventoryInternalClient inventoryClient;
+
+    @MockitoBean
+    private PurchasingInternalClient purchasingClient;
 
     @Autowired
     private JournalEntryService jeService;
