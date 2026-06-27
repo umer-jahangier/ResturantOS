@@ -7,6 +7,7 @@ import { TopBar } from "@/components/shared/top-bar";
 import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav";
 import { SidebarSkeleton } from "@/components/skeletons/sidebar-skeleton";
 import { PageTransition } from "@/components/shared/page-transition";
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 
 // Protected tenant app area. Real pages live under /app/* so the route group
 // has distinct, non-colliding URLs. proxy.ts gates this prefix.
@@ -52,6 +53,7 @@ interface TenantLayoutProps {
 
 export default function TenantLayout({ children }: TenantLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { branchId } = useCurrentUser();
 
   function handleMobileMenuToggle() {
     setMobileOpen((prev) => !prev);
@@ -78,7 +80,7 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
         {/* Main content area */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <TopBar onMobileMenuToggle={handleMobileMenuToggle} />
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 md:pb-6">
+          <main key={branchId} className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 md:pb-6">
             <PageTransition>{children}</PageTransition>
           </main>
         </div>
