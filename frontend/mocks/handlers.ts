@@ -36,7 +36,11 @@ function mockAccessToken(branchId: string): string {
       tenant_id: TENANT_ID,
       branch_id: branchId,
       roles: ["TENANT_OWNER"],
-      permissions: ["FEATURE_POS", "order:create", "order:read"],
+      permissions: [
+        "order:create", "order:read",
+        "finance:read", "finance:write", "finance.period.close",
+        "inventory:read", "reporting:read",
+      ],
       attributes: { approval_limit_paisa: 5_000_000 },
     }),
   );
@@ -112,7 +116,15 @@ export const handlers = [
 
   http.get("*/api/v1/feature-flags", () =>
     HttpResponse.json({
-      data: { features: ["FEATURE_POS", "FEATURE_INVENTORY", "FEATURE_KDS"] },
+      data: {
+        features: [
+          "FEATURE_POS",
+          "FEATURE_INVENTORY",
+          "FEATURE_KDS",
+          "FEATURE_FINANCE",
+          "FEATURE_REPORTING",
+        ],
+      },
       meta: null,
       warnings: [],
     }),
