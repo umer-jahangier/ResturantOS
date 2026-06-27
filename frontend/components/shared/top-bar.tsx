@@ -28,6 +28,11 @@ import {
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useLogout } from "@/lib/hooks/auth/use-logout";
 
+const BRANCH_NAMES: Record<string, string> = {
+  "b0000001-0000-4000-8000-000000000001": "Main Branch (HQ)",
+  "b0000002-0000-4000-8000-000000000002": "Downtown Branch",
+};
+
 interface TopBarProps {
   onMobileMenuToggle?: () => void;
 }
@@ -83,11 +88,13 @@ const NAV_COMMANDS = [
 
 export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
-  const { userId } = useCurrentUser();
+  const { userId, branchId } = useCurrentUser();
   const logout = useLogout();
 
   // User initial for avatar circle — fallback to "U"
   const userInitial = userId ? userId.slice(0, 1).toUpperCase() : "U";
+  // Branch name resolved from known seed branches; Phase-3 will use live API data
+  const branchName = branchId ? (BRANCH_NAMES[branchId] ?? "Unknown Branch") : null;
 
   function handleLogout() {
     logout.mutate();
@@ -110,6 +117,13 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
         <div className="flex-1">
           <Breadcrumb />
         </div>
+
+        {/* Active branch indicator — always visible so users know their ABAC scope */}
+        {branchName && (
+          <span className="hidden sm:inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {branchName}
+          </span>
+        )}
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
