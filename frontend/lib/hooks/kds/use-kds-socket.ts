@@ -20,6 +20,23 @@ interface UseKdsSocketResult {
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
 
+/** Short beep when a new ticket arrives via WebSocket. */
+function playNewTicketBeep() {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.value = 0.1;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch {
+    // Audio unavailable (autoplay policy, SSR, etc.)
+  }
+}
+
 /**
  * Maintains a WebSocket connection to the kitchen-service KDS board endpoint.
  * On each message, the ticket update is merged into the TanStack Query cache.
@@ -64,7 +81,10 @@ export function useKdsSocket({ branchId, stationCode }: UseKdsSocketOptions): Us
             queryKeys.kds.tickets(branchId, stationCode),
             (prev = []) => {
               const idx = prev.findIndex((t) => t.id === ticket.id);
-              if (idx === -1) return [...prev, ticket];
+              if (idx === -1) {
+                playNewTicketBeep();
+                return [...prev, ticket];
+              }
               const next = [...prev];
               next[idx] = ticket;
               return next;

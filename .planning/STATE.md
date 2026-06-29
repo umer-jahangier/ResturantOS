@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 7 of 12 (Point-of-Sale + Kitchen Display)
-Plan: 3 of 4
-Status: Phase 7 In Progress — offline PWA + IndexedDB sync complete; KDS service (07-04) in parallel
-Last activity: 2026-06-30 — Completed 07-03: PWA manifest+SW, IndexedDB outbox, FIFO sync engine, offline-aware POS hooks, status UI, E2E scaffold
+Plan: 4 of 4
+Status: Phase 7 Complete — all four plans executed (POS, write-side, offline PWA, KDS)
+Last activity: 2026-06-30 — Completed 07-04: kitchen-service, KITCHEN_STAFF isolation, always-dark KDS board, ORDER_READY loop
 
-Progress: [███████████████████████░] 70% (23/33 plans)
+Progress: [████████████████████████] 76% (27/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
+- Total plans completed: 27
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
@@ -35,10 +35,11 @@ Progress: [███████████████████████
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
 | 04-frontend-shell-ci-cd | 8/8 | 16/16 FE + 7/7 DS passed |
 | 06-finance-core-general-ledger-periods | 2/2 | complete |
+| 07-point-of-sale-kitchen-display | 4/4 | pending phase verify |
 
 **Recent Trend:**
-- Last completed plan: 07-02
-- Trend: Phase 7 write-side complete — till sessions (OPEN/CLOSED with variance_paisa GENERATED), split-tender ORDER_CLOSED idempotency, fail-closed FinancePeriodClient (423 PERIOD_LOCKED), OPA void.own/void.any/refund thresholds (approval_limit_paisa), InternalPosController bare Long for Finance, pos.rego 100% Rego coverage. Frontend: payment-panel (CHARGE NOW gated on remaining===0), till-session-bar (open/close modals), void-refund-dialog (PermissionGuard), 3 Vitest passing. tsc/lint/vitest green.
+- Last completed plan: 07-04
+- Trend: Phase 7 complete — pos-service (orders/tills/payments/ORDER_CLOSED), offline PWA (IndexedDB outbox + FIFO sync), kitchen-service (station routing + ORDER_READY), KITCHEN_STAFF role isolation, always-dark WebSocket KDS board with sidebar gating. KDS vitest 6/6 green.
 
 *Updated after each plan completion*
 
@@ -130,6 +131,11 @@ Recent decisions affecting current work:
 - [07-03-C]: OfflineIndicator uses native browser online/offline events in effect — react-hooks/set-state-in-effect rule requires setState only in event callbacks.
 - [07-03-D]: SyncStatusBadge renders null when pending=0 — E2E uses toBeHidden() to verify sync completion.
 - [07-03-E]: Online-only guard throws synchronously in mutationFn — causes isError state and shows OFFLINE_ERROR in component error display.
+- [07-04-A]: KITCHEN_STAFF role gets ONLY pos.kds.view + pos.kds.update — no pos.order.* or finance.* (isolation proven by KdsAccessIsolationIT + kds_test.rego).
+- [07-04-B]: MANAGER gets pos.kds.view only (read-only oversight), not pos.kds.update.
+- [07-04-C]: RabbitMQ topology (pos.order-ready.queue) declared in PosKitchenTopologyConfig @Configuration, not Flyway.
+- [07-04-D]: KDS board always dark — does NOT respect useTheme() (kitchen readability at 2m).
+- [07-04-E]: WebSocket merges ticket frames into TanStack Query cache; HTTP polls every 10s as fallback.
 
 ### Pending Todos
 
@@ -152,5 +158,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-30
-Stopped at: Phase 7 Plan 3 complete — PWA shell (manifest+SW+registration), IndexedDB outbox+menu-cache, FIFO sync engine (client_order_id dedupe), offline-aware POS hooks, OfflineIndicator+SyncStatusBadge, POS layout SW registration, E2E scaffold; commits bd5f90e, 7a8453c, ba2963b, 63a2733, 865f91d.
+Stopped at: Phase 7 complete (4/4 plans) — POS scaffold+terminal (07-01), tills/payments/ORDER_CLOSED (07-02), offline PWA+IndexedDB sync (07-03), kitchen-service+KDS board (07-04). Uncommitted: 07-04-SUMMARY.md, kitchen page FeatureGuard/PermissionGuard, new-ticket audio beep.
 Resume file: None
