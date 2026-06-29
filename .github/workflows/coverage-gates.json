@@ -3,7 +3,8 @@
   "java": {
     "default": 60,
     "services/finance-service": 75,
-    "services/inventory-service": 75
+    "services/inventory-service": 75,
+    "services/pos-service": 70
   },
   "frontend": 60,
   "opa": 100
