@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-042-kds-permissions-kitchen-role" author="restaurantos-agent" runOnChange="false">
+
+        <!-- KDS permissions (module = pos, prefixed pos.kds.*) -->
+        <insert tableName="permissions">
+            <column name="code" value="pos.kds.view"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="View kitchen display board and tickets"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.kds.update"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Bump/progress KDS ticket items (PENDING->COOKING->READY)"/>
+        </insert>
+
+        <!-- KITCHEN_STAFF system role — kitchen-only, strictly isolated -->
+        <insert tableName="roles">
+            <column name="code" value="KITCHEN_STAFF"/>
+            <column name="name" value="Kitchen Staff"/>
+            <column name="is_system" valueBoolean="true"/>
+        </insert>
+
+        <!-- KITCHEN_STAFF role_permissions: ONLY pos.kds.view + pos.kds.update -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="KITCHEN_STAFF"/>
+            <column name="permission_code" value="pos.kds.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="KITCHEN_STAFF"/>
+            <column name="permission_code" value="pos.kds.update"/>
+        </insert>
+
+        <!-- OWNER: idempotent top-up with kds permissions -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'OWNER', code FROM permissions p
+            WHERE p.code IN ('pos.kds.view', 'pos.kds.update')
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions rp
+                WHERE rp.role_code = 'OWNER' AND rp.permission_code = p.code
+            );
+        </sql>
+
+        <!-- TENANT_ADMIN: idempotent top-up with kds permissions -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'TENANT_ADMIN', code FROM permissions p
+            WHERE p.code IN ('pos.kds.view', 'pos.kds.update')
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions rp
+                WHERE rp.role_code = 'TENANT_ADMIN' AND rp.permission_code = p.code
+            );
+        </sql>
+
+        <!-- MANAGER: read-only KDS oversight — view ONLY, NOT pos.kds.update -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.kds.view"/>
+        </insert>
+
+        <!-- EXPLICITLY excluded (not granted):
+             CASHIER, ACCOUNTANT, FINANCE_VIEWER, INVENTORY_MANAGER
+             — none of these roles receive pos.kds.* permissions -->
+
+    </changeSet>
+
+</databaseChangeLog>
