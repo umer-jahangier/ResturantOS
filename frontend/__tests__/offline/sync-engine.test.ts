@@ -24,7 +24,6 @@ vi.mock("../../lib/repositories/pos.repository", () => ({
 }));
 
 beforeEach(() => {
-  // @ts-expect-error -- replace global with fresh in-memory factory
   globalThis.indexedDB = new IDBFactory();
   resetDb();
   mockCreateOrder.mockReset();

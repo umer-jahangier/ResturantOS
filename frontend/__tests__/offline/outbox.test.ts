@@ -22,7 +22,6 @@ import {
 
 beforeEach(() => {
   // Fresh in-memory database for each test.
-  // @ts-expect-error -- replace the browser global with the in-memory version
   globalThis.indexedDB = new IDBFactory();
   resetDb();
 });
