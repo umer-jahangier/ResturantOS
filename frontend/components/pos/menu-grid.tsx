@@ -66,10 +66,11 @@ export function MenuGrid({ onItemSelect }: MenuGridProps) {
             No items available
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
-            {activeItems.map((item) => (
+          <div data-testid="menu-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
+            {activeItems.map((item, idx) => (
               <button
                 key={item.id}
+                data-testid={idx === 0 ? "menu-item-first" : undefined}
                 onClick={() => onItemSelect(item)}
                 className="min-h-[100px] min-w-[100px] rounded-xl border bg-card p-3 text-left hover:bg-accent hover:border-primary transition-colors flex flex-col justify-between active:scale-95"
               >

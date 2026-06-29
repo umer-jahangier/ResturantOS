@@ -35,6 +35,7 @@ export function TableFloorView({ onTableSelect }: TableFloorViewProps) {
       {tables.map((table) => (
         <button
           key={table.id}
+          data-testid={`table-${table.tableName.toLowerCase().replace(/\s+/g, "-")}`}
           onClick={() => onTableSelect?.(table)}
           className={cn(
             "min-h-[80px] rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-colors active:scale-95",

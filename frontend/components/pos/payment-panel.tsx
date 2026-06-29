@@ -171,6 +171,7 @@ export function PaymentPanel({ order, onClose }: PaymentPanelProps) {
 
         {/* Charge button */}
         <button
+          data-testid="charge-button"
           onClick={handleCharge}
           disabled={!isBalanced || closeOrderMutation.isPending}
           className={cn(
@@ -185,8 +186,10 @@ export function PaymentPanel({ order, onClose }: PaymentPanelProps) {
         </button>
 
         {closeOrderMutation.isError && (
-          <p className="text-xs text-destructive">
-            Failed to close order. Please try again.
+          <p data-testid="online-required-message" className="text-xs text-destructive">
+            {closeOrderMutation.error instanceof Error
+              ? closeOrderMutation.error.message
+              : "Failed to close order. Please try again."}
           </p>
         )}
       </div>
