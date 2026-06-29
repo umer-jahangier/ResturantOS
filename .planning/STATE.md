@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 7 of 12 (Point-of-Sale + Kitchen Display)
-Plan: 2 of 4
-Status: Phase 7 In Progress — tills, split-tender, ORDER_CLOSED, OPA voids/refunds, internal open-count, frontend payment/till/void UI
-Last activity: 2026-06-30 — Completed 07-02: till sessions, idempotent ORDER_CLOSED, OPA refund thresholds, Finance internal endpoint, frontend payment panel
+Plan: 3 of 4
+Status: Phase 7 In Progress — offline PWA + IndexedDB sync complete; KDS service (07-04) in parallel
+Last activity: 2026-06-30 — Completed 07-03: PWA manifest+SW, IndexedDB outbox, FIFO sync engine, offline-aware POS hooks, status UI, E2E scaffold
 
-Progress: [██████████████████████░] 67% (22/33 plans)
+Progress: [███████████████████████░] 70% (23/33 plans)
 
 ## Performance Metrics
 
@@ -125,6 +125,11 @@ Recent decisions affecting current work:
 - [07-02-C]: OpaClient mocked via @MockitoBean in ITs rather than running live OPA server — focused service-layer auth testing without infrastructure dependency.
 - [07-02-D]: InternalPosController returns bare Long (not ApiResponse-wrapped) at GET /internal/orders/open-count — must match Finance PosInternalClient Feign contract exactly.
 - [07-02-E]: variance_paisa as GENERATED ALWAYS AS DB column — ensures variance computed atomically in DB, not susceptible to app-layer rounding.
+- [07-03-A]: Manual service worker (public/sw.js) instead of @serwist/next — avoids uncertain Next.js 16 plugin compatibility.
+- [07-03-B]: clientOrderId in APPEND_ITEMS outbox op stores the target order UUID — used as orderId param in addItem() during replay.
+- [07-03-C]: OfflineIndicator uses native browser online/offline events in effect — react-hooks/set-state-in-effect rule requires setState only in event callbacks.
+- [07-03-D]: SyncStatusBadge renders null when pending=0 — E2E uses toBeHidden() to verify sync completion.
+- [07-03-E]: Online-only guard throws synchronously in mutationFn — causes isError state and shows OFFLINE_ERROR in component error display.
 
 ### Pending Todos
 
@@ -147,5 +152,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-30
-Stopped at: Phase 7 Plan 2 complete — tills+payments DDL, split-tender, idempotent ORDER_CLOSED, OPA voids+refunds, internal open-count, frontend payment panel+till bar+void/refund dialog; commits 90abb27, f560c0b, 5d39f28, b7b6621, 28260fa.
+Stopped at: Phase 7 Plan 3 complete — PWA shell (manifest+SW+registration), IndexedDB outbox+menu-cache, FIFO sync engine (client_order_id dedupe), offline-aware POS hooks, OfflineIndicator+SyncStatusBadge, POS layout SW registration, E2E scaffold; commits bd5f90e, 7a8453c, ba2963b, 63a2733, 865f91d.
 Resume file: None
