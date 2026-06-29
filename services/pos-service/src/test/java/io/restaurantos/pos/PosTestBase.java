@@ -1,5 +1,6 @@
 package io.restaurantos.pos;
 
+import io.restaurantos.pos.feign.FinancePeriodClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -61,4 +62,8 @@ public abstract class PosTestBase {
     // Mock Redis — not used in POS unit flows
     @MockitoBean
     protected StringRedisTemplate stringRedisTemplate;
+
+    // Mock Finance Feign client — prevents HTTP connections in tests; configure per test
+    @MockitoBean
+    protected FinancePeriodClient financePeriodClient;
 }

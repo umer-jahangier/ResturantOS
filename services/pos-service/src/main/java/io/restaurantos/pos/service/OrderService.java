@@ -1,8 +1,8 @@
 package io.restaurantos.pos.service;
 
-import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.ApplyDiscountRequest;
+import io.restaurantos.pos.dto.CloseOrderRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
 import org.springframework.data.domain.Page;
@@ -19,4 +19,5 @@ public interface OrderService {
     OrderDto sendToKds(UUID orderId);
     OrderDto getOrder(UUID orderId, UUID branchId);
     Page<OrderDto> listOrders(UUID branchId, List<String> statuses, Pageable pageable);
+    OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey);
 }

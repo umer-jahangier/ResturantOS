@@ -5,11 +5,15 @@ import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.enums.TableStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
+import io.restaurantos.pos.event.PosClosePayloads;
 import io.restaurantos.pos.event.PosEventPayloads;
 import io.restaurantos.pos.exception.PosExceptions;
+import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.*;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.exception.PeriodLockedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
+import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,6 +37,8 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_CREATED_TYPE = "ORDER_CREATED";
     private static final String ORDER_SENT_TO_KDS_KEY = "pos.order.sent_to_kds";
     private static final String ORDER_SENT_TO_KDS_TYPE = "ORDER_SENT_TO_KDS";
+    private static final String ORDER_CLOSED_KEY = "pos.order.closed";
+    private static final String ORDER_CLOSED_TYPE = "ORDER_CLOSED";
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
 
     private final OrderRepository orderRepository;
@@ -39,29 +46,41 @@ public class OrderServiceImpl implements OrderService {
     private final MenuItemRepository menuItemRepository;
     private final BranchMenuOverrideRepository overrideRepository;
     private final DiningTableRepository tableRepository;
+    private final OrderPaymentRepository orderPaymentRepository;
     private final OrderPricingCalculator pricingCalculator;
     private final OrderStateMachine stateMachine;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
+    private final IdempotencyService idempotencyService;
+    private final SplitTenderCalculator splitTenderCalculator;
+    private final FinancePeriodClient financePeriodClient;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
                             MenuItemRepository menuItemRepository,
                             BranchMenuOverrideRepository overrideRepository,
                             DiningTableRepository tableRepository,
+                            OrderPaymentRepository orderPaymentRepository,
                             OrderPricingCalculator pricingCalculator,
                             OrderStateMachine stateMachine,
                             TenantContext tenantContext,
-                            EventPublisher eventPublisher) {
+                            EventPublisher eventPublisher,
+                            IdempotencyService idempotencyService,
+                            SplitTenderCalculator splitTenderCalculator,
+                            FinancePeriodClient financePeriodClient) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
         this.overrideRepository = overrideRepository;
         this.tableRepository = tableRepository;
+        this.orderPaymentRepository = orderPaymentRepository;
         this.pricingCalculator = pricingCalculator;
         this.stateMachine = stateMachine;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
+        this.idempotencyService = idempotencyService;
+        this.splitTenderCalculator = splitTenderCalculator;
+        this.financePeriodClient = financePeriodClient;
     }
 
     @Override
@@ -296,6 +315,105 @@ public class OrderServiceImpl implements OrderService {
                 : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
         return orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
                 .map(this::toDto);
+    }
+
+    @Override
+    public OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey) {
+        // 1. Idempotency check — return stored result if already completed
+        Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
+        if (stored.isPresent()) {
+            // Reconstruct DTO from stored JSON — for simplicity reload from DB
+            UUID tenantId = tenantContext.requireTenantId();
+            Order order = orderRepository.findById(orderId)
+                    .filter(o -> tenantId.equals(o.getTenantId()))
+                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+            return toDto(order);
+        }
+
+        String requestHash = String.valueOf(request.hashCode());
+        boolean claimed = idempotencyService.checkAndLock(idempotencyKey, requestHash, 86400);
+        if (!claimed) {
+            // Already in flight or completed — return current order state
+            UUID tenantId = tenantContext.requireTenantId();
+            Order order = orderRepository.findById(orderId)
+                    .filter(o -> tenantId.equals(o.getTenantId()))
+                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+            return toDto(order);
+        }
+
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = orderRepository.findById(orderId)
+                .filter(o -> tenantId.equals(o.getTenantId()))
+                .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+
+        // 2. Validate order has items and non-zero total
+        if (order.getItems().isEmpty() || order.getTotalPaisa() == 0) {
+            throw new PosExceptions.ZeroValueOrderException("Cannot close empty or zero-value order: " + orderId);
+        }
+
+        // 3. Validate payment sum == order total
+        splitTenderCalculator.validateExact(request.payments(), order.getTotalPaisa());
+
+        // 4. Period-lock check (fail-closed)
+        LocalDate businessDate = order.getOpenedAt() != null
+                ? order.getOpenedAt().atOffset(ZoneOffset.UTC).minusHours(4).toLocalDate()
+                : LocalDate.now();
+        FinancePeriodClient.assertPeriodOpen(financePeriodClient, tenantId, order.getBranchId(), businessDate);
+
+        // 5. State transition
+        stateMachine.assertTransition(order.getStatus(), OrderStatus.CLOSED);
+        Instant closedAt = Instant.now();
+        order.setStatus(OrderStatus.CLOSED);
+        order.setClosedAt(closedAt);
+
+        // Set table -> AVAILABLE
+        if (order.getTableId() != null) {
+            tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
+                    .ifPresent(table -> table.setStatus(TableStatus.AVAILABLE));
+        }
+
+        order = orderRepository.save(order);
+
+        // 6. Publish ORDER_CLOSED event
+        List<PosClosePayloads.PaymentEntry> paymentEntries = request.payments().stream()
+                .map(p -> new PosClosePayloads.PaymentEntry(p.method(), p.amountPaisa(), p.referenceNo()))
+                .collect(Collectors.toList());
+
+        List<PosClosePayloads.ItemEntry> itemEntries = order.getItems().stream()
+                .map(item -> new PosClosePayloads.ItemEntry(
+                        item.getMenuItemId(),
+                        item.getItemNameSnapshot(),
+                        item.getQuantity(),
+                        item.getUnitPriceSnapshot(),
+                        item.getLineTotalPaisa()))
+                .collect(Collectors.toList());
+
+        Order finalOrder = order;
+        var payload = new PosClosePayloads.OrderClosedPayload(
+                finalOrder.getId(),
+                finalOrder.getOrderNo(),
+                finalOrder.getType().name(),
+                finalOrder.getCustomerId(),
+                finalOrder.getSubtotalPaisa(),
+                finalOrder.getDiscountPaisa(),
+                finalOrder.getServiceChargePaisa(),
+                finalOrder.getTaxPaisa(),
+                finalOrder.getTotalPaisa(),
+                paymentEntries,
+                itemEntries,
+                finalOrder.getTillSessionId(),
+                finalOrder.getCashierId(),
+                closedAt
+        );
+
+        eventPublisher.publish(POS_EXCHANGE, ORDER_CLOSED_KEY, ORDER_CLOSED_TYPE,
+                finalOrder.getBranchId(), payload);
+
+        // 7. Mark idempotency complete
+        OrderDto dto = toDto(finalOrder);
+        idempotencyService.markComplete(idempotencyKey, dto.id().toString());
+
+        return dto;
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
