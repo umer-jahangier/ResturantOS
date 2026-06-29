@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 6 — Finance Core (General Ledger + Accounting Periods)
+**Current focus:** Phase 7 — Point-of-Sale + Kitchen Display
 
 ## Current Position
 
-Phase: 6 of 12 (Finance Core — General Ledger + Accounting Periods)
-Plan: 2 of 2
-Status: Phase 6 COMPLETE — accounting periods + close/lock + TOTP gate + Finance frontend
-Last activity: 2026-06-27 — Completed 06-02: 12-period seeding, PeriodCloseService, Feign stubs, 7 Finance pages, 8 components
+Phase: 7 of 12 (Point-of-Sale + Kitchen Display)
+Plan: 1 of 4
+Status: Phase 7 In Progress — pos-service scaffolded, order aggregate + state machine, outbox events, POS RBAC seeded, frontend POS terminal
+Last activity: 2026-06-30 — Completed 07-01: pos-service, ORDER_CREATED/ORDER_SENT_TO_KDS, auth 041, frontend POS terminal+floor
 
-Progress: [█████████████████████░] 61% (20/33 plans)
+Progress: [█████████████████████░] 64% (21/33 plans)
 
 ## Performance Metrics
 
@@ -37,8 +37,8 @@ Progress: [█████████████████████░] 6
 | 06-finance-core-general-ledger-periods | 2/2 | complete |
 
 **Recent Trend:**
-- Last completed plan: 06-02
-- Trend: Phase 6 COMPLETE — 12-period seeding (Jul-Jun Pakistan FY), PeriodCloseService with TOTP gate, Feign stubs (POS/Inventory/Purchasing return 0), 7 Finance frontend pages, 8 components (DrCrCell font-mono, PeriodStatusChip emerald/amber, JournalEntryTable keyboard nav). pnpm build exits 0. AccountingPeriodIT + PeriodCloseServiceUnitTest all green.
+- Last completed plan: 07-01
+- Trend: Phase 7 started — pos-service scaffolded (port 8084, pos_db) with Flyway V1+V2, RLS on all tenant tables, JWT security, transactional outbox. Order aggregate: DRAFT→OPEN→SENT_TO_KDS state machine, discount-floor+per-line-HALF_UP-tax, client_order_id idempotency, @Version optimistic lock. ORDER_CREATED + ORDER_SENT_TO_KDS events verified by OrderLifecycleIT (real outbox DB rows). OrderRlsIsolationIT cross-tenant returns 404. Auth 041 changeset: CASHIER day-to-day subset, MANAGER privileged superset. Frontend POS terminal + floor view, four-layer boundary ESLint-clean, pos-repository.test.ts 8/8 green.
 
 *Updated after each plan completion*
 
@@ -112,6 +112,14 @@ Recent decisions affecting current work:
 - [06-02-D]: Frontend follows existing 4-layer pattern: Zod schema → adapter → repository → TanStack Query hook → component (ESLint-enforced by no-restricted-imports on components/**).
 - [06-02-E]: Integration tests re-set TenantContext after provision() calls (finally block clears it); pattern: tenantContext.set(tenantId, null, null, null) after each provision().
 - [06-02-F]: Finance pages at /app/finance/* (tenant route group is (tenant)/app/*); proxy.ts PROTECTED=['/platform','/app'].
+- [07-01-A]: Flyway (not Liquibase) for pos-service — mirrors [06-01-A].
+- [07-01-B]: OutboxRepository NOT mocked in PosTestBase — ITs query actual DB rows to assert outbox events written in-transaction.
+- [07-01-C]: ORD-YYYYMMDD-NNNN sequence uses PESSIMISTIC_WRITE on OrderSequenceRepository.findForUpdate.
+- [07-01-D]: ORDER_CREATED emitted on DRAFT→OPEN (first addItem), not on createOrder — table reservation is a create-only step.
+- [07-01-E]: null kdsStation resolved to "DEFAULT" string in ORDER_SENT_TO_KDS payload — KDS contract is explicit.
+- [07-01-F]: Discount floor: effectiveDiscount = min(requested, lineSubtotal) — lineNet never goes below 0.
+- [07-01-G]: Per-line tax HALF_UP on discounted net — not applied to order-level total directly.
+- [07-01-H]: Frontend errors.ts UNKNOWN_ERROR_MSG constant added to fix noUncheckedIndexedAccess TS error (pre-existing bug).
 
 ### Pending Todos
 
@@ -133,6 +141,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-27
-Stopped at: Phase 6 Plan 2 complete — 12-period seeding, PeriodCloseService, Feign stubs, Finance UI; commits 67eef48 (backend) + 2a86381 (frontend); awaiting human verification checkpoint.
+Last session: 2026-06-30
+Stopped at: Phase 7 Plan 1 complete — pos-service scaffold + order aggregate + auth POS perms + frontend POS terminal; commits 5c7cc84, 7e6e63f, 360f592, 28a59a9, 51c91ed.
 Resume file: None
