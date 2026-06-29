@@ -174,7 +174,7 @@ GET /internal/finance/periods/status?branchId={branchId}&date={businessDate}
 ```
 (Doc 4 §4.2 Finance; impl `AccountingPeriodServiceImpl.getPeriodStatus`). If `LOCKED`/`CLOSED` → throw `io.restaurantos.shared.exception.PeriodLockedException` → shared `GlobalExceptionHandler` returns **423 PERIOD_LOCKED**. Use a Feign client (`FeignSharedConfig` propagates JWT + `X-Internal-Service`). Wrap in a Resilience4j fallback — but note: an order close blocked by a locked period must FAIL closed (do not silently close into a locked period). Business date uses BLR-10 business-day formula (`opened_at` − branch cutoff, default 4h).
 
-**Reverse contract (Finance period close depends on POS):** POS exposes `GET /internal/pos/branches/{branchId}/open-orders-count?olderThanHours=12 → { count }` (Doc 4 §4.2, resolves CRIT-05). Finance's `PosClient` Feign stub already exists expecting this. FD-14 pre-close check 1 blocks period close if any order is OPEN/SENT_TO_KDS older than 12h. **Plan 07-02 MUST implement this endpoint** or Phase 6 period-close breaks.
+**Reverse contract (Finance period close depends on POS) — CORRECTED after plan-check:** Doc 4 §4.2 documented `GET /internal/pos/branches/{branchId}/open-orders-count?olderThanHours=12 → { count }`, but Phase 6 actually SHIPPED & TESTED a different Feign client: `io.restaurantos.finance.feign.PosInternalClient.getOpenOrderCount(LocalDate periodStart, LocalDate periodEnd)` → `GET /internal/orders/open-count?periodStart=&periodEnd=` returning a **bare `long`** (period close is tenant-wide; no branch in scope). **Plan 07-02 MUST implement the IMPLEMENTED contract** (`/internal/orders/open-count`, periodStart/periodEnd, bare `long`) — NOT the documented one — so Phase 6 period-close (FD-14) actually works without editing tested Finance code. Doc 4 §4.2 should be updated to match (non-blocking follow-up).
 
 ---
 
@@ -330,6 +330,29 @@ YAML frontmatter keys (verified from `06-01-PLAN.md`): `phase`, `plan`, `type: e
 
 ---
 
+## RBAC — Kitchen-only role & strict access isolation (USER REQUIREMENT, 2026-06-29)
+
+> Explicit instruction: "For kitchen display create a new user that has access to ONLY kitchen-related operations. Nothing else. Cashier and finance users must have NO access to kitchen things. Owner can see all."
+
+**How the role/permission model actually works (verified in-repo, not training data):**
+- Roles + permissions live in `auth_db`, seeded by Liquibase changelog `services/auth-service/src/main/resources/db/changelog/v1.0.0/030-create-roles-permissions.xml` (+ `037-finance-coa-permissions.xml`). New changelogs must be registered in the auth `db.changelog-master.xml`.
+- `permissions` = global NON-RLS catalogue (`code`, `module`, `description`). `roles` = system rows (`tenant_id NULL`, `is_system=true`) + tenant rows (RLS). `role_permissions` = NON-RLS junction (`role_code`, `permission_code`).
+- At login / branch-switch, `auth-service` `PermissionResolver.resolve(userId, branchId)` reads the user's `user_branch_roles` assignment → `RolePermissionRepository.findPermissionCodesByRoleCodes([roleCode])` → stamps the permission list into the RS256 JWT. Services read permissions from the JWT and pass them to OPA (`common.has_permission(input, "...")`). The frontend sidebar/guards also read permissions from the decoded JWT.
+- Existing system roles: `OWNER` (ALL permissions via `SELECT code FROM permissions`), `TENANT_ADMIN` (all except `rbac.manage`), `MANAGER`, `ACCOUNTANT`, `INVENTORY_MANAGER`, `CASHIER` (only `pos.order.create/close/view`), `FINANCE_VIEWER`.
+
+**Decisions for the planner (authoritative for Phase 7):**
+1. **Add `pos.kds.view` and `pos.kds.update` permissions** (module `pos`) to the catalogue (07-04). KDS endpoints (`/api/v1/kitchen/**` + the KDS WebSocket) require these; kitchen-service enforces them via OPA + `@RequiresFeature("FEATURE_KDS")`.
+2. **Add a new system role `KITCHEN_STAFF`** (name "Kitchen Staff"; `is_system=true`, `tenant_id NULL`) whose ONLY `role_permissions` are `pos.kds.view` + `pos.kds.update`. No order create/close/void, no till, no finance, no inventory, no menu management, no rbac. This is the dedicated kitchen-display login.
+3. **CASHIER, ACCOUNTANT, FINANCE_VIEWER, INVENTORY_MANAGER are NEVER granted `pos.kds.*`.** This is the explicit "no kitchen access for cashier/finance" requirement. (Cashier already lacks it; do not add it.) The KDS rego rules MUST deny these roles.
+4. **OWNER keeps ALL permissions** (its mapping is `SELECT code FROM permissions`, so adding `pos.kds.*` to the catalogue auto-grants them to OWNER — "Owner can see all" satisfied automatically). **TENANT_ADMIN** also auto-gets them (all-except-rbac.manage) — acceptable (admin oversight).
+5. **MANAGER** gets `pos.kds.view` only (read-only kitchen oversight, no item bumping) — a deliberate, reversible choice; the user did not forbid manager. Flag for confirmation. MANAGER also needs the new operational POS perms (send_to_kds, refund, discount.override, till.*).
+6. **POS operational permission catalogue gaps** (07-01/07-02): the spec permission catalogue (Appendix B.1) needs these added to `permissions` + mapped to CASHIER/MANAGER/OWNER: `pos.order.update`, `pos.order.send_to_kds`, `pos.order.refund`, `pos.order.split_bill`, `pos.order.discount.line`, `pos.order.discount.order`, `pos.order.discount.override`, `pos.till.open`, `pos.till.close`, `pos.till.reconcile.override`, `pos.tables.manage`, `pos.menu.view`, `pos.menu.manage`. CASHIER gets the day-to-day subset (create/update/view/send_to_kds/close, till.open/close, discount.line, tables.manage, menu.view) — NOT void.any/refund/discount.override/kds. MANAGER gets the privileged superset.
+7. **Verification (must appear in plan must_haves):** a JWT minted for `KITCHEN_STAFF` contains ONLY `pos.kds.view`/`pos.kds.update` and is 403 on `POST /api/v1/pos/orders` and any `/api/v1/finance/**`; a JWT for `CASHIER`/`ACCOUNTANT` is 403 on `/api/v1/kitchen/**` and the KDS WebSocket handshake; `OWNER` passes all. Add an IT (`KdsAccessIsolationIT`) proving each direction, plus OPA `kds_test.rego` covering allow/deny per role at 100% coverage.
+
+**Where each auth change lands:** POS permission/role seed → 07-01 (catalogue + CASHIER/MANAGER POS perms); KDS permission + `KITCHEN_STAFF` role + isolation IT/rego → 07-04 (co-located with kitchen-service); pos.rego refund/discount/split rules → 07-02.
+
+---
+
 ## Recommended Plan Split (dependency waves)
 
 | Plan | Objective (one line) | Wave | Depends on |
@@ -337,9 +360,9 @@ YAML frontmatter keys (verified from `06-01-PLAN.md`): `phase`, `plan`, `type: e
 | **07-01** | Scaffold pos-service (8084, pos_db, Flyway+RLS) + menu/table reference + order CRUD + state machine (DRAFT→…→SENT_TO_KDS) + per-line floored tax + discount-floor (POS-01/02/05) + `ORDER_CREATED`/`ORDER_SENT_TO_KDS` via outbox | 1 | Phase 3 (gateway/auth), Phase 6 (period status endpoint) |
 | **07-02** | Tills (open/close, variance, `TILL_OPENED`/`TILL_CLOSED`) + split-tender idempotent close (`ORDER_CLOSED` w/ `customerId`, period-lock 423) + voids/refunds (OPA threshold, extend `pos.rego`) + internal `open-orders-count` endpoint for Finance close (POS-03/04/06/08) | 2 | 07-01 |
 | **07-03** | Offline POS PWA — Workbox Service Worker + IndexedDB queue, sync-on-reconnect with `client_order_id` idempotency, offline UI banners, menu cache (POS-07) | 3 | 07-01, 07-02 (REST contract stable) |
-| **07-04** | kitchen-service (8090, kitchen_db) — consume `ORDER_SENT_TO_KDS`, station routing, ticket lifecycle PENDING→COOKING→READY, `ORDER_READY` (WebSocket KDS board, always-dark UI) (KDS-01/02) | 2 | 07-01 (emits SENT_TO_KDS) — can run parallel to 07-02 |
+| **07-04** | kitchen-service (8090, kitchen_db) — consume `ORDER_SENT_TO_KDS`, station routing, ticket lifecycle PENDING→COOKING→READY, `ORDER_READY` (WebSocket KDS board, always-dark UI) + **KITCHEN_STAFF role & strict access isolation** (KDS-01/02) | 3 | 07-01, 07-02 |
 
-Waves: **W1** = 07-01. **W2** = 07-02 + 07-04 (parallel; both depend only on 07-01). **W3** = 07-03 (needs both POS write + close endpoints). Frontend POS terminal/floor/payment/till UI ships within 07-01/07-02; KDS board UI within 07-04; offline shell within 07-03.
+Waves (revised after plan-check): **W1** = 07-01. **W2** = 07-02. **W3** = 07-03 + 07-04. NOTE: 07-04 was serialized after 07-02 (instead of parallel) because its POS-side `OrderReadyConsumer` edits the pos-service codebase that 07-02 rewrites — running them in parallel risked a Flyway migration-ordering and concurrent-edit race. Frontend POS terminal/floor/payment/till UI ships within 07-01/07-02; KDS board UI within 07-04; offline shell within 07-03.
 
 ---
 
