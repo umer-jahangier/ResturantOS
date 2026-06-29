@@ -15,6 +15,15 @@ export const queryKeys = {
   branches: {
     mine: () => ["branches", "mine"] as const,
   },
+  pos: {
+    menuCategories: (branchId: string) => ["pos", branchId, "menu-categories"] as const,
+    menuItems: (branchId: string, categoryId?: string) =>
+      ["pos", branchId, "menu-items", categoryId] as const,
+    tables: (branchId: string) => ["pos", branchId, "tables"] as const,
+    orders: (branchId: string, statuses?: string[]) =>
+      ["pos", branchId, "orders", statuses] as const,
+    order: (branchId: string, id: string) => ["pos", branchId, "orders", id] as const,
+  },
   finance: {
     accounts: (branchId: string, filters?: AccountFilters) =>
       ["finance", branchId, "accounts", filters] as const,
