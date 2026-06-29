@@ -63,4 +63,36 @@ public class PosGlobalExceptionHandler {
         pd.setType(URI.create("urn:restaurantos:pos:period-locked"));
         return ResponseEntity.status(HttpStatus.LOCKED).body(pd);
     }
+
+    @ExceptionHandler(PosExceptions.TillAlreadyOpenException.class)
+    public ResponseEntity<ProblemDetail> handleTillAlreadyOpen(PosExceptions.TillAlreadyOpenException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("TILL_ALREADY_OPEN");
+        pd.setType(URI.create("urn:restaurantos:pos:till-already-open"));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
+    @ExceptionHandler(PosExceptions.TillHasOpenOrdersException.class)
+    public ResponseEntity<ProblemDetail> handleTillHasOpenOrders(PosExceptions.TillHasOpenOrdersException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("TILL_HAS_OPEN_ORDERS");
+        pd.setType(URI.create("urn:restaurantos:pos:till-has-open-orders"));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
+    @ExceptionHandler({PosExceptions.TillNotFoundException.class})
+    public ResponseEntity<ProblemDetail> handleTillNotFound(PosExceptions.TillNotFoundException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("NOT_FOUND");
+        pd.setType(URI.create("urn:restaurantos:pos:not-found"));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(PosExceptions.PaymentMismatchException.class)
+    public ResponseEntity<ProblemDetail> handlePaymentMismatch(PosExceptions.PaymentMismatchException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("PAYMENT_MISMATCH");
+        pd.setType(URI.create("urn:restaurantos:pos:payment-mismatch"));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
 }
