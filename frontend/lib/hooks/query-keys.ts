@@ -45,4 +45,9 @@ export const queryKeys = {
     setupStatus: (branchId: string) =>
       ["finance", branchId, "setup", "status"] as const,
   },
+  kds: {
+    tickets: (branchId: string, stationCode?: string, status?: string) =>
+      ["kds", branchId, "tickets", stationCode, status] as const,
+    stations: (branchId: string) => ["kds", branchId, "stations"] as const,
+  },
 } as const;
