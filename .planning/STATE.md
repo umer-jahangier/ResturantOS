@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 7 of 12 (Point-of-Sale + Kitchen Display)
-Plan: 1 of 4
-Status: Phase 7 In Progress — pos-service scaffolded, order aggregate + state machine, outbox events, POS RBAC seeded, frontend POS terminal
-Last activity: 2026-06-30 — Completed 07-01: pos-service, ORDER_CREATED/ORDER_SENT_TO_KDS, auth 041, frontend POS terminal+floor
+Plan: 2 of 4
+Status: Phase 7 In Progress — tills, split-tender, ORDER_CLOSED, OPA voids/refunds, internal open-count, frontend payment/till/void UI
+Last activity: 2026-06-30 — Completed 07-02: till sessions, idempotent ORDER_CLOSED, OPA refund thresholds, Finance internal endpoint, frontend payment panel
 
-Progress: [█████████████████████░] 64% (21/33 plans)
+Progress: [██████████████████████░] 67% (22/33 plans)
 
 ## Performance Metrics
 
@@ -37,8 +37,8 @@ Progress: [█████████████████████░] 6
 | 06-finance-core-general-ledger-periods | 2/2 | complete |
 
 **Recent Trend:**
-- Last completed plan: 07-01
-- Trend: Phase 7 started — pos-service scaffolded (port 8084, pos_db) with Flyway V1+V2, RLS on all tenant tables, JWT security, transactional outbox. Order aggregate: DRAFT→OPEN→SENT_TO_KDS state machine, discount-floor+per-line-HALF_UP-tax, client_order_id idempotency, @Version optimistic lock. ORDER_CREATED + ORDER_SENT_TO_KDS events verified by OrderLifecycleIT (real outbox DB rows). OrderRlsIsolationIT cross-tenant returns 404. Auth 041 changeset: CASHIER day-to-day subset, MANAGER privileged superset. Frontend POS terminal + floor view, four-layer boundary ESLint-clean, pos-repository.test.ts 8/8 green.
+- Last completed plan: 07-02
+- Trend: Phase 7 write-side complete — till sessions (OPEN/CLOSED with variance_paisa GENERATED), split-tender ORDER_CLOSED idempotency, fail-closed FinancePeriodClient (423 PERIOD_LOCKED), OPA void.own/void.any/refund thresholds (approval_limit_paisa), InternalPosController bare Long for Finance, pos.rego 100% Rego coverage. Frontend: payment-panel (CHARGE NOW gated on remaining===0), till-session-bar (open/close modals), void-refund-dialog (PermissionGuard), 3 Vitest passing. tsc/lint/vitest green.
 
 *Updated after each plan completion*
 
@@ -120,6 +120,11 @@ Recent decisions affecting current work:
 - [07-01-F]: Discount floor: effectiveDiscount = min(requested, lineSubtotal) — lineNet never goes below 0.
 - [07-01-G]: Per-line tax HALF_UP on discounted net — not applied to order-level total directly.
 - [07-01-H]: Frontend errors.ts UNKNOWN_ERROR_MSG constant added to fix noUncheckedIndexedAccess TS error (pre-existing bug).
+- [07-02-A]: Fail-closed FinancePeriodClient — Finance unreachable or period LOCKED/CLOSED → PeriodLockedException (423); never close order against a potentially locked period.
+- [07-02-B]: Split-tender remainder assigned to first share only (not distributed evenly) — deterministic, auditable, no floating-point drift.
+- [07-02-C]: OpaClient mocked via @MockitoBean in ITs rather than running live OPA server — focused service-layer auth testing without infrastructure dependency.
+- [07-02-D]: InternalPosController returns bare Long (not ApiResponse-wrapped) at GET /internal/orders/open-count — must match Finance PosInternalClient Feign contract exactly.
+- [07-02-E]: variance_paisa as GENERATED ALWAYS AS DB column — ensures variance computed atomically in DB, not susceptible to app-layer rounding.
 
 ### Pending Todos
 
@@ -142,5 +147,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-06-30
-Stopped at: Phase 7 Plan 1 complete — pos-service scaffold + order aggregate + auth POS perms + frontend POS terminal; commits 5c7cc84, 7e6e63f, 360f592, 28a59a9, 51c91ed.
+Stopped at: Phase 7 Plan 2 complete — tills+payments DDL, split-tender, idempotent ORDER_CLOSED, OPA voids+refunds, internal open-count, frontend payment panel+till bar+void/refund dialog; commits 90abb27, f560c0b, 5d39f28, b7b6621, 28260fa.
 Resume file: None
