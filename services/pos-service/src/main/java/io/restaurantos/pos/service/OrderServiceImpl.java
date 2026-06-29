@@ -1,5 +1,6 @@
 package io.restaurantos.pos.service;
 
+import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.enums.TableStatus;
@@ -7,6 +8,7 @@ import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.pos.event.PosClosePayloads;
 import io.restaurantos.pos.event.PosEventPayloads;
+import io.restaurantos.pos.event.PosVoidRefundPayloads;
 import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.*;
@@ -39,6 +41,8 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_SENT_TO_KDS_TYPE = "ORDER_SENT_TO_KDS";
     private static final String ORDER_CLOSED_KEY = "pos.order.closed";
     private static final String ORDER_CLOSED_TYPE = "ORDER_CLOSED";
+    private static final String ORDER_VOIDED_KEY = "pos.order.voided";
+    private static final String ORDER_VOIDED_TYPE = "ORDER_VOIDED";
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
 
     private final OrderRepository orderRepository;
@@ -54,6 +58,7 @@ public class OrderServiceImpl implements OrderService {
     private final IdempotencyService idempotencyService;
     private final SplitTenderCalculator splitTenderCalculator;
     private final FinancePeriodClient financePeriodClient;
+    private final PosAuthorizationService posAuthorizationService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -67,7 +72,8 @@ public class OrderServiceImpl implements OrderService {
                             EventPublisher eventPublisher,
                             IdempotencyService idempotencyService,
                             SplitTenderCalculator splitTenderCalculator,
-                            FinancePeriodClient financePeriodClient) {
+                            FinancePeriodClient financePeriodClient,
+                            PosAuthorizationService posAuthorizationService) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -81,6 +87,7 @@ public class OrderServiceImpl implements OrderService {
         this.idempotencyService = idempotencyService;
         this.splitTenderCalculator = splitTenderCalculator;
         this.financePeriodClient = financePeriodClient;
+        this.posAuthorizationService = posAuthorizationService;
     }
 
     @Override
@@ -315,6 +322,58 @@ public class OrderServiceImpl implements OrderService {
                 : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
         return orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
                 .map(this::toDto);
+    }
+
+    @Override
+    public OrderDto voidOrder(UUID orderId, VoidOrderRequest request, String idempotencyKey) {
+        // Idempotency: return early if already completed
+        Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
+        UUID tenantId = tenantContext.requireTenantId();
+        if (stored.isPresent()) {
+            Order order = orderRepository.findById(orderId)
+                    .filter(o -> tenantId.equals(o.getTenantId()))
+                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+            return toDto(order);
+        }
+
+        boolean claimed = idempotencyService.checkAndLock(idempotencyKey, request.reason(), 86400);
+        if (!claimed) {
+            Order order = orderRepository.findById(orderId)
+                    .filter(o -> tenantId.equals(o.getTenantId()))
+                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+            return toDto(order);
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .filter(o -> tenantId.equals(o.getTenantId()))
+                .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+
+        // OPA authorization: void.own if creator+OPEN, void.any otherwise
+        posAuthorizationService.authorizeVoid(
+                orderId, tenantId, order.getBranchId(),
+                order.getCashierId(), order.getStatus().name());
+
+        stateMachine.assertTransition(order.getStatus(), OrderStatus.VOIDED);
+        order.setStatus(OrderStatus.VOIDED);
+        order.setVoidReason(request.reason());
+        order.setVoidedAt(Instant.now());
+
+        // Release table
+        if (order.getTableId() != null) {
+            tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
+                    .ifPresent(table -> table.setStatus(TableStatus.AVAILABLE));
+        }
+
+        order = orderRepository.save(order);
+
+        UUID voidedBy = tenantContext.getUserId().orElse(null);
+        var payload = new PosVoidRefundPayloads.OrderVoidedPayload(orderId, request.reason(), voidedBy);
+        eventPublisher.publish(POS_EXCHANGE, ORDER_VOIDED_KEY, ORDER_VOIDED_TYPE,
+                order.getBranchId(), payload);
+
+        OrderDto dto = toDto(order);
+        idempotencyService.markComplete(idempotencyKey, dto.id().toString());
+        return dto;
     }
 
     @Override

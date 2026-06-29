@@ -2,6 +2,7 @@ package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.pos.service.OrderService;
+import io.restaurantos.pos.service.RefundService;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -19,9 +20,11 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final RefundService refundService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, RefundService refundService) {
         this.orderService = orderService;
+        this.refundService = refundService;
     }
 
     @PostMapping
@@ -68,5 +71,21 @@ public class OrderController {
     @PostMapping("/{id}/send-to-kds")
     public ResponseEntity<OrderDto> sendToKds(@PathVariable UUID id) {
         return ResponseEntity.ok(orderService.sendToKds(id));
+    }
+
+    @PostMapping("/{id}/void")
+    public ResponseEntity<OrderDto> voidOrder(
+            @PathVariable UUID id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody VoidOrderRequest request) {
+        return ResponseEntity.ok(orderService.voidOrder(id, request, idempotencyKey));
+    }
+
+    @PostMapping("/{id}/refund")
+    public ResponseEntity<OrderDto> refundOrder(
+            @PathVariable UUID id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody RefundRequest request) {
+        return ResponseEntity.ok(refundService.refund(id, request, idempotencyKey));
     }
 }

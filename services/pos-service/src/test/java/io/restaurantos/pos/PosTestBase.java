@@ -1,6 +1,7 @@
 package io.restaurantos.pos;
 
 import io.restaurantos.pos.feign.FinancePeriodClient;
+import io.restaurantos.shared.authz.OpaClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -66,4 +67,8 @@ public abstract class PosTestBase {
     // Mock Finance Feign client — prevents HTTP connections in tests; configure per test
     @MockitoBean
     protected FinancePeriodClient financePeriodClient;
+
+    // Mock OpaClient — prevents real OPA connections; configure in each test for OPA-protected operations
+    @MockitoBean
+    protected OpaClient opaClient;
 }

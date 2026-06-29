@@ -1,5 +1,7 @@
 package io.restaurantos.pos.config;
 
+import io.restaurantos.shared.authz.AuthorizationService;
+import io.restaurantos.shared.authz.OpaClient;
 import io.restaurantos.shared.security.JwksKeyProvider;
 import io.restaurantos.shared.security.JwtAuthenticationFilter;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -33,6 +35,11 @@ public class PosSecurityConfig {
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwksKeyProvider jwksKeyProvider,
                                                             TenantContext tenantContext) {
         return new JwtAuthenticationFilter(jwksKeyProvider, tenantContext);
+    }
+
+    @Bean
+    public AuthorizationService authorizationService(OpaClient opaClient) {
+        return new AuthorizationService(opaClient);
     }
 
     @Bean
