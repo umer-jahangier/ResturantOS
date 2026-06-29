@@ -222,6 +222,7 @@ services:
 # but are now host-run for consistency with the other Spring Boot services.
 #
 # pos-service: port 8084, pos_db — run via: mvn -pl services/pos-service spring-boot:run
+# kitchen-service: port 8090, kitchen_db — run via: mvn -pl services/kitchen-service spring-boot:run
 
 volumes:
   postgres-data:

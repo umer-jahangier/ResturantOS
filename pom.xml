@@ -41,6 +41,7 @@
         <module>services/file-service</module>
         <module>services/finance-service</module>
         <module>services/pos-service</module>
+        <module>services/kitchen-service</module>
     </modules>
 
     <dependencyManagement>
