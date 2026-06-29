@@ -93,6 +93,33 @@ export interface Order {
   items: OrderItem[];
 }
 
+// ── Till session types ────────────────────────────────────────────────────────
+
+export type TillStatus = "OPEN" | "CLOSED";
+
+export interface TillSession {
+  id: string;
+  branchId: string;
+  cashierId: string;
+  openingFloatPaisa: number;
+  expectedClosingPaisa: number | null;
+  declaredClosingPaisa: number | null;
+  variancePaisa: number | null;
+  openedAt: string | null;
+  closedAt: string | null;
+  status: TillStatus;
+}
+
+// ── Payment types ─────────────────────────────────────────────────────────────
+
+export type PaymentMethod = "CASH" | "CARD" | "LOYALTY_POINTS" | "BANK_TRANSFER" | "VOUCHER";
+
+export interface PaymentEntry {
+  method: PaymentMethod;
+  amountPaisa: number;
+  referenceNo?: string | null;
+}
+
 // ── Request types ─────────────────────────────────────────────────────────────
 
 export interface CreateOrderPayload {
@@ -118,4 +145,27 @@ export interface ApplyDiscountPayload {
   orderItemId?: string;
   type: "FLAT" | "PERCENT";
   value: number;
+}
+
+export interface OpenTillPayload {
+  branchId: string;
+  openingFloatPaisa: number;
+}
+
+export interface CloseTillPayload {
+  declaredClosingPaisa: number;
+}
+
+export interface CloseOrderPayload {
+  payments: PaymentEntry[];
+}
+
+export interface VoidOrderPayload {
+  reason: string;
+}
+
+export interface RefundOrderPayload {
+  refundPaisa: number;
+  reason: string;
+  scope: "FULL" | "PARTIAL";
 }

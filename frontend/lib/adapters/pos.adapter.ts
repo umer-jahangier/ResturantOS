@@ -7,6 +7,7 @@ import type {
   ApiDiningTable,
   ApiOrder,
   ApiOrderItem,
+  ApiTillSession,
 } from "@/lib/api-client/schemas/pos.schema";
 import type {
   MenuItem,
@@ -15,6 +16,7 @@ import type {
   Order,
   OrderItem,
   OrderItemModifier,
+  TillSession,
 } from "@/lib/models/pos.model";
 
 export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
@@ -101,5 +103,20 @@ export function adaptOrder(raw: ApiOrder): Order {
     clientOrderId: raw.clientOrderId,
     version: raw.version,
     items: raw.items.map(adaptOrderItem),
+  };
+}
+
+export function adaptTillSession(raw: ApiTillSession): TillSession {
+  return {
+    id: raw.id,
+    branchId: raw.branchId,
+    cashierId: raw.cashierId,
+    openingFloatPaisa: raw.openingFloatPaisa,
+    expectedClosingPaisa: raw.expectedClosingPaisa ?? null,
+    declaredClosingPaisa: raw.declaredClosingPaisa ?? null,
+    variancePaisa: raw.variancePaisa ?? null,
+    openedAt: raw.openedAt ?? null,
+    closedAt: raw.closedAt ?? null,
+    status: raw.status,
   };
 }

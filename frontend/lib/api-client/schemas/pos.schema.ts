@@ -88,3 +88,30 @@ export const apiOrderSchema = z.object({
 });
 
 export type ApiOrder = z.infer<typeof apiOrderSchema>;
+
+export const apiTillSessionSchema = z.object({
+  id: z.string().uuid(),
+  branchId: z.string().uuid(),
+  cashierId: z.string().uuid(),
+  openingFloatPaisa: z.number().int().nonnegative(),
+  expectedClosingPaisa: z.number().int().nullable().optional(),
+  declaredClosingPaisa: z.number().int().nullable().optional(),
+  variancePaisa: z.number().int().nullable().optional(),
+  openedAt: z.string().nullable().optional(),
+  closedAt: z.string().nullable().optional(),
+  status: z.enum(["OPEN", "CLOSED"]),
+});
+
+export type ApiTillSession = z.infer<typeof apiTillSessionSchema>;
+
+export const apiOrderPaymentSchema = z.object({
+  method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
+  amountPaisa: z.number().int().nonnegative(),
+  referenceNo: z.string().nullable().optional(),
+});
+
+export type ApiOrderPayment = z.infer<typeof apiOrderPaymentSchema>;
+
+export const apiCloseOrderSchema = z.object({
+  payments: z.array(apiOrderPaymentSchema),
+});

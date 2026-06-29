@@ -5,21 +5,29 @@ import {
   apiMenuCategorySchema,
   apiDiningTableSchema,
   apiOrderSchema,
+  apiTillSessionSchema,
 } from "@/lib/api-client/schemas/pos.schema";
 import {
   adaptMenuItem,
   adaptMenuCategory,
   adaptDiningTable,
   adaptOrder,
+  adaptTillSession,
 } from "@/lib/adapters/pos.adapter";
 import type {
   MenuItem,
   MenuCategory,
   DiningTable,
   Order,
+  TillSession,
   CreateOrderPayload,
   AddItemPayload,
   ApplyDiscountPayload,
+  OpenTillPayload,
+  CloseTillPayload,
+  CloseOrderPayload,
+  VoidOrderPayload,
+  RefundOrderPayload,
 } from "@/lib/models/pos.model";
 
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
@@ -98,5 +106,53 @@ export const PosRepository = {
   async sendToKds(orderId: string): Promise<Order> {
     const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/send-to-kds`);
     return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  async closeOrder(orderId: string, payload: CloseOrderPayload, idempotencyKey: string): Promise<Order> {
+    const resp = await apiClient.post<{ data: unknown }>(
+      `/api/v1/pos/orders/${orderId}/close`,
+      payload,
+      { headers: { "Idempotency-Key": idempotencyKey } }
+    );
+    return adaptOrder(apiOrderSchema.parse(resp.data.data));
+  },
+
+  async voidOrder(orderId: string, payload: VoidOrderPayload, idempotencyKey: string): Promise<Order> {
+    const resp = await apiClient.post<{ data: unknown }>(
+      `/api/v1/pos/orders/${orderId}/void`,
+      payload,
+      { headers: { "Idempotency-Key": idempotencyKey } }
+    );
+    return adaptOrder(apiOrderSchema.parse(resp.data.data));
+  },
+
+  async refundOrder(orderId: string, payload: RefundOrderPayload, idempotencyKey: string): Promise<Order> {
+    const resp = await apiClient.post<{ data: unknown }>(
+      `/api/v1/pos/orders/${orderId}/refund`,
+      payload,
+      { headers: { "Idempotency-Key": idempotencyKey } }
+    );
+    return adaptOrder(apiOrderSchema.parse(resp.data.data));
+  },
+
+  // ── Tills ─────────────────────────────────────────────────────────────────
+
+  async openTill(payload: OpenTillPayload): Promise<TillSession> {
+    const resp = await apiClient.post<{ data: unknown }>("/api/v1/pos/tills", payload);
+    return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
+  },
+
+  async closeTill(tillId: string, payload: CloseTillPayload, idempotencyKey: string): Promise<TillSession> {
+    const resp = await apiClient.post<{ data: unknown }>(
+      `/api/v1/pos/tills/${tillId}/close`,
+      payload,
+      { headers: { "Idempotency-Key": idempotencyKey } }
+    );
+    return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
+  },
+
+  async getTill(tillId: string): Promise<TillSession> {
+    const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}`);
+    return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
   },
 };
