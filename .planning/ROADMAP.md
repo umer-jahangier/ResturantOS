@@ -144,13 +144,19 @@ Plans:
   4. Till open/close reconciles cash and emits `TILL_OPENED`/`TILL_CLOSED`, and `ORDER_CLOSED` is published carrying `customerId`.
   5. An order taken while offline (Service Worker + IndexedDB) syncs once connectivity returns using `client_order_id` as the idempotency key, creating no duplicate orders.
   6. A dedicated kitchen-only role (`KITCHEN_STAFF`, perms `pos.kds.view`/`pos.kds.update` only) is strictly isolated: kitchen logins are blocked from POS/finance, cashier/finance logins are blocked from the KDS REST + WebSocket, and the owner sees everything — enforced fail-closed via OPA and proven in both directions.
-**Plans**: 4 plans
+**Plans**: 8 plans (4 build + 4 gap-closure from UAT)
 
 Plans:
-- [ ] 07-01: Orders, tables, order state machine, discount floor + POS permissions (CASHIER/MANAGER)
-- [ ] 07-02: Split-tender payments, idempotent close, voids/refunds, tills, period-lock 423, pos.rego
-- [ ] 07-03: Offline POS — Service Worker + IndexedDB sync with `client_order_id`
-- [ ] 07-04: Kitchen Display System — station routing, item progression, `ORDER_READY` + KITCHEN_STAFF role & strict access isolation
+- [x] 07-01: Orders, tables, order state machine, discount floor + POS permissions (CASHIER/MANAGER)
+- [x] 07-02: Split-tender payments, idempotent close, voids/refunds, tills, period-lock 423, pos.rego
+- [x] 07-03: Offline POS — Service Worker + IndexedDB sync with `client_order_id`
+- [x] 07-04: Kitchen Display System — station routing, item progression, `ORDER_READY` + KITCHEN_STAFF role & strict access isolation
+
+Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
+- [ ] 07-05-PLAN.md (wave 1) — finance-service: Pakistan-fiscal-year bug + auto-seed-on-miss fallback for accounting periods (fixes permanent 423 PERIOD_LOCKED on fresh tenants)
+- [ ] 07-06-PLAN.md (wave 1) — pos-service: Order.cashierId/tillSessionId never set at creation (till-close open-orders gate was a no-op; void.own created_by could never match) + TillSession variance staleness fix
+- [ ] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
+- [ ] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
 
 ### Phase 8: Inventory & Recipe Management
 **Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
