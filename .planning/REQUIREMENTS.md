@@ -101,13 +101,13 @@
 ### POS (POS)
 
 - [x] **POS-01**: Staff can open a table/order and add items; order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED)
-- [ ] **POS-02**: Staff can send order to kitchen (`ORDER_SENT_TO_KDS`, station routing via `kds_station`)
+- [x] **POS-02**: Staff can send order to kitchen (`ORDER_SENT_TO_KDS`, station routing via `kds_station`)
 - [x] **POS-03**: Staff can take split-tender payments; 1-paisa rounding resolution defined; close is idempotent
 - [x] **POS-04**: Staff can void/refund per permission and OPA threshold; events published with idempotency
-- [ ] **POS-05**: Discounts cannot push a line below zero
+- [x] **POS-05**: Discounts cannot push a line below zero
 - [x] **POS-06**: Till open/close with reconciliation; `TILL_OPENED`/`TILL_CLOSED`
-- [ ] **POS-07**: Offline POS queues orders (Service Worker + IndexedDB) and syncs with `client_order_id` as idempotency key
-- [ ] **POS-08**: `ORDER_CLOSED` published with `customerId` for downstream consumers
+- [x] **POS-07**: Offline POS queues orders (Service Worker + IndexedDB) and syncs with `client_order_id` as idempotency key
+- [x] **POS-08**: `ORDER_CLOSED` published with `customerId` for downstream consumers
 
 ### Kitchen / KDS (KDS)
 
@@ -272,13 +272,13 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FIN-04 | Phase 6 | Pending |
 | FIN-06 | Phase 6 | Pending |
 | POS-01 | Phase 7 | Complete |
-| POS-02 | Phase 7 | Pending |
+| POS-02 | Phase 7 | Complete |
 | POS-03 | Phase 7 | Complete |
 | POS-04 | Phase 7 | Complete |
-| POS-05 | Phase 7 | Pending |
+| POS-05 | Phase 7 | Complete |
 | POS-06 | Phase 7 | Complete |
-| POS-07 | Phase 7 | Pending |
-| POS-08 | Phase 7 | Pending |
+| POS-07 | Phase 7 | Complete |
+| POS-08 | Phase 7 | Complete |
 | KDS-01 | Phase 7 | Complete |
 | KDS-02 | Phase 7 | Complete |
 | INV-01 | Phase 8 | Pending |
