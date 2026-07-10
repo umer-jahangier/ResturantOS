@@ -4,6 +4,7 @@ import io.restaurantos.finance.config.InternalTenantContextHelper;
 import io.restaurantos.finance.dto.ProvisionRequest;
 import io.restaurantos.finance.dto.ProvisioningResult;
 import io.restaurantos.finance.service.ProvisioningService;
+import io.restaurantos.finance.util.PakistanFiscalYear;
 import io.restaurantos.shared.api.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class InternalProvisioningController {
             @Valid @RequestBody(required = false) ProvisionRequest request) {
         int fiscalYear = request != null && request.fiscalYear() != null
                 ? request.fiscalYear()
-                : java.time.Year.now().getValue();
+                : PakistanFiscalYear.current();
         tenantHelper.activate(tenantId);
         try {
             return ResponseEntity.ok(ApiResponse.ok(provisioningService.provision(tenantId, fiscalYear)));
@@ -43,7 +44,7 @@ public class InternalProvisioningController {
     /** Platform-admin saga contract (Doc 4 §4.2). */
     @PostMapping("/finance/tenants/{tenantId}/seed-coa")
     public ResponseEntity<ApiResponse<Map<String, Object>>> seedCoa(@PathVariable UUID tenantId) {
-        int fiscalYear = java.time.Year.now().getValue();
+        int fiscalYear = PakistanFiscalYear.current();
         tenantHelper.activate(tenantId);
         try {
             ProvisioningResult result = provisioningService.provision(tenantId, fiscalYear);

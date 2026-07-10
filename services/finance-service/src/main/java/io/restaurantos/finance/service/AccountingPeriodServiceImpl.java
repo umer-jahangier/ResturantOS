@@ -7,6 +7,7 @@ import io.restaurantos.finance.dto.PeriodStatusResponse;
 import io.restaurantos.finance.exception.PeriodNotFoundException;
 import io.restaurantos.finance.mapper.PeriodMapper;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
+import io.restaurantos.finance.util.PakistanFiscalYear;
 import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.shared.tenant.TenantGucHelper;
 import jakarta.persistence.EntityManager;
@@ -120,13 +121,18 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PeriodStatusResponse getPeriodStatus(UUID branchId, LocalDate date) {
         ensureTenantGuc();
         UUID tid = tenantContext.requireTenantId();
         AccountingPeriod period = periodRepo
                 .findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tid, date, date)
-                .orElseThrow(() -> new PeriodNotFoundException(null));
+                .orElseGet(() -> {
+                    seedForTenant(tid, PakistanFiscalYear.forDate(date));
+                    return periodRepo
+                            .findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tid, date, date)
+                            .orElseThrow(() -> new PeriodNotFoundException(null));
+                });
         return new PeriodStatusResponse(
                 period.getId(), period.getStatus(), period.getFiscalYear(), period.getPeriodNo());
     }
