@@ -1,5 +1,5 @@
 ---
-status: testing
+status: gaps_resolved_pending_human_verification
 phase: 07-point-of-sale-kitchen-display
 source:
   - 07-01-SUMMARY.md
@@ -7,8 +7,23 @@ source:
   - 07-03-SUMMARY.md
   - 07-04-SUMMARY.md
 started: 2026-07-10T00:00:00+05:00
-updated: 2026-07-10T04:10:00+05:00
+updated: 2026-07-11T00:10:00+05:00
 ---
+
+## Resolution (Gap Closure — 2026-07-11)
+
+All four blocker-severity code gaps below are now resolved via gap-closure plans 07-05..07-08 plus two follow-up fixes found during phase re-verification (commits `ef0de34` fixing the UAT-Test-1 fixes that were left uncommitted, and `edb87f5` fixing a test-harness regression `ef0de34` introduced). See `07-VERIFICATION.md` for full independent re-verification evidence (all previously-failing automated tests now pass, including a direct re-run with `OPA_URL` unset to match CI conditions).
+
+- Test 1 (cold start): all five sub-bugs fixed — Docker reactor validation (07-08 + post-review correction `7448a60`), OPA config mapping, entity/repository scan, `ORDER_SENT_TO_KDS` payload contract (`ef0de34`), dev-startup tooling (07-08).
+- Test 5 (payment/close): fiscal-year provisioning bug fixed (07-05).
+- Test 6 (till close): `cashierId`/`tillSessionId` linkage fixed (07-06).
+- Test 7 (void order): permission grant seeded (07-07).
+
+**Still open, unchanged in scope — genuinely require a browser and/or Docker environment, not code gaps:**
+- Test 4 (KDS ticket lifecycle bump/aging, reverse role-isolation direction) — KITCHEN_STAFF/MANAGER demo users now exist (07-07), unblocking this test, but it has not been re-run since no browser automation is available in this environment.
+- Test 9 (offline PWA sync) — artifacts present, browser-only test, deferred per original user instruction.
+- Test 10 (sidebar nav visibility, MANAGER/OWNER "sees both") — same browser-automation constraint.
+- Test 8 (refund) — code-correct on inspection; requires a CLOSED order to exercise, which was blocked by the now-fixed Test 5 bug, but the end-to-end flow was not re-run this session.
 
 ## Current Test
 
