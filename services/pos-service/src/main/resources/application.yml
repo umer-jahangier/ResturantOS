@@ -67,3 +67,5 @@ restaurantos:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   jwks:
     uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+  opa:
+    url: ${OPA_URL}

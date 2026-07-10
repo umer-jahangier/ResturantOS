@@ -16,6 +16,9 @@ public final class KitchenEventPayloads {
 
     public record OrderSentToKdsPayload(
             UUID orderId,
+            UUID tenantId,
+            UUID branchId,
+            String orderNo,
             List<OrderSentToKdsItem> items
     ) {}
 

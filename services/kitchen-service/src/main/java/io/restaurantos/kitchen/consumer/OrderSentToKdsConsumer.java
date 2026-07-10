@@ -51,7 +51,7 @@ public class OrderSentToKdsConsumer {
 
         processedEventService.tryProcess(CONSUMER_NAME, envelope.eventId(), () ->
                 tenantAwareMessageProcessor.process(envelope, env ->
-                        ticketRoutingService.route(env.payload(), null)
+                        ticketRoutingService.route(env.payload(), env.payload().orderNo())
                 )
         );
     }

@@ -43,6 +43,9 @@ class TicketRoutingIT extends KitchenTestBase {
     void route_createsOneTicketPerStation() {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(
                 orderId,
+                tenantId,
+                branchId,
+                "ORD-001",
                 List.of(
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Burger",  1, "GRILL",  List.of("Extra Cheese"), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Fries",   1, "GRILL",  List.of(), null),
@@ -71,6 +74,9 @@ class TicketRoutingIT extends KitchenTestBase {
     void route_isIdempotent_onRedelivery() {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(
                 orderId,
+                tenantId,
+                branchId,
+                "ORD-002",
                 List.of(
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Pizza", 1, "OVEN", List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Water", 1, null,   List.of(), null)

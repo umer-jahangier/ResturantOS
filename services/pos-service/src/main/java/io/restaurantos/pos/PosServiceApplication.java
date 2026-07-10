@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 // NOTE: No @EnableJpaAuditing — SharedAutoConfiguration is authoritative [03-02-D].
 @SpringBootApplication
 @EnableFeignClients(basePackages = "io.restaurantos.pos.feign")
-@EntityScan(basePackages = {"io.restaurantos.pos.domain.model", "io.restaurantos.shared"})
+@EntityScan(basePackages = {"io.restaurantos.pos.domain.model", "io.restaurantos.pos.entity", "io.restaurantos.shared"})
 @EnableJpaRepositories(basePackages = {"io.restaurantos.pos.repository", "io.restaurantos.shared"})
 public class PosServiceApplication {
     public static void main(String[] args) {

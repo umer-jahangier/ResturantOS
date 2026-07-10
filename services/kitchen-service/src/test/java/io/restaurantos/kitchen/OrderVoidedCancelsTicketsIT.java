@@ -44,7 +44,7 @@ class OrderVoidedCancelsTicketsIT extends KitchenTestBase {
 
     @Test
     void cancelTicketsForOrder_setsAllToCancelled() {
-        OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, List.of(
+        OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
                 new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Burger", 1, "GRILL",  List.of(), null),
                 new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Cola",   1, "DRINKS", List.of(), null)
         ));
@@ -60,7 +60,7 @@ class OrderVoidedCancelsTicketsIT extends KitchenTestBase {
 
     @Test
     void cancelTicketsForOrder_isIdempotent() {
-        OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, List.of(
+        OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
                 new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Pizza", 1, "OVEN", List.of(), null)
         ));
         ticketRoutingService.route(payload, "ORD-201");
