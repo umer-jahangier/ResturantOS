@@ -13,6 +13,8 @@ COPY services/platform-admin-service/pom.xml services/platform-admin-service/pom
 COPY services/notification-service/pom.xml services/notification-service/pom.xml
 COPY services/audit-service/pom.xml services/audit-service/pom.xml
 COPY services/finance-service/pom.xml services/finance-service/pom.xml
+COPY services/pos-service/pom.xml services/pos-service/pom.xml
+COPY services/kitchen-service/pom.xml services/kitchen-service/pom.xml
 
 RUN mvn -pl services/audit-service -am -q dependency:go-offline -DskipTests || true
 
