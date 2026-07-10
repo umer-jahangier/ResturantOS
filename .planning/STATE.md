@@ -1,3 +1,22 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+current_phase: 07
+current_phase_name: point-of-sale-kitchen-display
+status: executing
+stopped_at: Completed 07-05-PLAN.md (fiscal-year provisioning bug fix + auto-seed self-heal, closes UAT Test 5 blocker)
+last_updated: "2026-07-10T17:17:08.852Z"
+last_activity: 2026-07-10
+last_activity_desc: Phase 07 execution started
+progress:
+  total_phases: 12
+  completed_phases: 4
+  total_plans: 32
+  completed_plans: 25
+  percent: 33
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +24,21 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 7 — Point-of-Sale + Kitchen Display
+**Current focus:** Phase 07 — point-of-sale-kitchen-display
 
 ## Current Position
 
-Phase: 7 of 12 (Point-of-Sale + Kitchen Display)
-Plan: 4 of 4
-Status: Phase 7 Complete — all four plans executed (POS, write-side, offline PWA, KDS)
-Last activity: 2026-06-30 — Completed 07-04: kitchen-service, KITCHEN_STAFF isolation, always-dark KDS board, ORDER_READY loop
+Phase: 07 (point-of-sale-kitchen-display) — EXECUTING
+Plan: 2 of 8
+Status: Ready to execute
+Last activity: 2026-07-10 — Phase 07 execution started
 
 Progress: [████████████████████████] 76% (27/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 27
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
@@ -38,10 +58,12 @@ Progress: [███████████████████████
 | 07-point-of-sale-kitchen-display | 4/4 | pending phase verify |
 
 **Recent Trend:**
+
 - Last completed plan: 07-04
 - Trend: Phase 7 complete — pos-service (orders/tills/payments/ORDER_CLOSED), offline PWA (IndexedDB outbox + FIFO sync), kitchen-service (station routing + ORDER_READY), KITCHEN_STAFF role isolation, always-dark WebSocket KDS board with sidebar gating. KDS vitest 6/6 green.
 
 *Updated after each plan completion*
+| Phase 07 P05 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -136,6 +158,7 @@ Recent decisions affecting current work:
 - [07-04-C]: RabbitMQ topology (pos.order-ready.queue) declared in PosKitchenTopologyConfig @Configuration, not Flyway.
 - [07-04-D]: KDS board always dark — does NOT respect useTheme() (kitchen readability at 2m).
 - [07-04-E]: WebSocket merges ticket frames into TanStack Query cache; HTTP polls every 10s as fallback.
+- [Phase 07-05]: getPeriodStatus changed from @Transactional(readOnly = true) to plain @Transactional to support idempotent auto-seed-on-miss fallback (reuses existing seedForTenant, no new seeding logic).
 
 ### Pending Todos
 
@@ -157,6 +180,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-06-30
-Stopped at: Phase 7 complete (4/4 plans) — POS scaffold+terminal (07-01), tills/payments/ORDER_CLOSED (07-02), offline PWA+IndexedDB sync (07-03), kitchen-service+KDS board (07-04). Uncommitted: 07-04-SUMMARY.md, kitchen page FeatureGuard/PermissionGuard, new-ticket audio beep.
+Last session: 2026-07-10T17:17:08.829Z
+Stopped at: Completed 07-05-PLAN.md (fiscal-year provisioning bug fix + auto-seed self-heal, closes UAT Test 5 blocker)
 Resume file: None

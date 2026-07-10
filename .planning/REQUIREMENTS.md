@@ -102,7 +102,7 @@
 
 - [ ] **POS-01**: Staff can open a table/order and add items; order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED)
 - [ ] **POS-02**: Staff can send order to kitchen (`ORDER_SENT_TO_KDS`, station routing via `kds_station`)
-- [ ] **POS-03**: Staff can take split-tender payments; 1-paisa rounding resolution defined; close is idempotent
+- [x] **POS-03**: Staff can take split-tender payments; 1-paisa rounding resolution defined; close is idempotent
 - [ ] **POS-04**: Staff can void/refund per permission and OPA threshold; events published with idempotency
 - [ ] **POS-05**: Discounts cannot push a line below zero
 - [ ] **POS-06**: Till open/close with reconciliation; `TILL_OPENED`/`TILL_CLOSED`
@@ -273,7 +273,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FIN-06 | Phase 6 | Pending |
 | POS-01 | Phase 7 | Pending |
 | POS-02 | Phase 7 | Pending |
-| POS-03 | Phase 7 | Pending |
+| POS-03 | Phase 7 | Complete |
 | POS-04 | Phase 7 | Pending |
 | POS-05 | Phase 7 | Pending |
 | POS-06 | Phase 7 | Pending |
@@ -315,6 +315,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | NLQ-02 | Phase 12 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 104 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
 - Mapped to phases: 104/104 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
