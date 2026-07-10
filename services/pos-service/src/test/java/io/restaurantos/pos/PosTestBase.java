@@ -54,6 +54,10 @@ public abstract class PosTestBase {
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("spring.cloud.config.enabled", () -> "false");
         registry.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
+        // OpaClient is @MockitoBean below — this value is never dialed, only needed so the
+        // restaurantos.opa.url placeholder resolves during context startup (matches
+        // authorization-service's BaseIntegrationTest pattern).
+        registry.add("restaurantos.opa.url", () -> "http://127.0.0.1:1");
     }
 
     // Mock AMQP to prevent actual broker publishing
