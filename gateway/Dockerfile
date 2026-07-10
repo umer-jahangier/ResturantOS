@@ -13,6 +13,11 @@ COPY config-server/pom.xml config-server/pom.xml
 COPY services/auth-service/pom.xml services/auth-service/pom.xml
 COPY services/authorization-service/pom.xml services/authorization-service/pom.xml
 COPY gateway/pom.xml gateway/pom.xml
+COPY services/user-service/pom.xml services/user-service/pom.xml
+COPY services/platform-admin-service/pom.xml services/platform-admin-service/pom.xml
+COPY services/notification-service/pom.xml services/notification-service/pom.xml
+COPY services/audit-service/pom.xml services/audit-service/pom.xml
+COPY services/file-service/pom.xml services/file-service/pom.xml
 COPY services/finance-service/pom.xml services/finance-service/pom.xml
 COPY services/pos-service/pom.xml services/pos-service/pom.xml
 COPY services/kitchen-service/pom.xml services/kitchen-service/pom.xml
