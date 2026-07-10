@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-043-cashier-void-own-permission" author="restaurantos-agent" runOnChange="false">
+
+        <!-- The pos.order.void.own permission code already exists (seeded by 030's
+             auth-1.0.0-034-seed-permissions changeset) and is already granted to
+             MANAGER (auth-1.0.0-036-seed-role-permissions) plus blanket-granted to
+             OWNER/TENANT_ADMIN. CASHIER was deliberately excluded there ("CASHIER:
+             NON-privileged — NO void permissions"), a decision made before Phase 7's
+             actual pos.rego design existed (void.own: cashier can void their own
+             OPEN order). This changeset adds only the missing CASHIER grant — it
+             does NOT touch pos.order.void.any (unchanged, still MANAGER+ only). -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.order.void.own"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>

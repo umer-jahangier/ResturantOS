@@ -12,6 +12,7 @@
     <include file="db/changelog/v1.0.0/037-finance-coa-permissions.xml"/>
     <include file="db/changelog/v1.0.0/041-pos-permissions.xml"/>
     <include file="db/changelog/v1.0.0/042-kds-permissions-kitchen-role.xml"/>
+    <include file="db/changelog/v1.0.0/043-cashier-void-own-permission.xml"/>
     <include file="db/changelog/v1.0.0/040-create-user-branch-roles.xml"/>
     <include file="db/changelog/v1.0.0/050-create-refresh-sessions.xml"/>
     <include file="db/changelog/v1.0.0/052-refresh-session-lookup-function.xml"/>

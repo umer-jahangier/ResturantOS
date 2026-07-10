@@ -112,6 +112,20 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
     }
 
     @Test
+    void getUserPermissions_forCashier_includesVoidOwn() {
+        UUID userId = TestFixtures.CASHIER_USER_ID;
+        UUID branchId = TestFixtures.MAIN_BRANCH_ID;
+
+        ResponseEntity<String> response = exchangeGet(
+            "/internal/auth/users/" + userId + "/permissions?branchId=" + branchId,
+            InternalServiceFilter.HEADER,
+            INTERNAL_SECRET
+        );
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).contains("pos.order.void.own");
+    }
+
+    @Test
     void getUserPermissions_withoutSecret_returns403() {
         UUID userId = TestFixtures.CASHIER_USER_ID;
         ResponseEntity<String> response = exchangeGet(
