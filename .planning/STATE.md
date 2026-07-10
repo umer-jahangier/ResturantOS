@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: point-of-sale-kitchen-display
 status: executing
-stopped_at: Completed 07-07-PLAN.md (auth seed-data gap closure — CASHIER void.own permission + KITCHEN_STAFF/MANAGER demo users)
-last_updated: "2026-07-10T18:00:09.641Z"
+stopped_at: Phase 07.1 UI-SPEC approved (6/6 dims, 1 non-blocking flag)
+last_updated: "2026-07-10T21:53:48.993Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 07 execution started
 progress:
-  total_phases: 12
+  total_phases: 13
   completed_phases: 5
   total_plans: 32
   completed_plans: 28
-  percent: 42
+  percent: 38
 ---
 
 # Project State
@@ -188,8 +188,12 @@ Recent decisions affecting current work:
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
 
+### Roadmap Evolution
+
+- Phase 07.1 inserted after Phase 7: POS Production Operations & Item-Level Kitchen Tracking — upgrade POS from MVP to production-ready restaurant operations (order management, table-centric dine-in, item-level status, kitchen ticket revisions, cashier UX) (URGENT)
+
 ## Session Continuity
 
-Last session: 2026-07-10T17:59:27.222Z
-Stopped at: Completed 07-07-PLAN.md (auth seed-data gap closure — CASHIER void.own permission + KITCHEN_STAFF/MANAGER demo users)
-Resume file: None
+Last session: 2026-07-10T21:53:48.967Z
+Stopped at: Phase 07.1 UI-SPEC approved (6/6 dims, 1 non-blocking flag)
+Resume file: .planning/phases/07.1-pos-production-operations/07.1-UI-SPEC.md

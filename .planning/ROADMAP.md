@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Cross-Cutting Services (Notifications, Audit, Files)** - Event-driven email/in-app, immutable audit, MinIO storage
 - [ ] **Phase 6: Finance Core — General Ledger & Periods** - Seeded COA, balanced+immutable JEs, period locking
 - [x] **Phase 7: Point of Sale & Kitchen Display** - Orders, split-tender, tills, offline sync, KDS routing (completed 2026-07-10)
+- [ ] **Phase 7.1: POS Production Operations & Item-Level Kitchen Tracking** *(INSERTED)* - Order management screen, table-centric dine-in, item-level status, kitchen ticket revisions, order/item instructions, cashier UX + wire payment/till/void UI
 - [ ] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP
@@ -193,6 +194,27 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 - [x] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
 - [x] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
 
+### Phase 07.1: POS Production Operations & Item-Level Kitchen Tracking (INSERTED)
+
+**Goal**: Upgrade the POS from a working MVP into a production-ready restaurant operations surface — a table-centric dine-in flow, an active-order management screen, item-level kitchen status (with the order status *derived* from its items), industry-standard "add items to an existing order" kitchen ticket revisions, order/item special instructions, a redesigned fast cashier terminal, and a KDS that shows stable cards with item-level status, revisions, and instructions — while wiring the already-built payment/till/void UI that the Phase-7 UAT found was never rendered.
+**Depends on**: Phase 7
+**Requirements**: POS-09, POS-10, POS-11, POS-12, POS-13, POS-14, POS-15, KDS-03
+**Success Criteria** (what must be TRUE):
+
+  1. A cashier can open a dedicated Order Management screen that lists active orders (their own or all branch orders per permission) with derived status, and can open, edit, reopen, and take payment on any active order; an order stays OPEN until it is paid and closed.
+  2. The table floor view is the primary dine-in entry point: selecting a table shows its current active order, order status, assigned server/cashier, and a live bill summary, and every dine-in order is linked to a table.
+  3. Every order line carries its own status (PENDING → SENT → ACCEPTED → PREPARING → READY → SERVED, or CANCELLED), and the order's overall status (DRAFT / IN_PROGRESS / PARTIALLY_SERVED / SERVED / CLOSED) is derived from its line statuses rather than set independently.
+  4. A cashier can add items to an already-sent order and send ONLY the newly-added items to the kitchen as a new revision; previously-sent or served lines are never resent, and the order keeps a revision history (Rev 1, Rev 2, …) — implemented per researched industry-standard POS behavior.
+  5. Orders and individual items accept special instructions (e.g. "no onions", "medium rare"), captured at create/edit time and surfaced to the kitchen on the ticket and order-detail view.
+  6. The KDS board renders stable (non-jumping) cards, lets staff open a ticket to view full order detail + instructions, visually distinguishes newly-added revision items from earlier ones, and shows per-item status rather than only a single order-level status.
+  7. The cashier terminal is usable for real service — the already-built PaymentPanel, TillSessionBar, and VoidRefundDialog are rendered and reachable (a cashier can charge, open/close a till, and void/refund through the UI), the void 403 and the offline sync-badge-not-updating gaps from the Phase-7 UAT are closed, and the first-item / item-cap add bugs are fixed, with fast order creation, quick item search, and clear status indicators.
+
+**Plans**: 0 plans (to be planned)
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.1 to break down)
+
 ### Phase 8: Inventory & Recipe Management
 
 **Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
@@ -313,6 +335,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 5. Cross-Cutting Services (Notifications, Audit, Files) | 0/3 | Not started | - |
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
+| 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 0/? | Not started | - |
 | 8. Inventory & Recipe Management | 0/3 | Not started | - |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 0/2 | Not started | - |

@@ -109,10 +109,21 @@
 - [x] **POS-07**: Offline POS queues orders (Service Worker + IndexedDB) and syncs with `client_order_id` as idempotency key
 - [x] **POS-08**: `ORDER_CLOSED` published with `customerId` for downstream consumers
 
+> **Phase 7.1 (INSERTED 2026-07-11)** — production-hardening of the Phase-7 POS MVP. Turns "create an order and fire it at the kitchen" into a real dine-in operations surface: active-order management, table-centric flow, item-level kitchen tracking, add-to-existing-order kitchen ticket revisions, instructions, a fast cashier terminal, and wiring of already-built-but-unrendered payment/till/void UI (Phase-7 UAT gap).
+
+- [ ] **POS-09**: Order Management screen — cashiers/servers list active orders (own or all-branch per permission) with derived status, and can open, edit, reopen, and complete payment on any active order; an order remains OPEN (active) until it is paid and closed
+- [ ] **POS-10**: Table-centric dine-in — the table floor view is the primary dine-in entry point; selecting a table shows its current active order, order status, assigned server/cashier, and live bill summary; every dine-in order is linked to a table
+- [ ] **POS-11**: Item-level status lifecycle — each order line tracks its own status (`PENDING`→`SENT`→`ACCEPTED`→`PREPARING`→`READY`→`SERVED`, plus `CANCELLED`); the aggregate order status (`DRAFT`/`IN_PROGRESS`/`PARTIALLY_SERVED`/`SERVED`/`CLOSED`) is **derived** from line statuses, not set independently
+- [ ] **POS-12**: Order revisions / add-to-existing — items can be added to an already-sent active order and only the newly-added items are sent to the kitchen as a new revision; previously-sent/served lines are never resent; a per-order revision history (Rev 1, Rev 2, …) is maintained (implemented per researched industry-standard POS behavior)
+- [ ] **POS-13**: Order & item instructions — an order-level special-instructions field plus optional per-item instructions (e.g. "no onions", "medium rare"), captured at create/edit and surfaced to the kitchen on the ticket + order-detail view
+- [ ] **POS-14**: Wire cashier settlement actions — render the already-built `PaymentPanel`, `TillSessionBar`, and `VoidRefundDialog` into the live POS/order flow so a cashier can charge, open/close a till, and void/refund through the UI; close the Phase-7 UAT gaps (void 403, offline sync-badge not updating on reconnect)
+- [ ] **POS-15**: Cashier experience — fast order creation, quick item search, easy editing of active orders, clear order/item status indicators, efficient service navigation; fix the terminal state bugs (first-item add, item-cap after N items)
+
 ### Kitchen / KDS (KDS)
 
 - [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
 - [x] **KDS-02**: `ORDER_READY` notifies POS
+- [ ] **KDS-03**: KDS revision & detail (Phase 7.1) — the board renders stable (non-jumping) cards, lets staff open a ticket for full order detail, visually distinguishes newly-added revision items from earlier ones, shows special instructions/kitchen notes, and displays per-item status rather than only an order-level status
 
 ### Inventory (INV)
 
@@ -281,6 +292,14 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-08 | Phase 7 | Complete |
 | KDS-01 | Phase 7 | Complete |
 | KDS-02 | Phase 7 | Complete |
+| POS-09 | Phase 7.1 | Pending |
+| POS-10 | Phase 7.1 | Pending |
+| POS-11 | Phase 7.1 | Pending |
+| POS-12 | Phase 7.1 | Pending |
+| POS-13 | Phase 7.1 | Pending |
+| POS-14 | Phase 7.1 | Pending |
+| POS-15 | Phase 7.1 | Pending |
+| KDS-03 | Phase 7.1 | Pending |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
 | INV-03 | Phase 8 | Pending |
@@ -316,9 +335,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 
 **Coverage:**
 
-- v1 requirements: 104 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
-- Mapped to phases: 104/104 (100%) — each requirement mapped to exactly one phase
+- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
+- Mapped to phases: 112/112 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
+- 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)
 - 2026-06-25 addition (+9): PLATFORM-10 (SuperAdmin tier-independent per-tenant module enable/disable); HR-04/05/06 (shift scheduling, attendance & leave, labour-cost tracking); PUR-05/06 (vendor scorecard, spend analytics); CRM-03/04/05 (loyalty tiers, promotion engine, feedback) — all six primary modules are now core/mandatory in every tenant build
 - 2026-06-25 addition (+2): HR-07 (biometric attendance device integration — LAN ADMS push + USB bridge agent, device-authenticated ingest); HR-08 (biometric privacy — edge matching, no central raw biometrics); GW-02 extended for the device-authenticated ingest path class
 - v2 requirements (deferred, not mapped): NOTIF-02, NOTIF-03, PLATFORM-08, PLATFORM-09, INV-08, RPT-03, AUTHZ-05, AUDIT-02
@@ -326,3 +346,4 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 ---
 *Requirements defined: 2026-06-22*
 *Last updated: 2026-06-25 — all six business modules made core/mandatory; added SuperAdmin tier-independent per-tenant module control (PLATFORM-10), operational sub-features for HR/Vendor/CRM, and biometric attendance device integration (HR-07/08, GW-02 device-auth ingest)*
+*Last updated: 2026-07-11 — Phase 7.1 (INSERTED) POS production-hardening: +8 requirements (POS-09..15, KDS-03) for order management, table-centric dine-in, item-level kitchen status, add-to-existing kitchen ticket revisions, order/item instructions, cashier UX, and wiring the unrendered payment/till/void UI found in the Phase-7 UAT*
