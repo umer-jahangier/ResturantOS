@@ -100,7 +100,7 @@
 
 ### POS (POS)
 
-- [ ] **POS-01**: Staff can open a table/order and add items; order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED)
+- [x] **POS-01**: Staff can open a table/order and add items; order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED)
 - [ ] **POS-02**: Staff can send order to kitchen (`ORDER_SENT_TO_KDS`, station routing via `kds_station`)
 - [x] **POS-03**: Staff can take split-tender payments; 1-paisa rounding resolution defined; close is idempotent
 - [x] **POS-04**: Staff can void/refund per permission and OPA threshold; events published with idempotency
@@ -271,7 +271,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FIN-02 | Phase 6 | Pending |
 | FIN-04 | Phase 6 | Pending |
 | FIN-06 | Phase 6 | Pending |
-| POS-01 | Phase 7 | Pending |
+| POS-01 | Phase 7 | Complete |
 | POS-02 | Phase 7 | Pending |
 | POS-03 | Phase 7 | Complete |
 | POS-04 | Phase 7 | Complete |

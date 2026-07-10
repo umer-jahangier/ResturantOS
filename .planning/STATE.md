@@ -6,15 +6,15 @@ current_phase: 07
 current_phase_name: point-of-sale-kitchen-display
 status: executing
 stopped_at: Completed 07-07-PLAN.md (auth seed-data gap closure — CASHIER void.own permission + KITCHEN_STAFF/MANAGER demo users)
-last_updated: "2026-07-10T17:50:07.168Z"
+last_updated: "2026-07-10T18:00:09.641Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 12
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 32
-  completed_plans: 27
-  percent: 33
+  completed_plans: 28
+  percent: 42
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07 (point-of-sale-kitchen-display) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 07 execution started
 
@@ -66,6 +66,7 @@ Progress: [███████████████████████
 | Phase 07 P05 | 20min | 2 tasks | 3 files |
 | Phase 07 P06 | 20min | 2 tasks | 4 files |
 | Phase 07 P07 | 20min | 2 tasks | 7 files |
+| Phase 07 P08 | 12min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,8 @@ Recent decisions affecting current work:
 - [Phase 07-07]: New changeset 043 (not editing 030/041) grants CASHIER pos.order.void.own — permission code already existed, was only missing the CASHIER role grant.
 - [Phase 07-07]: New changesets 902/903 appended to 900-seed-auth-dev-data.xml (not editing 900/901) seed chef@demo.local/manager@demo.local demo users.
 - [Phase 07-07]: Bcrypt hashes for the two new demo users independently verified via BCryptPasswordEncoder.matches() before seeding, rather than trusted blindly.
+- [Phase 07-08]: 10 Dockerfiles were missing pos-service/kitchen-service pom.xml COPY lines, breaking Maven reactor validation on docker compose up --build; kitchen-service's own Dockerfile was already correct and platform-admin-service's src-only build pattern was left out of scope.
+- [Phase 07-08]: pos-service (8084) and kitchen-service (8090) added to scripts/start-dev.ps1 and scripts/restart-service.ps1 as first-class dev-stack services, not as new docker-compose build: stanzas (host-run architecture preserved).
 
 ### Pending Todos
 
@@ -187,6 +190,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-10T17:50:07.155Z
+Last session: 2026-07-10T17:59:27.222Z
 Stopped at: Completed 07-07-PLAN.md (auth seed-data gap closure — CASHIER void.own permission + KITCHEN_STAFF/MANAGER demo users)
 Resume file: None
