@@ -40,7 +40,7 @@ public class TillSession extends TenantAuditableEntity {
      * Computed by the DB: declared_closing_paisa - expected_closing_paisa.
      * Read after flush/refresh; never set directly.
      */
-    @Generated(event = EventType.INSERT)
+    @Generated(event = {EventType.INSERT, EventType.UPDATE})
     @Column(name = "variance_paisa", insertable = false, updatable = false)
     private Long variancePaisa;
 

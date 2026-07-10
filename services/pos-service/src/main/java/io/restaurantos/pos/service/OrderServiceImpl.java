@@ -4,6 +4,7 @@ import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.enums.TableStatus;
+import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.pos.event.PosClosePayloads;
@@ -59,6 +60,7 @@ public class OrderServiceImpl implements OrderService {
     private final SplitTenderCalculator splitTenderCalculator;
     private final FinancePeriodClient financePeriodClient;
     private final PosAuthorizationService posAuthorizationService;
+    private final TillSessionRepository tillSessionRepository;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -73,7 +75,8 @@ public class OrderServiceImpl implements OrderService {
                             IdempotencyService idempotencyService,
                             SplitTenderCalculator splitTenderCalculator,
                             FinancePeriodClient financePeriodClient,
-                            PosAuthorizationService posAuthorizationService) {
+                            PosAuthorizationService posAuthorizationService,
+                            TillSessionRepository tillSessionRepository) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -88,6 +91,7 @@ public class OrderServiceImpl implements OrderService {
         this.splitTenderCalculator = splitTenderCalculator;
         this.financePeriodClient = financePeriodClient;
         this.posAuthorizationService = posAuthorizationService;
+        this.tillSessionRepository = tillSessionRepository;
     }
 
     @Override
@@ -113,6 +117,13 @@ public class OrderServiceImpl implements OrderService {
         if (request.tableId() != null) {
             order.setTableId(request.tableId());
         }
+
+        Order newOrder = order;
+        tenantContext.getUserId().ifPresent(userId -> {
+            newOrder.setCashierId(userId);
+            tillSessionRepository.findByCashierIdAndStatus(userId, TillStatus.OPEN)
+                    .ifPresent(till -> newOrder.setTillSessionId(till.getId()));
+        });
 
         order = orderRepository.save(order);
         return toDto(order);
