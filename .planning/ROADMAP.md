@@ -173,7 +173,7 @@ Plans:
   5. An order taken while offline (Service Worker + IndexedDB) syncs once connectivity returns using `client_order_id` as the idempotency key, creating no duplicate orders.
   6. A dedicated kitchen-only role (`KITCHEN_STAFF`, perms `pos.kds.view`/`pos.kds.update` only) is strictly isolated: kitchen logins are blocked from POS/finance, cashier/finance logins are blocked from the KDS REST + WebSocket, and the owner sees everything — enforced fail-closed via OPA and proven in both directions.
 
-**Plans**: 6/8 plans executed
+**Plans**: 7/8 plans executed
 
 Plans:
 
@@ -190,7 +190,7 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 
 - [x] 07-05-PLAN.md (wave 1) — finance-service: Pakistan-fiscal-year bug + auto-seed-on-miss fallback for accounting periods (fixes permanent 423 PERIOD_LOCKED on fresh tenants)
 - [x] 07-06-PLAN.md (wave 1) — pos-service: Order.cashierId/tillSessionId never set at creation (till-close open-orders gate was a no-op; void.own created_by could never match) + TillSession variance staleness fix
-- [ ] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
+- [x] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
 - [ ] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
 
 ### Phase 8: Inventory & Recipe Management
@@ -312,7 +312,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 4. Frontend Shell & CI/CD | 3/3 | Complete | 2026-06-25 |
 | 5. Cross-Cutting Services (Notifications, Audit, Files) | 0/3 | Not started | - |
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
-| 7. Point of Sale & Kitchen Display | 6/8 | In Progress|  |
+| 7. Point of Sale & Kitchen Display | 7/8 | In Progress|  |
 | 8. Inventory & Recipe Management | 0/3 | Not started | - |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 0/2 | Not started | - |

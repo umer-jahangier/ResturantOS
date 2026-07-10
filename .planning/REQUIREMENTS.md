@@ -111,8 +111,8 @@
 
 ### Kitchen / KDS (KDS)
 
-- [ ] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
-- [ ] **KDS-02**: `ORDER_READY` notifies POS
+- [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
+- [x] **KDS-02**: `ORDER_READY` notifies POS
 
 ### Inventory (INV)
 
@@ -279,8 +279,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-06 | Phase 7 | Complete |
 | POS-07 | Phase 7 | Pending |
 | POS-08 | Phase 7 | Pending |
-| KDS-01 | Phase 7 | Pending |
-| KDS-02 | Phase 7 | Pending |
+| KDS-01 | Phase 7 | Complete |
+| KDS-02 | Phase 7 | Complete |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
 | INV-03 | Phase 8 | Pending |

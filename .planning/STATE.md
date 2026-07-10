@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: point-of-sale-kitchen-display
 status: executing
-stopped_at: Completed 07-06-PLAN.md (Order.cashierId/tillSessionId linkage gap-closure — fixes till-close open-orders gate + OPA void.own created_by check)
-last_updated: "2026-07-10T17:37:25.607Z"
+stopped_at: Completed 07-07-PLAN.md (auth seed-data gap closure — CASHIER void.own permission + KITCHEN_STAFF/MANAGER demo users)
+last_updated: "2026-07-10T17:50:07.168Z"
 last_activity: 2026-07-10
 last_activity_desc: Phase 07 execution started
 progress:
   total_phases: 12
   completed_phases: 4
   total_plans: 32
-  completed_plans: 26
+  completed_plans: 27
   percent: 33
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07 (point-of-sale-kitchen-display) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-07-10 — Phase 07 execution started
 
@@ -65,6 +65,7 @@ Progress: [███████████████████████
 *Updated after each plan completion*
 | Phase 07 P05 | 20min | 2 tasks | 3 files |
 | Phase 07 P06 | 20min | 2 tasks | 4 files |
+| Phase 07 P07 | 20min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -162,6 +163,9 @@ Recent decisions affecting current work:
 - [Phase 07-05]: getPeriodStatus changed from @Transactional(readOnly = true) to plain @Transactional to support idempotent auto-seed-on-miss fallback (reuses existing seedForTenant, no new seeding logic).
 - [07-06-A]: OrderServiceImpl.createOrder sets cashierId/tillSessionId from tenantContext.getUserId() + open till lookup, using an intermediate final Order reference (finalOrder pattern) to satisfy lambda effective-finality.
 - [07-06-B]: TillSession.variancePaisa @Generated event array covers both INSERT and UPDATE so Hibernate re-fetches the DB-computed column after closeTill's UPDATE.
+- [Phase 07-07]: New changeset 043 (not editing 030/041) grants CASHIER pos.order.void.own — permission code already existed, was only missing the CASHIER role grant.
+- [Phase 07-07]: New changesets 902/903 appended to 900-seed-auth-dev-data.xml (not editing 900/901) seed chef@demo.local/manager@demo.local demo users.
+- [Phase 07-07]: Bcrypt hashes for the two new demo users independently verified via BCryptPasswordEncoder.matches() before seeding, rather than trusted blindly.
 
 ### Pending Todos
 
@@ -183,6 +187,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-10T17:37:25.593Z
-Stopped at: Completed 07-06-PLAN.md (Order.cashierId/tillSessionId linkage gap-closure — fixes till-close open-orders gate + OPA void.own created_by check)
+Last session: 2026-07-10T17:50:07.155Z
+Stopped at: Completed 07-07-PLAN.md (auth seed-data gap closure — CASHIER void.own permission + KITCHEN_STAFF/MANAGER demo users)
 Resume file: None
