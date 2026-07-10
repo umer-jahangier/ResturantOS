@@ -111,4 +111,64 @@
         </rollback>
     </changeSet>
 
+    <!-- KDS demo users: chef@demo.local (KITCHEN_STAFF) and manager@demo.local (MANAGER).
+         Documented in Docs/agent-specs/11-seed-data-specification.md but previously missing
+         from this seed file — blocked all Kitchen Display testing and the reverse-direction
+         role-isolation check (KITCHEN_STAFF denied POS API). 900/901 already ran and are not
+         edited; these are appended as new changesets. -->
+    <changeSet id="auth-1.0.0-902-seed-kds-demo-users" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <insert tableName="users">
+            <column name="id" value="c0000005-0000-4000-8000-000000000005"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="chef@demo.local"/>
+            <column name="password_hash" value="$2a$12$WH4TQV.SC0qyuv.a4N1uE.FJNK9DyOq3WpUZZU80bKlopYe6.d43e"/>
+            <column name="full_name" value="Demo Chef"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <insert tableName="users">
+            <column name="id" value="c0000006-0000-4000-8000-000000000006"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="manager@demo.local"/>
+            <column name="password_hash" value="$2a$12$JfPrSuBwxcB9nr2u2Q40sePOAT97.vgwbpM8OXk6mr1YBVWcEBQnS"/>
+            <column name="full_name" value="Demo Manager"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="users">
+                <where>id IN ('c0000005-0000-4000-8000-000000000005', 'c0000006-0000-4000-8000-000000000006')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-903-seed-kds-demo-branch-roles" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000007-0000-4000-8000-000000000007"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000005-0000-4000-8000-000000000005"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="KITCHEN_STAFF"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000008-0000-4000-8000-000000000008"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000006-0000-4000-8000-000000000006"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="MANAGER"/>
+            <column name="approval_limit_paisa" valueNumeric="30000000"/>
+        </insert>
+        <rollback>
+            <delete tableName="user_branch_roles">
+                <where>id IN ('d0000007-0000-4000-8000-000000000007', 'd0000008-0000-4000-8000-000000000008')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
 </databaseChangeLog>

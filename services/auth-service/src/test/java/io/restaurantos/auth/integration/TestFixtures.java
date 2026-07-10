@@ -14,6 +14,8 @@ public final class TestFixtures {
     public static final UUID CASHIER_USER_ID = UUID.fromString("c0000001-0000-4000-8000-000000000001");
     public static final UUID OWNER_USER_ID = UUID.fromString("c0000002-0000-4000-8000-000000000002");
     public static final UUID ACCOUNTANT_USER_ID = UUID.fromString("c0000003-0000-4000-8000-000000000003");
+    public static final UUID KITCHEN_STAFF_USER_ID = UUID.fromString("c0000005-0000-4000-8000-000000000005");
+    public static final UUID MANAGER_USER_ID = UUID.fromString("c0000006-0000-4000-8000-000000000006");
 
     public static final String CASHIER_EMAIL = "cashier@demo.local";
     public static final String CASHIER_PASSWORD = "Cashier#2026";
@@ -21,6 +23,10 @@ public final class TestFixtures {
     public static final String OWNER_PASSWORD = "Owner#2026";
     public static final String ACCOUNTANT_EMAIL = "accountant@demo.local";
     public static final String ACCOUNTANT_PASSWORD = "Accountant#2026";
+    public static final String KITCHEN_STAFF_EMAIL = "chef@demo.local";
+    public static final String KITCHEN_STAFF_PASSWORD = "Chef#2026";
+    public static final String MANAGER_EMAIL = "manager@demo.local";
+    public static final String MANAGER_PASSWORD = "Manager#2026";
     public static final String DEMO_SLUG = "demo";
 
     private static final KeyPair KEYS = generate();
