@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07
-current_phase_name: point-of-sale-kitchen-display
-status: executing
-stopped_at: Phase 07.1 UI-SPEC approved (6/6 dims, 1 non-blocking flag)
-last_updated: "2026-07-10T21:53:48.993Z"
-last_activity: 2026-07-10
-last_activity_desc: Phase 07 execution started
+current_phase: 07.1
+current_phase_name: pos-production-operations
+status: planned
+stopped_at: Phase 07.1 planned — 10 plans / 7 waves, plan-checker PASSED (no blockers, 5 non-blocking warnings addressed)
+last_updated: "2026-07-11T00:00:00.000Z"
+last_activity: 2026-07-11
+last_activity_desc: Phase 07.1 planned (POS production operations)
 progress:
   total_phases: 13
   completed_phases: 5
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 07 — point-of-sale-kitchen-display
+**Current focus:** Phase 07.1 — pos-production-operations (POS MVP → production-ready)
 
 ## Current Position
 
-Phase: 07 (point-of-sale-kitchen-display) — EXECUTING
-Plan: 5 of 8
-Status: Ready to execute
-Last activity: 2026-07-10 — Phase 07 execution started
+Phase: 07.1 (pos-production-operations) — PLANNED, ready to execute
+Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
+Status: Ready to execute — run /gsd-execute-phase 07.1
+Last activity: 2026-07-11 — Phase 07.1 planned
 
-Progress: [████████████████████████] 76% (27/33 plans)
+Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
 ## Performance Metrics
 
