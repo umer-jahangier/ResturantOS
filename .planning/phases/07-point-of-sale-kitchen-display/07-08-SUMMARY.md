@@ -137,3 +137,9 @@ None - no external service configuration required.
 ## Self-Check: PASSED
 
 All 12 modified files confirmed present on disk; both task commits (`2395552`, `3e334fd`) confirmed present in git log.
+
+## Addendum: Post-review correction (2026-07-10)
+
+The phase-wide code review (`07-REVIEW.md`, CR-01) found that Task 1's grep-based verification (checking only for the pos-service/kitchen-service COPY lines) missed that six Dockerfiles — `gateway`, `services/auth-service`, `services/authorization-service`, `services/audit-service`, `services/file-service`, `services/user-service` — were already missing *other*, pre-existing module `pom.xml` COPY lines before this plan ran, and remained broken after it (Maven's reactor validates every declared `<module>`, not just the two new ones this plan added). `auth-service` in particular gates cold-start for every other service (JWKS, RBAC), so this left the "docker compose up --build" goal unmet end-to-end.
+
+Fixed in commit `7448a60` (post-review, same execution session): all six Dockerfiles now COPY all 14 module `pom.xml` files. Verified via a full grep-based reconciliation against every `<module>` entry in the root `pom.xml` across all ten in-scope Dockerfiles — zero missing lines remain. D1's coverage verification above should be read as superseded by this addendum; the original grep only checked for the two new modules and produced a false ALL_OK.
