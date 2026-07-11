@@ -3,6 +3,7 @@ package io.restaurantos.pos.service;
 import io.restaurantos.pos.domain.model.BranchMenuOverride;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
+import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemDto;
 import io.restaurantos.pos.repository.BranchMenuOverrideRepository;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
@@ -34,8 +35,10 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public List<MenuCategory> listCategories() {
-        return categoryRepository.findAllActiveOrderBySortOrder();
+    public List<MenuCategoryDto> listCategories() {
+        return categoryRepository.findAllActiveOrderBySortOrder().stream()
+                .map(c -> new MenuCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getSortOrder(), c.isActive()))
+                .toList();
     }
 
     @Override

@@ -85,6 +85,26 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public KdsTicketDto bumpItem(UUID ticketId, UUID itemId) {
+        KdsTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + ticketId));
+
+        TicketItemStatus current = ticket.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .map(KdsTicketItem::getStatus)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + itemId));
+
+        TicketItemStatus next = switch (current) {
+            case PENDING -> TicketItemStatus.COOKING;
+            case COOKING -> TicketItemStatus.READY;
+            case READY -> throw new StateInvalidException("Item already READY");
+        };
+
+        return markItemStatus(ticketId, itemId, next);
+    }
+
+    @Override
     public KdsTicketDto recallTicket(UUID ticketId) {
         KdsTicket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + ticketId));

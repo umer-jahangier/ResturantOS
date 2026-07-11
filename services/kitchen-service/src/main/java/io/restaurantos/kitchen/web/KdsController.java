@@ -1,9 +1,8 @@
 package io.restaurantos.kitchen.web;
 
 import io.restaurantos.kitchen.authz.KdsAuthorizationService;
-import io.restaurantos.kitchen.domain.enums.TicketItemStatus;
+import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
-import io.restaurantos.kitchen.domain.model.KdsTicket;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
 import io.restaurantos.kitchen.repository.KdsStationRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
@@ -54,7 +53,10 @@ public class KdsController {
 
         authz.authorizeView(claims.tenantId(), branchId);
 
-        List<String> statuses = List.of(status.split(","));
+        List<TicketStatus> statuses = List.of(status.split(",")).stream()
+                .map(String::trim)
+                .map(TicketStatus::valueOf)
+                .toList();
         Page<KdsTicketDto> result = (stationCode != null)
                 ? ticketRepository.findByBranchIdAndStationCodeAndStatusIn(branchId, stationCode, statuses, pageable)
                         .map(ticketService::toDto)
@@ -75,22 +77,7 @@ public class KdsController {
             @AuthenticationPrincipal JwtClaims claims) {
 
         authz.authorizeUpdate(claims.tenantId(), branchId);
-
-        KdsTicket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new io.restaurantos.shared.exception.ResourceNotFoundException("Ticket not found: " + ticketId));
-        TicketItemStatus current = ticket.getItems().stream()
-                .filter(i -> i.getId().equals(itemId))
-                .findFirst()
-                .map(i -> i.getStatus())
-                .orElseThrow(() -> new io.restaurantos.shared.exception.ResourceNotFoundException("Item not found: " + itemId));
-
-        TicketItemStatus next = switch (current) {
-            case PENDING -> TicketItemStatus.COOKING;
-            case COOKING -> TicketItemStatus.READY;
-            case READY -> throw new io.restaurantos.shared.exception.StateInvalidException("Item already READY");
-        };
-
-        return ResponseEntity.ok(ticketService.markItemStatus(ticketId, itemId, next));
+        return ResponseEntity.ok(ticketService.bumpItem(ticketId, itemId));
     }
 
     /**

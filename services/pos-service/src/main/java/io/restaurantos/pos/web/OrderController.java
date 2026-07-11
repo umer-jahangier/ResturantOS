@@ -3,6 +3,8 @@ package io.restaurantos.pos.web;
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.RefundService;
+import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.api.PageMeta;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -28,64 +30,70 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody CreateOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(request));
+    public ResponseEntity<ApiResponse<OrderDto>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(orderService.createOrder(request)));
     }
 
     @GetMapping
-    public ResponseEntity<Page<OrderDto>> listOrders(
+    public ResponseEntity<ApiResponse<List<OrderDto>>> listOrders(
             @RequestParam UUID branchId,
             @RequestParam(required = false) List<String> status,
             Pageable pageable) {
-        return ResponseEntity.ok(orderService.listOrders(branchId, status, pageable));
+        Page<OrderDto> page = orderService.listOrders(branchId, status, pageable);
+        return ResponseEntity.ok(ApiResponse.paginated(page.getContent(), new PageMeta(
+                new PageMeta.Page(
+                        String.valueOf(page.getNumber()),
+                        page.hasNext() ? String.valueOf(page.getNumber() + 1) : null,
+                        page.getSize()),
+                page.getTotalElements())));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderDto> getOrder(
+    public ResponseEntity<ApiResponse<OrderDto>> getOrder(
             @PathVariable UUID id,
             @RequestParam UUID branchId) {
-        return ResponseEntity.ok(orderService.getOrder(id, branchId));
+        return ResponseEntity.ok(ApiResponse.ok(orderService.getOrder(id, branchId)));
     }
 
     @PostMapping("/{id}/items")
-    public ResponseEntity<OrderDto> addItem(
+    public ResponseEntity<ApiResponse<OrderDto>> addItem(
             @PathVariable UUID id,
             @Valid @RequestBody AddOrderItemRequest request) {
-        return ResponseEntity.ok(orderService.addItem(id, request));
+        return ResponseEntity.ok(ApiResponse.ok(orderService.addItem(id, request)));
     }
 
     @DeleteMapping("/{id}/items/{itemId}")
-    public ResponseEntity<OrderDto> removeItem(
+    public ResponseEntity<ApiResponse<OrderDto>> removeItem(
             @PathVariable UUID id,
             @PathVariable UUID itemId) {
-        return ResponseEntity.ok(orderService.removeItem(id, itemId));
+        return ResponseEntity.ok(ApiResponse.ok(orderService.removeItem(id, itemId)));
     }
 
     @PostMapping("/{id}/discounts")
-    public ResponseEntity<OrderDto> applyDiscount(
+    public ResponseEntity<ApiResponse<OrderDto>> applyDiscount(
             @PathVariable UUID id,
             @Valid @RequestBody ApplyDiscountRequest request) {
-        return ResponseEntity.ok(orderService.applyDiscount(id, request));
+        return ResponseEntity.ok(ApiResponse.ok(orderService.applyDiscount(id, request)));
     }
 
     @PostMapping("/{id}/send-to-kds")
-    public ResponseEntity<OrderDto> sendToKds(@PathVariable UUID id) {
-        return ResponseEntity.ok(orderService.sendToKds(id));
+    public ResponseEntity<ApiResponse<OrderDto>> sendToKds(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.sendToKds(id)));
     }
 
     @PostMapping("/{id}/void")
-    public ResponseEntity<OrderDto> voidOrder(
+    public ResponseEntity<ApiResponse<OrderDto>> voidOrder(
             @PathVariable UUID id,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody VoidOrderRequest request) {
-        return ResponseEntity.ok(orderService.voidOrder(id, request, idempotencyKey));
+        return ResponseEntity.ok(ApiResponse.ok(orderService.voidOrder(id, request, idempotencyKey)));
     }
 
     @PostMapping("/{id}/refund")
-    public ResponseEntity<OrderDto> refundOrder(
+    public ResponseEntity<ApiResponse<OrderDto>> refundOrder(
             @PathVariable UUID id,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody RefundRequest request) {
-        return ResponseEntity.ok(refundService.refund(id, request, idempotencyKey));
+        return ResponseEntity.ok(ApiResponse.ok(refundService.refund(id, request, idempotencyKey)));
     }
 }
