@@ -15,6 +15,28 @@ function generateKey() {
   return typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 }
 
+/**
+ * Neither open-till nor close-till surfaced ANY feedback on mutation failure prior to
+ * this fix — the modal just sat there silently (found via 07.1-06 E2E verification
+ * against a circuit-broken gateway route). Mirrors PaymentPanel's
+ * `getChargeErrorMessage` duck-typed shape (never imports the ApiError class itself,
+ * per the FE-08 components boundary) and VoidRefundDialog's inline
+ * `text-destructive` banner styling.
+ */
+function getTillErrorMessage(
+  error: { status?: number; message?: string } | null | undefined,
+  action: "open" | "close",
+): string {
+  const fallback = action === "open" ? "Failed to open till. Please try again." : "Failed to close till. Please try again.";
+  if (!error) return fallback;
+  if (typeof error.status !== "number") {
+    // Not a server-shaped error (e.g. the offline-guard's plain Error) — its message
+    // is already user-safe copy, not a raw server dump.
+    return error.message ?? fallback;
+  }
+  return fallback;
+}
+
 export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   const [openingFloat, setOpeningFloat] = useState("");
   const [declaredCash, setDeclaredCash] = useState("");
@@ -56,6 +78,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
         <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b border-amber-200">
           <span className="text-xs text-amber-700 font-medium">No active till</span>
           <button
+            data-testid="open-till-button"
             onClick={() => setShowOpenModal(true)}
             className="ml-auto text-xs bg-emerald-600 text-white rounded px-3 py-1 font-medium hover:bg-emerald-700"
           >
@@ -87,6 +110,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
                   Cancel
                 </button>
                 <button
+                  data-testid="open-till-confirm-button"
                   onClick={handleOpenTill}
                   disabled={openTillMutation.isPending}
                   className="text-sm px-4 py-2 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
@@ -94,6 +118,11 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
                   {openTillMutation.isPending ? "Opening…" : "Open Till"}
                 </button>
               </div>
+              {openTillMutation.isError && (
+                <p data-testid="open-till-error" className="text-xs text-destructive">
+                  {getTillErrorMessage(openTillMutation.error, "open")}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -200,6 +229,11 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
                 {closeTillMutation.isPending ? "Closing…" : "Close Till"}
               </button>
             </div>
+            {closeTillMutation.isError && (
+              <p data-testid="close-till-error" className="text-xs text-destructive">
+                {getTillErrorMessage(closeTillMutation.error, "close")}
+              </p>
+            )}
           </div>
         </div>
       )}
