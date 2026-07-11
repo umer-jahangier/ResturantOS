@@ -183,6 +183,23 @@ export function useMarkServed(orderId: string) {
   });
 }
 
+/**
+ * Cancels a single line (Status System "CANCELLED" — cashier-initiated, works even
+ * after the line was SENT+; kept visible with the cancelled treatment rather than
+ * removed). Server-authoritative, not offline-critical — mirrors useMarkServed's shape.
+ */
+export function useCancelItem(orderId: string) {
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: (itemId: string) => PosRepository.cancelItem(orderId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+    },
+  });
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildOfflineOrderStub(

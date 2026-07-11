@@ -150,6 +150,17 @@ export const PosRepository = {
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
+  /**
+   * Cancels a single line — cashier-initiated, from Order Detail/OrderPanel only (not
+   * the KDS). Distinct from `removeItem`'s hard DELETE: this soft-cancels a line even
+   * after it was SENT+, keeping it visible with the CANCELLED treatment rather than
+   * removing it, per the UI-SPEC "Status System" line-item table.
+   */
+  async cancelItem(orderId: string, itemId: string): Promise<Order> {
+    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/items/${itemId}/cancel`);
+    return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
   async closeOrder(orderId: string, payload: CloseOrderPayload, idempotencyKey: string): Promise<Order> {
     const resp = await apiClient.post<{ data: unknown }>(
       `/api/v1/pos/orders/${orderId}/close`,
@@ -178,6 +189,12 @@ export const PosRepository = {
   },
 
   // ── Tills ─────────────────────────────────────────────────────────────────
+
+  /** Lists till sessions, optionally filtered by cashier/status (used to find the current cashier's active till — POS-14 page-level TillSessionBar). */
+  async listTills(params: { cashierId?: string; status?: string }): Promise<TillSession[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/tills", params as Record<string, unknown>);
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillSession(apiTillSessionSchema.parse(r)));
+  },
 
   async openTill(payload: OpenTillPayload): Promise<TillSession> {
     const resp = await apiClient.post<{ data: unknown }>("/api/v1/pos/tills", payload);
