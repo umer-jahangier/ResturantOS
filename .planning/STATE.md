@@ -3,17 +3,17 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 07.2
-current_phase_name: Finance Accounting-Period Provisioning
-status: planning
-stopped_at: Phase 07.2 planned (6 plans, 2 waves) — ready to execute
-last_updated: "2026-07-11T19:02:42.553Z"
+current_phase_name: finance-accounting-period-provisioning-guarantee-open-period
+status: executing
+stopped_at: Completed 07.2-01-PLAN.md (requirements bookkeeping reconciliation)
+last_updated: "2026-07-11T19:50:16.221Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 07.1 complete, transitioned to Phase 8
+last_activity_desc: 07.2-01-PLAN.md complete (requirements bookkeeping reconciliation)
 progress:
   total_phases: 14
   completed_phases: 6
-  total_plans: 42
-  completed_plans: 38
+  total_plans: 49
+  completed_plans: 39
   percent: 43
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 07.1 — pos-production-operations
+**Current focus:** Phase 07.2 — finance-accounting-period-provisioning-guarantee-open-period
 
 ## Current Position
 
-Phase: 8 — Inventory & Recipe Management
-Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
-Status: Ready for phase verification (/gsd-verify-work 07.1) and next phase planning
-Last activity: 2026-07-11 — Phase 07.1 complete, transitioned to Phase 8
+Phase: 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — EXECUTING
+Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 1/7 complete (07.2-01 done)
+Status: Executing Phase 07.2
+Last activity: 2026-07-11 — 07.2-01-PLAN.md complete (requirements bookkeeping reconciliation)
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -76,6 +76,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.1 P08 | 25min | 2 tasks | 6 files |
 | Phase 07.1-09 P09 | 50 min | 2 tasks | 9 files |
 | Phase 07.1 P10 | ~20min | 1 tasks | 2 files |
+| Phase 07.2 P01 | 3 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -200,6 +201,7 @@ Recent decisions affecting current work:
 - [Phase 07.1-09]: SettlementActions renders once (drawer footer only), not duplicated near the header — UI-SPEC §7 mandates the shared component appear in exactly 3 places total across the phase; this drawer counts as one of those three
 - [Phase 07.1-09]: Fixed order-summaries query-invalidation gap across 8 mutations (use-orders.ts/use-payments.ts) — Required for this plan's own closing/voiding-removes-it acceptance criterion to actually work
 - [Phase ?]: [Phase 07.1-10]: OCCUPIED/NEEDS_BUSSING table taps never call onTableSelect (only AVAILABLE does) to avoid rebinding page-level selectedTableId to an already-occupied table; TableFloorView owns its own OrderTableDetailDrawer instance/state for that path.
+- [Phase 07.2]: [07.2-01-A]: Left REQUIREMENTS.md Coverage running totals (112/112) untouched -- already stale pre-plan, out of scope for this bookkeeping-only plan.
 
 ### Pending Todos
 
@@ -227,6 +229,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T15:52:04.677Z
-Stopped at: Completed 07.1-10-PLAN.md
+Last session: 2026-07-11T19:50:16.201Z
+Stopped at: Completed 07.2-01-PLAN.md (requirements bookkeeping reconciliation)
 Resume file: None
