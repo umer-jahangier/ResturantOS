@@ -141,13 +141,12 @@ public class ProvisioningService {
             String tempPassword = extractTempPassword(adminResult);
             compensation.add(() -> log.warn("Compensation: admin user created for tenant {} — manual cleanup needed", tenantId));
 
-            // Step 5: seed Chart of Accounts (optional — skipped when finance-service not yet deployed)
+            // Step 5: seed Chart of Accounts (required — a failure here must abort the saga,
+            // same as Steps 3-4; the guard is kept only as an emergency kill-switch, not a
+            // license to swallow a failure. Exceptions propagate to the outer catch below,
+            // which marks the tenant PROVISIONING_FAILED and runs compensation.)
             if (seedCoaEnabled) {
-                try {
-                    financeClient.seedCoa(tenantId);
-                } catch (Exception ex) {
-                    log.warn("[saga] CoA seeding failed for tenant {} — non-fatal, continuing: {}", tenantId, ex.getMessage());
-                }
+                financeClient.seedCoa(tenantId);
             }
 
             // Step 6: mark ACTIVE + publish outbox event
