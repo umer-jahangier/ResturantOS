@@ -19,6 +19,8 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -67,11 +69,13 @@ public class VendorAnalyticsService {
         int totalPos = pos.size();
         int onTime = 0;
         int withReceipt = 0;
-        long totalSpend = invoiceRepository.findByTenantIdAndBranchIdOrderByInvoiceDateDesc(tenantId, branchId)
+
+        List<VendorInvoice> vendorInvoices = invoiceRepository.findByTenantIdAndBranchIdOrderByInvoiceDateDesc(tenantId, branchId)
                 .stream()
                 .filter(i -> i.getVendorId().equals(vendorId))
-                .mapToLong(i -> i.getTotalPaisa())
-                .sum();
+                .toList();
+
+        long totalSpend = vendorInvoices.stream().mapToLong(VendorInvoice::getTotalPaisa).sum();
 
         for (PurchaseOrder po : pos) {
             List<MockGrnReceipt> receipts = mockGrnReceiptRepository.findByPurchaseOrderId(po.getId());
@@ -91,7 +95,47 @@ public class VendorAnalyticsService {
         double onTimePct = withReceipt == 0 ? 0.0 : (100.0 * onTime / withReceipt);
         double fillRate = totalPos == 0 ? 0.0 : (100.0 * withReceipt / totalPos);
 
-        return new VendorScorecardDto(vendorId, branchId, onTimePct, fillRate, totalSpend, totalPos);
+        List<VendorInvoice> matchedOrPaidInvoices = vendorInvoices.stream()
+                .filter(i -> SPEND_STATUSES.contains(i.getStatus()))
+                .toList();
+        double priceVariancePct = computePriceVariancePct(matchedOrPaidInvoices);
+
+        return new VendorScorecardDto(vendorId, branchId, onTimePct, fillRate, priceVariancePct, totalSpend, totalPos);
+    }
+
+    /**
+     * PUR-05 third scorecard metric: spend-weighted mean price variance across a vendor's MATCHED/PAID
+     * invoice lines, expressed as a percentage. Per-line variance reuses the exact ratio
+     * {@code ThreeWayMatchService.matchLine()} computes ({@code invoiceUnitPricePaisa / poUnitPricePaisa},
+     * BigDecimal scale 6 HALF_UP) minus 1 — this is a *metric*, not a tolerance check, so no
+     * LineMatchStatus is involved. Each line is weighted by its {@code lineTotalPaisa} so a large line
+     * moves the number more than a trivial one. Lines whose PO price is 0 are skipped to avoid
+     * divide-by-zero. Returns 0.0 (never NaN) when there are no qualifying lines.
+     */
+    private double computePriceVariancePct(List<VendorInvoice> invoices) {
+        BigDecimal weightedVarianceSum = BigDecimal.ZERO;
+        BigDecimal totalWeight = BigDecimal.ZERO;
+
+        for (VendorInvoice invoice : invoices) {
+            for (VendorInvoiceLine line : invoice.getLines()) {
+                PurchaseOrderLine poLine = purchaseOrderLineRepository.findById(line.getPoLineId()).orElse(null);
+                if (poLine == null || poLine.getUnitPricePaisa() == 0) {
+                    continue;
+                }
+                BigDecimal priceRatio = BigDecimal.valueOf(line.getUnitPricePaisa())
+                        .divide(BigDecimal.valueOf(poLine.getUnitPricePaisa()), 6, RoundingMode.HALF_UP);
+                BigDecimal lineVariancePct = priceRatio.subtract(BigDecimal.ONE).multiply(BigDecimal.valueOf(100));
+                BigDecimal weight = BigDecimal.valueOf(line.getLineTotalPaisa());
+
+                weightedVarianceSum = weightedVarianceSum.add(lineVariancePct.multiply(weight));
+                totalWeight = totalWeight.add(weight);
+            }
+        }
+
+        if (totalWeight.compareTo(BigDecimal.ZERO) == 0) {
+            return 0.0;
+        }
+        return weightedVarianceSum.divide(totalWeight, 6, RoundingMode.HALF_UP).doubleValue();
     }
 
     /**

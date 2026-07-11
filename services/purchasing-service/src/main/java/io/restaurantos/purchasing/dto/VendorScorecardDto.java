@@ -7,6 +7,7 @@ public record VendorScorecardDto(
         UUID branchId,
         double onTimeDeliveryPct,
         double fillRatePct,
+        double priceVariancePct,
         long totalSpendPaisa,
         int purchaseOrderCount
 ) {}
