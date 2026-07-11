@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.1
 current_phase_name: pos-production-operations
 status: executing
-stopped_at: Phase 07.1 planned — 10 plans / 7 waves, plan-checker PASSED (no blockers, 5 non-blocking warnings addressed)
-last_updated: "2026-07-11T08:50:31.062Z"
+stopped_at: Completed 07.1-02-PLAN.md
+last_updated: "2026-07-11T09:11:59.703Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
   total_plans: 42
-  completed_plans: 29
+  completed_plans: 30
   percent: 38
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.1 (pos-production-operations) — EXECUTING
-Plan: 2 of 10 in current phase
+Plan: 3 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07.1 execution started
@@ -69,6 +69,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07 P07 | 20min | 2 tasks | 7 files |
 | Phase 07 P08 | 12min | 2 tasks | 12 files |
 | Phase 07.1 P01 | 25 min | 3 tasks | 9 files |
+| Phase 07.1 P02 | 40 min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,7 @@ Recent decisions affecting current work:
 - [Phase 07-08]: pos-service (8084) and kitchen-service (8090) added to scripts/start-dev.ps1 and scripts/restart-service.ps1 as first-class dev-stack services, not as new docker-compose build: stanzas (host-run architecture preserved).
 - [Phase 07.1-01]: Task 2/3 execution order swapped (Task 3 mechanical KdsItemStatus->OrderItemStatus reconciliation applied before Task 2 TDD verification) because Maven compiles the whole module before any test runs, and Task 1 alone leaves the module non-compiling by design. — Makes the TDD RED/GREEN gate meaningful under Maven's whole-module compilation model; no scope change.
 - [Phase 07.1-01]: OrderDto.OrderItemDto.kdsStatus field name kept unchanged (type widened KdsItemStatus->OrderItemStatus) rather than renamed to itemStatus. — Avoids an extra JSON contract break this plan; frontend schema rename is a later plan per PATTERNS.md.
+- [Phase 07.1]: TicketRoutingService.route() converted from skip-if-exists to append-to-existing-ticket (POS-12/KDS-03) — ProcessedEventService.tryProcess remains the sole event-redelivery dedup; ticket existence is no longer used as a dedup signal
 
 ### Pending Todos
 
@@ -191,6 +193,7 @@ Recent decisions affecting current work:
 
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
+- kitchen-service Testcontainers ITs (incl. new TicketRevisionRoutingIT) currently blocked by a pre-existing RabbitMQ ACCESS_REFUSED auth conflict on localhost:5672, confirmed environmental (baseline TicketRoutingIT fails identically). Human/CI run needed in an env without a competing local RabbitMQ broker.
 
 ### Roadmap Evolution
 
@@ -198,6 +201,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T08:50:03.790Z
-Stopped at: Phase 07.1 UI-SPEC approved (6/6 dims, 1 non-blocking flag)
-Resume file: .planning/phases/07.1-pos-production-operations/07.1-UI-SPEC.md
+Last session: 2026-07-11T09:11:51.163Z
+Stopped at: Completed 07.1-02-PLAN.md
+Resume file: None
