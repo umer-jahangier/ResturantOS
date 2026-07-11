@@ -28,15 +28,22 @@ public class PosEventPayloads {
     ) {}
 
     /**
-     * ORDER_SENT_TO_KDS — emitted when order transitions OPEN -> SENT_TO_KDS.
-     * The items list is consumed by the KDS to display per-station work items.
+     * ORDER_SENT_TO_KDS — emitted on every sendToKds fire (first fire OPEN -> SENT_TO_KDS,
+     * or a repeated revision fire on an already-sent order). {@code items} contains ONLY the
+     * newly-fired (previously PENDING) lines for THIS fire — never the full order (POS-12).
+     * revisionNo/orderNotes are ADDITIVE fields appended after items — names must match
+     * kitchen-service KitchenEventPayloads.OrderSentToKdsPayload EXACTLY (field-name parity
+     * is the only contract enforcement; a mismatch silently drops every message —
+     * RESEARCH.md Pitfall 4 / Phase-7 cold-start bug #4). Never reorder/rename existing fields.
      */
     public record OrderSentToKdsPayload(
             UUID orderId,
             UUID tenantId,
             UUID branchId,
             String orderNo,
-            List<KdsItemPayload> items
+            List<KdsItemPayload> items,
+            int revisionNo,
+            String orderNotes
     ) {}
 
     public record KdsItemPayload(

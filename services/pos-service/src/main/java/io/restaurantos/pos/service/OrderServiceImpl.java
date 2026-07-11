@@ -1,6 +1,7 @@
 package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.authz.PosAuthorizationService;
+import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.enums.TableStatus;
@@ -61,6 +62,7 @@ public class OrderServiceImpl implements OrderService {
     private final FinancePeriodClient financePeriodClient;
     private final PosAuthorizationService posAuthorizationService;
     private final TillSessionRepository tillSessionRepository;
+    private final OrderStatusDerivationService orderStatusDerivationService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -76,7 +78,8 @@ public class OrderServiceImpl implements OrderService {
                             SplitTenderCalculator splitTenderCalculator,
                             FinancePeriodClient financePeriodClient,
                             PosAuthorizationService posAuthorizationService,
-                            TillSessionRepository tillSessionRepository) {
+                            TillSessionRepository tillSessionRepository,
+                            OrderStatusDerivationService orderStatusDerivationService) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -92,6 +95,7 @@ public class OrderServiceImpl implements OrderService {
         this.financePeriodClient = financePeriodClient;
         this.posAuthorizationService = posAuthorizationService;
         this.tillSessionRepository = tillSessionRepository;
+        this.orderStatusDerivationService = orderStatusDerivationService;
     }
 
     @Override
@@ -278,22 +282,71 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderDto sendToKds(UUID orderId) {
+    public OrderDto sendToKds(UUID orderId, String clientFireId) {
         UUID tenantId = tenantContext.requireTenantId();
-        Order order = findOrderForTenant(orderId, tenantId);
 
-        stateMachine.assertTransition(order.getStatus(), OrderStatus.SENT_TO_KDS);
+        // Per-fire idempotency (RESEARCH.md §4): a NEW key namespace per fire action,
+        // NOT clientOrderId (which is one-per-order). Optional — callers without an
+        // Idempotency-Key header always fire immediately (backward-compatible).
+        String idempotencyKey = (clientFireId != null && !clientFireId.isBlank())
+                ? "sendToKds:" + orderId + ":" + clientFireId
+                : null;
 
-        if (order.getItems().isEmpty()) {
-            throw new PosExceptions.ZeroValueOrderException("Cannot send empty order to KDS");
+        if (idempotencyKey != null) {
+            Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
+            if (stored.isPresent()) {
+                return toDto(findOrderForTenant(orderId, tenantId));
+            }
+            boolean claimed = idempotencyService.checkAndLock(idempotencyKey, orderId.toString(), 86400);
+            if (!claimed) {
+                // Already in flight or completed — return current order state (no re-publish).
+                return toDto(findOrderForTenant(orderId, tenantId));
+            }
         }
 
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        // Loosened guard (Task 1 self-loops): repeated fires stay on SENT_TO_KDS; terminal
+        // orders (CLOSED/VOIDED/REFUNDED) still reject via the state machine's empty
+        // transition sets, symmetric with addItem's isTerminal check.
+        stateMachine.assertTransition(order.getStatus(), OrderStatus.SENT_TO_KDS);
+
+        // Fire-only-unfired-items (RESEARCH.md Pattern 1): this is the ONLY seam that
+        // builds the KDS payload item list — never order.getItems() wholesale (Pitfall 1).
+        List<OrderItem> newItems = order.getItems().stream()
+                .filter(item -> item.getItemStatus() == OrderItemStatus.PENDING)
+                .toList();
+
+        if (newItems.isEmpty()) {
+            throw new PosExceptions.ZeroValueOrderException("Nothing new to send to kitchen");
+        }
+
+        int nextRevision = order.getItems().stream()
+                .mapToInt(OrderItem::getRevisionNo)
+                .max()
+                .orElse(0) + 1;
+
+        Instant firedAt = Instant.now();
+        for (OrderItem item : newItems) {
+            item.setItemStatus(OrderItemStatus.SENT);
+            item.setRevisionNo(nextRevision);
+            item.setFiredAt(firedAt);
+        }
+
+        // Settlement/state-machine transition kept for event-contract compatibility — the
+        // kitchen-progress MEANING of this field is retired in favor of derivedStatus below
+        // (Pitfall 3): order.status simply records "has been sent to KDS at least once".
         order.setStatus(OrderStatus.SENT_TO_KDS);
-        order.setSentToKdsAt(Instant.now());
+        order.setSentToKdsAt(firedAt);
+
+        // derivedStatus is the single source of truth for kitchen-progress aggregation —
+        // computed via the pure derivation seam, never hand-set (POS-11 / Pitfall 3).
+        order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+
         order = orderRepository.save(order);
 
-        // Build KDS payload
-        List<PosEventPayloads.KdsItemPayload> kdsItems = order.getItems().stream()
+        // Build KDS payload from ONLY the newly-fired lines.
+        List<PosEventPayloads.KdsItemPayload> kdsItems = newItems.stream()
                 .map(item -> new PosEventPayloads.KdsItemPayload(
                         item.getId(),
                         item.getMenuItemId(),
@@ -312,12 +365,18 @@ public class OrderServiceImpl implements OrderService {
                 tenantId,
                 order.getBranchId(),
                 order.getOrderNo(),
-                kdsItems
+                kdsItems,
+                nextRevision,
+                order.getNotes()
         );
         eventPublisher.publish(POS_EXCHANGE, ORDER_SENT_TO_KDS_KEY, ORDER_SENT_TO_KDS_TYPE,
                 order.getBranchId(), payload);
 
-        return toDto(order);
+        OrderDto dto = toDto(order);
+        if (idempotencyKey != null) {
+            idempotencyService.markComplete(idempotencyKey, dto.id().toString());
+        }
+        return dto;
     }
 
     @Override

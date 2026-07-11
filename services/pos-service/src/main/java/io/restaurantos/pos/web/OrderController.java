@@ -77,8 +77,10 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/send-to-kds")
-    public ResponseEntity<ApiResponse<OrderDto>> sendToKds(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(orderService.sendToKds(id)));
+    public ResponseEntity<ApiResponse<OrderDto>> sendToKds(
+            @PathVariable UUID id,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.sendToKds(id, idempotencyKey)));
     }
 
     @PostMapping("/{id}/void")

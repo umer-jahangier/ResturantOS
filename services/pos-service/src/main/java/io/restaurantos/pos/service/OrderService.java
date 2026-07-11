@@ -17,7 +17,7 @@ public interface OrderService {
     OrderDto addItem(UUID orderId, AddOrderItemRequest request);
     OrderDto removeItem(UUID orderId, UUID itemId);
     OrderDto applyDiscount(UUID orderId, ApplyDiscountRequest request);
-    OrderDto sendToKds(UUID orderId);
+    OrderDto sendToKds(UUID orderId, String clientFireId);
     OrderDto getOrder(UUID orderId, UUID branchId);
     Page<OrderDto> listOrders(UUID branchId, List<String> statuses, Pageable pageable);
     OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey);
