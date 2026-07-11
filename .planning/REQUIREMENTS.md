@@ -152,6 +152,10 @@
 - [x] **FIN-04**: Accounting periods (12/FY, Pakistan Jul–Jun) seeded; period close sets LOCKED with pre-checks via internal APIs (no cross-service SQL)
 - [ ] **FIN-05**: AP/AR tracked; expense approval respects OPA approval limits
 - [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
+- [ ] **FIN-07**: Every ACTIVE tenant is guaranteed at least one open accounting period covering the current business date — the onboarding saga aborts (marks the tenant PROVISIONING_FAILED) rather than silently continuing past a finance-seeding failure
+- [ ] **FIN-08**: A permissioned self-service endpoint (POST /api/v1/finance/periods/provision, gated finance.period.open) lets an OWNER/TENANT_ADMIN/ACCOUNTANT (re-)provision CoA + accounting periods for their own tenant without platform-ops, resolving tenantId from JWT context only
+- [ ] **FIN-09**: The auto-seed-on-miss fallback in getPeriodStatus is config-gated (finance.period.auto-seed-on-miss, default on in dev/staging, off in prod) and emits a WARN audit log when it seeds
+- [ ] **FIN-10**: The Finance → Periods page provides a calendar-based "Provision Periods" UI, gated behind finance.period.open, that lets a permissioned user browse to any fiscal year (past, current, or future — computed dynamically from the existing Jul-Jun formula, never a hardcoded literal), preview the 12 monthly periods that will be created, and confirm provisioning via the FIN-08 endpoint
 
 ### HR & Payroll (HR)
 
@@ -282,6 +286,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FIN-02 | Phase 6 | Complete |
 | FIN-04 | Phase 6 | Complete |
 | FIN-06 | Phase 6 | Complete |
+| FIN-07 | Phase 07.2 | Pending |
+| FIN-08 | Phase 07.2 | Pending |
+| FIN-09 | Phase 07.2 | Pending |
+| FIN-10 | Phase 07.2 | Pending |
 | POS-01 | Phase 7 | Complete |
 | POS-02 | Phase 7 | Complete |
 | POS-03 | Phase 7 | Complete |
@@ -339,6 +347,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 - Mapped to phases: 112/112 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
 - 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)
+- 2026-07-11 addition (+4): Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning — FIN-07 (guaranteed open period at onboarding / saga fail-not-swallow), FIN-08 (self-service finance.period.open provision endpoint), FIN-09 (config-gated auto-seed-on-miss with WARN audit), FIN-10 (calendar-based frontend provisioning UI)
 - 2026-06-25 addition (+9): PLATFORM-10 (SuperAdmin tier-independent per-tenant module enable/disable); HR-04/05/06 (shift scheduling, attendance & leave, labour-cost tracking); PUR-05/06 (vendor scorecard, spend analytics); CRM-03/04/05 (loyalty tiers, promotion engine, feedback) — all six primary modules are now core/mandatory in every tenant build
 - 2026-06-25 addition (+2): HR-07 (biometric attendance device integration — LAN ADMS push + USB bridge agent, device-authenticated ingest); HR-08 (biometric privacy — edge matching, no central raw biometrics); GW-02 extended for the device-authenticated ingest path class
 - v2 requirements (deferred, not mapped): NOTIF-02, NOTIF-03, PLATFORM-08, PLATFORM-09, INV-08, RPT-03, AUTHZ-05, AUDIT-02
@@ -347,3 +356,4 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 *Requirements defined: 2026-06-22*
 *Last updated: 2026-06-25 — all six business modules made core/mandatory; added SuperAdmin tier-independent per-tenant module control (PLATFORM-10), operational sub-features for HR/Vendor/CRM, and biometric attendance device integration (HR-07/08, GW-02 device-auth ingest)*
 *Last updated: 2026-07-11 — Phase 7.1 (INSERTED) POS production-hardening: +8 requirements (POS-09..15, KDS-03) for order management, table-centric dine-in, item-level kitchen status, add-to-existing kitchen ticket revisions, order/item instructions, cashier UX, and wiring the unrendered payment/till/void UI found in the Phase-7 UAT*
+*Last updated: 2026-07-11 — Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning: +4 requirements (FIN-07..10) for guaranteed open-period-at-onboarding, self-service provision endpoint, config-gated auto-seed fallback, and calendar-based frontend provisioning UI; also reconciled Phase 6 / FIN-01,02,04,06 to Complete*
