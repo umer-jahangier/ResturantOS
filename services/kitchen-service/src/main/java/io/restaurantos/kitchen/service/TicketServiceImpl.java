@@ -200,7 +200,7 @@ public class TicketServiceImpl implements TicketService {
 
         return new KdsTicketDto(
                 ticket.getId(), ticket.getOrderId(), ticket.getOrderNo(),
-                ticket.getStationCode(), ticket.getStatus(), ticket.isPriority(),
+                ticket.getOrderNotes(), ticket.getStationCode(), ticket.getStatus(), ticket.isPriority(),
                 ticket.getReceivedAt(), ticket.getStartedAt(), ticket.getReadyAt(),
                 itemDtos
         );

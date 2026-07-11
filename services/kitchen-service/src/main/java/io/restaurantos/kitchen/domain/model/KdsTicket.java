@@ -30,6 +30,9 @@ public class KdsTicket extends TenantAuditableEntity {
     @Column(name = "order_no", length = 50)
     private String orderNo;
 
+    @Column(name = "order_notes", length = 500)
+    private String orderNotes;
+
     @Column(name = "station_code", nullable = false, length = 50)
     private String stationCode;
 
