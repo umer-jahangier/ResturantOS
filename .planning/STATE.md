@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.1
 current_phase_name: pos-production-operations
 status: executing
-stopped_at: Completed 07.1-04-PLAN.md
-last_updated: "2026-07-11T10:19:22.541Z"
+stopped_at: Completed 07.1-05-PLAN.md
+last_updated: "2026-07-11T10:52:00.977Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
   total_plans: 42
-  completed_plans: 32
+  completed_plans: 33
   percent: 38
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.1 (pos-production-operations) — EXECUTING
-Plan: 5 of 10 in current phase
+Plan: 6 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07.1 execution started
@@ -72,6 +72,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.1 P02 | 40 min | 3 tasks | 15 files |
 | Phase 07.1 P03 | 45min | 3 tasks | 16 files |
 | Phase 07.1 P04 | 35 min | 3 tasks | 14 files |
+| Phase 07.1 P05 | 55min | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,11 @@ Recent decisions affecting current work:
 - [Phase 07.1-04]: pos.order.view.all permission code checked but not yet seeded in auth-service DB - every caller defaults to own-orders-only scoping until a future plan grants it to MANAGER+.
 - [Phase 07.1-04]: POS-14 void-403 root-caused as JWT staleness (no code bug found in OpaInput construction) - VoidOwnOrderIT proves the authorization path is correct given a current token; frontend fresh-login handling deferred to a later plan.
 - [Phase 07.1-04]: GET /api/v1/pos/orders now returns OrderSummaryDto[] (was OrderDto[]) - breaking wire-contract change; frontend four-layer wiring deferred to a later plan per PATTERNS.md.
+- [Phase 07.1-05]: apiOrderItemSchema keeps wire field kdsStatus (widened to 7-value); adapter renames to domain field itemStatus — backend never renamed the wire field per 07.1-01/03's own decision
+- [Phase 07.1-05]: Order.derivedStatus (4-value, matches backend DerivedOrderStatus exactly) stays distinct from the 9-value settlement status; getOrderDisplayStatus() in pos.model.ts is the single seam merging both into the UI-SPEC's 7-state order-status value
+- [Phase 07.1-05]: listOrders/useOrders removed outright and replaced with listOrderSummaries/useOrderSummaries — grep-confirmed zero callers, and the old method was provably broken against the live backend (GET /pos/orders now returns OrderSummaryDto[] per 07.1-04)
+- [Phase 07.1-05]: Extended lib/offline/types.ts (OutboxOpType +UPDATE_INSTRUCTIONS) and sync-engine.ts's replay branch (neither in this plan's file list) so useUpdateInstructions is actually offline-safe as the plan's must_haves require
+- [Phase 07.1-05]: kds.schema.ts ticket-item status matches kitchen-service's real 5-value TicketItemStatus (PENDING/ACCEPTED/PREPARING/COOKING/READY), not pos-service's 7-value OrderItemStatus; KdsTicket.orderNotes is a forward-declared, always-null field — backend KdsTicketDto has no such field yet (documented gap)
 
 ### Pending Todos
 
@@ -209,6 +215,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T10:18:59.511Z
-Stopped at: Completed 07.1-04-PLAN.md
+Last session: 2026-07-11T10:52:00.942Z
+Stopped at: Completed 07.1-05-PLAN.md
 Resume file: None
