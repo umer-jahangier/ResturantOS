@@ -6,6 +6,7 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { PosTerminal } from "@/components/pos/pos-terminal";
 import { TableFloorView } from "@/components/pos/table-floor-view";
 import { TillSessionBar } from "@/components/pos/till-session-bar";
+import { OrderManagement } from "@/components/pos/order-management";
 import { useActiveTill } from "@/lib/hooks/pos/use-till";
 
 type PosView = "terminal" | "floor" | "orders";
@@ -84,22 +85,21 @@ export default function PosPage() {
                 }}
               />
             )}
-            {view === "orders" && <OrderManagementPlaceholder />}
+            {view === "orders" && (
+              <OrderManagement
+                onFullMenu={(tableId) => {
+                  // "Full Menu →" (drawer) / "Go to POS" (empty state) escape hatch —
+                  // preload the Terminal tab with the order's table when it has one
+                  // (TAKEAWAY/DELIVERY orders have none; the tab still switches, just
+                  // unbound — createOrder's own tableId binding is plan 08's scope).
+                  setSelectedTableId(tableId);
+                  setView("terminal");
+                }}
+              />
+            )}
           </div>
         </div>
       </PermissionGuard>
     </FeatureGuard>
-  );
-}
-
-// Lightweight placeholder — the real Order Management screen (DataTable, status
-// filters, Order Detail drawer) is built in a later plan (POS-09). The tab + routing
-// must exist here per this plan's scope (UI-SPEC §1) so plan 09 only needs to replace
-// this component, not touch page.tsx.
-function OrderManagementPlaceholder() {
-  return (
-    <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-      Order Management is coming soon.
-    </div>
   );
 }

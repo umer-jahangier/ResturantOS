@@ -36,6 +36,11 @@ export function useCloseOrder(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // "order-summaries" is a DIFFERENT query-key segment than "orders" above —
+      // useOrderSummaries (Order Management, POS-09/07.1-09) never re-fetched on close
+      // without this, so a just-closed order would keep showing as active until an
+      // unrelated refetch. Prefix-match invalidates every statuses-filter cache entry.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
     },
   });
@@ -55,6 +60,8 @@ export function useVoidOrder(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // See the order-summaries invalidation note on useCloseOrder above.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
     },
   });
@@ -74,6 +81,8 @@ export function useRefundOrder(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // See the order-summaries invalidation note on useCloseOrder above.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
     },
   });
 }

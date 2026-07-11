@@ -82,6 +82,10 @@ export function useCreateOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // See the order-summaries invalidation note on useSendToKds below — the Order
+      // Management list (POS-09) reads a DIFFERENT query key than the legacy "orders"
+      // key this mutation already invalidated.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
     },
   });
 }
@@ -123,6 +127,7 @@ export function useAddItem() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, variables.orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
     },
   });
 }
@@ -167,6 +172,17 @@ export function useSendToKds(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // `queryKeys.pos.orderSummaries` lives under a DIFFERENT key segment
+      // ("order-summaries", not "orders") than the legacy list above — this mutation
+      // (and every other order-mutating one in this file/use-payments.ts) previously
+      // only invalidated "orders", which useOrderSummaries (POS-09 Order Management,
+      // 07.1-09) never reads. Without this, the new Order Management screen would show
+      // stale derivedStatus/total/item data after any send-to-kds/close/void/refund/
+      // mark-served/cancel/add-item action taken elsewhere (e.g. from this same
+      // drawer's own settlement footer) — a correctness bug for this plan's own
+      // "non-closed order never disappears / closes fade out" requirement. Prefix-match
+      // invalidates every statuses-filter variant of the query key.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
     },
   });
@@ -211,6 +227,11 @@ export function useMarkServed(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      // See the order-summaries invalidation note on useSendToKds above — marking a
+      // line SERVED can flip the order's derivedStatus (e.g. IN_PROGRESS ->
+      // PARTIALLY_SERVED/SERVED), which the Order Management list's status column/
+      // filter chips must reflect.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
     },
   });
 }
@@ -228,6 +249,8 @@ export function useCancelItem(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      // See the order-summaries invalidation note on useSendToKds above.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
     },
   });
 }

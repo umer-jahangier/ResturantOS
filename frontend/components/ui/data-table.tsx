@@ -22,6 +22,14 @@ interface DataTableProps<TData> {
   isLoading?: boolean
   emptyMessage?: string
   pageSize?: number
+  /**
+   * Optional per-row className (e.g. an opacity/transition pair for a fade-out exit
+   * animation). Additive, backward-compatible — existing callers that don't pass this
+   * see no behavior change. Added for POS-09 (Order Management's "non-closed order
+   * never disappears abruptly — fade-out on close" requirement); no other DataTable
+   * consumer exists yet in the codebase, so this is a zero-risk extension.
+   */
+  rowClassName?: (row: TData) => string | undefined
 }
 
 function DataTable<TData>({
@@ -30,6 +38,7 @@ function DataTable<TData>({
   isLoading = false,
   emptyMessage,
   pageSize = 10,
+  rowClassName,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
 
@@ -106,7 +115,10 @@ function DataTable<TData>({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b transition-colors hover:bg-muted/30 last:border-b-0"
+                className={cn(
+                  "border-b transition-colors hover:bg-muted/30 last:border-b-0",
+                  rowClassName?.(row.original)
+                )}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3 align-middle">
