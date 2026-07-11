@@ -54,3 +54,34 @@ export const apiVendorInvoiceSchema = z.object({
   matchOverrideReason: z.string().nullable().optional(),
   lines: z.array(apiInvoiceLineSchema),
 });
+
+/** PUR-06: one spend-analytics row (vendor or category bucket) with a prior-period comparison. */
+export const apiSpendBucketSchema = z.object({
+  label: z.string(),
+  id: z.string().uuid().nullable(),
+  spendPaisa: z.number().int(),
+  priorSpendPaisa: z.number().int(),
+  deltaPaisa: z.number().int(),
+  deltaPct: z.number().nullable(),
+});
+
+export const apiSpendAnalyticsSchema = z.object({
+  branchId: z.string().uuid(),
+  from: z.string(),
+  to: z.string(),
+  compareFrom: z.string(),
+  compareTo: z.string(),
+  byVendor: z.array(apiSpendBucketSchema),
+  byCategory: z.array(apiSpendBucketSchema),
+});
+
+/** PUR-05: vendor scorecard — on-time delivery, fill rate, price variance, total spend. */
+export const apiVendorScorecardSchema = z.object({
+  vendorId: z.string().uuid(),
+  branchId: z.string().uuid(),
+  onTimeDeliveryPct: z.number(),
+  fillRatePct: z.number(),
+  priceVariancePct: z.number(),
+  totalSpendPaisa: z.number().int(),
+  purchaseOrderCount: z.number().int(),
+});

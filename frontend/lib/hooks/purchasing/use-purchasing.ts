@@ -31,3 +31,21 @@ export function useVendorInvoice(id: string) {
     enabled: Boolean(id),
   });
 }
+
+/** PUR-06: spend aggregated by vendor and by category over [from, to], with a prior-period comparison. */
+export function useSpendAnalytics(branchId: string, from: string, to: string) {
+  return useQuery({
+    queryKey: ["purchasing", "analytics", "spend", branchId, from, to],
+    queryFn: () => PurchasingRepository.getSpendAnalytics(branchId, from, to),
+    enabled: Boolean(branchId && from && to),
+  });
+}
+
+/** PUR-05: vendor scorecard (on-time delivery, fill rate, price variance, total spend). */
+export function useVendorScorecard(vendorId: string, branchId: string) {
+  return useQuery({
+    queryKey: ["purchasing", "analytics", "scorecard", vendorId, branchId],
+    queryFn: () => PurchasingRepository.getVendorScorecard(vendorId, branchId),
+    enabled: Boolean(vendorId && branchId),
+  });
+}

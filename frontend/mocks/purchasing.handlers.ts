@@ -1,10 +1,14 @@
 import { http, HttpResponse } from "msw";
 
+// NOTE: ids below must be well-formed UUIDs (hex only) — apiVendorSchema/apiPurchaseOrderSchema/
+// apiPoLineSchema/apiSpendBucketSchema/apiVendorScorecardSchema all validate id-ish fields with
+// z.string().uuid(), and PurchasingRepository always .parse()s before adapting (FE-08).
 const TENANT = "a0000001-0000-4000-8000-000000000001";
 const BRANCH = "b0000001-0000-4000-8000-000000000001";
-const VENDOR_ID = "v0000001-0000-4000-8000-000000000001";
-const PO_ID = "p0000001-0000-4000-8000-000000000001";
-const LINE_ID = "l0000001-0000-4000-8000-000000000001";
+const VENDOR_ID = "c0000001-0000-4000-8000-000000000001";
+const VENDOR_B_ID = "f0000002-0000-4000-8000-000000000002";
+const PO_ID = "d0000001-0000-4000-8000-000000000001";
+const LINE_ID = "e0000001-0000-4000-8000-000000000001";
 const ING_1 = "11111111-1111-4111-8111-111111110001";
 
 let poStatus = "SENT";
@@ -15,7 +19,7 @@ function ok<T>(data: T) {
   return HttpResponse.json({ data, meta: null, warnings: [] });
 }
 
-/** MSW fixtures F1–F6 for frontend-only purchasing dev (Phase 10). */
+/** MSW fixtures F1–F8 for frontend-only purchasing dev (Phase 10). */
 export const purchasingHandlers = [
   http.get("*/api/v1/purchasing/vendors", () =>
     ok([
@@ -111,8 +115,64 @@ export const purchasingHandlers = [
       branchId: BRANCH,
       onTimeDeliveryPct: grnQty === "0" ? 0 : 85,
       fillRatePct: grnQty === "0" ? 0 : 100,
+      priceVariancePct: grnQty === "0" ? 0 : 3.5,
       totalSpendPaisa: 100_000,
       purchaseOrderCount: 1,
+    }),
+  ),
+
+  // F8: spend analytics — 2 vendors, 3 categories, current (Jun 2026) vs prior (May 2026) period.
+  http.get("*/api/v1/purchasing/analytics/spend", () =>
+    ok({
+      branchId: BRANCH,
+      from: "2026-06-01",
+      to: "2026-06-30",
+      compareFrom: "2026-05-02",
+      compareTo: "2026-05-31",
+      byVendor: [
+        {
+          label: "Fresh Foods Ltd",
+          id: VENDOR_ID,
+          spendPaisa: 80_000,
+          priorSpendPaisa: 65_000,
+          deltaPaisa: 15_000,
+          deltaPct: 23.08,
+        },
+        {
+          label: "Value Meats",
+          id: VENDOR_B_ID,
+          spendPaisa: 20_000,
+          priorSpendPaisa: 0,
+          deltaPaisa: 20_000,
+          deltaPct: null,
+        },
+      ],
+      byCategory: [
+        {
+          label: "Produce",
+          id: null,
+          spendPaisa: 50_000,
+          priorSpendPaisa: 40_000,
+          deltaPaisa: 10_000,
+          deltaPct: 25,
+        },
+        {
+          label: "Dairy",
+          id: null,
+          spendPaisa: 30_000,
+          priorSpendPaisa: 25_000,
+          deltaPaisa: 5_000,
+          deltaPct: 20,
+        },
+        {
+          label: "Meat",
+          id: null,
+          spendPaisa: 20_000,
+          priorSpendPaisa: 0,
+          deltaPaisa: 20_000,
+          deltaPct: null,
+        },
+      ],
     }),
   ),
 ];

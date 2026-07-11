@@ -1,15 +1,25 @@
 import { get, post } from "@/lib/api-client/request";
 import {
   apiPurchaseOrderSchema,
+  apiSpendAnalyticsSchema,
   apiVendorInvoiceSchema,
+  apiVendorScorecardSchema,
   apiVendorSchema,
 } from "@/lib/api-client/schemas/purchasing.schema";
 import {
   adaptPurchaseOrder,
+  adaptSpendAnalytics,
   adaptVendor,
   adaptVendorInvoice,
+  adaptVendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
-import type { PurchaseOrder, Vendor, VendorInvoice } from "@/lib/adapters/purchasing.adapter";
+import type {
+  PurchaseOrder,
+  SpendAnalytics,
+  Vendor,
+  VendorInvoice,
+  VendorScorecard,
+} from "@/lib/adapters/purchasing.adapter";
 
 export const PurchasingRepository = {
   async listVendors(): Promise<Vendor[]> {
@@ -34,5 +44,15 @@ export const PurchasingRepository = {
   async getInvoice(id: string): Promise<VendorInvoice> {
     const raw = await get(`/api/v1/purchasing/invoices/${id}`);
     return adaptVendorInvoice(apiVendorInvoiceSchema.parse(raw));
+  },
+
+  async getSpendAnalytics(branchId: string, from: string, to: string): Promise<SpendAnalytics> {
+    const raw = await get("/api/v1/purchasing/analytics/spend", { branchId, from, to });
+    return adaptSpendAnalytics(apiSpendAnalyticsSchema.parse(raw));
+  },
+
+  async getVendorScorecard(vendorId: string, branchId: string): Promise<VendorScorecard> {
+    const raw = await get("/api/v1/purchasing/analytics/scorecard", { vendorId, branchId });
+    return adaptVendorScorecard(apiVendorScorecardSchema.parse(raw));
   },
 };
