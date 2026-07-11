@@ -6,14 +6,14 @@ current_phase: 07.1
 current_phase_name: pos-production-operations
 status: executing
 stopped_at: Completed 07.1-05-PLAN.md
-last_updated: "2026-07-11T10:52:00.977Z"
+last_updated: "2026-07-11T11:21:19.070Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
   total_plans: 42
-  completed_plans: 33
+  completed_plans: 34
   percent: 38
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.1 (pos-production-operations) — EXECUTING
-Plan: 6 of 10 in current phase
+Plan: 7 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07.1 execution started
@@ -73,6 +73,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.1 P03 | 45min | 3 tasks | 16 files |
 | Phase 07.1 P04 | 35 min | 3 tasks | 14 files |
 | Phase 07.1 P05 | 55min | 3 tasks | 24 files |
+| Phase 07.1 P07 | 45min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -189,6 +190,9 @@ Recent decisions affecting current work:
 - [Phase 07.1-05]: listOrders/useOrders removed outright and replaced with listOrderSummaries/useOrderSummaries — grep-confirmed zero callers, and the old method was provably broken against the live backend (GET /pos/orders now returns OrderSummaryDto[] per 07.1-04)
 - [Phase 07.1-05]: Extended lib/offline/types.ts (OutboxOpType +UPDATE_INSTRUCTIONS) and sync-engine.ts's replay branch (neither in this plan's file list) so useUpdateInstructions is actually offline-safe as the plan's must_haves require
 - [Phase 07.1-05]: kds.schema.ts ticket-item status matches kitchen-service's real 5-value TicketItemStatus (PENDING/ACCEPTED/PREPARING/COOKING/READY), not pos-service's 7-value OrderItemStatus; KdsTicket.orderNotes is a forward-declared, always-null field — backend KdsTicketDto has no such field yet (documented gap)
+- [Phase ?]: [Phase 07.1-07] toLineItemStatusVariant() normalizes kitchen-service's legacy COOKING status to PREPARING at the render seam (kds.schema.ts's 5-value KdsItemStatus stayed as-is from 07.1-05, not widened in this frontend-component-only plan)
+- [Phase ?]: [Phase 07.1-07] New-ticket fade-in uses animate-fade-in applied unconditionally + React keyed-mount semantics instead of a stateful seen-ticket-id tracker, after both a useRef-during-useMemo and a useState+useEffect variant were rejected by this repo's react-hooks/refs and react-hooks/set-state-in-effect eslint rules
+- [Phase ?]: [Phase 07.1-07] sortKdsTickets() exported as a generic pure function from kds-board.tsx (receivedAt asc, tie ticket.id, computed once per batch via useMemo) — fixes the KDS 'cards bounce' UAT complaint since the sort key never reads mutable per-item status
 
 ### Pending Todos
 
@@ -215,6 +219,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T10:52:00.942Z
+Last session: 2026-07-11T11:19:55.508Z
 Stopped at: Completed 07.1-05-PLAN.md
 Resume file: None
