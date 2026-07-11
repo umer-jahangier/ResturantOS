@@ -75,6 +75,12 @@ public class FinanceGlobalExceptionHandler {
                 .body(errorBody("INVALID_ACCOUNT_CODE", ex.getMessage()));
     }
 
+    @ExceptionHandler(ExpenseApprovalLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleExpenseApprovalLimitExceeded(ExpenseApprovalLimitExceededException ex) {
+        return ResponseEntity.status(403)
+                .body(errorBody("EXPENSE_APPROVAL_LIMIT_EXCEEDED", ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.badRequest()
