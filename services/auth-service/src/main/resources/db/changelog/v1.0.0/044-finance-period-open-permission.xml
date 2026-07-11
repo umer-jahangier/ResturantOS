@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-044-finance-period-open-permission" author="restaurantos-agent" runOnChange="false">
+
+        <!-- New permission code for the self-service POST /api/v1/finance/periods/provision
+             endpoint (Phase 07.2). Symmetric to finance.period.close (034/036), but this is a
+             brand-new permission code, not an existing one being re-granted (contrast with 043).
+
+             Changeset 036's wildcard grants:
+                 INSERT INTO role_permissions SELECT 'OWNER', code FROM permissions;
+                 INSERT INTO role_permissions SELECT 'TENANT_ADMIN', code FROM permissions WHERE code != 'rbac.manage';
+             are runOnChange="false" and only ran ONCE at initial DB creation — they do NOT
+             retroactively pick up this new permission code on any already-migrated database.
+             OWNER, TENANT_ADMIN, and ACCOUNTANT must therefore be granted explicitly here.
+             Least privilege: MANAGER, CASHIER, INVENTORY_MANAGER, KITCHEN_STAFF are deliberately
+             excluded — none of them hold finance.period.close today either. -->
+
+        <insert tableName="permissions">
+            <column name="code" value="finance.period.open"/>
+            <column name="module" value="finance"/>
+            <column name="description" value="Provision/open accounting periods"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="finance.period.open"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="finance.period.open"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="finance.period.open"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>
