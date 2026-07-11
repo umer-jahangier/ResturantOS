@@ -26,6 +26,8 @@ public record KdsTicketDto(
             int qty,
             List<String> modifiers,
             String notes,
-            TicketItemStatus status
+            TicketItemStatus status,
+            int revisionNo,
+            Instant firedAt
     ) {}
 }

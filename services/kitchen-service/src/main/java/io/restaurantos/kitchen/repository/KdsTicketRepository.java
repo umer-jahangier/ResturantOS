@@ -30,4 +30,11 @@ public interface KdsTicketRepository extends JpaRepository<KdsTicket, UUID> {
 
     @Query("SELECT COUNT(t) FROM KdsTicket t WHERE t.orderId = :orderId AND t.status <> :excludedStatus")
     long countByOrderIdAndStatusNot(@Param("orderId") UUID orderId, @Param("excludedStatus") TicketStatus excludedStatus);
+
+    // Ticket-detail read (KDS-03 "open a ticket for full order detail"): items must be
+    // fetched eagerly here, same rationale as findByBranchIdAndStationCodeAndStatusIn above —
+    // avoids the LazyInitializationException class of bug from the Phase-7 UAT.
+    @EntityGraph(attributePaths = "items")
+    @Query("SELECT t FROM KdsTicket t WHERE t.id = :id")
+    Optional<KdsTicket> findDetailById(@Param("id") UUID id);
 }

@@ -147,6 +147,14 @@ public class TicketServiceImpl implements TicketService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public KdsTicketDto getTicketDetail(UUID ticketId) {
+        KdsTicket ticket = ticketRepository.findDetailById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found: " + ticketId));
+        return toDto(ticket);
+    }
+
     private void checkAndPublishOrderReady(KdsTicket readyTicket) {
         long pendingOrCooking = ticketRepository.findByOrderId(readyTicket.getOrderId()).stream()
                 .filter(t -> t.getStatus() == TicketStatus.PENDING || t.getStatus() == TicketStatus.COOKING)
@@ -186,7 +194,8 @@ public class TicketServiceImpl implements TicketService {
         List<KdsTicketDto.ItemDto> itemDtos = ticket.getItems().stream()
                 .map(i -> new KdsTicketDto.ItemDto(
                         i.getId(), i.getOrderItemId(), i.getName(),
-                        i.getQty(), i.getModifiers(), i.getNotes(), i.getStatus()))
+                        i.getQty(), i.getModifiers(), i.getNotes(), i.getStatus(),
+                        i.getRevisionNo(), i.getFiredAt()))
                 .toList();
 
         return new KdsTicketDto(

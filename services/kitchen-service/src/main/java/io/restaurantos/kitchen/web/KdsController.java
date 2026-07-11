@@ -8,6 +8,7 @@ import io.restaurantos.kitchen.repository.KdsStationRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
 import io.restaurantos.kitchen.service.TicketService;
 import io.restaurantos.kitchen.service.TicketServiceImpl;
+import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import io.restaurantos.shared.security.JwtClaims;
 import org.springframework.data.domain.Page;
@@ -92,6 +93,21 @@ public class KdsController {
 
         authz.authorizeUpdate(claims.tenantId(), branchId);
         return ResponseEntity.ok(ticketService.recallTicket(ticketId));
+    }
+
+    /**
+     * Full ticket detail (all items, per-item status + revisionNo + firedAt) for the KDS
+     * "open a ticket for full order detail" view (KDS-03).
+     * Requires pos.kds.view permission (OPA evaluated).
+     */
+    @GetMapping("/tickets/{ticketId}")
+    public ResponseEntity<ApiResponse<KdsTicketDto>> getTicketDetail(
+            @PathVariable UUID ticketId,
+            @RequestParam UUID branchId,
+            @AuthenticationPrincipal JwtClaims claims) {
+
+        authz.authorizeView(claims.tenantId(), branchId);
+        return ResponseEntity.ok(ApiResponse.ok(ticketService.getTicketDetail(ticketId)));
     }
 
     /**

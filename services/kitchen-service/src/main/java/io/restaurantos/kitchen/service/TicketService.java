@@ -15,4 +15,7 @@ public interface TicketService {
     KdsTicketDto recallTicket(UUID ticketId);
 
     void cancelTicketsForOrder(UUID orderId);
+
+    /** Full ticket detail (all items, incl. revisionNo/firedAt) for the KDS "open ticket" view. */
+    KdsTicketDto getTicketDetail(UUID ticketId);
 }
