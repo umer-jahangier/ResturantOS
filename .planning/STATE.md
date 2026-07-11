@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 6 — Finance Core (General Ledger + Accounting Periods)
+**Current focus:** Phase 10 complete (mock-first purchasing); Phase 11 next
 
 ## Current Position
 
-Phase: 6 of 12 (Finance Core — General Ledger + Accounting Periods)
-Plan: 2 of 2
-Status: Phase 6 COMPLETE — accounting periods + close/lock + TOTP gate + Finance frontend
-Last activity: 2026-06-27 — Completed 06-02: 12-period seeding, PeriodCloseService, Feign stubs, 7 Finance pages, 8 components
+Phase: 10 of 12 (Purchasing & Accounts Payable)
+Plan: 05 of 06 (gap-closure wave)
+Status: Phase 10 gap-closure in progress — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, MSW + frontend shell
+Last activity: 2026-07-12 — Completed 10-05 (FIN-05 expense-approval OPA gap); 10-03/10-04/10-06 running in parallel
 
 Progress: [█████████████████████░] 61% (20/33 plans)
 
@@ -112,6 +112,8 @@ Recent decisions affecting current work:
 - [06-02-D]: Frontend follows existing 4-layer pattern: Zod schema → adapter → repository → TanStack Query hook → component (ESLint-enforced by no-restricted-imports on components/**).
 - [06-02-E]: Integration tests re-set TenantContext after provision() calls (finally block clears it); pattern: tenantContext.set(tenantId, null, null, null) after each provision().
 - [06-02-F]: Finance pages at /app/finance/* (tenant route group is (tenant)/app/*); proxy.ts PROTECTED=['/platform','/app'].
+- [10-05-A]: finance-service consumes OPA via its own Feign AuthorizationClient to authorization-service (copied verbatim from purchasing-service's), NOT shared-lib's OpaClient/AuthorizationService — that bean is `@ConditionalOnProperty("restaurantos.opa.url")` and neither finance-service nor purchasing-service sets it.
+- [10-05-B]: Expense create @PreAuthorize reuses `finance.journal.post` (no `finance.expense.create` permission exists in auth-service's seed); approve/reject use `finance.expense.approve` (previously zero consumers).
 
 ### Pending Todos
 
@@ -130,6 +132,7 @@ Recent decisions affecting current work:
 
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
+- **10-05 unverified at runtime:** `ExpenseApprovalIT` (finance-service, FIN-05 OPA-limited expense approval) could not be executed in the 2026-07-12 execution sandbox — no working Docker daemon (docker/colima/podman all absent). `mvn -pl services/finance-service test-compile` passes; re-run `failsafe:integration-test failsafe:verify` on a Docker-capable runner to close this out.
 
 ## Session Continuity
 
