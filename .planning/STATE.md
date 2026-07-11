@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 10 of 12 (Purchasing & Accounts Payable)
-Plan: 03, 05 of 06 (gap-closure wave)
-Status: Phase 10 gap-closure in progress — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, MSW + frontend shell
-Last activity: 2026-07-12 — Completed 10-03 (PUR-06 spend analytics API+UI, PUR-05 price-variance scorecard metric) and 10-05 (FIN-05 expense-approval OPA gap); 10-04/10-06 running in parallel
+Plan: 04 of 06 (gap-closure wave)
+Status: Phase 10 gap-closure in progress — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, PUR-02 PO close, MSW + frontend shell
+Last activity: 2026-07-12 — Completed 10-04 (PUR-02 PO CLOSED terminal state: OPA-gated short-close, PO_CLOSED event, PurchaseOrderCloseIT, Close PO UI); 10-06 remains
 
-Progress: [█████████████████████░] 61% (20/33 plans)
+Progress: [██████████████░░░░░░░░] 64% (21/33 plans)
 
 ## Performance Metrics
 
@@ -37,8 +37,8 @@ Progress: [█████████████████████░] 6
 | 06-finance-core-general-ledger-periods | 2/2 | complete |
 
 **Recent Trend:**
-- Last completed plan: 06-02
-- Trend: Phase 6 COMPLETE — 12-period seeding (Jul-Jun Pakistan FY), PeriodCloseService with TOTP gate, Feign stubs (POS/Inventory/Purchasing return 0), 7 Finance frontend pages, 8 components (DrCrCell font-mono, PeriodStatusChip emerald/amber, JournalEntryTable keyboard nav). pnpm build exits 0. AccountingPeriodIT + PeriodCloseServiceUnitTest all green.
+- Last completed plan: 10-04
+- Trend: PUR-02 PO CLOSED terminal state closed out — PurchaseOrderService.close() (FULLY_RECEIVED free-close, PARTIALLY_RECEIVED OPA-gated short-close with mandatory reason), V3__po_close.sql, PurchaseOrderCloseIT (5 tests), Close PO UI on PO detail. Full purchasing IT suite (18 tests) verified green against a live Docker Postgres testcontainer.
 
 *Updated after each plan completion*
 
@@ -118,6 +118,7 @@ Recent decisions affecting current work:
 - [10-03-B]: PUR-06 category resolution is mock-first via `IngredientCategoryResolver`/`MockIngredientCategoryResolver` reading classpath `spend-category-map.yml` (ingredientId -> label); Phase 8 swaps in a feign resolver on the same seam as `GrnDataPort`, keyed on `restaurantos.inventory.integration-mode`.
 - [10-03-C]: PUR-05 price variance is a spend-weighted mean (weight = lineTotalPaisa) of per-line `(invoiceUnitPricePaisa/poUnitPricePaisa - 1)*100`, reusing `ThreeWayMatchService`'s exact priceRatio math (BigDecimal scale 6, HALF_UP) — a metric, not a tolerance check; lines with PO price 0 are skipped; 0.0 (never NaN) when no qualifying lines.
 - [10-03-D]: Fixed several purchasing MSW mock ids (VENDOR_ID/PO_ID/LINE_ID) that used non-hex letter prefixes (`v`/`p`/`l`) and silently failed `z.string().uuid()` — no prior test exercised the purchasing repository against MSW, so this was latent; caught while adding the first such vitest.
+- [10-04-A]: PO close allowed source states are FULLY_RECEIVED (free) and PARTIALLY_RECEIVED (short-close, reason mandatory + OPA action `vendor.po.close`) only — all other states including already-CLOSED throw InvalidPoStateException (no idempotent no-op). No finance JE posted on close (GR/IR and AP already posted at receipt/invoice-match time).
 
 ### Pending Todos
 
@@ -138,9 +139,11 @@ Recent decisions affecting current work:
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
 - **10-05 unverified at runtime:** `ExpenseApprovalIT` (finance-service, FIN-05 OPA-limited expense approval) could not be executed in the 2026-07-12 execution sandbox — no working Docker daemon (docker/colima/podman all absent). `mvn -pl services/finance-service test-compile` passes; re-run `failsafe:integration-test failsafe:verify` on a Docker-capable runner to close this out.
 - **10-03 unverified at runtime:** `SpendAnalyticsIT` and `VendorScorecardIT` (purchasing-service, PUR-06/PUR-05) could not be executed in the same Docker-less sandbox. `mvn -pl services/purchasing-service test-compile` passes; both ITs need a real run (`-Dtest=SpendAnalyticsIT`, `-Dtest=VendorScorecardIT`) on a Docker-capable runner before Phase 10 sign-off.
+  - **RESOLVED by 10-04:** the 10-04 execution sandbox had a working Docker daemon; `mvn -pl services/purchasing-service failsafe:integration-test failsafe:verify` was run for real and all 18 purchasing ITs (including SpendAnalyticsIT and VendorScorecardIT) passed — BUILD SUCCESS, 0 failures, 0 errors.
+- **Pre-existing frontend tsc errors (unrelated to Phase 10):** `frontend/lib/api-client/errors.ts` lines 129/134/137 fail `pnpm tsc --noEmit` under strict optional typing (`USER_FACING_BY_CODE` string-indexing). File untouched since commits `b02cadc`/`e79cdbd`, not owned by any Phase 10 gap plan. Does not block purchasing (all 10-04-modified frontend files compile clean). Needs a follow-up fix outside Phase 10.
 
 ## Session Continuity
 
-Last session: 2026-06-27
-Stopped at: Phase 6 Plan 2 complete — 12-period seeding, PeriodCloseService, Feign stubs, Finance UI; commits 67eef48 (backend) + 2a86381 (frontend); awaiting human verification checkpoint.
+Last session: 2026-07-12
+Stopped at: Completed 10-04-PLAN.md (PUR-02 PO close gap closure) — commits a377b2b (service+migration+endpoint), c4cd5a0 (PurchaseOrderCloseIT), b5ed29f (frontend Close PO UI + MSW + test). 10-06 (requirement-doc reconciliation) remains to close out Phase 10.
 Resume file: None
