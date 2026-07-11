@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 10 of 12 (Purchasing & Accounts Payable)
-Plan: 05 of 06 (gap-closure wave)
-Status: Phase 10 gap-closure in progress — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, MSW + frontend shell
-Last activity: 2026-07-12 — Completed 10-05 (FIN-05 expense-approval OPA gap); 10-03/10-04/10-06 running in parallel
+Plan: 03, 05 of 06 (gap-closure wave)
+Status: Phase 10 gap-closure in progress — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, MSW + frontend shell
+Last activity: 2026-07-12 — Completed 10-03 (PUR-06 spend analytics API+UI, PUR-05 price-variance scorecard metric) and 10-05 (FIN-05 expense-approval OPA gap); 10-04/10-06 running in parallel
 
 Progress: [█████████████████████░] 61% (20/33 plans)
 
@@ -114,6 +114,10 @@ Recent decisions affecting current work:
 - [06-02-F]: Finance pages at /app/finance/* (tenant route group is (tenant)/app/*); proxy.ts PROTECTED=['/platform','/app'].
 - [10-05-A]: finance-service consumes OPA via its own Feign AuthorizationClient to authorization-service (copied verbatim from purchasing-service's), NOT shared-lib's OpaClient/AuthorizationService — that bean is `@ConditionalOnProperty("restaurantos.opa.url")` and neither finance-service nor purchasing-service sets it.
 - [10-05-B]: Expense create @PreAuthorize reuses `finance.journal.post` (no `finance.expense.create` permission exists in auth-service's seed); approve/reject use `finance.expense.approve` (previously zero consumers).
+- [10-03-A]: PUR-06 spend analytics deltaPct is `null` (not a sentinel like 100.0) when a bucket's prior-period spend is 0 — "new spend" has no meaningful percent change; documented in `VendorAnalyticsService.spendReport()` javadoc.
+- [10-03-B]: PUR-06 category resolution is mock-first via `IngredientCategoryResolver`/`MockIngredientCategoryResolver` reading classpath `spend-category-map.yml` (ingredientId -> label); Phase 8 swaps in a feign resolver on the same seam as `GrnDataPort`, keyed on `restaurantos.inventory.integration-mode`.
+- [10-03-C]: PUR-05 price variance is a spend-weighted mean (weight = lineTotalPaisa) of per-line `(invoiceUnitPricePaisa/poUnitPricePaisa - 1)*100`, reusing `ThreeWayMatchService`'s exact priceRatio math (BigDecimal scale 6, HALF_UP) — a metric, not a tolerance check; lines with PO price 0 are skipped; 0.0 (never NaN) when no qualifying lines.
+- [10-03-D]: Fixed several purchasing MSW mock ids (VENDOR_ID/PO_ID/LINE_ID) that used non-hex letter prefixes (`v`/`p`/`l`) and silently failed `z.string().uuid()` — no prior test exercised the purchasing repository against MSW, so this was latent; caught while adding the first such vitest.
 
 ### Pending Todos
 
@@ -133,6 +137,7 @@ Recent decisions affecting current work:
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
 - **10-05 unverified at runtime:** `ExpenseApprovalIT` (finance-service, FIN-05 OPA-limited expense approval) could not be executed in the 2026-07-12 execution sandbox — no working Docker daemon (docker/colima/podman all absent). `mvn -pl services/finance-service test-compile` passes; re-run `failsafe:integration-test failsafe:verify` on a Docker-capable runner to close this out.
+- **10-03 unverified at runtime:** `SpendAnalyticsIT` and `VendorScorecardIT` (purchasing-service, PUR-06/PUR-05) could not be executed in the same Docker-less sandbox. `mvn -pl services/purchasing-service test-compile` passes; both ITs need a real run (`-Dtest=SpendAnalyticsIT`, `-Dtest=VendorScorecardIT`) on a Docker-capable runner before Phase 10 sign-off.
 
 ## Session Continuity
 
