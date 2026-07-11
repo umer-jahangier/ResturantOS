@@ -115,7 +115,7 @@
 - [ ] **POS-10**: Table-centric dine-in — the table floor view is the primary dine-in entry point; selecting a table shows its current active order, order status, assigned server/cashier, and live bill summary; every dine-in order is linked to a table
 - [x] **POS-11**: Item-level status lifecycle — each order line tracks its own status (`PENDING`→`SENT`→`ACCEPTED`→`PREPARING`→`READY`→`SERVED`, plus `CANCELLED`); the aggregate order status (`DRAFT`/`IN_PROGRESS`/`PARTIALLY_SERVED`/`SERVED`/`CLOSED`) is **derived** from line statuses, not set independently
 - [x] **POS-12**: Order revisions / add-to-existing — items can be added to an already-sent active order and only the newly-added items are sent to the kitchen as a new revision; previously-sent/served lines are never resent; a per-order revision history (Rev 1, Rev 2, …) is maintained (implemented per researched industry-standard POS behavior)
-- [ ] **POS-13**: Order & item instructions — an order-level special-instructions field plus optional per-item instructions (e.g. "no onions", "medium rare"), captured at create/edit and surfaced to the kitchen on the ticket + order-detail view
+- [x] **POS-13**: Order & item instructions — an order-level special-instructions field plus optional per-item instructions (e.g. "no onions", "medium rare"), captured at create/edit and surfaced to the kitchen on the ticket + order-detail view
 - [ ] **POS-14**: Wire cashier settlement actions — render the already-built `PaymentPanel`, `TillSessionBar`, and `VoidRefundDialog` into the live POS/order flow so a cashier can charge, open/close a till, and void/refund through the UI; close the Phase-7 UAT gaps (void 403, offline sync-badge not updating on reconnect)
 - [ ] **POS-15**: Cashier experience — fast order creation, quick item search, easy editing of active orders, clear order/item status indicators, efficient service navigation; fix the terminal state bugs (first-item add, item-cap after N items)
 
@@ -296,7 +296,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-10 | Phase 7.1 | Pending |
 | POS-11 | Phase 7.1 | Complete |
 | POS-12 | Phase 7.1 | Complete |
-| POS-13 | Phase 7.1 | Pending |
+| POS-13 | Phase 7.1 | Complete |
 | POS-14 | Phase 7.1 | Pending |
 | POS-15 | Phase 7.1 | Pending |
 | KDS-03 | Phase 7.1 | Complete |

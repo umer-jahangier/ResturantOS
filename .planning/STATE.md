@@ -6,14 +6,14 @@ current_phase: 07.1
 current_phase_name: pos-production-operations
 status: executing
 stopped_at: Completed 07.1-02-PLAN.md
-last_updated: "2026-07-11T09:11:59.703Z"
+last_updated: "2026-07-11T09:48:46.212Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
   total_plans: 42
-  completed_plans: 30
+  completed_plans: 31
   percent: 38
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.1 (pos-production-operations) — EXECUTING
-Plan: 3 of 10 in current phase
+Plan: 4 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07.1 execution started
@@ -70,6 +70,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07 P08 | 12min | 2 tasks | 12 files |
 | Phase 07.1 P01 | 25 min | 3 tasks | 9 files |
 | Phase 07.1 P02 | 40 min | 3 tasks | 15 files |
+| Phase 07.1 P03 | 45min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -175,6 +176,7 @@ Recent decisions affecting current work:
 - [Phase 07.1-01]: Task 2/3 execution order swapped (Task 3 mechanical KdsItemStatus->OrderItemStatus reconciliation applied before Task 2 TDD verification) because Maven compiles the whole module before any test runs, and Task 1 alone leaves the module non-compiling by design. — Makes the TDD RED/GREEN gate meaningful under Maven's whole-module compilation model; no scope change.
 - [Phase 07.1-01]: OrderDto.OrderItemDto.kdsStatus field name kept unchanged (type widened KdsItemStatus->OrderItemStatus) rather than renamed to itemStatus. — Avoids an extra JSON contract break this plan; frontend schema rename is a later plan per PATTERNS.md.
 - [Phase 07.1]: TicketRoutingService.route() converted from skip-if-exists to append-to-existing-ticket (POS-12/KDS-03) — ProcessedEventService.tryProcess remains the sole event-redelivery dedup; ticket existence is no longer used as a dedup signal
+- [Phase 07.1]: sendToKds is repeatable and per-fire idempotent; Order.derivedStatus is the sole kitchen-progress aggregate, always computed via OrderStatusDerivationService, never hand-set — Plan 07.1-03 wired the plan-01 derivation seam into every item-status mutation path (sendToKds, markItemServed, cancelItem, ORDER_READY consumer); Order.status keeps its settlement hand-sets for event-contract compatibility only
 
 ### Pending Todos
 
@@ -201,6 +203,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T09:11:51.163Z
+Last session: 2026-07-11T09:48:46.194Z
 Stopped at: Completed 07.1-02-PLAN.md
 Resume file: None
