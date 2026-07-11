@@ -1,6 +1,6 @@
 package io.restaurantos.pos.dto;
 
-import io.restaurantos.pos.domain.enums.KdsItemStatus;
+import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 
@@ -37,7 +37,7 @@ public record OrderDto(
             long unitPriceSnapshot,
             int quantity,
             String kdsStation,
-            KdsItemStatus kdsStatus,
+            OrderItemStatus kdsStatus,
             long discountPaisa,
             long taxPaisa,
             long lineTotalPaisa,

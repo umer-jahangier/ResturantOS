@@ -576,7 +576,7 @@ public class OrderServiceImpl implements OrderService {
                         item.getUnitPriceSnapshot(),
                         item.getQuantity(),
                         item.getKdsStation(),
-                        item.getKdsStatus(),
+                        item.getItemStatus(),
                         item.getDiscountPaisa(),
                         item.getTaxPaisa(),
                         item.getLineTotalPaisa(),
