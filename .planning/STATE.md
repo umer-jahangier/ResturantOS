@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.1
 current_phase_name: pos-production-operations
 status: executing
-stopped_at: Completed 07.1-02-PLAN.md
-last_updated: "2026-07-11T09:48:46.212Z"
+stopped_at: Completed 07.1-04-PLAN.md
+last_updated: "2026-07-11T10:19:22.541Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
   total_plans: 42
-  completed_plans: 31
+  completed_plans: 32
   percent: 38
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.1 (pos-production-operations) — EXECUTING
-Plan: 4 of 10 in current phase
+Plan: 5 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07.1 execution started
@@ -71,6 +71,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.1 P01 | 25 min | 3 tasks | 9 files |
 | Phase 07.1 P02 | 40 min | 3 tasks | 15 files |
 | Phase 07.1 P03 | 45min | 3 tasks | 16 files |
+| Phase 07.1 P04 | 35 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,11 @@ Recent decisions affecting current work:
 - [Phase 07.1-01]: OrderDto.OrderItemDto.kdsStatus field name kept unchanged (type widened KdsItemStatus->OrderItemStatus) rather than renamed to itemStatus. — Avoids an extra JSON contract break this plan; frontend schema rename is a later plan per PATTERNS.md.
 - [Phase 07.1]: TicketRoutingService.route() converted from skip-if-exists to append-to-existing-ticket (POS-12/KDS-03) — ProcessedEventService.tryProcess remains the sole event-redelivery dedup; ticket existence is no longer used as a dedup signal
 - [Phase 07.1]: sendToKds is repeatable and per-fire idempotent; Order.derivedStatus is the sole kitchen-progress aggregate, always computed via OrderStatusDerivationService, never hand-set — Plan 07.1-03 wired the plan-01 derivation seam into every item-status mutation path (sendToKds, markItemServed, cancelItem, ORDER_READY consumer); Order.status keeps its settlement hand-sets for event-contract compatibility only
+- [Phase 07.1-04]: Extracted OrderMapper (Order->OrderDto) into its own @Component to break a circular Spring bean dependency between OrderServiceImpl (needs TableService for table-status sync) and TableServiceImpl (needs a full OrderDto for TableDetailDto).
+- [Phase 07.1-04]: Table status is now derived from order lifecycle via a single seam, TableService.syncStatusForOrder, invoked from every order mutation path (was previously scattered inline table.setStatus() calls).
+- [Phase 07.1-04]: pos.order.view.all permission code checked but not yet seeded in auth-service DB - every caller defaults to own-orders-only scoping until a future plan grants it to MANAGER+.
+- [Phase 07.1-04]: POS-14 void-403 root-caused as JWT staleness (no code bug found in OpaInput construction) - VoidOwnOrderIT proves the authorization path is correct given a current token; frontend fresh-login handling deferred to a later plan.
+- [Phase 07.1-04]: GET /api/v1/pos/orders now returns OrderSummaryDto[] (was OrderDto[]) - breaking wire-contract change; frontend four-layer wiring deferred to a later plan per PATTERNS.md.
 
 ### Pending Todos
 
@@ -203,6 +209,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T09:48:46.194Z
-Stopped at: Completed 07.1-02-PLAN.md
+Last session: 2026-07-11T10:18:59.511Z
+Stopped at: Completed 07.1-04-PLAN.md
 Resume file: None
