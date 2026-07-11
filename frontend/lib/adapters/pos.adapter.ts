@@ -7,6 +7,8 @@ import type {
   ApiDiningTable,
   ApiOrder,
   ApiOrderItem,
+  ApiOrderSummary,
+  ApiTableDetail,
   ApiTillSession,
 } from "@/lib/api-client/schemas/pos.schema";
 import type {
@@ -16,6 +18,8 @@ import type {
   Order,
   OrderItem,
   OrderItemModifier,
+  OrderSummary,
+  TableDetail,
   TillSession,
 } from "@/lib/models/pos.model";
 
@@ -72,7 +76,11 @@ export function adaptOrderItem(raw: ApiOrderItem): OrderItem {
     unitPriceSnapshot: raw.unitPriceSnapshot,
     quantity: raw.quantity,
     kdsStation: raw.kdsStation ?? null,
-    kdsStatus: raw.kdsStatus,
+    // Wire field `kdsStatus` -> domain field `itemStatus` (clearer name; see
+    // pos.schema.ts comment on apiOrderItemSchema).
+    itemStatus: raw.kdsStatus,
+    revisionNo: raw.revisionNo,
+    firedAt: raw.firedAt ?? null,
     discountPaisa: raw.discountPaisa,
     taxPaisa: raw.taxPaisa,
     lineTotalPaisa: raw.lineTotalPaisa,
@@ -88,6 +96,7 @@ export function adaptOrder(raw: ApiOrder): Order {
     orderNo: raw.orderNo ?? null,
     type: raw.type,
     status: raw.status,
+    derivedStatus: raw.derivedStatus,
     tableId: raw.tableId ?? null,
     coverCount: raw.coverCount,
     cashierId: raw.cashierId ?? null,
@@ -103,6 +112,40 @@ export function adaptOrder(raw: ApiOrder): Order {
     clientOrderId: raw.clientOrderId,
     version: raw.version,
     items: raw.items.map(adaptOrderItem),
+  };
+}
+
+export function adaptOrderSummary(raw: ApiOrderSummary): OrderSummary {
+  return {
+    orderId: raw.orderId,
+    orderNo: raw.orderNo ?? null,
+    tableId: raw.tableId ?? null,
+    tableName: raw.tableName ?? null,
+    derivedStatus: raw.derivedStatus,
+    cashierId: raw.cashierId ?? null,
+    coverCount: raw.coverCount,
+    totalPaisa: raw.totalPaisa,
+    openedAt: raw.openedAt ?? null,
+  };
+}
+
+export function adaptTableDetail(raw: ApiTableDetail): TableDetail {
+  return {
+    id: raw.id,
+    branchId: raw.branchId,
+    tableName: raw.tableName,
+    capacity: raw.capacity,
+    status: raw.status,
+    floorPlanX: raw.floorPlanX ?? null,
+    floorPlanY: raw.floorPlanY ?? null,
+    floorPlanShape: raw.floorPlanShape ?? null,
+    activeOrder: raw.activeOrder ? adaptOrder(raw.activeOrder) : null,
+    derivedStatus: raw.derivedStatus ?? null,
+    cashierId: raw.cashierId ?? null,
+    subtotalPaisa: raw.subtotalPaisa,
+    discountPaisa: raw.discountPaisa,
+    taxPaisa: raw.taxPaisa,
+    totalPaisa: raw.totalPaisa,
   };
 }
 

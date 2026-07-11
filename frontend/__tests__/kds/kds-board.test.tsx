@@ -20,6 +20,7 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     receivedAt: new Date(Date.now() - 5 * 60_000), // 5 minutes ago by default
     startedAt: null,
     readyAt: null,
+    orderNotes: null,
     items: [
       {
         id: "i0000001-0000-4000-8000-000000000001",
@@ -29,6 +30,8 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
         modifiers: ["Extra Spicy"],
         notes: null,
         status: "PENDING",
+        revisionNo: 1,
+        firedAt: null,
       },
     ],
     ...overrides,

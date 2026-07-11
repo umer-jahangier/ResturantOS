@@ -96,8 +96,14 @@ interface TicketItemRowProps {
 }
 
 function TicketItemRow({ item, canUpdate, onBump }: TicketItemRowProps) {
+  // ACCEPTED/PREPARING added so 07.1's widened KdsItemStatus stays exhaustively
+  // indexable — COOKING is kept as PREPARING's legacy-equivalent color (kitchen-service
+  // TicketItemStatus javadoc). Full 7-state icon+label treatment (KDS-03) is a later
+  // plan's scope (07.1-PATTERNS.md); this is a minimal compile-safety fix only.
   const statusColors = {
     PENDING: "text-gray-400",
+    ACCEPTED: "text-blue-300",
+    PREPARING: "text-amber-300",
     COOKING: "text-amber-300",
     READY: "text-emerald-400",
   };

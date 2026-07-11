@@ -13,6 +13,8 @@ export function adaptKdsTicketItem(raw: ApiKdsTicketItem): KdsTicketItem {
     modifiers: raw.modifiers ?? [],
     notes: raw.notes ?? null,
     status: raw.status,
+    revisionNo: raw.revisionNo,
+    firedAt: raw.firedAt ?? null,
   };
 }
 
@@ -27,6 +29,7 @@ export function adaptKdsTicket(raw: ApiKdsTicket): KdsTicket {
     receivedAt: new Date(raw.receivedAt),
     startedAt: raw.startedAt ? new Date(raw.startedAt) : null,
     readyAt: raw.readyAt ? new Date(raw.readyAt) : null,
+    orderNotes: raw.orderNotes ?? null,
     items: raw.items.map(adaptKdsTicketItem),
   };
 }

@@ -27,12 +27,15 @@ export const apiMenuCategorySchema = z.object({
 
 export type ApiMenuCategory = z.infer<typeof apiMenuCategorySchema>;
 
+// NEEDS_BUSSING added — backend TableStatus enum now has 3 values (07.1-PATTERNS.md).
+// Widening this enum is a Rule-1 correctness fix: without it, any table returned
+// in NEEDS_BUSSING state from GET /pos/tables would throw a ZodError at parse time.
 export const apiDiningTableSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   tableName: z.string(),
   capacity: z.number().int(),
-  status: z.enum(["AVAILABLE", "OCCUPIED"]),
+  status: z.enum(["AVAILABLE", "OCCUPIED", "NEEDS_BUSSING"]),
   floorPlanX: z.number().nullable().optional(),
   floorPlanY: z.number().nullable().optional(),
   floorPlanShape: z.string().nullable().optional(),
@@ -47,6 +50,10 @@ export const apiOrderItemModifierSchema = z.object({
   priceDeltaPaisa: z.number().int(),
 });
 
+// Wire field is still named `kdsStatus` (backend OrderDto.OrderItemDto kept the name —
+// see 07.1-03/07.1-01 SUMMARY decisions) but now carries the 7-value OrderItemStatus
+// lifecycle. The adapter layer renames this to `itemStatus` on the domain model for a
+// clearer downstream name — the raw schema stays faithful to the actual wire contract.
 export const apiOrderItemSchema = z.object({
   id: z.string().uuid(),
   menuItemId: z.string().uuid(),
@@ -54,7 +61,9 @@ export const apiOrderItemSchema = z.object({
   unitPriceSnapshot: z.number().int().nonnegative(),
   quantity: z.number().int().positive(),
   kdsStation: z.string().nullable().optional(),
-  kdsStatus: z.enum(["PENDING", "COOKING", "READY"]),
+  kdsStatus: z.enum(["PENDING", "SENT", "ACCEPTED", "PREPARING", "READY", "SERVED", "CANCELLED"]),
+  revisionNo: z.number().int().nonnegative(),
+  firedAt: z.string().nullable().optional(),
   discountPaisa: z.number().int().nonnegative(),
   taxPaisa: z.number().int().nonnegative(),
   lineTotalPaisa: z.number().int().nonnegative(),
@@ -64,12 +73,19 @@ export const apiOrderItemSchema = z.object({
 
 export type ApiOrderItem = z.infer<typeof apiOrderItemSchema>;
 
+// `status` (existing 9-value settlement enum) and `derivedStatus` (new 4-value kitchen
+// -progress aggregate) are deliberately DISTINCT fields — never overloaded into one
+// (RESEARCH.md Pitfall 3 / 07.1-03 SUMMARY). `derivedStatus` mirrors backend
+// DerivedOrderStatus exactly (DRAFT|IN_PROGRESS|PARTIALLY_SERVED|SERVED only — CLOSED/
+// VOIDED/REFUNDED live solely on `status`; combine via pos.model's
+// getOrderDisplayStatus() for UI rendering).
 export const apiOrderSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
   type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY"]),
   status: z.enum(["DRAFT", "OPEN", "SENT_TO_KDS", "PARTIAL_READY", "READY", "SERVED", "CLOSED", "VOIDED", "REFUNDED"]),
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]),
   tableId: z.string().uuid().nullable().optional(),
   coverCount: z.number().int(),
   cashierId: z.string().uuid().nullable().optional(),
@@ -88,6 +104,54 @@ export const apiOrderSchema = z.object({
 });
 
 export type ApiOrder = z.infer<typeof apiOrderSchema>;
+
+// Order Management list row (POS-09) — GET /api/v1/pos/orders now returns this shape,
+// not ApiOrder[] (07.1-04 SUMMARY: a deliberate, breaking wire-contract change).
+export const apiOrderSummarySchema = z.object({
+  orderId: z.string().uuid(),
+  orderNo: z.string().nullable().optional(),
+  tableId: z.string().uuid().nullable().optional(),
+  tableName: z.string().nullable().optional(),
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]),
+  cashierId: z.string().uuid().nullable().optional(),
+  coverCount: z.number().int(),
+  totalPaisa: z.number().int().nonnegative(),
+  openedAt: z.string().nullable().optional(),
+});
+
+export type ApiOrderSummary = z.infer<typeof apiOrderSummarySchema>;
+
+// Table-centric dine-in detail (POS-10) — GET /pos/tables/{id}/active-order.
+export const apiTableDetailSchema = z.object({
+  id: z.string().uuid(),
+  branchId: z.string().uuid(),
+  tableName: z.string(),
+  capacity: z.number().int(),
+  status: z.enum(["AVAILABLE", "OCCUPIED", "NEEDS_BUSSING"]),
+  floorPlanX: z.number().nullable().optional(),
+  floorPlanY: z.number().nullable().optional(),
+  floorPlanShape: z.string().nullable().optional(),
+  activeOrder: apiOrderSchema.nullable(),
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]).nullable(),
+  cashierId: z.string().uuid().nullable().optional(),
+  subtotalPaisa: z.number().int().nonnegative(),
+  discountPaisa: z.number().int().nonnegative(),
+  taxPaisa: z.number().int().nonnegative(),
+  totalPaisa: z.number().int().nonnegative(),
+});
+
+export type ApiTableDetail = z.infer<typeof apiTableDetailSchema>;
+
+// PATCH /orders/{id}/instructions request body (POS-13). This is an OUTGOING payload —
+// parsed client-side before send as a defense-in-depth mirror of the server's own
+// char-limit validation (RESEARCH.md Security Domain V5 / OrderInstructionsIT), not a
+// response envelope.
+export const apiUpdateInstructionsSchema = z.object({
+  notes: z.string().max(240, "Order notes must not exceed 240 characters").nullable().optional(),
+  itemNotes: z.record(z.string().uuid(), z.string().max(140, "Item notes must not exceed 140 characters")).optional(),
+});
+
+export type ApiUpdateInstructions = z.infer<typeof apiUpdateInstructionsSchema>;
 
 export const apiTillSessionSchema = z.object({
   id: z.string().uuid(),

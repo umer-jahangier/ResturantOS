@@ -146,6 +146,7 @@ function buildOfflineOrderStub(
     orderNo: null,
     type: payload.type ?? "DINE_IN",
     status: "DRAFT",
+    derivedStatus: "DRAFT",
     tableId: payload.tableId ?? null,
     coverCount: payload.coverCount ?? 1,
     cashierId: null,
