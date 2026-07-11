@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 07.1
 current_phase_name: pos-production-operations
-status: planned
+status: executing
 stopped_at: Phase 07.1 planned — 10 plans / 7 waves, plan-checker PASSED (no blockers, 5 non-blocking warnings addressed)
-last_updated: "2026-07-11T00:00:00.000Z"
+last_updated: "2026-07-11T08:50:31.062Z"
 last_activity: 2026-07-11
-last_activity_desc: Phase 07.1 planned (POS production operations)
+last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
-  total_plans: 32
-  completed_plans: 28
+  total_plans: 42
+  completed_plans: 29
   percent: 38
 ---
 
@@ -24,14 +24,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 07.1 — pos-production-operations (POS MVP → production-ready)
+**Current focus:** Phase 07.1 — pos-production-operations
 
 ## Current Position
 
-Phase: 07.1 (pos-production-operations) — PLANNED, ready to execute
+Phase: 07.1 (pos-production-operations) — EXECUTING
+Plan: 2 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
-Status: Ready to execute — run /gsd-execute-phase 07.1
-Last activity: 2026-07-11 — Phase 07.1 planned
+Status: Ready to execute
+Last activity: 2026-07-11 — Phase 07.1 execution started
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -67,6 +68,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07 P06 | 20min | 2 tasks | 4 files |
 | Phase 07 P07 | 20min | 2 tasks | 7 files |
 | Phase 07 P08 | 12min | 2 tasks | 12 files |
+| Phase 07.1 P01 | 25 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -169,6 +171,8 @@ Recent decisions affecting current work:
 - [Phase 07-07]: Bcrypt hashes for the two new demo users independently verified via BCryptPasswordEncoder.matches() before seeding, rather than trusted blindly.
 - [Phase 07-08]: 10 Dockerfiles were missing pos-service/kitchen-service pom.xml COPY lines, breaking Maven reactor validation on docker compose up --build; kitchen-service's own Dockerfile was already correct and platform-admin-service's src-only build pattern was left out of scope.
 - [Phase 07-08]: pos-service (8084) and kitchen-service (8090) added to scripts/start-dev.ps1 and scripts/restart-service.ps1 as first-class dev-stack services, not as new docker-compose build: stanzas (host-run architecture preserved).
+- [Phase 07.1-01]: Task 2/3 execution order swapped (Task 3 mechanical KdsItemStatus->OrderItemStatus reconciliation applied before Task 2 TDD verification) because Maven compiles the whole module before any test runs, and Task 1 alone leaves the module non-compiling by design. — Makes the TDD RED/GREEN gate meaningful under Maven's whole-module compilation model; no scope change.
+- [Phase 07.1-01]: OrderDto.OrderItemDto.kdsStatus field name kept unchanged (type widened KdsItemStatus->OrderItemStatus) rather than renamed to itemStatus. — Avoids an extra JSON contract break this plan; frontend schema rename is a later plan per PATTERNS.md.
 
 ### Pending Todos
 
@@ -194,6 +198,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-10T21:53:48.967Z
+Last session: 2026-07-11T08:50:03.790Z
 Stopped at: Phase 07.1 UI-SPEC approved (6/6 dims, 1 non-blocking flag)
 Resume file: .planning/phases/07.1-pos-production-operations/07.1-UI-SPEC.md
