@@ -195,10 +195,10 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 - [x] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
 - [x] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
 
-### Phase 07.2: Finance accounting-period provisioning — guarantee open period at tenant onboarding, self-service period-open endpoint, configurable auto-seed fallback (INSERTED)
+### Phase 07.2: Finance accounting-period provisioning — guarantee open period at tenant onboarding, self-service period-open endpoint + calendar-based provisioning UI, configurable auto-seed fallback (INSERTED)
 
-**Goal:** Guarantee every ACTIVE tenant has an open accounting period covering the current business date; provide a permissioned self-service endpoint to provision/open periods; and make the existing silent auto-seed fallback configurable and audited — resolving the 423 PERIOD_LOCKED blocker on fresh tenants without changing pos-service's fail-closed behavior.
-**Requirements**: FIN-07, FIN-08, FIN-09
+**Goal:** Guarantee every ACTIVE tenant has an open accounting period covering the current business date; provide a permissioned self-service endpoint AND a calendar-based frontend UI to provision/open periods for any fiscal year; and make the existing silent auto-seed fallback configurable and audited — resolving the 423 PERIOD_LOCKED blocker on fresh tenants without changing pos-service's fail-closed behavior.
+**Requirements**: FIN-07, FIN-08, FIN-09, FIN-10
 **Depends on:** Phase 7
 **Success Criteria** (what must be TRUE):
 
@@ -206,13 +206,14 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
   2. An OWNER/TENANT_ADMIN/ACCOUNTANT can call `POST /api/v1/finance/periods/provision` (gated `finance.period.open`, tenantId from JWT only) to idempotently provision their own tenant's CoA + periods (FIN-08).
   3. The `getPeriodStatus` auto-seed-on-miss fallback is config-gated (`finance.period.auto-seed-on-miss`, default on dev/staging, off prod) with a WARN audit line when it fires (FIN-09).
   4. On the running dev stack (services restarted onto current jars, `/actuator/health` UP), a POS order-close for a period-less tenant no longer returns 423 PERIOD_LOCKED.
+  5. A permissioned user can browse to any fiscal year (past, current, or future — computed dynamically, never hardcoded) in the Finance → Periods UI and provision/open it via a calendar-based preview dialog before confirming (FIN-10).
 
-**Plans:** 6 plans
+**Plans:** 7 plans
 
 Plans:
 **Wave 1**
 
-- [ ] 07.2-01-PLAN.md — Bookkeeping reconciliation: mark Phase 6 / FIN-01,02,04,06 complete + register FIN-07/08/09 in REQUIREMENTS.md (Wave 1, docs-only)
+- [ ] 07.2-01-PLAN.md — Bookkeeping reconciliation: mark Phase 6 / FIN-01,02,04,06 complete + register FIN-07/08/09/10 in REQUIREMENTS.md (Wave 1, docs-only)
 - [ ] 07.2-02-PLAN.md — auth-service: changeset 044 `finance.period.open` permission (OWNER/TENANT_ADMIN/ACCOUNTANT grants) + master-changelog include + DB-assertion IT (Wave 1)
 - [ ] 07.2-03-PLAN.md — platform-admin-service: harden onboarding Step 5 (fail-fast, no swallow) + flip seed-coa default true + stubFinanceSeedCoaFail + saga-failure IT (Wave 1)
 - [ ] 07.2-04-PLAN.md — finance-service: config-gate `getPeriodStatus` auto-seed-on-miss (`finance.period.auto-seed-on-miss`) + WARN audit + toggle-off IT (Wave 1)
@@ -220,7 +221,11 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07.2-06-PLAN.md — Phase verification: restart 3 services + /actuator/health + full IT suite + live 423-resolution E2E + permission-gate (Wave 2, human-verify checkpoint)
+- [ ] 07.2-07-PLAN.md — frontend: calendar-based "Provision Periods" UI — dynamic fiscal-year navigator + 12-period preview dialog, permissioned (`finance.period.open`), wired into `/app/finance/periods` (Wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 07.2-06-PLAN.md — Phase verification: restart 3 services + /actuator/health + full IT suite + live 423-resolution E2E + permission-gate + frontend provisioning click-through (Wave 3, human-verify checkpoint)
 
 ### Phase 07.1: POS Production Operations & Item-Level Kitchen Tracking (INSERTED)
 
