@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.2
 current_phase_name: finance-accounting-period-provisioning-guarantee-open-period
 status: executing
-stopped_at: Completed 07.2-02-PLAN.md (finance.period.open RBAC permission)
-last_updated: "2026-07-11T20:02:39.176Z"
-last_activity: 2026-07-11
-last_activity_desc: 07.2-02-PLAN.md complete (finance.period.open RBAC permission)
+stopped_at: Completed 07.2-03-PLAN.md (onboarding saga finance-seed hardening, FIN-07)
+last_updated: "2026-07-12T01:20:00.000Z"
+last_activity: 2026-07-12
+last_activity_desc: 07.2-03-PLAN.md complete (onboarding saga finance-seed hardening, FIN-07)
 progress:
   total_phases: 14
   completed_phases: 6
   total_plans: 49
-  completed_plans: 40
-  percent: 43
+  completed_plans: 41
+  percent: 84
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — EXECUTING
-Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 2/7 complete (07.2-01, 07.2-02 done)
+Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 3/7 complete (07.2-01, 07.2-02, 07.2-03 done)
 Status: Executing Phase 07.2
-Last activity: 2026-07-12 — 07.2-02-PLAN.md complete (finance.period.open RBAC permission)
+Last activity: 2026-07-12 — 07.2-03-PLAN.md complete (onboarding saga finance-seed hardening, FIN-07)
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -78,6 +78,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.1 P10 | ~20min | 1 tasks | 2 files |
 | Phase 07.2 P01 | 3 min | 2 tasks | 2 files |
 | Phase 07.2 P02 | 9min | 2 tasks | 3 files |
+| Phase 07.2 P03 | 25min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -204,6 +205,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 07.1-10]: OCCUPIED/NEEDS_BUSSING table taps never call onTableSelect (only AVAILABLE does) to avoid rebinding page-level selectedTableId to an already-occupied table; TableFloorView owns its own OrderTableDetailDrawer instance/state for that path.
 - [Phase 07.2]: [07.2-01-A]: Left REQUIREMENTS.md Coverage running totals (112/112) untouched -- already stale pre-plan, out of scope for this bookkeeping-only plan.
 - [Phase ?]: [07.2-02]: Changeset 044 grants finance.period.open explicitly to OWNER/TENANT_ADMIN/ACCOUNTANT (not relying on 036's wildcard SELECT, which is runOnChange=false and only ran once) -- RESEARCH.md Pitfall 4.
+- [07.2-03]: Removed ProvisioningService Step 5's inner try/catch swallow and flipped provisioning.seed-coa.enabled's YAML default to true -- finance-seed failure now aborts onboarding (PROVISIONING_FAILED) instead of reaching ACTIVE with zero accounting periods; retry() deliberately left untouched (RESEARCH.md Pitfall 1), recovery deferred to plan 05's self-service endpoint.
+- [07.2-03]: @Nested inner test class + @TestPropertySource used in ProvisioningSagaIT to override provisioning.seed-coa.enabled=true for a single test without a new top-level file or duplicating Testcontainers container startup.
 
 ### Pending Todos
 
@@ -231,6 +234,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T20:02:39.158Z
-Stopped at: Completed 07.2-02-PLAN.md (finance.period.open RBAC permission)
+Last session: 2026-07-12T01:20:00.000Z
+Stopped at: Completed 07.2-03-PLAN.md (onboarding saga finance-seed hardening, FIN-07)
 Resume file: None

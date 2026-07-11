@@ -208,14 +208,14 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
   4. On the running dev stack (services restarted onto current jars, `/actuator/health` UP), a POS order-close for a period-less tenant no longer returns 423 PERIOD_LOCKED.
   5. A permissioned user can browse to any fiscal year (past, current, or future — computed dynamically, never hardcoded) in the Finance → Periods UI and provision/open it via a calendar-based preview dialog before confirming (FIN-10).
 
-**Plans:** 2/7 plans executed
+**Plans:** 3/7 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 07.2-01-PLAN.md — Bookkeeping reconciliation: mark Phase 6 / FIN-01,02,04,06 complete + register FIN-07/08/09/10 in REQUIREMENTS.md (Wave 1, docs-only)
 - [x] 07.2-02-PLAN.md — auth-service: changeset 044 `finance.period.open` permission (OWNER/TENANT_ADMIN/ACCOUNTANT grants) + master-changelog include + DB-assertion IT (Wave 1)
-- [ ] 07.2-03-PLAN.md — platform-admin-service: harden onboarding Step 5 (fail-fast, no swallow) + flip seed-coa default true + stubFinanceSeedCoaFail + saga-failure IT (Wave 1)
+- [x] 07.2-03-PLAN.md — platform-admin-service: harden onboarding Step 5 (fail-fast, no swallow) + flip seed-coa default true + stubFinanceSeedCoaFail + saga-failure IT (Wave 1)
 - [ ] 07.2-04-PLAN.md — finance-service: config-gate `getPeriodStatus` auto-seed-on-miss (`finance.period.auto-seed-on-miss`) + WARN audit + toggle-off IT (Wave 1)
 - [ ] 07.2-05-PLAN.md — finance-service: `POST /api/v1/finance/periods/provision` endpoint (permissioned, JWT-tenant-scoped, idempotent) + happy-path/idempotency ITs (Wave 1)
 
