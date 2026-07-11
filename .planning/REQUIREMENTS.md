@@ -154,7 +154,7 @@
 - [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
 - [x] **FIN-07**: Every ACTIVE tenant is guaranteed at least one open accounting period covering the current business date — the onboarding saga aborts (marks the tenant PROVISIONING_FAILED) rather than silently continuing past a finance-seeding failure
 - [ ] **FIN-08**: A permissioned self-service endpoint (POST /api/v1/finance/periods/provision, gated finance.period.open) lets an OWNER/TENANT_ADMIN/ACCOUNTANT (re-)provision CoA + accounting periods for their own tenant without platform-ops, resolving tenantId from JWT context only
-- [ ] **FIN-09**: The auto-seed-on-miss fallback in getPeriodStatus is config-gated (finance.period.auto-seed-on-miss, default on in dev/staging, off in prod) and emits a WARN audit log when it seeds
+- [x] **FIN-09**: The auto-seed-on-miss fallback in getPeriodStatus is config-gated (finance.period.auto-seed-on-miss, default on in dev/staging, off in prod) and emits a WARN audit log when it seeds
 - [ ] **FIN-10**: The Finance → Periods page provides a calendar-based "Provision Periods" UI, gated behind finance.period.open, that lets a permissioned user browse to any fiscal year (past, current, or future — computed dynamically from the existing Jul-Jun formula, never a hardcoded literal), preview the 12 monthly periods that will be created, and confirm provisioning via the FIN-08 endpoint
 
 ### HR & Payroll (HR)
@@ -288,7 +288,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | FIN-06 | Phase 6 | Complete |
 | FIN-07 | Phase 07.2 | Complete |
 | FIN-08 | Phase 07.2 | Pending |
-| FIN-09 | Phase 07.2 | Pending |
+| FIN-09 | Phase 07.2 | Complete |
 | FIN-10 | Phase 07.2 | Pending |
 | POS-01 | Phase 7 | Complete |
 | POS-02 | Phase 7 | Complete |
