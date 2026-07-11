@@ -11,6 +11,9 @@ import io.restaurantos.finance.util.PakistanFiscalYear;
 import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.shared.tenant.TenantGucHelper;
 import jakarta.persistence.EntityManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,10 +26,15 @@ import java.util.UUID;
 @Transactional
 public class AccountingPeriodServiceImpl implements AccountingPeriodService {
 
+    private static final Logger log = LoggerFactory.getLogger(AccountingPeriodServiceImpl.class);
+
     private final AccountingPeriodRepository periodRepo;
     private final PeriodMapper periodMapper;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
+
+    @Value("${finance.period.auto-seed-on-miss:true}")
+    private boolean autoSeedOnMiss;
 
     public AccountingPeriodServiceImpl(AccountingPeriodRepository periodRepo,
                                         PeriodMapper periodMapper,
@@ -128,7 +136,13 @@ public class AccountingPeriodServiceImpl implements AccountingPeriodService {
         AccountingPeriod period = periodRepo
                 .findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tid, date, date)
                 .orElseGet(() -> {
-                    seedForTenant(tid, PakistanFiscalYear.forDate(date));
+                    if (!autoSeedOnMiss) {
+                        throw new PeriodNotFoundException(null);
+                    }
+                    int fiscalYear = PakistanFiscalYear.forDate(date);
+                    log.warn("Auto-seeding accounting periods on miss: tenantId={}, requestedDate={}, fiscalYear={}",
+                            tid, date, fiscalYear);
+                    seedForTenant(tid, fiscalYear);
                     return periodRepo
                             .findByTenantIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(tid, date, date)
                             .orElseThrow(() -> new PeriodNotFoundException(null));
