@@ -16,6 +16,15 @@ export async function enqueue(
     createdAt: Date.now(),
   };
   await db.add("outbox", record);
+
+  // Notify sync-badge subscribers immediately (POS-14/POS-07 UAT gap: previously the
+  // badge only updated on mount/reconnect/replay(), never on enqueue itself). Dynamic
+  // import avoids a static circular dependency — sync-engine.ts already imports several
+  // named exports from this module at its top level, mirroring the same
+  // dynamic-import-to-break-the-cycle pattern sync-engine.ts's own getLastError() uses.
+  const { emitProgress } = await import("./sync-engine");
+  await emitProgress();
+
   return record;
 }
 

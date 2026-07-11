@@ -129,7 +129,11 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
                   </button>
                 </div>
                 {voidMutation.isError && (
-                  <p className="text-xs text-destructive">Failed to void. Please try again.</p>
+                  <p className="text-xs text-destructive">
+                    {voidMutation.error?.status === 403
+                      ? "You don't have permission to void this order."
+                      : "Failed to void. Please try again."}
+                  </p>
                 )}
               </>
             ) : (

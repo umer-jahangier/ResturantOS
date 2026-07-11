@@ -42,3 +42,15 @@ Re-running with `--testTimeout=20000` (or in isolation) passes reliably; this is
 pre-existing environmental timing issue in the test file itself (untouched by
 07.1-05), not a regression. A future plan touching test infra could raise this
 specific test's timeout via a per-test `it(..., { timeout: 15000 })` override.
+
+## Confirmed still present at 07.1-06 (unchanged, out of this plan's scope)
+
+Re-verified during 07.1-06 (`npx eslint components/pos app --max-warnings=0`,
+`npx vitest run --testTimeout=20000`):
+
+- `components/pos/pos-terminal.tsx:11` `no-restricted-imports` — still present,
+  `git diff --stat` confirms zero changes to this file by 07.1-06 (baked into the
+  `ca5324f` baseline WIP commit, predates every 07.1 plan). Plan 08 owns this file.
+- `__tests__/lib/eslint-boundary.test.ts` timeout flake — reproduced once more in the
+  full-suite run (`54s` wall time, cold-start ESLint linter instantiation), passes in
+  isolation (confirmed again). Untouched by 07.1-06.

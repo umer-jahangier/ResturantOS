@@ -61,8 +61,13 @@ export function useCreateOrder() {
           clientOrderId,
           payload: { ...payload, clientOrderId },
         });
-        // Return a local-only DRAFT stub so the UI renders immediately.
-        return buildOfflineOrderStub(clientOrderId, branchId, payload);
+        // Return a local-only DRAFT stub so the UI renders immediately, and seed it
+        // directly into the useOrder cache — otherwise OrderPanel keeps showing "No
+        // active order" while offline (POS-14 UAT gap) because there is no server
+        // response to populate that query.
+        const stub = buildOfflineOrderStub(clientOrderId, branchId, payload);
+        queryClient.setQueryData(queryKeys.pos.order(branchId, clientOrderId), stub);
+        return stub;
       }
 
       return PosRepository.createOrder({ ...payload, clientOrderId });

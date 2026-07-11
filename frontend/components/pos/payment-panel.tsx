@@ -31,6 +31,26 @@ function generateKey() {
   return typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 }
 
+/**
+ * Branches on HTTP status (not `.code`) for the PERIOD_LOCKED copy — pos-service's own
+ * `PosGlobalExceptionHandler` returns an RFC7807 ProblemDetail body (`title`/`detail`)
+ * for `PeriodLockedException`, a different shape than shared-lib's `{error:{code,...}}`
+ * envelope other services use; either way the HTTP status (423 LOCKED) is unambiguous
+ * regardless of which body shape a given deployment resolves to.
+ */
+function getChargeErrorMessage(error: { status?: number; message?: string } | null | undefined): string {
+  if (!error) return "Failed to close order. Please try again.";
+  if (error.status === 423) {
+    return "This branch's accounting period is locked. Contact your manager.";
+  }
+  if (typeof error.status !== "number") {
+    // Not a server-shaped error (e.g. the offline-guard's plain Error) — its message
+    // is already user-safe copy, not a raw server dump.
+    return error.message ?? "Failed to close order. Please try again.";
+  }
+  return "Failed to close order. Please try again.";
+}
+
 export function PaymentPanel({ order, onClose }: PaymentPanelProps) {
   const [rows, setRows] = useState<PaymentRow[]>([
     { id: generateKey(), method: "CASH", amountPaisa: order.totalPaisa, referenceNo: "" },
@@ -187,9 +207,7 @@ export function PaymentPanel({ order, onClose }: PaymentPanelProps) {
 
         {closeOrderMutation.isError && (
           <p data-testid="online-required-message" className="text-xs text-destructive">
-            {closeOrderMutation.error instanceof Error
-              ? closeOrderMutation.error.message
-              : "Failed to close order. Please try again."}
+            {getChargeErrorMessage(closeOrderMutation.error)}
           </p>
         )}
       </div>
