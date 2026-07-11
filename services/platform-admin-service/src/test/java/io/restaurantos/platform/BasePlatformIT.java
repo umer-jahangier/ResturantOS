@@ -114,7 +114,6 @@ public abstract class BasePlatformIT {
         r.add("restaurantos.auth-service.uri", () -> "http://localhost:" + WIREMOCK.port());
         r.add("restaurantos.user-service.uri", () -> "http://localhost:" + WIREMOCK.port());
         r.add("restaurantos.finance-service.uri", () -> "http://localhost:" + WIREMOCK.port());
-        r.add("provisioning.seed-coa.enabled", () -> "false");
     }
 
     @LocalServerPort protected int port;
@@ -228,5 +227,10 @@ public abstract class BasePlatformIT {
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
                 .withBody("{\"data\":{}}")));
+    }
+
+    protected void stubFinanceSeedCoaFail() {
+        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathMatching("/internal/finance/tenants/.*/seed-coa"))
+            .willReturn(WireMock.aResponse().withStatus(500).withBody("{\"error\":\"simulated\"}")));
     }
 }
