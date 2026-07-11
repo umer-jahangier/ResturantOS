@@ -146,12 +146,12 @@
 
 ### Finance (FIN)
 
-- [ ] **FIN-01**: Pakistan COA seeded per tenant; accounts queryable
-- [ ] **FIN-02**: Journal entries are balanced (DB deferred trigger) and immutable; reversal-only corrections
+- [x] **FIN-01**: Pakistan COA seeded per tenant; accounts queryable
+- [x] **FIN-02**: Journal entries are balanced (DB deferred trigger) and immutable; reversal-only corrections
 - [ ] **FIN-03**: Auto-posting recipes for order close (revenue + COGS), refund, GR/IR, vendor invoice/payment, expense, wastage, stock count, transfer, payroll — all balanced and idempotent via `posted_source_events`
-- [ ] **FIN-04**: Accounting periods (12/FY, Pakistan Jul–Jun) seeded; period close sets LOCKED with pre-checks via internal APIs (no cross-service SQL)
+- [x] **FIN-04**: Accounting periods (12/FY, Pakistan Jul–Jun) seeded; period close sets LOCKED with pre-checks via internal APIs (no cross-service SQL)
 - [ ] **FIN-05**: AP/AR tracked; expense approval respects OPA approval limits
-- [ ] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
+- [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
 
 ### HR & Payroll (HR)
 
@@ -278,10 +278,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | NOTIF-01 | Phase 5 | Pending |
 | AUDIT-01 | Phase 5 | Pending |
 | FILE-01 | Phase 5 | Pending |
-| FIN-01 | Phase 6 | Pending |
-| FIN-02 | Phase 6 | Pending |
-| FIN-04 | Phase 6 | Pending |
-| FIN-06 | Phase 6 | Pending |
+| FIN-01 | Phase 6 | Complete |
+| FIN-02 | Phase 6 | Complete |
+| FIN-04 | Phase 6 | Complete |
+| FIN-06 | Phase 6 | Complete |
 | POS-01 | Phase 7 | Complete |
 | POS-02 | Phase 7 | Complete |
 | POS-03 | Phase 7 | Complete |

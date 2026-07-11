@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: API Gateway, Platform Admin & Tenant/User Management** - Gateway edge security + tenant provisioning + branch/role management
 - [x] **Phase 4: Frontend Shell & CI/CD** - Next.js shell with four-layer API abstraction + quality-gated pipeline
 - [ ] **Phase 5: Cross-Cutting Services (Notifications, Audit, Files)** - Event-driven email/in-app, immutable audit, MinIO storage
-- [ ] **Phase 6: Finance Core — General Ledger & Periods** - Seeded COA, balanced+immutable JEs, period locking
+- [x] **Phase 6: Finance Core — General Ledger & Periods** - Seeded COA, balanced+immutable JEs, period locking
 - [x] **Phase 7: Point of Sale & Kitchen Display** - Orders, split-tender, tills, offline sync, KDS routing (completed 2026-07-10)
 - [x] **Phase 7.1: POS Production Operations & Item-Level Kitchen Tracking** *(INSERTED)* - Order management screen, table-centric dine-in, item-level status, kitchen ticket revisions, order/item instructions, cashier UX + wire payment/till/void UI (completed 2026-07-11)
 - [ ] **Phase 07.2: Finance Accounting-Period Provisioning** *(INSERTED, URGENT)* - Guarantee open period at tenant onboarding, self-service open-period endpoint, configurable auto-seed fallback — resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants)
@@ -154,12 +154,12 @@ Plans:
   3. 12 accounting periods per fiscal year (Pakistan Jul–Jun) are seeded, and closing a period sets it LOCKED only after internal-API pre-checks pass (no cross-service SQL).
   4. Any attempt to post to a LOCKED period returns 423 `PERIOD_LOCKED`.
 
-**Plans**: 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 
-- [ ] 06-01-PLAN.md — Finance service scaffold + COA seeding (55 accounts) + balanced/immutable JE engine (deferred trigger, reversal-only) + GL API + IT suite (Wave 1)
-- [ ] 06-02-PLAN.md — Accounting periods (Jul–Jun) + period close/lock (TOTP-gated, Feign stubs) + Finance frontend pages §7.4 (Wave 2, depends on 06-01)
+- [x] 06-01-PLAN.md — Finance service scaffold + COA seeding (55 accounts) + balanced/immutable JE engine (deferred trigger, reversal-only) + GL API + IT suite (Wave 1)
+- [x] 06-02-PLAN.md — Accounting periods (Jul–Jun) + period close/lock (TOTP-gated, Feign stubs) + Finance frontend pages §7.4 (Wave 2, depends on 06-01)
 
 ### Phase 7: Point of Sale & Kitchen Display
 
