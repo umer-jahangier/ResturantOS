@@ -13,10 +13,19 @@ const ING_1 = "11111111-1111-4111-8111-111111110001";
 
 let poStatus = "SENT";
 let grnQty = "0";
+let closedAt: string | null = null;
+let closeReason: string | null = null;
 const invoices: Record<string, unknown> = {};
 
 function ok<T>(data: T) {
   return HttpResponse.json({ data, meta: null, warnings: [] });
+}
+
+function apiError(code: string, message: string, status: number) {
+  return HttpResponse.json(
+    { error: { code, message, details: [], traceId: "mock-trace-id" } },
+    { status },
+  );
 }
 
 /** MSW fixtures F1–F8 for frontend-only purchasing dev (Phase 10). */
@@ -48,6 +57,8 @@ export const purchasingHandlers = [
       submittedAt: null,
       requiredTiers: 1,
       tiersApproved: 1,
+      closedAt,
+      closeReason,
       lines: [
         {
           id: LINE_ID,
@@ -67,6 +78,46 @@ export const purchasingHandlers = [
     grnQty = received;
     poStatus = received === "100" ? "FULLY_RECEIVED" : "PARTIALLY_RECEIVED";
     return ok({ poId: params.poId, status: poStatus, grnIds: ["g0000001-0000-4000-8000-000000000001"] });
+  }),
+
+  // PUR-02 gap closure: close a FULLY_RECEIVED PO, or short-close a PARTIALLY_RECEIVED PO with a
+  // mandatory reason — mirrors PurchaseOrderService.close() state guard.
+  http.post("*/api/v1/purchasing/purchase-orders/:poId/close", async ({ params, request }) => {
+    const body = (await request.json().catch(() => ({}))) as { reason?: string | null };
+    if (poStatus !== "FULLY_RECEIVED" && poStatus !== "PARTIALLY_RECEIVED") {
+      return apiError("INVALID_PO_STATE", "Only FULLY_RECEIVED or PARTIALLY_RECEIVED PO can be closed", 409);
+    }
+    if (poStatus === "PARTIALLY_RECEIVED" && (!body.reason || !body.reason.trim())) {
+      return apiError("INVALID_PO_STATE", "Short-close requires a reason", 409);
+    }
+    poStatus = "CLOSED";
+    closedAt = "2026-06-20T10:00:00Z";
+    closeReason = body.reason ?? null;
+    return ok({
+      id: params.poId,
+      vendorId: VENDOR_ID,
+      branchId: BRANCH,
+      status: poStatus,
+      expectedDeliveryDate: "2026-06-14",
+      totalPaisa: 100_000,
+      notes: null,
+      requesterId: null,
+      submittedAt: null,
+      requiredTiers: 1,
+      tiersApproved: 1,
+      closedAt,
+      closeReason,
+      lines: [
+        {
+          id: LINE_ID,
+          ingredientId: ING_1,
+          qty: "100",
+          uom: "kg",
+          unitPricePaisa: 1000,
+          lineTotalPaisa: 100_000,
+        },
+      ],
+    });
   }),
 
   http.post("*/api/v1/purchasing/invoices", async ({ request }) => {

@@ -36,6 +36,11 @@ export const PurchasingRepository = {
     await post(`/api/v1/purchasing/purchase-orders/${poId}/mock-receive`, { lines });
   },
 
+  async closePurchaseOrder(poId: string, reason?: string): Promise<PurchaseOrder> {
+    const raw = await post(`/api/v1/purchasing/purchase-orders/${poId}/close`, { reason: reason ?? null });
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
+  },
+
   async createInvoice(body: unknown): Promise<VendorInvoice> {
     const raw = await post("/api/v1/purchasing/invoices", body);
     return adaptVendorInvoice(apiVendorInvoiceSchema.parse(raw));

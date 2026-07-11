@@ -24,6 +24,15 @@ export function useMockGrn(poId: string) {
   });
 }
 
+/** PUR-02: close a FULLY_RECEIVED PO, or short-close a PARTIALLY_RECEIVED PO with a mandatory reason. */
+export function useClosePurchaseOrder(poId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reason?: string) => PurchasingRepository.closePurchaseOrder(poId, reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["purchasing", "po", poId] }),
+  });
+}
+
 export function useVendorInvoice(id: string) {
   return useQuery({
     queryKey: ["purchasing", "invoice", id],

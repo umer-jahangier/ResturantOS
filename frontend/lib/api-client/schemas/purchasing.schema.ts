@@ -26,6 +26,8 @@ export const apiPurchaseOrderSchema = z.object({
   status: z.string(),
   expectedDeliveryDate: z.string().nullable().optional(),
   totalPaisa: z.number().int(),
+  closedAt: z.string().nullable().optional(),
+  closeReason: z.string().nullable().optional(),
   lines: z.array(apiPoLineSchema),
 });
 
