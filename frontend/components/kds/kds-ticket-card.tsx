@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useBumpItem } from "@/lib/hooks/kds/use-kds-tickets";
-import type { KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
+import { StatusBadge, type LineItemStatusVariant } from "@/components/ui/status-badge";
+import { RevisionBadge } from "@/components/pos/revision-chip";
+import type { KdsItemStatus, KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
 
 interface KdsTicketCardProps {
   ticket: KdsTicket;
@@ -95,21 +97,24 @@ interface TicketItemRowProps {
   onBump: () => void;
 }
 
-function TicketItemRow({ item, canUpdate, onBump }: TicketItemRowProps) {
-  // ACCEPTED/PREPARING added so 07.1's widened KdsItemStatus stays exhaustively
-  // indexable — COOKING is kept as PREPARING's legacy-equivalent color (kitchen-service
-  // TicketItemStatus javadoc). Full 7-state icon+label treatment (KDS-03) is a later
-  // plan's scope (07.1-PATTERNS.md); this is a minimal compile-safety fix only.
-  const statusColors = {
-    PENDING: "text-gray-400",
-    ACCEPTED: "text-blue-300",
-    PREPARING: "text-amber-300",
-    COOKING: "text-amber-300",
-    READY: "text-emerald-400",
-  };
+// StatusBadge's LineItemStatusVariant (7-value, pos-service OrderItemStatus-derived)
+// doesn't include kitchen-service's local "COOKING" legacy value — normalize it to
+// PREPARING (its treated-as-equivalent value, see kds.model.ts comment) before
+// rendering. This is the single seam replacing the old 3-value statusColors dict.
+function toLineItemStatusVariant(status: KdsItemStatus): LineItemStatusVariant {
+  return status === "COOKING" ? "PREPARING" : status;
+}
 
+function TicketItemRow({ item, canUpdate, onBump }: TicketItemRowProps) {
+  // Kitchen-actionable transitions only: START (PENDING->COOKING) and DONE
+  // (COOKING/PREPARING->READY). ACCEPTED is automatic on render (no button); READY,
+  // and any POS-side-only statuses, get no button on the KDS (UI-SPEC §4/§8).
   const bumpLabel =
-    item.status === "PENDING" ? "START" : item.status === "COOKING" ? "DONE" : null;
+    item.status === "PENDING"
+      ? "START"
+      : item.status === "COOKING" || item.status === "PREPARING"
+        ? "DONE"
+        : null;
 
   const bumpBtnClass =
     item.status === "PENDING"
@@ -119,7 +124,13 @@ function TicketItemRow({ item, canUpdate, onBump }: TicketItemRowProps) {
   return (
     <div className="flex items-start justify-between gap-2">
       <div className="flex-1 min-w-0">
-        <div className={`text-2xl font-bold truncate ${statusColors[item.status]}`}>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <StatusBadge status={toLineItemStatusVariant(item.status)} />
+          <RevisionBadge revisionNo={item.revisionNo} />
+        </div>
+        {/* text-2xl name stays un-recolored per status — too noisy at 2m readability;
+            the status badge above is the sole per-item pipeline-stage channel. */}
+        <div className="text-2xl font-bold text-white truncate">
           {item.qty > 1 && <span className="text-gray-300 mr-1">×{item.qty}</span>}
           {item.name}
         </div>
@@ -133,7 +144,7 @@ function TicketItemRow({ item, canUpdate, onBump }: TicketItemRowProps) {
         )}
       </div>
 
-      {canUpdate && bumpLabel && item.status !== "READY" && (
+      {canUpdate && bumpLabel && (
         <button
           onClick={onBump}
           className={`shrink-0 text-sm font-bold px-3 py-1.5 rounded-lg ${bumpBtnClass} transition-colors`}
