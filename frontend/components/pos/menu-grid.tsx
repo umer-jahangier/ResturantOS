@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Search, X } from "lucide-react";
 import { useMenuCategories, useMenuItems } from "@/lib/hooks/pos/use-menu";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { Input } from "@/components/ui/input";
 import type { MenuItem } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -12,14 +15,48 @@ interface MenuGridProps {
 
 export function MenuGrid({ onItemSelect }: MenuGridProps) {
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  // UI-SPEC §3: pure client-side filter over the currently-loaded category, 150ms
+  // debounced (no server round-trip per keystroke — menu is ≤ ~60 items at this scale).
+  const debouncedSearch = useDebouncedValue(searchQuery, 150);
   const { data: categories = [], isLoading: categoriesLoading } = useMenuCategories();
   const { data: items = [], isLoading: itemsLoading } = useMenuItems(activeCategoryId);
 
   const activeCategories = categories.filter((c) => c.active);
   const activeItems = items.filter((i) => i.active);
+  const trimmedQuery = debouncedSearch.trim().toLowerCase();
+  const filteredItems = trimmedQuery
+    ? activeItems.filter((i) => i.name.toLowerCase().includes(trimmedQuery))
+    : activeItems;
 
   return (
     <div className="flex flex-col h-full gap-3">
+      {/* Menu search (POS-15): full-width, 44px, debounced 150ms, clearable */}
+      <div className="relative px-1">
+        <Search
+          className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search menu…"
+          aria-label="Search menu"
+          className="h-11 pl-10 pr-9"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            aria-label="Clear search"
+            className="absolute right-2 top-1/2 min-h-[32px] min-w-[32px] -translate-y-1/2 flex items-center justify-center rounded text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
       {/* Category pills */}
       <div className="flex gap-2 flex-wrap px-1">
         <button
@@ -61,13 +98,13 @@ export function MenuGrid({ onItemSelect }: MenuGridProps) {
               <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
             ))}
           </div>
-        ) : activeItems.length === 0 ? (
+        ) : filteredItems.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-            No items available
+            {trimmedQuery ? "No items match your search" : "No items available"}
           </div>
         ) : (
           <div data-testid="menu-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
-            {activeItems.map((item, idx) => (
+            {filteredItems.map((item, idx) => (
               <button
                 key={item.id}
                 data-testid={idx === 0 ? "menu-item-first" : undefined}
