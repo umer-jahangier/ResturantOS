@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.2
 current_phase_name: finance-accounting-period-provisioning-guarantee-open-period
 status: executing
-stopped_at: Completed 07.2-04-PLAN.md (config-gated auto-seed-on-miss + WARN audit log, FIN-09)
-last_updated: "2026-07-12T01:32:00.000Z"
+stopped_at: Completed 07.2-05-PLAN.md (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
+last_updated: "2026-07-11T20:58:48.376Z"
 last_activity: 2026-07-12
-last_activity_desc: 07.2-04-PLAN.md complete (config-gated auto-seed-on-miss + WARN audit log, FIN-09)
+last_activity_desc: 07.2-05-PLAN.md complete (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
 progress:
   total_phases: 14
   completed_phases: 6
   total_plans: 49
-  completed_plans: 42
-  percent: 86
+  completed_plans: 43
+  percent: 88
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — EXECUTING
-Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 4/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04 done)
+Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 5/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05 done)
 Status: Executing Phase 07.2
-Last activity: 2026-07-12 — 07.2-04-PLAN.md complete (config-gated auto-seed-on-miss + WARN audit log, FIN-09)
+Last activity: 2026-07-12 — 07.2-05-PLAN.md complete (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -80,6 +80,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.2 P02 | 9min | 2 tasks | 3 files |
 | Phase 07.2 P03 | 25min | 2 tasks | 4 files |
 | Phase 07.2 P04 | 20min | 2 tasks | 3 files |
+| Phase 07.2 P05 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -210,6 +211,7 @@ Recent decisions affecting current work:
 - [07.2-03]: @Nested inner test class + @TestPropertySource used in ProvisioningSagaIT to override provisioning.seed-coa.enabled=true for a single test without a new top-level file or duplicating Testcontainers container startup.
 - [07.2-04]: Gated getPeriodStatus's auto-seed-on-miss branch behind @Value("${finance.period.auto-seed-on-miss:true}") + matching FINANCE_PERIOD_AUTO_SEED_ON_MISS:true YAML default, with a WARN audit log (tenantId+date+fiscalYear) whenever it fires -- toggle-off surfaces PeriodNotFoundException with no seed side effect (FIN-09).
 - [07.2-04]: AccountingPeriodAutoSeedToggleIT created as a standalone top-level test class (not @Nested) because FinanceTestBase does not pin this property via @DynamicPropertySource, so a plain @TestPropertySource cleanly overrides it for this one class.
+- [Phase ?]: [07.2-05]: Provision-endpoint tests call provisioningService.provision(tenantId, fiscalYear) directly (the endpoint's exact delegate), not the PeriodController bean, because Spring method-security AOP enforces @PreAuthorize on every bean invocation even without an HTTP layer -- 403-gate coverage deferred to plan 02 IT + plan 06 live E2E.
 
 ### Pending Todos
 
@@ -237,6 +239,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T01:32:00.000Z
-Stopped at: Completed 07.2-04-PLAN.md (config-gated auto-seed-on-miss + WARN audit log, FIN-09)
+Last session: 2026-07-11T20:57:58.602Z
+Stopped at: Completed 07.2-05-PLAN.md (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
 Resume file: None
