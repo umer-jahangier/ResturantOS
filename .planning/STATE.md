@@ -5,26 +5,27 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 10 complete (mock-first purchasing); Phase 11 next
+**Current focus:** Phase 10 complete (mock-first purchasing + AP, gap-closed, requirement docs reconciled); Phase 11 (HR & Payroll) next
 
 ## Current Position
 
-Phase: 10 of 12 (Purchasing & Accounts Payable)
-Plan: 04 of 06 (gap-closure wave)
-Status: Phase 10 gap-closure in progress — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, PUR-02 PO close, MSW + frontend shell
-Last activity: 2026-07-12 — Completed 10-04 (PUR-02 PO CLOSED terminal state: OPA-gated short-close, PO_CLOSED event, PurchaseOrderCloseIT, Close PO UI); 10-06 remains
+Phase: 10 of 12 (Purchasing & Accounts Payable) — COMPLETE
+Plan: 06 of 06 (gap-closure wave)
+Status: Phase 10 complete — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, PUR-02 PO close, MSW + frontend shell, requirement docs reconciled; Phase 11 (HR & Payroll) next
+Last activity: 2026-07-12 — Completed 10-06 (REQUIREMENTS.md/10-VERIFICATION.md/10-UAT.md reconciliation — PUR-01..06 + FIN-05 all re-derived Complete from real evidence, phase closed out)
 
-Progress: [██████████████░░░░░░░░] 64% (21/33 plans)
+Progress: [███████████████░░░░░░░] 67% (22/33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
+- Total plans completed: 21
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
 - Phase 4: 8/8 plans executed; verification passed (16/16 FE + 7/7 DS gap-closure; tsc/lint/vitest green)
 - Phase 6: 2/2 plans executed (COMPLETE — periods + close/lock + Finance frontend)
+- Phase 10: 6/6 plans executed (COMPLETE — mock-first purchasing + AP + gap closure; 7/7 requirements re-derived Complete against real evidence)
 
 **By Phase:**
 
@@ -35,10 +36,11 @@ Progress: [██████████████░░░░░░░░] 6
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
 | 04-frontend-shell-ci-cd | 8/8 | 16/16 FE + 7/7 DS passed |
 | 06-finance-core-general-ledger-periods | 2/2 | complete |
+| 10-purchasing-accounts-payable | 6/6 | 7/7 requirements passed (re-scored post-gap-closure) |
 
 **Recent Trend:**
-- Last completed plan: 10-04
-- Trend: PUR-02 PO CLOSED terminal state closed out — PurchaseOrderService.close() (FULLY_RECEIVED free-close, PARTIALLY_RECEIVED OPA-gated short-close with mandatory reason), V3__po_close.sql, PurchaseOrderCloseIT (5 tests), Close PO UI on PO detail. Full purchasing IT suite (18 tests) verified green against a live Docker Postgres testcontainer.
+- Last completed plan: 10-06
+- Trend: Phase 10 closed out — REQUIREMENTS.md's PUR-01..06 + FIN-05 all re-derived Complete from a named green IT + source grep per row (correcting 2 prior false-greens and 1 orphaned Pending); 10-VERIFICATION.md documents the escape-and-closure story with root cause; 10-UAT.md extended to 16 test cases. Phase 11 (HR & Payroll) next.
 
 *Updated after each plan completion*
 
@@ -119,6 +121,7 @@ Recent decisions affecting current work:
 - [10-03-C]: PUR-05 price variance is a spend-weighted mean (weight = lineTotalPaisa) of per-line `(invoiceUnitPricePaisa/poUnitPricePaisa - 1)*100`, reusing `ThreeWayMatchService`'s exact priceRatio math (BigDecimal scale 6, HALF_UP) — a metric, not a tolerance check; lines with PO price 0 are skipped; 0.0 (never NaN) when no qualifying lines.
 - [10-03-D]: Fixed several purchasing MSW mock ids (VENDOR_ID/PO_ID/LINE_ID) that used non-hex letter prefixes (`v`/`p`/`l`) and silently failed `z.string().uuid()` — no prior test exercised the purchasing repository against MSW, so this was latent; caught while adding the first such vitest.
 - [10-04-A]: PO close allowed source states are FULLY_RECEIVED (free) and PARTIALLY_RECEIVED (short-close, reason mandatory + OPA action `vendor.po.close`) only — all other states including already-CLOSED throw InvalidPoStateException (no idempotent no-op). No finance JE posted on close (GR/IR and AP already posted at receipt/invoice-match time).
+- [10-06-A]: Phase 10's `REQUIREMENTS.md` traceability table had two false "Complete" rows (PUR-05, FIN-05) and one orphaned "Pending" row (PUR-06, never assigned an owning plan) — root cause was the original 10-VERIFICATION.md scoring narrow must-haves instead of requirement text. All 7 PUR/FIN rows re-derived from a named green IT + source grep per row; this pattern (verify against requirement text, not must-haves) is the standing lesson for future phase verification.
 
 ### Pending Todos
 
@@ -137,13 +140,13 @@ Recent decisions affecting current work:
 
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
-- **10-05 unverified at runtime:** `ExpenseApprovalIT` (finance-service, FIN-05 OPA-limited expense approval) could not be executed in the 2026-07-12 execution sandbox — no working Docker daemon (docker/colima/podman all absent). `mvn -pl services/finance-service test-compile` passes; re-run `failsafe:integration-test failsafe:verify` on a Docker-capable runner to close this out.
-- **10-03 unverified at runtime:** `SpendAnalyticsIT` and `VendorScorecardIT` (purchasing-service, PUR-06/PUR-05) could not be executed in the same Docker-less sandbox. `mvn -pl services/purchasing-service test-compile` passes; both ITs need a real run (`-Dtest=SpendAnalyticsIT`, `-Dtest=VendorScorecardIT`) on a Docker-capable runner before Phase 10 sign-off.
+- **10-05 unverified at runtime:** ~~`ExpenseApprovalIT` (finance-service, FIN-05 OPA-limited expense approval) could not be executed in the 2026-07-12 execution sandbox — no working Docker daemon.~~ **RESOLVED (2026-07-12, pre-10-06 verification run):** a later sandbox with a live Docker daemon ran `ExpenseApprovalIT` for real — 4/4 tests green, confirmed by 10-06.
+- **10-03 unverified at runtime:** ~~`SpendAnalyticsIT` and `VendorScorecardIT` (purchasing-service, PUR-06/PUR-05) could not be executed in the same Docker-less sandbox.~~
   - **RESOLVED by 10-04:** the 10-04 execution sandbox had a working Docker daemon; `mvn -pl services/purchasing-service failsafe:integration-test failsafe:verify` was run for real and all 18 purchasing ITs (including SpendAnalyticsIT and VendorScorecardIT) passed — BUILD SUCCESS, 0 failures, 0 errors.
 - **Pre-existing frontend tsc errors (unrelated to Phase 10):** `frontend/lib/api-client/errors.ts` lines 129/134/137 fail `pnpm tsc --noEmit` under strict optional typing (`USER_FACING_BY_CODE` string-indexing). File untouched since commits `b02cadc`/`e79cdbd`, not owned by any Phase 10 gap plan. Does not block purchasing (all 10-04-modified frontend files compile clean). Needs a follow-up fix outside Phase 10.
 
 ## Session Continuity
 
 Last session: 2026-07-12
-Stopped at: Completed 10-04-PLAN.md (PUR-02 PO close gap closure) — commits a377b2b (service+migration+endpoint), c4cd5a0 (PurchaseOrderCloseIT), b5ed29f (frontend Close PO UI + MSW + test). 10-06 (requirement-doc reconciliation) remains to close out Phase 10.
+Stopped at: Completed 10-06-PLAN.md (requirement-doc reconciliation) — commits 8c25cf6 (REQUIREMENTS.md re-derivation), 7356089 (10-VERIFICATION.md + 10-UAT.md gap closure record). Phase 10 is now COMPLETE. Phase 11 (HR & Payroll) is next.
 Resume file: None
