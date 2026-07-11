@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 8
-current_phase_name: Inventory & Recipe Management
+current_phase: 07.2
+current_phase_name: Finance Accounting-Period Provisioning
 status: planning
-stopped_at: Completed 07.1-10-PLAN.md
-last_updated: "2026-07-11T17:29:17.953Z"
+stopped_at: Phase 07.2 planned (6 plans, 2 waves) — ready to execute
+last_updated: "2026-07-11T19:02:42.553Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 complete, transitioned to Phase 8
 progress:
-  total_phases: 13
+  total_phases: 14
   completed_phases: 6
   total_plans: 42
   completed_plans: 38
-  percent: 46
+  percent: 43
 ---
 
 # Project State
@@ -223,6 +223,7 @@ Recent decisions affecting current work:
 ### Roadmap Evolution
 
 - Phase 07.1 inserted after Phase 7: POS Production Operations & Item-Level Kitchen Tracking — upgrade POS from MVP to production-ready restaurant operations (order management, table-centric dine-in, item-level status, kitchen ticket revisions, cashier UX) (URGENT)
+- Phase 07.2 inserted after Phase 7: Finance accounting-period provisioning — fixes silently-swallowed CoA/period seeding at tenant onboarding, adds self-service open-period endpoint, resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants) (URGENT)
 
 ## Session Continuity
 

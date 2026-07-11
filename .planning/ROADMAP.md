@@ -210,12 +210,16 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 **Plans:** 6 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 07.2-01-PLAN.md — Bookkeeping reconciliation: mark Phase 6 / FIN-01,02,04,06 complete + register FIN-07/08/09 in REQUIREMENTS.md (Wave 1, docs-only)
 - [ ] 07.2-02-PLAN.md — auth-service: changeset 044 `finance.period.open` permission (OWNER/TENANT_ADMIN/ACCOUNTANT grants) + master-changelog include + DB-assertion IT (Wave 1)
 - [ ] 07.2-03-PLAN.md — platform-admin-service: harden onboarding Step 5 (fail-fast, no swallow) + flip seed-coa default true + stubFinanceSeedCoaFail + saga-failure IT (Wave 1)
 - [ ] 07.2-04-PLAN.md — finance-service: config-gate `getPeriodStatus` auto-seed-on-miss (`finance.period.auto-seed-on-miss`) + WARN audit + toggle-off IT (Wave 1)
 - [ ] 07.2-05-PLAN.md — finance-service: `POST /api/v1/finance/periods/provision` endpoint (permissioned, JWT-tenant-scoped, idempotent) + happy-path/idempotency ITs (Wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 07.2-06-PLAN.md — Phase verification: restart 3 services + /actuator/health + full IT suite + live 423-resolution E2E + permission-gate (Wave 2, human-verify checkpoint)
 
 ### Phase 07.1: POS Production Operations & Item-Level Kitchen Tracking (INSERTED)
