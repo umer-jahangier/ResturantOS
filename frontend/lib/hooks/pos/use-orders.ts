@@ -86,7 +86,16 @@ export function useCreateOrder() {
   });
 }
 
-export function useAddItem(orderId: string) {
+/**
+ * `orderId` is a MUTATE-TIME variable, not a hook-argument — deliberately, so a single
+ * mutation instance never binds to a stale order id. (07.1-08 investigation: the
+ * previous `useAddItem(orderId)` shape closed its `mutationFn` over whatever
+ * `activeOrderId` the CALLING component's render captured; any invocation racing an
+ * in-flight order-creation — not just literally the first tap — saw a stale/empty id.
+ * pos-terminal.tsx now always resolves the real order id itself before calling
+ * `mutateAsync({ orderId, payload })`, so this hook is correct regardless of timing.)
+ */
+export function useAddItem() {
   const { isOnline } = useOnlineStatus();
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
@@ -94,7 +103,13 @@ export function useAddItem(orderId: string) {
   return useMutation({
     // See the networkMode comment on useCreateOrder above — same fix, same reason.
     networkMode: "always",
-    mutationFn: async (payload: AddItemPayload): Promise<Order> => {
+    mutationFn: async ({
+      orderId,
+      payload,
+    }: {
+      orderId: string;
+      payload: AddItemPayload;
+    }): Promise<Order> => {
       if (!isOnline) {
         // clientOrderId for APPEND_ITEMS is the server orderId (or local id when
         // the order was also created offline in this session).
@@ -105,8 +120,8 @@ export function useAddItem(orderId: string) {
 
       return PosRepository.addItem(orderId, payload);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, variables.orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
     },
   });

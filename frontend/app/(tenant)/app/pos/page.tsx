@@ -68,7 +68,9 @@ export default function PosPage() {
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
-            {view === "terminal" && <PosTerminal key={selectedTableId ?? "unbound"} />}
+            {view === "terminal" && (
+              <PosTerminal key={selectedTableId ?? "unbound"} tableId={selectedTableId} />
+            )}
             {view === "floor" && (
               <TableFloorView
                 onTableSelect={(table) => {

@@ -1,62 +1,91 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { MenuGrid } from "@/components/pos/menu-grid";
 import { OrderPanel } from "@/components/pos/order-panel";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useCreateOrder, useAddItem, useSendToKds, useOrder } from "@/lib/hooks/pos/use-orders";
-import { useOnlineStatus } from "@/lib/offline/use-online-status";
-import { enqueue } from "@/lib/offline/outbox";
-import { PosRepository } from "@/lib/repositories/pos.repository";
-import { queryKeys } from "@/lib/hooks/query-keys";
 import type { MenuItem } from "@/lib/models/pos.model";
 
-export function PosTerminal() {
+interface PosTerminalProps {
+  /**
+   * The page-level selected table (plan 06's TableFloorView -> page.tsx state), bound
+   * into `createOrder` so a new order links to the tapped AVAILABLE table (POS-15).
+   * `page.tsx` remounts `PosTerminal` on table change (`key={selectedTableId}`), so this
+   * is only ever read at order-creation time for the CURRENT mount, never stale.
+   */
+  tableId?: string | null;
+}
+
+export function PosTerminal({ tableId }: PosTerminalProps) {
   const { branchId } = useCurrentUser();
-  const { isOnline } = useOnlineStatus();
-  const queryClient = useQueryClient();
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
+  // Investigation (POS-15 "can't select items after N" — GitNexus MCP unavailable this
+  // session; traced via Grep/Read across pos-terminal/use-orders/order-panel/
+  // pos.repository/OrderServiceImpl/OrderMapper, no hardcoded array-length/.slice(0,N)/
+  // pagination cap found anywhere in the add-item path). Root cause: `activeOrderId`
+  // React state is only visible to a NEW render — but `handleItemSelect` can be
+  // re-invoked (fast cashier taps) before the state update from a PRIOR invocation has
+  // committed. The already-fixed "first item" bug is one instance of this general class
+  // (the addItem mutation hook bound to a stale, still-null orderId); the *general* bug
+  // is that ANY rapid tap landing inside the same async window as an in-flight
+  // createOrder call also reads `activeOrderId` as null and fires its OWN createOrder,
+  // silently splitting items across multiple orphaned orders (only the order that wins
+  // the setActiveOrderId race stays visible — the rest look "dropped"). Fix: track the
+  // order id in a ref (updated synchronously, not just on next render) and dedupe
+  // concurrent order-creation onto a single in-flight promise every tap awaits; and
+  // (companion fix, use-orders.ts) `useAddItem` no longer binds `orderId` at hook-creation
+  // time — it now takes `orderId` as a per-call mutate variable, so the mutation itself
+  // can never be stale-bound either.
+  const orderIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    orderIdRef.current = activeOrderId;
+  }, [activeOrderId]);
+  const creatingOrderRef = useRef<Promise<string> | null>(null);
+
   const createOrder = useCreateOrder();
+  const addItem = useAddItem();
   const { data: activeOrder } = useOrder(activeOrderId ?? "");
-  const addItem = useAddItem(activeOrderId ?? "");
   const sendToKds = useSendToKds(activeOrderId ?? "");
 
-  const handleItemSelect = useCallback(
-    async (item: MenuItem) => {
-      const orderId = activeOrderId;
+  const ensureOrderId = useCallback(async (): Promise<string> => {
+    if (orderIdRef.current) return orderIdRef.current;
 
-      if (!orderId) {
-        // useAddItem below is bound to the (still-null) activeOrderId from this
-        // render, so the very first item on a brand-new order can't go through
-        // that stale mutation — add it directly here instead (mirroring
-        // useAddItem's own online/offline branching).
+    if (!creatingOrderRef.current) {
+      creatingOrderRef.current = (async () => {
         const clientOrderId = crypto.randomUUID();
         const newOrder = await createOrder.mutateAsync({
           branchId,
           clientOrderId,
           type: "DINE_IN",
           coverCount: 1,
+          ...(tableId ? { tableId } : {}),
         });
+        // Set synchronously (before the wrapping promise resolves) so any tap that was
+        // waiting on this SAME in-flight creation — or any brand-new tap that arrives
+        // right after — sees the real order id immediately, not on the next React commit.
+        orderIdRef.current = newOrder.id;
         setActiveOrderId(newOrder.id);
-        const payload = { menuItemId: item.id, branchId, quantity: 1 };
-        if (!isOnline) {
-          await enqueue({ type: "APPEND_ITEMS", clientOrderId: newOrder.id, payload });
-        } else {
-          await PosRepository.addItem(newOrder.id, payload);
-        }
-        queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, newOrder.id) });
-        return;
-      }
+        return newOrder.id;
+      })();
+      creatingOrderRef.current.finally(() => {
+        creatingOrderRef.current = null;
+      });
+    }
 
+    return creatingOrderRef.current;
+  }, [branchId, createOrder, tableId]);
+
+  const handleItemSelect = useCallback(
+    async (item: MenuItem) => {
+      const orderId = await ensureOrderId();
       await addItem.mutateAsync({
-        menuItemId: item.id,
-        branchId,
-        quantity: 1,
+        orderId,
+        payload: { menuItemId: item.id, branchId, quantity: 1 },
       });
     },
-    [activeOrderId, branchId, createOrder, addItem, queryClient, isOnline]
+    [ensureOrderId, addItem, branchId]
   );
 
   const handleSendToKitchen = useCallback(async () => {
