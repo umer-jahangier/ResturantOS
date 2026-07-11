@@ -1,6 +1,7 @@
 "use client";
 
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { SettlementActions } from "@/components/pos/settlement-actions";
 import { useRemoveItem } from "@/lib/hooks/pos/use-orders";
 import type { Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
@@ -96,14 +97,7 @@ export function OrderPanel({ order, onSendToKitchen, isSending }: OrderPanelProp
         >
           {isSending ? "Sending..." : "Send to Kitchen"}
         </button>
-        {/* CHARGE NOW — seam for 07-02 */}
-        <button
-          disabled
-          className="w-full py-3 rounded-xl border font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Payment processing available in next phase"
-        >
-          CHARGE NOW
-        </button>
+        <SettlementActions order={order} />
       </div>
     </div>
   );

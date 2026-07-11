@@ -71,6 +71,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
           {canVoidOwn && (
             <button
               onClick={() => { setMode("void"); setOpen(true); }}
+              aria-label="Void order"
               className="text-xs px-3 py-1 rounded border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition"
             >
               Void
@@ -82,7 +83,8 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
           {canRefund && (
             <button
               onClick={() => { setMode("refund"); setOpen(true); }}
-              className="text-xs px-3 py-1 rounded border border-amber-600 text-amber-700 hover:bg-amber-50 transition"
+              aria-label="Refund order"
+              className="text-xs px-3 py-1 rounded border border-warning text-warning hover:bg-warning/10 transition"
             >
               Refund
             </button>
@@ -193,7 +195,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
                     disabled={!refundReason.trim() || refundMutation.isPending}
                     className={cn(
                       "text-sm px-4 py-2 rounded font-medium disabled:opacity-50",
-                      "bg-amber-600 text-white hover:bg-amber-700"
+                      "bg-warning text-warning-foreground hover:bg-warning/90"
                     )}
                   >
                     {refundMutation.isPending ? "Processing…" : "Confirm Refund"}
