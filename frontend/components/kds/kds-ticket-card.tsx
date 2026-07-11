@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { useBumpItem } from "@/lib/hooks/kds/use-kds-tickets";
 import { StatusBadge, type LineItemStatusVariant } from "@/components/ui/status-badge";
 import { RevisionBadge } from "@/components/pos/revision-chip";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { KdsTicketDetail } from "@/components/kds/kds-ticket-detail";
 import type { KdsItemStatus, KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
 
 interface KdsTicketCardProps {
   ticket: KdsTicket;
   branchId: string;
   canUpdate: boolean;
-  /** True for the first render batch a ticket appears in — applies a 200ms fade-in. */
-  isNew?: boolean;
 }
 
 function useTicketAge(receivedAt: Date): number {
@@ -40,7 +40,7 @@ function getAgingClasses(ageMs: number): string {
  * Auto-removes from board 60s after every item reaches a terminal (READY) state —
  * extended from the old ticket-level check to fully-resolved-item-level (KDS-03).
  */
-export function KdsTicketCard({ ticket, branchId, canUpdate, isNew = false }: KdsTicketCardProps) {
+export function KdsTicketCard({ ticket, branchId, canUpdate }: KdsTicketCardProps) {
   const ageMs = useTicketAge(ticket.receivedAt);
   const agingClasses = getAgingClasses(ageMs);
   const bumpItem = useBumpItem(branchId);
@@ -64,24 +64,45 @@ export function KdsTicketCard({ ticket, branchId, canUpdate, isNew = false }: Kd
   if (!visible) return null;
 
   return (
+    // animate-fade-in applied unconditionally: React's keyed reconciliation only
+    // creates a new DOM node (and thus replays the mount-time CSS animation) for a
+    // genuinely new ticket.id — an existing, re-rendered card reuses its DOM node
+    // and the animation does not replay. This is KDS-03's "new tickets fade in
+    // (200ms)" requirement with no extra new-ticket-tracking state needed.
     <div
-      className={`rounded-xl border-2 p-4 ${agingClasses} transition-all duration-500 ${isNew ? "animate-fade-in" : ""}`}
+      className={`rounded-xl border-2 p-4 ${agingClasses} transition-all duration-500 animate-fade-in`}
       data-testid="kds-ticket-card"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <span className="text-gray-400 text-xs uppercase tracking-widest">
-            {ticket.orderNo ?? ticket.id.slice(0, 8)}
-          </span>
-          {ticket.priority && (
-            <span className="ml-2 text-xs bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">
-              PRIORITY
-            </span>
-          )}
-        </div>
-        <span className="text-gray-500 text-xs">{formatAge(ageMs)}</span>
-      </div>
+      {/* Header — tap to open the full ticket detail (KDS-03) */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between mb-3 text-left"
+            aria-label={`Open ticket detail for ${ticket.orderNo ?? ticket.id.slice(0, 8)}`}
+          >
+            <div>
+              <span className="text-gray-400 text-xs uppercase tracking-widest">
+                {ticket.orderNo ?? ticket.id.slice(0, 8)}
+              </span>
+              {ticket.priority && (
+                <span className="ml-2 text-xs bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">
+                  PRIORITY
+                </span>
+              )}
+            </div>
+            <span className="text-gray-500 text-xs">{formatAge(ageMs)}</span>
+          </button>
+        </DialogTrigger>
+        {/* Board stays always-dark inside the detail too — force dark tokens since
+            the Dialog portals to document.body, outside the board's .dark scope. */}
+        <DialogContent className="dark max-h-[85vh] overflow-y-auto border border-gray-800 bg-gray-950 text-gray-100 sm:max-w-lg">
+          <DialogTitle className="sr-only">
+            Ticket {ticket.orderNo ?? ticket.id.slice(0, 8)} detail
+          </DialogTitle>
+          <KdsTicketDetail ticketId={ticket.id} branchId={branchId} />
+        </DialogContent>
+      </Dialog>
 
       {/* Items */}
       <div className="flex flex-col gap-2">

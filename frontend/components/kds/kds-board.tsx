@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useKdsTickets, useKdsStations } from "@/lib/hooks/kds/use-kds-tickets";
 import { useKdsSocket } from "@/lib/hooks/kds/use-kds-socket";
 import { KdsTicketCard } from "@/components/kds/kds-ticket-card";
@@ -99,21 +99,6 @@ function StationColumn({ branchId, station, canUpdate }: StationColumnProps) {
     [tickets],
   );
 
-  // New-ticket fade-in (200ms, via the existing `animate-fade-in` utility): track
-  // ticket ids already rendered so a ticket only gets the fade-in treatment once,
-  // the first batch it appears in.
-  const seenTicketIds = useRef<Set<string>>(new Set());
-  const newTicketIds = useMemo(() => {
-    const news = new Set<string>();
-    for (const t of activeTickets) {
-      if (!seenTicketIds.current.has(t.id)) news.add(t.id);
-    }
-    return news;
-  }, [activeTickets]);
-  useEffect(() => {
-    for (const t of activeTickets) seenTicketIds.current.add(t.id);
-  }, [activeTickets]);
-
   return (
     <div className="flex flex-col gap-2">
       {/* Station header */}
@@ -136,7 +121,6 @@ function StationColumn({ branchId, station, canUpdate }: StationColumnProps) {
               ticket={ticket}
               branchId={branchId}
               canUpdate={canUpdate}
-              isNew={newTicketIds.has(ticket.id)}
             />
           ))
         )}
