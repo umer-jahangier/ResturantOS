@@ -134,8 +134,11 @@ public class OrderServiceImpl implements OrderService {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
 
-        // Only allow adding items to DRAFT or OPEN orders
-        if (order.getStatus() != OrderStatus.DRAFT && order.getStatus() != OrderStatus.OPEN) {
+        // Allow adding items to any non-terminal (settlement) order status — mirrors the
+        // sendToKds guard symmetrically (RESEARCH.md Pitfall 6): items can be added on any
+        // order not yet CLOSED/VOIDED/REFUNDED, including SENT_TO_KDS/PARTIAL_READY/READY,
+        // so a subsequent sendToKds() revision fire is never a dead end.
+        if (isTerminal(order.getStatus())) {
             throw new io.restaurantos.shared.exception.StateInvalidException(
                     "Cannot add items to order in status: " + order.getStatus());
         }
@@ -492,6 +495,16 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findById(orderId)
                 .filter(o -> tenantId.equals(o.getTenantId()))
                 .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+    }
+
+    /**
+     * Terminal (settlement) order statuses — no further item mutation or KDS fire is
+     * permitted once an order reaches one of these. Kept as the single predicate shared by
+     * {@code addItem} and {@code sendToKds} (RESEARCH.md Pitfall 6 — the two guards must be
+     * symmetric, or items can be added but never fired).
+     */
+    private boolean isTerminal(OrderStatus status) {
+        return status == OrderStatus.CLOSED || status == OrderStatus.VOIDED || status == OrderStatus.REFUNDED;
     }
 
     private void recomputeOrderTotals(Order order) {
