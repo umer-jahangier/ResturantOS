@@ -12,6 +12,7 @@ import {
   apiAccountingPeriodSchema,
   apiGlBalanceSchema,
   apiFinanceSetupStatusSchema,
+  apiProvisioningResultSchema,
 } from "@/lib/api-client/schemas/finance.schema";
 import {
   adaptAccount,
@@ -19,6 +20,7 @@ import {
   adaptAccountingPeriod,
   adaptGlBalance,
   adaptFinanceSetupStatus,
+  adaptProvisioningResult,
 } from "@/lib/adapters/finance.adapter";
 import type {
   Account,
@@ -29,6 +31,7 @@ import type {
   JeFilters,
   CreateJeRequest,
   FinanceSetupStatus,
+  ProvisioningResult,
 } from "@/lib/models/finance.model";
 
 // Layer-2 Finance repository. Calls Layer-1 request helpers, parses via Zod,
@@ -128,6 +131,14 @@ export const FinanceRepository = {
       { headers: { "X-TOTP-Verified": "true" } },
     );
     return adaptAccountingPeriod(apiAccountingPeriodSchema.parse(response.data.data));
+  },
+
+  async provisionPeriods(fiscalYear: number): Promise<ProvisioningResult> {
+    const raw = await post<{ fiscalYear: number }, unknown>(
+      "/api/v1/finance/periods/provision",
+      { fiscalYear },
+    );
+    return adaptProvisioningResult(apiProvisioningResultSchema.parse(raw));
   },
 
   // ── General Ledger ─────────────────────────────────────────────────────────

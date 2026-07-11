@@ -81,6 +81,11 @@ export interface FinanceSetupStatus {
   provisioned: boolean;
 }
 
+export interface ProvisioningResult {
+  accountsSeeded: number;
+  periodsSeeded: number;
+}
+
 export interface AccountFilters {
   type?: string;
   active?: boolean;

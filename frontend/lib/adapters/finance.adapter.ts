@@ -8,6 +8,7 @@ import type {
   ApiAccountingPeriod,
   ApiGlBalance,
   ApiFinanceSetupStatus,
+  ApiProvisioningResult,
 } from "@/lib/api-client/schemas/finance.schema";
 import type {
   Account,
@@ -17,6 +18,7 @@ import type {
   AccountingPeriod,
   GlBalance,
   FinanceSetupStatus,
+  ProvisioningResult,
 } from "@/lib/models/finance.model";
 
 export function adaptAccount(raw: ApiAccount): Account {
@@ -83,5 +85,12 @@ export function adaptFinanceSetupStatus(raw: ApiFinanceSetupStatus): FinanceSetu
     accountCount: raw.accountCount,
     periodCount: raw.periodCount,
     provisioned: raw.provisioned,
+  };
+}
+
+export function adaptProvisioningResult(raw: ApiProvisioningResult): ProvisioningResult {
+  return {
+    accountsSeeded: raw.accountsSeeded,
+    periodsSeeded: raw.periodsSeeded,
   };
 }
