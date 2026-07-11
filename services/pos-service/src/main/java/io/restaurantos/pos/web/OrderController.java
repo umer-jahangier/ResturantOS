@@ -98,4 +98,25 @@ public class OrderController {
             @Valid @RequestBody RefundRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(refundService.refund(id, request, idempotencyKey)));
     }
+
+    @PatchMapping("/{id}/instructions")
+    public ResponseEntity<ApiResponse<OrderDto>> updateInstructions(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateInstructionsRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.updateInstructions(id, request)));
+    }
+
+    @PostMapping("/{id}/items/{itemId}/serve")
+    public ResponseEntity<ApiResponse<OrderDto>> markItemServed(
+            @PathVariable UUID id,
+            @PathVariable UUID itemId) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.markItemServed(id, itemId)));
+    }
+
+    @PostMapping("/{id}/items/{itemId}/cancel")
+    public ResponseEntity<ApiResponse<OrderDto>> cancelItem(
+            @PathVariable UUID id,
+            @PathVariable UUID itemId) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.cancelItem(id, itemId)));
+    }
 }

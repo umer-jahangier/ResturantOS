@@ -123,6 +123,7 @@ public class RefundServiceImpl implements RefundService {
                 order.getOrderNo(),
                 order.getType(),
                 order.getStatus(),
+                order.getDerivedStatus(),
                 order.getTableId(),
                 order.getCoverCount(),
                 order.getCashierId(),

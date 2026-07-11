@@ -548,7 +548,89 @@ public class OrderServiceImpl implements OrderService {
         return dto;
     }
 
+    @Override
+    public OrderDto markItemServed(UUID orderId, UUID itemId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+        OrderItem item = findItemInOrder(order, itemId);
+
+        if (item.getItemStatus() == OrderItemStatus.PENDING) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve item that has not been fired to the kitchen: " + itemId);
+        }
+        if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve a cancelled item: " + itemId);
+        }
+
+        item.setItemStatus(OrderItemStatus.SERVED);
+        order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        return toDto(orderRepository.save(order));
+    }
+
+    @Override
+    public OrderDto cancelItem(UUID orderId, UUID itemId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+        OrderItem item = findItemInOrder(order, itemId);
+
+        if (item.getItemStatus() == OrderItemStatus.SERVED) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot cancel an already-served item: " + itemId);
+        }
+
+        item.setItemStatus(OrderItemStatus.CANCELLED);
+        order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        return toDto(orderRepository.save(order));
+    }
+
+    @Override
+    public OrderDto updateInstructions(UUID orderId, UpdateInstructionsRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (isTerminal(order.getStatus())) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot edit instructions on order in status: " + order.getStatus());
+        }
+
+        // Server-side char-limit enforcement (RESEARCH.md Security Domain V5) — defense
+        // in depth alongside the DTO's @Valid annotation, exercised even when this method
+        // is invoked directly (bypassing the MVC layer, e.g. offline-sync replay / ITs).
+        if (request.notes() != null && request.notes().length() > UpdateInstructionsRequest.ORDER_NOTES_MAX_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Order notes must not exceed " + UpdateInstructionsRequest.ORDER_NOTES_MAX_LENGTH + " characters");
+        }
+        if (request.itemNotes() != null) {
+            for (String notes : request.itemNotes().values()) {
+                if (notes != null && notes.length() > UpdateInstructionsRequest.ITEM_NOTES_MAX_LENGTH) {
+                    throw new IllegalArgumentException(
+                            "Item notes must not exceed " + UpdateInstructionsRequest.ITEM_NOTES_MAX_LENGTH + " characters");
+                }
+            }
+        }
+
+        if (request.notes() != null) {
+            order.setNotes(request.notes());
+        }
+        if (request.itemNotes() != null) {
+            request.itemNotes().forEach((itemId, notes) -> {
+                OrderItem item = findItemInOrder(order, itemId);
+                item.setNotes(notes);
+            });
+        }
+
+        return toDto(orderRepository.save(order));
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    private OrderItem findItemInOrder(Order order, UUID itemId) {
+        return order.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + itemId));
+    }
 
     private Order findOrderForTenant(UUID orderId, UUID tenantId) {
         return orderRepository.findById(orderId)
@@ -649,6 +731,8 @@ public class OrderServiceImpl implements OrderService {
                         item.getQuantity(),
                         item.getKdsStation(),
                         item.getItemStatus(),
+                        item.getRevisionNo(),
+                        item.getFiredAt(),
                         item.getDiscountPaisa(),
                         item.getTaxPaisa(),
                         item.getLineTotalPaisa(),
@@ -669,6 +753,7 @@ public class OrderServiceImpl implements OrderService {
                 order.getOrderNo(),
                 order.getType(),
                 order.getStatus(),
+                order.getDerivedStatus(),
                 order.getTableId(),
                 order.getCoverCount(),
                 order.getCashierId(),
