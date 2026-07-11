@@ -75,6 +75,12 @@ public class FinanceGlobalExceptionHandler {
                 .body(errorBody("INVALID_ACCOUNT_CODE", ex.getMessage()));
     }
 
+    @ExceptionHandler(InvalidFiscalYearException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidFiscalYear(InvalidFiscalYearException ex) {
+        return ResponseEntity.badRequest()
+                .body(errorBody("INVALID_FISCAL_YEAR", ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.badRequest()
