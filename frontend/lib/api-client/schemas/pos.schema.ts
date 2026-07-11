@@ -62,7 +62,12 @@ export const apiOrderItemSchema = z.object({
   quantity: z.number().int().positive(),
   kdsStation: z.string().nullable().optional(),
   kdsStatus: z.enum(["PENDING", "SENT", "ACCEPTED", "PREPARING", "READY", "SERVED", "CANCELLED"]),
-  revisionNo: z.number().int().nonnegative(),
+  // `.optional()`: the live pos-service response for POST /orders/{id}/items omits
+  // this field too (same class of gap as apiOrderSchema's derivedStatus above,
+  // verified via 07.1-06 E2E). adaptOrderItem() defaults the omitted case to 0 — the
+  // same default + meaning the backend entity itself declares (OrderItem.java
+  // `revisionNo = 0; // 0 = not yet fired`).
+  revisionNo: z.number().int().nonnegative().optional(),
   firedAt: z.string().nullable().optional(),
   discountPaisa: z.number().int().nonnegative(),
   taxPaisa: z.number().int().nonnegative(),
@@ -85,7 +90,13 @@ export const apiOrderSchema = z.object({
   orderNo: z.string().nullable().optional(),
   type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY"]),
   status: z.enum(["DRAFT", "OPEN", "SENT_TO_KDS", "PARTIAL_READY", "READY", "SERVED", "CLOSED", "VOIDED", "REFUNDED"]),
-  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]),
+  // `.optional()`: the live pos-service response for POST /orders and GET /orders/{id}
+  // currently omits this field entirely (verified via 07.1-06 E2E — a backend
+  // DTO-population gap, not a frontend concern; OrderController.java is mid-edit
+  // per git status). adaptOrder() below defaults the omitted case to "DRAFT" — the
+  // same default the backend entity itself declares (Order.java `derivedStatus =
+  // DerivedOrderStatus.DRAFT`) — rather than hard-failing the whole parse.
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]).optional(),
   tableId: z.string().uuid().nullable().optional(),
   coverCount: z.number().int(),
   cashierId: z.string().uuid().nullable().optional(),

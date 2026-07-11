@@ -79,7 +79,9 @@ export function adaptOrderItem(raw: ApiOrderItem): OrderItem {
     // Wire field `kdsStatus` -> domain field `itemStatus` (clearer name; see
     // pos.schema.ts comment on apiOrderItemSchema).
     itemStatus: raw.kdsStatus,
-    revisionNo: raw.revisionNo,
+    // See the `.optional()` comment on apiOrderItemSchema — default to 0 ("not yet
+    // fired"), matching the backend entity's own default for an omitted value.
+    revisionNo: raw.revisionNo ?? 0,
     firedAt: raw.firedAt ?? null,
     discountPaisa: raw.discountPaisa,
     taxPaisa: raw.taxPaisa,
@@ -96,7 +98,10 @@ export function adaptOrder(raw: ApiOrder): Order {
     orderNo: raw.orderNo ?? null,
     type: raw.type,
     status: raw.status,
-    derivedStatus: raw.derivedStatus,
+    // See the `.optional()` comment on apiOrderSchema — the live backend omits this
+    // field today; default to the same DRAFT value the backend entity itself defaults
+    // to, rather than propagating `undefined` into a domain type declared non-nullable.
+    derivedStatus: raw.derivedStatus ?? "DRAFT",
     tableId: raw.tableId ?? null,
     coverCount: raw.coverCount,
     cashierId: raw.cashierId ?? null,
