@@ -10,6 +10,8 @@ interface KdsTicketCardProps {
   ticket: KdsTicket;
   branchId: string;
   canUpdate: boolean;
+  /** True for the first render batch a ticket appears in — applies a 200ms fade-in. */
+  isNew?: boolean;
 }
 
 function useTicketAge(receivedAt: Date): number {
@@ -35,28 +37,35 @@ function getAgingClasses(ageMs: number): string {
 /**
  * KDS ticket card — always dark, shows items with bump buttons.
  * Aging colors: green (<10min), amber+pulse (10-15min), red+bounce (15min+).
- * Auto-removes from board 60s after reaching READY status.
+ * Auto-removes from board 60s after every item reaches a terminal (READY) state —
+ * extended from the old ticket-level check to fully-resolved-item-level (KDS-03).
  */
-export function KdsTicketCard({ ticket, branchId, canUpdate }: KdsTicketCardProps) {
+export function KdsTicketCard({ ticket, branchId, canUpdate, isNew = false }: KdsTicketCardProps) {
   const ageMs = useTicketAge(ticket.receivedAt);
   const agingClasses = getAgingClasses(ageMs);
   const bumpItem = useBumpItem(branchId);
 
   const [visible, setVisible] = useState(true);
 
-  // Auto-remove READY tickets after 60 seconds
+  // Fully-resolved-item-level (not just ticket-level): a ticket leaves the board
+  // 60s after ALL its items reach READY (the only kitchen-owned terminal state in
+  // the 5-value KdsItemStatus — SERVED/CANCELLED are pos-service-owned and never
+  // appear here). Auto-remove is skipped for an empty item list (nothing to resolve).
+  const allItemsResolved =
+    ticket.items.length > 0 && ticket.items.every((item) => item.status === "READY");
+
   useEffect(() => {
-    if (ticket.status === "READY") {
+    if (allItemsResolved) {
       const timer = setTimeout(() => setVisible(false), 60_000);
       return () => clearTimeout(timer);
     }
-  }, [ticket.status]);
+  }, [allItemsResolved]);
 
   if (!visible) return null;
 
   return (
     <div
-      className={`rounded-xl border-2 p-4 ${agingClasses} transition-all duration-500`}
+      className={`rounded-xl border-2 p-4 ${agingClasses} transition-all duration-500 ${isNew ? "animate-fade-in" : ""}`}
       data-testid="kds-ticket-card"
     >
       {/* Header */}

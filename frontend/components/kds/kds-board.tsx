@@ -1,10 +1,29 @@
 "use client";
 
+import { useEffect, useMemo, useRef } from "react";
 import { useKdsTickets, useKdsStations } from "@/lib/hooks/kds/use-kds-tickets";
 import { useKdsSocket } from "@/lib/hooks/kds/use-kds-socket";
 import { KdsTicketCard } from "@/components/kds/kds-ticket-card";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import type { KdsStation } from "@/lib/models/kds.model";
+import type { KdsStation, KdsTicket } from "@/lib/models/kds.model";
+
+/**
+ * Deterministic, stable board sort (KDS-03 — fixes the UAT "cards jump/bounce"
+ * complaint): receivedAt ascending, ties broken by ticket.id. This is a pure
+ * function of each ticket's immutable receivedAt/id — it never looks at mutable
+ * per-item status — so a card's position never changes when only its items'
+ * statuses update within an already-rendered ticket. Exported for
+ * kds-board-sort.test.ts.
+ */
+export function sortKdsTickets<T extends Pick<KdsTicket, "id" | "receivedAt">>(
+  tickets: readonly T[],
+): T[] {
+  return [...tickets].sort((a, b) => {
+    const diff = a.receivedAt.getTime() - b.receivedAt.getTime();
+    if (diff !== 0) return diff;
+    return a.id.localeCompare(b.id);
+  });
+}
 
 interface KdsBoardProps {
   branchId: string;
@@ -71,9 +90,29 @@ function StationColumn({ branchId, station, canUpdate }: StationColumnProps) {
   const { data: tickets = [] } = useKdsTickets(branchId, station.code);
   const { isConnected } = useKdsSocket({ branchId, stationCode: station.code });
 
-  const activeTickets = tickets.filter(
-    (t) => t.status === "PENDING" || t.status === "COOKING",
+  // Sort key computed once per fetch/socket-frame batch (useMemo keyed on the
+  // `tickets` array reference from the query), never per-render — the fix for
+  // KDS-03's "cards jump/bounce" UAT finding.
+  const activeTickets = useMemo(
+    () =>
+      sortKdsTickets(tickets.filter((t) => t.status === "PENDING" || t.status === "COOKING")),
+    [tickets],
   );
+
+  // New-ticket fade-in (200ms, via the existing `animate-fade-in` utility): track
+  // ticket ids already rendered so a ticket only gets the fade-in treatment once,
+  // the first batch it appears in.
+  const seenTicketIds = useRef<Set<string>>(new Set());
+  const newTicketIds = useMemo(() => {
+    const news = new Set<string>();
+    for (const t of activeTickets) {
+      if (!seenTicketIds.current.has(t.id)) news.add(t.id);
+    }
+    return news;
+  }, [activeTickets]);
+  useEffect(() => {
+    for (const t of activeTickets) seenTicketIds.current.add(t.id);
+  }, [activeTickets]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -97,6 +136,7 @@ function StationColumn({ branchId, station, canUpdate }: StationColumnProps) {
               ticket={ticket}
               branchId={branchId}
               canUpdate={canUpdate}
+              isNew={newTicketIds.has(ticket.id)}
             />
           ))
         )}
