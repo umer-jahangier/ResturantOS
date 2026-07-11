@@ -92,5 +92,34 @@ export async function requeueFailed(): Promise<void> {
   await tx.done;
 }
 
+/**
+ * Repoint every OTHER queued op that targeted a brand-new order's LOCAL stub id at
+ * the REAL server-assigned id, once that order's own CREATE_ORDER op has synced.
+ *
+ * An order created while offline gets `id = clientOrderId` (the client-generated
+ * UUID — see buildOfflineOrderStub in use-orders.ts) so the UI can render it
+ * immediately; a same-session "add first item" enqueues its APPEND_ITEMS op against
+ * that SAME local id (pos-terminal.tsx's handleItemSelect). The server always
+ * assigns its OWN, different `id` on creation (the client UUID only travels as the
+ * Idempotency-Key), so without this repoint, the queued APPEND_ITEMS/
+ * UPDATE_INSTRUCTIONS op would replay against an order id the server never issued —
+ * silently losing the item (confirmed via 07.1-06 E2E: outbox drained to a
+ * permanently-FAILED op, order stayed at Rs 0.00 after reconnect).
+ */
+export async function repointQueuedOps(oldClientOrderId: string, realOrderId: string): Promise<void> {
+  if (oldClientOrderId === realOrderId) return;
+  const db = await getDb();
+  const all = await db.getAll("outbox");
+  const toRepoint = all.filter(
+    (op) => op.type !== "CREATE_ORDER" && op.clientOrderId === oldClientOrderId,
+  );
+  if (toRepoint.length === 0) return;
+  const tx = db.transaction("outbox", "readwrite");
+  await Promise.all(
+    toRepoint.map((op) => tx.store.put({ ...op, clientOrderId: realOrderId })),
+  );
+  await tx.done;
+}
+
 // Re-export OutboxOpType for consumers that only need the op interface.
 export type { OutboxOp, OutboxOpType, OutboxStatus };
