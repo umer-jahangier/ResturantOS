@@ -1,6 +1,6 @@
 // Offline-first types: outbox operations, IndexedDB schema shapes.
 
-export type OutboxOpType = "CREATE_ORDER" | "APPEND_ITEMS";
+export type OutboxOpType = "CREATE_ORDER" | "APPEND_ITEMS" | "UPDATE_INSTRUCTIONS";
 export type OutboxStatus = "PENDING" | "IN_FLIGHT" | "SYNCED" | "FAILED";
 
 export interface OutboxOp {
@@ -11,6 +11,7 @@ export interface OutboxOp {
    * For CREATE_ORDER ops: the client-generated order ID that the server stores
    * in the `client_order_id` column (deduplicates replay).
    * For APPEND_ITEMS ops: the server's order UUID (used as orderId in the URL).
+   * For UPDATE_INSTRUCTIONS ops: the server's order UUID (used as orderId in the URL).
    */
   clientOrderId: string;
   type: OutboxOpType;

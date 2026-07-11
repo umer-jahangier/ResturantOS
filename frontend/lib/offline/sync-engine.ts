@@ -13,7 +13,7 @@
  */
 
 import { PosRepository } from "@/lib/repositories/pos.repository";
-import type { CreateOrderPayload, AddItemPayload } from "@/lib/models/pos.model";
+import type { CreateOrderPayload, AddItemPayload, UpdateInstructionsPayload } from "@/lib/models/pos.model";
 import {
   count,
   markFailed,
@@ -58,6 +58,13 @@ export async function replay(): Promise<ReplayResult> {
           await PosRepository.addItem(
             op.clientOrderId,
             op.payload as AddItemPayload,
+          );
+        } else if (op.type === "UPDATE_INSTRUCTIONS") {
+          // For UPDATE_INSTRUCTIONS, clientOrderId holds the target order's server UUID
+          // (POS-13 is offline-safe per this plan's must_haves).
+          await PosRepository.updateInstructions(
+            op.clientOrderId,
+            op.payload as UpdateInstructionsPayload,
           );
         }
 

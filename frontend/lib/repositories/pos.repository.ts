@@ -5,6 +5,9 @@ import {
   apiMenuCategorySchema,
   apiDiningTableSchema,
   apiOrderSchema,
+  apiOrderSummarySchema,
+  apiTableDetailSchema,
+  apiUpdateInstructionsSchema,
   apiTillSessionSchema,
 } from "@/lib/api-client/schemas/pos.schema";
 import {
@@ -12,6 +15,8 @@ import {
   adaptMenuCategory,
   adaptDiningTable,
   adaptOrder,
+  adaptOrderSummary,
+  adaptTableDetail,
   adaptTillSession,
 } from "@/lib/adapters/pos.adapter";
 import type {
@@ -19,10 +24,13 @@ import type {
   MenuCategory,
   DiningTable,
   Order,
+  OrderSummary,
+  TableDetail,
   TillSession,
   CreateOrderPayload,
   AddItemPayload,
   ApplyDiscountPayload,
+  UpdateInstructionsPayload,
   OpenTillPayload,
   CloseTillPayload,
   CloseOrderPayload,
@@ -58,9 +66,15 @@ export const PosRepository = {
     return (Array.isArray(raw) ? raw : []).map((r) => adaptDiningTable(apiDiningTableSchema.parse(r)));
   },
 
-  async updateTableStatus(id: string, status: "AVAILABLE" | "OCCUPIED"): Promise<DiningTable> {
+  async updateTableStatus(id: string, status: "AVAILABLE" | "OCCUPIED" | "NEEDS_BUSSING"): Promise<DiningTable> {
     const raw = await patch<{ status: string }, unknown>(`/api/v1/pos/tables/${id}`, { status });
     return adaptDiningTable(apiDiningTableSchema.parse(raw));
+  },
+
+  /** Table-centric dine-in detail (POS-10): the table's active order + live bill summary. */
+  async getActiveOrderForTable(tableId: string, branchId: string): Promise<TableDetail> {
+    const raw = await get<unknown>(`/api/v1/pos/tables/${tableId}/active-order`, { branchId });
+    return adaptTableDetail(apiTableDetailSchema.parse(raw));
   },
 
   // ── Orders ────────────────────────────────────────────────────────────────
@@ -80,10 +94,16 @@ export const PosRepository = {
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
-  async listOrders(params: { branchId: string; status?: string[] }): Promise<PaginatedResult<Order>> {
+  /**
+   * Order Management list (POS-09). GET /api/v1/pos/orders returns OrderSummaryDto[]
+   * (not the full OrderDto[] this endpoint historically returned — 07.1-04 SUMMARY, a
+   * deliberate breaking wire-contract change). Defaults to ALL non-terminal statuses
+   * server-side when `status` is omitted — a non-closed order never disappears.
+   */
+  async listOrderSummaries(params: { branchId: string; status?: string[] }): Promise<PaginatedResult<OrderSummary>> {
     const result = await getPaginated<unknown>("/api/v1/pos/orders", params as Record<string, unknown>);
     return {
-      data: result.data.map((r) => adaptOrder(apiOrderSchema.parse(r))),
+      data: result.data.map((r) => adaptOrderSummary(apiOrderSummarySchema.parse(r))),
       meta: result.meta,
     };
   },
@@ -103,8 +123,30 @@ export const PosRepository = {
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
-  async sendToKds(orderId: string): Promise<Order> {
-    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/send-to-kds`);
+  /**
+   * Fires all currently-PENDING lines as an incrementing revision (POS-12). `clientFireId`
+   * is sent as the Idempotency-Key header — mirrors closeOrder/voidOrder's pattern
+   * exactly — so a replayed offline fire never double-sends the same revision.
+   */
+  async sendToKds(orderId: string, clientFireId: string): Promise<Order> {
+    const resp = await apiClient.post<{ data: unknown }>(
+      `/api/v1/pos/orders/${orderId}/send-to-kds`,
+      undefined,
+      { headers: { "Idempotency-Key": clientFireId } }
+    );
+    return adaptOrder(apiOrderSchema.parse(resp.data.data));
+  },
+
+  /** Order-level + per-item instructions edit (POS-13). Offline-safe at the hook layer. */
+  async updateInstructions(orderId: string, payload: UpdateInstructionsPayload): Promise<Order> {
+    const body = apiUpdateInstructionsSchema.parse(payload);
+    const raw = await patch<typeof body, unknown>(`/api/v1/pos/orders/${orderId}/instructions`, body);
+    return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  /** Marks a single line SERVED — cashier/server-side only action, never from KDS. */
+  async markItemServed(orderId: string, itemId: string): Promise<Order> {
+    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/items/${itemId}/serve`);
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 

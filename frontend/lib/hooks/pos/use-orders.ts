@@ -11,15 +11,17 @@ import type {
   AddItemPayload,
   ApplyDiscountPayload,
   CreateOrderPayload,
+  UpdateInstructionsPayload,
 } from "@/lib/models/pos.model";
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
-export function useOrders(statuses?: string[]) {
+/** Order Management list (POS-09). GET /pos/orders now returns OrderSummaryDto[]. */
+export function useOrderSummaries(statuses?: string[]) {
   const { branchId, isAuthenticated } = useCurrentUser();
   return useQuery({
-    queryKey: queryKeys.pos.orders(branchId, statuses),
-    queryFn: () => PosRepository.listOrders({ branchId, status: statuses }),
+    queryKey: queryKeys.pos.orderSummaries(branchId, statuses),
+    queryFn: () => PosRepository.listOrderSummaries({ branchId, status: statuses }),
     enabled: isAuthenticated && !!branchId,
   });
 }
@@ -120,14 +122,62 @@ export function useApplyDiscount(orderId: string) {
   });
 }
 
+/**
+ * Fires the order's currently-PENDING lines as an incrementing revision (POS-12). A fresh
+ * `clientFireId` (crypto.randomUUID()) is generated per invocation and sent as the
+ * Idempotency-Key header — the revision-aware CTA label/enable-state logic itself stays
+ * in the component (order-panel.tsx, a later plan); this hook only exposes
+ * mutateAsync/isPending.
+ */
 export function useSendToKds(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation({
-    mutationFn: () => PosRepository.sendToKds(orderId),
+    mutationFn: () => PosRepository.sendToKds(orderId, crypto.randomUUID()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+    },
+  });
+}
+
+/**
+ * Order-level + per-item instructions edit (POS-13). Offline-safe: enqueues an
+ * UPDATE_INSTRUCTIONS outbox op when offline (mirrors useAddItem's offline branching),
+ * replayed FIFO by the sync-engine once back online.
+ */
+export function useUpdateInstructions(orderId: string) {
+  const { isOnline } = useOnlineStatus();
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+
+  return useMutation({
+    mutationFn: async (payload: UpdateInstructionsPayload): Promise<Order | undefined> => {
+      if (!isOnline) {
+        await enqueue({ type: "UPDATE_INSTRUCTIONS", clientOrderId: orderId, payload });
+        return undefined;
+      }
+      return PosRepository.updateInstructions(orderId, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+    },
+  });
+}
+
+/**
+ * Marks a single line SERVED (cashier/server-side action, never from the KDS — the
+ * kitchen has no visibility once food leaves the pass). Server-authoritative, not
+ * offline-critical per UI-SPEC — no outbox path.
+ */
+export function useMarkServed(orderId: string) {
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: (itemId: string) => PosRepository.markItemServed(orderId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
     },
   });

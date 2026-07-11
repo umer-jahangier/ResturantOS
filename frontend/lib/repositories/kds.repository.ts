@@ -42,6 +42,20 @@ export const KdsRepository = {
     return adaptKdsTicket(apiKdsTicketSchema.parse(response.data));
   },
 
+  /**
+   * Full ticket detail (all revisions, per-item status+revisionNo+firedAt) for the KDS
+   * "tap a ticket for full order detail" view (KDS-03). Unlike getTickets/bumpItem/
+   * recallTicket above (bare-JSON responses), this endpoint IS wrapped in the
+   * ApiResponse envelope — unwrap `.data.data` accordingly.
+   */
+  async getTicketDetail(ticketId: string, branchId: string): Promise<KdsTicket> {
+    const response = await apiClient.get<{ data: unknown }>(
+      `/api/v1/kitchen/kds/tickets/${ticketId}`,
+      { params: { branchId } },
+    );
+    return adaptKdsTicket(apiKdsTicketSchema.parse(response.data.data));
+  },
+
   // ── Stations ───────────────────────────────────────────────────────────────
 
   async getStations(branchId: string): Promise<KdsStation[]> {

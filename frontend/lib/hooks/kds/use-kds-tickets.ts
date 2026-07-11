@@ -53,3 +53,17 @@ export function useRecallTicket(branchId: string) {
     },
   });
 }
+
+/**
+ * Full ticket detail (all revisions grouped, per-item status+revisionNo+firedAt, plus
+ * the order-level "Kitchen Notes" callout) for the KDS "tap a ticket for full order
+ * detail" view (KDS-03).
+ */
+export function useKdsTicketDetail(branchId: string, ticketId: string) {
+  const { isAuthenticated } = useCurrentUser();
+  return useQuery({
+    queryKey: queryKeys.kds.ticketDetail(branchId, ticketId),
+    queryFn: () => KdsRepository.getTicketDetail(ticketId, branchId),
+    enabled: isAuthenticated && !!branchId && !!ticketId,
+  });
+}
