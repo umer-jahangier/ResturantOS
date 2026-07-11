@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 07.2
 current_phase_name: finance-accounting-period-provisioning-guarantee-open-period
 status: executing
-stopped_at: Completed 07.2-07-PLAN.md (calendar-based fiscal-year period provisioning UI, FIN-10)
-last_updated: "2026-07-11T21:57:23.988Z"
+stopped_at: 07.2-06-PLAN.md Task 1 complete (restart+health+full-IT-suite); Task 2 blocking human-verify checkpoint AWAITING USER
+last_updated: "2026-07-11T22:27:56.759Z"
 last_activity: 2026-07-12
-last_activity_desc: 07.2-07-PLAN.md complete (calendar-based fiscal-year period provisioning UI, FIN-10)
+last_activity_desc: 07.2-06 Task 1 complete (services restarted/healthy, full IT suite root-caused); paused at Task 2 blocking checkpoint (live 423 resolution + permission gate + frontend UI verification)
 progress:
   total_phases: 14
   completed_phases: 6
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — EXECUTING
-Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 6/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 remaining)
-Status: Executing Phase 07.2
-Last activity: 2026-07-12 — 07.2-07-PLAN.md complete (calendar-based fiscal-year period provisioning UI, FIN-10)
+Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 6/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done, Task 2 blocking human-verify checkpoint pending)
+Status: Executing Phase 07.2 — PAUSED at 07.2-06 Task 2 (blocking checkpoint, awaiting user)
+Last activity: 2026-07-12 — 07.2-06 Task 1 complete (restart+health+full-IT-suite, evidence in 07.2-06-SUMMARY.md); auto-mode confirmed OFF, so Task 2's human confirmation cannot be synthesized
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -216,6 +216,9 @@ Recent decisions affecting current work:
 - [Phase 07.2-07]: ProvisionPeriodDialog uses a local getProvisionErrorMessage() instead of formatUserFacingError from @/lib/api-client/errors, avoiding a documented components/** -> lib/api-client/** ESLint layer-boundary violation (docs/finance-eslint-backlog.md Issue 1); mirrors payment-panel.tsx's getChargeErrorMessage convention.
 - [Phase 07.2-07]: ProvisionPeriodDialog's internal fiscalYear state resets via a parent-side key={fiscalYear} remount in periods/page.tsx, not useEffect+setState, per react-hooks/set-state-in-effect.
 - [Phase 07.2-07]: E2E login() helper classifies a 'Sign-in failed / service temporarily unavailable' banner as Blocked (not FAIL), matching pos-settlement.spec.ts's 503/FallbackController convention -- discovered live this session (finance-service down, gateway 503).
+- [07.2-06]: Root-caused platform-admin-service's 100% IT-suite failure to a hardcoded macOS-only DOCKER_HOST in pom.xml:171 (commit 55ae628, predates 07.2 entirely) -- corrects STATE.md's prior "session-level" hypothesis; not fixed (out of scope for verification-only Task 1), flagged as Pending Todo.
+- [07.2-06]: Used `mvn -fae` (fail-at-end) instead of plain `verify` for the full IT suite -- plain verify fail-fasts on auth-service's known pre-existing flakiness and silently SKIPs finance-service/platform-admin-service, violating the "no silent skips" acceptance criterion.
+- [07.2-06]: Confirmed PROVISIONING_SEED_COA_ENABLED live default is true (unset in deploy/.env; YAML default already flipped by 07.2-03) -- RESEARCH.md Assumption A1 resolved, no deploy-config gap.
 
 ### Pending Todos
 
@@ -245,6 +248,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T21:56:38.335Z
+Last session: 2026-07-11T22:27:11.622Z
 Stopped at: Completed 07.2-07-PLAN.md (calendar-based fiscal-year period provisioning UI, FIN-10)
 Resume file: None
