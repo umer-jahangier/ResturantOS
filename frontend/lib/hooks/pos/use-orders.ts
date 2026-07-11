@@ -52,6 +52,14 @@ export function useCreateOrder() {
   const { branchId } = useCurrentUser();
 
   return useMutation({
+    // TanStack Query's default networkMode ("online") PAUSES the mutation — never
+    // even calling mutationFn — while its own onlineManager sees the browser offline,
+    // which silently defeats the `if (!isOnline)` enqueue-immediately branch below
+    // (confirmed via 07.1-06 E2E: outbox stayed empty and sync-badge never appeared
+    // until reconnect). "always" makes mutationFn run immediately regardless, so this
+    // hook's OWN isOnline branching (backed by the app's browser-event-driven
+    // useOnlineStatus, not React Query's manager) is what actually decides the path.
+    networkMode: "always",
     mutationFn: async (payload: CreateOrderPayload): Promise<Order> => {
       const clientOrderId = payload.clientOrderId ?? crypto.randomUUID();
 
@@ -84,6 +92,8 @@ export function useAddItem(orderId: string) {
   const { branchId } = useCurrentUser();
 
   return useMutation({
+    // See the networkMode comment on useCreateOrder above — same fix, same reason.
+    networkMode: "always",
     mutationFn: async (payload: AddItemPayload): Promise<Order> => {
       if (!isOnline) {
         // clientOrderId for APPEND_ITEMS is the server orderId (or local id when
@@ -158,6 +168,8 @@ export function useUpdateInstructions(orderId: string) {
   const { branchId } = useCurrentUser();
 
   return useMutation({
+    // See the networkMode comment on useCreateOrder above — same fix, same reason.
+    networkMode: "always",
     mutationFn: async (payload: UpdateInstructionsPayload): Promise<Order | undefined> => {
       if (!isOnline) {
         await enqueue({ type: "UPDATE_INSTRUCTIONS", clientOrderId: orderId, payload });

@@ -22,6 +22,13 @@ export function useCloseOrder(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation<Order, ApiError, { payload: CloseOrderPayload; idempotencyKey: string }>({
+    // Default networkMode ("online") PAUSES mutationFn entirely while React Query's
+    // own onlineManager sees the browser offline — the `if (!isOnline) throw` below
+    // would then never run until reconnect, so OFFLINE_ERROR could never show
+    // promptly (same class of bug fixed in use-orders.ts's offline mutations;
+    // confirmed via 07.1-06 E2E). "always" lets this hook's own isOnline check
+    // (browser-event-driven, not React Query's manager) decide instead.
+    networkMode: "always",
     mutationFn: ({ payload, idempotencyKey }) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
       return PosRepository.closeOrder(orderId, payload, idempotencyKey);
@@ -39,6 +46,8 @@ export function useVoidOrder(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation<Order, ApiError, { payload: VoidOrderPayload; idempotencyKey: string }>({
+    // See the networkMode comment on useCloseOrder above — same fix, same reason.
+    networkMode: "always",
     mutationFn: ({ payload, idempotencyKey }) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
       return PosRepository.voidOrder(orderId, payload, idempotencyKey);
@@ -56,6 +65,8 @@ export function useRefundOrder(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation({
+    // See the networkMode comment on useCloseOrder above — same fix, same reason.
+    networkMode: "always",
     mutationFn: ({ payload, idempotencyKey }: { payload: RefundOrderPayload; idempotencyKey: string }) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
       return PosRepository.refundOrder(orderId, payload, idempotencyKey);
