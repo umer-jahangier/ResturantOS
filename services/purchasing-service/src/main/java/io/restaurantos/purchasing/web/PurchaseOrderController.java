@@ -1,5 +1,6 @@
 package io.restaurantos.purchasing.web;
 
+import io.restaurantos.purchasing.dto.ClosePurchaseOrderRequest;
 import io.restaurantos.purchasing.dto.CreatePurchaseOrderRequest;
 import io.restaurantos.purchasing.dto.PurchaseOrderDto;
 import io.restaurantos.purchasing.service.PoApprovalService;
@@ -59,5 +60,11 @@ public class PurchaseOrderController {
     @PostMapping("/{id}/send")
     public ApiResponse<PurchaseOrderDto> send(@PathVariable UUID id) {
         return ApiResponse.ok(purchaseOrderService.send(id));
+    }
+
+    @PostMapping("/{id}/close")
+    public ApiResponse<PurchaseOrderDto> close(@PathVariable UUID id,
+                                               @RequestBody(required = false) ClosePurchaseOrderRequest req) {
+        return ApiResponse.ok(purchaseOrderService.close(id, req == null ? null : req.reason()));
     }
 }

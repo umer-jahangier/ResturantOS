@@ -53,6 +53,15 @@ public class PurchaseOrder extends TenantAuditableEntity {
     @Column(name = "tiers_approved", nullable = false)
     private int tiersApproved;
 
+    @Column(name = "closed_at")
+    private Instant closedAt;
+
+    @Column(name = "closed_by")
+    private UUID closedBy;
+
+    @Column(name = "close_reason", columnDefinition = "TEXT")
+    private String closeReason;
+
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseOrderLine> lines = new ArrayList<>();
 }

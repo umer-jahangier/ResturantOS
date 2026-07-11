@@ -19,6 +19,8 @@ public record PurchaseOrderDto(
         Instant submittedAt,
         int requiredTiers,
         int tiersApproved,
+        Instant closedAt,
+        String closeReason,
         List<LineDto> lines
 ) {
     public record LineDto(
