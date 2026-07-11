@@ -43,6 +43,31 @@ export interface RevisionLogEntry {
   itemCount: number;
 }
 
+/**
+ * Groups an order's fired items by `revisionNo` into the shared `RevisionLogEntry[]`
+ * shape consumed by `RevisionCountChip`. Extracted here (rather than left inline in
+ * order-panel.tsx, its original caller) so the shared Order/Table Detail drawer
+ * (07.1-09) can reuse the exact same derivation without re-implementing it.
+ */
+export function deriveRevisionLog(
+  items: readonly { revisionNo: number; firedAt: string | null }[],
+): RevisionLogEntry[] {
+  const byRevision = new Map<number, { firedAt: string | null; itemCount: number }>();
+  for (const item of items) {
+    if (item.revisionNo <= 0) continue; // not yet fired
+    const existing = byRevision.get(item.revisionNo);
+    if (existing) {
+      existing.itemCount += 1;
+      if (!existing.firedAt && item.firedAt) existing.firedAt = item.firedAt;
+    } else {
+      byRevision.set(item.revisionNo, { firedAt: item.firedAt, itemCount: 1 });
+    }
+  }
+  return Array.from(byRevision.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([revisionNo, v]) => ({ revisionNo, ...v }));
+}
+
 interface RevisionCountChipProps {
   revisions: RevisionLogEntry[];
   className?: string;
