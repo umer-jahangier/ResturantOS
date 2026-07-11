@@ -14,12 +14,18 @@ public final class KitchenEventPayloads {
 
     // ─── Consume side (ORDER_SENT_TO_KDS from pos.topic) ──────────────────────
 
+    // revisionNo/orderNotes are ADDITIVE fields appended after items — names must match
+    // pos-service PosEventPayloads.OrderSentToKdsPayload EXACTLY (field-name parity is the
+    // only contract enforcement; a mismatch silently drops every message — RESEARCH.md
+    // Pitfall 4 / Phase-7 cold-start bug #4). Never reorder/rename the existing fields.
     public record OrderSentToKdsPayload(
             UUID orderId,
             UUID tenantId,
             UUID branchId,
             String orderNo,
-            List<OrderSentToKdsItem> items
+            List<OrderSentToKdsItem> items,
+            int revisionNo,
+            String orderNotes
     ) {}
 
     public record OrderSentToKdsItem(

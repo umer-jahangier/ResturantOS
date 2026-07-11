@@ -54,7 +54,7 @@ class TicketLifecycleIT extends KitchenTestBase {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
                 new OrderSentToKdsItem(orderItem1, UUID.randomUUID(), "Burger", 1, "GRILL",  List.of(), null),
                 new OrderSentToKdsItem(orderItem2, UUID.randomUUID(), "Cola",   1, "DRINKS", List.of(), null)
-        ));
+        ), 1, null);
         ticketRoutingService.route(payload, "ORD-100");
 
         var tickets = ticketRepository.findByOrderId(orderId);
@@ -93,7 +93,7 @@ class TicketLifecycleIT extends KitchenTestBase {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
                 new OrderSentToKdsItem(orderItem1, UUID.randomUUID(), "Steak", 1, "GRILL", List.of(), null),
                 new OrderSentToKdsItem(orderItem2, UUID.randomUUID(), "Wine",  1, "BAR",   List.of(), null)
-        ));
+        ), 1, null);
         ticketRoutingService.route(payload, "ORD-101");
 
         var tickets = ticketRepository.findByOrderId(orderId);

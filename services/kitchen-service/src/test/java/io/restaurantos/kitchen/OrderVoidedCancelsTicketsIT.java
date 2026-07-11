@@ -47,7 +47,7 @@ class OrderVoidedCancelsTicketsIT extends KitchenTestBase {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
                 new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Burger", 1, "GRILL",  List.of(), null),
                 new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Cola",   1, "DRINKS", List.of(), null)
-        ));
+        ), 1, null);
         ticketRoutingService.route(payload, "ORD-200");
 
         assertThat(ticketRepository.findByOrderId(orderId)).hasSize(2);
@@ -62,7 +62,7 @@ class OrderVoidedCancelsTicketsIT extends KitchenTestBase {
     void cancelTicketsForOrder_isIdempotent() {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
                 new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Pizza", 1, "OVEN", List.of(), null)
-        ));
+        ), 1, null);
         ticketRoutingService.route(payload, "ORD-201");
 
         ticketService.cancelTicketsForOrder(orderId);

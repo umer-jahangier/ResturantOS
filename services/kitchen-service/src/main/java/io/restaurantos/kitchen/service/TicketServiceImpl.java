@@ -63,7 +63,10 @@ public class TicketServiceImpl implements TicketService {
         validateTransition(item.getStatus(), newStatus);
         item.setStatus(newStatus);
 
-        if (newStatus == TicketItemStatus.COOKING && ticket.getStatus() == TicketStatus.PENDING) {
+        boolean movingToActive = newStatus == TicketItemStatus.COOKING
+                || newStatus == TicketItemStatus.ACCEPTED
+                || newStatus == TicketItemStatus.PREPARING;
+        if (movingToActive && ticket.getStatus() == TicketStatus.PENDING) {
             ticket.setStatus(TicketStatus.COOKING);
             ticket.setStartedAt(Instant.now());
         }
@@ -95,9 +98,14 @@ public class TicketServiceImpl implements TicketService {
                 .map(KdsTicketItem::getStatus)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + itemId));
 
+        // Existing bump flow stays PENDING -> COOKING -> READY (unchanged this plan);
+        // ACCEPTED/PREPARING are the target kitchen-owned lifecycle subset, wired here
+        // only so the enum extension remains exhaustive/compilable — no caller currently
+        // reaches these two states via bumpItem.
         TicketItemStatus next = switch (current) {
             case PENDING -> TicketItemStatus.COOKING;
-            case COOKING -> TicketItemStatus.READY;
+            case ACCEPTED -> TicketItemStatus.PREPARING;
+            case PREPARING, COOKING -> TicketItemStatus.READY;
             case READY -> throw new StateInvalidException("Item already READY");
         };
 
@@ -163,8 +171,9 @@ public class TicketServiceImpl implements TicketService {
 
     private void validateTransition(TicketItemStatus current, TicketItemStatus next) {
         boolean valid = switch (current) {
-            case PENDING -> next == TicketItemStatus.COOKING;
-            case COOKING -> next == TicketItemStatus.READY;
+            case PENDING -> next == TicketItemStatus.COOKING || next == TicketItemStatus.ACCEPTED;
+            case ACCEPTED -> next == TicketItemStatus.PREPARING;
+            case PREPARING, COOKING -> next == TicketItemStatus.READY;
             case READY -> false;
         };
         if (!valid) {

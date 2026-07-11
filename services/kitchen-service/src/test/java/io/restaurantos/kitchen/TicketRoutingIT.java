@@ -51,7 +51,9 @@ class TicketRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Fries",   1, "GRILL",  List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Cola",    2, "DRINKS", List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Sauce",   1, null,     List.of(), "extra hot")
-                )
+                ),
+                1,
+                null
         );
 
         ticketRoutingService.route(payload, "ORD-001");
@@ -80,7 +82,9 @@ class TicketRoutingIT extends KitchenTestBase {
                 List.of(
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Pizza", 1, "OVEN", List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Water", 1, null,   List.of(), null)
-                )
+                ),
+                1,
+                null
         );
 
         ticketRoutingService.route(payload, "ORD-002");
