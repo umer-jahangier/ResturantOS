@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.1
 current_phase_name: pos-production-operations
 status: executing
-stopped_at: Completed 07.1-08-PLAN.md
-last_updated: "2026-07-11T14:56:56.513Z"
+stopped_at: Completed 07.1-09-PLAN.md
+last_updated: "2026-07-11T15:39:51.923Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 07.1 execution started
 progress:
   total_phases: 13
   completed_phases: 5
   total_plans: 42
-  completed_plans: 36
+  completed_plans: 37
   percent: 38
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.1 (pos-production-operations) — EXECUTING
-Plan: 8 of 10 in current phase
+Plan: 9 of 10 in current phase
 Plans: 10 across 7 waves (plan-checker PASSED, no blockers)
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 07.1 execution started
@@ -75,6 +75,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.1 P05 | 55min | 3 tasks | 24 files |
 | Phase 07.1 P07 | 45min | 3 tasks | 5 files |
 | Phase 07.1 P08 | 25min | 2 tasks | 6 files |
+| Phase 07.1-09 P09 | 50 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -196,6 +197,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 07.1-07] sortKdsTickets() exported as a generic pure function from kds-board.tsx (receivedAt asc, tie ticket.id, computed once per batch via useMemo) — fixes the KDS 'cards bounce' UAT complaint since the sort key never reads mutable per-item status
 - [Phase 07.1]: Item-cap bug is a rapid-tap order-creation race (no order-id dedup), not a numeric cap — fixed via ref-based ensureOrderId single-flight dedup + moving useAddItem's orderId from hook-argument to mutate-time binding
 - [Phase 07.1]: useAddItem redesigned: orderId is now a per-call mutate variable instead of a hook-creation-time argument — eliminates the stale-closure hazard class and closes a pre-existing layer-boundary ESLint violation in pos-terminal.tsx
+- [Phase 07.1-09]: SettlementActions renders once (drawer footer only), not duplicated near the header — UI-SPEC §7 mandates the shared component appear in exactly 3 places total across the phase; this drawer counts as one of those three
+- [Phase 07.1-09]: Fixed order-summaries query-invalidation gap across 8 mutations (use-orders.ts/use-payments.ts) — Required for this plan's own closing/voiding-removes-it acceptance criterion to actually work
 
 ### Pending Todos
 
@@ -222,6 +225,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T14:56:56.495Z
-Stopped at: Completed 07.1-08-PLAN.md
+Last session: 2026-07-11T15:39:51.911Z
+Stopped at: Completed 07.1-09-PLAN.md
 Resume file: None

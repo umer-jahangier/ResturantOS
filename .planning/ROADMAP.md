@@ -209,7 +209,7 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
   6. The KDS board renders stable (non-jumping) cards, lets staff open a ticket to view full order detail + instructions, visually distinguishes newly-added revision items from earlier ones, and shows per-item status rather than only a single order-level status.
   7. The cashier terminal is usable for real service — the already-built PaymentPanel, TillSessionBar, and VoidRefundDialog are rendered and reachable (a cashier can charge, open/close a till, and void/refund through the UI), the void 403 and the offline sync-badge-not-updating gaps from the Phase-7 UAT are closed, and the first-item / item-cap add bugs are fixed, with fast order creation, quick item search, and clear status indicators.
 
-**Plans**: 8/10 plans executed
+**Plans**: 9/10 plans executed
 
 Plans:
 
@@ -221,7 +221,7 @@ Plans:
 - [x] 07.1-06-PLAN.md (wave 5) — POS-14/15: shared Settlement Actions + OrderPanel redesign + page-level TillSessionBar + 3-tab scaffold + sync-badge fix + void-403 UX (human-verify checkpoint)
 - [x] 07.1-07-PLAN.md (wave 5) — KDS-03 board: 7-state per-item status + revision pills + stable non-jumping sort + ticket-detail view + Kitchen Notes
 - [x] 07.1-08-PLAN.md (wave 6) — POS-15 terminal: menu search + investigated item-cap/first-item fixes + tableId binding
-- [ ] 07.1-09-PLAN.md (wave 6) — POS-09: shared Order/Table Detail drawer + Order Management screen (DataTable, filters, permission-gated toggle, non-closed-never-disappears)
+- [x] 07.1-09-PLAN.md (wave 6) — POS-09: shared Order/Table Detail drawer + Order Management screen (DataTable, filters, permission-gated toggle, non-closed-never-disappears)
 - [ ] 07.1-10-PLAN.md (wave 7) — POS-10: table-centric floor view (semantic tokens, 3-state lifecycle, tap-to-start-order / tap-to-open-shared-drawer)
 
 ### Phase 8: Inventory & Recipe Management
@@ -344,7 +344,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 5. Cross-Cutting Services (Notifications, Audit, Files) | 0/3 | Not started | - |
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
-| 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 8/10 | In Progress|  |
+| 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 9/10 | In Progress|  |
 | 8. Inventory & Recipe Management | 0/3 | Not started | - |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 0/2 | Not started | - |
