@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.2
 current_phase_name: finance-accounting-period-provisioning-guarantee-open-period
 status: executing
-stopped_at: Completed 07.2-05-PLAN.md (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
-last_updated: "2026-07-11T20:58:48.376Z"
+stopped_at: Completed 07.2-07-PLAN.md (calendar-based fiscal-year period provisioning UI, FIN-10)
+last_updated: "2026-07-11T21:57:23.988Z"
 last_activity: 2026-07-12
-last_activity_desc: 07.2-05-PLAN.md complete (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
+last_activity_desc: 07.2-07-PLAN.md complete (calendar-based fiscal-year period provisioning UI, FIN-10)
 progress:
   total_phases: 14
   completed_phases: 6
   total_plans: 49
-  completed_plans: 43
-  percent: 88
+  completed_plans: 44
+  percent: 43
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — EXECUTING
-Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 5/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05 done)
+Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 6/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 remaining)
 Status: Executing Phase 07.2
-Last activity: 2026-07-12 — 07.2-05-PLAN.md complete (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
+Last activity: 2026-07-12 — 07.2-07-PLAN.md complete (calendar-based fiscal-year period provisioning UI, FIN-10)
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -81,6 +81,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.2 P03 | 25min | 2 tasks | 4 files |
 | Phase 07.2 P04 | 20min | 2 tasks | 3 files |
 | Phase 07.2 P05 | 20min | 2 tasks | 3 files |
+| Phase 07.2 P07 | 21min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -212,6 +213,9 @@ Recent decisions affecting current work:
 - [07.2-04]: Gated getPeriodStatus's auto-seed-on-miss branch behind @Value("${finance.period.auto-seed-on-miss:true}") + matching FINANCE_PERIOD_AUTO_SEED_ON_MISS:true YAML default, with a WARN audit log (tenantId+date+fiscalYear) whenever it fires -- toggle-off surfaces PeriodNotFoundException with no seed side effect (FIN-09).
 - [07.2-04]: AccountingPeriodAutoSeedToggleIT created as a standalone top-level test class (not @Nested) because FinanceTestBase does not pin this property via @DynamicPropertySource, so a plain @TestPropertySource cleanly overrides it for this one class.
 - [Phase ?]: [07.2-05]: Provision-endpoint tests call provisioningService.provision(tenantId, fiscalYear) directly (the endpoint's exact delegate), not the PeriodController bean, because Spring method-security AOP enforces @PreAuthorize on every bean invocation even without an HTTP layer -- 403-gate coverage deferred to plan 02 IT + plan 06 live E2E.
+- [Phase 07.2-07]: ProvisionPeriodDialog uses a local getProvisionErrorMessage() instead of formatUserFacingError from @/lib/api-client/errors, avoiding a documented components/** -> lib/api-client/** ESLint layer-boundary violation (docs/finance-eslint-backlog.md Issue 1); mirrors payment-panel.tsx's getChargeErrorMessage convention.
+- [Phase 07.2-07]: ProvisionPeriodDialog's internal fiscalYear state resets via a parent-side key={fiscalYear} remount in periods/page.tsx, not useEffect+setState, per react-hooks/set-state-in-effect.
+- [Phase 07.2-07]: E2E login() helper classifies a 'Sign-in failed / service temporarily unavailable' banner as Blocked (not FAIL), matching pos-settlement.spec.ts's 503/FallbackController convention -- discovered live this session (finance-service down, gateway 503).
 
 ### Pending Todos
 
@@ -232,6 +236,7 @@ Recent decisions affecting current work:
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
 - kitchen-service Testcontainers ITs (incl. new TicketRevisionRoutingIT) currently blocked by a pre-existing RabbitMQ ACCESS_REFUSED auth conflict on localhost:5672, confirmed environmental (baseline TicketRoutingIT fails identically). Human/CI run needed in an env without a competing local RabbitMQ broker.
 - **Phase 07.2 Wave 1 post-merge gate findings (pre-existing, NOT caused by 07.2-01..05):** (1) auth-service `BranchSwitchIT`/`RefreshLogoutIT`/`StepUpLoginIT`/`TotpFlowIT` fail with 401/403 mismatches when run as part of the FULL auth-service suite but pass cleanly (0 failures) when run in isolation — a pre-existing test-order/shared-context flakiness, confirmed unrelated to this phase (none of these 4 files were touched by any 07.2 plan; last touched 2026-06-24 in Phase 2). (2) finance-service `JournalEntryImmutabilityIT`/`JournalEntryBalanceTriggerIT`/`InternalAutoPostIT` fail with `IllegalStateException: Branch context required` — reproduced identically on the pre-phase-07.2 baseline commit (71925f5) via a throwaway worktree, confirming this predates the phase entirely (`JournalEntryServiceImpl.java` last touched in Phase 6, untouched by 07.2). (3) platform-admin-service's Testcontainers IT suite failed to bootstrap its Docker client strategy (`TestcontainersHostPropertyClientProviderStrategy could not be instantiated`) specifically in the orchestrator's own shell session — `docker ps` works fine directly, and each of plans 07.2-02/03/04/05's own executor sessions already ran their scoped Testcontainers-based tests green moments earlier on the same host, so this reads as a session-level Docker/Testcontainers bootstrap quirk, not a code defect. None of these three findings blocked Wave 1 — `git diff --stat` confirmed only the 14 files owned by plans 02-05 changed. Recommend a human/CI run of the full three-service suite in a clean session before treating Phase 07.2 as fully verified (07.2-06 already restarts all three services + reruns the full suite as its Task 1, which should be the authoritative check).
+- 07.2-07's live Playwright E2E run (finance-period-provisioning.spec.ts) was BLOCKED this session: finance-service process down / gateway 503 in the dev stack. Deferred to 07.2-06's restart-and-verify gate per plan.
 
 ### Roadmap Evolution
 
@@ -240,6 +245,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T20:57:58.602Z
-Stopped at: Completed 07.2-05-PLAN.md (self-service POST /api/v1/finance/periods/provision endpoint, FIN-08)
+Last session: 2026-07-11T21:56:38.335Z
+Stopped at: Completed 07.2-07-PLAN.md (calendar-based fiscal-year period provisioning UI, FIN-10)
 Resume file: None

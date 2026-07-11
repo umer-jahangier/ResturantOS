@@ -208,7 +208,7 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
   4. On the running dev stack (services restarted onto current jars, `/actuator/health` UP), a POS order-close for a period-less tenant no longer returns 423 PERIOD_LOCKED.
   5. A permissioned user can browse to any fiscal year (past, current, or future — computed dynamically, never hardcoded) in the Finance → Periods UI and provision/open it via a calendar-based preview dialog before confirming (FIN-10).
 
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 **Wave 1**
@@ -221,7 +221,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07.2-07-PLAN.md — frontend: calendar-based "Provision Periods" UI — dynamic fiscal-year navigator + 12-period preview dialog, permissioned (`finance.period.open`), wired into `/app/finance/periods` (Wave 2)
+- [x] 07.2-07-PLAN.md — frontend: calendar-based "Provision Periods" UI — dynamic fiscal-year navigator + 12-period preview dialog, permissioned (`finance.period.open`), wired into `/app/finance/periods` (Wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
