@@ -14,6 +14,7 @@ import io.restaurantos.finance.service.AccountingPeriodService;
 import io.restaurantos.finance.service.JournalEntryService;
 import io.restaurantos.finance.service.PeriodCloseService;
 import io.restaurantos.finance.service.ProvisioningService;
+import io.restaurantos.finance.util.PakistanFiscalYear;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -181,5 +182,48 @@ class AccountingPeriodIT extends FinanceTestBase {
 
         assertThatThrownBy(() -> periodCloseService.close(periodId, false))
                 .isInstanceOf(io.restaurantos.finance.exception.TotpRequiredException.class);
+    }
+
+    /*
+     * FIN-08 self-service provision endpoint (PeriodController.provisionPeriods).
+     *
+     * NOTE on @PreAuthorize("hasAuthority('finance.period.open')") coverage: Spring's method-security
+     * AOP proxy enforces @PreAuthorize on EVERY bean invocation (not just HTTP-routed calls), so even a
+     * direct `@Autowired PeriodController` bean call in this @SpringBootTest fails with
+     * AuthenticationCredentialsNotFoundException absent a populated SecurityContext (confirmed by
+     * running this suite). Per PATTERNS.md, this test class has no MockMvc/TestRestTemplate HTTP harness
+     * to stand up a real security context, so these tests exercise the endpoint's exact delegate --
+     * `provisioningService.provision(tenantId, fiscalYear)` -- the same call
+     * PeriodController.provisionPeriods makes after resolving tenantId from TenantContext and defaulting
+     * fiscalYear. The live 403-for-unauthorized-role gate is covered by plan 02's role-membership IT
+     * (permission granted only to OWNER/TENANT_ADMIN/ACCOUNTANT) and by plan 06's live E2E
+     * (CASHIER JWT -> 403).
+     */
+
+    @Test
+    void provisionEndpoint_seedsPeriodsForCurrentTenant() {
+        UUID freshTenantId = UUID.randomUUID();
+        int currentFiscalYear = PakistanFiscalYear.current();
+
+        ProvisioningResult result = provisioningService.provision(freshTenantId, currentFiscalYear);
+        tenantContext.set(freshTenantId, null, null, null);
+
+        assertThat(result.periodsSeeded()).isEqualTo(12);
+        assertThat(periodRepo.findByTenantIdAndFiscalYearOrderByPeriodNo(freshTenantId, currentFiscalYear))
+                .hasSize(12);
+    }
+
+    @Test
+    void provisionEndpoint_idempotentOnRepeat() {
+        UUID freshTenantId = UUID.randomUUID();
+        int currentFiscalYear = PakistanFiscalYear.current();
+
+        provisioningService.provision(freshTenantId, currentFiscalYear);
+        ProvisioningResult secondResult = provisioningService.provision(freshTenantId, currentFiscalYear);
+        tenantContext.set(freshTenantId, null, null, null);
+
+        assertThat(secondResult.periodsSeeded()).isEqualTo(0);
+        assertThat(periodRepo.findByTenantIdAndFiscalYearOrderByPeriodNo(freshTenantId, currentFiscalYear))
+                .hasSize(12);
     }
 }
