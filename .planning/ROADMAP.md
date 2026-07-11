@@ -21,6 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 6: Finance Core — General Ledger & Periods** - Seeded COA, balanced+immutable JEs, period locking
 - [x] **Phase 7: Point of Sale & Kitchen Display** - Orders, split-tender, tills, offline sync, KDS routing (completed 2026-07-10)
 - [x] **Phase 7.1: POS Production Operations & Item-Level Kitchen Tracking** *(INSERTED)* - Order management screen, table-centric dine-in, item-level status, kitchen ticket revisions, order/item instructions, cashier UX + wire payment/till/void UI (completed 2026-07-11)
+- [ ] **Phase 07.2: Finance Accounting-Period Provisioning** *(INSERTED, URGENT)* - Guarantee open period at tenant onboarding, self-service open-period endpoint, configurable auto-seed fallback — resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants)
 - [ ] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP
@@ -194,6 +195,29 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 - [x] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
 - [x] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
 
+### Phase 07.2: Finance accounting-period provisioning — guarantee open period at tenant onboarding, self-service period-open endpoint, configurable auto-seed fallback (INSERTED)
+
+**Goal:** Guarantee every ACTIVE tenant has an open accounting period covering the current business date; provide a permissioned self-service endpoint to provision/open periods; and make the existing silent auto-seed fallback configurable and audited — resolving the 423 PERIOD_LOCKED blocker on fresh tenants without changing pos-service's fail-closed behavior.
+**Requirements**: FIN-07, FIN-08, FIN-09
+**Depends on:** Phase 7
+**Success Criteria** (what must be TRUE):
+
+  1. A finance-seeding failure during tenant onboarding aborts the saga (tenant → PROVISIONING_FAILED) instead of silently continuing to ACTIVE with zero accounting periods (FIN-07).
+  2. An OWNER/TENANT_ADMIN/ACCOUNTANT can call `POST /api/v1/finance/periods/provision` (gated `finance.period.open`, tenantId from JWT only) to idempotently provision their own tenant's CoA + periods (FIN-08).
+  3. The `getPeriodStatus` auto-seed-on-miss fallback is config-gated (`finance.period.auto-seed-on-miss`, default on dev/staging, off prod) with a WARN audit line when it fires (FIN-09).
+  4. On the running dev stack (services restarted onto current jars, `/actuator/health` UP), a POS order-close for a period-less tenant no longer returns 423 PERIOD_LOCKED.
+
+**Plans:** 6 plans
+
+Plans:
+
+- [ ] 07.2-01-PLAN.md — Bookkeeping reconciliation: mark Phase 6 / FIN-01,02,04,06 complete + register FIN-07/08/09 in REQUIREMENTS.md (Wave 1, docs-only)
+- [ ] 07.2-02-PLAN.md — auth-service: changeset 044 `finance.period.open` permission (OWNER/TENANT_ADMIN/ACCOUNTANT grants) + master-changelog include + DB-assertion IT (Wave 1)
+- [ ] 07.2-03-PLAN.md — platform-admin-service: harden onboarding Step 5 (fail-fast, no swallow) + flip seed-coa default true + stubFinanceSeedCoaFail + saga-failure IT (Wave 1)
+- [ ] 07.2-04-PLAN.md — finance-service: config-gate `getPeriodStatus` auto-seed-on-miss (`finance.period.auto-seed-on-miss`) + WARN audit + toggle-off IT (Wave 1)
+- [ ] 07.2-05-PLAN.md — finance-service: `POST /api/v1/finance/periods/provision` endpoint (permissioned, JWT-tenant-scoped, idempotent) + happy-path/idempotency ITs (Wave 1)
+- [ ] 07.2-06-PLAN.md — Phase verification: restart 3 services + /actuator/health + full IT suite + live 423-resolution E2E + permission-gate (Wave 2, human-verify checkpoint)
+
 ### Phase 07.1: POS Production Operations & Item-Level Kitchen Tracking (INSERTED)
 
 **Goal**: Upgrade the POS from a working MVP into a production-ready restaurant operations surface — a table-centric dine-in flow, an active-order management screen, item-level kitchen status (with the order status *derived* from its items), industry-standard "add items to an existing order" kitchen ticket revisions, order/item special instructions, a redesigned fast cashier terminal, and a KDS that shows stable cards with item-level status, revisions, and instructions — while wiring the already-built payment/till/void UI that the Phase-7 UAT found was never rendered.
@@ -350,8 +374,3 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 10. Purchasing & Accounts Payable | 0/2 | Not started | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
 | 12. Reporting, Dashboards & NLQ | 0/3 | Not started | - |
-
----
-*Roadmap created: 2026-06-22 — comprehensive depth, 12 phases, 93/93 v1 requirements mapped*
-*Updated 2026-06-25 — all six business modules made core/mandatory; +9 requirements (PLATFORM-10 SuperAdmin per-tenant module control; HR-04/05/06; PUR-05/06; CRM-03/04/05); 102/102 v1 requirements mapped*
-*Updated 2026-06-25 — biometric attendance device integration: +2 requirements (HR-07/08), GW-02 extended for device-authenticated ingest, Phase 11 plan 11-04 added; 104/104 v1 requirements mapped*
