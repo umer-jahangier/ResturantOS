@@ -35,11 +35,11 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<OrderDto>>> listOrders(
+    public ResponseEntity<ApiResponse<List<OrderSummaryDto>>> listOrders(
             @RequestParam UUID branchId,
             @RequestParam(required = false) List<String> status,
             Pageable pageable) {
-        Page<OrderDto> page = orderService.listOrders(branchId, status, pageable);
+        Page<OrderSummaryDto> page = orderService.listOrderSummaries(branchId, status, pageable);
         return ResponseEntity.ok(ApiResponse.paginated(page.getContent(), new PageMeta(
                 new PageMeta.Page(
                         String.valueOf(page.getNumber()),

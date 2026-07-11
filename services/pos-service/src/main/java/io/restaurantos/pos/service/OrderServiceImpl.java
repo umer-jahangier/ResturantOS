@@ -4,7 +4,6 @@ import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
-import io.restaurantos.pos.domain.enums.TableStatus;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
@@ -16,6 +15,7 @@ import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.*;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.exception.PeriodLockedException;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -46,6 +46,7 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_VOIDED_KEY = "pos.order.voided";
     private static final String ORDER_VOIDED_TYPE = "ORDER_VOIDED";
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
+    private static final String VIEW_ALL_PERMISSION = "pos.order.view.all";
 
     private final OrderRepository orderRepository;
     private final OrderSequenceRepository sequenceRepository;
@@ -63,6 +64,8 @@ public class OrderServiceImpl implements OrderService {
     private final PosAuthorizationService posAuthorizationService;
     private final TillSessionRepository tillSessionRepository;
     private final OrderStatusDerivationService orderStatusDerivationService;
+    private final TableService tableService;
+    private final OrderMapper orderMapper;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -79,7 +82,9 @@ public class OrderServiceImpl implements OrderService {
                             FinancePeriodClient financePeriodClient,
                             PosAuthorizationService posAuthorizationService,
                             TillSessionRepository tillSessionRepository,
-                            OrderStatusDerivationService orderStatusDerivationService) {
+                            OrderStatusDerivationService orderStatusDerivationService,
+                            TableService tableService,
+                            OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -96,14 +101,20 @@ public class OrderServiceImpl implements OrderService {
         this.posAuthorizationService = posAuthorizationService;
         this.tillSessionRepository = tillSessionRepository;
         this.orderStatusDerivationService = orderStatusDerivationService;
+        this.tableService = tableService;
+        this.orderMapper = orderMapper;
     }
+
+    // tableRepository is retained solely for listOrderSummaries' table-name lookup
+    // (findByBranchId) — all table STATUS mutation now routes exclusively through
+    // TableService.syncStatusForOrder (single derivation seam, RESEARCH.md Pitfall 5).
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
         // Idempotent on clientOrderId
         Optional<Order> existing = orderRepository.findByClientOrderId(request.clientOrderId());
         if (existing.isPresent()) {
-            return toDto(existing.get());
+            return orderMapper.toDto(existing.get());
         }
 
         UUID tenantId = tenantContext.requireTenantId();
@@ -130,7 +141,7 @@ public class OrderServiceImpl implements OrderService {
         });
 
         order = orderRepository.save(order);
-        return toDto(order);
+        return orderMapper.toDto(order);
     }
 
     @Override
@@ -204,11 +215,10 @@ public class OrderServiceImpl implements OrderService {
             order.setOpenedAt(Instant.now());
             order.setOrderNo(generateOrderNo(tenantId, order.getBranchId()));
 
-            // Mark table as occupied
-            if (order.getTableId() != null) {
-                tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
-                        .ifPresent(table -> table.setStatus(TableStatus.OCCUPIED));
-            }
+            // Table-status derivation, single seam (RESEARCH.md Pitfall 5): DRAFT->OPEN with
+            // a bound table marks it OCCUPIED (derivedStatus is still its initial DRAFT here).
+            tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                    order.getStatus(), order.getDerivedStatus());
         }
 
         recomputeOrderTotals(order);
@@ -232,7 +242,7 @@ public class OrderServiceImpl implements OrderService {
                     order.getBranchId(), payload);
         }
 
-        return toDto(order);
+        return orderMapper.toDto(order);
     }
 
     @Override
@@ -251,7 +261,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         recomputeOrderTotals(order);
-        return toDto(orderRepository.save(order));
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
     @Override
@@ -278,7 +288,7 @@ public class OrderServiceImpl implements OrderService {
         order.getDiscounts().add(discount);
 
         recomputeOrderTotals(order);
-        return toDto(orderRepository.save(order));
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
     @Override
@@ -295,12 +305,12 @@ public class OrderServiceImpl implements OrderService {
         if (idempotencyKey != null) {
             Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
             if (stored.isPresent()) {
-                return toDto(findOrderForTenant(orderId, tenantId));
+                return orderMapper.toDto(findOrderForTenant(orderId, tenantId));
             }
             boolean claimed = idempotencyService.checkAndLock(idempotencyKey, orderId.toString(), 86400);
             if (!claimed) {
                 // Already in flight or completed — return current order state (no re-publish).
-                return toDto(findOrderForTenant(orderId, tenantId));
+                return orderMapper.toDto(findOrderForTenant(orderId, tenantId));
             }
         }
 
@@ -342,6 +352,8 @@ public class OrderServiceImpl implements OrderService {
         // derivedStatus is the single source of truth for kitchen-progress aggregation —
         // computed via the pure derivation seam, never hand-set (POS-11 / Pitfall 3).
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
 
         order = orderRepository.save(order);
 
@@ -372,7 +384,7 @@ public class OrderServiceImpl implements OrderService {
         eventPublisher.publish(POS_EXCHANGE, ORDER_SENT_TO_KDS_KEY, ORDER_SENT_TO_KDS_TYPE,
                 order.getBranchId(), payload);
 
-        OrderDto dto = toDto(order);
+        OrderDto dto = orderMapper.toDto(order);
         if (idempotencyKey != null) {
             idempotencyService.markComplete(idempotencyKey, dto.id().toString());
         }
@@ -384,7 +396,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto getOrder(UUID orderId, UUID branchId) {
         Order order = orderRepository.findByIdAndBranchId(orderId, branchId)
                 .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-        return toDto(order);
+        return orderMapper.toDto(order);
     }
 
     @Override
@@ -394,7 +406,42 @@ public class OrderServiceImpl implements OrderService {
                 ? List.of(OrderStatus.values())
                 : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
         return orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
-                .map(this::toDto);
+                .map(orderMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, Pageable pageable) {
+        // branchId is a request parameter (matches the rest of this controller's existing
+        // convention), but it must never widen scope beyond the caller's verified JWT branch
+        // (T-07.1d-01 — a client-supplied branchId could otherwise leak cross-branch orders).
+        UUID jwtBranchId = tenantContext.getBranchId()
+                .orElseThrow(() -> new PermissionDeniedException("Branch context required"));
+        if (!jwtBranchId.equals(branchId)) {
+            throw new PermissionDeniedException("Cannot list orders for a different branch");
+        }
+
+        // Default (no explicit status filter) = ALL non-terminal statuses — a non-closed
+        // order must NEVER disappear from the active list (POS-09 acceptance). This is
+        // intentionally different from the older listOrders' unfiltered-when-empty default.
+        List<OrderStatus> statusEnums = (statuses == null || statuses.isEmpty())
+                ? Arrays.stream(OrderStatus.values())
+                        .filter(s -> !isTerminal(s))
+                        .collect(Collectors.toList())
+                : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
+
+        // Own-vs-all-branch visibility (SECURITY — T-07.1d-01): silently scope to the
+        // caller's own orders unless they hold the all-branch view permission. Never a
+        // client-controllable filter.
+        Page<Order> orders = posAuthorizationService.hasPermission(VIEW_ALL_PERMISSION)
+                ? orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
+                : orderRepository.findByBranchIdAndStatusInAndCashierId(
+                        branchId, statusEnums, tenantContext.getUserId().orElse(null), pageable);
+
+        Map<UUID, String> tableNames = tableRepository.findByBranchId(branchId).stream()
+                .collect(Collectors.toMap(DiningTable::getId, DiningTable::getTableNumber));
+
+        return orders.map(order -> toSummaryDto(order, tableNames));
     }
 
     @Override
@@ -406,7 +453,7 @@ public class OrderServiceImpl implements OrderService {
             Order order = orderRepository.findById(orderId)
                     .filter(o -> tenantId.equals(o.getTenantId()))
                     .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return toDto(order);
+            return orderMapper.toDto(order);
         }
 
         boolean claimed = idempotencyService.checkAndLock(idempotencyKey, request.reason(), 86400);
@@ -414,7 +461,7 @@ public class OrderServiceImpl implements OrderService {
             Order order = orderRepository.findById(orderId)
                     .filter(o -> tenantId.equals(o.getTenantId()))
                     .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return toDto(order);
+            return orderMapper.toDto(order);
         }
 
         Order order = orderRepository.findById(orderId)
@@ -431,11 +478,9 @@ public class OrderServiceImpl implements OrderService {
         order.setVoidReason(request.reason());
         order.setVoidedAt(Instant.now());
 
-        // Release table
-        if (order.getTableId() != null) {
-            tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
-                    .ifPresent(table -> table.setStatus(TableStatus.AVAILABLE));
-        }
+        // Release table — terminal order status routes syncStatusForOrder to AVAILABLE.
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
 
         order = orderRepository.save(order);
 
@@ -444,7 +489,7 @@ public class OrderServiceImpl implements OrderService {
         eventPublisher.publish(POS_EXCHANGE, ORDER_VOIDED_KEY, ORDER_VOIDED_TYPE,
                 order.getBranchId(), payload);
 
-        OrderDto dto = toDto(order);
+        OrderDto dto = orderMapper.toDto(order);
         idempotencyService.markComplete(idempotencyKey, dto.id().toString());
         return dto;
     }
@@ -459,7 +504,7 @@ public class OrderServiceImpl implements OrderService {
             Order order = orderRepository.findById(orderId)
                     .filter(o -> tenantId.equals(o.getTenantId()))
                     .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return toDto(order);
+            return orderMapper.toDto(order);
         }
 
         String requestHash = String.valueOf(request.hashCode());
@@ -470,7 +515,7 @@ public class OrderServiceImpl implements OrderService {
             Order order = orderRepository.findById(orderId)
                     .filter(o -> tenantId.equals(o.getTenantId()))
                     .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return toDto(order);
+            return orderMapper.toDto(order);
         }
 
         UUID tenantId = tenantContext.requireTenantId();
@@ -498,11 +543,9 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CLOSED);
         order.setClosedAt(closedAt);
 
-        // Set table -> AVAILABLE
-        if (order.getTableId() != null) {
-            tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
-                    .ifPresent(table -> table.setStatus(TableStatus.AVAILABLE));
-        }
+        // Set table -> AVAILABLE — terminal order status routes syncStatusForOrder to AVAILABLE.
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
 
         order = orderRepository.save(order);
 
@@ -542,7 +585,7 @@ public class OrderServiceImpl implements OrderService {
                 finalOrder.getBranchId(), payload);
 
         // 7. Mark idempotency complete
-        OrderDto dto = toDto(finalOrder);
+        OrderDto dto = orderMapper.toDto(finalOrder);
         idempotencyService.markComplete(idempotencyKey, dto.id().toString());
 
         return dto;
@@ -565,7 +608,9 @@ public class OrderServiceImpl implements OrderService {
 
         item.setItemStatus(OrderItemStatus.SERVED);
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
-        return toDto(orderRepository.save(order));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
     @Override
@@ -581,7 +626,9 @@ public class OrderServiceImpl implements OrderService {
 
         item.setItemStatus(OrderItemStatus.CANCELLED);
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
-        return toDto(orderRepository.save(order));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
     @Override
@@ -620,7 +667,7 @@ public class OrderServiceImpl implements OrderService {
             });
         }
 
-        return toDto(orderRepository.save(order));
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
@@ -646,6 +693,20 @@ public class OrderServiceImpl implements OrderService {
      */
     private boolean isTerminal(OrderStatus status) {
         return status == OrderStatus.CLOSED || status == OrderStatus.VOIDED || status == OrderStatus.REFUNDED;
+    }
+
+    private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames) {
+        return new OrderSummaryDto(
+                order.getId(),
+                order.getOrderNo(),
+                order.getTableId(),
+                order.getTableId() != null ? tableNames.get(order.getTableId()) : null,
+                order.getDerivedStatus(),
+                order.getCashierId(),
+                order.getCoverCount(),
+                order.getTotalPaisa(),
+                order.getOpenedAt()
+        );
     }
 
     private void recomputeOrderTotals(Order order) {
@@ -719,56 +780,5 @@ public class OrderServiceImpl implements OrderService {
         seq.setLastSeq(seq.getLastSeq() + 1);
         sequenceRepository.save(seq);
         return String.format("ORD-%s-%04d", today, seq.getLastSeq());
-    }
-
-    private OrderDto toDto(Order order) {
-        List<OrderDto.OrderItemDto> itemDtos = order.getItems().stream()
-                .map(item -> new OrderDto.OrderItemDto(
-                        item.getId(),
-                        item.getMenuItemId(),
-                        item.getItemNameSnapshot(),
-                        item.getUnitPriceSnapshot(),
-                        item.getQuantity(),
-                        item.getKdsStation(),
-                        item.getItemStatus(),
-                        item.getRevisionNo(),
-                        item.getFiredAt(),
-                        item.getDiscountPaisa(),
-                        item.getTaxPaisa(),
-                        item.getLineTotalPaisa(),
-                        item.getNotes(),
-                        item.getModifiers().stream()
-                                .map(m -> new OrderDto.ModifierDto(
-                                        m.getId(),
-                                        m.getModifierId(),
-                                        m.getModifierNameSnapshot(),
-                                        m.getPriceDeltaPaisa()))
-                                .collect(Collectors.toList())
-                ))
-                .collect(Collectors.toList());
-
-        return new OrderDto(
-                order.getId(),
-                order.getBranchId(),
-                order.getOrderNo(),
-                order.getType(),
-                order.getStatus(),
-                order.getDerivedStatus(),
-                order.getTableId(),
-                order.getCoverCount(),
-                order.getCashierId(),
-                order.getCustomerId(),
-                order.getSubtotalPaisa(),
-                order.getTaxPaisa(),
-                order.getDiscountPaisa(),
-                order.getServiceChargePaisa(),
-                order.getTotalPaisa(),
-                order.getNotes(),
-                order.getOpenedAt(),
-                order.getSentToKdsAt(),
-                order.getClientOrderId(),
-                order.getVersion(),
-                itemDtos
-        );
     }
 }

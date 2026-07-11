@@ -5,6 +5,7 @@ import io.restaurantos.pos.dto.ApplyDiscountRequest;
 import io.restaurantos.pos.dto.CloseOrderRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
+import io.restaurantos.pos.dto.OrderSummaryDto;
 import io.restaurantos.pos.dto.UpdateInstructionsRequest;
 import io.restaurantos.pos.dto.VoidOrderRequest;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,16 @@ public interface OrderService {
     OrderDto sendToKds(UUID orderId, String clientFireId);
     OrderDto getOrder(UUID orderId, UUID branchId);
     Page<OrderDto> listOrders(UUID branchId, List<String> statuses, Pageable pageable);
+
+    /**
+     * Order Management list (POS-09): defaults to ALL non-terminal statuses (never hides a
+     * non-closed order) when {@code statuses} is null/empty, and is permission-gated
+     * own-vs-all-branch (T-07.1d-01) — a caller without {@code pos.order.view.all} is silently
+     * scoped to their own orders, never a client-controllable filter. {@code branchId} MUST be
+     * the caller's JWT branch.
+     */
+    Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, Pageable pageable);
+
     OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey);
     OrderDto voidOrder(UUID orderId, VoidOrderRequest request, String idempotencyKey);
     OrderDto markItemServed(UUID orderId, UUID itemId);

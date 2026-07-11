@@ -30,6 +30,33 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("statuses") Collection<OrderStatus> statuses,
             Pageable pageable);
 
+    /**
+     * Same as {@link #findByBranchIdAndStatusIn} but additionally scoped to a single
+     * creator (POS-09 own-vs-all-branch visibility — a caller without the all-branch
+     * permission is silently scoped to their own orders, never a client-supplied filter).
+     */
+    @Query("SELECT o FROM Order o WHERE o.branchId = :branchId AND o.status IN :statuses "
+            + "AND o.cashierId = :cashierId ORDER BY o.createdAt DESC")
+    Page<Order> findByBranchIdAndStatusInAndCashierId(
+            @Param("branchId") UUID branchId,
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("cashierId") UUID cashierId,
+            Pageable pageable);
+
+    /**
+     * The (at most one) non-terminal order currently bound to a table (POS-10). "Non-terminal"
+     * = not in the caller-supplied {@code excludedStatuses} set (CLOSED/VOIDED/REFUNDED at the
+     * call site). {@code Optional} return type means Spring Data throws
+     * {@code IncorrectResultSizeDataAccessException} if more than one row matches — this
+     * enforces (rather than silently tolerates) the "at most one active order per table"
+     * invariant instead of picking an arbitrary row.
+     */
+    @Query("SELECT o FROM Order o WHERE o.tableId = :tableId AND o.status NOT IN :excludedStatuses "
+            + "ORDER BY o.createdAt DESC")
+    Optional<Order> findByTableIdAndStatusNotIn(
+            @Param("tableId") UUID tableId,
+            @Param("excludedStatuses") Collection<OrderStatus> excludedStatuses);
+
     @Query("SELECT o FROM Order o WHERE o.tillSessionId = :tillSessionId")
     List<Order> findByTillSessionId(@Param("tillSessionId") UUID tillSessionId);
 

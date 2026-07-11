@@ -2,6 +2,7 @@ package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.domain.enums.TableStatus;
 import io.restaurantos.pos.dto.DiningTableDto;
+import io.restaurantos.pos.dto.TableDetailDto;
 import io.restaurantos.pos.service.TableService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
@@ -38,5 +39,12 @@ public class TableController {
             @RequestBody Map<String, String> body) {
         TableStatus status = TableStatus.valueOf(body.get("status"));
         return ResponseEntity.ok(ApiResponse.ok(DiningTableDto.from(tableService.updateStatus(id, branchId, status))));
+    }
+
+    @GetMapping("/{id}/active-order")
+    public ResponseEntity<ApiResponse<TableDetailDto>> getActiveOrder(
+            @PathVariable UUID id,
+            @RequestParam UUID branchId) {
+        return ResponseEntity.ok(ApiResponse.ok(tableService.getActiveOrderForTable(id, branchId)));
     }
 }

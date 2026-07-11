@@ -8,6 +8,7 @@ import io.restaurantos.pos.domain.model.OrderItem;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.service.OrderStatusDerivationService;
 import io.restaurantos.pos.service.PosProcessedEventService;
+import io.restaurantos.pos.service.TableService;
 import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
 import org.slf4j.Logger;
@@ -50,17 +51,20 @@ public class OrderReadyConsumer {
     private final OrderRepository orderRepository;
     private final ObjectMapper objectMapper;
     private final OrderStatusDerivationService orderStatusDerivationService;
+    private final TableService tableService;
 
     public OrderReadyConsumer(PosProcessedEventService processedEventService,
                                TenantAwareMessageProcessor tenantAwareMessageProcessor,
                                OrderRepository orderRepository,
                                ObjectMapper objectMapper,
-                               OrderStatusDerivationService orderStatusDerivationService) {
+                               OrderStatusDerivationService orderStatusDerivationService,
+                               TableService tableService) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.orderRepository = orderRepository;
         this.objectMapper = objectMapper;
         this.orderStatusDerivationService = orderStatusDerivationService;
+        this.tableService = tableService;
     }
 
     @RabbitListener(queues = PosKitchenTopologyConfig.POS_ORDER_READY_QUEUE)
@@ -106,6 +110,8 @@ public class OrderReadyConsumer {
         }
 
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
         orderRepository.save(order);
         log.info("OrderReadyConsumer: order {} station {} — items advanced to READY, derivedStatus={}",
                 orderId, readiedStation, order.getDerivedStatus());
