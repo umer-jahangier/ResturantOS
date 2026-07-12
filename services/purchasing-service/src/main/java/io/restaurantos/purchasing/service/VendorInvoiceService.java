@@ -117,6 +117,20 @@ public class VendorInvoiceService {
         return toDto(invoiceRepository.findById(id).orElseThrow());
     }
 
+    /**
+     * 10-10 list endpoint. Tenant is ALWAYS resolved from {@link TenantContext}, never from a
+     * request parameter (a caller-supplied tenantId would be a cross-tenant hole).
+     */
+    @Transactional(readOnly = true)
+    public List<VendorInvoiceDto> list(UUID branchId, List<InvoiceStatus> statuses) {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<VendorInvoice> invoices = (statuses == null || statuses.isEmpty())
+                ? invoiceRepository.findByTenantIdAndBranchIdOrderByInvoiceDateDesc(tenantId, branchId)
+                : invoiceRepository.findByTenantIdAndBranchIdAndStatusInOrderByInvoiceDateDesc(
+                        tenantId, branchId, statuses);
+        return invoices.stream().map(this::toDto).toList();
+    }
+
     private void runMatch(VendorInvoice invoice) {
         boolean allOk = true;
         for (VendorInvoiceLine line : invoice.getLines()) {

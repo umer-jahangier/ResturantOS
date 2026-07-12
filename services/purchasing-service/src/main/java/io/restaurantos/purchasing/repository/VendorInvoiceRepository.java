@@ -16,6 +16,10 @@ public interface VendorInvoiceRepository extends JpaRepository<VendorInvoice, UU
 
     List<VendorInvoice> findByTenantIdAndBranchIdOrderByInvoiceDateDesc(UUID tenantId, UUID branchId);
 
+    /** PUR list endpoint (10-10): branch listing narrowed by status. */
+    List<VendorInvoice> findByTenantIdAndBranchIdAndStatusInOrderByInvoiceDateDesc(
+            UUID tenantId, UUID branchId, Collection<InvoiceStatus> statuses);
+
     /** PUR-06: invoices eligible for spend analytics (MATCHED/PAID) within a date window, lines fetched eagerly. */
     @Query("""
             SELECT DISTINCT i FROM VendorInvoice i

@@ -1,5 +1,6 @@
 package io.restaurantos.purchasing.web;
 
+import io.restaurantos.purchasing.domain.enums.InvoiceStatus;
 import io.restaurantos.purchasing.dto.CreateVendorInvoiceRequest;
 import io.restaurantos.purchasing.dto.VendorInvoiceDto;
 import io.restaurantos.purchasing.service.VendorInvoiceService;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,6 +29,13 @@ public class VendorInvoiceController {
     @PreAuthorize("hasAuthority('vendor.invoice.book')")
     public ApiResponse<VendorInvoiceDto> create(@Valid @RequestBody CreateVendorInvoiceRequest req) {
         return ApiResponse.ok(vendorInvoiceService.create(req));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAuthority('vendor.view')")
+    public ApiResponse<List<VendorInvoiceDto>> list(@RequestParam UUID branchId,
+                                                     @RequestParam(required = false) List<InvoiceStatus> status) {
+        return ApiResponse.ok(vendorInvoiceService.list(branchId, status));
     }
 
     @GetMapping("/{id}")
