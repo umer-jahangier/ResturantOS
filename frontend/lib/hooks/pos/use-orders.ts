@@ -26,12 +26,23 @@ export function useOrderSummaries(statuses?: string[]) {
   });
 }
 
+/**
+ * `refetchInterval` (POS-20): the order detail surfaces (Order Management drawer, Table
+ * Floor View) previously only refetched on open, so a kitchen-side per-item status
+ * transition (KITCHEN_ITEM_STATUS_CHANGED, fixed backend-side in 07.3-02) never showed
+ * up until the user manually closed/reopened the surface. A modest 5s poll while the
+ * order is open/mounted keeps live kitchen progress visible without a full websocket
+ * wire-up for this surface.
+ */
+const ORDER_REFETCH_INTERVAL_MS = 5000;
+
 export function useOrder(orderId: string) {
   const { branchId, isAuthenticated } = useCurrentUser();
   return useQuery({
     queryKey: queryKeys.pos.order(branchId, orderId),
     queryFn: () => PosRepository.getOrder(orderId, branchId),
     enabled: isAuthenticated && !!branchId && !!orderId,
+    refetchInterval: ORDER_REFETCH_INTERVAL_MS,
   });
 }
 
@@ -125,6 +136,12 @@ export function useAddItem() {
       return PosRepository.addItem(orderId, payload);
     },
     onSuccess: (_data, variables) => {
+      // Seed the cache with the mutation response FIRST (RESEARCH POS-21 instant-UI
+      // seam) so the added line renders immediately, before the invalidation-driven
+      // refetch below lands. Offline stub responses go through this same path too —
+      // that's fine, it's the same shape returned by buildOfflineOrderStub above and
+      // gets superseded once the outbox replay's real response invalidates again.
+      queryClient.setQueryData(queryKeys.pos.order(branchId, variables.orderId), _data);
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, variables.orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
