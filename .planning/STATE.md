@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-03-PLAN.md (client-only cart terminal, POS-16/17/18/19)
-last_updated: "2026-07-12T11:31:02.419Z"
+stopped_at: "Completed 07.3-04-PLAN.md (Order Management backend: rich summary DTO, assign-table, KDS tableNumber parity)"
+last_updated: "2026-07-12T12:08:33.541Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-03-PLAN.md
+last_activity_desc: Completed 07.3-04-PLAN.md
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 59
-  completed_plans: 48
-  percent: 81
+  completed_plans: 49
+  percent: 83
 ---
 
 # Project State
@@ -29,12 +29,14 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 3/10 complete (07.3-01 done: PaymentStatus derivation,
+Plans: 10 plans across 3 waves — 4/10 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
-PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19)
+PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
+OrderSummaryDto (payment status + item quantity), PATCH /orders/{id}/table assign-table,
+tableNumber on send-to-KDS event, POS-24/POS-16/KDS-04)
 Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-03-PLAN.md
+Last activity: 2026-07-12 — Completed 07.3-04-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -92,6 +94,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P01 | 55min | 3 tasks | 8 files |
 | Phase 07.3 P02 | 20min | 2 tasks | 5 files |
 | Phase 07.3 P03 | 35min | 4 tasks | 13 files |
+| Phase 07.3 P04 | 40min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -235,6 +238,9 @@ Recent decisions affecting current work:
 - [Phase 07.3-02]: Dev-stack RabbitMQ requires RABBITMQ_USERNAME=restaurantos/RABBITMQ_PASSWORD=dev_rabbit_2026 (deploy/.env) for @RabbitListener context startup locally — Resolves the previously-documented ACCESS_REFUSED environmental blocker for kitchen-service/pos-service Testcontainers ITs; both full suites ran green with these exported.
 - [Phase 07.3-03]: Menu taps are ALWAYS cart-only (never network), even post-send; adding more items to a fired order is Order Management's revision-fire flow (POS-21/D-06), not the terminal's
 - [Phase 07.3-03]: New lib/hooks/pos/use-fire-to-kitchen.ts (mutate-time-orderId sendToKds sibling) added instead of editing use-orders.ts, which 07.3-06 owns this phase
+- [Phase 07.3-04]: assignTable routes the previous table binding (no-op when null, the common case) AND the newly-assigned table through the SAME TableService.syncStatusForOrder seam -- never an inline table.setStatus() call; true table-to-table reassignment is not covered by this plan's tests
+- [Phase 07.3-04]: listOrderSummaries default filter changed from !isTerminal(s) to !isTerminal(s) && s != DRAFT -- explicit statuses requests (incl. DRAFT/terminal) bypass the default and are unaffected
+- [Phase 07.3-04]: OrderPaymentRepository.sumAmountByOrderIds batched interface-projection query added for listOrderSummaries -- one query per page instead of per row (N+1 avoidance)
 
 ### Pending Todos
 
@@ -264,6 +270,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T11:31:02.399Z
-Stopped at: Completed 07.3-03-PLAN.md (client-only cart terminal, POS-16/17/18/19)
+Last session: 2026-07-12T12:08:17.964Z
+Stopped at: Completed 07.3-04-PLAN.md (Order Management backend: rich summary DTO, assign-table, KDS tableNumber parity)
 Resume file: None

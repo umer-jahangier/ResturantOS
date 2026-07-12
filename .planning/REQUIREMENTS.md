@@ -129,7 +129,7 @@
 - [ ] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
 - [x] **POS-22**: Full-page settlement surface — Charge Now is a dedicated full-page/large view (not a small modal) showing order no., table, customer, cashier, order time, item list with qty/status/notes, tax/discount/charge breakdown, payment history, payment methods, and remaining balance
 - [x] **POS-23**: Settlement semantics — recording a payment sets a derived payment status (Unpaid/Partially Paid/Paid) and persists `OrderPayment` rows WITHOUT closing the order; an order transitions to `CLOSED` only when it is BOTH fully Paid AND fully Served, enforced on both the payment flow and the mark-served flow; a paid-but-unserved order shows Paid with its live status
-- [ ] **POS-24**: Order Management completeness — closed/paid orders are visible with status filters and a search box; every row shows payment status (Paid/Unpaid/Partially Paid/Refunded); the Cover column is replaced with total item quantity (and optional unique-item count); an Assign Table action assigns an available table to a tableless order (occupied tables blocked) updating order + table status immediately; already-paid orders block duplicate payment while staying accessible for history
+- [x] **POS-24**: Order Management completeness — closed/paid orders are visible with status filters and a search box; every row shows payment status (Paid/Unpaid/Partially Paid/Refunded); the Cover column is replaced with total item quantity (and optional unique-item count); an Assign Table action assigns an available table to a tableless order (occupied tables blocked) updating order + table status immediately; already-paid orders block duplicate payment while staying accessible for history
 - [ ] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
 - [ ] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
 
@@ -138,7 +138,7 @@
 - [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
 - [x] **KDS-02**: `ORDER_READY` notifies POS
 - [x] **KDS-03**: KDS revision & detail (Phase 7.1) — the board renders stable (non-jumping) cards, lets staff open a ticket for full order detail, visually distinguishes newly-added revision items from earlier ones, shows special instructions/kitchen notes, and displays per-item status rather than only an order-level status
-- [ ] **KDS-04**: Station-isolated KDS redesign (Phase 07.3) — each kitchen station has its own isolated view with New / Started / Preparing / Ready columns reflecting item-level status (mixed item statuses within one order supported); collapsed cards show only order number, table, time, and menu items; selecting a card opens a dedicated detail page (not a modal); stations are provisioned/seeded so the board renders, and the table number is propagated from the order to the ticket
+- [x] **KDS-04**: Station-isolated KDS redesign (Phase 07.3) — each kitchen station has its own isolated view with New / Started / Preparing / Ready columns reflecting item-level status (mixed item statuses within one order supported); collapsed cards show only order number, table, time, and menu items; selecting a card opens a dedicated detail page (not a modal); stations are provisioned/seeded so the board renders, and the table number is propagated from the order to the ticket
 - [ ] **KDS-05**: Kitchen prioritization (Phase 07.3) — newest orders are surfaced and long-running orders auto-highlight via subtle indicators (border/timer/color driven by the station escalation threshold) rather than full-screen effects; the board scales for many simultaneous orders
 
 ### Inventory (INV)
@@ -332,10 +332,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-21 | Phase 07.3 | Pending |
 | POS-22 | Phase 07.3 | Complete |
 | POS-23 | Phase 07.3 | Complete |
-| POS-24 | Phase 07.3 | Pending |
+| POS-24 | Phase 07.3 | Complete |
 | POS-25 | Phase 07.3 | Pending |
 | POS-26 | Phase 07.3 | Pending |
-| KDS-04 | Phase 07.3 | Pending |
+| KDS-04 | Phase 07.3 | Complete |
 | KDS-05 | Phase 07.3 | Pending |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
