@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -106,7 +107,7 @@ function useFadeOutList(rows: OrderSummary[] | undefined) {
 
 export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   const { userId } = useCurrentUser();
-  const { data, isLoading } = useOrderSummaries();
+  const { data, isLoading, isFetching, refetch } = useOrderSummaries();
   const { visible, fadingIds } = useFadeOutList(data?.data);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -216,33 +217,50 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
           ))}
         </div>
 
-        {/* My Orders / All Branch — permission-gated, never a disabled control (UI-SPEC §1) */}
-        <PermissionGuard require={ALL_BRANCH_PERMISSION}>
-          <div className="flex items-center gap-1 rounded-full border p-1 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewAll(false)}
-              data-testid="toggle-my-orders"
-              className={cn(
-                "rounded-full px-3 py-1.5 font-medium transition-colors",
-                !viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-              )}
-            >
-              My Orders
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewAll(true)}
-              data-testid="toggle-all-branch"
-              className={cn(
-                "rounded-full px-3 py-1.5 font-medium transition-colors",
-                viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-              )}
-            >
-              All Branch
-            </button>
-          </div>
-        </PermissionGuard>
+        <div className="flex items-center gap-2">
+          {/* My Orders / All Branch — permission-gated, never a disabled control (UI-SPEC §1) */}
+          <PermissionGuard require={ALL_BRANCH_PERMISSION}>
+            <div className="flex items-center gap-1 rounded-full border p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewAll(false)}
+                data-testid="toggle-my-orders"
+                className={cn(
+                  "rounded-full px-3 py-1.5 font-medium transition-colors",
+                  !viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                )}
+              >
+                My Orders
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewAll(true)}
+                data-testid="toggle-all-branch"
+                className={cn(
+                  "rounded-full px-3 py-1.5 font-medium transition-colors",
+                  viewAll ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                )}
+              >
+                All Branch
+              </button>
+            </div>
+          </PermissionGuard>
+
+          {/* Manual Refresh (POS-21) — re-fetches the summaries list on demand; a
+              subtle spin while `isFetching` (initial load OR this click) without
+              disturbing the fade-out-list invariant above. */}
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            data-testid="order-management-refresh"
+            aria-label="Refresh orders"
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
