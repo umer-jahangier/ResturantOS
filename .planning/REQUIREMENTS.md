@@ -139,7 +139,7 @@
 - [x] **KDS-02**: `ORDER_READY` notifies POS
 - [x] **KDS-03**: KDS revision & detail (Phase 7.1) — the board renders stable (non-jumping) cards, lets staff open a ticket for full order detail, visually distinguishes newly-added revision items from earlier ones, shows special instructions/kitchen notes, and displays per-item status rather than only an order-level status
 - [x] **KDS-04**: Station-isolated KDS redesign (Phase 07.3) — each kitchen station has its own isolated view with New / Started / Preparing / Ready columns reflecting item-level status (mixed item statuses within one order supported); collapsed cards show only order number, table, time, and menu items; selecting a card opens a dedicated detail page (not a modal); stations are provisioned/seeded so the board renders, and the table number is propagated from the order to the ticket
-- [ ] **KDS-05**: Kitchen prioritization (Phase 07.3) — newest orders are surfaced and long-running orders auto-highlight via subtle indicators (border/timer/color driven by the station escalation threshold) rather than full-screen effects; the board scales for many simultaneous orders
+- [x] **KDS-05**: Kitchen prioritization (Phase 07.3) — newest orders are surfaced and long-running orders auto-highlight via subtle indicators (border/timer/color driven by the station escalation threshold) rather than full-screen effects; the board scales for many simultaneous orders
 
 ### Inventory (INV)
 
@@ -336,7 +336,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-25 | Phase 07.3 | Complete |
 | POS-26 | Phase 07.3 | Complete |
 | KDS-04 | Phase 07.3 | Complete |
-| KDS-05 | Phase 07.3 | Pending |
+| KDS-05 | Phase 07.3 | Complete |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
 | INV-03 | Phase 8 | Pending |

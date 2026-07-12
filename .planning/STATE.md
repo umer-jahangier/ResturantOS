@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-09-PLAN.md
-last_updated: "2026-07-12T15:45:42.560Z"
+stopped_at: Completed 07.3-10-PLAN.md
+last_updated: "2026-07-12T16:31:04.965Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-09-PLAN.md
+last_activity_desc: Completed 07.3-10-PLAN.md
 progress:
   total_phases: 15
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 59
-  completed_plans: 54
-  percent: 47
+  completed_plans: 55
+  percent: 53
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 9/10 complete (07.3-01 done: PaymentStatus derivation,
+Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — 10/10 PLANS COMPLETE (pending phase-level verification)
+Plans: 10 plans across 3 waves — 10/10 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
 PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
@@ -58,9 +58,18 @@ panels mirroring the 07.3-07 charge-page pattern, new pos-modal-revamp.spec.ts P
 no-dialog + screenshot backstop, POS-25/POS-26 — till stage reaches a live PASS
 (pos25-till.png); void/refund stage BLOCKED live this session by a pre-existing
 pos-service addItem HTTP-response-relay hang (server writes complete near-instantly but
-the response never reaches the client), out of scope, logged in deferred-items.md)
-Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-09-PLAN.md
+the response never reaches the client), out of scope, logged in deferred-items.md;
+07.3-10 done: kitchen/ redesigned into a station-isolated board — station-picker.tsx
+(auto-navigates on a single active station) -> station-board.tsx (New/Started/Preparing/
+Ready item-status columns via kds-item-column.tsx, item-centric mixed-status support) ->
+kitchen/[stationCode]/orders/[ticketId] dedicated detail page (kills the old tap-to-open
+Dialog), slim kds-ticket-card.tsx (order#/table/age/item-names only), useUpdateItemStatus
+wired to 07.3-05's item-status endpoint, single shared useKdsClock replacing per-card
+setInterval, subtle escalation-threshold aging (left border + timer chip, no
+animate-bounce/bg-red-950), Wave-0 E2E kds-stations.spec.ts — ran live twice, both PASS,
+KDS-04/KDS-05 both complete)
+Status: Phase 07.3 — 10/10 plans complete, ready for phase-level verification
+Last activity: 2026-07-12 — Completed 07.3-10-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -124,6 +133,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P05 | 20min | 3 tasks | 13 files |
 | Phase 07.3 P08 | 20min | 2 tasks | 9 files |
 | Phase 07.3 P09 | 65min | 3 tasks | 6 files |
+| Phase 07.3 P10 | 23min | 4 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -283,6 +293,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 07.3-08]: table-select-combobox.tsx gained an additive availableOnly prop (default false) instead of a new component -- Assign Table is the only availableOnly=true caller, order-panel.tsx unaffected.
 - [Phase 07.3-09]: void/refund and till panels use a plain in-flow section (no Radix DialogPrimitive) mirroring 07.3-07's charge-summary.tsx pattern, not 07.3-06's Radix-Dialog-based order-table-detail-drawer.tsx pattern -- required so neither surface carries a [role=dialog], satisfying this plan's own executable no-dialog E2E backstop.
 - [Phase 07.3-09]: till-session-bar.tsx panels replace the trigger row in place within the same session-scoped bar (still visible above all 3 POS tabs) rather than a portal/overlay panel.
+- [Phase ?]: Deleted kds-board.tsx (superseded by station-picker/station-board/kds-item-column); moved sortKdsTickets into station-board.tsx — 07.3-10: kitchen/page.tsx became a station picker so the old multi-station KdsBoard had zero callers left
+- [Phase ?]: kds-ticket-detail.tsx extended with optional canUpdate prop for per-item transition controls — 07.3-10 Task 3: avoids duplicating revision-grouping logic in kds-station-detail.tsx
 
 ### Pending Todos
 
@@ -315,6 +327,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T15:45:42.546Z
-Stopped at: Completed 07.3-09-PLAN.md
+Last session: 2026-07-12T16:31:04.934Z
+Stopped at: Completed 07.3-10-PLAN.md
 Resume file: None
