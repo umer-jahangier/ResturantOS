@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-07-PLAN.md
-last_updated: "2026-07-12T14:03:11.261Z"
+stopped_at: Completed 07.3-05-PLAN.md
+last_updated: "2026-07-12T14:32:54.390Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-07-PLAN.md
+last_activity_desc: Completed 07.3-05-PLAN.md
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 59
-  completed_plans: 51
+  completed_plans: 52
   percent: 47
 ---
 
@@ -29,13 +29,17 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 6/10 complete (07.3-01 done: PaymentStatus derivation,
+Plans: 10 plans across 3 waves — 7/10 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
 PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
 OrderSummaryDto (payment status + item quantity), PATCH /orders/{id}/table assign-table,
-tableNumber on send-to-KDS event, POS-24/POS-16/KDS-04; 07.3-06 done: useOrder live
-refetch + useAddItem instant cache-seed, "Send New Items (N)" revision CTA + panelized
+tableNumber on send-to-KDS event, POS-24/POS-16/KDS-04; 07.3-05 done: kitchen-service V5
+migration + tableNumber propagation to KdsTicket/KdsTicketDto (parity w/ 07.3-04's producer
+field), POST /tickets/{id}/items/{id}/status explicit item-status endpoint wrapping
+markItemStatus, DEFAULT-station auto-seed-on-miss (TicketRoutingService.ensureStation +
+KdsController.getStations) so the KDS board is never empty, KDS-04; 07.3-06 done: useOrder
+live refetch + useAddItem instant cache-seed, "Send New Items (N)" revision CTA + panelized
 detail surface, Order Management manual Refresh, Wave-0 E2E for POS-20/POS-21 — POS-20 E2E
 BLOCKED on this dev branch by an out-of-scope kitchen-service pagination/data-hygiene
 defect, logged in deferred-items.md; 07.3-07 done: PaymentStatusBadge (4-state), full-page
@@ -44,7 +48,7 @@ modal, useOrderPayments/useRecordPayment, CHARGE NOW reroute, Wave-0 E2E for POS
 S5/S5b BLOCKED live this session by a pre-existing gateway 503 on GET .../payments and a
 pre-existing S4 fire-toast timing gap, both out of scope, logged in deferred-items.md)
 Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-07-PLAN.md
+Last activity: 2026-07-12 — Completed 07.3-05-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -105,6 +109,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P04 | 40min | 3 tasks | 9 files |
 | Phase 07.3 P06 | 55min | 4 tasks | 7 files |
 | Phase 07.3 P07 | 40min | 4 tasks | 21 files |
+| Phase 07.3 P05 | 20min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -257,6 +262,8 @@ Recent decisions affecting current work:
 - [Phase 07.3-07]: GET /orders/{id} has no paymentStatus field — derivePaymentStatus() mirrors backend PaymentStatusDerivationService client-side from useOrderPayments sum vs order.totalPaisa, kept frontend-only
 - [Phase 07.3-07]: recordPayment records ONE tender per call (backend has no multi-payment array endpoint outside legacy closeOrder); split-tender rows submit sequentially via mutateAsync
 - [Phase 07.3-07]: Charge page never calls closeOrder directly — relies entirely on backend maybeCloseOrder seam to auto-close once Paid AND Served
+- [Phase 07.3-05]: TicketRoutingService.ensureStation seeds a station row (branchId+code) for every station code a ticket routes to, not only DEFAULT -- backstopped by V1's uq_station_tenant_branch_code unique constraint
+- [Phase 07.3-05]: KdsController.getStations auto-seeds a DEFAULT station on empty branch (mirrors finance 07.2 auto-seed-on-miss); item-status endpoint wraps existing markItemStatus rather than re-implementing transition logic
 
 ### Pending Todos
 
@@ -288,6 +295,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T14:03:01.621Z
-Stopped at: Completed 07.3-07-PLAN.md
+Last session: 2026-07-12T14:32:54.370Z
+Stopped at: Completed 07.3-05-PLAN.md
 Resume file: None
