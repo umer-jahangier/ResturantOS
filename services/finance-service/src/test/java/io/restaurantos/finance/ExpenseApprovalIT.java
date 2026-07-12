@@ -27,9 +27,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * FIN-05: proves expense approvals respect OPA approval limits.
+ * FIN-05: proves expense create/approve/reject business logic (idempotency, reject-requires-
+ * reason, JE posting shape) with a stubbed {@code allow=true/false} {@code AuthorizationClient}.
  * {@link FinanceTestBase} does not provide an AuthorizationClient mock (it predates one — see
  * 10-05-PLAN.md critical_codebase_facts #8), so it is declared here.
+ *
+ * <p><b>This class does NOT exercise real OPA policy behaviour</b> — its {@code allow}/{@code
+ * deny} outcomes are canned Mockito stubs, not decided by {@code finance.rego}. That is exactly
+ * the pattern that let the OPA action-string mismatch (10-06-A / fixed in 10-07) hide behind 18+
+ * green integration tests in production. Real-policy allow/deny coverage — including the
+ * negative control that proves reverting the action string turns a test red — lives in
+ * {@link ExpenseOpaPolicyIT}, which talks to a real OPA Testcontainer running the real
+ * {@code policies/} bundle. Do not mistake this class's green status for policy coverage.
  */
 class ExpenseApprovalIT extends FinanceTestBase {
 
