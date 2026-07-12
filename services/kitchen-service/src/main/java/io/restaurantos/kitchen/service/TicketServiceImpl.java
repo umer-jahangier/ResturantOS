@@ -5,6 +5,7 @@ import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsTicket;
 import io.restaurantos.kitchen.domain.model.KdsTicketItem;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
+import io.restaurantos.kitchen.event.KitchenEventPayloads.ItemStatusChangedPayload;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderReadyPayload;
 import io.restaurantos.kitchen.repository.KdsTicketItemRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
@@ -34,6 +35,8 @@ public class TicketServiceImpl implements TicketService {
     private static final String KITCHEN_EXCHANGE = "kitchen.topic";
     private static final String ORDER_READY_ROUTING_KEY = "kitchen.order.ready";
     private static final String ORDER_READY_TYPE = "ORDER_READY";
+    private static final String ITEM_STATUS_CHANGED_ROUTING_KEY = "kitchen.item.status-changed";
+    private static final String ITEM_STATUS_CHANGED_TYPE = "KITCHEN_ITEM_STATUS_CHANGED";
 
     private final KdsTicketRepository ticketRepository;
     private final KdsTicketItemRepository ticketItemRepository;
@@ -82,6 +85,20 @@ public class TicketServiceImpl implements TicketService {
         }
 
         KdsTicket saved = ticketRepository.save(ticket);
+
+        // POS-20 (D-05): publish a fine-grained per-item event on EVERY transition (not only
+        // READY) so pos-service can reflect live item status without a manual reopen. This is
+        // additive to — and never replaces — the aggregate ORDER_READY path above.
+        eventPublisher.publish(
+                KITCHEN_EXCHANGE,
+                ITEM_STATUS_CHANGED_ROUTING_KEY,
+                ITEM_STATUS_CHANGED_TYPE,
+                saved.getBranchId(),
+                new ItemStatusChangedPayload(
+                        saved.getOrderId(), item.getOrderItemId(), newStatus.name(),
+                        item.getRevisionNo(), saved.getStationCode())
+        );
+
         KdsTicketDto dto = toDto(saved);
         webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), dto);
         return dto;

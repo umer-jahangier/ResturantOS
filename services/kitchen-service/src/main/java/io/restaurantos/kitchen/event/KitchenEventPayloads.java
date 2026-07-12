@@ -12,6 +12,18 @@ public final class KitchenEventPayloads {
 
     public record OrderReadyPayload(UUID orderId, String station, Instant readyAt) {}
 
+    // Field names+order MUST be byte-identical to pos-service's consumer-side
+    // KitchenItemStatusConsumer.ItemStatusChangedPayload (field-name parity is the ONLY
+    // contract enforcement; a mismatch silently drops every message — RESEARCH.md
+    // Pitfall 4 / Phase-7 cold-start bug #4). Never reorder/rename these fields.
+    public record ItemStatusChangedPayload(
+            UUID orderId,
+            UUID orderItemId,
+            String newStatus,
+            int revisionNo,
+            String station
+    ) {}
+
     // ─── Consume side (ORDER_SENT_TO_KDS from pos.topic) ──────────────────────
 
     // revisionNo/orderNotes are ADDITIVE fields appended after items — names must match
