@@ -11,7 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.Base64;
 
@@ -20,12 +19,12 @@ public class VendorService {
 
     private final VendorRepository vendorRepository;
     private final TenantContext tenantContext;
-    private final Optional<EncryptionService> encryptionService;
+    private final EncryptionService encryptionService;
     private final TenantSetupService tenantSetupService;
 
     public VendorService(VendorRepository vendorRepository,
                          TenantContext tenantContext,
-                         Optional<EncryptionService> encryptionService,
+                         EncryptionService encryptionService,
                          TenantSetupService tenantSetupService) {
         this.vendorRepository = vendorRepository;
         this.tenantContext = tenantContext;
@@ -70,15 +69,13 @@ public class VendorService {
         vendor.setLeadTimeDays(req.leadTimeDays());
         vendor.setNotes(req.notes());
         if (req.bankAccountNo() != null && !req.bankAccountNo().isBlank()) {
-            encryptionService.ifPresentOrElse(svc -> {
-                vendor.setBankAccountNo(Base64.getEncoder().encodeToString(svc.encrypt(req.bankAccountNo())));
-                String digits = req.bankAccountNo().replaceAll("\\D", "");
-                vendor.setBankAccountLast4(digits.length() >= 4
-                        ? digits.substring(digits.length() - 4) : digits);
-            }, () -> {
-                vendor.setBankAccountNo(null);
-                vendor.setBankAccountLast4(null);
-            });
+            // EncryptionService is a required bean (see EncryptionRequiredConfig): a bank account
+            // number is either encrypted successfully or the request fails loudly. It must never be
+            // silently dropped because the encryption key was missing (PUR-01 field-encryption).
+            vendor.setBankAccountNo(Base64.getEncoder().encodeToString(encryptionService.encrypt(req.bankAccountNo())));
+            String digits = req.bankAccountNo().replaceAll("\\D", "");
+            vendor.setBankAccountLast4(digits.length() >= 4
+                    ? digits.substring(digits.length() - 4) : digits);
         }
     }
 
