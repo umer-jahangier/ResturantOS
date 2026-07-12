@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07.3
-current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
+current_phase: 8
+current_phase_name: Inventory & Recipe Management
 status: executing
-stopped_at: Completed 07.3-11-PLAN.md
-last_updated: "2026-07-12T19:08:50.164Z"
-last_activity: 2026-07-13
-last_activity_desc: Completed 07.3-11-PLAN.md (gap closure — POS-23/BE-CR-01 legacy close-path bypass)
+stopped_at: Completed 07.3-10-PLAN.md
+last_updated: "2026-07-12T19:28:44.848Z"
+last_activity: 2026-07-12
+last_activity_desc: Phase 07.3 complete, transitioned to Phase 8
 progress:
   total_phases: 15
   completed_phases: 8
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
+Phase: 8 — Inventory & Recipe Management
 Plans: 10 plans across 3 waves + 1 gap-closure plan — 11/11 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
@@ -80,7 +80,7 @@ via a new SettlementSemanticsIT backstop test; deleted orphaned frontend Payment
 component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
 frontend tsc clean. Phase 07.3 now 11/11 plans complete.
 Status: Executing Phase 07.3 — all plans complete, ready for phase re-verification
-Last activity: 2026-07-13 — Completed 07.3-11-PLAN.md (gap closure)
+Last activity: 2026-07-12 — Phase 07.3 complete, transitioned to Phase 8
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
