@@ -3,6 +3,7 @@ package io.restaurantos.pos.web;
 import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.pos.dto.CloseOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
+import io.restaurantos.pos.dto.OrderPaymentDto;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.SplitTenderCalculator;
@@ -45,6 +46,12 @@ public class PaymentController {
             @Valid @RequestBody RecordPaymentRequest request) {
         long total = paymentService.recordPayment(id, request.method(), request.amountPaisa(), request.referenceNo());
         return ResponseEntity.ok(ApiResponse.ok(total));
+    }
+
+    @GetMapping("/{id}/payments")
+    public ResponseEntity<ApiResponse<List<OrderPaymentDto>>> listPayments(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(paymentService.listPayments(id)));
     }
 
     @PostMapping("/{id}/close")
