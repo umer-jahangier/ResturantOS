@@ -1,16 +1,22 @@
 import { get, post, put } from "@/lib/api-client/request";
 import {
+  apiApPaymentSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
   apiVendorInvoiceSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
+  createApPaymentInputSchema,
   createPurchaseOrderInputSchema,
+  createVendorInvoiceInputSchema,
+  overrideMatchInputSchema,
   rejectPoInputSchema,
   vendorInputSchema,
+  type InvoiceStatus,
   type PoStatus,
 } from "@/lib/api-client/schemas/purchasing.schema";
 import {
+  adaptApPayment,
   adaptPurchaseOrder,
   adaptSpendAnalytics,
   adaptVendor,
@@ -18,12 +24,15 @@ import {
   adaptVendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
 import type {
+  ApPayment,
+  ApPaymentInput,
   PurchaseOrder,
   PurchaseOrderInput,
   SpendAnalytics,
   Vendor,
   VendorInput,
   VendorInvoice,
+  VendorInvoiceInput,
   VendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
 
@@ -101,14 +110,47 @@ export const PurchasingRepository = {
     return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
   },
 
-  async createInvoice(body: unknown): Promise<VendorInvoice> {
-    const raw = await post("/api/v1/purchasing/invoices", body);
+  /** 10-10: branch-scoped invoice list, optionally narrowed by status. Tenant is server-resolved. */
+  async listInvoices(branchId: string, status?: InvoiceStatus[]): Promise<VendorInvoice[]> {
+    const params: Record<string, unknown> = { branchId };
+    if (status && status.length > 0) params.status = status;
+    const raw = await get<unknown[]>("/api/v1/purchasing/invoices", params);
+    return (raw ?? []).map((inv) => adaptVendorInvoice(apiVendorInvoiceSchema.parse(inv)));
+  },
+
+  /**
+   * Book a vendor invoice against a PO. TIGHTENED from `body: unknown` (dead-code signature, no
+   * caller anywhere) to a real Zod-validated `VendorInvoiceInput` (10-13 gap closure) — the first
+   * caller is `useCreateVendorInvoice`.
+   */
+  async createInvoice(input: VendorInvoiceInput): Promise<VendorInvoice> {
+    const raw = await post("/api/v1/purchasing/invoices", createVendorInvoiceInputSchema.parse(input));
     return adaptVendorInvoice(apiVendorInvoiceSchema.parse(raw));
   },
 
   async getInvoice(id: string): Promise<VendorInvoice> {
     const raw = await get(`/api/v1/purchasing/invoices/${id}`);
     return adaptVendorInvoice(apiVendorInvoiceSchema.parse(raw));
+  },
+
+  /** Override a MISMATCHED invoice's failed 3-way match with a mandatory justification. */
+  async overrideMatch(id: string, justification: string): Promise<VendorInvoice> {
+    const raw = await post(
+      `/api/v1/purchasing/invoices/${id}/override-match`,
+      overrideMatchInputSchema.parse({ justification }),
+    );
+    return adaptVendorInvoice(apiVendorInvoiceSchema.parse(raw));
+  },
+
+  /**
+   * First frontend consumer of `POST /api/v1/purchasing/payments` — posts AP -> Bank in finance
+   * and publishes `AP_PAYMENT_PROCESSED` (ROADMAP SC#3). No `GET /payments` list endpoint exists
+   * on the backend (`ApPaymentController` is POST-only) — the payments page is driven off the
+   * invoice list (status MATCHED/APPROVED_FOR_PAYMENT/PAID), not a separate payments query.
+   */
+  async createApPayment(input: ApPaymentInput): Promise<ApPayment> {
+    const raw = await post("/api/v1/purchasing/payments", createApPaymentInputSchema.parse(input));
+    return adaptApPayment(apiApPaymentSchema.parse(raw));
   },
 
   async getSpendAnalytics(branchId: string, from: string, to: string): Promise<SpendAnalytics> {

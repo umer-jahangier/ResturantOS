@@ -1,11 +1,15 @@
 import type { z } from "zod";
 import type {
+  apiApPaymentSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
   apiVendorInvoiceSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
+  createApPaymentInputSchema,
   createPurchaseOrderInputSchema,
+  createVendorInvoiceInputSchema,
+  overrideMatchInputSchema,
   rejectPoInputSchema,
   vendorInputSchema,
 } from "@/lib/api-client/schemas/purchasing.schema";
@@ -19,6 +23,13 @@ export type PurchaseOrderInput = z.infer<typeof createPurchaseOrderInputSchema>;
 /** Write payload for `POST /purchase-orders/{id}/reject`. */
 export type RejectPoInput = z.infer<typeof rejectPoInputSchema>;
 export type VendorInvoice = z.infer<typeof apiVendorInvoiceSchema>;
+/** Write payload for `POST /invoices` (mirrors CreateVendorInvoiceRequest — no vendorId/branchId). */
+export type VendorInvoiceInput = z.infer<typeof createVendorInvoiceInputSchema>;
+/** Write payload for `POST /invoices/{id}/override-match`. */
+export type OverrideMatchInput = z.infer<typeof overrideMatchInputSchema>;
+export type ApPayment = z.infer<typeof apiApPaymentSchema>;
+/** Write payload for `POST /payments` (mirrors CreateApPaymentRequest — no branchId/method). */
+export type ApPaymentInput = z.infer<typeof createApPaymentInputSchema>;
 export type SpendAnalytics = z.infer<typeof apiSpendAnalyticsSchema>;
 export type VendorScorecard = z.infer<typeof apiVendorScorecardSchema>;
 
@@ -31,6 +42,10 @@ export function adaptPurchaseOrder(raw: PurchaseOrder): PurchaseOrder {
 }
 
 export function adaptVendorInvoice(raw: VendorInvoice): VendorInvoice {
+  return raw;
+}
+
+export function adaptApPayment(raw: ApPayment): ApPayment {
   return raw;
 }
 

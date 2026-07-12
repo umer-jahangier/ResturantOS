@@ -2,8 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PurchasingRepository } from "@/lib/repositories/purchasing.repository";
-import type { PurchaseOrder, PurchaseOrderInput, VendorInput } from "@/lib/adapters/purchasing.adapter";
-import type { PoStatus } from "@/lib/api-client/schemas/purchasing.schema";
+import type {
+  ApPayment,
+  ApPaymentInput,
+  PurchaseOrder,
+  PurchaseOrderInput,
+  VendorInput,
+  VendorInvoice,
+  VendorInvoiceInput,
+} from "@/lib/adapters/purchasing.adapter";
+import type { InvoiceStatus, PoStatus } from "@/lib/api-client/schemas/purchasing.schema";
 // Type-only import — permitted from a lib/hooks/** file (the ESLint layer-boundary rule only
 // blocks components/**); this is how 04-02-C's "components branch on ApiError via TanStack
 // mutation-error type inference" pattern works: the hook pins TError to ApiError, the component
@@ -12,10 +20,20 @@ import type { ApiError } from "@/lib/api-client/errors";
 
 const VENDORS_KEY = ["purchasing", "vendors"];
 const POS_KEY = ["purchasing", "pos"];
+const INVOICES_KEY = ["purchasing", "invoices"];
 
 function invalidatePo(qc: ReturnType<typeof useQueryClient>, id: string) {
   qc.invalidateQueries({ queryKey: ["purchasing", "po", id] });
   qc.invalidateQueries({ queryKey: POS_KEY });
+}
+
+/**
+ * Invalidate BOTH the invoice detail key and the invoice list key on every invoice mutation — a
+ * paid invoice that still shows MATCHED in the list is exactly the UAT bounce this plan calls out.
+ */
+function invalidateInvoice(qc: ReturnType<typeof useQueryClient>, id?: string) {
+  if (id) qc.invalidateQueries({ queryKey: ["purchasing", "invoice", id] });
+  qc.invalidateQueries({ queryKey: INVOICES_KEY });
 }
 
 export function useVendors() {
@@ -139,6 +157,45 @@ export function useVendorInvoice(id: string) {
     queryKey: ["purchasing", "invoice", id],
     queryFn: () => PurchasingRepository.getInvoice(id),
     enabled: Boolean(id),
+  });
+}
+
+/** 10-10: branch-scoped invoice list, optionally narrowed by status. */
+export function useVendorInvoices(branchId: string, status?: InvoiceStatus[]) {
+  return useQuery({
+    queryKey: [...INVOICES_KEY, branchId, status ?? []],
+    queryFn: () => PurchasingRepository.listInvoices(branchId, status),
+    enabled: Boolean(branchId),
+  });
+}
+
+/** Book an invoice against a sent PO; the 3-way match runs synchronously server-side. */
+export function useCreateVendorInvoice() {
+  const qc = useQueryClient();
+  return useMutation<VendorInvoice, ApiError, VendorInvoiceInput>({
+    mutationFn: (input) => PurchasingRepository.createInvoice(input),
+    onSuccess: () => invalidateInvoice(qc),
+  });
+}
+
+/** MISMATCHED -> APPROVED_FOR_PAYMENT, with a mandatory justification. */
+export function useOverrideMatch(id: string) {
+  const qc = useQueryClient();
+  return useMutation<VendorInvoice, ApiError, string>({
+    mutationFn: (justification) => PurchasingRepository.overrideMatch(id, justification),
+    onSuccess: () => invalidateInvoice(qc, id),
+  });
+}
+
+/**
+ * First frontend consumer of `POST /api/v1/purchasing/payments`. Invalidates the invoice list AND
+ * the paid invoice's own detail key so a "MATCHED" row that was just paid shows PAID everywhere.
+ */
+export function useCreateApPayment() {
+  const qc = useQueryClient();
+  return useMutation<ApPayment, ApiError, ApPaymentInput>({
+    mutationFn: (input) => PurchasingRepository.createApPayment(input),
+    onSuccess: (payment) => invalidateInvoice(qc, payment.allocations[0]?.invoiceId),
   });
 }
 

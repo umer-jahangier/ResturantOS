@@ -116,10 +116,45 @@ export const rejectPoInputSchema = z.object({
   reason: z.string().min(1, "A reason is required to reject a purchase order"),
 });
 
+/**
+ * InvoiceStatus (backend enum, `InvoiceStatus.java`) — PENDING_MATCH is the theoretical
+ * pre-match state; in practice `VendorInvoiceService.create` always runs the 3-way match
+ * synchronously, so an invoice is created straight into MATCHED or MISMATCHED.
+ */
+export const INVOICE_STATUSES = [
+  "PENDING_MATCH",
+  "MATCHED",
+  "MISMATCHED",
+  "APPROVED_FOR_PAYMENT",
+  "PAID",
+] as const;
+export const invoiceStatusSchema = z.enum(INVOICE_STATUSES);
+export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
+
+/**
+ * LineMatchStatus (backend enum, `LineMatchStatus.java`) — read from source, NOT guessed: it is
+ * OK/QTY_OVER/QTY_UNDER/PRICE_OVER/PRICE_UNDER/MISSING_GRN/PENDING, not the MATCHED/PRICE_VARIANCE/
+ * QTY_VARIANCE vocabulary some earlier plan prose assumed.
+ */
+export const LINE_MATCH_STATUSES = [
+  "OK",
+  "QTY_OVER",
+  "QTY_UNDER",
+  "PRICE_OVER",
+  "PRICE_UNDER",
+  "MISSING_GRN",
+  "PENDING",
+] as const;
+export const lineMatchStatusSchema = z.enum(LINE_MATCH_STATUSES);
+
+// VendorInvoiceDto.LineDto (real backend) has NO poQty/poUnitPricePaisa/grnQty fields — only
+// id/poLineId/qty/unitPricePaisa/lineTotalPaisa/matchStatus. ThreeWayMatchTable's PO/GRN columns
+// degrade to "—" against the real API (kept optional here so the MSW-only fixture fields don't
+// break .parse() during the transition — see 10-13-SUMMARY "Decisions Made").
 export const apiInvoiceLineSchema = z.object({
   id: z.string(),
   poLineId: z.string().uuid(),
-  qty: z.string(),
+  qty: qtyField,
   unitPricePaisa: z.number().int(),
   lineTotalPaisa: z.number().int(),
   matchStatus: z.string(),
@@ -140,6 +175,66 @@ export const apiVendorInvoiceSchema = z.object({
   inputTaxPaisa: z.number().int(),
   matchOverrideReason: z.string().nullable().optional(),
   lines: z.array(apiInvoiceLineSchema),
+});
+
+/** Params for `GET /api/v1/purchasing/invoices`. */
+export const invoiceListParamsSchema = z.object({
+  branchId: z.string().uuid(),
+  status: z.array(invoiceStatusSchema).optional(),
+});
+
+// Mirrors CreateVendorInvoiceRequest exactly (services/purchasing-service .../dto/
+// CreateVendorInvoiceRequest.java) — NOTE: the backend takes NO vendorId/branchId (both are
+// derived server-side from the referenced PO); the field is `purchaseOrderId`, not `poId`. `qty`
+// is sent as a numeric string; Jackson's BigDecimal deserializer accepts both.
+export const createVendorInvoiceLineInputSchema = z.object({
+  poLineId: z.string().uuid(),
+  qty: z.string().min(1, "Quantity is required"),
+  unitPricePaisa: z.number().int().nonnegative(),
+});
+
+export const createVendorInvoiceInputSchema = z.object({
+  purchaseOrderId: z.string().uuid(),
+  invoiceNo: z.string().min(1, "Invoice number is required"),
+  invoiceDate: z.string().min(1, "Invoice date is required"),
+  inputTaxPaisa: z.number().int().nonnegative().optional(),
+  lines: z.array(createVendorInvoiceLineInputSchema).min(1, "Add at least one line"),
+});
+
+// Mirrors VendorInvoiceService.overrideMatch's justification param. The backend only rejects a
+// blank justification; a >= 10-char minimum is a client-side UX requirement per the plan ("a
+// 1-char justification is not one") — enforced here, not on the server.
+export const overrideMatchInputSchema = z.object({
+  justification: z.string().min(10, "Provide at least 10 characters of justification"),
+});
+
+// Mirrors CreateApPaymentRequest exactly (services/purchasing-service .../dto/
+// CreateApPaymentRequest.java) — NOTE: NO branchId, NO method field (both assumed by earlier plan
+// prose but absent from the real DTO); branchId/vendorId are derived server-side from the
+// invoice. `bankAccountCode` is optional (server defaults to "1110" if omitted).
+export const createApPaymentInputSchema = z.object({
+  invoiceId: z.string().uuid(),
+  paymentDate: z.string().min(1, "Payment date is required"),
+  amountPaisa: z.number().int().positive(),
+  bankAccountCode: z.string().optional(),
+});
+
+export const apiApPaymentAllocationSchema = z.object({
+  invoiceId: z.string().uuid(),
+  amountPaisa: z.number().int(),
+});
+
+// Mirrors ApPaymentDto exactly — no top-level invoiceId/status; the invoice(s) paid are under
+// `allocations` (one payment can in principle allocate across several invoices, though this
+// plan's single-invoice payment flow always sends exactly one).
+export const apiApPaymentSchema = z.object({
+  id: z.string().uuid(),
+  vendorId: z.string().uuid(),
+  branchId: z.string().uuid(),
+  paymentDate: z.string(),
+  amountPaisa: z.number().int(),
+  bankAccountCode: z.string(),
+  allocations: z.array(apiApPaymentAllocationSchema),
 });
 
 /** PUR-06: one spend-analytics row (vendor or category bucket) with a prior-period comparison. */

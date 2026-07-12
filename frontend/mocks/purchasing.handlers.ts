@@ -22,7 +22,65 @@ const receivedByLine: Record<string, string> = { [LINE_ID]: "0", [LINE_ID_2]: "0
 let grnQty = "0";
 let closedAt: string | null = null;
 let closeReason: string | null = null;
-const invoices: Record<string, unknown> = {};
+
+interface MockInvoiceLine {
+  id: string;
+  poLineId: string;
+  qty: string;
+  unitPricePaisa: number;
+  lineTotalPaisa: number;
+  matchStatus: string;
+  grnQty: string;
+  poQty: string;
+  poUnitPricePaisa: number;
+}
+
+interface MockInvoice {
+  id: string;
+  vendorId: string;
+  purchaseOrderId: string;
+  branchId: string;
+  invoiceNo: string;
+  invoiceDate: string;
+  status: string;
+  totalPaisa: number;
+  inputTaxPaisa: number;
+  matchOverrideReason: string | null;
+  lines: MockInvoiceLine[];
+}
+
+interface MockApPaymentAllocation {
+  invoiceId: string;
+  amountPaisa: number;
+}
+
+interface MockApPayment {
+  id: string;
+  vendorId: string;
+  branchId: string;
+  paymentDate: string;
+  amountPaisa: number;
+  bankAccountCode: string;
+  allocations: MockApPaymentAllocation[];
+}
+
+const invoices: MockInvoice[] = [];
+const apPayments: MockApPayment[] = [];
+
+/**
+ * Mirrors `ThreeWayMatchService.matchLine` + the default `TenantMatchTolerance` row
+ * (`qtyOverPct=0`, `qtyUnderPct=0.05`, `priceOverPct=0.02`, `priceUnderPct=0.10`) exactly, so the
+ * mock does not teach the invoice-journey test a tolerance the real backend does not enforce.
+ */
+function matchLineStatus(receivedQty: number, invQty: number, poPrice: number, invPrice: number): string {
+  if (receivedQty <= 0) return "MISSING_GRN";
+  if (invQty > receivedQty * 1.0) return "QTY_OVER";
+  if (invQty < receivedQty * 0.95) return "QTY_UNDER";
+  const ratio = poPrice === 0 ? 1 : invPrice / poPrice;
+  if (ratio > 1.02) return "PRICE_OVER";
+  if (ratio < 0.9) return "PRICE_UNDER";
+  return "OK";
+}
 
 interface MockPoLine {
   id: string;
@@ -455,45 +513,126 @@ export const purchasingHandlers = [
     });
   }),
 
+  // 10-13: branch-scoped invoice list, optionally narrowed by ?status=. Mirrors the PO list
+  // handler's shape (10-10's non-paginated ApiResponse<List<Dto>> contract).
+  http.get("*/api/v1/purchasing/invoices", ({ request }) => {
+    const url = new URL(request.url);
+    const statuses = url.searchParams.getAll("status");
+    const rows = statuses.length > 0 ? invoices.filter((i) => statuses.includes(i.status)) : invoices;
+    return ok(rows);
+  }),
+
+  // 10-13: book a vendor invoice against a PO. Mirrors VendorInvoiceService.create exactly —
+  // vendorId/branchId are derived from the PO (never sent by the client), and each line's
+  // matchStatus is computed via matchLineStatus() (the same 2%/5%/10% tolerance as the real
+  // ThreeWayMatchService, not an invented one), which then determines the invoice-level
+  // MATCHED/MISMATCHED status the same way VendorInvoiceService.runMatch does.
   http.post("*/api/v1/purchasing/invoices", async ({ request }) => {
     const body = (await request.json()) as {
       purchaseOrderId: string;
       invoiceNo: string;
+      invoiceDate: string;
+      inputTaxPaisa?: number;
       lines: { poLineId: string; qty: string; unitPricePaisa: number }[];
     };
-    const hasGrn = parseFloat(grnQty) > 0;
-    const priceOk = body.lines.every((l) => l.unitPricePaisa <= 1020);
-    const matchStatus = !hasGrn ? "MISSING_GRN" : priceOk ? "OK" : "PRICE_OVER";
-    const invoiceStatus = matchStatus === "OK" ? "MATCHED" : "MISMATCHED";
-    const id = `i0000001-0000-4000-8000-${String(Object.keys(invoices).length + 1).padStart(12, "0")}`;
-    const invoice = {
-      id,
-      vendorId: VENDOR_ID,
-      purchaseOrderId: body.purchaseOrderId,
-      branchId: BRANCH,
-      invoiceNo: body.invoiceNo,
-      invoiceDate: "2026-06-16",
-      status: invoiceStatus,
-      totalPaisa: 100_000,
-      inputTaxPaisa: 0,
-      matchOverrideReason: null,
-      lines: body.lines.map((l, idx) => ({
-        id: `il-${idx}`,
+    const po = findPo(body.purchaseOrderId);
+    if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
+    if (!["SENT", "PARTIALLY_RECEIVED", "FULLY_RECEIVED"].includes(po.id === PO_ID ? poStatus : po.status)) {
+      return apiError("INVALID_PO_STATE", "PO must be sent before invoicing", 409);
+    }
+
+    const seq = String(invoices.length + 1).padStart(12, "0");
+    const id = `f0000001-0000-4000-8000-${seq}`;
+    let allOk = true;
+    const lines: MockInvoiceLine[] = body.lines.map((l, idx) => {
+      const poLine = po.lines.find((pl) => pl.id === l.poLineId);
+      const received = Number(receivedByLine[l.poLineId] ?? "0");
+      const invQty = Number(l.qty);
+      const poPrice = poLine?.unitPricePaisa ?? 0;
+      const matchStatus = matchLineStatus(received, invQty, poPrice, l.unitPricePaisa);
+      if (matchStatus !== "OK") allOk = false;
+      return {
+        id: `g0000002-0000-4000-8000-${String(idx + 1).padStart(12, "0")}`,
         poLineId: l.poLineId,
         qty: l.qty,
         unitPricePaisa: l.unitPricePaisa,
-        lineTotalPaisa: Number(l.qty) * l.unitPricePaisa,
+        lineTotalPaisa: Math.round(invQty * l.unitPricePaisa),
         matchStatus,
-        grnQty: grnQty,
-        poQty: "100",
-        poUnitPricePaisa: 1000,
-      })),
+        grnQty: String(received),
+        poQty: poLine?.qty ?? "0",
+        poUnitPricePaisa: poPrice,
+      };
+    });
+    const inputTaxPaisa = body.inputTaxPaisa ?? 0;
+    const invoice: MockInvoice = {
+      id,
+      vendorId: po.vendorId,
+      purchaseOrderId: po.id,
+      branchId: po.branchId,
+      invoiceNo: body.invoiceNo,
+      invoiceDate: body.invoiceDate,
+      status: allOk ? "MATCHED" : "MISMATCHED",
+      totalPaisa: lines.reduce((sum, l) => sum + l.lineTotalPaisa, 0),
+      inputTaxPaisa,
+      matchOverrideReason: null,
+      lines,
     };
-    invoices[id] = invoice;
+    invoices.push(invoice);
     return ok(invoice);
   }),
 
-  http.get("*/api/v1/purchasing/invoices/:id", ({ params }) => ok(invoices[params.id as string] ?? invoices[Object.keys(invoices)[0] ?? ""])),
+  // 10-13: MISMATCHED -> APPROVED_FOR_PAYMENT with a mandatory justification, mirroring
+  // VendorInvoiceService.overrideMatch's state guard.
+  http.post("*/api/v1/purchasing/invoices/:id/override-match", async ({ params, request }) => {
+    const invoice = invoices.find((i) => i.id === params.id);
+    if (!invoice) return apiError("NOT_FOUND", "Invoice not found", 404);
+    const body = (await request.json().catch(() => ({}))) as { justification?: string };
+    if (!body.justification || !body.justification.trim()) {
+      return apiError("VALIDATION_ERROR", "Override justification required", 400);
+    }
+    if (invoice.status !== "MISMATCHED") {
+      return apiError("INVALID_PO_STATE", "Only MISMATCHED invoices can be overridden", 409);
+    }
+    invoice.matchOverrideReason = body.justification;
+    invoice.status = "APPROVED_FOR_PAYMENT";
+    return ok(invoice);
+  }),
+
+  http.get("*/api/v1/purchasing/invoices/:id", ({ params }) =>
+    ok(invoices.find((i) => i.id === params.id) ?? invoices[0]),
+  ),
+
+  // 10-13: first mock consumer of POST /payments — pays a MATCHED/APPROVED_FOR_PAYMENT invoice,
+  // flips it to PAID, and records the AP payment (mirroring ApPaymentService.create). No
+  // GET /payments list handler exists because the real backend has none (ApPaymentController is
+  // POST-only) — the payments page reads the invoice list instead.
+  http.post("*/api/v1/purchasing/payments", async ({ request }) => {
+    const body = (await request.json()) as {
+      invoiceId: string;
+      paymentDate: string;
+      amountPaisa?: number;
+      bankAccountCode?: string;
+    };
+    const invoice = invoices.find((i) => i.id === body.invoiceId);
+    if (!invoice) return apiError("NOT_FOUND", "Invoice not found", 404);
+    if (invoice.status !== "MATCHED" && invoice.status !== "APPROVED_FOR_PAYMENT") {
+      return apiError("INVALID_PO_STATE", "Invoice must be matched before payment", 409);
+    }
+    const payAmount = body.amountPaisa ?? invoice.totalPaisa + invoice.inputTaxPaisa;
+    const seq = String(apPayments.length + 1).padStart(12, "0");
+    const payment: MockApPayment = {
+      id: `f0000003-0000-4000-8000-${seq}`,
+      vendorId: invoice.vendorId,
+      branchId: invoice.branchId,
+      paymentDate: body.paymentDate,
+      amountPaisa: payAmount,
+      bankAccountCode: body.bankAccountCode ?? "1110",
+      allocations: [{ invoiceId: invoice.id, amountPaisa: payAmount }],
+    };
+    apPayments.push(payment);
+    invoice.status = "PAID";
+    return ok(payment);
+  }),
 
   http.get("*/api/v1/purchasing/analytics/scorecard", () =>
     ok({
