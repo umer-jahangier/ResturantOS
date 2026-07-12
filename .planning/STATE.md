@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 10 of 12 (Purchasing & Accounts Payable) — REOPENED (UAT code audit found 10 gaps, 4 blockers)
-Plan: 07 of 17 (gap-closure wave 1 of 4; 10-08..10-17 remain)
-Status: 10-07 complete — canonical OPA action vocabulary adopted (rego short verbs), vendor.rego hardened with approval-limit comparison + close_po rule, distinct-approver constraint added to PoApprovalService, opa test policies/ green at 100% coverage (92/92). Plan 10-08 (real-OPA ITs proving this fix) next.
-Last activity: 2026-07-13 — Completed 10-07 (OPA action-string mismatch fix + vendor.rego hardening + distinct-approver constraint — 3 tasks, 3 commits, ac63925/4e7b061/625b1fd)
+Plan: 11 of 17 (gap-closure wave 1 of 4; other wave-1/2 plans in flight in parallel)
+Status: 10-11 complete — fixed the phantom FEATURE_PURCHASING nav flag (blocker: made the entire Purchasing module unreachable) to the real FEATURE_VENDOR flag, added a compile-time + test-time drift guard, built the purchasing landing page and full 5-tab shell. Remaining wave-1/2/3/4 plans (10-08, 10-09 done in parallel, 10-10, 10-12..10-17) continue.
+Last activity: 2026-07-13 — Completed 10-11 (Purchasing nav flag fix + drift test + landing page/shell — 3 tasks, 3 commits, 0fcf34e/9c39884/1a3bb6d)
 
 Progress: [███████████████░░░░░░░] 52% (23/44 plans)
 
@@ -124,6 +124,7 @@ Recent decisions affecting current work:
 - [10-03-D]: Fixed several purchasing MSW mock ids (VENDOR_ID/PO_ID/LINE_ID) that used non-hex letter prefixes (`v`/`p`/`l`) and silently failed `z.string().uuid()` — no prior test exercised the purchasing repository against MSW, so this was latent; caught while adding the first such vitest.
 - [10-04-A]: PO close allowed source states are FULLY_RECEIVED (free) and PARTIALLY_RECEIVED (short-close, reason mandatory + OPA action `vendor.po.close`) only — all other states including already-CLOSED throw InvalidPoStateException (no idempotent no-op). No finance JE posted on close (GR/IR and AP already posted at receipt/invoice-match time).
 - [10-06-A]: Phase 10's `REQUIREMENTS.md` traceability table had two false "Complete" rows (PUR-05, FIN-05) and one orphaned "Pending" row (PUR-06, never assigned an owning plan) — root cause was the original 10-VERIFICATION.md scoring narrow must-haves instead of requirement text. All 7 PUR/FIN rows re-derived from a named green IT + source grep per row; this pattern (verify against requirement text, not must-haves) is the standing lesson for future phase verification.
+- [10-11-A]: `sidebar-nav-items.ts` `NavItem.feature` field retyped from `string` to `FeatureFlag` (canonical union in `frontend/lib/features/feature-flags.ts`, union of `TierFeatureDefaults.java` + `RouteFeatureMap.java`) — a nav item referencing a flag the backend doesn't grant is now a `tsc` compile error, not a silently-invisible nav item (root cause of the Purchasing-module-unreachable blocker: `FEATURE_PURCHASING` existed nowhere in the backend; `FeatureGuard` fails open only on fetch *error*, not on an absent flag). `FEATURE_REPORTING` (also phantom) remapped to `FEATURE_REPORTING_ADVANCED` in the same pass.
 - [10-07-A]: Canonical OPA action vocabulary is the rego short verb (`approve_po`, `close_po`, `approve`), not the dotted permission code. purchasing-service/finance-service Feign `AuthorizationClient` calls were sending `vendor.po.approve`/`vendor.po.close`/`finance.expense.approve` (permission-code shape) while every rego module keys on short verbs with `default allow := false` — every real PO/expense approval silently DENYed in production, masked because `PurchaseOrderApprovalIT`/`ExpenseApprovalIT` `@MockitoBean` the `AuthorizationClient`. Fixed by changing the 3 Java call sites (`OPA_ACTION_*` constants) rather than rewriting 5 rego modules + test suites. Dotted permission codes are unchanged and remain what `common.has_permission`/`@PreAuthorize` check.
 
 ### Pending Todos
@@ -152,5 +153,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-07-13
-Stopped at: Completed 10-07-PLAN.md (OPA action-string mismatch fix + vendor.rego hardening + distinct-approver constraint) — commits ac63925 (action vocabulary), 4e7b061 (vendor.rego + kds.rego + finance_test.rego), 625b1fd (distinct-approver constraint). opa test policies/ green at 100% coverage (92/92). Plan 10-08 (real-OPA integration tests proving this fix) is next.
+Stopped at: Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
 Resume file: None
