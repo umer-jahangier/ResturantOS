@@ -119,11 +119,27 @@
 - [x] **POS-14**: Wire cashier settlement actions — render the already-built `PaymentPanel`, `TillSessionBar`, and `VoidRefundDialog` into the live POS/order flow so a cashier can charge, open/close a till, and void/refund through the UI; close the Phase-7 UAT gaps (void 403, offline sync-badge not updating on reconnect)
 - [x] **POS-15**: Cashier experience — fast order creation, quick item search, easy editing of active orders, clear order/item status indicators, efficient service navigation; fix the terminal state bugs (first-item add, item-cap after N items)
 
+> **Phase 07.3 (INSERTED 2026-07-12)** — production bug-fixes + UX revamp of the Phase-7.1 POS/KDS from testing feedback (`bugs.md`): removes draft-order persistence, real-time kitchen↔POS item-status sync, decouples payment from close (Paid AND Served ⇒ CLOSED), replaces modal-heavy flows with dedicated full-page/large views, and redesigns the KDS into station-isolated status columns.
+
+- [ ] **POS-16**: No-draft lazy order creation — selecting menu items builds a client-only cart; an order is persisted to the DB only when the cashier explicitly Sends to Kitchen or Charges; the `DRAFT` status is retired from all user-visible flows and no orphaned/empty orders ever appear in table view, Order Management, or any order list
+- [ ] **POS-17**: Cart quantity handling — selecting the same menu item increments a single line to ×N (with +/− controls) instead of creating duplicate rows, unless modifiers or special instructions differ; re-ordering an already-fired item creates a new PENDING revision line rather than mutating a fired line
+- [ ] **POS-18**: Optional table + order type — order creation supports Dine-in / Takeaway / Pickup; table assignment is optional (takeaway/pickup need none); a searchable table selector shows Available/Occupied status and prevents selecting occupied tables
+- [ ] **POS-19**: Terminal reset & charge gating — after Send to Kitchen the terminal offers an explicit Clear / New Order action (the fired order stays editable in Order Management); Charge Now is enabled only after the order has been sent to the kitchen (i.e. persisted); no previous selections leak into the next order
+- [ ] **POS-20**: Real-time kitchen→POS item-status sync — per-item kitchen status changes propagate to pos-service so the POS reflects live item status without a manual reopen; opening an order always shows current, non-stale item statuses
+- [ ] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
+- [ ] **POS-22**: Full-page settlement surface — Charge Now is a dedicated full-page/large view (not a small modal) showing order no., table, customer, cashier, order time, item list with qty/status/notes, tax/discount/charge breakdown, payment history, payment methods, and remaining balance
+- [ ] **POS-23**: Settlement semantics — recording a payment sets a derived payment status (Unpaid/Partially Paid/Paid) and persists `OrderPayment` rows WITHOUT closing the order; an order transitions to `CLOSED` only when it is BOTH fully Paid AND fully Served, enforced on both the payment flow and the mark-served flow; a paid-but-unserved order shows Paid with its live status
+- [ ] **POS-24**: Order Management completeness — closed/paid orders are visible with status filters and a search box; every row shows payment status (Paid/Unpaid/Partially Paid/Refunded); the Cover column is replaced with total item quantity (and optional unique-item count); an Assign Table action assigns an available table to a tableless order (occupied tables blocked) updating order + table status immediately; already-paid orders block duplicate payment while staying accessible for history
+- [ ] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
+- [ ] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
+
 ### Kitchen / KDS (KDS)
 
 - [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
 - [x] **KDS-02**: `ORDER_READY` notifies POS
 - [x] **KDS-03**: KDS revision & detail (Phase 7.1) — the board renders stable (non-jumping) cards, lets staff open a ticket for full order detail, visually distinguishes newly-added revision items from earlier ones, shows special instructions/kitchen notes, and displays per-item status rather than only an order-level status
+- [ ] **KDS-04**: Station-isolated KDS redesign (Phase 07.3) — each kitchen station has its own isolated view with New / Started / Preparing / Ready columns reflecting item-level status (mixed item statuses within one order supported); collapsed cards show only order number, table, time, and menu items; selecting a card opens a dedicated detail page (not a modal); stations are provisioned/seeded so the board renders, and the table number is propagated from the order to the ticket
+- [ ] **KDS-05**: Kitchen prioritization (Phase 07.3) — newest orders are surfaced and long-running orders auto-highlight via subtle indicators (border/timer/color driven by the station escalation threshold) rather than full-screen effects; the board scales for many simultaneous orders
 
 ### Inventory (INV)
 
@@ -308,6 +324,19 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-14 | Phase 7.1 | Complete |
 | POS-15 | Phase 7.1 | Complete |
 | KDS-03 | Phase 7.1 | Complete |
+| POS-16 | Phase 07.3 | Pending |
+| POS-17 | Phase 07.3 | Pending |
+| POS-18 | Phase 07.3 | Pending |
+| POS-19 | Phase 07.3 | Pending |
+| POS-20 | Phase 07.3 | Pending |
+| POS-21 | Phase 07.3 | Pending |
+| POS-22 | Phase 07.3 | Pending |
+| POS-23 | Phase 07.3 | Pending |
+| POS-24 | Phase 07.3 | Pending |
+| POS-25 | Phase 07.3 | Pending |
+| POS-26 | Phase 07.3 | Pending |
+| KDS-04 | Phase 07.3 | Pending |
+| KDS-05 | Phase 07.3 | Pending |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
 | INV-03 | Phase 8 | Pending |
@@ -348,6 +377,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 - Unmapped: 0
 - 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)
 - 2026-07-11 addition (+4): Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning — FIN-07 (guaranteed open period at onboarding / saga fail-not-swallow), FIN-08 (self-service finance.period.open provision endpoint), FIN-09 (config-gated auto-seed-on-miss with WARN audit), FIN-10 (calendar-based frontend provisioning UI)
+- 2026-07-12 addition (+13): Phase 07.3 (INSERTED) POS/KDS production bug-fixes + UX revamp (bugs.md testing feedback) — POS-16 (no-draft lazy order creation), POS-17 (cart quantity merge + ±), POS-18 (optional table + order type), POS-19 (terminal reset & charge gating), POS-20 (real-time kitchen→POS item-status sync), POS-21 (add-to-existing fires revision from Order Management), POS-22 (full-page settlement surface), POS-23 (settlement semantics: Paid AND Served ⇒ CLOSED), POS-24 (Order Management: closed/search/payment-status/item-qty/assign-table), POS-25 (POS operational modal→page revamp), POS-26 (connectivity 404 fix), KDS-04 (station-isolated status-column redesign), KDS-05 (kitchen prioritization)
 - 2026-06-25 addition (+9): PLATFORM-10 (SuperAdmin tier-independent per-tenant module enable/disable); HR-04/05/06 (shift scheduling, attendance & leave, labour-cost tracking); PUR-05/06 (vendor scorecard, spend analytics); CRM-03/04/05 (loyalty tiers, promotion engine, feedback) — all six primary modules are now core/mandatory in every tenant build
 - 2026-06-25 addition (+2): HR-07 (biometric attendance device integration — LAN ADMS push + USB bridge agent, device-authenticated ingest); HR-08 (biometric privacy — edge matching, no central raw biometrics); GW-02 extended for the device-authenticated ingest path class
 - v2 requirements (deferred, not mapped): NOTIF-02, NOTIF-03, PLATFORM-08, PLATFORM-09, INV-08, RPT-03, AUTHZ-05, AUDIT-02
