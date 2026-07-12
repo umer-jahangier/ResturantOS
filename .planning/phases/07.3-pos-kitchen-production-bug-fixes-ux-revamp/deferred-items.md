@@ -81,3 +81,46 @@ Out-of-scope discoveries made during plan execution (Scope Boundary — not fixe
   green independently via `vitest run pos`). Out of scope — an environment-timing-sensitive
   pre-existing test, left unfixed per Scope Boundary. Fix shape: raise this specific test's
   timeout (`it(..., { timeout: 15000 })`) or the file's local `testTimeout`.
+
+## 07.3-09
+
+- **`POST /api/v1/pos/orders/{id}/items` (pos-service `addItem`) intermittently hangs with
+  NO HTTP response ever delivered to the client — reproduced 5x live this session across
+  two pos-service restarts and one gateway restart.** `pos-modal-revamp.spec.ts`'s
+  create-order-and-fire flow (the same `handleSendToKitchen` chain
+  `pos-terminal.tsx:94-129` already exercises successfully elsewhere — `pos-settlement.spec.ts`
+  S3/S4, `pos-add-existing-revision.spec.ts`) got stuck on the `addItem` POST: Playwright's
+  network log shows the request WAS sent (`REQ POST .../orders/{id}/items`) but no `RES`
+  arrived within 90s. DB-level inspection (`pg_stat_activity` on `pos_db`) during the hang
+  showed ZERO active/blocked queries — the write itself completes near-instantly
+  server-side (confirmed via direct row inspection: `order_items.created_at` and
+  `orders.sent_to_kds_at` both land within ~200ms of `orders.opened_at` for the one attempt
+  that DID eventually surface as `SENT_TO_KDS` in the DB), but the HTTP response is never
+  relayed back through the gateway to the browser. Later in the same session, freshly
+  createdorders were observed stuck in `DRAFT` (the pre-`addItem` state per
+  `OrderServiceImpl.addItem`'s DRAFT→OPEN transition, 07-01-D) — i.e. `addItem` never even
+  reached that transition on those attempts — which is also why Order Management's "No
+  active orders" empty state appeared (07.3-04's `!isTerminal(s) && s != DRAFT` default
+  filter correctly excludes stuck-DRAFT rows). Restarting `pos-service`
+  (`restart-service.ps1 pos-service -SkipBuild`) did not resolve it; restarting `gateway`
+  fixed one occurrence (login/route relay recovered) but the `addItem` hang recurred on the
+  next attempt. Gateway's own `/actuator/health` independently returns 503 throughout this
+  session due to a known, already-documented RabbitMQ credential mismatch (see
+  Dev-stack-rebuild-gotchas memory: `RABBITMQ_USERNAME=restaurantos` /
+  `RABBITMQ_PASSWORD=dev_rabbit_2026`), but that indicator failure doesn't itself explain
+  the response-relay hang (login/branches/feature-flags/till/menu/createOrder all routed
+  correctly through the SAME gateway instance in the SAME test run). Not caused by this
+  plan's files: `void-refund-dialog.tsx`/`till-session-bar.tsx`/`use-online-status.ts` are
+  pure frontend UI with no relationship to the `addItem` endpoint, and `OrderServiceImpl
+  .addItem` (pos-service Java) is untouched by any 07.3-09 file. Out of scope (backend/
+  infra, this plan is frontend-only) — left uninvestigated further per Scope Boundary.
+  Blocks `pos-modal-revamp.spec.ts` from reaching a live PASS on the void/refund stage on
+  this dev-stack session; the spec correctly classifies this as `BLOCKED` (exit code 0,
+  matching every other blocked-but-passing E2E spec in this phase) with the full
+  diagnostic (last network events + console errors) inline in the skip reason. The
+  till-only stage of the SAME spec (no `addItem` dependency) reaches a live PASS every run,
+  producing `e2e/__screenshots__/pos25-till.png`. `e2e/__screenshots__/pos25-void-refund.png`
+  could not be captured live this session as a result — the void/refund panel's correctness
+  was instead confirmed via `tsc --noEmit`, `eslint`, `settlement-actions.test.tsx` (green,
+  unchanged trigger-button assertions), and code review (identical panel-conversion pattern
+  to the till surface, which DID render correctly live).
