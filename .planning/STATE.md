@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-01-PLAN.md (settlement backend — decoupled payment/close)
-last_updated: "2026-07-12T10:30:22.767Z"
+stopped_at: Completed 07.3-02-PLAN.md (kitchen-item-status-sync, POS-20)
+last_updated: "2026-07-12T10:48:18.849Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-01-PLAN.md
+last_activity_desc: Completed 07.3-02-PLAN.md
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 59
-  completed_plans: 46
-  percent: 78
+  completed_plans: 47
+  percent: 80
 ---
 
 # Project State
@@ -29,10 +29,11 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 1/10 complete (07.3-01 done: PaymentStatus derivation,
-maybeCloseOrder seam, GET /orders/{id}/payments)
+Plans: 10 plans across 3 waves — 2/10 complete (07.3-01 done: PaymentStatus derivation,
+maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
+kitchen→pos live item-status sync, POS-20)
 Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-01-PLAN.md
+Last activity: 2026-07-12 — Completed 07.3-02-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -88,6 +89,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.2 P05 | 20min | 2 tasks | 3 files |
 | Phase 07.2 P07 | 21min | 3 tasks | 11 files |
 | Phase 07.3 P01 | 55min | 3 tasks | 8 files |
+| Phase 07.3 P02 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -227,6 +229,8 @@ Recent decisions affecting current work:
 - [07.2-06]: Confirmed PROVISIONING_SEED_COA_ENABLED live default is true (unset in deploy/.env; YAML default already flipped by 07.2-03) -- RESEARCH.md Assumption A1 resolved, no deploy-config gap.
 - [Phase 07.3-01]: maybeCloseOrder is a no-op (returns order unchanged) rather than throwing when Paid+Served isn't both true or the order is already terminal -- safe to call unconditionally from recordPayment and markItemServed.
 - [Phase 07.3-01]: closeOrder (legacy exact-tender) and maybeCloseOrder (derived Paid+Served close) share one private performClose(Order, paymentEntries) seam -- exactly ONE ORDER_CLOSED publish call site; closeOrder itself still does not persist OrderPayment rows (out of scope, only recordPayment does).
+- [Phase 07.3-02]: KitchenItemStatusConsumer uses OrderItemStatus.ordinal() forward-only guard (generalizes OrderReadyConsumer's fixed-target ELIGIBLE-set pattern) since the incoming kitchen status varies per message — A simple membership set cannot express never-move-backward for every possible target status; ordinal comparison does.
+- [Phase 07.3-02]: Dev-stack RabbitMQ requires RABBITMQ_USERNAME=restaurantos/RABBITMQ_PASSWORD=dev_rabbit_2026 (deploy/.env) for @RabbitListener context startup locally — Resolves the previously-documented ACCESS_REFUSED environmental blocker for kitchen-service/pos-service Testcontainers ITs; both full suites ran green with these exported.
 
 ### Pending Todos
 
@@ -256,6 +260,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T10:30:22.755Z
-Stopped at: Completed 07.3-01-PLAN.md (settlement backend — decoupled payment/close)
+Last session: 2026-07-12T10:48:18.834Z
+Stopped at: Completed 07.3-02-PLAN.md (kitchen-item-status-sync, POS-20)
 Resume file: None

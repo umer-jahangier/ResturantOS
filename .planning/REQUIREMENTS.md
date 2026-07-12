@@ -125,7 +125,7 @@
 - [ ] **POS-17**: Cart quantity handling — selecting the same menu item increments a single line to ×N (with +/− controls) instead of creating duplicate rows, unless modifiers or special instructions differ; re-ordering an already-fired item creates a new PENDING revision line rather than mutating a fired line
 - [ ] **POS-18**: Optional table + order type — order creation supports Dine-in / Takeaway / Pickup; table assignment is optional (takeaway/pickup need none); a searchable table selector shows Available/Occupied status and prevents selecting occupied tables
 - [ ] **POS-19**: Terminal reset & charge gating — after Send to Kitchen the terminal offers an explicit Clear / New Order action (the fired order stays editable in Order Management); Charge Now is enabled only after the order has been sent to the kitchen (i.e. persisted); no previous selections leak into the next order
-- [ ] **POS-20**: Real-time kitchen→POS item-status sync — per-item kitchen status changes propagate to pos-service so the POS reflects live item status without a manual reopen; opening an order always shows current, non-stale item statuses
+- [x] **POS-20**: Real-time kitchen→POS item-status sync — per-item kitchen status changes propagate to pos-service so the POS reflects live item status without a manual reopen; opening an order always shows current, non-stale item statuses
 - [ ] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
 - [x] **POS-22**: Full-page settlement surface — Charge Now is a dedicated full-page/large view (not a small modal) showing order no., table, customer, cashier, order time, item list with qty/status/notes, tax/discount/charge breakdown, payment history, payment methods, and remaining balance
 - [x] **POS-23**: Settlement semantics — recording a payment sets a derived payment status (Unpaid/Partially Paid/Paid) and persists `OrderPayment` rows WITHOUT closing the order; an order transitions to `CLOSED` only when it is BOTH fully Paid AND fully Served, enforced on both the payment flow and the mark-served flow; a paid-but-unserved order shows Paid with its live status
@@ -328,7 +328,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-17 | Phase 07.3 | Pending |
 | POS-18 | Phase 07.3 | Pending |
 | POS-19 | Phase 07.3 | Pending |
-| POS-20 | Phase 07.3 | Pending |
+| POS-20 | Phase 07.3 | Complete |
 | POS-21 | Phase 07.3 | Pending |
 | POS-22 | Phase 07.3 | Complete |
 | POS-23 | Phase 07.3 | Complete |

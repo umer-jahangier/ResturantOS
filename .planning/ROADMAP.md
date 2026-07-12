@@ -272,7 +272,7 @@ Plans:
   5. Order Management shows closed/paid orders with filters + search + payment-status badges, an item-quantity column replacing Cover, and an Assign-Table action; duplicate payment is blocked while paid orders stay accessible (POS-24); the payment, detail, void/refund, and till surfaces are dedicated pages/large panels, not modals (POS-25); the console no longer logs the `/pos/menu/categories` 404 (POS-26).
   6. The KDS shows each station in an isolated view with New/Started/Preparing/Ready item-status columns (mixed statuses per order), slim cards (order#/table/time/items), and a dedicated detail page; stations are seeded so the board renders and the table number shows on tickets (KDS-04); long-running orders auto-highlight subtly and the board scales for many orders (KDS-05).
 
-**Plans:** 1/10 plans executed
+**Plans:** 2/10 plans executed
 
 Cross-cutting truths (goal-backward): no DB order exists until Send/Charge; derivedStatus only via
 OrderStatusDerivationService; table status only via TableService.syncStatusForOrder; cross-service
@@ -284,7 +284,7 @@ Plans:
 **Wave 1**
 
 - [x] 07.3-01-PLAN.md (wave 1) — Settlement backend: persist OrderPayment, GET payments, PaymentStatus derivation, single maybeCloseOrder(Paid&&Served) seam (POS-23, POS-22)
-- [ ] 07.3-02-PLAN.md (wave 1) — Kitchen→POS item-status event: KITCHEN_ITEM_STATUS_CHANGED emit + pos consumer (parity, idempotent, no downgrade) (POS-20)
+- [x] 07.3-02-PLAN.md (wave 1) — Kitchen→POS item-status event: KITCHEN_ITEM_STATUS_CHANGED emit + pos consumer (parity, idempotent, no downgrade) (POS-20)
 - [ ] 07.3-03-PLAN.md (wave 1) — Order-taking client cart + order-type/table selector + reset + charge-gating + PICKUP order type (POS-16, POS-17, POS-18, POS-19)
 
 **Wave 2**
