@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,6 +29,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PermissionDeniedException.class)
     public ResponseEntity<ApiError> handlePermission(PermissionDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("PERMISSION_DENIED", ex.getMessage(), traceId()));
+    }
+
+    /**
+     * 10-09 bug fix: without this handler, Spring Security's
+     * org.springframework.security.access.AccessDeniedException (thrown by the
+     * @EnableMethodSecurity / MethodSecurityInterceptor around @PreAuthorize checks)
+     * fell through to the generic Exception handler below and was returned as a 500,
+     * never reaching ExceptionTranslationFilter's normal 403 handling — because
+     * DispatcherServlet resolves it via this @RestControllerAdvice BEFORE the
+     * exception can propagate up the filter chain. This silently defeated every
+     * @PreAuthorize check across every service that shares this handler.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("ACCESS_DENIED", "You do not have permission to perform this action", traceId()));
     }
 
     @ExceptionHandler(FeatureDisabledException.class)
