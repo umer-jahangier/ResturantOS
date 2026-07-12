@@ -5,28 +5,28 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 10 REOPENED — 2026-07-13 UAT found the module is unreachable from the nav (wrong feature-flag name), both OPA approval paths are dead (action-string mismatch masked by mocked ITs), all 18 purchasing endpoints are ungated, and 13 of 14 user journeys have no UI. Needs /gsd-plan-phase 10 --gaps.
+**Current focus:** Phase 10 REOPENED, gap-closure wave in progress (11 plans, 10-07..10-17, 4 waves). 10-07 (wave 1) closed the root blocker: OPA action-string mismatch that made every real PO/expense approval return DENY. Waves 2-4 (10-08..10-17) remain: real-OPA ITs, @PreAuthorize gating, frontend journeys, VendorService encryption.
 
 ## Current Position
 
 Phase: 10 of 12 (Purchasing & Accounts Payable) — REOPENED (UAT code audit found 10 gaps, 4 blockers)
-Plan: 06 of 06 (gap-closure wave)
-Status: Phase 10 complete — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, PUR-02 PO close, MSW + frontend shell, requirement docs reconciled; Phase 11 (HR & Payroll) next
-Last activity: 2026-07-12 — Completed 10-06 (REQUIREMENTS.md/10-VERIFICATION.md/10-UAT.md reconciliation — PUR-01..06 + FIN-05 all re-derived Complete from real evidence, phase closed out)
+Plan: 07 of 17 (gap-closure wave 1 of 4; 10-08..10-17 remain)
+Status: 10-07 complete — canonical OPA action vocabulary adopted (rego short verbs), vendor.rego hardened with approval-limit comparison + close_po rule, distinct-approver constraint added to PoApprovalService, opa test policies/ green at 100% coverage (92/92). Plan 10-08 (real-OPA ITs proving this fix) next.
+Last activity: 2026-07-13 — Completed 10-07 (OPA action-string mismatch fix + vendor.rego hardening + distinct-approver constraint — 3 tasks, 3 commits, ac63925/4e7b061/625b1fd)
 
-Progress: [███████████████░░░░░░░] 67% (22/33 plans)
+Progress: [███████████████░░░░░░░] 52% (23/44 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 21
+- Total plans completed: 22
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
 - Phase 3: 3/3 plans executed; verification passed (24/24)
 - Phase 4: 8/8 plans executed; verification passed (16/16 FE + 7/7 DS gap-closure; tsc/lint/vitest green)
 - Phase 6: 2/2 plans executed (COMPLETE — periods + close/lock + Finance frontend)
-- Phase 10: 6/6 plans executed (COMPLETE — mock-first purchasing + AP + gap closure; 7/7 requirements re-derived Complete against real evidence)
+- Phase 10: 7/17 plans executed (REOPENED, gap-closure wave 1 of 4 in progress — 10-07 fixed the OPA action-string mismatch root blocker)
 
 **By Phase:**
 
@@ -37,12 +37,12 @@ Progress: [███████████████░░░░░░░] 6
 | 03-api-gateway-platform-admin-tenant-user-management | 3/3   | 24/24 passed                                         |
 | 04-frontend-shell-ci-cd                              | 8/8   | 16/16 FE + 7/7 DS passed                             |
 | 06-finance-core-general-ledger-periods               | 2/2   | complete                                             |
-| 10-purchasing-accounts-payable                       | 6/6   | 7/7 requirements passed (re-scored post-gap-closure) |
+| 10-purchasing-accounts-payable                       | 7/17  | gap-closure in progress (10-07 done; 10-08..10-17 remain) |
 
 **Recent Trend:**
 
-- Last completed plan: 10-06
-- Trend: Phase 10 closed out — REQUIREMENTS.md's PUR-01..06 + FIN-05 all re-derived Complete from a named green IT + source grep per row (correcting 2 prior false-greens and 1 orphaned Pending); 10-VERIFICATION.md documents the escape-and-closure story with root cause; 10-UAT.md extended to 16 test cases. Phase 11 (HR & Payroll) next.
+- Last completed plan: 10-07
+- Trend: Gap-closure wave 1 started. 10-07 fixed the root blocker (action-string mismatch masking every real OPA approval as DENY) and hardened vendor.rego with an approval-limit comparison + close_po rule; opa test policies/ green at 100% coverage (92/92, up from 82). Also fixed two unrelated pre-existing issues blocking that gate: a kds.rego action-guard bug and missing finance_test.rego coverage for manage_coa/view_journal. A pre-existing, out-of-scope finance-service IT failure (Branch context required in JournalEntryServiceImpl, 6 tests) was identified but left for a future gap-closure item. Plan 10-08 (real-OPA ITs) next.
 
 _Updated after each plan completion_
 
@@ -124,6 +124,7 @@ Recent decisions affecting current work:
 - [10-03-D]: Fixed several purchasing MSW mock ids (VENDOR_ID/PO_ID/LINE_ID) that used non-hex letter prefixes (`v`/`p`/`l`) and silently failed `z.string().uuid()` — no prior test exercised the purchasing repository against MSW, so this was latent; caught while adding the first such vitest.
 - [10-04-A]: PO close allowed source states are FULLY_RECEIVED (free) and PARTIALLY_RECEIVED (short-close, reason mandatory + OPA action `vendor.po.close`) only — all other states including already-CLOSED throw InvalidPoStateException (no idempotent no-op). No finance JE posted on close (GR/IR and AP already posted at receipt/invoice-match time).
 - [10-06-A]: Phase 10's `REQUIREMENTS.md` traceability table had two false "Complete" rows (PUR-05, FIN-05) and one orphaned "Pending" row (PUR-06, never assigned an owning plan) — root cause was the original 10-VERIFICATION.md scoring narrow must-haves instead of requirement text. All 7 PUR/FIN rows re-derived from a named green IT + source grep per row; this pattern (verify against requirement text, not must-haves) is the standing lesson for future phase verification.
+- [10-07-A]: Canonical OPA action vocabulary is the rego short verb (`approve_po`, `close_po`, `approve`), not the dotted permission code. purchasing-service/finance-service Feign `AuthorizationClient` calls were sending `vendor.po.approve`/`vendor.po.close`/`finance.expense.approve` (permission-code shape) while every rego module keys on short verbs with `default allow := false` — every real PO/expense approval silently DENYed in production, masked because `PurchaseOrderApprovalIT`/`ExpenseApprovalIT` `@MockitoBean` the `AuthorizationClient`. Fixed by changing the 3 Java call sites (`OPA_ACTION_*` constants) rather than rewriting 5 rego modules + test suites. Dotted permission codes are unchanged and remain what `common.has_permission`/`@PreAuthorize` check.
 
 ### Pending Todos
 
@@ -146,9 +147,10 @@ Recent decisions affecting current work:
 - **10-03 unverified at runtime:** ~~`SpendAnalyticsIT` and `VendorScorecardIT` (purchasing-service, PUR-06/PUR-05) could not be executed in the same Docker-less sandbox.~~
   - **RESOLVED by 10-04:** the 10-04 execution sandbox had a working Docker daemon; `mvn -pl services/purchasing-service failsafe:integration-test failsafe:verify` was run for real and all 18 purchasing ITs (including SpendAnalyticsIT and VendorScorecardIT) passed — BUILD SUCCESS, 0 failures, 0 errors.
 - **Pre-existing frontend tsc errors (unrelated to Phase 10):** `frontend/lib/api-client/errors.ts` lines 129/134/137 fail `pnpm tsc --noEmit` under strict optional typing (`USER_FACING_BY_CODE` string-indexing). File untouched since commits `b02cadc`/`e79cdbd`, not owned by any Phase 10 gap plan. Does not block purchasing (all 10-04-modified frontend files compile clean). Needs a follow-up fix outside Phase 10.
+- **finance-service pre-existing IT failure (found during 10-07, out of scope):** `JournalEntryImmutabilityIT`, `JournalEntryBalanceTriggerIT`, `InternalAutoPostIT` (6 tests total) fail with `IllegalStateException: Branch context required` in `JournalEntryServiceImpl.create`. Confirmed via `git worktree` at base commit `964446c` — pre-dates 10-07, unrelated to `ExpenseService`/OPA changes (`ExpenseApprovalIT`, which exercises the same `autoPostInternal` path with a properly branch-scoped `tenantContext`, passes 4/4). Needs its own gap-closure investigation.
 
 ## Session Continuity
 
-Last session: 2026-07-12
-Stopped at: Completed 10-06-PLAN.md (requirement-doc reconciliation) — commits 8c25cf6 (REQUIREMENTS.md re-derivation), 7356089 (10-VERIFICATION.md + 10-UAT.md gap closure record). Phase 10 is now COMPLETE. Phase 11 (HR & Payroll) is next.
+Last session: 2026-07-13
+Stopped at: Completed 10-07-PLAN.md (OPA action-string mismatch fix + vendor.rego hardening + distinct-approver constraint) — commits ac63925 (action vocabulary), 4e7b061 (vendor.rego + kds.rego + finance_test.rego), 625b1fd (distinct-approver constraint). opa test policies/ green at 100% coverage (92/92). Plan 10-08 (real-OPA integration tests proving this fix) is next.
 Resume file: None
