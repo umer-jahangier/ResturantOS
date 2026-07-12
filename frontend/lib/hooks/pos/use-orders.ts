@@ -16,13 +16,20 @@ import type {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
-/** Order Management list (POS-09). GET /pos/orders now returns OrderSummaryDto[]. */
-export function useOrderSummaries(statuses?: string[]) {
+/**
+ * Order Management list (POS-09). GET /pos/orders now returns OrderSummaryDto[].
+ *
+ * `options.enabled` (POS-24, 07.3-08): lets a caller mount a SECOND instance of this
+ * hook for an explicit terminal-`statuses` request (e.g. the Order Management Closed
+ * filter) without it fetching until that filter is actually selected — additive,
+ * defaults to `true` so every existing call site is unaffected.
+ */
+export function useOrderSummaries(statuses?: string[], options?: { enabled?: boolean }) {
   const { branchId, isAuthenticated } = useCurrentUser();
   return useQuery({
     queryKey: queryKeys.pos.orderSummaries(branchId, statuses),
     queryFn: () => PosRepository.listOrderSummaries({ branchId, status: statuses }),
-    enabled: isAuthenticated && !!branchId,
+    enabled: isAuthenticated && !!branchId && (options?.enabled ?? true),
   });
 }
 
@@ -199,6 +206,27 @@ export function useSendToKds(orderId: string) {
       // drawer's own settlement footer) — a correctness bug for this plan's own
       // "non-closed order never disappears / closes fade out" requirement. Prefix-match
       // invalidates every statuses-filter variant of the query key.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+    },
+  });
+}
+
+/**
+ * Assign-table row action (POS-24, `PATCH /orders/{id}/table`). Mirrors `useSendToKds`'s
+ * multi-key invalidation shape (order-specific hook, `orderId` bound at hook-creation
+ * time like `useMarkServed`/`useCancelItem`) so the Order Management row + the assigned
+ * table's status update immediately across the UI without a manual refresh.
+ */
+export function useAssignTable(orderId: string) {
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: (tableId: string) => PosRepository.assignTable(orderId, tableId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // See the order-summaries invalidation note on useSendToKds above.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
     },

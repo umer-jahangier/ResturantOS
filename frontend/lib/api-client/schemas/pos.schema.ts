@@ -118,6 +118,13 @@ export type ApiOrder = z.infer<typeof apiOrderSchema>;
 
 // Order Management list row (POS-09) — GET /api/v1/pos/orders now returns this shape,
 // not ApiOrder[] (07.1-04 SUMMARY: a deliberate, breaking wire-contract change).
+//
+// POS-24 (07.3-04/07.3-08): the backend `OrderSummaryDto` was extended with 5 fields so
+// Order Management can show closed/paid orders, a payment-status badge, and an
+// item-quantity column without a second round trip per row — `settlementStatus` is the
+// raw 9-value `OrderStatus` (distinct from `derivedStatus`'s 4-value kitchen-progress
+// meaning), `paymentStatus`/`amountPaidPaisa` are server-derived, and
+// `itemQuantity`/`distinctItemCount` exclude CANCELLED lines.
 export const apiOrderSummarySchema = z.object({
   orderId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
@@ -128,9 +135,33 @@ export const apiOrderSummarySchema = z.object({
   coverCount: z.number().int(),
   totalPaisa: z.number().int().nonnegative(),
   openedAt: z.string().nullable().optional(),
+  settlementStatus: z.enum([
+    "DRAFT",
+    "OPEN",
+    "SENT_TO_KDS",
+    "PARTIAL_READY",
+    "READY",
+    "SERVED",
+    "CLOSED",
+    "VOIDED",
+    "REFUNDED",
+  ]),
+  paymentStatus: z.enum(["UNPAID", "PARTIALLY_PAID", "PAID", "REFUNDED"]),
+  amountPaidPaisa: z.number().int().nonnegative(),
+  itemQuantity: z.number().int().nonnegative(),
+  distinctItemCount: z.number().int().nonnegative(),
 });
 
 export type ApiOrderSummary = z.infer<typeof apiOrderSummarySchema>;
+
+// PATCH /orders/{id}/table (assign-table, POS-24) request body. Outgoing payload —
+// parsed client-side before send as a defense-in-depth mirror, same pattern as
+// `apiUpdateInstructionsSchema` above.
+export const apiAssignTableRequestSchema = z.object({
+  tableId: z.string().uuid(),
+});
+
+export type ApiAssignTableRequest = z.infer<typeof apiAssignTableRequestSchema>;
 
 // Table-centric dine-in detail (POS-10) — GET /pos/tables/{id}/active-order.
 export const apiTableDetailSchema = z.object({

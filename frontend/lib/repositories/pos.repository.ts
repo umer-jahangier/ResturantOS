@@ -8,6 +8,7 @@ import {
   apiOrderSummarySchema,
   apiTableDetailSchema,
   apiUpdateInstructionsSchema,
+  apiAssignTableRequestSchema,
   apiTillSessionSchema,
   apiOrderPaymentRecordSchema,
   apiRecordPaymentResultSchema,
@@ -146,6 +147,19 @@ export const PosRepository = {
   async updateInstructions(orderId: string, payload: UpdateInstructionsPayload): Promise<Order> {
     const body = apiUpdateInstructionsSchema.parse(payload);
     const raw = await patch<typeof body, unknown>(`/api/v1/pos/orders/${orderId}/instructions`, body);
+    return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  /**
+   * Assign-table row action (POS-24 `PATCH /orders/{id}/table`) — assigns an AVAILABLE
+   * table to a (usually tableless) order; the backend re-checks AVAILABLE status inside
+   * the transaction and routes the table-status flip through `TableService.syncStatusForOrder`
+   * (07.3-04). Returns the full updated order so the caller's cache reflects the new
+   * `tableId` immediately.
+   */
+  async assignTable(orderId: string, tableId: string): Promise<Order> {
+    const body = apiAssignTableRequestSchema.parse({ tableId });
+    const raw = await patch<typeof body, unknown>(`/api/v1/pos/orders/${orderId}/table`, body);
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 

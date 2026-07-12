@@ -144,6 +144,20 @@ export interface OrderSummary {
   coverCount: number;
   totalPaisa: number;
   openedAt: string | null;
+  /** Raw settlement status (POS-24, 07.3-04/07.3-08) — distinct from `derivedStatus`. */
+  settlementStatus: OrderStatus;
+  /** Server-derived payment status (POS-24) — same union `derivePaymentStatus()` below produces. */
+  paymentStatus: PaymentStatus;
+  amountPaidPaisa: number;
+  /** Total item quantity across non-CANCELLED lines (replaces the old Cover column). */
+  itemQuantity: number;
+  /** Distinct non-CANCELLED line count — optional secondary text alongside `itemQuantity`. */
+  distinctItemCount: number;
+}
+
+/** PATCH /orders/{id}/table (assign-table, POS-24) request body. */
+export interface AssignTablePayload {
+  tableId: string;
 }
 
 // ── Table-centric dine-in detail (POS-10) ───────────────────────────────────────

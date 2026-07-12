@@ -32,6 +32,11 @@ const rawOrderA = {
   coverCount: 2,
   totalPaisa: 50000,
   openedAt: new Date().toISOString(),
+  settlementStatus: "SENT_TO_KDS",
+  paymentStatus: "UNPAID",
+  amountPaidPaisa: 0,
+  itemQuantity: 3,
+  distinctItemCount: 2,
 };
 
 const rawOrderB = {
@@ -44,6 +49,11 @@ const rawOrderB = {
   coverCount: 1,
   totalPaisa: 20000,
   openedAt: new Date().toISOString(),
+  settlementStatus: "DRAFT",
+  paymentStatus: "UNPAID",
+  amountPaidPaisa: 0,
+  itemQuantity: 1,
+  distinctItemCount: 1,
 };
 
 function pagedResponse(rows: unknown[]) {

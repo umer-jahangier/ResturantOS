@@ -133,6 +133,11 @@ export function adaptOrderSummary(raw: ApiOrderSummary): OrderSummary {
     coverCount: raw.coverCount,
     totalPaisa: raw.totalPaisa,
     openedAt: raw.openedAt ?? null,
+    settlementStatus: raw.settlementStatus,
+    paymentStatus: raw.paymentStatus,
+    amountPaidPaisa: raw.amountPaidPaisa,
+    itemQuantity: raw.itemQuantity,
+    distinctItemCount: raw.distinctItemCount,
   };
 }
 
