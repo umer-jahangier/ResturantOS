@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,6 +29,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PermissionDeniedException.class)
     public ResponseEntity<ApiError> handlePermission(PermissionDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("PERMISSION_DENIED", ex.getMessage(), traceId()));
+    }
+
+    /**
+     * Spring Security method-level denials (@PreAuthorize / @PostAuthorize) propagate out of the
+     * controller invocation as AuthorizationDeniedException (a subclass of AccessDeniedException in
+     * Spring Security 6.4+/7). Without this handler they fall through to handleUnexpected() and are
+     * mis-reported as 500/503 instead of 403 — masking the real authorization decision across every
+     * service that uses shared-lib. Catching the supertype covers both types.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(ApiError.of("PERMISSION_DENIED", "You do not have permission to perform this action", traceId()));
     }
 
     @ExceptionHandler(FeatureDisabledException.class)
