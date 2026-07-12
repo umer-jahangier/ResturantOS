@@ -1,6 +1,7 @@
 package io.restaurantos.kitchen.web;
 
 import io.restaurantos.kitchen.authz.KdsAuthorizationService;
+import io.restaurantos.kitchen.domain.enums.TicketItemStatus;
 import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
@@ -80,6 +81,28 @@ public class KdsController {
         authz.authorizeUpdate(claims.tenantId(), branchId);
         return ResponseEntity.ok(ticketService.bumpItem(ticketId, itemId));
     }
+
+    /**
+     * Explicit item-status transition endpoint (KDS-04, D-12): drives the New(PENDING)->
+     * Started(ACCEPTED)->Preparing(PREPARING)->Ready(READY) lifecycle in a single wrapping
+     * call to {@link io.restaurantos.kitchen.service.TicketService#markItemStatus}, so every
+     * endpoint-driven transition also inherits the KITCHEN_ITEM_STATUS_CHANGED pos-sync
+     * event emit (07.3-02) — this endpoint never re-implements transition logic itself.
+     * Requires pos.kds.update permission (OPA evaluated).
+     */
+    @PostMapping("/tickets/{ticketId}/items/{itemId}/status")
+    public ResponseEntity<KdsTicketDto> setItemStatus(
+            @PathVariable UUID ticketId,
+            @PathVariable UUID itemId,
+            @RequestParam UUID branchId,
+            @RequestBody ItemStatusRequest request,
+            @AuthenticationPrincipal JwtClaims claims) {
+
+        authz.authorizeUpdate(claims.tenantId(), branchId);
+        return ResponseEntity.ok(ticketService.markItemStatus(ticketId, itemId, request.status()));
+    }
+
+    public record ItemStatusRequest(TicketItemStatus status) {}
 
     /**
      * Recall a READY ticket back to COOKING (e.g. mistake by kitchen).

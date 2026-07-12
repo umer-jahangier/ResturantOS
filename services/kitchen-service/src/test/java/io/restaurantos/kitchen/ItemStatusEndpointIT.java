@@ -18,6 +18,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -61,6 +63,15 @@ class ItemStatusEndpointIT extends KitchenTestBase {
         branchId = UUID.randomUUID();
         orderId = UUID.randomUUID();
         tenantContext.set(tenantId, branchId, null, null);
+
+        // KdsController is @RequiresFeature("FEATURE_KDS") — calling it directly (unlike the
+        // other ITs, which call service beans and never trigger this class-level AOP aspect)
+        // routes through RedisFeatureFlagService, which needs a non-null opsForValue() on the
+        // mocked StringRedisTemplate (otherwise it NPEs before authz/transition logic runs).
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOps = mock(ValueOperations.class);
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get(any())).thenReturn("true");
     }
 
     private void setAuth(List<String> roles, List<String> permissions) {
