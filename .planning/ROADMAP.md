@@ -144,13 +144,15 @@ Plans:
   4. Till open/close reconciles cash and emits `TILL_OPENED`/`TILL_CLOSED`, and `ORDER_CLOSED` is published carrying `customerId`.
   5. An order taken while offline (Service Worker + IndexedDB) syncs once connectivity returns using `client_order_id` as the idempotency key, creating no duplicate orders.
   6. A dedicated kitchen-only role (`KITCHEN_STAFF`, perms `pos.kds.view`/`pos.kds.update` only) is strictly isolated: kitchen logins are blocked from POS/finance, cashier/finance logins are blocked from the KDS REST + WebSocket, and the owner sees everything — enforced fail-closed via OPA and proven in both directions.
-**Plans**: 4 plans
+  7. An order can be closed with a "charge to account" tender against a corporate/house account, creating an AR receivable in finance-service (FIN-05) rather than a cash/card settlement.
+**Plans**: 5 plans
 
 Plans:
 - [ ] 07-01: Orders, tables, order state machine, discount floor + POS permissions (CASHIER/MANAGER)
 - [ ] 07-02: Split-tender payments, idempotent close, voids/refunds, tills, period-lock 423, pos.rego
 - [ ] 07-03: Offline POS — Service Worker + IndexedDB sync with `client_order_id`
 - [ ] 07-04: Kitchen Display System — station routing, item progression, `ORDER_READY` + KITCHEN_STAFF role & strict access isolation
+- [ ] 07-05: POS "charge to account" tender — on order close, call POST /internal/finance/ar/charges (Phase 10 / 10-18 seam) with the order's customerId + total; the receivable and its balanced JE (DR 1200 / CR revenue) are created by finance-service, not POS. Blocks FIN-05 from being fully Complete. [added 2026-07-13 by 10-17-A]
 
 ### Phase 8: Inventory & Recipe Management
 **Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
@@ -193,10 +195,18 @@ Plans:
   1. Managers manage vendors with the bank account stored field-encrypted.
   2. A PO moves DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval enforced by OPA.
   3. A GRN receipt posts GR/IR, and a vendor-invoice 3-way match creates AP; payment posts and publishes `AP_PAYMENT_PROCESSED`.
-  4. AP/AR balances are tracked, and expense approvals respect OPA approval limits.
+  4. AP balances are tracked (aging report + OPA-limited expense approval), AND AR balances are tracked:
+   a corporate/house customer account can be charged, its balance and AR aging are queryable, every charge
+   and settlement posts a balanced journal entry against account 1200, and the internal seam
+   POST /internal/finance/ar/charges that Phase 7's POS "charge to account" tender will call is implemented
+   and integration-tested. (Scope decided 2026-07-13, 10-17-A — see FIN-05.)
   5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
-**Plans**: 17 plans (10-01..10-06 shipped; 10-07..10-17 = gap closure after the 2026-07-13 UAT + code audit reopened the phase)
+**Plans**: 18 plans (10-01..10-06 shipped; 10-07..10-18 = gap closure after the 2026-07-13 UAT + code audit reopened the phase)
 **Status**: REOPENED 2026-07-13 — UAT scored 1 pass / 15 issues; a parallel code audit found 4 blockers (OPA action-string mismatch denying every real PO + expense approval; purchasing unreachable from nav; zero @PreAuthorize across 18 endpoints). See 10-UAT.md.
+**Scope decisions**: 2026-07-13 (10-17-A) — FIN-05's AR clause is IN scope, not descoped. Receivables
+are sourced from corporate/house accounts. Phase 10 owns the AR ledger + the internal charge seam;
+Phase 7 owns the POS "charge to account" tender that calls it, because POS does not exist yet (Phase 7
+is 0/4 plans) and an AR ledger with no writer would be an always-empty sub-ledger.
 
 Plans:
 - [x] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval + mock GRN foundation
@@ -217,7 +227,8 @@ Gap-closure plans (2026-07-13):
 - [ ] 10-14-PLAN.md — FIN-05 UI: expense create/approve/reject + AP aging page [wave 3]
 - [ ] 10-15-PLAN.md — Analytics period picker + vendor selector [wave 1]
 - [ ] 10-16-PLAN.md — Vendor bank-account encryption fails fast instead of silently nulling [wave 1]
-- [ ] 10-17-PLAN.md — FIN-05 AP/AR scope decision (recommend: descope AR) [wave 1, checkpoint]
+- [ ] 10-17-PLAN.md — FIN-05 AR scope decision record: AR IS in scope (corporate/house accounts), split Phase 10 / Phase 7 [wave 1]
+- [ ] 10-18-PLAN.md — AR sub-ledger: house/corporate customer accounts, charges + settlements, AR balances + AR aging, and the internal POS charge seam [wave 5]
 
 ### Phase 11: HR & Payroll
 **Goal**: Run compliant Pakistan payroll — employees with encrypted PII, config-driven income-tax/EOBI computation, and approved payroll that posts a balanced journal entry.
