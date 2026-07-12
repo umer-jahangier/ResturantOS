@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { RevisionBadge, RevisionCountChip, type RevisionLogEntry } from "@/components/pos/revision-chip";
 import { SettlementActions } from "@/components/pos/settlement-actions";
+import { OrderTypeToggle } from "@/components/pos/order-type-toggle";
+import { TableSelectCombobox } from "@/components/pos/table-select-combobox";
+import { cartLineKey, cartTotalPaisa, type CartLine } from "@/components/pos/cart-reducer";
 import {
   useRemoveItem,
   useCancelItem,
@@ -14,21 +18,32 @@ import {
   useUpdateInstructions,
   useSendToKds,
 } from "@/lib/hooks/pos/use-orders";
-import { getOrderDisplayStatus, type Order } from "@/lib/models/pos.model";
+import { getOrderDisplayStatus, type Order, type OrderType } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
 interface OrderPanelProps {
-  order: Order | null;
+  /** Client-only cart (POS-16/D-01) — rendered until the order has been persisted. */
+  cart: CartLine[];
+  orderType: OrderType;
+  onOrderTypeChange: (type: OrderType) => void;
+  tableId: string | null;
+  onTableChange: (tableId: string | null) => void;
+  onIncrement: (key: string) => void;
+  onDecrement: (key: string) => void;
   /**
-   * @deprecated OrderPanel now drives its own send-to-kitchen mutation internally
-   * (needed for the revision-aware CTA label/enable-state + the "Rev {n} sent…" toast,
-   * POS-12/POS-15 — a fire-and-forget callback prop can't give onSuccess/onError
-   * semantics). Kept optional so the existing `PosTerminal` caller (out of this plan's
-   * file scope — owned by plan 08) keeps compiling unchanged.
+   * Non-null once the cart has been persisted (first Send/Charge succeeded, POS-19/
+   * D-04). Switches this panel from cart-rendering to server-order-rendering — the
+   * order's own revision-aware Send-to-Kitchen/charge/void logic below is unchanged
+   * from before this plan and only ever runs once `sentOrder` is non-null (its `id` is
+   * then a stable, already-known value — no stale-closure risk).
    */
-  onSendToKitchen?: () => void;
-  /** @deprecated see `onSendToKitchen` — OrderPanel tracks its own `isPending` now. */
-  isSending?: boolean;
+  sentOrder: Order | null;
+  /** True while the FIRST persist (createOrder + addItem*) is in flight. */
+  isPersisting: boolean;
+  /** Persists the cart (createOrder + addItem* + first send-to-kds) — pre-send only. */
+  onSendToKitchen: () => void | Promise<void>;
+  /** Clear / New Order (D-04) — resets the terminal to an empty cart. */
+  onClearNewOrder: () => void;
 }
 
 const SETTLED_STATUSES: ReadonlySet<Order["status"]> = new Set(["CLOSED", "VOIDED", "REFUNDED"]);
@@ -51,19 +66,180 @@ function deriveRevisionLog(items: Order["items"]): RevisionLogEntry[] {
     .map(([revisionNo, v]) => ({ revisionNo, ...v }));
 }
 
-export function OrderPanel({ order }: OrderPanelProps) {
-  const sendToKds = useSendToKds(order?.id ?? "");
-  const updateInstructions = useUpdateInstructions(order?.id ?? "");
-
-  if (!order) {
+export function OrderPanel({
+  cart,
+  orderType,
+  onOrderTypeChange,
+  tableId,
+  onTableChange,
+  onIncrement,
+  onDecrement,
+  sentOrder,
+  isPersisting,
+  onSendToKitchen,
+  onClearNewOrder,
+}: OrderPanelProps) {
+  if (!sentOrder) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 gap-2">
-        <span className="text-4xl">🧾</span>
-        <p className="text-sm">No active order</p>
-        <p className="text-xs">Select items from the menu to start</p>
-      </div>
+      <PreSendCart
+        cart={cart}
+        orderType={orderType}
+        onOrderTypeChange={onOrderTypeChange}
+        tableId={tableId}
+        onTableChange={onTableChange}
+        onIncrement={onIncrement}
+        onDecrement={onDecrement}
+        isPersisting={isPersisting}
+        onSendToKitchen={onSendToKitchen}
+      />
     );
   }
+
+  return <SentOrder order={sentOrder} onClearNewOrder={onClearNewOrder} />;
+}
+
+// ── Pre-send: client-only cart (POS-16/D-01, POS-17/D-02, POS-18/D-03) ─────────────
+
+interface PreSendCartProps {
+  cart: CartLine[];
+  orderType: OrderType;
+  onOrderTypeChange: (type: OrderType) => void;
+  tableId: string | null;
+  onTableChange: (tableId: string | null) => void;
+  onIncrement: (key: string) => void;
+  onDecrement: (key: string) => void;
+  isPersisting: boolean;
+  onSendToKitchen: () => void | Promise<void>;
+}
+
+function PreSendCart({
+  cart,
+  orderType,
+  onOrderTypeChange,
+  tableId,
+  onTableChange,
+  onIncrement,
+  onDecrement,
+  isPersisting,
+  onSendToKitchen,
+}: PreSendCartProps) {
+  const canSend = cart.length > 0 && !isPersisting;
+  const total = cartTotalPaisa(cart);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Order type + table (D-03) */}
+      <div className="px-4 py-3 border-b space-y-2">
+        <OrderTypeToggle value={orderType} onChange={onOrderTypeChange} />
+        {orderType === "DINE_IN" && (
+          <TableSelectCombobox value={tableId} onChange={onTableChange} disabled={isPersisting} />
+        )}
+      </div>
+
+      {/* Cart lines */}
+      <div className="flex-1 overflow-y-auto divide-y">
+        {cart.length === 0 ? (
+          <EmptyState
+            title="Add items to start an order"
+            description="Tap a menu item to build the cart — nothing is saved until Send to Kitchen or Charge."
+            className="h-full"
+          />
+        ) : (
+          cart.map((line) => {
+            const key = cartLineKey(line.menuItemId, line.modifierIds, line.notes);
+            return <CartLineRow key={key} line={line} lineKey={key} onIncrement={onIncrement} onDecrement={onDecrement} />;
+          })
+        )}
+      </div>
+
+      {/* Totals */}
+      {cart.length > 0 && (
+        <div className="border-t px-4 py-3 space-y-1 text-sm">
+          <div className="flex justify-between font-semibold text-base">
+            <span>Subtotal</span>
+            <MoneyDisplay paisa={total} className="font-mono" />
+          </div>
+          <p className="text-[10px] text-muted-foreground">Tax/discount computed once sent.</p>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="px-4 pb-4 pt-2 space-y-2">
+        <button
+          type="button"
+          data-testid="send-to-kitchen-button"
+          onClick={() => void onSendToKitchen()}
+          disabled={!canSend}
+          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
+        >
+          {isPersisting ? "Sending..." : "Send to Kitchen"}
+        </button>
+        <button
+          type="button"
+          data-testid="charge-now-button"
+          disabled
+          title="Send to kitchen first"
+          aria-label="Charge Now (send to kitchen first)"
+          className="w-full h-12 rounded-xl border font-semibold text-sm opacity-40 cursor-not-allowed"
+        >
+          CHARGE NOW
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface CartLineRowProps {
+  line: CartLine;
+  lineKey: string;
+  onIncrement: (key: string) => void;
+  onDecrement: (key: string) => void;
+}
+
+function CartLineRow({ line, lineKey, onIncrement, onDecrement }: CartLineRowProps) {
+  return (
+    <div className="px-4 py-2 flex items-center gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{line.name}</p>
+        {line.notes && <p className="text-xs text-muted-foreground italic">Note: {line.notes}</p>}
+      </div>
+
+      {/* − / + steppers (POS-17) */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onDecrement(lineKey)}
+          aria-label={`Decrease ${line.name} quantity`}
+          className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded border text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <Minus className="size-3.5" aria-hidden="true" />
+        </button>
+        <span className="text-sm font-mono tabular-nums min-w-[24px] text-center">{line.quantity}</span>
+        <button
+          type="button"
+          onClick={() => onIncrement(lineKey)}
+          aria-label={`Increase ${line.name} quantity`}
+          className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded border text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+        </button>
+      </div>
+
+      <MoneyDisplay paisa={line.unitPricePaisa * line.quantity} className="text-sm font-mono w-20 text-right" />
+    </div>
+  );
+}
+
+// ── Post-send: real server order (unchanged send/revision/settlement logic) ────────
+
+interface SentOrderProps {
+  order: Order;
+  onClearNewOrder: () => void;
+}
+
+function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
+  const sendToKds = useSendToKds(order.id);
+  const updateInstructions = useUpdateInstructions(order.id);
 
   const isSettled = SETTLED_STATUSES.has(order.status);
   const pendingItems = order.items.filter((i) => i.itemStatus === "PENDING");
@@ -149,14 +325,28 @@ export function OrderPanel({ order }: OrderPanelProps) {
 
       {/* Actions */}
       <div className="px-4 pb-4 pt-2 space-y-2">
-        <button
-          onClick={() => void handleSendToKitchen()}
-          disabled={!canSendToKitchen || sendToKds.isPending}
-          className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
-        >
-          {sendToKds.isPending ? "Sending..." : ctaLabel}
-        </button>
+        {canSendToKitchen && (
+          <button
+            type="button"
+            data-testid="send-to-kitchen-button"
+            onClick={() => void handleSendToKitchen()}
+            disabled={sendToKds.isPending}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 active:scale-[0.98] transition-all"
+          >
+            {sendToKds.isPending ? "Sending..." : ctaLabel}
+          </button>
+        )}
         <SettlementActions order={order} />
+        {/* Clear / New Order (POS-19/D-04) — resets the terminal to a fresh cart. The
+            fired order stays fully intact and editable via Order Management. */}
+        <button
+          type="button"
+          data-testid="clear-new-order-button"
+          onClick={onClearNewOrder}
+          className="w-full py-2.5 rounded-xl border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          Clear / New Order
+        </button>
       </div>
     </div>
   );
@@ -252,7 +442,7 @@ function SpecialInstructionsField({ notes, disabled, onSave }: SpecialInstructio
   );
 }
 
-// ── Line item row ────────────────────────────────────────────────────────────
+// ── Line item row (post-send, unchanged) ────────────────────────────────────────
 
 interface OrderLineItemProps {
   item: Order["items"][number];

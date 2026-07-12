@@ -1,97 +1,132 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { MenuGrid } from "@/components/pos/menu-grid";
 import { OrderPanel } from "@/components/pos/order-panel";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { useCreateOrder, useAddItem, useSendToKds, useOrder } from "@/lib/hooks/pos/use-orders";
-import type { MenuItem } from "@/lib/models/pos.model";
+import { useCreateOrder, useAddItem, useOrder } from "@/lib/hooks/pos/use-orders";
+import { useFireToKitchen } from "@/lib/hooks/pos/use-fire-to-kitchen";
+import { addLine, clearCart, decrementLine, incrementLine, type CartLine } from "@/components/pos/cart-reducer";
+import type { MenuItem, OrderType } from "@/lib/models/pos.model";
 
 interface PosTerminalProps {
   /**
-   * The page-level selected table (plan 06's TableFloorView -> page.tsx state), bound
-   * into `createOrder` so a new order links to the tapped AVAILABLE table (POS-15).
-   * `page.tsx` remounts `PosTerminal` on table change (`key={selectedTableId}`), so this
-   * is only ever read at order-creation time for the CURRENT mount, never stale.
+   * The page-level selected table (TableFloorView -> page.tsx state) — pre-fills the
+   * terminal's own table selector when an AVAILABLE table was tapped. `page.tsx`
+   * remounts `PosTerminal` on table change (`key={selectedTableId}`); this is only
+   * ever read at mount time as the initial value — the terminal's own
+   * `table-select-combobox` (D-03) owns the LIVE selection from then on.
    */
   tableId?: string | null;
 }
 
+/**
+ * The order-taking terminal (POS-16..19/D-01..D-04): a client-only cart in local
+ * React state. NOTHING persists to pos-service until the cashier explicitly hits
+ * Send to Kitchen or Charge — no DRAFT order is ever created on a menu tap.
+ */
 export function PosTerminal({ tableId }: PosTerminalProps) {
   const { branchId } = useCurrentUser();
-  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
-  // Investigation (POS-15 "can't select items after N" — GitNexus MCP unavailable this
-  // session; traced via Grep/Read across pos-terminal/use-orders/order-panel/
-  // pos.repository/OrderServiceImpl/OrderMapper, no hardcoded array-length/.slice(0,N)/
-  // pagination cap found anywhere in the add-item path). Root cause: `activeOrderId`
-  // React state is only visible to a NEW render — but `handleItemSelect` can be
-  // re-invoked (fast cashier taps) before the state update from a PRIOR invocation has
-  // committed. The already-fixed "first item" bug is one instance of this general class
-  // (the addItem mutation hook bound to a stale, still-null orderId); the *general* bug
-  // is that ANY rapid tap landing inside the same async window as an in-flight
-  // createOrder call also reads `activeOrderId` as null and fires its OWN createOrder,
-  // silently splitting items across multiple orphaned orders (only the order that wins
-  // the setActiveOrderId race stays visible — the rest look "dropped"). Fix: track the
-  // order id in a ref (updated synchronously, not just on next render) and dedupe
-  // concurrent order-creation onto a single in-flight promise every tap awaits; and
-  // (companion fix, use-orders.ts) `useAddItem` no longer binds `orderId` at hook-creation
-  // time — it now takes `orderId` as a per-call mutate variable, so the mutation itself
-  // can never be stale-bound either.
-  const orderIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    orderIdRef.current = activeOrderId;
-  }, [activeOrderId]);
-  const creatingOrderRef = useRef<Promise<string> | null>(null);
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [orderType, setOrderType] = useState<OrderType>("DINE_IN");
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(tableId ?? null);
+
+  // Non-null once the cart has been persisted (first Send/Charge succeeded). Gates
+  // Charge Now and switches OrderPanel from cart-rendering to server-order-rendering.
+  const [orderId, setOrderId] = useState<string | null>(null);
+  // ONE clientOrderId per cart lifetime — preserves idempotency across retries of the
+  // SAME persist attempt (RESEARCH POS-16, HIGH risk). Regenerated only on Clear/New
+  // Order, never on every render.
+  const clientOrderIdRef = useRef<string>(crypto.randomUUID());
+  // Guards against a rapid double-click on Send to Kitchen firing TWO concurrent
+  // persist attempts before React state (`orderId`) commits on the next render — the
+  // same class of stale-read race already fixed once for menu-item taps
+  // (pos-terminal.tsx history, `creatingOrderRef`). A plain ref is read/written
+  // synchronously within the same event-handler invocation, unlike component state.
+  const sendInFlightRef = useRef(false);
 
   const createOrder = useCreateOrder();
   const addItem = useAddItem();
-  const { data: activeOrder } = useOrder(activeOrderId ?? "");
-  const sendToKds = useSendToKds(activeOrderId ?? "");
+  const fireToKitchen = useFireToKitchen();
+  const { data: sentOrder } = useOrder(orderId ?? "");
 
-  const ensureOrderId = useCallback(async (): Promise<string> => {
-    if (orderIdRef.current) return orderIdRef.current;
+  const isPersisting = createOrder.isPending || addItem.isPending || fireToKitchen.isPending;
 
-    if (!creatingOrderRef.current) {
-      creatingOrderRef.current = (async () => {
-        const clientOrderId = crypto.randomUUID();
-        const newOrder = await createOrder.mutateAsync({
-          branchId,
-          clientOrderId,
-          type: "DINE_IN",
-          coverCount: 1,
-          ...(tableId ? { tableId } : {}),
-        });
-        // Set synchronously (before the wrapping promise resolves) so any tap that was
-        // waiting on this SAME in-flight creation — or any brand-new tap that arrives
-        // right after — sees the real order id immediately, not on the next React commit.
-        orderIdRef.current = newOrder.id;
-        setActiveOrderId(newOrder.id);
-        return newOrder.id;
-      })();
-      creatingOrderRef.current.finally(() => {
-        creatingOrderRef.current = null;
-      });
-    }
+  /**
+   * Menu tap — ALWAYS cart-only, NEVER a network call (POS-16/D-01), regardless of
+   * whether the current order has already been sent. Adding MORE items to an
+   * already-fired order (a new PENDING revision line) is Order Management's "Send New
+   * Items" flow (POS-21/D-06, a separate plan's wiring) — the terminal itself only
+   * ever offers Clear/New Order once sent (POS-19/D-04), never a second silent
+   * persist path from a menu tap.
+   */
+  const handleItemSelect = useCallback((item: MenuItem) => {
+    setCart((prev) =>
+      addLine(prev, { menuItemId: item.id, name: item.name, unitPricePaisa: item.basePricePaisa }),
+    );
+  }, []);
 
-    return creatingOrderRef.current;
-  }, [branchId, createOrder, tableId]);
+  const handleIncrement = useCallback((key: string) => {
+    setCart((prev) => incrementLine(prev, key));
+  }, []);
 
-  const handleItemSelect = useCallback(
-    async (item: MenuItem) => {
-      const orderId = await ensureOrderId();
-      await addItem.mutateAsync({
-        orderId,
-        payload: { menuItemId: item.id, branchId, quantity: 1 },
-      });
-    },
-    [ensureOrderId, addItem, branchId]
-  );
+  const handleDecrement = useCallback((key: string) => {
+    setCart((prev) => decrementLine(prev, key));
+  }, []);
 
+  const handleClearNewOrder = useCallback(() => {
+    setCart(clearCart());
+    setOrderType("DINE_IN");
+    setSelectedTableId(tableId ?? null);
+    setOrderId(null);
+    clientOrderIdRef.current = crypto.randomUUID();
+  }, [tableId]);
+
+  /**
+   * Lazy persist (POS-16/D-01): only called from the pre-send cart view. Creates the
+   * order ONCE (single clientOrderId, reused across any retry of this same attempt),
+   * adds every cart line (existing `useCreateOrder`/`useAddItem` hooks reused AS-IS —
+   * preserves ORDER_CREATED, table-occupancy sync, offline-outbox behaviour), then
+   * fires it to the kitchen in the same click. Sequential (not `Promise.all`) so
+   * every line lands on the just-created order before firing.
+   */
   const handleSendToKitchen = useCallback(async () => {
-    if (!activeOrderId) return;
-    await sendToKds.mutateAsync();
-  }, [activeOrderId, sendToKds]);
+    if (cart.length === 0 || orderId || sendInFlightRef.current) return;
+    sendInFlightRef.current = true;
+
+    try {
+      const newOrder = await createOrder.mutateAsync({
+        branchId,
+        clientOrderId: clientOrderIdRef.current,
+        type: orderType,
+        coverCount: 1,
+        ...(selectedTableId ? { tableId: selectedTableId } : {}),
+      });
+
+      for (const line of cart) {
+        // Sequential adds by design — each must land before the next so the fired
+        // revision includes every line.
+        await addItem.mutateAsync({
+          orderId: newOrder.id,
+          payload: {
+            menuItemId: line.menuItemId,
+            branchId,
+            quantity: line.quantity,
+            ...(line.modifierIds.length > 0 ? { modifierIds: line.modifierIds } : {}),
+            ...(line.notes ? { notes: line.notes } : {}),
+          },
+        });
+      }
+
+      setOrderId(newOrder.id);
+      setCart(clearCart());
+
+      await fireToKitchen.mutateAsync({ orderId: newOrder.id });
+    } finally {
+      sendInFlightRef.current = false;
+    }
+  }, [cart, orderId, createOrder, addItem, fireToKitchen, branchId, orderType, selectedTableId]);
 
   return (
     <div className="flex h-full gap-0 overflow-hidden">
@@ -103,9 +138,17 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
       {/* Right: Order panel — fixed width */}
       <div className="w-80 flex-shrink-0 overflow-hidden flex flex-col">
         <OrderPanel
-          order={activeOrder ?? null}
+          cart={cart}
+          orderType={orderType}
+          onOrderTypeChange={setOrderType}
+          tableId={selectedTableId}
+          onTableChange={setSelectedTableId}
+          onIncrement={handleIncrement}
+          onDecrement={handleDecrement}
+          sentOrder={sentOrder ?? null}
+          isPersisting={isPersisting}
           onSendToKitchen={handleSendToKitchen}
-          isSending={sendToKds.isPending}
+          onClearNewOrder={handleClearNewOrder}
         />
       </div>
     </div>
