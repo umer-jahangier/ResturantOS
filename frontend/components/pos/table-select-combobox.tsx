@@ -12,6 +12,12 @@ interface TableSelectComboboxProps {
   onChange: (tableId: string | null) => void;
   className?: string;
   disabled?: boolean;
+  /**
+   * Assign Table (POS-24, 07.3-08): restricts the OPTION LIST to AVAILABLE tables only —
+   * OCCUPIED/NEEDS_BUSSING are not rendered at all (not just disabled). Default `false`
+   * preserves 07.3-03's terminal picker behavior (all tables, OCCUPIED disabled).
+   */
+  availableOnly?: boolean;
 }
 
 const TABLE_STATUS_LABEL: Record<DiningTable["status"], string> = {
@@ -32,18 +38,30 @@ const TABLE_STATUS_CLASS: Record<DiningTable["status"], string> = {
  * OCCUPIED options render `disabled` + `aria-disabled` and are unselectable; table
  * selection is always optional (a "No table" option is always first).
  */
-export function TableSelectCombobox({ value, onChange, className, disabled }: TableSelectComboboxProps) {
+export function TableSelectCombobox({
+  value,
+  onChange,
+  className,
+  disabled,
+  availableOnly = false,
+}: TableSelectComboboxProps) {
   const { data: tables = [] } = useTables();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selected = tables.find((t) => t.id === value) ?? null;
+  const selectableTables = useMemo(
+    () => (availableOnly ? tables.filter((t) => t.status === "AVAILABLE") : tables),
+    [tables, availableOnly],
+  );
 
   const filtered = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
-    return trimmed ? tables.filter((t) => t.tableName.toLowerCase().includes(trimmed)) : tables;
-  }, [tables, query]);
+    return trimmed
+      ? selectableTables.filter((t) => t.tableName.toLowerCase().includes(trimmed))
+      : selectableTables;
+  }, [selectableTables, query]);
 
   useEffect(() => {
     if (!open) return;

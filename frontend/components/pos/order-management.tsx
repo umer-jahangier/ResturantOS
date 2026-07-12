@@ -2,15 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { OrderTableDetailDrawer } from "@/components/pos/order-table-detail-drawer";
-import { useOrderSummaries } from "@/lib/hooks/pos/use-orders";
+import { PaymentStatusBadge } from "@/components/pos/payment-status-badge";
+import { TableSelectCombobox } from "@/components/pos/table-select-combobox";
+import { useOrderSummaries, useAssignTable } from "@/lib/hooks/pos/use-orders";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import type { DerivedOrderStatus, OrderSummary } from "@/lib/models/pos.model";
+import type { DerivedOrderStatus, OrderStatus, OrderSummary } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
 interface OrderManagementProps {
@@ -25,7 +29,13 @@ interface OrderManagementProps {
 const FADE_MS = 200;
 const ALL_BRANCH_PERMISSION = "pos.order.view.all";
 
-type StatusFilter = "ALL" | DerivedOrderStatus;
+// POS-24 (07.3-08): "Closed" is deliberately scoped to the single CLOSED settlement
+// status — VOIDED/REFUNDED are distinct settlement outcomes with their own visual
+// treatment (StatusBadge) and are not what a cashier means by "closed orders" here.
+const CLOSED_FILTER_STATUSES: readonly OrderStatus[] = ["CLOSED"];
+const TERMINAL_SETTLEMENT_STATUSES: ReadonlySet<OrderStatus> = new Set(["CLOSED", "VOIDED", "REFUNDED"]);
+
+type StatusFilter = "ALL" | DerivedOrderStatus | "CLOSED" | "PAID";
 
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "ALL", label: "All" },
@@ -33,6 +43,8 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "IN_PROGRESS", label: "In Progress" },
   { id: "PARTIALLY_SERVED", label: "Partially Served" },
   { id: "SERVED", label: "Served" },
+  { id: "CLOSED", label: "Closed" },
+  { id: "PAID", label: "Paid" },
 ];
 
 function formatAge(openedAt: string | null): string {
@@ -107,20 +119,52 @@ function useFadeOutList(rows: OrderSummary[] | undefined) {
 
 export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   const { userId } = useCurrentUser();
-  const { data, isLoading, isFetching, refetch } = useOrderSummaries();
-  const { visible, fadingIds } = useFadeOutList(data?.data);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [viewAll, setViewAll] = useState(true);
+  const [search, setSearch] = useState("");
   const [openOrder, setOpenOrder] = useState<{ orderId: string; tableName: string | null } | null>(null);
 
+  const isClosedFilter = statusFilter === "CLOSED";
+
+  // The ACTIVE (default, non-terminal/non-DRAFT) list — always fetched, and the ONLY
+  // source fed to `useFadeOutList` below. A Closed-filter chip switches the DISPLAYED
+  // rows to a second, separately-fetched terminal-statuses query instead of re-pointing
+  // this one — otherwise the fade-out invariant (RESEARCH POS-24) would misfire: rows
+  // that are simply absent from a differently-scoped fetch are not "closed while
+  // viewing the active list", they were never requested by it.
+  const activeQuery = useOrderSummaries();
+  const closedQuery = useOrderSummaries([...CLOSED_FILTER_STATUSES], { enabled: isClosedFilter });
+
+  const { visible, fadingIds } = useFadeOutList(activeQuery.data?.data);
+
+  const isLoading = isClosedFilter ? closedQuery.isLoading : activeQuery.isLoading;
+  const isFetching = isClosedFilter ? closedQuery.isFetching : activeQuery.isFetching;
+  const refetch = () => (isClosedFilter ? closedQuery.refetch() : activeQuery.refetch());
+
   const filtered = useMemo(() => {
-    return visible.filter((row) => {
-      if (statusFilter !== "ALL" && row.derivedStatus !== statusFilter) return false;
+    const source: OrderSummary[] = isClosedFilter ? (closedQuery.data?.data ?? []) : visible;
+    const trimmedSearch = search.trim().toLowerCase();
+
+    return source.filter((row) => {
+      if (statusFilter === "PAID" && row.paymentStatus !== "PAID") return false;
+      if (
+        statusFilter !== "ALL" &&
+        statusFilter !== "CLOSED" &&
+        statusFilter !== "PAID" &&
+        row.derivedStatus !== statusFilter
+      ) {
+        return false;
+      }
       if (!viewAll && row.cashierId !== userId) return false;
+      if (trimmedSearch) {
+        const matchesOrderNo = row.orderNo?.toLowerCase().includes(trimmedSearch) ?? false;
+        const matchesTable = row.tableName?.toLowerCase().includes(trimmedSearch) ?? false;
+        if (!matchesOrderNo && !matchesTable) return false;
+      }
       return true;
     });
-  }, [visible, statusFilter, viewAll, userId]);
+  }, [isClosedFilter, closedQuery.data, visible, statusFilter, viewAll, userId, search]);
 
   const columns = useMemo<ColumnDef<OrderSummary, unknown>[]>(
     () => [
@@ -143,6 +187,11 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         cell: ({ row }) => <StatusBadge status={row.original.derivedStatus} />,
       },
       {
+        id: "payment",
+        header: "Payment",
+        cell: ({ row }) => <PaymentStatusBadge status={row.original.paymentStatus} />,
+      },
+      {
         id: "cashier",
         header: "Server/Cashier",
         cell: ({ row }) =>
@@ -155,9 +204,24 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
           ),
       },
       {
-        id: "covers",
-        header: "Covers",
-        cell: ({ row }) => <span className="text-sm tabular-nums">{row.original.coverCount}</span>,
+        // POS-24: replaces the old "Covers" column — total item quantity across
+        // non-CANCELLED lines, with an optional distinct-line-count secondary line
+        // when it differs from the total (e.g. "8 Items" / "5 Items / 8 Qty").
+        id: "items",
+        header: "Items",
+        cell: ({ row }) => {
+          const o = row.original;
+          return (
+            <div className="flex flex-col">
+              <span className="text-sm tabular-nums">{o.itemQuantity} Items</span>
+              {o.distinctItemCount !== o.itemQuantity && (
+                <span className="text-xs text-muted-foreground">
+                  {o.distinctItemCount} Items / {o.itemQuantity} Qty
+                </span>
+              )}
+            </div>
+          );
+        },
       },
       {
         id: "total",
@@ -175,17 +239,22 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         id: "actions",
         header: "",
         cell: ({ row }) => (
-          <button
-            type="button"
-            onClick={() =>
-              setOpenOrder({ orderId: row.original.orderId, tableName: row.original.tableName })
-            }
-            data-testid={`open-order-${row.original.orderId}`}
-            aria-label={`Open order ${row.original.orderNo ?? row.original.orderId}`}
-            className="text-xs font-medium text-primary underline"
-          >
-            Open
-          </button>
+          <div className="flex items-center justify-end gap-2">
+            {!row.original.tableId && !TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus) && (
+              <AssignTableAction orderId={row.original.orderId} />
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                setOpenOrder({ orderId: row.original.orderId, tableName: row.original.tableName })
+              }
+              data-testid={`open-order-${row.original.orderId}`}
+              aria-label={`Open order ${row.original.orderNo ?? row.original.orderId}`}
+              className="text-xs font-medium text-primary underline"
+            >
+              Open
+            </button>
+          </div>
         ),
       },
     ],
@@ -216,6 +285,18 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             </button>
           ))}
         </div>
+
+        {/* Search box (POS-24) — filters the currently-scoped rows by order no. / table
+            name, case-insensitive substring, client-side. */}
+        <Input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search order # or table…"
+          aria-label="Search orders"
+          data-testid="order-management-search"
+          className="h-9 max-w-56"
+        />
 
         <div className="flex items-center gap-2">
           {/* My Orders / All Branch — permission-gated, never a disabled control (UI-SPEC §1) */}
@@ -293,5 +374,56 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         onFullMenu={onFullMenu}
       />
     </div>
+  );
+}
+
+// ── Assign Table row action (POS-24) ───────────────────────────────────────────
+
+interface AssignTableActionProps {
+  orderId: string;
+}
+
+/**
+ * Tableless-order row action — opens the AVAILABLE-only `table-select-combobox`
+ * (occupied tables blocked, not merely disabled) and calls `useAssignTable`, whose
+ * multi-key invalidation (order-summaries + order + tables) updates the row and the
+ * assigned table's status immediately, without a manual refresh.
+ */
+function AssignTableAction({ orderId }: AssignTableActionProps) {
+  const [open, setOpen] = useState(false);
+  const assignTable = useAssignTable(orderId);
+
+  const handleAssign = async (tableId: string | null) => {
+    if (!tableId) return;
+    try {
+      await assignTable.mutateAsync(tableId);
+      toast.success("Table assigned");
+      setOpen(false);
+    } catch {
+      toast.error("Failed to assign table. Please try again.");
+    }
+  };
+
+  if (open) {
+    return (
+      <TableSelectCombobox
+        value={null}
+        onChange={(tableId) => void handleAssign(tableId)}
+        availableOnly
+        className="w-40"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      disabled={assignTable.isPending}
+      data-testid={`assign-table-${orderId}`}
+      className="text-xs font-medium text-primary underline disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      Assign Table
+    </button>
   );
 }
