@@ -26,10 +26,12 @@ public final class KitchenEventPayloads {
 
     // ─── Consume side (ORDER_SENT_TO_KDS from pos.topic) ──────────────────────
 
-    // revisionNo/orderNotes are ADDITIVE fields appended after items — names must match
-    // pos-service PosEventPayloads.OrderSentToKdsPayload EXACTLY (field-name parity is the
-    // only contract enforcement; a mismatch silently drops every message — RESEARCH.md
+    // revisionNo/orderNotes/tableNumber are ADDITIVE fields appended after items — names must
+    // match pos-service PosEventPayloads.OrderSentToKdsPayload EXACTLY (field-name parity is
+    // the only contract enforcement; a mismatch silently drops every message — RESEARCH.md
     // Pitfall 4 / Phase-7 cold-start bug #4). Never reorder/rename the existing fields.
+    // tableNumber (KDS-04) is the order's dining-table number, or null for pickup/no-table
+    // orders — added 07.3-05, the name MUST stay tableNumber on both sides.
     public record OrderSentToKdsPayload(
             UUID orderId,
             UUID tenantId,
@@ -37,7 +39,8 @@ public final class KitchenEventPayloads {
             String orderNo,
             List<OrderSentToKdsItem> items,
             int revisionNo,
-            String orderNotes
+            String orderNotes,
+            String tableNumber
     ) {}
 
     public record OrderSentToKdsItem(

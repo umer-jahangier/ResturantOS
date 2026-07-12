@@ -53,6 +53,7 @@ class TicketRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Sauce",   1, null,     List.of(), "extra hot")
                 ),
                 1,
+                null,
                 null
         );
 
@@ -84,6 +85,7 @@ class TicketRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Water", 1, null,   List.of(), null)
                 ),
                 1,
+                null,
                 null
         );
 

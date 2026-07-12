@@ -12,6 +12,7 @@ public record KdsTicketDto(
         UUID orderId,
         String orderNo,
         String orderNotes,
+        String tableNumber,
         String stationCode,
         TicketStatus status,
         boolean priority,

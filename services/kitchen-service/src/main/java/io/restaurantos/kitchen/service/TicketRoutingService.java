@@ -87,6 +87,12 @@ public class TicketRoutingService {
         // Latest revision's order-level notes win — the kitchen sees current instructions.
         ticket.setOrderNotes(payload.orderNotes());
 
+        // Table number may not have been known/set on the initial fire (e.g. assigned after
+        // the first send) — refresh it from a later revision if the ticket doesn't have one yet.
+        if (ticket.getTableNumber() == null) {
+            ticket.setTableNumber(payload.tableNumber());
+        }
+
         KdsTicket saved = ticketRepository.save(ticket);
         webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), ticketService.toDto(saved));
         log.info("Appended revision to ticket: order={} station={} newItems={} revisionNo={}",
@@ -102,6 +108,7 @@ public class TicketRoutingService {
         ticket.setOrderId(payload.orderId());
         ticket.setOrderNo(orderNo);
         ticket.setOrderNotes(payload.orderNotes());
+        ticket.setTableNumber(payload.tableNumber());
         ticket.setStationCode(stationCode);
         ticket.setReceivedAt(Instant.now());
 
