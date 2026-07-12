@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -107,6 +108,20 @@ public class PurchaseOrderService {
     @Transactional(readOnly = true)
     public PurchaseOrderDto get(UUID id) {
         return toDto(purchaseOrderRepository.findById(id).orElseThrow());
+    }
+
+    /**
+     * 10-10 list endpoint. Tenant is ALWAYS resolved from {@link TenantContext}, never from a
+     * request parameter (a caller-supplied tenantId would be a cross-tenant hole).
+     */
+    @Transactional(readOnly = true)
+    public List<PurchaseOrderDto> list(UUID branchId, List<PoStatus> statuses) {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<PurchaseOrder> pos = (statuses == null || statuses.isEmpty())
+                ? purchaseOrderRepository.findByTenantIdAndBranchIdOrderByCreatedAtDesc(tenantId, branchId)
+                : purchaseOrderRepository.findByTenantIdAndBranchIdAndStatusInOrderByCreatedAtDesc(
+                        tenantId, branchId, statuses);
+        return pos.stream().map(this::toDto).toList();
     }
 
     @Transactional

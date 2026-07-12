@@ -14,4 +14,11 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
     List<PurchaseOrder> findByTenantIdAndVendorIdAndBranchId(UUID tenantId, UUID vendorId, UUID branchId);
 
     long countByBranchIdAndStatus(UUID branchId, PoStatus status);
+
+    /** PUR list endpoint (10-10): branch listing, newest first, no status filter. */
+    List<PurchaseOrder> findByTenantIdAndBranchIdOrderByCreatedAtDesc(UUID tenantId, UUID branchId);
+
+    /** PUR list endpoint (10-10): branch listing narrowed by status. */
+    List<PurchaseOrder> findByTenantIdAndBranchIdAndStatusInOrderByCreatedAtDesc(
+            UUID tenantId, UUID branchId, List<PoStatus> statuses);
 }

@@ -1,5 +1,6 @@
 package io.restaurantos.purchasing.web;
 
+import io.restaurantos.purchasing.domain.enums.PoStatus;
 import io.restaurantos.purchasing.dto.ClosePurchaseOrderRequest;
 import io.restaurantos.purchasing.dto.CreatePurchaseOrderRequest;
 import io.restaurantos.purchasing.dto.PurchaseOrderDto;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,6 +34,13 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAuthority('vendor.po.create')")
     public ApiResponse<PurchaseOrderDto> create(@Valid @RequestBody CreatePurchaseOrderRequest req) {
         return ApiResponse.ok(purchaseOrderService.create(req));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAuthority('vendor.view')")
+    public ApiResponse<List<PurchaseOrderDto>> list(@RequestParam UUID branchId,
+                                                     @RequestParam(required = false) List<PoStatus> status) {
+        return ApiResponse.ok(purchaseOrderService.list(branchId, status));
     }
 
     @GetMapping("/{id}")
