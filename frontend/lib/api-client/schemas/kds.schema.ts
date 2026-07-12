@@ -38,6 +38,10 @@ export const apiKdsTicketSchema = z.object({
   startedAt: z.string().datetime({ offset: true }).nullable().optional(),
   readyAt: z.string().datetime({ offset: true }).nullable().optional(),
   orderNotes: z.string().nullable().optional(),
+  // Table number, propagated order->event->KdsTicket->KdsTicketDto (07.3-05, KDS-04).
+  // Optional/nullable defensively (same convention as orderNotes above) even though
+  // kitchen-service now always emits the field.
+  tableNumber: z.string().nullable().optional(),
   items: z.array(apiKdsTicketItemSchema),
 });
 

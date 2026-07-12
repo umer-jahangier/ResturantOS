@@ -17,6 +17,7 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     startedAt: null,
     readyAt: null,
     orderNotes: null,
+    tableNumber: null,
     items: [],
     ...overrides,
   };

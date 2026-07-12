@@ -32,6 +32,8 @@ export interface KdsTicket {
   /** Order-level "Kitchen Notes" callout (UI-SPEC §6). Currently always null — backend
    * KdsTicketDto does not emit this field yet (known gap, see 07.1-05 SUMMARY). */
   orderNotes: string | null;
+  /** Table number (07.3-05, KDS-04) — null for takeaway/pickup orders with no table. */
+  tableNumber: string | null;
   items: KdsTicketItem[];
 }
 

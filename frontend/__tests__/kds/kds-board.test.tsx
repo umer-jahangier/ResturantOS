@@ -21,6 +21,7 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     startedAt: null,
     readyAt: null,
     orderNotes: null,
+    tableNumber: null,
     items: [
       {
         id: "i0000001-0000-4000-8000-000000000001",

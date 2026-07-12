@@ -1,7 +1,7 @@
 import { apiClient } from "@/lib/api-client/client";
 import { apiKdsTicketSchema, apiKdsStationSchema } from "@/lib/api-client/schemas/kds.schema";
 import { adaptKdsTicket, adaptKdsStation } from "@/lib/adapters/kds.adapter";
-import type { KdsTicket, KdsStation } from "@/lib/models/kds.model";
+import type { KdsTicket, KdsStation, KdsItemStatus } from "@/lib/models/kds.model";
 
 // Layer-2 KDS repository. Calls the kitchen-service API, parses via Zod,
 // adapts to domain models. Never exposes raw API types to Layer-3 or above.
@@ -28,6 +28,26 @@ export const KdsRepository = {
     const response = await apiClient.post<unknown>(
       `/api/v1/kitchen/kds/tickets/${ticketId}/items/${itemId}/bump`,
       {},
+      { params: { branchId } },
+    );
+    return adaptKdsTicket(apiKdsTicketSchema.parse(response.data));
+  },
+
+  /**
+   * Explicit item-status endpoint (07.3-05, KDS-04) — drives New→Started→Preparing→Ready
+   * moves from the item-column board / detail page. Wraps kitchen-service's
+   * markItemStatus; response is a bare KdsTicketDto (unwrapped, same convention as
+   * bumpItem/recallTicket above).
+   */
+  async updateItemStatus(
+    ticketId: string,
+    itemId: string,
+    status: KdsItemStatus,
+    branchId: string,
+  ): Promise<KdsTicket> {
+    const response = await apiClient.post<unknown>(
+      `/api/v1/kitchen/kds/tickets/${ticketId}/items/${itemId}/status`,
+      { status },
       { params: { branchId } },
     );
     return adaptKdsTicket(apiKdsTicketSchema.parse(response.data));

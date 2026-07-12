@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { KdsRepository } from "@/lib/repositories/kds.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import type { KdsItemStatus } from "@/lib/models/kds.model";
 
 /**
  * Fetches open KDS tickets for a branch+station.
@@ -36,6 +37,29 @@ export function useBumpItem(branchId: string) {
   return useMutation({
     mutationFn: ({ ticketId, itemId }: { ticketId: string; itemId: string }) =>
       KdsRepository.bumpItem(ticketId, itemId, branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kds", branchId] });
+    },
+  });
+}
+
+/**
+ * Advances a KDS ticket item to a specific target status via the explicit
+ * item-status endpoint (07.3-05, KDS-04) — drives the New/Started/Preparing/Ready
+ * item-column board and the ticket detail page's per-item transition controls.
+ */
+export function useUpdateItemStatus(branchId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticketId,
+      itemId,
+      status,
+    }: {
+      ticketId: string;
+      itemId: string;
+      status: KdsItemStatus;
+    }) => KdsRepository.updateItemStatus(ticketId, itemId, status, branchId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kds", branchId] });
     },
