@@ -121,10 +121,10 @@
 
 > **Phase 07.3 (INSERTED 2026-07-12)** — production bug-fixes + UX revamp of the Phase-7.1 POS/KDS from testing feedback (`bugs.md`): removes draft-order persistence, real-time kitchen↔POS item-status sync, decouples payment from close (Paid AND Served ⇒ CLOSED), replaces modal-heavy flows with dedicated full-page/large views, and redesigns the KDS into station-isolated status columns.
 
-- [ ] **POS-16**: No-draft lazy order creation — selecting menu items builds a client-only cart; an order is persisted to the DB only when the cashier explicitly Sends to Kitchen or Charges; the `DRAFT` status is retired from all user-visible flows and no orphaned/empty orders ever appear in table view, Order Management, or any order list
-- [ ] **POS-17**: Cart quantity handling — selecting the same menu item increments a single line to ×N (with +/− controls) instead of creating duplicate rows, unless modifiers or special instructions differ; re-ordering an already-fired item creates a new PENDING revision line rather than mutating a fired line
-- [ ] **POS-18**: Optional table + order type — order creation supports Dine-in / Takeaway / Pickup; table assignment is optional (takeaway/pickup need none); a searchable table selector shows Available/Occupied status and prevents selecting occupied tables
-- [ ] **POS-19**: Terminal reset & charge gating — after Send to Kitchen the terminal offers an explicit Clear / New Order action (the fired order stays editable in Order Management); Charge Now is enabled only after the order has been sent to the kitchen (i.e. persisted); no previous selections leak into the next order
+- [x] **POS-16**: No-draft lazy order creation — selecting menu items builds a client-only cart; an order is persisted to the DB only when the cashier explicitly Sends to Kitchen or Charges; the `DRAFT` status is retired from all user-visible flows and no orphaned/empty orders ever appear in table view, Order Management, or any order list
+- [x] **POS-17**: Cart quantity handling — selecting the same menu item increments a single line to ×N (with +/− controls) instead of creating duplicate rows, unless modifiers or special instructions differ; re-ordering an already-fired item creates a new PENDING revision line rather than mutating a fired line
+- [x] **POS-18**: Optional table + order type — order creation supports Dine-in / Takeaway / Pickup; table assignment is optional (takeaway/pickup need none); a searchable table selector shows Available/Occupied status and prevents selecting occupied tables
+- [x] **POS-19**: Terminal reset & charge gating — after Send to Kitchen the terminal offers an explicit Clear / New Order action (the fired order stays editable in Order Management); Charge Now is enabled only after the order has been sent to the kitchen (i.e. persisted); no previous selections leak into the next order
 - [x] **POS-20**: Real-time kitchen→POS item-status sync — per-item kitchen status changes propagate to pos-service so the POS reflects live item status without a manual reopen; opening an order always shows current, non-stale item statuses
 - [ ] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
 - [x] **POS-22**: Full-page settlement surface — Charge Now is a dedicated full-page/large view (not a small modal) showing order no., table, customer, cashier, order time, item list with qty/status/notes, tax/discount/charge breakdown, payment history, payment methods, and remaining balance
@@ -324,10 +324,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-14 | Phase 7.1 | Complete |
 | POS-15 | Phase 7.1 | Complete |
 | KDS-03 | Phase 7.1 | Complete |
-| POS-16 | Phase 07.3 | Pending |
-| POS-17 | Phase 07.3 | Pending |
-| POS-18 | Phase 07.3 | Pending |
-| POS-19 | Phase 07.3 | Pending |
+| POS-16 | Phase 07.3 | Complete |
+| POS-17 | Phase 07.3 | Complete |
+| POS-18 | Phase 07.3 | Complete |
+| POS-19 | Phase 07.3 | Complete |
 | POS-20 | Phase 07.3 | Complete |
 | POS-21 | Phase 07.3 | Pending |
 | POS-22 | Phase 07.3 | Complete |
