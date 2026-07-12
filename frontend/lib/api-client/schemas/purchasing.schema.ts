@@ -35,15 +35,39 @@ export const vendorInputSchema = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ * PoStatus (backend enum, `PoStatus.java`) — canonical order matches the domain lifecycle.
+ * DRAFT -> PENDING_APPROVAL -> APPROVED -> SENT -> PARTIALLY_RECEIVED -> FULLY_RECEIVED -> CLOSED,
+ * with REJECTED as an alternate terminal-ish state off PENDING_APPROVAL.
+ */
+export const PO_STATUSES = [
+  "DRAFT",
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+  "SENT",
+  "PARTIALLY_RECEIVED",
+  "FULLY_RECEIVED",
+  "CLOSED",
+] as const;
+export const poStatusSchema = z.enum(PO_STATUSES);
+export type PoStatus = z.infer<typeof poStatusSchema>;
+
+// `qty` is a backend BigDecimal (PurchaseOrderDto.LineDto) with no custom Jackson serializer, so
+// the real API returns it as a JSON number (e.g. `100` or `12.5`), not a string — coerce either
+// shape to a string so downstream money/qty formatting has one consistent type.
+const qtyField = z.union([z.string(), z.number()]).transform((v) => String(v));
+
 export const apiPoLineSchema = z.object({
   id: z.string().uuid(),
   ingredientId: z.string().uuid(),
-  qty: z.string(),
+  qty: qtyField,
   uom: z.string(),
   unitPricePaisa: z.number().int(),
   lineTotalPaisa: z.number().int(),
 });
 
+// Mirrors PurchaseOrderDto exactly (services/purchasing-service .../dto/PurchaseOrderDto.java).
 export const apiPurchaseOrderSchema = z.object({
   id: z.string().uuid(),
   vendorId: z.string().uuid(),
@@ -51,9 +75,45 @@ export const apiPurchaseOrderSchema = z.object({
   status: z.string(),
   expectedDeliveryDate: z.string().nullable().optional(),
   totalPaisa: z.number().int(),
+  notes: z.string().nullable().optional(),
+  requesterId: z.string().uuid().nullable().optional(),
+  submittedAt: z.string().nullable().optional(),
+  requiredTiers: z.number().int().nullable().optional(),
+  tiersApproved: z.number().int().nullable().optional(),
   closedAt: z.string().nullable().optional(),
   closeReason: z.string().nullable().optional(),
   lines: z.array(apiPoLineSchema),
+});
+
+// Mirrors CreatePurchaseOrderRequest exactly (services/purchasing-service .../dto/
+// CreatePurchaseOrderRequest.java) — NOTE: the backend Line has no `description` field (unlike
+// some earlier plan prose assumed); it has `ingredientId`, `qty`, `uom`, `unitPricePaisa`. `qty`
+// is sent as a numeric string; Jackson's BigDecimal deserializer accepts both JSON strings and
+// numbers.
+export const createPurchaseOrderLineInputSchema = z.object({
+  ingredientId: z.string().uuid(),
+  qty: z.string().min(1, "Quantity is required"),
+  uom: z.string().min(1, "Unit is required"),
+  unitPricePaisa: z.number().int().nonnegative(),
+});
+
+export const createPurchaseOrderInputSchema = z.object({
+  vendorId: z.string().uuid(),
+  branchId: z.string().uuid(),
+  expectedDeliveryDate: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  lines: z.array(createPurchaseOrderLineInputSchema).min(1, "Add at least one line"),
+});
+
+/** Params for `GET /api/v1/purchasing/purchase-orders`. */
+export const poListParamsSchema = z.object({
+  branchId: z.string().uuid(),
+  status: z.array(poStatusSchema).optional(),
+});
+
+/** Write payload for `POST /purchase-orders/{id}/reject` — `reason` is mandatory server-side. */
+export const rejectPoInputSchema = z.object({
+  reason: z.string().min(1, "A reason is required to reject a purchase order"),
 });
 
 export const apiInvoiceLineSchema = z.object({

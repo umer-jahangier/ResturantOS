@@ -17,6 +17,81 @@ let closedAt: string | null = null;
 let closeReason: string | null = null;
 const invoices: Record<string, unknown> = {};
 
+interface MockPoLine {
+  id: string;
+  ingredientId: string;
+  qty: string;
+  uom: string;
+  unitPricePaisa: number;
+  lineTotalPaisa: number;
+}
+
+interface MockPo {
+  id: string;
+  vendorId: string;
+  branchId: string;
+  status: string;
+  expectedDeliveryDate: string | null;
+  totalPaisa: number;
+  notes: string | null;
+  requesterId: string | null;
+  submittedAt: string | null;
+  requiredTiers: number;
+  tiersApproved: number;
+  closedAt: string | null;
+  closeReason: string | null;
+  lines: MockPoLine[];
+}
+
+interface CreatePoBody {
+  vendorId: string;
+  branchId: string;
+  expectedDeliveryDate?: string | null;
+  notes?: string | null;
+  lines: { ingredientId: string; qty: string; uom: string; unitPricePaisa: number }[];
+}
+
+/**
+ * F9 (10-12): the primary detail PO (`PO_ID`, wired to the shared `poStatus`/`grnQty`/`closedAt`/
+ * `closeReason` module state above so the existing close/mock-receive handlers keep working
+ * unmodified) plus any POs created through `POST /purchase-orders` during a test/dev session.
+ */
+const purchaseOrders: MockPo[] = [
+  {
+    id: PO_ID,
+    vendorId: VENDOR_ID,
+    branchId: BRANCH,
+    status: poStatus,
+    expectedDeliveryDate: "2026-06-14",
+    totalPaisa: 100_000,
+    notes: null,
+    requesterId: null,
+    submittedAt: null,
+    requiredTiers: 1,
+    tiersApproved: 0,
+    closedAt,
+    closeReason,
+    lines: [
+      {
+        id: LINE_ID,
+        ingredientId: ING_1,
+        qty: "100",
+        uom: "kg",
+        unitPricePaisa: 1000,
+        lineTotalPaisa: 100_000,
+      },
+    ],
+  },
+];
+
+/** Approvers already recorded per PO id — mirrors 10-07's distinct-approver rule. */
+const approversByPo: Record<string, Set<string>> = {};
+const CURRENT_APPROVER = "manager-1";
+
+function findPo(id: string): MockPo | undefined {
+  return purchaseOrders.find((p) => p.id === id);
+}
+
 interface MockVendor {
   id: string;
   name: string;
@@ -150,8 +225,120 @@ export const purchasingHandlers = [
     return ok(updated);
   }),
 
-  http.get("*/api/v1/purchasing/purchase-orders/:id", ({ params }) =>
-    ok({
+  // 10-10: branch-scoped PO list, optionally narrowed by ?status=. The primary fixture (PO_ID)
+  // always reflects the shared poStatus/closedAt/closeReason module state so a submit->approve->
+  // send->receive->close sequence stays consistent whether read through the list or the detail
+  // endpoint.
+  http.get("*/api/v1/purchasing/purchase-orders", ({ request }) => {
+    const url = new URL(request.url);
+    const statuses = url.searchParams.getAll("status");
+    const rows = purchaseOrders.map((p) => (p.id === PO_ID ? { ...p, status: poStatus, closedAt, closeReason } : p));
+    const filtered = statuses.length > 0 ? rows.filter((p) => statuses.includes(p.status)) : rows;
+    return ok(filtered);
+  }),
+
+  // 10-12: create a DRAFT PO. `qty * unitPricePaisa` (rounded) becomes each line's total; the PO
+  // total is the sum of line totals.
+  http.post("*/api/v1/purchasing/purchase-orders", async ({ request }) => {
+    const body = (await request.json()) as CreatePoBody;
+    if (!body.vendorId || !body.branchId || !body.lines?.length) {
+      return apiError("VALIDATION_ERROR", "vendorId, branchId and at least one line are required", 400);
+    }
+    const seq = String(purchaseOrders.length + 1).padStart(12, "0");
+    const id = `d0000002-0000-4000-8000-${seq}`;
+    const lines: MockPoLine[] = body.lines.map((l, idx) => {
+      const lineTotalPaisa = Math.round(Number(l.qty) * l.unitPricePaisa);
+      return {
+        id: `e0000002-0000-4000-8000-${String(idx + 1).padStart(12, "0")}`,
+        ingredientId: l.ingredientId,
+        qty: l.qty,
+        uom: l.uom,
+        unitPricePaisa: l.unitPricePaisa,
+        lineTotalPaisa,
+      };
+    });
+    const created: MockPo = {
+      id,
+      vendorId: body.vendorId,
+      branchId: body.branchId,
+      status: "DRAFT",
+      expectedDeliveryDate: body.expectedDeliveryDate ?? null,
+      totalPaisa: lines.reduce((sum, l) => sum + l.lineTotalPaisa, 0),
+      notes: body.notes ?? null,
+      requesterId: null,
+      submittedAt: null,
+      requiredTiers: 1,
+      tiersApproved: 0,
+      closedAt: null,
+      closeReason: null,
+      lines,
+    };
+    purchaseOrders.push(created);
+    return ok(created);
+  }),
+
+  http.post("*/api/v1/purchasing/purchase-orders/:id/submit", ({ params }) => {
+    const po = findPo(params.id as string);
+    if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
+    if (po.id === PO_ID) poStatus = "PENDING_APPROVAL";
+    po.status = "PENDING_APPROVAL";
+    po.submittedAt = "2026-06-15T09:00:00Z";
+    return ok(po.id === PO_ID ? { ...po, status: poStatus } : po);
+  }),
+
+  http.post("*/api/v1/purchasing/purchase-orders/:id/withdraw", ({ params }) => {
+    const po = findPo(params.id as string);
+    if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
+    if (po.id === PO_ID) poStatus = "DRAFT";
+    po.status = "DRAFT";
+    return ok(po.id === PO_ID ? { ...po, status: poStatus } : po);
+  }),
+
+  // 10-07: distinct-approver rule — the same mock "current user" approving the same PO twice is a
+  // 409 DUPLICATE_APPROVER, mirroring the real backend's PoApprovalService.
+  http.post("*/api/v1/purchasing/purchase-orders/:id/approve", ({ params }) => {
+    const po = findPo(params.id as string);
+    if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
+    const approvers = (approversByPo[po.id] ??= new Set());
+    if (approvers.has(CURRENT_APPROVER)) {
+      return apiError("DUPLICATE_APPROVER", "You have already approved this purchase order", 409);
+    }
+    approvers.add(CURRENT_APPROVER);
+    po.tiersApproved += 1;
+    if (po.tiersApproved >= po.requiredTiers) {
+      po.status = "APPROVED";
+      if (po.id === PO_ID) poStatus = "APPROVED";
+    }
+    return ok(po.id === PO_ID ? { ...po, status: poStatus } : po);
+  }),
+
+  http.post("*/api/v1/purchasing/purchase-orders/:id/reject", async ({ params, request }) => {
+    const po = findPo(params.id as string);
+    if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
+    const body = (await request.json().catch(() => ({}))) as { reason?: string };
+    if (!body.reason || !body.reason.trim()) {
+      return apiError("VALIDATION_ERROR", "A reason is required to reject a purchase order", 400);
+    }
+    po.status = "REJECTED";
+    if (po.id === PO_ID) poStatus = "REJECTED";
+    return ok(po.id === PO_ID ? { ...po, status: poStatus } : po);
+  }),
+
+  http.post("*/api/v1/purchasing/purchase-orders/:id/send", ({ params }) => {
+    const po = findPo(params.id as string);
+    if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
+    if (po.status !== "APPROVED") {
+      return apiError("INVALID_PO_STATE", "Only an APPROVED purchase order can be sent", 409);
+    }
+    po.status = "SENT";
+    if (po.id === PO_ID) poStatus = "SENT";
+    return ok(po.id === PO_ID ? { ...po, status: poStatus } : po);
+  }),
+
+  http.get("*/api/v1/purchasing/purchase-orders/:id", ({ params }) => {
+    const po = findPo(params.id as string);
+    if (po && po.id !== PO_ID) return ok(po);
+    return ok({
       id: params.id,
       vendorId: VENDOR_ID,
       branchId: BRANCH,
@@ -162,7 +349,7 @@ export const purchasingHandlers = [
       requesterId: null,
       submittedAt: null,
       requiredTiers: 1,
-      tiersApproved: 1,
+      tiersApproved: po?.tiersApproved ?? 1,
       closedAt,
       closeReason,
       lines: [
@@ -175,8 +362,8 @@ export const purchasingHandlers = [
           lineTotalPaisa: 100_000,
         },
       ],
-    }),
-  ),
+    });
+  }),
 
   http.post("*/api/v1/purchasing/purchase-orders/:poId/mock-receive", async ({ params, request }) => {
     const body = (await request.json()) as { lines: { poLineId: string; receivedQty: string }[] };

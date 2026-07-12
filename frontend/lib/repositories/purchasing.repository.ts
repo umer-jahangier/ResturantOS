@@ -5,7 +5,10 @@ import {
   apiVendorInvoiceSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
+  createPurchaseOrderInputSchema,
+  rejectPoInputSchema,
   vendorInputSchema,
+  type PoStatus,
 } from "@/lib/api-client/schemas/purchasing.schema";
 import {
   adaptPurchaseOrder,
@@ -16,6 +19,7 @@ import {
 } from "@/lib/adapters/purchasing.adapter";
 import type {
   PurchaseOrder,
+  PurchaseOrderInput,
   SpendAnalytics,
   Vendor,
   VendorInput,
@@ -37,6 +41,50 @@ export const PurchasingRepository = {
   async updateVendor(id: string, input: VendorInput): Promise<Vendor> {
     const raw = await put(`/api/v1/purchasing/vendors/${id}`, vendorInputSchema.parse(input));
     return adaptVendor(apiVendorSchema.parse(raw));
+  },
+
+  /** 10-10: branch-scoped PO list, optionally narrowed by status. Tenant is server-resolved. */
+  async listPurchaseOrders(branchId: string, status?: PoStatus[]): Promise<PurchaseOrder[]> {
+    const params: Record<string, unknown> = { branchId };
+    if (status && status.length > 0) params.status = status;
+    const raw = await get<unknown[]>("/api/v1/purchasing/purchase-orders", params);
+    return (raw ?? []).map((po) => adaptPurchaseOrder(apiPurchaseOrderSchema.parse(po)));
+  },
+
+  async createPurchaseOrder(input: PurchaseOrderInput): Promise<PurchaseOrder> {
+    const raw = await post(
+      "/api/v1/purchasing/purchase-orders",
+      createPurchaseOrderInputSchema.parse(input),
+    );
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
+  },
+
+  async submitPurchaseOrder(id: string): Promise<PurchaseOrder> {
+    const raw = await post(`/api/v1/purchasing/purchase-orders/${id}/submit`, {});
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
+  },
+
+  async withdrawPurchaseOrder(id: string): Promise<PurchaseOrder> {
+    const raw = await post(`/api/v1/purchasing/purchase-orders/${id}/withdraw`, {});
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
+  },
+
+  async approvePurchaseOrder(id: string): Promise<PurchaseOrder> {
+    const raw = await post(`/api/v1/purchasing/purchase-orders/${id}/approve`, {});
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
+  },
+
+  async rejectPurchaseOrder(id: string, reason: string): Promise<PurchaseOrder> {
+    const raw = await post(
+      `/api/v1/purchasing/purchase-orders/${id}/reject`,
+      rejectPoInputSchema.parse({ reason }),
+    );
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
+  },
+
+  async sendPurchaseOrder(id: string): Promise<PurchaseOrder> {
+    const raw = await post(`/api/v1/purchasing/purchase-orders/${id}/send`, {});
+    return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
   },
 
   async getPurchaseOrder(id: string): Promise<PurchaseOrder> {
