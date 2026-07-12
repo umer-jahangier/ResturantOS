@@ -300,6 +300,10 @@ Plans:
 - [x] 07.3-09-PLAN.md (wave 3) — Modal→page sweep: void/refund + till panels + connectivity-404 removal (POS-25, POS-26)
 - [x] 07.3-10-PLAN.md (wave 3) — KDS station-board redesign: item-status columns + slim card + detail page + subtle prioritization (KDS-04, KDS-05)
 
+**Gap Closure** (from 07.3-VERIFICATION.md — BLOCKER: legacy close-path Paid-AND-Served bypass)
+
+- [ ] 07.3-11-PLAN.md (wave 1) — Retire legacy POST /orders/{id}/close to 410 Gone + delete the closeOrder tender-sum bypass so maybeCloseOrder (Paid AND Served) is the only close path; migrate 7 IT fixtures; delete orphaned PaymentPanel/useCloseOrder dead code (POS-23)
+
 ### Phase 8: Inventory & Recipe Management
 
 **Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
