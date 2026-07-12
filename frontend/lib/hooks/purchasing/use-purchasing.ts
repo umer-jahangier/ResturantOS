@@ -2,8 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PurchasingRepository } from "@/lib/repositories/purchasing.repository";
-import type { PurchaseOrderInput, VendorInput } from "@/lib/adapters/purchasing.adapter";
+import type { PurchaseOrder, PurchaseOrderInput, VendorInput } from "@/lib/adapters/purchasing.adapter";
 import type { PoStatus } from "@/lib/api-client/schemas/purchasing.schema";
+// Type-only import — permitted from a lib/hooks/** file (the ESLint layer-boundary rule only
+// blocks components/**); this is how 04-02-C's "components branch on ApiError via TanStack
+// mutation-error type inference" pattern works: the hook pins TError to ApiError, the component
+// never imports api-client itself (see use-switch-branch.ts for the established precedent).
+import type { ApiError } from "@/lib/api-client/errors";
 
 const VENDORS_KEY = ["purchasing", "vendors"];
 const POS_KEY = ["purchasing", "pos"];
@@ -64,7 +69,7 @@ export function useCreatePurchaseOrder() {
 /** DRAFT -> PENDING_APPROVAL. */
 export function useSubmitPurchaseOrder(id: string) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutation<PurchaseOrder, ApiError, void>({
     mutationFn: () => PurchasingRepository.submitPurchaseOrder(id),
     onSuccess: () => invalidatePo(qc, id),
   });
@@ -73,7 +78,7 @@ export function useSubmitPurchaseOrder(id: string) {
 /** PENDING_APPROVAL -> DRAFT (requester pulls the PO back before it's decided). */
 export function useWithdrawPurchaseOrder(id: string) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutation<PurchaseOrder, ApiError, void>({
     mutationFn: () => PurchasingRepository.withdrawPurchaseOrder(id),
     onSuccess: () => invalidatePo(qc, id),
   });
@@ -87,7 +92,7 @@ export function useWithdrawPurchaseOrder(id: string) {
  */
 export function useApprovePurchaseOrder(id: string) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutation<PurchaseOrder, ApiError, void>({
     mutationFn: () => PurchasingRepository.approvePurchaseOrder(id),
     onSuccess: () => invalidatePo(qc, id),
   });
@@ -96,7 +101,7 @@ export function useApprovePurchaseOrder(id: string) {
 /** PENDING_APPROVAL -> REJECTED. `reason` is mandatory server-side. */
 export function useRejectPurchaseOrder(id: string) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutation<PurchaseOrder, ApiError, string>({
     mutationFn: (reason: string) => PurchasingRepository.rejectPurchaseOrder(id, reason),
     onSuccess: () => invalidatePo(qc, id),
   });
@@ -105,7 +110,7 @@ export function useRejectPurchaseOrder(id: string) {
 /** APPROVED -> SENT. */
 export function useSendPurchaseOrder(id: string) {
   const qc = useQueryClient();
-  return useMutation({
+  return useMutation<PurchaseOrder, ApiError, void>({
     mutationFn: () => PurchasingRepository.sendPurchaseOrder(id),
     onSuccess: () => invalidatePo(qc, id),
   });

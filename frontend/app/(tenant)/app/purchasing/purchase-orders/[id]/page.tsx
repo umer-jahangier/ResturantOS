@@ -2,11 +2,95 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
+
 import { MockGrnReceivePanel } from "@/components/purchasing/MockGrnReceivePanel";
-import { useClosePurchaseOrder, usePurchaseOrder } from "@/lib/hooks/purchasing/use-purchasing";
+import { PoStatusBadge } from "@/components/purchasing/PoStatusBadge";
+import {
+  useApprovePurchaseOrder,
+  useClosePurchaseOrder,
+  usePurchaseOrder,
+  useRejectPurchaseOrder,
+  useSendPurchaseOrder,
+  useSubmitPurchaseOrder,
+  useWithdrawPurchaseOrder,
+} from "@/lib/hooks/purchasing/use-purchasing";
+import { MoneyDisplay } from "@/components/ui/money-display";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
+/** 10-07: human-readable copy for the two approval-gate error codes a 403 can carry here. */
+function approveErrorMessage(code: string, fallback: string): string {
+  if (code === "APPROVAL_LIMIT_EXCEEDED") return "This amount exceeds your approval limit.";
+  if (code === "DUPLICATE_APPROVER") return "You have already approved this purchase order.";
+  return fallback;
+}
+
+function RejectDialog({ onConfirm, isPending }: { onConfirm: (reason: string) => void; isPending: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setReason("");
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline">
+          Reject
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reject purchase order</DialogTitle>
+          <DialogDescription>A reason is required and is recorded on the PO.</DialogDescription>
+        </DialogHeader>
+        <Input
+          aria-label="Rejection reason"
+          placeholder="Reason for rejection"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isPending || reason.trim().length === 0}
+            onClick={() => {
+              onConfirm(reason.trim());
+              setOpen(false);
+            }}
+          >
+            {isPending ? "Rejecting…" : "Reject"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function PurchaseOrderDetailPage({ params }: { params: { id: string } }) {
   const { data: po, isLoading } = usePurchaseOrder(params.id);
+  const submitPo = useSubmitPurchaseOrder(params.id);
+  const withdrawPo = useWithdrawPurchaseOrder(params.id);
+  const approvePo = useApprovePurchaseOrder(params.id);
+  const rejectPo = useRejectPurchaseOrder(params.id);
+  const sendPo = useSendPurchaseOrder(params.id);
   const closePo = useClosePurchaseOrder(params.id);
   const [closeReason, setCloseReason] = useState("");
 
@@ -16,17 +100,100 @@ export default function PurchaseOrderDetailPage({ params }: { params: { id: stri
   const isShortClose = po.status === "PARTIALLY_RECEIVED";
   const closeDisabled = closePo.isPending || (isShortClose && closeReason.trim().length === 0);
 
+  function handleApprove() {
+    approvePo.mutate(undefined, {
+      onSuccess: () => toast.success("Approved"),
+      onError: (error) => toast.error(approveErrorMessage(error.code, error.message)),
+    });
+  }
+
   return (
     <div className="space-y-4">
-      <Link href="/app/purchasing/vendors" className="text-sm text-primary">← Vendors</Link>
-      <h1 className="text-xl font-semibold">PO {po.id.slice(0, 8)}…</h1>
-      <p>Status: {po.status}</p>
+      <Link href="/app/purchasing/purchase-orders" className="text-sm text-primary">
+        ← Purchase orders
+      </Link>
+      <div className="flex items-center gap-3">
+        <h1 className="text-xl font-semibold">PO {po.id.slice(0, 8)}…</h1>
+        <PoStatusBadge status={po.status} />
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Total <MoneyDisplay paisa={po.totalPaisa} className="text-foreground" />
+        {po.expectedDeliveryDate ? ` · Expected ${po.expectedDeliveryDate}` : ""}
+      </p>
+      {po.status === "PENDING_APPROVAL" && (
+        <p className="text-sm text-muted-foreground">
+          Approvals {po.tiersApproved ?? 0} / {po.requiredTiers ?? 1} tiers
+        </p>
+      )}
       {po.status === "CLOSED" && po.closedAt && (
         <p className="text-sm text-muted-foreground">
           Closed {new Date(po.closedAt).toLocaleString()}
           {po.closeReason ? ` — ${po.closeReason}` : ""}
         </p>
       )}
+
+      <div className="flex flex-wrap gap-2">
+        {po.status === "DRAFT" && (
+          <Button
+            type="button"
+            disabled={submitPo.isPending}
+            onClick={() =>
+              submitPo.mutate(undefined, {
+                onSuccess: () => toast.success("Submitted for approval"),
+                onError: (error) => toast.error(error.message),
+              })
+            }
+          >
+            {submitPo.isPending ? "Submitting…" : "Submit for approval"}
+          </Button>
+        )}
+
+        {po.status === "PENDING_APPROVAL" && (
+          <>
+            <Button type="button" disabled={approvePo.isPending} onClick={handleApprove}>
+              {approvePo.isPending ? "Approving…" : "Approve"}
+            </Button>
+            <RejectDialog
+              isPending={rejectPo.isPending}
+              onConfirm={(reason) =>
+                rejectPo.mutate(reason, {
+                  onSuccess: () => toast.success("Rejected"),
+                  onError: (error) => toast.error(error.message),
+                })
+              }
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={withdrawPo.isPending}
+              onClick={() =>
+                withdrawPo.mutate(undefined, {
+                  onSuccess: () => toast.success("Withdrawn to draft"),
+                  onError: (error) => toast.error(error.message),
+                })
+              }
+            >
+              {withdrawPo.isPending ? "Withdrawing…" : "Withdraw"}
+            </Button>
+          </>
+        )}
+
+        {po.status === "APPROVED" && (
+          <Button
+            type="button"
+            disabled={sendPo.isPending}
+            onClick={() =>
+              sendPo.mutate(undefined, {
+                onSuccess: () => toast.success("Sent to vendor"),
+                onError: (error) => toast.error(error.message),
+              })
+            }
+          >
+            {sendPo.isPending ? "Sending…" : "Send to vendor"}
+          </Button>
+        )}
+      </div>
+
       <MockGrnReceivePanel poId={po.id} />
       {canClose && (
         <div className="rounded border p-4">
