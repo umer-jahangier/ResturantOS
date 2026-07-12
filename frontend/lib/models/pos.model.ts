@@ -12,7 +12,7 @@ export type OrderStatus =
   | "VOIDED"
   | "REFUNDED";
 
-export type OrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+export type OrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY" | "PICKUP";
 
 // 7-value item lifecycle (backend OrderItemStatus). Replaces the old 3-value
 // KdsItemStatus — the wire field is still named `kdsStatus` (see pos.schema.ts), but the

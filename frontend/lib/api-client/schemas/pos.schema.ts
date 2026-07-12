@@ -88,7 +88,7 @@ export const apiOrderSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
-  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY"]),
+  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY", "PICKUP"]),
   status: z.enum(["DRAFT", "OPEN", "SENT_TO_KDS", "PARTIAL_READY", "READY", "SERVED", "CLOSED", "VOIDED", "REFUNDED"]),
   // `.optional()`: the live pos-service response for POST /orders and GET /orders/{id}
   // currently omits this field entirely (verified via 07.1-06 E2E — a backend
