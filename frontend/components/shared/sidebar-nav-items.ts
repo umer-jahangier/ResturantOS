@@ -18,17 +18,21 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import type { FeatureFlag } from "@/lib/features/feature-flags";
+
 // Typed nav config. An item shows only if its `permission` is held AND its
 // `feature` is enabled (composed by the Sidebar); an item with neither is always
 // shown. Tenant hrefs use the real `/app/*` prefix and platform-admin entries
 // use `/platform/*` (matches the 04-01 URL scheme + the proxy.ts matcher).
 // Concrete module pages land in later phases — these are links/placeholders.
+// `feature` is typed as `FeatureFlag` (not `string`) so a flag the backend
+// does not grant is a COMPILE error, not a silently-invisible nav item.
 export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
   permission?: string;
-  feature?: string;
+  feature?: FeatureFlag;
   badge?: number | string;
 }
 
@@ -70,11 +74,11 @@ export const tenantNavItems: NavItem[] = [
     feature: "FEATURE_FINANCE",
   },
   {
-    // Phase 5+: purchasing permissions not yet in DB catalog — gate by feature only
+    // RBAC: vendor.view (see 10-09)
     label: "Purchasing",
     href: "/app/purchasing",
     icon: Truck,
-    feature: "FEATURE_PURCHASING",
+    feature: "FEATURE_VENDOR",
   },
   {
     // Phase 5+: HR permissions not yet in DB catalog — gate by feature only
@@ -95,7 +99,7 @@ export const tenantNavItems: NavItem[] = [
     label: "Reporting",
     href: "/app/reporting",
     icon: BarChart3,
-    feature: "FEATURE_REPORTING",
+    feature: "FEATURE_REPORTING_ADVANCED",
   },
 ];
 
@@ -175,11 +179,11 @@ export const navGroups: NavGroup[] = [
     label: "Purchasing",
     items: [
       {
-        // Phase 5+: purchasing permissions not yet in DB catalog — gate by feature only
+        // RBAC: vendor.view (see 10-09)
         label: "Purchasing",
         href: "/app/purchasing",
         icon: Truck,
-        feature: "FEATURE_PURCHASING",
+        feature: "FEATURE_VENDOR",
       },
     ],
   },
@@ -210,7 +214,7 @@ export const navGroups: NavGroup[] = [
         label: "Reports",
         href: "/app/reporting",
         icon: BarChart3,
-        feature: "FEATURE_REPORTING",
+        feature: "FEATURE_REPORTING_ADVANCED",
       },
     ],
   },
