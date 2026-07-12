@@ -38,7 +38,6 @@ import type {
   UpdateInstructionsPayload,
   OpenTillPayload,
   CloseTillPayload,
-  CloseOrderPayload,
   VoidOrderPayload,
   RefundOrderPayload,
   RecordPaymentPayload,
@@ -131,7 +130,7 @@ export const PosRepository = {
 
   /**
    * Fires all currently-PENDING lines as an incrementing revision (POS-12). `clientFireId`
-   * is sent as the Idempotency-Key header — mirrors closeOrder/voidOrder's pattern
+   * is sent as the Idempotency-Key header — mirrors voidOrder/refundOrder's pattern
    * exactly — so a replayed offline fire never double-sends the same revision.
    */
   async sendToKds(orderId: string, clientFireId: string): Promise<Order> {
@@ -178,15 +177,6 @@ export const PosRepository = {
   async cancelItem(orderId: string, itemId: string): Promise<Order> {
     const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/items/${itemId}/cancel`);
     return adaptOrder(apiOrderSchema.parse(raw));
-  },
-
-  async closeOrder(orderId: string, payload: CloseOrderPayload, idempotencyKey: string): Promise<Order> {
-    const resp = await apiClient.post<{ data: unknown }>(
-      `/api/v1/pos/orders/${orderId}/close`,
-      payload,
-      { headers: { "Idempotency-Key": idempotencyKey } }
-    );
-    return adaptOrder(apiOrderSchema.parse(resp.data.data));
   },
 
   /**

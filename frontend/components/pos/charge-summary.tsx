@@ -62,11 +62,10 @@ function orderTypeLabel(type: string): string {
 }
 
 /**
- * Branches on HTTP status (not `.code`) for the PERIOD_LOCKED copy — mirrors
- * payment-panel.tsx's `getChargeErrorMessage` exactly (pos-service's
+ * Branches on HTTP status (not `.code`) for the PERIOD_LOCKED copy — pos-service's own
  * `PosGlobalExceptionHandler` returns an RFC7807 ProblemDetail body for
  * `PeriodLockedException`, distinct from the `{error:{code,...}}` envelope other
- * services use; the HTTP status 423 is unambiguous regardless of body shape). A
+ * services use; the HTTP status 423 is unambiguous regardless of body shape. A
  * payment that would complete an already-Served order can trip the finance
  * period-lock check inside the backend's `maybeCloseOrder` seam (07.3-01) —
  * this page must render that as a user-facing message, never crash (T-07.3-22).
@@ -85,13 +84,12 @@ function getRecordPaymentErrorMessage(error: { status?: number; message?: string
 }
 
 /**
- * Dedicated full-page Charge surface (POS-22/25/23) — replaces the cramped narrow-width
- * `PaymentPanel` modal dialog. Shows the full order + payment analytics +
- * history, and records payments through the decoupled `recordPayment` seam (07.3-01):
- * a payment updates amount-paid/remaining/the payment chip WITHOUT closing the order —
- * the order only transitions to CLOSED server-side once it is BOTH fully Paid AND fully
- * Served (backend `maybeCloseOrder`), which this page picks up via query invalidation,
- * never by calling `closeOrder` itself.
+ * Dedicated full-page Charge surface (POS-22/25/23). Shows the full order + payment
+ * analytics + history, and records payments through the decoupled `recordPayment` seam
+ * (07.3-01): a payment updates amount-paid/remaining/the payment chip WITHOUT closing
+ * the order — the order only transitions to CLOSED server-side once it is BOTH fully
+ * Paid AND fully Served (backend `maybeCloseOrder`), which this page picks up via query
+ * invalidation. This page never calls a close endpoint directly.
  */
 export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const router = useRouter();
