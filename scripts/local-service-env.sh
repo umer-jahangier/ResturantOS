@@ -4,7 +4,17 @@
 
 set -a
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ${BASH_SOURCE[0]} is unset when this file is `source`d from a non-bash shell
+# (e.g. zsh, the macOS default). Falling back silently to `dirname ""` resolves
+# to the caller's cwd instead of scripts/, so deploy/.env is "missing" and every
+# service below boots with empty JWT keys + empty DB passwords — no error, just
+# silent auth failures. Fall back to the git root so this works under any shell.
+if [[ -n "${BASH_SOURCE:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  SCRIPT_DIR="$REPO_ROOT/scripts"
+fi
 DEPLOY_ENV="$SCRIPT_DIR/../deploy/.env"
 
 if [[ ! -f "$DEPLOY_ENV" ]]; then

@@ -23,6 +23,11 @@ spring:
     user: ${AUDIT_DB_ADMIN_USER:audit_admin}
     password: ${AUDIT_DB_ADMIN_PASSWORD:audit_admin_pass}
     change-log: classpath:db/changelog/db.changelog-master.xml
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}

@@ -17,6 +17,18 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+  # shared-lib transitively pulls in spring-boot-starter-amqp (RabbitHealthIndicator
+  # etc.). Without this block Spring Boot's RabbitAutoConfiguration falls back to its
+  # hardcoded localhost/guest/guest defaults, which the "restaurantos" vhost user in
+  # docker-compose does not have (the definitions.json replaces the guest account) —
+  # every connection attempt then fails with ACCESS_REFUSED regardless of the
+  # RABBITMQ_HOST/USERNAME/PASSWORD env vars being set correctly.
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:guest}
+
   cloud:
     gateway:
       server:
