@@ -272,7 +272,7 @@ Plans:
   5. Order Management shows closed/paid orders with filters + search + payment-status badges, an item-quantity column replacing Cover, and an Assign-Table action; duplicate payment is blocked while paid orders stay accessible (POS-24); the payment, detail, void/refund, and till surfaces are dedicated pages/large panels, not modals (POS-25); the console no longer logs the `/pos/menu/categories` 404 (POS-26).
   6. The KDS shows each station in an isolated view with New/Started/Preparing/Ready item-status columns (mixed statuses per order), slim cards (order#/table/time/items), and a dedicated detail page; stations are seeded so the board renders and the table number shows on tickets (KDS-04); long-running orders auto-highlight subtly and the board scales for many orders (KDS-05).
 
-**Plans:** 7/10 plans executed
+**Plans:** 8/10 plans executed
 
 Cross-cutting truths (goal-backward): no DB order exists until Send/Charge; derivedStatus only via
 OrderStatusDerivationService; table status only via TableService.syncStatusForOrder; cross-service
@@ -296,7 +296,7 @@ Plans:
 
 **Wave 3**
 
-- [ ] 07.3-08-PLAN.md (wave 3) — Order Management UI completeness: filters/search/payment-badge/item-quantity/assign-table (POS-24)
+- [x] 07.3-08-PLAN.md (wave 3) — Order Management UI completeness: filters/search/payment-badge/item-quantity/assign-table (POS-24)
 - [ ] 07.3-09-PLAN.md (wave 3) — Modal→page sweep: void/refund + till panels + connectivity-404 removal (POS-25, POS-26)
 - [ ] 07.3-10-PLAN.md (wave 3) — KDS station-board redesign: item-status columns + slim card + detail page + subtle prioritization (KDS-04, KDS-05)
 

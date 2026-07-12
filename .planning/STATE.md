@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-05-PLAN.md
-last_updated: "2026-07-12T14:32:54.390Z"
+stopped_at: Completed 07.3-08-PLAN.md
+last_updated: "2026-07-12T14:55:26.131Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-05-PLAN.md
+last_activity_desc: Completed 07.3-08-PLAN.md
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 59
-  completed_plans: 52
+  completed_plans: 53
   percent: 47
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 7/10 complete (07.3-01 done: PaymentStatus derivation,
+Plans: 10 plans across 3 waves — 8/10 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
 PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
@@ -46,9 +46,14 @@ defect, logged in deferred-items.md; 07.3-07 done: PaymentStatusBadge (4-state),
 Charge route (/app/pos/orders/[orderId]/charge) replacing the sm:max-w-md PaymentPanel
 modal, useOrderPayments/useRecordPayment, CHARGE NOW reroute, Wave-0 E2E for POS-22/23 —
 S5/S5b BLOCKED live this session by a pre-existing gateway 503 on GET .../payments and a
-pre-existing S4 fire-toast timing gap, both out of scope, logged in deferred-items.md)
+pre-existing S4 fire-toast timing gap, both out of scope, logged in deferred-items.md;
+07.3-08 done: OrderSummary model/schema/adapter extended (settlementStatus/paymentStatus/
+amountPaidPaisa/itemQuantity/distinctItemCount), PosRepository.assignTable + useAssignTable,
+Order Management Closed/Paid settlement filters + order-no./table-name search box, Items
+column replacing Cover, payment-status badge column, Assign Table row action via
+table-select-combobox's new availableOnly prop, POS-24)
 Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-05-PLAN.md
+Last activity: 2026-07-12 — Completed 07.3-08-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -110,6 +115,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P06 | 55min | 4 tasks | 7 files |
 | Phase 07.3 P07 | 40min | 4 tasks | 21 files |
 | Phase 07.3 P05 | 20min | 3 tasks | 13 files |
+| Phase 07.3 P08 | 20min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -264,6 +270,9 @@ Recent decisions affecting current work:
 - [Phase 07.3-07]: Charge page never calls closeOrder directly — relies entirely on backend maybeCloseOrder seam to auto-close once Paid AND Served
 - [Phase 07.3-05]: TicketRoutingService.ensureStation seeds a station row (branchId+code) for every station code a ticket routes to, not only DEFAULT -- backstopped by V1's uq_station_tenant_branch_code unique constraint
 - [Phase 07.3-05]: KdsController.getStations auto-seeds a DEFAULT station on empty branch (mirrors finance 07.2 auto-seed-on-miss); item-status endpoint wraps existing markItemStatus rather than re-implementing transition logic
+- [Phase ?]: [Phase 07.3-08]: Closed filter scoped to statuses=["CLOSED"] only (not full terminal set) -- matches the chips literal label; VOIDED/REFUNDED remain reachable via their own StatusBadge elsewhere.
+- [Phase ?]: [Phase 07.3-08]: Closed filter uses a SEPARATE enabled-gated useOrderSummaries query instance rather than re-pointing the always-on active-list query, so useFadeOutList never misfires on a filter-driven fetch-scope switch.
+- [Phase ?]: [Phase 07.3-08]: table-select-combobox.tsx gained an additive availableOnly prop (default false) instead of a new component -- Assign Table is the only availableOnly=true caller, order-panel.tsx unaffected.
 
 ### Pending Todos
 
@@ -295,6 +304,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T14:32:54.370Z
+Last session: 2026-07-12T14:52:45.584Z
 Stopped at: Completed 07.3-05-PLAN.md
 Resume file: None
