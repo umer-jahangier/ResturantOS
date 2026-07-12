@@ -7,7 +7,7 @@ source:
   - 01-03-SUMMARY.md
   - 01-04-SUMMARY.md
 started: 2026-06-23T02:05:00+05:00
-updated: 2026-06-26T18:35:00+05:00
+updated: 2026-06-27T20:29:00+05:00
 verification_mode: automated_terminal
 ---
 
@@ -20,7 +20,7 @@ verification_mode: automated_terminal
 ### 1. JDK 25 + Maven compile
 expected: OpenJDK 25 active; Maven reactor (shared-lib, eureka-server, config-server) compiles successfully
 result: pass
-note: User updated ~/.zshrc to openjdk@25, uninstalled openjdk@21. Maven BUILD SUCCESS confirmed earlier.
+note: OpenJDK 25.0.3 via Homebrew openjdk@25; `make mvn-compile` BUILD SUCCESS.
 
 ### 2. Dev secrets generation
 expected: Run `bash deploy/generate-keys.sh` from repo root. It prints a non-secret confirmation, creates/updates `deploy/.env` with exactly one line each for JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, and FIELD_ENCRYPTION_KEY. Running it twice does not duplicate lines.
@@ -30,7 +30,7 @@ note: Verified — each key line count stays 1 after two runs; script prints non
 ### 3. Full stack bring-up
 expected: Run `make dev-up` from repo root. All infrastructure containers start and reach healthy status (`make dev-ps` shows healthy for postgres, redis, rabbitmq, minio, opa, eureka, config-server, clickhouse, pgadmin, mailpit).
 result: pass
-note: Windows — `docker compose up -d --build` from deploy/. All 10 containers Up; 8 with (healthy), OPA/pgAdmin Up without healthcheck. User confirmed via docker compose ps 2026-06-26.
+note: All 10 infra containers healthy. On macOS, stop ServBay PostgreSQL on 5432 first (`/Applications/ServBay/script/pgsql.sh stop 17`).
 
 ### 4. PostgreSQL databases and roles
 expected: After stack is up, `docker exec restaurantos-postgres psql -U postgres -c '\l'` lists all 13 service databases. `docker exec restaurantos-postgres psql -U postgres -c '\du'` shows 13 `*_user` roles without Superuser or Bypass RLS attributes.
@@ -51,6 +51,11 @@ verified_by: terminal — GET /v1/policies returns restaurantos/pos.rego, common
 expected: With Docker running, `mvn -pl shared-lib -am verify` completes GREEN — SharedLibVerificationIT passes (tenant propagation, MoneyUtils, outbox relay, RLS guard).
 result: pass
 verified_by: terminal — SharedLibVerificationIT 10/10 GREEN after gap fix (postgresql test driver + liquibase test deps + non-superuser Testcontainers role)
+note: |
+  BUILD SUCCESS — 3 unit tests + 10 SharedLibVerificationIT tests (failsafe).
+  Required pom fixes: postgresql JDBC driver, spring-boot-liquibase, maven-failsafe-plugin.
+  Required test fixes: non-superuser DB role (init-test-db.sql), disable @Scheduled in tests, outbox cleanup between tests.
+  Env: `export TESTCONTAINERS_RYUK_DISABLED=true` (Colima/Docker Desktop).
 
 ## Summary
 

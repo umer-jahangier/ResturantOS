@@ -5,9 +5,12 @@ import type {
   apiVendorInvoiceSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
+  vendorInputSchema,
 } from "@/lib/api-client/schemas/purchasing.schema";
 
 export type Vendor = z.infer<typeof apiVendorSchema>;
+/** Write payload for creating or updating a vendor (PUR-01). */
+export type VendorInput = z.infer<typeof vendorInputSchema>;
 export type PurchaseOrder = z.infer<typeof apiPurchaseOrderSchema>;
 export type VendorInvoice = z.infer<typeof apiVendorInvoiceSchema>;
 export type SpendAnalytics = z.infer<typeof apiSpendAnalyticsSchema>;

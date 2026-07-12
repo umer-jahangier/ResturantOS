@@ -29,8 +29,7 @@ public abstract class BaseIntegrationTest {
     static final PostgreSQLContainer<?> POSTGRES =
         new PostgreSQLContainer<>(DockerImageName.parse("postgres:18"))
             .withDatabaseName("shared_test_db")
-            .withUsername("shared_test_user")
-            .withPassword("test-pass");
+            .withInitScript("db/init-test-db.sql");
 
     @SuppressWarnings("resource")
     static final GenericContainer<?> REDIS =
@@ -49,8 +48,10 @@ public abstract class BaseIntegrationTest {
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
         r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        r.add("spring.datasource.username", POSTGRES::getUsername);
-        r.add("spring.datasource.password", POSTGRES::getPassword);
+        r.add("spring.datasource.username", () -> "shared_test_user");
+        r.add("spring.datasource.password", () -> "test-pass");
+        r.add("spring.liquibase.user", POSTGRES::getUsername);
+        r.add("spring.liquibase.password", POSTGRES::getPassword);
         r.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         r.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         r.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.PostgreSQLDialect");

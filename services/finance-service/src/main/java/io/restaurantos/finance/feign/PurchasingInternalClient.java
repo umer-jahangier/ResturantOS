@@ -15,7 +15,7 @@ import java.time.LocalDate;
 )
 public interface PurchasingInternalClient {
 
-    @GetMapping("/internal/invoices/unmatched-count")
+    @GetMapping("/internal/purchasing/invoices/unmatched-count")
     long getUnmatchedInvoiceCount(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodEnd
     );

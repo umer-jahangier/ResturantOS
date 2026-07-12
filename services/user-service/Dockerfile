@@ -10,6 +10,7 @@ COPY services/authorization-service/pom.xml services/authorization-service/pom.x
 COPY gateway/pom.xml gateway/pom.xml
 COPY services/user-service/pom.xml services/user-service/pom.xml
 COPY services/finance-service/pom.xml services/finance-service/pom.xml
+COPY services/purchasing-service/pom.xml services/purchasing-service/pom.xml
 
 RUN mvn -pl services/user-service -am -q dependency:go-offline -DskipTests || true
 

@@ -2,9 +2,30 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PurchasingRepository } from "@/lib/repositories/purchasing.repository";
+import type { VendorInput } from "@/lib/adapters/purchasing.adapter";
+
+const VENDORS_KEY = ["purchasing", "vendors"];
 
 export function useVendors() {
-  return useQuery({ queryKey: ["purchasing", "vendors"], queryFn: () => PurchasingRepository.listVendors() });
+  return useQuery({ queryKey: VENDORS_KEY, queryFn: () => PurchasingRepository.listVendors() });
+}
+
+/** PUR-01: create a vendor. `bankAccountNo` is encrypted server-side; only last4 comes back. */
+export function useCreateVendor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VendorInput) => PurchasingRepository.createVendor(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: VENDORS_KEY }),
+  });
+}
+
+/** PUR-01: update a vendor. Omitting `bankAccountNo` leaves the stored account untouched. */
+export function useUpdateVendor(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: VendorInput) => PurchasingRepository.updateVendor(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: VENDORS_KEY }),
+  });
 }
 
 export function usePurchaseOrder(id: string) {

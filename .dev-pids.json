@@ -1,11 +1,11 @@
-﻿{
-    "user-service":  4840,
-    "gateway":  35532,
-    "auth-service":  20948,
-    "file-service":  22228,
-    "audit-service":  1900,
-    "frontend":  37716,
-    "authorization-service":  35172,
-    "platform-admin-service":  2220,
-    "finance-service":  26416
+{
+  "auth-service": 66584,
+  "authorization-service": 67026,
+  "user-service": 67033,
+  "platform-admin-service": 67040,
+  "audit-service": 67047,
+  "file-service": 67054,
+  "finance-service": 67061,
+  "gateway": 67143,
+  "frontend": 67144
 }

@@ -34,6 +34,14 @@ export async function post<TBody = unknown, T = unknown>(
   return response.data.data;
 }
 
+export async function put<TBody = unknown, T = unknown>(
+  url: string,
+  body?: TBody,
+): Promise<T> {
+  const response = await apiClient.put<ApiResponse<T>>(url, body);
+  return response.data.data;
+}
+
 export async function patch<TBody = unknown, T = unknown>(
   url: string,
   body?: TBody,

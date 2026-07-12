@@ -29,17 +29,29 @@ $pgUser = $envMap["POSTGRES_SUPERUSER"]
 $rmqUser = $envMap["RABBITMQ_USERNAME"]
 $rmqPass = $envMap["RABBITMQ_PASSWORD"]
 
-function Invoke-PsqlFile([string]$Database, [string]$RelPath) {
+function Invoke-PsqlFile([string]$Database, [string]$RelPath, [hashtable]$Vars) {
     $full = Join-Path $DeployDir $RelPath
     if (-not (Test-Path $full)) { Write-Warning "skip missing $RelPath"; return }
-    Get-Content -Raw $full | docker exec -i restaurantos-postgres psql -U $pgUser -d $Database -v ON_ERROR_STOP=1 -q | Out-Null
+    $args = @("-U", $pgUser, "-d", $Database, "-v", "ON_ERROR_STOP=1", "-q")
+    foreach ($k in $Vars.Keys) {
+        $args += "-v"
+        $args += "${k}=$($Vars[$k])"
+    }
+    Get-Content -Raw $full | docker exec -i restaurantos-postgres psql @args | Out-Null
+}
+
+Write-Host "==> Ensuring runtime Postgres roles (idempotent)..." -ForegroundColor Cyan
+Invoke-PsqlFile "postgres" "init/02b-ensure-runtime-roles.sql" @{
+    user_pw  = $envMap["USER_DB_PASSWORD"]
+    audit_pw = $envMap["AUDIT_DB_PASSWORD"]
+    file_pw  = $envMap["FILE_DB_PASSWORD"]
 }
 
 Write-Host "==> Ensuring Postgres schema grants (idempotent)..." -ForegroundColor Cyan
-Invoke-PsqlFile "postgres" "init/03-grant-schema-privileges.sql"
+Invoke-PsqlFile "postgres" "init/03-grant-schema-privileges.sql" @{}
 
 Write-Host "==> Ensuring auth refresh lookup owner (no-op until auth-service migrates)..." -ForegroundColor Cyan
-Invoke-PsqlFile "auth_db" "init/04-auth-refresh-lookup-owner.sql"
+Invoke-PsqlFile "auth_db" "init/04-auth-refresh-lookup-owner.sql" @{}
 
 Write-Host "==> Ensuring RabbitMQ user + topology..." -ForegroundColor Cyan
 # rabbitmqctl writes to stderr and exits non-zero by design on re-runs (e.g. add_user when the

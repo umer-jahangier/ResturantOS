@@ -1,13 +1,38 @@
 import { z } from "zod";
 
+// Mirrors VendorDto. `bankAccountLast4` is the ONLY bank field the API ever returns —
+// the account number itself is stored AES-encrypted and is never sent to a client (PUR-01).
 export const apiVendorSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   contactPerson: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
   paymentTerms: z.string(),
+  ntn: z.string().nullable().optional(),
+  strn: z.string().nullable().optional(),
+  leadTimeDays: z.number().int().nullable().optional(),
   bankAccountLast4: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   active: z.boolean(),
+});
+
+// Mirrors CreateVendorRequest — the write payload for both create (POST) and update (PUT).
+// `bankAccountNo` is write-only: send it to set/rotate the account, omit it to leave the
+// stored value untouched (VendorService.apply() only writes it when non-blank).
+export const vendorInputSchema = z.object({
+  name: z.string().min(1),
+  contactPerson: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  address: z.string().optional(),
+  paymentTerms: z.string().min(1),
+  ntn: z.string().optional(),
+  strn: z.string().optional(),
+  leadTimeDays: z.number().int().nonnegative().optional(),
+  bankAccountNo: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const apiPoLineSchema = z.object({

@@ -5,11 +5,11 @@
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 10 complete (mock-first purchasing + AP, gap-closed, requirement docs reconciled); Phase 11 (HR & Payroll) next
+**Current focus:** Phase 10 REOPENED — 2026-07-13 UAT found the module is unreachable from the nav (wrong feature-flag name), both OPA approval paths are dead (action-string mismatch masked by mocked ITs), all 18 purchasing endpoints are ungated, and 13 of 14 user journeys have no UI. Needs /gsd-plan-phase 10 --gaps.
 
 ## Current Position
 
-Phase: 10 of 12 (Purchasing & Accounts Payable) — COMPLETE
+Phase: 10 of 12 (Purchasing & Accounts Payable) — REOPENED (UAT code audit found 10 gaps, 4 blockers)
 Plan: 06 of 06 (gap-closure wave)
 Status: Phase 10 complete — mock GRN E2E, three-way match, AP payments, FIN-05 AP aging + OPA-gated expense approval, PUR-05 price variance + PUR-06 spend analytics, PUR-02 PO close, MSW + frontend shell, requirement docs reconciled; Phase 11 (HR & Payroll) next
 Last activity: 2026-07-12 — Completed 10-06 (REQUIREMENTS.md/10-VERIFICATION.md/10-UAT.md reconciliation — PUR-01..06 + FIN-05 all re-derived Complete from real evidence, phase closed out)

@@ -14,6 +14,7 @@ COPY services/notification-service/pom.xml services/notification-service/pom.xml
 COPY services/audit-service/pom.xml services/audit-service/pom.xml
 COPY services/file-service/pom.xml services/file-service/pom.xml
 COPY services/finance-service/pom.xml services/finance-service/pom.xml
+COPY services/purchasing-service/pom.xml services/purchasing-service/pom.xml
 
 RUN mvn -pl services/finance-service -am -q dependency:go-offline -DskipTests || true
 

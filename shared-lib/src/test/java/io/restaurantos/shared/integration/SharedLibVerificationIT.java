@@ -14,6 +14,7 @@ import io.restaurantos.shared.testsupport.AbstractRlsCoverageTest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -50,6 +51,12 @@ class SharedLibVerificationIT extends BaseIntegrationTest {
     @Autowired private RabbitTemplate rabbitTemplate;
     @Autowired private TransactionTemplate transactionTemplate;
     @PersistenceContext private EntityManager entityManager;
+
+    @BeforeEach
+    void cleanOutboxBetweenTests() {
+        transactionTemplate.executeWithoutResult(tx ->
+            entityManager.createNativeQuery("DELETE FROM event_outbox").executeUpdate());
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // SC3 — Beans load + @Async tenant propagation + RabbitMQ consumer propagation
@@ -208,25 +215,37 @@ class SharedLibVerificationIT extends BaseIntegrationTest {
     @Test
     void sc5_outboxRelayPublishesToRabbitMqAndMarksSent() throws Exception {
         UUID branchId = TestFixtures.testBranchId();
+        String exchangeName = "sc5-test-exchange";
+        String routingKey = "sc5.relay.test";
 
-        // Declare a transient queue bound to the exchange for this test
+        // Declare exchange, queue, and binding before publishing
         String queueName = "sc5-test-queue-" + UUID.randomUUID();
         RabbitAdmin admin = new RabbitAdmin(rabbitTemplate.getConnectionFactory());
+        org.springframework.amqp.core.TopicExchange exchange =
+            new org.springframework.amqp.core.TopicExchange(exchangeName);
         org.springframework.amqp.core.Queue queue =
-            new org.springframework.amqp.core.Queue(queueName, false, false, true);
+            new org.springframework.amqp.core.Queue(queueName, true, false, false);
+        admin.declareExchange(exchange);
         admin.declareQueue(queue);
         admin.declareBinding(new org.springframework.amqp.core.Binding(
             queueName,
             org.springframework.amqp.core.Binding.DestinationType.QUEUE,
-            "amq.topic", "sc5.relay.test", null));
+            exchangeName, routingKey, null));
 
         // Publish event to outbox
         transactionTemplate.executeWithoutResult(tx ->
-            eventPublisher.publish("amq.topic", "sc5.relay.test", "SC5_RELAY_TEST",
+            eventPublisher.publish(exchangeName, routingKey, "SC5_RELAY_TEST",
                 branchId, new TestPayload("relay-test")));
 
-        // Trigger relay manually (normally runs on 1000ms schedule)
+        // Trigger relay manually (scheduler disabled in test profile)
         outboxRelay.relay();
+
+        // Confirm outbox row relayed before polling RabbitMQ
+        assertThat(outboxRepository.findAll().stream()
+            .filter(e -> "SC5_RELAY_TEST".equals(e.getEventType()))
+            .map(e -> e.getStatus())
+            .findFirst())
+            .contains("SENT");
 
         // Poll for the message on RabbitMQ
         Awaitility.await()

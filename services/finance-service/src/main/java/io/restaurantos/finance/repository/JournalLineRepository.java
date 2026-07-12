@@ -40,4 +40,15 @@ public interface JournalLineRepository extends JpaRepository<JournalLine, UUID> 
     List<Object[]> findGlBalancesRaw(
             @Param("periodId") UUID periodId,
             @Param("branchId") UUID branchId);
+
+    @Query("""
+            SELECT l FROM JournalLine l
+            JOIN FETCH l.journalEntry je
+            WHERE l.accountCode = :accountCode
+              AND je.branchId = :branchId
+              AND je.status = 'POSTED'
+            """)
+    List<JournalLine> findPostedApLines(
+            @Param("accountCode") String accountCode,
+            @Param("branchId") UUID branchId);
 }

@@ -1,10 +1,11 @@
-import { get, post } from "@/lib/api-client/request";
+import { get, post, put } from "@/lib/api-client/request";
 import {
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
   apiVendorInvoiceSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
+  vendorInputSchema,
 } from "@/lib/api-client/schemas/purchasing.schema";
 import {
   adaptPurchaseOrder,
@@ -17,6 +18,7 @@ import type {
   PurchaseOrder,
   SpendAnalytics,
   Vendor,
+  VendorInput,
   VendorInvoice,
   VendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
@@ -25,6 +27,16 @@ export const PurchasingRepository = {
   async listVendors(): Promise<Vendor[]> {
     const raw = await get<unknown[]>("/api/v1/purchasing/vendors");
     return (raw ?? []).map((v) => adaptVendor(apiVendorSchema.parse(v)));
+  },
+
+  async createVendor(input: VendorInput): Promise<Vendor> {
+    const raw = await post("/api/v1/purchasing/vendors", vendorInputSchema.parse(input));
+    return adaptVendor(apiVendorSchema.parse(raw));
+  },
+
+  async updateVendor(id: string, input: VendorInput): Promise<Vendor> {
+    const raw = await put(`/api/v1/purchasing/vendors/${id}`, vendorInputSchema.parse(input));
+    return adaptVendor(apiVendorSchema.parse(raw));
   },
 
   async getPurchaseOrder(id: string): Promise<PurchaseOrder> {

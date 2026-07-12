@@ -17,6 +17,85 @@ let closedAt: string | null = null;
 let closeReason: string | null = null;
 const invoices: Record<string, unknown> = {};
 
+interface MockVendor {
+  id: string;
+  name: string;
+  contactPerson: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  paymentTerms: string;
+  ntn: string | null;
+  strn: string | null;
+  leadTimeDays: number | null;
+  bankAccountLast4: string | null;
+  notes: string | null;
+  active: boolean;
+}
+
+interface VendorWriteBody {
+  name: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  paymentTerms: string;
+  ntn?: string;
+  strn?: string;
+  leadTimeDays?: number;
+  bankAccountNo?: string;
+  notes?: string;
+}
+
+const vendors: MockVendor[] = [
+  {
+    id: VENDOR_ID,
+    name: "Fresh Foods Ltd",
+    contactPerson: "Ali",
+    phone: "03001234567",
+    email: null,
+    address: null,
+    paymentTerms: "NET30",
+    ntn: null,
+    strn: null,
+    leadTimeDays: null,
+    bankAccountLast4: "3456",
+    notes: null,
+    active: true,
+  },
+];
+
+/** Mirrors VendorService.apply(): last4 = final 4 digits of the account, non-digits stripped. */
+function last4(bankAccountNo: string): string {
+  const digits = bankAccountNo.replace(/\D/g, "");
+  return digits.slice(-4);
+}
+
+/**
+ * Mirrors VendorService.apply(): every field is overwritten, EXCEPT bankAccountNo — a blank or
+ * absent account leaves the stored (encrypted) value untouched. The full account number is never
+ * echoed back; only `bankAccountLast4` is.
+ */
+function applyVendorWrite(target: MockVendor, body: VendorWriteBody): MockVendor {
+  const next: MockVendor = {
+    ...target,
+    name: body.name,
+    paymentTerms: body.paymentTerms,
+    contactPerson: body.contactPerson ?? null,
+    phone: body.phone ?? null,
+    email: body.email ?? null,
+    address: body.address ?? null,
+    ntn: body.ntn ?? null,
+    strn: body.strn ?? null,
+    leadTimeDays: body.leadTimeDays ?? null,
+    notes: body.notes ?? null,
+  };
+  if (body.bankAccountNo && body.bankAccountNo.trim() !== "") {
+    next.bankAccountLast4 = last4(body.bankAccountNo);
+  }
+  return next;
+}
+
 function ok<T>(data: T) {
   return HttpResponse.json({ data, meta: null, warnings: [] });
 }
@@ -30,19 +109,46 @@ function apiError(code: string, message: string, status: number) {
 
 /** MSW fixtures F1–F8 for frontend-only purchasing dev (Phase 10). */
 export const purchasingHandlers = [
-  http.get("*/api/v1/purchasing/vendors", () =>
-    ok([
+  http.get("*/api/v1/purchasing/vendors", () => ok(vendors)),
+
+  // PUR-01: create a vendor. The account number is write-only — the response carries last4 only.
+  http.post("*/api/v1/purchasing/vendors", async ({ request }) => {
+    const body = (await request.json()) as VendorWriteBody;
+    if (!body.name?.trim() || !body.paymentTerms?.trim()) {
+      return apiError("VALIDATION_ERROR", "name and paymentTerms are required", 400);
+    }
+    const seq = String(vendors.length + 1).padStart(12, "0");
+    const created = applyVendorWrite(
       {
-        id: VENDOR_ID,
-        name: "Fresh Foods Ltd",
-        contactPerson: "Ali",
-        phone: "03001234567",
-        paymentTerms: "NET30",
-        bankAccountLast4: "3456",
+        id: `c0000001-0000-4000-8000-${seq}`,
+        name: body.name,
+        contactPerson: null,
+        phone: null,
+        email: null,
+        address: null,
+        paymentTerms: body.paymentTerms,
+        ntn: null,
+        strn: null,
+        leadTimeDays: null,
+        bankAccountLast4: null,
+        notes: null,
         active: true,
       },
-    ]),
-  ),
+      body,
+    );
+    vendors.push(created);
+    return ok(created);
+  }),
+
+  // PUR-01: update a vendor. A blank/absent bankAccountNo preserves the stored account.
+  http.put("*/api/v1/purchasing/vendors/:id", async ({ params, request }) => {
+    const body = (await request.json()) as VendorWriteBody;
+    const idx = vendors.findIndex((v) => v.id === params.id);
+    if (idx === -1) return apiError("NOT_FOUND", "Vendor not found", 404);
+    const updated = applyVendorWrite(vendors[idx]!, body);
+    vendors[idx] = updated;
+    return ok(updated);
+  }),
 
   http.get("*/api/v1/purchasing/purchase-orders/:id", ({ params }) =>
     ok({
