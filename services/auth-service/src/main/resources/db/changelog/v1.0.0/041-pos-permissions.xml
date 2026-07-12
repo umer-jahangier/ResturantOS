@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-041-pos-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <!-- POS permission catalogue (module = pos). NO pos.kds.* — lands in 07-04 -->
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.update"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Create and update POS orders"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.send_to_kds"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Send order to Kitchen Display System"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.refund"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Refund a closed order"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.split_bill"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Split bill across multiple customers"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.discount.line"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Apply line-level discounts"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.discount.order"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Apply order-level discounts"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.order.discount.override"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Override discount limits set by policy"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.till.open"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Open a till session"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.till.close"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Close a till session"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.till.reconcile.override"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Override till reconciliation discrepancies"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.tables.manage"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Manage dining tables (view, assign, release)"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.menu.view"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="View the menu"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="pos.menu.manage"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Manage menu items and categories"/>
+        </insert>
+
+        <!-- CASHIER: day-to-day POS subset — no refund/override/split/kds -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.order.update"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.order.send_to_kds"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.order.discount.line"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.till.open"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.till.close"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.tables.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="pos.menu.view"/>
+        </insert>
+
+        <!-- MANAGER: privileged superset of CASHIER + override/refund/split/reconcile/menu.manage -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.update"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.send_to_kds"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.refund"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.split_bill"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.discount.line"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.discount.order"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.order.discount.override"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.till.open"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.till.close"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.till.reconcile.override"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.tables.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.menu.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.menu.manage"/>
+        </insert>
+
+        <!-- OWNER: inherit all pos.* permissions not yet assigned -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'OWNER', code FROM permissions p
+            WHERE p.module = 'pos'
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions rp
+                WHERE rp.role_code = 'OWNER' AND rp.permission_code = p.code
+            );
+        </sql>
+
+        <!-- TENANT_ADMIN: inherit all pos.* permissions not yet assigned -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'TENANT_ADMIN', code FROM permissions p
+            WHERE p.module = 'pos'
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions rp
+                WHERE rp.role_code = 'TENANT_ADMIN' AND rp.permission_code = p.code
+            );
+        </sql>
+
+    </changeSet>
+
+</databaseChangeLog>

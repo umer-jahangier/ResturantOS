@@ -87,6 +87,8 @@ function isFlatErrorBody(
   );
 }
 
+const UNKNOWN_ERROR_MSG = "Something went wrong. Please try again.";
+
 const USER_FACING_BY_CODE: Record<string, string> = {
   JE_UNBALANCED: "Journal entry lines must balance (total debit must equal total credit).",
   PERIOD_LOCKED: "This accounting period is locked. Posting is not allowed.",
@@ -126,15 +128,15 @@ export function formatUserFacingError(error: unknown): string {
     }
     return sanitizeMessage(error.message);
   }
-  return USER_FACING_BY_CODE.UNKNOWN_ERROR;
+  return UNKNOWN_ERROR_MSG;
 }
 
 function sanitizeMessage(message: string): string {
   if (!message || looksLikeValidationDump(message)) {
-    return USER_FACING_BY_CODE.UNKNOWN_ERROR;
+    return UNKNOWN_ERROR_MSG;
   }
   if (message.length > 160) {
-    return USER_FACING_BY_CODE.UNKNOWN_ERROR;
+    return UNKNOWN_ERROR_MSG;
   }
   return message;
 }

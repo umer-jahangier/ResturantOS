@@ -143,13 +143,14 @@ Plans:
   3. Split-tender payments close an order with defined 1-paisa rounding resolution and an idempotent close; voids/refunds respect permission + OPA thresholds and publish idempotent events.
   4. Till open/close reconciles cash and emits `TILL_OPENED`/`TILL_CLOSED`, and `ORDER_CLOSED` is published carrying `customerId`.
   5. An order taken while offline (Service Worker + IndexedDB) syncs once connectivity returns using `client_order_id` as the idempotency key, creating no duplicate orders.
+  6. A dedicated kitchen-only role (`KITCHEN_STAFF`, perms `pos.kds.view`/`pos.kds.update` only) is strictly isolated: kitchen logins are blocked from POS/finance, cashier/finance logins are blocked from the KDS REST + WebSocket, and the owner sees everything — enforced fail-closed via OPA and proven in both directions.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 07-01: Orders, tables, order state machine, discount floor
-- [ ] 07-02: Split-tender payments, idempotent close, voids/refunds, tills
+- [ ] 07-01: Orders, tables, order state machine, discount floor + POS permissions (CASHIER/MANAGER)
+- [ ] 07-02: Split-tender payments, idempotent close, voids/refunds, tills, period-lock 423, pos.rego
 - [ ] 07-03: Offline POS — Service Worker + IndexedDB sync with `client_order_id`
-- [ ] 07-04: Kitchen Display System — station routing, item progression, `ORDER_READY`
+- [ ] 07-04: Kitchen Display System — station routing, item progression, `ORDER_READY` + KITCHEN_STAFF role & strict access isolation
 
 ### Phase 8: Inventory & Recipe Management
 **Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.

@@ -19,6 +19,7 @@ Progress: [███████████████░░░░░░░] 6
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 21
 - Phase 1: 4/4 plans executed; verification gaps_found (4/5) — SC5 gap open
 - Phase 2: 3/3 plans executed; verification passed (5/5)
@@ -29,20 +30,21 @@ Progress: [███████████████░░░░░░░] 6
 
 **By Phase:**
 
-| Phase | Plans | Verify |
-|-------|-------|--------|
-| 01-infrastructure-foundation-shared-library | 4/4 | 4/5 gaps_found |
-| 02-authentication-authorization | 3/3 | 5/5 passed |
-| 03-api-gateway-platform-admin-tenant-user-management | 3/3 | 24/24 passed |
-| 04-frontend-shell-ci-cd | 8/8 | 16/16 FE + 7/7 DS passed |
-| 06-finance-core-general-ledger-periods | 2/2 | complete |
-| 10-purchasing-accounts-payable | 6/6 | 7/7 requirements passed (re-scored post-gap-closure) |
+| Phase                                                | Plans | Verify                                               |
+| ---------------------------------------------------- | ----- | ---------------------------------------------------- |
+| 01-infrastructure-foundation-shared-library          | 4/4   | 4/5 gaps_found                                       |
+| 02-authentication-authorization                      | 3/3   | 5/5 passed                                           |
+| 03-api-gateway-platform-admin-tenant-user-management | 3/3   | 24/24 passed                                         |
+| 04-frontend-shell-ci-cd                              | 8/8   | 16/16 FE + 7/7 DS passed                             |
+| 06-finance-core-general-ledger-periods               | 2/2   | complete                                             |
+| 10-purchasing-accounts-payable                       | 6/6   | 7/7 requirements passed (re-scored post-gap-closure) |
 
 **Recent Trend:**
+
 - Last completed plan: 10-06
 - Trend: Phase 10 closed out — REQUIREMENTS.md's PUR-01..06 + FIN-05 all re-derived Complete from a named green IT + source grep per row (correcting 2 prior false-greens and 1 orphaned Pending); 10-VERIFICATION.md documents the escape-and-closure story with root cause; 10-UAT.md extended to 16 test cases. Phase 11 (HR & Payroll) next.
 
-*Updated after each plan completion*
+_Updated after each plan completion_
 
 ## Accumulated Context
 
@@ -111,9 +113,9 @@ Recent decisions affecting current work:
 - [06-02-A]: Pakistan FY formula: period 1 = July of (fiscalYear-1). Month = ((6 + periodNo - 1) % 12) + 1. Year = startCalYear for periods 1-6 (Jul-Dec), fiscalYear for periods 7-12 (Jan-Jun).
 - [06-02-B]: TOTP gate via header-only in Phase 6 (X-TOTP-Verified=true); real step-up from Phase 2 auth-service (02-02) to be wired in Phase 7+.
 - [06-02-C]: Feign pre-close stubs return 0 with TODO comments for Phase 7/8/10; circuit breaker enabled (spring.cloud.openfeign.circuitbreaker.enabled=true).
-- [06-02-D]: Frontend follows existing 4-layer pattern: Zod schema → adapter → repository → TanStack Query hook → component (ESLint-enforced by no-restricted-imports on components/**).
+- [06-02-D]: Frontend follows existing 4-layer pattern: Zod schema → adapter → repository → TanStack Query hook → component (ESLint-enforced by no-restricted-imports on components/\*\*).
 - [06-02-E]: Integration tests re-set TenantContext after provision() calls (finally block clears it); pattern: tenantContext.set(tenantId, null, null, null) after each provision().
-- [06-02-F]: Finance pages at /app/finance/* (tenant route group is (tenant)/app/*); proxy.ts PROTECTED=['/platform','/app'].
+- [06-02-F]: Finance pages at /app/finance/_ (tenant route group is (tenant)/app/_); proxy.ts PROTECTED=['/platform','/app'].
 - [10-05-A]: finance-service consumes OPA via its own Feign AuthorizationClient to authorization-service (copied verbatim from purchasing-service's), NOT shared-lib's OpaClient/AuthorizationService — that bean is `@ConditionalOnProperty("restaurantos.opa.url")` and neither finance-service nor purchasing-service sets it.
 - [10-05-B]: Expense create @PreAuthorize reuses `finance.journal.post` (no `finance.expense.create` permission exists in auth-service's seed); approve/reject use `finance.expense.approve` (previously zero consumers).
 - [10-03-A]: PUR-06 spend analytics deltaPct is `null` (not a sentinel like 100.0) when a bucket's prior-period spend is 0 — "new spend" has no meaningful percent change; documented in `VendorAnalyticsService.spendReport()` javadoc.

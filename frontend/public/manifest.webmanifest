@@ -1,0 +1,25 @@
+{
+  "name": "RestaurantOS POS",
+  "short_name": "POS",
+  "description": "Point-of-Sale terminal for RestaurantOS",
+  "display": "standalone",
+  "orientation": "any",
+  "start_url": "/app/pos",
+  "scope": "/",
+  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
