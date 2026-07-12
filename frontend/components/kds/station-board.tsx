@@ -83,6 +83,7 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
               tickets={activeTickets}
               branchId={branchId}
               canUpdate={canUpdate}
+              escalationThresholdSeconds={station?.escalationThresholdSeconds}
             />
           ))}
         </div>

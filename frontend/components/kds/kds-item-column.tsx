@@ -92,6 +92,9 @@ interface KdsItemColumnProps {
   tickets: readonly KdsTicket[];
   branchId: string;
   canUpdate: boolean;
+  /** Station escalationThresholdSeconds (KDS-05/D-13) forwarded to each card's
+   * subtle aging border + timer chip. */
+  escalationThresholdSeconds?: number;
 }
 
 /**
@@ -99,9 +102,19 @@ interface KdsItemColumnProps {
  * collapsed card (order#/table/age/item-names) opens the dedicated ticket detail
  * page on click; canUpdate principals get a per-item move action calling
  * useUpdateItemStatus with the column's next target status (server still
- * authoritatively validates the transition, T-07.3-30).
+ * authoritatively validates the transition, T-07.3-30). `animate-fade-in` is
+ * applied unconditionally to each fragment — React's keyed reconciliation only
+ * replays the mount-time animation for a genuinely new ticket entering this
+ * column, not on every re-render (KDS-05, eslint-safe no-tracking-state pattern
+ * carried forward from the pre-07.3-10 board).
  */
-export function KdsItemColumn({ column, tickets, branchId, canUpdate }: KdsItemColumnProps) {
+export function KdsItemColumn({
+  column,
+  tickets,
+  branchId,
+  canUpdate,
+  escalationThresholdSeconds,
+}: KdsItemColumnProps) {
   const router = useRouter();
   const updateItemStatus = useUpdateItemStatus(branchId);
   const fragments = useMemo(() => groupTicketsByColumn(tickets, column), [tickets, column]);
@@ -120,7 +133,7 @@ export function KdsItemColumn({ column, tickets, branchId, canUpdate }: KdsItemC
           fragments.map(({ ticket, items }) => (
             <div
               key={ticket.id}
-              className="rounded-lg border border-gray-800 bg-gray-900 p-2"
+              className="rounded-lg border border-gray-800 bg-gray-900 p-2 transition-all duration-500 animate-fade-in"
               data-testid={`kds-fragment-${column}-${ticket.id}`}
             >
               <button
@@ -129,7 +142,11 @@ export function KdsItemColumn({ column, tickets, branchId, canUpdate }: KdsItemC
                 className="w-full text-left"
                 aria-label={`Open ticket detail for ${ticket.orderNo ?? ticket.id.slice(0, 8)}`}
               >
-                <KdsTicketCard ticket={ticket} items={items} />
+                <KdsTicketCard
+                  ticket={ticket}
+                  items={items}
+                  escalationThresholdSeconds={escalationThresholdSeconds}
+                />
               </button>
               {canUpdate && (
                 <div className="mt-2 flex flex-col gap-1">

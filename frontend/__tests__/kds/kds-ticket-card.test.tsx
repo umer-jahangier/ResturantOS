@@ -117,3 +117,49 @@ describe("KdsTicketCard — slim collapsed card (KDS-04/D-12)", () => {
     expect(within(screen.getByTestId("kds-ticket-card")).getByText("PRIORITY")).toBeInTheDocument();
   });
 });
+
+describe("KdsTicketCard — subtle escalation-threshold aging treatment (KDS-05/D-13)", () => {
+  it("stays at the neutral/emerald border below 0.66x the station's escalation threshold", () => {
+    // 5 min old, 900s (15 min) threshold -> ~33% of threshold, well under amber.
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 5 * 60_000) });
+
+    render(<KdsTicketCard ticket={ticket} escalationThresholdSeconds={900} />);
+
+    const card = screen.getByTestId("kds-ticket-card");
+    expect(card.className).toContain("border-l-emerald-500/60");
+  });
+
+  it("turns the border + timer chip amber at >=0.66x the station's escalation threshold", () => {
+    // 7 min old vs a 600s (10 min) threshold -> 70% of threshold.
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 7 * 60_000) });
+
+    render(<KdsTicketCard ticket={ticket} escalationThresholdSeconds={600} />);
+
+    const card = screen.getByTestId("kds-ticket-card");
+    const chip = within(card).getByTestId("kds-ticket-age");
+    expect(card.className).toContain("border-l-amber-500");
+    expect(chip.className).toContain("amber");
+  });
+
+  it("turns the border + timer chip red at/above the station's escalation threshold — never full-red background or bounce", () => {
+    // 12 min old vs a 600s (10 min) threshold -> 120% of threshold.
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 12 * 60_000) });
+
+    render(<KdsTicketCard ticket={ticket} escalationThresholdSeconds={600} />);
+
+    const card = screen.getByTestId("kds-ticket-card");
+    const chip = within(card).getByTestId("kds-ticket-age");
+    expect(card.className).toContain("border-l-red-500");
+    expect(chip.className).toContain("red");
+    expect(card.className).not.toContain("animate-bounce");
+    expect(card.className).not.toContain("bg-red-950");
+  });
+
+  it("falls back to a 15-minute default threshold when escalationThresholdSeconds is not provided (station not yet loaded)", () => {
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 20 * 60_000) });
+
+    render(<KdsTicketCard ticket={ticket} />);
+
+    expect(screen.getByTestId("kds-ticket-card").className).toContain("border-l-red-500");
+  });
+});
