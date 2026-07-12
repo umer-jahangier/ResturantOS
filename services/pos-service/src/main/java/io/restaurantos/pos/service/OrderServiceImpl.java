@@ -426,12 +426,14 @@ public class OrderServiceImpl implements OrderService {
             throw new PermissionDeniedException("Cannot list orders for a different branch");
         }
 
-        // Default (no explicit status filter) = ALL non-terminal statuses — a non-closed
-        // order must NEVER disappear from the active list (POS-09 acceptance). This is
-        // intentionally different from the older listOrders' unfiltered-when-empty default.
+        // Default (no explicit status filter) = ALL non-terminal statuses EXCLUDING DRAFT
+        // (POS-16: a client-only cart never persists a DB order, so DRAFT rows are stale
+        // abandoned carts, not active orders — they must never surface in Order Management).
+        // A caller can still explicitly request DRAFT or a terminal status (e.g. [CLOSED])
+        // via the statuses param; only the empty-filter DEFAULT excludes them.
         List<OrderStatus> statusEnums = (statuses == null || statuses.isEmpty())
                 ? Arrays.stream(OrderStatus.values())
-                        .filter(s -> !isTerminal(s))
+                        .filter(s -> !isTerminal(s) && s != OrderStatus.DRAFT)
                         .collect(Collectors.toList())
                 : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
 
@@ -446,7 +448,17 @@ public class OrderServiceImpl implements OrderService {
         Map<UUID, String> tableNames = tableRepository.findByBranchId(branchId).stream()
                 .collect(Collectors.toMap(DiningTable::getId, DiningTable::getTableNumber));
 
-        return orders.map(order -> toSummaryDto(order, tableNames));
+        // Batched payment sums for the WHOLE page in one query (N+1 avoidance, POS-24) — never
+        // call orderPaymentRepository.sumAmountByOrderId per row.
+        List<UUID> orderIds = orders.getContent().stream().map(Order::getId).collect(Collectors.toList());
+        Map<UUID, Long> paidByOrderId = orderIds.isEmpty()
+                ? Map.of()
+                : orderPaymentRepository.sumAmountByOrderIds(orderIds).stream()
+                        .collect(Collectors.toMap(
+                                OrderPaymentRepository.OrderPaymentSum::getOrderId,
+                                OrderPaymentRepository.OrderPaymentSum::getTotalPaisa));
+
+        return orders.map(order -> toSummaryDto(order, tableNames, paidByOrderId));
     }
 
     @Override
@@ -758,7 +770,21 @@ public class OrderServiceImpl implements OrderService {
         return status == OrderStatus.CLOSED || status == OrderStatus.VOIDED || status == OrderStatus.REFUNDED;
     }
 
-    private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames) {
+    private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames, Map<UUID, Long> paidByOrderId) {
+        long amountPaidPaisa = paidByOrderId.getOrDefault(order.getId(), 0L);
+        PaymentStatus paymentStatus = paymentStatusDerivationService.derive(
+                amountPaidPaisa, order.getTotalPaisa(), order.getStatus());
+
+        int itemQuantity = 0;
+        int distinctItemCount = 0;
+        for (OrderItem item : order.getItems()) {
+            if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
+                continue;
+            }
+            itemQuantity += item.getQuantity();
+            distinctItemCount++;
+        }
+
         return new OrderSummaryDto(
                 order.getId(),
                 order.getOrderNo(),
@@ -768,7 +794,12 @@ public class OrderServiceImpl implements OrderService {
                 order.getCashierId(),
                 order.getCoverCount(),
                 order.getTotalPaisa(),
-                order.getOpenedAt()
+                order.getOpenedAt(),
+                order.getStatus(),
+                paymentStatus,
+                amountPaidPaisa,
+                itemQuantity,
+                distinctItemCount
         );
     }
 
