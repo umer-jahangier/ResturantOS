@@ -12,8 +12,46 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** PUR-05: vendor scorecard — lead-time adherence, fill rate, price variance, total spend. */
-export function VendorScorecardCard({ scorecard }: { scorecard: VendorScorecard }) {
+/**
+ * PUR-05: vendor scorecard — on-time delivery %, fill rate %, price variance % (all three kept
+ * visible together, per UAT test 15) plus total spend, for whichever vendor is selected on the page.
+ */
+export function VendorScorecardCard({
+  vendorId,
+  scorecard,
+  isLoading,
+}: {
+  vendorId: string;
+  scorecard: VendorScorecard | undefined;
+  isLoading?: boolean;
+}) {
+  if (!vendorId) {
+    return (
+      <div className="rounded border p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <p className="mt-3 text-sm text-muted-foreground">Select a vendor to see its scorecard.</p>
+      </div>
+    );
+  }
+
+  if (isLoading && !scorecard) {
+    return (
+      <div className="rounded border p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <p className="mt-3 text-sm text-muted-foreground">Loading scorecard…</p>
+      </div>
+    );
+  }
+
+  if (!scorecard) {
+    return (
+      <div className="rounded border p-4">
+        <h2 className="text-sm font-semibold text-muted-foreground">Vendor scorecard</h2>
+        <p className="mt-3 text-sm text-muted-foreground">No scorecard data for this vendor yet.</p>
+      </div>
+    );
+  }
+
   const priceVarianceSign = scorecard.priceVariancePct >= 0 ? "+" : "";
   return (
     <div className="rounded border p-4">

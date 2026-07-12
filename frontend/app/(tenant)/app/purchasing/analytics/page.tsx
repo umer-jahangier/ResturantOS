@@ -26,12 +26,18 @@ export default function PurchasingAnalyticsPage() {
   const { branchId } = useCurrentUser();
   const { data: vendors } = useVendors();
   const [period, setPeriod] = useState<PeriodRange>(() => thisMonthRange());
+  const [vendorId, setVendorId] = useState<string>("");
 
   const { data: spendData, isLoading: spendLoading } = useSpendAnalytics(branchId, period.from, period.to);
   const spend = useKeepPreviousData<SpendAnalytics>(spendData);
 
-  const firstVendorId = vendors?.[0]?.id ?? "";
-  const { data: scorecardData, isLoading: scorecardLoading } = useVendorScorecard(firstVendorId, branchId);
+  // Default to the first vendor once vendors load, so the page isn't empty on first render,
+  // but never override an explicit user selection.
+  const selectedVendorId = vendorId || vendors?.[0]?.id || "";
+  const { data: scorecardData, isLoading: scorecardLoading } = useVendorScorecard(
+    selectedVendorId,
+    branchId,
+  );
   const scorecard = useKeepPreviousData<VendorScorecard>(scorecardData);
 
   return (
@@ -43,13 +49,26 @@ export default function PurchasingAnalyticsPage() {
         </p>
       </div>
 
-      <PeriodPicker value={period} onChange={setPeriod} />
+      <div className="flex flex-wrap items-end gap-6">
+        <PeriodPicker value={period} onChange={setPeriod} />
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          Vendor
+          <select
+            aria-label="Scorecard vendor"
+            value={selectedVendorId}
+            onChange={(e) => setVendorId(e.target.value)}
+            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {(vendors ?? []).map((vendor) => (
+              <option key={vendor.id} value={vendor.id}>
+                {vendor.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
-      {scorecardLoading && !scorecard ? (
-        <p>Loading scorecard…</p>
-      ) : scorecard ? (
-        <VendorScorecardCard scorecard={scorecard} />
-      ) : null}
+      <VendorScorecardCard vendorId={selectedVendorId} scorecard={scorecard} isLoading={scorecardLoading} />
 
       {spendLoading && !spend ? (
         <p>Loading spend analytics…</p>
