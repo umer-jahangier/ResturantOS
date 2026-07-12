@@ -11,6 +11,7 @@
     <include file="db/changelog/v1.0.0/030-create-roles-permissions.xml"/>
     <include file="db/changelog/v1.0.0/031-purchasing-permissions.xml"/>
     <include file="db/changelog/v1.0.0/037-finance-coa-permissions.xml"/>
+    <include file="db/changelog/v1.0.0/038-finance-ar-permissions.xml"/>
     <include file="db/changelog/v1.0.0/041-pos-permissions.xml"/>
     <include file="db/changelog/v1.0.0/042-kds-permissions-kitchen-role.xml"/>
     <include file="db/changelog/v1.0.0/040-create-user-branch-roles.xml"/>

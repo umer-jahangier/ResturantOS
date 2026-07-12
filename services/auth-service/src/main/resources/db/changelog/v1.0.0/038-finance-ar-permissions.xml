@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-038-finance-ar-permissions" author="restaurantos-agent" runOnChange="false">
+        <insert tableName="permissions">
+            <column name="code" value="finance.ar.view"/>
+            <column name="module" value="finance"/>
+            <column name="description" value="View customer/house accounts, AR balances and AR aging"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="finance.ar.manage"/>
+            <column name="module" value="finance"/>
+            <column name="description" value="Create house accounts, post AR charges and settlements"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="finance.ar.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="finance.ar.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="finance.ar.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="finance.ar.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="finance.ar.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="finance.ar.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="finance.ar.view"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>
