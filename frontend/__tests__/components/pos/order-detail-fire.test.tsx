@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -7,6 +7,12 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { OrderTableDetailDrawer } from "@/components/pos/order-table-detail-drawer";
+
+// The drawer footer renders SettlementActions, which navigates (useRouter) instead of
+// opening a Dialog since 07.3-07 — no real Next router is mounted in these unit tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
 
 // order-detail-fire.test.tsx — TDD proof for the "Send New Items (N)" revision CTA +
 // panelized detail surface (POS-21/D-06, POS-25/D-10).

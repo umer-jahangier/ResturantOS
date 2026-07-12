@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -9,6 +9,12 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { OrderManagement } from "@/components/pos/order-management";
 import { queryKeys } from "@/lib/hooks/query-keys";
+
+// The shared drawer renders SettlementActions, which navigates (useRouter) instead of
+// opening a Dialog since 07.3-07 — no real Next router is mounted in these unit tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
 
 const BRANCH_ID = "branch-1";
 const CASHIER_ME = "c0000001-0000-4000-8000-000000000001";

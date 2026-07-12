@@ -65,3 +65,19 @@ Out-of-scope discoveries made during plan execution (Scope Boundary — not fixe
   dev branch until either the stale test tickets are cleaned up or the backend paginates/
   sorts sensibly; the spec correctly classifies this as `BLOCKED` (not `FAIL`) with the
   full diagnostic inline.
+
+## 07.3-07
+
+- **`__tests__/lib/eslint-boundary.test.ts` > "flags a component importing a repository
+  directly" — 5000ms test timeout, reproducible in isolation.** This test programmatically
+  runs ESLint (`eslint.lintText`) against an inline code snippet to assert the FE-08
+  layer-boundary rule fires; it consistently exceeds Vitest's default 5s timeout on this
+  session's host (`Duration 7.19s` observed vs. a 5000ms limit), independent of any other
+  test running before/after it (reproduced with `vitest run eslint-boundary` alone). Last
+  touched in `c5f2e5c` (Phase 04-01), well before this plan; this plan never edits
+  `.eslintrc`/`eslint.config.*`, the layer-boundary rule, or `__tests__/lib/**`. Not caused
+  by any 07.3-07 file (payment-status-badge, pos.model/schema/adapter/repository/hooks,
+  charge-summary, the charge route, settlement-actions, or their tests — all confirmed
+  green independently via `vitest run pos`). Out of scope — an environment-timing-sensitive
+  pre-existing test, left unfixed per Scope Boundary. Fix shape: raise this specific test's
+  timeout (`it(..., { timeout: 15000 })`) or the file's local `testTimeout`.

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, within, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -7,6 +7,12 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { PosTerminal } from "@/components/pos/pos-terminal";
+
+// OrderPanel's footer renders SettlementActions, which navigates (useRouter) instead of
+// opening a Dialog since 07.3-07 — no real Next router is mounted in these unit tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
 
 // Phase 07.3-03 (D-01/POS-16): the terminal now holds a client-only cart — NOTHING
 // persists to pos-service until the cashier hits Send to Kitchen. These tests replace

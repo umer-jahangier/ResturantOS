@@ -8,6 +8,12 @@ import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { TableFloorView } from "@/components/pos/table-floor-view";
 
+// The shared drawer renders SettlementActions, which navigates (useRouter) instead of
+// opening a Dialog since 07.3-07 — no real Next router is mounted in these unit tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
+
 const BRANCH_ID = "b0000001-0000-4000-8000-000000000001";
 const TABLE_AVAILABLE = "11111111-1111-4111-8111-111111111111";
 const TABLE_OCCUPIED = "22222222-2222-4222-8222-222222222222";
