@@ -195,7 +195,8 @@ Plans:
   3. A GRN receipt posts GR/IR, and a vendor-invoice 3-way match creates AP; payment posts and publishes `AP_PAYMENT_PROCESSED`.
   4. AP/AR balances are tracked, and expense approvals respect OPA approval limits.
   5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
-**Plans**: 6 plans
+**Plans**: 17 plans (10-01..10-06 shipped; 10-07..10-17 = gap closure after the 2026-07-13 UAT + code audit reopened the phase)
+**Status**: REOPENED 2026-07-13 — UAT scored 1 pass / 15 issues; a parallel code audit found 4 blockers (OPA action-string mismatch denying every real PO + expense approval; purchasing unreachable from nav; zero @PreAuthorize across 18 endpoints). See 10-UAT.md.
 
 Plans:
 - [x] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval + mock GRN foundation
@@ -204,6 +205,19 @@ Plans:
 - [x] 10-04: PUR-02 gap closure — PO CLOSED transition (close + OPA-gated short-close, PO_CLOSED event) [wave 3]
 - [x] 10-05: FIN-05 gap closure — Expense entity + OPA-limited expense approval in finance-service [wave 3]
 - [x] 10-06: Requirement-doc reconciliation — re-derive PUR-01..06 + FIN-05 status from actual coverage [wave 4]
+
+Gap-closure plans (2026-07-13):
+- [ ] 10-07-PLAN.md — Canonical OPA action vocabulary + vendor.rego approval-limit & close_po rules + distinct-approver [wave 1]
+- [ ] 10-08-PLAN.md — Real-OPA container ITs for PO approve/close + expense approve (replace the mocked AuthorizationClient) [wave 2]
+- [ ] 10-09-PLAN.md — @PreAuthorize on all 18 purchasing endpoints + seed missing permissions + Cashier-403 IT [wave 1]
+- [ ] 10-10-PLAN.md — Missing backend list endpoints: POs, vendor invoices, expenses [wave 2]
+- [ ] 10-11-PLAN.md — Nav fix FEATURE_PURCHASING -> FEATURE_VENDOR + canonical flag set + drift test + purchasing shell [wave 1]
+- [ ] 10-12-PLAN.md — PO UI journeys (list/create/submit/approve/reject/send) + per-line partial receipt [wave 3]
+- [ ] 10-13-PLAN.md — Invoice UI journeys (list/book/override-match) + AP payment UI [wave 4]
+- [ ] 10-14-PLAN.md — FIN-05 UI: expense create/approve/reject + AP aging page [wave 3]
+- [ ] 10-15-PLAN.md — Analytics period picker + vendor selector [wave 1]
+- [ ] 10-16-PLAN.md — Vendor bank-account encryption fails fast instead of silently nulling [wave 1]
+- [ ] 10-17-PLAN.md — FIN-05 AP/AR scope decision (recommend: descope AR) [wave 1, checkpoint]
 
 ### Phase 11: HR & Payroll
 **Goal**: Run compliant Pakistan payroll — employees with encrypted PII, config-driven income-tax/EOBI computation, and approved payroll that posts a balanced journal entry.
