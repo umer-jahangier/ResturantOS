@@ -13,6 +13,7 @@ import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.service.OrderService;
+import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.event.OutboxEntry;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.when;
 class OrderRevisionIT extends PosTestBase {
 
     @Autowired OrderService orderService;
+    @Autowired PaymentService paymentService;
     @Autowired OutboxRepository outboxRepository;
     @Autowired MenuItemRepository menuItemRepository;
     @Autowired MenuCategoryRepository menuCategoryRepository;
@@ -169,9 +171,7 @@ class OrderRevisionIT extends PosTestBase {
         OrderDto order = createOrderWith(burgerId);
         orderService.sendToKds(order.id(), null);
 
-        var payments = List.of(new io.restaurantos.pos.service.SplitTenderCalculator.PaymentEntry(
-                "CASH", orderService.getOrder(order.id(), branchId).totalPaisa(), null));
-        OrderDto closed = orderService.closeOrder(order.id(), new CloseOrderRequest(payments), UUID.randomUUID().toString());
+        OrderDto closed = closeViaServeAndPay(orderService, paymentService, order, branchId);
         assertThat(closed.status()).isEqualTo(OrderStatus.CLOSED);
 
         assertThatThrownBy(() ->

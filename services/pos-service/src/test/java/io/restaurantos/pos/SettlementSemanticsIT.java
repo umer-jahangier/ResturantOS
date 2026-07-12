@@ -130,6 +130,25 @@ class SettlementSemanticsIT extends PosTestBase {
         assertThat(fresh.status()).isEqualTo(OrderStatus.CLOSED);
     }
 
+    /**
+     * Retirement backstop (plan 07.3-11, POS-23/D-08): now that the legacy exact-tender
+     * {@code closeOrder} bypass and its {@code OrderCloseIdempotencyIT} single-publish coverage
+     * are both deleted, this reasserts that the ONLY remaining close path (recordPayment ->
+     * maybeCloseOrder -> performClose) publishes ORDER_CLOSED exactly once per close — never
+     * zero, never duplicated.
+     */
+    @Test
+    void servedAndPaidClose_publishesExactlyOneOrderClosedEvent() {
+        OrderDto served = createServedOrder();
+
+        paymentService.recordPayment(served.id(), PaymentMethod.CASH, ITEM_PRICE_PAISA, null);
+
+        long closedEvents = outboxRepository.findAll().stream()
+                .filter(e -> "ORDER_CLOSED".equals(e.getEventType()))
+                .count();
+        assertThat(closedEvents).isEqualTo(1);
+    }
+
     @Test
     void fullPayment_onUnservedOrder_staysOpen_paidButNotClosed() {
         OrderDto sent = createSentOrder();
