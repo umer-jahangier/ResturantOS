@@ -6,6 +6,7 @@ import io.restaurantos.purchasing.service.VendorAnalyticsService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -23,6 +24,7 @@ public class VendorAnalyticsController {
     }
 
     @GetMapping("/scorecard")
+    @PreAuthorize("hasAuthority('vendor.view')")
     public ApiResponse<VendorScorecardDto> scorecard(@RequestParam UUID vendorId,
                                                      @RequestParam UUID branchId) {
         return ApiResponse.ok(vendorAnalyticsService.scorecard(vendorId, branchId));
@@ -30,6 +32,7 @@ public class VendorAnalyticsController {
 
     /** PUR-06: spend aggregated by vendor and by category over [from, to], with a prior-period comparison. */
     @GetMapping("/spend")
+    @PreAuthorize("hasAuthority('vendor.view')")
     public ApiResponse<SpendAnalyticsDto> spend(@RequestParam UUID branchId,
                                                 @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                                 @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,

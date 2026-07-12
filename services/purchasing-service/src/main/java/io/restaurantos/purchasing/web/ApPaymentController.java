@@ -6,6 +6,7 @@ import io.restaurantos.purchasing.service.ApPaymentService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,7 @@ public class ApPaymentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('vendor.payment.create')")
     public ApiResponse<ApPaymentDto> create(
             @Valid @RequestBody CreateApPaymentRequest req,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {

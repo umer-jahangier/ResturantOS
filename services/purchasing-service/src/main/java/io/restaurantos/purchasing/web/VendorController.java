@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -33,6 +34,7 @@ public class VendorController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('vendor.view')")
     public ApiResponse<java.util.List<VendorDto>> list(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
@@ -44,6 +46,7 @@ public class VendorController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('vendor.manage')")
     public ResponseEntity<ApiResponse<VendorDto>> create(@Valid @RequestBody CreateVendorRequest req) {
         UUID tenantId = tenantContext.requireTenantId();
         HttpHeaders headers = new HttpHeaders();
@@ -54,6 +57,7 @@ public class VendorController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('vendor.manage')")
     public ApiResponse<VendorDto> update(@PathVariable UUID id, @Valid @RequestBody CreateVendorRequest req) {
         return ApiResponse.ok(vendorService.update(id, req));
     }

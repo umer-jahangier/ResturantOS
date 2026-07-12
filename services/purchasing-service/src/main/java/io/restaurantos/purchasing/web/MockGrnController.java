@@ -8,6 +8,7 @@ import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,6 +29,7 @@ public class MockGrnController {
     }
 
     @PostMapping("/{poId}/mock-receive")
+    @PreAuthorize("hasAuthority('vendor.grn.receive')")
     public ApiResponse<MockReceiveResponse> mockReceive(
             @PathVariable UUID poId,
             @Valid @RequestBody MockReceiveRequest request,

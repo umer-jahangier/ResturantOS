@@ -18,6 +18,14 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 10-09: intentionally NOT gated with @PreAuthorize. This is a service-to-service
+ * endpoint (X-Internal-Service secret enforced by {@link PurchasingInternalServiceFilter}
+ * via {@code /internal/**} permitAll in PurchasingSecurityConfig); there is no user
+ * JWT/principal on these requests, so hasAuthority(...) would never resolve.
+ * PurchasingEndpointAuthorizationIT explicitly allowlists this class in its
+ * every-endpoint-is-gated reflection guard.
+ */
 @RestController
 @RequestMapping("/internal/purchasing")
 public class InternalPurchasingController {
