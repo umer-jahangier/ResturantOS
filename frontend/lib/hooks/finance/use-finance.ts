@@ -8,7 +8,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FinanceRepository } from "@/lib/repositories/finance.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import type { CreateExpenseInput, Expense, ExpenseStatus } from "@/lib/models/finance.model";
+import type {
+  CreateExpenseInput,
+  Expense,
+  ExpenseStatus,
+  CustomerAccount,
+  CreateCustomerAccountInput,
+  ArTransaction,
+  CreateArChargeInput,
+  CreateArSettlementInput,
+} from "@/lib/models/finance.model";
 // Type-only import — permitted from a lib/hooks/** file (ESLint layer-boundary
 // rule only blocks components/**); pins TError to ApiError so components can
 // branch on error.code (e.g. EXPENSE_APPROVAL_LIMIT_EXCEEDED) via TanStack's
@@ -68,6 +77,77 @@ export function useApAging(asOf?: string) {
   return useQuery({
     queryKey: queryKeys.finance.apAging(branchId, asOf),
     queryFn: () => FinanceRepository.getApAging(branchId, asOf),
+    enabled: isAuthenticated && !!branchId,
+  });
+}
+
+// ── House Accounts / AR (FIN-05 AR half, 10-18) ────────────────────────────
+// A charge that does not move the AR aging report on screen is the bug this
+// feature exists to avoid — every mutation below invalidates BOTH the house
+// account list AND the AR aging key.
+
+function invalidateAr(qc: ReturnType<typeof useQueryClient>, branchId: string) {
+  void qc.invalidateQueries({ queryKey: ["finance", branchId, "customer-accounts"] });
+  void qc.invalidateQueries({ queryKey: ["finance", branchId, "ar-aging"] });
+}
+
+export function useCustomerAccounts(page?: number) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery({
+    queryKey: queryKeys.finance.customerAccounts(branchId, page),
+    queryFn: () => FinanceRepository.listCustomerAccounts(page),
+    enabled: isAuthenticated && !!branchId,
+  });
+}
+
+export function useCreateCustomerAccount() {
+  const { branchId } = useCurrentUser();
+  const queryClient = useQueryClient();
+  return useMutation<CustomerAccount, ApiError, CreateCustomerAccountInput>({
+    mutationFn: (input) => FinanceRepository.createCustomerAccount(input),
+    onSuccess: () => invalidateAr(queryClient, branchId),
+  });
+}
+
+export function useCustomerAccountStatement(id: string) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery({
+    queryKey: queryKeys.finance.customerAccountStatement(branchId, id),
+    queryFn: () => FinanceRepository.getCustomerAccountStatement(id),
+    enabled: isAuthenticated && !!branchId && !!id,
+  });
+}
+
+/**
+ * 10-06-A: a 422 CREDIT_LIMIT_EXCEEDED here carries the reason the UI must show — the
+ * component branches on error.code, never a generic message, and must confirm NO
+ * balance/aging change happened (the invalidation below is safe either way: on a
+ * rejected charge nothing changed server-side, so refetch is a no-op).
+ */
+export function useCreateArCharge() {
+  const { branchId } = useCurrentUser();
+  const queryClient = useQueryClient();
+  return useMutation<ArTransaction, ApiError, CreateArChargeInput>({
+    mutationFn: (input) => FinanceRepository.createArCharge(input),
+    onSuccess: () => invalidateAr(queryClient, branchId),
+  });
+}
+
+export function useCreateArSettlement() {
+  const { branchId } = useCurrentUser();
+  const queryClient = useQueryClient();
+  return useMutation<ArTransaction, ApiError, CreateArSettlementInput>({
+    mutationFn: (input) => FinanceRepository.createArSettlement(input),
+    onSuccess: () => invalidateAr(queryClient, branchId),
+  });
+}
+
+/** First frontend consumer of GET /api/v1/finance/ar/aging. */
+export function useArAging(asOf?: string) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery({
+    queryKey: queryKeys.finance.arAging(branchId, asOf),
+    queryFn: () => FinanceRepository.getArAging(branchId, asOf),
     enabled: isAuthenticated && !!branchId,
   });
 }

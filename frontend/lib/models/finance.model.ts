@@ -134,3 +134,81 @@ export interface ApAging {
   totalApPaisa: number;
   buckets: ApAgingBucket[];
 }
+
+// ── FIN-05 AR half: House Accounts + AR Aging (10-18) ───────────────────────
+
+export type CustomerAccountStatus = "ACTIVE" | "SUSPENDED";
+
+export interface CustomerAccount {
+  id: string;
+  branchId: string;
+  accountCode: string;
+  name: string;
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  creditLimitPaisa: number;
+  paymentTermsDays: number;
+  status: CustomerAccountStatus;
+  crmCustomerId: string | null;
+  balancePaisa: number;
+}
+
+export interface CreateCustomerAccountInput {
+  branchId: string;
+  accountCode: string;
+  name: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  creditLimitPaisa: number;
+  paymentTermsDays: number;
+  crmCustomerId?: string;
+}
+
+export type ArTxnType = "CHARGE" | "SETTLEMENT";
+
+export interface ArTransaction {
+  id: string;
+  customerAccountId: string;
+  txnType: ArTxnType;
+  txnDate: string;
+  dueDate: string | null;
+  amountPaisa: number;
+  sourceType: string;
+  sourceId: string | null;
+  journalEntryId: string;
+  reference: string | null;
+  memo: string | null;
+  balanceAfterPaisa: number;
+}
+
+export interface CreateArChargeInput {
+  branchId: string;
+  customerAccountId: string;
+  txnDate: string;
+  amountPaisa: number;
+  revenueAccountCode?: string;
+  reference?: string;
+  memo?: string;
+}
+
+export interface CreateArSettlementInput {
+  branchId: string;
+  customerAccountId: string;
+  txnDate: string;
+  amountPaisa: number;
+  reference?: string;
+  memo?: string;
+}
+
+export interface ArAging {
+  totalArPaisa: number;
+  buckets: ApAgingBucket[];
+}
+
+export interface CustomerAccountStatement {
+  account: CustomerAccount;
+  balancePaisa: number;
+  transactions: ArTransaction[];
+}

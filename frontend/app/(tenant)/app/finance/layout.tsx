@@ -21,6 +21,12 @@ const TABS = [
   { href: "/app/finance/periods", label: "Periods" },
   { href: "/app/finance/expenses", label: "Expenses" },
   { href: "/app/finance/ap-aging", label: "AP Aging" },
+  // FIN-05 AR half (10-18): AR ships as Finance sub-tabs under the existing
+  // FEATURE_FINANCE guard below — do NOT invent FEATURE_AR (10-11's nav drift
+  // test reads backend flag definitions off disk and fails the build on a
+  // phantom flag string).
+  { href: "/app/finance/house-accounts", label: "House Accounts" },
+  { href: "/app/finance/ar-aging", label: "AR Aging" },
 ];
 
 function FinanceTabs() {

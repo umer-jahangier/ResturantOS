@@ -48,6 +48,12 @@ export const queryKeys = {
       ["finance", branchId, "expenses", status] as const,
     apAging: (branchId: string, asOf?: string) =>
       ["finance", branchId, "ap-aging", asOf] as const,
+    customerAccounts: (branchId: string, page?: number) =>
+      ["finance", branchId, "customer-accounts", page] as const,
+    customerAccountStatement: (branchId: string, id: string) =>
+      ["finance", branchId, "customer-accounts", id, "statement"] as const,
+    arAging: (branchId: string, asOf?: string) =>
+      ["finance", branchId, "ar-aging", asOf] as const,
   },
   kds: {
     tickets: (branchId: string, stationCode?: string, status?: string) =>

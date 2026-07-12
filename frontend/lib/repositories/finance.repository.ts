@@ -17,7 +17,17 @@ import {
   apiCreateExpenseSchema,
   rejectExpenseInputSchema,
   apiApAgingSchema,
+  apiCustomerAccountSchema,
+  createCustomerAccountInputSchema,
+  apiArTransactionSchema,
+  createArChargeInputSchema,
+  createArSettlementInputSchema,
+  apiArAgingSchema,
+  apiCustomerAccountStatementSchema,
   type ApiCreateExpenseRequest,
+  type ApiCreateCustomerAccountRequest,
+  type ApiCreateArChargeRequest,
+  type ApiCreateArSettlementRequest,
 } from "@/lib/api-client/schemas/finance.schema";
 import {
   adaptAccount,
@@ -27,6 +37,10 @@ import {
   adaptFinanceSetupStatus,
   adaptExpense,
   adaptApAging,
+  adaptCustomerAccount,
+  adaptArTransaction,
+  adaptArAging,
+  adaptArStatement,
 } from "@/lib/adapters/finance.adapter";
 import type {
   Account,
@@ -41,6 +55,13 @@ import type {
   ExpenseStatus,
   CreateExpenseInput,
   ApAging,
+  CustomerAccount,
+  CreateCustomerAccountInput,
+  ArTransaction,
+  CreateArChargeInput,
+  CreateArSettlementInput,
+  ArAging,
+  CustomerAccountStatement,
 } from "@/lib/models/finance.model";
 
 // Layer-2 Finance repository. Calls Layer-1 request helpers, parses via Zod,
@@ -190,5 +211,55 @@ export const FinanceRepository = {
     if (asOf) params.asOf = asOf;
     const raw = await get<unknown>("/api/v1/finance/ap/aging", params);
     return adaptApAging(apiApAgingSchema.parse(raw));
+  },
+
+  // ── House Accounts / AR (FIN-05 AR half, 10-18) ──────────────────────────
+  // GET /api/v1/finance/ar/customer-accounts IS paginated — matches
+  // AccountController's ApiResponse.paginated shape (see 10-18-SUMMARY.md).
+
+  async listCustomerAccounts(page?: number): Promise<PaginatedResult<CustomerAccount>> {
+    const params: Record<string, unknown> = {};
+    if (page !== undefined) params.page = page;
+    const result = await getPaginated<unknown>("/api/v1/finance/ar/customer-accounts", params);
+    return {
+      data: result.data.map((raw) => adaptCustomerAccount(apiCustomerAccountSchema.parse(raw))),
+      meta: result.meta,
+    };
+  },
+
+  async createCustomerAccount(input: CreateCustomerAccountInput): Promise<CustomerAccount> {
+    const body: ApiCreateCustomerAccountRequest = createCustomerAccountInputSchema.parse(input);
+    const raw = await post<ApiCreateCustomerAccountRequest, unknown>(
+      "/api/v1/finance/ar/customer-accounts",
+      body,
+    );
+    return adaptCustomerAccount(apiCustomerAccountSchema.parse(raw));
+  },
+
+  async getCustomerAccountStatement(id: string): Promise<CustomerAccountStatement> {
+    const raw = await get<unknown>(`/api/v1/finance/ar/customer-accounts/${id}/statement`);
+    return adaptArStatement(apiCustomerAccountStatementSchema.parse(raw));
+  },
+
+  async createArCharge(input: CreateArChargeInput): Promise<ArTransaction> {
+    const body: ApiCreateArChargeRequest = createArChargeInputSchema.parse(input);
+    const raw = await post<ApiCreateArChargeRequest, unknown>("/api/v1/finance/ar/charges", body);
+    return adaptArTransaction(apiArTransactionSchema.parse(raw));
+  },
+
+  async createArSettlement(input: CreateArSettlementInput): Promise<ArTransaction> {
+    const body: ApiCreateArSettlementRequest = createArSettlementInputSchema.parse(input);
+    const raw = await post<ApiCreateArSettlementRequest, unknown>(
+      "/api/v1/finance/ar/settlements",
+      body,
+    );
+    return adaptArTransaction(apiArTransactionSchema.parse(raw));
+  },
+
+  async getArAging(branchId: string, asOf?: string): Promise<ArAging> {
+    const params: Record<string, unknown> = { branchId };
+    if (asOf) params.asOf = asOf;
+    const raw = await get<unknown>("/api/v1/finance/ar/aging", params);
+    return adaptArAging(apiArAgingSchema.parse(raw));
   },
 };

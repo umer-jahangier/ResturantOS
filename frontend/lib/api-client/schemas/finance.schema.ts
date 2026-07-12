@@ -141,6 +141,101 @@ export const apiApAgingSchema = z.object({
   buckets: z.array(apiApAgingBucketSchema),
 });
 
+// ── FIN-05 AR half: House Accounts + AR Aging (10-18) ───────────────────────
+// Mirrors finance-service's CustomerAccountDto/ArTransactionDto/ArAgingReportDto
+// EXACTLY (read off the Java source — see 10-18-SUMMARY.md), following 10-14-A's
+// precedent of trusting the DTO over plan prose.
+
+export const CUSTOMER_ACCOUNT_STATUSES = ["ACTIVE", "SUSPENDED"] as const;
+
+export const apiCustomerAccountSchema = z.object({
+  id: z.string().uuid(),
+  branchId: z.string().uuid(),
+  accountCode: z.string(),
+  name: z.string(),
+  contactName: z.string().nullable(),
+  contactPhone: z.string().nullable(),
+  contactEmail: z.string().nullable(),
+  creditLimitPaisa: z.number().int().nonnegative(),
+  paymentTermsDays: z.number().int().nonnegative(),
+  status: z.enum(CUSTOMER_ACCOUNT_STATUSES),
+  crmCustomerId: z.string().uuid().nullable(),
+  balancePaisa: z.number().int(),
+});
+
+// GET /api/v1/finance/ar/customer-accounts is PAGINATED (matches AccountController's
+// ApiResponse.paginated shape, NOT 10-10's PO/invoice/expense non-paginated decision —
+// see 10-18-SUMMARY.md for why). Parsed per-row via getPaginated, same as listAccounts.
+
+export const createCustomerAccountInputSchema = z.object({
+  branchId: z.string().uuid(),
+  accountCode: z.string().min(2, "Account code is required").max(30),
+  name: z.string().min(2, "Name is required").max(200),
+  contactName: z.string().max(200).optional(),
+  contactPhone: z.string().max(30).optional(),
+  contactEmail: z.string().max(200).optional(),
+  creditLimitPaisa: z.number().int().nonnegative(),
+  paymentTermsDays: z.number().int().nonnegative(),
+  crmCustomerId: z.string().uuid().optional(),
+});
+
+export const AR_TXN_TYPES = ["CHARGE", "SETTLEMENT"] as const;
+
+export const apiArTransactionSchema = z.object({
+  id: z.string().uuid(),
+  customerAccountId: z.string().uuid(),
+  txnType: z.enum(AR_TXN_TYPES),
+  txnDate: z.string(),
+  dueDate: z.string().nullable(),
+  amountPaisa: z.number().int().positive(),
+  sourceType: z.string(),
+  sourceId: z.string().uuid().nullable(),
+  journalEntryId: z.string().uuid(),
+  reference: z.string().nullable(),
+  memo: z.string().nullable(),
+  balanceAfterPaisa: z.number().int(),
+});
+
+export const createArChargeInputSchema = z.object({
+  branchId: z.string().uuid(),
+  customerAccountId: z.string().uuid(),
+  txnDate: z.string().min(1, "Charge date is required"),
+  amountPaisa: z.number().int().positive("Amount must be greater than zero"),
+  revenueAccountCode: z.string().max(20).optional(),
+  reference: z.string().max(200).optional(),
+  memo: z.string().max(500).optional(),
+});
+
+export const createArSettlementInputSchema = z.object({
+  branchId: z.string().uuid(),
+  customerAccountId: z.string().uuid(),
+  txnDate: z.string().min(1, "Settlement date is required"),
+  amountPaisa: z.number().int().positive("Amount must be greater than zero"),
+  reference: z.string().max(200).optional(),
+  memo: z.string().max(500).optional(),
+});
+
+// Same bucket shape as ApAgingBucketDto/ApAgingReportDto (10-18-A) — reuses
+// apiApAgingBucketSchema's shape rather than declaring a second, drifting one.
+export const apiArAgingSchema = z.object({
+  totalArPaisa: z.number().int().nonnegative(),
+  buckets: z.array(apiApAgingBucketSchema),
+});
+
+export const apiCustomerAccountStatementSchema = z.object({
+  account: apiCustomerAccountSchema,
+  balancePaisa: z.number().int(),
+  transactions: z.array(apiArTransactionSchema),
+});
+
+export type ApiCustomerAccount = z.infer<typeof apiCustomerAccountSchema>;
+export type ApiCreateCustomerAccountRequest = z.infer<typeof createCustomerAccountInputSchema>;
+export type ApiArTransaction = z.infer<typeof apiArTransactionSchema>;
+export type ApiCreateArChargeRequest = z.infer<typeof createArChargeInputSchema>;
+export type ApiCreateArSettlementRequest = z.infer<typeof createArSettlementInputSchema>;
+export type ApiArAging = z.infer<typeof apiArAgingSchema>;
+export type ApiCustomerAccountStatement = z.infer<typeof apiCustomerAccountStatementSchema>;
+
 export type ApiAccount = z.infer<typeof apiAccountSchema>;
 export type ApiJournalLine = z.infer<typeof apiJournalLineSchema>;
 export type ApiJournalEntry = z.infer<typeof apiJournalEntrySchema>;
