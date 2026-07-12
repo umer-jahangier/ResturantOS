@@ -1,16 +1,21 @@
 "use client";
 
-import { StationPicker } from "@/components/kds/station-picker";
+import { use } from "react";
+import { StationBoard } from "@/components/kds/station-board";
 import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 
+interface StationBoardPageProps {
+  params: Promise<{ stationCode: string }>;
+}
+
 /**
- * KDS station picker (KDS-04/D-12). Lists active stations for the branch; a
- * single station auto-navigates to `kitchen/[stationCode]`. Gated by FEATURE_KDS
- * feature flag and pos.kds.view permission (unchanged from the pre-07.3-10 board).
+ * Station-isolated KDS board (KDS-04/D-12). URL: `/app/kitchen/[stationCode]`.
+ * Same FEATURE_KDS/pos.kds.view guards as the station picker.
  */
-export default function KitchenPage() {
+export default function StationBoardPage({ params }: StationBoardPageProps) {
+  const { stationCode } = use(params);
   const { branchId } = useCurrentUser();
 
   return (
@@ -35,7 +40,7 @@ export default function KitchenPage() {
             No branch selected
           </div>
         ) : (
-          <StationPicker branchId={branchId} />
+          <StationBoard branchId={branchId} stationCode={stationCode} />
         )}
       </PermissionGuard>
     </FeatureGuard>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { sortKdsTickets } from "@/components/kds/kds-board";
+import { sortKdsTickets } from "@/components/kds/station-board";
 import type { KdsTicket } from "@/lib/models/kds.model";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
