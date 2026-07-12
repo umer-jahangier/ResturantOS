@@ -126,11 +126,11 @@
 - [x] **POS-18**: Optional table + order type — order creation supports Dine-in / Takeaway / Pickup; table assignment is optional (takeaway/pickup need none); a searchable table selector shows Available/Occupied status and prevents selecting occupied tables
 - [x] **POS-19**: Terminal reset & charge gating — after Send to Kitchen the terminal offers an explicit Clear / New Order action (the fired order stays editable in Order Management); Charge Now is enabled only after the order has been sent to the kitchen (i.e. persisted); no previous selections leak into the next order
 - [x] **POS-20**: Real-time kitchen→POS item-status sync — per-item kitchen status changes propagate to pos-service so the POS reflects live item status without a manual reopen; opening an order always shows current, non-stale item statuses
-- [ ] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
+- [x] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
 - [x] **POS-22**: Full-page settlement surface — Charge Now is a dedicated full-page/large view (not a small modal) showing order no., table, customer, cashier, order time, item list with qty/status/notes, tax/discount/charge breakdown, payment history, payment methods, and remaining balance
 - [x] **POS-23**: Settlement semantics — recording a payment sets a derived payment status (Unpaid/Partially Paid/Paid) and persists `OrderPayment` rows WITHOUT closing the order; an order transitions to `CLOSED` only when it is BOTH fully Paid AND fully Served, enforced on both the payment flow and the mark-served flow; a paid-but-unserved order shows Paid with its live status
 - [x] **POS-24**: Order Management completeness — closed/paid orders are visible with status filters and a search box; every row shows payment status (Paid/Unpaid/Partially Paid/Refunded); the Cover column is replaced with total item quantity (and optional unique-item count); an Assign Table action assigns an available table to a tableless order (occupied tables blocked) updating order + table status immediately; already-paid orders block duplicate payment while staying accessible for history
-- [ ] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
+- [x] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
 - [ ] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
 
 ### Kitchen / KDS (KDS)
@@ -329,11 +329,11 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-18 | Phase 07.3 | Complete |
 | POS-19 | Phase 07.3 | Complete |
 | POS-20 | Phase 07.3 | Complete |
-| POS-21 | Phase 07.3 | Pending |
+| POS-21 | Phase 07.3 | Complete |
 | POS-22 | Phase 07.3 | Complete |
 | POS-23 | Phase 07.3 | Complete |
 | POS-24 | Phase 07.3 | Complete |
-| POS-25 | Phase 07.3 | Pending |
+| POS-25 | Phase 07.3 | Complete |
 | POS-26 | Phase 07.3 | Pending |
 | KDS-04 | Phase 07.3 | Complete |
 | KDS-05 | Phase 07.3 | Pending |

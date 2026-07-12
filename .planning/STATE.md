@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: "Completed 07.3-04-PLAN.md (Order Management backend: rich summary DTO, assign-table, KDS tableNumber parity)"
-last_updated: "2026-07-12T12:08:33.541Z"
+stopped_at: Completed 07.3-06-PLAN.md
+last_updated: "2026-07-12T13:20:31.374Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-04-PLAN.md
+last_activity_desc: Completed 07.3-06-PLAN.md
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 59
-  completed_plans: 49
-  percent: 83
+  completed_plans: 50
+  percent: 47
 ---
 
 # Project State
@@ -29,14 +29,18 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 4/10 complete (07.3-01 done: PaymentStatus derivation,
+Plans: 10 plans across 3 waves — 5/10 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
 PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
 OrderSummaryDto (payment status + item quantity), PATCH /orders/{id}/table assign-table,
-tableNumber on send-to-KDS event, POS-24/POS-16/KDS-04)
+tableNumber on send-to-KDS event, POS-24/POS-16/KDS-04; 07.3-06 done: useOrder live
+refetch + useAddItem instant cache-seed, "Send New Items (N)" revision CTA + panelized
+detail surface, Order Management manual Refresh, Wave-0 E2E for POS-20/POS-21 — POS-20 E2E
+BLOCKED on this dev branch by an out-of-scope kitchen-service pagination/data-hygiene
+defect, logged in deferred-items.md)
 Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-04-PLAN.md
+Last activity: 2026-07-12 — Completed 07.3-06-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -95,6 +99,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P02 | 20min | 2 tasks | 5 files |
 | Phase 07.3 P03 | 35min | 4 tasks | 13 files |
 | Phase 07.3 P04 | 40min | 3 tasks | 9 files |
+| Phase 07.3 P06 | 55min | 4 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -241,6 +246,9 @@ Recent decisions affecting current work:
 - [Phase 07.3-04]: assignTable routes the previous table binding (no-op when null, the common case) AND the newly-assigned table through the SAME TableService.syncStatusForOrder seam -- never an inline table.setStatus() call; true table-to-table reassignment is not covered by this plan's tests
 - [Phase 07.3-04]: listOrderSummaries default filter changed from !isTerminal(s) to !isTerminal(s) && s != DRAFT -- explicit statuses requests (incl. DRAFT/terminal) bypass the default and are unaffected
 - [Phase 07.3-04]: OrderPaymentRepository.sumAmountByOrderIds batched interface-projection query added for listOrderSummaries -- one query per page instead of per row (N+1 avoidance)
+- [Phase ?]: [07.3-06]: useOrder gets a flat 5s refetchInterval (not WebSocket) for POS-20 live sync; matches KDS board's own HTTP-poll fallback pattern
+- [Phase ?]: [07.3-06]: order-table-detail-drawer rebuilt on raw Radix DialogPrimitive (not shared DialogContent) to drop its sm:max-w-sm default and become a large in-place panel (inset-4 sm:inset-6 lg:inset-10) for POS-25
+- [Phase ?]: [07.3-06]: Playwright locator.isVisible({timeout}) does not auto-retry/wait -- genuine wait-for-async-element E2E checks must use expect(locator).toBeVisible({timeout}) or locator.waitFor
 
 ### Pending Todos
 
@@ -260,8 +268,9 @@ Recent decisions affecting current work:
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
 - kitchen-service Testcontainers ITs (incl. new TicketRevisionRoutingIT) currently blocked by a pre-existing RabbitMQ ACCESS_REFUSED auth conflict on localhost:5672, confirmed environmental (baseline TicketRoutingIT fails identically). Human/CI run needed in an env without a competing local RabbitMQ broker.
-- **Phase 07.2 Wave 1 post-merge gate findings (pre-existing, NOT caused by 07.2-01..05):** (1) auth-service `BranchSwitchIT`/`RefreshLogoutIT`/`StepUpLoginIT`/`TotpFlowIT` fail with 401/403 mismatches when run as part of the FULL auth-service suite but pass cleanly (0 failures) when run in isolation — a pre-existing test-order/shared-context flakiness, confirmed unrelated to this phase (none of these 4 files were touched by any 07.2 plan; last touched 2026-06-24 in Phase 2). (2) finance-service `JournalEntryImmutabilityIT`/`JournalEntryBalanceTriggerIT`/`InternalAutoPostIT` fail with `IllegalStateException: Branch context required` — reproduced identically on the pre-phase-07.2 baseline commit (71925f5) via a throwaway worktree, confirming this predates the phase entirely (`JournalEntryServiceImpl.java` last touched in Phase 6, untouched by 07.2). (3) platform-admin-service's Testcontainers IT suite failed to bootstrap its Docker client strategy (`TestcontainersHostPropertyClientProviderStrategy could not be instantiated`) specifically in the orchestrator's own shell session — `docker ps` works fine directly, and each of plans 07.2-02/03/04/05's own executor sessions already ran their scoped Testcontainers-based tests green moments earlier on the same host, so this reads as a session-level Docker/Testcontainers bootstrap quirk, not a code defect. None of these three findings blocked Wave 1 — `git diff --stat` confirmed only the 14 files owned by plans 02-05 changed. Recommend a human/CI run of the full three-service suite in a clean session before treating Phase 07.2 as fully verified (07.2-06 already restarts all three services + reruns the full suite as its Task 1, which should be the authoritative check).
+- **Phase 07.2 Wave 1 post-merge gate findings (pre-existing, NOT caused by 07.2-01..05):** (1) auth-service `BranchSwitchIT`/`RefreshLogoutIT`/`StepUpLoginIT`/`TotpFlowIT` fail with 401/403 mismatches when run as part of the FULL auth-service suite but pass cleanly (0 failures) when run in isolation — a pre-existing test-order/shared-context flakiness, confirmed unrelated to this phase (of these 4 files were touched by any 07.2 plan; last touched 2026-06-24 in Phase 2). (2) finance-service `JournalEntryImmutabilityIT`/`JournalEntryBalanceTriggerIT`/`InternalAutoPostIT` fail with `IllegalStateException: Branch context required` — reproduced identically on the pre-phase-07.2 baseline commit (71925f5) via a throwaway worktree, confirming this predates the phase entirely (`JournalEntryServiceImpl.java` last touched in Phase 6, untouched by 07.2). (3) platform-admin-service's Testcontainers IT suite failed to bootstrap its Docker client strategy (`TestcontainersHostPropertyClientProviderStrategy could not be instantiated`) specifically in the orchestrator's own shell session — `docker ps` works fine directly, and each of plans 07.2-02/03/04/05's own executor sessions already ran their scoped Testcontainers-based tests green moments earlier on the same host, so this reads as a session-level Docker/Testcontainers bootstrap quirk, not a code defect. of these three findings blocked Wave 1 — `git diff --stat` confirmed only the 14 files owned by plans 02-05 changed. Recommend a human/CI run of the full three-service suite in a clean session before treating Phase 07.2 as fully verified (07.2-06 already restarts all three services + reruns the full suite as its Task 1, which should be the authoritative check).
 - 07.2-07's live Playwright E2E run (finance-period-provisioning.spec.ts) was BLOCKED this session: finance-service process down / gateway 503 in the dev stack. Deferred to 07.2-06's restart-and-verify gate per plan.
+- kitchen-service KdsController.getTickets: LazyInitializationException on unscoped GET (no @Transactional boundary) + unsorted/size=20 default Pageable lets accumulated stale PENDING test tickets (29+ on GRILL) push new tickets beyond page 1 -- blocks pos-kitchen-live-sync.spec.ts (POS-20) from a live PASS; out of scope for 07.3-06 (frontend-only), logged in 07.3 deferred-items.md
 
 ### Roadmap Evolution
 
@@ -270,6 +279,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T12:08:17.964Z
-Stopped at: Completed 07.3-04-PLAN.md (Order Management backend: rich summary DTO, assign-table, KDS tableNumber parity)
+Last session: 2026-07-12T13:20:08.816Z
+Stopped at: Completed 07.3-06-PLAN.md
 Resume file: None
