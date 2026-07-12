@@ -1,10 +1,12 @@
 package io.restaurantos.kitchen.service;
 
 import io.restaurantos.kitchen.domain.enums.TicketStatus;
+import io.restaurantos.kitchen.domain.model.KdsStation;
 import io.restaurantos.kitchen.domain.model.KdsTicket;
 import io.restaurantos.kitchen.domain.model.KdsTicketItem;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderSentToKdsItem;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderSentToKdsPayload;
+import io.restaurantos.kitchen.repository.KdsStationRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
 import io.restaurantos.kitchen.ws.KdsWebSocketHandler;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -19,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Routes ORDER_SENT_TO_KDS items to one KdsTicket per (order, station).
@@ -36,15 +39,18 @@ public class TicketRoutingService {
     private static final String DEFAULT_STATION = "DEFAULT";
 
     private final KdsTicketRepository ticketRepository;
+    private final KdsStationRepository stationRepository;
     private final TenantContext tenantContext;
     private final KdsWebSocketHandler webSocketHandler;
     private final TicketServiceImpl ticketService;
 
     public TicketRoutingService(KdsTicketRepository ticketRepository,
+                                 KdsStationRepository stationRepository,
                                  TenantContext tenantContext,
                                  KdsWebSocketHandler webSocketHandler,
                                  TicketServiceImpl ticketService) {
         this.ticketRepository = ticketRepository;
+        this.stationRepository = stationRepository;
         this.tenantContext = tenantContext;
         this.webSocketHandler = webSocketHandler;
         this.ticketService = ticketService;
@@ -101,10 +107,13 @@ public class TicketRoutingService {
 
     private void createNewTicket(OrderSentToKdsPayload payload, String orderNo, String stationCode,
                                   List<OrderSentToKdsItem> stationItems) {
+        UUID branchId = tenantContext.getBranchId().orElseThrow(() ->
+                new IllegalStateException("TenantContext missing branchId"));
+        ensureStation(branchId, stationCode);
+
         KdsTicket ticket = new KdsTicket();
         ticket.setTenantId(tenantContext.requireTenantId());
-        ticket.setBranchId(tenantContext.getBranchId().orElseThrow(() ->
-                new IllegalStateException("TenantContext missing branchId")));
+        ticket.setBranchId(branchId);
         ticket.setOrderId(payload.orderId());
         ticket.setOrderNo(orderNo);
         ticket.setOrderNotes(payload.orderNotes());
@@ -116,6 +125,29 @@ public class TicketRoutingService {
         ticket.setItems(items);
         ticketRepository.save(ticket);
         log.info("Routed ticket: order={} station={} items={}", payload.orderId(), stationCode, items.size());
+    }
+
+    /**
+     * Idempotent station upsert (KDS-04): ensures a station row exists for (branchId, code)
+     * before a ticket is routed to it, so the board is never empty for a fresh branch and every
+     * station a ticket lands on is visible via GET /stations. Mirrors the finance 07.2
+     * auto-seed-on-miss pattern — find first, create on miss; the DB's
+     * uq_station_tenant_branch_code unique constraint (V1) backstops a race between concurrent
+     * routes for the same never-yet-seen station.
+     */
+    private void ensureStation(UUID branchId, String code) {
+        if (stationRepository.findByBranchIdAndCode(branchId, code).isPresent()) {
+            return;
+        }
+        KdsStation station = new KdsStation();
+        station.setTenantId(tenantContext.requireTenantId());
+        station.setBranchId(branchId);
+        station.setCode(code);
+        station.setName(code);
+        station.setActive(true);
+        station.setEscalationThresholdSeconds(900);
+        stationRepository.save(station);
+        log.info("Seeded station: branch={} code={}", branchId, code);
     }
 
     /** Builds new KdsTicketItems for a station's items, stamping revisionNo/firedAt from the payload. */

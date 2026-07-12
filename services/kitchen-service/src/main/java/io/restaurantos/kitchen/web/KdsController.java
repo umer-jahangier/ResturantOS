@@ -134,7 +134,10 @@ public class KdsController {
     }
 
     /**
-     * List active stations for a branch.
+     * List active stations for a branch. Auto-seed-on-miss (KDS-04, mirrors finance 07.2's
+     * period auto-seed pattern): a branch with zero station rows gets a DEFAULT station seeded
+     * on the spot so the board is never empty, rather than showing "No active stations
+     * configured".
      * Requires pos.kds.view permission (OPA evaluated).
      */
     @GetMapping("/stations")
@@ -143,6 +146,18 @@ public class KdsController {
             @AuthenticationPrincipal JwtClaims claims) {
 
         authz.authorizeView(claims.tenantId(), branchId);
-        return ResponseEntity.ok(stationRepository.findByBranchIdAndActiveTrue(branchId));
+
+        List<KdsStation> stations = stationRepository.findByBranchIdAndActiveTrue(branchId);
+        if (stations.isEmpty()) {
+            KdsStation defaultStation = new KdsStation();
+            defaultStation.setTenantId(claims.tenantId());
+            defaultStation.setBranchId(branchId);
+            defaultStation.setCode("DEFAULT");
+            defaultStation.setName("DEFAULT");
+            defaultStation.setActive(true);
+            defaultStation.setEscalationThresholdSeconds(900);
+            stations = List.of(stationRepository.save(defaultStation));
+        }
+        return ResponseEntity.ok(stations);
     }
 }
