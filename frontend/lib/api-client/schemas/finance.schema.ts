@@ -83,6 +83,64 @@ export const apiCreateJeSchema = z.object({
   lines: z.array(apiCreateJeLineSchema).min(2),
 });
 
+// ── FIN-05: Expenses + AP Aging (10-14) ─────────────────────────────────────
+// Mirrors finance-service's ExpenseDto/CreateExpenseRequest/ApAgingReportDto
+// EXACTLY (read off the Java source, not plan prose — see 10-14-SUMMARY.md).
+// List endpoint (`GET /api/v1/finance/expenses`) returns a plain
+// `ApiResponse<List<ExpenseDto>>` per the 10-10 contract: NO PageMeta/pagination.
+
+export const EXPENSE_STATUSES = [
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+] as const;
+
+export const apiExpenseSchema = z.object({
+  id: z.string().uuid(),
+  branchId: z.string().uuid(),
+  expenseDate: z.string(),
+  expenseAccountCode: z.string(),
+  description: z.string().nullable(),
+  amountPaisa: z.number().int().nonnegative(),
+  status: z.enum(EXPENSE_STATUSES),
+  requestedBy: z.string().uuid(),
+  approvedBy: z.string().uuid().nullable(),
+  approvedAt: z.string().nullable(),
+  // Wire field is `rejectReason` (NOT `rejectionReason`) — confirmed against
+  // ExpenseDto.java; do not "fix" this to match earlier plan prose.
+  rejectReason: z.string().nullable(),
+});
+
+export const apiExpenseListSchema = z.array(apiExpenseSchema);
+
+/** Wire body for `POST /api/v1/finance/expenses` — mirrors CreateExpenseRequest.java. */
+export const apiCreateExpenseSchema = z.object({
+  branchId: z.string().uuid(),
+  expenseDate: z.string().min(1, "Expense date is required"),
+  expenseAccountCode: z.string().min(1, "Expense account is required").max(20),
+  description: z.string().max(500).optional(),
+  amountPaisa: z.number().int().positive("Amount must be greater than zero"),
+});
+
+/** `POST /{id}/reject` body — reason is mandatory client-side AND server-side. */
+export const rejectExpenseInputSchema = z.object({
+  reason: z.string().trim().min(1, "A rejection reason is required"),
+});
+
+// ApAgingBucketDto.java carries NO invoice count field (label/minDays/maxDays/
+// amountPaisa only) — earlier plan prose assumed invoice counts; the DTO wins.
+export const apiApAgingBucketSchema = z.object({
+  label: z.string(),
+  minDays: z.number().int(),
+  maxDays: z.number().int(),
+  amountPaisa: z.number().int().nonnegative(),
+});
+
+export const apiApAgingSchema = z.object({
+  totalApPaisa: z.number().int().nonnegative(),
+  buckets: z.array(apiApAgingBucketSchema),
+});
+
 export type ApiAccount = z.infer<typeof apiAccountSchema>;
 export type ApiJournalLine = z.infer<typeof apiJournalLineSchema>;
 export type ApiJournalEntry = z.infer<typeof apiJournalEntrySchema>;
@@ -90,3 +148,7 @@ export type ApiAccountingPeriod = z.infer<typeof apiAccountingPeriodSchema>;
 export type ApiGlBalance = z.infer<typeof apiGlBalanceSchema>;
 export type ApiFinanceSetupStatus = z.infer<typeof apiFinanceSetupStatusSchema>;
 export type ApiCreateJeRequest = z.infer<typeof apiCreateJeSchema>;
+export type ApiExpense = z.infer<typeof apiExpenseSchema>;
+export type ApiCreateExpenseRequest = z.infer<typeof apiCreateExpenseSchema>;
+export type ApiApAgingBucket = z.infer<typeof apiApAgingBucketSchema>;
+export type ApiApAging = z.infer<typeof apiApAgingSchema>;

@@ -96,3 +96,41 @@ export interface JeFilters {
   page?: number;
   size?: number;
 }
+
+// ── FIN-05: Expenses + AP Aging (10-14) ─────────────────────────────────────
+
+export type ExpenseStatus = "PENDING_APPROVAL" | "APPROVED" | "REJECTED";
+
+export interface Expense {
+  id: string;
+  branchId: string;
+  expenseDate: string;
+  expenseAccountCode: string;
+  description: string | null;
+  amountPaisa: number;
+  status: ExpenseStatus;
+  requestedBy: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectReason: string | null;
+}
+
+export interface CreateExpenseInput {
+  branchId: string;
+  expenseDate: string;
+  expenseAccountCode: string;
+  description?: string;
+  amountPaisa: number;
+}
+
+export interface ApAgingBucket {
+  label: string;
+  minDays: number;
+  maxDays: number;
+  amountPaisa: number;
+}
+
+export interface ApAging {
+  totalApPaisa: number;
+  buckets: ApAgingBucket[];
+}

@@ -8,6 +8,9 @@ import type {
   ApiAccountingPeriod,
   ApiGlBalance,
   ApiFinanceSetupStatus,
+  ApiExpense,
+  ApiApAging,
+  ApiApAgingBucket,
 } from "@/lib/api-client/schemas/finance.schema";
 import type {
   Account,
@@ -17,6 +20,10 @@ import type {
   AccountingPeriod,
   GlBalance,
   FinanceSetupStatus,
+  Expense,
+  ExpenseStatus,
+  ApAging,
+  ApAgingBucket,
 } from "@/lib/models/finance.model";
 
 export function adaptAccount(raw: ApiAccount): Account {
@@ -83,5 +90,37 @@ export function adaptFinanceSetupStatus(raw: ApiFinanceSetupStatus): FinanceSetu
     accountCount: raw.accountCount,
     periodCount: raw.periodCount,
     provisioned: raw.provisioned,
+  };
+}
+
+export function adaptExpense(raw: ApiExpense): Expense {
+  return {
+    id: raw.id,
+    branchId: raw.branchId,
+    expenseDate: raw.expenseDate,
+    expenseAccountCode: raw.expenseAccountCode,
+    description: raw.description,
+    amountPaisa: raw.amountPaisa,
+    status: raw.status as ExpenseStatus,
+    requestedBy: raw.requestedBy,
+    approvedBy: raw.approvedBy,
+    approvedAt: raw.approvedAt,
+    rejectReason: raw.rejectReason,
+  };
+}
+
+export function adaptApAgingBucket(raw: ApiApAgingBucket): ApAgingBucket {
+  return {
+    label: raw.label,
+    minDays: raw.minDays,
+    maxDays: raw.maxDays,
+    amountPaisa: raw.amountPaisa,
+  };
+}
+
+export function adaptApAging(raw: ApiApAging): ApAging {
+  return {
+    totalApPaisa: raw.totalApPaisa,
+    buckets: raw.buckets.map(adaptApAgingBucket),
   };
 }

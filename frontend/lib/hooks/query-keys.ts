@@ -3,7 +3,7 @@
 // Finance keys include branchId as the second segment so that
 // `queryClient.invalidateQueries({ queryKey: ["finance", branchId] })` nukes
 // all finance data for a specific branch without touching other branches.
-import type { AccountFilters, JeFilters } from "@/lib/models/finance.model";
+import type { AccountFilters, ExpenseStatus, JeFilters } from "@/lib/models/finance.model";
 
 export const queryKeys = {
   session: {
@@ -44,6 +44,10 @@ export const queryKeys = {
       ["finance", branchId, "periods", "open"] as const,
     setupStatus: (branchId: string) =>
       ["finance", branchId, "setup", "status"] as const,
+    expenses: (branchId: string, status?: ExpenseStatus[]) =>
+      ["finance", branchId, "expenses", status] as const,
+    apAging: (branchId: string, asOf?: string) =>
+      ["finance", branchId, "ap-aging", asOf] as const,
   },
   kds: {
     tickets: (branchId: string, stationCode?: string, status?: string) =>

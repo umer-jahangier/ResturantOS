@@ -12,6 +12,12 @@ import {
   apiAccountingPeriodSchema,
   apiGlBalanceSchema,
   apiFinanceSetupStatusSchema,
+  apiExpenseSchema,
+  apiExpenseListSchema,
+  apiCreateExpenseSchema,
+  rejectExpenseInputSchema,
+  apiApAgingSchema,
+  type ApiCreateExpenseRequest,
 } from "@/lib/api-client/schemas/finance.schema";
 import {
   adaptAccount,
@@ -19,6 +25,8 @@ import {
   adaptAccountingPeriod,
   adaptGlBalance,
   adaptFinanceSetupStatus,
+  adaptExpense,
+  adaptApAging,
 } from "@/lib/adapters/finance.adapter";
 import type {
   Account,
@@ -29,6 +37,10 @@ import type {
   JeFilters,
   CreateJeRequest,
   FinanceSetupStatus,
+  Expense,
+  ExpenseStatus,
+  CreateExpenseInput,
+  ApAging,
 } from "@/lib/models/finance.model";
 
 // Layer-2 Finance repository. Calls Layer-1 request helpers, parses via Zod,
@@ -135,5 +147,48 @@ export const FinanceRepository = {
   async getGlBalances(periodId: string): Promise<GlBalance[]> {
     const raw = await get<unknown[]>("/api/v1/finance/gl/balances", { periodId });
     return (raw ?? []).map((item) => adaptGlBalance(apiGlBalanceSchema.parse(item)));
+  },
+
+  // ── Expenses (FIN-05) ────────────────────────────────────────────────────
+  // GET /api/v1/finance/expenses returns a plain ApiResponse<List<ExpenseDto>>
+  // (no pagination) — per 10-10's contract. branchId is required; tenant is
+  // resolved server-side.
+
+  async listExpenses(branchId: string, status?: ExpenseStatus[]): Promise<Expense[]> {
+    const params: Record<string, unknown> = { branchId };
+    if (status && status.length > 0) params.status = status;
+    const raw = await get<unknown[]>("/api/v1/finance/expenses", params);
+    return apiExpenseListSchema.parse(raw ?? []).map(adaptExpense);
+  },
+
+  async createExpense(input: CreateExpenseInput): Promise<Expense> {
+    const body: ApiCreateExpenseRequest = apiCreateExpenseSchema.parse(input);
+    const raw = await post<ApiCreateExpenseRequest, unknown>("/api/v1/finance/expenses", body);
+    return adaptExpense(apiExpenseSchema.parse(raw));
+  },
+
+  async approveExpense(id: string): Promise<Expense> {
+    const raw = await post<undefined, unknown>(`/api/v1/finance/expenses/${id}/approve`);
+    return adaptExpense(apiExpenseSchema.parse(raw));
+  },
+
+  // reason is validated client-side (mandatory, non-blank) before the request
+  // fires, mirroring server-side enforcement in ExpenseService.reject.
+  async rejectExpense(id: string, reason: string): Promise<Expense> {
+    const body = rejectExpenseInputSchema.parse({ reason });
+    const raw = await post<{ reason: string }, unknown>(
+      `/api/v1/finance/expenses/${id}/reject`,
+      body,
+    );
+    return adaptExpense(apiExpenseSchema.parse(raw));
+  },
+
+  // ── AP Aging (FIN-05) ────────────────────────────────────────────────────
+
+  async getApAging(branchId: string, asOf?: string): Promise<ApAging> {
+    const params: Record<string, unknown> = { branchId };
+    if (asOf) params.asOf = asOf;
+    const raw = await get<unknown>("/api/v1/finance/ap/aging", params);
+    return adaptApAging(apiApAgingSchema.parse(raw));
   },
 };
