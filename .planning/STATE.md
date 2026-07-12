@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-10-PLAN.md
-last_updated: "2026-07-12T16:31:04.965Z"
-last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-10-PLAN.md
+stopped_at: Completed 07.3-11-PLAN.md
+last_updated: "2026-07-12T19:08:50.164Z"
+last_activity: 2026-07-13
+last_activity_desc: Completed 07.3-11-PLAN.md (gap closure — POS-23/BE-CR-01 legacy close-path bypass)
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 59
-  completed_plans: 55
+  total_plans: 60
+  completed_plans: 56
   percent: 53
 ---
 
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — 10/10 PLANS COMPLETE (pending phase-level verification)
-Plans: 10 plans across 3 waves — 10/10 complete (07.3-01 done: PaymentStatus derivation,
+Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
+Plans: 10 plans across 3 waves + 1 gap-closure plan — 11/11 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
 PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
@@ -67,9 +67,20 @@ Dialog), slim kds-ticket-card.tsx (order#/table/age/item-names only), useUpdateI
 wired to 07.3-05's item-status endpoint, single shared useKdsClock replacing per-card
 setInterval, subtle escalation-threshold aging (left border + timer chip, no
 animate-bounce/bg-red-950), Wave-0 E2E kds-stations.spec.ts — ran live twice, both PASS,
-KDS-04/KDS-05 both complete)
-Status: Phase 07.3 — 10/10 plans complete, ready for phase-level verification
-Last activity: 2026-07-12 — Completed 07.3-10-PLAN.md
+KDS-04/KDS-05 both complete); 07.3-11 (gap-closure) done: closed the sole BLOCKER gap
+(BE-CR-01/POS-23/SC4) from 07.3-VERIFICATION.md — retired legacy
+POST /orders/{id}/close to 410 Gone, deleted OrderService.closeOrder (the tender-sum-only
+performClose bypass that never checked derivedStatus==SERVED), leaving maybeCloseOrder
+as the ONLY code path that can transition an order to CLOSED; migrated all 8 IT-fixture
+callers (AssignTableIT/OrderSummaryDtoIT/TableOrderLookupIT/VoidRefundOpaIT/
+OrderRevisionIT/PeriodLockCloseIT) onto a new shared PosTestBase.closeViaServeAndPay
+helper that drives closure through the real serve+pay seam; deleted
+OrderCloseIdempotencyIT (subject retired) with its single-publish coverage preserved
+via a new SettlementSemanticsIT backstop test; deleted orphaned frontend PaymentPanel
+component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
+frontend tsc clean. Phase 07.3 now 11/11 plans complete.
+Status: Executing Phase 07.3 — all plans complete, ready for phase re-verification
+Last activity: 2026-07-13 — Completed 07.3-11-PLAN.md (gap closure)
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -134,6 +145,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P08 | 20min | 2 tasks | 9 files |
 | Phase 07.3 P09 | 65min | 3 tasks | 6 files |
 | Phase 07.3 P10 | 23min | 4 tasks | 21 files |
+| Phase 07.3 P11 | 90min | 4 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -295,6 +307,8 @@ Recent decisions affecting current work:
 - [Phase 07.3-09]: till-session-bar.tsx panels replace the trigger row in place within the same session-scoped bar (still visible above all 3 POS tabs) rather than a portal/overlay panel.
 - [Phase ?]: Deleted kds-board.tsx (superseded by station-picker/station-board/kds-item-column); moved sortKdsTickets into station-board.tsx — 07.3-10: kitchen/page.tsx became a station picker so the old multi-station KdsBoard had zero callers left
 - [Phase ?]: kds-ticket-detail.tsx extended with optional canUpdate prop for per-item transition controls — 07.3-10 Task 3: avoids duplicating revision-grouping logic in kds-station-detail.tsx
+- [Phase ?]: [07.3-11]: D-08 (locked by user) - DEPRECATE and REMOVE the legacy closeOrder tender-sum-only close bypass rather than gate/fix it in place; retired POST /orders/{id}/close to 410 Gone, deleted the service method, migrated 8 IT-fixture callers to a shared closeViaServeAndPay helper, deleted orphaned frontend PaymentPanel/useCloseOrder.
+- [Phase ?]: [07.3-11]: PosTestBase.closeViaServeAndPay always re-fetches totalPaisa from the DB immediately before recordPayment (never trusts the caller-supplied OrderDto param) -- caught a real stale-order bug where OrderSummaryDtoIT's order variable was captured before addItem.
 
 ### Pending Todos
 
@@ -327,6 +341,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T16:31:04.934Z
+Last session: 2026-07-12T19:07:59.055Z
 Stopped at: Completed 07.3-10-PLAN.md
 Resume file: None
