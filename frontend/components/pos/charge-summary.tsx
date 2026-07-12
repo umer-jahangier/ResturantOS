@@ -273,6 +273,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
             paisa={remainingPaisa}
             bold
             valueClassName={remainingPaisa > 0 ? "text-destructive" : "text-success"}
+            testId="remaining-balance-value"
           />
         </section>
       </div>
@@ -319,7 +320,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           ) : (
             <>
               <div className="flex flex-col gap-2">
-                {rows.map((row) => (
+                {rows.map((row, index) => (
                   <div key={row.id} className="flex flex-wrap items-center gap-2">
                     <select
                       value={row.method}
@@ -352,6 +353,16 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                       aria-label="Reference number"
                       className="min-w-0 flex-1 rounded border bg-background px-2 py-1.5 text-sm"
                     />
+                    {index === 0 && remainingPaisa > 0 && (
+                      <button
+                        type="button"
+                        data-testid="fill-full-amount-button"
+                        onClick={() => updateRow(row.id, { amountPaisa: remainingPaisa })}
+                        className="whitespace-nowrap rounded border px-2 py-1.5 text-xs text-primary hover:bg-primary/5"
+                      >
+                        Full amount
+                      </button>
+                    )}
                     {rows.length > 1 && (
                       <button
                         type="button"
@@ -418,16 +429,20 @@ interface MoneyRowProps {
   paisa: number;
   bold?: boolean;
   valueClassName?: string;
+  /** Optional testid + raw-paisa data attribute on the value element (E2E hook — the
+   * formatted `MoneyDisplay` currency string alone isn't reliably machine-parseable). */
+  testId?: string;
 }
 
-function MoneyRow({ label, paisa, bold, valueClassName }: MoneyRowProps) {
+function MoneyRow({ label, paisa, bold, valueClassName, testId }: MoneyRowProps) {
   return (
     <div className="flex items-center justify-between text-sm">
       <span className={cn("text-muted-foreground", bold && "font-semibold text-foreground")}>{label}</span>
-      <MoneyDisplay
-        paisa={Math.abs(paisa)}
-        className={cn(bold && "font-semibold", valueClassName)}
-      />
+      {/* Outer span carries the E2E hook (testid + raw paisa) — MoneyDisplay itself
+          only ever renders the formatted currency string, not a machine-parseable one. */}
+      <span data-testid={testId} data-paisa={Math.abs(paisa)}>
+        <MoneyDisplay paisa={Math.abs(paisa)} className={cn(bold && "font-semibold", valueClassName)} />
+      </span>
     </div>
   );
 }
