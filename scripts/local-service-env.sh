@@ -67,4 +67,12 @@ export PLATFORM_ADMIN_URI=http://127.0.0.1:8096
 export CONFIG_URI=http://127.0.0.1:8888
 export FAIL_OPEN_ON_PLATFORM_DOWN=true
 
+# Host-run mode: every service is on this machine, so register with Eureka on loopback.
+# The services default to prefer-ip-address, which advertises the LAN IP (e.g. 192.168.x.x).
+# That address changes with the network and is blocked by the macOS firewall for freshly-started
+# java processes, so the gateway's `lb://` lookups resolve to an unreachable host and every
+# proxied call fails with 503 even though the service answers fine on 127.0.0.1.
+export EUREKA_INSTANCE_IP_ADDRESS=127.0.0.1
+export EUREKA_INSTANCE_HOSTNAME=127.0.0.1
+
 set +a

@@ -12,7 +12,10 @@ import io.restaurantos.shared.event.OutboxRelay;
 import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.feature.FeatureFlagAspect;
 import io.restaurantos.shared.feature.FeatureFlagService;
+import io.restaurantos.shared.feature.PlatformAdminFeatureResolver;
 import io.restaurantos.shared.feature.RedisFeatureFlagService;
+import io.restaurantos.shared.feature.TenantFeatureResolver;
+import org.springframework.beans.factory.ObjectProvider;
 import io.restaurantos.shared.idempotency.DefaultIdempotencyService;
 import io.restaurantos.shared.idempotency.IdempotencyKeyRepository;
 import io.restaurantos.shared.idempotency.IdempotencyService;
@@ -96,11 +99,24 @@ public class SharedAutoConfiguration implements WebMvcConfigurer {
 
     // ── Feature flags ────────────────────────────────────────────────────────
 
+    /**
+     * Source of truth for tenant feature flags. Only registered when the service knows where
+     * platform-admin lives; without it {@link RedisFeatureFlagService} falls back to fail-closed.
+     */
+    @Bean
+    @ConditionalOnProperty("restaurantos.platform-admin.uri")
+    public TenantFeatureResolver tenantFeatureResolver(
+            @Value("${restaurantos.platform-admin.uri}") String platformAdminUri,
+            @Value("${restaurantos.internal.secret:dev-internal-secret}") String internalSecret) {
+        return new PlatformAdminFeatureResolver(platformAdminUri, internalSecret);
+    }
+
     @Bean
     public FeatureFlagService featureFlagService(
             StringRedisTemplate redis,
-            @Value("${restaurantos.feature-flags.cache-ttl-seconds:300}") long ttl) {
-        return new RedisFeatureFlagService(redis, ttl);
+            @Value("${restaurantos.feature-flags.cache-ttl-seconds:300}") long ttl,
+            ObjectProvider<TenantFeatureResolver> resolver) {
+        return new RedisFeatureFlagService(redis, ttl, resolver.getIfAvailable());
     }
 
     @Bean

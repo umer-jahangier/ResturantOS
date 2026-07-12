@@ -65,7 +65,8 @@ $env:FINANCE_DB_USER = "finance_user"
 $env:FINANCE_DB_PASSWORD = $env:FINANCE_DB_PASSWORD
 $env:EUREKA_URI = "http://127.0.0.1:8761/eureka/"
 $env:JWKS_URI = "http://127.0.0.1:8081/.well-known/jwks.json"
-$env:PLATFORM_ADMIN_URI = "http://127.0.0.1:8083"
+# platform-admin-service is on 8096 (8083 is authorization-service).
+$env:PLATFORM_ADMIN_URI = "http://127.0.0.1:8096"
 $env:CONFIG_URI = "http://127.0.0.1:8888"
 $env:FAIL_OPEN_ON_PLATFORM_DOWN = "true"
 

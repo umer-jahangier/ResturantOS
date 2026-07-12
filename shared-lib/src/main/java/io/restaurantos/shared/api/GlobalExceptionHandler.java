@@ -2,6 +2,8 @@ package io.restaurantos.shared.api;
 
 import io.restaurantos.shared.exception.*;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private String traceId() { String t = MDC.get("traceId"); return t != null ? t : "unknown"; }
 
@@ -74,7 +78,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex) {
+        // The response deliberately says nothing useful (it is client-facing), so the stack trace
+        // MUST be logged here — otherwise an unexpected 500 leaves no trace anywhere and is
+        // undiagnosable. Correlate with the traceId returned to the caller.
+        String traceId = traceId();
+        log.error("[{}] Unhandled exception: {}", traceId, ex.toString(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiError.of("INTERNAL_ERROR", "An unexpected error occurred", traceId()));
+            .body(ApiError.of("INTERNAL_ERROR", "An unexpected error occurred", traceId));
     }
 }

@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -54,7 +55,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>{@code tenant:status:{tid}=ACTIVE} + {@code tenant_features:{tid}:FEATURE_HR=false}
  *       on {@code /api/v1/hr/**} → 403 FEATURE_DISABLED with {@code X-Upgrade-CTA-URL} header.</li>
  *   <li>Same but FEATURE_HR=true → forwarded to upstream.</li>
- *   <li>{@code nlq_quota:{tid}:monthly_count} over limit on {@code /api/v1/nlq/**} → 403 QUOTA_EXCEEDED.</li>
+ *   <li>{@code nlq_quota:{tid}:monthly_count} over limit on {@code /api/v1/nlq/**} → 429 QUOTA_EXCEEDED.</li>
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -208,10 +209,10 @@ class FeatureFlagFilterIT {
         assertThat(mockUpstream.getRequestCount()).isEqualTo(1);
     }
 
-    // ── Test 4: NLQ quota exceeded → 403 QUOTA_EXCEEDED ─────────────────────────────────
+    // ── Test 4: NLQ quota exceeded → 429 QUOTA_EXCEEDED ─────────────────────────────────
 
     @Test
-    void nlqQuotaExceeded_returns403() {
+    void nlqQuotaExceeded_returns429() {
         redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
         redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
         // Set count above the 5000 default limit
@@ -222,7 +223,10 @@ class FeatureFlagFilterIT {
                 .uri("/api/v1/nlq/query")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
                 .exchange()
-                .expectStatus().isForbidden()
+                // Over-quota is 429 TOO_MANY_REQUESTS, not 403 — 403 is reserved for
+                // FEATURE_DISABLED. The filter has always returned 429 here; this
+                // assertion previously expected 403 and failed.
+                .expectStatus().isEqualTo(HttpStatus.TOO_MANY_REQUESTS)
                 .expectBody(String.class)
                 .value(body -> assertThat(body).contains("QUOTA_EXCEEDED"));
 

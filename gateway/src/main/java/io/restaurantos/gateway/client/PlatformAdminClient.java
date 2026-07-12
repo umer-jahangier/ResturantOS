@@ -1,11 +1,15 @@
 package io.restaurantos.gateway.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Reactive WebClient for platform-admin-service internal endpoints.
@@ -40,10 +44,13 @@ public class PlatformAdminClient {
     private boolean failOpen;
 
     public PlatformAdminClient(@Value("${restaurantos.platform-admin.uri}") String platformAdminUri,
+                               @Value("${restaurantos.internal.secret}") String internalSecret,
                                WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
                 .baseUrl(platformAdminUri)
-                .defaultHeader("X-Internal-Service", "gateway")
+                // platform-admin compares this against INTERNAL_SERVICE_SECRET — it must be the
+                // secret itself, not a service name, or every internal call is rejected.
+                .defaultHeader("X-Internal-Service", internalSecret)
                 .build();
     }
 
@@ -56,8 +63,8 @@ public class PlatformAdminClient {
         return webClient.get()
                 .uri(STATUS_PATH, tenantId)
                 .retrieve()
-                .bodyToMono(TenantStatusResponse.class)
-                .map(TenantStatusResponse::status)
+                .bodyToMono(StatusEnvelope.class)
+                .map(env -> env.data().status())
                 .onErrorResume(ex -> {
                     if (failOpen) {
                         return Mono.just("ACTIVE");
@@ -67,22 +74,28 @@ public class PlatformAdminClient {
     }
 
     /**
-     * Fetches the list of enabled feature codes for a tenant from platform-admin.
+     * Fetches the enabled feature codes for a tenant from platform-admin.
      *
-     * @return Mono emitting a comma-separated list of enabled FEATURE_* codes
-     *         (e.g. "FEATURE_HR,FEATURE_CRM"), or empty string if none
+     * <p>Errors are NOT swallowed here: the caller must be able to tell "platform-admin said this
+     * tenant has no features" apart from "we could not reach platform-admin". Conflating the two
+     * is what turns a transient outage into a hard 403 FEATURE_DISABLED.
+     *
+     * @return Mono emitting the set of enabled FEATURE_* codes (possibly empty)
      */
-    public Mono<String> getFeaturesCsv(UUID tenantId) {
+    public Mono<Set<String>> getEnabledFeatures(UUID tenantId) {
         return webClient.get()
                 .uri(FEATURES_PATH, tenantId)
                 .retrieve()
-                .bodyToMono(TenantFeaturesResponse.class)
-                .map(r -> String.join(",", r.enabledFeatures()))
-                .onErrorResume(ex -> {
-                    if (failOpen) {
-                        return Mono.just("");
+                .bodyToMono(FeaturesEnvelope.class)
+                .map(env -> {
+                    Map<String, Boolean> features = env.data().features();
+                    if (features == null) {
+                        return Set.<String>of();
                     }
-                    return Mono.error(ex);
+                    return features.entrySet().stream()
+                            .filter(Map.Entry::getValue)
+                            .map(Map.Entry::getKey)
+                            .collect(Collectors.toUnmodifiableSet());
                 });
     }
 
@@ -107,10 +120,22 @@ public class PlatformAdminClient {
     }
 
     // ── Internal response DTOs ───────────────────────────────────────────────
+    // platform-admin wraps every response in the shared ApiResponse envelope
+    // ({"data":{...},"meta":null,"warnings":[]}), so each DTO models `data` explicitly.
+    // Deserialising the payload directly (without the envelope) yields all-null fields.
 
-    record TenantStatusResponse(String status) {}
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record StatusEnvelope(StatusData data) {}
 
-    record TenantFeaturesResponse(java.util.List<String> enabledFeatures) {}
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record StatusData(String status, String tier) {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record FeaturesEnvelope(FeaturesData data) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record FeaturesData(Map<String, Boolean> features) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     record TenantSlugResponse(String tenantId) {}
 }

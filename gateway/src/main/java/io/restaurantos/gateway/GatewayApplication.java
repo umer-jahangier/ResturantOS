@@ -19,7 +19,8 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 @SpringBootApplication(exclude = {
         org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration.class,
         org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration.class,
-        io.restaurantos.shared.config.SharedAutoConfiguration.class
+        io.restaurantos.shared.config.SharedAutoConfiguration.class,
+        io.restaurantos.shared.config.TenantDataSourceAutoConfiguration.class
 })
 @EnableDiscoveryClient
 public class GatewayApplication {

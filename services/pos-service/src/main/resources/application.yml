@@ -65,5 +65,9 @@ management:
 restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  # Source of truth for @RequiresFeature checks — shared-lib resolves a feature-flag cache miss
+  # from platform-admin (which owns tenant_features). Without it every gated endpoint 403s.
+  platform-admin:
+    uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8096}
   jwks:
     uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
