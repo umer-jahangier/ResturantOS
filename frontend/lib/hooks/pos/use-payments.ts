@@ -1,12 +1,19 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PosRepository } from "@/lib/repositories/pos.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { ApiError } from "@/lib/api-client/errors";
-import type { CloseOrderPayload, VoidOrderPayload, RefundOrderPayload, Order } from "@/lib/models/pos.model";
+import type {
+  CloseOrderPayload,
+  VoidOrderPayload,
+  RefundOrderPayload,
+  RecordPaymentPayload,
+  Order,
+  OrderPayment,
+} from "@/lib/models/pos.model";
 
 const OFFLINE_ERROR =
   "This action requires a connection. Period lock, approvals and payments are processed online.";
@@ -16,6 +23,44 @@ const OFFLINE_ERROR =
 // PaymentPanel/VoidRefundDialog branch on `.status`/`.code` via TanStack's mutation
 // type inference without importing the api-client class themselves (mirrors the
 // existing use-login.ts/use-switch-branch.ts pattern, 04-02-C).
+
+/** Payments-history read (POS-22, Charge page). Not offline-critical — server-authoritative. */
+export function useOrderPayments(orderId: string) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery<OrderPayment[]>({
+    queryKey: queryKeys.pos.orderPayments(branchId, orderId),
+    queryFn: () => PosRepository.getPayments(orderId),
+    enabled: isAuthenticated && !!branchId && !!orderId,
+  });
+}
+
+/**
+ * Records a single tender against the order (POS-23) — persists without closing; the
+ * backend's `maybeCloseOrder` seam closes it only when this payment completes the order
+ * AND it is already Served. Invalidates the order (status may flip to CLOSED) and the
+ * payments-history list (POS-22) so the Charge page's amount-paid/remaining/chip and
+ * history rows update immediately without a manual refresh.
+ */
+export function useRecordPayment(orderId: string) {
+  const { isOnline } = useOnlineStatus();
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<number, ApiError, RecordPaymentPayload>({
+    // See the networkMode comment on useCloseOrder below — same fix, same reason.
+    networkMode: "always",
+    mutationFn: (payload) => {
+      if (!isOnline) throw new Error(OFFLINE_ERROR);
+      return PosRepository.recordPayment(orderId, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.orderPayments(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+    },
+  });
+}
 
 export function useCloseOrder(orderId: string) {
   const { isOnline } = useOnlineStatus();

@@ -190,3 +190,22 @@ export type ApiOrderPayment = z.infer<typeof apiOrderPaymentSchema>;
 export const apiCloseOrderSchema = z.object({
   payments: z.array(apiOrderPaymentSchema),
 });
+
+// GET /orders/{id}/payments history row (backend OrderPaymentDto, POS-22/23). Distinct
+// from `apiOrderPaymentSchema` above (that one is the OUTGOING closeOrder request-line
+// shape with no id/recordedAt) — this is the persisted, INCOMING read model.
+export const apiOrderPaymentRecordSchema = z.object({
+  id: z.string().uuid(),
+  method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
+  amountPaisa: z.number().int().nonnegative(),
+  referenceNo: z.string().nullable().optional(),
+  recordedAt: z.string(),
+});
+
+export type ApiOrderPaymentRecord = z.infer<typeof apiOrderPaymentRecordSchema>;
+
+// POST /orders/{id}/payments (recordPayment) response body: the running total paid
+// paisa for the order (backend PaymentController.recordPayment returns a bare Long via
+// ApiResponse<Long>, not an OrderDto — the frontend refetches the order separately to
+// pick up any settlement-status change from the maybeCloseOrder seam).
+export const apiRecordPaymentResultSchema = z.number().int().nonnegative();

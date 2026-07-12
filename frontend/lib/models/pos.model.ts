@@ -249,3 +249,49 @@ export interface RefundOrderPayload {
   reason: string;
   scope: "FULL" | "PARTIAL";
 }
+
+// ── Payment status / history (POS-22/23, 07.3-01/07.3-07) ────────────────────────
+
+/** Derived (never client-set) payment status — mirrors backend `PaymentStatus` enum. */
+export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "REFUNDED";
+
+/** A single persisted payment row (GET /orders/{id}/payments history read model). */
+export interface OrderPayment {
+  id: string;
+  method: PaymentMethod;
+  amountPaisa: number;
+  referenceNo: string | null;
+  recordedAt: string;
+}
+
+/** POST /orders/{id}/payments request body — records ONE tender at a time. */
+export interface RecordPaymentPayload {
+  method: PaymentMethod;
+  amountPaisa: number;
+  referenceNo?: string | null;
+}
+
+/**
+ * Pure client-side mirror of backend `PaymentStatusDerivationService.derive()` (07.3-01).
+ * `GET /orders/{id}` (OrderDto) does not carry a `paymentStatus` field — only the Order
+ * Management list row (OrderSummaryDto) does — so the Charge page (07.3-07) derives it
+ * itself from the payment-history sum vs `order.totalPaisa`, exactly matching the
+ * server's own derivation order: REFUNDED settlement status wins over the sum; then
+ * paid<=0 -> UNPAID; paid<total -> PARTIALLY_PAID; otherwise PAID (overpay clamps).
+ */
+export function derivePaymentStatus(
+  paidPaisa: number,
+  totalPaisa: number,
+  settlementStatus: OrderStatus,
+): PaymentStatus {
+  if (settlementStatus === "REFUNDED") {
+    return "REFUNDED";
+  }
+  if (paidPaisa <= 0) {
+    return "UNPAID";
+  }
+  if (paidPaisa < totalPaisa) {
+    return "PARTIALLY_PAID";
+  }
+  return "PAID";
+}

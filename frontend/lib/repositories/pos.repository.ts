@@ -9,6 +9,8 @@ import {
   apiTableDetailSchema,
   apiUpdateInstructionsSchema,
   apiTillSessionSchema,
+  apiOrderPaymentRecordSchema,
+  apiRecordPaymentResultSchema,
 } from "@/lib/api-client/schemas/pos.schema";
 import {
   adaptMenuItem,
@@ -18,6 +20,7 @@ import {
   adaptOrderSummary,
   adaptTableDetail,
   adaptTillSession,
+  adaptOrderPayment,
 } from "@/lib/adapters/pos.adapter";
 import type {
   MenuItem,
@@ -25,6 +28,7 @@ import type {
   DiningTable,
   Order,
   OrderSummary,
+  OrderPayment,
   TableDetail,
   TillSession,
   CreateOrderPayload,
@@ -36,6 +40,7 @@ import type {
   CloseOrderPayload,
   VoidOrderPayload,
   RefundOrderPayload,
+  RecordPaymentPayload,
 } from "@/lib/models/pos.model";
 
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
@@ -168,6 +173,28 @@ export const PosRepository = {
       { headers: { "Idempotency-Key": idempotencyKey } }
     );
     return adaptOrder(apiOrderSchema.parse(resp.data.data));
+  },
+
+  /**
+   * Payments-history read (POS-22, 07.3-01 `GET /orders/{id}/payments`). Tenant-scoped
+   * server-side — no `branchId` param on this endpoint (unlike `getOrder`/`getActiveOrderForTable`,
+   * which the backend controller requires it for).
+   */
+  async getPayments(orderId: string): Promise<OrderPayment[]> {
+    const raw = await get<unknown[]>(`/api/v1/pos/orders/${orderId}/payments`);
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptOrderPayment(apiOrderPaymentRecordSchema.parse(r)));
+  },
+
+  /**
+   * Records ONE tender (POS-23 `POST /orders/{id}/payments`) — persists without closing
+   * the order; `maybeCloseOrder` (backend seam) closes it only if this payment completes
+   * the order AND it is already fully Served. Returns the new running total paid paisa
+   * (backend returns a bare `Long`, not an `OrderDto` — callers refetch the order
+   * separately via `useOrder`/`useOrderPayments` invalidation to see any status change).
+   */
+  async recordPayment(orderId: string, payload: RecordPaymentPayload): Promise<number> {
+    const raw = await post<RecordPaymentPayload, unknown>(`/api/v1/pos/orders/${orderId}/payments`, payload);
+    return apiRecordPaymentResultSchema.parse(raw);
   },
 
   async voidOrder(orderId: string, payload: VoidOrderPayload, idempotencyKey: string): Promise<Order> {

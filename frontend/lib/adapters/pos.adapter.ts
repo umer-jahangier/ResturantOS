@@ -8,6 +8,7 @@ import type {
   ApiOrder,
   ApiOrderItem,
   ApiOrderSummary,
+  ApiOrderPaymentRecord,
   ApiTableDetail,
   ApiTillSession,
 } from "@/lib/api-client/schemas/pos.schema";
@@ -19,6 +20,7 @@ import type {
   OrderItem,
   OrderItemModifier,
   OrderSummary,
+  OrderPayment,
   TableDetail,
   TillSession,
 } from "@/lib/models/pos.model";
@@ -151,6 +153,16 @@ export function adaptTableDetail(raw: ApiTableDetail): TableDetail {
     discountPaisa: raw.discountPaisa,
     taxPaisa: raw.taxPaisa,
     totalPaisa: raw.totalPaisa,
+  };
+}
+
+export function adaptOrderPayment(raw: ApiOrderPaymentRecord): OrderPayment {
+  return {
+    id: raw.id,
+    method: raw.method,
+    amountPaisa: raw.amountPaisa,
+    referenceNo: raw.referenceNo ?? null,
+    recordedAt: raw.recordedAt,
   };
 }
 
