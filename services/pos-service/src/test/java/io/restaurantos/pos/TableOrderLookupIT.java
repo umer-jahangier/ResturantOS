@@ -12,7 +12,7 @@ import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.service.OrderService;
-import io.restaurantos.pos.service.SplitTenderCalculator;
+import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.TableService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaDecision;
@@ -49,6 +49,7 @@ import static org.mockito.Mockito.when;
 class TableOrderLookupIT extends PosTestBase {
 
     @Autowired OrderService orderService;
+    @Autowired PaymentService paymentService;
     @Autowired TableService tableService;
     @Autowired OrderRepository orderRepository;
     @Autowired DiningTableRepository tableRepository;
@@ -137,8 +138,7 @@ class TableOrderLookupIT extends PosTestBase {
     void afterClose_activeOrder_isEmpty_andTableIsAvailable() {
         OrderDto order = createOpenOrderOnTable();
 
-        var payments = List.of(new SplitTenderCalculator.PaymentEntry("CASH", order.totalPaisa(), null));
-        orderService.closeOrder(order.id(), new CloseOrderRequest(payments), UUID.randomUUID().toString());
+        closeViaServeAndPay(orderService, paymentService, order, branchId);
 
         TableDetailDto detail = tableService.getActiveOrderForTable(tableId, branchId);
 

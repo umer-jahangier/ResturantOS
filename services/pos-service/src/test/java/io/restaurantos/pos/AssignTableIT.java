@@ -6,14 +6,13 @@ import io.restaurantos.pos.domain.model.DiningTable;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
 import io.restaurantos.pos.dto.AddOrderItemRequest;
-import io.restaurantos.pos.dto.CloseOrderRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.repository.DiningTableRepository;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.OrderService;
-import io.restaurantos.pos.service.SplitTenderCalculator;
+import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.exception.StateInvalidException;
@@ -40,6 +39,7 @@ import static org.mockito.Mockito.when;
 class AssignTableIT extends PosTestBase {
 
     @Autowired OrderService orderService;
+    @Autowired PaymentService paymentService;
     @Autowired OutboxRepository outboxRepository;
     @Autowired MenuItemRepository menuItemRepository;
     @Autowired MenuCategoryRepository menuCategoryRepository;
@@ -137,8 +137,7 @@ class AssignTableIT extends PosTestBase {
         UUID tableId = seedTable(TableStatus.AVAILABLE);
         OrderDto order = createTablelessOpenOrder();
 
-        var payments = List.of(new SplitTenderCalculator.PaymentEntry("CASH", order.totalPaisa(), null));
-        OrderDto closed = orderService.closeOrder(order.id(), new CloseOrderRequest(payments), UUID.randomUUID().toString());
+        OrderDto closed = closeViaServeAndPay(orderService, paymentService, order, branchId);
         assertThat(closed.status()).isEqualTo(OrderStatus.CLOSED);
 
         assertThatThrownBy(() -> orderService.assignTable(order.id(), tableId))
