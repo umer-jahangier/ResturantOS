@@ -93,10 +93,43 @@ public class KitchenItemStatusConsumer {
 
     @Transactional
     public void applyItemStatus(UUID orderId, UUID orderItemId, String newStatus) {
-        // TDD RED stub — intentionally a no-op so KitchenItemStatusSyncIT fails first.
-        // Replaced with the real mapping/eligibility/derivation logic in the GREEN commit.
-        log.warn("KitchenItemStatusConsumer: applyItemStatus not yet implemented — skipping order={} item={} status={}",
-                orderId, orderItemId, newStatus);
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) {
+            log.warn("KitchenItemStatusConsumer: order {} not found — skipping", orderId);
+            return;
+        }
+
+        OrderItemStatus mapped = STATUS_MAP.get(newStatus);
+        if (mapped == null) {
+            log.warn("KitchenItemStatusConsumer: unknown kitchen status {} — skipping", newStatus);
+            return;
+        }
+
+        OrderItem item = order.getItems().stream()
+                .filter(i -> orderItemId.equals(i.getId()))
+                .findFirst()
+                .orElse(null);
+        if (item == null) {
+            log.warn("KitchenItemStatusConsumer: orderItemId {} not found on order {} — skipping",
+                    orderItemId, orderId);
+            return;
+        }
+
+        OrderItemStatus current = item.getItemStatus();
+        if (current == OrderItemStatus.SERVED || current == OrderItemStatus.CANCELLED
+                || mapped.ordinal() <= current.ordinal()) {
+            log.debug("KitchenItemStatusConsumer: item {} current={} incoming={} — not eligible, idempotent skip",
+                    orderItemId, current, mapped);
+            return;
+        }
+
+        item.setItemStatus(mapped);
+        order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
+        orderRepository.save(order);
+        log.info("KitchenItemStatusConsumer: order {} item {} {} -> {}, derivedStatus={}",
+                orderId, orderItemId, current, mapped, order.getDerivedStatus());
     }
 
     @SuppressWarnings("unchecked")
