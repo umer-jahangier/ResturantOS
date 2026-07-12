@@ -100,6 +100,38 @@ test_view_coa_cross_tenant_deny if {
     }
 }
 
+test_manage_coa_allow if {
+    finance.allow with input as {
+        "action": "manage_coa",
+        "user": base_user(["finance.coa.manage"], 0),
+        "resource": base_resource({}),
+    }
+}
+
+test_manage_coa_missing_permission_deny if {
+    not finance.allow with input as {
+        "action": "manage_coa",
+        "user": base_user(["finance.coa.view"], 0),
+        "resource": base_resource({}),
+    }
+}
+
+test_view_journal_allow if {
+    finance.allow with input as {
+        "action": "view_journal",
+        "user": base_user(["finance.journal.view"], 0),
+        "resource": base_resource({}),
+    }
+}
+
+test_view_journal_cross_branch_deny if {
+    not finance.allow with input as {
+        "action": "view_journal",
+        "user": base_user(["finance.journal.view"], 0),
+        "resource": base_resource({"branch_id": other_branch}),
+    }
+}
+
 test_post_journal_allow if {
     finance.allow with input as {
         "action": "post_journal",
