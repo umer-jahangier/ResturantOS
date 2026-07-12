@@ -12,7 +12,9 @@ export const KdsRepository = {
   async getTickets(
     branchId: string,
     stationCode?: string,
-    status = "PENDING,COOKING",
+    // READY included so ready-but-not-yet-served tickets stay on the board (they leave only
+    // when the order closes → SERVED). SERVED/CANCELLED are excluded server + client side.
+    status = "PENDING,COOKING,READY",
   ): Promise<KdsTicket[]> {
     const params: Record<string, string> = { branchId, status };
     if (stationCode) params.stationCode = stationCode;

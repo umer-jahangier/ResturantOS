@@ -37,6 +37,29 @@ export function useActiveTill() {
   });
 }
 
+/**
+ * A till session's reconciliation (orders within it + live expected cash). Polled so the
+ * active-till bar shows accumulating cash as orders are charged (fixes "charged but till shows
+ * 0"). Also backs the admin till-review drill-down.
+ */
+export function useTillReconciliation(tillId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["pos", "till-reconciliation", tillId ?? ""],
+    queryFn: () => PosRepository.getTillReconciliation(tillId!),
+    enabled: !!tillId,
+    refetchInterval: 10_000,
+  });
+}
+
+/** Branch-wide till history for the admin till-review table (newest first). */
+export function useBranchTills(branchId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["pos", "branch-tills", branchId ?? ""],
+    queryFn: () => PosRepository.listBranchTills(branchId!),
+    enabled: !!branchId,
+  });
+}
+
 // Typed with the live `ApiError` (Layer-1 type import is allowed here — Layer-3
 // hooks — but NOT in components/**, FE-08 boundary) so TillSessionBar can branch on
 // `.status`/`.message` the same way PaymentPanel/VoidRefundDialog already do for

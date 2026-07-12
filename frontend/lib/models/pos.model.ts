@@ -204,6 +204,25 @@ export interface TillSession {
   status: TillStatus;
 }
 
+export interface TillOrderLine {
+  orderId: string;
+  orderNo: string | null;
+  status: OrderStatus;
+  totalPaisa: number;
+  paidPaisa: number;
+}
+
+/** Admin till-review payload: a session + every order within it + collected cash. */
+export interface TillReconciliation {
+  session: TillSession;
+  orderCount: number;
+  cashCollectedPaisa: number;
+  nonCashCollectedPaisa: number;
+  /** Running expected cash (openingFloat + cash collected) — non-null even while OPEN. */
+  liveExpectedCashPaisa: number;
+  orders: TillOrderLine[];
+}
+
 // ── Payment types ─────────────────────────────────────────────────────────────
 
 export type PaymentMethod = "CASH" | "CARD" | "LOYALTY_POINTS" | "BANK_TRANSFER" | "VOUCHER";

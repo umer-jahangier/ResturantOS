@@ -38,6 +38,9 @@ public class PosEventPayloads {
      * {@code tableNumber} (KDS-04) is the order's dining-table number, or {@code null} for
      * takeaway/pickup orders with no bound table; the matching kitchen-side CONSUME field
      * lands in 07.3-05 — the name MUST stay {@code tableNumber} on both sides.
+     * {@code orderType} is the OrderType enum name (DINE_IN/TAKEAWAY/DELIVERY/PICKUP) so the
+     * kitchen expo can distinguish service types — additive trailing field, name MUST match the
+     * kitchen-side consumer's {@code orderType} exactly.
      */
     public record OrderSentToKdsPayload(
             UUID orderId,
@@ -47,7 +50,8 @@ public class PosEventPayloads {
             List<KdsItemPayload> items,
             int revisionNo,
             String orderNotes,
-            String tableNumber
+            String tableNumber,
+            String orderType
     ) {}
 
     public record KdsItemPayload(
@@ -58,6 +62,18 @@ public class PosEventPayloads {
             String kdsStation,
             List<String> modifiers,
             String notes
+    ) {}
+
+    /**
+     * ORDER_ITEM_CANCELLED — a single already-fired line was cancelled on the POS. The kitchen
+     * consumes this to mark the matching KdsTicketItem (looked up by {@code orderItemId})
+     * CANCELLED so the line is struck through on the board rather than lingering.
+     */
+    public record OrderItemCancelledPayload(
+            UUID orderId,
+            UUID tenantId,
+            UUID branchId,
+            UUID orderItemId
     ) {}
 
     private PosEventPayloads() {}

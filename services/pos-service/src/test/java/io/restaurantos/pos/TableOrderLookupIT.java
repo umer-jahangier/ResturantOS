@@ -22,7 +22,6 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -164,19 +162,20 @@ class TableOrderLookupIT extends PosTestBase {
     }
 
     @Test
-    void onlyOneActiveOrderPerTable_repositoryEnforcesInvariant() {
+    void multipleActiveOrdersPerTable_readIsResilient_returnsMostRecent() {
         // Directly create two non-terminal orders bound to the SAME table (bypassing the
-        // service layer, which does not currently guard against double-booking a table — out
-        // of this plan's scope) to prove findByTableIdAndStatusNotIn FAILS LOUDLY rather than
-        // silently returning an arbitrary row when the "at most one active order per table"
-        // invariant is violated.
+        // service layer) to simulate legacy/orphaned data that violates the "at most one active
+        // order per table" invariant. The READ path must never 500 the floor view: it returns
+        // the most-recent active order instead of throwing IncorrectResultSizeDataAccessException.
+        // (Duplicate prevention belongs at WRITE time — order create / table assignment.)
         Order first = newDraftOrderOnTable();
         Order second = newDraftOrderOnTable();
         orderRepository.save(first);
         orderRepository.save(second);
 
-        assertThatThrownBy(() -> tableService.getActiveOrderForTable(tableId, branchId))
-                .isInstanceOf(IncorrectResultSizeDataAccessException.class);
+        TableDetailDto detail = tableService.getActiveOrderForTable(tableId, branchId);
+        assertThat(detail.activeOrder()).isNotNull();
+        assertThat(detail.activeOrder().id()).isIn(first.getId(), second.getId());
     }
 
     private Order newDraftOrderOnTable() {

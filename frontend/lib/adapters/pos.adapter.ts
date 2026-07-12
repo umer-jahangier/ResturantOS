@@ -11,6 +11,7 @@ import type {
   ApiOrderPaymentRecord,
   ApiTableDetail,
   ApiTillSession,
+  ApiTillReconciliation,
 } from "@/lib/api-client/schemas/pos.schema";
 import type {
   MenuItem,
@@ -19,10 +20,12 @@ import type {
   Order,
   OrderItem,
   OrderItemModifier,
+  OrderStatus,
   OrderSummary,
   OrderPayment,
   TableDetail,
   TillSession,
+  TillReconciliation,
 } from "@/lib/models/pos.model";
 
 export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
@@ -183,5 +186,22 @@ export function adaptTillSession(raw: ApiTillSession): TillSession {
     openedAt: raw.openedAt ?? null,
     closedAt: raw.closedAt ?? null,
     status: raw.status,
+  };
+}
+
+export function adaptTillReconciliation(raw: ApiTillReconciliation): TillReconciliation {
+  return {
+    session: adaptTillSession(raw.session),
+    orderCount: raw.orderCount,
+    cashCollectedPaisa: raw.cashCollectedPaisa,
+    nonCashCollectedPaisa: raw.nonCashCollectedPaisa,
+    liveExpectedCashPaisa: raw.liveExpectedCashPaisa,
+    orders: raw.orders.map((o) => ({
+      orderId: o.orderId,
+      orderNo: o.orderNo ?? null,
+      status: o.status as OrderStatus,
+      totalPaisa: o.totalPaisa,
+      paidPaisa: o.paidPaisa,
+    })),
   };
 }

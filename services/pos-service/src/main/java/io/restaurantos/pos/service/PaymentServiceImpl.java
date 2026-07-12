@@ -2,12 +2,14 @@ package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.PaymentMethod;
+import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.OrderPayment;
 import io.restaurantos.pos.dto.OrderPaymentDto;
 import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.repository.OrderPaymentRepository;
 import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -26,15 +28,18 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderPaymentRepository paymentRepository;
     private final TenantContext tenantContext;
     private final OrderService orderService;
+    private final TillSessionRepository tillSessionRepository;
 
     public PaymentServiceImpl(OrderRepository orderRepository,
                               OrderPaymentRepository paymentRepository,
                               TenantContext tenantContext,
-                              OrderService orderService) {
+                              OrderService orderService,
+                              TillSessionRepository tillSessionRepository) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.tenantContext = tenantContext;
         this.orderService = orderService;
+        this.tillSessionRepository = tillSessionRepository;
     }
 
     @Override
@@ -51,6 +56,20 @@ public class PaymentServiceImpl implements PaymentService {
                 || order.getStatus() == OrderStatus.REFUNDED) {
             throw new StateInvalidException(
                     "Cannot record payment for order in status: " + order.getStatus());
+        }
+
+        // Guarantee the order is linked to the paying cashier's OPEN till (POS-till reconcil).
+        // tillSessionId is otherwise only set at create-time, and only if the cashier already
+        // had an open till THEN — so an order created before opening the till (or by another
+        // path) stayed unlinked and its CASH payment was invisible to the till's expected
+        // closing (the "charged but till shows 0" bug). Backfill it here, at settlement time.
+        if (order.getTillSessionId() == null) {
+            tenantContext.getUserId()
+                    .flatMap(userId -> tillSessionRepository.findByCashierIdAndStatus(userId, TillStatus.OPEN))
+                    .ifPresent(till -> order.setTillSessionId(till.getId()));
+            if (order.getTillSessionId() != null) {
+                orderRepository.save(order);
+            }
         }
 
         OrderPayment payment = new OrderPayment();

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { PaymentStatusBadge } from "@/components/pos/payment-status-badge";
-import { useOrder, useTables } from "@/lib/hooks/pos/use-orders";
+import { useOrder, useTables, useSendToKds } from "@/lib/hooks/pos/use-orders";
 import { useOrderPayments, useRecordPayment } from "@/lib/hooks/pos/use-payments";
 import {
   getOrderDisplayStatus,
@@ -97,6 +97,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const { data: payments = [], isLoading: paymentsLoading } = useOrderPayments(orderId);
   const { data: tables = [] } = useTables();
   const recordPayment = useRecordPayment(orderId);
+  const sendToKds = useSendToKds(orderId);
 
   const [rows, setRows] = useState<TenderRow[]>([newTenderRow()]);
   const [recordError, setRecordError] = useState<string | null>(null);
@@ -151,6 +152,22 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
       }
       toast.success(toSubmit.length > 1 ? "Payments recorded" : "Payment recorded");
       setRows([newTenderRow()]);
+
+      // Charge-Now pay-then-fire (#4): if this payment fully covers the order AND the order was
+      // never sent to the kitchen (sentToKdsAt == null → the pre-send Charge Now path), fire its
+      // still-PENDING lines now that it's paid. An order that was already sent earlier (dine-in)
+      // has sentToKdsAt set, so it is NEVER re-fired here — the two flows stay fully isolated.
+      const submittedTotal = toSubmit.reduce((acc, r) => acc + r.amountPaisa, 0);
+      const willBeFullyPaid = totalPaisa > 0 && amountPaidPaisa + submittedTotal >= totalPaisa;
+      const pendingUnfired = order?.items.filter((i) => i.itemStatus === "PENDING") ?? [];
+      if (willBeFullyPaid && order && order.sentToKdsAt === null && pendingUnfired.length > 0) {
+        try {
+          await sendToKds.mutateAsync();
+          toast.success("Sent to kitchen");
+        } catch {
+          toast.error("Paid, but sending to kitchen failed — retry from Order Management.");
+        }
+      }
     } catch (err) {
       const shaped = err as { status?: number; message?: string } | undefined;
       setRecordError(getRecordPaymentErrorMessage(shaped));

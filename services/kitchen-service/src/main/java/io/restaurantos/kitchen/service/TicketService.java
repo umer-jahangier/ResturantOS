@@ -16,6 +16,12 @@ public interface TicketService {
 
     void cancelTicketsForOrder(UUID orderId);
 
+    /** Mark the KDS line for a pos OrderItem CANCELLED (ORDER_ITEM_CANCELLED consumer). */
+    void cancelTicketItem(UUID orderItemId);
+
+    /** Mark an order's active tickets SERVED once the order is closed (ORDER_CLOSED consumer). */
+    void serveTicketsForOrder(UUID orderId);
+
     /** Full ticket detail (all items, incl. revisionNo/firedAt) for the KDS "open ticket" view. */
     KdsTicketDto getTicketDetail(UUID ticketId);
 }

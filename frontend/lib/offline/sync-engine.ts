@@ -106,7 +106,13 @@ export async function replay(): Promise<ReplayResult> {
 
 // ── Progress callbacks ────────────────────────────────────────────────────────
 
-type ProgressCallback = (pending: number, lastError?: string) => void;
+/**
+ * @param pending  Ops still in the auto-retry pipeline (PENDING + IN_FLIGHT + FAILED).
+ *                 Excludes DEAD so a permanently-failing op can't inflate the pill forever.
+ * @param lastError Most recent error message (DEAD preferred, else FAILED).
+ * @param dead     Count of dead-lettered ops needing explicit Retry/Dismiss.
+ */
+type ProgressCallback = (pending: number, lastError?: string, dead?: number) => void;
 const progressCallbacks: ProgressCallback[] = [];
 
 /** Subscribe to outbox progress updates (UI badge). Returns an unsubscribe fn. */
@@ -124,14 +130,18 @@ export async function emitProgress(): Promise<void> {
     (await count("PENDING")) +
     (await count("IN_FLIGHT")) +
     (await count("FAILED"));
+  const dead = await count("DEAD");
 
-  const lastFailed = await getLastError();
-  progressCallbacks.forEach((cb) => cb(pending, lastFailed));
+  const lastError = await getLastError();
+  progressCallbacks.forEach((cb) => cb(pending, lastError, dead));
 }
 
 async function getLastError(): Promise<string | undefined> {
   const { all } = await import("./outbox");
   const ops = await all();
+  // Prefer a DEAD op's error (terminal, needs attention) over a still-retrying FAILED one.
+  const dead = ops.filter((o) => o.status === "DEAD" && o.lastError).at(-1);
+  if (dead) return dead.lastError;
   const failedOp = ops
     .filter((o) => o.status === "FAILED" && o.lastError)
     .at(-1);

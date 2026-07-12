@@ -7,6 +7,8 @@ export interface CartLine {
   menuItemId: string;
   name: string;
   unitPricePaisa: number;
+  /** Menu item's tax rate percent (e.g. 16 = 16%) — drives the pre-send tax estimate. */
+  taxRatePct: number;
   quantity: number;
   modifierIds: string[];
   notes: string | null;
@@ -16,6 +18,7 @@ export interface AddLineInput {
   menuItemId: string;
   name: string;
   unitPricePaisa: number;
+  taxRatePct?: number;
   modifierIds?: string[];
   notes?: string | null;
   quantity?: number;
@@ -55,6 +58,7 @@ export function addLine(cart: CartLine[], input: AddLineInput): CartLine[] {
         menuItemId: input.menuItemId,
         name: input.name,
         unitPricePaisa: input.unitPricePaisa,
+        taxRatePct: input.taxRatePct ?? 0,
         quantity,
         modifierIds,
         notes,
@@ -85,7 +89,20 @@ export function clearCart(): CartLine[] {
   return [];
 }
 
-/** Cart total = sum(line quantity * unit price). */
+/** Cart subtotal = sum(line quantity * unit price). */
 export function cartTotalPaisa(lines: CartLine[]): number {
   return lines.reduce((sum, line) => sum + line.unitPricePaisa * line.quantity, 0);
+}
+
+/**
+ * Estimated tax for the pre-send cart — mirrors the server's per-line calculation
+ * (OrderPricingCalculator.perLineTax): round(lineNet * taxRatePct/100) HALF_UP to paisa,
+ * summed across lines. Labelled "estimated" in the UI: there are no discounts pre-send,
+ * so lineNet == line subtotal; the server recomputes authoritatively once persisted.
+ */
+export function cartTaxPaisa(lines: CartLine[]): number {
+  return lines.reduce((sum, line) => {
+    const lineNet = line.unitPricePaisa * line.quantity;
+    return sum + Math.round((lineNet * line.taxRatePct) / 100);
+  }, 0);
 }

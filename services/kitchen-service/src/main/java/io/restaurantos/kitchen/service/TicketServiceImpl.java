@@ -124,6 +124,7 @@ public class TicketServiceImpl implements TicketService {
             case ACCEPTED -> TicketItemStatus.PREPARING;
             case PREPARING, COOKING -> TicketItemStatus.READY;
             case READY -> throw new StateInvalidException("Item already READY");
+            case CANCELLED -> throw new StateInvalidException("Cannot bump a cancelled item");
         };
 
         return markItemStatus(ticketId, itemId, next);
@@ -165,6 +166,43 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public void cancelTicketItem(UUID orderItemId) {
+        ticketItemRepository.findByOrderItemId(orderItemId).ifPresentOrElse(item -> {
+            if (item.getStatus() == TicketItemStatus.CANCELLED) {
+                return; // idempotent
+            }
+            item.setStatus(TicketItemStatus.CANCELLED);
+            KdsTicket ticket = item.getTicket();
+            // A cancelled line no longer blocks the ticket — if every remaining line is ready,
+            // flip the ticket to READY now (mirrors markItemStatus' completion check).
+            if (ticketItemRepository.countByTicketIdAndStatusNotReady(ticket.getId()) == 0
+                    && ticket.getStatus() != TicketStatus.READY
+                    && ticket.getStatus() != TicketStatus.CANCELLED
+                    && ticket.getStatus() != TicketStatus.SERVED) {
+                ticket.setStatus(TicketStatus.READY);
+                ticket.setReadyAt(Instant.now());
+            }
+            KdsTicket saved = ticketRepository.save(ticket);
+            webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
+            log.info("Cancelled KDS line orderItemId={} on ticket={}", orderItemId, ticket.getId());
+        }, () -> log.debug("cancelTicketItem: no KDS line for orderItemId={} (never fired)", orderItemId));
+    }
+
+    @Override
+    public void serveTicketsForOrder(UUID orderId) {
+        List<KdsTicket> tickets = ticketRepository.findByOrderId(orderId);
+        for (KdsTicket ticket : tickets) {
+            if (ticket.getStatus() != TicketStatus.SERVED
+                    && ticket.getStatus() != TicketStatus.CANCELLED) {
+                ticket.setStatus(TicketStatus.SERVED);
+                KdsTicket saved = ticketRepository.save(ticket);
+                webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
+                log.info("Served (order closed) ticket={} for order={}", ticket.getId(), orderId);
+            }
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public KdsTicketDto getTicketDetail(UUID ticketId) {
         KdsTicket ticket = ticketRepository.findDetailById(ticketId)
@@ -200,6 +238,7 @@ public class TicketServiceImpl implements TicketService {
             case ACCEPTED -> next == TicketItemStatus.PREPARING;
             case PREPARING, COOKING -> next == TicketItemStatus.READY;
             case READY -> false;
+            case CANCELLED -> false; // terminal — no manual transitions out of cancelled
         };
         if (!valid) {
             throw new StateInvalidException(
@@ -217,7 +256,8 @@ public class TicketServiceImpl implements TicketService {
 
         return new KdsTicketDto(
                 ticket.getId(), ticket.getOrderId(), ticket.getOrderNo(),
-                ticket.getOrderNotes(), ticket.getTableNumber(), ticket.getStationCode(), ticket.getStatus(),
+                ticket.getOrderNotes(), ticket.getTableNumber(), ticket.getOrderType(),
+                ticket.getStationCode(), ticket.getStatus(),
                 ticket.isPriority(), ticket.getReceivedAt(), ticket.getStartedAt(), ticket.getReadyAt(),
                 itemDtos
         );

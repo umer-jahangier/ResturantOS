@@ -13,6 +13,7 @@ import { OrderTableDetailDrawer } from "@/components/pos/order-table-detail-draw
 import { PaymentStatusBadge } from "@/components/pos/payment-status-badge";
 import { TableSelectCombobox } from "@/components/pos/table-select-combobox";
 import { useOrderSummaries, useAssignTable } from "@/lib/hooks/pos/use-orders";
+import { useVoidOrder } from "@/lib/hooks/pos/use-payments";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { DerivedOrderStatus, OrderStatus, OrderSummary } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
@@ -238,24 +239,28 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       {
         id: "actions",
         header: "",
-        cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-2">
-            {!row.original.tableId && !TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus) && (
-              <AssignTableAction orderId={row.original.orderId} />
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                setOpenOrder({ orderId: row.original.orderId, tableName: row.original.tableName })
-              }
-              data-testid={`open-order-${row.original.orderId}`}
-              aria-label={`Open order ${row.original.orderNo ?? row.original.orderId}`}
-              className="text-xs font-medium text-primary underline"
-            >
-              Open
-            </button>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const isDraft = row.original.derivedStatus === "DRAFT";
+          return (
+            <div className="flex items-center justify-end gap-2">
+              {!row.original.tableId && !TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus) && (
+                <AssignTableAction orderId={row.original.orderId} />
+              )}
+              {isDraft && <CancelDraftAction orderId={row.original.orderId} />}
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenOrder({ orderId: row.original.orderId, tableName: row.original.tableName })
+                }
+                data-testid={`open-order-${row.original.orderId}`}
+                aria-label={`${isDraft ? "Continue" : "Open"} order ${row.original.orderNo ?? row.original.orderId}`}
+                className="text-xs font-medium text-primary underline"
+              >
+                {isDraft ? "Continue" : "Open"}
+              </button>
+            </div>
+          );
+        },
       },
     ],
     [],
@@ -424,6 +429,71 @@ function AssignTableAction({ orderId }: AssignTableActionProps) {
       className="text-xs font-medium text-primary underline disabled:cursor-not-allowed disabled:opacity-50"
     >
       Assign Table
+    </button>
+  );
+}
+
+// ── Cancel Draft row action ─────────────────────────────────────────────────────
+
+interface CancelDraftActionProps {
+  orderId: string;
+}
+
+/**
+ * Cancels a draft order (never-fired, derivedStatus DRAFT) — voids it so it leaves the
+ * active list. Two-step confirm inline (no modal) to guard against an accidental tap;
+ * `useVoidOrder`'s multi-key invalidation removes the row immediately.
+ */
+function CancelDraftAction({ orderId }: CancelDraftActionProps) {
+  const [confirming, setConfirming] = useState(false);
+  const voidOrder = useVoidOrder(orderId);
+
+  const handleCancel = async () => {
+    try {
+      await voidOrder.mutateAsync({
+        payload: { reason: "Draft cancelled" },
+        idempotencyKey: crypto.randomUUID(),
+      });
+      toast.success("Draft cancelled");
+    } catch {
+      toast.error("Failed to cancel draft. Please try again.");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  if (confirming) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => void handleCancel()}
+          disabled={voidOrder.isPending}
+          data-testid={`cancel-draft-confirm-${orderId}`}
+          className="text-xs font-medium text-destructive underline disabled:opacity-50"
+        >
+          {voidOrder.isPending ? "Cancelling…" : "Confirm"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          disabled={voidOrder.isPending}
+          className="text-xs text-muted-foreground underline"
+        >
+          Keep
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirming(true)}
+      data-testid={`cancel-draft-${orderId}`}
+      className="text-xs font-medium text-destructive underline"
+    >
+      Cancel
     </button>
   );
 }

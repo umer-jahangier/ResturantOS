@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { useOpenTill, useCloseTill } from "@/lib/hooks/pos/use-till";
+import { useOpenTill, useCloseTill, useTillReconciliation } from "@/lib/hooks/pos/use-till";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { TillSession } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
@@ -23,12 +23,27 @@ function generateKey() {
  * per the FE-08 components boundary) and VoidRefundDialog's inline
  * `text-destructive` banner styling.
  */
+// Friendly, actionable copy for the known till error codes (now that parseApiError
+// decodes Spring's ProblemDetail `title` into a stable code — previously every failure
+// fell through to a generic "Please try again", e.g. the close-till 409 the cashier
+// couldn't act on). Duck-typed (never imports ApiError) per the FE-08 components boundary.
+const TILL_ERROR_COPY: Record<string, string> = {
+  TILL_HAS_OPEN_ORDERS:
+    "This till still has open orders. Settle, serve, or void them before closing.",
+  TILL_ALREADY_OPEN: "You already have an open till on this device.",
+  TILL_NOT_FOUND: "This till session no longer exists. Refresh and try again.",
+  PERIOD_LOCKED: "The accounting period is locked. Contact a manager to reopen it.",
+};
+
 function getTillErrorMessage(
-  error: { status?: number; message?: string } | null | undefined,
+  error: { status?: number; message?: string; code?: string } | null | undefined,
   action: "open" | "close",
 ): string {
   const fallback = action === "open" ? "Failed to open till. Please try again." : "Failed to close till. Please try again.";
   if (!error) return fallback;
+  // Known server error codes get specific, actionable guidance.
+  const known = error.code ? TILL_ERROR_COPY[error.code] : undefined;
+  if (known) return known;
   if (typeof error.status !== "number") {
     // Not a server-shaped error (e.g. the offline-guard's plain Error) — its message
     // is already user-safe copy, not a raw server dump.
@@ -46,6 +61,11 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   const { branchId } = useCurrentUser();
   const openTillMutation = useOpenTill();
   const closeTillMutation = useCloseTill();
+  // Live reconciliation (orders + accumulating cash) for the OPEN till — so the bar shows the
+  // cash actually collected instead of 0 until close.
+  const { data: recon } = useTillReconciliation(
+    activeTill && activeTill.status === "OPEN" ? activeTill.id : null,
+  );
 
   const handleOpenTill = async () => {
     const paisa = Math.round(parseFloat(openingFloat || "0") * 100);
@@ -150,6 +170,16 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
           <span className="text-xs text-muted-foreground">
             Float: <MoneyDisplay paisa={activeTill.openingFloatPaisa} className="text-xs" />
           </span>
+          {recon && (
+            <>
+              <span className="text-xs text-muted-foreground" data-testid="till-live-cash">
+                Cash: <MoneyDisplay paisa={recon.liveExpectedCashPaisa} className="text-xs" />
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Orders: <span className="font-medium tabular-nums">{recon.orderCount}</span>
+              </span>
+            </>
+          )}
           {variance !== null && variance !== undefined && (
             <span
               className={cn(

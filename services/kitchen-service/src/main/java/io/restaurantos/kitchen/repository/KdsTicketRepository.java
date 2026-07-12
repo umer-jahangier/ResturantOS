@@ -28,6 +28,14 @@ public interface KdsTicketRepository extends JpaRepository<KdsTicket, UUID> {
     Page<KdsTicket> findByBranchIdAndStationCodeAndStatusIn(
             UUID branchId, String stationCode, List<TicketStatus> statuses, Pageable pageable);
 
+    // Branch-wide, station-agnostic board query (kitchen main-screen station stats). Must
+    // eager-fetch items (toDto walks them after the session closes) and be scoped to branchId +
+    // status — the previous no-station path used findAll(pageable), which ignored branchId
+    // (cross-tenant leak), ignored the status filter, and threw LazyInitializationException.
+    @EntityGraph(attributePaths = "items")
+    Page<KdsTicket> findByBranchIdAndStatusIn(
+            UUID branchId, List<TicketStatus> statuses, Pageable pageable);
+
     @Query("SELECT COUNT(t) FROM KdsTicket t WHERE t.orderId = :orderId AND t.status <> :excludedStatus")
     long countByOrderIdAndStatusNot(@Param("orderId") UUID orderId, @Param("excludedStatus") TicketStatus excludedStatus);
 

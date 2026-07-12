@@ -47,6 +47,8 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_CLOSED_TYPE = "ORDER_CLOSED";
     private static final String ORDER_VOIDED_KEY = "pos.order.voided";
     private static final String ORDER_VOIDED_TYPE = "ORDER_VOIDED";
+    private static final String ORDER_ITEM_CANCELLED_KEY = "pos.order.item_cancelled";
+    private static final String ORDER_ITEM_CANCELLED_TYPE = "ORDER_ITEM_CANCELLED";
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
     private static final String VIEW_ALL_PERMISSION = "pos.order.view.all";
 
@@ -116,6 +118,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
+        // SECURITY (branch isolation): the request-supplied branchId must never widen scope
+        // beyond the caller's verified JWT branch — otherwise a cashier scoped to branch A
+        // could create an order under sibling branch B (RLS is tenant-only and would not
+        // block it). Validated before the idempotency lookup so a cross-branch attempt is
+        // rejected outright rather than replaying an existing order.
+        requireOwnBranch(request.branchId());
+
         // Idempotent on clientOrderId
         Optional<Order> existing = orderRepository.findByClientOrderId(request.clientOrderId());
         if (existing.isPresent()) {
@@ -394,7 +403,8 @@ public class OrderServiceImpl implements OrderService {
                 kdsItems,
                 nextRevision,
                 order.getNotes(),
-                tableNumber
+                tableNumber,
+                order.getType() != null ? order.getType().name() : null
         );
         eventPublisher.publish(POS_EXCHANGE, ORDER_SENT_TO_KDS_KEY, ORDER_SENT_TO_KDS_TYPE,
                 order.getBranchId(), payload);
@@ -409,9 +419,27 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrder(UUID orderId, UUID branchId) {
+        // SECURITY (branch isolation): branchId is a request parameter (controller convention),
+        // but a client-supplied sibling branchId must not be able to read another branch's order
+        // within the same tenant — RLS is tenant-only, so this guard is the boundary.
+        requireOwnBranch(branchId);
         Order order = orderRepository.findByIdAndBranchId(orderId, branchId)
                 .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
         return orderMapper.toDto(order);
+    }
+
+    /**
+     * Defense-in-depth against a client-supplied {@code branchId} that widens scope beyond the
+     * caller's JWT branch. Mirrors {@code TableServiceImpl.requireOwnBranch} and the inline guard
+     * in {@link #listOrderSummaries} — {@code branchId} stays an explicit request parameter (the
+     * controller's existing convention) but must always equal the verified JWT branch.
+     */
+    private void requireOwnBranch(UUID branchId) {
+        UUID jwtBranchId = tenantContext.getBranchId()
+                .orElseThrow(() -> new PermissionDeniedException("Branch context required"));
+        if (!jwtBranchId.equals(branchId)) {
+            throw new PermissionDeniedException("Cannot access resources for a different branch");
+        }
     }
 
     @Override
@@ -656,11 +684,25 @@ public class OrderServiceImpl implements OrderService {
                     "Cannot cancel an already-served item: " + itemId);
         }
 
+        boolean wasFired = item.getItemStatus() != OrderItemStatus.PENDING;
         item.setItemStatus(OrderItemStatus.CANCELLED);
+        // Recompute money fields so the cancelled line stops counting toward the amount due
+        // (previously skipped — the total/payment never dropped, even across reload).
+        recomputeOrderTotals(order);
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
                 order.getStatus(), order.getDerivedStatus());
-        return orderMapper.toDto(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+
+        // If the line had already been fired to the kitchen, tell the KDS so it can mark the
+        // ticket item cancelled (struck through) instead of leaving a phantom item on the board.
+        if (wasFired) {
+            var payload = new PosEventPayloads.OrderItemCancelledPayload(
+                    saved.getId(), tenantId, saved.getBranchId(), itemId);
+            eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_CANCELLED_KEY, ORDER_ITEM_CANCELLED_TYPE,
+                    saved.getBranchId(), payload);
+        }
+        return orderMapper.toDto(saved);
     }
 
     @Override
@@ -799,6 +841,12 @@ public class OrderServiceImpl implements OrderService {
         long tax = 0L;
 
         for (OrderItem item : order.getItems()) {
+            // CANCELLED lines contribute nothing to the money owed — excluding them here is
+            // what makes a cancel actually reduce subtotal/tax/total (and therefore the
+            // amount due). Mirrors toSummaryDto's item-count exclusion.
+            if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
+                continue;
+            }
             long itemSubtotal = item.getUnitPriceSnapshot() * item.getQuantity();
             subtotal += itemSubtotal;
             lineDiscounts += item.getDiscountPaisa();

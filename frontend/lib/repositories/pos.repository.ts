@@ -10,6 +10,7 @@ import {
   apiUpdateInstructionsSchema,
   apiAssignTableRequestSchema,
   apiTillSessionSchema,
+  apiTillReconciliationSchema,
   apiOrderPaymentRecordSchema,
   apiRecordPaymentResultSchema,
 } from "@/lib/api-client/schemas/pos.schema";
@@ -21,6 +22,7 @@ import {
   adaptOrderSummary,
   adaptTableDetail,
   adaptTillSession,
+  adaptTillReconciliation,
   adaptOrderPayment,
 } from "@/lib/adapters/pos.adapter";
 import type {
@@ -32,6 +34,7 @@ import type {
   OrderPayment,
   TableDetail,
   TillSession,
+  TillReconciliation,
   CreateOrderPayload,
   AddItemPayload,
   ApplyDiscountPayload,
@@ -244,5 +247,17 @@ export const PosRepository = {
   async getTill(tillId: string): Promise<TillSession> {
     const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}`);
     return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
+  },
+
+  /** Branch-wide till history for admin review (newest first). */
+  async listBranchTills(branchId: string): Promise<TillSession[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/tills", { branchId });
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillSession(apiTillSessionSchema.parse(r)));
+  },
+
+  /** A till session + every order within it + cash/non-cash collected (live expected cash). */
+  async getTillReconciliation(tillId: string): Promise<TillReconciliation> {
+    const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}/reconciliation`);
+    return adaptTillReconciliation(apiTillReconciliationSchema.parse(resp.data.data));
   },
 };

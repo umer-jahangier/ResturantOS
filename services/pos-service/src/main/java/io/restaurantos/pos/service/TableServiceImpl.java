@@ -12,12 +12,12 @@ import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
+import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -65,8 +65,8 @@ public class TableServiceImpl implements TableService {
         DiningTable table = tableRepository.findByIdAndBranchId(tableId, branchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Dining table not found: " + tableId));
 
-        Optional<Order> activeOrder = orderRepository.findByTableIdAndStatusNotIn(tableId, TERMINAL_ORDER_STATUSES);
-        OrderDto orderDto = activeOrder.map(orderMapper::toDto).orElse(null);
+        OrderDto orderDto = orderRepository.findActiveByTableId(tableId, TERMINAL_ORDER_STATUSES, Limit.of(1))
+                .stream().findFirst().map(orderMapper::toDto).orElse(null);
 
         return TableDetailDto.from(table, orderDto);
     }

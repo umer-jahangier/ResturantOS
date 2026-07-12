@@ -306,20 +306,20 @@ describe("PosTerminal", () => {
     expect(screen.getByTestId("clear-new-order-button")).toBeInTheDocument();
   });
 
-  it("Charge Now is disabled until the order has been sent", async () => {
+  it("Charge Now is disabled with an empty cart and enabled once items are added (pre-send)", async () => {
     renderTerminal();
     const user = userEvent.setup();
+
+    // Empty cart → Charge Now unavailable.
+    expect(screen.getByTestId("charge-now-button")).toBeDisabled();
 
     const firstItemButton = await screen.findByTestId("menu-item-first");
     await user.click(firstItemButton);
 
-    expect(screen.getByTestId("charge-now-button")).toBeDisabled();
+    // A menu tap alone never persists (POS-16 lazy persist) …
     expect(createOrderCallCount).toBe(0);
-
-    await user.click(screen.getByTestId("send-to-kitchen-button"));
-    await waitFor(() => {
-      expect(screen.getByTestId("charge-now-button")).toBeEnabled();
-    });
+    // … but Charge Now is now available directly from the cart (it persists on click).
+    expect(screen.getByTestId("charge-now-button")).toBeEnabled();
   });
 
   it("binds the selected table into createOrder only once Send to Kitchen is clicked", async () => {

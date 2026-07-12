@@ -25,7 +25,35 @@ interface KdsTicketCardProps {
 const DEFAULT_ESCALATION_THRESHOLD_SECONDS = 900; // 15 minutes
 
 function formatItemNames(items: KdsTicketItem[]): string {
-  return items.map((item) => (item.qty > 1 ? `×${item.qty} ${item.name}` : item.name)).join(", ");
+  // Always show the quantity for every line so the line cook can read counts at a glance.
+  return items.map((item) => `${item.qty}× ${item.name}`).join(", ");
+}
+
+/** Human label + color treatment for the order's service type (DINE_IN/TAKEAWAY/…). */
+function orderTypeTreatment(orderType: string | null): { label: string; className: string } | null {
+  switch (orderType) {
+    case "DINE_IN":
+      return { label: "Dine-in", className: "bg-sky-500/15 text-sky-300" };
+    case "TAKEAWAY":
+      return { label: "Takeaway", className: "bg-violet-500/15 text-violet-300" };
+    case "PICKUP":
+      return { label: "Pickup", className: "bg-amber-500/15 text-amber-300" };
+    case "DELIVERY":
+      return { label: "Delivery", className: "bg-teal-500/15 text-teal-300" };
+    default:
+      return null;
+  }
+}
+
+/** True when the ticket carries an order-level note or any item has a special instruction. */
+function ticketHasNotes(ticket: KdsTicket, items: KdsTicketItem[]): boolean {
+  if (ticket.orderNotes && ticket.orderNotes.trim().length > 0) return true;
+  return items.some((i) => i.notes && i.notes.trim().length > 0);
+}
+
+/** Cancelled lines on the whole ticket — surfaced so the cook stops making them. */
+function cancelledCount(ticket: KdsTicket): number {
+  return ticket.items.filter((i) => i.status === "CANCELLED").length;
 }
 
 function formatAge(ageMs: number): string {
@@ -79,6 +107,9 @@ export function KdsTicketCard({
     ageMs,
     escalationThresholdSeconds ?? DEFAULT_ESCALATION_THRESHOLD_SECONDS,
   );
+  const typeTreatment = orderTypeTreatment(ticket.orderType);
+  const hasNotes = ticketHasNotes(ticket, displayItems);
+  const cancelled = cancelledCount(ticket);
 
   return (
     <div
@@ -97,7 +128,37 @@ export function KdsTicketCard({
         </span>
       </div>
       <div className="flex items-center gap-2 text-xs text-gray-500">
+        {typeTreatment && (
+          <span
+            className={`rounded px-1.5 py-0.5 font-semibold uppercase tracking-wide ${typeTreatment.className}`}
+            data-testid="kds-ticket-order-type"
+          >
+            {typeTreatment.label}
+          </span>
+        )}
         <span>{ticket.tableNumber ? `Table ${ticket.tableNumber}` : "No table"}</span>
+        {hasNotes && (
+          <span
+            className="inline-flex items-center gap-0.5 text-amber-300"
+            title="This ticket has notes"
+            aria-label="Has notes"
+            data-testid="kds-ticket-note-indicator"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
+              <path d="M4 5h16M4 12h16M4 19h10" strokeLinecap="round" />
+            </svg>
+            Note
+          </span>
+        )}
+        {cancelled > 0 && (
+          <span
+            className="inline-flex items-center gap-0.5 rounded bg-red-500/15 px-1.5 py-0.5 font-semibold text-red-300"
+            title={`${cancelled} item(s) cancelled`}
+            data-testid="kds-ticket-cancelled-indicator"
+          >
+            ⊘ {cancelled} cancelled
+          </span>
+        )}
         {ticket.priority && (
           <span className="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">
             PRIORITY

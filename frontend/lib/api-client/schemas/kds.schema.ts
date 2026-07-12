@@ -15,7 +15,7 @@ export const apiKdsTicketItemSchema = z.object({
   qty: z.number().int().positive(),
   modifiers: z.array(z.string()).nullable().optional(),
   notes: z.string().nullable().optional(),
-  status: z.enum(["PENDING", "ACCEPTED", "PREPARING", "COOKING", "READY"]),
+  status: z.enum(["PENDING", "ACCEPTED", "PREPARING", "COOKING", "READY", "CANCELLED"]),
   revisionNo: z.number().int().nonnegative(),
   firedAt: z.string().nullable().optional(),
 });
@@ -32,7 +32,7 @@ export const apiKdsTicketSchema = z.object({
   orderId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
   stationCode: z.string(),
-  status: z.enum(["PENDING", "COOKING", "READY", "CANCELLED"]),
+  status: z.enum(["PENDING", "COOKING", "READY", "SERVED", "CANCELLED"]),
   priority: z.boolean(),
   receivedAt: z.string().datetime({ offset: true }),
   startedAt: z.string().datetime({ offset: true }).nullable().optional(),
@@ -42,6 +42,10 @@ export const apiKdsTicketSchema = z.object({
   // Optional/nullable defensively (same convention as orderNotes above) even though
   // kitchen-service now always emits the field.
   tableNumber: z.string().nullable().optional(),
+  // Service type propagated order->event->KdsTicket->KdsTicketDto: OrderType enum name
+  // (DINE_IN/TAKEAWAY/DELIVERY/PICKUP). Optional/nullable defensively — legacy tickets
+  // created before this field keep null.
+  orderType: z.string().nullable().optional(),
   items: z.array(apiKdsTicketItemSchema),
 });
 

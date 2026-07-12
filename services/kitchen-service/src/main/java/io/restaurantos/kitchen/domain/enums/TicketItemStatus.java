@@ -12,5 +12,9 @@ public enum TicketItemStatus {
     ACCEPTED,
     PREPARING,
     COOKING,
-    READY
+    READY,
+    // CANCELLED (KDS side): the POS cancelled this line after it was fired. Set by the
+    // ORDER_ITEM_CANCELLED consumer so the board can strike it through / stop the cook working
+    // on it. Terminal — excluded from the "not ready" count so it never blocks a ticket.
+    CANCELLED
 }

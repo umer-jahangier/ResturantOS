@@ -59,17 +59,50 @@ export async function markSynced(id: string): Promise<void> {
   await db.delete("outbox", id);
 }
 
-/** Increment attempts, record last error, revert to FAILED status for retry. */
+/**
+ * Max auto-retry attempts before an op is dead-lettered. Once attempts reach this,
+ * markFailed parks the op as DEAD so it stops counting toward the "queued" badge and
+ * stops being auto-retried on every reconnect — preventing the "16 queued — service
+ * unavailable" pill from growing without bound against a persistently-failing backend.
+ */
+export const MAX_ATTEMPTS = 5;
+
+/**
+ * Increment attempts and record the last error. Reverts to FAILED (auto-retried on the
+ * next replay) until attempts reach {@link MAX_ATTEMPTS}, after which the op is parked as
+ * DEAD (terminal — needs explicit operator Retry/Dismiss).
+ */
 export async function markFailed(id: string, error: string): Promise<void> {
   const db = await getDb();
   const op = await db.get("outbox", id);
   if (!op) return;
+  const attempts = op.attempts + 1;
   await db.put("outbox", {
     ...op,
-    status: "FAILED",
-    attempts: op.attempts + 1,
+    status: attempts >= MAX_ATTEMPTS ? "DEAD" : "FAILED",
+    attempts,
     lastError: error,
   });
+}
+
+/** Requeue dead-lettered ops (reset attempts) so an explicit Retry drains them again. */
+export async function retryDead(): Promise<void> {
+  const db = await getDb();
+  const dead = await db.getAllFromIndex("outbox", "by-status", "DEAD");
+  const tx = db.transaction("outbox", "readwrite");
+  await Promise.all(
+    dead.map((op) => tx.store.put({ ...op, status: "PENDING", attempts: 0 })),
+  );
+  await tx.done;
+}
+
+/** Permanently drop dead-lettered ops (operator dismissed them). */
+export async function dismissDead(): Promise<void> {
+  const db = await getDb();
+  const dead = await db.getAllFromIndex("outbox", "by-status", "DEAD");
+  const tx = db.transaction("outbox", "readwrite");
+  await Promise.all(dead.map((op) => tx.store.delete(op.id)));
+  await tx.done;
 }
 
 // ── Counts ────────────────────────────────────────────────────────────────────

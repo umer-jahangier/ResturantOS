@@ -10,7 +10,7 @@ import { RevisionBadge, RevisionCountChip, type RevisionLogEntry } from "@/compo
 import { SettlementActions } from "@/components/pos/settlement-actions";
 import { OrderTypeToggle } from "@/components/pos/order-type-toggle";
 import { TableSelectCombobox } from "@/components/pos/table-select-combobox";
-import { cartLineKey, cartTotalPaisa, type CartLine } from "@/components/pos/cart-reducer";
+import { cartLineKey, cartTotalPaisa, cartTaxPaisa, type CartLine } from "@/components/pos/cart-reducer";
 import {
   useRemoveItem,
   useCancelItem,
@@ -42,6 +42,10 @@ interface OrderPanelProps {
   isPersisting: boolean;
   /** Persists the cart (createOrder + addItem* + first send-to-kds) — pre-send only. */
   onSendToKitchen: () => void | Promise<void>;
+  /** Persists the cart as a DRAFT (createOrder + addItem*, no fire) — pre-send only. */
+  onSaveAsDraft: () => void | Promise<void>;
+  /** Persists + fires the cart, then navigates to the full-page charge — pre-send only. */
+  onChargeNow: () => void | Promise<void>;
   /** Clear / New Order (D-04) — resets the terminal to an empty cart. */
   onClearNewOrder: () => void;
 }
@@ -77,6 +81,8 @@ export function OrderPanel({
   sentOrder,
   isPersisting,
   onSendToKitchen,
+  onSaveAsDraft,
+  onChargeNow,
   onClearNewOrder,
 }: OrderPanelProps) {
   if (!sentOrder) {
@@ -91,6 +97,8 @@ export function OrderPanel({
         onDecrement={onDecrement}
         isPersisting={isPersisting}
         onSendToKitchen={onSendToKitchen}
+        onSaveAsDraft={onSaveAsDraft}
+        onChargeNow={onChargeNow}
       />
     );
   }
@@ -110,6 +118,8 @@ interface PreSendCartProps {
   onDecrement: (key: string) => void;
   isPersisting: boolean;
   onSendToKitchen: () => void | Promise<void>;
+  onSaveAsDraft: () => void | Promise<void>;
+  onChargeNow: () => void | Promise<void>;
 }
 
 function PreSendCart({
@@ -122,9 +132,13 @@ function PreSendCart({
   onDecrement,
   isPersisting,
   onSendToKitchen,
+  onSaveAsDraft,
+  onChargeNow,
 }: PreSendCartProps) {
   const canSend = cart.length > 0 && !isPersisting;
-  const total = cartTotalPaisa(cart);
+  const subtotal = cartTotalPaisa(cart);
+  const estTax = cartTaxPaisa(cart);
+  const estTotal = subtotal + estTax;
 
   return (
     <div className="flex flex-col h-full">
@@ -152,14 +166,24 @@ function PreSendCart({
         )}
       </div>
 
-      {/* Totals */}
+      {/* Totals — estimated tax shown up-front (KFC/Square-style), before any commit */}
       {cart.length > 0 && (
         <div className="border-t px-4 py-3 space-y-1 text-sm">
-          <div className="flex justify-between font-semibold text-base">
+          <div className="flex justify-between text-muted-foreground">
             <span>Subtotal</span>
-            <MoneyDisplay paisa={total} className="font-mono" />
+            <MoneyDisplay paisa={subtotal} className="font-mono" />
           </div>
-          <p className="text-[10px] text-muted-foreground">Tax/discount computed once sent.</p>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Tax (est.)</span>
+            <MoneyDisplay paisa={estTax} className="font-mono" />
+          </div>
+          <div className="flex justify-between font-semibold text-base pt-1 border-t">
+            <span>Total (est.)</span>
+            <MoneyDisplay paisa={estTotal} className="font-mono" />
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Estimated — final tax &amp; any discounts confirmed on the order.
+          </p>
         </div>
       )}
 
@@ -174,16 +198,27 @@ function PreSendCart({
         >
           {isPersisting ? "Sending..." : "Send to Kitchen"}
         </button>
-        <button
-          type="button"
-          data-testid="charge-now-button"
-          disabled
-          title="Send to kitchen first"
-          aria-label="Charge Now (send to kitchen first)"
-          className="w-full h-12 rounded-xl border font-semibold text-sm opacity-40 cursor-not-allowed"
-        >
-          CHARGE NOW
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            data-testid="save-draft-button"
+            onClick={() => void onSaveAsDraft()}
+            disabled={!canSend}
+            className="flex-1 h-12 rounded-xl border font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent active:scale-[0.98] transition-all"
+          >
+            {isPersisting ? "Saving..." : "Save as Draft"}
+          </button>
+          <button
+            type="button"
+            data-testid="charge-now-button"
+            onClick={() => void onChargeNow()}
+            disabled={!canSend}
+            aria-label="Charge Now"
+            className="flex-1 h-12 rounded-xl bg-success text-success-foreground font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-success/90 active:scale-[0.98] transition-all"
+          >
+            {isPersisting ? "…" : "Charge Now"}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -292,7 +327,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
           </div>
         ) : (
           order.items.map((item) => (
-            <OrderLineItem key={item.id} item={item} orderId={order.id} isSettled={isSettled} />
+            <OrderLineItem key={item.id} item={item} orderId={order.id} orderStatus={order.status} isSettled={isSettled} />
           ))
         )}
       </div>
@@ -447,10 +482,11 @@ function SpecialInstructionsField({ notes, disabled, onSave }: SpecialInstructio
 interface OrderLineItemProps {
   item: Order["items"][number];
   orderId: string;
+  orderStatus: Order["status"];
   isSettled: boolean;
 }
 
-function OrderLineItem({ item, orderId, isSettled }: OrderLineItemProps) {
+function OrderLineItem({ item, orderId, orderStatus, isSettled }: OrderLineItemProps) {
   const removeItem = useRemoveItem(orderId);
   const cancelItem = useCancelItem(orderId);
   const markServed = useMarkServed(orderId);
@@ -461,10 +497,12 @@ function OrderLineItem({ item, orderId, isSettled }: OrderLineItemProps) {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const isActive = item.itemStatus !== "PENDING" && item.itemStatus !== "CANCELLED" && item.itemStatus !== "SERVED";
-  const canRemove = !isSettled && item.itemStatus === "PENDING";
-  const canCancel = !isSettled && isActive;
-  const canMarkServed = !isSettled && isActive;
   const isCancelled = item.itemStatus === "CANCELLED";
+  // Not-yet-fired line on an OPEN order → Remove; on a fired order remove is server-blocked, so
+  // it becomes cancellable instead (fixes the "PENDING-on-fired line is stuck" dead-end).
+  const canRemove = !isSettled && item.itemStatus === "PENDING" && orderStatus === "OPEN";
+  const canCancel = !isSettled && !isCancelled && item.itemStatus !== "SERVED" && !canRemove;
+  const canMarkServed = !isSettled && isActive;
 
   const saveNote = () => {
     updateInstructions.mutate({ itemNotes: { [item.id]: noteDraft } });

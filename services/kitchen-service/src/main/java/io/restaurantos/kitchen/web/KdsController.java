@@ -49,7 +49,7 @@ public class KdsController {
     public ResponseEntity<Page<KdsTicketDto>> getTickets(
             @RequestParam UUID branchId,
             @RequestParam(required = false) String stationCode,
-            @RequestParam(required = false, defaultValue = "PENDING,COOKING") String status,
+            @RequestParam(required = false, defaultValue = "PENDING,COOKING,READY") String status,
             @AuthenticationPrincipal JwtClaims claims,
             Pageable pageable) {
 
@@ -59,10 +59,14 @@ public class KdsController {
                 .map(String::trim)
                 .map(TicketStatus::valueOf)
                 .toList();
+        // No stationCode → branch-wide active board (station-stats screen). Uses a branch+status
+        // scoped, item-eager query — never findAll (which leaked across tenants and threw on
+        // lazy items).
         Page<KdsTicketDto> result = (stationCode != null)
                 ? ticketRepository.findByBranchIdAndStationCodeAndStatusIn(branchId, stationCode, statuses, pageable)
                         .map(ticketService::toDto)
-                : ticketRepository.findAll(pageable).map(ticketService::toDto);
+                : ticketRepository.findByBranchIdAndStatusIn(branchId, statuses, pageable)
+                        .map(ticketService::toDto);
 
         return ResponseEntity.ok(result);
     }

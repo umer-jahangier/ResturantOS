@@ -98,6 +98,11 @@ public class TicketRoutingService {
         if (ticket.getTableNumber() == null) {
             ticket.setTableNumber(payload.tableNumber());
         }
+        // Order type is stable for the order's lifetime; backfill on a later revision if the
+        // initial fire predated this field (null-safe for legacy tickets).
+        if (ticket.getOrderType() == null) {
+            ticket.setOrderType(payload.orderType());
+        }
 
         KdsTicket saved = ticketRepository.save(ticket);
         webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), ticketService.toDto(saved));
@@ -118,6 +123,7 @@ public class TicketRoutingService {
         ticket.setOrderNo(orderNo);
         ticket.setOrderNotes(payload.orderNotes());
         ticket.setTableNumber(payload.tableNumber());
+        ticket.setOrderType(payload.orderType());
         ticket.setStationCode(stationCode);
         ticket.setReceivedAt(Instant.now());
 

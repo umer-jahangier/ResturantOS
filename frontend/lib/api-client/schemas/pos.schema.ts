@@ -210,6 +210,25 @@ export const apiTillSessionSchema = z.object({
 
 export type ApiTillSession = z.infer<typeof apiTillSessionSchema>;
 
+export const apiTillReconciliationSchema = z.object({
+  session: apiTillSessionSchema,
+  orderCount: z.number().int().nonnegative(),
+  cashCollectedPaisa: z.number().int(),
+  nonCashCollectedPaisa: z.number().int(),
+  liveExpectedCashPaisa: z.number().int(),
+  orders: z.array(
+    z.object({
+      orderId: z.string().uuid(),
+      orderNo: z.string().nullable().optional(),
+      status: z.string(),
+      totalPaisa: z.number().int(),
+      paidPaisa: z.number().int(),
+    }),
+  ),
+});
+
+export type ApiTillReconciliation = z.infer<typeof apiTillReconciliationSchema>;
+
 export const apiOrderPaymentSchema = z.object({
   method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
   amountPaisa: z.number().int().nonnegative(),

@@ -87,6 +87,60 @@ function isFlatErrorBody(
   );
 }
 
+/**
+ * RFC-7807 ProblemDetail shape emitted by the Spring MVC services (pos-service,
+ * kitchen-service, …): `{ type, title, status, detail, instance, ...properties }`.
+ * Custom handlers set `title` to a SCREAMING_SNAKE code (e.g. `TILL_HAS_OPEN_ORDERS`)
+ * and `detail` to the human message; default Spring handlers set `title` to the reason
+ * phrase ("Conflict"). Detected last so the two richer envelopes above win.
+ */
+type ProblemDetailBody = {
+  type?: string;
+  title?: string;
+  detail?: string;
+  status?: number;
+  properties?: Record<string, unknown> | null;
+  traceId?: string | null;
+  errors?: unknown;
+};
+
+function isProblemDetailBody(value: unknown): value is ProblemDetailBody {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  const hasDetail = typeof v.detail === "string";
+  const hasTitle = typeof v.title === "string";
+  // A ProblemDetail always carries a numeric `status`, plus at least a title or detail.
+  return (hasDetail || hasTitle) && typeof v.status === "number";
+}
+
+const CODE_LIKE = /^[A-Z][A-Z0-9_]+$/;
+
+function problemDetailTraceId(body: ProblemDetailBody): string | null {
+  if (typeof body.traceId === "string") return body.traceId;
+  const props = body.properties;
+  if (props && typeof props === "object" && typeof props.traceId === "string") {
+    return props.traceId;
+  }
+  return null;
+}
+
+function problemDetailFieldErrors(body: ProblemDetailBody): ApiFieldError[] {
+  const raw = Array.isArray(body.errors)
+    ? body.errors
+    : Array.isArray(body.properties?.errors)
+      ? (body.properties?.errors as unknown[])
+      : [];
+  return raw
+    .map((e) => {
+      if (!e || typeof e !== "object") return null;
+      const rec = e as Record<string, unknown>;
+      const field = String(rec.field ?? "");
+      const issue = String(rec.issue ?? rec.message ?? rec.defaultMessage ?? "");
+      return field ? { field, issue } : null;
+    })
+    .filter((e): e is ApiFieldError => e !== null);
+}
+
 const UNKNOWN_ERROR_MSG = "Something went wrong. Please try again.";
 
 const USER_FACING_BY_CODE: Record<string, string> = {
@@ -164,6 +218,22 @@ export function parseApiError(error: unknown): ApiError {
         status,
         traceId: body.traceId ?? null,
         fieldErrors: [],
+      });
+    }
+
+    if (isProblemDetailBody(body)) {
+      const title = typeof body.title === "string" ? body.title : "";
+      const code = CODE_LIKE.test(title) ? title : `HTTP_${status || body.status || 0}`;
+      const message =
+        (typeof body.detail === "string" && body.detail) ||
+        (title && !CODE_LIKE.test(title) ? title : "") ||
+        error.message;
+      return new ApiError({
+        code,
+        message,
+        status: status || body.status || 0,
+        traceId: problemDetailTraceId(body),
+        fieldErrors: problemDetailFieldErrors(body),
       });
     }
 

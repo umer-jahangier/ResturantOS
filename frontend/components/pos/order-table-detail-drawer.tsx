@@ -13,6 +13,8 @@ import { SettlementActions } from "@/components/pos/settlement-actions";
 import {
   useOrder,
   useMarkServed,
+  useCancelItem,
+  useRemoveItem,
   useUpdateInstructions,
   useAddItem,
   useSendToKds,
@@ -159,7 +161,13 @@ export function OrderTableDetailDrawer({
                   </div>
                 ) : (
                   order.items.map((item) => (
-                    <DrawerLineItem key={item.id} item={item} orderId={order.id} />
+                    <DrawerLineItem
+                      key={item.id}
+                      item={item}
+                      orderId={order.id}
+                      orderStatus={order.status}
+                      isSettled={isSettled}
+                    />
                   ))
                 )}
               </div>
@@ -202,12 +210,24 @@ export function OrderTableDetailDrawer({
 interface DrawerLineItemProps {
   item: Order["items"][number];
   orderId: string;
+  orderStatus: Order["status"];
+  isSettled: boolean;
 }
 
-function DrawerLineItem({ item, orderId }: DrawerLineItemProps) {
+function DrawerLineItem({ item, orderId, orderStatus, isSettled }: DrawerLineItemProps) {
   const markServed = useMarkServed(orderId);
+  const cancelItem = useCancelItem(orderId);
+  const removeItem = useRemoveItem(orderId);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+
+  const isCancelled = item.itemStatus === "CANCELLED";
   const isActive =
     item.itemStatus !== "PENDING" && item.itemStatus !== "CANCELLED" && item.itemStatus !== "SERVED";
+  // A not-yet-fired line on an OPEN order can be REMOVED outright; on a fired order it can't
+  // (server blocks remove unless OPEN), so it's cancelled instead. Everything active is
+  // cancellable except an already-served/cancelled line.
+  const canRemove = !isSettled && item.itemStatus === "PENDING" && orderStatus === "OPEN";
+  const canCancel = !isSettled && !isCancelled && item.itemStatus !== "SERVED" && !canRemove;
 
   return (
     <div className="flex flex-col gap-1.5 px-4 py-2">
@@ -217,7 +237,7 @@ function DrawerLineItem({ item, orderId }: DrawerLineItemProps) {
             <p
               className={cn(
                 "truncate text-sm font-medium",
-                item.itemStatus === "CANCELLED" && "line-through text-muted-foreground",
+                isCancelled && "line-through text-muted-foreground",
               )}
             >
               {item.itemNameSnapshot}
@@ -233,19 +253,64 @@ function DrawerLineItem({ item, orderId }: DrawerLineItemProps) {
           <MoneyDisplay paisa={item.lineTotalPaisa} className="font-mono text-xs" />
         </div>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <StatusBadge status={item.itemStatus} className="text-[10px]" />
-        {isActive && (
-          <button
-            type="button"
-            onClick={() => markServed.mutate(item.id)}
-            disabled={markServed.isPending}
-            aria-label={`Mark ${item.itemNameSnapshot} served`}
-            className="rounded border border-success px-2 py-1 text-xs text-success hover:bg-success/10 disabled:opacity-50"
-          >
-            Mark Served
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {isActive && (
+            <button
+              type="button"
+              onClick={() => markServed.mutate(item.id)}
+              disabled={markServed.isPending}
+              aria-label={`Mark ${item.itemNameSnapshot} served`}
+              className="rounded border border-success px-2 py-1 text-xs text-success hover:bg-success/10 disabled:opacity-50"
+            >
+              Mark Served
+            </button>
+          )}
+          {canRemove && (
+            <button
+              type="button"
+              onClick={() => removeItem.mutate(item.id)}
+              disabled={removeItem.isPending}
+              aria-label={`Remove ${item.itemNameSnapshot}`}
+              className="rounded border border-destructive px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
+          {canCancel && !confirmingCancel && (
+            <button
+              type="button"
+              onClick={() => setConfirmingCancel(true)}
+              data-testid={`cancel-item-${item.id}`}
+              className="rounded border border-destructive px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+            >
+              Cancel
+            </button>
+          )}
+          {canCancel && confirmingCancel && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  cancelItem.mutate(item.id);
+                  setConfirmingCancel(false);
+                }}
+                disabled={cancelItem.isPending}
+                className="rounded bg-destructive px-2 py-1 text-xs text-destructive-foreground disabled:opacity-50"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(false)}
+                className="rounded border px-2 py-1 text-xs"
+              >
+                Keep
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

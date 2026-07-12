@@ -31,6 +31,7 @@ export function adaptKdsTicket(raw: ApiKdsTicket): KdsTicket {
     readyAt: raw.readyAt ? new Date(raw.readyAt) : null,
     orderNotes: raw.orderNotes ?? null,
     tableNumber: raw.tableNumber ?? null,
+    orderType: raw.orderType ?? null,
     items: raw.items.map(adaptKdsTicketItem),
   };
 }
