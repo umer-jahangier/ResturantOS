@@ -1,0 +1,124 @@
+package io.restaurantos.pos.consumer;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restaurantos.pos.config.PosKitchenTopologyConfig;
+import io.restaurantos.pos.domain.enums.OrderItemStatus;
+import io.restaurantos.pos.domain.model.Order;
+import io.restaurantos.pos.domain.model.OrderItem;
+import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.service.OrderStatusDerivationService;
+import io.restaurantos.pos.service.PosProcessedEventService;
+import io.restaurantos.pos.service.TableService;
+import io.restaurantos.shared.event.EventEnvelope;
+import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Consumes KITCHEN_ITEM_STATUS_CHANGED events from kitchen.topic and applies the
+ * per-item kitchen transition live to the matching {@link OrderItem#getItemStatus()}
+ * (POS-20 / D-05), recomputing {@link Order#getDerivedStatus()} via
+ * {@link OrderStatusDerivationService} on every update — never hand-set (Pitfall 3).
+ * Mirrors {@link OrderReadyConsumer}'s shape (processed_events dedup + tenant-aware
+ * processing) but generalizes the ELIGIBLE guard to an ordinal comparison since the
+ * target status varies per message (not fixed at READY): a line already SERVED or
+ * CANCELLED is never touched, and an incoming status is only applied if it is strictly
+ * further along {@link OrderItemStatus}'s declared lifecycle order than the item's
+ * current status — so a kitchen event can never downgrade or re-touch a line that has
+ * already advanced (by kitchen redelivery, out-of-order delivery, or POS-side action).
+ */
+@Component
+public class KitchenItemStatusConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(KitchenItemStatusConsumer.class);
+    static final String CONSUMER_NAME = "pos.kitchen-item-status";
+
+    // kitchen TicketItemStatus name() -> pos OrderItemStatus. Kitchen PENDING (e.g. a
+    // re-armed line on a new revision) maps to SENT — a fired line never goes back to the
+    // pos-side PENDING value, which specifically means "never sent to kitchen at all".
+    // COOKING is kitchen's legacy alias for PREPARING (kept for old persisted rows).
+    private static final Map<String, OrderItemStatus> STATUS_MAP = Map.of(
+            "PENDING", OrderItemStatus.SENT,
+            "ACCEPTED", OrderItemStatus.ACCEPTED,
+            "PREPARING", OrderItemStatus.PREPARING,
+            "COOKING", OrderItemStatus.PREPARING,
+            "READY", OrderItemStatus.READY);
+
+    private final PosProcessedEventService processedEventService;
+    private final TenantAwareMessageProcessor tenantAwareMessageProcessor;
+    private final OrderRepository orderRepository;
+    private final ObjectMapper objectMapper;
+    private final OrderStatusDerivationService orderStatusDerivationService;
+    private final TableService tableService;
+
+    public KitchenItemStatusConsumer(PosProcessedEventService processedEventService,
+                                      TenantAwareMessageProcessor tenantAwareMessageProcessor,
+                                      OrderRepository orderRepository,
+                                      ObjectMapper objectMapper,
+                                      OrderStatusDerivationService orderStatusDerivationService,
+                                      TableService tableService) {
+        this.processedEventService = processedEventService;
+        this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
+        this.orderRepository = orderRepository;
+        this.objectMapper = objectMapper;
+        this.orderStatusDerivationService = orderStatusDerivationService;
+        this.tableService = tableService;
+    }
+
+    @RabbitListener(queues = PosKitchenTopologyConfig.POS_KITCHEN_ITEM_STATUS_QUEUE)
+    public void onMessage(Message message) {
+        EventEnvelope<ItemStatusChangedPayload> envelope = deserialize(message);
+        if (envelope == null) {
+            log.warn("KitchenItemStatusConsumer: could not deserialize message — skipping");
+            return;
+        }
+
+        log.debug("KitchenItemStatusConsumer: received eventId={} orderId={} orderItemId={} newStatus={}",
+                envelope.eventId(), envelope.payload().orderId(),
+                envelope.payload().orderItemId(), envelope.payload().newStatus());
+
+        processedEventService.tryProcess(CONSUMER_NAME, envelope.eventId(), () ->
+                tenantAwareMessageProcessor.process(envelope, env ->
+                        applyItemStatus(env.payload().orderId(), env.payload().orderItemId(), env.payload().newStatus())
+                )
+        );
+    }
+
+    @Transactional
+    public void applyItemStatus(UUID orderId, UUID orderItemId, String newStatus) {
+        // TDD RED stub — intentionally a no-op so KitchenItemStatusSyncIT fails first.
+        // Replaced with the real mapping/eligibility/derivation logic in the GREEN commit.
+        log.warn("KitchenItemStatusConsumer: applyItemStatus not yet implemented — skipping order={} item={} status={}",
+                orderId, orderItemId, newStatus);
+    }
+
+    @SuppressWarnings("unchecked")
+    private EventEnvelope<ItemStatusChangedPayload> deserialize(Message message) {
+        try {
+            return objectMapper.readValue(message.getBody(),
+                    objectMapper.getTypeFactory().constructParametricType(
+                            EventEnvelope.class, ItemStatusChangedPayload.class));
+        } catch (Exception e) {
+            log.error("KitchenItemStatusConsumer: deserialization failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // Field names+order MUST be byte-identical to kitchen-service's
+    // KitchenEventPayloads.ItemStatusChangedPayload (field-name parity is the ONLY contract
+    // enforcement; a mismatch silently drops every message). Never reorder/rename.
+    public record ItemStatusChangedPayload(
+            UUID orderId,
+            UUID orderItemId,
+            String newStatus,
+            int revisionNo,
+            String station
+    ) {}
+}
