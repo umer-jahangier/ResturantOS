@@ -1,9 +1,11 @@
 package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.authz.PosAuthorizationService;
+import io.restaurantos.pos.domain.enums.DerivedOrderStatus;
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
+import io.restaurantos.pos.domain.enums.PaymentStatus;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
@@ -64,6 +66,7 @@ public class OrderServiceImpl implements OrderService {
     private final PosAuthorizationService posAuthorizationService;
     private final TillSessionRepository tillSessionRepository;
     private final OrderStatusDerivationService orderStatusDerivationService;
+    private final PaymentStatusDerivationService paymentStatusDerivationService;
     private final TableService tableService;
     private final OrderMapper orderMapper;
 
@@ -83,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
                             PosAuthorizationService posAuthorizationService,
                             TillSessionRepository tillSessionRepository,
                             OrderStatusDerivationService orderStatusDerivationService,
+                            PaymentStatusDerivationService paymentStatusDerivationService,
                             TableService tableService,
                             OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
@@ -101,6 +105,7 @@ public class OrderServiceImpl implements OrderService {
         this.posAuthorizationService = posAuthorizationService;
         this.tillSessionRepository = tillSessionRepository;
         this.orderStatusDerivationService = orderStatusDerivationService;
+        this.paymentStatusDerivationService = paymentStatusDerivationService;
         this.tableService = tableService;
         this.orderMapper = orderMapper;
     }
@@ -531,13 +536,73 @@ public class OrderServiceImpl implements OrderService {
         // 3. Validate payment sum == order total
         splitTenderCalculator.validateExact(request.payments(), order.getTotalPaisa());
 
-        // 4. Period-lock check (fail-closed)
+        // 4-6. Period-lock check, state transition, table sync, ORDER_CLOSED publish — routed
+        // through the single close seam (POS-23) shared with maybeCloseOrder, so the publish
+        // call exists exactly ONCE in this class (see performClose below).
+        List<PosClosePayloads.PaymentEntry> paymentEntries = request.payments().stream()
+                .map(p -> new PosClosePayloads.PaymentEntry(p.method(), p.amountPaisa(), p.referenceNo()))
+                .collect(Collectors.toList());
+        Order finalOrder = performClose(order, paymentEntries);
+
+        // 7. Mark idempotency complete
+        OrderDto dto = orderMapper.toDto(finalOrder);
+        idempotencyService.markComplete(idempotencyKey, dto.id().toString());
+
+        return dto;
+    }
+
+    /**
+     * POS-23 seam: closes {@code orderId} ONLY when it is fully Paid
+     * ({@code paymentStatus == PAID}) AND fully Served ({@code derivedStatus == SERVED}), and
+     * is not already terminal. Invoked from {@code PaymentServiceImpl.recordPayment} (a
+     * payment that completes an already-served order) and {@code markItemServed} (serving the
+     * last line of an already-paid order). A no-op (returns the order unchanged) when the
+     * conditions are not met or the order is already CLOSED/VOIDED/REFUNDED — safe to call
+     * from both mutation paths without risking a double-close or an illegal transition.
+     */
+    @Override
+    public OrderDto maybeCloseOrder(UUID orderId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (isTerminal(order.getStatus())) {
+            return orderMapper.toDto(order);
+        }
+
+        long paidPaisa = orderPaymentRepository.sumAmountByOrderId(orderId);
+        PaymentStatus paymentStatus = paymentStatusDerivationService.derive(
+                paidPaisa, order.getTotalPaisa(), order.getStatus());
+
+        boolean fullyPaidAndServed = paymentStatus == PaymentStatus.PAID
+                && order.getDerivedStatus() == DerivedOrderStatus.SERVED;
+        if (!fullyPaidAndServed) {
+            return orderMapper.toDto(order);
+        }
+
+        List<PosClosePayloads.PaymentEntry> paymentEntries = orderPaymentRepository.findByOrderId(orderId).stream()
+                .map(p -> new PosClosePayloads.PaymentEntry(p.getMethod().name(), p.getAmountPaisa(), p.getReferenceNo()))
+                .collect(Collectors.toList());
+
+        Order closed = performClose(order, paymentEntries);
+        return orderMapper.toDto(closed);
+    }
+
+    /**
+     * Shared close side-effects (POS-23 single seam): period-lock check (fail-closed), the
+     * CLOSED state transition, table release, persistence, and the ONE ORDER_CLOSED publish
+     * in this class. Callers ({@code closeOrder}'s legacy exact-tender path and
+     * {@code maybeCloseOrder}'s Paid-AND-Served path) differ only in how {@code paymentEntries}
+     * is sourced — the close mechanics themselves must never diverge (RESEARCH.md Pitfall:
+     * divergent close paths).
+     */
+    private Order performClose(Order order, List<PosClosePayloads.PaymentEntry> paymentEntries) {
+        UUID tenantId = order.getTenantId();
+
         LocalDate businessDate = order.getOpenedAt() != null
                 ? order.getOpenedAt().atOffset(ZoneOffset.UTC).minusHours(4).toLocalDate()
                 : LocalDate.now();
         FinancePeriodClient.assertPeriodOpen(financePeriodClient, tenantId, order.getBranchId(), businessDate);
 
-        // 5. State transition
         stateMachine.assertTransition(order.getStatus(), OrderStatus.CLOSED);
         Instant closedAt = Instant.now();
         order.setStatus(OrderStatus.CLOSED);
@@ -548,11 +613,6 @@ public class OrderServiceImpl implements OrderService {
                 order.getStatus(), order.getDerivedStatus());
 
         order = orderRepository.save(order);
-
-        // 6. Publish ORDER_CLOSED event
-        List<PosClosePayloads.PaymentEntry> paymentEntries = request.payments().stream()
-                .map(p -> new PosClosePayloads.PaymentEntry(p.method(), p.amountPaisa(), p.referenceNo()))
-                .collect(Collectors.toList());
 
         List<PosClosePayloads.ItemEntry> itemEntries = order.getItems().stream()
                 .map(item -> new PosClosePayloads.ItemEntry(
@@ -584,11 +644,7 @@ public class OrderServiceImpl implements OrderService {
         eventPublisher.publish(POS_EXCHANGE, ORDER_CLOSED_KEY, ORDER_CLOSED_TYPE,
                 finalOrder.getBranchId(), payload);
 
-        // 7. Mark idempotency complete
-        OrderDto dto = orderMapper.toDto(finalOrder);
-        idempotencyService.markComplete(idempotencyKey, dto.id().toString());
-
-        return dto;
+        return finalOrder;
     }
 
     @Override
@@ -610,7 +666,14 @@ public class OrderServiceImpl implements OrderService {
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
                 order.getStatus(), order.getDerivedStatus());
-        return orderMapper.toDto(orderRepository.save(order));
+        OrderDto dto = orderMapper.toDto(orderRepository.save(order));
+
+        // POS-23: serving the last line of an already-fully-paid order closes it — the single
+        // maybeCloseOrder seam is a no-op unless paymentStatus==PAID && derivedStatus==SERVED.
+        if (order.getDerivedStatus() == DerivedOrderStatus.SERVED) {
+            dto = maybeCloseOrder(orderId);
+        }
+        return dto;
     }
 
     @Override

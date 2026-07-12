@@ -33,6 +33,19 @@ public interface OrderService {
     Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, Pageable pageable);
 
     OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey);
+
+    /**
+     * The single seam (POS-23) that closes an order as a derived consequence of settlement
+     * state — never a direct user action. Closes ONLY when the order is fully Paid
+     * ({@code sum(OrderPayment) >= totalPaisa}) AND fully Served
+     * ({@code derivedStatus == SERVED}) AND not already terminal (CLOSED/VOIDED/REFUNDED), in
+     * which case it is a no-op returning the order unchanged. Invoked from BOTH
+     * {@code PaymentServiceImpl.recordPayment} and {@code markItemServed} so a payment
+     * completing an already-served order closes it, and serving the last line of an
+     * already-paid order closes it too.
+     */
+    OrderDto maybeCloseOrder(UUID orderId);
+
     OrderDto voidOrder(UUID orderId, VoidOrderRequest request, String idempotencyKey);
     OrderDto markItemServed(UUID orderId, UUID itemId);
     OrderDto cancelItem(UUID orderId, UUID itemId);

@@ -22,13 +22,16 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
     private final TenantContext tenantContext;
+    private final OrderService orderService;
 
     public PaymentServiceImpl(OrderRepository orderRepository,
                               OrderPaymentRepository paymentRepository,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              OrderService orderService) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.tenantContext = tenantContext;
+        this.orderService = orderService;
     }
 
     @Override
@@ -55,6 +58,11 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setReferenceNo(referenceNo);
         payment.setRecordedAt(Instant.now());
         paymentRepository.save(payment);
+
+        // POS-23: recording a payment persists it and derives paymentStatus, but never closes
+        // the order directly — maybeCloseOrder is the single seam that closes ONLY when the
+        // order is fully Paid AND fully Served (a payment on an unserved order stays open).
+        orderService.maybeCloseOrder(orderId);
 
         return paymentRepository.sumAmountByOrderId(orderId);
     }
