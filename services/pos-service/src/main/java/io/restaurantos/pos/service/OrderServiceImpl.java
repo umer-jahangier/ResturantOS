@@ -521,58 +521,6 @@ public class OrderServiceImpl implements OrderService {
         return dto;
     }
 
-    @Override
-    public OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey) {
-        // 1. Idempotency check — return stored result if already completed
-        Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
-        if (stored.isPresent()) {
-            // Reconstruct DTO from stored JSON — for simplicity reload from DB
-            UUID tenantId = tenantContext.requireTenantId();
-            Order order = orderRepository.findById(orderId)
-                    .filter(o -> tenantId.equals(o.getTenantId()))
-                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return orderMapper.toDto(order);
-        }
-
-        String requestHash = String.valueOf(request.hashCode());
-        boolean claimed = idempotencyService.checkAndLock(idempotencyKey, requestHash, 86400);
-        if (!claimed) {
-            // Already in flight or completed — return current order state
-            UUID tenantId = tenantContext.requireTenantId();
-            Order order = orderRepository.findById(orderId)
-                    .filter(o -> tenantId.equals(o.getTenantId()))
-                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return orderMapper.toDto(order);
-        }
-
-        UUID tenantId = tenantContext.requireTenantId();
-        Order order = orderRepository.findById(orderId)
-                .filter(o -> tenantId.equals(o.getTenantId()))
-                .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-
-        // 2. Validate order has items and non-zero total
-        if (order.getItems().isEmpty() || order.getTotalPaisa() == 0) {
-            throw new PosExceptions.ZeroValueOrderException("Cannot close empty or zero-value order: " + orderId);
-        }
-
-        // 3. Validate payment sum == order total
-        splitTenderCalculator.validateExact(request.payments(), order.getTotalPaisa());
-
-        // 4-6. Period-lock check, state transition, table sync, ORDER_CLOSED publish — routed
-        // through the single close seam (POS-23) shared with maybeCloseOrder, so the publish
-        // call exists exactly ONCE in this class (see performClose below).
-        List<PosClosePayloads.PaymentEntry> paymentEntries = request.payments().stream()
-                .map(p -> new PosClosePayloads.PaymentEntry(p.method(), p.amountPaisa(), p.referenceNo()))
-                .collect(Collectors.toList());
-        Order finalOrder = performClose(order, paymentEntries);
-
-        // 7. Mark idempotency complete
-        OrderDto dto = orderMapper.toDto(finalOrder);
-        idempotencyService.markComplete(idempotencyKey, dto.id().toString());
-
-        return dto;
-    }
-
     /**
      * POS-23 seam: closes {@code orderId} ONLY when it is fully Paid
      * ({@code paymentStatus == PAID}) AND fully Served ({@code derivedStatus == SERVED}), and
@@ -612,10 +560,9 @@ public class OrderServiceImpl implements OrderService {
     /**
      * Shared close side-effects (POS-23 single seam): period-lock check (fail-closed), the
      * CLOSED state transition, table release, persistence, and the ONE ORDER_CLOSED publish
-     * in this class. Callers ({@code closeOrder}'s legacy exact-tender path and
-     * {@code maybeCloseOrder}'s Paid-AND-Served path) differ only in how {@code paymentEntries}
-     * is sourced — the close mechanics themselves must never diverge (RESEARCH.md Pitfall:
-     * divergent close paths).
+     * in this class. As of plan 07.3-11 the legacy exact-tender-sum close bypass service
+     * method is deleted (its HTTP endpoint now returns 410 Gone) —
+     * {@code maybeCloseOrder}'s Paid-AND-Served path is the ONLY remaining caller.
      */
     private Order performClose(Order order, List<PosClosePayloads.PaymentEntry> paymentEntries) {
         UUID tenantId = order.getTenantId();

@@ -3,7 +3,6 @@ package io.restaurantos.pos.service;
 import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.ApplyDiscountRequest;
 import io.restaurantos.pos.dto.AssignTableRequest;
-import io.restaurantos.pos.dto.CloseOrderRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.dto.OrderSummaryDto;
@@ -32,8 +31,6 @@ public interface OrderService {
      * the caller's JWT branch.
      */
     Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, Pageable pageable);
-
-    OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey);
 
     /**
      * The single seam (POS-23) that closes an order as a derived consequence of settlement
