@@ -23,6 +23,14 @@
             <groupId>io.restaurantos</groupId>
             <artifactId>shared-lib</artifactId>
         </dependency>
+        <!-- 10-18: RBAC IT (FinanceEndpointAuthorizationIT) needs
+             SecurityMockMvcRequestPostProcessors/SecurityMockMvcConfigurers — finance-service had
+             no such guard before this plan (unlike purchasing-service, see 10-09-C). -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

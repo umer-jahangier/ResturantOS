@@ -81,6 +81,33 @@ public class FinanceGlobalExceptionHandler {
                 .body(errorBody("EXPENSE_APPROVAL_LIMIT_EXCEEDED", ex.getMessage()));
     }
 
+    @ExceptionHandler(CreditLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleCreditLimitExceeded(CreditLimitExceededException ex) {
+        Map<String, Object> body = new java.util.HashMap<>(errorBody("CREDIT_LIMIT_EXCEEDED", ex.getMessage()));
+        body.put("currentBalancePaisa", ex.getCurrentBalancePaisa());
+        body.put("creditLimitPaisa", ex.getCreditLimitPaisa());
+        body.put("attemptedPaisa", ex.getAttemptedPaisa());
+        return ResponseEntity.status(422).body(body);
+    }
+
+    @ExceptionHandler(CustomerAccountSuspendedException.class)
+    public ResponseEntity<Map<String, Object>> handleCustomerAccountSuspended(CustomerAccountSuspendedException ex) {
+        return ResponseEntity.status(422)
+                .body(errorBody("CUSTOMER_ACCOUNT_SUSPENDED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CustomerAccountNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCustomerAccountNotFound(CustomerAccountNotFoundException ex) {
+        return ResponseEntity.status(404)
+                .body(errorBody("CUSTOMER_ACCOUNT_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ArSettlementExceedsBalanceException.class)
+    public ResponseEntity<Map<String, Object>> handleArSettlementExceedsBalance(ArSettlementExceedsBalanceException ex) {
+        return ResponseEntity.status(422)
+                .body(errorBody("AR_SETTLEMENT_EXCEEDS_BALANCE", ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity.badRequest()
