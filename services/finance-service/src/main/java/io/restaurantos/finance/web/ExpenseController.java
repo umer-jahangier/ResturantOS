@@ -1,5 +1,6 @@
 package io.restaurantos.finance.web;
 
+import io.restaurantos.finance.domain.enums.ExpenseStatus;
 import io.restaurantos.finance.dto.CreateExpenseRequest;
 import io.restaurantos.finance.dto.ExpenseDto;
 import io.restaurantos.finance.service.ExpenseService;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,6 +34,13 @@ public class ExpenseController {
     @PreAuthorize("hasAuthority('finance.journal.post')")
     public ApiResponse<ExpenseDto> create(@Valid @RequestBody CreateExpenseRequest req) {
         return ApiResponse.ok(expenseService.create(req));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAuthority('finance.journal.view')")
+    public ApiResponse<List<ExpenseDto>> list(@RequestParam UUID branchId,
+                                              @RequestParam(required = false) List<ExpenseStatus> status) {
+        return ApiResponse.ok(expenseService.list(branchId, status));
     }
 
     @GetMapping("/{id}")

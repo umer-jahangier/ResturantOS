@@ -128,6 +128,20 @@ public class ExpenseService {
         return toDto(findById(id));
     }
 
+    /**
+     * 10-10 list endpoint. Tenant is ALWAYS resolved from {@link TenantContext}, never from a
+     * request parameter (a caller-supplied tenantId would be a cross-tenant hole).
+     */
+    @Transactional(readOnly = true)
+    public List<ExpenseDto> list(UUID branchId, List<ExpenseStatus> statuses) {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<Expense> expenses = (statuses == null || statuses.isEmpty())
+                ? expenseRepository.findByTenantIdAndBranchIdOrderByExpenseDateDesc(tenantId, branchId)
+                : expenseRepository.findByTenantIdAndBranchIdAndStatusInOrderByExpenseDateDesc(
+                        tenantId, branchId, statuses);
+        return expenses.stream().map(this::toDto).toList();
+    }
+
     private Expense findById(UUID id) {
         return expenseRepository.findById(id)
                 .orElseThrow(() -> new IllegalStateException("Expense not found: " + id));

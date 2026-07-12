@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -149,6 +150,58 @@ class ExpenseApprovalIT extends FinanceTestBase {
             var jeOpt = journalEntryRepository.findByTenantIdAndSourceTypeAndSourceId(
                     tenantId, "EXPENSE", created.id());
             assertThat(jeOpt).isPresent(); // exactly one JE — findBy...Optional would throw on duplicates
+        } finally {
+            tenantContext.clear();
+        }
+    }
+
+    @Test
+    void list_isBranchAndTenantIsolated_andStatusFilterNarrows() {
+        // branch A, this tenant
+        ExpenseDto branchAExpense1 = createExpense(1_000L);
+        ExpenseDto branchAExpense2 = createExpense(2_000L);
+
+        // reject one so we can prove the status filter narrows
+        tenantContext.set(tenantId, branchId, userId, null);
+        ExpenseDto rejected;
+        try {
+            rejected = expenseService.reject(branchAExpense2.id(), "not budgeted");
+        } finally {
+            tenantContext.clear();
+        }
+
+        // branch B, same tenant -> must not appear in branch A's list
+        UUID branchB = UUID.randomUUID();
+        tenantContext.set(tenantId, branchB, userId, null);
+        try {
+            expenseService.create(new CreateExpenseRequest(
+                    branchB, EXPENSE_DATE, EXPENSE_ACCOUNT_CODE, "Other branch expense", 3_000L));
+        } finally {
+            tenantContext.clear();
+        }
+
+        // another tenant entirely, same branch id coincidentally reused -> must never leak
+        UUID otherTenantId = UUID.randomUUID();
+        tenantContext.set(otherTenantId, branchId, UUID.randomUUID(), null);
+        try {
+            provisioningService.provision(otherTenantId, 2026);
+            expenseService.create(new CreateExpenseRequest(
+                    branchId, EXPENSE_DATE, EXPENSE_ACCOUNT_CODE, "Other tenant expense", 4_000L));
+        } finally {
+            tenantContext.clear();
+        }
+
+        tenantContext.set(tenantId, branchId, userId, null);
+        try {
+            var all = expenseService.list(branchId, null);
+            assertThat(all).extracting(ExpenseDto::id)
+                    .containsExactlyInAnyOrder(branchAExpense1.id(), branchAExpense2.id());
+
+            var pendingOnly = expenseService.list(branchId, List.of(ExpenseStatus.PENDING_APPROVAL));
+            assertThat(pendingOnly).extracting(ExpenseDto::id).containsExactly(branchAExpense1.id());
+
+            var rejectedOnly = expenseService.list(branchId, List.of(ExpenseStatus.REJECTED));
+            assertThat(rejectedOnly).extracting(ExpenseDto::id).containsExactly(rejected.id());
         } finally {
             tenantContext.clear();
         }
