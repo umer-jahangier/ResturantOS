@@ -9,9 +9,16 @@ const VENDOR_ID = "c0000001-0000-4000-8000-000000000001";
 const VENDOR_B_ID = "f0000002-0000-4000-8000-000000000002";
 const PO_ID = "d0000001-0000-4000-8000-000000000001";
 const LINE_ID = "e0000001-0000-4000-8000-000000000001";
+// Second line on the primary fixture PO — required to make a GENUINE per-line partial receipt
+// testable/click-throughable (one line fully received, the other partially -> PARTIALLY_RECEIVED).
+const LINE_ID_2 = "e0000001-0000-4000-8000-000000000002";
 const ING_1 = "11111111-1111-4111-8111-111111110001";
+const ING_2 = "11111111-1111-4111-8111-111111110002";
 
 let poStatus = "SENT";
+// Per-line received-to-date, keyed by poLineId — the regression pin for the "one qty broadcast to
+// every line" bug (10-12 gap closure). Ordered qty: LINE_ID=100, LINE_ID_2=50.
+const receivedByLine: Record<string, string> = { [LINE_ID]: "0", [LINE_ID_2]: "0" };
 let grnQty = "0";
 let closedAt: string | null = null;
 let closeReason: string | null = null;
@@ -63,7 +70,7 @@ const purchaseOrders: MockPo[] = [
     branchId: BRANCH,
     status: poStatus,
     expectedDeliveryDate: "2026-06-14",
-    totalPaisa: 100_000,
+    totalPaisa: 150_000,
     notes: null,
     requesterId: null,
     submittedAt: null,
@@ -79,6 +86,14 @@ const purchaseOrders: MockPo[] = [
         uom: "kg",
         unitPricePaisa: 1000,
         lineTotalPaisa: 100_000,
+      },
+      {
+        id: LINE_ID_2,
+        ingredientId: ING_2,
+        qty: "50",
+        uom: "kg",
+        unitPricePaisa: 1000,
+        lineTotalPaisa: 50_000,
       },
     ],
   },
@@ -344,7 +359,7 @@ export const purchasingHandlers = [
       branchId: BRANCH,
       status: poStatus,
       expectedDeliveryDate: "2026-06-14",
-      totalPaisa: 100_000,
+      totalPaisa: 150_000,
       notes: null,
       requesterId: null,
       submittedAt: null,
@@ -361,15 +376,34 @@ export const purchasingHandlers = [
           unitPricePaisa: 1000,
           lineTotalPaisa: 100_000,
         },
+        {
+          id: LINE_ID_2,
+          ingredientId: ING_2,
+          qty: "50",
+          uom: "kg",
+          unitPricePaisa: 1000,
+          lineTotalPaisa: 50_000,
+        },
       ],
     });
   }),
 
+  // 10-12 gap closure: per-line receipt. `receivedByLine` is the regression pin for the bug this
+  // plan fixes — the OLD handler read only `body.lines[0]` and broadcast it to every line; this
+  // one honours each `{poLineId, receivedQty}` pair independently, so line 1 can be received in
+  // full while line 2 is only partially received (-> PARTIALLY_RECEIVED, not FULLY_RECEIVED).
   http.post("*/api/v1/purchasing/purchase-orders/:poId/mock-receive", async ({ params, request }) => {
     const body = (await request.json()) as { lines: { poLineId: string; receivedQty: string }[] };
-    const received = body.lines[0]?.receivedQty ?? "100";
-    grnQty = received;
-    poStatus = received === "100" ? "FULLY_RECEIVED" : "PARTIALLY_RECEIVED";
+    const orderedQty: Record<string, string> = { [LINE_ID]: "100", [LINE_ID_2]: "50" };
+    for (const line of body.lines) {
+      receivedByLine[line.poLineId] = line.receivedQty;
+    }
+    grnQty = body.lines[0]?.receivedQty ?? "0";
+    const allFull = Object.entries(orderedQty).every(
+      ([lineId, ordered]) => Number(receivedByLine[lineId] ?? "0") >= Number(ordered),
+    );
+    const anyReceived = Object.values(receivedByLine).some((q) => Number(q) > 0);
+    poStatus = allFull ? "FULLY_RECEIVED" : anyReceived ? "PARTIALLY_RECEIVED" : poStatus;
     return ok({ poId: params.poId, status: poStatus, grnIds: ["g0000001-0000-4000-8000-000000000001"] });
   }),
 
@@ -392,7 +426,7 @@ export const purchasingHandlers = [
       branchId: BRANCH,
       status: poStatus,
       expectedDeliveryDate: "2026-06-14",
-      totalPaisa: 100_000,
+      totalPaisa: 150_000,
       notes: null,
       requesterId: null,
       submittedAt: null,
@@ -408,6 +442,14 @@ export const purchasingHandlers = [
           uom: "kg",
           unitPricePaisa: 1000,
           lineTotalPaisa: 100_000,
+        },
+        {
+          id: LINE_ID_2,
+          ingredientId: ING_2,
+          qty: "50",
+          uom: "kg",
+          unitPricePaisa: 1000,
+          lineTotalPaisa: 50_000,
         },
       ],
     });
