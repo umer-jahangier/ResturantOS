@@ -377,6 +377,15 @@ public class OrderServiceImpl implements OrderService {
                 ))
                 .collect(Collectors.toList());
 
+        // KDS-04 (pos-side, additive parity field): resolve the order's table number — null
+        // for takeaway/pickup orders with no bound table. Field NAME must match the
+        // kitchen-service consumer's matching field exactly (lands in 07.3-05).
+        String tableNumber = order.getTableId() != null
+                ? tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
+                        .map(DiningTable::getTableNumber)
+                        .orElse(null)
+                : null;
+
         var payload = new PosEventPayloads.OrderSentToKdsPayload(
                 order.getId(),
                 tenantId,
@@ -384,7 +393,8 @@ public class OrderServiceImpl implements OrderService {
                 order.getOrderNo(),
                 kdsItems,
                 nextRevision,
-                order.getNotes()
+                order.getNotes(),
+                tableNumber
         );
         eventPublisher.publish(POS_EXCHANGE, ORDER_SENT_TO_KDS_KEY, ORDER_SENT_TO_KDS_TYPE,
                 order.getBranchId(), payload);

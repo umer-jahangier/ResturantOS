@@ -31,10 +31,13 @@ public class PosEventPayloads {
      * ORDER_SENT_TO_KDS — emitted on every sendToKds fire (first fire OPEN -> SENT_TO_KDS,
      * or a repeated revision fire on an already-sent order). {@code items} contains ONLY the
      * newly-fired (previously PENDING) lines for THIS fire — never the full order (POS-12).
-     * revisionNo/orderNotes are ADDITIVE fields appended after items — names must match
-     * kitchen-service KitchenEventPayloads.OrderSentToKdsPayload EXACTLY (field-name parity
-     * is the only contract enforcement; a mismatch silently drops every message —
+     * revisionNo/orderNotes/tableNumber are ADDITIVE fields appended after items — names must
+     * match kitchen-service KitchenEventPayloads.OrderSentToKdsPayload EXACTLY (field-name
+     * parity is the only contract enforcement; a mismatch silently drops every message —
      * RESEARCH.md Pitfall 4 / Phase-7 cold-start bug #4). Never reorder/rename existing fields.
+     * {@code tableNumber} (KDS-04) is the order's dining-table number, or {@code null} for
+     * takeaway/pickup orders with no bound table; the matching kitchen-side CONSUME field
+     * lands in 07.3-05 — the name MUST stay {@code tableNumber} on both sides.
      */
     public record OrderSentToKdsPayload(
             UUID orderId,
@@ -43,7 +46,8 @@ public class PosEventPayloads {
             String orderNo,
             List<KdsItemPayload> items,
             int revisionNo,
-            String orderNotes
+            String orderNotes,
+            String tableNumber
     ) {}
 
     public record KdsItemPayload(
