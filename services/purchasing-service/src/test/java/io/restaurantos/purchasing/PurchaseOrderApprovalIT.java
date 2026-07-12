@@ -6,6 +6,7 @@ import io.restaurantos.purchasing.dto.CreateVendorRequest;
 import io.restaurantos.purchasing.dto.PurchaseOrderDto;
 import io.restaurantos.purchasing.dto.VendorDto;
 import io.restaurantos.purchasing.exception.ApprovalLimitExceededException;
+import io.restaurantos.purchasing.exception.DuplicateApproverException;
 import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.service.PoApprovalService;
 import io.restaurantos.purchasing.service.PurchaseOrderService;
@@ -86,5 +87,58 @@ class PurchaseOrderApprovalIT extends PurchasingTestBase {
         purchaseOrderService.submit(po.id());
         assertThatThrownBy(() -> poApprovalService.approve(po.id()))
                 .isInstanceOf(ApprovalLimitExceededException.class);
+    }
+
+    @Test
+    void twoTierPo_sameApproverTwice_rejectedAsDuplicate() {
+        when(authorizationClient.authorize(any())).thenReturn(
+                ApiResponse.ok(new AuthorizationClient.AuthorizeResult(true, null)));
+
+        VendorDto vendor = vendorService.create(new CreateVendorRequest(
+                "Supplier Co", null, null, null, null, "NET30", null, null, null, null, null));
+
+        // 60,000,00 paisa lands in tier 2 (500,000.01 - 2,000,000.00 paisa) -> requiredTiers == 2
+        PurchaseOrderDto po = purchaseOrderService.create(new CreatePurchaseOrderRequest(
+                vendor.id(), branchId, null, null,
+                List.of(new CreatePurchaseOrderRequest.Line(
+                        UUID.randomUUID(), BigDecimal.TEN, "kg", 6_000_000L))));
+
+        PurchaseOrderDto submitted = purchaseOrderService.submit(po.id());
+        assertThat(submitted.requiredTiers()).isEqualTo(2);
+
+        PurchaseOrderDto afterFirstApproval = poApprovalService.approve(po.id());
+        assertThat(afterFirstApproval.tiersApproved()).isEqualTo(1);
+        assertThat(afterFirstApproval.status()).isEqualTo(PoStatus.PENDING_APPROVAL);
+
+        assertThatThrownBy(() -> poApprovalService.approve(po.id()))
+                .isInstanceOf(DuplicateApproverException.class);
+
+        PurchaseOrderDto unchanged = purchaseOrderService.get(po.id());
+        assertThat(unchanged.tiersApproved()).isEqualTo(1);
+        assertThat(unchanged.status()).isEqualTo(PoStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    void twoTierPo_distinctApprovers_approvesFully() {
+        when(authorizationClient.authorize(any())).thenReturn(
+                ApiResponse.ok(new AuthorizationClient.AuthorizeResult(true, null)));
+
+        VendorDto vendor = vendorService.create(new CreateVendorRequest(
+                "Supplier Co", null, null, null, null, "NET30", null, null, null, null, null));
+
+        PurchaseOrderDto po = purchaseOrderService.create(new CreatePurchaseOrderRequest(
+                vendor.id(), branchId, null, null,
+                List.of(new CreatePurchaseOrderRequest.Line(
+                        UUID.randomUUID(), BigDecimal.TEN, "kg", 6_000_000L))));
+
+        PurchaseOrderDto submitted = purchaseOrderService.submit(po.id());
+        assertThat(submitted.requiredTiers()).isEqualTo(2);
+
+        poApprovalService.approve(po.id());
+
+        tenantContext.set(tenantId, branchId, UUID.randomUUID(), null);
+        PurchaseOrderDto approved = poApprovalService.approve(po.id());
+        assertThat(approved.tiersApproved()).isEqualTo(2);
+        assertThat(approved.status()).isEqualTo(PoStatus.APPROVED);
     }
 }

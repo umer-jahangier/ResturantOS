@@ -5,6 +5,7 @@ import io.restaurantos.purchasing.domain.model.PoApprovalRecord;
 import io.restaurantos.purchasing.domain.model.PurchaseOrder;
 import io.restaurantos.purchasing.dto.PurchaseOrderDto;
 import io.restaurantos.purchasing.exception.ApprovalLimitExceededException;
+import io.restaurantos.purchasing.exception.DuplicateApproverException;
 import io.restaurantos.purchasing.exception.InvalidPoStateException;
 import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.repository.PoApprovalRecordRepository;
@@ -57,6 +58,11 @@ public class PoApprovalService {
         }
         assertOpaAllows(po);
         UUID approverId = tenantContext.getUserId().orElseThrow();
+        if (po.getRequiredTiers() > 1
+                && approvalRecordRepository.existsByPurchaseOrderIdAndApproverIdAndAction(
+                        po.getId(), approverId, "APPROVED")) {
+            throw new DuplicateApproverException();
+        }
         int nextTier = po.getTiersApproved() + 1;
         PoApprovalRecord record = new PoApprovalRecord();
         record.setTenantId(po.getTenantId());
