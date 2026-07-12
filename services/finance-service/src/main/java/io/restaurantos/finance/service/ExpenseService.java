@@ -34,6 +34,11 @@ public class ExpenseService {
     private static final String BANK_ACCOUNT_CODE = "1110";
     private static final String SOURCE_TYPE = "EXPENSE";
 
+    // Canonical OPA action vocabulary (decision 10-07-A): the rego short verb, distinct from the
+    // dotted permission code ("finance.expense.approve") checked inside the policy via common.has_permission.
+    // -> policies/restaurantos/finance.rego: allow if input.action == "approve"
+    private static final String OPA_ACTION_APPROVE = "approve";
+
     private final ExpenseRepository expenseRepository;
     private final ChartOfAccountRepository coaRepository;
     private final AuthorizationClient authorizationClient;
@@ -140,7 +145,7 @@ public class ExpenseService {
         ApiResponse<AuthorizationClient.AuthorizeResult> response = authorizationClient.authorize(
                 new AuthorizationClient.AuthorizePayload(
                         "finance",
-                        "finance.expense.approve",
+                        OPA_ACTION_APPROVE,
                         new AuthorizationClient.Resource(
                                 "expense", expense.getId(), expense.getTenantId(), expense.getBranchId(),
                                 expense.getRequestedBy(), expense.getStatus().name(), expense.getAmountPaisa())));

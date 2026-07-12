@@ -23,6 +23,11 @@ import java.util.UUID;
 @Service
 public class PoApprovalService {
 
+    // Canonical OPA action vocabulary (decision 10-07-A): the rego short verb, distinct from the
+    // dotted permission code ("vendor.po.approve") checked inside the policy via common.has_permission.
+    // -> policies/restaurantos/vendor.rego: allow if input.action == "approve_po"
+    private static final String OPA_ACTION_APPROVE_PO = "approve_po";
+
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PoApprovalRecordRepository approvalRecordRepository;
     private final PurchaseOrderService purchaseOrderService;
@@ -94,7 +99,7 @@ public class PoApprovalService {
         ApiResponse<AuthorizationClient.AuthorizeResult> response = authorizationClient.authorize(
                 new AuthorizationClient.AuthorizePayload(
                         "vendor",
-                        "vendor.po.approve",
+                        OPA_ACTION_APPROVE_PO,
                         new AuthorizationClient.Resource(
                                 "purchase_order", po.getId(), po.getTenantId(), po.getBranchId(),
                                 po.getRequesterId(), po.getStatus().name(), po.getTotalPaisa())));

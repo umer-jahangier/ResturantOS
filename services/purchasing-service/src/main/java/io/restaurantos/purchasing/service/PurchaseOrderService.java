@@ -24,6 +24,11 @@ import java.util.UUID;
 @Service
 public class PurchaseOrderService {
 
+    // Canonical OPA action vocabulary (decision 10-07-A): the rego short verb, distinct from the
+    // dotted permission code ("vendor.po.close") checked inside the policy via common.has_permission.
+    // -> policies/restaurantos/vendor.rego: allow if input.action == "close_po"
+    private static final String OPA_ACTION_CLOSE_PO = "close_po";
+
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final TenantContext tenantContext;
     private final TenantSetupService tenantSetupService;
@@ -130,7 +135,7 @@ public class PurchaseOrderService {
         ApiResponse<AuthorizationClient.AuthorizeResult> response = authorizationClient.authorize(
                 new AuthorizationClient.AuthorizePayload(
                         "vendor",
-                        "vendor.po.close",
+                        OPA_ACTION_CLOSE_PO,
                         new AuthorizationClient.Resource(
                                 "purchase_order", po.getId(), po.getTenantId(), po.getBranchId(),
                                 po.getRequesterId(), po.getStatus().name(), po.getTotalPaisa())));
