@@ -131,7 +131,7 @@
 - [x] **POS-23**: Settlement semantics — recording a payment sets a derived payment status (Unpaid/Partially Paid/Paid) and persists `OrderPayment` rows WITHOUT closing the order; an order transitions to `CLOSED` only when it is BOTH fully Paid AND fully Served, enforced on both the payment flow and the mark-served flow; a paid-but-unserved order shows Paid with its live status
 - [x] **POS-24**: Order Management completeness — closed/paid orders are visible with status filters and a search box; every row shows payment status (Paid/Unpaid/Partially Paid/Refunded); the Cover column is replaced with total item quantity (and optional unique-item count); an Assign Table action assigns an available table to a tableless order (occupied tables blocked) updating order + table status immediately; already-paid orders block duplicate payment while staying accessible for history
 - [x] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
-- [ ] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
+- [x] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
 
 ### Kitchen / KDS (KDS)
 
@@ -334,7 +334,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-23 | Phase 07.3 | Complete |
 | POS-24 | Phase 07.3 | Complete |
 | POS-25 | Phase 07.3 | Complete |
-| POS-26 | Phase 07.3 | Pending |
+| POS-26 | Phase 07.3 | Complete |
 | KDS-04 | Phase 07.3 | Complete |
 | KDS-05 | Phase 07.3 | Pending |
 | INV-01 | Phase 8 | Pending |

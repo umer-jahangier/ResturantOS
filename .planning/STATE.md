@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07.3
 current_phase_name: pos-kitchen-production-bug-fixes-ux-revamp
 status: executing
-stopped_at: Completed 07.3-08-PLAN.md
-last_updated: "2026-07-12T14:55:26.131Z"
+stopped_at: Completed 07.3-09-PLAN.md
+last_updated: "2026-07-12T15:45:42.560Z"
 last_activity: 2026-07-12
-last_activity_desc: Completed 07.3-08-PLAN.md
+last_activity_desc: Completed 07.3-09-PLAN.md
 progress:
   total_phases: 15
   completed_phases: 7
   total_plans: 59
-  completed_plans: 53
+  completed_plans: 54
   percent: 47
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 07.3 (pos-kitchen-production-bug-fixes-ux-revamp) — EXECUTING
-Plans: 10 plans across 3 waves — 8/10 complete (07.3-01 done: PaymentStatus derivation,
+Plans: 10 plans across 3 waves — 9/10 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
 PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
@@ -51,9 +51,16 @@ pre-existing S4 fire-toast timing gap, both out of scope, logged in deferred-ite
 amountPaidPaisa/itemQuantity/distinctItemCount), PosRepository.assignTable + useAssignTable,
 Order Management Closed/Paid settlement filters + order-no./table-name search box, Items
 column replacing Cover, payment-status badge column, Assign Table row action via
-table-select-combobox's new availableOnly prop, POS-24)
+table-select-combobox's new availableOnly prop, POS-24; 07.3-09 done: useOnlineStatus
+connectivity-ping removal (navigator.onLine events only), void/refund + till open/close
+converted from hand-rolled fixed-overlay modals to dedicated no-[role=dialog] in-place
+panels mirroring the 07.3-07 charge-page pattern, new pos-modal-revamp.spec.ts POS-25
+no-dialog + screenshot backstop, POS-25/POS-26 — till stage reaches a live PASS
+(pos25-till.png); void/refund stage BLOCKED live this session by a pre-existing
+pos-service addItem HTTP-response-relay hang (server writes complete near-instantly but
+the response never reaches the client), out of scope, logged in deferred-items.md)
 Status: Executing Phase 07.3
-Last activity: 2026-07-12 — Completed 07.3-08-PLAN.md
+Last activity: 2026-07-12 — Completed 07.3-09-PLAN.md
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
@@ -116,6 +123,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.3 P07 | 40min | 4 tasks | 21 files |
 | Phase 07.3 P05 | 20min | 3 tasks | 13 files |
 | Phase 07.3 P08 | 20min | 2 tasks | 9 files |
+| Phase 07.3 P09 | 65min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -273,6 +281,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 07.3-08]: Closed filter scoped to statuses=["CLOSED"] only (not full terminal set) -- matches the chips literal label; VOIDED/REFUNDED remain reachable via their own StatusBadge elsewhere.
 - [Phase ?]: [Phase 07.3-08]: Closed filter uses a SEPARATE enabled-gated useOrderSummaries query instance rather than re-pointing the always-on active-list query, so useFadeOutList never misfires on a filter-driven fetch-scope switch.
 - [Phase ?]: [Phase 07.3-08]: table-select-combobox.tsx gained an additive availableOnly prop (default false) instead of a new component -- Assign Table is the only availableOnly=true caller, order-panel.tsx unaffected.
+- [Phase 07.3-09]: void/refund and till panels use a plain in-flow section (no Radix DialogPrimitive) mirroring 07.3-07's charge-summary.tsx pattern, not 07.3-06's Radix-Dialog-based order-table-detail-drawer.tsx pattern -- required so neither surface carries a [role=dialog], satisfying this plan's own executable no-dialog E2E backstop.
+- [Phase 07.3-09]: till-session-bar.tsx panels replace the trigger row in place within the same session-scoped bar (still visible above all 3 POS tabs) rather than a portal/overlay panel.
 
 ### Pending Todos
 
@@ -296,6 +306,7 @@ Recent decisions affecting current work:
 - 07.2-07's live Playwright E2E run (finance-period-provisioning.spec.ts) was BLOCKED this session: finance-service process down / gateway 503 in the dev stack. Deferred to 07.2-06's restart-and-verify gate per plan.
 - kitchen-service KdsController.getTickets: LazyInitializationException on unscoped GET (no @Transactional boundary) + unsorted/size=20 default Pageable lets accumulated stale PENDING test tickets (29+ on GRILL) push new tickets beyond page 1 -- blocks pos-kitchen-live-sync.spec.ts (POS-20) from a live PASS; out of scope for 07.3-06 (frontend-only), logged in 07.3 deferred-items.md
 - 07.3-07 pos-settlement.spec.ts: S4 (pre-existing, unrelated - Send to Kitchen toast timing) and S7 (cascading) FAIL live on this dev branch; S5/S5b (new POS-22/23 charge-page assertions) correctly reach BLOCKED - POST /payments succeeds but GET /payments 503s at the gateway (same circuit-breaker gap as S2/S6). Recommend a re-run once these environmental gaps clear before treating POS-22/23 live UAT as fully closed.
+- 07.3-09 pos-modal-revamp.spec.ts: void/refund stage BLOCKED live this session by a pos-service POST /orders/{id}/items response-relay hang -- the write completes near-instantly server-side (confirmed via direct DB row inspection) but the HTTP response never reaches the browser, reproduced 5x across a pos-service restart and a gateway restart. Not caused by this plan's files (pure frontend UI, no relationship to the addItem endpoint). Full diagnostic trail in deferred-items.md under `## 07.3-09`. Recommend a re-run once the dev-stack stabilizes to capture the live pos25-void-refund.png.
 
 ### Roadmap Evolution
 
@@ -304,6 +315,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-12T14:52:45.584Z
-Stopped at: Completed 07.3-05-PLAN.md
+Last session: 2026-07-12T15:45:42.546Z
+Stopped at: Completed 07.3-09-PLAN.md
 Resume file: None
