@@ -2,6 +2,7 @@ package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.ApplyDiscountRequest;
+import io.restaurantos.pos.dto.AssignTableRequest;
 import io.restaurantos.pos.dto.CloseOrderRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
@@ -50,4 +51,14 @@ public interface OrderService {
     OrderDto markItemServed(UUID orderId, UUID itemId);
     OrderDto cancelItem(UUID orderId, UUID itemId);
     OrderDto updateInstructions(UUID orderId, UpdateInstructionsRequest request);
+
+    /**
+     * Assign-table (POS-24): binds {@code tableId} to a non-terminal order. Rejects
+     * (StateInvalidException, 409) if the order is already terminal (CLOSED/VOIDED/REFUNDED)
+     * or the target table is not AVAILABLE (re-checked INSIDE the transaction — concurrency
+     * safe, T-07.3-12). Table-status mutation routes exclusively through
+     * {@code TableService.syncStatusForOrder} (single seam) — never an inline
+     * {@code table.setStatus(...)}.
+     */
+    OrderDto assignTable(UUID orderId, UUID tableId);
 }

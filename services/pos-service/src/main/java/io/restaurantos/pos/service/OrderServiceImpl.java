@@ -745,6 +745,39 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(orderRepository.save(order));
     }
 
+    @Override
+    public OrderDto assignTable(UUID orderId, UUID tableId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (isTerminal(order.getStatus())) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot assign a table to an order in status: " + order.getStatus());
+        }
+
+        DiningTable table = tableRepository.findByIdAndBranchId(tableId, order.getBranchId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dining table not found: " + tableId));
+
+        // Re-check AVAILABLE INSIDE the transaction (T-07.3-12 — concurrency-safe; a caller
+        // cannot rely on a stale pre-fetched table list). OCCUPIED/NEEDS_BUSSING are rejected.
+        if (table.getStatus() != io.restaurantos.pos.domain.enums.TableStatus.AVAILABLE) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Table is not available: " + table.getStatus());
+        }
+
+        UUID previousTableId = order.getTableId();
+        order.setTableId(tableId);
+        order = orderRepository.save(order);
+
+        // Single seam (RESEARCH.md Pitfall 5) — route BOTH the previous binding (a no-op when
+        // null, the common case) and the newly-assigned table through syncStatusForOrder; never
+        // an inline table.setStatus(...) call.
+        tableService.syncStatusForOrder(previousTableId, order.getBranchId(), order.getStatus(), order.getDerivedStatus());
+        tableService.syncStatusForOrder(tableId, order.getBranchId(), order.getStatus(), order.getDerivedStatus());
+
+        return orderMapper.toDto(order);
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private OrderItem findItemInOrder(Order order, UUID itemId) {
