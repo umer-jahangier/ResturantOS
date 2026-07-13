@@ -1,5 +1,6 @@
 package io.restaurantos.finance;
 
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
@@ -11,9 +12,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 // repositories resolve and Spring Data JPA registers the shared EntityManager bean that
 // SharedAutoConfiguration's TenantFilterInterceptor depends on.
 @SpringBootApplication
+@EnableRabbit
 @EnableFeignClients(basePackages = "io.restaurantos.finance.feign")
-@EntityScan(basePackages = {"io.restaurantos.finance.domain.model", "io.restaurantos.shared"})
-@EnableJpaRepositories(basePackages = {"io.restaurantos.finance.repository", "io.restaurantos.shared"})
+@EntityScan(basePackages = {"io.restaurantos.finance.domain.model", "io.restaurantos.finance.autopost", "io.restaurantos.shared"})
+@EnableJpaRepositories(basePackages = {"io.restaurantos.finance.repository", "io.restaurantos.finance.autopost", "io.restaurantos.shared"})
 public class FinanceServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(FinanceServiceApplication.class, args);

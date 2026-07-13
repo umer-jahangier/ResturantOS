@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="crm-1.0.0-010-create-customers" author="restaurantos-agent">
+        <createTable tableName="customers">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="phone" type="VARCHAR(30)"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(200)"><constraints nullable="false"/></column>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="birthday" type="DATE"/>
+            <column name="cnic_encrypted" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint tableName="customers" columnNames="tenant_id, phone" constraintName="uk_customers_tenant_phone"/>
+        <createIndex tableName="customers" indexName="idx_customers_tenant_id"><column name="tenant_id"/></createIndex>
+    </changeSet>
+
+    <changeSet id="crm-1.0.0-010b-loyalty-accounts" author="restaurantos-agent">
+        <createTable tableName="loyalty_accounts">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="customer_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="points_balance" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="tier" type="VARCHAR(20)" defaultValue="BRONZE"><constraints nullable="false"/></column>
+            <column name="lifetime_spend_paisa" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint tableName="loyalty_accounts" columnNames="customer_id" constraintName="uk_loyalty_accounts_customer"/>
+        <addForeignKeyConstraint baseTableName="loyalty_accounts" baseColumnNames="customer_id"
+                                 referencedTableName="customers" referencedColumnNames="id"
+                                 constraintName="fk_loyalty_accounts_customer"/>
+    </changeSet>
+
+    <changeSet id="crm-1.0.0-010c-loyalty-transactions" author="restaurantos-agent">
+        <createTable tableName="loyalty_transactions">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="customer_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="order_id" type="UUID"/>
+            <column name="type" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="points" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="loyalty_transactions" indexName="idx_loyalty_tx_customer">
+            <column name="customer_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="crm-1.0.0-010d-loyalty-tier-config" author="restaurantos-agent">
+        <createTable tableName="loyalty_tier_config">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="tier" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="min_lifetime_spend_paisa" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="points_per_pkr_paisa" type="BIGINT"><constraints nullable="false"/></column>
+        </createTable>
+        <addUniqueConstraint tableName="loyalty_tier_config" columnNames="tenant_id, tier" constraintName="uk_loyalty_tier_config"/>
+    </changeSet>
+
+    <changeSet id="crm-1.0.0-010e-promotions" author="restaurantos-agent">
+        <createTable tableName="promotions">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(200)"><constraints nullable="false"/></column>
+            <column name="discount_type" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="discount_value" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="start_at" type="TIMESTAMPTZ"><constraints nullable="false"/></column>
+            <column name="end_at" type="TIMESTAMPTZ"><constraints nullable="false"/></column>
+            <column name="days_of_week" type="INT[]"/>
+            <column name="hour_start" type="INT"/>
+            <column name="hour_end" type="INT"/>
+            <column name="tier_filter" type="TEXT[]"/>
+            <column name="menu_item_ids" type="UUID[]"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="crm-1.0.0-010f-customer-feedback" author="restaurantos-agent">
+        <createTable tableName="customer_feedback">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="customer_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="order_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="rating" type="INT"><constraints nullable="false"/></column>
+            <column name="comment" type="TEXT"/>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="crm-1.0.0-010g-grants" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            GRANT SELECT, INSERT, UPDATE, DELETE ON customers TO crm_user;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON loyalty_accounts TO crm_user;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON loyalty_transactions TO crm_user;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON loyalty_tier_config TO crm_user;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON promotions TO crm_user;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON customer_feedback TO crm_user;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

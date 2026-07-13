@@ -45,20 +45,26 @@ function Stop-DevStack {
     exit 0
 }
 
-if ($Stop) { Stop-DevStack }
+if ($Stop) {
+    . (Join-Path $PSScriptRoot "dev-env.ps1")
+    Stop-DevStack
+}
 
 # ── Toolchain ────────────────────────────────────────────────────────────────
 . (Join-Path $PSScriptRoot "dev-env.ps1")
 
-foreach ($tool in @("docker", "java", "mvn")) {
+foreach ($tool in @("java", "mvn")) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
-        Write-Error "Missing '$tool'. Run scripts/SETUP-WINDOWS.md bootstrap first."
+        Write-Error "Missing '$tool'. Dot-source scripts/dev-env.ps1 first."
     }
 }
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Error "Docker not configured. Run: .\scripts\setup-docker-wsl.ps1 -SetupDistro"
+}
 if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
-    $pnpmCmd = "D:\tools\pnpm-global\pnpm.cmd"
-    if (Test-Path $pnpmCmd) { $env:Path = "D:\tools\pnpm-global;$env:Path" }
-    else { Write-Error "pnpm not found. Install to D:\tools\pnpm-global" }
+    $pnpmCmd = "E:\RestaurantOS workspace\tools\pnpm-global\pnpm.cmd"
+    if (Test-Path $pnpmCmd) { $env:Path = "E:\RestaurantOS workspace\tools\pnpm-global;$env:Path" }
+    else { Write-Error "pnpm not found. Run: npm install -g pnpm --prefix E:\RestaurantOS workspace\tools\pnpm-global" }
 }
 
 . (Join-Path $PSScriptRoot "local-service-env.ps1")
@@ -73,6 +79,28 @@ NEXT_PUBLIC_WS_BASE_URL=ws://localhost:8080
 }
 
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+
+$DevMavenModules = @(
+    "gateway",
+    "services/auth-service",
+    "services/authorization-service",
+    "services/user-service",
+    "services/platform-admin-service",
+    "services/audit-service",
+    "services/file-service",
+    "services/finance-service",
+    "services/crm-service"
+)
+
+function Build-DevServices {
+    Write-Step "Building backend JARs (single Maven run; ~5-10 min on first start)"
+    $env:MAVEN_OPTS = "-Xmx768m -XX:+ExitOnOutOfMemoryError"
+    $moduleList = ($DevMavenModules -join ",")
+    mvn -pl $moduleList -am -DskipTests package -q
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Maven package failed. Close other apps to free RAM and retry."
+    }
+}
 
 # ── Infrastructure ─────────────────────────────────────────────────────────────
 Write-Step "Starting Docker infrastructure"
@@ -90,6 +118,18 @@ function Wait-HttpOk([string]$Url, [int]$TimeoutSec = 120) {
             $r = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
             if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { return $true }
         } catch { Start-Sleep -Seconds 3 }
+    }
+    return $false
+}
+
+function Wait-PostgresReady([int]$TimeoutSec = 180) {
+    $pgUser = (Select-String -Path (Join-Path $RepoRoot 'deploy\.env') -Pattern '^POSTGRES_SUPERUSER=' |
+        ForEach-Object { $_.Line.Split('=', 2)[1] })
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        docker @('exec', 'restaurantos-postgres', 'pg_isready', '-U', $pgUser, '-d', 'postgres') 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { return $true }
+        Start-Sleep -Seconds 3
     }
     return $false
 }
@@ -116,6 +156,11 @@ function Test-BootJar([string]$JarPath) {
     }
 }
 
+Write-Step "Waiting for Postgres"
+if (-not (Wait-PostgresReady 180)) {
+    Write-Warning "Postgres readiness timed out - backend services may fail to migrate"
+}
+
 function Start-ServiceWindow(
     [string]$Name,
     [string]$MavenModule,
@@ -124,19 +169,8 @@ function Start-ServiceWindow(
     $logFile = Join-Path $LogDir "$Name.log"
     $artifact = Split-Path $MavenModule -Leaf
     $jarPath = Join-Path $RepoRoot "$MavenModule/target/$artifact-1.0.0.jar"
-    $needsBuild = -not $SkipBuild.IsPresent -or -not (Test-BootJar $jarPath)
-    if ($needsBuild) {
-        Write-Host "  Building $Name..."
-        Push-Location $RepoRoot
-        mvn -pl $MavenModule -am -DskipTests package -q
-        if ($LASTEXITCODE -ne 0) {
-            Pop-Location
-            Write-Error "Maven build failed for $Name"
-        }
-        Pop-Location
-        if (-not (Test-BootJar $jarPath)) {
-            Write-Error "Expected executable Spring Boot jar at $jarPath (missing Main-Class). Re-run without -SkipBuild."
-        }
+    if (-not (Test-BootJar $jarPath)) {
+        Write-Error "Missing executable jar at $jarPath. Run start-dev without -SkipBuild first."
     }
     $cmd = @"
 Set-Location '$RepoRoot'
@@ -144,7 +178,7 @@ Set-Location '$RepoRoot'
 . '$PSScriptRoot\local-service-env.ps1'
 `$Host.UI.RawUI.WindowTitle = 'RestaurantOS - $Name'
 $ExtraEnvBlock
-java -jar '$jarPath' *>&1 | Tee-Object -FilePath '$logFile'
+java -Xmx256m -jar '$jarPath' *>&1 | Tee-Object -FilePath '$logFile'
 "@
     $proc = Start-Process powershell -PassThru -WindowStyle Hidden -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $cmd
@@ -152,6 +186,12 @@ java -jar '$jarPath' *>&1 | Tee-Object -FilePath '$logFile'
     Write-Host "  Started $Name (PID $($proc.Id)) -> $logFile"
     return $proc.Id
 }
+
+if (-not $SkipBuild) {
+    Build-DevServices
+}
+
+& (Join-Path $PSScriptRoot "unlock-liquibase-locks.ps1")
 
 # ── Backend services (order matters: auth before gateway) ─────────────────────
 Write-Step "Starting backend services (separate windows)"
@@ -168,9 +208,10 @@ $pids["file-service"] = Start-ServiceWindow "file-service" "services/file-servic
 $pids["finance-service"] = Start-ServiceWindow "finance-service" "services/finance-service"
 $pids["pos-service"] = Start-ServiceWindow "pos-service" "services/pos-service"
 $pids["kitchen-service"] = Start-ServiceWindow "kitchen-service" "services/kitchen-service"
+$pids["crm-service"] = Start-ServiceWindow "crm-service" "services/crm-service"
 
 Write-Step "Waiting for auth-service JWKS before gateway"
-if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 180)) {
+if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 300)) {
     Write-Warning "Auth JWKS not ready - gateway may fail to start. Check .dev-logs/auth-service.log"
 }
 
@@ -179,8 +220,10 @@ if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 180)) {
 Write-Step "Applying auth refresh-lookup owner (post-migration)"
 try {
     $pgUser = (Select-String -Path (Join-Path $RepoRoot 'deploy\.env') -Pattern '^POSTGRES_SUPERUSER=' | ForEach-Object { $_.Line.Split('=', 2)[1] })
-    Get-Content -Raw (Join-Path $RepoRoot 'deploy\init\04-auth-refresh-lookup-owner.sql') |
-        docker exec -i restaurantos-postgres psql -U $pgUser -d auth_db -q | Out-Null
+    $sqlFile = (Resolve-Path (Join-Path $RepoRoot 'deploy\init\04-auth-refresh-lookup-owner.sql')).Path
+    $wslFile = wsl -d $global:RestaurantOS_WslDistro wslpath -a $sqlFile
+    docker @('cp', $wslFile, 'restaurantos-postgres:/tmp/ros-04-auth-refresh-lookup-owner.sql') | Out-Null
+    docker @('exec', 'restaurantos-postgres', 'psql', '-U', $pgUser, '-d', 'auth_db', '-q', '-f', '/tmp/ros-04-auth-refresh-lookup-owner.sql') | Out-Null
 } catch { Write-Warning "Could not apply 04-auth-refresh-lookup-owner.sql: $_" }
 
 $pids["gateway"] = Start-ServiceWindow "gateway" "gateway"
@@ -191,6 +234,7 @@ $frontendLog = Join-Path $LogDir "frontend.log"
 $feCmd = @"
 Set-Location '$RepoRoot\frontend'
 `$Host.UI.RawUI.WindowTitle = 'RestaurantOS - frontend'
+`$env:NODE_OPTIONS = '--max-old-space-size=512'
 if (-not (Test-Path node_modules)) { pnpm install }
 pnpm dev *>&1 | Tee-Object -FilePath '$frontendLog'
 "@

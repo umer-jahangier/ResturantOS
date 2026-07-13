@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="crm-1.0.0-900-seed-loyalty-config" author="restaurantos-agent" context="seed">
+        <sql>
+            INSERT INTO loyalty_tier_config (tenant_id, tier, min_lifetime_spend_paisa, points_per_pkr_paisa)
+            SELECT '00000000-0000-0000-0000-000000000001'::uuid, tier, min_spend, 100
+            FROM (VALUES
+                ('BRONZE', 0),
+                ('SILVER', 5000000),
+                ('GOLD', 20000000)
+            ) AS v(tier, min_spend)
+            WHERE NOT EXISTS (
+                SELECT 1 FROM loyalty_tier_config
+                WHERE tenant_id = '00000000-0000-0000-0000-000000000001'::uuid AND tier = v.tier
+            );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

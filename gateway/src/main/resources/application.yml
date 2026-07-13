@@ -163,27 +163,21 @@ spring:
                       - 500
                       - 503
 
+            # ── CRM Service ─────────────────────────────────────────────────────
+            - id: crm-route
+              uri: lb://crm-service
+              predicates:
+                - Path=/api/v1/crm/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: crmCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
-            # - id: hr-route
-            #   uri: lb://hr-service
-            #   predicates:
-            #     - Path=/api/v1/hr/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: hrCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: crm-route
-            #   uri: lb://crm-service
-            #   predicates:
-            #     - Path=/api/v1/crm/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: crmCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
             # - id: nlq-route
             #   uri: lb://nlq-service
             #   predicates:
@@ -277,6 +271,11 @@ resilience4j:
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
       financeCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      crmCircuitBreaker:
         slidingWindowSize: 10
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
