@@ -3,6 +3,10 @@ deploy/.env
 deploy/.pgpass
 *.pem
 
+# Rendered from deploy/init/rabbitmq-definitions.template.json at bring-up
+# (contains a RabbitMQ password_hash derived from deploy/.env) — commit the template, not this.
+deploy/init/rabbitmq-definitions.json
+
 # Maven build output
 target/
 **/target/

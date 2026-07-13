@@ -62,6 +62,13 @@ services:
     container_name: restaurantos-rabbitmq
     restart: unless-stopped
     environment:
+      # NOTE: RabbitMQ SKIPS the RABBITMQ_DEFAULT_USER/PASS bootstrap entirely when
+      # rabbitmq.conf sets `load_definitions` (see deploy/init/rabbitmq.conf) — these two
+      # vars are inert once a definitions file is loaded. The real user is created
+      # declaratively via deploy/init/rabbitmq-definitions.json (rendered from
+      # rabbitmq-definitions.template.json by scripts/dev-stack-up.sh). Kept here only so
+      # `docker compose up rabbitmq` still boots with SOME creds if load_definitions is
+      # ever removed.
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
       RABBITMQ_DEFINITIONS_FILE: /etc/rabbitmq/definitions.json
