@@ -1,14 +1,19 @@
 "use client";
 
 import { MessageSquare } from "lucide-react";
-import { useKdsTicketDetail } from "@/lib/hooks/kds/use-kds-tickets";
+import { useKdsTicketDetail, useUpdateItemStatus } from "@/lib/hooks/kds/use-kds-tickets";
 import { StatusBadge, type LineItemStatusVariant } from "@/components/ui/status-badge";
 import { RevisionBadge } from "@/components/pos/revision-chip";
+import { getNextItemStatus, mapItemStatusToColumn, KDS_COLUMN_LABELS } from "@/components/kds/kds-item-column";
 import type { KdsItemStatus, KdsTicketItem } from "@/lib/models/kds.model";
 
 interface KdsTicketDetailProps {
   ticketId: string;
   branchId: string;
+  /** Renders a per-item "Move to {next column}" transition control when true
+   * (kds-station-detail.tsx, KDS-04/D-12) — omitted entirely for read-only
+   * viewers (server still authoritatively gates the endpoint, T-07.3-29). */
+  canUpdate?: boolean;
 }
 
 // StatusBadge's LineItemStatusVariant (7-value, pos-service OrderItemStatus-derived)
@@ -54,8 +59,9 @@ function formatRevisionTime(value: string | null): string {
  * and notes, plus the order-level "Kitchen Notes" callout (UI-SPEC §6) at the top.
  * Board stays always-dark inside the detail too — no theme-dependent classes here.
  */
-export function KdsTicketDetail({ ticketId, branchId }: KdsTicketDetailProps) {
+export function KdsTicketDetail({ ticketId, branchId, canUpdate = false }: KdsTicketDetailProps) {
   const { data: ticket, isLoading } = useKdsTicketDetail(branchId, ticketId);
+  const updateItemStatus = useUpdateItemStatus(branchId);
 
   if (isLoading || !ticket) {
     return <div className="p-4 text-sm text-gray-400">Loading ticket…</div>;
@@ -114,6 +120,24 @@ export function KdsTicketDetail({ ticketId, branchId }: KdsTicketDetailProps) {
                       <div className="text-xs text-amber-400 mt-0.5 italic">{item.notes}</div>
                     )}
                   </div>
+                  {canUpdate &&
+                    (() => {
+                      const nextStatus = getNextItemStatus(item.status);
+                      if (!nextStatus) return null;
+                      const nextColumn = mapItemStatusToColumn(nextStatus);
+                      return (
+                        <button
+                          type="button"
+                          data-testid={`detail-move-${item.id}`}
+                          onClick={() =>
+                            updateItemStatus.mutate({ ticketId, itemId: item.id, status: nextStatus })
+                          }
+                          className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                        >
+                          {nextColumn ? `Move to ${KDS_COLUMN_LABELS[nextColumn]}` : "Advance"}
+                        </button>
+                      );
+                    })()}
                 </div>
               ))}
             </div>

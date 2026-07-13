@@ -1,15 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, MessageSquare, Search } from "lucide-react";
+import { Dialog as DialogPrimitive } from "radix-ui";
+import { ArrowRight, MessageSquare, RefreshCw, Search, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { Input } from "@/components/ui/input";
 import { RevisionBadge, RevisionCountChip, deriveRevisionLog } from "@/components/pos/revision-chip";
 import { SettlementActions } from "@/components/pos/settlement-actions";
-import { useOrder, useMarkServed, useUpdateInstructions, useAddItem } from "@/lib/hooks/pos/use-orders";
+import {
+  useOrder,
+  useMarkServed,
+  useCancelItem,
+  useRemoveItem,
+  useUpdateInstructions,
+  useAddItem,
+  useSendToKds,
+} from "@/lib/hooks/pos/use-orders";
 import { useTableDetail } from "@/lib/hooks/pos/use-tables";
 import { useMenuItems } from "@/lib/hooks/pos/use-menu";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
@@ -63,81 +72,152 @@ export function OrderTableDetailDrawer({
 
   const order: Order | null = isTableMode ? (tableQuery.data?.activeOrder ?? null) : (orderQuery.data ?? null);
   const isLoading = isTableMode ? tableQuery.isLoading : orderQuery.isLoading;
+  const isRefetching = isTableMode ? tableQuery.isFetching : orderQuery.isFetching;
   const resolvedTableId = order?.tableId ?? tableId ?? null;
   const resolvedTableName = isTableMode ? (tableQuery.data?.tableName ?? tableName ?? null) : (tableName ?? null);
+
+  const handleRefresh = () => {
+    void (isTableMode ? tableQuery.refetch() : orderQuery.refetch());
+  };
 
   const revisions = useMemo(() => (order ? deriveRevisionLog(order.items) : []), [order]);
   const displayStatus = order ? getOrderDisplayStatus(order) : null;
   const isSettled = order ? SETTLED_STATUSES.has(order.status) : false;
 
+  // "Send New Items (N)" revision-fire CTA (POS-21/D-06) — gated off a resolved order for
+  // BOTH orderId and tableId modes (order is null until either query resolves). Bound to
+  // useSendToKds(order.id) which fires only the order's currently-PENDING lines
+  // server-side as a new revision; already-fired lines are never resent.
+  const sendToKds = useSendToKds(order?.id ?? "");
+  const pendingItems = order ? order.items.filter((i) => i.itemStatus === "PENDING") : [];
+  const canSendNewItems = !isSettled && pendingItems.length > 0;
+
+  const handleSendNewItems = async () => {
+    const firingCount = pendingItems.length;
+    try {
+      const updated = await sendToKds.mutateAsync();
+      const newRevisionNo = Math.max(0, ...updated.items.map((i) => i.revisionNo));
+      toast.success(`Rev ${newRevisionNo} sent to kitchen — ${firingCount} item(s)`);
+    } catch {
+      toast.error("Failed to send new items. Please try again.");
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        data-testid="order-table-detail-drawer"
-        className={cn(
-          "fixed inset-y-0 top-0 right-0 left-auto h-full w-full max-w-[calc(100%-2rem)]",
-          "translate-x-0 translate-y-0 flex flex-col gap-0 rounded-none border-l p-0",
-          "sm:w-[420px] sm:max-w-[420px]",
-          "data-open:slide-in-from-right data-open:fade-in-0 data-open:zoom-in-100",
-          "data-closed:slide-out-to-right data-closed:fade-out-0 data-closed:zoom-out-100",
-        )}
-      >
-        <DialogHeader className="shrink-0 space-y-1.5 border-b px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle>
-              {order ? `Order #${order.orderNo ?? order.id.slice(0, 8)}` : "Order Details"}
-            </DialogTitle>
-            {displayStatus && <StatusBadge status={displayStatus} />}
-          </div>
-          {order && (
-            <p className="text-xs text-muted-foreground">
-              {resolvedTableName ? `Table ${resolvedTableName}` : order.type.replace("_", " ")}
-              {order.coverCount > 0 ? ` · ${order.coverCount} cover(s)` : ""}
-            </p>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className="fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+        />
+        {/*
+         * Large in-place panel (POS-25/D-10) — occupies the primary content area (nearly
+         * full viewport, responsive, no horizontal body overflow) rather than a centered
+         * `sm:max-w-md`/narrow-sidebar dialog. Built directly from the Radix Dialog
+         * primitives (not the shared `DialogContent`) specifically to avoid that shared
+         * component's `sm:max-w-sm` default width.
+         */}
+        <DialogPrimitive.Content
+          data-testid="order-table-detail-drawer"
+          className={cn(
+            "fixed inset-4 z-50 flex flex-col gap-0 overflow-hidden rounded-xl border bg-popover p-0",
+            "text-sm text-popover-foreground shadow-lg outline-none ring-1 ring-foreground/10 duration-100",
+            "sm:inset-6 lg:inset-10",
+            "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
+            "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           )}
-          {revisions.length > 0 && <RevisionCountChip revisions={revisions} />}
-        </DialogHeader>
-
-        {isLoading ? (
-          <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
-            Loading order…
-          </div>
-        ) : !order ? (
-          <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
-            No active order found.
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-y-auto divide-y">
-              {order.items.length === 0 ? (
-                <div className="flex h-20 items-center justify-center text-sm text-muted-foreground">
-                  No items yet
-                </div>
-              ) : (
-                order.items.map((item) => (
-                  <DrawerLineItem key={item.id} item={item} orderId={order.id} />
-                ))
+        >
+          <div className="flex shrink-0 items-start justify-between gap-2 space-y-1.5 border-b px-4 py-3">
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <DialogPrimitive.Title className="font-heading text-base font-medium leading-none">
+                  {order ? `Order #${order.orderNo ?? order.id.slice(0, 8)}` : "Order Details"}
+                </DialogPrimitive.Title>
+                {displayStatus && <StatusBadge status={displayStatus} />}
+              </div>
+              {order && (
+                <p className="text-xs text-muted-foreground">
+                  {resolvedTableName ? `Table ${resolvedTableName}` : order.type.replace("_", " ")}
+                  {order.coverCount > 0 ? ` · ${order.coverCount} cover(s)` : ""}
+                </p>
               )}
+              {revisions.length > 0 && <RevisionCountChip revisions={revisions} />}
             </div>
-
-            <InstructionsField orderId={order.id} notes={order.notes} disabled={isSettled} />
-
-            {!isSettled && (
-              <QuickAddSearch
-                orderId={order.id}
-                branchId={branchId}
-                tableId={resolvedTableId}
-                onFullMenu={onFullMenu}
-              />
-            )}
-
-            <div className="shrink-0 border-t px-4 py-3">
-              <SettlementActions order={order} />
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Refresh order details"
+                onClick={handleRefresh}
+                disabled={isRefetching}
+              >
+                <RefreshCw className={cn("size-4", isRefetching && "animate-spin")} />
+              </Button>
+              <DialogPrimitive.Close asChild>
+                <Button variant="ghost" size="icon-sm" aria-label="Close order details">
+                  <XIcon />
+                </Button>
+              </DialogPrimitive.Close>
             </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+          </div>
+
+          {isLoading ? (
+            <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
+              Loading order…
+            </div>
+          ) : !order ? (
+            <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
+              No active order found.
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto divide-y">
+                {order.items.length === 0 ? (
+                  <div className="flex h-20 items-center justify-center text-sm text-muted-foreground">
+                    No items yet
+                  </div>
+                ) : (
+                  order.items.map((item) => (
+                    <DrawerLineItem
+                      key={item.id}
+                      item={item}
+                      orderId={order.id}
+                      orderStatus={order.status}
+                      isSettled={isSettled}
+                    />
+                  ))
+                )}
+              </div>
+
+              <InstructionsField orderId={order.id} notes={order.notes} disabled={isSettled} />
+
+              {!isSettled && (
+                <QuickAddSearch
+                  orderId={order.id}
+                  branchId={branchId}
+                  tableId={resolvedTableId}
+                  onFullMenu={onFullMenu}
+                />
+              )}
+
+              <div className="shrink-0 space-y-2 border-t px-4 py-3">
+                {canSendNewItems && (
+                  <button
+                    type="button"
+                    data-testid="send-new-items-button"
+                    onClick={() => void handleSendNewItems()}
+                    disabled={sendToKds.isPending}
+                    className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {sendToKds.isPending ? "Sending..." : `Send New Items (${pendingItems.length})`}
+                  </button>
+                )}
+                <SettlementActions order={order} />
+              </div>
+            </>
+          )}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -146,12 +226,24 @@ export function OrderTableDetailDrawer({
 interface DrawerLineItemProps {
   item: Order["items"][number];
   orderId: string;
+  orderStatus: Order["status"];
+  isSettled: boolean;
 }
 
-function DrawerLineItem({ item, orderId }: DrawerLineItemProps) {
+function DrawerLineItem({ item, orderId, orderStatus, isSettled }: DrawerLineItemProps) {
   const markServed = useMarkServed(orderId);
+  const cancelItem = useCancelItem(orderId);
+  const removeItem = useRemoveItem(orderId);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+
+  const isCancelled = item.itemStatus === "CANCELLED";
   const isActive =
     item.itemStatus !== "PENDING" && item.itemStatus !== "CANCELLED" && item.itemStatus !== "SERVED";
+  // A not-yet-fired line on an OPEN order can be REMOVED outright; on a fired order it can't
+  // (server blocks remove unless OPEN), so it's cancelled instead. Everything active is
+  // cancellable except an already-served/cancelled line.
+  const canRemove = !isSettled && item.itemStatus === "PENDING" && orderStatus === "OPEN";
+  const canCancel = !isSettled && !isCancelled && item.itemStatus !== "SERVED" && !canRemove;
 
   return (
     <div className="flex flex-col gap-1.5 px-4 py-2">
@@ -161,7 +253,7 @@ function DrawerLineItem({ item, orderId }: DrawerLineItemProps) {
             <p
               className={cn(
                 "truncate text-sm font-medium",
-                item.itemStatus === "CANCELLED" && "line-through text-muted-foreground",
+                isCancelled && "line-through text-muted-foreground",
               )}
             >
               {item.itemNameSnapshot}
@@ -177,19 +269,64 @@ function DrawerLineItem({ item, orderId }: DrawerLineItemProps) {
           <MoneyDisplay paisa={item.lineTotalPaisa} className="font-mono text-xs" />
         </div>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <StatusBadge status={item.itemStatus} className="text-[10px]" />
-        {isActive && (
-          <button
-            type="button"
-            onClick={() => markServed.mutate(item.id)}
-            disabled={markServed.isPending}
-            aria-label={`Mark ${item.itemNameSnapshot} served`}
-            className="rounded border border-success px-2 py-1 text-xs text-success hover:bg-success/10 disabled:opacity-50"
-          >
-            Mark Served
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {isActive && (
+            <button
+              type="button"
+              onClick={() => markServed.mutate(item.id)}
+              disabled={markServed.isPending}
+              aria-label={`Mark ${item.itemNameSnapshot} served`}
+              className="rounded border border-success px-2 py-1 text-xs text-success hover:bg-success/10 disabled:opacity-50"
+            >
+              Mark Served
+            </button>
+          )}
+          {canRemove && (
+            <button
+              type="button"
+              onClick={() => removeItem.mutate(item.id)}
+              disabled={removeItem.isPending}
+              aria-label={`Remove ${item.itemNameSnapshot}`}
+              className="rounded border border-destructive px-2 py-1 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              Remove
+            </button>
+          )}
+          {canCancel && !confirmingCancel && (
+            <button
+              type="button"
+              onClick={() => setConfirmingCancel(true)}
+              data-testid={`cancel-item-${item.id}`}
+              className="rounded border border-destructive px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+            >
+              Cancel
+            </button>
+          )}
+          {canCancel && confirmingCancel && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  cancelItem.mutate(item.id);
+                  setConfirmingCancel(false);
+                }}
+                disabled={cancelItem.isPending}
+                className="rounded bg-destructive px-2 py-1 text-xs text-destructive-foreground disabled:opacity-50"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(false)}
+                className="rounded border px-2 py-1 text-xs"
+              >
+                Keep
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

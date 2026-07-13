@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, within, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -7,6 +7,17 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { PosTerminal } from "@/components/pos/pos-terminal";
+
+// OrderPanel's footer renders SettlementActions, which navigates (useRouter) instead of
+// opening a Dialog since 07.3-07 — no real Next router is mounted in these unit tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
+
+// Phase 07.3-03 (D-01/POS-16): the terminal now holds a client-only cart — NOTHING
+// persists to pos-service until the cashier hits Send to Kitchen. These tests replace
+// the pre-07.3 "creates a DRAFT order on first tap" suite, which tested behavior this
+// plan deliberately removes.
 
 const BRANCH_ID = "b1000001-0000-4000-8000-000000000001";
 const CATEGORY_ID = "c1000001-0000-4000-8000-000000000001";
@@ -32,6 +43,29 @@ const rawItems = [
   menuItemFixture("a1000001-0000-4000-8000-000000000003", "Iced Tea", 15000),
   menuItemFixture("a1000001-0000-4000-8000-000000000004", "Fries", 20000),
   menuItemFixture("a1000001-0000-4000-8000-000000000005", "Cheesecake", 25000),
+];
+
+const rawTables = [
+  {
+    id: "f1000001-0000-4000-8000-000000000001",
+    branchId: BRANCH_ID,
+    tableName: "T1",
+    capacity: 4,
+    status: "AVAILABLE",
+    floorPlanX: null,
+    floorPlanY: null,
+    floorPlanShape: null,
+  },
+  {
+    id: "f1000001-0000-4000-8000-000000000002",
+    branchId: BRANCH_ID,
+    tableName: "T2",
+    capacity: 2,
+    status: "OCCUPIED",
+    floorPlanX: null,
+    floorPlanY: null,
+    floorPlanShape: null,
+  },
 ];
 
 interface FakeOrderItem {
@@ -79,12 +113,14 @@ let orderStore: Map<string, FakeOrder>;
 let orderSeq: number;
 let createOrderCallCount: number;
 let createOrderRequestBodies: Array<Record<string, unknown>>;
+let sendToKdsCallCount: number;
 
 function resetFakeBackend() {
   orderStore = new Map();
   orderSeq = 0;
   createOrderCallCount = 0;
   createOrderRequestBodies = [];
+  sendToKdsCallCount = 0;
 }
 
 function nextOrderId(): string {
@@ -103,6 +139,9 @@ function mockPosEndpoints() {
     ),
     http.get("*/api/v1/pos/menu/items", () =>
       HttpResponse.json({ data: rawItems, meta: null, warnings: [] }),
+    ),
+    http.get("*/api/v1/pos/tables", () =>
+      HttpResponse.json({ data: rawTables, meta: null, warnings: [] }),
     ),
     http.post("*/api/v1/pos/orders", async ({ request }) => {
       createOrderCallCount += 1;
@@ -172,6 +211,16 @@ function mockPosEndpoints() {
       order.totalPaisa = order.subtotalPaisa;
       return HttpResponse.json({ data: order, meta: null, warnings: [] });
     }),
+    http.post("*/api/v1/pos/orders/:id/send-to-kds", ({ params }) => {
+      sendToKdsCallCount += 1;
+      const order = orderStore.get(params.id as string);
+      if (!order) {
+        return HttpResponse.json({ error: "not found" }, { status: 404 });
+      }
+      order.status = "SENT_TO_KDS";
+      order.items = order.items.map((i) => ({ ...i, kdsStatus: "SENT", revisionNo: 1 }));
+      return HttpResponse.json({ data: order, meta: null, warnings: [] });
+    }),
   );
 }
 
@@ -183,7 +232,9 @@ function soleOrder(): FakeOrder {
 }
 
 function renderTerminal(tableId?: string | null) {
-  seedSession({ branchId: "branch-1" });
+  // pos.order.close required for SettlementActions' post-send "CHARGE NOW" button
+  // (PermissionGuard) to render at all.
+  seedSession({ branchId: "branch-1", permissions: ["pos.order.close", "pos.order.void.own"] });
   resetFakeBackend();
   mockPosEndpoints();
   const Wrapper = createQueryWrapper();
@@ -197,102 +248,124 @@ function renderTerminal(tableId?: string | null) {
 describe("PosTerminal", () => {
   afterEach(() => clearSession());
 
-  it("adds the very first tapped item on the first click (no dropped item, no empty DRAFT)", async () => {
+  it("tapping a menu item builds a local cart with NO network call (no DRAFT order)", async () => {
     renderTerminal();
     const user = userEvent.setup();
 
     const firstItemButton = await screen.findByTestId("menu-item-first");
     await user.click(firstItemButton);
 
-    // The order panel must show exactly 1 item after a single click — not zero
-    // (the already-fixed stale-closure regression this test guards against). Assert
-    // on the fake-backend state (unambiguous) rather than DOM text, since "Cheeseburger"
-    // now legitimately renders twice (menu grid card + order panel line item).
+    // Cart line renders in the order panel (item name appears twice: menu card + cart line).
+    await waitFor(() => {
+      expect(screen.getAllByText("Cheeseburger").length).toBeGreaterThanOrEqual(2);
+    });
+    expect(createOrderCallCount).toBe(0);
+    expect(orderStore.size).toBe(0);
+  });
+
+  it("repeated taps of the same item merge into one line with quantity 2", async () => {
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const menuGrid = within(await screen.findByTestId("menu-grid"));
+    const burgerButton = menuGrid.getByText("Cheeseburger").closest("button") as HTMLElement;
+    await user.click(burgerButton);
+    await user.click(burgerButton);
+
+    // A single cart line shows qty 2, not two separate lines. "2" now also appears in the
+    // menu grid's selection badge on the tapped tile, so scope to the two expected spots.
+    await waitFor(() => {
+      expect(screen.getAllByText("2").length).toBe(2);
+    });
+    expect(createOrderCallCount).toBe(0);
+  });
+
+  it("Clear All empties the pre-send cart after confirmation, without any network call", async () => {
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const menuGrid = within(await screen.findByTestId("menu-grid"));
+    await user.click(menuGrid.getByText("Cheeseburger").closest("button") as HTMLElement);
+    await user.click(menuGrid.getByText("Fries").closest("button") as HTMLElement);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Cheeseburger").length).toBeGreaterThanOrEqual(2);
+    });
+
+    const clearAllButton = await screen.findByTestId("clear-all-button");
+    await user.click(clearAllButton);
+
+    // Requires modal confirmation — dismissing via "Keep Items" leaves the cart intact.
+    expect(await screen.findByText("Clear all items?")).toBeInTheDocument();
+    await user.click(screen.getByText("Keep Items"));
+    await waitFor(() => {
+      expect(screen.queryByText("Clear all items?")).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText("Cheeseburger").length).toBeGreaterThanOrEqual(2);
+
+    await user.click(screen.getByTestId("clear-all-button"));
+    await user.click(screen.getByTestId("clear-all-confirm-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("clear-all-button")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Add items to start an order")).toBeInTheDocument();
+    expect(createOrderCallCount).toBe(0);
+  });
+
+  it("Send to Kitchen persists the cart (createOrder + addItem* + send-to-kds) in one click", async () => {
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const firstItemButton = await screen.findByTestId("menu-item-first");
+    await user.click(firstItemButton);
+
+    const sendButton = await screen.findByTestId("send-to-kitchen-button");
+    expect(sendButton).toBeEnabled();
+    await user.click(sendButton);
+
     await waitFor(() => {
       expect(orderStore.size).toBe(1);
     });
     expect(createOrderCallCount).toBe(1);
     expect(soleOrder().items).toHaveLength(1);
-    // Also confirm the order panel actually reflects the added item in the DOM.
     await waitFor(() => {
-      expect(screen.getAllByText("Cheeseburger").length).toBeGreaterThanOrEqual(2);
+      expect(sendToKdsCallCount).toBe(1);
     });
+
+    // Post-send: Charge Now / Clear-New-Order render from the real persisted order.
+    await waitFor(() => {
+      expect(screen.getByTestId("charge-now-button")).toBeEnabled();
+    });
+    expect(screen.getByTestId("clear-new-order-button")).toBeInTheDocument();
   });
 
-  it("adding several items past the previous cap all register on the same order", async () => {
+  it("Charge Now is disabled with an empty cart and enabled once items are added (pre-send)", async () => {
     renderTerminal();
     const user = userEvent.setup();
 
-    const menuGrid = within(await screen.findByTestId("menu-grid"));
-    await screen.findByText("Cheeseburger");
+    // Empty cart → Charge Now unavailable.
+    expect(screen.getByTestId("charge-now-button")).toBeDisabled();
 
-    // Sequential taps (awaited) across all 5 seeded items, then loop back for 3 more —
-    // 8 total adds, comfortably past any small hardcoded cap. Scoped to the menu grid
-    // (not `screen`) because once items are added, the SAME item name also renders in
-    // the order panel — an unscoped query would then match more than one element.
-    const names = [
-      "Cheeseburger",
-      "Chicken Wings",
-      "Iced Tea",
-      "Fries",
-      "Cheesecake",
-      "Cheeseburger",
-      "Chicken Wings",
-      "Iced Tea",
-    ];
-    for (const name of names) {
-      const button = menuGrid.getByText(name).closest("button");
-      expect(button).not.toBeNull();
-      // eslint-disable-next-line no-await-in-loop -- sequential taps by design
-      await user.click(button as HTMLElement);
-    }
+    const firstItemButton = await screen.findByTestId("menu-item-first");
+    await user.click(firstItemButton);
 
-    await waitFor(() => {
-      expect(soleOrder().items).toHaveLength(8);
-    });
-    // All 8 items landed on exactly one order — never split into duplicate orders.
-    expect(createOrderCallCount).toBe(1);
-    expect(orderStore.size).toBe(1);
+    // A menu tap alone never persists (POS-16 lazy persist) …
+    expect(createOrderCallCount).toBe(0);
+    // … but Charge Now is now available directly from the cart (it persists on click).
+    expect(screen.getByTestId("charge-now-button")).toBeEnabled();
   });
 
-  it("rapid concurrent taps before order-creation resolves do not split items across duplicate orders", async () => {
-    renderTerminal();
-    const user = userEvent.setup();
-
-    const menuGrid = within(await screen.findByTestId("menu-grid"));
-    await screen.findByText("Cheeseburger");
-
-    const burger = menuGrid.getByText("Cheeseburger").closest("button") as HTMLElement;
-    const wings = menuGrid.getByText("Chicken Wings").closest("button") as HTMLElement;
-    const tea = menuGrid.getByText("Iced Tea").closest("button") as HTMLElement;
-
-    // Fire three taps back-to-back in the SAME tick (no await between them) — this is
-    // the exact race the fix targets: all three happen before the first createOrder
-    // round-trip has resolved.
-    fireEvent.click(burger);
-    fireEvent.click(wings);
-    fireEvent.click(tea);
-
-    await waitFor(() => {
-      const orders = Array.from(orderStore.values());
-      const totalItems = orders.reduce((sum, o) => sum + o.items.length, 0);
-      expect(totalItems).toBe(3);
-    });
-
-    // The critical assertion: exactly ONE order was created, not three — proves the
-    // in-flight order-creation dedup prevents the orphaned-order race.
-    expect(createOrderCallCount).toBe(1);
-    expect(orderStore.size).toBe(1);
-    expect(soleOrder().items).toHaveLength(3);
-  });
-
-  it("binds the page-level selectedTableId into createOrder so the order links to the table", async () => {
+  it("binds the selected table into createOrder only once Send to Kitchen is clicked", async () => {
     const TABLE_ID = "f1000001-0000-4000-8000-000000000001";
     renderTerminal(TABLE_ID);
     const user = userEvent.setup();
 
     const firstItemButton = await screen.findByTestId("menu-item-first");
     await user.click(firstItemButton);
+    expect(createOrderCallCount).toBe(0);
+
+    await user.click(await screen.findByTestId("send-to-kitchen-button"));
 
     await waitFor(() => {
       expect(createOrderCallCount).toBe(1);
@@ -307,10 +380,56 @@ describe("PosTerminal", () => {
 
     const firstItemButton = await screen.findByTestId("menu-item-first");
     await user.click(firstItemButton);
+    await user.click(await screen.findByTestId("send-to-kitchen-button"));
 
     await waitFor(() => {
       expect(createOrderCallCount).toBe(1);
     });
     expect(createOrderRequestBodies[0]?.tableId).toBeUndefined();
+  });
+
+  it("rapid sequential taps before Send all land in the local cart, never split into duplicate orders", async () => {
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const menuGrid = within(await screen.findByTestId("menu-grid"));
+    await screen.findByText("Cheeseburger");
+
+    const names = ["Cheeseburger", "Chicken Wings", "Iced Tea"];
+    for (const name of names) {
+      const button = menuGrid.getByText(name).closest("button");
+      expect(button).not.toBeNull();
+      await user.click(button as HTMLElement);
+    }
+
+    expect(createOrderCallCount).toBe(0);
+    expect(orderStore.size).toBe(0);
+
+    await user.click(await screen.findByTestId("send-to-kitchen-button"));
+
+    await waitFor(() => {
+      expect(orderStore.size).toBe(1);
+    });
+    expect(createOrderCallCount).toBe(1);
+    expect(soleOrder().items).toHaveLength(3);
+  });
+
+  it("does not double-fire createOrder on a fast double-click of Send to Kitchen (fireEvent, no await between)", async () => {
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const firstItemButton = await screen.findByTestId("menu-item-first");
+    await user.click(firstItemButton);
+
+    const sendButton = await screen.findByTestId("send-to-kitchen-button");
+    fireEvent.click(sendButton);
+    fireEvent.click(sendButton);
+
+    await waitFor(() => {
+      expect(orderStore.size).toBe(1);
+    });
+    // Second click landed after the button was already disabled (isPersisting) or
+    // after orderId was already set — either way, at most one order is created.
+    expect(createOrderCallCount).toBe(1);
   });
 });

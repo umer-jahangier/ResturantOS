@@ -1,6 +1,7 @@
 package io.restaurantos.kitchen.web;
 
 import io.restaurantos.kitchen.authz.KdsAuthorizationService;
+import io.restaurantos.kitchen.domain.enums.TicketItemStatus;
 import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
@@ -48,7 +49,7 @@ public class KdsController {
     public ResponseEntity<Page<KdsTicketDto>> getTickets(
             @RequestParam UUID branchId,
             @RequestParam(required = false) String stationCode,
-            @RequestParam(required = false, defaultValue = "PENDING,COOKING") String status,
+            @RequestParam(required = false, defaultValue = "PENDING,COOKING,READY") String status,
             @AuthenticationPrincipal JwtClaims claims,
             Pageable pageable) {
 
@@ -58,10 +59,14 @@ public class KdsController {
                 .map(String::trim)
                 .map(TicketStatus::valueOf)
                 .toList();
+        // No stationCode → branch-wide active board (station-stats screen). Uses a branch+status
+        // scoped, item-eager query — never findAll (which leaked across tenants and threw on
+        // lazy items).
         Page<KdsTicketDto> result = (stationCode != null)
                 ? ticketRepository.findByBranchIdAndStationCodeAndStatusIn(branchId, stationCode, statuses, pageable)
                         .map(ticketService::toDto)
-                : ticketRepository.findAll(pageable).map(ticketService::toDto);
+                : ticketRepository.findByBranchIdAndStatusIn(branchId, statuses, pageable)
+                        .map(ticketService::toDto);
 
         return ResponseEntity.ok(result);
     }
@@ -80,6 +85,28 @@ public class KdsController {
         authz.authorizeUpdate(claims.tenantId(), branchId);
         return ResponseEntity.ok(ticketService.bumpItem(ticketId, itemId));
     }
+
+    /**
+     * Explicit item-status transition endpoint (KDS-04, D-12): drives the New(PENDING)->
+     * Started(ACCEPTED)->Preparing(PREPARING)->Ready(READY) lifecycle in a single wrapping
+     * call to {@link io.restaurantos.kitchen.service.TicketService#markItemStatus}, so every
+     * endpoint-driven transition also inherits the KITCHEN_ITEM_STATUS_CHANGED pos-sync
+     * event emit (07.3-02) — this endpoint never re-implements transition logic itself.
+     * Requires pos.kds.update permission (OPA evaluated).
+     */
+    @PostMapping("/tickets/{ticketId}/items/{itemId}/status")
+    public ResponseEntity<KdsTicketDto> setItemStatus(
+            @PathVariable UUID ticketId,
+            @PathVariable UUID itemId,
+            @RequestParam UUID branchId,
+            @RequestBody ItemStatusRequest request,
+            @AuthenticationPrincipal JwtClaims claims) {
+
+        authz.authorizeUpdate(claims.tenantId(), branchId);
+        return ResponseEntity.ok(ticketService.markItemStatus(ticketId, itemId, request.status()));
+    }
+
+    public record ItemStatusRequest(TicketItemStatus status) {}
 
     /**
      * Recall a READY ticket back to COOKING (e.g. mistake by kitchen).
@@ -111,7 +138,10 @@ public class KdsController {
     }
 
     /**
-     * List active stations for a branch.
+     * List active stations for a branch. Auto-seed-on-miss (KDS-04, mirrors finance 07.2's
+     * period auto-seed pattern): a branch with zero station rows gets a DEFAULT station seeded
+     * on the spot so the board is never empty, rather than showing "No active stations
+     * configured".
      * Requires pos.kds.view permission (OPA evaluated).
      */
     @GetMapping("/stations")
@@ -120,6 +150,18 @@ public class KdsController {
             @AuthenticationPrincipal JwtClaims claims) {
 
         authz.authorizeView(claims.tenantId(), branchId);
-        return ResponseEntity.ok(stationRepository.findByBranchIdAndActiveTrue(branchId));
+
+        List<KdsStation> stations = stationRepository.findByBranchIdAndActiveTrue(branchId);
+        if (stations.isEmpty()) {
+            KdsStation defaultStation = new KdsStation();
+            defaultStation.setTenantId(claims.tenantId());
+            defaultStation.setBranchId(branchId);
+            defaultStation.setCode("DEFAULT");
+            defaultStation.setName("DEFAULT");
+            defaultStation.setActive(true);
+            defaultStation.setEscalationThresholdSeconds(900);
+            stations = List.of(stationRepository.save(defaultStation));
+        }
+        return ResponseEntity.ok(stations);
     }
 }

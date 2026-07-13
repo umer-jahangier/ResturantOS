@@ -12,4 +12,12 @@ public interface MenuService {
     List<MenuCategoryDto> listCategories();
     Page<MenuItemDto> listItems(UUID categoryId, UUID branchId, Pageable pageable);
     MenuItemDto getItem(UUID itemId, UUID branchId);
+
+    /**
+     * Assign (or clear, when {@code stationId} is null) a menu item's canonical station (Phase 3).
+     * The station must belong to the caller's tenant + branch; {@code branchId} is validated
+     * against the JWT branch. Also mirrors the station's code into the retained free-text
+     * {@code kds_station} so the two stay consistent for back-compat routing.
+     */
+    MenuItemDto assignStation(UUID itemId, UUID branchId, UUID stationId);
 }

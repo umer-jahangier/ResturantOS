@@ -119,4 +119,11 @@ public class OrderController {
             @PathVariable UUID itemId) {
         return ResponseEntity.ok(ApiResponse.ok(orderService.cancelItem(id, itemId)));
     }
+
+    @PatchMapping("/{id}/table")
+    public ResponseEntity<ApiResponse<OrderDto>> assignTable(
+            @PathVariable UUID id,
+            @Valid @RequestBody AssignTableRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.assignTable(id, request.tableId())));
+    }
 }

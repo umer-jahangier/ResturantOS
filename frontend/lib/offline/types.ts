@@ -1,7 +1,11 @@
 // Offline-first types: outbox operations, IndexedDB schema shapes.
 
 export type OutboxOpType = "CREATE_ORDER" | "APPEND_ITEMS" | "UPDATE_INSTRUCTIONS";
-export type OutboxStatus = "PENDING" | "IN_FLIGHT" | "SYNCED" | "FAILED";
+// DEAD = retries exhausted (attempts reached MAX_ATTEMPTS). A terminal state: the op is
+// no longer auto-retried and is EXCLUDED from the "queued" badge count so a permanently
+// failing op can't inflate the pill forever. It stays in the outbox for operator review
+// (explicit Retry or Dismiss) rather than being silently dropped.
+export type OutboxStatus = "PENDING" | "IN_FLIGHT" | "SYNCED" | "FAILED" | "DEAD";
 
 export interface OutboxOp {
   /** uuid v4 assigned at enqueue time — IDB primary key. */

@@ -1,9 +1,11 @@
 package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.authz.PosAuthorizationService;
+import io.restaurantos.pos.domain.enums.DerivedOrderStatus;
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
+import io.restaurantos.pos.domain.enums.PaymentStatus;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
@@ -45,12 +47,17 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_CLOSED_TYPE = "ORDER_CLOSED";
     private static final String ORDER_VOIDED_KEY = "pos.order.voided";
     private static final String ORDER_VOIDED_TYPE = "ORDER_VOIDED";
+    private static final String ORDER_ITEM_CANCELLED_KEY = "pos.order.item_cancelled";
+    private static final String ORDER_ITEM_CANCELLED_TYPE = "ORDER_ITEM_CANCELLED";
+    private static final String ORDER_ITEM_SERVED_KEY = "pos.order.item_served";
+    private static final String ORDER_ITEM_SERVED_TYPE = "ORDER_ITEM_SERVED";
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
     private static final String VIEW_ALL_PERMISSION = "pos.order.view.all";
 
     private final OrderRepository orderRepository;
     private final OrderSequenceRepository sequenceRepository;
     private final MenuItemRepository menuItemRepository;
+    private final StationRepository stationRepository;
     private final BranchMenuOverrideRepository overrideRepository;
     private final DiningTableRepository tableRepository;
     private final OrderPaymentRepository orderPaymentRepository;
@@ -64,12 +71,14 @@ public class OrderServiceImpl implements OrderService {
     private final PosAuthorizationService posAuthorizationService;
     private final TillSessionRepository tillSessionRepository;
     private final OrderStatusDerivationService orderStatusDerivationService;
+    private final PaymentStatusDerivationService paymentStatusDerivationService;
     private final TableService tableService;
     private final OrderMapper orderMapper;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
                             MenuItemRepository menuItemRepository,
+                            StationRepository stationRepository,
                             BranchMenuOverrideRepository overrideRepository,
                             DiningTableRepository tableRepository,
                             OrderPaymentRepository orderPaymentRepository,
@@ -83,11 +92,13 @@ public class OrderServiceImpl implements OrderService {
                             PosAuthorizationService posAuthorizationService,
                             TillSessionRepository tillSessionRepository,
                             OrderStatusDerivationService orderStatusDerivationService,
+                            PaymentStatusDerivationService paymentStatusDerivationService,
                             TableService tableService,
                             OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
+        this.stationRepository = stationRepository;
         this.overrideRepository = overrideRepository;
         this.tableRepository = tableRepository;
         this.orderPaymentRepository = orderPaymentRepository;
@@ -101,6 +112,7 @@ public class OrderServiceImpl implements OrderService {
         this.posAuthorizationService = posAuthorizationService;
         this.tillSessionRepository = tillSessionRepository;
         this.orderStatusDerivationService = orderStatusDerivationService;
+        this.paymentStatusDerivationService = paymentStatusDerivationService;
         this.tableService = tableService;
         this.orderMapper = orderMapper;
     }
@@ -111,6 +123,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderDto createOrder(CreateOrderRequest request) {
+        // SECURITY (branch isolation): the request-supplied branchId must never widen scope
+        // beyond the caller's verified JWT branch — otherwise a cashier scoped to branch A
+        // could create an order under sibling branch B (RLS is tenant-only and would not
+        // block it). Validated before the idempotency lookup so a cross-branch attempt is
+        // rejected outright rather than replaying an existing order.
+        requireOwnBranch(request.branchId());
+
         // Idempotent on clientOrderId
         Optional<Order> existing = orderRepository.findByClientOrderId(request.clientOrderId());
         if (existing.isPresent()) {
@@ -133,12 +152,26 @@ public class OrderServiceImpl implements OrderService {
             order.setTableId(request.tableId());
         }
 
-        Order newOrder = order;
-        tenantContext.getUserId().ifPresent(userId -> {
-            newOrder.setCashierId(userId);
-            tillSessionRepository.findByCashierIdAndStatus(userId, TillStatus.OPEN)
-                    .ifPresent(till -> newOrder.setTillSessionId(till.getId()));
-        });
+        // FINANCIAL INTEGRITY: a cashier must have an OPEN till session before any order can
+        // be created under their name — otherwise cash and settlement can never be reconciled
+        // to a drawer (the "till was closed but I still took an order" gap). This is the missing
+        // counterpart to TillServiceImpl.closeTill's guard (which already blocks CLOSING a till
+        // that still has open orders). Fail-closed: no open till -> reject, never silently
+        // persist an untracked order with tillSessionId = null.
+        //
+        // Scoped to a present userId: the guard targets authenticated cashiers (the only path
+        // that carries a userId). System/internal contexts with no userId (e.g. service-to-
+        // service flows, service-layer tests) set no cashier and are unaffected — consistent
+        // with the prior best-effort association this replaces.
+        Optional<UUID> cashierId = tenantContext.getUserId();
+        if (cashierId.isPresent()) {
+            UUID uid = cashierId.get();
+            order.setCashierId(uid);
+            TillSession openTill = tillSessionRepository
+                    .findByCashierIdAndStatus(uid, TillStatus.OPEN)
+                    .orElseThrow(() -> new PosExceptions.NoOpenTillException(uid.toString()));
+            order.setTillSessionId(openTill.getId());
+        }
 
         order = orderRepository.save(order);
         return orderMapper.toDto(order);
@@ -161,8 +194,12 @@ public class OrderServiceImpl implements OrderService {
         MenuItem menuItem = menuItemRepository.findById(request.menuItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + request.menuItemId()));
 
+        // SECURITY (branch isolation): resolve branch-override pricing from the ORDER's own
+        // (server-derived, createOrder-validated) branch rather than the client-supplied
+        // request.branchId() — the order already carries the authoritative branch, so a spoofed
+        // request branchId can no longer pull another branch's override price onto this line.
         Optional<BranchMenuOverride> override = overrideRepository
-                .findByBranchIdAndMenuItemId(request.branchId(), request.menuItemId());
+                .findByBranchIdAndMenuItemId(order.getBranchId(), request.menuItemId());
 
         long unitPrice = pricingCalculator.effectiveUnitPrice(menuItem, override.orElse(null));
 
@@ -174,6 +211,10 @@ public class OrderServiceImpl implements OrderService {
         item.setUnitPriceSnapshot(unitPrice);
         item.setQuantity(request.quantity());
         item.setKdsStation(menuItem.getKdsStation());
+        // Phase 3: snapshot the canonical station FK alongside the free-text kds_station string,
+        // both captured at add-item time (never at fire time) so a later menu re-assignment
+        // never retroactively re-routes an already-added line.
+        item.setStationId(menuItem.getStationId());
         item.setNotes(request.notes());
 
         // Add modifiers if requested
@@ -357,20 +398,53 @@ public class OrderServiceImpl implements OrderService {
 
         order = orderRepository.save(order);
 
+        // Phase 3: resolve the canonical station (code + name) for any fired line carrying a
+        // station_id FK snapshot — batched into one lookup for the whole fire. A line with a
+        // station FK emits that station's canonical code in kdsStation (kept load-bearing as the
+        // kitchen's ticket/WS key) PLUS the new additive stationId/stationName; a line with no FK
+        // keeps its free-text kds_station snapshot, coalesced to "DEFAULT".
+        Set<UUID> firedStationIds = newItems.stream()
+                .map(OrderItem::getStationId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<UUID, Station> stationsById = firedStationIds.isEmpty()
+                ? Map.of()
+                : stationRepository.findAllById(firedStationIds).stream()
+                        .collect(Collectors.toMap(Station::getId, s -> s));
+
         // Build KDS payload from ONLY the newly-fired lines.
         List<PosEventPayloads.KdsItemPayload> kdsItems = newItems.stream()
-                .map(item -> new PosEventPayloads.KdsItemPayload(
-                        item.getId(),
-                        item.getMenuItemId(),
-                        item.getItemNameSnapshot(),
-                        item.getQuantity(),
-                        item.getKdsStation() != null ? item.getKdsStation() : DEFAULT_KDS_STATION,
-                        item.getModifiers().stream()
-                                .map(OrderItemModifier::getModifierNameSnapshot)
-                                .collect(Collectors.toList()),
-                        item.getNotes()
-                ))
+                .map(item -> {
+                    Station station = item.getStationId() != null ? stationsById.get(item.getStationId()) : null;
+                    String stationCode = station != null
+                            ? station.getCode()
+                            : (item.getKdsStation() != null ? item.getKdsStation() : DEFAULT_KDS_STATION);
+                    UUID stationId = station != null ? station.getId() : null;
+                    String stationName = station != null ? station.getName() : null;
+                    return new PosEventPayloads.KdsItemPayload(
+                            item.getId(),
+                            item.getMenuItemId(),
+                            item.getItemNameSnapshot(),
+                            item.getQuantity(),
+                            stationCode,
+                            item.getModifiers().stream()
+                                    .map(OrderItemModifier::getModifierNameSnapshot)
+                                    .collect(Collectors.toList()),
+                            item.getNotes(),
+                            stationId,
+                            stationName
+                    );
+                })
                 .collect(Collectors.toList());
+
+        // KDS-04 (pos-side, additive parity field): resolve the order's table number — null
+        // for takeaway/pickup orders with no bound table. Field NAME must match the
+        // kitchen-service consumer's matching field exactly (lands in 07.3-05).
+        String tableNumber = order.getTableId() != null
+                ? tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
+                        .map(DiningTable::getTableNumber)
+                        .orElse(null)
+                : null;
 
         var payload = new PosEventPayloads.OrderSentToKdsPayload(
                 order.getId(),
@@ -379,7 +453,9 @@ public class OrderServiceImpl implements OrderService {
                 order.getOrderNo(),
                 kdsItems,
                 nextRevision,
-                order.getNotes()
+                order.getNotes(),
+                tableNumber,
+                order.getType() != null ? order.getType().name() : null
         );
         eventPublisher.publish(POS_EXCHANGE, ORDER_SENT_TO_KDS_KEY, ORDER_SENT_TO_KDS_TYPE,
                 order.getBranchId(), payload);
@@ -394,9 +470,27 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderDto getOrder(UUID orderId, UUID branchId) {
+        // SECURITY (branch isolation): branchId is a request parameter (controller convention),
+        // but a client-supplied sibling branchId must not be able to read another branch's order
+        // within the same tenant — RLS is tenant-only, so this guard is the boundary.
+        requireOwnBranch(branchId);
         Order order = orderRepository.findByIdAndBranchId(orderId, branchId)
                 .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
         return orderMapper.toDto(order);
+    }
+
+    /**
+     * Defense-in-depth against a client-supplied {@code branchId} that widens scope beyond the
+     * caller's JWT branch. Mirrors {@code TableServiceImpl.requireOwnBranch} and the inline guard
+     * in {@link #listOrderSummaries} — {@code branchId} stays an explicit request parameter (the
+     * controller's existing convention) but must always equal the verified JWT branch.
+     */
+    private void requireOwnBranch(UUID branchId) {
+        UUID jwtBranchId = tenantContext.getBranchId()
+                .orElseThrow(() -> new PermissionDeniedException("Branch context required"));
+        if (!jwtBranchId.equals(branchId)) {
+            throw new PermissionDeniedException("Cannot access resources for a different branch");
+        }
     }
 
     @Override
@@ -421,12 +515,14 @@ public class OrderServiceImpl implements OrderService {
             throw new PermissionDeniedException("Cannot list orders for a different branch");
         }
 
-        // Default (no explicit status filter) = ALL non-terminal statuses — a non-closed
-        // order must NEVER disappear from the active list (POS-09 acceptance). This is
-        // intentionally different from the older listOrders' unfiltered-when-empty default.
+        // Default (no explicit status filter) = ALL non-terminal statuses EXCLUDING DRAFT
+        // (POS-16: a client-only cart never persists a DB order, so DRAFT rows are stale
+        // abandoned carts, not active orders — they must never surface in Order Management).
+        // A caller can still explicitly request DRAFT or a terminal status (e.g. [CLOSED])
+        // via the statuses param; only the empty-filter DEFAULT excludes them.
         List<OrderStatus> statusEnums = (statuses == null || statuses.isEmpty())
                 ? Arrays.stream(OrderStatus.values())
-                        .filter(s -> !isTerminal(s))
+                        .filter(s -> !isTerminal(s) && s != OrderStatus.DRAFT)
                         .collect(Collectors.toList())
                 : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
 
@@ -441,7 +537,17 @@ public class OrderServiceImpl implements OrderService {
         Map<UUID, String> tableNames = tableRepository.findByBranchId(branchId).stream()
                 .collect(Collectors.toMap(DiningTable::getId, DiningTable::getTableNumber));
 
-        return orders.map(order -> toSummaryDto(order, tableNames));
+        // Batched payment sums for the WHOLE page in one query (N+1 avoidance, POS-24) — never
+        // call orderPaymentRepository.sumAmountByOrderId per row.
+        List<UUID> orderIds = orders.getContent().stream().map(Order::getId).collect(Collectors.toList());
+        Map<UUID, Long> paidByOrderId = orderIds.isEmpty()
+                ? Map.of()
+                : orderPaymentRepository.sumAmountByOrderIds(orderIds).stream()
+                        .collect(Collectors.toMap(
+                                OrderPaymentRepository.OrderPaymentSum::getOrderId,
+                                OrderPaymentRepository.OrderPaymentSum::getTotalPaisa));
+
+        return orders.map(order -> toSummaryDto(order, tableNames, paidByOrderId));
     }
 
     @Override
@@ -494,50 +600,57 @@ public class OrderServiceImpl implements OrderService {
         return dto;
     }
 
+    /**
+     * POS-23 seam: closes {@code orderId} ONLY when it is fully Paid
+     * ({@code paymentStatus == PAID}) AND fully Served ({@code derivedStatus == SERVED}), and
+     * is not already terminal. Invoked from {@code PaymentServiceImpl.recordPayment} (a
+     * payment that completes an already-served order) and {@code markItemServed} (serving the
+     * last line of an already-paid order). A no-op (returns the order unchanged) when the
+     * conditions are not met or the order is already CLOSED/VOIDED/REFUNDED — safe to call
+     * from both mutation paths without risking a double-close or an illegal transition.
+     */
     @Override
-    public OrderDto closeOrder(UUID orderId, CloseOrderRequest request, String idempotencyKey) {
-        // 1. Idempotency check — return stored result if already completed
-        Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
-        if (stored.isPresent()) {
-            // Reconstruct DTO from stored JSON — for simplicity reload from DB
-            UUID tenantId = tenantContext.requireTenantId();
-            Order order = orderRepository.findById(orderId)
-                    .filter(o -> tenantId.equals(o.getTenantId()))
-                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return orderMapper.toDto(order);
-        }
-
-        String requestHash = String.valueOf(request.hashCode());
-        boolean claimed = idempotencyService.checkAndLock(idempotencyKey, requestHash, 86400);
-        if (!claimed) {
-            // Already in flight or completed — return current order state
-            UUID tenantId = tenantContext.requireTenantId();
-            Order order = orderRepository.findById(orderId)
-                    .filter(o -> tenantId.equals(o.getTenantId()))
-                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
-            return orderMapper.toDto(order);
-        }
-
+    public OrderDto maybeCloseOrder(UUID orderId) {
         UUID tenantId = tenantContext.requireTenantId();
-        Order order = orderRepository.findById(orderId)
-                .filter(o -> tenantId.equals(o.getTenantId()))
-                .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
+        Order order = findOrderForTenant(orderId, tenantId);
 
-        // 2. Validate order has items and non-zero total
-        if (order.getItems().isEmpty() || order.getTotalPaisa() == 0) {
-            throw new PosExceptions.ZeroValueOrderException("Cannot close empty or zero-value order: " + orderId);
+        if (isTerminal(order.getStatus())) {
+            return orderMapper.toDto(order);
         }
 
-        // 3. Validate payment sum == order total
-        splitTenderCalculator.validateExact(request.payments(), order.getTotalPaisa());
+        long paidPaisa = orderPaymentRepository.sumAmountByOrderId(orderId);
+        PaymentStatus paymentStatus = paymentStatusDerivationService.derive(
+                paidPaisa, order.getTotalPaisa(), order.getStatus());
 
-        // 4. Period-lock check (fail-closed)
+        boolean fullyPaidAndServed = paymentStatus == PaymentStatus.PAID
+                && order.getDerivedStatus() == DerivedOrderStatus.SERVED;
+        if (!fullyPaidAndServed) {
+            return orderMapper.toDto(order);
+        }
+
+        List<PosClosePayloads.PaymentEntry> paymentEntries = orderPaymentRepository.findByOrderId(orderId).stream()
+                .map(p -> new PosClosePayloads.PaymentEntry(p.getMethod().name(), p.getAmountPaisa(), p.getReferenceNo()))
+                .collect(Collectors.toList());
+
+        Order closed = performClose(order, paymentEntries);
+        return orderMapper.toDto(closed);
+    }
+
+    /**
+     * Shared close side-effects (POS-23 single seam): period-lock check (fail-closed), the
+     * CLOSED state transition, table release, persistence, and the ONE ORDER_CLOSED publish
+     * in this class. As of plan 07.3-11 the legacy exact-tender-sum close bypass service
+     * method is deleted (its HTTP endpoint now returns 410 Gone) —
+     * {@code maybeCloseOrder}'s Paid-AND-Served path is the ONLY remaining caller.
+     */
+    private Order performClose(Order order, List<PosClosePayloads.PaymentEntry> paymentEntries) {
+        UUID tenantId = order.getTenantId();
+
         LocalDate businessDate = order.getOpenedAt() != null
                 ? order.getOpenedAt().atOffset(ZoneOffset.UTC).minusHours(4).toLocalDate()
                 : LocalDate.now();
         FinancePeriodClient.assertPeriodOpen(financePeriodClient, tenantId, order.getBranchId(), businessDate);
 
-        // 5. State transition
         stateMachine.assertTransition(order.getStatus(), OrderStatus.CLOSED);
         Instant closedAt = Instant.now();
         order.setStatus(OrderStatus.CLOSED);
@@ -548,11 +661,6 @@ public class OrderServiceImpl implements OrderService {
                 order.getStatus(), order.getDerivedStatus());
 
         order = orderRepository.save(order);
-
-        // 6. Publish ORDER_CLOSED event
-        List<PosClosePayloads.PaymentEntry> paymentEntries = request.payments().stream()
-                .map(p -> new PosClosePayloads.PaymentEntry(p.method(), p.amountPaisa(), p.referenceNo()))
-                .collect(Collectors.toList());
 
         List<PosClosePayloads.ItemEntry> itemEntries = order.getItems().stream()
                 .map(item -> new PosClosePayloads.ItemEntry(
@@ -584,11 +692,7 @@ public class OrderServiceImpl implements OrderService {
         eventPublisher.publish(POS_EXCHANGE, ORDER_CLOSED_KEY, ORDER_CLOSED_TYPE,
                 finalOrder.getBranchId(), payload);
 
-        // 7. Mark idempotency complete
-        OrderDto dto = orderMapper.toDto(finalOrder);
-        idempotencyService.markComplete(idempotencyKey, dto.id().toString());
-
-        return dto;
+        return finalOrder;
     }
 
     @Override
@@ -610,7 +714,24 @@ public class OrderServiceImpl implements OrderService {
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
                 order.getStatus(), order.getDerivedStatus());
-        return orderMapper.toDto(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        OrderDto dto = orderMapper.toDto(saved);
+
+        // Tell the KDS the line was served so it leaves the Ready column immediately, instead of
+        // lingering there until the whole order closes (mirrors the ORDER_ITEM_CANCELLED path).
+        // markItemServed rejects PENDING (never-fired) lines above, so a served line was always
+        // fired to the kitchen — there is always a KDS line to update, hence no wasFired guard.
+        var servedPayload = new PosEventPayloads.OrderItemServedPayload(
+                saved.getId(), tenantId, saved.getBranchId(), itemId);
+        eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_SERVED_KEY, ORDER_ITEM_SERVED_TYPE,
+                saved.getBranchId(), servedPayload);
+
+        // POS-23: serving the last line of an already-fully-paid order closes it — the single
+        // maybeCloseOrder seam is a no-op unless paymentStatus==PAID && derivedStatus==SERVED.
+        if (order.getDerivedStatus() == DerivedOrderStatus.SERVED) {
+            dto = maybeCloseOrder(orderId);
+        }
+        return dto;
     }
 
     @Override
@@ -624,11 +745,25 @@ public class OrderServiceImpl implements OrderService {
                     "Cannot cancel an already-served item: " + itemId);
         }
 
+        boolean wasFired = item.getItemStatus() != OrderItemStatus.PENDING;
         item.setItemStatus(OrderItemStatus.CANCELLED);
+        // Recompute money fields so the cancelled line stops counting toward the amount due
+        // (previously skipped — the total/payment never dropped, even across reload).
+        recomputeOrderTotals(order);
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
                 order.getStatus(), order.getDerivedStatus());
-        return orderMapper.toDto(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+
+        // If the line had already been fired to the kitchen, tell the KDS so it can mark the
+        // ticket item cancelled (struck through) instead of leaving a phantom item on the board.
+        if (wasFired) {
+            var payload = new PosEventPayloads.OrderItemCancelledPayload(
+                    saved.getId(), tenantId, saved.getBranchId(), itemId);
+            eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_CANCELLED_KEY, ORDER_ITEM_CANCELLED_TYPE,
+                    saved.getBranchId(), payload);
+        }
+        return orderMapper.toDto(saved);
     }
 
     @Override
@@ -670,6 +805,39 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(orderRepository.save(order));
     }
 
+    @Override
+    public OrderDto assignTable(UUID orderId, UUID tableId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (isTerminal(order.getStatus())) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot assign a table to an order in status: " + order.getStatus());
+        }
+
+        DiningTable table = tableRepository.findByIdAndBranchId(tableId, order.getBranchId())
+                .orElseThrow(() -> new ResourceNotFoundException("Dining table not found: " + tableId));
+
+        // Re-check AVAILABLE INSIDE the transaction (T-07.3-12 — concurrency-safe; a caller
+        // cannot rely on a stale pre-fetched table list). OCCUPIED/NEEDS_BUSSING are rejected.
+        if (table.getStatus() != io.restaurantos.pos.domain.enums.TableStatus.AVAILABLE) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Table is not available: " + table.getStatus());
+        }
+
+        UUID previousTableId = order.getTableId();
+        order.setTableId(tableId);
+        order = orderRepository.save(order);
+
+        // Single seam (RESEARCH.md Pitfall 5) — route BOTH the previous binding (a no-op when
+        // null, the common case) and the newly-assigned table through syncStatusForOrder; never
+        // an inline table.setStatus(...) call.
+        tableService.syncStatusForOrder(previousTableId, order.getBranchId(), order.getStatus(), order.getDerivedStatus());
+        tableService.syncStatusForOrder(tableId, order.getBranchId(), order.getStatus(), order.getDerivedStatus());
+
+        return orderMapper.toDto(order);
+    }
+
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private OrderItem findItemInOrder(Order order, UUID itemId) {
@@ -695,7 +863,21 @@ public class OrderServiceImpl implements OrderService {
         return status == OrderStatus.CLOSED || status == OrderStatus.VOIDED || status == OrderStatus.REFUNDED;
     }
 
-    private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames) {
+    private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames, Map<UUID, Long> paidByOrderId) {
+        long amountPaidPaisa = paidByOrderId.getOrDefault(order.getId(), 0L);
+        PaymentStatus paymentStatus = paymentStatusDerivationService.derive(
+                amountPaidPaisa, order.getTotalPaisa(), order.getStatus());
+
+        int itemQuantity = 0;
+        int distinctItemCount = 0;
+        for (OrderItem item : order.getItems()) {
+            if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
+                continue;
+            }
+            itemQuantity += item.getQuantity();
+            distinctItemCount++;
+        }
+
         return new OrderSummaryDto(
                 order.getId(),
                 order.getOrderNo(),
@@ -705,7 +887,12 @@ public class OrderServiceImpl implements OrderService {
                 order.getCashierId(),
                 order.getCoverCount(),
                 order.getTotalPaisa(),
-                order.getOpenedAt()
+                order.getOpenedAt(),
+                order.getStatus(),
+                paymentStatus,
+                amountPaidPaisa,
+                itemQuantity,
+                distinctItemCount
         );
     }
 
@@ -715,6 +902,12 @@ public class OrderServiceImpl implements OrderService {
         long tax = 0L;
 
         for (OrderItem item : order.getItems()) {
+            // CANCELLED lines contribute nothing to the money owed — excluding them here is
+            // what makes a cancel actually reduce subtotal/tax/total (and therefore the
+            // amount due). Mirrors toSummaryDto's item-count exclusion.
+            if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
+                continue;
+            }
             long itemSubtotal = item.getUnitPriceSnapshot() * item.getQuantity();
             subtotal += itemSubtotal;
             lineDiscounts += item.getDiscountPaisa();

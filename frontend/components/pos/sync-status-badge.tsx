@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { onProgress, replay } from "@/lib/offline/sync-engine";
+import { onProgress, replay, emitProgress } from "@/lib/offline/sync-engine";
+import { retryDead, dismissDead } from "@/lib/offline/outbox";
 import { cn } from "@/lib/utils";
 
 interface SyncState {
   pending: number;
+  /** Dead-lettered ops (retries exhausted) — surfaced as a distinct "failed" state. */
+  dead: number;
   lastError?: string;
   replaying: boolean;
   /** True for a brief window after `pending` drops to 0, to show "All synced" before fading. */
@@ -31,6 +34,7 @@ const SYNCED_FADE_MS = 2000;
 export function SyncStatusBadge() {
   const [state, setState] = useState<SyncState>({
     pending: 0,
+    dead: 0,
     replaying: false,
     showSynced: false,
   });
@@ -39,8 +43,10 @@ export function SyncStatusBadge() {
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onProgress((pending, lastError) => {
-      const justDrained = prevPendingRef.current > 0 && pending === 0 && !lastError;
+    const unsubscribe = onProgress((pending, lastError, dead = 0) => {
+      // "Drained" only when nothing is queued AND nothing dead-lettered is waiting.
+      const justDrained =
+        prevPendingRef.current > 0 && pending === 0 && dead === 0 && !lastError;
       prevPendingRef.current = pending;
 
       if (justDrained) {
@@ -53,8 +59,10 @@ export function SyncStatusBadge() {
       setState((prev) => ({
         ...prev,
         pending,
+        dead,
         lastError,
-        showSynced: justDrained || (prev.showSynced && pending === 0 && !lastError),
+        showSynced:
+          justDrained || (prev.showSynced && pending === 0 && dead === 0 && !lastError),
       }));
     });
     return () => {
@@ -68,6 +76,8 @@ export function SyncStatusBadge() {
     replayingRef.current = true;
     setState((prev) => ({ ...prev, replaying: true }));
     try {
+      // An explicit retry also revives dead-lettered ops (resets their attempt count).
+      if (state.dead > 0) await retryDead();
       await replay();
     } finally {
       replayingRef.current = false;
@@ -75,30 +85,45 @@ export function SyncStatusBadge() {
     }
   };
 
-  if (state.pending === 0 && !state.lastError && !state.showSynced) return null;
+  const handleDismiss = async () => {
+    await dismissDead();
+    await emitProgress();
+  };
+
+  const hasFailed = state.pending === 0 && state.dead > 0;
+
+  if (state.pending === 0 && state.dead === 0 && !state.showSynced) return null;
 
   const label = state.replaying
     ? "Syncing…"
     : state.pending > 0
       ? `${state.pending} queued`
-      : "All synced";
+      : hasFailed
+        ? `${state.dead} failed to sync`
+        : "All synced";
+
+  const dotClass = state.pending > 0 ? "bg-warning" : hasFailed ? "bg-destructive" : "bg-success";
 
   return (
     <div
       data-testid="sync-badge"
       className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium shadow-md"
       aria-live="polite"
-      aria-label={`${state.pending} order${state.pending !== 1 ? "s" : ""} pending sync`}
+      aria-label={
+        hasFailed
+          ? `${state.dead} order${state.dead !== 1 ? "s" : ""} failed to sync`
+          : `${state.pending} order${state.pending !== 1 ? "s" : ""} pending sync`
+      }
     >
       {state.replaying ? (
         <span className="size-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       ) : (
-        <span className={cn("size-2 rounded-full", state.pending > 0 ? "bg-warning" : "bg-success")} />
+        <span className={cn("size-2 rounded-full", dotClass)} />
       )}
 
       <span>{label}</span>
 
-      {state.lastError && (
+      {state.lastError && (state.pending > 0 || hasFailed) && (
         <span
           className="max-w-[12rem] truncate text-destructive"
           title={state.lastError}
@@ -107,13 +132,23 @@ export function SyncStatusBadge() {
         </span>
       )}
 
-      {state.pending > 0 && (
+      {(state.pending > 0 || hasFailed) && (
         <button
           onClick={() => void handleRetry()}
           disabled={state.replaying}
           className="ml-1 rounded px-1.5 py-0.5 text-xs text-primary hover:bg-primary/10 disabled:opacity-50"
         >
           Retry now
+        </button>
+      )}
+
+      {hasFailed && (
+        <button
+          onClick={() => void handleDismiss()}
+          disabled={state.replaying}
+          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
+        >
+          Dismiss
         </button>
       )}
     </div>

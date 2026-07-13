@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -6,6 +6,12 @@ import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { SettlementActions } from "@/components/pos/settlement-actions";
 import type { Order } from "@/lib/models/pos.model";
+
+// Capture router.push without a real Next router (mirrors login-form.test.tsx's pattern).
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock, replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
 
 const ORDER_ID = "d1000001-0000-4000-8000-000000000001";
 
@@ -47,10 +53,14 @@ function renderActions(order: Order, permissions: string[]) {
 }
 
 describe("SettlementActions", () => {
-  afterEach(() => clearSession());
+  afterEach(() => {
+    clearSession();
+    pushMock.mockClear();
+  });
 
-  it("renders CHARGE NOW and opens the PaymentPanel dialog when clicked", async () => {
-    renderActions(makeOrder(), ["pos.order.close"]);
+  it("renders CHARGE NOW and navigates to the full-page charge route when clicked (POS-22/25 — no dialog)", async () => {
+    const order = makeOrder();
+    renderActions(order, ["pos.order.close"]);
     const user = userEvent.setup();
 
     const chargeButton = screen.getByTestId("charge-now-button");
@@ -58,7 +68,8 @@ describe("SettlementActions", () => {
 
     await user.click(chargeButton);
 
-    expect(await screen.findByLabelText("Charge order")).toBeInTheDocument();
+    expect(pushMock).toHaveBeenCalledWith(`/app/pos/orders/${order.id}/charge`);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("hides CHARGE NOW when the user lacks pos.order.close", () => {

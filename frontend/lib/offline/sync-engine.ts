@@ -21,6 +21,7 @@ import {
   markSynced,
   peekPending,
   repointQueuedOps,
+  requeueRetriable,
 } from "./outbox";
 
 let isReplaying = false;
@@ -41,6 +42,12 @@ export async function replay(): Promise<ReplayResult> {
   isReplaying = true;
 
   try {
+    // Revive ops a previous pass left behind before draining: FAILED (transient/5xx
+    // failures not yet at MAX_ATTEMPTS) and IN_FLIGHT stranded by an interrupted replay.
+    // peekPending() reads PENDING only, so without this they would never be retried and
+    // would sit in the "N queued" badge forever. attempts is preserved, so a persistently
+    // failing op still climbs to MAX_ATTEMPTS and dead-letters to DEAD.
+    await requeueRetriable();
     const ops = await peekPending();
     let synced = 0;
     let failed = 0;
@@ -106,7 +113,13 @@ export async function replay(): Promise<ReplayResult> {
 
 // ── Progress callbacks ────────────────────────────────────────────────────────
 
-type ProgressCallback = (pending: number, lastError?: string) => void;
+/**
+ * @param pending  Ops still in the auto-retry pipeline (PENDING + IN_FLIGHT + FAILED).
+ *                 Excludes DEAD so a permanently-failing op can't inflate the pill forever.
+ * @param lastError Most recent error message (DEAD preferred, else FAILED).
+ * @param dead     Count of dead-lettered ops needing explicit Retry/Dismiss.
+ */
+type ProgressCallback = (pending: number, lastError?: string, dead?: number) => void;
 const progressCallbacks: ProgressCallback[] = [];
 
 /** Subscribe to outbox progress updates (UI badge). Returns an unsubscribe fn. */
@@ -124,14 +137,18 @@ export async function emitProgress(): Promise<void> {
     (await count("PENDING")) +
     (await count("IN_FLIGHT")) +
     (await count("FAILED"));
+  const dead = await count("DEAD");
 
-  const lastFailed = await getLastError();
-  progressCallbacks.forEach((cb) => cb(pending, lastFailed));
+  const lastError = await getLastError();
+  progressCallbacks.forEach((cb) => cb(pending, lastError, dead));
 }
 
 async function getLastError(): Promise<string | undefined> {
   const { all } = await import("./outbox");
   const ops = await all();
+  // Prefer a DEAD op's error (terminal, needs attention) over a still-retrying FAILED one.
+  const dead = ops.filter((o) => o.status === "DEAD" && o.lastError).at(-1);
+  if (dead) return dead.lastError;
   const failedOp = ops
     .filter((o) => o.status === "FAILED" && o.lastError)
     .at(-1);

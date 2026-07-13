@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07.2
-current_phase_name: finance-accounting-period-provisioning-guarantee-open-period
+current_phase: 08
+current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Completed 07.2-07-PLAN.md (calendar-based fiscal-year period provisioning UI, FIN-10)
-last_updated: "2026-07-11T21:57:23.988Z"
-last_activity: 2026-07-12
-last_activity_desc: 07.2-07-PLAN.md complete (calendar-based fiscal-year period provisioning UI, FIN-10)
+stopped_at: Phase 8 context gathered
+last_updated: "2026-07-13T19:45:08.684Z"
+last_activity: 2026-07-13
+last_activity_desc: Phase 08 execution started
 progress:
-  total_phases: 14
-  completed_phases: 6
-  total_plans: 49
-  completed_plans: 44
-  percent: 43
+  total_phases: 15
+  completed_phases: 8
+  total_plans: 69
+  completed_plans: 56
+  percent: 53
 ---
 
 # Project State
@@ -24,14 +24,67 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 07.2 — finance-accounting-period-provisioning-guarantee-open-period
+**Current focus:** Phase 08 — inventory-recipe-management
 
 ## Current Position
 
-Phase: 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — EXECUTING
-Plans: 7 plans across 3 waves (plan-checker PASSED, no blockers) — 6/7 complete (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 remaining)
-Status: Executing Phase 07.2
-Last activity: 2026-07-12 — 07.2-07-PLAN.md complete (calendar-based fiscal-year period provisioning UI, FIN-10)
+Phase: 08 (inventory-recipe-management) — EXECUTING
+Plans: 10 plans across 3 waves + 1 gap-closure plan — 11/11 complete (07.3-01 done: PaymentStatus derivation,
+maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
+kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
+PICKUP order type + Clear/New Order + charge gating, POS-16/17/18/19; 07.3-04 done: rich
+OrderSummaryDto (payment status + item quantity), PATCH /orders/{id}/table assign-table,
+tableNumber on send-to-KDS event, POS-24/POS-16/KDS-04; 07.3-05 done: kitchen-service V5
+migration + tableNumber propagation to KdsTicket/KdsTicketDto (parity w/ 07.3-04's producer
+field), POST /tickets/{id}/items/{id}/status explicit item-status endpoint wrapping
+markItemStatus, DEFAULT-station auto-seed-on-miss (TicketRoutingService.ensureStation +
+KdsController.getStations) so the KDS board is never empty, KDS-04; 07.3-06 done: useOrder
+live refetch + useAddItem instant cache-seed, "Send New Items (N)" revision CTA + panelized
+detail surface, Order Management manual Refresh, Wave-0 E2E for POS-20/POS-21 — POS-20 E2E
+BLOCKED on this dev branch by an out-of-scope kitchen-service pagination/data-hygiene
+defect, logged in deferred-items.md; 07.3-07 done: PaymentStatusBadge (4-state), full-page
+Charge route (/app/pos/orders/[orderId]/charge) replacing the sm:max-w-md PaymentPanel
+modal, useOrderPayments/useRecordPayment, CHARGE NOW reroute, Wave-0 E2E for POS-22/23 —
+S5/S5b BLOCKED live this session by a pre-existing gateway 503 on GET .../payments and a
+pre-existing S4 fire-toast timing gap, both out of scope, logged in deferred-items.md;
+07.3-08 done: OrderSummary model/schema/adapter extended (settlementStatus/paymentStatus/
+amountPaidPaisa/itemQuantity/distinctItemCount), PosRepository.assignTable + useAssignTable,
+Order Management Closed/Paid settlement filters + order-no./table-name search box, Items
+column replacing Cover, payment-status badge column, Assign Table row action via
+table-select-combobox's new availableOnly prop, POS-24; 07.3-09 done: useOnlineStatus
+connectivity-ping removal (navigator.onLine events only), void/refund + till open/close
+converted from hand-rolled fixed-overlay modals to dedicated no-[role=dialog] in-place
+panels mirroring the 07.3-07 charge-page pattern, new pos-modal-revamp.spec.ts POS-25
+no-dialog + screenshot backstop, POS-25/POS-26 — till stage reaches a live PASS
+(pos25-till.png); void/refund stage BLOCKED live this session by a pre-existing
+pos-service addItem HTTP-response-relay hang (server writes complete near-instantly but
+the response never reaches the client), out of scope, logged in deferred-items.md;
+07.3-10 done: kitchen/ redesigned into a station-isolated board — station-picker.tsx
+(auto-navigates on a single active station) -> station-board.tsx (New/Started/Preparing/
+Ready item-status columns via kds-item-column.tsx, item-centric mixed-status support) ->
+kitchen/[stationCode]/orders/[ticketId] dedicated detail page (kills the old tap-to-open
+Dialog), slim kds-ticket-card.tsx (order#/table/age/item-names only), useUpdateItemStatus
+wired to 07.3-05's item-status endpoint, single shared useKdsClock replacing per-card
+setInterval, subtle escalation-threshold aging (left border + timer chip, no
+animate-bounce/bg-red-950), Wave-0 E2E kds-stations.spec.ts — ran live twice, both PASS,
+KDS-04/KDS-05 both complete); 07.3-11 (gap-closure) done: closed the sole BLOCKER gap
+(BE-CR-01/POS-23/SC4) from 07.3-VERIFICATION.md — retired legacy
+POST /orders/{id}/close to 410 Gone, deleted OrderService.closeOrder (the tender-sum-only
+performClose bypass that never checked derivedStatus==SERVED), leaving maybeCloseOrder
+as the ONLY code path that can transition an order to CLOSED; migrated all 8 IT-fixture
+callers (AssignTableIT/OrderSummaryDtoIT/TableOrderLookupIT/VoidRefundOpaIT/
+OrderRevisionIT/PeriodLockCloseIT) onto a new shared PosTestBase.closeViaServeAndPay
+helper that drives closure through the real serve+pay seam; deleted
+OrderCloseIdempotencyIT (subject retired) with its single-publish coverage preserved
+via a new SettlementSemanticsIT backstop test; deleted orphaned frontend PaymentPanel
+component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
+frontend tsc clean. Phase 07.3 now 11/11 plans complete.
+Status: Executing Phase 08
+Last activity: 2026-07-13 — Phase 08 execution started
+
+Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
+(07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,
+Task 2 blocking human-verify checkpoint AWAITING USER, unrelated to Phase 07.3)
 
 Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification human_needed, recommended complete)
 
@@ -82,6 +135,17 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | Phase 07.2 P04 | 20min | 2 tasks | 3 files |
 | Phase 07.2 P05 | 20min | 2 tasks | 3 files |
 | Phase 07.2 P07 | 21min | 3 tasks | 11 files |
+| Phase 07.3 P01 | 55min | 3 tasks | 8 files |
+| Phase 07.3 P02 | 20min | 2 tasks | 5 files |
+| Phase 07.3 P03 | 35min | 4 tasks | 13 files |
+| Phase 07.3 P04 | 40min | 3 tasks | 9 files |
+| Phase 07.3 P06 | 55min | 4 tasks | 7 files |
+| Phase 07.3 P07 | 40min | 4 tasks | 21 files |
+| Phase 07.3 P05 | 20min | 3 tasks | 13 files |
+| Phase 07.3 P08 | 20min | 2 tasks | 9 files |
+| Phase 07.3 P09 | 65min | 3 tasks | 6 files |
+| Phase 07.3 P10 | 23min | 4 tasks | 21 files |
+| Phase 07.3 P11 | 90min | 4 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -216,6 +280,35 @@ Recent decisions affecting current work:
 - [Phase 07.2-07]: ProvisionPeriodDialog uses a local getProvisionErrorMessage() instead of formatUserFacingError from @/lib/api-client/errors, avoiding a documented components/** -> lib/api-client/** ESLint layer-boundary violation (docs/finance-eslint-backlog.md Issue 1); mirrors payment-panel.tsx's getChargeErrorMessage convention.
 - [Phase 07.2-07]: ProvisionPeriodDialog's internal fiscalYear state resets via a parent-side key={fiscalYear} remount in periods/page.tsx, not useEffect+setState, per react-hooks/set-state-in-effect.
 - [Phase 07.2-07]: E2E login() helper classifies a 'Sign-in failed / service temporarily unavailable' banner as Blocked (not FAIL), matching pos-settlement.spec.ts's 503/FallbackController convention -- discovered live this session (finance-service down, gateway 503).
+- [07.2-06]: Root-caused platform-admin-service's 100% IT-suite failure to a hardcoded macOS-only DOCKER_HOST in pom.xml:171 (commit 55ae628, predates 07.2 entirely) -- corrects STATE.md's prior "session-level" hypothesis; not fixed (out of scope for verification-only Task 1), flagged as Pending Todo.
+- [07.2-06]: Used `mvn -fae` (fail-at-end) instead of plain `verify` for the full IT suite -- plain verify fail-fasts on auth-service's known pre-existing flakiness and silently SKIPs finance-service/platform-admin-service, violating the "no silent skips" acceptance criterion.
+- [07.2-06]: Confirmed PROVISIONING_SEED_COA_ENABLED live default is true (unset in deploy/.env; YAML default already flipped by 07.2-03) -- RESEARCH.md Assumption A1 resolved, no deploy-config gap.
+- [Phase 07.3-01]: maybeCloseOrder is a no-op (returns order unchanged) rather than throwing when Paid+Served isn't both true or the order is already terminal -- safe to call unconditionally from recordPayment and markItemServed.
+- [Phase 07.3-01]: closeOrder (legacy exact-tender) and maybeCloseOrder (derived Paid+Served close) share one private performClose(Order, paymentEntries) seam -- exactly ONE ORDER_CLOSED publish call site; closeOrder itself still does not persist OrderPayment rows (out of scope, only recordPayment does).
+- [Phase 07.3-02]: KitchenItemStatusConsumer uses OrderItemStatus.ordinal() forward-only guard (generalizes OrderReadyConsumer's fixed-target ELIGIBLE-set pattern) since the incoming kitchen status varies per message — A simple membership set cannot express never-move-backward for every possible target status; ordinal comparison does.
+- [Phase 07.3-02]: Dev-stack RabbitMQ requires RABBITMQ_USERNAME=restaurantos/RABBITMQ_PASSWORD=dev_rabbit_2026 (deploy/.env) for @RabbitListener context startup locally — Resolves the previously-documented ACCESS_REFUSED environmental blocker for kitchen-service/pos-service Testcontainers ITs; both full suites ran green with these exported.
+- [Phase 07.3-03]: Menu taps are ALWAYS cart-only (never network), even post-send; adding more items to a fired order is Order Management's revision-fire flow (POS-21/D-06), not the terminal's
+- [Phase 07.3-03]: New lib/hooks/pos/use-fire-to-kitchen.ts (mutate-time-orderId sendToKds sibling) added instead of editing use-orders.ts, which 07.3-06 owns this phase
+- [Phase 07.3-04]: assignTable routes the previous table binding (no-op when null, the common case) AND the newly-assigned table through the SAME TableService.syncStatusForOrder seam -- never an inline table.setStatus() call; true table-to-table reassignment is not covered by this plan's tests
+- [Phase 07.3-04]: listOrderSummaries default filter changed from !isTerminal(s) to !isTerminal(s) && s != DRAFT -- explicit statuses requests (incl. DRAFT/terminal) bypass the default and are unaffected
+- [Phase 07.3-04]: OrderPaymentRepository.sumAmountByOrderIds batched interface-projection query added for listOrderSummaries -- one query per page instead of per row (N+1 avoidance)
+- [Phase ?]: [07.3-06]: useOrder gets a flat 5s refetchInterval (not WebSocket) for POS-20 live sync; matches KDS board's own HTTP-poll fallback pattern
+- [Phase ?]: [07.3-06]: order-table-detail-drawer rebuilt on raw Radix DialogPrimitive (not shared DialogContent) to drop its sm:max-w-sm default and become a large in-place panel (inset-4 sm:inset-6 lg:inset-10) for POS-25
+- [Phase ?]: [07.3-06]: Playwright locator.isVisible({timeout}) does not auto-retry/wait -- genuine wait-for-async-element E2E checks must use expect(locator).toBeVisible({timeout}) or locator.waitFor
+- [Phase 07.3-07]: GET /orders/{id} has no paymentStatus field — derivePaymentStatus() mirrors backend PaymentStatusDerivationService client-side from useOrderPayments sum vs order.totalPaisa, kept frontend-only
+- [Phase 07.3-07]: recordPayment records ONE tender per call (backend has no multi-payment array endpoint outside legacy closeOrder); split-tender rows submit sequentially via mutateAsync
+- [Phase 07.3-07]: Charge page never calls closeOrder directly — relies entirely on backend maybeCloseOrder seam to auto-close once Paid AND Served
+- [Phase 07.3-05]: TicketRoutingService.ensureStation seeds a station row (branchId+code) for every station code a ticket routes to, not only DEFAULT -- backstopped by V1's uq_station_tenant_branch_code unique constraint
+- [Phase 07.3-05]: KdsController.getStations auto-seeds a DEFAULT station on empty branch (mirrors finance 07.2 auto-seed-on-miss); item-status endpoint wraps existing markItemStatus rather than re-implementing transition logic
+- [Phase ?]: [Phase 07.3-08]: Closed filter scoped to statuses=["CLOSED"] only (not full terminal set) -- matches the chips literal label; VOIDED/REFUNDED remain reachable via their own StatusBadge elsewhere.
+- [Phase ?]: [Phase 07.3-08]: Closed filter uses a SEPARATE enabled-gated useOrderSummaries query instance rather than re-pointing the always-on active-list query, so useFadeOutList never misfires on a filter-driven fetch-scope switch.
+- [Phase ?]: [Phase 07.3-08]: table-select-combobox.tsx gained an additive availableOnly prop (default false) instead of a new component -- Assign Table is the only availableOnly=true caller, order-panel.tsx unaffected.
+- [Phase 07.3-09]: void/refund and till panels use a plain in-flow section (no Radix DialogPrimitive) mirroring 07.3-07's charge-summary.tsx pattern, not 07.3-06's Radix-Dialog-based order-table-detail-drawer.tsx pattern -- required so neither surface carries a [role=dialog], satisfying this plan's own executable no-dialog E2E backstop.
+- [Phase 07.3-09]: till-session-bar.tsx panels replace the trigger row in place within the same session-scoped bar (still visible above all 3 POS tabs) rather than a portal/overlay panel.
+- [Phase ?]: Deleted kds-board.tsx (superseded by station-picker/station-board/kds-item-column); moved sortKdsTickets into station-board.tsx — 07.3-10: kitchen/page.tsx became a station picker so the old multi-station KdsBoard had zero callers left
+- [Phase ?]: kds-ticket-detail.tsx extended with optional canUpdate prop for per-item transition controls — 07.3-10 Task 3: avoids duplicating revision-grouping logic in kds-station-detail.tsx
+- [Phase ?]: [07.3-11]: D-08 (locked by user) - DEPRECATE and REMOVE the legacy closeOrder tender-sum-only close bypass rather than gate/fix it in place; retired POST /orders/{id}/close to 410 Gone, deleted the service method, migrated 8 IT-fixture callers to a shared closeViaServeAndPay helper, deleted orphaned frontend PaymentPanel/useCloseOrder.
+- [Phase ?]: [07.3-11]: PosTestBase.closeViaServeAndPay always re-fetches totalPaisa from the DB immediately before recordPayment (never trusts the caller-supplied OrderDto param) -- caught a real stale-order bug where OrderSummaryDtoIT's order variable was captured before addItem.
 
 ### Pending Todos
 
@@ -235,8 +328,11 @@ Recent decisions affecting current work:
 - **Phase 1 SC5 gap:** `processed_events` consumer dedup not implemented — fix via `/gsd-plan-phase 1 --gaps` (non-blocking for Phase 3).
 - **IT env:** Testcontainers on Colima requires `DOCKER_HOST` + `TESTCONTAINERS_RYUK_DISABLED=true`.
 - kitchen-service Testcontainers ITs (incl. new TicketRevisionRoutingIT) currently blocked by a pre-existing RabbitMQ ACCESS_REFUSED auth conflict on localhost:5672, confirmed environmental (baseline TicketRoutingIT fails identically). Human/CI run needed in an env without a competing local RabbitMQ broker.
-- **Phase 07.2 Wave 1 post-merge gate findings (pre-existing, NOT caused by 07.2-01..05):** (1) auth-service `BranchSwitchIT`/`RefreshLogoutIT`/`StepUpLoginIT`/`TotpFlowIT` fail with 401/403 mismatches when run as part of the FULL auth-service suite but pass cleanly (0 failures) when run in isolation — a pre-existing test-order/shared-context flakiness, confirmed unrelated to this phase (none of these 4 files were touched by any 07.2 plan; last touched 2026-06-24 in Phase 2). (2) finance-service `JournalEntryImmutabilityIT`/`JournalEntryBalanceTriggerIT`/`InternalAutoPostIT` fail with `IllegalStateException: Branch context required` — reproduced identically on the pre-phase-07.2 baseline commit (71925f5) via a throwaway worktree, confirming this predates the phase entirely (`JournalEntryServiceImpl.java` last touched in Phase 6, untouched by 07.2). (3) platform-admin-service's Testcontainers IT suite failed to bootstrap its Docker client strategy (`TestcontainersHostPropertyClientProviderStrategy could not be instantiated`) specifically in the orchestrator's own shell session — `docker ps` works fine directly, and each of plans 07.2-02/03/04/05's own executor sessions already ran their scoped Testcontainers-based tests green moments earlier on the same host, so this reads as a session-level Docker/Testcontainers bootstrap quirk, not a code defect. None of these three findings blocked Wave 1 — `git diff --stat` confirmed only the 14 files owned by plans 02-05 changed. Recommend a human/CI run of the full three-service suite in a clean session before treating Phase 07.2 as fully verified (07.2-06 already restarts all three services + reruns the full suite as its Task 1, which should be the authoritative check).
+- **Phase 07.2 Wave 1 post-merge gate findings (pre-existing, NOT caused by 07.2-01..05):** (1) auth-service `BranchSwitchIT`/`RefreshLogoutIT`/`StepUpLoginIT`/`TotpFlowIT` fail with 401/403 mismatches when run as part of the FULL auth-service suite but pass cleanly (0 failures) when run in isolation — a pre-existing test-order/shared-context flakiness, confirmed unrelated to this phase (of these 4 files were touched by any 07.2 plan; last touched 2026-06-24 in Phase 2). (2) finance-service `JournalEntryImmutabilityIT`/`JournalEntryBalanceTriggerIT`/`InternalAutoPostIT` fail with `IllegalStateException: Branch context required` — reproduced identically on the pre-phase-07.2 baseline commit (71925f5) via a throwaway worktree, confirming this predates the phase entirely (`JournalEntryServiceImpl.java` last touched in Phase 6, untouched by 07.2). (3) platform-admin-service's Testcontainers IT suite failed to bootstrap its Docker client strategy (`TestcontainersHostPropertyClientProviderStrategy could not be instantiated`) specifically in the orchestrator's own shell session — `docker ps` works fine directly, and each of plans 07.2-02/03/04/05's own executor sessions already ran their scoped Testcontainers-based tests green moments earlier on the same host, so this reads as a session-level Docker/Testcontainers bootstrap quirk, not a code defect. of these three findings blocked Wave 1 — `git diff --stat` confirmed only the 14 files owned by plans 02-05 changed. Recommend a human/CI run of the full three-service suite in a clean session before treating Phase 07.2 as fully verified (07.2-06 already restarts all three services + reruns the full suite as its Task 1, which should be the authoritative check).
 - 07.2-07's live Playwright E2E run (finance-period-provisioning.spec.ts) was BLOCKED this session: finance-service process down / gateway 503 in the dev stack. Deferred to 07.2-06's restart-and-verify gate per plan.
+- kitchen-service KdsController.getTickets: LazyInitializationException on unscoped GET (no @Transactional boundary) + unsorted/size=20 default Pageable lets accumulated stale PENDING test tickets (29+ on GRILL) push new tickets beyond page 1 -- blocks pos-kitchen-live-sync.spec.ts (POS-20) from a live PASS; out of scope for 07.3-06 (frontend-only), logged in 07.3 deferred-items.md
+- 07.3-07 pos-settlement.spec.ts: S4 (pre-existing, unrelated - Send to Kitchen toast timing) and S7 (cascading) FAIL live on this dev branch; S5/S5b (new POS-22/23 charge-page assertions) correctly reach BLOCKED - POST /payments succeeds but GET /payments 503s at the gateway (same circuit-breaker gap as S2/S6). Recommend a re-run once these environmental gaps clear before treating POS-22/23 live UAT as fully closed.
+- 07.3-09 pos-modal-revamp.spec.ts: void/refund stage BLOCKED live this session by a pos-service POST /orders/{id}/items response-relay hang -- the write completes near-instantly server-side (confirmed via direct DB row inspection) but the HTTP response never reaches the browser, reproduced 5x across a pos-service restart and a gateway restart. Not caused by this plan's files (pure frontend UI, no relationship to the addItem endpoint). Full diagnostic trail in deferred-items.md under `## 07.3-09`. Recommend a re-run once the dev-stack stabilizes to capture the live pos25-void-refund.png.
 
 ### Roadmap Evolution
 
@@ -245,6 +341,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-11T21:56:38.335Z
-Stopped at: Completed 07.2-07-PLAN.md (calendar-based fiscal-year period provisioning UI, FIN-10)
-Resume file: None
+Last session: 2026-07-13T17:48:29.545Z
+Stopped at: Phase 8 context gathered
+Resume file: .planning/phases/08-inventory-recipe-management/08-CONTEXT.md

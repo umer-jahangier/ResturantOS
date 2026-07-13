@@ -1,5 +1,5 @@
 ---
-status: gaps_resolved_pending_human_verification
+status: gaps_found
 phase: 07-point-of-sale-kitchen-display
 source:
   - 07-01-SUMMARY.md
@@ -7,8 +7,145 @@ source:
   - 07-03-SUMMARY.md
   - 07-04-SUMMARY.md
 started: 2026-07-10T00:00:00+05:00
-updated: 2026-07-11T00:10:00+05:00
+updated: 2026-07-11T01:30:00+05:00
 ---
+
+## Browser Automation Session (Playwright — 2026-07-11)
+
+First real browser-driven pass over Phase 7, as both CASHIER (`cashier@demo.local`) and
+KITCHEN_STAFF (`chef@demo.local`), using an ad-hoc Playwright script (no MCP browser tool
+available; drove `@playwright/test`'s `chromium` directly against the live dev stack).
+This superseded all of the "browser automation not available, deferred" caveats from the
+prior session for Tests 2, 3, 4, 9, 10.
+
+**Environment repair required before any browser testing could start:**
+- auth-service was wedged with a stale Hikari connection pool (`Connection is not
+  available, request timed out` → every request 500'd with a bare NPE). Restarted.
+- auth-service's Liquibase seed migration (changesets 902/903 adding
+  `chef@demo.local`/`manager@demo.local`) had never actually completed — a stray,
+  untracked `kitchen@demo.local` user occupied the same hardcoded UUID from an earlier,
+  abandoned seeding attempt, causing a `duplicate key` Liquibase failure on every
+  auth-service boot (service never came up). User approved deleting the stray row; the
+  real seed then applied cleanly.
+- pos-service and kitchen-service processes had died and needed rebuilding/restarting.
+
+**New bugs found via actual browser interaction (all backend/frontend contract bugs that
+only manifest when a real browser calls these endpoints — the prior session's direct-API
+curl testing happened to avoid every one of them):**
+
+1. **[BLOCKER, FIXED]** `GET /api/v1/pos/menu/categories` threw
+   `LazyInitializationException` on `MenuCategory.items` — the controller returned the
+   raw JPA entity (with a lazy `@OneToMany`) instead of a DTO, and Jackson serialized it
+   after the transaction/session closed. The POS menu grid could never load a single
+   category. Fixed: added `MenuCategoryDto`, updated `MenuServiceImpl`/`MenuController` to
+   map to DTOs inside the transactional service method (same pattern already used for
+   `MenuItemDto`).
+2. **[BLOCKER, FIXED]** `MenuController`, `OrderController`, and `TableController` all
+   returned raw, unwrapped JSON (bare arrays / bare DTOs), but the frontend's generic
+   `get()`/`post()` request helpers unconditionally unwrap the shared `{data, meta,
+   warnings}` `ApiResponse` envelope (`response.data.data`) — the contract every other
+   controller (`PaymentController`, `TillController`, and every other service) follows.
+   Net effect: the entire POS menu/table/order-lifecycle UI silently received `undefined`
+   for every list (menu items, tables) and threw Zod parse errors for every order mutation
+   (create/get/addItem/removeItem/applyDiscount/sendToKds/void/refund) — the cashier could
+   never see a table, see a menu item, or create an order through the real UI, though raw
+   curl testing (bypassing the frontend's envelope-unwrap layer) never surfaced this.
+   Fixed: wrapped all affected endpoints in `ApiResponse.ok(...)` /
+   `ApiResponse.paginated(...)`, matching the sibling controllers' existing pattern.
+3. **[BLOCKER, FIXED]** `DiningTable`'s JPA field is `tableNumber`, but the frontend's
+   `apiDiningTableSchema` (and `TableFloorView`'s `table.tableName` usage) expects
+   `tableName` — a `.parse()` on real table data would have thrown even after fixing #2.
+   Fixed: added `DiningTableDto` (mirroring the `tableName` contract) and updated
+   `TableController` to return it.
+4. **[BLOCKER, FIXED]** `PosTerminal.handleItemSelect`: the `useAddItem(activeOrderId ??
+   "")` mutation hook is bound to `activeOrderId` at render time. On the very first menu
+   tap (order doesn't exist yet), the handler creates the order and calls
+   `setActiveOrderId(...)`, then immediately calls `addItem.mutateAsync(...)` — but
+   `addItem` is still the *stale* instance bound to `""` from the render before the state
+   update landed, so it POSTed to `/api/v1/pos/orders//items` (empty order id), which the
+   browser blocked as a bad CORS preflight. Result: the very first item tap always created
+   an empty DRAFT order and silently dropped the item; only the *second* tap (after a
+   re-render) actually added anything. Fixed: the first-item path now calls
+   `PosRepository.addItem`/`enqueue` (offline-aware) directly with the freshly-known
+   order id instead of going through the stale hook instance.
+5. **[BLOCKER, FIXED]** `KdsTicketRepository.findByBranchIdAndStationCodeAndStatusIn`
+   declared its `statuses` parameter as `List<String>`, but `KdsTicket.status` is a
+   `TicketStatus` enum column — every single KDS ticket-list call (the KDS board fetches
+   per-station, always with a status filter) threw
+   `QueryArgumentException: ... is not assignable to TicketStatus`. The board had *never*
+   been able to show a ticket, ever, regardless of role. Fixed: changed the repository
+   signature (and `countByOrderIdAndStatusNot`) to `TicketStatus`, parsing the
+   comma-separated query param to enum values in the controller.
+6. **[BLOCKER, FIXED]** Same class of bug as #1: `KdsController.getTickets` mapped
+   `Page<KdsTicket>` → DTO *after* the repository call's session had closed, and
+   `KdsController.bumpItem` did its own `ticketRepository.findById(...).getItems()...`
+   peek outside any transaction — both threw `LazyInitializationException` on
+   `KdsTicket.items` once #5 was fixed. Fixed: added `@EntityGraph(attributePaths =
+   "items")` to the ticket-list query, and moved the bump status-transition logic
+   (`current -> next`) into a new transactional `TicketServiceImpl.bumpItem(...)` /
+   `TicketService.bumpItem(...)` method instead of the controller peeking at a detached
+   entity.
+
+**After the fixes above, verified end-to-end through the real browser UI:**
+- **Test 2 (create order)** — PASS. Cashier login → POS terminal → menu grid renders
+  all 10 seeded items across 4 categories → tapping an item creates a DRAFT order that
+  correctly flips to OPEN with the tapped item present and correct running totals
+  (subtotal/tax/total all matched expected math) → tapping a second item accumulates
+  correctly.
+- **Test 3 (send to kitchen)** — PASS. "Send to Kitchen" button enabled once items are
+  present, click transitions the order to `SENT_TO_KDS` in the order panel (confirmed in
+  UI, not just API).
+- **Test 4 (KDS ticket lifecycle)** — PASS (previously blocked, no KITCHEN_STAFF seed
+  user). Logged in as `chef@demo.local`. KDS board renders always-dark with 4 station
+  columns (Grill/Fryer/Drinks/Default). All 7 real tickets appeared (including the one
+  just created above), correctly grouped by station with item notes/modifiers visible.
+  **Aging colors visually confirmed exactly per spec**: fresh (<10min) tickets green
+  border, 10-15min amber border + pulse, 15min+ red border + bounce (screenshot evidence:
+  a genuinely 21-hour-old seed ticket was still red/bouncing, a 12-minute one was
+  amber/pulsing, a fresh one was green). Bump PENDING→COOKING→READY worked per-item via
+  the START/DONE buttons, with the item disappearing its button once READY.
+- **Test 10 (role isolation)** — PASS, both directions now confirmed (previously only
+  the CASHIER→KDS direction was tested). CASHIER sidebar shows only "POS" (no Kitchen
+  Display); KITCHEN_STAFF sidebar shows only "Kitchen Display" (no POS), and
+  `chef@demo.local` navigating directly to `/app/pos` is blocked in the UI ("You do not
+  have permission to access the POS terminal"). MANAGER/OWNER "sees both" still untested
+  (OWNER blocked by TOTP step-up; MANAGER wasn't driven through the UI this pass, only
+  confirmed to hold both permissions via JWT).
+- **Test 9 (offline PWA)** — PARTIAL. Offline banner correctly appears
+  ("Offline — Orders will sync when connection returns") when the browser goes offline.
+  However: the sync-status badge (`sync-badge` testid) never appeared after creating an
+  order while offline, in this implementation or the original design — `enqueue()` (in
+  both `useCreateOrder` and `useAddItem`) writes to IndexedDB but never calls
+  `emitProgress()`; the badge only refreshes on mount or after a `replay()` call
+  (mount-time or on the `online` event), so there's a real UX gap where offline actions
+  give no visible confirmation until reconnect. Order panel also showed "No active order"
+  the whole time offline (the optimistic DRAFT stub returned by `useCreateOrder` is never
+  written into the `useOrder` query cache, so the UI has nothing to render until back
+  online). Did not have time this session to independently confirm the reconnect→replay→
+  exactly-once-server-side-order path end-to-end; flagging as a genuine, not-yet-verified
+  gap rather than a pass.
+
+**Still not independently re-verified as fully working through the UI this session**
+(distinct from the above — these are pre-existing findings from the prior session,
+reconfirmed unchanged):
+- **Test 7 (void)** — reconfirmed still broken: `POST .../void` as CASHIER on their own
+  order still returns `403 "Not permitted: pos.void"` even though the cashier's JWT now
+  carries `pos.order.void.own` (the `043-cashier-void-own-permission` changeset did run).
+  The error message references a different permission string (`pos.void`) than what's
+  granted — same class of OPA/permission-code mismatch as originally diagnosed, not a
+  regression from this session's fixes.
+- **Tests 5 & 6 (payment / till)** — **new finding this session**: even setting aside the
+  previously-diagnosed finance-period and `tillSessionId` backend bugs, the
+  `PaymentPanel`, `TillSessionBar`, and `VoidRefundDialog` React components (which
+  implement the full split-tender charge, till open/close, and void/refund UI) are
+  **never imported or rendered by any page** — `grep` confirms zero non-test references
+  outside their own files. `OrderPanel`'s "CHARGE NOW" button is a permanently
+  `disabled` stub with the title "Payment processing available in next phase"; there is
+  no till bar and no void button anywhere in the actual running app. This means Tests 5,
+  6, and 7 are blocked in the browser not only by the backend bugs already on file, but
+  by a **missing frontend integration** — the components exist and (per source read) look
+  correct, but a cashier cannot reach payment, till management, or void from the UI at
+  all today.
 
 ## Resolution (Gap Closure — 2026-07-11)
 
@@ -116,50 +253,69 @@ reported: |
 expected: Opening the POS page shows a touch-first menu grid and a table floor view. Selecting a table and tapping menu items adds them to the order panel with running totals (MoneyDisplay format). The order is created as DRAFT and moves to OPEN once the first item is added.
 result: pass
 reported: |
-  Verified backend contract via direct API calls (browser UI rendering itself not
-  verified — no browser automation available, deferred). Logged in as CASHIER.
-  `POST /api/v1/pos/orders` with a table selected created the order as `status: DRAFT`,
-  `totalPaisa: 0`, correct `tableId`/`coverCount`. `POST .../items` (Chicken Karahi x2)
-  transitioned the order to `status: OPEN` on the very first item add, with
-  `subtotalPaisa`/`taxPaisa`/`totalPaisa` correctly recomputed (240000/31200/271200 paisa).
-  A second item add (Doodh Patti Chai x2, different KDS station) correctly accumulated
-  into running totals (298320 paisa total). Matches expected DRAFT→OPEN-on-first-item
-  contract exactly.
+  Re-verified end-to-end through the real browser (Playwright + chromium) as CASHIER,
+  after fixing 4 blocker bugs this session that were silently breaking this exact flow
+  (menu-categories LazyInitializationException; Menu/Order/Table controller response
+  envelope mismatch vs. the frontend's API client; DiningTable tableNumber/tableName
+  field mismatch; a stale-closure bug dropping the very first item added to a new order).
+  Menu grid renders all 10 seeded items across 4 category tabs (Mains/Starters/
+  Beverages/Desserts). Tapping the first item creates the order and correctly shows it
+  OPEN with the item present and correct running totals; a second item accumulates
+  correctly (visually confirmed subtotal/tax/total math in the order panel). Floor View
+  tab renders all 8 seeded tables with AVAILABLE/OCCUPIED status. Table-to-order linkage
+  (tapping a table before ordering) was not separately exercised — `PosTerminal` doesn't
+  currently pass a table selection into `createOrder` (no `tableId` reaches the request),
+  a pre-existing scope gap not touched this session.
 
 ### 3. Send Order to Kitchen
 expected: With items in the order, sending the order to the kitchen transitions it to SENT_TO_KDS. The Kitchen Display board (on the kitchen-service frontend, always-dark) shows a new ticket within a couple seconds via WebSocket push, grouped by station (e.g. GRILL/DRINKS/DEFAULT), including item notes and modifiers.
 result: pass
 reported: |
-  Order transition verified via API: `POST /api/v1/pos/orders/{id}/send-to-kds` correctly
-  moved the order to `status: SENT_TO_KDS` with `sentToKdsAt` populated, order items
-  retained their per-station `kdsStation` (GRILL/DRINKS) and notes ("no salt") intact.
-  Ticket creation itself (kitchen-service consuming ORDER_SENT_TO_KDS and creating a
-  routed `kds_tickets` row) was root-caused and fixed under Test 1 and previously verified
-  end-to-end for a prior test order. For THIS session's new orders, ticket creation could
-  NOT be independently re-confirmed via the KDS API — see Test 4 (role/permission
-  blocker) — nor could the live WebSocket board push or "within a couple seconds"
-  timing be observed, since no browser automation is available this session. Deferred:
-  live KDS board rendering + WebSocket push timing (browser-only, to be checked when
-  automation tooling is integrated).
+  Re-verified through the real browser. Clicking "Send to Kitchen" (enabled once items
+  are present) transitioned the order panel's status pill to SENT_TO_KDS immediately.
+  Switching to the KITCHEN_STAFF session confirmed the corresponding ticket appeared on
+  the Grill station column, correctly grouped, with the right order number and item
+  names. Did not independently time the "within a couple seconds" WebSocket push latency
+  claim (ticket was already present by the time the KDS board was loaded/polled) or
+  confirm the live push specifically (vs. a fetch-on-load) — timing/push-specific
+  verification still outstanding.
 
 ### 4. Bump Ticket Through Kitchen Lifecycle
 expected: On the KDS board, a ticket can be progressed PENDING → COOKING → READY. Ticket cards visually age (green under 10 min, amber+pulse 10-15 min, red+bounce past 15 min). When all tickets for an order are READY, the originating order in POS shows status READY (or PARTIAL_READY if only some stations are done).
-result: blocked
-blocked_by: other
-reason: |
-  Cannot obtain a test credential with `pos.kds.view`/`pos.kds.update` permission to call
-  the KDS API at all. Per `services/auth-service/.../042-kds-permissions-kitchen-role.xml`,
-  those permissions are granted ONLY to KITCHEN_STAFF, MANAGER (view-only), TENANT_ADMIN,
-  and OWNER — explicitly excluded for CASHIER, ACCOUNTANT, FINANCE_VIEWER,
-  INVENTORY_MANAGER (working as intended for CASHIER — see Test 10). But: (a) no
-  KITCHEN_STAFF or MANAGER seed user exists in `900-seed-auth-dev-data.xml` (only
-  cashier/owner/accountant/finance_demo are seeded, despite
-  `Docs/agent-specs/11-seed-data-specification.md` describing a `chef@demo.local` /
-  `manager@demo.local`), and (b) OWNER login requires TOTP step-up
-  (`AuthServiceImpl.requiresTotpStepUp` — OWNER has `rbac.manage`), which cannot be
-  completed headlessly since the seeded owner has `totp_enabled: false` (never enrolled).
-  Ticket bump, aging visuals, and READY/PARTIAL_READY order status rollup are entirely
-  UNTESTED. This also blocks browser-based KDS board testing later unless a KITCHEN_STAFF
+result: pass
+reported: |
+  Previously blocked (no KITCHEN_STAFF seed user existed); unblocked once `chef@demo.local`
+  was confirmed seeded and could log in without TOTP. Two further blocker bugs found and
+  fixed via actual browser use before this could pass: (a) the KDS ticket-list query
+  compared a `List<String>` against the `TicketStatus` enum column, throwing a Hibernate
+  `QueryArgumentException` on every single board load — the board could never show a
+  ticket, for any user, ever; (b) after fixing that, both the ticket-list and bump-item
+  endpoints threw `LazyInitializationException` on `KdsTicket.items` (DTO mapping /
+  status-transition logic touched the lazy collection outside its Hibernate session).
+  After fixes: KDS board renders always-dark with Grill/Fryer/Drinks/Default columns; all
+  7 real tickets appeared, correctly grouped by station with notes/modifiers visible.
+  **Aging colors visually confirmed exactly per spec** — a ~21-hour-old seed ticket was
+  red-bordered and bouncing, a 12-minute ticket was amber-bordered and pulsing, and a
+  fresh (<10min) ticket was green-bordered, matching the <10/10-15/15+ minute thresholds
+  exactly. Bump PENDING→COOKING (START button) and COOKING→READY (DONE button) both
+  worked via direct clicks, with each item's button disappearing once READY. Did NOT
+  verify the order-level READY/PARTIAL_READY rollup back in the POS view this session
+  (ran out of time after the two backend fixes above) — that specific rollup remains
+  unverified, though the per-item bump mechanics are now confirmed working end-to-end.
+
+blocked_by_prior: |
+  (Historical — now resolved) Cannot obtain a test credential with `pos.kds.view`/
+  `pos.kds.update` permission to call the KDS API at all. Per
+  `services/auth-service/.../042-kds-permissions-kitchen-role.xml`, those permissions
+  are granted ONLY to KITCHEN_STAFF, MANAGER (view-only), TENANT_ADMIN, and OWNER —
+  explicitly excluded for CASHIER, ACCOUNTANT, FINANCE_VIEWER, INVENTORY_MANAGER
+  (working as intended for CASHIER — see Test 10). But: (a) no KITCHEN_STAFF or MANAGER
+  seed user existed in `900-seed-auth-dev-data.xml` (only cashier/owner/accountant/
+  finance_demo were seeded, despite `Docs/agent-specs/11-seed-data-specification.md`
+  describing a `chef@demo.local` / `manager@demo.local`), and (b) OWNER login requires
+  TOTP step-up (`AuthServiceImpl.requiresTotpStepUp` — OWNER has `rbac.manage`), which
+  cannot be completed headlessly since the seeded owner has `totp_enabled: false` (never
+  enrolled). This also blocks browser-based KDS board testing later unless a KITCHEN_STAFF
   (or similar) seed user is added, or OWNER TOTP is enrolled.
 
 ### 5. Take Payment (Split-Tender) and Close Order
@@ -186,6 +342,13 @@ reported: |
   — the entire payment/charge flow is non-functional out of the box, regardless of role.
   Table-returns-to-AVAILABLE and receipt confirmation could not be tested as a
   consequence.
+new_finding_2026_07_11: |
+  Browser session confirmed this is ALSO blocked at the UI layer independent of the
+  finance-period bug: `PaymentPanel` (the component implementing this exact split-tender
+  CHARGE NOW flow) is never imported/rendered by any page. `OrderPanel`'s real "CHARGE
+  NOW" button is a hardcoded `disabled` stub ("Payment processing available in next
+  phase"). Even after the backend bug is fixed, a cashier has no way to reach this UI
+  today.
 
 ### 6. Open and Close a Till Session
 expected: A cashier can open a till session (declaring a starting float) from the till bar before taking payments. Attempting to open a second till while one is already open for that cashier is rejected. Closing the till requires all orders in the session to be CLOSED/VOIDED first, and shows a variance preview (declared vs. expected cash) on close.
@@ -208,6 +371,11 @@ reported: |
   also returned `variancePaisa: null` even though `expectedClosingPaisa` (500000) and
   `declaredClosingPaisa` (500000) were both populated (variance should be 0, not null) —
   the "variance preview on close" contract is not being honored in the response DTO.
+new_finding_2026_07_11: |
+  Browser session confirmed `TillSessionBar` (the component implementing till open/close
+  and the variance preview) is never imported/rendered by any page — there is no till bar
+  visible anywhere in the running app. Blocked at the UI layer independent of the backend
+  bugs above.
 
 ### 7. Void an Order
 expected: An open/unpaid order can be voided with a required reason via the void dialog. Voiding an order also cancels any associated kitchen tickets on the KDS board automatically.
@@ -227,6 +395,17 @@ reported: |
   in code (controller, service, OPA policy) but is completely non-functional for every
   role because the permission rows that would grant access were never seeded. Cascading
   kitchen-ticket cancellation could not be tested as a consequence.
+reconfirmed_2026_07_11: |
+  Re-tested via direct API call this session (fresh order, cashier's own order, valid
+  reason, correct Idempotency-Key header): still `403 "Not permitted: pos.void"` —
+  unchanged from the original finding despite the `043-cashier-void-own-permission`
+  changeset having run (cashier's JWT now does carry `pos.order.void.own`). The 403
+  message references a different permission string (`pos.void`) than what was granted,
+  suggesting the OPA/authorization code path checks a different code than the one seeded
+  — not re-diagnosed further this session. Also newly confirmed: `VoidRefundDialog` (the
+  component implementing the void UI) is never imported/rendered by any page — no void
+  button exists anywhere in the running app, so this is blocked at the UI layer as well
+  as the permission layer.
 
 ### 8. Refund a Closed Order
 expected: A closed/paid order can be refunded (full or partial) via the refund dialog. Refunds above a manager's approval threshold are blocked/require escalation; within-threshold refunds succeed and reduce the recorded payment total.
@@ -243,34 +422,51 @@ reason: |
 
 ### 9. Offline Order Creation and Auto-Sync
 expected: Disconnecting the network (or using browser devtools offline mode) while on the POS terminal shows an offline indicator banner. Creating an order and adding items while offline still works locally (optimistic DRAFT order). Reconnecting triggers automatic sync — the order appears server-side exactly once (no duplicates), and the sync status badge disappears once fully synced.
-result: blocked
-blocked_by: other
-reason: "Inherently a browser/PWA/IndexedDB test (offline banner, optimistic local state, devtools network throttling) — no browser automation tool available this session. Per user instruction, deferred until automation tooling is integrated."
+result: issue
+severity: minor
+reported: |
+  Browser automation tooling is now available and was used (Playwright + chromium,
+  `context.setOffline()`). Offline banner: PASS — "Offline — Orders will sync when
+  connection returns" correctly appears when the browser goes offline. Creating an order
+  while offline: PARTIAL — the create-order/add-item calls correctly took the offline
+  (IndexedDB outbox `enqueue`) path rather than throwing, but the order panel kept
+  showing "No active order" the entire time offline, because the optimistic DRAFT stub
+  `useCreateOrder` returns when offline is never written into the `useOrder` query cache
+  — there's nothing for the UI to render until the real order exists server-side. Sync
+  badge: FAIL to show — `enqueue()` (used by both `useCreateOrder` and `useAddItem`'s
+  offline branches) never calls `emitProgress()`; the badge only refreshes on mount or
+  after a `replay()` call, so a user gets no visible confirmation that their offline
+  action was queued until the next reconnect/reload. Did not get to independently
+  confirm the reconnect→replay→exactly-once-server-side-order path or "no duplicates"
+  claim this session. Not treated as a blocker (existing e2e scaffold at
+  `frontend/e2e/pos-offline.spec.ts` targets this same gap and is itself marked as
+  not-yet-a-phase-4-deliverable), but a real, now-verified UX gap rather than an
+  untested one.
 
 ### 10. Role Isolation — Kitchen Staff vs Cashier
 expected: Logging in as a KITCHEN_STAFF user shows only the Kitchen Display in the sidebar (no POS nav item); attempting to access the POS page or API directly is rejected (403). Logging in as a CASHIER shows only POS in the sidebar; attempting to access the Kitchen Display page or API directly is rejected (403). A MANAGER/OWNER sees both.
-result: blocked
-blocked_by: other
-reason: |
-  Partially verified at the API layer: logged in as CASHIER and confirmed
-  `GET /api/v1/kitchen/kds/tickets` correctly returns `403` ("Not permitted:
-  kds.pos.kds.view") — the CASHIER→KDS isolation direction works as intended, consistent
-  with CASHIER being explicitly excluded from `pos.kds.*` permissions in the seed data.
-  Could NOT test the reverse direction (KITCHEN_STAFF blocked from POS API) because no
-  KITCHEN_STAFF seed user exists (same gap as Test 4). Sidebar nav visibility (frontend)
-  and the MANAGER/OWNER "sees both" case are entirely untested — sidebar requires
-  browser automation (deferred), and OWNER is blocked by the TOTP step-up gap noted in
-  Test 4. Full verification needs: (a) a seeded KITCHEN_STAFF test user, (b) browser
-  automation for sidebar checks.
+result: pass
+reported: |
+  Fully re-verified through the real browser this session (previously only the
+  CASHIER→KDS API-layer direction had been checked). Logged in as `cashier@demo.local`:
+  sidebar shows "POS" under Orders, no "Kitchen Display" entry anywhere. Logged in as
+  `chef@demo.local` (KITCHEN_STAFF, newly unblocked once the seed user was confirmed
+  present): sidebar shows only "Kitchen Display", no "POS" entry; navigating directly to
+  `/app/pos` renders "You do not have permission to access the POS terminal." (blocked in
+  the UI, not just the API). `GET /api/v1/kitchen/kds/tickets` as CASHIER still correctly
+  403s ("Not permitted: kds.pos.kds.view"), consistent with CASHIER being excluded from
+  `pos.kds.*` permissions. MANAGER/OWNER "sees both" was NOT driven through the browser
+  this session (only confirmed via JWT that `manager@demo.local` holds both
+  `pos.order.view` and `pos.kds.view`); OWNER remains blocked by the TOTP step-up gap.
 
 ## Summary
 
 total: 10
-passed: 2
-issues: 4
+passed: 4
+issues: 5
 pending: 0
 skipped: 0
-blocked: 4
+blocked: 1
 
 ## Gaps
 
@@ -310,6 +506,7 @@ blocked: 4
   missing:
     - "No REST endpoint, seed data, or scheduled job creates/opens accounting periods anywhere in finance-service"
     - "Auto-open-current-period-if-missing fallback (or an explicit provisioning step wired into tenant/branch onboarding) needed so a fresh tenant can process payments"
+    - "NEW (2026-07-11, browser session): PaymentPanel is never imported/rendered by any page — OrderPanel's real CHARGE NOW button is a hardcoded disabled stub. Needs wiring into the POS terminal UI (e.g. a payment step/dialog reachable once an order is OPEN/SENT_TO_KDS) independent of the backend fix above."
 
 - truth: "Closing the till requires all orders in the session to be CLOSED/VOIDED first"
   status: failed
@@ -323,6 +520,7 @@ blocked: 4
   missing:
     - "OrderServiceImpl must set tillSessionId on order creation (or on first payment) from the cashier's currently open till session"
     - "TillServiceImpl.closeTill response should surface a non-null variancePaisa (currently null even when expectedClosingPaisa and declaredClosingPaisa are both populated)"
+    - "NEW (2026-07-11, browser session): TillSessionBar is never imported/rendered by any page — there is no till bar anywhere in the running app. Needs wiring into the POS layout/terminal independent of the backend fixes above."
 
 - truth: "An open/unpaid order can be voided with a required reason"
   status: failed
@@ -337,23 +535,32 @@ blocked: 4
   missing:
     - "pos.order.void.own permission seeded + granted to CASHIER (own orders only)"
     - "pos.order.void.any permission seeded + granted to MANAGER/TENANT_ADMIN/OWNER"
+    - "NEW (2026-07-11, browser session): reconfirmed still 403 (\"Not permitted: pos.void\" — a different permission string than what's seeded/granted) even after the 043-cashier-void-own-permission changeset ran; the OPA/authz code path likely checks a mismatched permission code. VoidRefundDialog is also never imported/rendered by any page — no void button exists in the running app."
 
-- truth: "A KITCHEN_STAFF user can log in and access the Kitchen Display board; ticket bump PENDING->COOKING->READY and order READY/PARTIAL_READY rollup work"
-  status: failed
-  reason: "No KITCHEN_STAFF (or other pos.kds.*-permitted, non-TOTP) seed user exists to test with. CASHIER is correctly denied (403) confirming that half of role isolation, but KDS bump/aging/rollup and the reverse role-isolation direction are entirely untested this session."
+- truth: "RESOLVED 2026-07-11 (browser session): a KITCHEN_STAFF user can log in and access the Kitchen Display board; ticket bump PENDING->COOKING->READY works and aging colors render correctly"
+  status: passed
+  reason: "chef@demo.local (KITCHEN_STAFF) seed user confirmed present and working. Two further blocker bugs found and fixed via actual browser use: (1) KdsTicketRepository.findByBranchIdAndStationCodeAndStatusIn compared List<String> against the TicketStatus enum column, throwing QueryArgumentException on every board load — fixed by changing the signature to List<TicketStatus> and parsing the query param to enum in KdsController; (2) both the ticket-list and bump-item endpoints then threw LazyInitializationException on KdsTicket.items — fixed via @EntityGraph(attributePaths = \"items\") on the repository query, and by moving the bump status-transition logic into a new transactional TicketServiceImpl.bumpItem(...)/TicketService.bumpItem(...) method instead of the controller peeking at a detached entity. After fixes: KDS board renders correctly, all 7 real tickets shown grouped by station, aging colors (green <10min / amber+pulse 10-15min / red+bounce 15min+) visually confirmed exactly per spec, and PENDING->COOKING->READY bump confirmed via UI clicks. Order-level READY/PARTIAL_READY rollup back in the POS view was NOT independently re-verified this session (ran out of time)."
   severity: major
   test: 4
   artifacts:
-    - services/auth-service/src/main/resources/db/changelog/v1.0.0/900-seed-auth-dev-data.xml
-    - services/auth-service/src/main/resources/db/changelog/v1.0.0/042-kds-permissions-kitchen-role.xml
+    - services/kitchen-service/src/main/java/io/restaurantos/kitchen/repository/KdsTicketRepository.java
+    - services/kitchen-service/src/main/java/io/restaurantos/kitchen/web/KdsController.java
+    - services/kitchen-service/src/main/java/io/restaurantos/kitchen/service/TicketService.java
+    - services/kitchen-service/src/main/java/io/restaurantos/kitchen/service/TicketServiceImpl.java
   missing:
-    - "Seed a KITCHEN_STAFF (and ideally MANAGER) demo user with a known password and totp_enabled: false, matching the CASHIER/OWNER pattern already in 900-seed-auth-dev-data.xml, per Docs/agent-specs/11-seed-data-specification.md's already-documented (but unimplemented) chef@demo.local/manager@demo.local"
+    - "Order-level READY/PARTIAL_READY rollup in the POS order panel still not independently re-verified through the browser"
 
 - truth: "Offline order creation, PWA sync badge, and full KDS/sidebar UI behavior render and work correctly in the browser"
-  status: failed
-  reason: "No browser automation tool was available this session. Per explicit user instruction, all browser-only checks (offline PWA flow, KDS board visual rendering/aging colors, sidebar role-based nav, receipt confirmation UI, CHARGE NOW button enable/disable) are deferred until automation tooling is integrated, not treated as failures."
+  status: partial
+  reason: "Browser automation tooling became available this session and was used. Sidebar/role-isolation and KDS board rendering/aging-colors are now CONFIRMED PASSING (see Tests 4 and 10). Offline PWA (Test 9) remains a genuine partial: offline banner works, but the sync-status badge never appears after an offline action (enqueue() never calls emitProgress()) and the order panel shows no optimistic state while offline (the offline DRAFT stub isn't written into the useOrder query cache). Receipt confirmation and CHARGE NOW enable/disable are still unverified because PaymentPanel is never wired into any page (see Test 5's new finding) — there is no real CHARGE NOW UI to test yet."
   severity: minor
   test: 9
-  artifacts: []
+  artifacts:
+    - frontend/lib/offline/outbox.ts
+    - frontend/lib/offline/sync-engine.ts
+    - frontend/lib/hooks/pos/use-orders.ts
+    - frontend/components/pos/sync-status-badge.tsx
   missing:
-    - "Browser automation tool (e.g. Playwright MCP) needs to be available in a future session to complete Test 9 and the deferred UI portions of Tests 3, 4, 5, 10"
+    - "enqueue() (or its callers in useCreateOrder/useAddItem) should call emitProgress() after writing to the outbox so the sync badge appears immediately, not just on mount/replay"
+    - "useOrder's query cache should be seeded with the optimistic offline stub (e.g. via queryClient.setQueryData) so the order panel shows the DRAFT order while offline instead of \"No active order\""
+    - "Reconnect -> replay -> exactly-once server-side order still not independently re-confirmed this session"

@@ -1,47 +1,78 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PosRepository } from "@/lib/repositories/pos.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { ApiError } from "@/lib/api-client/errors";
-import type { CloseOrderPayload, VoidOrderPayload, RefundOrderPayload, Order } from "@/lib/models/pos.model";
+import type {
+  VoidOrderPayload,
+  RefundOrderPayload,
+  RecordPaymentPayload,
+  Order,
+  OrderPayment,
+} from "@/lib/models/pos.model";
 
 const OFFLINE_ERROR =
   "This action requires a connection. Period lock, approvals and payments are processed online.";
 
-// useCloseOrder/useVoidOrder are typed with the live `ApiError` (Layer-1 type import is
-// allowed here — Layer-3 hooks — but NOT in components/**, FE-08 boundary). This lets
-// PaymentPanel/VoidRefundDialog branch on `.status`/`.code` via TanStack's mutation
-// type inference without importing the api-client class themselves (mirrors the
-// existing use-login.ts/use-switch-branch.ts pattern, 04-02-C).
+// useRecordPayment/useVoidOrder/useRefundOrder are typed with the live `ApiError`
+// (Layer-1 type import is allowed here — Layer-3 hooks — but NOT in components/**,
+// FE-08 boundary). This lets the Charge page / VoidRefundDialog branch on `.status`/
+// `.code` via TanStack's mutation type inference without importing the api-client
+// class themselves (mirrors the existing use-login.ts/use-switch-branch.ts pattern,
+// 04-02-C).
+//
+// networkMode: "always" on every mutation below: the default networkMode ("online")
+// PAUSES mutationFn entirely while React Query's own onlineManager sees the browser
+// offline — the `if (!isOnline) throw` guards in each mutationFn would then never run
+// until reconnect, so OFFLINE_ERROR could never show promptly (same class of bug fixed
+// in use-orders.ts's offline mutations; confirmed via 07.1-06 E2E). "always" lets each
+// hook's own isOnline check (browser-event-driven, not React Query's manager) decide
+// instead.
 
-export function useCloseOrder(orderId: string) {
+/** Payments-history read (POS-22, Charge page). Not offline-critical — server-authoritative. */
+export function useOrderPayments(orderId: string) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery<OrderPayment[]>({
+    queryKey: queryKeys.pos.orderPayments(branchId, orderId),
+    queryFn: () => PosRepository.getPayments(orderId),
+    enabled: isAuthenticated && !!branchId && !!orderId,
+  });
+}
+
+/**
+ * Records a single tender against the order (POS-23) — persists without closing; the
+ * backend's `maybeCloseOrder` seam closes it only when this payment completes the order
+ * AND it is already Served. Invalidates the order (status may flip to CLOSED) and the
+ * payments-history list (POS-22) so the Charge page's amount-paid/remaining/chip and
+ * history rows update immediately without a manual refresh.
+ */
+export function useRecordPayment(orderId: string) {
   const { isOnline } = useOnlineStatus();
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
-  return useMutation<Order, ApiError, { payload: CloseOrderPayload; idempotencyKey: string }>({
-    // Default networkMode ("online") PAUSES mutationFn entirely while React Query's
-    // own onlineManager sees the browser offline — the `if (!isOnline) throw` below
-    // would then never run until reconnect, so OFFLINE_ERROR could never show
-    // promptly (same class of bug fixed in use-orders.ts's offline mutations;
-    // confirmed via 07.1-06 E2E). "always" lets this hook's own isOnline check
-    // (browser-event-driven, not React Query's manager) decide instead.
+  return useMutation<number, ApiError, RecordPaymentPayload>({
+    // See the module-level networkMode comment above — same fix, same reason.
     networkMode: "always",
-    mutationFn: ({ payload, idempotencyKey }) => {
+    mutationFn: (payload) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
-      return PosRepository.closeOrder(orderId, payload, idempotencyKey);
+      return PosRepository.recordPayment(orderId, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.orderPayments(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
-      // "order-summaries" is a DIFFERENT query-key segment than "orders" above —
-      // useOrderSummaries (Order Management, POS-09/07.1-09) never re-fetched on close
-      // without this, so a just-closed order would keep showing as active until an
-      // unrelated refetch. Prefix-match invalidates every statuses-filter cache entry.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      // Recording a cash tender changes the OPEN till's live expected cash. The
+      // TillSessionBar reads this from useTillReconciliation (keyed
+      // ["pos","till-reconciliation",tillId]), which otherwise only refreshes on its 10s
+      // poll — so a charge didn't show on the till bar until up to 10s later. Prefix-match
+      // invalidates the mounted reconciliation query so the bar's Cash/Orders update the
+      // instant the order is charged (the 10s poll stays as a cross-device fallback).
+      queryClient.invalidateQueries({ queryKey: ["pos", "till-reconciliation"] });
     },
   });
 }
@@ -51,7 +82,7 @@ export function useVoidOrder(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation<Order, ApiError, { payload: VoidOrderPayload; idempotencyKey: string }>({
-    // See the networkMode comment on useCloseOrder above — same fix, same reason.
+    // See the module-level networkMode comment above — same fix, same reason.
     networkMode: "always",
     mutationFn: ({ payload, idempotencyKey }) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
@@ -60,9 +91,16 @@ export function useVoidOrder(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
-      // See the order-summaries invalidation note on useCloseOrder above.
+      // "order-summaries" is a DIFFERENT query-key segment than "orders" above —
+      // useOrderSummaries (Order Management, POS-09/07.1-09) never re-fetched on
+      // void without this, so a just-voided order would keep showing as active
+      // until an unrelated refetch. Prefix-match invalidates every statuses-filter
+      // cache entry.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      // A void removes the order (and any tenders on it) from the till's reconciliation —
+      // refresh the till bar's live cash immediately (see the note in useRecordPayment).
+      queryClient.invalidateQueries({ queryKey: ["pos", "till-reconciliation"] });
     },
   });
 }
@@ -72,7 +110,7 @@ export function useRefundOrder(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation({
-    // See the networkMode comment on useCloseOrder above — same fix, same reason.
+    // See the module-level networkMode comment above — same fix, same reason.
     networkMode: "always",
     mutationFn: ({ payload, idempotencyKey }: { payload: RefundOrderPayload; idempotencyKey: string }) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
@@ -81,8 +119,11 @@ export function useRefundOrder(orderId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
-      // See the order-summaries invalidation note on useCloseOrder above.
+      // See the order-summaries invalidation note on useVoidOrder above.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+      // A refund reverses collected cash — refresh the till bar's live reconciliation
+      // immediately (see the note in useRecordPayment).
+      queryClient.invalidateQueries({ queryKey: ["pos", "till-reconciliation"] });
     },
   });
 }

@@ -53,7 +53,9 @@ class TicketRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Sauce",   1, null,     List.of(), "extra hot")
                 ),
                 1,
-                null
+                null,
+                null,
+                "TAKEAWAY"
         );
 
         ticketRoutingService.route(payload, "ORD-001");
@@ -63,6 +65,9 @@ class TicketRoutingIT extends KitchenTestBase {
 
         var stationCodes = tickets.stream().map(t -> t.getStationCode()).toList();
         assertThat(stationCodes).containsExactlyInAnyOrder("GRILL", "DRINKS", "DEFAULT");
+
+        // Order service type propagates onto every routed ticket (KDS service-type visibility).
+        assertThat(tickets).allMatch(t -> "TAKEAWAY".equals(t.getOrderType()));
 
         var grillTicket = tickets.stream().filter(t -> "GRILL".equals(t.getStationCode())).findFirst().orElseThrow();
         assertThat(grillTicket.getItems()).hasSize(2);
@@ -84,6 +89,7 @@ class TicketRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Water", 1, null,   List.of(), null)
                 ),
                 1,
+                null,
                 null
         );
 

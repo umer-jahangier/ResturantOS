@@ -8,8 +8,8 @@ import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.OrderService;
+import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.RefundService;
-import io.restaurantos.pos.service.SplitTenderCalculator;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.authz.OpaInput;
@@ -39,6 +39,7 @@ import static org.mockito.Mockito.when;
 class VoidRefundOpaIT extends PosTestBase {
 
     @Autowired OrderService orderService;
+    @Autowired PaymentService paymentService;
     @Autowired RefundService refundService;
     @Autowired OutboxRepository outboxRepository;
     @Autowired MenuItemRepository menuItemRepository;
@@ -73,7 +74,7 @@ class VoidRefundOpaIT extends PosTestBase {
         item = menuItemRepository.save(item);
         menuItemId = item.getId();
 
-        // Stub Finance period as OPEN (needed for closeOrder in refund tests)
+        // Stub Finance period as OPEN (needed for closeViaServeAndPay in refund tests)
         when(financePeriodClient.getPeriodStatus(any(), any(), any()))
                 .thenReturn(new ApiResponse<>(
                         new FinancePeriodClient.PeriodStatusDto(UUID.randomUUID(), "OPEN", 2026, 6),
@@ -81,6 +82,10 @@ class VoidRefundOpaIT extends PosTestBase {
 
         // Set up security context with cashier principal
         setSecurityContext(cashierId, List.of("pos.order.void.own"), Map.of());
+
+        // Financial-integrity guard: every order here is created by the cashier before being
+        // voided/refunded, which now requires an OPEN till for that cashier.
+        openTillForCashier(branchId);
     }
 
     private void setSecurityContext(UUID userId, List<String> permissions, Map<String, Object> attributes) {
@@ -102,9 +107,8 @@ class VoidRefundOpaIT extends PosTestBase {
 
     private OrderDto createClosedOrder() {
         OrderDto order = createOpenOrder();
-        var payments = List.of(new SplitTenderCalculator.PaymentEntry("CASH", order.totalPaisa(), null));
         when(opaClient.evaluate(any(), any())).thenReturn(new OpaDecision(true));
-        return orderService.closeOrder(order.id(), new CloseOrderRequest(payments), UUID.randomUUID().toString());
+        return closeViaServeAndPay(orderService, paymentService, order, branchId);
     }
 
     // ── Void tests ────────────────────────────────────────────────────────────

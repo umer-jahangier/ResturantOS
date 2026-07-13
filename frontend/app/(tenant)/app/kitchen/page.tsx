@@ -1,13 +1,14 @@
 "use client";
 
-import { KdsBoard } from "@/components/kds/kds-board";
+import { StationPicker } from "@/components/kds/station-picker";
 import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 
 /**
- * Kitchen Display System page.
- * Always-dark board; gated by FEATURE_KDS feature flag and pos.kds.view permission.
+ * KDS station picker (KDS-04/D-12). Lists active stations for the branch; a
+ * single station auto-navigates to `kitchen/[stationCode]`. Gated by FEATURE_KDS
+ * feature flag and pos.kds.view permission (unchanged from the pre-07.3-10 board).
  */
 export default function KitchenPage() {
   const { branchId } = useCurrentUser();
@@ -34,7 +35,7 @@ export default function KitchenPage() {
             No branch selected
           </div>
         ) : (
-          <KdsBoard branchId={branchId} />
+          <StationPicker branchId={branchId} />
         )}
       </PermissionGuard>
     </FeatureGuard>

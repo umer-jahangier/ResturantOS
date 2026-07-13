@@ -1,0 +1,14 @@
+{
+  "loginUrl": "http://localhost:3000/app/dashboard",
+  "sidebarHasPos": false,
+  "sidebarHasKitchen": true,
+  "posBlockedForChef": true,
+  "ticketCount": 7,
+  "firstTicketText": "ORD-20260711-0002\n16m\nBeef Nihari\nDONE\nChicken Karahi\nSTART",
+  "startButtonVisible": true,
+  "cardTextAfterFirstBump": "ORD-20260711-0002\n16m\nBeef Nihari\nDONE\nChicken Karahi\nDONE",
+  "doneButtonVisible": true,
+  "cardTextAfterSecondBump": "ORD-20260711-0002\n16m\nBeef Nihari\nChicken Karahi\nDONE",
+  "bodyBackgroundColor": "lab(100 0 0)",
+  "consoleErrors": []
+}

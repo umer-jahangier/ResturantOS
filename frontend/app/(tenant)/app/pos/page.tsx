@@ -8,6 +8,8 @@ import { TableFloorView } from "@/components/pos/table-floor-view";
 import { TillSessionBar } from "@/components/pos/till-session-bar";
 import { OrderManagement } from "@/components/pos/order-management";
 import { useActiveTill } from "@/lib/hooks/pos/use-till";
+import { usePosOrdersSocket } from "@/lib/hooks/pos/use-pos-orders-socket";
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 
 type PosView = "terminal" | "floor" | "orders";
 
@@ -26,7 +28,19 @@ export default function PosPage() {
   // isn't owned by this plan).
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
 
-  const { data: activeTill } = useActiveTill();
+  const { data: activeTill, isLoading: tillLoading } = useActiveTill();
+  // Financial-integrity gate (mirrors the server-authoritative NO_OPEN_TILL guard in
+  // OrderServiceImpl.createOrder): a cashier must not even be able to START an order
+  // without an OPEN till. Only block on a CONFIRMED absence (query resolved to null) —
+  // never while the till query is still loading, so a momentary undefined doesn't flash
+  // the notice. The backend remains the source of truth; this is defense-in-depth UX.
+  const tillClosed = !tillLoading && !activeTill;
+
+  // One branch-level order WebSocket for the whole POS surface (persists across tab
+  // switches). Pushes live kitchen→pos order updates into the TanStack cache; the per-order
+  // poll in useOrder is now just a relaxed fallback. `isConnected` drives the Live/Polling dot.
+  const { branchId } = useCurrentUser();
+  const { isConnected } = usePosOrdersSocket({ branchId });
 
   return (
     <FeatureGuard
@@ -51,7 +65,7 @@ export default function PosPage() {
           <TillSessionBar activeTill={activeTill} />
 
           {/* View tabs */}
-          <div className="flex gap-1 px-4 pt-3 border-b bg-background shrink-0">
+          <div className="flex items-center gap-1 px-4 pt-3 border-b bg-background shrink-0">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -65,13 +79,37 @@ export default function PosPage() {
                 {tab.label}
               </button>
             ))}
+            {/* Live/Polling indicator — green when the branch order socket is connected
+                (kitchen updates arrive live), amber when falling back to the 15s poll. */}
+            <span
+              data-testid="pos-live-indicator"
+              className={`ml-auto mb-2 inline-flex items-center gap-1.5 text-xs font-medium ${
+                isConnected ? "text-emerald-600" : "text-amber-600"
+              }`}
+              title={isConnected ? "Live — kitchen updates in real time" : "Polling — reconnecting"}
+            >
+              <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-amber-500"}`} />
+              {isConnected ? "Live" : "Polling"}
+            </span>
           </div>
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
-            {view === "terminal" && (
-              <PosTerminal key={selectedTableId ?? "unbound"} tableId={selectedTableId} />
-            )}
+            {view === "terminal" &&
+              (tillClosed ? (
+                <div
+                  data-testid="pos-till-closed-notice"
+                  className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center"
+                >
+                  <p className="text-base font-medium text-foreground">Your till is closed</p>
+                  <p className="max-w-sm text-sm text-muted-foreground">
+                    Open your till from the bar above — recording the counted starting float — before
+                    taking any orders. Orders can&apos;t be created without an open drawer.
+                  </p>
+                </div>
+              ) : (
+                <PosTerminal key={selectedTableId ?? "unbound"} tableId={selectedTableId} />
+              ))}
             {view === "floor" && (
               <TableFloorView
                 onTableSelect={(table) => {

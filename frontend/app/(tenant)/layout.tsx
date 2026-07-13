@@ -103,7 +103,7 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
                 />
               </div>
             ) : (
-              <PageTransition>{children}</PageTransition>
+              <PageTransition className="h-full">{children}</PageTransition>
             )}
           </main>
         </div>

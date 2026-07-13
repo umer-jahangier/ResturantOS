@@ -5,6 +5,7 @@ import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsTicket;
 import io.restaurantos.kitchen.domain.model.KdsTicketItem;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
+import io.restaurantos.kitchen.event.KitchenEventPayloads.ItemStatusChangedPayload;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderReadyPayload;
 import io.restaurantos.kitchen.repository.KdsTicketItemRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
@@ -34,6 +35,8 @@ public class TicketServiceImpl implements TicketService {
     private static final String KITCHEN_EXCHANGE = "kitchen.topic";
     private static final String ORDER_READY_ROUTING_KEY = "kitchen.order.ready";
     private static final String ORDER_READY_TYPE = "ORDER_READY";
+    private static final String ITEM_STATUS_CHANGED_ROUTING_KEY = "kitchen.item.status-changed";
+    private static final String ITEM_STATUS_CHANGED_TYPE = "KITCHEN_ITEM_STATUS_CHANGED";
 
     private final KdsTicketRepository ticketRepository;
     private final KdsTicketItemRepository ticketItemRepository;
@@ -82,6 +85,20 @@ public class TicketServiceImpl implements TicketService {
         }
 
         KdsTicket saved = ticketRepository.save(ticket);
+
+        // POS-20 (D-05): publish a fine-grained per-item event on EVERY transition (not only
+        // READY) so pos-service can reflect live item status without a manual reopen. This is
+        // additive to — and never replaces — the aggregate ORDER_READY path above.
+        eventPublisher.publish(
+                KITCHEN_EXCHANGE,
+                ITEM_STATUS_CHANGED_ROUTING_KEY,
+                ITEM_STATUS_CHANGED_TYPE,
+                saved.getBranchId(),
+                new ItemStatusChangedPayload(
+                        saved.getOrderId(), item.getOrderItemId(), newStatus.name(),
+                        item.getRevisionNo(), saved.getStationCode())
+        );
+
         KdsTicketDto dto = toDto(saved);
         webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), dto);
         return dto;
@@ -107,6 +124,8 @@ public class TicketServiceImpl implements TicketService {
             case ACCEPTED -> TicketItemStatus.PREPARING;
             case PREPARING, COOKING -> TicketItemStatus.READY;
             case READY -> throw new StateInvalidException("Item already READY");
+            case CANCELLED -> throw new StateInvalidException("Cannot bump a cancelled item");
+            case SERVED -> throw new StateInvalidException("Cannot bump a served item");
         };
 
         return markItemStatus(ticketId, itemId, next);
@@ -141,8 +160,75 @@ public class TicketServiceImpl implements TicketService {
         for (KdsTicket ticket : tickets) {
             if (ticket.getStatus() != TicketStatus.CANCELLED) {
                 ticket.setStatus(TicketStatus.CANCELLED);
-                ticketRepository.save(ticket);
+                KdsTicket saved = ticketRepository.save(ticket);
+                // Push so a voided order clears from the KDS board LIVE (this was the lone mutation
+                // path that omitted the notify — voids previously lingered until the 10s fallback poll).
+                webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
                 log.info("Cancelled ticket={} for order={}", ticket.getId(), orderId);
+            }
+        }
+    }
+
+    @Override
+    public void cancelTicketItem(UUID orderItemId) {
+        ticketItemRepository.findByOrderItemId(orderItemId).ifPresentOrElse(item -> {
+            if (item.getStatus() == TicketItemStatus.CANCELLED) {
+                return; // idempotent
+            }
+            item.setStatus(TicketItemStatus.CANCELLED);
+            KdsTicket ticket = item.getTicket();
+            // A cancelled line no longer blocks the ticket — if every remaining line is ready,
+            // flip the ticket to READY now (mirrors markItemStatus' completion check).
+            if (ticketItemRepository.countByTicketIdAndStatusNotReady(ticket.getId()) == 0
+                    && ticket.getStatus() != TicketStatus.READY
+                    && ticket.getStatus() != TicketStatus.CANCELLED
+                    && ticket.getStatus() != TicketStatus.SERVED) {
+                ticket.setStatus(TicketStatus.READY);
+                ticket.setReadyAt(Instant.now());
+            }
+            KdsTicket saved = ticketRepository.save(ticket);
+            webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
+            log.info("Cancelled KDS line orderItemId={} on ticket={}", orderItemId, ticket.getId());
+        }, () -> log.debug("cancelTicketItem: no KDS line for orderItemId={} (never fired)", orderItemId));
+    }
+
+    @Override
+    public void serveTicketItem(UUID orderItemId) {
+        ticketItemRepository.findByOrderItemId(orderItemId).ifPresentOrElse(item -> {
+            if (item.getStatus() == TicketItemStatus.SERVED
+                    || item.getStatus() == TicketItemStatus.CANCELLED) {
+                return; // idempotent / already terminal
+            }
+            item.setStatus(TicketItemStatus.SERVED);
+            KdsTicket ticket = item.getTicket();
+            // A served line has left the pass — if every remaining line is ready, flip the ticket
+            // to READY now (mirrors cancelTicketItem's completion check; SERVED is excluded from
+            // the not-ready count, so it never blocks the ticket).
+            if (ticketItemRepository.countByTicketIdAndStatusNotReady(ticket.getId()) == 0
+                    && ticket.getStatus() != TicketStatus.READY
+                    && ticket.getStatus() != TicketStatus.CANCELLED
+                    && ticket.getStatus() != TicketStatus.SERVED) {
+                ticket.setStatus(TicketStatus.READY);
+                ticket.setReadyAt(Instant.now());
+            }
+            KdsTicket saved = ticketRepository.save(ticket);
+            // Push so the served line leaves the board LIVE, instead of lingering in the Ready
+            // column until the whole order closes (the bug this fixes).
+            webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
+            log.info("Served KDS line orderItemId={} on ticket={}", orderItemId, ticket.getId());
+        }, () -> log.debug("serveTicketItem: no KDS line for orderItemId={} (never fired)", orderItemId));
+    }
+
+    @Override
+    public void serveTicketsForOrder(UUID orderId) {
+        List<KdsTicket> tickets = ticketRepository.findByOrderId(orderId);
+        for (KdsTicket ticket : tickets) {
+            if (ticket.getStatus() != TicketStatus.SERVED
+                    && ticket.getStatus() != TicketStatus.CANCELLED) {
+                ticket.setStatus(TicketStatus.SERVED);
+                KdsTicket saved = ticketRepository.save(ticket);
+                webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
+                log.info("Served (order closed) ticket={} for order={}", ticket.getId(), orderId);
             }
         }
     }
@@ -183,6 +269,8 @@ public class TicketServiceImpl implements TicketService {
             case ACCEPTED -> next == TicketItemStatus.PREPARING;
             case PREPARING, COOKING -> next == TicketItemStatus.READY;
             case READY -> false;
+            case CANCELLED -> false; // terminal — no manual transitions out of cancelled
+            case SERVED -> false;    // terminal — served lines are set only by the pos event path
         };
         if (!valid) {
             throw new StateInvalidException(
@@ -200,8 +288,9 @@ public class TicketServiceImpl implements TicketService {
 
         return new KdsTicketDto(
                 ticket.getId(), ticket.getOrderId(), ticket.getOrderNo(),
-                ticket.getOrderNotes(), ticket.getStationCode(), ticket.getStatus(), ticket.isPriority(),
-                ticket.getReceivedAt(), ticket.getStartedAt(), ticket.getReadyAt(),
+                ticket.getOrderNotes(), ticket.getTableNumber(), ticket.getOrderType(),
+                ticket.getStationCode(), ticket.getStatus(),
+                ticket.isPriority(), ticket.getReceivedAt(), ticket.getStartedAt(), ticket.getReadyAt(),
                 itemDtos
         );
     }

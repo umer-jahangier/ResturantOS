@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -9,6 +9,12 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { OrderManagement } from "@/components/pos/order-management";
 import { queryKeys } from "@/lib/hooks/query-keys";
+
+// The shared drawer renders SettlementActions, which navigates (useRouter) instead of
+// opening a Dialog since 07.3-07 — no real Next router is mounted in these unit tests.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
+}));
 
 const BRANCH_ID = "branch-1";
 const CASHIER_ME = "c0000001-0000-4000-8000-000000000001";
@@ -26,6 +32,11 @@ const rawOrderA = {
   coverCount: 2,
   totalPaisa: 50000,
   openedAt: new Date().toISOString(),
+  settlementStatus: "SENT_TO_KDS",
+  paymentStatus: "UNPAID",
+  amountPaidPaisa: 0,
+  itemQuantity: 3,
+  distinctItemCount: 2,
 };
 
 const rawOrderB = {
@@ -38,6 +49,11 @@ const rawOrderB = {
   coverCount: 1,
   totalPaisa: 20000,
   openedAt: new Date().toISOString(),
+  settlementStatus: "DRAFT",
+  paymentStatus: "UNPAID",
+  amountPaidPaisa: 0,
+  itemQuantity: 1,
+  distinctItemCount: 1,
 };
 
 function pagedResponse(rows: unknown[]) {

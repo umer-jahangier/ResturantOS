@@ -6,12 +6,14 @@ import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.TillSession;
 import io.restaurantos.pos.dto.CloseTillRequest;
 import io.restaurantos.pos.dto.OpenTillRequest;
+import io.restaurantos.pos.dto.TillReconciliationDto;
 import io.restaurantos.pos.dto.TillSessionDto;
 import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.repository.OrderPaymentRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +58,11 @@ public class TillServiceImpl implements TillService {
 
     @Override
     public TillSessionDto openTill(OpenTillRequest request) {
+        // SECURITY (branch isolation): reject a request-supplied branchId that differs from the
+        // caller's verified JWT branch — otherwise a cashier could open a till in another branch
+        // (RLS is tenant-only and would not block the cross-branch write).
+        requireOwnBranch(request.branchId());
+
         UUID tenantId = tenantContext.requireTenantId();
         UUID cashierId = tenantContext.getUserId()
                 .orElseThrow(() -> new IllegalStateException("No authenticated cashier"));
@@ -155,6 +162,63 @@ public class TillServiceImpl implements TillService {
                     .orElse(List.of());
         }
         return List.of();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TillSessionDto> listTillsForBranch(UUID branchId) {
+        // SECURITY (branch isolation): a client-supplied sibling branchId must not expose another
+        // branch's till history within the same tenant — RLS is tenant-only, so guard here.
+        requireOwnBranch(branchId);
+        return tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId).stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TillReconciliationDto getReconciliation(UUID tillId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        TillSession session = tillSessionRepository.findById(tillId)
+                .filter(s -> tenantId.equals(s.getTenantId()))
+                .orElseThrow(() -> new PosExceptions.TillNotFoundException(tillId.toString()));
+
+        List<io.restaurantos.pos.domain.model.Order> orders = orderRepository.findByTillSessionId(tillId);
+        long cash = 0L;
+        long nonCash = 0L;
+        List<TillReconciliationDto.TillOrderLine> lines = new java.util.ArrayList<>();
+
+        for (io.restaurantos.pos.domain.model.Order order : orders) {
+            long paid = 0L;
+            for (var payment : paymentRepository.findByOrderId(order.getId())) {
+                paid += payment.getAmountPaisa();
+                if (PaymentMethod.CASH.equals(payment.getMethod())) {
+                    cash += payment.getAmountPaisa();
+                } else {
+                    nonCash += payment.getAmountPaisa();
+                }
+            }
+            lines.add(new TillReconciliationDto.TillOrderLine(
+                    order.getId(), order.getOrderNo(), order.getStatus(),
+                    order.getTotalPaisa(), paid));
+        }
+
+        long liveExpectedCash = session.getOpeningFloatPaisa() + cash;
+        return new TillReconciliationDto(
+                toDto(session), orders.size(), cash, nonCash, liveExpectedCash, lines);
+    }
+
+    /**
+     * Defense-in-depth against a client-supplied {@code branchId} that widens scope beyond the
+     * caller's JWT branch. Mirrors {@code TableServiceImpl.requireOwnBranch} — {@code branchId}
+     * stays an explicit request parameter but must always equal the verified JWT branch.
+     */
+    private void requireOwnBranch(UUID branchId) {
+        UUID jwtBranchId = tenantContext.getBranchId()
+                .orElseThrow(() -> new PermissionDeniedException("Branch context required"));
+        if (!jwtBranchId.equals(branchId)) {
+            throw new PermissionDeniedException("Cannot access tills for a different branch");
+        }
     }
 
     private TillSessionDto toDto(TillSession s) {

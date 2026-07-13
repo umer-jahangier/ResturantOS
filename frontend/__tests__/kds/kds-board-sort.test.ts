@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { sortKdsTickets } from "@/components/kds/kds-board";
+import { sortKdsTickets } from "@/components/kds/station-board";
 import type { KdsTicket } from "@/lib/models/kds.model";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -17,6 +17,8 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     startedAt: null,
     readyAt: null,
     orderNotes: null,
+    tableNumber: null,
+    orderType: null,
     items: [],
     ...overrides,
   };
@@ -25,14 +27,14 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("sortKdsTickets — deterministic stable board sort (KDS-03)", () => {
-  it("sorts by receivedAt ascending", () => {
+  it("sorts by receivedAt descending (newest first)", () => {
     const t1 = makeTicket({ id: "a", receivedAt: new Date("2026-07-11T10:05:00Z") });
     const t2 = makeTicket({ id: "b", receivedAt: new Date("2026-07-11T10:00:00Z") });
     const t3 = makeTicket({ id: "c", receivedAt: new Date("2026-07-11T10:10:00Z") });
 
     const sorted = sortKdsTickets([t1, t2, t3]);
 
-    expect(sorted.map((t) => t.id)).toEqual(["b", "a", "c"]);
+    expect(sorted.map((t) => t.id)).toEqual(["c", "a", "b"]);
   });
 
   it("breaks receivedAt ties by ticket.id ascending", () => {
@@ -53,7 +55,7 @@ describe("sortKdsTickets — deterministic stable board sort (KDS-03)", () => {
     const sorted = sortKdsTickets(input);
 
     expect(input.map((t) => t.id)).toEqual(["b", "a"]); // input untouched
-    expect(sorted.map((t) => t.id)).toEqual(["a", "b"]);
+    expect(sorted.map((t) => t.id)).toEqual(["b", "a"]); // b (10:05) is newer than a (10:00)
   });
 
   it("keeps card ordering stable when a batch arrives out of receivedAt order", () => {
@@ -61,9 +63,9 @@ describe("sortKdsTickets — deterministic stable board sort (KDS-03)", () => {
     const t2 = makeTicket({ id: "b", receivedAt: new Date("2026-07-11T10:05:00Z") });
 
     // Server/socket delivers them out of order — sort must still produce the
-    // receivedAt-ascending order every time, regardless of input order.
-    expect(sortKdsTickets([t2, t1]).map((t) => t.id)).toEqual(["a", "b"]);
-    expect(sortKdsTickets([t1, t2]).map((t) => t.id)).toEqual(["a", "b"]);
+    // receivedAt-descending (newest-first) order every time, regardless of input order.
+    expect(sortKdsTickets([t2, t1]).map((t) => t.id)).toEqual(["b", "a"]);
+    expect(sortKdsTickets([t1, t2]).map((t) => t.id)).toEqual(["b", "a"]);
   });
 
   it("does NOT reorder a card when only its items' statuses change within an already-rendered ticket", () => {
@@ -102,7 +104,7 @@ describe("sortKdsTickets — deterministic stable board sort (KDS-03)", () => {
     });
 
     const firstBatch = sortKdsTickets([ticketB, ticketA]);
-    expect(firstBatch.map((t) => t.id)).toEqual(["a", "b"]);
+    expect(firstBatch.map((t) => t.id)).toEqual(["b", "a"]); // newest (b, 10:05) first
 
     // Simulate a subsequent batch where ticket "a"'s item status changed
     // (PENDING -> COOKING) but its id/receivedAt (immutable) are unchanged.
@@ -112,6 +114,6 @@ describe("sortKdsTickets — deterministic stable board sort (KDS-03)", () => {
     };
     const secondBatch = sortKdsTickets([ticketB, ticketAUpdated]);
 
-    expect(secondBatch.map((t) => t.id)).toEqual(["a", "b"]); // order unchanged — no bounce
+    expect(secondBatch.map((t) => t.id)).toEqual(["b", "a"]); // order unchanged — no bounce
   });
 });

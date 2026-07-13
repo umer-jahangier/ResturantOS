@@ -17,4 +17,7 @@ public interface TillSessionRepository extends JpaRepository<TillSession, UUID> 
     Optional<TillSession> findByIdAndBranchId(UUID id, UUID branchId);
 
     List<TillSession> findByBranchIdAndStatus(UUID branchId, TillStatus status);
+
+    /** Branch-wide till history (open + closed), newest first — admin till-review list. */
+    List<TillSession> findByBranchIdOrderByOpenedAtDesc(UUID branchId);
 }

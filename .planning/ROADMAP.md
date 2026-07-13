@@ -22,6 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Point of Sale & Kitchen Display** - Orders, split-tender, tills, offline sync, KDS routing (completed 2026-07-10)
 - [x] **Phase 7.1: POS Production Operations & Item-Level Kitchen Tracking** *(INSERTED)* - Order management screen, table-centric dine-in, item-level status, kitchen ticket revisions, order/item instructions, cashier UX + wire payment/till/void UI (completed 2026-07-11)
 - [ ] **Phase 07.2: Finance Accounting-Period Provisioning** *(INSERTED, URGENT)* - Guarantee open period at tenant onboarding, self-service open-period endpoint, configurable auto-seed fallback — resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants)
+- [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [ ] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP
@@ -257,6 +258,52 @@ Plans:
 - [x] 07.1-09-PLAN.md (wave 6) — POS-09: shared Order/Table Detail drawer + Order Management screen (DataTable, filters, permission-gated toggle, non-closed-never-disappears)
 - [x] 07.1-10-PLAN.md (wave 7) — POS-10: table-centric floor view (semantic tokens, 3-state lifecycle, tap-to-start-order / tap-to-open-shared-drawer)
 
+### Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp
+
+**Goal:** Turn the Phase-7.1 POS/KDS into a production-grade surface by fixing the 16 issues from testing (`bugs.md`): eliminate draft-order persistence, merge item quantities, make table optional with an order-type selector, reset the terminal after send with charge gated on send, propagate per-item kitchen status back to POS in real time, fire only newly-added items from Order Management as a revision, replace modal-heavy flows (payment, order/table detail, void/refund, till, KDS detail) with dedicated full-page/large views, decouple payment from close so an order closes only when Paid AND Served, surface closed/paid orders with search + payment status + item-quantity + assign-table, remove the stray connectivity 404, and redesign the KDS into station-isolated New/Started/Preparing/Ready item-status columns with subtle prioritization — without regressing the Phase-7.1 revision/derivation model or the cross-service messaging contracts.
+**Depends on:** Phase 7.1
+**Requirements**: POS-16, POS-17, POS-18, POS-19, POS-20, POS-21, POS-22, POS-23, POS-24, POS-25, POS-26, KDS-04, KDS-05
+**Success Criteria** (what must be TRUE):
+
+  1. Tapping menu items never creates a DB order; an order is persisted only on Send-to-Kitchen or Charge, `DRAFT` is gone from user-visible flows, and no empty/abandoned orders appear in any list (POS-16); repeated taps of the same item merge to ×N with ± controls unless modifiers/notes differ (POS-17).
+  2. A cashier can create Dine-in/Takeaway/Pickup orders with the table optional via a searchable Available/Occupied selector (POS-18); after Send to Kitchen the terminal can be cleared for the next customer and Charge Now is enabled only once the order is sent (POS-19).
+  3. When the kitchen advances an item, the POS reflects the new per-item status in real time without a manual reopen (POS-20); items added to an existing order from Order Management persist instantly, fire only the new items as a new revision, and a manual Refresh exists (POS-21).
+  4. Charge Now is a dedicated full-page/large view with full order + payment analytics and payment history (POS-22); recording payment sets payment status and persists `OrderPayment` without closing, and an order closes only when BOTH Paid AND Served, enforced on the payment and serve flows (POS-23).
+  5. Order Management shows closed/paid orders with filters + search + payment-status badges, an item-quantity column replacing Cover, and an Assign-Table action; duplicate payment is blocked while paid orders stay accessible (POS-24); the payment, detail, void/refund, and till surfaces are dedicated pages/large panels, not modals (POS-25); the console no longer logs the `/pos/menu/categories` 404 (POS-26).
+  6. The KDS shows each station in an isolated view with New/Started/Preparing/Ready item-status columns (mixed statuses per order), slim cards (order#/table/time/items), and a dedicated detail page; stations are seeded so the board renders and the table number shows on tickets (KDS-04); long-running orders auto-highlight subtly and the board scales for many orders (KDS-05).
+
+**Plans:** 11/11 plans complete
+
+Cross-cutting truths (goal-backward): no DB order exists until Send/Charge; derivedStatus only via
+OrderStatusDerivationService; table status only via TableService.syncStatusForOrder; cross-service
+event field-name parity (message actually consumed, not dropped); an order closes only when Paid AND
+Served.
+
+Plans:
+
+**Wave 1**
+
+- [x] 07.3-01-PLAN.md (wave 1) — Settlement backend: persist OrderPayment, GET payments, PaymentStatus derivation, single maybeCloseOrder(Paid&&Served) seam (POS-23, POS-22)
+- [x] 07.3-02-PLAN.md (wave 1) — Kitchen→POS item-status event: KITCHEN_ITEM_STATUS_CHANGED emit + pos consumer (parity, idempotent, no downgrade) (POS-20)
+- [x] 07.3-03-PLAN.md (wave 1) — Order-taking client cart + order-type/table selector + reset + charge-gating + PICKUP order type (POS-16, POS-17, POS-18, POS-19)
+
+**Wave 2**
+
+- [x] 07.3-04-PLAN.md (wave 2) — pos-service: OrderSummaryDto extension + assign-table + exclude-DRAFT + sendToKds tableNumber emit (POS-24, POS-16, KDS-04)
+- [x] 07.3-05-PLAN.md (wave 2) — KDS-04 kitchen backend: item-status endpoint + table-number propagation (V5) + DEFAULT-station seeding (KDS-04)
+- [x] 07.3-06-PLAN.md (wave 2) — Frontend live-sync + add-to-existing revision fire + manual Refresh + detail-drawer panelization (POS-20, POS-21, POS-25)
+- [x] 07.3-07-PLAN.md (wave 2) — Full-page Charge surface + payment-status badge + payment history (POS-22, POS-23, POS-25)
+
+**Wave 3**
+
+- [x] 07.3-08-PLAN.md (wave 3) — Order Management UI completeness: filters/search/payment-badge/item-quantity/assign-table (POS-24)
+- [x] 07.3-09-PLAN.md (wave 3) — Modal→page sweep: void/refund + till panels + connectivity-404 removal (POS-25, POS-26)
+- [x] 07.3-10-PLAN.md (wave 3) — KDS station-board redesign: item-status columns + slim card + detail page + subtle prioritization (KDS-04, KDS-05)
+
+**Gap Closure** (from 07.3-VERIFICATION.md — BLOCKER: legacy close-path Paid-AND-Served bypass)
+
+- [x] 07.3-11-PLAN.md (wave 1) — Retire legacy POST /orders/{id}/close to 410 Gone + delete the closeOrder tender-sum bypass so maybeCloseOrder (Paid AND Served) is the only close path; migrate 7 IT fixtures; delete orphaned PaymentPanel/useCloseOrder dead code (POS-23)
+
 ### Phase 8: Inventory & Recipe Management
 
 **Goal**: Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
@@ -270,13 +317,29 @@ Plans:
   4. Stock receipts update MAC and publish `STOCK_RECEIVED`, and transfers ship/receive with in-transit accounting and variance handling.
   5. Stock counts post variances, and low-stock and expiry alerts fire.
 
-**Plans**: 3 plans
+**Plans**: 9 plans (new `inventory-service` module; 4 waves)
 
 Plans:
+**Wave 1**
 
-- [ ] 08-01: Ingredients, UOM, reorder points, versioned recipes/BOM, opening balance
-- [ ] 08-02: `ORDER_CLOSED` depletion consumer with `SELECT FOR UPDATE` + MAC
-- [ ] 08-03: Receipts (MAC + `STOCK_RECEIVED`), transfers, counts, alerts
+- [ ] 08-01-PLAN.md — Wave 1: Module foundation, complete FORCE-RLS schema, infra tables, processed-events + event payloads (INV-01/03/07 infra)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 08-02-PLAN.md — Wave 2: Testcontainers harness (InventoryTestBase/TestFixtures) + schema/RLS smoke IT
+- [ ] 08-09-PLAN.md — Wave 2: OPA `inventory.rego` (view/manage on seeded permission codes, 100% covered) + `InventoryAuthorizationService` seam + `InventorySecurityConfig`/internal-secret filter (T-8-AC access-control foundation)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 08-03-PLAN.md — Wave 3: Stock domain model + ingredient/UOM/reorder masters + MAC calculator + opening balance + gateway route + OPA enforcement (INV-01, INV-07)
+- [ ] 08-04-PLAN.md — Wave 3: Versioned recipes/BOM + effective-version-by-closedAt resolution (INV-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 08-05-PLAN.md — Wave 4: `ORDER_CLOSED` depletion consumer — sorted pessimistic locks, FEFO walk, MAC COGS, idempotency, `STOCK_DEPLETED` (INV-03)
+- [ ] 08-06-PLAN.md — Wave 4: Stock receipts (MAC recompute + `STOCK_RECEIVED`) + `GET /internal/grn/pending-count` finance seam (INV-04)
+- [ ] 08-07-PLAN.md — Wave 4: Inter-branch transfers ship/receive with in-transit accounting + variance (INV-05)
+- [ ] 08-08-PLAN.md — Wave 4: Stock counts + variance posting, low-stock alerts, nightly `@Scheduled` expiry sweep (INV-06)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 

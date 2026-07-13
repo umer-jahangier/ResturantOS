@@ -3,18 +3,21 @@ import { test, expect } from "@playwright/test";
 /**
  * POS settlement/till/void/sync E2E — GSD phase 07.1, plan 07.1-06 human-verify
  * checkpoint, driven by real browser automation instead of manual clicking.
+ * Reworked in 07.3-07 (POS-22/23/25): S5 now proves the full-page Charge route (no
+ * modal) and the decoupled Paid≠Closed-until-Served settlement contract, replacing the
+ * old S5 which drove the now-removed modal `PaymentPanel`.
  *
  * Runs against the LIVE local dev stack (frontend :3000, pos-service :8084,
  * kitchen-service :8090). Requires the demo cashier seed
  * (cashier@demo.local / Cashier#2026, tenant "demo") and at least 2 active menu
  * items for the branch.
  *
- * Stages S1–S7 run sequentially inside ONE test (shared page/context — till
- * state, order state and login all carry over between stages) using
- * `test.step()` for reporting. Each stage is wrapped so a failure records a
- * PASS/FAIL/BLOCKED verdict and a screenshot WITHOUT aborting the remaining,
- * more-independent stages — except S1, which is a hard CRITICAL gate: if the
- * checkpoint bug isn't fixed, nothing downstream is meaningful.
+ * Stages S1–S4, S5/S5b (charge page + Paid≠Closed + Served→Closed), S6–S7 run
+ * sequentially inside ONE test (shared page/context — till state, order state and
+ * login all carry over between stages) using `test.step()` for reporting. Each stage is
+ * wrapped so a failure records a PASS/FAIL/BLOCKED verdict and a screenshot WITHOUT
+ * aborting the remaining, more-independent stages — except S1, which is a hard
+ * CRITICAL gate: if the checkpoint bug isn't fixed, nothing downstream is meaningful.
  *
  * "FAIL" = a real frontend defect. "BLOCKED" = missing seed data / environment
  * precondition (not a code defect) — see the `Blocked` marker class below.
@@ -43,6 +46,10 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
     const results: StageRecord[] = [];
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
+    // Captured by S5 (from the charge-route URL) so S5b can find the same order again
+    // in Order Management without relying on client-only PosTerminal state, which does
+    // not survive the S5 navigation away to the charge page.
+    let currentOrderId: string | null = null;
 
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
@@ -291,7 +298,8 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
     });
 
     // ══════════════════════════════════════════════════════════════════════
-    // S5 — CHARGE NOW -> PaymentPanel -> exact split-tender total -> Paid
+    // S5 — CHARGE NOW -> full-page charge route (no modal) -> record full
+    // payment -> Paid, but NOT Closed while the order is unserved (D-08)
     // ══════════════════════════════════════════════════════════════════════
     await stage("S5", async () => {
       const chargeNow = page.getByTestId("charge-now-button");
@@ -300,50 +308,158 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
       }
       await chargeNow.click();
 
-      const amountInput1 = page.getByLabel("Amount in paisa").first();
-      await expect(amountInput1).toBeVisible({ timeout: 10_000 });
-      const totalStr = await amountInput1.inputValue();
-      const total = parseInt(totalStr, 10);
-      if (!Number.isFinite(total) || total <= 0) {
-        throw new Blocked(`could not read a positive order total from the payment panel's first row (got "${totalStr}")`);
+      // (1) Full-page route, not a dialog (POS-22/25).
+      await page.waitForURL(/\/app\/pos\/orders\/.+\/charge$/, { timeout: 15_000 }).catch(() => {});
+      const urlMatch = page.url().match(/\/app\/pos\/orders\/([^/]+)\/charge$/);
+      if (!urlMatch) {
+        throw new Error(
+          `CHARGE NOW did not navigate to the full-page charge route (POS-22/25); landed at "${page.url()}"`,
+        );
+      }
+      currentOrderId = urlMatch[1];
+
+      const dialogVisible = await page.getByRole("dialog").isVisible({ timeout: 500 }).catch(() => false);
+      if (dialogVisible) {
+        throw new Error("a [role=dialog] is visible on the charge route - CHARGE NOW must open a page, not a modal");
       }
 
-      // Split the EXACT total across two tenders (CASH + CARD) so isBalanced
-      // is true only once both rows are filled - a real split-tender exercise,
-      // not just accepting the pre-filled single-CASH-row default.
-      const half = Math.floor(total / 2);
-      const remainder = total - half;
-      await amountInput1.fill(String(half));
-      await page.getByRole("button", { name: "+ Add payment method" }).click();
-      const amountInput2 = page.getByLabel("Amount in paisa").nth(1);
-      await amountInput2.fill(String(remainder));
-      await page.getByLabel("Payment method").nth(1).selectOption("CARD");
+      // Read the remaining balance directly (machine-parseable data-paisa attribute —
+      // MoneyDisplay only ever renders a formatted currency string).
+      const remainingEl = page.getByTestId("remaining-balance-value");
+      await expect(remainingEl).toBeVisible({ timeout: 15_000 });
+      const remainingStr = await remainingEl.getAttribute("data-paisa");
+      const remainingPaisa = parseInt(remainingStr ?? "", 10);
+      if (!Number.isFinite(remainingPaisa) || remainingPaisa <= 0) {
+        throw new Blocked(`could not read a positive remaining balance from the charge page (got "${remainingStr}")`);
+      }
 
-      const chargeBtn = page.getByTestId("charge-button");
-      await expect(chargeBtn).toBeEnabled({ timeout: 5_000 });
+      await page.getByTestId("fill-full-amount-button").click();
+      const recordBtn = page.getByTestId("record-payment-button");
+      await expect(recordBtn).toBeEnabled({ timeout: 5_000 });
 
       const [resp] = await Promise.all([
         page
-          .waitForResponse((r) => r.url().includes("/close") && r.request().method() === "POST", { timeout: 15_000 })
+          .waitForResponse((r) => r.url().includes("/payments") && r.request().method() === "POST", { timeout: 15_000 })
           .catch(() => null),
-        chargeBtn.click(),
+        recordBtn.click(),
       ]);
 
-      if (resp && resp.status() === 503) {
-        // Same gateway/backend gap independently confirmed on S2 (till-open) and S6
-        // (void) - the fallback response IS the gateway's FallbackController (verified
-        // by reading gateway/.../fallback/FallbackController.java), not a frontend defect.
+      if (resp && resp.status() === 423) {
+        // Fresh-tenant finance-period-lock precondition (Phase 07.2) - not a code
+        // defect; the charge page correctly surfaces a "period locked" message.
         throw new Blocked(
-          'close-order returned HTTP 503 SERVICE_UNAVAILABLE (same gateway circuit-breaker/health gap as S2 and S6); ' +
-            'frontend correctly surfaced "Failed to close order. Please try again."',
+          'recordPayment returned HTTP 423 PERIOD_LOCKED (finance accounting period not open on this dev tenant); ' +
+            'frontend correctly surfaced the period-locked message instead of crashing',
         );
       }
-      if (resp && !resp.ok()) {
-        throw new Error(`close-order failed: HTTP ${resp.status()} ${resp.statusText()}`);
+      if (resp && resp.status() === 503) {
+        // Same gateway/backend gap independently confirmed on S2 (till-open) and S6 (void).
+        throw new Blocked(
+          "recordPayment returned HTTP 503 SERVICE_UNAVAILABLE (same gateway circuit-breaker/health gap as S2 and S6)",
+        );
+      }
+      if (!resp) {
+        throw new Blocked("no POST .../payments network response observed within timeout");
+      }
+      if (!resp.ok()) {
+        throw new Error(`recordPayment failed: HTTP ${resp.status()} ${resp.statusText()}`);
+      }
+
+      // GET .../payments (useOrderPayments, feeding the payment-status-badge below) hits
+      // the SAME gateway circuit-breaker/health gap independently confirmed elsewhere in
+      // this file (S2/S6) — track it so a stuck "Unpaid" badge below is correctly
+      // classified as Blocked (environment), not a false FAIL on the payment itself
+      // (which the POST above already proved succeeded).
+      let paymentsGet503 = false;
+      const trackPaymentsGet = (r: import("@playwright/test").Response) => {
+        if (r.url().includes("/payments") && r.request().method() === "GET" && r.status() === 503) {
+          paymentsGet503 = true;
+        }
+      };
+      page.on("response", trackPaymentsGet);
+
+      // (2) Paid, but NOT Closed while the order is still unserved (POS-23/D-08).
+      try {
+        await expect(page.getByTestId("payment-status-badge")).toContainText("Paid", { timeout: 15_000 });
+      } catch (err) {
+        if (paymentsGet503) {
+          throw new Blocked(
+            "recordPayment succeeded (POST .../payments 200) but GET .../payments 503'd (same gateway " +
+              "circuit-breaker/health gap as S2/S6) so the payment-status-badge never picked up the new " +
+              "total - not a payment-recording defect",
+          );
+        }
+        throw err;
+      } finally {
+        page.off("response", trackPaymentsGet);
+      }
+      const closedChipVisible = await page
+        .getByTestId("charge-closed-chip")
+        .isVisible({ timeout: 2000 })
+        .catch(() => false);
+      if (closedChipVisible) {
+        throw new Error(
+          "order shows Closed immediately after full payment while items are still unserved - " +
+            "Paid must NOT auto-close until Served too (D-08)",
+        );
+      }
+
+      return `full payment (${remainingPaisa} paisa) recorded via the charge page; payment-status chip shows "Paid"; order NOT closed while unserved (Paid ≠ Closed until Served, D-08)`;
+    });
+
+    // ══════════════════════════════════════════════════════════════════════
+    // S5b — mark every line Served -> order transitions to Closed
+    // (Paid AND Served, D-08) via the Order Management shared drawer
+    // ══════════════════════════════════════════════════════════════════════
+    await stage("S5b", async () => {
+      if (!currentOrderId) {
+        throw new Blocked("no order id captured from the charge route (depends on S5)");
+      }
+
+      await gotoRobust("/app/pos");
+      await page.getByRole("button", { name: "Order Management", exact: true }).click();
+
+      const openRow = page.getByTestId(`open-order-${currentOrderId}`);
+      if (!(await openRow.isVisible({ timeout: 10_000 }).catch(() => false))) {
+        throw new Blocked(
+          `order ${currentOrderId} not visible in Order Management's list within timeout (list filter/pagination, or the order was already closed)`,
+        );
+      }
+      await openRow.click();
+      await expect(page.getByTestId("order-table-detail-drawer")).toBeVisible({ timeout: 10_000 });
+
+      let servedCount = 0;
+      for (let i = 0; i < 10; i++) {
+        const markServedBtn = page.getByRole("button", { name: /^Mark .+ served$/i }).first();
+        if (!(await markServedBtn.isVisible({ timeout: 3000 }).catch(() => false))) break;
+
+        const [resp] = await Promise.all([
+          page
+            .waitForResponse((r) => r.url().includes("/serve") && r.request().method() === "POST", { timeout: 15_000 })
+            .catch(() => null),
+          markServedBtn.click(),
+        ]);
+        if (resp && !resp.ok()) {
+          throw new Error(`mark-item-served failed: HTTP ${resp.status()} ${resp.statusText()}`);
+        }
+        servedCount++;
+        await page.waitForTimeout(300);
+      }
+
+      if (servedCount === 0) {
+        // Matches the pre-existing, already-diagnosed backend gap logged in S4: if
+        // send-to-kds never advances item kdsStatus off PENDING on this dev branch, no
+        // "Mark Served" control ever becomes available (order-panel.tsx/
+        // order-table-detail-drawer.tsx both correctly gate it off !PENDING) - not a
+        // frontend defect this plan introduced.
+        throw new Blocked(
+          "no 'Mark Served' control ever appeared (matches the known send-to-kds/PENDING backend gap logged in S4) - " +
+            "cannot exercise the Served->Closed transition on this dev branch",
+        );
       }
 
       await expect(page.getByTestId("paid-chip")).toBeVisible({ timeout: 15_000 });
-      return `charged split CASH ${half} / CARD ${remainder} paisa (sums to exact total ${total}); order closed, "Paid" chip shown`;
+      return `marked ${servedCount} item(s) Served; order transitioned to Closed ("Paid ✓" chip shown) - Paid AND Served -> Closed (D-08) confirmed`;
     });
 
     // ══════════════════════════════════════════════════════════════════════

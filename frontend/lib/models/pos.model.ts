@@ -12,7 +12,7 @@ export type OrderStatus =
   | "VOIDED"
   | "REFUNDED";
 
-export type OrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+export type OrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY" | "PICKUP";
 
 // 7-value item lifecycle (backend OrderItemStatus). Replaces the old 3-value
 // KdsItemStatus — the wire field is still named `kdsStatus` (see pos.schema.ts), but the
@@ -144,6 +144,20 @@ export interface OrderSummary {
   coverCount: number;
   totalPaisa: number;
   openedAt: string | null;
+  /** Raw settlement status (POS-24, 07.3-04/07.3-08) — distinct from `derivedStatus`. */
+  settlementStatus: OrderStatus;
+  /** Server-derived payment status (POS-24) — same union `derivePaymentStatus()` below produces. */
+  paymentStatus: PaymentStatus;
+  amountPaidPaisa: number;
+  /** Total item quantity across non-CANCELLED lines (replaces the old Cover column). */
+  itemQuantity: number;
+  /** Distinct non-CANCELLED line count — optional secondary text alongside `itemQuantity`. */
+  distinctItemCount: number;
+}
+
+/** PATCH /orders/{id}/table (assign-table, POS-24) request body. */
+export interface AssignTablePayload {
+  tableId: string;
 }
 
 // ── Table-centric dine-in detail (POS-10) ───────────────────────────────────────
@@ -188,6 +202,25 @@ export interface TillSession {
   openedAt: string | null;
   closedAt: string | null;
   status: TillStatus;
+}
+
+export interface TillOrderLine {
+  orderId: string;
+  orderNo: string | null;
+  status: OrderStatus;
+  totalPaisa: number;
+  paidPaisa: number;
+}
+
+/** Admin till-review payload: a session + every order within it + collected cash. */
+export interface TillReconciliation {
+  session: TillSession;
+  orderCount: number;
+  cashCollectedPaisa: number;
+  nonCashCollectedPaisa: number;
+  /** Running expected cash (openingFloat + cash collected) — non-null even while OPEN. */
+  liveExpectedCashPaisa: number;
+  orders: TillOrderLine[];
 }
 
 // ── Payment types ─────────────────────────────────────────────────────────────
@@ -248,4 +281,50 @@ export interface RefundOrderPayload {
   refundPaisa: number;
   reason: string;
   scope: "FULL" | "PARTIAL";
+}
+
+// ── Payment status / history (POS-22/23, 07.3-01/07.3-07) ────────────────────────
+
+/** Derived (never client-set) payment status — mirrors backend `PaymentStatus` enum. */
+export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "REFUNDED";
+
+/** A single persisted payment row (GET /orders/{id}/payments history read model). */
+export interface OrderPayment {
+  id: string;
+  method: PaymentMethod;
+  amountPaisa: number;
+  referenceNo: string | null;
+  recordedAt: string;
+}
+
+/** POST /orders/{id}/payments request body — records ONE tender at a time. */
+export interface RecordPaymentPayload {
+  method: PaymentMethod;
+  amountPaisa: number;
+  referenceNo?: string | null;
+}
+
+/**
+ * Pure client-side mirror of backend `PaymentStatusDerivationService.derive()` (07.3-01).
+ * `GET /orders/{id}` (OrderDto) does not carry a `paymentStatus` field — only the Order
+ * Management list row (OrderSummaryDto) does — so the Charge page (07.3-07) derives it
+ * itself from the payment-history sum vs `order.totalPaisa`, exactly matching the
+ * server's own derivation order: REFUNDED settlement status wins over the sum; then
+ * paid<=0 -> UNPAID; paid<total -> PARTIALLY_PAID; otherwise PAID (overpay clamps).
+ */
+export function derivePaymentStatus(
+  paidPaisa: number,
+  totalPaisa: number,
+  settlementStatus: OrderStatus,
+): PaymentStatus {
+  if (settlementStatus === "REFUNDED") {
+    return "REFUNDED";
+  }
+  if (paidPaisa <= 0) {
+    return "UNPAID";
+  }
+  if (paidPaisa < totalPaisa) {
+    return "PARTIALLY_PAID";
+  }
+  return "PAID";
 }

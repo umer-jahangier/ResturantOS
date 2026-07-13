@@ -26,8 +26,8 @@ const DEFAULT_PROVISION_ERROR_MESSAGE =
 /**
  * Local, layer-boundary-safe error formatter (components/** may not import
  * @/lib/api-client/** directly — see docs/finance-eslint-backlog.md Issue 1).
- * Mirrors the same convention already used by components/pos/payment-panel.tsx's
- * getChargeErrorMessage: never surface a raw server-shaped message, only
+ * Mirrors the same convention already used by components/pos/charge-summary.tsx's
+ * getRecordPaymentErrorMessage: never surface a raw server-shaped message, only
  * an already-user-safe Error#message (e.g. offline-guard errors) or a generic fallback.
  */
 function getProvisionErrorMessage(error: unknown): string {

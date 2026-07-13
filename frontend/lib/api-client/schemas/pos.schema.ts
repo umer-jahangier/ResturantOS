@@ -88,7 +88,7 @@ export const apiOrderSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
-  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY"]),
+  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY", "PICKUP"]),
   status: z.enum(["DRAFT", "OPEN", "SENT_TO_KDS", "PARTIAL_READY", "READY", "SERVED", "CLOSED", "VOIDED", "REFUNDED"]),
   // `.optional()`: the live pos-service response for POST /orders and GET /orders/{id}
   // currently omits this field entirely (verified via 07.1-06 E2E — a backend
@@ -118,6 +118,13 @@ export type ApiOrder = z.infer<typeof apiOrderSchema>;
 
 // Order Management list row (POS-09) — GET /api/v1/pos/orders now returns this shape,
 // not ApiOrder[] (07.1-04 SUMMARY: a deliberate, breaking wire-contract change).
+//
+// POS-24 (07.3-04/07.3-08): the backend `OrderSummaryDto` was extended with 5 fields so
+// Order Management can show closed/paid orders, a payment-status badge, and an
+// item-quantity column without a second round trip per row — `settlementStatus` is the
+// raw 9-value `OrderStatus` (distinct from `derivedStatus`'s 4-value kitchen-progress
+// meaning), `paymentStatus`/`amountPaidPaisa` are server-derived, and
+// `itemQuantity`/`distinctItemCount` exclude CANCELLED lines.
 export const apiOrderSummarySchema = z.object({
   orderId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
@@ -128,9 +135,33 @@ export const apiOrderSummarySchema = z.object({
   coverCount: z.number().int(),
   totalPaisa: z.number().int().nonnegative(),
   openedAt: z.string().nullable().optional(),
+  settlementStatus: z.enum([
+    "DRAFT",
+    "OPEN",
+    "SENT_TO_KDS",
+    "PARTIAL_READY",
+    "READY",
+    "SERVED",
+    "CLOSED",
+    "VOIDED",
+    "REFUNDED",
+  ]),
+  paymentStatus: z.enum(["UNPAID", "PARTIALLY_PAID", "PAID", "REFUNDED"]),
+  amountPaidPaisa: z.number().int().nonnegative(),
+  itemQuantity: z.number().int().nonnegative(),
+  distinctItemCount: z.number().int().nonnegative(),
 });
 
 export type ApiOrderSummary = z.infer<typeof apiOrderSummarySchema>;
+
+// PATCH /orders/{id}/table (assign-table, POS-24) request body. Outgoing payload —
+// parsed client-side before send as a defense-in-depth mirror, same pattern as
+// `apiUpdateInstructionsSchema` above.
+export const apiAssignTableRequestSchema = z.object({
+  tableId: z.string().uuid(),
+});
+
+export type ApiAssignTableRequest = z.infer<typeof apiAssignTableRequestSchema>;
 
 // Table-centric dine-in detail (POS-10) — GET /pos/tables/{id}/active-order.
 export const apiTableDetailSchema = z.object({
@@ -179,6 +210,25 @@ export const apiTillSessionSchema = z.object({
 
 export type ApiTillSession = z.infer<typeof apiTillSessionSchema>;
 
+export const apiTillReconciliationSchema = z.object({
+  session: apiTillSessionSchema,
+  orderCount: z.number().int().nonnegative(),
+  cashCollectedPaisa: z.number().int(),
+  nonCashCollectedPaisa: z.number().int(),
+  liveExpectedCashPaisa: z.number().int(),
+  orders: z.array(
+    z.object({
+      orderId: z.string().uuid(),
+      orderNo: z.string().nullable().optional(),
+      status: z.string(),
+      totalPaisa: z.number().int(),
+      paidPaisa: z.number().int(),
+    }),
+  ),
+});
+
+export type ApiTillReconciliation = z.infer<typeof apiTillReconciliationSchema>;
+
 export const apiOrderPaymentSchema = z.object({
   method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
   amountPaisa: z.number().int().nonnegative(),
@@ -190,3 +240,22 @@ export type ApiOrderPayment = z.infer<typeof apiOrderPaymentSchema>;
 export const apiCloseOrderSchema = z.object({
   payments: z.array(apiOrderPaymentSchema),
 });
+
+// GET /orders/{id}/payments history row (backend OrderPaymentDto, POS-22/23). Distinct
+// from `apiOrderPaymentSchema` above (that one is the OUTGOING closeOrder request-line
+// shape with no id/recordedAt) — this is the persisted, INCOMING read model.
+export const apiOrderPaymentRecordSchema = z.object({
+  id: z.string().uuid(),
+  method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
+  amountPaisa: z.number().int().nonnegative(),
+  referenceNo: z.string().nullable().optional(),
+  recordedAt: z.string(),
+});
+
+export type ApiOrderPaymentRecord = z.infer<typeof apiOrderPaymentRecordSchema>;
+
+// POST /orders/{id}/payments (recordPayment) response body: the running total paid
+// paisa for the order (backend PaymentController.recordPayment returns a bare Long via
+// ApiResponse<Long>, not an OrderDto — the frontend refetches the order separately to
+// pick up any settlement-status change from the maybeCloseOrder seam).
+export const apiRecordPaymentResultSchema = z.number().int().nonnegative();

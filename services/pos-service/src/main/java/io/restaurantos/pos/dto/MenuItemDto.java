@@ -14,5 +14,6 @@ public record MenuItemDto(
         String taxRateCode,
         String kdsStation,
         boolean active,
-        Long overridePricePaisa
+        Long overridePricePaisa,
+        UUID stationId
 ) {}

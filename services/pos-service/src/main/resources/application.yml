@@ -32,6 +32,19 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # Resilient consumer config (mirrors kitchen-service): a failing consumer retries then
+        # dead-letters instead of requeuing forever. default-requeue-rejected=false is the key —
+        # without it a poison message would loop endlessly on the queue. AUTO ack is the default.
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 8000
   cloud:
     config:
       uri: ${CONFIG_URI:http://localhost:8888}

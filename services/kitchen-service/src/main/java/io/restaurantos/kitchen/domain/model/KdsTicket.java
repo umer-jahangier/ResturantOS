@@ -33,8 +33,23 @@ public class KdsTicket extends TenantAuditableEntity {
     @Column(name = "order_notes", length = 500)
     private String orderNotes;
 
+    @Column(name = "table_number", length = 50)
+    private String tableNumber;
+
+    /** OrderType enum name (DINE_IN/TAKEAWAY/DELIVERY/PICKUP) from the originating POS order. */
+    @Column(name = "order_type", length = 20)
+    private String orderType;
+
     @Column(name = "station_code", nullable = false, length = 50)
     private String stationCode;
+
+    /**
+     * Canonical pos-owned station id this ticket routed to (Phase 3 projection reference).
+     * Null for legacy/free-text-only lines. {@link #stationCode} remains the load-bearing
+     * ticket/WS key; this is an additive reference for a future station-id contract migration.
+     */
+    @Column(name = "station_id")
+    private UUID stationId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)

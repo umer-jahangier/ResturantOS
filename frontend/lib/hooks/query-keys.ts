@@ -27,6 +27,8 @@ export const queryKeys = {
     orderSummaries: (branchId: string, statuses?: string[]) =>
       ["pos", branchId, "order-summaries", statuses] as const,
     order: (branchId: string, id: string) => ["pos", branchId, "orders", id] as const,
+    orderPayments: (branchId: string, orderId: string) =>
+      ["pos", branchId, "orders", orderId, "payments"] as const,
     till: (tillId: string) => ["pos", "tills", tillId] as const,
     activeTill: (cashierId: string) => ["pos", "tills", "active", cashierId] as const,
   },

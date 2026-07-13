@@ -81,6 +81,11 @@ class KitchenRoleDeniedPosIT extends PosTestBase {
 
         // OPA returns DENY for any pos module action (kitchen staff has no pos.order.* permissions)
         when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(false));
+
+        // Financial-integrity guard: createOrder now requires an OPEN till for the current user.
+        // These tests assert order CREATION is not OPA-gated (only void is), so the user needs a
+        // till; openTill itself is not OPA-gated.
+        openTillForCashier(branchId);
     }
 
     private OrderDto createOpenOrder() {

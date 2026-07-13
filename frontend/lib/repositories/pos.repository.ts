@@ -8,7 +8,11 @@ import {
   apiOrderSummarySchema,
   apiTableDetailSchema,
   apiUpdateInstructionsSchema,
+  apiAssignTableRequestSchema,
   apiTillSessionSchema,
+  apiTillReconciliationSchema,
+  apiOrderPaymentRecordSchema,
+  apiRecordPaymentResultSchema,
 } from "@/lib/api-client/schemas/pos.schema";
 import {
   adaptMenuItem,
@@ -18,6 +22,8 @@ import {
   adaptOrderSummary,
   adaptTableDetail,
   adaptTillSession,
+  adaptTillReconciliation,
+  adaptOrderPayment,
 } from "@/lib/adapters/pos.adapter";
 import type {
   MenuItem,
@@ -25,17 +31,19 @@ import type {
   DiningTable,
   Order,
   OrderSummary,
+  OrderPayment,
   TableDetail,
   TillSession,
+  TillReconciliation,
   CreateOrderPayload,
   AddItemPayload,
   ApplyDiscountPayload,
   UpdateInstructionsPayload,
   OpenTillPayload,
   CloseTillPayload,
-  CloseOrderPayload,
   VoidOrderPayload,
   RefundOrderPayload,
+  RecordPaymentPayload,
 } from "@/lib/models/pos.model";
 
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
@@ -125,7 +133,7 @@ export const PosRepository = {
 
   /**
    * Fires all currently-PENDING lines as an incrementing revision (POS-12). `clientFireId`
-   * is sent as the Idempotency-Key header — mirrors closeOrder/voidOrder's pattern
+   * is sent as the Idempotency-Key header — mirrors voidOrder/refundOrder's pattern
    * exactly — so a replayed offline fire never double-sends the same revision.
    */
   async sendToKds(orderId: string, clientFireId: string): Promise<Order> {
@@ -141,6 +149,19 @@ export const PosRepository = {
   async updateInstructions(orderId: string, payload: UpdateInstructionsPayload): Promise<Order> {
     const body = apiUpdateInstructionsSchema.parse(payload);
     const raw = await patch<typeof body, unknown>(`/api/v1/pos/orders/${orderId}/instructions`, body);
+    return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  /**
+   * Assign-table row action (POS-24 `PATCH /orders/{id}/table`) — assigns an AVAILABLE
+   * table to a (usually tableless) order; the backend re-checks AVAILABLE status inside
+   * the transaction and routes the table-status flip through `TableService.syncStatusForOrder`
+   * (07.3-04). Returns the full updated order so the caller's cache reflects the new
+   * `tableId` immediately.
+   */
+  async assignTable(orderId: string, tableId: string): Promise<Order> {
+    const body = apiAssignTableRequestSchema.parse({ tableId });
+    const raw = await patch<typeof body, unknown>(`/api/v1/pos/orders/${orderId}/table`, body);
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
@@ -161,13 +182,26 @@ export const PosRepository = {
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
-  async closeOrder(orderId: string, payload: CloseOrderPayload, idempotencyKey: string): Promise<Order> {
-    const resp = await apiClient.post<{ data: unknown }>(
-      `/api/v1/pos/orders/${orderId}/close`,
-      payload,
-      { headers: { "Idempotency-Key": idempotencyKey } }
-    );
-    return adaptOrder(apiOrderSchema.parse(resp.data.data));
+  /**
+   * Payments-history read (POS-22, 07.3-01 `GET /orders/{id}/payments`). Tenant-scoped
+   * server-side — no `branchId` param on this endpoint (unlike `getOrder`/`getActiveOrderForTable`,
+   * which the backend controller requires it for).
+   */
+  async getPayments(orderId: string): Promise<OrderPayment[]> {
+    const raw = await get<unknown[]>(`/api/v1/pos/orders/${orderId}/payments`);
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptOrderPayment(apiOrderPaymentRecordSchema.parse(r)));
+  },
+
+  /**
+   * Records ONE tender (POS-23 `POST /orders/{id}/payments`) — persists without closing
+   * the order; `maybeCloseOrder` (backend seam) closes it only if this payment completes
+   * the order AND it is already fully Served. Returns the new running total paid paisa
+   * (backend returns a bare `Long`, not an `OrderDto` — callers refetch the order
+   * separately via `useOrder`/`useOrderPayments` invalidation to see any status change).
+   */
+  async recordPayment(orderId: string, payload: RecordPaymentPayload): Promise<number> {
+    const raw = await post<RecordPaymentPayload, unknown>(`/api/v1/pos/orders/${orderId}/payments`, payload);
+    return apiRecordPaymentResultSchema.parse(raw);
   },
 
   async voidOrder(orderId: string, payload: VoidOrderPayload, idempotencyKey: string): Promise<Order> {
@@ -213,5 +247,17 @@ export const PosRepository = {
   async getTill(tillId: string): Promise<TillSession> {
     const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}`);
     return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
+  },
+
+  /** Branch-wide till history for admin review (newest first). */
+  async listBranchTills(branchId: string): Promise<TillSession[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/tills", { branchId });
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillSession(apiTillSessionSchema.parse(r)));
+  },
+
+  /** A till session + every order within it + cash/non-cash collected (live expected cash). */
+  async getTillReconciliation(tillId: string): Promise<TillReconciliation> {
+    const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}/reconciliation`);
+    return adaptTillReconciliation(apiTillReconciliationSchema.parse(resp.data.data));
   },
 };

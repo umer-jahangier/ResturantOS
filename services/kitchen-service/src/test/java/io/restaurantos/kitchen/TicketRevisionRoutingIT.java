@@ -61,7 +61,8 @@ class TicketRevisionRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Fries",  1, "GRILL", List.of(), null)
                 ),
                 1,
-                "no onions"
+                "no onions",
+                null
         );
         boolean firstProcessed = processedEventService.tryProcess(CONSUMER_NAME, rev1EventId,
                 () -> ticketRoutingService.route(rev1, "ORD-REV-001"));
@@ -80,7 +81,8 @@ class TicketRevisionRoutingIT extends KitchenTestBase {
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Cheesecake", 1, "GRILL", List.of(), null)
                 ),
                 2,
-                "no onions"
+                "no onions",
+                null
         );
         ticketRoutingService.route(rev2, "ORD-REV-001");
 
@@ -114,6 +116,7 @@ class TicketRevisionRoutingIT extends KitchenTestBase {
                 orderId, tenantId, branchId, "ORD-REV-002",
                 List.of(new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Coffee", 1, "DRINKS", List.of(), null)),
                 1,
+                null,
                 null
         );
         ticketRoutingService.route(rev1, "ORD-REV-002");
@@ -124,6 +127,7 @@ class TicketRevisionRoutingIT extends KitchenTestBase {
                 orderId, tenantId, branchId, "ORD-REV-002",
                 List.of(new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Tea", 1, "DRINKS", List.of(), null)),
                 2,
+                null,
                 null
         );
         ticketRoutingService.route(rev2, "ORD-REV-002");

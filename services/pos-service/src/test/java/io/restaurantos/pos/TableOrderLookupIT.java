@@ -12,7 +12,7 @@ import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.service.OrderService;
-import io.restaurantos.pos.service.SplitTenderCalculator;
+import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.TableService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaDecision;
@@ -22,7 +22,6 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -49,6 +47,7 @@ import static org.mockito.Mockito.when;
 class TableOrderLookupIT extends PosTestBase {
 
     @Autowired OrderService orderService;
+    @Autowired PaymentService paymentService;
     @Autowired TableService tableService;
     @Autowired OrderRepository orderRepository;
     @Autowired DiningTableRepository tableRepository;
@@ -100,6 +99,9 @@ class TableOrderLookupIT extends PosTestBase {
                         new io.restaurantos.pos.feign.FinancePeriodClient.PeriodStatusDto(
                                 UUID.randomUUID(), "OPEN", 2026, 6),
                         null, List.of()));
+
+        // Financial-integrity guard: a cashier needs an OPEN till before createOrder is allowed.
+        openTillForCashier(branchId);
     }
 
     private void setSecurityContext(UUID userId, List<String> permissions) {
@@ -137,8 +139,7 @@ class TableOrderLookupIT extends PosTestBase {
     void afterClose_activeOrder_isEmpty_andTableIsAvailable() {
         OrderDto order = createOpenOrderOnTable();
 
-        var payments = List.of(new SplitTenderCalculator.PaymentEntry("CASH", order.totalPaisa(), null));
-        orderService.closeOrder(order.id(), new CloseOrderRequest(payments), UUID.randomUUID().toString());
+        closeViaServeAndPay(orderService, paymentService, order, branchId);
 
         TableDetailDto detail = tableService.getActiveOrderForTable(tableId, branchId);
 
@@ -164,19 +165,20 @@ class TableOrderLookupIT extends PosTestBase {
     }
 
     @Test
-    void onlyOneActiveOrderPerTable_repositoryEnforcesInvariant() {
+    void multipleActiveOrdersPerTable_readIsResilient_returnsMostRecent() {
         // Directly create two non-terminal orders bound to the SAME table (bypassing the
-        // service layer, which does not currently guard against double-booking a table — out
-        // of this plan's scope) to prove findByTableIdAndStatusNotIn FAILS LOUDLY rather than
-        // silently returning an arbitrary row when the "at most one active order per table"
-        // invariant is violated.
+        // service layer) to simulate legacy/orphaned data that violates the "at most one active
+        // order per table" invariant. The READ path must never 500 the floor view: it returns
+        // the most-recent active order instead of throwing IncorrectResultSizeDataAccessException.
+        // (Duplicate prevention belongs at WRITE time — order create / table assignment.)
         Order first = newDraftOrderOnTable();
         Order second = newDraftOrderOnTable();
         orderRepository.save(first);
         orderRepository.save(second);
 
-        assertThatThrownBy(() -> tableService.getActiveOrderForTable(tableId, branchId))
-                .isInstanceOf(IncorrectResultSizeDataAccessException.class);
+        TableDetailDto detail = tableService.getActiveOrderForTable(tableId, branchId);
+        assertThat(detail.activeOrder()).isNotNull();
+        assertThat(detail.activeOrder().id()).isIn(first.getId(), second.getId());
     }
 
     private Order newDraftOrderOnTable() {

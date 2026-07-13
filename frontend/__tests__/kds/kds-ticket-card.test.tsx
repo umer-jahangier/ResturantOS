@@ -1,13 +1,14 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { http, HttpResponse } from "msw";
+import { describe, it, expect } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 
-import { server } from "@/mocks/server";
-import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
-import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { KdsTicketCard } from "@/components/kds/kds-ticket-card";
 import type { KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
+
+// kds-ticket-card.test.tsx — 07.3-10 rewrite. The pre-07.3-10 card (revision pill,
+// per-item StatusBadge, bump buttons, tap-to-open Dialog detail) is superseded by
+// the slim collapsed card below (KDS-04/D-12): the move action moved into
+// kds-item-column.tsx, and the detail moved into a dedicated routed page
+// (kds-station-detail.tsx) — no Dialog anywhere in this component.
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,213 +39,128 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     startedAt: null,
     readyAt: null,
     orderNotes: null,
+    tableNumber: "12",
+    orderType: null,
     items: [makeItem()],
     ...overrides,
   };
 }
 
-function renderCard(ticket: KdsTicket, canUpdate = true) {
-  seedSession({ permissions: canUpdate ? ["pos.kds.view", "pos.kds.update"] : ["pos.kds.view"] });
-  return render(
-    <KdsTicketCard ticket={ticket} branchId="branch-1" canUpdate={canUpdate} />,
-    { wrapper: createQueryWrapper() },
-  );
-}
-
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("KdsTicketCard — revision pill placement", () => {
-  afterEach(() => clearSession());
+describe("KdsTicketCard — slim collapsed card (KDS-04/D-12)", () => {
+  it("shows order number, table, age, and item names — and nothing else", () => {
+    const ticket = makeTicket({ orderNo: "ORD-042", tableNumber: "9" });
 
-  it('shows the "REV 2" pill on a Rev 2+ item', () => {
-    const ticket = makeTicket({
-      items: [makeItem({ name: "Rev 2 Item", revisionNo: 2 })],
-    });
+    render(<KdsTicketCard ticket={ticket} />);
 
-    renderCard(ticket);
-
-    expect(screen.getByText("REV 2")).toBeInTheDocument();
+    const card = screen.getByTestId("kds-ticket-card");
+    expect(within(card).getByText("ORD-042")).toBeInTheDocument();
+    expect(within(card).getByText(/Table 9/)).toBeInTheDocument();
+    expect(within(card).getByText(/Chicken Karahi/)).toBeInTheDocument();
+    expect(within(card).getByTestId("kds-ticket-age")).toBeInTheDocument();
   });
 
-  it("renders no revision pill for a Rev 1 item", () => {
-    const ticket = makeTicket({
-      items: [makeItem({ name: "Rev 1 Item", revisionNo: 1 })],
-    });
+  it('shows "No table" when tableNumber is null (takeaway/pickup)', () => {
+    const ticket = makeTicket({ tableNumber: null });
 
-    renderCard(ticket);
+    render(<KdsTicketCard ticket={ticket} />);
 
-    expect(screen.queryByText(/^REV \d+$/)).not.toBeInTheDocument();
+    expect(within(screen.getByTestId("kds-ticket-card")).getByText("No table")).toBeInTheDocument();
   });
 
-  it("shows the pill only on the Rev 2+ item, not on a Rev 1 sibling item", () => {
-    const ticket = makeTicket({
-      items: [
-        makeItem({
-          id: "d0000005-0000-4000-8000-000000000005",
-          name: "Rev 1 Item",
-          revisionNo: 1,
-        }),
-        makeItem({
-          id: "d0000006-0000-4000-8000-000000000006",
-          name: "Rev 3 Item",
-          revisionNo: 3,
-        }),
-      ],
-    });
+  it("renders no per-item StatusBadge (no aria-label like Pending/Preparing)", () => {
+    const ticket = makeTicket({ items: [makeItem({ status: "PREPARING" })] });
 
-    renderCard(ticket);
+    render(<KdsTicketCard ticket={ticket} />);
 
-    expect(screen.getAllByText(/^REV \d+$/)).toHaveLength(1);
-    expect(screen.getByText("REV 3")).toBeInTheDocument();
+    const card = screen.getByTestId("kds-ticket-card");
+    expect(within(card).queryByLabelText("Pending")).not.toBeInTheDocument();
+    expect(within(card).queryByLabelText("Preparing")).not.toBeInTheDocument();
   });
 
-  it("renders a per-item status badge (icon+label) for each item", () => {
-    const ticket = makeTicket({
-      items: [makeItem({ name: "Preparing Item", status: "PREPARING" })],
-    });
+  it("renders no bump button (no bump-btn-* testid, no START/DONE text)", () => {
+    const ticket = makeTicket();
 
-    renderCard(ticket);
+    render(<KdsTicketCard ticket={ticket} />);
 
-    expect(screen.getByLabelText("Preparing")).toBeInTheDocument();
+    const card = screen.getByTestId("kds-ticket-card");
+    expect(within(card).queryByTestId(/^bump-btn-/)).not.toBeInTheDocument();
+    expect(within(card).queryByText("START")).not.toBeInTheDocument();
+    expect(within(card).queryByText("DONE")).not.toBeInTheDocument();
+  });
+
+  it("renders no [role=dialog] anywhere — selecting a card is the caller's responsibility (routes to a dedicated page)", () => {
+    const ticket = makeTicket();
+
+    render(<KdsTicketCard ticket={ticket} />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("respects an `items` override — a column fragment shows only that subset of item names", () => {
+    const burger = makeItem({ id: "i1", name: "Burger", status: "PREPARING" });
+    const fries = makeItem({ id: "i2", name: "Fries", status: "ACCEPTED" });
+    const ticket = makeTicket({ items: [burger, fries] });
+
+    render(<KdsTicketCard ticket={ticket} items={[fries]} />);
+
+    const card = screen.getByTestId("kds-ticket-card");
+    expect(within(card).getByText(/Fries/)).toBeInTheDocument();
+    expect(within(card).queryByText(/Burger/)).not.toBeInTheDocument();
+  });
+
+  it("shows a PRIORITY badge when the ticket is flagged priority", () => {
+    const ticket = makeTicket({ priority: true });
+
+    render(<KdsTicketCard ticket={ticket} />);
+
+    expect(within(screen.getByTestId("kds-ticket-card")).getByText("PRIORITY")).toBeInTheDocument();
   });
 });
 
-describe("KdsTicketCard — tap-to-open ticket detail (KDS-03)", () => {
-  afterEach(() => clearSession());
+describe("KdsTicketCard — subtle escalation-threshold aging treatment (KDS-05/D-13)", () => {
+  it("stays at the neutral/emerald border below 0.66x the station's escalation threshold", () => {
+    // 5 min old, 900s (15 min) threshold -> ~33% of threshold, well under amber.
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 5 * 60_000) });
 
-  it("opens a detail view with grouped revisions, per-item status, and the Kitchen Notes callout", async () => {
-    const ticketId = "d1000001-0000-4000-8000-000000000001";
+    render(<KdsTicketCard ticket={ticket} escalationThresholdSeconds={900} />);
 
-    server.use(
-      http.get(`*/api/v1/kitchen/kds/tickets/${ticketId}`, () =>
-        HttpResponse.json({
-          data: {
-            id: ticketId,
-            orderId: "d1000002-0000-4000-8000-000000000002",
-            orderNo: "ORD-001",
-            stationCode: "GRILL",
-            status: "COOKING",
-            priority: false,
-            receivedAt: "2026-07-11T10:00:00Z",
-            startedAt: "2026-07-11T10:01:00Z",
-            readyAt: null,
-            orderNotes: "Birthday — bring cake last",
-            items: [
-              {
-                id: "d1000003-0000-4000-8000-000000000003",
-                orderItemId: "d1000004-0000-4000-8000-000000000004",
-                name: "Chicken Karahi",
-                qty: 2,
-                modifiers: ["Extra Spicy"],
-                notes: null,
-                status: "COOKING",
-                revisionNo: 1,
-                firedAt: "2026-07-11T10:00:30Z",
-              },
-              {
-                id: "d1000005-0000-4000-8000-000000000005",
-                orderItemId: "d1000006-0000-4000-8000-000000000006",
-                name: "Garlic Naan",
-                qty: 3,
-                modifiers: [],
-                notes: "no onions",
-                status: "PENDING",
-                revisionNo: 2,
-                firedAt: "2026-07-11T10:15:00Z",
-              },
-            ],
-          },
-          meta: null,
-          warnings: [],
-        }),
-      ),
-    );
-
-    const ticket = makeTicket({
-      id: ticketId,
-      items: [
-        makeItem({ id: "d1000003-0000-4000-8000-000000000003", revisionNo: 1 }),
-        makeItem({ id: "d1000005-0000-4000-8000-000000000005", revisionNo: 2 }),
-      ],
-    });
-
-    renderCard(ticket);
-    const user = userEvent.setup();
-
-    const trigger = screen.getByLabelText(`Open ticket detail for ${ticket.orderNo}`);
-    await user.click(trigger);
-
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("kds-ticket-detail")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
-
-    // Order-level Kitchen Notes callout
-    expect(screen.getByText("Kitchen Notes")).toBeInTheDocument();
-    expect(screen.getByText("Birthday — bring cake last")).toBeInTheDocument();
-
-    // Revisions grouped by "Rev {n} · {time}"
-    expect(screen.getByText(/Rev 1 ·/)).toBeInTheDocument();
-    expect(screen.getByText(/Rev 2 ·/)).toBeInTheDocument();
-
-    // Per-item status + notes
-    expect(screen.getByText("Garlic Naan")).toBeInTheDocument();
-    expect(screen.getByText("no onions")).toBeInTheDocument();
+    const card = screen.getByTestId("kds-ticket-card");
+    expect(card.className).toContain("border-l-emerald-500/60");
   });
 
-  it("does not render the Kitchen Notes callout when orderNotes is absent", async () => {
-    const ticketId = "d2000001-0000-4000-8000-000000000001";
+  it("turns the border + timer chip amber at >=0.66x the station's escalation threshold", () => {
+    // 7 min old vs a 600s (10 min) threshold -> 70% of threshold.
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 7 * 60_000) });
 
-    server.use(
-      http.get(`*/api/v1/kitchen/kds/tickets/${ticketId}`, () =>
-        HttpResponse.json({
-          data: {
-            id: ticketId,
-            orderId: "d2000002-0000-4000-8000-000000000002",
-            orderNo: "ORD-002",
-            stationCode: "GRILL",
-            status: "PENDING",
-            priority: false,
-            receivedAt: "2026-07-11T10:00:00Z",
-            startedAt: null,
-            readyAt: null,
-            orderNotes: null,
-            items: [
-              {
-                id: "d2000003-0000-4000-8000-000000000003",
-                orderItemId: "d2000004-0000-4000-8000-000000000004",
-                name: "Plain Rice",
-                qty: 1,
-                modifiers: [],
-                notes: null,
-                status: "PENDING",
-                revisionNo: 1,
-                firedAt: null,
-              },
-            ],
-          },
-          meta: null,
-          warnings: [],
-        }),
-      ),
-    );
+    render(<KdsTicketCard ticket={ticket} escalationThresholdSeconds={600} />);
 
-    const ticket = makeTicket({ id: ticketId, orderNo: "ORD-002" });
+    const card = screen.getByTestId("kds-ticket-card");
+    const chip = within(card).getByTestId("kds-ticket-age");
+    expect(card.className).toContain("border-l-amber-500");
+    expect(chip.className).toContain("amber");
+  });
 
-    renderCard(ticket);
-    const user = userEvent.setup();
+  it("turns the border + timer chip red at/above the station's escalation threshold — never full-red background or bounce", () => {
+    // 12 min old vs a 600s (10 min) threshold -> 120% of threshold.
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 12 * 60_000) });
 
-    await user.click(screen.getByLabelText(`Open ticket detail for ${ticket.orderNo}`));
+    render(<KdsTicketCard ticket={ticket} escalationThresholdSeconds={600} />);
 
-    await waitFor(
-      () => {
-        expect(screen.getByTestId("kds-ticket-detail")).toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+    const card = screen.getByTestId("kds-ticket-card");
+    const chip = within(card).getByTestId("kds-ticket-age");
+    expect(card.className).toContain("border-l-red-500");
+    expect(chip.className).toContain("red");
+    expect(card.className).not.toContain("animate-bounce");
+    expect(card.className).not.toContain("bg-red-950");
+  });
 
-    expect(screen.queryByText("Kitchen Notes")).not.toBeInTheDocument();
+  it("falls back to a 15-minute default threshold when escalationThresholdSeconds is not provided (station not yet loaded)", () => {
+    const ticket = makeTicket({ receivedAt: new Date(Date.now() - 20 * 60_000) });
+
+    render(<KdsTicketCard ticket={ticket} />);
+
+    expect(screen.getByTestId("kds-ticket-card").className).toContain("border-l-red-500");
   });
 });

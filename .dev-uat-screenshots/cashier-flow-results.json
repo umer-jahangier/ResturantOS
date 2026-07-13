@@ -1,0 +1,18 @@
+{
+  "loginUrl": "http://localhost:3000/app/dashboard",
+  "sidebarHasPos": true,
+  "sidebarHasKitchen": false,
+  "menuGridVisible": true,
+  "tableButtonsCount": 8,
+  "orderStatusAfterFirstItem": "OPEN",
+  "menuItemCount": 10,
+  "sendToKitchenVisible": true,
+  "sendToKitchenDisabledBeforeItems": false,
+  "orderShowsSentToKds": true,
+  "chargeNowVisible": true,
+  "chargeNowDisabled": true,
+  "chargeNowTitle": "Payment processing available in next phase",
+  "tillBarVisible": false,
+  "voidButtonVisible": false,
+  "consoleErrors": []
+}

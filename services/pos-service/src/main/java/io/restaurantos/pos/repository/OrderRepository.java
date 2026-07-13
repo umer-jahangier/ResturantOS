@@ -2,6 +2,7 @@ package io.restaurantos.pos.repository;
 
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.model.Order;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,18 +45,20 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             Pageable pageable);
 
     /**
-     * The (at most one) non-terminal order currently bound to a table (POS-10). "Non-terminal"
+     * The current (most-recent) non-terminal order bound to a table (POS-10). "Non-terminal"
      * = not in the caller-supplied {@code excludedStatuses} set (CLOSED/VOIDED/REFUNDED at the
-     * call site). {@code Optional} return type means Spring Data throws
-     * {@code IncorrectResultSizeDataAccessException} if more than one row matches — this
-     * enforces (rather than silently tolerates) the "at most one active order per table"
-     * invariant instead of picking an arbitrary row.
+     * call site). Ordered newest-first and {@link Limit}-capped so this READ path never throws
+     * {@code IncorrectResultSizeDataAccessException} when a table has more than one active order
+     * (e.g. legacy/orphaned rows). "At most one active order per table" is enforced at WRITE time
+     * (order create / table assignment), not by making this read fragile — a table lookup must
+     * never 500 the floor view.
      */
     @Query("SELECT o FROM Order o WHERE o.tableId = :tableId AND o.status NOT IN :excludedStatuses "
             + "ORDER BY o.createdAt DESC")
-    Optional<Order> findByTableIdAndStatusNotIn(
+    List<Order> findActiveByTableId(
             @Param("tableId") UUID tableId,
-            @Param("excludedStatuses") Collection<OrderStatus> excludedStatuses);
+            @Param("excludedStatuses") Collection<OrderStatus> excludedStatuses,
+            Limit limit);
 
     @Query("SELECT o FROM Order o WHERE o.tillSessionId = :tillSessionId")
     List<Order> findByTillSessionId(@Param("tillSessionId") UUID tillSessionId);

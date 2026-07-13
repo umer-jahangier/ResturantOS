@@ -89,6 +89,11 @@ class VoidOwnOrderIT extends PosTestBase {
         menuItemId = item.getId();
 
         setSecurityContext(cashierId, branchId, List.of("pos.order.void.own"), Map.of());
+
+        // Financial-integrity guard: the own-branch void tests create the cashier's order
+        // first, which now requires an OPEN till for that cashier. (The cross-branch test
+        // creates in a different branch and is denied earlier by the branch-isolation guard.)
+        openTillForCashier(branchId);
     }
 
     private void setSecurityContext(UUID userId, UUID userBranchId, List<String> permissions,

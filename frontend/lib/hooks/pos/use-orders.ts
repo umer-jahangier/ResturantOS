@@ -16,15 +16,46 @@ import type {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
-/** Order Management list (POS-09). GET /pos/orders now returns OrderSummaryDto[]. */
-export function useOrderSummaries(statuses?: string[]) {
+/**
+ * Order Management list (POS-09). GET /pos/orders now returns OrderSummaryDto[].
+ *
+ * `options.enabled` (POS-24, 07.3-08): lets a caller mount a SECOND instance of this
+ * hook for an explicit terminal-`statuses` request (e.g. the Order Management Closed
+ * filter) without it fetching until that filter is actually selected — additive,
+ * defaults to `true` so every existing call site is unaffected.
+ */
+export function useOrderSummaries(statuses?: string[], options?: { enabled?: boolean }) {
   const { branchId, isAuthenticated } = useCurrentUser();
   return useQuery({
     queryKey: queryKeys.pos.orderSummaries(branchId, statuses),
     queryFn: () => PosRepository.listOrderSummaries({ branchId, status: statuses }),
-    enabled: isAuthenticated && !!branchId,
+    enabled: isAuthenticated && !!branchId && (options?.enabled ?? true),
+    // Order Management is an operational list that must show accurate data the moment
+    // it opens. The global default (staleTime 30s, refetchOnMount honours staleness)
+    // meant reopening the tab within 30s of the last fetch served the cached snapshot,
+    // forcing a manual refresh (POS-09). Override locally: always refetch on mount and
+    // on window focus, and treat the data as immediately stale. Scoped to this hook —
+    // the global defaults still apply everywhere else.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }
+
+/**
+ * `refetchInterval` (POS-20): the order detail surfaces (Order Management drawer, Table
+ * Floor View) previously only refetched on open, so a kitchen-side per-item status
+ * transition (KITCHEN_ITEM_STATUS_CHANGED, fixed backend-side in 07.3-02) never showed
+ * up until the user manually closed/reopened the surface.
+ *
+ * The primary live path is now the branch order WebSocket (`usePosOrdersSocket`, mounted
+ * once at the POS page level), which pushes the full updated OrderDto into this exact
+ * query key the instant a kitchen→pos consumer applies a change. This poll is kept only as
+ * a RELAXED FALLBACK for a dropped/absent socket (mirrors the KDS board keeping its ~10s
+ * poll alongside its socket) — hence widened from 5s to 15s now that it is no longer the
+ * mechanism carrying live kitchen progress.
+ */
+const ORDER_REFETCH_INTERVAL_MS = 15000;
 
 export function useOrder(orderId: string) {
   const { branchId, isAuthenticated } = useCurrentUser();
@@ -32,6 +63,7 @@ export function useOrder(orderId: string) {
     queryKey: queryKeys.pos.order(branchId, orderId),
     queryFn: () => PosRepository.getOrder(orderId, branchId),
     enabled: isAuthenticated && !!branchId && !!orderId,
+    refetchInterval: ORDER_REFETCH_INTERVAL_MS,
   });
 }
 
@@ -125,6 +157,12 @@ export function useAddItem() {
       return PosRepository.addItem(orderId, payload);
     },
     onSuccess: (_data, variables) => {
+      // Seed the cache with the mutation response FIRST (RESEARCH POS-21 instant-UI
+      // seam) so the added line renders immediately, before the invalidation-driven
+      // refetch below lands. Offline stub responses go through this same path too —
+      // that's fine, it's the same shape returned by buildOfflineOrderStub above and
+      // gets superseded once the outbox replay's real response invalidates again.
+      queryClient.setQueryData(queryKeys.pos.order(branchId, variables.orderId), _data);
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, variables.orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
@@ -182,6 +220,27 @@ export function useSendToKds(orderId: string) {
       // drawer's own settlement footer) — a correctness bug for this plan's own
       // "non-closed order never disappears / closes fade out" requirement. Prefix-match
       // invalidates every statuses-filter variant of the query key.
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+    },
+  });
+}
+
+/**
+ * Assign-table row action (POS-24, `PATCH /orders/{id}/table`). Mirrors `useSendToKds`'s
+ * multi-key invalidation shape (order-specific hook, `orderId` bound at hook-creation
+ * time like `useMarkServed`/`useCancelItem`) so the Order Management row + the assigned
+ * table's status update immediately across the UI without a manual refresh.
+ */
+export function useAssignTable(orderId: string) {
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: (tableId: string) => PosRepository.assignTable(orderId, tableId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      // See the order-summaries invalidation note on useSendToKds above.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
     },
