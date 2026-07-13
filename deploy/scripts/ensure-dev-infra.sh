@@ -34,13 +34,11 @@ run_psql postgres -f init/03-grant-schema-privileges.sql
 echo "==> Ensuring auth refresh lookup function owner (RLS bypass)..."
 run_psql auth_db -f init/04-auth-refresh-lookup-owner.sql
 
-echo "==> Ensuring RabbitMQ topology (exchanges/queues/bindings)..."
+echo "==> RabbitMQ topology + user are declarative (deploy/init/rabbitmq-definitions.template.json,"
+echo "    rendered by scripts/dev-stack-up.sh) and loaded at broker boot via load_definitions —"
+echo "    no rabbitmqctl step needed here anymore. Re-importing for belt-and-braces on volumes"
+echo "    that predate this change:"
 $COMPOSE exec -T rabbitmq rabbitmqctl await_startup >/dev/null 2>&1 || true
-# Existing volumes may have been created with an older password — sync broker user to .env.
-$COMPOSE exec -T rabbitmq rabbitmqctl add_user "$RABBITMQ_USERNAME" "$RABBITMQ_PASSWORD" 2>/dev/null \
-  || $COMPOSE exec -T rabbitmq rabbitmqctl change_password "$RABBITMQ_USERNAME" "$RABBITMQ_PASSWORD"
-$COMPOSE exec -T rabbitmq rabbitmqctl set_user_tags "$RABBITMQ_USERNAME" administrator
-$COMPOSE exec -T rabbitmq rabbitmqctl set_permissions -p / "$RABBITMQ_USERNAME" ".*" ".*" ".*"
-$COMPOSE exec -T rabbitmq rabbitmqctl import_definitions /etc/rabbitmq/definitions.json
+$COMPOSE exec -T rabbitmq rabbitmqctl import_definitions /etc/rabbitmq/definitions.json 2>/dev/null || true
 
 echo "==> Dev infra ready."

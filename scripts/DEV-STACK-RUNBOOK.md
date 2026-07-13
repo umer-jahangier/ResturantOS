@@ -1,16 +1,34 @@
 # Dev Stack Runbook
 
-Terse, factual notes from actually getting the stack healthy on 2026-07-13. Commands
-below were run and verified; nothing aspirational.
+Terse, factual notes. Commands below were run and verified from a genuine `down -v`
+cold start on 2026-07-14; nothing aspirational.
 
-## Cold start (from nothing running)
+## Cold start (from nothing running, volumes wiped)
 
 ```bash
 cd /Users/mac/ResturantOS
-make dev-up                      # infra containers (postgres, redis, rabbitmq, minio,
-                                  # opa, eureka, config-server, clickhouse, mailpit, pgadmin)
-./scripts/start-dev.sh            # builds + starts all backend services + frontend
+docker compose -f deploy/docker-compose.yml down -v   # only if you want a TRUE cold start
+make dev-up                                            # infra: postgres, redis, rabbitmq, minio,
+                                                        # opa, eureka, config-server, mailpit
+                                                        # (clickhouse + pgadmin skipped by default —
+                                                        #  see "Memory constraint" below)
+./scripts/start-dev.sh                                 # builds + starts all backend services + frontend
 ```
+
+`make dev-up` runs `scripts/dev-stack-up.sh`, which:
+1. Renders `deploy/init/rabbitmq-definitions.json` from the committed template,
+   injecting a RabbitMQ password_hash computed from `deploy/.env` — the application
+   user exists in RabbitMQ from its FIRST boot, no `rabbitmqctl` by hand (see
+   "RabbitMQ zero-users" below for why this was needed).
+2. Runs `docker compose up -d` with **no `--build`** — the in-Docker Maven build for
+   eureka/config-server OOMs/fails on an 8GB host; the images are already built. Use
+   `make dev-rebuild` (below) when the JARs genuinely need rebuilding.
+3. **Health-gates** every infra service's real health check (not just "container
+   running") with a hard 120s-per-service timeout. On timeout it prints the
+   offending service's last 50 log lines and **exits non-zero, naming the service**
+   — it does not silently continue. This is the single biggest change from the old
+   runbook: previously "the stack came up" and "the stack actually works" were two
+   different, undetected states.
 
 `start-dev.sh` rebuilds `auth-service, authorization-service, user-service,
 platform-admin-service, audit-service, file-service, finance-service, gateway` by
@@ -26,6 +44,103 @@ mvn -pl services/purchasing-service -am -DskipTests package -q
 ```
 
 Stop everything: `./scripts/start-dev.sh --stop`.
+
+## Rebuilding eureka/config-server images (`make dev-rebuild`)
+
+The in-Docker Maven multi-stage build (`eureka-server/Dockerfile`,
+`config-server/Dockerfile`) is known to fail/OOM on this 8GB host — do not run
+`docker compose up -d --build` here. When the images genuinely need rebuilding
+(source changed), use:
+
+```bash
+make dev-rebuild
+```
+
+This builds the JARs on the **host** (`mvn -pl shared-lib,eureka-server,config-server
+-am -DskipTests package` — reuses your `~/.m2` cache, no in-container OOM risk),
+then builds `eureka-server/Dockerfile.host` / `config-server/Dockerfile.host` (which
+just `COPY target/*.jar` into a JRE base — no Maven inside the image at all) and
+restarts those two containers.
+
+## RabbitMQ zero-users (root-caused and fixed 2026-07-14)
+
+**Symptom:** every service reports `ACCESS_REFUSED` / RabbitMQ DOWN after a fresh
+`docker compose up -d`, and `rabbitmqctl list_users` on the container returns an
+**empty list** — even though `deploy/.env` and `docker-compose.yml`'s
+`RABBITMQ_DEFAULT_USER`/`RABBITMQ_DEFAULT_PASS` look correct.
+
+**Root cause:** `deploy/init/rabbitmq.conf` sets `load_definitions =
+/etc/rabbitmq/definitions.json`. When RabbitMQ loads a definitions file at boot, it
+**skips the `RABBITMQ_DEFAULT_USER`/`PASS` bootstrap entirely** — that bootstrap only
+runs when no definitions file is configured. The old `rabbitmq-definitions.json` had
+no `users`/`permissions` key, so the broker booted with zero users, full stop.
+Confirmed live: `docker compose down -v && docker compose up -d rabbitmq && docker
+exec restaurantos-rabbitmq rabbitmqctl list_users` → `Listing users ...` (nothing
+else).
+
+**Fix:** users/permissions are now declared in
+`deploy/init/rabbitmq-definitions.template.json` (committed) and rendered into
+`deploy/init/rabbitmq-definitions.json` (gitignored — contains a password hash
+derived from `deploy/.env`) by `scripts/dev-stack-up.sh` on every bring-up, using
+RabbitMQ's own `rabbit_password_hashing_sha256` algorithm. No manual `rabbitmqctl
+add_user` step remains anywhere in the bring-up path.
+
+## Health gate — what "UP" actually checks
+
+| Service | Check |
+|---|---|
+| postgres | `pg_isready -U <superuser> -d postgres` inside the container |
+| redis | `redis-cli -a <password> ping` → `PONG` |
+| rabbitmq | `rabbitmq-diagnostics -q ping` |
+| minio | `mc ready local` or `/minio/health/live` |
+| opa | `GET :8181/health` |
+| eureka | `GET :8761/actuator/health` → `"status":"UP"` |
+| config-server | `GET :8888/actuator/health` → `"status":"UP"` |
+| mailpit | `GET :8025/api/v1/info` |
+| clickhouse (opt-in, `--full`) | `GET :8123/ping` |
+| pgadmin (opt-in, `--full`) | `GET :5050/login` |
+
+Timeout is 120s per service (rabbitmq/postgres/eureka can genuinely take 60-90s on a
+cold, memory-pressured host — this is not a false-positive budget).
+
+**Negative control, verified 2026-07-14** (proves the gate can actually fail, not
+just always pass): a container that is `docker stop`'d gets auto-restarted by
+`docker compose up -d`'s reconciliation and comes back healthy within ~10-20s — that
+is NOT a reliable way to force a failure. `docker pause` is: it leaves the container
+running but unresponsive, and `docker compose up -d` cannot un-pause it
+(`Error response from daemon: cannot start a paused container, try unpause
+instead`), so the health check genuinely times out.
+
+```bash
+docker pause restaurantos-rabbitmq
+bash scripts/dev-stack-up.sh --check-only
+# ... rabbitmq        DOWN (timed out after 120s)
+# ----- last 50 log lines: restaurantos-rabbitmq -----
+# ERROR: Health gate FAILED — see the offending service's log excerpt above. Stack is NOT ready.
+echo $?   # 1
+docker unpause restaurantos-rabbitmq
+```
+
+## Verified cold-boot journey (2026-07-14)
+
+From a genuinely wiped stack, this is the full sequence a new machine/agent should
+run, and what to expect:
+
+```bash
+cd /Users/mac/ResturantOS
+docker compose -f deploy/docker-compose.yml down -v
+make dev-up
+# ~30-90s later: "=== Stack started and health-gated. Run 'make dev-ps' to check status. ==="
+./scripts/start-dev.sh
+# builds + starts auth/authz/user/platform-admin/audit/file/finance/gateway + frontend;
+# start purchasing-service/kitchen-service separately (see above)
+```
+
+Then, in a real browser: open `http://localhost:3000`, log in as
+`manager1@demo.local` / `Manager1#2026` (tenant `demo`), and navigate to
+`/app/purchasing/vendors`. This was driven end-to-end with Playwright on 2026-07-14
+against a stack brought up by exactly this sequence — screenshot at
+`.playwright-mcp/10-19-cold-boot-manager1.png`.
 
 ## Restarting one service without a full stack bounce
 
@@ -157,6 +272,19 @@ rm -rf frontend/.next/dev/cache/turbopack
 cd frontend && pnpm dev
 ```
 
+### 7. `make dev-up` used to force a broken in-Docker Maven rebuild (fixed 2026-07-14)
+
+**Symptom:** `make dev-up` from a fresh clone would run `docker compose up -d
+--build`, which force-rebuilds `eureka-server`/`config-server` images via an
+in-Docker multi-stage Maven build. On this 8GB host that build reliably OOM'd or
+timed out, and `make dev-up` never completed.
+
+**Fix applied:** `dev-up` no longer passes `--build`; it delegates to
+`scripts/dev-stack-up.sh`, which brings up the stack using the already-built images
+and health-gates the result. `make dev-rebuild` is the explicit, working path for
+when the images really do need rebuilding — see "Rebuilding eureka/config-server
+images" above.
+
 ## Memory constraint
 
 This host has 8GB RAM and runs hot under the full stack (10 infra containers + 9
@@ -164,13 +292,12 @@ JVMs + Next.js + IDE). Watch `sysctl vm.swapusage` — under ~500MB free swap,
 services start timing out and health checks that would otherwise pass in a few
 seconds take 60-90s.
 
-**Safe to stop when tight on RAM** (not needed for purchasing/finance UAT click-throughs):
+**ClickHouse and pgAdmin are OFF by default** in `scripts/dev-stack-up.sh` /
+`make dev-up` (~1.3GB freed). Bring them up only when needed:
 ```bash
-docker stop restaurantos-clickhouse restaurantos-pgadmin   # ~1.3GB freed
-```
-Restart before anything that needs analytics/reporting or the pgAdmin UI:
-```bash
-docker start restaurantos-clickhouse restaurantos-pgadmin
+bash scripts/dev-stack-up.sh --full          # or: DEV_STACK_FULL=1 make dev-up
+# or, if the rest of the stack is already up:
+docker compose -f deploy/docker-compose.yml up -d clickhouse pgadmin
 ```
 
 **Never stop** `postgres`, `redis`, `rabbitmq`, `eureka`, `config-server` — every
