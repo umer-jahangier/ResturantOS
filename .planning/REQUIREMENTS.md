@@ -153,12 +153,12 @@
 
 ### Purchasing (PUR)
 
-- [ ] **PUR-01**: Manager can manage vendors (bank account field-encrypted)
-- [ ] **PUR-02**: PO lifecycle DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval (OPA)
-- [ ] **PUR-03**: GRN receipt posts GR/IR
-- [ ] **PUR-04**: Vendor-invoice 3-way match → AP; payment posts and `AP_PAYMENT_PROCESSED`
-- [ ] **PUR-05**: Vendor performance scorecard — lead-time adherence (on-time delivery), fill rate, price variance per vendor
-- [ ] **PUR-06**: Spend analytics by vendor and by category, with period comparison
+- [x] **PUR-01**: Manager can manage vendors (bank account field-encrypted)
+- [x] **PUR-02**: PO lifecycle DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval (OPA)
+- [x] **PUR-03**: GRN receipt posts GR/IR
+- [x] **PUR-04**: Vendor-invoice 3-way match → AP; payment posts and `AP_PAYMENT_PROCESSED`
+- [x] **PUR-05**: Vendor performance scorecard — lead-time adherence (on-time delivery), fill rate, price variance per vendor
+- [x] **PUR-06**: Spend analytics by vendor and by category, with period comparison
 
 ### Finance (FIN)
 
@@ -166,7 +166,12 @@
 - [x] **FIN-02**: Journal entries are balanced (DB deferred trigger) and immutable; reversal-only corrections
 - [ ] **FIN-03**: Auto-posting recipes for order close (revenue + COGS), refund, GR/IR, vendor invoice/payment, expense, wastage, stock count, transfer, payroll — all balanced and idempotent via `posted_source_events`
 - [x] **FIN-04**: Accounting periods (12/FY, Pakistan Jul–Jun) seeded; period close sets LOCKED with pre-checks via internal APIs (no cross-service SQL)
-- [ ] **FIN-05**: AP/AR tracked; expense approval respects OPA approval limits
+- [ ] **FIN-05**: AP/AR tracked; expense approval respects OPA approval limits. **AR scope decided
+  2026-07-13 (10-17-A): AR is IN scope**, sourced from corporate/house accounts (restaurants bill
+  corporate clients and regulars on account; the customer settles later). Split: Phase 10 (10-18) builds
+  the AR sub-ledger, the customer/house-account entity, AR balances + AR aging, and the internal seam
+  POST /internal/finance/ar/charges; Phase 7 (07-09) wires the POS "charge to account" tender to that
+  seam on order close. AP half shipped (10-02/10-05, aging report + OPA-limited expense approval).
 - [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
 - [x] **FIN-07**: Every ACTIVE tenant is guaranteed at least one open accounting period covering the current business date — the onboarding saga aborts (marks the tenant PROVISIONING_FAILED) rather than silently continuing past a finance-seeding failure
 - [x] **FIN-08**: A permissioned self-service endpoint (POST /api/v1/finance/periods/provision, gated finance.period.open) lets an OWNER/TENANT_ADMIN/ACCOUNTANT (re-)provision CoA + accounting periods for their own tenant without platform-ops, resolving tenantId from JWT context only
@@ -350,13 +355,13 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | CRM-03 | Phase 9 | Pending |
 | CRM-04 | Phase 9 | Pending |
 | CRM-05 | Phase 9 | Pending |
-| PUR-01 | Phase 10 | Pending |
-| PUR-02 | Phase 10 | Pending |
-| PUR-03 | Phase 10 | Pending |
-| PUR-04 | Phase 10 | Pending |
-| PUR-05 | Phase 10 | Pending |
-| PUR-06 | Phase 10 | Pending |
-| FIN-05 | Phase 10 | Pending |
+| PUR-01 | Phase 10 (10-01) | Complete |
+| PUR-02 | Phase 10 (10-04) | Complete |
+| PUR-03 | Phase 10 (10-01) | Complete |
+| PUR-04 | Phase 10 (10-01/10-02) | Complete |
+| PUR-05 | Phase 10 (10-03) | Complete |
+| PUR-06 | Phase 10 (10-03) | Complete |
+| FIN-05 | Phase 10 (10-02/10-05 AP; 10-18 AR) + Phase 7 (POS charge-to-account tender) | In Progress |
 | HR-01 | Phase 11 | Pending |
 | HR-02 | Phase 11 | Pending |
 | HR-03 | Phase 11 | Pending |

@@ -1,0 +1,2 @@
+[   31742ms] [ERROR] Failed to load resource: the server responded with a status of 503 () @ http://localhost:8087/actuator/health:0
+[   32051ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ http://localhost:8087/favicon.ico:0

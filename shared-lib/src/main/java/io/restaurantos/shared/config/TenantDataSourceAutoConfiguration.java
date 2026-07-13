@@ -2,6 +2,7 @@ package io.restaurantos.shared.config;
 
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
@@ -12,6 +13,7 @@ import javax.sql.DataSource;
 /** Registers {@link TenantAwareDataSourcePostProcessor} for tenant RLS GUC at JDBC checkout. */
 @AutoConfiguration
 @ConditionalOnClass(DataSource.class)
+@ConditionalOnBean(TenantContext.class)
 public class TenantDataSourceAutoConfiguration {
 
     @Bean

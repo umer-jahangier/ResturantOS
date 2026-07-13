@@ -1,0 +1,65 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e36]:
+    - complementary [ref=f6e37]:
+      - generic [ref=f6e38]: RestaurantOS
+      - navigation "Primary" [ref=f6e43]:
+        - generic [ref=f6e44]:
+          - paragraph [ref=f6e45]: Overview
+          - link "Dashboard" [ref=f6e48] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f6e55]:
+          - paragraph [ref=f6e56]: Orders
+          - generic [ref=f6e57]:
+            - link "POS" [ref=f6e59] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f6e66] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f6e70]:
+          - paragraph [ref=f6e71]: Menu
+          - link "Inventory" [ref=f6e74] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f6e86]:
+          - paragraph [ref=f6e87]: Purchasing
+          - link "Purchasing" [ref=f6e90] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f6e97]:
+          - paragraph [ref=f6e98]: People
+          - generic [ref=f6e99]:
+            - link "HR" [ref=f6e101] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f6e109] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f6e115]:
+          - paragraph [ref=f6e116]: Reporting
+          - link "Reports" [ref=f6e119] [cursor=pointer]:
+            - /url: /app/reporting
+        - generic [ref=f6e123]:
+          - paragraph [ref=f6e124]: Settings
+          - generic [ref=f6e125]:
+            - link "General" [ref=f6e127] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f6e133] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f6e142]:
+        - generic [ref=f6e145]: Collapse
+    - generic [ref=f6e146]:
+      - banner [ref=f6e147]:
+        - navigation "Breadcrumb" [ref=f6e149]:
+          - generic [ref=f6e150]: App
+          - generic [ref=f6e152]: Dashboard
+        - generic [ref=f6e156]: Main Branch (HQ)
+        - generic [ref=f6e157]:
+          - button "Open command palette" [ref=f6e158]:
+            - generic [ref=f6e162]: Search…
+            - generic [ref=f6e163]: ⌘K
+          - button "Notifications (3 unread)" [ref=f6e165]
+          - button "Switch to light mode" [ref=f6e170]
+          - button "Open profile menu" [ref=f6e173]: C
+      - main [ref=f6e174]:
+        - generic [ref=f6e176]:
+          - heading "Dashboard" [level=1] [ref=f6e177]
+          - paragraph [ref=f6e178]: Tenant app shell placeholder.
+  - status [ref=f6e17]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f6e23] [cursor=pointer]
+  - alert [ref=f6e27]

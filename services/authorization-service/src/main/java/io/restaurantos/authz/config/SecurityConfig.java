@@ -39,6 +39,12 @@ public class SecurityConfig implements WebMvcConfigurer {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
+                // /internal/authorize is dual-gated ON PURPOSE: InternalServiceFilter proves the
+                // CALLER is a trusted service (X-Internal-Service secret), and .authenticated()
+                // proves the SUBJECT is a real user — the endpoint reads JwtClaims off the
+                // SecurityContext to decide on that user's permissions/tenant/branch. Callers must
+                // therefore forward the end user's Authorization header (see each service's
+                // FeignClientConfig); a service-only credential cannot authorize a user action.
                 .requestMatchers("/internal/**").authenticated()
                 .anyRequest().authenticated())
             .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)

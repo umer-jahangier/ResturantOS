@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        Gap closure (UAT 2026-07-13): 900-seed-auth-dev-data.xml seeded no MANAGER,
+        TENANT_ADMIN or INVENTORY_MANAGER demo user — the only roles holding the full
+        vendor.po.create/approve/send, vendor.grn.receive, vendor.invoice.book/override,
+        vendor.payment.create set (031-purchasing-permissions.xml). OWNER and ACCOUNTANT
+        are seeded but permanently 401 TOTP_REQUIRED (they hold rbac.manage /
+        finance.period.close respectively -> requiresTotpStepUp() forces step-up; neither
+        has totp_secret enrolled, and /auth/2fa/setup itself requires an authenticated
+        session, so there is no way to reach them in a fresh dev seed).
+
+        Fix: seed TWO MANAGER users. MANAGER holds vendor.po.approve (030) plus the full
+        vendor.* set added in 031, but neither rbac.manage nor finance.period.close, so
+        requiresTotpStepUp() returns false and they log in with a password only. Two
+        distinct users are seeded (not one) because plan 10-07 added a same-approver-twice
+        409 on multi-tier PO approval, which needs two different privileged identities to
+        exercise. Both are assigned to branch b0000001 (Main/HQ) so both can act on the
+        same PO/branch-scoped resources.
+    -->
+    <changeSet id="auth-1.0.0-902-seed-purchasing-demo-users" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <!-- MANAGER #1 — no rbac.manage / finance.period.close -> no TOTP step-up -->
+        <insert tableName="users">
+            <column name="id" value="c0000011-0000-4000-8000-000000000011"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="manager1@demo.local"/>
+            <column name="password_hash" value="$2b$12$eXN0CrnY9NHUJyLOsvk9BeZ.mT7Jao7uA9FE8MREp0S31Iu2G91M2"/>
+            <column name="full_name" value="Demo Manager One"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <!-- MANAGER #2 — second privileged approver, needed for the distinct-approver 409 rule -->
+        <insert tableName="users">
+            <column name="id" value="c0000012-0000-4000-8000-000000000012"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="email" value="manager2@demo.local"/>
+            <column name="password_hash" value="$2b$12$hLE1cHa4OetbzSCm32rjnuhyh4KJvN9JquCCykYJXHmagbBXt1Dze"/>
+            <column name="full_name" value="Demo Manager Two"/>
+            <column name="locale" value="en"/>
+            <column name="totp_enabled" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="users">
+                <where>id IN ('c0000011-0000-4000-8000-000000000011', 'c0000012-0000-4000-8000-000000000012')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-903-seed-purchasing-demo-user-branch-roles" author="restaurantos-agent" runOnChange="false" context="seed">
+        <sql splitStatements="false">
+            SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
+        </sql>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000011-0000-4000-8000-000000000011"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000011-0000-4000-8000-000000000011"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="MANAGER"/>
+            <column name="approval_limit_paisa" valueNumeric="30000000"/>
+        </insert>
+        <insert tableName="user_branch_roles">
+            <column name="id" value="d0000012-0000-4000-8000-000000000012"/>
+            <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="user_id" value="c0000012-0000-4000-8000-000000000012"/>
+            <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
+            <column name="role_code" value="MANAGER"/>
+            <column name="approval_limit_paisa" valueNumeric="30000000"/>
+        </insert>
+        <rollback>
+            <delete tableName="user_branch_roles">
+                <where>id IN ('d0000011-0000-4000-8000-000000000011', 'd0000012-0000-4000-8000-000000000012')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

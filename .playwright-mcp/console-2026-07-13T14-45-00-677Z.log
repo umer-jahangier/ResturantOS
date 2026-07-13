@@ -1,0 +1,3 @@
+[     677ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0fxd_next_dist_1_jg8jr._.js:2477
+[     727ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0fxd_next_dist_1_jg8jr._.js:2477
+[  202498ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ http://localhost:8080/api/v1/purchasing/vendors:0

@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [ ] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
-- [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP
+- [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
 - [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
 
@@ -175,15 +175,12 @@ Plans:
   4. Till open/close reconciles cash and emits `TILL_OPENED`/`TILL_CLOSED`, and `ORDER_CLOSED` is published carrying `customerId`.
   5. An order taken while offline (Service Worker + IndexedDB) syncs once connectivity returns using `client_order_id` as the idempotency key, creating no duplicate orders.
   6. A dedicated kitchen-only role (`KITCHEN_STAFF`, perms `pos.kds.view`/`pos.kds.update` only) is strictly isolated: kitchen logins are blocked from POS/finance, cashier/finance logins are blocked from the KDS REST + WebSocket, and the owner sees everything — enforced fail-closed via OPA and proven in both directions.
+  7. An order can be closed with a "charge to account" tender against a corporate/house account, creating an AR receivable in finance-service (FIN-05) rather than a cash/card settlement.
 
-**Plans**: 8/8 plans complete
+**Plans**: 8/8 complete; 07-09 pending (charge-to-account tender, SC7)
 
 Plans:
 
-- [x] 07-01-PLAN.md
-- [x] 07-02-PLAN.md
-- [x] 07-03-PLAN.md
-- [x] 07-04-PLAN.md
 - [x] 07-01: Orders, tables, order state machine, discount floor + POS permissions (CASHIER/MANAGER)
 - [x] 07-02: Split-tender payments, idempotent close, voids/refunds, tills, period-lock 423, pos.rego
 - [x] 07-03: Offline POS — Service Worker + IndexedDB sync with `client_order_id`
@@ -195,6 +192,7 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 - [x] 07-06-PLAN.md (wave 1) — pos-service: Order.cashierId/tillSessionId never set at creation (till-close open-orders gate was a no-op; void.own created_by could never match) + TillSession variance staleness fix
 - [x] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
 - [x] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
+- [ ] 07-09: POS "charge to account" tender — on order close, call POST /internal/finance/ar/charges (Phase 10 / 10-18 seam) with the order's customerId + total; the receivable and its balanced JE (DR 1200 / CR revenue) are created by finance-service, not POS. Blocks FIN-05 from being fully Complete. [added 2026-07-13 by 10-17-A as 07-05; renumbered to 07-09 on the 2026-07-14 main merge, which had already shipped 07-05..07-08]
 
 ### Phase 07.2: Finance accounting-period provisioning — guarantee open period at tenant onboarding, self-service period-open endpoint + calendar-based provisioning UI, configurable auto-seed fallback (INSERTED)
 
@@ -371,15 +369,50 @@ Plans:
   1. Managers manage vendors with the bank account stored field-encrypted.
   2. A PO moves DRAFT→PENDING_APPROVAL→APPROVED→SENT→…→CLOSED with tiered approval enforced by OPA.
   3. A GRN receipt posts GR/IR, and a vendor-invoice 3-way match creates AP; payment posts and publishes `AP_PAYMENT_PROCESSED`.
-  4. AP/AR balances are tracked, and expense approvals respect OPA approval limits.
+  4. AP balances are tracked (aging report + OPA-limited expense approval), AND AR balances are tracked:
+   a corporate/house customer account can be charged, its balance and AR aging are queryable, every charge
+   and settlement posts a balanced journal entry against account 1200, and the internal seam
+   POST /internal/finance/ar/charges that Phase 7's POS "charge to account" tender will call is implemented
+   and integration-tested. (Scope decided 2026-07-13, 10-17-A — see FIN-05.)
   5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
-
-**Plans**: 2 plans
+**Plans**: 26 plans (10-01..10-06 shipped; 10-07..10-18 = gap closure round 1; 10-19..10-26 = gap closure round 2 after the 2026-07-14 real-browser UAT)
+**Status**: REOPENED 2026-07-14 (round 2) — real-browser UAT scored ~3 pass / 10 journeys. All 12 round-1 gap-closure plans were green (unit + real-Postgres ITs + real-OPA container ITs) and the module still did not work: no PO could be approved by anyone (internal authorize call path 401s), expense create failed 100%, PO/invoice detail pages hung on Loading forever, and a cashier saw the whole Purchasing module. Backend ITs verified the callee; nothing verified the caller, the browser, or the persona. See 10-UAT-2.md.
+**Scope decisions**: 2026-07-13 (10-17-A) — FIN-05's AR clause is IN scope, not descoped. Receivables
+are sourced from corporate/house accounts. Phase 10 owns the AR ledger + the internal charge seam;
+Phase 7 owns the POS "charge to account" tender that calls it, because POS does not exist yet (Phase 7
+is 0/4 plans) and an AR ledger with no writer would be an always-empty sub-ledger.
 
 Plans:
+- [x] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval + mock GRN foundation
+- [x] 10-02: Mock GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP aging (FIN-05 partial), MSW frontend
+- [x] 10-03: PUR-06 spend analytics (vendor/category + period comparison) + PUR-05 price-variance metric [wave 3]
+- [x] 10-04: PUR-02 gap closure — PO CLOSED transition (close + OPA-gated short-close, PO_CLOSED event) [wave 3]
+- [x] 10-05: FIN-05 gap closure — Expense entity + OPA-limited expense approval in finance-service [wave 3]
+- [x] 10-06: Requirement-doc reconciliation — re-derive PUR-01..06 + FIN-05 status from actual coverage [wave 4]
 
-- [ ] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval
-- [ ] 10-02: GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP/AR + expense approval (FIN-05), vendor scorecard + spend analytics
+Gap-closure plans (2026-07-13):
+- [ ] 10-07-PLAN.md — Canonical OPA action vocabulary + vendor.rego approval-limit & close_po rules + distinct-approver [wave 1]
+- [ ] 10-08-PLAN.md — Real-OPA container ITs for PO approve/close + expense approve (replace the mocked AuthorizationClient) [wave 2]
+- [ ] 10-09-PLAN.md — @PreAuthorize on all 18 purchasing endpoints + seed missing permissions + Cashier-403 IT [wave 1]
+- [ ] 10-10-PLAN.md — Missing backend list endpoints: POs, vendor invoices, expenses [wave 2]
+- [ ] 10-11-PLAN.md — Nav fix FEATURE_PURCHASING -> FEATURE_VENDOR + canonical flag set + drift test + purchasing shell [wave 1]
+- [ ] 10-12-PLAN.md — PO UI journeys (list/create/submit/approve/reject/send) + per-line partial receipt [wave 3]
+- [ ] 10-13-PLAN.md — Invoice UI journeys (list/book/override-match) + AP payment UI [wave 4]
+- [ ] 10-14-PLAN.md — FIN-05 UI: expense create/approve/reject + AP aging page [wave 3]
+- [ ] 10-15-PLAN.md — Analytics period picker + vendor selector [wave 1]
+- [ ] 10-16-PLAN.md — Vendor bank-account encryption fails fast instead of silently nulling [wave 1]
+- [ ] 10-17-PLAN.md — FIN-05 AR scope decision record: AR IS in scope (corporate/house accounts), split Phase 10 / Phase 7 [wave 1]
+- [ ] 10-18-PLAN.md — AR sub-ledger: house/corporate customer accounts, charges + settlements, AR balances + AR aging, and the internal POS charge seam [wave 5]
+
+Gap-closure plans, round 2 (2026-07-14) — every plan ends in a real-browser journey assertion as a real seeded persona:
+- [ ] 10-19-PLAN.md — Dev-stack reproducibility: RabbitMQ zero-users root cause (load_definitions suppresses DEFAULT_USER bootstrap), repair `make dev-up`, health-gated one-command bring-up [wave 1]
+- [ ] 10-20-PLAN.md — Bug 4: Next-15 async `params` on PO + invoice detail pages, fixed as a codebase-wide class with a build-failing guard [wave 2]
+- [ ] 10-21-PLAN.md — Bug 3: frontend RBAC parity — PermissionGuard + nav `permission: vendor.view` + guard test (cashier no longer sees Purchasing) [wave 2]
+- [ ] 10-22-PLAN.md — Bug 2: isolate + fix expense-create account validation (suspected cross-tenant read leak / COA never provisioned for the demo tenant) [wave 2]
+- [ ] 10-23-PLAN.md — Bug 5: vendor create idempotency via the existing shared-lib IdempotencyService seam [wave 2]
+- [ ] 10-24-PLAN.md — AR persona gap: seed an AR-capable persona so 10-18's write path can be driven; TOTP enrolment lockout formally deferred to Phase 2 [wave 2]
+- [ ] 10-25-PLAN.md — Bug 1 (CRITICAL): InternalServiceFilter never authenticates → every PO approval 401s (masked as 503); + call-path ITs that test the CALLER [wave 3]
+- [ ] 10-26-PLAN.md — Playwright E2E journey suite: all 10 UAT journeys as real personas against the real stack, enforced in CI [wave 4]
 
 ### Phase 11: HR & Payroll
 
@@ -443,6 +476,6 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 10/10 | Complete    | 2026-07-11 |
 | 8. Inventory & Recipe Management | 0/3 | Not started | - |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
-| 10. Purchasing & Accounts Payable | 0/2 | Not started | - |
+| 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
 | 12. Reporting, Dashboards & NLQ | 0/3 | Not started | - |

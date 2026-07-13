@@ -21,6 +21,7 @@ COPY services/notification-service/pom.xml services/notification-service/pom.xml
 COPY services/audit-service/pom.xml services/audit-service/pom.xml
 COPY services/file-service/pom.xml services/file-service/pom.xml
 COPY services/finance-service/pom.xml services/finance-service/pom.xml
+COPY services/purchasing-service/pom.xml services/purchasing-service/pom.xml
 COPY services/pos-service/pom.xml services/pos-service/pom.xml
 COPY services/kitchen-service/pom.xml services/kitchen-service/pom.xml
 

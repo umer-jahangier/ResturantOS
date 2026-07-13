@@ -1,0 +1,135 @@
+- generic [active] [ref=f22e1]:
+  - generic [ref=f22e2]:
+    - complementary [ref=f22e3]:
+      - generic [ref=f22e4]: RestaurantOS
+      - navigation "Primary" [ref=f22e9]:
+        - generic [ref=f22e10]:
+          - paragraph [ref=f22e11]: Overview
+          - link "Dashboard" [ref=f22e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f22e89]:
+          - paragraph [ref=f22e90]: Orders
+          - generic [ref=f22e91]:
+            - link "POS" [ref=f22e93] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f22e100] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f22e104]:
+          - paragraph [ref=f22e105]: Menu
+          - link "Inventory" [ref=f22e108] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f22e120]:
+          - paragraph [ref=f22e121]: Purchasing
+          - link "Purchasing" [ref=f22e124] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f22e131]:
+          - paragraph [ref=f22e132]: People
+          - generic [ref=f22e133]:
+            - link "HR" [ref=f22e135] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f22e143] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f22e149]:
+          - paragraph [ref=f22e150]: Reporting
+          - link "Reports" [ref=f22e153] [cursor=pointer]:
+            - /url: /app/reporting
+        - generic [ref=f22e21]:
+          - paragraph [ref=f22e22]: Settings
+          - generic [ref=f22e23]:
+            - link "General" [ref=f22e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f22e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f22e40]:
+        - generic [ref=f22e43]: Collapse
+    - generic [ref=f22e44]:
+      - banner [ref=f22e45]:
+        - navigation "Breadcrumb" [ref=f22e47]:
+          - generic [ref=f22e48]: App
+          - generic [ref=f22e50]: Purchasing
+          - generic [ref=f22e54]: Analytics
+        - generic [ref=f22e157]: Main Branch (HQ)
+        - generic [ref=f22e58]:
+          - button "Open command palette" [ref=f22e59]:
+            - generic [ref=f22e63]: Search…
+            - generic [ref=f22e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f22e66]
+          - button "Switch to light mode" [ref=f22e71]
+          - button "Open profile menu" [ref=f22e74]: C
+      - main [ref=f22e158]:
+        - generic [ref=f22e160]:
+          - navigation [ref=f22e161]:
+            - link "Vendors" [ref=f22e162] [cursor=pointer]:
+              - /url: /app/purchasing/vendors
+            - link "Purchase Orders" [ref=f22e163] [cursor=pointer]:
+              - /url: /app/purchasing/purchase-orders
+            - link "Invoices" [ref=f22e164] [cursor=pointer]:
+              - /url: /app/purchasing/invoices
+            - link "Payments" [ref=f22e165] [cursor=pointer]:
+              - /url: /app/purchasing/payments
+            - link "Analytics" [ref=f22e166] [cursor=pointer]:
+              - /url: /app/purchasing/analytics
+          - generic [ref=f22e167]:
+            - generic [ref=f22e168]:
+              - heading "Vendor analytics" [level=1] [ref=f22e169]
+              - paragraph [ref=f22e170]: Spend by vendor and category, 2026-04-15 to 2026-07-13, vs the prior period.
+            - generic [ref=f22e171]:
+              - generic [ref=f22e173]:
+                - text: Period
+                - combobox "Analytics period" [ref=f22e174]:
+                  - option "This month"
+                  - option "Last month"
+                  - option "Last 90 days" [selected]
+                  - option "This quarter"
+                  - option "Custom"
+              - generic [ref=f22e175]:
+                - text: Vendor
+                - combobox "Scorecard vendor" [ref=f22e176]:
+                  - option "Fresh Foods Ltd"
+                  - option "UAT Produce Co" [selected]
+                  - option "UAT Produce Co"
+            - generic [ref=f22e177]:
+              - heading "Vendor scorecard" [level=2] [ref=f22e178]
+              - generic [ref=f22e179]:
+                - generic [ref=f22e180]:
+                  - generic [ref=f22e181]: On-time delivery
+                  - generic [ref=f22e182]: 0.0%
+                - generic [ref=f22e183]:
+                  - generic [ref=f22e184]: Fill rate
+                  - generic [ref=f22e185]: 0.0%
+                - generic [ref=f22e186]:
+                  - generic [ref=f22e187]: Price variance
+                  - generic [ref=f22e188]: +0.0%
+                - generic [ref=f22e189]:
+                  - generic [ref=f22e190]: Total spend
+                  - generic [ref=f22e191]: Rs 0.00
+            - generic [ref=f22e192]:
+              - paragraph [ref=f22e193]: vs 2026-01-15 – 2026-04-14
+              - generic [ref=f22e194]:
+                - heading "By vendor" [level=2] [ref=f22e195]
+                - table [ref=f22e196]:
+                  - rowgroup [ref=f22e197]:
+                    - row [ref=f22e198]:
+                      - columnheader "Label" [ref=f22e199]
+                      - columnheader "Current" [ref=f22e200]
+                      - columnheader "Prior" [ref=f22e201]
+                      - columnheader "Delta %" [ref=f22e202]
+                  - rowgroup [ref=f22e203]:
+                    - row [ref=f22e204]:
+                      - cell "No spend in this period." [ref=f22e205]
+              - generic [ref=f22e206]:
+                - heading "By category" [level=2] [ref=f22e207]
+                - table [ref=f22e208]:
+                  - rowgroup [ref=f22e209]:
+                    - row [ref=f22e210]:
+                      - columnheader "Label" [ref=f22e211]
+                      - columnheader "Current" [ref=f22e212]
+                      - columnheader "Prior" [ref=f22e213]
+                      - columnheader "Delta %" [ref=f22e214]
+                  - rowgroup [ref=f22e215]:
+                    - row [ref=f22e216]:
+                      - cell "No spend in this period." [ref=f22e217]
+  - status [ref=f22e78]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f22e84] [cursor=pointer]
+  - alert [ref=f22e88]

@@ -12,7 +12,23 @@ import {
   apiAccountingPeriodSchema,
   apiGlBalanceSchema,
   apiFinanceSetupStatusSchema,
+  apiExpenseSchema,
+  apiExpenseListSchema,
+  apiCreateExpenseSchema,
+  rejectExpenseInputSchema,
+  apiApAgingSchema,
+  apiCustomerAccountSchema,
+  createCustomerAccountInputSchema,
+  apiArTransactionSchema,
+  createArChargeInputSchema,
+  createArSettlementInputSchema,
+  apiArAgingSchema,
+  apiCustomerAccountStatementSchema,
   apiProvisioningResultSchema,
+  type ApiCreateExpenseRequest,
+  type ApiCreateCustomerAccountRequest,
+  type ApiCreateArChargeRequest,
+  type ApiCreateArSettlementRequest,
 } from "@/lib/api-client/schemas/finance.schema";
 import {
   adaptAccount,
@@ -20,6 +36,12 @@ import {
   adaptAccountingPeriod,
   adaptGlBalance,
   adaptFinanceSetupStatus,
+  adaptExpense,
+  adaptApAging,
+  adaptCustomerAccount,
+  adaptArTransaction,
+  adaptArAging,
+  adaptArStatement,
   adaptProvisioningResult,
 } from "@/lib/adapters/finance.adapter";
 import type {
@@ -31,6 +53,17 @@ import type {
   JeFilters,
   CreateJeRequest,
   FinanceSetupStatus,
+  Expense,
+  ExpenseStatus,
+  CreateExpenseInput,
+  ApAging,
+  CustomerAccount,
+  CreateCustomerAccountInput,
+  ArTransaction,
+  CreateArChargeInput,
+  CreateArSettlementInput,
+  ArAging,
+  CustomerAccountStatement,
   ProvisioningResult,
 } from "@/lib/models/finance.model";
 
@@ -146,5 +179,98 @@ export const FinanceRepository = {
   async getGlBalances(periodId: string): Promise<GlBalance[]> {
     const raw = await get<unknown[]>("/api/v1/finance/gl/balances", { periodId });
     return (raw ?? []).map((item) => adaptGlBalance(apiGlBalanceSchema.parse(item)));
+  },
+
+  // ── Expenses (FIN-05) ────────────────────────────────────────────────────
+  // GET /api/v1/finance/expenses returns a plain ApiResponse<List<ExpenseDto>>
+  // (no pagination) — per 10-10's contract. branchId is required; tenant is
+  // resolved server-side.
+
+  async listExpenses(branchId: string, status?: ExpenseStatus[]): Promise<Expense[]> {
+    const params: Record<string, unknown> = { branchId };
+    if (status && status.length > 0) params.status = status;
+    const raw = await get<unknown[]>("/api/v1/finance/expenses", params);
+    return apiExpenseListSchema.parse(raw ?? []).map(adaptExpense);
+  },
+
+  async createExpense(input: CreateExpenseInput): Promise<Expense> {
+    const body: ApiCreateExpenseRequest = apiCreateExpenseSchema.parse(input);
+    const raw = await post<ApiCreateExpenseRequest, unknown>("/api/v1/finance/expenses", body);
+    return adaptExpense(apiExpenseSchema.parse(raw));
+  },
+
+  async approveExpense(id: string): Promise<Expense> {
+    const raw = await post<undefined, unknown>(`/api/v1/finance/expenses/${id}/approve`);
+    return adaptExpense(apiExpenseSchema.parse(raw));
+  },
+
+  // reason is validated client-side (mandatory, non-blank) before the request
+  // fires, mirroring server-side enforcement in ExpenseService.reject.
+  async rejectExpense(id: string, reason: string): Promise<Expense> {
+    const body = rejectExpenseInputSchema.parse({ reason });
+    const raw = await post<{ reason: string }, unknown>(
+      `/api/v1/finance/expenses/${id}/reject`,
+      body,
+    );
+    return adaptExpense(apiExpenseSchema.parse(raw));
+  },
+
+  // ── AP Aging (FIN-05) ────────────────────────────────────────────────────
+
+  async getApAging(branchId: string, asOf?: string): Promise<ApAging> {
+    const params: Record<string, unknown> = { branchId };
+    if (asOf) params.asOf = asOf;
+    const raw = await get<unknown>("/api/v1/finance/ap/aging", params);
+    return adaptApAging(apiApAgingSchema.parse(raw));
+  },
+
+  // ── House Accounts / AR (FIN-05 AR half, 10-18) ──────────────────────────
+  // GET /api/v1/finance/ar/customer-accounts IS paginated — matches
+  // AccountController's ApiResponse.paginated shape (see 10-18-SUMMARY.md).
+
+  async listCustomerAccounts(page?: number): Promise<PaginatedResult<CustomerAccount>> {
+    const params: Record<string, unknown> = {};
+    if (page !== undefined) params.page = page;
+    const result = await getPaginated<unknown>("/api/v1/finance/ar/customer-accounts", params);
+    return {
+      data: result.data.map((raw) => adaptCustomerAccount(apiCustomerAccountSchema.parse(raw))),
+      meta: result.meta,
+    };
+  },
+
+  async createCustomerAccount(input: CreateCustomerAccountInput): Promise<CustomerAccount> {
+    const body: ApiCreateCustomerAccountRequest = createCustomerAccountInputSchema.parse(input);
+    const raw = await post<ApiCreateCustomerAccountRequest, unknown>(
+      "/api/v1/finance/ar/customer-accounts",
+      body,
+    );
+    return adaptCustomerAccount(apiCustomerAccountSchema.parse(raw));
+  },
+
+  async getCustomerAccountStatement(id: string): Promise<CustomerAccountStatement> {
+    const raw = await get<unknown>(`/api/v1/finance/ar/customer-accounts/${id}/statement`);
+    return adaptArStatement(apiCustomerAccountStatementSchema.parse(raw));
+  },
+
+  async createArCharge(input: CreateArChargeInput): Promise<ArTransaction> {
+    const body: ApiCreateArChargeRequest = createArChargeInputSchema.parse(input);
+    const raw = await post<ApiCreateArChargeRequest, unknown>("/api/v1/finance/ar/charges", body);
+    return adaptArTransaction(apiArTransactionSchema.parse(raw));
+  },
+
+  async createArSettlement(input: CreateArSettlementInput): Promise<ArTransaction> {
+    const body: ApiCreateArSettlementRequest = createArSettlementInputSchema.parse(input);
+    const raw = await post<ApiCreateArSettlementRequest, unknown>(
+      "/api/v1/finance/ar/settlements",
+      body,
+    );
+    return adaptArTransaction(apiArTransactionSchema.parse(raw));
+  },
+
+  async getArAging(branchId: string, asOf?: string): Promise<ArAging> {
+    const params: Record<string, unknown> = { branchId };
+    if (asOf) params.asOf = asOf;
+    const raw = await get<unknown>("/api/v1/finance/ar/aging", params);
+    return adaptArAging(apiArAgingSchema.parse(raw));
   },
 };

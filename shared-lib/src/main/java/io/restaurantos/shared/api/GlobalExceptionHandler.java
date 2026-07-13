@@ -35,8 +35,12 @@ public class GlobalExceptionHandler {
      * Spring Security method-level denials (@PreAuthorize / @PostAuthorize) propagate out of the
      * controller invocation as AuthorizationDeniedException (a subclass of AccessDeniedException in
      * Spring Security 6.4+/7). Without this handler they fall through to handleUnexpected() and are
-     * mis-reported as 500/503 instead of 403 — masking the real authorization decision across every
-     * service that uses shared-lib. Catching the supertype covers both types.
+     * mis-reported as 500 instead of 403 — this @RestControllerAdvice resolves the exception inside
+     * DispatcherServlet, so it never reaches ExceptionTranslationFilter's normal 403 handling. That
+     * silently defeated every @PreAuthorize check across every service sharing this handler.
+     * Catching the supertype covers both types. The code matches the PERMISSION_DENIED emitted by
+     * each service's SecurityConfig#accessDeniedHandler, so a filter-chain denial and a method
+     * -security denial are indistinguishable to clients.
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
@@ -92,8 +96,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex) {
-        log.error("Unhandled exception [traceId={}]", traceId(), ex);
+        // The response deliberately says nothing useful (it is client-facing), so the stack trace
+        // MUST be logged here — otherwise an unexpected 500 leaves no trace anywhere and is
+        // undiagnosable. Correlate with the traceId returned to the caller.
+        String traceId = traceId();
+        log.error("[{}] Unhandled exception: {}", traceId, ex.toString(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiError.of("INTERNAL_ERROR", "An unexpected error occurred", traceId()));
+            .body(ApiError.of("INTERNAL_ERROR", "An unexpected error occurred", traceId));
     }
 }

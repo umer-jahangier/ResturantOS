@@ -1,0 +1,172 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic: RestaurantOS
+      - navigation:
+        - generic:
+          - paragraph: Overview
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/dashboard
+                - generic: Dashboard
+        - generic:
+          - paragraph: Orders
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/pos
+                - generic: POS
+            - generic:
+              - link:
+                - /url: /app/kitchen
+                - generic: Kitchen Display
+        - generic:
+          - paragraph: Menu
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/inventory
+                - generic: Inventory
+        - generic:
+          - paragraph: Purchasing
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/purchasing
+                - generic: Purchasing
+        - generic:
+          - paragraph: People
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/hr
+                - generic: HR
+            - generic:
+              - link:
+                - /url: /app/crm
+                - generic: CRM
+        - generic:
+          - paragraph: Reporting
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/reporting
+                - generic: Reports
+        - generic:
+          - paragraph: Settings
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/settings
+                - generic: General
+            - generic:
+              - link:
+                - /url: /settings/appearance
+                - generic: Appearance
+      - generic:
+        - button:
+          - generic: Collapse
+    - generic:
+      - banner:
+        - generic:
+          - navigation:
+            - generic: App
+            - generic: Purchasing
+            - generic: Vendors
+        - generic: Main Branch (HQ)
+        - generic:
+          - button:
+            - generic: Search…
+            - generic: ⌘K
+          - generic:
+            - button
+          - button
+          - button: C
+      - main:
+        - generic:
+          - generic:
+            - navigation:
+              - link:
+                - /url: /app/purchasing/vendors
+                - text: Vendors
+              - link:
+                - /url: /app/purchasing/purchase-orders
+                - text: Purchase Orders
+              - link:
+                - /url: /app/purchasing/invoices
+                - text: Invoices
+              - link:
+                - /url: /app/purchasing/payments
+                - text: Payments
+              - link:
+                - /url: /app/purchasing/analytics
+                - text: Analytics
+            - generic:
+              - generic:
+                - heading [level=1]: Vendors
+                - button [expanded]: Add vendor
+              - list:
+                - listitem:
+                  - generic:
+                    - generic: Fresh Foods Ltd
+                    - generic: NET30 · Ali · Bank •••• 6702
+                  - button: Edit
+  - status
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f1e82] [cursor=pointer]
+  - alert
+  - dialog [ref=f1e177]:
+    - generic [ref=f1e178]:
+      - heading "Add vendor" [level=2] [ref=f1e179]
+      - paragraph [ref=f1e180]: The bank account is encrypted at rest — only the last four digits are ever shown.
+    - generic [ref=f1e181]:
+      - generic [ref=f1e182]:
+        - generic [ref=f1e183]: Name
+        - textbox "Name" [active] [ref=f1e184]:
+          - /placeholder: Fresh Foods Ltd
+      - generic [ref=f1e185]:
+        - generic [ref=f1e186]: Payment terms
+        - textbox "Payment terms" [ref=f1e187]:
+          - /placeholder: NET30
+      - generic [ref=f1e188]:
+        - generic [ref=f1e189]: Lead time (days)
+        - textbox "Lead time (days)" [ref=f1e190]:
+          - /placeholder: "7"
+      - generic [ref=f1e191]:
+        - generic [ref=f1e192]: Contact person
+        - textbox "Contact person" [ref=f1e193]:
+          - /placeholder: Ali
+      - generic [ref=f1e194]:
+        - generic [ref=f1e195]: Phone
+        - textbox "Phone" [ref=f1e196]:
+          - /placeholder: "03001234567"
+      - generic [ref=f1e197]:
+        - generic [ref=f1e198]: Email
+        - textbox "Email" [ref=f1e199]:
+          - /placeholder: orders@vendor.pk
+      - generic [ref=f1e200]:
+        - generic [ref=f1e201]: Address
+        - textbox "Address" [ref=f1e202]:
+          - /placeholder: 12 Mall Road, Lahore
+      - generic [ref=f1e203]:
+        - generic [ref=f1e204]: NTN
+        - textbox "NTN" [ref=f1e205]:
+          - /placeholder: 1234567-8
+      - generic [ref=f1e206]:
+        - generic [ref=f1e207]: STRN
+        - textbox "STRN" [ref=f1e208]:
+          - /placeholder: "0300012345678"
+      - generic [ref=f1e209]:
+        - generic [ref=f1e210]: Bank account number
+        - textbox "Bank account number" [ref=f1e211]:
+          - /placeholder: PK36SCBL0000001123456702
+        - paragraph [ref=f1e212]: Stored encrypted; the list will show only the last four digits.
+      - generic [ref=f1e213]:
+        - generic [ref=f1e214]: Notes
+        - textbox "Notes" [ref=f1e215]:
+          - /placeholder: Delivers Mon/Thu only
+    - generic [ref=f1e216]:
+      - button "Cancel" [ref=f1e217]
+      - button "Add vendor" [ref=f1e218]
+    - button "Close" [ref=f1e219]

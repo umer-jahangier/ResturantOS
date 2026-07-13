@@ -4,6 +4,7 @@
     "default": 60,
     "services/finance-service": 75,
     "services/inventory-service": 75,
+    "services/purchasing-service": 60,
     "services/pos-service": 70,
     "services/kitchen-service": 60
   },

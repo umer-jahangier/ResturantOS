@@ -2,6 +2,9 @@ package io.restaurantos.gateway.filter;
 
 import io.restaurantos.gateway.client.PlatformAdminClient;
 import io.restaurantos.gateway.support.RouteFeatureMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -13,7 +16,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,9 +63,15 @@ public class FeatureFlagGlobalFilter implements GlobalFilter, Ordered {
             "/fallback/"
     );
 
+    private static final Logger log = LoggerFactory.getLogger(FeatureFlagGlobalFilter.class);
+
     private final ReactiveStringRedisTemplate redis;
     private final PlatformAdminClient platformAdminClient;
     private final RouteFeatureMap routeFeatureMap;
+
+    /** When platform-admin cannot be reached: true → allow through, false → deny. Never cached either way. */
+    @Value("${restaurantos.fail-open-on-platform-down:false}")
+    private boolean failOpen;
 
     public FeatureFlagGlobalFilter(ReactiveStringRedisTemplate redis,
                                    PlatformAdminClient platformAdminClient,
@@ -182,19 +190,24 @@ public class FeatureFlagGlobalFilter implements GlobalFilter, Ordered {
     private Mono<Boolean> isFeatureEnabled(UUID tenantId, String featureCode) {
         String key = "tenant_features:" + tenantId + ":" + featureCode;
         return redis.opsForValue().get(key)
-                .switchIfEmpty(
-                        platformAdminClient.getFeaturesCsv(tenantId)
-                                .flatMap(csv -> {
-                                    List<String> enabled = csv.isBlank()
-                                            ? List.of() : Arrays.asList(csv.split(","));
-                                    String value = String.valueOf(enabled.contains(featureCode));
-                                    return redis.opsForValue()
-                                            .set(key, value, CACHE_TTL)
-                                            .thenReturn(value);
-                                })
-                )
                 .map(val -> "true".equalsIgnoreCase(val))
-                .defaultIfEmpty(false);
+                .switchIfEmpty(
+                        platformAdminClient.getEnabledFeatures(tenantId)
+                                .flatMap(enabled -> {
+                                    boolean on = enabled.contains(featureCode);
+                                    return redis.opsForValue()
+                                            .set(key, String.valueOf(on), CACHE_TTL)
+                                            .thenReturn(on);
+                                })
+                                // A failed lookup means "unknown", NOT "disabled" — never write it to
+                                // Redis. Caching a guess turns a momentary platform-admin blip into a
+                                // hard 403 for the full cache TTL, even though the DB says enabled.
+                                .onErrorResume(ex -> {
+                                    log.warn("[feature-flag] lookup failed for tenant={} feature={} "
+                                            + "— not caching; failOpen={}", tenantId, featureCode, failOpen, ex);
+                                    return Mono.just(failOpen);
+                                })
+                );
     }
 
     private boolean isPublicPath(String path) {

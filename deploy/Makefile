@@ -6,7 +6,7 @@
 
 COMPOSE := docker compose
 
-.PHONY: dev-up dev-down dev-logs dev-ps dev-fix-infra _check-env _pgpass
+.PHONY: dev-up dev-up-fast dev-down dev-logs dev-ps dev-fix-infra _check-env _pgpass _dev-up-post
 
 # Guard: fail early with a clear message if .env is missing.
 # .env is produced by deploy/generate-keys.sh (01-03 deliverable).
@@ -28,6 +28,13 @@ _pgpass:
 
 dev-up: _check-env _pgpass
 	$(COMPOSE) up -d --build
+	@$(MAKE) _dev-up-post
+
+dev-up-fast: _check-env _pgpass
+	$(COMPOSE) up -d
+	@$(MAKE) _dev-up-post
+
+_dev-up-post:
 	@echo "Waiting for MinIO to be healthy..."
 	@$(COMPOSE) exec -T minio sh -c \
 		'until mc ready local 2>/dev/null || wget -q --spider http://localhost:9000/minio/health/live 2>/dev/null; do sleep 2; done' || true

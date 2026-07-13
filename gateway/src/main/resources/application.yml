@@ -17,6 +17,18 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+  # shared-lib transitively pulls in spring-boot-starter-amqp (RabbitHealthIndicator
+  # etc.). Without this block Spring Boot's RabbitAutoConfiguration falls back to its
+  # hardcoded localhost/guest/guest defaults, which the "restaurantos" vhost user in
+  # docker-compose does not have (the definitions.json replaces the guest account) —
+  # every connection attempt then fails with ACCESS_REFUSED regardless of the
+  # RABBITMQ_HOST/USERNAME/PASSWORD env vars being set correctly.
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:guest}
+
   cloud:
     gateway:
       server:
@@ -163,6 +175,20 @@ spring:
                       - 500
                       - 503
 
+            # ── Purchasing Service ───────────────────────────────────────────────
+            - id: purchasing-route
+              uri: lb://purchasing-service
+              predicates:
+                - Path=/api/v1/purchasing/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: purchasingCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
             # - id: hr-route
             #   uri: lb://hr-service
@@ -287,7 +313,12 @@ restaurantos:
   jwks:
     uri: ${JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}
   platform-admin:
-    uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8083}
+    # platform-admin-service listens on 8096. (8083 is authorization-service — pointing this
+    # at 8083 makes every internal lookup fail, which the feature filter reads as "no features".)
+    uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8096}
+  internal:
+    # Shared secret for /internal/** calls; must match platform-admin's INTERNAL_SERVICE_SECRET.
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   # fail-open-on-platform-down: when true (dev profile), treat tenant as ACTIVE with no
   # feature restrictions when platform-admin-service is unreachable. NEVER set true in prod.
   fail-open-on-platform-down: ${FAIL_OPEN_ON_PLATFORM_DOWN:false}

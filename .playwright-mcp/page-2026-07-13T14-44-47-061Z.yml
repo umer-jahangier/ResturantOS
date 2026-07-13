@@ -1,0 +1,90 @@
+- generic [ref=e1]:
+  - generic [ref=e31]:
+    - complementary [ref=e32]:
+      - generic [ref=e33]: RestaurantOS
+      - navigation "Primary" [ref=e40]:
+        - generic [ref=e41]:
+          - paragraph [ref=e42]: Overview
+          - link "Dashboard" [ref=e45] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=e108]:
+          - paragraph [ref=e109]: Orders
+          - generic [ref=e110]:
+            - link "POS" [ref=e112] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=e119] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=e123]:
+          - paragraph [ref=e124]: Menu
+          - link "Inventory" [ref=e127] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=e139]:
+          - paragraph [ref=e140]: Purchasing
+          - link "Purchasing" [ref=e143] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=e150]:
+          - paragraph [ref=e151]: People
+          - generic [ref=e152]:
+            - link "HR" [ref=e154] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=e162] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=e168]:
+          - paragraph [ref=e169]: Reporting
+          - link "Reports" [ref=e172] [cursor=pointer]:
+            - /url: /app/reporting
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: Settings
+          - generic [ref=e54]:
+            - link "General" [ref=e56] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=e62] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=e71]:
+        - generic [ref=e74]: Collapse
+    - generic [ref=e75]:
+      - banner [ref=e76]:
+        - navigation "Breadcrumb" [ref=e78]:
+          - generic [ref=e79]: App
+          - generic [ref=e81]: Purchasing
+          - generic [ref=e212]: Invoices
+        - generic [ref=e176]: Main Branch (HQ)
+        - generic [ref=e86]:
+          - button "Open command palette" [ref=e87]:
+            - generic [ref=e91]: Search…
+            - generic [ref=e92]: ⌘K
+          - button "Notifications (3 unread)" [ref=e94]
+          - button "Switch to light mode" [ref=e99]
+          - button "Open profile menu" [ref=e102]: C
+      - main [ref=e103]:
+        - generic [ref=e177]:
+          - navigation [ref=e178]:
+            - link "Vendors" [ref=e179] [cursor=pointer]:
+              - /url: /app/purchasing/vendors
+            - link "Purchase Orders" [ref=e180] [cursor=pointer]:
+              - /url: /app/purchasing/purchase-orders
+            - link "Invoices" [active] [ref=e181] [cursor=pointer]:
+              - /url: /app/purchasing/invoices
+            - link "Payments" [ref=e182] [cursor=pointer]:
+              - /url: /app/purchasing/payments
+            - link "Analytics" [ref=e183] [cursor=pointer]:
+              - /url: /app/purchasing/analytics
+          - generic [ref=e243]:
+            - generic [ref=e244]:
+              - heading "Vendor invoices" [level=1] [ref=e245]
+              - generic [ref=e246]:
+                - combobox "Filter by status" [ref=e247]:
+                  - option "All statuses" [selected]
+                  - option "PENDING MATCH"
+                  - option "MATCHED"
+                  - option "MISMATCHED"
+                  - option "APPROVED FOR PAYMENT"
+                  - option "PAID"
+                - button "Book Invoice" [ref=e248]
+            - generic [ref=e253]:
+              - paragraph [ref=e254]: No vendor invoices yet
+              - paragraph [ref=e255]: Use "Book Invoice" to invoice a sent purchase order and run the 3-way match.
+  - status [ref=e20]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e26] [cursor=pointer]
+  - alert [ref=e30]

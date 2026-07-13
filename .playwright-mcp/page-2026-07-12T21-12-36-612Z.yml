@@ -1,0 +1,20 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - navigation "Loading navigation" [ref=f7e3]
+    - generic [ref=f7e38]:
+      - banner [ref=f7e39]:
+        - navigation "Breadcrumb" [ref=f7e41]:
+          - generic [ref=f7e42]: App
+          - generic [ref=f7e44]: Purchasing
+          - generic [ref=f7e48]: Vendors
+        - generic [ref=f7e52]:
+          - button "Open command palette" [ref=f7e53]:
+            - generic [ref=f7e57]: Search…
+            - generic [ref=f7e58]: ⌘K
+          - button "Notifications (3 unread)" [ref=f7e60]
+          - button "Toggle theme" [disabled] [ref=f7e65]
+          - button "Open profile menu" [ref=f7e68]: U
+      - main [ref=f7e69]
+  - status [ref=f7e70]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f7e76] [cursor=pointer]

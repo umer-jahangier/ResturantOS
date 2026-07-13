@@ -1,0 +1,176 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic: RestaurantOS
+      - navigation:
+        - generic:
+          - paragraph: Overview
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/dashboard
+                - generic: Dashboard
+        - generic:
+          - paragraph: Finance
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/finance/accounts
+                - generic: Accounts
+            - generic:
+              - link:
+                - /url: /app/finance/journal-entries
+                - generic: Journal Entries
+            - generic:
+              - link:
+                - /url: /app/finance/gl
+                - generic: General Ledger
+            - generic:
+              - link:
+                - /url: /app/finance/periods
+                - generic: Periods
+            - generic:
+              - link:
+                - /url: /app/finance/expenses
+                - generic: Expenses
+            - generic:
+              - link:
+                - /url: /app/finance/ap-aging
+                - generic: AP Aging
+        - generic:
+          - paragraph: Purchasing
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/purchasing
+                - generic: Purchasing
+        - generic:
+          - paragraph: People
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/hr
+                - generic: HR
+            - generic:
+              - link:
+                - /url: /app/crm
+                - generic: CRM
+        - generic:
+          - paragraph: Reporting
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/reporting
+                - generic: Reports
+        - generic:
+          - paragraph: Settings
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/settings
+                - generic: General
+            - generic:
+              - link:
+                - /url: /settings/appearance
+                - generic: Appearance
+      - generic:
+        - button:
+          - generic: Collapse
+    - generic:
+      - banner:
+        - generic:
+          - navigation:
+            - generic: App
+            - generic: Finance
+            - generic: House Accounts
+        - generic: Main Branch (HQ)
+        - generic:
+          - button:
+            - generic: Search…
+            - generic: ⌘K
+          - generic:
+            - button
+          - button
+          - button: C
+      - main:
+        - generic:
+          - navigation:
+            - link:
+              - /url: /app/finance/accounts
+              - text: Accounts
+            - link:
+              - /url: /app/finance/journal-entries
+              - text: Journal Entries
+            - link:
+              - /url: /app/finance/gl
+              - text: General Ledger
+            - link:
+              - /url: /app/finance/periods
+              - text: Periods
+            - link:
+              - /url: /app/finance/expenses
+              - text: Expenses
+            - link:
+              - /url: /app/finance/ap-aging
+              - text: AP Aging
+            - link:
+              - /url: /app/finance/house-accounts
+              - text: House Accounts
+            - link:
+              - /url: /app/finance/ar-aging
+              - text: AR Aging
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=1]: House Accounts
+                - paragraph: Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later.
+              - button [expanded]: New house account
+            - generic:
+              - generic:
+                - paragraph: No house accounts yet
+                - paragraph: Create one to bill a corporate client on account.
+  - status
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f19e84] [cursor=pointer]
+  - alert
+  - dialog [ref=f19e189]:
+    - generic [ref=f19e190]:
+      - heading "New house account" [level=2] [ref=f19e191]
+      - paragraph [ref=f19e192]: A corporate or regular customer billed on account — catering invoices, phone orders, month-end billing. Settled later against a credit limit.
+    - generic [ref=f19e193]:
+      - generic [ref=f19e194]:
+        - generic [ref=f19e195]:
+          - generic [ref=f19e196]: Account code
+          - textbox "Account code" [active] [ref=f19e197]:
+            - /placeholder: HA-001
+        - generic [ref=f19e198]:
+          - generic [ref=f19e199]: Name
+          - textbox "Name" [ref=f19e200]:
+            - /placeholder: Acme Corp
+      - generic [ref=f19e201]:
+        - generic [ref=f19e202]: Contact name
+        - textbox "Contact name" [ref=f19e203]:
+          - /placeholder: Jane Doe
+      - generic [ref=f19e204]:
+        - generic [ref=f19e205]:
+          - generic [ref=f19e206]: Contact phone
+          - textbox "Contact phone" [ref=f19e207]:
+            - /placeholder: 0300-0000000
+        - generic [ref=f19e208]:
+          - generic [ref=f19e209]: Contact email
+          - textbox "Contact email" [ref=f19e210]:
+            - /placeholder: jane@acme.test
+      - generic [ref=f19e211]:
+        - generic [ref=f19e212]:
+          - generic [ref=f19e213]: Credit limit (PKR)
+          - textbox "Credit limit (PKR)" [ref=f19e214]:
+            - /placeholder: "100000"
+        - generic [ref=f19e215]:
+          - generic [ref=f19e216]: Payment terms (days)
+          - textbox "Payment terms (days)" [ref=f19e217]:
+            - /placeholder: "30"
+            - text: "30"
+    - generic [ref=f19e218]:
+      - button "Cancel" [ref=f19e219]
+      - button "Create house account" [ref=f19e220]
+    - button "Close" [ref=f19e221]

@@ -1,0 +1,69 @@
+- generic [active] [ref=f13e1]:
+  - generic [ref=f13e31]:
+    - complementary [ref=f13e32]:
+      - generic [ref=f13e33]: RestaurantOS
+      - navigation "Primary" [ref=f13e38]:
+        - generic [ref=f13e39]:
+          - paragraph [ref=f13e40]: Overview
+          - link "Dashboard" [ref=f13e43] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f13e50]:
+          - paragraph [ref=f13e51]: Finance
+          - generic [ref=f13e52]:
+            - link "Accounts" [ref=f13e54] [cursor=pointer]:
+              - /url: /app/finance/accounts
+            - link "Journal Entries" [ref=f13e60] [cursor=pointer]:
+              - /url: /app/finance/journal-entries
+            - link "General Ledger" [ref=f13e65] [cursor=pointer]:
+              - /url: /app/finance/gl
+            - link "Periods" [ref=f13e71] [cursor=pointer]:
+              - /url: /app/finance/periods
+            - link "Expenses" [ref=f13e76] [cursor=pointer]:
+              - /url: /app/finance/expenses
+            - link "AP Aging" [ref=f13e82] [cursor=pointer]:
+              - /url: /app/finance/ap-aging
+        - generic [ref=f13e87]:
+          - paragraph [ref=f13e88]: Purchasing
+          - link "Purchasing" [ref=f13e91] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f13e98]:
+          - paragraph [ref=f13e99]: People
+          - generic [ref=f13e100]:
+            - link "HR" [ref=f13e102] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f13e110] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f13e116]:
+          - paragraph [ref=f13e117]: Reporting
+          - link "Reports" [ref=f13e120] [cursor=pointer]:
+            - /url: /app/reporting
+        - generic [ref=f13e124]:
+          - paragraph [ref=f13e125]: Settings
+          - generic [ref=f13e126]:
+            - link "General" [ref=f13e128] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f13e134] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f13e143]:
+        - generic [ref=f13e146]: Collapse
+    - generic [ref=f13e147]:
+      - banner [ref=f13e148]:
+        - navigation "Breadcrumb" [ref=f13e150]:
+          - generic [ref=f13e151]: App
+          - generic [ref=f13e153]: Dashboard
+        - generic [ref=f13e157]: Main Branch (HQ)
+        - generic [ref=f13e158]:
+          - button "Open command palette" [ref=f13e159]:
+            - generic [ref=f13e163]: Search…
+            - generic [ref=f13e164]: ⌘K
+          - button "Notifications (3 unread)" [ref=f13e166]
+          - button "Switch to light mode" [ref=f13e171]
+          - button "Open profile menu" [ref=f13e174]: C
+      - main [ref=f13e175]:
+        - generic [ref=f13e177]:
+          - heading "Dashboard" [level=1] [ref=f13e178]
+          - paragraph [ref=f13e179]: Tenant app shell placeholder.
+  - status [ref=f13e20]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f13e26] [cursor=pointer]
+  - alert [ref=f13e30]

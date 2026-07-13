@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Gap closure (10-09): 030 seeded vendor.manage + vendor.po.approve with ZERO
+      @PreAuthorize consumers, and never seeded vendor.po.close at all (referenced
+      by PurchaseOrderService.close + the 10-07 close_po rego rule). This changeset
+      completes the vendor.* permission catalogue so every purchasing @PreAuthorize
+      annotation resolves to a real, granted permission. Do NOT re-insert
+      vendor.manage / vendor.po.approve — they already exist in 030.
+    -->
+    <changeSet id="auth-1.0.0-031-purchasing-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <insert tableName="permissions">
+            <column name="code" value="vendor.view"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="View vendors, purchase orders and vendor invoices"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.po.create"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Create and submit purchase orders"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.po.close"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Close purchase orders (incl. short-close)"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.po.send"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Send an approved PO to the vendor"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.grn.receive"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Record goods receipts against a PO"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.invoice.book"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Book vendor invoices (3-way match)"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.invoice.override"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Override a failed 3-way match with justification"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="vendor.payment.create"/>
+            <column name="module" value="vendor"/>
+            <column name="description" value="Post AP payments"/>
+        </insert>
+
+        <!-- MANAGER: full vendor.* set (already holds vendor.manage + vendor.po.approve from 030) -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.po.create"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.po.close"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.po.send"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.grn.receive"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.invoice.book"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.invoice.override"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="vendor.payment.create"/>
+        </insert>
+
+        <!-- ACCOUNTANT: AP-facing subset -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="vendor.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="vendor.invoice.book"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="vendor.invoice.override"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="vendor.payment.create"/>
+        </insert>
+
+        <!-- INVENTORY_MANAGER: procurement/receiving subset -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="INVENTORY_MANAGER"/>
+            <column name="permission_code" value="vendor.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="INVENTORY_MANAGER"/>
+            <column name="permission_code" value="vendor.po.create"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="INVENTORY_MANAGER"/>
+            <column name="permission_code" value="vendor.grn.receive"/>
+        </insert>
+
+        <!--
+          NOTE: 030's seed-context changeset (auth-1.0.0-036) already granted OWNER
+          "all permissions" and TENANT_ADMIN "all except rbac.manage" via a point-in-time
+          SELECT over the permissions table as it existed then; that historical INSERT..SELECT
+          does NOT retroactively pick up rows inserted here. OWNER and TENANT_ADMIN are
+          explicitly re-granted the full vendor.* set below (mirrors the 041-pos-permissions
+          pattern) so they remain "can do everything" roles.
+        -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.po.create"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.po.close"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.po.send"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.grn.receive"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.invoice.book"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.invoice.override"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="vendor.payment.create"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.po.create"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.po.close"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.po.send"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.grn.receive"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.invoice.book"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.invoice.override"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="vendor.payment.create"/>
+        </insert>
+
+        <!-- CASHIER: intentionally NOTHING — negative-control case in PurchasingEndpointAuthorizationIT -->
+
+    </changeSet>
+
+</databaseChangeLog>

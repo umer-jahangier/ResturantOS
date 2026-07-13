@@ -8,7 +8,7 @@ import type { Session } from "@/lib/models/auth.model";
 
 // Marker lifetime tracks the refresh-token TTL (UX hint only — forgeable, never
 // a security boundary).
-const HAS_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const HAS_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 function writeSessionMarker(): void {
   if (typeof document === "undefined") return;
