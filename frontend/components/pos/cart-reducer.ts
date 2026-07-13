@@ -84,6 +84,11 @@ export function decrementLine(cart: CartLine[], key: string): CartLine[] {
     .filter((line) => line.quantity > 0);
 }
 
+/** Removes the line matching `key` entirely, regardless of quantity (cart line's × button). */
+export function removeLine(cart: CartLine[], key: string): CartLine[] {
+  return cart.filter((line) => keyOf(line) !== key);
+}
+
 /** Empties the cart (Clear / New Order, D-04). */
 export function clearCart(): CartLine[] {
   return [];

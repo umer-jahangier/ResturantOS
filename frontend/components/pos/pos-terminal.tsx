@@ -8,7 +8,7 @@ import { OrderPanel } from "@/components/pos/order-panel";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useCreateOrder, useAddItem, useOrder } from "@/lib/hooks/pos/use-orders";
 import { useFireToKitchen } from "@/lib/hooks/pos/use-fire-to-kitchen";
-import { addLine, clearCart, decrementLine, incrementLine, type CartLine } from "@/components/pos/cart-reducer";
+import { addLine, clearCart, decrementLine, incrementLine, removeLine, type CartLine } from "@/components/pos/cart-reducer";
 import type { MenuItem, OrderType } from "@/lib/models/pos.model";
 
 interface PosTerminalProps {
@@ -81,6 +81,15 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
 
   const handleDecrement = useCallback((key: string) => {
     setCart((prev) => decrementLine(prev, key));
+  }, []);
+
+  const handleRemove = useCallback((key: string) => {
+    setCart((prev) => removeLine(prev, key));
+  }, []);
+
+  /** "Clear All" (pre-send only) — empties the cart itself; order type/table stay as-is. */
+  const handleClearCart = useCallback(() => {
+    setCart(clearCart());
   }, []);
 
   const handleClearNewOrder = useCallback(() => {
@@ -183,7 +192,12 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
     <div className="flex h-full gap-0 overflow-hidden">
       {/* Left: Menu grid — 2/3 width */}
       <div className="flex-1 overflow-hidden border-r">
-        <MenuGrid onItemSelect={handleItemSelect} />
+        <MenuGrid
+          onItemSelect={handleItemSelect}
+          cart={cart}
+          onRemove={handleRemove}
+          onClearCart={handleClearCart}
+        />
       </div>
 
       {/* Right: Order panel — fixed width */}
@@ -196,6 +210,7 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
           onTableChange={setSelectedTableId}
           onIncrement={handleIncrement}
           onDecrement={handleDecrement}
+          onRemove={handleRemove}
           sentOrder={sentOrder ?? null}
           isPersisting={isPersisting}
           onSendToKitchen={handleSendToKitchen}
