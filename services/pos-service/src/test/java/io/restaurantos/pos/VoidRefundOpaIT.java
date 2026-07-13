@@ -82,6 +82,10 @@ class VoidRefundOpaIT extends PosTestBase {
 
         // Set up security context with cashier principal
         setSecurityContext(cashierId, List.of("pos.order.void.own"), Map.of());
+
+        // Financial-integrity guard: every order here is created by the cashier before being
+        // voided/refunded, which now requires an OPEN till for that cashier.
+        openTillForCashier(branchId);
     }
 
     private void setSecurityContext(UUID userId, List<String> permissions, Map<String, Object> attributes) {

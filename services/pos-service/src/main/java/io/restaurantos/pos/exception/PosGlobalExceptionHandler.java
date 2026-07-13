@@ -80,6 +80,14 @@ public class PosGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
 
+    @ExceptionHandler(PosExceptions.NoOpenTillException.class)
+    public ResponseEntity<ProblemDetail> handleNoOpenTill(PosExceptions.NoOpenTillException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("NO_OPEN_TILL");
+        pd.setType(URI.create("urn:restaurantos:pos:no-open-till"));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
     @ExceptionHandler({PosExceptions.TillNotFoundException.class})
     public ResponseEntity<ProblemDetail> handleTillNotFound(PosExceptions.TillNotFoundException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());

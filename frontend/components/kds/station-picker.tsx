@@ -26,8 +26,13 @@ interface StationStats {
 
 const DEFAULT_ESCALATION_THRESHOLD_SECONDS = 900; // 15 min
 
+// Non-terminal = still on the board. Must match StationBoard's board filter
+// (`!== SERVED && !== CANCELLED`): a ticket flips to READY once all its items are
+// ready and STAYS on the board (in the Ready column) until the order is served/closed,
+// so READY tickets must be counted here too — otherwise the per-station Ready tally
+// (and queueDepth) systematically undercounts fully-ready tickets.
 function isActive(t: KdsTicket): boolean {
-  return t.status === "PENDING" || t.status === "COOKING";
+  return t.status !== "SERVED" && t.status !== "CANCELLED";
 }
 
 function emptyColumnCounts(): Record<KdsColumnKey, number> {

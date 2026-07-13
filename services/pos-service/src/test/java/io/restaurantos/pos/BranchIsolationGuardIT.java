@@ -60,6 +60,8 @@ class BranchIsolationGuardIT extends PosTestBase {
 
     @Test
     void createOrder_ownBranch_succeeds() {
+        // Financial-integrity guard: an own-branch order needs an OPEN till for this cashier.
+        openTillForCashier(ownBranch);
         CreateOrderRequest req = new CreateOrderRequest(
                 ownBranch, UUID.randomUUID(), null, null, 1, null, null);
 
@@ -70,7 +72,8 @@ class BranchIsolationGuardIT extends PosTestBase {
 
     @Test
     void getOrder_foreignBranch_denied() {
-        // Create a legitimate order under the caller's own branch first.
+        // Create a legitimate order under the caller's own branch first (needs an OPEN till).
+        openTillForCashier(ownBranch);
         OrderDto created = orderService.createOrder(new CreateOrderRequest(
                 ownBranch, UUID.randomUUID(), null, null, 1, null, null));
 

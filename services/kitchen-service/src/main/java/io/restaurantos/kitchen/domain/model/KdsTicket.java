@@ -43,6 +43,14 @@ public class KdsTicket extends TenantAuditableEntity {
     @Column(name = "station_code", nullable = false, length = 50)
     private String stationCode;
 
+    /**
+     * Canonical pos-owned station id this ticket routed to (Phase 3 projection reference).
+     * Null for legacy/free-text-only lines. {@link #stationCode} remains the load-bearing
+     * ticket/WS key; this is an additive reference for a future station-id contract migration.
+     */
+    @Column(name = "station_id")
+    private UUID stationId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private TicketStatus status = TicketStatus.PENDING;

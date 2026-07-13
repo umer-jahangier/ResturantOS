@@ -1,18 +1,22 @@
 package io.restaurantos.pos.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import io.restaurantos.pos.config.PosKitchenTopologyConfig;
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.OrderItem;
 import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.service.OrderMapper;
 import io.restaurantos.pos.service.OrderStatusDerivationService;
 import io.restaurantos.pos.service.PosProcessedEventService;
 import io.restaurantos.pos.service.TableService;
+import io.restaurantos.pos.ws.PosOrderWebSocketHandler;
 import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -52,19 +56,25 @@ public class OrderReadyConsumer {
     private final ObjectMapper objectMapper;
     private final OrderStatusDerivationService orderStatusDerivationService;
     private final TableService tableService;
+    private final OrderMapper orderMapper;
+    private final PosOrderWebSocketHandler webSocketHandler;
 
     public OrderReadyConsumer(PosProcessedEventService processedEventService,
                                TenantAwareMessageProcessor tenantAwareMessageProcessor,
                                OrderRepository orderRepository,
-                               ObjectMapper objectMapper,
+                               @Qualifier("eventObjectMapper") ObjectMapper objectMapper,
                                OrderStatusDerivationService orderStatusDerivationService,
-                               TableService tableService) {
+                               TableService tableService,
+                               OrderMapper orderMapper,
+                               PosOrderWebSocketHandler webSocketHandler) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.orderRepository = orderRepository;
         this.objectMapper = objectMapper;
         this.orderStatusDerivationService = orderStatusDerivationService;
         this.tableService = tableService;
+        this.orderMapper = orderMapper;
+        this.webSocketHandler = webSocketHandler;
     }
 
     @RabbitListener(queues = PosKitchenTopologyConfig.POS_ORDER_READY_QUEUE)
@@ -112,7 +122,10 @@ public class OrderReadyConsumer {
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
                 order.getStatus(), order.getDerivedStatus());
-        orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        // Push the READY-advanced order LIVE to POS terminals on this branch. Resolve the DTO
+        // in-scope (open TenantContext + JPA session) — see the KitchenItemStatusConsumer note.
+        webSocketHandler.notifyOrderUpdate(saved.getBranchId(), orderMapper.toDto(saved));
         log.info("OrderReadyConsumer: order {} station {} — items advanced to READY, derivedStatus={}",
                 orderId, readiedStation, order.getDerivedStatus());
     }
@@ -124,8 +137,10 @@ public class OrderReadyConsumer {
                     objectMapper.getTypeFactory().constructParametricType(
                             EventEnvelope.class, OrderReadyPayload.class));
         } catch (Exception e) {
-            log.error("OrderReadyConsumer: deserialization failed: {}", e.getMessage());
-            return null;
+            // Poison message — reject WITHOUT requeue so it dead-letters to the DLQ immediately
+            // (the DeadLetterMonitor logs + counts it) instead of being acked and silently lost.
+            log.error("OrderReadyConsumer: deserialization failed, routing to DLQ: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("deserialization failed", e);
         }
     }
 

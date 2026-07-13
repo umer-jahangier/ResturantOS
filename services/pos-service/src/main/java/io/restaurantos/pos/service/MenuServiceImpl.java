@@ -5,9 +5,11 @@ import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
 import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemDto;
+import io.restaurantos.pos.domain.model.Station;
 import io.restaurantos.pos.repository.BranchMenuOverrideRepository;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
+import io.restaurantos.pos.repository.StationRepository;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -27,15 +29,18 @@ public class MenuServiceImpl implements MenuService {
     private final MenuCategoryRepository categoryRepository;
     private final MenuItemRepository itemRepository;
     private final BranchMenuOverrideRepository overrideRepository;
+    private final StationRepository stationRepository;
     private final TenantContext tenantContext;
 
     public MenuServiceImpl(MenuCategoryRepository categoryRepository,
                            MenuItemRepository itemRepository,
                            BranchMenuOverrideRepository overrideRepository,
+                           StationRepository stationRepository,
                            TenantContext tenantContext) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
         this.overrideRepository = overrideRepository;
+        this.stationRepository = stationRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -87,6 +92,32 @@ public class MenuServiceImpl implements MenuService {
         }
     }
 
+    @Override
+    @Transactional
+    public MenuItemDto assignStation(UUID itemId, UUID branchId, UUID stationId) {
+        requireOwnBranchIfPresent(branchId);
+        if (branchId == null) {
+            throw new PermissionDeniedException("branchId is required to assign a station");
+        }
+        MenuItem item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
+
+        if (stationId == null) {
+            // Clear the assignment — leave the free-text kds_station untouched (back-compat).
+            item.setStationId(null);
+        } else {
+            // Validate the station belongs to the caller's tenant (RLS) AND branch — a client
+            // cannot assign a sibling branch's station id to a menu item.
+            Station station = stationRepository.findByIdAndBranchId(stationId, branchId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Station not found for this branch: " + stationId));
+            item.setStationId(station.getId());
+            // Keep the retained free-text mirror in sync so back-compat routing (and any reader
+            // still on kds_station) resolves to the same canonical code.
+            item.setKdsStation(station.getCode());
+        }
+        return toDto(itemRepository.save(item), branchId);
+    }
+
     private MenuItemDto toDto(MenuItem item, UUID branchId) {
         Long overridePrice = null;
         if (branchId != null) {
@@ -107,7 +138,8 @@ public class MenuServiceImpl implements MenuService {
                 item.getTaxRateCode(),
                 item.getKdsStation(),
                 item.isActive(),
-                overridePrice
+                overridePrice,
+                item.getStationId()
         );
     }
 }

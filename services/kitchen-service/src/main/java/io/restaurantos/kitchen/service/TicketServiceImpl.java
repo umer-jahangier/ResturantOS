@@ -125,6 +125,7 @@ public class TicketServiceImpl implements TicketService {
             case PREPARING, COOKING -> TicketItemStatus.READY;
             case READY -> throw new StateInvalidException("Item already READY");
             case CANCELLED -> throw new StateInvalidException("Cannot bump a cancelled item");
+            case SERVED -> throw new StateInvalidException("Cannot bump a served item");
         };
 
         return markItemStatus(ticketId, itemId, next);
@@ -159,7 +160,10 @@ public class TicketServiceImpl implements TicketService {
         for (KdsTicket ticket : tickets) {
             if (ticket.getStatus() != TicketStatus.CANCELLED) {
                 ticket.setStatus(TicketStatus.CANCELLED);
-                ticketRepository.save(ticket);
+                KdsTicket saved = ticketRepository.save(ticket);
+                // Push so a voided order clears from the KDS board LIVE (this was the lone mutation
+                // path that omitted the notify — voids previously lingered until the 10s fallback poll).
+                webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
                 log.info("Cancelled ticket={} for order={}", ticket.getId(), orderId);
             }
         }
@@ -186,6 +190,33 @@ public class TicketServiceImpl implements TicketService {
             webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
             log.info("Cancelled KDS line orderItemId={} on ticket={}", orderItemId, ticket.getId());
         }, () -> log.debug("cancelTicketItem: no KDS line for orderItemId={} (never fired)", orderItemId));
+    }
+
+    @Override
+    public void serveTicketItem(UUID orderItemId) {
+        ticketItemRepository.findByOrderItemId(orderItemId).ifPresentOrElse(item -> {
+            if (item.getStatus() == TicketItemStatus.SERVED
+                    || item.getStatus() == TicketItemStatus.CANCELLED) {
+                return; // idempotent / already terminal
+            }
+            item.setStatus(TicketItemStatus.SERVED);
+            KdsTicket ticket = item.getTicket();
+            // A served line has left the pass — if every remaining line is ready, flip the ticket
+            // to READY now (mirrors cancelTicketItem's completion check; SERVED is excluded from
+            // the not-ready count, so it never blocks the ticket).
+            if (ticketItemRepository.countByTicketIdAndStatusNotReady(ticket.getId()) == 0
+                    && ticket.getStatus() != TicketStatus.READY
+                    && ticket.getStatus() != TicketStatus.CANCELLED
+                    && ticket.getStatus() != TicketStatus.SERVED) {
+                ticket.setStatus(TicketStatus.READY);
+                ticket.setReadyAt(Instant.now());
+            }
+            KdsTicket saved = ticketRepository.save(ticket);
+            // Push so the served line leaves the board LIVE, instead of lingering in the Ready
+            // column until the whole order closes (the bug this fixes).
+            webSocketHandler.notifySubscribers(saved.getBranchId(), saved.getStationCode(), toDto(saved));
+            log.info("Served KDS line orderItemId={} on ticket={}", orderItemId, ticket.getId());
+        }, () -> log.debug("serveTicketItem: no KDS line for orderItemId={} (never fired)", orderItemId));
     }
 
     @Override
@@ -239,6 +270,7 @@ public class TicketServiceImpl implements TicketService {
             case PREPARING, COOKING -> next == TicketItemStatus.READY;
             case READY -> false;
             case CANCELLED -> false; // terminal — no manual transitions out of cancelled
+            case SERVED -> false;    // terminal — served lines are set only by the pos event path
         };
         if (!valid) {
             throw new StateInvalidException(

@@ -83,12 +83,10 @@ describe("replay — transient failure and retry", () => {
     expect(result1).toEqual({ synced: 0, failed: 1 });
     expect(await count("FAILED")).toBe(1);
 
-    // The op is FAILED, not PENDING — peekPending won't return it.
-    // Simulate requeueing by resetting status manually.
-    const { requeueFailed } = await import("../../lib/offline/outbox");
-    await requeueFailed();
-
-    // Second replay — succeeds.
+    // Second replay — replay() now auto-requeues FAILED ops (requeueRetriable) before
+    // draining, so no manual reset is needed. This is the regression guard for the
+    // "N queued — service unavailable" pill that never cleared because FAILED ops were
+    // never picked up again.
     const result2 = await replay();
     expect(result2).toEqual({ synced: 1, failed: 0 });
     expect(mockCreateOrder).toHaveBeenCalledTimes(2);

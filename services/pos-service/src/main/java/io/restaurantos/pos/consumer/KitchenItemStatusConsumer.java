@@ -1,18 +1,22 @@
 package io.restaurantos.pos.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import io.restaurantos.pos.config.PosKitchenTopologyConfig;
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.OrderItem;
 import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.service.OrderMapper;
 import io.restaurantos.pos.service.OrderStatusDerivationService;
 import io.restaurantos.pos.service.PosProcessedEventService;
 import io.restaurantos.pos.service.TableService;
+import io.restaurantos.pos.ws.PosOrderWebSocketHandler;
 import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -57,19 +61,25 @@ public class KitchenItemStatusConsumer {
     private final ObjectMapper objectMapper;
     private final OrderStatusDerivationService orderStatusDerivationService;
     private final TableService tableService;
+    private final OrderMapper orderMapper;
+    private final PosOrderWebSocketHandler webSocketHandler;
 
     public KitchenItemStatusConsumer(PosProcessedEventService processedEventService,
                                       TenantAwareMessageProcessor tenantAwareMessageProcessor,
                                       OrderRepository orderRepository,
-                                      ObjectMapper objectMapper,
+                                      @Qualifier("eventObjectMapper") ObjectMapper objectMapper,
                                       OrderStatusDerivationService orderStatusDerivationService,
-                                      TableService tableService) {
+                                      TableService tableService,
+                                      OrderMapper orderMapper,
+                                      PosOrderWebSocketHandler webSocketHandler) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.orderRepository = orderRepository;
         this.objectMapper = objectMapper;
         this.orderStatusDerivationService = orderStatusDerivationService;
         this.tableService = tableService;
+        this.orderMapper = orderMapper;
+        this.webSocketHandler = webSocketHandler;
     }
 
     @RabbitListener(queues = PosKitchenTopologyConfig.POS_KITCHEN_ITEM_STATUS_QUEUE)
@@ -127,7 +137,14 @@ public class KitchenItemStatusConsumer {
         order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
                 order.getStatus(), order.getDerivedStatus());
-        orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        // Push the updated order LIVE to any POS terminal subscribed to this branch. Resolve
+        // the DTO HERE — while this @Transactional method's TenantContext + JPA session are
+        // still open — so lazy item/modifier collections load before serialization. The
+        // TenantAwareMessageProcessor clears the context once the message scope ends, so a
+        // deferred push (e.g. from an after-commit hook calling getOrder) would fail the
+        // branch-context guard. Mirrors kitchen TicketRoutingService's in-scope notify.
+        webSocketHandler.notifyOrderUpdate(saved.getBranchId(), orderMapper.toDto(saved));
         log.info("KitchenItemStatusConsumer: order {} item {} {} -> {}, derivedStatus={}",
                 orderId, orderItemId, current, mapped, order.getDerivedStatus());
     }
@@ -139,8 +156,10 @@ public class KitchenItemStatusConsumer {
                     objectMapper.getTypeFactory().constructParametricType(
                             EventEnvelope.class, ItemStatusChangedPayload.class));
         } catch (Exception e) {
-            log.error("KitchenItemStatusConsumer: deserialization failed: {}", e.getMessage());
-            return null;
+            // Poison message — reject WITHOUT requeue so it dead-letters to the DLQ immediately
+            // (the DeadLetterMonitor logs + counts it) instead of being acked and silently lost.
+            log.error("KitchenItemStatusConsumer: deserialization failed, routing to DLQ: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("deserialization failed", e);
         }
     }
 

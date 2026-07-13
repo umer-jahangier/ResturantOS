@@ -136,6 +136,15 @@ class TillReconciliationIT extends PosTestBase {
     }
 
     @Test
+    void createOrder_withNoOpenTill_isRejected() {
+        // FINANCIAL INTEGRITY: the cashier context is set (setUp) but no till has been opened,
+        // so an order must NOT be creatable — the counterpart to closeTill's open-orders guard.
+        assertThatThrownBy(() -> orderService.createOrder(
+                new CreateOrderRequest(branchId, UUID.randomUUID(), OrderType.DINE_IN, null, 2, null, null)))
+                .isInstanceOf(PosExceptions.NoOpenTillException.class);
+    }
+
+    @Test
     void closeTill_withOrderCreatedViaOrderService_linksTillSessionAndCashier_blocksClose() {
         TillSessionDto till = tillService.openTill(new OpenTillRequest(branchId, 50000L));
 

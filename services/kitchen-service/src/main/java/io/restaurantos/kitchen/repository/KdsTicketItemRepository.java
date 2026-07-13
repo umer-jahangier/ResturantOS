@@ -18,11 +18,12 @@ public interface KdsTicketItemRepository extends JpaRepository<KdsTicketItem, UU
     /** Locate the KDS line mirroring a pos OrderItem — the ORDER_ITEM_CANCELLED consumer's key. */
     Optional<KdsTicketItem> findByOrderItemId(UUID orderItemId);
 
-    // Counts items still to finish. CANCELLED lines are terminal (won't be cooked) so they must
-    // be excluded too — otherwise a cancelled item would permanently block the ticket from
-    // reaching READY.
+    // Counts items still to finish. CANCELLED and SERVED lines are terminal (won't be cooked /
+    // already left the pass) so they must be excluded too — otherwise a cancelled or served item
+    // would permanently block the ticket from reaching READY.
     @Query("SELECT COUNT(i) FROM KdsTicketItem i WHERE i.ticket.id = :ticketId "
             + "AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.READY "
-            + "AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.CANCELLED")
+            + "AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.CANCELLED "
+            + "AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.SERVED")
     long countByTicketIdAndStatusNotReady(@Param("ticketId") UUID ticketId);
 }

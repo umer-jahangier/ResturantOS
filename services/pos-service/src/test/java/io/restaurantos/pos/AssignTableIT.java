@@ -79,6 +79,9 @@ class AssignTableIT extends PosTestBase {
                         new io.restaurantos.pos.feign.FinancePeriodClient.PeriodStatusDto(
                                 UUID.randomUUID(), "OPEN", 2026, 6),
                         null, List.of()));
+
+        // Financial-integrity guard: a cashier needs an OPEN till before createOrder is allowed.
+        openTillForCashier(branchId);
     }
 
     private UUID seedTable(TableStatus status) {

@@ -19,6 +19,12 @@ public interface TicketService {
     /** Mark the KDS line for a pos OrderItem CANCELLED (ORDER_ITEM_CANCELLED consumer). */
     void cancelTicketItem(UUID orderItemId);
 
+    /**
+     * Mark the KDS line for a pos OrderItem SERVED (ORDER_ITEM_SERVED consumer) so a line served
+     * while the order is still open leaves the Ready column instead of lingering.
+     */
+    void serveTicketItem(UUID orderItemId);
+
     /** Mark an order's active tickets SERVED once the order is closed (ORDER_CLOSED consumer). */
     void serveTicketsForOrder(UUID orderId);
 

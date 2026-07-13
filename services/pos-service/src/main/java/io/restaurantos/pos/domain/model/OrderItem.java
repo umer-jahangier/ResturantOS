@@ -40,6 +40,14 @@ public class OrderItem extends TenantAuditableEntity {
     @Column(name = "kds_station")
     private String kdsStation;
 
+    /**
+     * Station SNAPSHOT captured at add-item time from the menu item's {@code station_id}
+     * (Phase 3), alongside the retained {@link #kdsStation} free-text snapshot. Not an FK —
+     * a point-in-time snapshot, mirroring kdsStation/menuItemId.
+     */
+    @Column(name = "station_id")
+    private UUID stationId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "kds_status", nullable = false, length = 20)
     private OrderItemStatus itemStatus = OrderItemStatus.PENDING;

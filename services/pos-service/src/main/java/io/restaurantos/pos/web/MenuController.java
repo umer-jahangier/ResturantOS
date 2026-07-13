@@ -44,4 +44,20 @@ public class MenuController {
             @RequestParam(required = false) UUID branchId) {
         return ResponseEntity.ok(ApiResponse.ok(menuService.getItem(id, branchId)));
     }
+
+    /**
+     * Assign (or clear, with a null {@code stationId}) a menu item's canonical station (Phase 3).
+     * The station must belong to the caller's tenant + branch; {@code branchId} is validated
+     * against the JWT branch inside the service.
+     */
+    @PutMapping("/items/{id}/station")
+    public ResponseEntity<ApiResponse<MenuItemDto>> assignStation(
+            @PathVariable UUID id,
+            @RequestParam UUID branchId,
+            @RequestBody AssignStationRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                menuService.assignStation(id, branchId, request.stationId())));
+    }
+
+    public record AssignStationRequest(UUID stationId) {}
 }

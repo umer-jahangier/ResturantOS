@@ -54,6 +54,15 @@ public class PosEventPayloads {
             String orderType
     ) {}
 
+    /**
+     * {@code stationId}/{@code stationName} (Phase 3) are ADDITIVE trailing fields carrying the
+     * canonical, FK-backed station this line resolved to at fire time. {@code kdsStation} (the
+     * code string) is RETAINED and stays load-bearing (it is still the kitchen's ticket/WS key);
+     * when a station FK is present {@code kdsStation} carries that station's canonical code, else
+     * the free-text snapshot (coalesced to "DEFAULT"). {@code stationId} is null for a line with
+     * no station FK. Field names+order MUST stay byte-identical to kitchen-service
+     * KitchenEventPayloads.OrderSentToKdsItem — never reorder/rename; only append.
+     */
     public record KdsItemPayload(
             UUID orderItemId,
             UUID menuItemId,
@@ -61,7 +70,9 @@ public class PosEventPayloads {
             int qty,
             String kdsStation,
             List<String> modifiers,
-            String notes
+            String notes,
+            UUID stationId,
+            String stationName
     ) {}
 
     /**
@@ -70,6 +81,19 @@ public class PosEventPayloads {
      * CANCELLED so the line is struck through on the board rather than lingering.
      */
     public record OrderItemCancelledPayload(
+            UUID orderId,
+            UUID tenantId,
+            UUID branchId,
+            UUID orderItemId
+    ) {}
+
+    /**
+     * ORDER_ITEM_SERVED — a single already-fired line was served (handed to the guest) on the POS
+     * while the order is still open. The kitchen consumes this to mark the matching KdsTicketItem
+     * (looked up by {@code orderItemId}) SERVED so the line leaves the Ready column immediately
+     * rather than lingering until the whole order closes.
+     */
+    public record OrderItemServedPayload(
             UUID orderId,
             UUID tenantId,
             UUID branchId,

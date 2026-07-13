@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 8
-current_phase_name: Inventory & Recipe Management
+current_phase: 08
+current_phase_name: inventory-recipe-management
 status: executing
 stopped_at: Phase 8 context gathered
-last_updated: "2026-07-13T19:14:19.198Z"
-last_activity: 2026-07-12
-last_activity_desc: Phase 07.3 complete, transitioned to Phase 8
+last_updated: "2026-07-13T19:45:08.684Z"
+last_activity: 2026-07-13
+last_activity_desc: Phase 08 execution started
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 60
+  total_plans: 69
   completed_plans: 56
   percent: 53
 ---
@@ -24,11 +24,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 07.3 — pos-kitchen-production-bug-fixes-ux-revamp
+**Current focus:** Phase 08 — inventory-recipe-management
 
 ## Current Position
 
-Phase: 8 — Inventory & Recipe Management
+Phase: 08 (inventory-recipe-management) — EXECUTING
 Plans: 10 plans across 3 waves + 1 gap-closure plan — 11/11 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
@@ -79,8 +79,8 @@ OrderCloseIdempotencyIT (subject retired) with its single-publish coverage prese
 via a new SettlementSemanticsIT backstop test; deleted orphaned frontend PaymentPanel
 component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
 frontend tsc clean. Phase 07.3 now 11/11 plans complete.
-Status: Ready to execute
-Last activity: 2026-07-12 — Phase 07.3 complete, transitioned to Phase 8
+Status: Executing Phase 08
+Last activity: 2026-07-13 — Phase 08 execution started
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
 (07.2-01, 07.2-02, 07.2-03, 07.2-04, 07.2-05, 07.2-07 done; 07.2-06 IN PROGRESS — Task 1/2 done,

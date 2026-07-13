@@ -2,14 +2,18 @@ package io.restaurantos.pos;
 
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.PaymentMethod;
+import io.restaurantos.pos.dto.OpenTillRequest;
 import io.restaurantos.pos.dto.OrderDto;
+import io.restaurantos.pos.dto.TillSessionDto;
 import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.PaymentService;
+import io.restaurantos.pos.service.TillService;
 import io.restaurantos.shared.authz.OpaClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -82,6 +86,21 @@ public abstract class PosTestBase {
     // Mock OpaClient — prevents real OPA connections; configure in each test for OPA-protected operations
     @MockitoBean
     protected OpaClient opaClient;
+
+    @Autowired
+    protected TillService tillService;
+
+    /**
+     * Opens an OPEN till for the cashier currently in {@code TenantContext}, satisfying
+     * {@code OrderServiceImpl.createOrder}'s financial-integrity guard ("no order without an
+     * open till"). IT fixtures that model a cashier taking orders call this once, after setting
+     * their tenant/security context. {@code branchId} must equal the caller's context branch
+     * (openTill enforces the same branch-isolation guard as createOrder). Callers that ALSO
+     * assert till-opening behaviour must open their own till per-test instead of using this.
+     */
+    protected TillSessionDto openTillForCashier(UUID branchId) {
+        return tillService.openTill(new OpenTillRequest(branchId, 0L));
+    }
 
     /**
      * Plan 07.3-11 (POS-23 / D-08): drives {@code order} to CLOSED through the REAL

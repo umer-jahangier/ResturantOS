@@ -40,6 +40,13 @@ public class MenuItem extends TenantAuditableEntity {
     @Column(name = "kds_station")
     private String kdsStation;
 
+    /**
+     * Canonical station assignment (Phase 3). FK to stations(id); nullable until an admin
+     * assigns one. The free-text {@link #kdsStation} is retained for back-compat routing.
+     */
+    @Column(name = "station_id")
+    private UUID stationId;
+
     @Column(name = "active", nullable = false)
     private boolean active = true;
 }

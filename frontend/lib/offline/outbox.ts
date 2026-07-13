@@ -114,13 +114,30 @@ export async function count(status: OutboxStatus): Promise<number> {
 
 // ── Internal helpers (exported for sync-engine) ───────────────────────────────
 
-/** Reset FAILED ops back to PENDING so the next replay picks them up. */
-export async function requeueFailed(): Promise<void> {
+/**
+ * Move retriable ops back to PENDING so the next replay() actually picks them up.
+ * replay() drains only PENDING, so without this call FAILED/stranded-IN_FLIGHT ops are
+ * invisible to it forever — the root cause of the "N queued — service unavailable" pill
+ * that never clears and a "Retry now" button that does nothing.
+ *
+ *  - FAILED    → a transient / 5xx failure that has NOT yet exhausted MAX_ATTEMPTS.
+ *  - IN_FLIGHT → an op stranded by a replay that was interrupted mid-request (tab closed
+ *                / crash). Safe to reset because replay() is single-flight and only it
+ *                sets IN_FLIGHT, so any IN_FLIGHT seen at the START of a fresh replay is
+ *                necessarily orphaned from a dead session.
+ *
+ * `attempts` is deliberately PRESERVED (unlike retryDead, which resets it): a genuinely
+ * permanent failure keeps climbing toward MAX_ATTEMPTS across replays and eventually
+ * dead-letters to DEAD instead of retrying forever. DEAD is left untouched here — it is
+ * terminal and needs an explicit operator Retry (retryDead) or Dismiss (dismissDead).
+ */
+export async function requeueRetriable(): Promise<void> {
   const db = await getDb();
   const failed = await db.getAllFromIndex("outbox", "by-status", "FAILED");
+  const inflight = await db.getAllFromIndex("outbox", "by-status", "IN_FLIGHT");
   const tx = db.transaction("outbox", "readwrite");
   await Promise.all(
-    failed.map((op) => tx.store.put({ ...op, status: "PENDING" })),
+    [...failed, ...inflight].map((op) => tx.store.put({ ...op, status: "PENDING" })),
   );
   await tx.done;
 }
