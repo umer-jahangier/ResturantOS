@@ -142,6 +142,28 @@ Then, in a real browser: open `http://localhost:3000`, log in as
 against a stack brought up by exactly this sequence — screenshot at
 `.playwright-mcp/10-19-cold-boot-manager1.png`.
 
+**Evidence (2026-07-14):** `docker compose down -v` → `make dev-up` (exit 0, all 8
+infra services UP in ~28s) → `./scripts/start-dev.sh --skip-build` (gateway UP on
+:8080 after ~193s registering with Eureka, frontend UP on :3000) → started
+`purchasing-service` (the one service `start-dev.sh` doesn't manage) →
+`node cold-boot-check.mjs` (throwaway Playwright script) logged in as
+`manager1@demo.local` / `Manager1#2026` / tenant `demo`, landed on
+`http://localhost:3000/app/dashboard`, navigated to
+`http://localhost:3000/app/purchasing/vendors`, and got heading **"Vendors"** with
+an honest empty state ("No vendors yet — Use 'Add vendor' to create your first
+vendor and start raising purchase orders") — not a spinner, not an error boundary
+(the fresh Postgres volume from `down -v` has no vendor rows yet, which is the
+expected state for a truly cold DB). Screenshot:
+`.playwright-mcp/10-19-cold-boot-manager1.png`.
+
+**Known non-blocking issue observed during this run (out of scope for 10-19):** the
+sidebar shows "Could not load branches. Retry" — a CORS failure on a direct
+`XMLHttpRequest` to `http://localhost:8080/api/v1/branches/mine` from the
+`localhost:3000` origin (No `Access-Control-Allow-Origin` header). It did not block
+navigation, login, or the Purchasing page from rendering. This is a frontend
+API-client/BFF-proxy concern, not a dev-stack bring-up concern — flagging for a
+future plan rather than fixing here (out of this plan's file scope).
+
 ## Restarting one service without a full stack bounce
 
 Never rebuild a module a sibling agent/session is actively editing — check
