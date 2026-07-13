@@ -433,13 +433,22 @@ Plans:
   3. An NLQ request converts NL→SQL via Claude and passes 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject); a query missing the tenant or branch filter is rejected.
   4. NLQ enforces read-only execution, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas, a 60s result cache, and stamps impersonation in `nlq_query_log`.
 
-**Plans**: 3 plans
+**Plans**: 10 plans
+
+Note: `nlq-service` is **Java / Spring Boot** (user decision), not Python — it reuses the proven shared-lib + Eureka + Config Server + internal-JWT wiring, and uses JSqlParser (not sqlglot) for the 7-stage AST validation.
 
 Plans:
 
-- [ ] 12-01: ClickHouse ETL from events + named/FBR reports (business-day boundary)
-- [ ] 12-02: Realtime dashboard WebSocket (<5s of close events)
-- [ ] 12-03: NLQ service — NL→SQL, 7-stage AST validation, quotas/cache/read-only
+- [ ] 12-01: Platform seams — reporting-service + nlq-service scaffolds, gateway routes, FEATURE_NLQ flag fix, deploy/env
+- [ ] 12-02: ClickHouse analytics schema + locked-down nlq_readonly user (verified against the live 25.9 container)
+- [ ] 12-03: ETL — ORDER_CLOSED / TILL_CLOSED / VENDOR_INVOICE_MATCHED into ClickHouse facts, business-day boundary, idempotent
+- [ ] 12-04: NLQ 7-stage SQL AST validation pipeline (TDD, JSqlParser, adversarial suite)
+- [ ] 12-05: Named reports + FBR Tax Summary (output tax − input tax = net payable)
+- [ ] 12-06: Realtime dashboard WebSocket (<5s of close events) with per-tile throttle
+- [ ] 12-07: NLQ execution — Claude NL→SQL, read-only executor, quotas, 60s cache, impersonation-stamped audit log
+- [ ] 12-08: Frontend — reports, FBR page, realtime dashboard
+- [ ] 12-09: Frontend — NLQ ask page with honest rejection UX
+- [ ] 12-10: Real-stack end-to-end proof + requirements reconciliation
 
 ## Progress
 
