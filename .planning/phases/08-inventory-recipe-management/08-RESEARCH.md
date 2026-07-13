@@ -778,7 +778,10 @@ common/finance/kds/pos/rbac/vendor only; no inventory.rego = no gap today, but a
 ## Open Questions
 
 1. **Does `stock_lots` need its own RLS + audit-column set (full `TenantAuditableEntity`), or is it a
-   lightweight child table keyed only through `ingredient_branch_stock`?**
+   lightweight child table keyed only through `ingredient_branch_stock`?** — **RESOLVED (planned):**
+   plan 08-01 gives `stock_lots` its own `tenant_id`/`branch_id` columns + FORCE RLS (per the
+   recommendation below), so the nightly expiry sweep queries lots directly without joining through
+   the parent stock row.
    - What we know: D-04 says "each stock receipt creates a lot row" and treats `stock_lots` as a
      first-class ledger ("source of truth for rotation and expiry").
    - What's unclear: Whether it needs full tenant/branch columns of its own (for direct RLS-scoped
@@ -790,7 +793,12 @@ common/finance/kds/pos/rbac/vendor only; no inventory.rego = no gap today, but a
      through `ingredient_branch_stock` on every sweep tick.
 
 2. **Should count-variance / transfer / wastage JEs post synchronously (via
-   `POST /internal/finance/journal-entries`) or wait for a Phase-9 event consumer?**
+   `POST /internal/finance/journal-entries`) or wait for a Phase-9 event consumer?** — **RESOLVED
+   (planner's call, per CONTEXT.md):** the plans chose **event-only** — `COUNT_VARIANCE_POSTED`,
+   `TRANSFER_*`, and `STOCK_DEPLETED` are published but NO synchronous `POST /internal/finance/journal-entries`
+   is made, deferring all inventory→finance GL posting to Phase 9 (ROADMAP Phase 9 SC1 explicitly owns
+   refund/wastage/stock-count/transfer auto-posting). This diverges from the synchronous lean recommended
+   below; the divergence is deliberate and documented in the plans to keep the Phase 8/9 boundary clean.
    - What we know: The endpoint exists today and is dedup'd by `(sourceType, sourceId)`; `STOCK_DEPLETED`
      (order COGS) is explicitly event-only this phase (finance has no consumer for it yet).
    - What's unclear: Whether count/transfer/wastage JEs are urgent enough (immediate GL accuracy) to

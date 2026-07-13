@@ -1,8 +1,8 @@
 ---
 phase: 8
 slug: inventory-recipe-management
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-13
 ---
@@ -49,7 +49,9 @@ Task IDs firm up when PLAN.md files exist; rows below are requirement-anchored a
 | 08-03-* | 03 | 3 | INV-04 | T-8-RACE | Receipt updates MAC (HALF_UP, BigDecimal); `STOCK_RECEIVED` via outbox | unit + integration | `mvn -pl services/inventory-service test -Dtest=MacCalculatorTest,ReceiptServiceIT` | ❌ W0 | ⬜ pending |
 | 08-03-* | 03 | 3 | INV-05 | — | Transfer ship/receive, in-transit (`1320`) accounting, variance-on-receive | integration | `mvn -pl services/inventory-service test -Dtest=TransferLifecycleIT` | ❌ W0 | ⬜ pending |
 | 08-03-* | 03 | 3 | INV-06 | — | Count variance posting; low-stock threshold; nightly expiry sweep | integration | `mvn -pl services/inventory-service test -Dtest=StockCountIT,ExpirySweepIT,LowStockAlertIT` | ❌ W0 | ⬜ pending |
-| 08-03-* | 03 | 3 | finance seam | T-8-SPOOF | `GET /internal/grn/pending-count` returns bare `long`, `X-Internal-Service` guarded | integration | `mvn -pl services/inventory-service test -Dtest=GrnPendingCountIT` | ❌ W0 | ⬜ pending |
+| 08-06-* | 06 | 4 | finance seam | T-8-SPOOF | `GET /internal/grn/pending-count` returns bare `long`, `X-Internal-Service` guarded | integration | `mvn -pl services/inventory-service test -Dtest=GrnPendingCountIT` | ❌ W0 | ⬜ pending |
+| 08-09-* | 09 | 2 | INV-01 (access ctrl) | T-8-AC | `inventory.rego` grants on `inventory.item.view`/`manage`; per-service `AuthorizationService` bean + JWT filter chain wired | policy + unit | `opa test policies/ --coverage` (100%); `mvn -pl services/inventory-service test -Dtest=InventoryAuthorizationServiceTest` | ❌ W0 | ⬜ pending |
+| 08-03/04/06/07/08-* | 03,04,06,07,08 | 3–4 | INV-01/02/04/05/06 (access ctrl) | T-8-AC (high) | Write endpoint denies (403) a JWT lacking `inventory.item.manage`; read denies without `.view` | integration | `mvn -pl services/inventory-service test -Dtest=InventoryAccessControlIT,RecipeAccessControlIT,ReceiptAccessControlIT,TransferAccessControlIT,StockCountAccessControlIT` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -61,6 +63,7 @@ Task IDs firm up when PLAN.md files exist; rows below are requirement-anchored a
 - [ ] `services/inventory-service/src/test/java/io/restaurantos/inventory/TestFixtures.java` — copy verbatim (JWT-building is service-agnostic), add an `INVENTORY_MANAGER` role JWT builder variant
 - [ ] `InventoryFixtures` helper — seed ingredient + stock + recipe + lot rows for tests (referenced by `10-test-architecture-guide.md §10.3`, does not exist yet)
 - [ ] Framework install: **none** — Testcontainers/JUnit5/AssertJ/Awaitility all resolve from the parent POM's managed versions already used by kitchen/finance/pos-service
+- [ ] Access-control harness (plan 08-09, Wave 2): `InventoryAuthorizationService` + `InventorySecurityConfig` (per-service `AuthorizationService` bean + JWT filter chain) + `inventory.rego`/`inventory_test.rego` — a prerequisite for the `*AccessControlIT` 403 tests in the Wave 3–4 controller plans
 
 ---
 
@@ -76,11 +79,11 @@ Task IDs firm up when PLAN.md files exist; rows below are requirement-anchored a
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references (BaseIntegrationTest, TestFixtures, InventoryFixtures)
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 40s (unit tier)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies — confirmed by plan-checker re-verification (every task carries an `mvn -pl services/inventory-service test -Dtest=...` / `opa test` command)
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (BaseIntegrationTest, TestFixtures, InventoryFixtures via 08-02; access-control harness via 08-09)
+- [x] No watch-mode flags
+- [x] Feedback latency < 40s (unit tier)
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-07-14 (plan-phase verification loop, iteration 2 — VERIFICATION PASSED). `wave_0_complete` flips true once 08-02 + 08-09 harness land during execution.
