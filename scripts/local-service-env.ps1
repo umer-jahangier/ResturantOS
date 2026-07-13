@@ -69,4 +69,21 @@ $env:PLATFORM_ADMIN_URI = "http://127.0.0.1:8083"
 $env:CONFIG_URI = "http://127.0.0.1:8888"
 $env:FAIL_OPEN_ON_PLATFORM_DOWN = "true"
 
+# crm-service (Liquibase + runtime as crm_user). LIQUIBASE_CONTEXTS=seed is required or the
+# loyalty tier config (BRONZE/SILVER/GOLD thresholds) is never inserted.
+$env:CRM_DB_URL = "jdbc:postgresql://127.0.0.1:5432/crm_db"
+$env:CRM_DB_USER = "crm_user"
+$env:CRM_DB_PASSWORD = $env:CRM_DB_PASSWORD
+$env:LIQUIBASE_CONTEXTS = "seed"
+
+# pos-service (Liquibase + runtime as pos_user) — publisher of ORDER_CLOSED / ORDER_REFUNDED
+$env:POS_DB_URL = "jdbc:postgresql://127.0.0.1:5432/pos_db"
+$env:POS_DB_USER = "pos_user"
+$env:POS_DB_PASSWORD = $env:POS_DB_PASSWORD
+
+# RabbitMQ credentials: services read RABBITMQ_USERNAME/RABBITMQ_PASSWORD (both come from
+# deploy/.env, loaded above). Default 'guest' only works on loopback, so be explicit.
+$env:RABBITMQ_USERNAME = $env:RABBITMQ_USERNAME
+$env:RABBITMQ_PASSWORD = $env:RABBITMQ_PASSWORD
+
 Write-Host "Loaded deploy/.env + localhost service overrides" -ForegroundColor Green
