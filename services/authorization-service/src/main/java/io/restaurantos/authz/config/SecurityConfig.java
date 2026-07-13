@@ -39,7 +39,11 @@ public class SecurityConfig implements WebMvcConfigurer {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
-                .requestMatchers("/internal/**").authenticated()
+                // InternalServiceFilter is the gate for /internal/** — it rejects a missing or bad
+                // X-Internal-Service secret with 403 before the chain runs. Requiring .authenticated()
+                // here would additionally demand a JWT, which internal service-to-service callers do
+                // not carry, so every internal call 401'd. Matches user/purchasing/finance-service.
+                .requestMatchers("/internal/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
