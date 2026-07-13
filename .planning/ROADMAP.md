@@ -317,13 +317,14 @@ Plans:
   4. Stock receipts update MAC and publish `STOCK_RECEIVED`, and transfers ship/receive with in-transit accounting and variance handling.
   5. Stock counts post variances, and low-stock and expiry alerts fire.
 
-**Plans**: 8 plans (new `inventory-service` module; 4 waves)
+**Plans**: 9 plans (new `inventory-service` module; 4 waves)
 
 Plans:
 
 - [ ] 08-01-PLAN.md — Wave 1: Module foundation, complete FORCE-RLS schema, infra tables, processed-events + event payloads (INV-01/03/07 infra)
 - [ ] 08-02-PLAN.md — Wave 2: Testcontainers harness (InventoryTestBase/TestFixtures) + schema/RLS smoke IT
-- [ ] 08-03-PLAN.md — Wave 3: Stock domain model + ingredient/UOM/reorder masters + MAC calculator + opening balance + gateway route (INV-01, INV-07)
+- [ ] 08-09-PLAN.md — Wave 2: OPA `inventory.rego` (view/manage on seeded permission codes, 100% covered) + `InventoryAuthorizationService` seam + `InventorySecurityConfig`/internal-secret filter (T-8-AC access-control foundation)
+- [ ] 08-03-PLAN.md — Wave 3: Stock domain model + ingredient/UOM/reorder masters + MAC calculator + opening balance + gateway route + OPA enforcement (INV-01, INV-07)
 - [ ] 08-04-PLAN.md — Wave 3: Versioned recipes/BOM + effective-version-by-closedAt resolution (INV-02)
 - [ ] 08-05-PLAN.md — Wave 4: `ORDER_CLOSED` depletion consumer — sorted pessimistic locks, FEFO walk, MAC COGS, idempotency, `STOCK_DEPLETED` (INV-03)
 - [ ] 08-06-PLAN.md — Wave 4: Stock receipts (MAC recompute + `STOCK_RECEIVED`) + `GET /internal/grn/pending-count` finance seam (INV-04)
