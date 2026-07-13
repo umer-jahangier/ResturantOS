@@ -1,0 +1,110 @@
+- generic [active] [ref=f28e1]:
+  - generic [ref=f28e2]:
+    - complementary [ref=f28e3]:
+      - generic [ref=f28e4]: RestaurantOS
+      - navigation "Primary" [ref=f28e9]:
+        - generic [ref=f28e10]:
+          - paragraph [ref=f28e11]: Overview
+          - link "Dashboard" [ref=f28e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f28e94]:
+          - paragraph [ref=f28e95]: Orders
+          - generic [ref=f28e96]:
+            - link "POS" [ref=f28e98] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f28e105] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f28e109]:
+          - paragraph [ref=f28e110]: Menu
+          - link "Inventory" [ref=f28e113] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f28e125]:
+          - paragraph [ref=f28e126]: Purchasing
+          - link "Purchasing" [ref=f28e129] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f28e136]:
+          - paragraph [ref=f28e137]: People
+          - generic [ref=f28e138]:
+            - link "HR" [ref=f28e140] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f28e148] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f28e154]:
+          - paragraph [ref=f28e155]: Reporting
+          - link "Reports" [ref=f28e158] [cursor=pointer]:
+            - /url: /app/reporting
+        - generic [ref=f28e21]:
+          - paragraph [ref=f28e22]: Settings
+          - generic [ref=f28e23]:
+            - link "General" [ref=f28e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f28e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f28e40]:
+        - generic [ref=f28e43]: Collapse
+    - generic [ref=f28e44]:
+      - banner [ref=f28e45]:
+        - navigation "Breadcrumb" [ref=f28e47]:
+          - generic [ref=f28e48]: Purchasing
+          - generic [ref=f28e50]: Purchase Orders
+          - generic [ref=f28e54]: C5f97012 9e43 4a4d B8ec 039bf17b9801
+        - generic [ref=f28e162]: Main Branch (HQ)
+        - generic [ref=f28e58]:
+          - button "Open command palette" [ref=f28e59]:
+            - generic [ref=f28e63]: Search…
+            - generic [ref=f28e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f28e66]
+          - button "Switch to light mode" [ref=f28e163]
+          - button "Open profile menu" [ref=f28e74]: C
+      - main [ref=f28e164]:
+        - generic [ref=f28e166]:
+          - navigation [ref=f28e167]:
+            - link "Vendors" [ref=f28e168] [cursor=pointer]:
+              - /url: /app/purchasing/vendors
+            - link "Purchase Orders" [ref=f28e169] [cursor=pointer]:
+              - /url: /app/purchasing/purchase-orders
+            - link "Invoices" [ref=f28e170] [cursor=pointer]:
+              - /url: /app/purchasing/invoices
+            - link "Payments" [ref=f28e171] [cursor=pointer]:
+              - /url: /app/purchasing/payments
+            - link "Analytics" [ref=f28e172] [cursor=pointer]:
+              - /url: /app/purchasing/analytics
+          - generic [ref=f28e200]:
+            - link "← Purchase orders" [ref=f28e201] [cursor=pointer]:
+              - /url: /app/purchasing/purchase-orders
+            - generic [ref=f28e202]:
+              - heading "PO c5f97012…" [level=1] [ref=f28e203]
+              - generic [ref=f28e204]: Pending approval
+            - paragraph [ref=f28e205]: Total Rs 600,000.00
+            - paragraph [ref=f28e206]: Approvals 0 / 2 tiers
+            - generic [ref=f28e207]:
+              - button "Approve" [ref=f28e208]
+              - button "Reject" [ref=f28e209]
+              - button "Withdraw" [ref=f28e210]
+            - generic [ref=f28e211]:
+              - generic [ref=f28e212]:
+                - heading "Mock goods receipt (dev)" [level=3] [ref=f28e213]
+                - button "Receive all in full" [ref=f28e214]
+              - paragraph [ref=f28e215]: Simulates Phase 8 GRN while integration-mode=mock.
+              - table [ref=f28e216]:
+                - rowgroup [ref=f28e217]:
+                  - row [ref=f28e218]:
+                    - columnheader "Line" [ref=f28e219]
+                    - columnheader "Ordered qty" [ref=f28e220]
+                    - columnheader "Receive qty" [ref=f28e221]
+                - rowgroup [ref=f28e222]:
+                  - row [ref=f28e223]:
+                    - cell "eec56818… (kg)" [ref=f28e224]
+                    - cell "100" [ref=f28e225]
+                    - cell [ref=f28e226]:
+                      - textbox "Received quantity for line 1f817500-0dd1-4344-a40d-174c80ee5d55" [ref=f28e227]: "100"
+                  - row [ref=f28e228]:
+                    - cell "eb460404… (L)" [ref=f28e229]
+                    - cell "200" [ref=f28e230]
+                    - cell [ref=f28e231]:
+                      - textbox "Received quantity for line 843e00ae-deaa-4b0b-a909-1de2e49ccd9d" [ref=f28e232]: "200"
+              - button "Mock receive" [ref=f28e233]
+  - status [ref=f28e84]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f28e90] [cursor=pointer]
+  - alert [ref=f28e199]

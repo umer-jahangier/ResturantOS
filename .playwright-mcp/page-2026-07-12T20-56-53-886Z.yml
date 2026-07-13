@@ -1,0 +1,41 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - complementary [ref=f5e3]:
+      - generic [ref=f5e4]: RestaurantOS
+      - navigation "Primary" [ref=f5e9]:
+        - generic [ref=f5e10]:
+          - paragraph [ref=f5e11]: Overview
+          - link "Dashboard" [ref=f5e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f5e21]:
+          - paragraph [ref=f5e22]: Settings
+          - generic [ref=f5e23]:
+            - link "General" [ref=f5e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f5e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f5e40]:
+        - generic [ref=f5e43]: Collapse
+    - generic [ref=f5e44]:
+      - banner [ref=f5e45]:
+        - navigation "Breadcrumb" [ref=f5e47]:
+          - generic [ref=f5e48]: App
+          - generic [ref=f5e50]: Finance
+          - generic [ref=f5e54]: Expenses
+        - generic [ref=f5e58]:
+          - button "Open command palette" [ref=f5e59]:
+            - generic [ref=f5e63]: Search…
+            - generic [ref=f5e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f5e66]
+          - button "Toggle theme" [disabled] [ref=f5e71]
+          - button "Open profile menu" [ref=f5e74]: U
+      - main [ref=f5e75]:
+        - generic [ref=f5e77]:
+          - generic [ref=f5e80]:
+            - heading "Access denied" [level=1] [ref=f5e81]
+            - paragraph [ref=f5e82]: You do not have permission to view this page.
+          - link "Back to dashboard" [ref=f5e83] [cursor=pointer]:
+            - /url: /app/dashboard
+  - status [ref=f5e84]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f5e90] [cursor=pointer]

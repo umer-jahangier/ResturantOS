@@ -1,0 +1,71 @@
+- generic [ref=f23e1]:
+  - generic [ref=f23e31]:
+    - complementary [ref=f23e32]:
+      - generic [ref=f23e33]: RestaurantOS
+      - navigation "Primary" [ref=f23e38]:
+        - generic [ref=f23e39]:
+          - paragraph [ref=f23e40]: Overview
+          - link "Dashboard" [ref=f23e43] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f23e50]:
+          - paragraph [ref=f23e51]: Orders
+          - link "POS" [ref=f23e54] [cursor=pointer]:
+            - /url: /app/pos
+        - generic [ref=f23e60]:
+          - paragraph [ref=f23e61]: Purchasing
+          - link "Purchasing" [ref=f23e64] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f23e71]:
+          - paragraph [ref=f23e72]: People
+          - generic [ref=f23e73]:
+            - link "HR" [ref=f23e75] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f23e83] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f23e89]:
+          - paragraph [ref=f23e90]: Reporting
+          - link "Reports" [ref=f23e93] [cursor=pointer]:
+            - /url: /app/reporting
+        - generic [ref=f23e97]:
+          - paragraph [ref=f23e98]: Settings
+          - generic [ref=f23e99]:
+            - link "General" [ref=f23e101] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f23e107] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f23e116]:
+        - generic [ref=f23e119]: Collapse
+    - generic [ref=f23e120]:
+      - banner [ref=f23e121]:
+        - navigation "Breadcrumb" [ref=f23e123]:
+          - generic [ref=f23e124]: App
+          - generic [ref=f23e126]: Purchasing
+          - generic [ref=f23e188]: Vendors
+        - generic [ref=f23e130]: Main Branch (HQ)
+        - generic [ref=f23e131]:
+          - button "Open command palette" [ref=f23e132]:
+            - generic [ref=f23e136]: Search…
+            - generic [ref=f23e137]: ⌘K
+          - button "Notifications (3 unread)" [ref=f23e139]
+          - button "Switch to light mode" [ref=f23e144]
+          - button "Open profile menu" [ref=f23e147]: C
+      - main [ref=f23e148]:
+        - generic [ref=f23e153]:
+          - navigation [ref=f23e154]:
+            - link "Vendors" [active] [ref=f23e155] [cursor=pointer]:
+              - /url: /app/purchasing/vendors
+            - link "Purchase Orders" [ref=f23e156] [cursor=pointer]:
+              - /url: /app/purchasing/purchase-orders
+            - link "Invoices" [ref=f23e157] [cursor=pointer]:
+              - /url: /app/purchasing/invoices
+            - link "Payments" [ref=f23e158] [cursor=pointer]:
+              - /url: /app/purchasing/payments
+            - link "Analytics" [ref=f23e159] [cursor=pointer]:
+              - /url: /app/purchasing/analytics
+          - generic [ref=f23e193]:
+            - heading "Vendors" [level=1] [ref=f23e194]
+            - button "Add vendor" [ref=f23e195]
+  - status [ref=f23e20]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f23e26] [cursor=pointer]
+  - alert [ref=f23e30]

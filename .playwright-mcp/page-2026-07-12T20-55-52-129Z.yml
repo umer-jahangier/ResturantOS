@@ -1,0 +1,22 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]: Sign in to RestaurantOS
+      - generic [ref=f2e7]: Enter your restaurant identifier and credentials
+    - generic [ref=f2e9]:
+      - generic [ref=f2e10]:
+        - generic [ref=f2e11]: Restaurant
+        - textbox "Restaurant" [ref=f2e12]:
+          - /placeholder: your-restaurant
+      - generic [ref=f2e13]:
+        - generic [ref=f2e14]: Email
+        - textbox "Email" [ref=f2e15]:
+          - /placeholder: you@example.com
+      - generic [ref=f2e16]:
+        - generic [ref=f2e17]: Password
+        - textbox "Password" [ref=f2e18]:
+          - /placeholder: ••••••••
+      - button "Sign in" [ref=f2e19]
+  - status [ref=f2e20]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f2e26] [cursor=pointer]

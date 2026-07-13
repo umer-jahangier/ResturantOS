@@ -1,0 +1,161 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic: RestaurantOS
+      - navigation:
+        - generic:
+          - paragraph: Overview
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/dashboard
+                - generic: Dashboard
+        - generic:
+          - paragraph: Finance
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/finance/accounts
+                - generic: Accounts
+            - generic:
+              - link:
+                - /url: /app/finance/journal-entries
+                - generic: Journal Entries
+            - generic:
+              - link:
+                - /url: /app/finance/gl
+                - generic: General Ledger
+            - generic:
+              - link:
+                - /url: /app/finance/periods
+                - generic: Periods
+            - generic:
+              - link:
+                - /url: /app/finance/expenses
+                - generic: Expenses
+            - generic:
+              - link:
+                - /url: /app/finance/ap-aging
+                - generic: AP Aging
+        - generic:
+          - paragraph: Purchasing
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/purchasing
+                - generic: Purchasing
+        - generic:
+          - paragraph: People
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/hr
+                - generic: HR
+            - generic:
+              - link:
+                - /url: /app/crm
+                - generic: CRM
+        - generic:
+          - paragraph: Reporting
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/reporting
+                - generic: Reports
+        - generic:
+          - paragraph: Settings
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/settings
+                - generic: General
+            - generic:
+              - link:
+                - /url: /settings/appearance
+                - generic: Appearance
+      - generic:
+        - button:
+          - generic: Collapse
+    - generic:
+      - banner:
+        - generic:
+          - navigation:
+            - generic: App
+            - generic: Finance
+            - generic: Expenses
+        - generic: Main Branch (HQ)
+        - generic:
+          - button:
+            - generic: Search…
+            - generic: ⌘K
+          - generic:
+            - button
+          - button
+          - button: C
+      - main:
+        - generic:
+          - navigation:
+            - link:
+              - /url: /app/finance/accounts
+              - text: Accounts
+            - link:
+              - /url: /app/finance/journal-entries
+              - text: Journal Entries
+            - link:
+              - /url: /app/finance/gl
+              - text: General Ledger
+            - link:
+              - /url: /app/finance/periods
+              - text: Periods
+            - link:
+              - /url: /app/finance/expenses
+              - text: Expenses
+            - link:
+              - /url: /app/finance/ap-aging
+              - text: AP Aging
+            - link:
+              - /url: /app/finance/house-accounts
+              - text: House Accounts
+            - link:
+              - /url: /app/finance/ar-aging
+              - text: AR Aging
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=1]: Expenses
+                - paragraph: Create, approve and reject expenses. Approvals respect your OPA approval limit.
+              - generic:
+                - combobox
+                - button [expanded]: New expense
+            - generic:
+              - generic:
+                - paragraph: No expenses
+                - paragraph: Use "New expense" to submit the first expense for approval.
+  - status
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f14e84] [cursor=pointer]
+  - alert
+  - dialog [ref=f14e191]:
+    - generic [ref=f14e192]:
+      - heading "New expense" [level=2] [ref=f14e193]
+      - paragraph [ref=f14e194]: Submitted expenses start PENDING_APPROVAL until an approver acts on them.
+    - generic [ref=f14e195]:
+      - generic [ref=f14e196]:
+        - generic [ref=f14e197]: Expense account
+        - combobox "Expense account" [active] [ref=f14e198]:
+          - option "Select an account" [selected]
+      - generic [ref=f14e199]:
+        - generic [ref=f14e200]: Expense date
+        - textbox "Expense date" [ref=f14e201]: 2026-07-13
+      - generic [ref=f14e202]:
+        - generic [ref=f14e203]: Amount (PKR)
+        - textbox "Amount (PKR)" [ref=f14e204]:
+          - /placeholder: "1500.00"
+      - generic [ref=f14e205]:
+        - generic [ref=f14e206]: Description
+        - textbox "Description" [ref=f14e207]:
+          - /placeholder: July electricity bill
+    - generic [ref=f14e208]:
+      - button "Cancel" [ref=f14e209]
+      - button "Submit expense" [ref=f14e210]
+    - button "Close" [ref=f14e211]

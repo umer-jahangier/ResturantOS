@@ -1,0 +1,167 @@
+- generic:
+  - generic:
+    - complementary:
+      - generic: RestaurantOS
+      - navigation:
+        - generic:
+          - paragraph: Overview
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/dashboard
+                - generic: Dashboard
+        - generic:
+          - paragraph: Orders
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/pos
+                - generic: POS
+            - generic:
+              - link:
+                - /url: /app/kitchen
+                - generic: Kitchen Display
+        - generic:
+          - paragraph: Menu
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/inventory
+                - generic: Inventory
+        - generic:
+          - paragraph: Purchasing
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/purchasing
+                - generic: Purchasing
+        - generic:
+          - paragraph: People
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/hr
+                - generic: HR
+            - generic:
+              - link:
+                - /url: /app/crm
+                - generic: CRM
+        - generic:
+          - paragraph: Reporting
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/reporting
+                - generic: Reports
+        - generic:
+          - paragraph: Settings
+          - generic:
+            - generic:
+              - link:
+                - /url: /app/settings
+                - generic: General
+            - generic:
+              - link:
+                - /url: /settings/appearance
+                - generic: Appearance
+      - generic:
+        - button:
+          - generic: Collapse
+    - generic:
+      - banner:
+        - generic:
+          - navigation:
+            - generic: App
+            - generic: Purchasing
+            - generic: Purchase Orders
+        - generic: Main Branch (HQ)
+        - generic:
+          - button:
+            - generic: Search…
+            - generic: ⌘K
+          - generic:
+            - button
+          - button
+          - button: C
+      - main:
+        - generic:
+          - generic:
+            - navigation:
+              - link:
+                - /url: /app/purchasing/vendors
+                - text: Vendors
+              - link:
+                - /url: /app/purchasing/purchase-orders
+                - text: Purchase Orders
+              - link:
+                - /url: /app/purchasing/invoices
+                - text: Invoices
+              - link:
+                - /url: /app/purchasing/payments
+                - text: Payments
+              - link:
+                - /url: /app/purchasing/analytics
+                - text: Analytics
+            - generic:
+              - generic:
+                - heading [level=1]: Purchase orders
+                - generic:
+                  - combobox
+                  - button [expanded]: New Purchase Order
+              - generic:
+                - generic:
+                  - paragraph: No purchase orders yet
+                  - paragraph: Use "New Purchase Order" to raise your first order for a vendor.
+  - status
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f2e84] [cursor=pointer]
+  - alert
+  - dialog [ref=f2e181]:
+    - generic [ref=f2e182]:
+      - heading "New purchase order" [level=2] [ref=f2e183]
+      - paragraph [ref=f2e184]: Created as DRAFT — submit it for approval afterward.
+    - generic [ref=f2e185]:
+      - generic [ref=f2e186]:
+        - generic [ref=f2e187]:
+          - generic [ref=f2e188]: Vendor
+          - combobox "Vendor" [active] [ref=f2e189]:
+            - option "Select a vendor…" [selected]
+            - option "Fresh Foods Ltd"
+            - option "UAT Produce Co"
+            - option "UAT Produce Co"
+        - generic [ref=f2e190]:
+          - generic [ref=f2e191]: Expected delivery date
+          - textbox "Expected delivery date" [ref=f2e192]
+      - generic [ref=f2e193]:
+        - generic [ref=f2e194]: Notes
+        - textbox "Notes" [ref=f2e195]:
+          - /placeholder: Optional
+      - generic [ref=f2e196]:
+        - generic [ref=f2e197]:
+          - heading "Lines" [level=3] [ref=f2e198]
+          - button "Add line" [ref=f2e199]
+        - generic [ref=f2e200]:
+          - generic [ref=f2e201]:
+            - generic [ref=f2e202]: Ingredient ID
+            - textbox "Ingredient ID" [ref=f2e203]:
+              - /placeholder: uuid
+          - generic [ref=f2e204]:
+            - generic [ref=f2e205]: Unit
+            - textbox "Unit" [ref=f2e206]:
+              - /placeholder: kg
+          - generic [ref=f2e207]:
+            - generic [ref=f2e208]: Qty
+            - textbox "Qty" [ref=f2e209]:
+              - /placeholder: "10"
+          - generic [ref=f2e210]:
+            - generic [ref=f2e211]: Unit price (PKR)
+            - textbox "Unit price (PKR)" [ref=f2e212]:
+              - /placeholder: "120.00"
+          - button "Remove" [disabled]
+      - generic [ref=f2e213]:
+        - generic [ref=f2e214]: Total
+        - generic [ref=f2e215]: Rs 0.00
+    - generic [ref=f2e216]:
+      - button "Cancel" [ref=f2e217]
+      - button "Create purchase order" [ref=f2e218]
+    - button "Close" [ref=f2e219]

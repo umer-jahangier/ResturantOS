@@ -1,0 +1,35 @@
+- generic [active] [ref=f10e1]:
+  - generic [ref=f10e2]:
+    - complementary [ref=f10e3]:
+      - generic [ref=f10e4]: RestaurantOS
+      - navigation "Primary" [ref=f10e9]:
+        - generic [ref=f10e10]:
+          - paragraph [ref=f10e11]: Overview
+          - link "Dashboard" [ref=f10e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f10e21]:
+          - paragraph [ref=f10e22]: Settings
+          - generic [ref=f10e23]:
+            - link "General" [ref=f10e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f10e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f10e40]:
+        - generic [ref=f10e43]: Collapse
+    - generic [ref=f10e44]:
+      - banner [ref=f10e45]:
+        - navigation "Breadcrumb" [ref=f10e47]:
+          - generic [ref=f10e48]: Purchasing
+          - generic [ref=f10e50]: Purchase Orders
+          - generic [ref=f10e54]: E853f14c 53f5 433f 86c5 F1821ab3572f
+        - generic [ref=f10e58]:
+          - button "Open command palette" [ref=f10e59]:
+            - generic [ref=f10e63]: Search…
+            - generic [ref=f10e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f10e66]
+          - button "Toggle theme" [disabled] [ref=f10e71]
+          - button "Open profile menu" [ref=f10e74]: U
+      - main [ref=f10e75]
+  - status [ref=f10e76]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f10e82] [cursor=pointer]

@@ -1,0 +1,37 @@
+- generic [active] [ref=f20e1]:
+  - generic [ref=f20e2]:
+    - complementary [ref=f20e3]:
+      - generic [ref=f20e4]: RestaurantOS
+      - navigation "Primary" [ref=f20e9]:
+        - generic [ref=f20e10]:
+          - paragraph [ref=f20e11]: Overview
+          - link "Dashboard" [ref=f20e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f20e21]:
+          - paragraph [ref=f20e22]: Settings
+          - generic [ref=f20e23]:
+            - link "General" [ref=f20e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f20e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f20e40]:
+        - generic [ref=f20e43]: Collapse
+    - generic [ref=f20e44]:
+      - banner [ref=f20e45]:
+        - navigation "Breadcrumb" [ref=f20e47]:
+          - generic [ref=f20e48]: App
+          - generic [ref=f20e50]: Finance
+          - generic [ref=f20e54]: Ar Aging
+        - generic [ref=f20e58]:
+          - button "Open command palette" [ref=f20e59]:
+            - generic [ref=f20e63]: Search…
+            - generic [ref=f20e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f20e66]
+          - button "Switch to light mode" [ref=f20e71]
+          - button "Open profile menu" [ref=f20e74]: U
+      - main [ref=f20e75]:
+        - status "Loading session…" [ref=f20e77]
+  - status [ref=f20e78]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f20e84] [cursor=pointer]
+  - alert [ref=f20e88]
