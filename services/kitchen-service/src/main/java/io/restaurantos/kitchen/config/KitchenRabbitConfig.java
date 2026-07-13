@@ -17,6 +17,8 @@ public class KitchenRabbitConfig {
     // Consumed from pos.topic
     public static final String KITCHEN_ORDER_SENT_QUEUE  = "kitchen.order-sent.queue";
     public static final String KITCHEN_ORDER_VOIDED_QUEUE = "kitchen.order-voided.queue";
+    public static final String KITCHEN_ITEM_CANCELLED_QUEUE = "kitchen.item-cancelled.queue";
+    public static final String KITCHEN_ORDER_CLOSED_QUEUE = "kitchen.order-closed.queue";
 
     // Exchange names
     public static final String POS_TOPIC_EXCHANGE     = "pos.topic";
@@ -61,6 +63,36 @@ public class KitchenRabbitConfig {
         return BindingBuilder.bind(kitchenOrderVoidedQueue)
                 .to(posTopic)
                 .with("pos.order.voided");
+    }
+
+    @Bean
+    public Queue kitchenItemCancelledQueue() {
+        return QueueBuilder.durable(KITCHEN_ITEM_CANCELLED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", KITCHEN_ITEM_CANCELLED_QUEUE + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding kitchenItemCancelledBinding(Queue kitchenItemCancelledQueue, TopicExchange posTopic) {
+        return BindingBuilder.bind(kitchenItemCancelledQueue)
+                .to(posTopic)
+                .with("pos.order.item_cancelled");
+    }
+
+    @Bean
+    public Queue kitchenOrderClosedQueue() {
+        return QueueBuilder.durable(KITCHEN_ORDER_CLOSED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", KITCHEN_ORDER_CLOSED_QUEUE + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding kitchenOrderClosedBinding(Queue kitchenOrderClosedQueue, TopicExchange posTopic) {
+        return BindingBuilder.bind(kitchenOrderClosedQueue)
+                .to(posTopic)
+                .with("pos.order.closed");
     }
 
     @Bean

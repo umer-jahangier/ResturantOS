@@ -16,6 +16,7 @@
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/e2e/__screenshots__/
 *.lcov
 
 # next.js

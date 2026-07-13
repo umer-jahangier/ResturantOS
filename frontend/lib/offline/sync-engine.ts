@@ -13,13 +13,14 @@
  */
 
 import { PosRepository } from "@/lib/repositories/pos.repository";
-import type { CreateOrderPayload, AddItemPayload } from "@/lib/models/pos.model";
+import type { CreateOrderPayload, AddItemPayload, UpdateInstructionsPayload } from "@/lib/models/pos.model";
 import {
   count,
   markFailed,
   markInFlight,
   markSynced,
   peekPending,
+  repointQueuedOps,
 } from "./outbox";
 
 let isReplaying = false;
@@ -44,20 +45,44 @@ export async function replay(): Promise<ReplayResult> {
     let synced = 0;
     let failed = 0;
 
+    // clientOrderId (offline stub id) -> real server-assigned order id, populated as
+    // CREATE_ORDER ops sync within THIS pass so a sibling APPEND_ITEMS/
+    // UPDATE_INSTRUCTIONS op queued against the same brand-new order (still holding
+    // the old local id in its own in-memory `op` from the `ops` snapshot above)
+    // targets the right resource even before its IndexedDB record catches up via
+    // repointQueuedOps (which covers ops NOT reached in this same pass).
+    const idRemap = new Map<string, string>();
+
     for (const op of ops) {
+      const targetOrderId = idRemap.get(op.clientOrderId) ?? op.clientOrderId;
       await markInFlight(op.id);
       try {
         if (op.type === "CREATE_ORDER") {
-          // clientOrderId is the idempotency key — server dedupes by this field.
-          await PosRepository.createOrder({
+          // clientOrderId is the idempotency key — server dedupes by this field, but
+          // always assigns its OWN, different `id` (never equal to the client UUID).
+          const created = await PosRepository.createOrder({
             ...(op.payload as CreateOrderPayload),
             clientOrderId: op.clientOrderId,
           });
+          if (created.id !== op.clientOrderId) {
+            idRemap.set(op.clientOrderId, created.id);
+            await repointQueuedOps(op.clientOrderId, created.id);
+          }
         } else if (op.type === "APPEND_ITEMS") {
-          // For APPEND_ITEMS, clientOrderId holds the target order's server UUID.
+          // clientOrderId normally holds the target order's server UUID directly
+          // (item added to an already-synced order) — targetOrderId only differs when
+          // this op was queued against an order that was ALSO created offline in the
+          // same session (see idRemap/repointQueuedOps above).
           await PosRepository.addItem(
-            op.clientOrderId,
+            targetOrderId,
             op.payload as AddItemPayload,
+          );
+        } else if (op.type === "UPDATE_INSTRUCTIONS") {
+          // Same targetOrderId reasoning as APPEND_ITEMS above (POS-13 is
+          // offline-safe per this plan's must_haves).
+          await PosRepository.updateInstructions(
+            targetOrderId,
+            op.payload as UpdateInstructionsPayload,
           );
         }
 
@@ -81,7 +106,13 @@ export async function replay(): Promise<ReplayResult> {
 
 // ── Progress callbacks ────────────────────────────────────────────────────────
 
-type ProgressCallback = (pending: number, lastError?: string) => void;
+/**
+ * @param pending  Ops still in the auto-retry pipeline (PENDING + IN_FLIGHT + FAILED).
+ *                 Excludes DEAD so a permanently-failing op can't inflate the pill forever.
+ * @param lastError Most recent error message (DEAD preferred, else FAILED).
+ * @param dead     Count of dead-lettered ops needing explicit Retry/Dismiss.
+ */
+type ProgressCallback = (pending: number, lastError?: string, dead?: number) => void;
 const progressCallbacks: ProgressCallback[] = [];
 
 /** Subscribe to outbox progress updates (UI badge). Returns an unsubscribe fn. */
@@ -99,14 +130,18 @@ export async function emitProgress(): Promise<void> {
     (await count("PENDING")) +
     (await count("IN_FLIGHT")) +
     (await count("FAILED"));
+  const dead = await count("DEAD");
 
-  const lastFailed = await getLastError();
-  progressCallbacks.forEach((cb) => cb(pending, lastFailed));
+  const lastError = await getLastError();
+  progressCallbacks.forEach((cb) => cb(pending, lastError, dead));
 }
 
 async function getLastError(): Promise<string | undefined> {
   const { all } = await import("./outbox");
   const ops = await all();
+  // Prefer a DEAD op's error (terminal, needs attention) over a still-retrying FAILED one.
+  const dead = ops.filter((o) => o.status === "DEAD" && o.lastError).at(-1);
+  if (dead) return dead.lastError;
   const failedOp = ops
     .filter((o) => o.status === "FAILED" && o.lastError)
     .at(-1);

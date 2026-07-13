@@ -2,6 +2,9 @@ package io.restaurantos.pos.authz;
 
 import io.restaurantos.shared.authz.AuthorizationService;
 import io.restaurantos.shared.authz.OpaInput;
+import io.restaurantos.shared.security.JwtClaims;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -50,5 +53,21 @@ public class PosAuthorizationService {
         OpaInput.Resource resource = new OpaInput.Resource(
                 "order", orderId, tenantId, branchId, createdBy, status, refundPaisa);
         authorizationService.authorize("pos", "pos.order.refund", resource);
+    }
+
+    /**
+     * Local (non-OPA) check of the current JWT's {@code permissions} claim — used to gate
+     * own-vs-all-branch VIEW scoping (POS-09/POS-10), which is a fast read-path decision, not
+     * an OPA-evaluated action (pos.rego has no "view" rule; void/refund/discount/split-bill
+     * are the only rego-gated actions today). Returns {@code false} (fail-closed to the
+     * narrower own-orders-only scope) if no authenticated {@link JwtClaims} principal is
+     * present.
+     */
+    public boolean hasPermission(String permission) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof JwtClaims claims)) {
+            return false;
+        }
+        return claims.permissions() != null && claims.permissions().contains(permission);
     }
 }

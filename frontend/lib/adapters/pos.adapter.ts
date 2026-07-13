@@ -7,7 +7,11 @@ import type {
   ApiDiningTable,
   ApiOrder,
   ApiOrderItem,
+  ApiOrderSummary,
+  ApiOrderPaymentRecord,
+  ApiTableDetail,
   ApiTillSession,
+  ApiTillReconciliation,
 } from "@/lib/api-client/schemas/pos.schema";
 import type {
   MenuItem,
@@ -16,7 +20,12 @@ import type {
   Order,
   OrderItem,
   OrderItemModifier,
+  OrderStatus,
+  OrderSummary,
+  OrderPayment,
+  TableDetail,
   TillSession,
+  TillReconciliation,
 } from "@/lib/models/pos.model";
 
 export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
@@ -72,7 +81,13 @@ export function adaptOrderItem(raw: ApiOrderItem): OrderItem {
     unitPriceSnapshot: raw.unitPriceSnapshot,
     quantity: raw.quantity,
     kdsStation: raw.kdsStation ?? null,
-    kdsStatus: raw.kdsStatus,
+    // Wire field `kdsStatus` -> domain field `itemStatus` (clearer name; see
+    // pos.schema.ts comment on apiOrderItemSchema).
+    itemStatus: raw.kdsStatus,
+    // See the `.optional()` comment on apiOrderItemSchema — default to 0 ("not yet
+    // fired"), matching the backend entity's own default for an omitted value.
+    revisionNo: raw.revisionNo ?? 0,
+    firedAt: raw.firedAt ?? null,
     discountPaisa: raw.discountPaisa,
     taxPaisa: raw.taxPaisa,
     lineTotalPaisa: raw.lineTotalPaisa,
@@ -88,6 +103,10 @@ export function adaptOrder(raw: ApiOrder): Order {
     orderNo: raw.orderNo ?? null,
     type: raw.type,
     status: raw.status,
+    // See the `.optional()` comment on apiOrderSchema — the live backend omits this
+    // field today; default to the same DRAFT value the backend entity itself defaults
+    // to, rather than propagating `undefined` into a domain type declared non-nullable.
+    derivedStatus: raw.derivedStatus ?? "DRAFT",
     tableId: raw.tableId ?? null,
     coverCount: raw.coverCount,
     cashierId: raw.cashierId ?? null,
@@ -106,6 +125,55 @@ export function adaptOrder(raw: ApiOrder): Order {
   };
 }
 
+export function adaptOrderSummary(raw: ApiOrderSummary): OrderSummary {
+  return {
+    orderId: raw.orderId,
+    orderNo: raw.orderNo ?? null,
+    tableId: raw.tableId ?? null,
+    tableName: raw.tableName ?? null,
+    derivedStatus: raw.derivedStatus,
+    cashierId: raw.cashierId ?? null,
+    coverCount: raw.coverCount,
+    totalPaisa: raw.totalPaisa,
+    openedAt: raw.openedAt ?? null,
+    settlementStatus: raw.settlementStatus,
+    paymentStatus: raw.paymentStatus,
+    amountPaidPaisa: raw.amountPaidPaisa,
+    itemQuantity: raw.itemQuantity,
+    distinctItemCount: raw.distinctItemCount,
+  };
+}
+
+export function adaptTableDetail(raw: ApiTableDetail): TableDetail {
+  return {
+    id: raw.id,
+    branchId: raw.branchId,
+    tableName: raw.tableName,
+    capacity: raw.capacity,
+    status: raw.status,
+    floorPlanX: raw.floorPlanX ?? null,
+    floorPlanY: raw.floorPlanY ?? null,
+    floorPlanShape: raw.floorPlanShape ?? null,
+    activeOrder: raw.activeOrder ? adaptOrder(raw.activeOrder) : null,
+    derivedStatus: raw.derivedStatus ?? null,
+    cashierId: raw.cashierId ?? null,
+    subtotalPaisa: raw.subtotalPaisa,
+    discountPaisa: raw.discountPaisa,
+    taxPaisa: raw.taxPaisa,
+    totalPaisa: raw.totalPaisa,
+  };
+}
+
+export function adaptOrderPayment(raw: ApiOrderPaymentRecord): OrderPayment {
+  return {
+    id: raw.id,
+    method: raw.method,
+    amountPaisa: raw.amountPaisa,
+    referenceNo: raw.referenceNo ?? null,
+    recordedAt: raw.recordedAt,
+  };
+}
+
 export function adaptTillSession(raw: ApiTillSession): TillSession {
   return {
     id: raw.id,
@@ -118,5 +186,22 @@ export function adaptTillSession(raw: ApiTillSession): TillSession {
     openedAt: raw.openedAt ?? null,
     closedAt: raw.closedAt ?? null,
     status: raw.status,
+  };
+}
+
+export function adaptTillReconciliation(raw: ApiTillReconciliation): TillReconciliation {
+  return {
+    session: adaptTillSession(raw.session),
+    orderCount: raw.orderCount,
+    cashCollectedPaisa: raw.cashCollectedPaisa,
+    nonCashCollectedPaisa: raw.nonCashCollectedPaisa,
+    liveExpectedCashPaisa: raw.liveExpectedCashPaisa,
+    orders: raw.orders.map((o) => ({
+      orderId: o.orderId,
+      orderNo: o.orderNo ?? null,
+      status: o.status as OrderStatus,
+      totalPaisa: o.totalPaisa,
+      paidPaisa: o.paidPaisa,
+    })),
   };
 }

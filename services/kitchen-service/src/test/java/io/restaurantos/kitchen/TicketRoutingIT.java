@@ -43,12 +43,19 @@ class TicketRoutingIT extends KitchenTestBase {
     void route_createsOneTicketPerStation() {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(
                 orderId,
+                tenantId,
+                branchId,
+                "ORD-001",
                 List.of(
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Burger",  1, "GRILL",  List.of("Extra Cheese"), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Fries",   1, "GRILL",  List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Cola",    2, "DRINKS", List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Sauce",   1, null,     List.of(), "extra hot")
-                )
+                ),
+                1,
+                null,
+                null,
+                "TAKEAWAY"
         );
 
         ticketRoutingService.route(payload, "ORD-001");
@@ -58,6 +65,9 @@ class TicketRoutingIT extends KitchenTestBase {
 
         var stationCodes = tickets.stream().map(t -> t.getStationCode()).toList();
         assertThat(stationCodes).containsExactlyInAnyOrder("GRILL", "DRINKS", "DEFAULT");
+
+        // Order service type propagates onto every routed ticket (KDS service-type visibility).
+        assertThat(tickets).allMatch(t -> "TAKEAWAY".equals(t.getOrderType()));
 
         var grillTicket = tickets.stream().filter(t -> "GRILL".equals(t.getStationCode())).findFirst().orElseThrow();
         assertThat(grillTicket.getItems()).hasSize(2);
@@ -71,10 +81,16 @@ class TicketRoutingIT extends KitchenTestBase {
     void route_isIdempotent_onRedelivery() {
         OrderSentToKdsPayload payload = new OrderSentToKdsPayload(
                 orderId,
+                tenantId,
+                branchId,
+                "ORD-002",
                 List.of(
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Pizza", 1, "OVEN", List.of(), null),
                         new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Water", 1, null,   List.of(), null)
-                )
+                ),
+                1,
+                null,
+                null
         );
 
         ticketRoutingService.route(payload, "ORD-002");

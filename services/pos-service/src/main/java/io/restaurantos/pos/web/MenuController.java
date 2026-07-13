@@ -1,8 +1,9 @@
 package io.restaurantos.pos.web;
 
-import io.restaurantos.pos.domain.model.MenuCategory;
+import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemDto;
 import io.restaurantos.pos.service.MenuService;
+import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,22 +25,23 @@ public class MenuController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<MenuCategory>> listCategories() {
-        return ResponseEntity.ok(menuService.listCategories());
+    public ResponseEntity<ApiResponse<List<MenuCategoryDto>>> listCategories() {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.listCategories()));
     }
 
     @GetMapping("/items")
-    public ResponseEntity<Page<MenuItemDto>> listItems(
+    public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItems(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID branchId,
             Pageable pageable) {
-        return ResponseEntity.ok(menuService.listItems(categoryId, branchId, pageable));
+        Page<MenuItemDto> page = menuService.listItems(categoryId, branchId, pageable);
+        return ResponseEntity.ok(ApiResponse.ok(page.getContent()));
     }
 
     @GetMapping("/items/{id}")
-    public ResponseEntity<MenuItemDto> getItem(
+    public ResponseEntity<ApiResponse<MenuItemDto>> getItem(
             @PathVariable UUID id,
             @RequestParam(required = false) UUID branchId) {
-        return ResponseEntity.ok(menuService.getItem(id, branchId));
+        return ResponseEntity.ok(ApiResponse.ok(menuService.getItem(id, branchId)));
     }
 }

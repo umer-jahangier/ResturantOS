@@ -76,10 +76,38 @@ class OrderStateMachineUnitTest {
                 .isInstanceOf(StateInvalidException.class);
     }
 
+    // ── Self-loop transitions (POS-12 revisions: repeated sendToKds fires) ─────
+
     @Test
-    void sentToKdsToSentToKdsIsIllegal() {
-        assertThatThrownBy(() -> stateMachine.assertTransition(OrderStatus.SENT_TO_KDS, OrderStatus.SENT_TO_KDS))
-                .isInstanceOf(StateInvalidException.class);
+    void sentToKdsToSentToKdsIsAllowed() {
+        assertThatCode(() -> stateMachine.assertTransition(OrderStatus.SENT_TO_KDS, OrderStatus.SENT_TO_KDS))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void partialReadyToPartialReadyIsAllowed() {
+        assertThatCode(() -> stateMachine.assertTransition(OrderStatus.PARTIAL_READY, OrderStatus.PARTIAL_READY))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void readyToReadyIsAllowed() {
+        assertThatCode(() -> stateMachine.assertTransition(OrderStatus.READY, OrderStatus.READY))
+                .doesNotThrowAnyException();
+    }
+
+    // ── Prior transitions preserved (regression guard) ──────────────────────
+
+    @Test
+    void sentToKdsToPartialReadyIsStillAllowed() {
+        assertThatCode(() -> stateMachine.assertTransition(OrderStatus.SENT_TO_KDS, OrderStatus.PARTIAL_READY))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void partialReadyToReadyIsStillAllowed() {
+        assertThatCode(() -> stateMachine.assertTransition(OrderStatus.PARTIAL_READY, OrderStatus.READY))
+                .doesNotThrowAnyException();
     }
 
     @Test

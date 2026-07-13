@@ -2,6 +2,7 @@ package io.restaurantos.pos.repository;
 
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.model.Order;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,6 +30,35 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             @Param("branchId") UUID branchId,
             @Param("statuses") Collection<OrderStatus> statuses,
             Pageable pageable);
+
+    /**
+     * Same as {@link #findByBranchIdAndStatusIn} but additionally scoped to a single
+     * creator (POS-09 own-vs-all-branch visibility — a caller without the all-branch
+     * permission is silently scoped to their own orders, never a client-supplied filter).
+     */
+    @Query("SELECT o FROM Order o WHERE o.branchId = :branchId AND o.status IN :statuses "
+            + "AND o.cashierId = :cashierId ORDER BY o.createdAt DESC")
+    Page<Order> findByBranchIdAndStatusInAndCashierId(
+            @Param("branchId") UUID branchId,
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("cashierId") UUID cashierId,
+            Pageable pageable);
+
+    /**
+     * The current (most-recent) non-terminal order bound to a table (POS-10). "Non-terminal"
+     * = not in the caller-supplied {@code excludedStatuses} set (CLOSED/VOIDED/REFUNDED at the
+     * call site). Ordered newest-first and {@link Limit}-capped so this READ path never throws
+     * {@code IncorrectResultSizeDataAccessException} when a table has more than one active order
+     * (e.g. legacy/orphaned rows). "At most one active order per table" is enforced at WRITE time
+     * (order create / table assignment), not by making this read fragile — a table lookup must
+     * never 500 the floor view.
+     */
+    @Query("SELECT o FROM Order o WHERE o.tableId = :tableId AND o.status NOT IN :excludedStatuses "
+            + "ORDER BY o.createdAt DESC")
+    List<Order> findActiveByTableId(
+            @Param("tableId") UUID tableId,
+            @Param("excludedStatuses") Collection<OrderStatus> excludedStatuses,
+            Limit limit);
 
     @Query("SELECT o FROM Order o WHERE o.tillSessionId = :tillSessionId")
     List<Order> findByTillSessionId(@Param("tillSessionId") UUID tillSessionId);

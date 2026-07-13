@@ -13,11 +13,14 @@ import { resetDb } from "../../lib/offline/db";
 import {
   all,
   count,
+  dismissDead,
   enqueue,
   markFailed,
   markInFlight,
   markSynced,
+  MAX_ATTEMPTS,
   peekPending,
+  retryDead,
 } from "../../lib/offline/outbox";
 
 beforeEach(() => {
@@ -126,6 +129,55 @@ describe("status lifecycle", () => {
     const failed = ops.find((o) => o.id === op.id);
     expect(failed?.attempts).toBe(2);
     expect(failed?.lastError).toBe("err2");
+  });
+
+  it("dead-letters an op after MAX_ATTEMPTS and excludes it from the queued count", async () => {
+    const op = await enqueue({
+      clientOrderId: crypto.randomUUID(),
+      type: "CREATE_ORDER",
+      payload: {},
+    });
+    // Fail up to (but not reaching) the cap → stays FAILED (still auto-retried).
+    for (let i = 0; i < MAX_ATTEMPTS - 1; i++) await markFailed(op.id, `err${i}`);
+    expect((await all()).find((o) => o.id === op.id)?.status).toBe("FAILED");
+
+    // The failure that reaches the cap parks the op as DEAD.
+    await markFailed(op.id, "final");
+    const dead = (await all()).find((o) => o.id === op.id);
+    expect(dead?.status).toBe("DEAD");
+    expect(dead?.attempts).toBe(MAX_ATTEMPTS);
+    // DEAD ops are not "queued" and not "pending" — they need explicit operator action.
+    expect(await count("DEAD")).toBe(1);
+    expect(await peekPending()).toHaveLength(0);
+  });
+
+  it("retryDead requeues dead ops to PENDING with reset attempts", async () => {
+    const op = await enqueue({
+      clientOrderId: crypto.randomUUID(),
+      type: "CREATE_ORDER",
+      payload: {},
+    });
+    for (let i = 0; i < MAX_ATTEMPTS; i++) await markFailed(op.id, "boom");
+    expect(await count("DEAD")).toBe(1);
+
+    await retryDead();
+    const revived = (await all()).find((o) => o.id === op.id);
+    expect(revived?.status).toBe("PENDING");
+    expect(revived?.attempts).toBe(0);
+  });
+
+  it("dismissDead permanently removes dead ops", async () => {
+    const op = await enqueue({
+      clientOrderId: crypto.randomUUID(),
+      type: "CREATE_ORDER",
+      payload: {},
+    });
+    for (let i = 0; i < MAX_ATTEMPTS; i++) await markFailed(op.id, "boom");
+    expect(await count("DEAD")).toBe(1);
+
+    await dismissDead();
+    expect(await count("DEAD")).toBe(0);
+    expect(await all()).toHaveLength(0);
   });
 
   it("markSynced removes the op from the outbox", async () => {

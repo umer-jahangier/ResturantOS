@@ -41,3 +41,23 @@ export function useClosePeriod() {
     },
   });
 }
+
+export function useProvisionPeriods() {
+  const { branchId } = useCurrentUser();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (req: { fiscalYear: number }) =>
+      FinanceRepository.provisionPeriods(req.fiscalYear),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["finance", branchId, "periods"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.finance.openPeriods(branchId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.finance.setupStatus(branchId),
+      });
+    },
+  });
+}

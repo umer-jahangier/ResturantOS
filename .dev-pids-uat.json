@@ -1,0 +1,11 @@
+﻿{
+    "user-service":  21092,
+    "pos-service":  1584,
+    "auth-service":  560,
+    "file-service":  13224,
+    "kitchen-service":  31432,
+    "audit-service":  21676,
+    "authorization-service":  31236,
+    "platform-admin-service":  20452,
+    "finance-service":  32660
+}

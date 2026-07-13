@@ -23,7 +23,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <SessionProvider>
             {children}
             <StatusAnnouncer />
-            <Toaster richColors position="bottom-right" />
+            {/* top-right so toasts never overlap the bottom-right settlement
+                actions (CHARGE NOW) or the offline sync badge (07.1-06 gap fix) */}
+            <Toaster richColors position="top-right" />
           </SessionProvider>
         </QueryProvider>
       </IntlProvider>

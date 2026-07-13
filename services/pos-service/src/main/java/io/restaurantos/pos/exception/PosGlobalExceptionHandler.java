@@ -95,4 +95,15 @@ public class PosGlobalExceptionHandler {
         pd.setType(URI.create("urn:restaurantos:pos:payment-mismatch"));
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
     }
+
+    // Server-side validation failures raised explicitly by service methods (e.g.
+    // instruction char-limit enforcement — RESEARCH.md Security Domain V5) that bypass
+    // the MVC @Valid layer when called directly (service-layer tests, offline sync).
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ProblemDetail> handleValidation(IllegalArgumentException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("VALIDATION_FAILED");
+        pd.setType(URI.create("urn:restaurantos:pos:validation-failed"));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
 }

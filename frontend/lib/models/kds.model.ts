@@ -2,8 +2,11 @@
 // All timestamps expressed as Date (adapters parse ISO strings → Date).
 // No raw API types leak here — adapters translate from api-client schemas.
 
-export type KdsTicketStatus = "PENDING" | "COOKING" | "READY" | "CANCELLED";
-export type KdsItemStatus = "PENDING" | "COOKING" | "READY";
+export type KdsTicketStatus = "PENDING" | "COOKING" | "READY" | "SERVED" | "CANCELLED";
+// Kitchen-owned per-item lifecycle subset (backend TicketItemStatus). COOKING is a
+// retained legacy alias for PREPARING (see kds.schema.ts comment). CANCELLED = pos cancelled
+// the line after it was fired.
+export type KdsItemStatus = "PENDING" | "ACCEPTED" | "PREPARING" | "COOKING" | "READY" | "CANCELLED";
 
 export interface KdsTicketItem {
   id: string;
@@ -13,6 +16,8 @@ export interface KdsTicketItem {
   modifiers: string[];
   notes: string | null;
   status: KdsItemStatus;
+  revisionNo: number;
+  firedAt: string | null;
 }
 
 export interface KdsTicket {
@@ -25,6 +30,13 @@ export interface KdsTicket {
   receivedAt: Date;
   startedAt: Date | null;
   readyAt: Date | null;
+  /** Order-level "Kitchen Notes" callout (UI-SPEC §6). Currently always null — backend
+   * KdsTicketDto does not emit this field yet (known gap, see 07.1-05 SUMMARY). */
+  orderNotes: string | null;
+  /** Table number (07.3-05, KDS-04) — null for takeaway/pickup orders with no table. */
+  tableNumber: string | null;
+  /** Service type (DINE_IN/TAKEAWAY/DELIVERY/PICKUP) — null for legacy tickets. */
+  orderType: string | null;
   items: KdsTicketItem[];
 }
 

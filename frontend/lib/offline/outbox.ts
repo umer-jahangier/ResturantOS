@@ -16,6 +16,15 @@ export async function enqueue(
     createdAt: Date.now(),
   };
   await db.add("outbox", record);
+
+  // Notify sync-badge subscribers immediately (POS-14/POS-07 UAT gap: previously the
+  // badge only updated on mount/reconnect/replay(), never on enqueue itself). Dynamic
+  // import avoids a static circular dependency — sync-engine.ts already imports several
+  // named exports from this module at its top level, mirroring the same
+  // dynamic-import-to-break-the-cycle pattern sync-engine.ts's own getLastError() uses.
+  const { emitProgress } = await import("./sync-engine");
+  await emitProgress();
+
   return record;
 }
 
@@ -50,17 +59,50 @@ export async function markSynced(id: string): Promise<void> {
   await db.delete("outbox", id);
 }
 
-/** Increment attempts, record last error, revert to FAILED status for retry. */
+/**
+ * Max auto-retry attempts before an op is dead-lettered. Once attempts reach this,
+ * markFailed parks the op as DEAD so it stops counting toward the "queued" badge and
+ * stops being auto-retried on every reconnect — preventing the "16 queued — service
+ * unavailable" pill from growing without bound against a persistently-failing backend.
+ */
+export const MAX_ATTEMPTS = 5;
+
+/**
+ * Increment attempts and record the last error. Reverts to FAILED (auto-retried on the
+ * next replay) until attempts reach {@link MAX_ATTEMPTS}, after which the op is parked as
+ * DEAD (terminal — needs explicit operator Retry/Dismiss).
+ */
 export async function markFailed(id: string, error: string): Promise<void> {
   const db = await getDb();
   const op = await db.get("outbox", id);
   if (!op) return;
+  const attempts = op.attempts + 1;
   await db.put("outbox", {
     ...op,
-    status: "FAILED",
-    attempts: op.attempts + 1,
+    status: attempts >= MAX_ATTEMPTS ? "DEAD" : "FAILED",
+    attempts,
     lastError: error,
   });
+}
+
+/** Requeue dead-lettered ops (reset attempts) so an explicit Retry drains them again. */
+export async function retryDead(): Promise<void> {
+  const db = await getDb();
+  const dead = await db.getAllFromIndex("outbox", "by-status", "DEAD");
+  const tx = db.transaction("outbox", "readwrite");
+  await Promise.all(
+    dead.map((op) => tx.store.put({ ...op, status: "PENDING", attempts: 0 })),
+  );
+  await tx.done;
+}
+
+/** Permanently drop dead-lettered ops (operator dismissed them). */
+export async function dismissDead(): Promise<void> {
+  const db = await getDb();
+  const dead = await db.getAllFromIndex("outbox", "by-status", "DEAD");
+  const tx = db.transaction("outbox", "readwrite");
+  await Promise.all(dead.map((op) => tx.store.delete(op.id)));
+  await tx.done;
 }
 
 // ── Counts ────────────────────────────────────────────────────────────────────
@@ -79,6 +121,35 @@ export async function requeueFailed(): Promise<void> {
   const tx = db.transaction("outbox", "readwrite");
   await Promise.all(
     failed.map((op) => tx.store.put({ ...op, status: "PENDING" })),
+  );
+  await tx.done;
+}
+
+/**
+ * Repoint every OTHER queued op that targeted a brand-new order's LOCAL stub id at
+ * the REAL server-assigned id, once that order's own CREATE_ORDER op has synced.
+ *
+ * An order created while offline gets `id = clientOrderId` (the client-generated
+ * UUID — see buildOfflineOrderStub in use-orders.ts) so the UI can render it
+ * immediately; a same-session "add first item" enqueues its APPEND_ITEMS op against
+ * that SAME local id (pos-terminal.tsx's handleItemSelect). The server always
+ * assigns its OWN, different `id` on creation (the client UUID only travels as the
+ * Idempotency-Key), so without this repoint, the queued APPEND_ITEMS/
+ * UPDATE_INSTRUCTIONS op would replay against an order id the server never issued —
+ * silently losing the item (confirmed via 07.1-06 E2E: outbox drained to a
+ * permanently-FAILED op, order stayed at Rs 0.00 after reconnect).
+ */
+export async function repointQueuedOps(oldClientOrderId: string, realOrderId: string): Promise<void> {
+  if (oldClientOrderId === realOrderId) return;
+  const db = await getDb();
+  const all = await db.getAll("outbox");
+  const toRepoint = all.filter(
+    (op) => op.type !== "CREATE_ORDER" && op.clientOrderId === oldClientOrderId,
+  );
+  if (toRepoint.length === 0) return;
+  const tx = db.transaction("outbox", "readwrite");
+  await Promise.all(
+    toRepoint.map((op) => tx.store.put({ ...op, clientOrderId: realOrderId })),
   );
   await tx.done;
 }

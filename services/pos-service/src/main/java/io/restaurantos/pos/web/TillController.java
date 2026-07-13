@@ -2,6 +2,7 @@ package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.CloseTillRequest;
 import io.restaurantos.pos.dto.OpenTillRequest;
+import io.restaurantos.pos.dto.TillReconciliationDto;
 import io.restaurantos.pos.dto.TillSessionDto;
 import io.restaurantos.pos.service.TillService;
 import io.restaurantos.shared.api.ApiResponse;
@@ -49,8 +50,19 @@ public class TillController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TillSessionDto>>> listTills(
             @RequestParam(required = false) UUID cashierId,
+            @RequestParam(required = false) UUID branchId,
             @RequestParam(required = false) String status) {
-        List<TillSessionDto> dtos = tillService.listTills(cashierId, status);
+        // branchId → admin till-review history (all sessions, newest first); otherwise the
+        // legacy cashier-scoped lookup (used by the active-till bar).
+        List<TillSessionDto> dtos = branchId != null
+                ? tillService.listTillsForBranch(branchId)
+                : tillService.listTills(cashierId, status);
         return ResponseEntity.ok(ApiResponse.ok(dtos));
+    }
+
+    /** Admin till-review: the session + every order within it + cash/non-cash collected. */
+    @GetMapping("/{id}/reconciliation")
+    public ResponseEntity<ApiResponse<TillReconciliationDto>> getReconciliation(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(tillService.getReconciliation(id)));
     }
 }

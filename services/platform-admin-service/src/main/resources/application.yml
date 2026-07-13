@@ -73,4 +73,4 @@ restaurantos:
     uri: ${FINANCE_SERVICE_URI:http://localhost:8086}
   provisioning:
     seed-coa:
-      enabled: ${PROVISIONING_SEED_COA_ENABLED:false}
+      enabled: ${PROVISIONING_SEED_COA_ENABLED:true}

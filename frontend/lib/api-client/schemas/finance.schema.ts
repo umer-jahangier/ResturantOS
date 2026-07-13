@@ -77,6 +77,15 @@ export const apiFinanceSetupStatusSchema = z.object({
   provisioned: z.boolean(),
 });
 
+export const apiProvisionPeriodsRequestSchema = z.object({
+  fiscalYear: z.number().int(),
+});
+
+export const apiProvisioningResultSchema = z.object({
+  accountsSeeded: z.number().int().nonnegative(),
+  periodsSeeded: z.number().int().nonnegative(),
+});
+
 export const apiCreateJeSchema = z.object({
   entryDate: z.string(),
   description: z.string(),
@@ -247,3 +256,5 @@ export type ApiExpense = z.infer<typeof apiExpenseSchema>;
 export type ApiCreateExpenseRequest = z.infer<typeof apiCreateExpenseSchema>;
 export type ApiApAgingBucket = z.infer<typeof apiApAgingBucketSchema>;
 export type ApiApAging = z.infer<typeof apiApAgingSchema>;
+export type ApiProvisionPeriodsRequest = z.infer<typeof apiProvisionPeriodsRequestSchema>;
+export type ApiProvisioningResult = z.infer<typeof apiProvisioningResultSchema>;

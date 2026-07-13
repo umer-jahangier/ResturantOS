@@ -15,6 +15,7 @@ import type {
   ApiArTransaction,
   ApiArAging,
   ApiCustomerAccountStatement,
+  ApiProvisioningResult,
 } from "@/lib/api-client/schemas/finance.schema";
 import type {
   Account,
@@ -34,6 +35,7 @@ import type {
   ArTxnType,
   ArAging,
   CustomerAccountStatement,
+  ProvisioningResult,
 } from "@/lib/models/finance.model";
 
 export function adaptAccount(raw: ApiAccount): Account {
@@ -183,5 +185,12 @@ export function adaptArStatement(raw: ApiCustomerAccountStatement): CustomerAcco
     account: adaptCustomerAccount(raw.account),
     balancePaisa: raw.balancePaisa,
     transactions: raw.transactions.map(adaptArTransaction),
+  };
+}
+
+export function adaptProvisioningResult(raw: ApiProvisioningResult): ProvisioningResult {
+  return {
+    accountsSeeded: raw.accountsSeeded,
+    periodsSeeded: raw.periodsSeeded,
   };
 }

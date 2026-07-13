@@ -24,6 +24,7 @@ import {
   createArSettlementInputSchema,
   apiArAgingSchema,
   apiCustomerAccountStatementSchema,
+  apiProvisioningResultSchema,
   type ApiCreateExpenseRequest,
   type ApiCreateCustomerAccountRequest,
   type ApiCreateArChargeRequest,
@@ -41,6 +42,7 @@ import {
   adaptArTransaction,
   adaptArAging,
   adaptArStatement,
+  adaptProvisioningResult,
 } from "@/lib/adapters/finance.adapter";
 import type {
   Account,
@@ -62,6 +64,7 @@ import type {
   CreateArSettlementInput,
   ArAging,
   CustomerAccountStatement,
+  ProvisioningResult,
 } from "@/lib/models/finance.model";
 
 // Layer-2 Finance repository. Calls Layer-1 request helpers, parses via Zod,
@@ -161,6 +164,14 @@ export const FinanceRepository = {
       { headers: { "X-TOTP-Verified": "true" } },
     );
     return adaptAccountingPeriod(apiAccountingPeriodSchema.parse(response.data.data));
+  },
+
+  async provisionPeriods(fiscalYear: number): Promise<ProvisioningResult> {
+    const raw = await post<{ fiscalYear: number }, unknown>(
+      "/api/v1/finance/periods/provision",
+      { fiscalYear },
+    );
+    return adaptProvisioningResult(apiProvisioningResultSchema.parse(raw));
   },
 
   // ── General Ledger ─────────────────────────────────────────────────────────

@@ -6,12 +6,12 @@ import io.restaurantos.pos.domain.model.MenuItem;
 import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
-import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.shared.event.OutboxRepository;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,18 +99,22 @@ class OrderRlsIsolationIT extends PosTestBase {
     }
 
     @Test
-    void getOrder_crossTenant_throws_OrderNotFoundException() {
-        // Create an order under tenant A
+    void getOrder_crossBranch_deniedByBranchGuard() {
+        // Create an order under tenant A / branch A
         tenantContext.set(tenantA, branchA, null, null);
         UUID clientId = UUID.randomUUID();
         OrderDto orderA = orderService.createOrder(
                 new CreateOrderRequest(branchA, clientId, null, null, 1, null, null));
         orderService.addItem(orderA.id(), new AddOrderItemRequest(menuItemIdA, branchA, 1, null, null));
 
-        // Switch to tenant B, try to GET tenant A's order
+        // Switch to tenant B / branch B, try to GET tenant A's order by passing branchA.
+        // The branch-isolation guard (requireOwnBranch) now rejects the request-supplied
+        // sibling branchId BEFORE the tenant-RLS repository lookup — a stronger, earlier
+        // denial than the previous OrderNotFoundException. Cross-tenant RLS itself remains
+        // covered by order_created_under_tenantA_not_visible_under_tenantB (via listOrders).
         tenantContext.set(tenantB, branchB, null, null);
 
         assertThatThrownBy(() -> orderService.getOrder(orderA.id(), branchA))
-                .isInstanceOf(PosExceptions.OrderNotFoundException.class);
+                .isInstanceOf(PermissionDeniedException.class);
     }
 }

@@ -68,3 +68,7 @@ restaurantos:
     uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8096}
   jwks:
     uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+
+finance:
+  period:
+    auto-seed-on-miss: ${FINANCE_PERIOD_AUTO_SEED_ON_MISS:true}

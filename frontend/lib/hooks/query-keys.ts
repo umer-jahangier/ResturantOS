@@ -20,10 +20,17 @@ export const queryKeys = {
     menuItems: (branchId: string, categoryId?: string) =>
       ["pos", branchId, "menu-items", categoryId] as const,
     tables: (branchId: string) => ["pos", branchId, "tables"] as const,
+    tableDetail: (branchId: string, tableId: string) =>
+      ["pos", branchId, "tables", tableId, "active-order"] as const,
     orders: (branchId: string, statuses?: string[]) =>
       ["pos", branchId, "orders", statuses] as const,
+    orderSummaries: (branchId: string, statuses?: string[]) =>
+      ["pos", branchId, "order-summaries", statuses] as const,
     order: (branchId: string, id: string) => ["pos", branchId, "orders", id] as const,
+    orderPayments: (branchId: string, orderId: string) =>
+      ["pos", branchId, "orders", orderId, "payments"] as const,
     till: (tillId: string) => ["pos", "tills", tillId] as const,
+    activeTill: (cashierId: string) => ["pos", "tills", "active", cashierId] as const,
   },
   finance: {
     accounts: (branchId: string, filters?: AccountFilters) =>
@@ -58,6 +65,8 @@ export const queryKeys = {
   kds: {
     tickets: (branchId: string, stationCode?: string, status?: string) =>
       ["kds", branchId, "tickets", stationCode, status] as const,
+    ticketDetail: (branchId: string, ticketId: string) =>
+      ["kds", branchId, "tickets", ticketId] as const,
     stations: (branchId: string) => ["kds", branchId, "stations"] as const,
   },
 } as const;

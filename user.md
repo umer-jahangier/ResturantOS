@@ -2,6 +2,8 @@ cashier@demo.local / Cashier#2026 / demo
 owner@demo.local / Owner#2026 / demo
 accountant@demo.local / Accountant#2026 / demo
 finance_demo@demo.local / Finance#2026 / demo
+chef@demo.local / Chef#2026 / demo
+manager@demo.local / Manager#2026 / demo
  
 
 pip install psycopg2-binary pyotp cryptography

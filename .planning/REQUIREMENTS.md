@@ -100,19 +100,46 @@
 
 ### POS (POS)
 
-- [ ] **POS-01**: Staff can open a table/order and add items; order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED)
-- [ ] **POS-02**: Staff can send order to kitchen (`ORDER_SENT_TO_KDS`, station routing via `kds_station`)
-- [ ] **POS-03**: Staff can take split-tender payments; 1-paisa rounding resolution defined; close is idempotent
-- [ ] **POS-04**: Staff can void/refund per permission and OPA threshold; events published with idempotency
-- [ ] **POS-05**: Discounts cannot push a line below zero
-- [ ] **POS-06**: Till open/close with reconciliation; `TILL_OPENED`/`TILL_CLOSED`
-- [ ] **POS-07**: Offline POS queues orders (Service Worker + IndexedDB) and syncs with `client_order_id` as idempotency key
-- [ ] **POS-08**: `ORDER_CLOSED` published with `customerId` for downstream consumers
+- [x] **POS-01**: Staff can open a table/order and add items; order state machine enforced (DRAFT→OPEN→SENT_TO_KDS→…→CLOSED/VOIDED/REFUNDED)
+- [x] **POS-02**: Staff can send order to kitchen (`ORDER_SENT_TO_KDS`, station routing via `kds_station`)
+- [x] **POS-03**: Staff can take split-tender payments; 1-paisa rounding resolution defined; close is idempotent
+- [x] **POS-04**: Staff can void/refund per permission and OPA threshold; events published with idempotency
+- [x] **POS-05**: Discounts cannot push a line below zero
+- [x] **POS-06**: Till open/close with reconciliation; `TILL_OPENED`/`TILL_CLOSED`
+- [x] **POS-07**: Offline POS queues orders (Service Worker + IndexedDB) and syncs with `client_order_id` as idempotency key
+- [x] **POS-08**: `ORDER_CLOSED` published with `customerId` for downstream consumers
+
+> **Phase 7.1 (INSERTED 2026-07-11)** — production-hardening of the Phase-7 POS MVP. Turns "create an order and fire it at the kitchen" into a real dine-in operations surface: active-order management, table-centric flow, item-level kitchen tracking, add-to-existing-order kitchen ticket revisions, instructions, a fast cashier terminal, and wiring of already-built-but-unrendered payment/till/void UI (Phase-7 UAT gap).
+
+- [x] **POS-09**: Order Management screen — cashiers/servers list active orders (own or all-branch per permission) with derived status, and can open, edit, reopen, and complete payment on any active order; an order remains OPEN (active) until it is paid and closed
+- [x] **POS-10**: Table-centric dine-in — the table floor view is the primary dine-in entry point; selecting a table shows its current active order, order status, assigned server/cashier, and live bill summary; every dine-in order is linked to a table
+- [x] **POS-11**: Item-level status lifecycle — each order line tracks its own status (`PENDING`→`SENT`→`ACCEPTED`→`PREPARING`→`READY`→`SERVED`, plus `CANCELLED`); the aggregate order status (`DRAFT`/`IN_PROGRESS`/`PARTIALLY_SERVED`/`SERVED`/`CLOSED`) is **derived** from line statuses, not set independently
+- [x] **POS-12**: Order revisions / add-to-existing — items can be added to an already-sent active order and only the newly-added items are sent to the kitchen as a new revision; previously-sent/served lines are never resent; a per-order revision history (Rev 1, Rev 2, …) is maintained (implemented per researched industry-standard POS behavior)
+- [x] **POS-13**: Order & item instructions — an order-level special-instructions field plus optional per-item instructions (e.g. "no onions", "medium rare"), captured at create/edit and surfaced to the kitchen on the ticket + order-detail view
+- [x] **POS-14**: Wire cashier settlement actions — render the already-built `PaymentPanel`, `TillSessionBar`, and `VoidRefundDialog` into the live POS/order flow so a cashier can charge, open/close a till, and void/refund through the UI; close the Phase-7 UAT gaps (void 403, offline sync-badge not updating on reconnect)
+- [x] **POS-15**: Cashier experience — fast order creation, quick item search, easy editing of active orders, clear order/item status indicators, efficient service navigation; fix the terminal state bugs (first-item add, item-cap after N items)
+
+> **Phase 07.3 (INSERTED 2026-07-12)** — production bug-fixes + UX revamp of the Phase-7.1 POS/KDS from testing feedback (`bugs.md`): removes draft-order persistence, real-time kitchen↔POS item-status sync, decouples payment from close (Paid AND Served ⇒ CLOSED), replaces modal-heavy flows with dedicated full-page/large views, and redesigns the KDS into station-isolated status columns.
+
+- [x] **POS-16**: No-draft lazy order creation — selecting menu items builds a client-only cart; an order is persisted to the DB only when the cashier explicitly Sends to Kitchen or Charges; the `DRAFT` status is retired from all user-visible flows and no orphaned/empty orders ever appear in table view, Order Management, or any order list
+- [x] **POS-17**: Cart quantity handling — selecting the same menu item increments a single line to ×N (with +/− controls) instead of creating duplicate rows, unless modifiers or special instructions differ; re-ordering an already-fired item creates a new PENDING revision line rather than mutating a fired line
+- [x] **POS-18**: Optional table + order type — order creation supports Dine-in / Takeaway / Pickup; table assignment is optional (takeaway/pickup need none); a searchable table selector shows Available/Occupied status and prevents selecting occupied tables
+- [x] **POS-19**: Terminal reset & charge gating — after Send to Kitchen the terminal offers an explicit Clear / New Order action (the fired order stays editable in Order Management); Charge Now is enabled only after the order has been sent to the kitchen (i.e. persisted); no previous selections leak into the next order
+- [x] **POS-20**: Real-time kitchen→POS item-status sync — per-item kitchen status changes propagate to pos-service so the POS reflects live item status without a manual reopen; opening an order always shows current, non-stale item statuses
+- [x] **POS-21**: Add-to-existing from Order Management — items added to an active order from the Order Management detail view persist immediately, appear instantly in the UI, fire ONLY the newly-added items to the kitchen as a new revision, and Order Management provides a manual Refresh action
+- [x] **POS-22**: Full-page settlement surface — Charge Now is a dedicated full-page/large view (not a small modal) showing order no., table, customer, cashier, order time, item list with qty/status/notes, tax/discount/charge breakdown, payment history, payment methods, and remaining balance
+- [x] **POS-23**: Settlement semantics — recording a payment sets a derived payment status (Unpaid/Partially Paid/Paid) and persists `OrderPayment` rows WITHOUT closing the order; an order transitions to `CLOSED` only when it is BOTH fully Paid AND fully Served, enforced on both the payment flow and the mark-served flow; a paid-but-unserved order shows Paid with its live status
+- [x] **POS-24**: Order Management completeness — closed/paid orders are visible with status filters and a search box; every row shows payment status (Paid/Unpaid/Partially Paid/Refunded); the Cover column is replaced with total item quantity (and optional unique-item count); an Assign Table action assigns an available table to a tableless order (occupied tables blocked) updating order + table status immediately; already-paid orders block duplicate payment while staying accessible for history
+- [x] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
+- [x] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
 
 ### Kitchen / KDS (KDS)
 
-- [ ] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
-- [ ] **KDS-02**: `ORDER_READY` notifies POS
+- [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
+- [x] **KDS-02**: `ORDER_READY` notifies POS
+- [x] **KDS-03**: KDS revision & detail (Phase 7.1) — the board renders stable (non-jumping) cards, lets staff open a ticket for full order detail, visually distinguishes newly-added revision items from earlier ones, shows special instructions/kitchen notes, and displays per-item status rather than only an order-level status
+- [x] **KDS-04**: Station-isolated KDS redesign (Phase 07.3) — each kitchen station has its own isolated view with New / Started / Preparing / Ready columns reflecting item-level status (mixed item statuses within one order supported); collapsed cards show only order number, table, time, and menu items; selecting a card opens a dedicated detail page (not a modal); stations are provisioned/seeded so the board renders, and the table number is propagated from the order to the ticket
+- [x] **KDS-05**: Kitchen prioritization (Phase 07.3) — newest orders are surfaced and long-running orders auto-highlight via subtle indicators (border/timer/color driven by the station escalation threshold) rather than full-screen effects; the board scales for many simultaneous orders
 
 ### Inventory (INV)
 
@@ -135,17 +162,21 @@
 
 ### Finance (FIN)
 
-- [ ] **FIN-01**: Pakistan COA seeded per tenant; accounts queryable
-- [ ] **FIN-02**: Journal entries are balanced (DB deferred trigger) and immutable; reversal-only corrections
+- [x] **FIN-01**: Pakistan COA seeded per tenant; accounts queryable
+- [x] **FIN-02**: Journal entries are balanced (DB deferred trigger) and immutable; reversal-only corrections
 - [ ] **FIN-03**: Auto-posting recipes for order close (revenue + COGS), refund, GR/IR, vendor invoice/payment, expense, wastage, stock count, transfer, payroll — all balanced and idempotent via `posted_source_events`
-- [ ] **FIN-04**: Accounting periods (12/FY, Pakistan Jul–Jun) seeded; period close sets LOCKED with pre-checks via internal APIs (no cross-service SQL)
+- [x] **FIN-04**: Accounting periods (12/FY, Pakistan Jul–Jun) seeded; period close sets LOCKED with pre-checks via internal APIs (no cross-service SQL)
 - [ ] **FIN-05**: AP/AR tracked; expense approval respects OPA approval limits. **AR scope decided
   2026-07-13 (10-17-A): AR is IN scope**, sourced from corporate/house accounts (restaurants bill
   corporate clients and regulars on account; the customer settles later). Split: Phase 10 (10-18) builds
   the AR sub-ledger, the customer/house-account entity, AR balances + AR aging, and the internal seam
-  POST /internal/finance/ar/charges; Phase 7 wires the POS "charge to account" tender to that seam on
-  order close. AP half shipped (10-02/10-05, aging report + OPA-limited expense approval).
-- [ ] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
+  POST /internal/finance/ar/charges; Phase 7 (07-09) wires the POS "charge to account" tender to that
+  seam on order close. AP half shipped (10-02/10-05, aging report + OPA-limited expense approval).
+- [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
+- [x] **FIN-07**: Every ACTIVE tenant is guaranteed at least one open accounting period covering the current business date — the onboarding saga aborts (marks the tenant PROVISIONING_FAILED) rather than silently continuing past a finance-seeding failure
+- [x] **FIN-08**: A permissioned self-service endpoint (POST /api/v1/finance/periods/provision, gated finance.period.open) lets an OWNER/TENANT_ADMIN/ACCOUNTANT (re-)provision CoA + accounting periods for their own tenant without platform-ops, resolving tenantId from JWT context only
+- [x] **FIN-09**: The auto-seed-on-miss fallback in getPeriodStatus is config-gated (finance.period.auto-seed-on-miss, default on in dev/staging, off in prod) and emits a WARN audit log when it seeds
+- [x] **FIN-10**: The Finance → Periods page provides a calendar-based "Provision Periods" UI, gated behind finance.period.open, that lets a permissioned user browse to any fiscal year (past, current, or future — computed dynamically from the existing Jul-Jun formula, never a hardcoded literal), preview the 12 monthly periods that will be created, and confirm provisioning via the FIN-08 endpoint
 
 ### HR & Payroll (HR)
 
@@ -272,20 +303,45 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | NOTIF-01 | Phase 5 | Pending |
 | AUDIT-01 | Phase 5 | Pending |
 | FILE-01 | Phase 5 | Pending |
-| FIN-01 | Phase 6 | Pending |
-| FIN-02 | Phase 6 | Pending |
-| FIN-04 | Phase 6 | Pending |
-| FIN-06 | Phase 6 | Pending |
-| POS-01 | Phase 7 | Pending |
-| POS-02 | Phase 7 | Pending |
-| POS-03 | Phase 7 | Pending |
-| POS-04 | Phase 7 | Pending |
-| POS-05 | Phase 7 | Pending |
-| POS-06 | Phase 7 | Pending |
-| POS-07 | Phase 7 | Pending |
-| POS-08 | Phase 7 | Pending |
-| KDS-01 | Phase 7 | Pending |
-| KDS-02 | Phase 7 | Pending |
+| FIN-01 | Phase 6 | Complete |
+| FIN-02 | Phase 6 | Complete |
+| FIN-04 | Phase 6 | Complete |
+| FIN-06 | Phase 6 | Complete |
+| FIN-07 | Phase 07.2 | Complete |
+| FIN-08 | Phase 07.2 | Complete |
+| FIN-09 | Phase 07.2 | Complete |
+| FIN-10 | Phase 07.2 | Complete |
+| POS-01 | Phase 7 | Complete |
+| POS-02 | Phase 7 | Complete |
+| POS-03 | Phase 7 | Complete |
+| POS-04 | Phase 7 | Complete |
+| POS-05 | Phase 7 | Complete |
+| POS-06 | Phase 7 | Complete |
+| POS-07 | Phase 7 | Complete |
+| POS-08 | Phase 7 | Complete |
+| KDS-01 | Phase 7 | Complete |
+| KDS-02 | Phase 7 | Complete |
+| POS-09 | Phase 7.1 | Complete |
+| POS-10 | Phase 7.1 | Complete |
+| POS-11 | Phase 7.1 | Complete |
+| POS-12 | Phase 7.1 | Complete |
+| POS-13 | Phase 7.1 | Complete |
+| POS-14 | Phase 7.1 | Complete |
+| POS-15 | Phase 7.1 | Complete |
+| KDS-03 | Phase 7.1 | Complete |
+| POS-16 | Phase 07.3 | Complete |
+| POS-17 | Phase 07.3 | Complete |
+| POS-18 | Phase 07.3 | Complete |
+| POS-19 | Phase 07.3 | Complete |
+| POS-20 | Phase 07.3 | Complete |
+| POS-21 | Phase 07.3 | Complete |
+| POS-22 | Phase 07.3 | Complete |
+| POS-23 | Phase 07.3 | Complete |
+| POS-24 | Phase 07.3 | Complete |
+| POS-25 | Phase 07.3 | Complete |
+| POS-26 | Phase 07.3 | Complete |
+| KDS-04 | Phase 07.3 | Complete |
+| KDS-05 | Phase 07.3 | Complete |
 | INV-01 | Phase 8 | Pending |
 | INV-02 | Phase 8 | Pending |
 | INV-03 | Phase 8 | Pending |
@@ -320,9 +376,13 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | NLQ-02 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: 104 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
-- Mapped to phases: 104/104 (100%) — each requirement mapped to exactly one phase
+
+- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
+- Mapped to phases: 112/112 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
+- 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)
+- 2026-07-11 addition (+4): Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning — FIN-07 (guaranteed open period at onboarding / saga fail-not-swallow), FIN-08 (self-service finance.period.open provision endpoint), FIN-09 (config-gated auto-seed-on-miss with WARN audit), FIN-10 (calendar-based frontend provisioning UI)
+- 2026-07-12 addition (+13): Phase 07.3 (INSERTED) POS/KDS production bug-fixes + UX revamp (bugs.md testing feedback) — POS-16 (no-draft lazy order creation), POS-17 (cart quantity merge + ±), POS-18 (optional table + order type), POS-19 (terminal reset & charge gating), POS-20 (real-time kitchen→POS item-status sync), POS-21 (add-to-existing fires revision from Order Management), POS-22 (full-page settlement surface), POS-23 (settlement semantics: Paid AND Served ⇒ CLOSED), POS-24 (Order Management: closed/search/payment-status/item-qty/assign-table), POS-25 (POS operational modal→page revamp), POS-26 (connectivity 404 fix), KDS-04 (station-isolated status-column redesign), KDS-05 (kitchen prioritization)
 - 2026-06-25 addition (+9): PLATFORM-10 (SuperAdmin tier-independent per-tenant module enable/disable); HR-04/05/06 (shift scheduling, attendance & leave, labour-cost tracking); PUR-05/06 (vendor scorecard, spend analytics); CRM-03/04/05 (loyalty tiers, promotion engine, feedback) — all six primary modules are now core/mandatory in every tenant build
 - 2026-06-25 addition (+2): HR-07 (biometric attendance device integration — LAN ADMS push + USB bridge agent, device-authenticated ingest); HR-08 (biometric privacy — edge matching, no central raw biometrics); GW-02 extended for the device-authenticated ingest path class
 - v2 requirements (deferred, not mapped): NOTIF-02, NOTIF-03, PLATFORM-08, PLATFORM-09, INV-08, RPT-03, AUTHZ-05, AUDIT-02
@@ -330,3 +390,5 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 ---
 *Requirements defined: 2026-06-22*
 *Last updated: 2026-06-25 — all six business modules made core/mandatory; added SuperAdmin tier-independent per-tenant module control (PLATFORM-10), operational sub-features for HR/Vendor/CRM, and biometric attendance device integration (HR-07/08, GW-02 device-auth ingest)*
+*Last updated: 2026-07-11 — Phase 7.1 (INSERTED) POS production-hardening: +8 requirements (POS-09..15, KDS-03) for order management, table-centric dine-in, item-level kitchen status, add-to-existing kitchen ticket revisions, order/item instructions, cashier UX, and wiring the unrendered payment/till/void UI found in the Phase-7 UAT*
+*Last updated: 2026-07-11 — Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning: +4 requirements (FIN-07..10) for guaranteed open-period-at-onboarding, self-service provision endpoint, config-gated auto-seed fallback, and calendar-based frontend provisioning UI; also reconciled Phase 6 / FIN-01,02,04,06 to Complete*

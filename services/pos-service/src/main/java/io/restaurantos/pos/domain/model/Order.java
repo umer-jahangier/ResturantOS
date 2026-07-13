@@ -1,5 +1,6 @@
 package io.restaurantos.pos.domain.model;
 
+import io.restaurantos.pos.domain.enums.DerivedOrderStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.shared.entity.TenantAuditableEntity;
@@ -35,6 +36,10 @@ public class Order extends TenantAuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private OrderStatus status = OrderStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "derived_status", nullable = false, length = 20)
+    private DerivedOrderStatus derivedStatus = DerivedOrderStatus.DRAFT;
 
     @Column(name = "table_id")
     private UUID tableId;

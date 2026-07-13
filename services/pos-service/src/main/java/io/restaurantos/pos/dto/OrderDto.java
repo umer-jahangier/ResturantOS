@@ -1,6 +1,7 @@
 package io.restaurantos.pos.dto;
 
-import io.restaurantos.pos.domain.enums.KdsItemStatus;
+import io.restaurantos.pos.domain.enums.DerivedOrderStatus;
+import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 
@@ -14,6 +15,7 @@ public record OrderDto(
         String orderNo,
         OrderType type,
         OrderStatus status,
+        DerivedOrderStatus derivedStatus,
         UUID tableId,
         int coverCount,
         UUID cashierId,
@@ -30,6 +32,9 @@ public record OrderDto(
         long version,
         List<OrderItemDto> items
 ) {
+    // Wire field kept named kdsStatus (type OrderItemStatus, the 7-value lifecycle) rather
+    // than renamed to itemStatus — plan 07.1-01's decision, avoiding a second JSON-contract
+    // break this cycle; the frontend enum-value/name update is deferred (PATTERNS.md).
     public record OrderItemDto(
             UUID id,
             UUID menuItemId,
@@ -37,7 +42,9 @@ public record OrderDto(
             long unitPriceSnapshot,
             int quantity,
             String kdsStation,
-            KdsItemStatus kdsStatus,
+            OrderItemStatus kdsStatus,
+            int revisionNo,
+            Instant firedAt,
             long discountPaisa,
             long taxPaisa,
             long lineTotalPaisa,

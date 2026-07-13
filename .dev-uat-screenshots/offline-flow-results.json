@@ -1,0 +1,7 @@
+{
+  "offlineBannerVisible": true,
+  "syncBadgeVisible": false,
+  "syncBadgeText": null,
+  "syncBadgeVisibleAfterReload": false,
+  "syncBadgeHiddenAfterReconnect": true
+}

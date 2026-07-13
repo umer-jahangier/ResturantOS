@@ -7,15 +7,19 @@ import { currentPakistanFiscalYear } from "@/lib/utils/pakistan-fiscal-year";
 import { PeriodStatusChip } from "@/components/finance/PeriodStatusChip";
 import { PeriodCloseModal } from "@/components/finance/PeriodCloseModal";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
+import { FiscalYearNav } from "@/components/finance/FiscalYearNav";
+import { ProvisionPeriodDialog } from "@/components/finance/ProvisionPeriodDialog";
+import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 // URL: /app/finance/periods
 export default function PeriodsPage() {
-  const fiscalYear = currentPakistanFiscalYear();
+  const [fiscalYear, setFiscalYear] = useState(() => currentPakistanFiscalYear());
   const { data: periods, isLoading } = usePeriods(fiscalYear);
   const { data: setupStatus } = useFinanceSetupStatus();
   const [closingPeriod, setClosingPeriod] = useState<AccountingPeriod | null>(null);
+  const [provisionOpen, setProvisionOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -25,6 +29,18 @@ export default function PeriodsPage() {
           <p className="text-sm text-muted-foreground">
             FY {fiscalYear - 1}–{fiscalYear} (Jul – Jun)
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <FiscalYearNav fiscalYear={fiscalYear} onChange={setFiscalYear} />
+          <PermissionGuard require="finance.period.open">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setProvisionOpen(true)}
+            >
+              Provision Periods
+            </Button>
+          </PermissionGuard>
         </div>
       </div>
 
@@ -41,8 +57,8 @@ export default function PeriodsPage() {
           title="No periods found"
           description={
             setupStatus?.provisioned
-              ? "No periods for the current fiscal year."
-              : "System Admin need to run the script to load COA and periods."
+              ? `No periods provisioned for FY ${fiscalYear} yet. Use "Provision Periods" above to open it.`
+              : 'No chart of accounts or periods yet for this tenant. An Owner, Tenant Admin, or Accountant can provision them using "Provision Periods" above.'
           }
         />
       )}
@@ -103,6 +119,13 @@ export default function PeriodsPage() {
           onSuccess={() => setClosingPeriod(null)}
         />
       )}
+
+      <ProvisionPeriodDialog
+        key={fiscalYear}
+        open={provisionOpen}
+        onOpenChange={setProvisionOpen}
+        initialFiscalYear={fiscalYear}
+      />
     </div>
   );
 }

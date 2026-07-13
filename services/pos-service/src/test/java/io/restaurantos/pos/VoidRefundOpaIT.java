@@ -8,16 +8,18 @@ import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.OrderService;
+import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.RefundService;
-import io.restaurantos.pos.service.SplitTenderCalculator;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaDecision;
+import io.restaurantos.shared.authz.OpaInput;
 import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,11 +33,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class VoidRefundOpaIT extends PosTestBase {
 
     @Autowired OrderService orderService;
+    @Autowired PaymentService paymentService;
     @Autowired RefundService refundService;
     @Autowired OutboxRepository outboxRepository;
     @Autowired MenuItemRepository menuItemRepository;
@@ -70,7 +74,7 @@ class VoidRefundOpaIT extends PosTestBase {
         item = menuItemRepository.save(item);
         menuItemId = item.getId();
 
-        // Stub Finance period as OPEN (needed for closeOrder in refund tests)
+        // Stub Finance period as OPEN (needed for closeViaServeAndPay in refund tests)
         when(financePeriodClient.getPeriodStatus(any(), any(), any()))
                 .thenReturn(new ApiResponse<>(
                         new FinancePeriodClient.PeriodStatusDto(UUID.randomUUID(), "OPEN", 2026, 6),
@@ -99,9 +103,8 @@ class VoidRefundOpaIT extends PosTestBase {
 
     private OrderDto createClosedOrder() {
         OrderDto order = createOpenOrder();
-        var payments = List.of(new SplitTenderCalculator.PaymentEntry("CASH", order.totalPaisa(), null));
         when(opaClient.evaluate(any(), any())).thenReturn(new OpaDecision(true));
-        return orderService.closeOrder(order.id(), new CloseOrderRequest(payments), UUID.randomUUID().toString());
+        return closeViaServeAndPay(orderService, paymentService, order, branchId);
     }
 
     // ── Void tests ────────────────────────────────────────────────────────────
@@ -115,6 +118,10 @@ class VoidRefundOpaIT extends PosTestBase {
 
         OrderDto voided = orderService.voidOrder(order.id(), new VoidOrderRequest("Customer left"), UUID.randomUUID().toString());
         assertThat(voided.status()).isEqualTo(OrderStatus.VOIDED);
+
+        ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
+        verify(opaClient).evaluate(eq("pos"), captor.capture());
+        assertThat(captor.getValue().resource().createdBy()).isEqualTo(cashierId);
 
         long voidedEvents = outboxRepository.findAll().stream()
                 .filter(e -> "ORDER_VOIDED".equals(e.getEventType()))

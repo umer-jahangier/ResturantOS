@@ -4,6 +4,7 @@ import io.restaurantos.finance.domain.enums.PeriodStatus;
 import io.restaurantos.finance.dto.AccountingPeriodDto;
 import io.restaurantos.finance.dto.CreateJeLineRequest;
 import io.restaurantos.finance.dto.CreateJeRequest;
+import io.restaurantos.finance.dto.PeriodStatusResponse;
 import io.restaurantos.finance.dto.ProvisioningResult;
 import io.restaurantos.finance.feign.InventoryInternalClient;
 import io.restaurantos.finance.feign.PosInternalClient;
@@ -13,6 +14,7 @@ import io.restaurantos.finance.service.AccountingPeriodService;
 import io.restaurantos.finance.service.JournalEntryService;
 import io.restaurantos.finance.service.PeriodCloseService;
 import io.restaurantos.finance.service.ProvisioningService;
+import io.restaurantos.finance.util.PakistanFiscalYear;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -108,6 +110,24 @@ class AccountingPeriodIT extends FinanceTestBase {
     }
 
     @Test
+    void getPeriodStatus_dateOutsideSeededFiscalYear_autoSeedsCorrectPeriod() {
+        // Seed only Pakistan FY2026 (period 1 = July 2025, period 12 = June 2026).
+        // Deliberately do not seed FY2027.
+        provisioningService.provision(tenantId, 2026);
+        tenantContext.set(tenantId, null, null, null);
+
+        // July 10 2026 falls outside FY2026 (ends June 30 2026) — belongs to FY2027.
+        PeriodStatusResponse status = periodService.getPeriodStatus(UUID.randomUUID(), LocalDate.of(2026, 7, 10));
+
+        assertThat(status.fiscalYear()).isEqualTo(2027);
+        assertThat(status.periodNo()).isEqualTo(1);
+        assertThat(status.status()).isEqualTo(PeriodStatus.OPEN);
+
+        // Auto-seed side effect: FY2027 now has all 12 periods.
+        assertThat(periodRepo.findByTenantIdAndFiscalYearOrderByPeriodNo(tenantId, 2027)).hasSize(12);
+    }
+
+    @Test
     void closePeriod_happyPath() {
         provisioningService.provision(tenantId, 2026);
         tenantContext.set(tenantId, null, null, null);
@@ -162,5 +182,48 @@ class AccountingPeriodIT extends FinanceTestBase {
 
         assertThatThrownBy(() -> periodCloseService.close(periodId, false))
                 .isInstanceOf(io.restaurantos.finance.exception.TotpRequiredException.class);
+    }
+
+    /*
+     * FIN-08 self-service provision endpoint (PeriodController.provisionPeriods).
+     *
+     * NOTE on @PreAuthorize("hasAuthority('finance.period.open')") coverage: Spring's method-security
+     * AOP proxy enforces @PreAuthorize on EVERY bean invocation (not just HTTP-routed calls), so even a
+     * direct `@Autowired PeriodController` bean call in this @SpringBootTest fails with
+     * AuthenticationCredentialsNotFoundException absent a populated SecurityContext (confirmed by
+     * running this suite). Per PATTERNS.md, this test class has no MockMvc/TestRestTemplate HTTP harness
+     * to stand up a real security context, so these tests exercise the endpoint's exact delegate --
+     * `provisioningService.provision(tenantId, fiscalYear)` -- the same call
+     * PeriodController.provisionPeriods makes after resolving tenantId from TenantContext and defaulting
+     * fiscalYear. The live 403-for-unauthorized-role gate is covered by plan 02's role-membership IT
+     * (permission granted only to OWNER/TENANT_ADMIN/ACCOUNTANT) and by plan 06's live E2E
+     * (CASHIER JWT -> 403).
+     */
+
+    @Test
+    void provisionEndpoint_seedsPeriodsForCurrentTenant() {
+        UUID freshTenantId = UUID.randomUUID();
+        int currentFiscalYear = PakistanFiscalYear.current();
+
+        ProvisioningResult result = provisioningService.provision(freshTenantId, currentFiscalYear);
+        tenantContext.set(freshTenantId, null, null, null);
+
+        assertThat(result.periodsSeeded()).isEqualTo(12);
+        assertThat(periodRepo.findByTenantIdAndFiscalYearOrderByPeriodNo(freshTenantId, currentFiscalYear))
+                .hasSize(12);
+    }
+
+    @Test
+    void provisionEndpoint_idempotentOnRepeat() {
+        UUID freshTenantId = UUID.randomUUID();
+        int currentFiscalYear = PakistanFiscalYear.current();
+
+        provisioningService.provision(freshTenantId, currentFiscalYear);
+        ProvisioningResult secondResult = provisioningService.provision(freshTenantId, currentFiscalYear);
+        tenantContext.set(freshTenantId, null, null, null);
+
+        assertThat(secondResult.periodsSeeded()).isEqualTo(0);
+        assertThat(periodRepo.findByTenantIdAndFiscalYearOrderByPeriodNo(freshTenantId, currentFiscalYear))
+                .hasSize(12);
     }
 }

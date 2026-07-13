@@ -3,8 +3,10 @@ package io.restaurantos.platform;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restaurantos.platform.entity.TenantEntity.TenantStatus;
 import io.restaurantos.platform.service.ProvisioningService;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 import java.util.Map;
@@ -111,5 +113,41 @@ class ProvisioningSagaIT extends BasePlatformIT {
             "SELECT event_type FROM event_outbox WHERE tenant_id = ?",
             tenants.get(0).getId());
         assertThat(events).extracting(r -> r.get("event_type")).doesNotContain("TENANT_PROVISIONED");
+    }
+
+    /**
+     * seed-coa must be flipped to true for this scenario, but the outer class's default
+     * (application-test.yml: provisioning.seed-coa.enabled=false) must stay off for the
+     * other tests in this file. A dedicated @Nested class with its own @TestPropertySource
+     * gets its own Spring context (property override), without disturbing the outer tests.
+     */
+    @Nested
+    @TestPropertySource(properties = "provisioning.seed-coa.enabled=true")
+    class FinanceSeedFailureTests {
+
+        @Autowired ProvisioningService provisioningService;
+
+        @Test
+        void provisionTenant_financeSeedFails_compensates_tenantProvisioningFailed() {
+            WIREMOCK.stubFor(WireMock.post(WireMock.urlPathMatching("/internal/auth/tenants/.*/provision-admin"))
+                .willReturn(WireMock.aResponse()
+                    .withStatus(201)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\"data\":{\"userId\":\"" + UUID.randomUUID() + "\",\"tempPassword\":\"Tmp#123\"}}")));
+            stubUserCreateBranch(UUID.randomUUID());
+            stubFinanceSeedCoaFail();
+
+            String key = "finfail-" + UUID.randomUUID();
+
+            assertThatThrownBy(() -> provisioningService.provision(
+                    key, "Finance Fail Brand", "admin@finfail.local", "STARTER"))
+                .isInstanceOf(ProvisioningService.ProvisioningException.class);
+
+            var tenants = tenantRepository.findAll().stream()
+                .filter(t -> "Finance Fail Brand".equals(t.getBrandName()))
+                .toList();
+            assertThat(tenants).isNotEmpty();
+            assertThat(tenants.get(0).getStatus()).isEqualTo(TenantStatus.PROVISIONING_FAILED);
+        }
     }
 }

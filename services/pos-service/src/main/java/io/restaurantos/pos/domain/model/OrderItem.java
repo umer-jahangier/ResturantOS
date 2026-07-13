@@ -1,11 +1,12 @@
 package io.restaurantos.pos.domain.model;
 
-import io.restaurantos.pos.domain.enums.KdsItemStatus;
+import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.shared.entity.TenantAuditableEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public class OrderItem extends TenantAuditableEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "kds_status", nullable = false, length = 20)
-    private KdsItemStatus kdsStatus = KdsItemStatus.PENDING;
+    private OrderItemStatus itemStatus = OrderItemStatus.PENDING;
 
     @Column(name = "discount_paisa", nullable = false)
     private long discountPaisa = 0L;
@@ -54,6 +55,12 @@ public class OrderItem extends TenantAuditableEntity {
 
     @Column(name = "notes")
     private String notes;
+
+    @Column(name = "revision_no", nullable = false)
+    private int revisionNo = 0; // 0 = not yet fired; set at sendToKds time
+
+    @Column(name = "fired_at")
+    private Instant firedAt;
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemModifier> modifiers = new ArrayList<>();

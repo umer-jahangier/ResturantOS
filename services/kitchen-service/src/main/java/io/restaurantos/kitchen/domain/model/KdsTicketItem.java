@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,4 +45,10 @@ public class KdsTicketItem extends TenantAuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private TicketItemStatus status = TicketItemStatus.PENDING;
+
+    @Column(name = "revision_no", nullable = false)
+    private int revisionNo = 1;
+
+    @Column(name = "fired_at")
+    private Instant firedAt;
 }

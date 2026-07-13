@@ -27,12 +27,15 @@ export const apiMenuCategorySchema = z.object({
 
 export type ApiMenuCategory = z.infer<typeof apiMenuCategorySchema>;
 
+// NEEDS_BUSSING added — backend TableStatus enum now has 3 values (07.1-PATTERNS.md).
+// Widening this enum is a Rule-1 correctness fix: without it, any table returned
+// in NEEDS_BUSSING state from GET /pos/tables would throw a ZodError at parse time.
 export const apiDiningTableSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   tableName: z.string(),
   capacity: z.number().int(),
-  status: z.enum(["AVAILABLE", "OCCUPIED"]),
+  status: z.enum(["AVAILABLE", "OCCUPIED", "NEEDS_BUSSING"]),
   floorPlanX: z.number().nullable().optional(),
   floorPlanY: z.number().nullable().optional(),
   floorPlanShape: z.string().nullable().optional(),
@@ -47,6 +50,10 @@ export const apiOrderItemModifierSchema = z.object({
   priceDeltaPaisa: z.number().int(),
 });
 
+// Wire field is still named `kdsStatus` (backend OrderDto.OrderItemDto kept the name —
+// see 07.1-03/07.1-01 SUMMARY decisions) but now carries the 7-value OrderItemStatus
+// lifecycle. The adapter layer renames this to `itemStatus` on the domain model for a
+// clearer downstream name — the raw schema stays faithful to the actual wire contract.
 export const apiOrderItemSchema = z.object({
   id: z.string().uuid(),
   menuItemId: z.string().uuid(),
@@ -54,7 +61,14 @@ export const apiOrderItemSchema = z.object({
   unitPriceSnapshot: z.number().int().nonnegative(),
   quantity: z.number().int().positive(),
   kdsStation: z.string().nullable().optional(),
-  kdsStatus: z.enum(["PENDING", "COOKING", "READY"]),
+  kdsStatus: z.enum(["PENDING", "SENT", "ACCEPTED", "PREPARING", "READY", "SERVED", "CANCELLED"]),
+  // `.optional()`: the live pos-service response for POST /orders/{id}/items omits
+  // this field too (same class of gap as apiOrderSchema's derivedStatus above,
+  // verified via 07.1-06 E2E). adaptOrderItem() defaults the omitted case to 0 — the
+  // same default + meaning the backend entity itself declares (OrderItem.java
+  // `revisionNo = 0; // 0 = not yet fired`).
+  revisionNo: z.number().int().nonnegative().optional(),
+  firedAt: z.string().nullable().optional(),
   discountPaisa: z.number().int().nonnegative(),
   taxPaisa: z.number().int().nonnegative(),
   lineTotalPaisa: z.number().int().nonnegative(),
@@ -64,12 +78,25 @@ export const apiOrderItemSchema = z.object({
 
 export type ApiOrderItem = z.infer<typeof apiOrderItemSchema>;
 
+// `status` (existing 9-value settlement enum) and `derivedStatus` (new 4-value kitchen
+// -progress aggregate) are deliberately DISTINCT fields — never overloaded into one
+// (RESEARCH.md Pitfall 3 / 07.1-03 SUMMARY). `derivedStatus` mirrors backend
+// DerivedOrderStatus exactly (DRAFT|IN_PROGRESS|PARTIALLY_SERVED|SERVED only — CLOSED/
+// VOIDED/REFUNDED live solely on `status`; combine via pos.model's
+// getOrderDisplayStatus() for UI rendering).
 export const apiOrderSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
-  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY"]),
+  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY", "PICKUP"]),
   status: z.enum(["DRAFT", "OPEN", "SENT_TO_KDS", "PARTIAL_READY", "READY", "SERVED", "CLOSED", "VOIDED", "REFUNDED"]),
+  // `.optional()`: the live pos-service response for POST /orders and GET /orders/{id}
+  // currently omits this field entirely (verified via 07.1-06 E2E — a backend
+  // DTO-population gap, not a frontend concern; OrderController.java is mid-edit
+  // per git status). adaptOrder() below defaults the omitted case to "DRAFT" — the
+  // same default the backend entity itself declares (Order.java `derivedStatus =
+  // DerivedOrderStatus.DRAFT`) — rather than hard-failing the whole parse.
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]).optional(),
   tableId: z.string().uuid().nullable().optional(),
   coverCount: z.number().int(),
   cashierId: z.string().uuid().nullable().optional(),
@@ -89,6 +116,85 @@ export const apiOrderSchema = z.object({
 
 export type ApiOrder = z.infer<typeof apiOrderSchema>;
 
+// Order Management list row (POS-09) — GET /api/v1/pos/orders now returns this shape,
+// not ApiOrder[] (07.1-04 SUMMARY: a deliberate, breaking wire-contract change).
+//
+// POS-24 (07.3-04/07.3-08): the backend `OrderSummaryDto` was extended with 5 fields so
+// Order Management can show closed/paid orders, a payment-status badge, and an
+// item-quantity column without a second round trip per row — `settlementStatus` is the
+// raw 9-value `OrderStatus` (distinct from `derivedStatus`'s 4-value kitchen-progress
+// meaning), `paymentStatus`/`amountPaidPaisa` are server-derived, and
+// `itemQuantity`/`distinctItemCount` exclude CANCELLED lines.
+export const apiOrderSummarySchema = z.object({
+  orderId: z.string().uuid(),
+  orderNo: z.string().nullable().optional(),
+  tableId: z.string().uuid().nullable().optional(),
+  tableName: z.string().nullable().optional(),
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]),
+  cashierId: z.string().uuid().nullable().optional(),
+  coverCount: z.number().int(),
+  totalPaisa: z.number().int().nonnegative(),
+  openedAt: z.string().nullable().optional(),
+  settlementStatus: z.enum([
+    "DRAFT",
+    "OPEN",
+    "SENT_TO_KDS",
+    "PARTIAL_READY",
+    "READY",
+    "SERVED",
+    "CLOSED",
+    "VOIDED",
+    "REFUNDED",
+  ]),
+  paymentStatus: z.enum(["UNPAID", "PARTIALLY_PAID", "PAID", "REFUNDED"]),
+  amountPaidPaisa: z.number().int().nonnegative(),
+  itemQuantity: z.number().int().nonnegative(),
+  distinctItemCount: z.number().int().nonnegative(),
+});
+
+export type ApiOrderSummary = z.infer<typeof apiOrderSummarySchema>;
+
+// PATCH /orders/{id}/table (assign-table, POS-24) request body. Outgoing payload —
+// parsed client-side before send as a defense-in-depth mirror, same pattern as
+// `apiUpdateInstructionsSchema` above.
+export const apiAssignTableRequestSchema = z.object({
+  tableId: z.string().uuid(),
+});
+
+export type ApiAssignTableRequest = z.infer<typeof apiAssignTableRequestSchema>;
+
+// Table-centric dine-in detail (POS-10) — GET /pos/tables/{id}/active-order.
+export const apiTableDetailSchema = z.object({
+  id: z.string().uuid(),
+  branchId: z.string().uuid(),
+  tableName: z.string(),
+  capacity: z.number().int(),
+  status: z.enum(["AVAILABLE", "OCCUPIED", "NEEDS_BUSSING"]),
+  floorPlanX: z.number().nullable().optional(),
+  floorPlanY: z.number().nullable().optional(),
+  floorPlanShape: z.string().nullable().optional(),
+  activeOrder: apiOrderSchema.nullable(),
+  derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]).nullable(),
+  cashierId: z.string().uuid().nullable().optional(),
+  subtotalPaisa: z.number().int().nonnegative(),
+  discountPaisa: z.number().int().nonnegative(),
+  taxPaisa: z.number().int().nonnegative(),
+  totalPaisa: z.number().int().nonnegative(),
+});
+
+export type ApiTableDetail = z.infer<typeof apiTableDetailSchema>;
+
+// PATCH /orders/{id}/instructions request body (POS-13). This is an OUTGOING payload —
+// parsed client-side before send as a defense-in-depth mirror of the server's own
+// char-limit validation (RESEARCH.md Security Domain V5 / OrderInstructionsIT), not a
+// response envelope.
+export const apiUpdateInstructionsSchema = z.object({
+  notes: z.string().max(240, "Order notes must not exceed 240 characters").nullable().optional(),
+  itemNotes: z.record(z.string().uuid(), z.string().max(140, "Item notes must not exceed 140 characters")).optional(),
+});
+
+export type ApiUpdateInstructions = z.infer<typeof apiUpdateInstructionsSchema>;
+
 export const apiTillSessionSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
@@ -104,6 +210,25 @@ export const apiTillSessionSchema = z.object({
 
 export type ApiTillSession = z.infer<typeof apiTillSessionSchema>;
 
+export const apiTillReconciliationSchema = z.object({
+  session: apiTillSessionSchema,
+  orderCount: z.number().int().nonnegative(),
+  cashCollectedPaisa: z.number().int(),
+  nonCashCollectedPaisa: z.number().int(),
+  liveExpectedCashPaisa: z.number().int(),
+  orders: z.array(
+    z.object({
+      orderId: z.string().uuid(),
+      orderNo: z.string().nullable().optional(),
+      status: z.string(),
+      totalPaisa: z.number().int(),
+      paidPaisa: z.number().int(),
+    }),
+  ),
+});
+
+export type ApiTillReconciliation = z.infer<typeof apiTillReconciliationSchema>;
+
 export const apiOrderPaymentSchema = z.object({
   method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
   amountPaisa: z.number().int().nonnegative(),
@@ -115,3 +240,22 @@ export type ApiOrderPayment = z.infer<typeof apiOrderPaymentSchema>;
 export const apiCloseOrderSchema = z.object({
   payments: z.array(apiOrderPaymentSchema),
 });
+
+// GET /orders/{id}/payments history row (backend OrderPaymentDto, POS-22/23). Distinct
+// from `apiOrderPaymentSchema` above (that one is the OUTGOING closeOrder request-line
+// shape with no id/recordedAt) — this is the persisted, INCOMING read model.
+export const apiOrderPaymentRecordSchema = z.object({
+  id: z.string().uuid(),
+  method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
+  amountPaisa: z.number().int().nonnegative(),
+  referenceNo: z.string().nullable().optional(),
+  recordedAt: z.string(),
+});
+
+export type ApiOrderPaymentRecord = z.infer<typeof apiOrderPaymentRecordSchema>;
+
+// POST /orders/{id}/payments (recordPayment) response body: the running total paid
+// paisa for the order (backend PaymentController.recordPayment returns a bare Long via
+// ApiResponse<Long>, not an OrderDto — the frontend refetches the order separately to
+// pick up any settlement-status change from the maybeCloseOrder seam).
+export const apiRecordPaymentResultSchema = z.number().int().nonnegative();

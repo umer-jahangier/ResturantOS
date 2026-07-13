@@ -25,15 +25,18 @@ public class OrderStateMachine {
                 OrderStatus.CLOSED,
                 OrderStatus.VOIDED));
         TRANSITIONS.put(OrderStatus.SENT_TO_KDS, EnumSet.of(
+                OrderStatus.SENT_TO_KDS, // self-loop: repeated sendToKds fires (POS-12 revisions)
                 OrderStatus.PARTIAL_READY,
                 OrderStatus.READY,
                 OrderStatus.CLOSED,
                 OrderStatus.VOIDED));
         TRANSITIONS.put(OrderStatus.PARTIAL_READY, EnumSet.of(
+                OrderStatus.PARTIAL_READY, // self-loop: repeated sendToKds fires (POS-12 revisions)
                 OrderStatus.READY,
                 OrderStatus.CLOSED,
                 OrderStatus.VOIDED));
         TRANSITIONS.put(OrderStatus.READY, EnumSet.of(
+                OrderStatus.READY, // self-loop: repeated sendToKds fires (POS-12 revisions)
                 OrderStatus.SERVED,
                 OrderStatus.CLOSED,
                 OrderStatus.VOIDED));

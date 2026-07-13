@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -14,6 +15,14 @@ public interface KdsTicketItemRepository extends JpaRepository<KdsTicketItem, UU
 
     List<KdsTicketItem> findByTicketId(UUID ticketId);
 
-    @Query("SELECT COUNT(i) FROM KdsTicketItem i WHERE i.ticket.id = :ticketId AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.READY")
+    /** Locate the KDS line mirroring a pos OrderItem — the ORDER_ITEM_CANCELLED consumer's key. */
+    Optional<KdsTicketItem> findByOrderItemId(UUID orderItemId);
+
+    // Counts items still to finish. CANCELLED lines are terminal (won't be cooked) so they must
+    // be excluded too — otherwise a cancelled item would permanently block the ticket from
+    // reaching READY.
+    @Query("SELECT COUNT(i) FROM KdsTicketItem i WHERE i.ticket.id = :ticketId "
+            + "AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.READY "
+            + "AND i.status <> io.restaurantos.kitchen.domain.enums.TicketItemStatus.CANCELLED")
     long countByTicketIdAndStatusNotReady(@Param("ticketId") UUID ticketId);
 }

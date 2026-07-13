@@ -4,12 +4,12 @@ import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
 import io.restaurantos.pos.dto.*;
+import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.shared.event.OutboxEntry;
 import io.restaurantos.shared.event.OutboxRepository;
-import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,7 +93,7 @@ class OrderLifecycleIT extends PosTestBase {
 
         outboxRepository.deleteAll();
 
-        OrderDto sentOrder = orderService.sendToKds(order.id());
+        OrderDto sentOrder = orderService.sendToKds(order.id(), null);
 
         assertThat(sentOrder.status()).isEqualTo(OrderStatus.SENT_TO_KDS);
         assertThat(sentOrder.sentToKdsAt()).isNotNull();
@@ -109,15 +109,18 @@ class OrderLifecycleIT extends PosTestBase {
     }
 
     @Test
-    void reSendToKds_returns_409_StateInvalidException() {
+    void reSendToKds_withNoNewItems_throwsZeroValueOrderException() {
+        // POS-12: sendToKds is now callable repeatedly (self-loop transitions, Task 1) —
+        // a second fire with nothing new PENDING throws ZeroValueOrderException, not a
+        // 409 state-transition error. See OrderRevisionIT for the "has new items" case.
         UUID clientOrderId = UUID.randomUUID();
         OrderDto order = orderService.createOrder(new CreateOrderRequest(
                 branchId, clientOrderId, null, null, 1, null, null));
         orderService.addItem(order.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
-        orderService.sendToKds(order.id());
+        orderService.sendToKds(order.id(), null);
 
-        assertThatThrownBy(() -> orderService.sendToKds(order.id()))
-                .isInstanceOf(StateInvalidException.class);
+        assertThatThrownBy(() -> orderService.sendToKds(order.id(), null))
+                .isInstanceOf(PosExceptions.ZeroValueOrderException.class);
     }
 
     @Test

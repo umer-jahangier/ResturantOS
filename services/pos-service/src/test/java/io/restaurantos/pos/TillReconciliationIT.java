@@ -1,6 +1,7 @@
 package io.restaurantos.pos;
 
 import io.restaurantos.pos.domain.enums.OrderStatus;
+import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
 import io.restaurantos.pos.domain.model.Order;
@@ -126,10 +127,26 @@ class TillReconciliationIT extends PosTestBase {
         assertThat(closed.status().name()).isEqualTo("CLOSED");
         assertThat(closed.expectedClosingPaisa()).isEqualTo(50000L);
         assertThat(closed.declaredClosingPaisa()).isEqualTo(60000L);
+        assertThat(closed.variancePaisa()).isEqualTo(10000L);
 
         long tillClosedCount = outboxRepository.findAll().stream()
                 .filter(e -> "TILL_CLOSED".equals(e.getEventType()))
                 .count();
         assertThat(tillClosedCount).isEqualTo(1);
+    }
+
+    @Test
+    void closeTill_withOrderCreatedViaOrderService_linksTillSessionAndCashier_blocksClose() {
+        TillSessionDto till = tillService.openTill(new OpenTillRequest(branchId, 50000L));
+
+        OrderDto created = orderService.createOrder(
+                new CreateOrderRequest(branchId, UUID.randomUUID(), OrderType.DINE_IN, null, 2, null, null));
+
+        Order persisted = orderRepository.findById(created.id()).orElseThrow();
+        assertThat(persisted.getTillSessionId()).isEqualTo(till.id());
+        assertThat(persisted.getCashierId()).isEqualTo(cashierId);
+
+        assertThatThrownBy(() -> tillService.closeTill(till.id(), new CloseTillRequest(50000L)))
+                .isInstanceOf(PosExceptions.TillHasOpenOrdersException.class);
     }
 }

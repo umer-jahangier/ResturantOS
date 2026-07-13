@@ -32,18 +32,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 10-09 bug fix: without this handler, Spring Security's
-     * org.springframework.security.access.AccessDeniedException (thrown by the
-     * @EnableMethodSecurity / MethodSecurityInterceptor around @PreAuthorize checks)
-     * fell through to the generic Exception handler below and was returned as a 500,
-     * never reaching ExceptionTranslationFilter's normal 403 handling — because
-     * DispatcherServlet resolves it via this @RestControllerAdvice BEFORE the
-     * exception can propagate up the filter chain. This silently defeated every
-     * @PreAuthorize check across every service that shares this handler.
+     * Spring Security method-level denials (@PreAuthorize / @PostAuthorize) propagate out of the
+     * controller invocation as AuthorizationDeniedException (a subclass of AccessDeniedException in
+     * Spring Security 6.4+/7). Without this handler they fall through to handleUnexpected() and are
+     * mis-reported as 500 instead of 403 — this @RestControllerAdvice resolves the exception inside
+     * DispatcherServlet, so it never reaches ExceptionTranslationFilter's normal 403 handling. That
+     * silently defeated every @PreAuthorize check across every service sharing this handler.
+     * Catching the supertype covers both types. The code matches the PERMISSION_DENIED emitted by
+     * each service's SecurityConfig#accessDeniedHandler, so a filter-chain denial and a method
+     * -security denial are indistinguishable to clients.
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of("ACCESS_DENIED", "You do not have permission to perform this action", traceId()));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(ApiError.of("PERMISSION_DENIED", "You do not have permission to perform this action", traceId()));
     }
 
     @ExceptionHandler(FeatureDisabledException.class)
