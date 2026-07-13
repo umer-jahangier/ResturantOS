@@ -76,10 +76,10 @@ export const tenantNavItems: NavItem[] = [
     feature: "FEATURE_FINANCE",
   },
   {
-    // RBAC: vendor.view (see 10-09)
     label: "Purchasing",
     href: "/app/purchasing",
     icon: Truck,
+    permission: "vendor.view",
     feature: "FEATURE_VENDOR",
   },
   {
@@ -197,10 +197,10 @@ export const navGroups: NavGroup[] = [
     label: "Purchasing",
     items: [
       {
-        // RBAC: vendor.view (see 10-09)
         label: "Purchasing",
         href: "/app/purchasing",
         icon: Truck,
+        permission: "vendor.view",
         feature: "FEATURE_VENDOR",
       },
     ],
