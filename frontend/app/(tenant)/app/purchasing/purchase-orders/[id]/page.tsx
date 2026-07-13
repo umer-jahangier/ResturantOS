@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -84,14 +84,15 @@ function RejectDialog({ onConfirm, isPending }: { onConfirm: (reason: string) =>
   );
 }
 
-export default function PurchaseOrderDetailPage({ params }: { params: { id: string } }) {
-  const { data: po, isLoading } = usePurchaseOrder(params.id);
-  const submitPo = useSubmitPurchaseOrder(params.id);
-  const withdrawPo = useWithdrawPurchaseOrder(params.id);
-  const approvePo = useApprovePurchaseOrder(params.id);
-  const rejectPo = useRejectPurchaseOrder(params.id);
-  const sendPo = useSendPurchaseOrder(params.id);
-  const closePo = useClosePurchaseOrder(params.id);
+export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data: po, isLoading } = usePurchaseOrder(id);
+  const submitPo = useSubmitPurchaseOrder(id);
+  const withdrawPo = useWithdrawPurchaseOrder(id);
+  const approvePo = useApprovePurchaseOrder(id);
+  const rejectPo = useRejectPurchaseOrder(id);
+  const sendPo = useSendPurchaseOrder(id);
+  const closePo = useClosePurchaseOrder(id);
   const [closeReason, setCloseReason] = useState("");
 
   if (isLoading || !po) return <p>Loading PO…</p>;

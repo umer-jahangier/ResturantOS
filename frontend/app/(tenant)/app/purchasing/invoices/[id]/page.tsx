@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 
 import { MatchStatusBadge, ThreeWayMatchTable } from "@/components/purchasing/ThreeWayMatchTable";
@@ -7,8 +8,9 @@ import { OverrideMatchDialog } from "@/components/purchasing/OverrideMatchDialog
 import { useVendorInvoice } from "@/lib/hooks/purchasing/use-purchasing";
 import { MoneyDisplay } from "@/components/ui/money-display";
 
-export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
-  const { data: invoice, isLoading } = useVendorInvoice(params.id);
+export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data: invoice, isLoading } = useVendorInvoice(id);
   if (isLoading || !invoice) return <p>Loading invoice…</p>;
 
   return (
