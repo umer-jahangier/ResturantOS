@@ -201,8 +201,8 @@ Plans:
    POST /internal/finance/ar/charges that Phase 7's POS "charge to account" tender will call is implemented
    and integration-tested. (Scope decided 2026-07-13, 10-17-A — see FIN-05.)
   5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
-**Plans**: 18 plans (10-01..10-06 shipped; 10-07..10-18 = gap closure after the 2026-07-13 UAT + code audit reopened the phase)
-**Status**: REOPENED 2026-07-13 — UAT scored 1 pass / 15 issues; a parallel code audit found 4 blockers (OPA action-string mismatch denying every real PO + expense approval; purchasing unreachable from nav; zero @PreAuthorize across 18 endpoints). See 10-UAT.md.
+**Plans**: 26 plans (10-01..10-06 shipped; 10-07..10-18 = gap closure round 1; 10-19..10-26 = gap closure round 2 after the 2026-07-14 real-browser UAT)
+**Status**: REOPENED 2026-07-14 (round 2) — real-browser UAT scored ~3 pass / 10 journeys. All 12 round-1 gap-closure plans were green (unit + real-Postgres ITs + real-OPA container ITs) and the module still did not work: no PO could be approved by anyone (internal authorize call path 401s), expense create failed 100%, PO/invoice detail pages hung on Loading forever, and a cashier saw the whole Purchasing module. Backend ITs verified the callee; nothing verified the caller, the browser, or the persona. See 10-UAT-2.md.
 **Scope decisions**: 2026-07-13 (10-17-A) — FIN-05's AR clause is IN scope, not descoped. Receivables
 are sourced from corporate/house accounts. Phase 10 owns the AR ledger + the internal charge seam;
 Phase 7 owns the POS "charge to account" tender that calls it, because POS does not exist yet (Phase 7
@@ -229,6 +229,16 @@ Gap-closure plans (2026-07-13):
 - [ ] 10-16-PLAN.md — Vendor bank-account encryption fails fast instead of silently nulling [wave 1]
 - [ ] 10-17-PLAN.md — FIN-05 AR scope decision record: AR IS in scope (corporate/house accounts), split Phase 10 / Phase 7 [wave 1]
 - [ ] 10-18-PLAN.md — AR sub-ledger: house/corporate customer accounts, charges + settlements, AR balances + AR aging, and the internal POS charge seam [wave 5]
+
+Gap-closure plans, round 2 (2026-07-14) — every plan ends in a real-browser journey assertion as a real seeded persona:
+- [ ] 10-19-PLAN.md — Dev-stack reproducibility: RabbitMQ zero-users root cause (load_definitions suppresses DEFAULT_USER bootstrap), repair `make dev-up`, health-gated one-command bring-up [wave 1]
+- [ ] 10-20-PLAN.md — Bug 4: Next-15 async `params` on PO + invoice detail pages, fixed as a codebase-wide class with a build-failing guard [wave 2]
+- [ ] 10-21-PLAN.md — Bug 3: frontend RBAC parity — PermissionGuard + nav `permission: vendor.view` + guard test (cashier no longer sees Purchasing) [wave 2]
+- [ ] 10-22-PLAN.md — Bug 2: isolate + fix expense-create account validation (suspected cross-tenant read leak / COA never provisioned for the demo tenant) [wave 2]
+- [ ] 10-23-PLAN.md — Bug 5: vendor create idempotency via the existing shared-lib IdempotencyService seam [wave 2]
+- [ ] 10-24-PLAN.md — AR persona gap: seed an AR-capable persona so 10-18's write path can be driven; TOTP enrolment lockout formally deferred to Phase 2 [wave 2]
+- [ ] 10-25-PLAN.md — Bug 1 (CRITICAL): InternalServiceFilter never authenticates → every PO approval 401s (masked as 503); + call-path ITs that test the CALLER [wave 3]
+- [ ] 10-26-PLAN.md — Playwright E2E journey suite: all 10 UAT journeys as real personas against the real stack, enforced in CI [wave 4]
 
 ### Phase 11: HR & Payroll
 **Goal**: Run compliant Pakistan payroll — employees with encrypted PII, config-driven income-tax/EOBI computation, and approved payroll that posts a balanced journal entry.
