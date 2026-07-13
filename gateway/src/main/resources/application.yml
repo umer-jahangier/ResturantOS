@@ -189,6 +189,36 @@ spring:
                       - 500
                       - 503
 
+            # ── POS Service ──────────────────────────────────────────────────────
+            # Menu, orders, tables, tills, payments. No feature gate in
+            # RouteFeatureMap — POS is core for every ACTIVE tenant.
+            - id: pos-route
+              uri: lb://pos-service
+              predicates:
+                - Path=/api/v1/pos/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: posCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── Kitchen Service (KDS) ────────────────────────────────────────────
+            - id: kitchen-route
+              uri: lb://kitchen-service
+              predicates:
+                - Path=/api/v1/kitchen/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: kitchenCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
             # - id: hr-route
             #   uri: lb://hr-service
@@ -218,16 +248,6 @@ spring:
             #     - name: CircuitBreaker
             #       args:
             #         name: nlqCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: pos-route
-            #   uri: lb://pos-service
-            #   predicates:
-            #     - Path=/api/v1/pos/**, /api/v1/orders/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: posCircuitBreaker
             #         fallbackUri: forward:/fallback/service-unavailable
             #
             # - id: inventory-route
