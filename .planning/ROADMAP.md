@@ -433,7 +433,7 @@ Plans:
   3. An NLQ request converts NL→SQL via Claude and passes 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject); a query missing the tenant or branch filter is rejected.
   4. NLQ enforces read-only execution, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas, a 60s result cache, and stamps impersonation in `nlq_query_log`.
 
-**Plans**: 10 plans
+**Plans**: 11 plans
 
 Note: `nlq-service` is **Java / Spring Boot** (user decision), not Python — it reuses the proven shared-lib + Eureka + Config Server + internal-JWT wiring, and uses JSqlParser (not sqlglot) for the 7-stage AST validation.
 
@@ -449,6 +449,7 @@ Plans:
 - [ ] 12-08: Frontend — reports, FBR page, realtime dashboard
 - [ ] 12-09: Frontend — NLQ ask page with honest rejection UX
 - [ ] 12-10: Real-stack end-to-end proof + requirements reconciliation
+- [ ] 12-11: auth-service permission seeding (reporting.* + nlq.query.run) wired into db.changelog-master.xml
 
 ## Progress
 
