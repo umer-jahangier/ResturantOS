@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AccessDenied } from "@/components/shared/access-denied";
 import { FeatureGuard } from "@/components/shared/feature-guard";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +40,7 @@ function PurchasingTabs() {
 
 export default function PurchasingLayout({ children }: { children: ReactNode }) {
   return (
-    <FeatureGuard feature="FEATURE_VENDOR" failOpenOnError>
+    <FeatureGuard feature="FEATURE_VENDOR" failOpenOnError fallback={<AccessDenied />}>
       <div className="p-6">
         <PurchasingTabs />
         {children}

@@ -22,5 +22,6 @@
     <include file="db/changelog/v1.0.0/080-add-must-change-password.xml"/>
     <include file="db/changelog/v1.0.0/053-fix-rls-tenant-guc-policies.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-auth-dev-data.xml"/>
+    <include file="db/changelog/v1.0.0/902-seed-purchasing-demo-users.xml"/>
 
 </databaseChangeLog>

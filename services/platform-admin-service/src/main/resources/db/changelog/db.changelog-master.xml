@@ -8,5 +8,6 @@
     <include file="db/changelog/v1.0.0/010-create-platform-tables.xml"/>
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-platform-users.xml"/>
+    <include file="db/changelog/v1.0.0/901-seed-demo-tenant.xml"/>
 
 </databaseChangeLog>

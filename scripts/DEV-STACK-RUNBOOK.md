@@ -182,25 +182,59 @@ assume they'll reconnect on their own.
 
 ## Demo login credentials (seeded via Liquibase `context=seed`, already applied)
 
-| Role | Email | Password | tenantSlug |
-|---|---|---|---|
-| CASHIER (no TOTP step-up) | `cashier@demo.local` | `Cashier#2026` | `demo` |
-| OWNER (TOTP step-up required — will 401 `TOTP_REQUIRED` without a code) | `owner@demo.local` | `Owner#2026` | `demo` |
-| ACCOUNTANT | `accountant@demo.local` | `Accountant#2026` | `demo` |
-| Finance Viewer | `finance_demo@demo.local` | (see `Docs/agent-specs/11-seed-data-specification.md`) | `demo` |
+**UAT 2026-07-13 gap closure:** the `demo` tenant (auth_db.auth_tenants,
+`a0000001-0000-4000-8000-000000000001`) had NO row in `platform_db.tenants` — every
+demo login got `{"features":[]}` from `GET /api/v1/feature-flags`, hiding
+POS/Finance/Purchasing/HR/CRM nav for EVERY role. Fixed by
+`services/platform-admin-service/.../901-seed-demo-tenant.xml`, which seeds `demo`
+with the same GROWTH-tier feature matrix as the `dev` tenant. Also, the only two
+"privileged" seeded users (`owner@demo.local`, `accountant@demo.local`) are
+permanently locked behind `401 TOTP_REQUIRED` with no enrolment path (see "TOTP
+catch-22" below) — do not use them for UAT. Two loginable MANAGER accounts were
+added instead (`services/auth-service/.../902-seed-purchasing-demo-users.xml`) that
+hold the full `vendor.*` set (create/approve/send POs, receive GRNs, book/override
+invoices, post payments) without triggering TOTP step-up.
+
+| Role | Email | Password | tenantSlug | TOTP? | Can do |
+|---|---|---|---|---|---|
+| CASHIER | `cashier@demo.local` | `Cashier#2026` | `demo` | No | POS only (`pos.*`) |
+| MANAGER #1 | `manager1@demo.local` | `Manager1#2026` | `demo` | No | Full `vendor.*` (create/approve/send PO, receive GRN, book/override invoice, post payment), POS, inventory |
+| MANAGER #2 | `manager2@demo.local` | `Manager2#2026` | `demo` | No | Same as MANAGER #1 — a second, distinct identity so multi-tier PO approval (rule: same approver twice on one PO → 409) can actually be tested |
+| Finance Viewer | `finance_demo@demo.local` | `Finance#2026` | `demo` | No | `finance.coa.view`, `finance.journal.post`, `finance.journal.view` |
+| OWNER | `owner@demo.local` | `Owner#2026` | `demo` | **Always 401 `TOTP_REQUIRED` — unusable in this dev seed** | N/A |
+| ACCOUNTANT | `accountant@demo.local` | `Accountant#2026` | `demo` | **Always 401 `TOTP_REQUIRED` — unusable in this dev seed** | N/A |
+
+The previous version of this table said `accountant@demo.local` needs "no TOTP" —
+**that was wrong** and cost a prior agent real time. Verified 2026-07-13: both
+OWNER and ACCOUNTANT 401 `TOTP_REQUIRED` on every login attempt, `totp_secret` is
+NULL for both (confirmed via `psql`), and `POST /api/v1/auth/2fa/setup` requires an
+authenticated session that these accounts can never obtain — a hard catch-22, not a
+soft gate. Use `manager1@demo.local` / `manager2@demo.local` for any purchasing/AP
+approval journey instead.
+
+### The TOTP catch-22 (known bug, not fixed here)
+
+`AuthServiceImpl.requiresTotpStepUp()` forces TOTP step-up for any login holding
+`rbac.manage` or `finance.period.close`, regardless of whether `totp_enabled` is
+true or a secret is enrolled. For OWNER/ACCOUNTANT, `totp_enabled=false` and
+`totp_secret=NULL`, so they can never log in to reach `/2fa/setup` and enrol —
+the account is permanently bricked. The step-up invariant itself (privileged perms
+require TOTP) is intentional and was NOT weakened. Arguably this IS a real product
+bug — a first-login-must-enrol flow (issue a short-lived, enrolment-only token on
+first login instead of a hard 401, force `/2fa/setup` before any other endpoint
+works) would fix it properly. That's a real auth-flow change (new token type, new
+enrolment-gated state) that touches more than the demo-data problem this pass was
+scoped to fix, so it was left alone; the practical workaround for UAT is the seeded
+MANAGER accounts above, which reach the same `vendor.*` permission surface without
+the step-up trap (no `rbac.manage`/`finance.period.close`).
 
 Verified working end-to-end through the gateway:
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"cashier@demo.local","password":"Cashier#2026","tenantSlug":"demo"}'
+  -d '{"email":"manager1@demo.local","password":"Manager1#2026","tenantSlug":"demo"}'
 # -> 200 {"data":{"accessToken":"...", ...}}
 ```
-
-For the purchasing/finance UAT click-through, `cashier@demo.local` has no TOTP
-step-up but also limited permissions (POS-scoped). Use `accountant@demo.local` /
-`finance_demo@demo.local` for purchasing/finance journeys if `cashier` gets a 403
-on a specific screen.
 
 ## Health check one-liner
 

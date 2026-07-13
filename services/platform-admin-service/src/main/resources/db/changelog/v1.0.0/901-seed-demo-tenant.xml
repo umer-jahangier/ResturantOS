@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Gap closure (UAT 2026-07-13): auth_db.auth_tenants has TWO seeded tenants,
+        `demo` (a0000001-0000-4000-8000-000000000001) and `dev`
+        (dbd114d2-f5e2-520d-8d6c-dab6076771b9), but platform_db.tenants only ever had
+        `dev` — because `dev` was provisioned manually through the real saga
+        (ProvisioningService.provision) which always mints a *new* DB-generated tenant
+        id, so it could never reproduce the `demo` id that auth-service's seeded users
+        (900-seed-auth-dev-data.xml, tenant_id = a0000001-...) actually reference.
+
+        Effect: GET /internal/platform/tenants/{demoId}/features returned {} for the
+        demo tenant, so GET /api/v1/feature-flags returned [] for every demo login,
+        hiding POS/Finance/Purchasing/HR/CRM nav and blocking the routes for every role.
+
+        Fix: seed `demo` directly with the same id auth_db already uses, mirroring the
+        `dev` tenant's tier and feature matrix exactly (GROWTH tier; all features on
+        except the two ENTERPRISE-only ones) so a fresh `make dev-up` produces a
+        working demo tenant without a manual SQL poke.
+    -->
+    <changeSet id="platform-901-001-seed-demo-tenant" author="restaurantos-agent" context="seed">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tenants WHERE id = 'a0000001-0000-4000-8000-000000000001'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="tenants">
+            <column name="id" value="a0000001-0000-4000-8000-000000000001"/>
+            <column name="slug" value="demo"/>
+            <column name="brand_name" value="Demo Restaurant"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="tier" value="GROWTH"/>
+            <column name="max_branches" valueNumeric="5"/>
+            <column name="max_users" valueNumeric="50"/>
+            <column name="storage_gb" valueNumeric="20"/>
+            <column name="nlq_quota" valueNumeric="5000"/>
+        </insert>
+        <rollback>
+            <delete tableName="tenants">
+                <where>id = 'a0000001-0000-4000-8000-000000000001'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="platform-901-002-seed-demo-tenant-features" author="restaurantos-agent" context="seed">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tenant_features WHERE tenant_id = 'a0000001-0000-4000-8000-000000000001'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_POS"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_INVENTORY"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_FINANCE"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_VENDOR"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_HR"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_CRM"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_KDS"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_MULTI_BRANCH"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_REPORTING_ADVANCED"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_WHATSAPP_NOTIFICATIONS"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_CUSTOM_ROLES"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_AUDIT_EXPORT"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_LOT_TRACKING"/><column name="is_enabled" valueBoolean="true"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_WHITE_LABEL_DOMAIN"/><column name="is_enabled" valueBoolean="false"/></insert>
+        <insert tableName="tenant_features"><column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/><column name="feature_code" value="FEATURE_CONSOLIDATED_REPORTING"/><column name="is_enabled" valueBoolean="false"/></insert>
+        <rollback>
+            <delete tableName="tenant_features">
+                <where>tenant_id = 'a0000001-0000-4000-8000-000000000001'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
