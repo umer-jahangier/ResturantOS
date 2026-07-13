@@ -66,6 +66,13 @@ export function useRecordPayment(orderId: string) {
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      // Recording a cash tender changes the OPEN till's live expected cash. The
+      // TillSessionBar reads this from useTillReconciliation (keyed
+      // ["pos","till-reconciliation",tillId]), which otherwise only refreshes on its 10s
+      // poll — so a charge didn't show on the till bar until up to 10s later. Prefix-match
+      // invalidates the mounted reconciliation query so the bar's Cash/Orders update the
+      // instant the order is charged (the 10s poll stays as a cross-device fallback).
+      queryClient.invalidateQueries({ queryKey: ["pos", "till-reconciliation"] });
     },
   });
 }
@@ -91,6 +98,9 @@ export function useVoidOrder(orderId: string) {
       // cache entry.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      // A void removes the order (and any tenders on it) from the till's reconciliation —
+      // refresh the till bar's live cash immediately (see the note in useRecordPayment).
+      queryClient.invalidateQueries({ queryKey: ["pos", "till-reconciliation"] });
     },
   });
 }
@@ -111,6 +121,9 @@ export function useRefundOrder(orderId: string) {
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
       // See the order-summaries invalidation note on useVoidOrder above.
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+      // A refund reverses collected cash — refresh the till bar's live reconciliation
+      // immediately (see the note in useRecordPayment).
+      queryClient.invalidateQueries({ queryKey: ["pos", "till-reconciliation"] });
     },
   });
 }
