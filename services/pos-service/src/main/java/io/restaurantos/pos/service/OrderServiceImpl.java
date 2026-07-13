@@ -175,8 +175,12 @@ public class OrderServiceImpl implements OrderService {
         MenuItem menuItem = menuItemRepository.findById(request.menuItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + request.menuItemId()));
 
+        // SECURITY (branch isolation): resolve branch-override pricing from the ORDER's own
+        // (server-derived, createOrder-validated) branch rather than the client-supplied
+        // request.branchId() — the order already carries the authoritative branch, so a spoofed
+        // request branchId can no longer pull another branch's override price onto this line.
         Optional<BranchMenuOverride> override = overrideRepository
-                .findByBranchIdAndMenuItemId(request.branchId(), request.menuItemId());
+                .findByBranchIdAndMenuItemId(order.getBranchId(), request.menuItemId());
 
         long unitPrice = pricingCalculator.effectiveUnitPrice(menuItem, override.orElse(null));
 
