@@ -46,7 +46,14 @@ public class InternalFinanceController {
     public ResponseEntity<ApiResponse<InternalJePostResponse>> autoPost(
             @RequestHeader("X-Tenant-Id") UUID tenantId,
             @Valid @RequestBody InternalAutoPostJeRequest req) {
-        tenantHelper.activate(tenantId);
+        // Branch-scoped: autoPostInternal -> create() -> requireBranchId() reads the branch off
+        // TenantContext, and the branchId-less activate(tenantId) leaves it empty -> "Branch context
+        // required". The branch is already on the request body, so pass it through. Without this,
+        // every GRN receipt failed to post its GR/IR journal entry (purchasing saw a 400 from this
+        // endpoint), and the same gap produced the long-standing InternalAutoPostIT /
+        // JournalEntryImmutabilityIT / JournalEntryBalanceTriggerIT failures that were repeatedly
+        // written off as pre-existing test noise.
+        tenantHelper.activate(tenantId, req.branchId());
         try {
             InternalJePostResponse result = jeService.autoPostInternal(req);
             return ResponseEntity.ok(ApiResponse.ok(result));
