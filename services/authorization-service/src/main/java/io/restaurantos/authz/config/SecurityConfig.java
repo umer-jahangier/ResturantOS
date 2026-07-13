@@ -39,11 +39,13 @@ public class SecurityConfig implements WebMvcConfigurer {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
-                // InternalServiceFilter is the gate for /internal/** — it rejects a missing or bad
-                // X-Internal-Service secret with 403 before the chain runs. Requiring .authenticated()
-                // here would additionally demand a JWT, which internal service-to-service callers do
-                // not carry, so every internal call 401'd. Matches user/purchasing/finance-service.
-                .requestMatchers("/internal/**").permitAll()
+                // /internal/authorize is dual-gated ON PURPOSE: InternalServiceFilter proves the
+                // CALLER is a trusted service (X-Internal-Service secret), and .authenticated()
+                // proves the SUBJECT is a real user — the endpoint reads JwtClaims off the
+                // SecurityContext to decide on that user's permissions/tenant/branch. Callers must
+                // therefore forward the end user's Authorization header (see each service's
+                // FeignClientConfig); a service-only credential cannot authorize a user action.
+                .requestMatchers("/internal/**").authenticated()
                 .anyRequest().authenticated())
             .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

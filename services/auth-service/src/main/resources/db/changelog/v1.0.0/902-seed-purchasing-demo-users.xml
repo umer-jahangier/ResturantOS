@@ -29,7 +29,7 @@
         </sql>
         <!-- MANAGER #1 — no rbac.manage / finance.period.close -> no TOTP step-up -->
         <insert tableName="users">
-            <column name="id" value="c0000005-0000-4000-8000-000000000005"/>
+            <column name="id" value="c0000011-0000-4000-8000-000000000011"/>
             <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
             <column name="email" value="manager1@demo.local"/>
             <column name="password_hash" value="$2b$12$eXN0CrnY9NHUJyLOsvk9BeZ.mT7Jao7uA9FE8MREp0S31Iu2G91M2"/>
@@ -39,7 +39,7 @@
         </insert>
         <!-- MANAGER #2 — second privileged approver, needed for the distinct-approver 409 rule -->
         <insert tableName="users">
-            <column name="id" value="c0000006-0000-4000-8000-000000000006"/>
+            <column name="id" value="c0000012-0000-4000-8000-000000000012"/>
             <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
             <column name="email" value="manager2@demo.local"/>
             <column name="password_hash" value="$2b$12$hLE1cHa4OetbzSCm32rjnuhyh4KJvN9JquCCykYJXHmagbBXt1Dze"/>
@@ -49,7 +49,7 @@
         </insert>
         <rollback>
             <delete tableName="users">
-                <where>id IN ('c0000005-0000-4000-8000-000000000005', 'c0000006-0000-4000-8000-000000000006')</where>
+                <where>id IN ('c0000011-0000-4000-8000-000000000011', 'c0000012-0000-4000-8000-000000000012')</where>
             </delete>
         </rollback>
     </changeSet>
@@ -59,24 +59,24 @@
             SELECT set_config('app.current_tenant_id', 'a0000001-0000-4000-8000-000000000001', false);
         </sql>
         <insert tableName="user_branch_roles">
-            <column name="id" value="d0000007-0000-4000-8000-000000000007"/>
+            <column name="id" value="d0000011-0000-4000-8000-000000000011"/>
             <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
-            <column name="user_id" value="c0000005-0000-4000-8000-000000000005"/>
+            <column name="user_id" value="c0000011-0000-4000-8000-000000000011"/>
             <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
             <column name="role_code" value="MANAGER"/>
             <column name="approval_limit_paisa" valueNumeric="30000000"/>
         </insert>
         <insert tableName="user_branch_roles">
-            <column name="id" value="d0000008-0000-4000-8000-000000000008"/>
+            <column name="id" value="d0000012-0000-4000-8000-000000000012"/>
             <column name="tenant_id" value="a0000001-0000-4000-8000-000000000001"/>
-            <column name="user_id" value="c0000006-0000-4000-8000-000000000006"/>
+            <column name="user_id" value="c0000012-0000-4000-8000-000000000012"/>
             <column name="branch_id" value="b0000001-0000-4000-8000-000000000001"/>
             <column name="role_code" value="MANAGER"/>
             <column name="approval_limit_paisa" valueNumeric="30000000"/>
         </insert>
         <rollback>
             <delete tableName="user_branch_roles">
-                <where>id IN ('d0000007-0000-4000-8000-000000000007', 'd0000008-0000-4000-8000-000000000008')</where>
+                <where>id IN ('d0000011-0000-4000-8000-000000000011', 'd0000012-0000-4000-8000-000000000012')</where>
             </delete>
         </rollback>
     </changeSet>
