@@ -46,13 +46,13 @@ function PeriodCloseModal({ period, onClose, onSuccess }: PeriodCloseModalProps)
           {period.startDate} – {period.endDate}
         </p>
 
-        <div className="mb-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="mb-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
           <strong>Warning:</strong> Closing a period locks it permanently. No
           new journal entries can be posted to a locked period.
         </div>
 
         {isSuccess ? (
-          <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
             Period closed successfully.
           </div>
         ) : (
