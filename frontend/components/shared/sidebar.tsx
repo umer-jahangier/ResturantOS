@@ -11,6 +11,7 @@ import { FeatureGuard } from "./feature-guard";
 import { BranchSwitcher } from "./branch-switcher";
 import { navGroups, type NavItem, type NavGroup } from "./sidebar-nav-items";
 import { useNavGroupVisibility } from "@/lib/hooks/auth/use-nav-visibility";
+import { useTenantBrand } from "@/lib/hooks/use-tenant-brand";
 import {
   Tooltip,
   TooltipContent,
@@ -152,6 +153,7 @@ function NavGroupSection({ group, collapsed, pathname }: NavGroupSectionProps) {
 export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const brandName = useTenantBrand();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -176,7 +178,7 @@ export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps
         >
           <ChefHat className="size-6 shrink-0 text-primary" />
           {!collapsed && (
-            <span className="truncate text-base font-semibold">RestaurantOS</span>
+            <span className="truncate text-base font-semibold">{brandName}</span>
           )}
         </div>
 

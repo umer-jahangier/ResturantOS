@@ -39,6 +39,10 @@ export interface NavItem {
   // placeholders). When set, the item shows only if the user holds one of these
   // roles — otherwise a feature-only item leaks to every role (e.g. kitchen staff).
   roles?: string[];
+  // The target route is not built yet (renders a 404). Hidden from the sidebar until
+  // the page ships — flip to false / remove once the module exists. Keeps the nav
+  // free of dead links without losing the planned-module config.
+  comingSoon?: boolean;
   badge?: number | string;
 }
 
@@ -148,6 +152,7 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         permission: "inventory.item.view",
         feature: "FEATURE_INVENTORY",
+        comingSoon: true, // /app/inventory page not built yet (Phase 8)
       },
     ],
   },
@@ -222,6 +227,7 @@ export const navGroups: NavGroup[] = [
         icon: Users,
         feature: "FEATURE_HR",
         roles: ["OWNER", "TENANT_ADMIN"],
+        comingSoon: true, // /app/hr page not built yet (Phase 5+)
       },
       {
         // Phase 5+: CRM permissions not yet in DB catalog — admin/owner only until built.
@@ -230,6 +236,7 @@ export const navGroups: NavGroup[] = [
         icon: Contact,
         feature: "FEATURE_CRM",
         roles: ["OWNER", "TENANT_ADMIN"],
+        comingSoon: true, // /app/crm page not built yet (Phase 5+)
       },
     ],
   },
@@ -243,6 +250,7 @@ export const navGroups: NavGroup[] = [
         icon: BarChart3,
         feature: "FEATURE_REPORTING_ADVANCED",
         roles: ["OWNER", "TENANT_ADMIN"],
+        comingSoon: true, // /app/reporting page not built yet (Phase 5+)
       },
     ],
   },
@@ -253,6 +261,7 @@ export const navGroups: NavGroup[] = [
         label: "General",
         href: "/app/settings",
         icon: Settings,
+        comingSoon: true, // /app/settings page not built yet
       },
       {
         // Tenant appearance/branding is an admin-tier configuration surface.
@@ -266,6 +275,7 @@ export const navGroups: NavGroup[] = [
         href: "/app/settings/users",
         icon: Users,
         permission: "rbac.manage",
+        comingSoon: true, // /app/settings/users page not built yet
       },
     ],
   },

@@ -51,6 +51,9 @@ export function useNavItemVisible(
   const { permissions, roles } = useCurrentUser();
   const { data: features, isPending, isError } = useFeatureFlags();
 
+  if (item.comingSoon) {
+    return false;
+  }
   if (!hasRole(roles, item.roles)) {
     return false;
   }
@@ -70,6 +73,9 @@ export function useNavGroupVisibility(
 
   const isItemVisible = useCallback(
     (item: NavItem) => {
+      if (item.comingSoon) {
+        return false;
+      }
       if (!hasRole(roles, item.roles)) {
         return false;
       }
