@@ -1,0 +1,13 @@
+﻿{
+    "user-service":  43348,
+    "gateway":  34288,
+    "pos-service":  14432,
+    "auth-service":  3576,
+    "file-service":  22992,
+    "kitchen-service":  40600,
+    "audit-service":  26268,
+    "frontend":  13244,
+    "authorization-service":  34392,
+    "platform-admin-service":  42524,
+    "finance-service":  44024
+}
