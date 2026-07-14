@@ -4,8 +4,10 @@ import io.restaurantos.auth.config.AuthCookieProperties;
 import io.restaurantos.auth.config.AuthJwtProperties;
 import io.restaurantos.auth.dto.request.LoginRequest;
 import io.restaurantos.auth.dto.response.LoginResponse;
+import io.restaurantos.auth.dto.response.TenantBrandingResponse;
 import io.restaurantos.auth.dto.response.TokenResponse;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
+import io.restaurantos.auth.repository.AuthTenantRepository;
 import io.restaurantos.auth.service.AuthService;
 import io.restaurantos.shared.api.ApiResponse;
 import jakarta.servlet.http.Cookie;
@@ -14,6 +16,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,13 +32,25 @@ public class AuthController {
     private final AuthService authService;
     private final AuthJwtProperties jwtProperties;
     private final AuthCookieProperties cookieProperties;
+    private final AuthTenantRepository authTenantRepository;
 
     public AuthController(AuthService authService,
                           AuthJwtProperties jwtProperties,
-                          AuthCookieProperties cookieProperties) {
+                          AuthCookieProperties cookieProperties,
+                          AuthTenantRepository authTenantRepository) {
         this.authService = authService;
         this.jwtProperties = jwtProperties;
         this.cookieProperties = cookieProperties;
+        this.authTenantRepository = authTenantRepository;
+    }
+
+    @GetMapping("/tenants/{slug}")
+    public ResponseEntity<ApiResponse<TenantBrandingResponse>> tenantBranding(@PathVariable String slug) {
+        return authTenantRepository.findBySlug(slug.trim())
+            .filter(t -> "ACTIVE".equals(t.getStatus()))
+            .map(t -> ResponseEntity.ok(ApiResponse.ok(
+                new TenantBrandingResponse(t.getSlug(), t.getName()))))
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/login")

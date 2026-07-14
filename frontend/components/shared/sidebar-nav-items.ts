@@ -35,6 +35,10 @@ export interface NavItem {
   icon: LucideIcon;
   permission?: string;
   feature?: FeatureFlag;
+  // Role gate for items with no permission in the DB catalog yet (HR/CRM/Reporting
+  // placeholders). When set, the item shows only if the user holds one of these
+  // roles — otherwise a feature-only item leaks to every role (e.g. kitchen staff).
+  roles?: string[];
   badge?: number | string;
 }
 
@@ -83,25 +87,28 @@ export const tenantNavItems: NavItem[] = [
     feature: "FEATURE_VENDOR",
   },
   {
-    // Phase 5+: HR permissions not yet in DB catalog — gate by feature only
+    // Phase 5+: HR permissions not yet in DB catalog — admin/owner only until built.
     label: "HR",
     href: "/app/hr",
     icon: Users,
     feature: "FEATURE_HR",
+    roles: ["OWNER", "TENANT_ADMIN"],
   },
   {
-    // Phase 5+: CRM permissions not yet in DB catalog — gate by feature only
+    // Phase 5+: CRM permissions not yet in DB catalog — admin/owner only until built.
     label: "CRM",
     href: "/app/crm",
     icon: Contact,
     feature: "FEATURE_CRM",
+    roles: ["OWNER", "TENANT_ADMIN"],
   },
   {
-    // Phase 5+: reporting permissions not yet in DB catalog — gate by feature only
+    // Phase 5+: reporting permissions not yet in DB catalog — admin/owner only until built.
     label: "Reporting",
     href: "/app/reporting",
     icon: BarChart3,
     feature: "FEATURE_REPORTING_ADVANCED",
+    roles: ["OWNER", "TENANT_ADMIN"],
   },
 ];
 
@@ -209,18 +216,20 @@ export const navGroups: NavGroup[] = [
     label: "People",
     items: [
       {
-        // Phase 5+: HR permissions not yet in DB catalog — gate by feature only
+        // Phase 5+: HR permissions not yet in DB catalog — admin/owner only until built.
         label: "HR",
         href: "/app/hr",
         icon: Users,
         feature: "FEATURE_HR",
+        roles: ["OWNER", "TENANT_ADMIN"],
       },
       {
-        // Phase 5+: CRM permissions not yet in DB catalog — gate by feature only
+        // Phase 5+: CRM permissions not yet in DB catalog — admin/owner only until built.
         label: "CRM",
         href: "/app/crm",
         icon: Contact,
         feature: "FEATURE_CRM",
+        roles: ["OWNER", "TENANT_ADMIN"],
       },
     ],
   },
@@ -228,11 +237,12 @@ export const navGroups: NavGroup[] = [
     label: "Reporting",
     items: [
       {
-        // Phase 5+: reporting permissions not yet in DB catalog — gate by feature only
+        // Phase 5+: reporting permissions not yet in DB catalog — admin/owner only until built.
         label: "Reports",
         href: "/app/reporting",
         icon: BarChart3,
         feature: "FEATURE_REPORTING_ADVANCED",
+        roles: ["OWNER", "TENANT_ADMIN"],
       },
     ],
   },
@@ -245,9 +255,11 @@ export const navGroups: NavGroup[] = [
         icon: Settings,
       },
       {
+        // Tenant appearance/branding is an admin-tier configuration surface.
         label: "Appearance",
         href: "/settings/appearance",
         icon: Palette,
+        roles: ["OWNER", "TENANT_ADMIN"],
       },
       {
         label: "Users",

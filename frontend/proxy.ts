@@ -20,8 +20,27 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED = ["/platform", "/app"];
 
+function loginUrl(request: NextRequest): URL {
+  const url = new URL("/login", request.url);
+  const defaultTenant = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
+  if (defaultTenant) {
+    url.searchParams.set("tenant", defaultTenant);
+  }
+  return url;
+}
+
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
+
+  // Dev default tenant: hide the restaurant slug field on /login.
+  if (pathname === "/login" && !request.nextUrl.searchParams.get("tenant")) {
+    const defaultTenant = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
+    if (defaultTenant) {
+      const url = request.nextUrl.clone();
+      url.searchParams.set("tenant", defaultTenant);
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Bare `/dashboard` is not a real route — the tenant dashboard lives at
   // `/app/dashboard`. Normalise it so bookmarks and direct navigation work.
@@ -36,12 +55,12 @@ export function proxy(request: NextRequest): NextResponse {
   const hasSession = request.cookies.has("has_session");
 
   if (isProtected && !hasSession) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(loginUrl(request));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/platform/:path*", "/app/:path*", "/dashboard", "/dashboard/:path*"],
+  matcher: ["/login", "/platform/:path*", "/app/:path*", "/dashboard", "/dashboard/:path*"],
 };

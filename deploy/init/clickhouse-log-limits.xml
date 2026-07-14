@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+  Dev/QA guard-rail for ClickHouse self-telemetry.
+
+  Root cause of the 2026-07 50GB disk blow-up: the sampling profiler wrote to
+  system.trace_log once per second per thread, and NO system log table had a TTL,
+  so nothing was ever purged (trace_log reached 2.6B rows / 38GB on its own).
+
+  This file (a) caps each system log table with a short TTL so they self-purge, and
+  (b) sets a modest per-table row ceiling. The profiler itself is disabled in
+  clickhouse-disable-profiler.xml (users.d), which stops trace_log at the source.
+
+  These are diagnostic tables only — safe to age out aggressively in dev.
+-->
+<clickhouse>
+    <trace_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+        <max_size_rows>5000000</max_size_rows>
+    </trace_log>
+    <text_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+        <max_size_rows>5000000</max_size_rows>
+    </text_log>
+    <metric_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+    </metric_log>
+    <asynchronous_metric_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+    </asynchronous_metric_log>
+    <query_log>
+        <ttl>event_date + INTERVAL 7 DAY DELETE</ttl>
+    </query_log>
+    <query_thread_log>
+        <ttl>event_date + INTERVAL 3 DAY DELETE</ttl>
+    </query_thread_log>
+</clickhouse>

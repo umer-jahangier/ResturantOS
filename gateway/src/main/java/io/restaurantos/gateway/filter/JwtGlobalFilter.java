@@ -50,6 +50,7 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
             "/api/v1/auth/reset-password",
+            "/api/v1/auth/tenants",
             "/.well-known",
             "/actuator/health",
             "/actuator/prometheus",

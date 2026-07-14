@@ -31,15 +31,29 @@ function hasFeature(
   return features.includes(feature);
 }
 
+// Role gate for nav items that have no permission in the DB catalog yet (HR/CRM/
+// Reporting placeholders): without this they are feature-only and therefore visible
+// to every role. An item with `roles` is shown only if the user holds one of them.
+function hasRole(
+  userRoles: string[],
+  required: string[] | undefined,
+): boolean {
+  if (!required || required.length === 0) return true;
+  return required.some((role) => userRoles.includes(role));
+}
+
 /** Mirrors sidebar guard logic so empty nav groups can be hidden. */
 export function useNavItemVisible(
   item: NavItem,
   options?: { failOpenOnFeatureError?: boolean },
 ): boolean {
   const failOpen = options?.failOpenOnFeatureError ?? true;
-  const { permissions } = useCurrentUser();
+  const { permissions, roles } = useCurrentUser();
   const { data: features, isPending, isError } = useFeatureFlags();
 
+  if (!hasRole(roles, item.roles)) {
+    return false;
+  }
   if (!hasPermission(permissions, item.permission)) {
     return false;
   }
@@ -51,17 +65,20 @@ export function useNavGroupVisibility(
   options?: { failOpenOnFeatureError?: boolean },
 ): { hasVisibleItems: boolean; isItemVisible: (item: NavItem) => boolean } {
   const failOpen = options?.failOpenOnFeatureError ?? true;
-  const { permissions } = useCurrentUser();
+  const { permissions, roles } = useCurrentUser();
   const { data: features, isPending, isError } = useFeatureFlags();
 
   const isItemVisible = useCallback(
     (item: NavItem) => {
+      if (!hasRole(roles, item.roles)) {
+        return false;
+      }
       if (!hasPermission(permissions, item.permission)) {
         return false;
       }
       return hasFeature(item.feature, features, isPending, isError, failOpen);
     },
-    [permissions, features, isPending, isError, failOpen],
+    [roles, permissions, features, isPending, isError, failOpen],
   );
 
   const hasVisibleItems = group.items.some(isItemVisible);

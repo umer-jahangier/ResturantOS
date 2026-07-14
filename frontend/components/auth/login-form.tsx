@@ -41,11 +41,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 interface LoginFormProps {
   /** Resolved from the subdomain / `?tenant=`; null when neither yielded a slug. */
   tenantSlug: string | null;
+  /** Display name from auth-service (e.g. Lume); falls back to slug. */
+  tenantBrandName?: string | null;
   /** `?reason=` hint (e.g. `session_expired`) surfaced as a one-line notice. */
   reason?: string;
 }
 
-export function LoginForm({ tenantSlug, reason }: LoginFormProps) {
+export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProps) {
   const router = useRouter();
   const login = useLogin();
 
@@ -116,13 +118,15 @@ export function LoginForm({ tenantSlug, reason }: LoginFormProps) {
     );
   }
 
+  const restaurantLabel = tenantBrandName ?? tenantSlug;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sign in to RestaurantOS</CardTitle>
+        <CardTitle>{restaurantLabel ? `Sign in to ${restaurantLabel}` : "Sign in to RestaurantOS"}</CardTitle>
         <CardDescription>
           {tenantSlug
-            ? `Restaurant: ${tenantSlug}`
+            ? "Enter your email and password to continue"
             : "Enter your restaurant identifier and credentials"}
         </CardDescription>
       </CardHeader>

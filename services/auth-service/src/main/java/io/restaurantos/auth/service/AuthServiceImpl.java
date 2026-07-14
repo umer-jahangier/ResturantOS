@@ -15,6 +15,7 @@ import io.restaurantos.auth.repository.UserRepository;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
     private final LoginEventPublisher loginEventPublisher;
     private final AuthJwtProperties jwtProperties;
     private final TotpService totpService;
+    private final boolean stepUpEnabled;
 
     public AuthServiceImpl(AuthTenantRepository authTenantRepository,
                            UserRepository userRepository,
@@ -52,7 +54,8 @@ public class AuthServiceImpl implements AuthService {
                            RefreshSessionService refreshSessionService,
                            LoginEventPublisher loginEventPublisher,
                            AuthJwtProperties jwtProperties,
-                           TotpService totpService) {
+                           TotpService totpService,
+                           @Value("${restaurantos.auth.step-up-enabled:true}") boolean stepUpEnabled) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
         this.entityManager = entityManager;
@@ -64,6 +67,7 @@ public class AuthServiceImpl implements AuthService {
         this.loginEventPublisher = loginEventPublisher;
         this.jwtProperties = jwtProperties;
         this.totpService = totpService;
+        this.stepUpEnabled = stepUpEnabled;
     }
 
     @Override
@@ -183,7 +187,7 @@ public class AuthServiceImpl implements AuthService {
 
     private void enforceTotpStepUp(UserEntity user, LoginRequest request, List<String> permissions,
                                    UUID tenantId, String email, String ip) {
-        if (!requiresTotpStepUp(permissions, user.isTotpEnabled())) {
+        if (!stepUpEnabled || !requiresTotpStepUp(permissions, user.isTotpEnabled())) {
             return;
         }
         if (user.getTotpSecret() == null
