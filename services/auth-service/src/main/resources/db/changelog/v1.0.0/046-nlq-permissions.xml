@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Phase 12 (12-11): seeds nlq.query.run. Same explicit-grant rule as 045
+      (decision 10-09-B) — no SELECT-all-permissions trick. Only OWNER,
+      TENANT_ADMIN, MANAGER, ACCOUNTANT are granted; CASHIER and CHEF have an
+      empty nlq_allowed_tables allowlist (12-04) so they get no grant here either.
+    -->
+    <changeSet id="auth-1.0.0-046-nlq-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <insert tableName="permissions">
+            <column name="code" value="nlq.query.run"/>
+            <column name="module" value="nlq"/>
+            <column name="description" value="Run a natural-language query"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="nlq.query.run"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="nlq.query.run"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="nlq.query.run"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="nlq.query.run"/>
+        </insert>
+
+        <!-- CASHIER / CHEF: intentionally NOTHING -->
+
+    </changeSet>
+
+</databaseChangeLog>
