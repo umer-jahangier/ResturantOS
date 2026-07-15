@@ -44,6 +44,8 @@
         <module>services/pos-service</module>
         <module>services/kitchen-service</module>
         <module>services/crm-service</module>
+        <module>services/reporting-service</module>
+        <module>services/nlq-service</module>
         <!-- <module>services/inventory-service</module> -->
     </modules>
 

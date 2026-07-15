@@ -219,6 +219,41 @@ spring:
                       - 500
                       - 503
 
+            # ── Reporting Service (reports, FBR, realtime dashboard WS) ──────────
+            # No feature gate in RouteFeatureMap — reports are core for every ACTIVE tenant
+            # (same rationale as pos-route). Do NOT add /api/v1/reporting/ to RouteFeatureMap:
+            # FEATURE_REPORTING_ADVANCED is GROWTH-and-above only, so gating this path would 403
+            # every STARTER tenant out of basic reporting. Spring Cloud Gateway proxies the WS
+            # upgrade transparently over the same Path predicate (as kitchen-route does for KDS).
+            - id: reporting-route
+              uri: lb://reporting-service
+              predicates:
+                - Path=/api/v1/reporting/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: reportingCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
+            # ── NLQ Service (natural-language query → validated read-only SQL) ───
+            # Feature-gated on FEATURE_NLQ (GROWTH+) in RouteFeatureMap. The flag is now defined
+            # in TierFeatureDefaults (it was previously a phantom flag that 403'd every request).
+            - id: nlq-route
+              uri: lb://nlq-service
+              predicates:
+                - Path=/api/v1/nlq/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: nlqCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
             # - id: hr-route
             #   uri: lb://hr-service
@@ -238,16 +273,6 @@ spring:
             #     - name: CircuitBreaker
             #       args:
             #         name: crmCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: nlq-route
-            #   uri: lb://nlq-service
-            #   predicates:
-            #     - Path=/api/v1/nlq/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: nlqCircuitBreaker
             #         fallbackUri: forward:/fallback/service-unavailable
             #
             # - id: inventory-route

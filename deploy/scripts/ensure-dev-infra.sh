@@ -26,6 +26,8 @@ run_psql postgres \
   -v user_pw="$USER_DB_PASSWORD" \
   -v audit_pw="$AUDIT_DB_PASSWORD" \
   -v file_pw="$FILE_DB_PASSWORD" \
+  -v rpt_pw="$REPORTING_DB_PASSWORD" \
+  -v nlq_pw="$NLQ_DB_PASSWORD" \
   -f init/02b-ensure-runtime-roles.sql
 
 echo "==> Ensuring Postgres schema grants..."
