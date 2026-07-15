@@ -31,6 +31,17 @@ public class PosExceptions {
         }
     }
 
+    /**
+     * Raised when a cashier attempts to create an order without an OPEN till session.
+     * Enforces the financial-integrity invariant "no order without an open drawer" — the
+     * counterpart to {@link TillHasOpenOrdersException} (can't CLOSE a till with open orders).
+     */
+    public static class NoOpenTillException extends RuntimeException {
+        public NoOpenTillException(String cashierId) {
+            super("Cashier has no open till session; open a till before taking orders: " + cashierId);
+        }
+    }
+
     public static class TillNotFoundException extends ResourceNotFoundException {
         public TillNotFoundException(String tillId) {
             super("Till session not found: " + tillId);

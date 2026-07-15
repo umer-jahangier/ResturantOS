@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,6 +8,8 @@ import { server } from "@/mocks/server";
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { MenuGrid } from "@/components/pos/menu-grid";
+import { addLine, removeLine, type CartLine } from "@/components/pos/cart-reducer";
+import type { MenuItem } from "@/lib/models/pos.model";
 
 const CATEGORY_ID = "c1000001-0000-4000-8000-000000000001";
 
@@ -63,12 +66,14 @@ function renderGrid() {
   mockMenuEndpoints();
   const Wrapper = createQueryWrapper();
   const onItemSelect = vi.fn();
+  const onRemove = vi.fn();
+  const onClearCart = vi.fn();
   render(
     <Wrapper>
-      <MenuGrid onItemSelect={onItemSelect} />
+      <MenuGrid onItemSelect={onItemSelect} cart={[]} onRemove={onRemove} onClearCart={onClearCart} />
     </Wrapper>,
   );
-  return { onItemSelect };
+  return { onItemSelect, onRemove, onClearCart };
 }
 
 describe("MenuGrid search", () => {
@@ -127,5 +132,111 @@ describe("MenuGrid search", () => {
     await waitFor(() => {
       expect(screen.getByText("No items match your search")).toBeInTheDocument();
     });
+  });
+});
+
+/** Mimics PosTerminal's lifted cart state so selection survives a MenuGrid remount. */
+function StatefulMenuGrid() {
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const handleItemSelect = (item: MenuItem) =>
+    setCart((prev) => addLine(prev, { menuItemId: item.id, name: item.name, unitPricePaisa: item.basePricePaisa }));
+  const handleRemove = (key: string) => setCart((prev) => removeLine(prev, key));
+  const handleClearCart = () => setCart([]);
+  return (
+    <MenuGrid onItemSelect={handleItemSelect} cart={cart} onRemove={handleRemove} onClearCart={handleClearCart} />
+  );
+}
+
+describe("MenuGrid selection highlighting", () => {
+  afterEach(() => clearSession());
+
+  function renderStatefulGrid() {
+    seedSession({ branchId: "branch-1" });
+    mockMenuEndpoints();
+    const Wrapper = createQueryWrapper();
+    render(
+      <Wrapper>
+        <StatefulMenuGrid />
+      </Wrapper>,
+    );
+  }
+
+  it("highlights a tapped item with a quantity badge, incrementing on repeat taps", async () => {
+    renderStatefulGrid();
+    const user = userEvent.setup();
+
+    await screen.findByText("Cheeseburger");
+    const card = screen.getByText("Cheeseburger").closest("button")!;
+    expect(card).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(card);
+    expect(card).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("1");
+
+    await user.click(card);
+    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("2");
+  });
+
+  it("persists selection highlighting across a category switch", async () => {
+    renderStatefulGrid();
+    const user = userEvent.setup();
+
+    await screen.findByText("Cheeseburger");
+    await user.click(screen.getByText("Cheeseburger").closest("button")!);
+    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("1");
+
+    await user.click(screen.getByText("Mains"));
+    await user.click(screen.getByText("All"));
+
+    await screen.findByText("Cheeseburger");
+    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("1");
+  });
+
+  it("removes the item and clears the highlight via the remove button", async () => {
+    renderStatefulGrid();
+    const user = userEvent.setup();
+
+    await screen.findByText("Cheeseburger");
+    const card = screen.getByText("Cheeseburger").closest("button")!;
+    await user.click(card);
+    expect(card).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByLabelText("Remove Cheeseburger from cart"));
+
+    expect(card).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.queryByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("Clear All (top-right of categories) opens a confirmation modal before clearing the cart", async () => {
+    renderStatefulGrid();
+    const user = userEvent.setup();
+
+    await screen.findByText("Cheeseburger");
+    await user.click(screen.getByText("Cheeseburger").closest("button")!);
+    await user.click(screen.getByText("Chicken Wings").closest("button")!);
+
+    const clearAllButton = await screen.findByTestId("clear-all-button");
+    await user.click(clearAllButton);
+
+    // Confirmation modal appears — dismissing via "Keep Items" leaves the cart untouched.
+    expect(await screen.findByText("Clear all items?")).toBeInTheDocument();
+    await user.click(screen.getByText("Keep Items"));
+    await waitFor(() => {
+      expect(screen.queryByText("Clear all items?")).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toBeInTheDocument();
+
+    // Confirming the modal clears every line.
+    await user.click(screen.getByTestId("clear-all-button"));
+    await user.click(screen.getByTestId("clear-all-confirm-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("clear-all-button")).not.toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 package io.restaurantos.shared.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -88,6 +89,25 @@ public class SharedAutoConfiguration implements WebMvcConfigurer {
         return new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
+
+    /**
+     * Event-consumption ObjectMapper — a TOLERANT READER for the RabbitMQ event bus. Identical to
+     * {@link #sharedObjectMapper()} but with {@code FAIL_ON_UNKNOWN_PROPERTIES} DISABLED, so a
+     * consumer whose payload record is a SUBSET of (or lags) the producer's payload ignores
+     * unknown/additive fields instead of throwing and silently dropping every message — the class of
+     * bug that had ORDER_CLOSED failing on the producer's {@code orderNo} field. Kept SEPARATE from
+     * the {@link Primary} mapper on purpose: REST {@code @RequestBody} deserialization stays STRICT
+     * (a mistyped API field still 400s). Inject in {@code @RabbitListener} consumers via
+     * {@code @Qualifier("eventObjectMapper")}. This does NOT hide breaking changes (renames/type
+     * changes) — those still surface, and are caught by the consumer contract/parity ITs.
+     */
+    @Bean("eventObjectMapper")
+    public ObjectMapper eventObjectMapper() {
+        return new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     }
 
     // ── API / Exception handling ─────────────────────────────────────────────

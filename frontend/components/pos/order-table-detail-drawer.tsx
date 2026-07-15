@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { ArrowRight, MessageSquare, Search, XIcon } from "lucide-react";
+import { ArrowRight, MessageSquare, RefreshCw, Search, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -72,8 +72,13 @@ export function OrderTableDetailDrawer({
 
   const order: Order | null = isTableMode ? (tableQuery.data?.activeOrder ?? null) : (orderQuery.data ?? null);
   const isLoading = isTableMode ? tableQuery.isLoading : orderQuery.isLoading;
+  const isRefetching = isTableMode ? tableQuery.isFetching : orderQuery.isFetching;
   const resolvedTableId = order?.tableId ?? tableId ?? null;
   const resolvedTableName = isTableMode ? (tableQuery.data?.tableName ?? tableName ?? null) : (tableName ?? null);
+
+  const handleRefresh = () => {
+    void (isTableMode ? tableQuery.refetch() : orderQuery.refetch());
+  };
 
   const revisions = useMemo(() => (order ? deriveRevisionLog(order.items) : []), [order]);
   const displayStatus = order ? getOrderDisplayStatus(order) : null;
@@ -137,11 +142,22 @@ export function OrderTableDetailDrawer({
               )}
               {revisions.length > 0 && <RevisionCountChip revisions={revisions} />}
             </div>
-            <DialogPrimitive.Close asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Close order details">
-                <XIcon />
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Refresh order details"
+                onClick={handleRefresh}
+                disabled={isRefetching}
+              >
+                <RefreshCw className={cn("size-4", isRefetching && "animate-spin")} />
               </Button>
-            </DialogPrimitive.Close>
+              <DialogPrimitive.Close asChild>
+                <Button variant="ghost" size="icon-sm" aria-label="Close order details">
+                  <XIcon />
+                </Button>
+              </DialogPrimitive.Close>
+            </div>
           </div>
 
           {isLoading ? (

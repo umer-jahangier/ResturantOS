@@ -85,7 +85,49 @@
       "name": "audit.all-events.queue", "vhost": "/", "durable": true, "auto_delete": false,
       "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "audit.all-events.queue.dlq" }
     },
-    { "name": "audit.all-events.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} }
+    { "name": "audit.all-events.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.stock-depleted.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.stock-depleted.queue.dlq" }
+    },
+    { "name": "finance.stock-depleted.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.order-refunded.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.order-refunded.queue.dlq" }
+    },
+    { "name": "finance.order-refunded.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.wastage.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.wastage.queue.dlq" }
+    },
+    { "name": "finance.wastage.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.count-variance.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.count-variance.queue.dlq" }
+    },
+    { "name": "finance.count-variance.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.transfer-shipped.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.transfer-shipped.queue.dlq" }
+    },
+    { "name": "finance.transfer-shipped.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "finance.transfer-received.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "finance.transfer-received.queue.dlq" }
+    },
+    { "name": "finance.transfer-received.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} },
+
+    {
+      "name": "crm.order-refunded.queue", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "restaurantos.dlx", "x-dead-letter-routing-key": "crm.order-refunded.queue.dlq" }
+    },
+    { "name": "crm.order-refunded.queue.dlq", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} }
   ],
   "bindings": [
     { "source": "pos.topic",        "vhost": "/", "destination": "inventory.order-closed.queue", "destination_type": "queue", "routing_key": "pos.order.closed",             "arguments": {} },
@@ -99,6 +141,14 @@
     { "source": "inventory.topic",  "vhost": "/", "destination": "notification.low-stock.queue", "destination_type": "queue", "routing_key": "inventory.stock.low",          "arguments": {} },
     { "source": "purchasing.topic", "vhost": "/", "destination": "finance.invoice-matched.queue","destination_type": "queue", "routing_key": "purchasing.invoice.matched",    "arguments": {} },
     { "source": "hr.topic",         "vhost": "/", "destination": "finance.payroll-approved.queue","destination_type": "queue","routing_key": "hr.payroll.approved",           "arguments": {} },
+
+    { "source": "inventory.topic",  "vhost": "/", "destination": "finance.stock-depleted.queue",   "destination_type": "queue", "routing_key": "inventory.stock.depleted",     "arguments": {} },
+    { "source": "pos.topic",        "vhost": "/", "destination": "finance.order-refunded.queue",   "destination_type": "queue", "routing_key": "pos.order.refunded",             "arguments": {} },
+    { "source": "pos.topic",        "vhost": "/", "destination": "crm.order-refunded.queue",       "destination_type": "queue", "routing_key": "pos.order.refunded",             "arguments": {} },
+    { "source": "inventory.topic",  "vhost": "/", "destination": "finance.wastage.queue",          "destination_type": "queue", "routing_key": "inventory.wastage.recorded",   "arguments": {} },
+    { "source": "inventory.topic",  "vhost": "/", "destination": "finance.count-variance.queue",   "destination_type": "queue", "routing_key": "inventory.count.variance",       "arguments": {} },
+    { "source": "inventory.topic",  "vhost": "/", "destination": "finance.transfer-shipped.queue", "destination_type": "queue", "routing_key": "inventory.transfer.shipped",     "arguments": {} },
+    { "source": "inventory.topic",  "vhost": "/", "destination": "finance.transfer-received.queue","destination_type": "queue", "routing_key": "inventory.transfer.received",    "arguments": {} },
 
     { "source": "pos.topic",           "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
     { "source": "inventory.topic",     "vhost": "/", "destination": "audit.all-events.queue", "destination_type": "queue", "routing_key": "#", "arguments": {} },
@@ -121,7 +171,14 @@
     { "source": "restaurantos.dlx", "vhost": "/", "destination": "notification.low-stock.queue.dlq",  "destination_type": "queue", "routing_key": "notification.low-stock.queue.dlq",  "arguments": {} },
     { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.invoice-matched.queue.dlq", "destination_type": "queue", "routing_key": "finance.invoice-matched.queue.dlq", "arguments": {} },
     { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.payroll-approved.queue.dlq","destination_type": "queue", "routing_key": "finance.payroll-approved.queue.dlq","arguments": {} },
-    { "source": "restaurantos.dlx", "vhost": "/", "destination": "audit.all-events.queue.dlq",        "destination_type": "queue", "routing_key": "audit.all-events.queue.dlq",        "arguments": {} }
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "audit.all-events.queue.dlq",        "destination_type": "queue", "routing_key": "audit.all-events.queue.dlq",        "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.stock-depleted.queue.dlq",  "destination_type": "queue", "routing_key": "finance.stock-depleted.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.order-refunded.queue.dlq",  "destination_type": "queue", "routing_key": "finance.order-refunded.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.wastage.queue.dlq",         "destination_type": "queue", "routing_key": "finance.wastage.queue.dlq",         "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.count-variance.queue.dlq",  "destination_type": "queue", "routing_key": "finance.count-variance.queue.dlq",  "arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.transfer-shipped.queue.dlq","destination_type": "queue", "routing_key": "finance.transfer-shipped.queue.dlq","arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "finance.transfer-received.queue.dlq","destination_type": "queue", "routing_key": "finance.transfer-received.queue.dlq","arguments": {} },
+    { "source": "restaurantos.dlx", "vhost": "/", "destination": "crm.order-refunded.queue.dlq",        "destination_type": "queue", "routing_key": "crm.order-refunded.queue.dlq",        "arguments": {} }
   ],
   "policies": [],
   "parameters": [],

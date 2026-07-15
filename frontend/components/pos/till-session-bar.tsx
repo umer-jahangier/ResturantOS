@@ -94,7 +94,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
 
   if (!activeTill || activeTill.status === "CLOSED") {
     return (
-      <div className="border-b border-amber-200">
+      <div className="border-b border-amber-200 dark:border-amber-900">
         {!showOpenModal ? (
           <div className="flex items-center gap-2 px-3 py-2 bg-amber-50">
             <span className="text-xs text-amber-700 font-medium">No active till</span>
@@ -116,7 +116,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
            */
           <div
             data-testid="open-till-panel"
-            className="flex flex-col gap-4 bg-amber-50 p-4 sm:p-6"
+            className="flex flex-col gap-4 bg-amber-50 dark:bg-amber-950/40 p-4 sm:p-6"
           >
             <h2 className="font-semibold">Open Till Session</h2>
             <p className="text-xs text-muted-foreground">
@@ -163,7 +163,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   }
 
   return (
-    <div className="border-b border-emerald-200">
+    <div className="border-b border-emerald-200 dark:border-emerald-900">
       {!showCloseModal ? (
         <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50">
           <span className="text-xs font-medium text-emerald-800">Till OPEN</span>
@@ -205,7 +205,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
         /* Dedicated large in-place panel (POS-25/D-10) — see the open-till panel comment above. */
         <div
           data-testid="close-till-panel"
-          className="flex flex-col gap-4 bg-emerald-50 p-4 sm:p-6"
+          className="flex flex-col gap-4 bg-emerald-50 dark:bg-emerald-950/40 p-4 sm:p-6"
         >
           <h2 className="font-semibold">Close Till Session</h2>
 

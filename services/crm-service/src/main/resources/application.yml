@@ -1,0 +1,50 @@
+server:
+  port: ${SERVER_PORT:8089}
+
+spring:
+  application:
+    name: crm-service
+  datasource:
+    url: ${CRM_DB_URL:jdbc:postgresql://localhost:5432/crm_db}
+    username: ${CRM_DB_USER:crm_user}
+    password: ${CRM_DB_PASSWORD:crm_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    contexts: ${LIQUIBASE_CONTEXTS:seed}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+restaurantos:
+  internal:
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  jwks:
+    uri: ${JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}

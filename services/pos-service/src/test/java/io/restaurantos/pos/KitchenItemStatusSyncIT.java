@@ -92,6 +92,19 @@ class KitchenItemStatusSyncIT extends PosTestBase {
         return orderService.getOrder(order.id(), branchId);
     }
 
+    /**
+     * Delivers a message through the consumer, then restores the TenantContext. The consumer runs
+     * via TenantAwareMessageProcessor, which CLEARS the context when its per-message scope ends
+     * (correct production behavior — every message/request establishes and tears down its own
+     * context). This test then keeps calling {@code orderService} on the same thread to verify the
+     * effect, so it must re-establish the context exactly as the next authenticated request would —
+     * otherwise the branch-isolation guard on {@code getOrder} correctly rejects the context-less call.
+     */
+    private void deliver(Message message) {
+        kitchenItemStatusConsumer.onMessage(message);
+        tenantContext.set(tenantId, branchId, null, null);
+    }
+
     /** Builds a Message whose bytes are IDENTICAL in shape to what kitchen-service publishes. */
     private Message buildEnvelopeMessage(UUID orderId, UUID orderItemId, String newStatus,
                                           int revisionNo, String station) throws Exception {
@@ -110,7 +123,7 @@ class KitchenItemStatusSyncIT extends PosTestBase {
         assertThat(order.items().get(0).kdsStatus()).isEqualTo(OrderItemStatus.SENT);
 
         Message message = buildEnvelopeMessage(order.id(), itemId, "PREPARING", 1, "GRILL");
-        kitchenItemStatusConsumer.onMessage(message);
+        deliver(message);
 
         OrderDto after = orderService.getOrder(order.id(), branchId);
         assertThat(after.items().get(0).kdsStatus()).isEqualTo(OrderItemStatus.PREPARING);
@@ -124,7 +137,7 @@ class KitchenItemStatusSyncIT extends PosTestBase {
         orderService.markItemServed(order.id(), itemId);
 
         Message message = buildEnvelopeMessage(order.id(), itemId, "ACCEPTED", 1, "GRILL");
-        kitchenItemStatusConsumer.onMessage(message);
+        deliver(message);
 
         OrderDto after = orderService.getOrder(order.id(), branchId);
         assertThat(after.items().get(0).kdsStatus()).isEqualTo(OrderItemStatus.SERVED);
@@ -142,13 +155,13 @@ class KitchenItemStatusSyncIT extends PosTestBase {
                 new KitchenSideItemStatusChangedPayload(order.id(), itemId, "PREPARING", 1, "GRILL"));
         byte[] bytes = objectMapper.writeValueAsBytes(envelope);
 
-        kitchenItemStatusConsumer.onMessage(MessageBuilder.withBody(bytes).build());
+        deliver(MessageBuilder.withBody(bytes).build());
         OrderDto afterFirst = orderService.getOrder(order.id(), branchId);
         assertThat(afterFirst.items().get(0).kdsStatus()).isEqualTo(OrderItemStatus.PREPARING);
 
         // Second delivery of the SAME eventId — must be a no-op even though PREPARING would
         // otherwise be a same-status (non-forward) apply.
-        kitchenItemStatusConsumer.onMessage(MessageBuilder.withBody(bytes).build());
+        deliver(MessageBuilder.withBody(bytes).build());
         OrderDto afterSecond = orderService.getOrder(order.id(), branchId);
         assertThat(afterSecond.items().get(0).kdsStatus()).isEqualTo(OrderItemStatus.PREPARING);
     }
@@ -158,7 +171,7 @@ class KitchenItemStatusSyncIT extends PosTestBase {
         OrderDto order = createSentOrder();
 
         Message message = buildEnvelopeMessage(order.id(), UUID.randomUUID(), "PREPARING", 1, "GRILL");
-        kitchenItemStatusConsumer.onMessage(message); // must not throw
+        deliver(message); // must not throw
 
         OrderDto after = orderService.getOrder(order.id(), branchId);
         assertThat(after.items().get(0).kdsStatus()).isEqualTo(OrderItemStatus.SENT);

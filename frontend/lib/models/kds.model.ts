@@ -6,7 +6,17 @@ export type KdsTicketStatus = "PENDING" | "COOKING" | "READY" | "SERVED" | "CANC
 // Kitchen-owned per-item lifecycle subset (backend TicketItemStatus). COOKING is a
 // retained legacy alias for PREPARING (see kds.schema.ts comment). CANCELLED = pos cancelled
 // the line after it was fired.
-export type KdsItemStatus = "PENDING" | "ACCEPTED" | "PREPARING" | "COOKING" | "READY" | "CANCELLED";
+// SERVED mirrors the kitchen-side terminal state set by the ORDER_ITEM_SERVED consumer: a line
+// served on the POS while the order is still open. It maps to no board column (mapItemStatusToColumn
+// returns null via its default case), so a served line drops off the board like a cancelled one.
+export type KdsItemStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "COOKING"
+  | "READY"
+  | "CANCELLED"
+  | "SERVED";
 
 export interface KdsTicketItem {
   id: string;

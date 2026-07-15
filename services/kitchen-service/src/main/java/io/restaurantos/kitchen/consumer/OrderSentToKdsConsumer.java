@@ -1,6 +1,7 @@
 package io.restaurantos.kitchen.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import io.restaurantos.kitchen.config.KitchenRabbitConfig;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderSentToKdsPayload;
 import io.restaurantos.kitchen.service.ProcessedEventService;
@@ -9,6 +10,7 @@ import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -31,7 +33,7 @@ public class OrderSentToKdsConsumer {
     public OrderSentToKdsConsumer(ProcessedEventService processedEventService,
                                    TenantAwareMessageProcessor tenantAwareMessageProcessor,
                                    TicketRoutingService ticketRoutingService,
-                                   ObjectMapper objectMapper) {
+                                   @Qualifier("eventObjectMapper") ObjectMapper objectMapper) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.ticketRoutingService = ticketRoutingService;
@@ -63,8 +65,10 @@ public class OrderSentToKdsConsumer {
                     objectMapper.getTypeFactory().constructParametricType(
                             EventEnvelope.class, OrderSentToKdsPayload.class));
         } catch (Exception e) {
-            log.error("OrderSentToKdsConsumer: deserialization failed: {}", e.getMessage());
-            return null;
+            // Poison message — reject WITHOUT requeue so it dead-letters to the DLQ immediately
+            // (the DeadLetterMonitor logs + counts it) instead of being acked and silently lost.
+            log.error("OrderSentToKdsConsumer: deserialization failed, routing to DLQ: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("deserialization failed", e);
         }
     }
 }

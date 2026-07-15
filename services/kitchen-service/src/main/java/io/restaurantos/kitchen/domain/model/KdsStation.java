@@ -29,6 +29,13 @@ public class KdsStation extends TenantAuditableEntity {
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    /**
+     * Canonical pos-owned station id this projected row mirrors (Phase 3). Null for rows that
+     * were auto-vivified from a free-text code (e.g. DEFAULT) with no canonical source.
+     */
+    @Column(name = "source_station_id")
+    private UUID sourceStationId;
+
     @Column(name = "escalation_threshold_seconds", nullable = false)
     private int escalationThresholdSeconds = 900;
 }

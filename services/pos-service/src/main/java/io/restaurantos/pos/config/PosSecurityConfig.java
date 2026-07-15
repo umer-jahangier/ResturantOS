@@ -52,6 +52,11 @@ public class PosSecurityConfig {
                 .requestMatchers("/internal/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // POS order WebSocket handshake — authenticated INSIDE the handler
+                // (JWT + pos.order.view + branch-match via the ?token= query param, since
+                // browsers cannot set an Authorization header on a WebSocket). Scoped to
+                // the dedicated /ws/ segment so it never loosens the REST order endpoints.
+                .requestMatchers("/api/v1/pos/ws/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)

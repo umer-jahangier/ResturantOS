@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Minus, Plus } from "lucide-react";
+import { MessageSquare, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -30,6 +30,8 @@ interface OrderPanelProps {
   onTableChange: (tableId: string | null) => void;
   onIncrement: (key: string) => void;
   onDecrement: (key: string) => void;
+  /** Removes a cart line outright (× button) — faster than decrementing to 0. */
+  onRemove: (key: string) => void;
   /**
    * Non-null once the cart has been persisted (first Send/Charge succeeded, POS-19/
    * D-04). Switches this panel from cart-rendering to server-order-rendering — the
@@ -78,6 +80,7 @@ export function OrderPanel({
   onTableChange,
   onIncrement,
   onDecrement,
+  onRemove,
   sentOrder,
   isPersisting,
   onSendToKitchen,
@@ -95,6 +98,7 @@ export function OrderPanel({
         onTableChange={onTableChange}
         onIncrement={onIncrement}
         onDecrement={onDecrement}
+        onRemove={onRemove}
         isPersisting={isPersisting}
         onSendToKitchen={onSendToKitchen}
         onSaveAsDraft={onSaveAsDraft}
@@ -116,6 +120,7 @@ interface PreSendCartProps {
   onTableChange: (tableId: string | null) => void;
   onIncrement: (key: string) => void;
   onDecrement: (key: string) => void;
+  onRemove: (key: string) => void;
   isPersisting: boolean;
   onSendToKitchen: () => void | Promise<void>;
   onSaveAsDraft: () => void | Promise<void>;
@@ -130,6 +135,7 @@ function PreSendCart({
   onTableChange,
   onIncrement,
   onDecrement,
+  onRemove,
   isPersisting,
   onSendToKitchen,
   onSaveAsDraft,
@@ -141,17 +147,17 @@ function PreSendCart({
   const estTotal = subtotal + estTax;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Order type + table (D-03) */}
-      <div className="px-4 py-3 border-b space-y-2">
+      <div className="shrink-0 px-4 py-3 border-b space-y-2">
         <OrderTypeToggle value={orderType} onChange={onOrderTypeChange} />
         {orderType === "DINE_IN" && (
           <TableSelectCombobox value={tableId} onChange={onTableChange} disabled={isPersisting} />
         )}
       </div>
 
-      {/* Cart lines */}
-      <div className="flex-1 overflow-y-auto divide-y">
+      {/* Cart lines — the only scrollable region; totals/actions below stay fixed */}
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y">
         {cart.length === 0 ? (
           <EmptyState
             title="Add items to start an order"
@@ -161,14 +167,23 @@ function PreSendCart({
         ) : (
           cart.map((line) => {
             const key = cartLineKey(line.menuItemId, line.modifierIds, line.notes);
-            return <CartLineRow key={key} line={line} lineKey={key} onIncrement={onIncrement} onDecrement={onDecrement} />;
+            return (
+              <CartLineRow
+                key={key}
+                line={line}
+                lineKey={key}
+                onIncrement={onIncrement}
+                onDecrement={onDecrement}
+                onRemove={onRemove}
+              />
+            );
           })
         )}
       </div>
 
       {/* Totals — estimated tax shown up-front (KFC/Square-style), before any commit */}
       {cart.length > 0 && (
-        <div className="border-t px-4 py-3 space-y-1 text-sm">
+        <div className="shrink-0 border-t px-4 py-3 space-y-1 text-sm">
           <div className="flex justify-between text-muted-foreground">
             <span>Subtotal</span>
             <MoneyDisplay paisa={subtotal} className="font-mono" />
@@ -188,7 +203,7 @@ function PreSendCart({
       )}
 
       {/* Actions */}
-      <div className="px-4 pb-4 pt-2 space-y-2">
+      <div className="shrink-0 px-4 pb-4 pt-2 space-y-2">
         <button
           type="button"
           data-testid="send-to-kitchen-button"
@@ -229,9 +244,10 @@ interface CartLineRowProps {
   lineKey: string;
   onIncrement: (key: string) => void;
   onDecrement: (key: string) => void;
+  onRemove: (key: string) => void;
 }
 
-function CartLineRow({ line, lineKey, onIncrement, onDecrement }: CartLineRowProps) {
+function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: CartLineRowProps) {
   return (
     <div className="px-4 py-2 flex items-center gap-2">
       <div className="flex-1 min-w-0">
@@ -261,6 +277,16 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement }: CartLineRowPro
       </div>
 
       <MoneyDisplay paisa={line.unitPricePaisa * line.quantity} className="text-sm font-mono w-20 text-right" />
+
+      {/* Remove line outright — faster than decrementing quantity down to 0 */}
+      <button
+        type="button"
+        onClick={() => onRemove(lineKey)}
+        aria-label={`Remove ${line.name} from cart`}
+        className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+      >
+        <X className="size-3.5" aria-hidden="true" />
+      </button>
     </div>
   );
 }
@@ -299,9 +325,9 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Order header */}
-      <div className="px-4 py-3 border-b space-y-1.5">
+      <div className="shrink-0 px-4 py-3 border-b space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <span className="font-semibold text-sm">{order.orderNo ?? "New Order"}</span>
           <StatusBadge status={displayStatus} />
@@ -319,8 +345,8 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
         onSave={(notes) => updateInstructions.mutate({ notes })}
       />
 
-      {/* Line items */}
-      <div className="flex-1 overflow-y-auto divide-y">
+      {/* Line items — the only scrollable region; totals/actions below stay fixed */}
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y">
         {order.items.length === 0 ? (
           <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">
             Add items from the menu
@@ -333,7 +359,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
       </div>
 
       {/* Totals */}
-      <div className="border-t px-4 py-3 space-y-1 text-sm">
+      <div className="shrink-0 border-t px-4 py-3 space-y-1 text-sm">
         <div className="flex justify-between text-muted-foreground">
           <span>Subtotal</span>
           <MoneyDisplay paisa={order.subtotalPaisa} className="font-mono" />
@@ -359,7 +385,7 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
       </div>
 
       {/* Actions */}
-      <div className="px-4 pb-4 pt-2 space-y-2">
+      <div className="shrink-0 px-4 pb-4 pt-2 space-y-2">
         {canSendToKitchen && (
           <button
             type="button"

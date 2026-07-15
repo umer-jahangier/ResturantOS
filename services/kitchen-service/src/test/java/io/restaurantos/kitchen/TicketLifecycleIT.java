@@ -86,6 +86,38 @@ class TicketLifecycleIT extends KitchenTestBase {
     }
 
     @Test
+    void serveTicketItem_marksLineServed_andNoLongerBlocksTicket() {
+        // A single GRILL ticket with two lines; only the first is READY, the ticket stays COOKING.
+        UUID readyItem = UUID.randomUUID();
+        UUID otherItem = UUID.randomUUID();
+        OrderSentToKdsPayload payload = new OrderSentToKdsPayload(orderId, tenantId, branchId, "ORD-TEST", List.of(
+                new OrderSentToKdsItem(readyItem, UUID.randomUUID(), "Karahi", 1, "GRILL", List.of(), null),
+                new OrderSentToKdsItem(otherItem, UUID.randomUUID(), "Naan",   1, "GRILL", List.of(), null)
+        ), 1, null, null);
+        ticketRoutingService.route(payload, "ORD-102");
+
+        var ticket = ticketRepository.findByOrderId(orderId).get(0);
+        var line1 = ticket.getItems().stream().filter(i -> i.getOrderItemId().equals(readyItem)).findFirst().orElseThrow();
+        ticketService.markItemStatus(ticket.getId(), line1.getId(), TicketItemStatus.COOKING);
+        ticketService.markItemStatus(ticket.getId(), line1.getId(), TicketItemStatus.READY);
+        assertThat(ticketRepository.findById(ticket.getId()).get().getStatus()).isEqualTo(TicketStatus.COOKING);
+
+        // POS serves the READY line while the order is still open (the other line never fired-served).
+        ticketService.serveTicketItem(readyItem);
+
+        var reloaded = ticketRepository.findById(ticket.getId()).orElseThrow();
+        var servedLine = reloaded.getItems().stream().filter(i -> i.getOrderItemId().equals(readyItem)).findFirst().orElseThrow();
+        // The served line leaves the board (SERVED maps to no column) and no longer blocks the ticket.
+        assertThat(servedLine.getStatus()).isEqualTo(TicketItemStatus.SERVED);
+
+        // Idempotent: replaying the same serve is a no-op.
+        ticketService.serveTicketItem(readyItem);
+        assertThat(ticketRepository.findById(ticket.getId()).orElseThrow().getItems().stream()
+                .filter(i -> i.getOrderItemId().equals(readyItem)).findFirst().orElseThrow()
+                .getStatus()).isEqualTo(TicketItemStatus.SERVED);
+    }
+
+    @Test
     void progressOnlyOneTicket_noOrderReady() {
         UUID orderItem1 = UUID.randomUUID();
         UUID orderItem2 = UUID.randomUUID();

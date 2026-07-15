@@ -30,6 +30,15 @@ export function useOrderSummaries(statuses?: string[], options?: { enabled?: boo
     queryKey: queryKeys.pos.orderSummaries(branchId, statuses),
     queryFn: () => PosRepository.listOrderSummaries({ branchId, status: statuses }),
     enabled: isAuthenticated && !!branchId && (options?.enabled ?? true),
+    // Order Management is an operational list that must show accurate data the moment
+    // it opens. The global default (staleTime 30s, refetchOnMount honours staleness)
+    // meant reopening the tab within 30s of the last fetch served the cached snapshot,
+    // forcing a manual refresh (POS-09). Override locally: always refetch on mount and
+    // on window focus, and treat the data as immediately stale. Scoped to this hook —
+    // the global defaults still apply everywhere else.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -37,11 +46,16 @@ export function useOrderSummaries(statuses?: string[], options?: { enabled?: boo
  * `refetchInterval` (POS-20): the order detail surfaces (Order Management drawer, Table
  * Floor View) previously only refetched on open, so a kitchen-side per-item status
  * transition (KITCHEN_ITEM_STATUS_CHANGED, fixed backend-side in 07.3-02) never showed
- * up until the user manually closed/reopened the surface. A modest 5s poll while the
- * order is open/mounted keeps live kitchen progress visible without a full websocket
- * wire-up for this surface.
+ * up until the user manually closed/reopened the surface.
+ *
+ * The primary live path is now the branch order WebSocket (`usePosOrdersSocket`, mounted
+ * once at the POS page level), which pushes the full updated OrderDto into this exact
+ * query key the instant a kitchen→pos consumer applies a change. This poll is kept only as
+ * a RELAXED FALLBACK for a dropped/absent socket (mirrors the KDS board keeping its ~10s
+ * poll alongside its socket) — hence widened from 5s to 15s now that it is no longer the
+ * mechanism carrying live kitchen progress.
  */
-const ORDER_REFETCH_INTERVAL_MS = 5000;
+const ORDER_REFETCH_INTERVAL_MS = 15000;
 
 export function useOrder(orderId: string) {
   const { branchId, isAuthenticated } = useCurrentUser();

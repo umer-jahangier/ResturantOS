@@ -6,8 +6,10 @@ import { z } from "zod";
 
 // Kitchen-owned per-item lifecycle subset (TicketItemStatus, kitchen-service): COOKING is
 // a retained legacy value (pre-Phase-7.1 rows/existing bump flow), treated as equivalent
-// to PREPARING downstream. SENT/SERVED/CANCELLED are pos-service-owned (OrderItemStatus)
-// and are not represented here — see kitchen-service TicketItemStatus javadoc.
+// to PREPARING downstream. CANCELLED and SERVED are terminal states mirrored on the KDS
+// side (set by the ORDER_ITEM_CANCELLED / ORDER_ITEM_SERVED consumers) — a fetched active
+// ticket can still carry a SERVED/CANCELLED line, so BOTH must be accepted here or the whole
+// ticket list fails validation and the board blanks. They map to no board column (dropped).
 export const apiKdsTicketItemSchema = z.object({
   id: z.string().uuid(),
   orderItemId: z.string().uuid(),
@@ -15,7 +17,7 @@ export const apiKdsTicketItemSchema = z.object({
   qty: z.number().int().positive(),
   modifiers: z.array(z.string()).nullable().optional(),
   notes: z.string().nullable().optional(),
-  status: z.enum(["PENDING", "ACCEPTED", "PREPARING", "COOKING", "READY", "CANCELLED"]),
+  status: z.enum(["PENDING", "ACCEPTED", "PREPARING", "COOKING", "READY", "CANCELLED", "SERVED"]),
   revisionNo: z.number().int().nonnegative(),
   firedAt: z.string().nullable().optional(),
 });

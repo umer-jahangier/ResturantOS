@@ -34,7 +34,11 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
     listener:
       simple:
-        acknowledge-mode: manual
+        # AUTO (container-managed ack): ack on success, nack on exception. Was 'manual', but no
+        # consumer ever called basicAck, so messages piled up unacked and redelivered forever — and
+        # retry/DLQ never fired. AUTO + retry + default-requeue-rejected=false = success acks & clears,
+        # failure retries then dead-letters to restaurantos.dlx (the <queue>.dlq bound in definitions).
+        acknowledge-mode: auto
         default-requeue-rejected: false
         retry:
           enabled: true

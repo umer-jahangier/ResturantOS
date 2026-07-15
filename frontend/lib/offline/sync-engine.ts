@@ -21,6 +21,7 @@ import {
   markSynced,
   peekPending,
   repointQueuedOps,
+  requeueRetriable,
 } from "./outbox";
 
 let isReplaying = false;
@@ -41,6 +42,12 @@ export async function replay(): Promise<ReplayResult> {
   isReplaying = true;
 
   try {
+    // Revive ops a previous pass left behind before draining: FAILED (transient/5xx
+    // failures not yet at MAX_ATTEMPTS) and IN_FLIGHT stranded by an interrupted replay.
+    // peekPending() reads PENDING only, so without this they would never be retried and
+    // would sit in the "N queued" badge forever. attempts is preserved, so a persistently
+    // failing op still climbs to MAX_ATTEMPTS and dead-letters to DEAD.
+    await requeueRetriable();
     const ops = await peekPending();
     let synced = 0;
     let failed = 0;

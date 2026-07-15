@@ -272,10 +272,44 @@ describe("PosTerminal", () => {
     await user.click(burgerButton);
     await user.click(burgerButton);
 
-    // A single cart line shows qty 2, not two separate lines.
+    // A single cart line shows qty 2, not two separate lines. "2" now also appears in the
+    // menu grid's selection badge on the tapped tile, so scope to the two expected spots.
     await waitFor(() => {
-      expect(screen.getByText("2")).toBeInTheDocument();
+      expect(screen.getAllByText("2").length).toBe(2);
     });
+    expect(createOrderCallCount).toBe(0);
+  });
+
+  it("Clear All empties the pre-send cart after confirmation, without any network call", async () => {
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const menuGrid = within(await screen.findByTestId("menu-grid"));
+    await user.click(menuGrid.getByText("Cheeseburger").closest("button") as HTMLElement);
+    await user.click(menuGrid.getByText("Fries").closest("button") as HTMLElement);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Cheeseburger").length).toBeGreaterThanOrEqual(2);
+    });
+
+    const clearAllButton = await screen.findByTestId("clear-all-button");
+    await user.click(clearAllButton);
+
+    // Requires modal confirmation — dismissing via "Keep Items" leaves the cart intact.
+    expect(await screen.findByText("Clear all items?")).toBeInTheDocument();
+    await user.click(screen.getByText("Keep Items"));
+    await waitFor(() => {
+      expect(screen.queryByText("Clear all items?")).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText("Cheeseburger").length).toBeGreaterThanOrEqual(2);
+
+    await user.click(screen.getByTestId("clear-all-button"));
+    await user.click(screen.getByTestId("clear-all-confirm-button"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("clear-all-button")).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Add items to start an order")).toBeInTheDocument();
     expect(createOrderCallCount).toBe(0);
   });
 
