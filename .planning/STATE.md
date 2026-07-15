@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 10
-current_phase_name: Purchasing & Accounts Payable
+current_phase: 12
+current_phase_name: Reporting, Dashboards & NLQ
 status: executing
-stopped_at: Completed 10-18-PLAN.md
-last_updated: "2026-07-14T00:00:00.000Z"
-last_activity: 2026-07-14
-last_activity_desc: Merged main into Mufazzal (Phases 07/07.1/07.2/07.3 + Phase 10 gap-closure wave)
+stopped_at: Completed 12-04-PLAN.md (NLQ 7-stage SQL AST validation pipeline)
+last_updated: "2026-07-16T00:00:00.000Z"
+last_activity: 2026-07-16
+last_activity_desc: Completed 12-04 — NLQ SQL validation pipeline (7-stage JSqlParser AST gate, adversarial injection suite, role allowlist + query-log schema)
 progress:
   total_phases: 15
   completed_phases: 8
@@ -28,9 +28,14 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 10 of 12 (Purchasing & Accounts Payable) — gap-closure wave COMPLETE (18/18 plans; 10-18 was the final plan)
-Plan: 18 of 18 — ALL gap-closure plans (10-07..10-18) now landed
-Status: 10-18 complete (this plan) — AR sub-ledger + house/corporate customer-account entity + AR aging + the internal POS-charge seam (POST /internal/finance/ar/charges, the Phase 7 contract) closing FIN-05's AR half. customer_accounts + ar_transactions (Flyway V6, RLS FORCEd, POS-retry idempotency index), ArService (credit-limit invariant checked before any write, manual+internal writers funnel into one postCharge()), finance.ar.view/finance.ar.manage permissions seeded, finance-service's first @PreAuthorize reflection guard (FinanceEndpointAuthorizationIT, found and correctly excluded one pre-existing internal endpoint mis-homed in a public controller), House Accounts + AR Aging frontend pages. Full finance-service `mvn verify`: 40 ITs, 34 pass, only the same 3 pre-existing "Branch context required" failures remain (unchanged). Real-stack click-path NOT completed — blocked by a pre-existing, stack-wide FEATURE_DISABLED gateway response affecting ALL modules (finance AND purchasing), confirmed via real login + real JWT + real gateway routing; see 10-18-SUMMARY.md Issues Encountered. Phase 10 gap-closure wave (10-07..10-18, 12 plans) is now fully executed; a phase-level UAT/verification re-pass (not this plan) owns flipping FIN-05 back to Complete in REQUIREMENTS.md.
+Phase: 12 of 12 (Reporting, Dashboards & NLQ) — wave 2 in progress
+Plan: 12-04 complete (NLQ SQL validation pipeline). Phase-12 SUMMARYs on disk: 12-01, 12-02, 12-04, 12-11 (12-03 committed as `f055694 feat(12-03)` — SUMMARY pending from its concurrent executor).
+Status: 12-04 complete — the 7-stage JSqlParser-AST SQL validation gate between Claude-generated SQL and ClickHouse (the highest-risk surface in the project). Shape → parse → table-allowlist → PII-denylist → tenant-filter → branch-filter → limit-inject, run as a pure I/O-free pipeline (only the Redis-cached role allowlist touches I/O). Tenant/branch predicates are injected via the AST and PROVEN by re-parse; unprovable shapes (JOIN/CTE/UNION/subquery) are rejected, never executed unfiltered. TDD: 56 tests (7 contract + 29 adversarial `SqlInjectionAttackTest` each asserting a typed RejectionCode + 20 stage-branch), validator package at 95.3% line coverage behind a genuinely-scoped JaCoCo gate. Watched-RED controls proved the re-parse proof and the shape whitelist load-bearing; found+fixed a real aliased-star (`SELECT t.* FROM tbl t`) PII bypass. `nlq_allowed_tables` (role-keyed, platform-level, no RLS, seeded) + `nlq_query_log` (RLS FORCEd, `impersonated_by`) shipped via Flyway V1. Open Question 4 CLOSED (allowlist in nlq_db, role-keyed, Redis-cached 10min). NO Claude call and NO ClickHouse execution — deliberately isolated to 12-07. Contract pinned for 12-07 (validate() signature + QueryContext + supported query shape + nlq_query_log columns) and 12-09 (RejectionCode → user message) in 12-04-SUMMARY.md.
+Last activity: 2026-07-16 — Completed 12-04 (NLQ 7-stage SQL AST validation pipeline — 3 tasks, 3 commits, d19a15a/743d353/220733b)
+
+### Superseded — prior position (Phase 10)
+
+Phase 10 (Purchasing & Accounts Payable) gap-closure wave COMPLETE (18/18 plans; 10-18 final). 10-18 — AR sub-ledger + house/corporate customer-account entity + AR aging + the internal POS-charge seam (POST /internal/finance/ar/charges, the Phase 7 contract) closing FIN-05's AR half. customer_accounts + ar_transactions (Flyway V6, RLS FORCEd, POS-retry idempotency index), ArService (credit-limit invariant checked before any write, manual+internal writers funnel into one postCharge()), finance.ar.view/finance.ar.manage permissions seeded, finance-service's first @PreAuthorize reflection guard (FinanceEndpointAuthorizationIT, found and correctly excluded one pre-existing internal endpoint mis-homed in a public controller), House Accounts + AR Aging frontend pages. Full finance-service `mvn verify`: 40 ITs, 34 pass, only the same 3 pre-existing "Branch context required" failures remain (unchanged). Real-stack click-path NOT completed — blocked by a pre-existing, stack-wide FEATURE_DISABLED gateway response affecting ALL modules (finance AND purchasing), confirmed via real login + real JWT + real gateway routing; see 10-18-SUMMARY.md Issues Encountered. Phase 10 gap-closure wave (10-07..10-18, 12 plans) is now fully executed; a phase-level UAT/verification re-pass (not this plan) owns flipping FIN-05 back to Complete in REQUIREMENTS.md.
 Last activity: 2026-07-13 — Completed 10-18 (AR sub-ledger + internal POS seam + house-accounts/AR-aging UI — 3 tasks, 3 commits, ce326c9/f24fa0d/8699b91)
 
 Progress: [██████████████████░░░░] 82% (36/44 plans)
