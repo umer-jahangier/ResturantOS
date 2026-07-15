@@ -79,3 +79,11 @@ restaurantos:
     default-limit: ${NLQ_DEFAULT_LIMIT:1000}
     timeout-seconds: ${NLQ_TIMEOUT_SECONDS:5}
     cache-ttl-seconds: ${NLQ_CACHE_TTL_SECONDS:60}
+    # Stage 4 (PiiDenylistStage, plan 12-04): table.column pairs that may never be selected, nor
+    # exposed via SELECT * star-expansion. Restricted to columns that actually exist on the
+    # clickhouse_analytics fact tables (12-02-SUMMARY's pinned column lists) — customer_id and
+    # cashier_id are the customer/staff-identifying columns present.
+    pii-denylist:
+      - sales_order_facts.customer_id
+      - sales_order_facts.cashier_id
+      - till_session_facts.cashier_id
