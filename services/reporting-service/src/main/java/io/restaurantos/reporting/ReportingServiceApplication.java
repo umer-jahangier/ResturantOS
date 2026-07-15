@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
 @EnableFeignClients(basePackages = "io.restaurantos.reporting.feign")
-@EntityScan(basePackages = {"io.restaurantos.reporting.domain.model", "io.restaurantos.shared"})
+@EntityScan(basePackages = {"io.restaurantos.reporting.domain.model", "io.restaurantos.reporting.entity", "io.restaurantos.shared"})
 @EnableJpaRepositories(basePackages = {"io.restaurantos.reporting.repository", "io.restaurantos.shared"})
 public class ReportingServiceApplication {
     public static void main(String[] args) {

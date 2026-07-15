@@ -73,3 +73,9 @@ restaurantos:
   # pos/finance/reporting in Docs/agent-specs/05-environment-variables.md — reporting is a consumer.
   business-day:
     offset-hours: ${BUSINESS_DAY_OFFSET_HOURS:4}
+    # Fallback when a branch's timezone cannot be resolved (user-service unreachable, field
+    # absent). PROJECT.md is Pakistan-first.
+    default-timezone: ${BUSINESS_DAY_DEFAULT_TIMEZONE:Asia/Karachi}
+    # A branch timezone effectively never changes — cache the internal user-service lookup in
+    # Redis under branch:tz:{branchId} for a long TTL.
+    branch-timezone-cache-ttl-hours: ${BUSINESS_DAY_BRANCH_TZ_CACHE_TTL_HOURS:24}
