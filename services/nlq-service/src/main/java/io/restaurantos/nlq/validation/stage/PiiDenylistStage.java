@@ -51,7 +51,13 @@ public class PiiDenylistStage {
             return;
         }
 
-        String singleTable = singleTableName(plainSelect);
+        Table fromTable = plainSelect.getFromItem() instanceof Table t ? t : null;
+        String singleTable = fromTable == null
+                ? null
+                : SqlNames.normalizeTable(fromTable.getFullyQualifiedName());
+        String fromAlias = fromTable != null && fromTable.getAlias() != null
+                ? SqlNames.normalizeTable(fromTable.getAlias().getName())
+                : null;
         Set<String> denied = singleTable == null
                 ? Set.of()
                 : deniedByTable.getOrDefault(singleTable, Set.of());
@@ -60,8 +66,19 @@ public class PiiDenylistStage {
             Expression expr = item.getExpression();
 
             if (expr instanceof AllTableColumns allTableColumns) {
-                String t = SqlNames.normalizeTable(allTableColumns.getTable().getFullyQualifiedName());
-                if (!deniedByTable.getOrDefault(t, Set.of()).isEmpty()) {
+                // The qualifier of a `t.*` is the table's ALIAS when the FROM item is aliased —
+                // NOT the real table name. Resolve it against the FROM table's alias/name so an
+                // alias can never be used to smuggle a star past the deny-list. Fail closed: an
+                // unresolved qualifier over a single table with denied columns is still rejected.
+                String qualifier = SqlNames.normalizeTable(
+                        allTableColumns.getTable().getFullyQualifiedName());
+                Set<String> starDenied;
+                if (qualifier.equals(fromAlias) || qualifier.equals(singleTable)) {
+                    starDenied = denied;
+                } else {
+                    starDenied = deniedByTable.getOrDefault(qualifier, denied);
+                }
+                if (!starDenied.isEmpty()) {
                     throw new NlqRejectedException(RejectionCode.PII_COLUMN_DENIED,
                             "SELECT * would expose a restricted column");
                 }
@@ -85,13 +102,6 @@ public class PiiDenylistStage {
                 }
             }
         }
-    }
-
-    private static String singleTableName(PlainSelect plainSelect) {
-        if (!(plainSelect.getFromItem() instanceof Table table)) {
-            return null;
-        }
-        return SqlNames.normalizeTable(table.getFullyQualifiedName());
     }
 
     private static final class ColumnCollector extends ExpressionVisitorAdapter<Void> {

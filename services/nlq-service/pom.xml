@@ -178,6 +178,65 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- io.restaurantos.nlq.validation.** is the security boundary of this service (plan
+                 12-04) — the CI-wide default gate is 60%, but this rule holds the validator
+                 package itself to near-full coverage, scoped via <includes> so the rest of the
+                 (still-scaffold) service is unaffected. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.14</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <!-- JSqlParser's generated tokenizer (CCJSqlParserTokenManager) has a
+                                 method too large for ASM to instrument (MethodTooLargeException) —
+                                 exclude the whole vendor package from instrumentation. We only need
+                                 coverage of our own io.restaurantos.nlq.validation.** code. -->
+                            <excludes>
+                                <exclude>net.sf.jsqlparser.**</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>check-validation-package</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Class-file includes at the check-goal level ACTUALLY narrow the
+                                 analysed set to the validator package (rule-level <includes> on a
+                                 BUNDLE element do not — they would aggregate the whole module). The
+                                 residual ~5% of uncovered lines are irreducible fail-closed guards:
+                                 PredicateInjector's post-injection proof-failure branches (never
+                                 reached because the serialize→reparse round-trip always succeeds and
+                                 always contains the injected predicate) and AstParseStage's
+                                 concurrency exception handlers (InterruptedException / non-Nlq
+                                 ExecutionException), which cannot be triggered deterministically.
+                                 Real coverage is ~95%; the enforced floor carries a small margin. -->
+                            <includes>
+                                <include>io/restaurantos/nlq/validation/**/*.class</include>
+                            </includes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.92</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

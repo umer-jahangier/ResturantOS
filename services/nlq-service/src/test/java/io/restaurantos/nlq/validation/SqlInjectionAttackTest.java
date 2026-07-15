@@ -114,6 +114,17 @@ class SqlInjectionAttackTest {
         assertThat(ex.code()).isEqualTo(RejectionCode.SHAPE_INVALID);
     }
 
+    @Test
+    void withPrefixedDeleteIsRejectedNotJustPrefixMatchedAsSelect() {
+        // A CTE can legally scope a DELETE ("WITH x AS (...) DELETE FROM ..."), not just a
+        // SELECT — this is a genuine bypass attempt of the cheap `startsWith("WITH")` prefix
+        // pre-check. Discovered via the Task 3 watched-RED control on the instanceof Select
+        // whitelist (see 12-04-SUMMARY.md); added here rather than only proven transiently.
+        NlqRejectedException ex = assertThrows(NlqRejectedException.class,
+                () -> pipeline.validate("WITH x AS (SELECT 1) DELETE FROM sales_order_facts", managerCtx()));
+        assertThat(ex.code()).isEqualTo(RejectionCode.SHAPE_INVALID);
+    }
+
     // ---------------------------------------------------------------------------------------
     // Statement smuggling — the shape stage parses with CCJSqlParserUtil.parseStatements and
     // rejects on statement-list size, never by counting semicolons (a `;` inside a string
@@ -263,6 +274,17 @@ class SqlInjectionAttackTest {
     void selectingADenyListedColumnDirectlyIsRejected() {
         NlqRejectedException ex = assertThrows(NlqRejectedException.class,
                 () -> pipeline.validate("SELECT customer_id FROM sales_order_facts", managerCtx()));
+        assertThat(ex.code()).isEqualTo(RejectionCode.PII_COLUMN_DENIED);
+    }
+
+    @Test
+    void aliasedTableStarCannotBypassTheDenyList() {
+        // `t.*` where `t` is an alias for a table with a denied column — the qualifier is the
+        // ALIAS, not the real table name, so a naive lookup would miss it. Discovered while
+        // writing StageCoverageTest (see 12-04-SUMMARY.md); the alias is resolved back to the
+        // FROM table so the star is still denied.
+        NlqRejectedException ex = assertThrows(NlqRejectedException.class,
+                () -> pipeline.validate("SELECT t.* FROM sales_order_facts t", managerCtx()));
         assertThat(ex.code()).isEqualTo(RejectionCode.PII_COLUMN_DENIED);
     }
 
