@@ -1,0 +1,81 @@
+server:
+  port: ${SERVER_PORT:8094}
+
+spring:
+  application:
+    name: nlq-service
+  config:
+    import: optional:configserver:${CONFIG_URI:http://localhost:8888}
+  datasource:
+    url: ${NLQ_DB_URL:jdbc:postgresql://localhost:5432/nlq_db}
+    username: ${NLQ_DB_USER:nlq_user}
+    password: ${NLQ_DB_PASSWORD:nlq_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  # REQUIRED — Redis backs @RequiresFeature (shared-lib RedisFeatureFlagService), the per-tenant
+  # monthly / per-user hourly NLQ quotas, and the 60s result cache (NLQ-02). Without this block
+  # Spring defaults to localhost:6379 with no password and every gated endpoint 500s.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  cloud:
+    config:
+      uri: ${CONFIG_URI:http://localhost:8888}
+      fail-fast: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+restaurantos:
+  internal:
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  # Source of truth for @RequiresFeature checks — shared-lib resolves a feature-flag cache miss
+  # from platform-admin (which owns tenant_features). Without it every gated endpoint 403s.
+  platform-admin:
+    uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8096}
+  jwks:
+    uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+  clickhouse:
+    url: ${CLICKHOUSE_URL:http://localhost:8123}
+    database: ${CLICKHOUSE_DB:clickhouse_analytics}
+    # The read-only, resource-capped user is the last line of defence if the 7-stage AST
+    # validator is ever bypassed (plan 12-02 creates it). NLQ-generated SQL runs ONLY as this user.
+    readonly-user: ${CLICKHOUSE_READONLY_USER:nlq_readonly}
+    readonly-password: ${CLICKHOUSE_READONLY_PASSWORD:}
+  nlq:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+      # Current model aliases. Docs/agent-specs/05-environment-variables.md hardcodes the stale
+      # claude-sonnet-4-20250514 / claude-haiku-4-20250514 — the latter is not a real model ID and
+      # would hard-fail the API. Do not reintroduce dated IDs here.
+      model-sql: ${ANTHROPIC_MODEL_SQL:claude-sonnet-4-6}
+      model-narrative: ${ANTHROPIC_MODEL_NARRATIVE:claude-haiku-4-5}
+    monthly-quota-default: ${NLQ_MONTHLY_QUOTA_DEFAULT:500}
+    user-hourly-limit: ${NLQ_USER_HOURLY_LIMIT:30}
+    max-result-rows: ${NLQ_MAX_RESULT_ROWS:10000}
+    default-limit: ${NLQ_DEFAULT_LIMIT:1000}
+    timeout-seconds: ${NLQ_TIMEOUT_SECONDS:5}
+    cache-ttl-seconds: ${NLQ_CACHE_TTL_SECONDS:60}
