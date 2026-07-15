@@ -1,0 +1,75 @@
+server:
+  port: ${SERVER_PORT:8092}
+
+spring:
+  application:
+    name: reporting-service
+  config:
+    import: optional:configserver:${CONFIG_URI:http://localhost:8888}
+  datasource:
+    url: ${REPORTING_DB_URL:jdbc:postgresql://localhost:5432/reporting_db}
+    username: ${REPORTING_DB_USER:reporting_user}
+    password: ${REPORTING_DB_PASSWORD:reporting_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  # Required by shared-lib's RedisFeatureFlagService, which backs @RequiresFeature. Also backs the
+  # dashboard KPI-tile cache (plan 12-06). Without this block Spring defaults to localhost:6379 with
+  # no password, the connection is refused, and gated endpoints fail with a 500.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:guest}
+  cloud:
+    config:
+      uri: ${CONFIG_URI:http://localhost:8888}
+      fail-fast: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+restaurantos:
+  internal:
+    secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  # Source of truth for @RequiresFeature checks — shared-lib resolves a feature-flag cache miss
+  # from platform-admin (which owns tenant_features). Without it every gated endpoint 403s.
+  platform-admin:
+    uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8096}
+  jwks:
+    uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
+  # ClickHouse analytics store — read path for reports (12-05) and the dashboard (12-06);
+  # write path for the ETL consumers (12-03).
+  clickhouse:
+    url: ${CLICKHOUSE_URL:http://localhost:8123}
+    database: ${CLICKHOUSE_DB:clickhouse_analytics}
+    user: ${CLICKHOUSE_USER:default}
+    password: ${CLICKHOUSE_PASSWORD:}
+  # Business-day boundary offset (hours past midnight a business day rolls over). Scoped to
+  # pos/finance/reporting in Docs/agent-specs/05-environment-variables.md — reporting is a consumer.
+  business-day:
+    offset-hours: ${BUSINESS_DAY_OFFSET_HOURS:4}
