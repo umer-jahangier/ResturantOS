@@ -25,11 +25,15 @@ public interface UserInternalClient {
     BranchInternalDto getBranch(@PathVariable("branchId") UUID branchId);
 
     /**
-     * Minimal local mirror of user-service's {@code BranchEntity} — only the field this service
-     * needs (timezone). Deliberately NOT the full entity: reporting-service does not depend on
+     * Minimal local mirror of user-service's {@code BranchEntity} — only the fields this service
+     * needs (timezone for the business-day resolver; name/ntn/fbrStrn for 12-05's FBR Tax Summary
+     * header). Deliberately NOT the full entity: reporting-service does not depend on
      * user-service, and a narrow DTO tolerates additive fields on the producer side by construction
-     * (unknown JSON properties are simply never mapped).
+     * (unknown JSON properties are simply never mapped). Field names copied verbatim from
+     * {@code BranchEntity}'s Lombok-generated getters ({@code getName}/{@code getNtn}/
+     * {@code getFbrStrn}/{@code getTimezone}) — the internal endpoint serializes the entity
+     * directly (see {@code BranchInternalController#getBranch} in user-service).
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record BranchInternalDto(UUID id, String timezone) {}
+    record BranchInternalDto(UUID id, String name, String ntn, String fbrStrn, String timezone) {}
 }
