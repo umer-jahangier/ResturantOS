@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 12
 current_phase_name: Reporting, Dashboards & NLQ
 status: executing
-stopped_at: Completed 12-04-PLAN.md (NLQ 7-stage SQL AST validation pipeline)
-last_updated: "2026-07-16T00:00:00.000Z"
-last_activity: 2026-07-16
-last_activity_desc: Completed 12-04 — NLQ SQL validation pipeline (7-stage JSqlParser AST gate, adversarial injection suite, role allowlist + query-log schema)
+stopped_at: Completed 12-03-PLAN.md — Phase 12 waves 1-2 done (12-01, 12-02, 12-11, 12-04, 12-03); wave 3 (12-05, 12-06, 12-07) next
+last_updated: "2026-07-17T00:00:00.000Z"
+last_activity: 2026-07-17
+last_activity_desc: Completed 12-03 — ETL (ORDER_CLOSED/TILL_CLOSED/VENDOR_INVOICE_MATCHED → ClickHouse facts, business-day boundary, idempotent), EtlPipelineIT 6/6 green on real containers; fixed 4 latent defects incl. clickhouse-jdbc 0.9.0 → 0.8.6
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 69
-  completed_plans: 56
-  percent: 53
+  total_plans: 111
+  completed_plans: 83
+  percent: 75
 ---
 
 # Project State
@@ -24,7 +24,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 10 (Purchasing & AP) — gap-closure wave COMPLETE (18/18, 10-07..10-18); next step is a phase-level UAT/verification re-pass, not another execution plan. The 2026-07-14 merge of `main` brought Phases 07 (8/8), 07.1 (10/10), 07.2 (6/7), and 07.3 (11/11) onto this branch; Phase 8 (Inventory & Recipe Management) remains unstarted.
+**Current focus:** Phase 12 (Reporting, Dashboards & NLQ) — EXECUTING, 5/11 plans done. Waves 1-2 complete: 12-01 (platform seams: reporting-service + nlq-service scaffolds, gateway routes, phantom FEATURE_NLQ fix, reporting_db/nlq_db), 12-02 (ClickHouse analytics schema + locked-down `nlq_readonly`, applied live), 12-11 (auth permissions + changelog includes), 12-04 (NLQ 7-stage JSqlParser AST validation gate + adversarial injection suite), 12-03 (ETL → ClickHouse facts, EtlPipelineIT 6/6 on real containers). Next: wave 3 — 12-05 (named reports + FBR), 12-06 (dashboard WebSocket), 12-07 (NLQ execution).
+
+Phase 10 (Purchasing & AP): goal VERIFIED 2026-07-14 (10-VERIFICATION-R2.md, `passed_with_gaps`) — procurement runs end-to-end on the real stack. Round-2 gap plans 10-20..10-26 remain unexecuted (polish/hardening, not blockers); 10-19 (dev-stack reproducibility) IS done. Note 10-25 (InternalServiceFilter never authenticates) is still open and touches the same internal-auth seam Phase 12's FBR report uses — may surface in 12-10.
+
+Phase 8 (Inventory) and Phase 9 remain unstarted — Phase 12 is built to degrade gracefully around this (cogs/margin/category written NULL, never 0).
 
 ## Current Position
 
