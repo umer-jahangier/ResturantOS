@@ -16,8 +16,11 @@
 
     <properties>
         <argLine/>
-        <!-- clickhouse-jdbc 0.9.0 dropped the `http` classifier; `all` is the self-contained jar. -->
-        <clickhouse-jdbc.version>0.9.0</clickhouse-jdbc.version>
+        <!-- Pinned to the mature 0.8.x line, NOT the newest 0.9.0 — 0.9.0 is a V2 rewrite whose
+             PreparedStatement binding throws ArrayIndexOutOfBoundsException on ordinary
+             parameterized queries (proven against a real container in 12-03). Kept in lockstep
+             with reporting-service. -->
+        <clickhouse-jdbc.version>0.8.6</clickhouse-jdbc.version>
         <!-- SQL AST parser for the 7-stage validator (plan 12-04). JSqlParser over Apache Calcite:
              we need parse + AST walk + targeted WHERE-clause injection on a small SQL subset, not a
              full query planner/optimizer — Calcite's value is dead weight here and harder to constrain. -->
@@ -86,7 +89,7 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>${clickhouse-jdbc.version}</version>
-            <classifier>all</classifier>
+            <classifier>http</classifier>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

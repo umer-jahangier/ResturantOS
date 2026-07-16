@@ -1,10 +1,7 @@
 package io.restaurantos.reporting.config;
 
 import com.clickhouse.jdbc.ClickHouseDataSource;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -30,45 +27,64 @@ import java.util.Properties;
  * query issued by the writers/readers. reporting-service inherits the Postgres fix for free by
  * depending on the current shared-lib; it must never be extended to cover ClickHouse.
  *
- * <p>Spring Boot's DataSource auto-configuration only tolerates a SINGLE unqualified DataSource
- * bean being wired implicitly into JPA/Hibernate. With two DataSource beans in this context (this
- * one plus the ClickHouse one below) that auto-configuration is ambiguous, so the Postgres
- * DataSource is redeclared explicitly here and marked {@code @Primary} — standard Spring Boot
- * "multiple DataSources" pattern (docs: "Configure a primary DataSource"). This does not change
- * Postgres connectivity or pooling; {@code @ConfigurationProperties(prefix = "spring.datasource")}
- * binds the exact same {@code spring.datasource.*} properties Boot's own auto-configuration would
- * have used, and {@code DataSourceBuilder} picks the same HikariCP implementation already on the
- * classpath via spring-boot-starter-data-jpa.
+ * <p><b>Why the ClickHouse DataSource is deliberately NOT a bean.</b> shared-lib's
+ * {@code TenantAwareDataSourcePostProcessor} wraps EVERY {@code DataSource} <i>bean</i> in the
+ * context — its test is a bare {@code bean instanceof DataSource}, with no bean-name or
+ * target-database discrimination. A {@code @Bean} ClickHouse DataSource would therefore be wrapped
+ * in {@link io.restaurantos.shared.tenant.TenantAwareDataSource} too, which issues
+ * {@code SELECT set_config('app.current_tenant_id', ?, false)} on every checkout where a tenant is
+ * in context. That is a POSTGRES-ONLY function; ClickHouse has no such function, and the ETL always
+ * runs with a tenant in context (it is read off the event envelope), so every ClickHouse write
+ * would fail. Constructing the DataSource inside this factory method keeps it out of the bean
+ * graph, so the post-processor never sees it — the "must not be wrapped" rule above is thereby
+ * enforced structurally rather than by comment.
+ *
+ * <p>Because no second {@code DataSource} bean exists, Spring Boot's own DataSource
+ * auto-configuration is unambiguous and configures the Postgres one normally from
+ * {@code spring.datasource.*} — and that bean IS post-processed, so reporting-service still
+ * inherits the RLS tenant-GUC fix (commit 2099ac0) for free.
  */
 @Configuration
 public class ClickHouseConfig {
 
-    @Bean
-    @Primary
-    @ConfigurationProperties(prefix = "spring.datasource")
-    public DataSource dataSource() {
-        return DataSourceBuilder.create().build();
-    }
-
-    @Bean(name = "clickHouseDataSource")
-    public DataSource clickHouseDataSource(
+    @Bean(name = "clickHouseJdbcTemplate")
+    public JdbcTemplate clickHouseJdbcTemplate(
             @Value("${restaurantos.clickhouse.url}") String clickHouseUrl,
             @Value("${restaurantos.clickhouse.database}") String database,
             @Value("${restaurantos.clickhouse.user}") String user,
             @Value("${restaurantos.clickhouse.password}") String password) throws SQLException {
-        // clickhouse-jdbc accepts the HTTP-interface base URL directly after the "jdbc:clickhouse:"
-        // scheme prefix (e.g. "jdbc:clickhouse:http://localhost:8123/clickhouse_analytics").
-        String jdbcUrl = "jdbc:clickhouse:" + clickHouseUrl + "/" + database;
+        // restaurantos.clickhouse.url is the HTTP-interface base URL (e.g.
+        // "http://localhost:8123", shared with deploy/clickhouse/apply.sh's curl calls). The
+        // clickhouse-jdbc driver's canonical URL form is "jdbc:clickhouse://host:port/database"
+        // (confirmed against org.testcontainers.clickhouse.ClickHouseContainer#getJdbcUrl, which
+        // EtlPipelineIT asserts against a real container) — strip the http(s):// scheme and
+        // re-prefix with jdbc:clickhouse://.
+        String hostAndPort = clickHouseUrl.replaceFirst("^https?://", "");
+        String jdbcUrl = "jdbc:clickhouse://" + hostAndPort + "/" + database;
         Properties props = new Properties();
         props.setProperty("user", user);
         if (password != null && !password.isBlank()) {
             props.setProperty("password", password);
         }
-        return new ClickHouseDataSource(jdbcUrl, props);
+        // Intentionally a local, not a @Bean — see the class javadoc.
+        DataSource clickHouseDataSource = new ClickHouseDataSource(jdbcUrl, props);
+        return new JdbcTemplate(clickHouseDataSource);
     }
 
-    @Bean(name = "clickHouseJdbcTemplate")
-    public JdbcTemplate clickHouseJdbcTemplate(@Qualifier("clickHouseDataSource") DataSource clickHouseDataSource) {
-        return new JdbcTemplate(clickHouseDataSource);
+    /**
+     * The Postgres {@link JdbcTemplate}, redeclared explicitly.
+     *
+     * <p>Boot's {@code JdbcTemplateAutoConfiguration} is
+     * {@code @ConditionalOnMissingBean(JdbcTemplate.class)}, so the mere existence of
+     * {@code clickHouseJdbcTemplate} above makes it back off and never create the default
+     * {@code jdbcTemplate} bean — leaving Postgres-side JDBC access with no template at all. It is
+     * therefore declared here, against the single (auto-configured, and post-processed into a
+     * tenant-aware) Postgres DataSource, and marked {@code @Primary} so an unqualified
+     * {@code JdbcTemplate} injection resolves to Postgres rather than ambiguously to ClickHouse.
+     */
+    @Bean(name = "jdbcTemplate")
+    @Primary
+    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
     }
 }

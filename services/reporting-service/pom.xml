@@ -16,9 +16,13 @@
 
     <properties>
         <argLine/>
-        <!-- clickhouse-jdbc 0.9.0 dropped the `http` classifier; `all` is the self-contained
-             jar that bundles the HTTP transport (same intent as the old http classifier). -->
-        <clickhouse-jdbc.version>0.9.0</clickhouse-jdbc.version>
+        <!-- Pinned to the mature 0.8.x line, NOT the newest 0.9.0. 0.9.0 is a V2 rewrite whose
+             PreparedStatement binding is broken: PreparedStatementImpl.setString throws
+             ArrayIndexOutOfBoundsException (its placeholder array is empty) on an ordinary
+             parameterized query, which breaks every parameterized fact INSERT and the
+             ClickHouseSchemaGuard probe. 0.9.0 also dropped the `http` classifier — a symptom of
+             the same unfinished rewrite. 0.8.6 ships `http` and binds parameters correctly. -->
+        <clickhouse-jdbc.version>0.8.6</clickhouse-jdbc.version>
     </properties>
 
     <dependencies>
@@ -88,7 +92,7 @@
             <groupId>com.clickhouse</groupId>
             <artifactId>clickhouse-jdbc</artifactId>
             <version>${clickhouse-jdbc.version}</version>
-            <classifier>all</classifier>
+            <classifier>http</classifier>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
