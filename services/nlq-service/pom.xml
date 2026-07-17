@@ -121,6 +121,12 @@
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- NlqServiceIT: real ClickHouse (plan 12-07, mirrors reporting-service's EtlPipelineIT). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>clickhouse</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
