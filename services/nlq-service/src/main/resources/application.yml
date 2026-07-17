@@ -83,7 +83,7 @@ restaurantos:
     # exposed via SELECT * star-expansion. Restricted to columns that actually exist on the
     # clickhouse_analytics fact tables (12-02-SUMMARY's pinned column lists) — customer_id and
     # cashier_id are the customer/staff-identifying columns present.
-    pii-denylist:
-      - sales_order_facts.customer_id
-      - sales_order_facts.cashier_id
-      - till_session_facts.cashier_id
+    # Comma-separated (NOT a YAML sequence): NlqValidationConfig binds this with
+    # @Value("${...}") List<String>, which splits a scalar on commas but cannot resolve an
+    # indexed YAML list (pii-denylist[0]…) from the bare key — a sequence fails context startup.
+    pii-denylist: sales_order_facts.customer_id,sales_order_facts.cashier_id,till_session_facts.cashier_id

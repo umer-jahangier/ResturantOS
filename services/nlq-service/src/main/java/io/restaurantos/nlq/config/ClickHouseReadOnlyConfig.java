@@ -32,8 +32,7 @@ public class ClickHouseReadOnlyConfig {
             @Value("${restaurantos.clickhouse.url}") String clickHouseUrl,
             @Value("${restaurantos.clickhouse.database}") String database,
             @Value("${restaurantos.clickhouse.readonly-user}") String readonlyUser,
-            @Value("${restaurantos.clickhouse.readonly-password}") String readonlyPassword,
-            @Value("${restaurantos.nlq.timeout-seconds:5}") int timeoutSeconds) throws SQLException {
+            @Value("${restaurantos.clickhouse.readonly-password}") String readonlyPassword) throws SQLException {
         String hostAndPort = clickHouseUrl.replaceFirst("^https?://", "");
         String jdbcUrl = "jdbc:clickhouse://" + hostAndPort + "/" + database;
         Properties props = new Properties();
@@ -43,13 +42,14 @@ public class ClickHouseReadOnlyConfig {
         }
         // Intentionally a local, not a @Bean — see the class javadoc.
         DataSource clickHouseReadOnlyDataSource = new ClickHouseDataSource(jdbcUrl, props);
-        JdbcTemplate template = new JdbcTemplate(clickHouseReadOnlyDataSource);
-        // Belt-and-braces client-side ceiling on top of the server-side nlq_readonly_profile
-        // (plan 12-02: max_execution_time = 5 MAX 5, CONST-bound so it cannot be raised from
-        // either side) — the server-side profile is the authoritative gate; this just fails the
-        // client faster and with a clearer JDBC-level signal.
-        template.setQueryTimeout(timeoutSeconds);
-        return template;
+        // Deliberately NO client-side setQueryTimeout / statement settings here: clickhouse-jdbc
+        // translates JDBC queryTimeout (and setMaxRows) into a server-side SET of max_execution_time
+        // / max_result_rows, which the nlq_readonly user is forbidden to change (readonly ⇒ Code
+        // 164). The server-side nlq_readonly_profile (plan 12-02: max_execution_time = 5 MAX 5,
+        // max_result_rows = 10000 MAX 10000, result_overflow_mode = 'throw' CONST) is the
+        // authoritative, un-relaxable gate — a breach surfaces as Code 159 / 396, which
+        // ClickHouseReadOnlyExecutor.classify() maps to NlqTimeoutException / NlqRowCapExceededException.
+        return new JdbcTemplate(clickHouseReadOnlyDataSource);
     }
 
     /**

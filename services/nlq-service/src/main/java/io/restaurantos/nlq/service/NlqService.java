@@ -132,8 +132,9 @@ public class NlqService {
         }
 
         // 6. Narrate — best-effort. A narration failure returns the rows with a null narrative,
-        //    it never fails the overall request.
-        String narrative = tryNarrate(question, result.rows());
+        //    it never fails the overall request. An EMPTY result is not narrated at all: there is
+        //    nothing to describe, and it avoids spending a second Claude call on "no rows".
+        String narrative = result.rows().isEmpty() ? null : tryNarrate(question, result.rows());
 
         // 7. Cache (60s) and audit the success.
         resultCache.put(cacheKey, new NlqResultCache.CachedResult(result.rows(), safeSql, narrative));

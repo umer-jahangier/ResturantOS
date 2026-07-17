@@ -1,5 +1,6 @@
 package io.restaurantos.nlq.cache;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.nlq.validation.QueryContext;
 import org.slf4j.Logger;
@@ -37,7 +38,13 @@ public class NlqResultCache {
     private static final String KEY_PREFIX = "nlq:result:";
 
     private final StringRedisTemplate redis;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // USE_LONG_FOR_INTS: ClickHouse returns Int64 columns (paisa, counts) as java.lang.Long. Default
+    // Jackson deserializes JSON integers as Integer, so a cache hit would return Integer where a
+    // fresh result returns Long — the same value but a different boxed type, breaking the invariant
+    // that a cache hit is byte-identical to the fresh result it replaced. Reading integers as Long
+    // keeps the two paths consistent.
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.USE_LONG_FOR_INTS, true);
     private final Duration ttl;
 
     public NlqResultCache(StringRedisTemplate redis,

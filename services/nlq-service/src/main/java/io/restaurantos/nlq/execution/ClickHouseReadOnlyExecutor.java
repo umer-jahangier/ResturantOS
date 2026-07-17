@@ -23,12 +23,12 @@ import java.util.Map;
  * empirically proven unable to INSERT/DROP/CREATE, read an ungranted table, exceed its row cap, or
  * exceed its execution-time ceiling — even if the AST validator were ever bypassed.
  *
- * <p>Belt and braces on top of the server-side {@code nlq_readonly_profile}
- * ({@code max_execution_time = 5 MAX 5}, {@code max_result_rows = 10000 MAX 10000},
- * {@code result_overflow_mode = 'throw' CONST}, all CONST/MAX-bound so the client cannot relax
- * them): the JDBC {@code queryTimeout} is set (see {@code ClickHouseReadOnlyConfig}), and this
- * class additionally fetches one row beyond the configured cap so a breach can be detected and
- * rejected client-side too, in case the server-side profile is ever misconfigured.
+ * <p>The server-side {@code nlq_readonly_profile} ({@code max_execution_time = 5 MAX 5},
+ * {@code max_result_rows = 10000 MAX 10000}, {@code result_overflow_mode = 'throw' CONST}, all
+ * CONST/MAX-bound so neither side can relax them) is the authoritative gate. The client sets NO
+ * per-statement settings — a {@code readonly} user rejects any attempt to change one (Code 164) —
+ * but this class still enforces the (possibly lower) configured cap after the fetch, so a breach is
+ * a typed rejection rather than a silently truncated result presented as complete.
  *
  * <p>A row-cap breach or a timeout ALWAYS surfaces as a typed exception — never a silently
  * truncated result presented as complete.
@@ -58,10 +58,13 @@ public class ClickHouseReadOnlyExecutor {
         long start = System.currentTimeMillis();
         try {
             List<Map<String, Object>> rows = jdbcTemplate.execute((StatementCallback<List<Map<String, Object>>>) stmt -> {
-                // Fetch one row beyond the cap so a breach is DETECTABLE (never silently
-                // truncated to exactly the cap and returned as if complete).
-                long capPlusOne = maxResultRows + 1;
-                stmt.setMaxRows(capPlusOne > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) capPlusOne);
+                // NB: no stmt.setMaxRows() here. clickhouse-jdbc turns setMaxRows into a server-side
+                // SET max_result_rows, which the nlq_readonly user is forbidden to change (readonly
+                // ⇒ Code 164), failing the query outright. The server-side profile (plan 12-02,
+                // max_result_rows = 10000 MAX 10000, result_overflow_mode='throw') hard-caps the
+                // fetch, and the post-fetch rows.size() > maxResultRows check below enforces the
+                // (possibly lower) configured cap and makes any breach a typed rejection, never a
+                // silent truncation.
                 try (ResultSet rs = stmt.executeQuery(sql)) {
                     return extractRows(rs);
                 }
