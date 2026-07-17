@@ -65,6 +65,10 @@ public class ReportService {
         boolean owner = isOwner();
         UUID effectiveBranchId = resolveEffectiveBranchId(request.branchId(), callerBranchId, owner);
 
+        // business_date is bound as a raw LocalDate — the SAME type SalesFactWriter writes with, so
+        // read and write agree. (NB: java.sql.Date.valueOf(localDate) must NOT be used here: on a
+        // non-UTC JVM clickhouse-jdbc 0.8.6 shifts it back a day — midnight local becomes the prior
+        // UTC date — so it would silently miss every LocalDate-written fact. Proven empirically.)
         long startNanos = System.nanoTime();
         List<Map<String, Object>> rows = effectiveBranchId != null
                 ? clickHouseJdbcTemplate.queryForList(definition.sqlBranchScoped(),

@@ -64,6 +64,9 @@ public class FbrTaxSummaryService {
         validateRange(from, to);
         UUID tenantId = tenantContext.requireTenantId();
 
+        // business_date is bound as a raw LocalDate — the same type SalesFactWriter writes with, so
+        // read and write agree. java.sql.Date.valueOf(...) must NOT be used: on a non-UTC JVM
+        // clickhouse-jdbc 0.8.6 shifts it back a day, silently missing the facts. Proven empirically.
         long startNanos = System.nanoTime();
 
         Map<String, Object> salesRow = clickHouseJdbcTemplate.queryForMap(
@@ -75,9 +78,13 @@ public class FbrTaxSummaryService {
                 """,
                 tenantId, branchId, from, to);
 
+        // The input-tax aggregate is aliased input_tax_total_paisa, NOT input_tax_paisa: an alias
+        // that shadows the column makes the sibling aggregate sum(total_paisa - input_tax_paisa)
+        // resolve input_tax_paisa to the aggregate alias, i.e. sum(total_paisa - sum(input_tax_paisa)),
+        // which ClickHouse rejects as an aggregate inside an aggregate (error 184).
         Map<String, Object> purchaseRow = clickHouseJdbcTemplate.queryForMap(
                 """
-                SELECT count() AS invoice_count, sum(input_tax_paisa) AS input_tax_paisa,
+                SELECT count() AS invoice_count, sum(input_tax_paisa) AS input_tax_total_paisa,
                        sum(total_paisa - input_tax_paisa) AS taxable_purchases_paisa
                 FROM clickhouse_analytics.purchase_tax_facts
                 WHERE tenant_id = ? AND branch_id = ? AND business_date BETWEEN ? AND ?
@@ -88,7 +95,7 @@ public class FbrTaxSummaryService {
         long taxableSalesPaisa = asLong(salesRow.get("taxable_sales_paisa"));
         long salesOrderCount = asLong(salesRow.get("order_count"));
 
-        long inputTaxPaisa = asLong(purchaseRow.get("input_tax_paisa"));
+        long inputTaxPaisa = asLong(purchaseRow.get("input_tax_total_paisa"));
         long taxablePurchasesPaisa = asLong(purchaseRow.get("taxable_purchases_paisa"));
         long purchaseInvoiceCount = asLong(purchaseRow.get("invoice_count"));
 
