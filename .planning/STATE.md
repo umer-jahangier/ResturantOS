@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 12
 current_phase_name: Reporting, Dashboards & NLQ
 status: executing
-stopped_at: Completed 12-03-PLAN.md — Phase 12 waves 1-2 done (12-01, 12-02, 12-11, 12-04, 12-03); wave 3 (12-05, 12-06, 12-07) next
-last_updated: "2026-07-17T00:00:00.000Z"
-last_activity: 2026-07-17
-last_activity_desc: Completed 12-03 — ETL (ORDER_CLOSED/TILL_CLOSED/VENDOR_INVOICE_MATCHED → ClickHouse facts, business-day boundary, idempotent), EtlPipelineIT 6/6 green on real containers; fixed 4 latent defects incl. clickhouse-jdbc 0.9.0 → 0.8.6
+stopped_at: Completed 12-05 + 12-07 — Phase 12 at 7/11 (waves 1-2 + 12-05/12-07 of wave 3); remaining: 12-06 (dashboard WS), 12-08/12-09 (frontend), 12-10 (E2E)
+last_updated: "2026-07-18T00:00:00.000Z"
+last_activity: 2026-07-18
+last_activity_desc: Completed 12-05 (reports + FBR, 20 tests green) and 12-07 (NLQ execution, 75 tests green incl. NlqServiceIT 14/14 on real containers); fixed 7 latent defects across both by driving their ITs to green
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 111
-  completed_plans: 83
-  percent: 75
+  completed_plans: 85
+  percent: 77
 ---
 
 # Project State
