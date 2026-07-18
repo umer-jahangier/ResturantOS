@@ -199,10 +199,10 @@
 
 ### Reporting & NLQ (RPT / NLQ)
 
-- [ ] **RPT-01**: ClickHouse ETL from events into analytics facts; named reports (incl. FBR Tax Summary) within P95 latency targets
-- [ ] **RPT-02**: Dashboard WebSocket pushes within 5s of `ORDER_CLOSED`/`TILL_CLOSED`
-- [ ] **NLQ-01**: NLQ converts NL→SQL via Claude with 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject)
-- [ ] **NLQ-02**: NLQ enforces read-only, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas; result cache 60s; impersonation stamped in `nlq_query_log`
+- [x] **RPT-01**: ClickHouse ETL from events into analytics facts; named reports (incl. FBR Tax Summary) within P95 latency targets — **Complete-with-a-note**: ETL (real POS/purchasing events → real ClickHouse facts within seconds) and named reports (sales-by-day, FBR Tax Summary) proven on the real stack with exact arithmetic (12-10-E2E §2). The "P95 latency targets" clause cannot be scored — no P95 target is stated anywhere in REQUIREMENTS.md or the ROADMAP; real `durationMs` values were captured (122–1231ms) and a target is *proposed* (12-10-E2E §2h) for a future owner to formally adopt. FBR `ntn`/`fbrStrn` are genuinely NULL live (12-10-E2E §1f, a real internal-auth-seam gap, not fixed by this plan).
+- [ ] **RPT-02**: Dashboard WebSocket pushes within 5s of `ORDER_CLOSED`/`TILL_CLOSED` — **In Progress, not Complete**: the push mechanism itself is proven live at 4364ms/2108ms (well under 5s, 12-10-E2E §3), but the real API gateway's `JwtGlobalFilter` has no query-param JWT fallback and neither `/api/v1/reporting/dashboard` nor `/api/v1/kitchen` is in its public-path allowlist — a browser cannot set an `Authorization` header on a WS handshake, so **no caller, with any token, can reach this socket through the real gateway today** (12-10-E2E §1h). This is a genuine, newly-discovered, live-only production blocker (affects KDS too) that must be fixed before RPT-02 can be called Complete.
+- [x] **NLQ-01**: NLQ converts NL→SQL via Claude with 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject) — **Complete-with-a-note**: the 7-stage validator is fully proven live against real hostile SQL and a real ClickHouse database (all 8 negative controls pass with exact rejection codes persisted to `nlq_query_log`, 12-10-E2E §5). The real Claude NL→SQL round-trip itself is IT-proven only (`NlqServiceIT`, 12-07) — `deploy/.env`'s `ANTHROPIC_API_KEY` is a placeholder on this host, so the live Claude call could not be independently re-proven here (12-10-E2E §1i).
+- [x] **NLQ-02**: NLQ enforces read-only, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas; result cache 60s; impersonation stamped in `nlq_query_log` — **Complete-with-a-note**: read-only enforcement proven live at the ClickHouse SERVER layer (real `ACCESS_DENIED` on INSERT/DROP as `nlq_readonly`), the 60s cache proven live (`cacheHit:true` on repeat, single upstream call), and the impersonation stamp proven live end-to-end into `nlq_query_log.impersonated_by` (12-10-E2E §4, §6) — via a self-signed JWT working around a separately-broken real impersonation-issuance endpoint (12-10-E2E §1g, a real RLS-tenant-GUC gap in `ProvisioningAdminService.impersonate`, same bug class as the historical `2099ac0` fix, not fixed by this plan). The 5s timeout, row cap, and 429 quota-exhaustion were not independently re-driven live this session; `NlqServiceIT`/`NlqQuotaServiceTest` (12-07) IT-level coverage stands for those clauses, and the quota Redis key contract was confirmed present and correctly named live (12-10-E2E §5).
 
 ### Notifications, Audit, Files (NOTIF / AUDIT / FILE)
 
@@ -370,10 +370,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | HR-06 | Phase 11 | Pending |
 | HR-07 | Phase 11 | Pending |
 | HR-08 | Phase 11 | Pending |
-| RPT-01 | Phase 12 | Pending |
-| RPT-02 | Phase 12 | Pending |
-| NLQ-01 | Phase 12 | Pending |
-| NLQ-02 | Phase 12 | Pending |
+| RPT-01 | Phase 12 (12-10) | Complete-with-a-note (12-10-E2E §2, §2h) |
+| RPT-02 | Phase 12 (12-10) | In Progress — gateway WS auth gap (12-10-E2E §1h, §3) |
+| NLQ-01 | Phase 12 (12-10) | Complete-with-a-note (12-10-E2E §5, §1i) |
+| NLQ-02 | Phase 12 (12-10) | Complete-with-a-note (12-10-E2E §4, §5, §6, §1g) |
 
 **Coverage:**
 
