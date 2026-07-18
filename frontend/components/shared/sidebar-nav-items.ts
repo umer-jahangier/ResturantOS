@@ -103,6 +103,23 @@ export const tenantNavItems: NavItem[] = [
     icon: BarChart3,
     feature: "FEATURE_REPORTING_ADVANCED",
   },
+  {
+    // 12-08: named reports + FBR Tax Summary. Deliberately NO `feature` — 12-01 left
+    // `/api/v1/reporting/` out of RouteFeatureMap on purpose (basic reports are core, not
+    // FEATURE_REPORTING_ADVANCED-gated; attaching that flag here would hide the nav item for
+    // STARTER tenants fully entitled to use it). Gated on the reporting.report.view permission.
+    label: "Reports",
+    href: "/app/reports",
+    icon: BarChart3,
+    permission: "reporting.report.view",
+  },
+  {
+    // 12-08: realtime KPI dashboard (12-06's WebSocket). No `feature` for the same reason above.
+    label: "Realtime Dashboard",
+    href: "/app/dashboard/realtime",
+    icon: LineChart,
+    permission: "reporting.dashboard.view",
+  },
 ];
 
 // ─── Grouped nav (used by upgraded Sidebar for DS-05 shell chrome) ─────────────
@@ -229,10 +246,25 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         // Phase 5+: reporting permissions not yet in DB catalog — gate by feature only
-        label: "Reports",
+        label: "Reporting",
         href: "/app/reporting",
         icon: BarChart3,
         feature: "FEATURE_REPORTING_ADVANCED",
+      },
+      {
+        // 12-08: named reports + FBR Tax Summary. Deliberately NO `feature` — see the flat-list
+        // entry above for why (basic reports are core, not gated at the gateway).
+        label: "Reports",
+        href: "/app/reports",
+        icon: BarChart3,
+        permission: "reporting.report.view",
+      },
+      {
+        // 12-08: realtime KPI dashboard.
+        label: "Realtime Dashboard",
+        href: "/app/dashboard/realtime",
+        icon: LineChart,
+        permission: "reporting.dashboard.view",
       },
     ],
   },
