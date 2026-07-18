@@ -6,15 +6,15 @@ current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
 stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-07-18T18:51:25.000Z"
+last_updated: "2026-07-18T19:08:25.129Z"
 last_activity: 2026-07-18
-last_activity_desc: Phase 08 Plan 01 complete — inventory-service module scaffolded (FORCE RLS schema, idempotency scaffolding, event contract)
+last_activity_desc: "Completed 08-01-PLAN.md (3 tasks, 3 commits: 82978b0/e85b862/647fdf8)"
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 98
-  completed_plans: 77
-  percent: 79
+  total_plans: 95
+  completed_plans: 76
+  percent: 53
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
-Plan: 01 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
+Plan: 2 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
 module (Java 25 / Spring Boot 4, port 8085, `inventory_db`) registered in the root reactor and
 compiling; complete 11-table domain schema (`V1__inventory_schema.sql`) with `ENABLE` + `FORCE
 ROW LEVEL SECURITY` + NULLIF-guarded `tenant_isolation` policy on every table (first service in
@@ -96,7 +96,7 @@ OrderCloseIdempotencyIT (subject retired) with its single-publish coverage prese
 via a new SettlementSemanticsIT backstop test; deleted orphaned frontend PaymentPanel
 component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
 frontend tsc clean. Phase 07.3 now 11/11 plans complete.
-Status: Phase complete — ready for verification (Phase 07.3, historical)
+Status: Ready to execute
 Last activity: 2026-07-14 — Phase 07.3 merge landed (historical)
 
 </details>
@@ -192,6 +192,7 @@ _Updated after each plan completion_
 | Phase 07.3 P10 | 23min | 4 tasks | 21 files |
 | Phase 07.3 P11 | 90min | 4 tasks | 19 files |
 | Phase 08 P01 | 6min | 3 tasks | 13 files |
+| Phase 08-inventory-recipe-management P02 | 12min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -404,6 +405,8 @@ Recent decisions affecting current work:
 - [08-01-A]: inventory-service's V1__inventory_schema.sql applies ENABLE + FORCE ROW LEVEL SECURITY on all 11 domain tables from V1 (not retrofitted later) — first service in the repo to match the documented RLS convention exactly; finance/kitchen both omitted FORCE and needed follow-up hotfixes.
 - [08-01-B]: application.yml's RabbitMQ listener kept at acknowledge-mode: manual per the plan's explicit instruction, even though kitchen-service's live config runs auto (after a prior manual-ack bug where no consumer called basicAck). No consumer exists yet in 08-01 — 08-02's OrderClosedConsumer must call basicAck/basicNack explicitly, or this should be revisited to auto.
 - [08-01-C]: GitNexus MCP tools (impact/detect_changes) referenced in CLAUDE.md were not available in this execution's tool set; all 08-01 changes are additive (new module + pom.xml module registration + start-dev.ps1 append), so blast radius is inherently LOW regardless.
+- [Phase ?]: TestFixtures builds JwtClaims + SecurityContextHolder auth directly instead of RSA-signed JWT strings, matching kitchen-service's in-process controller IT pattern
+- [Phase ?]: SchemaMigrationIT sweeps FORCE RLS + tenant_isolation across all 11 domain tables, not just the plan-required single representative table
 
 ### Pending Todos
 
@@ -446,7 +449,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-13T17:48:29.545Z
+Last session: 2026-07-18T19:07:13.715Z
 Stopped at: Phase 8 context gathered
 Resume file: .planning/phases/08-inventory-recipe-management/08-CONTEXT.md
 Last session: 2026-07-13

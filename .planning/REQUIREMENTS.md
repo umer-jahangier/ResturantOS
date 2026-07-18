@@ -143,9 +143,9 @@
 
 ### Inventory (INV)
 
-- [ ] **INV-01**: Manager can manage ingredients, UOM, reorder points
+- [x] **INV-01**: Manager can manage ingredients, UOM, reorder points
 - [ ] **INV-02**: Recipes/BOM versioned; depletion uses the recipe version effective at order time
-- [ ] **INV-03**: `ORDER_CLOSED` consumer depletes stock with `SELECT FOR UPDATE`, MAC maintained
+- [x] **INV-03**: `ORDER_CLOSED` consumer depletes stock with `SELECT FOR UPDATE`, MAC maintained
 - [ ] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
 - [ ] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
 - [ ] **INV-06**: Stock counts with variance posting; low-stock and expiry alerts
@@ -172,6 +172,7 @@
   the AR sub-ledger, the customer/house-account entity, AR balances + AR aging, and the internal seam
   POST /internal/finance/ar/charges; Phase 7 (07-09) wires the POS "charge to account" tender to that
   seam on order close. AP half shipped (10-02/10-05, aging report + OPA-limited expense approval).
+
 - [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
 - [x] **FIN-07**: Every ACTIVE tenant is guaranteed at least one open accounting period covering the current business date — the onboarding saga aborts (marks the tenant PROVISIONING_FAILED) rather than silently continuing past a finance-seeding failure
 - [x] **FIN-08**: A permissioned self-service endpoint (POST /api/v1/finance/periods/provision, gated finance.period.open) lets an OWNER/TENANT_ADMIN/ACCOUNTANT (re-)provision CoA + accounting periods for their own tenant without platform-ops, resolving tenantId from JWT context only
@@ -342,9 +343,9 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-26 | Phase 07.3 | Complete |
 | KDS-04 | Phase 07.3 | Complete |
 | KDS-05 | Phase 07.3 | Complete |
-| INV-01 | Phase 8 | Pending |
+| INV-01 | Phase 8 | Complete |
 | INV-02 | Phase 8 | Pending |
-| INV-03 | Phase 8 | Pending |
+| INV-03 | Phase 8 | Complete |
 | INV-04 | Phase 8 | Pending |
 | INV-05 | Phase 8 | Pending |
 | INV-06 | Phase 8 | Pending |

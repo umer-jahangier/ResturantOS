@@ -315,7 +315,7 @@ Plans:
   4. Stock receipts update MAC and publish `STOCK_RECEIVED`, and transfers ship/receive with in-transit accounting and variance handling.
   5. Stock counts post variances, and low-stock and expiry alerts fire.
 
-**Plans**: 1/9 plans executed
+**Plans**: 2/9 plans executed
 
 Plans:
 **Wave 1**
@@ -324,7 +324,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 08-02-PLAN.md — Wave 2: Testcontainers harness (InventoryTestBase/TestFixtures) + schema/RLS smoke IT
+- [x] 08-02-PLAN.md — Wave 2: Testcontainers harness (InventoryTestBase/TestFixtures) + schema/RLS smoke IT
 - [ ] 08-09-PLAN.md — Wave 2: OPA `inventory.rego` (view/manage on seeded permission codes, 100% covered) + `InventoryAuthorizationService` seam + `InventorySecurityConfig`/internal-secret filter (T-8-AC access-control foundation)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -479,7 +479,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
 | 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 10/10 | Complete    | 2026-07-11 |
-| 8. Inventory & Recipe Management | 1/9 | In Progress|  |
+| 8. Inventory & Recipe Management | 2/9 | In Progress|  |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
