@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
+  Sparkles,
   Truck,
   Users,
   Wallet,
@@ -119,6 +120,15 @@ export const tenantNavItems: NavItem[] = [
     href: "/app/dashboard/realtime",
     icon: LineChart,
     permission: "reporting.dashboard.view",
+  },
+  {
+    // 12-09: natural-language query. Gated on BOTH FEATURE_NLQ (GROWTH+, real per 12-01's
+    // TierFeatureDefaults fix) and the nlq.query.run permission the backend @PreAuthorizes.
+    label: "Ask (NLQ)",
+    href: "/app/nlq",
+    icon: Sparkles,
+    permission: "nlq.query.run",
+    feature: "FEATURE_NLQ",
   },
 ];
 
@@ -265,6 +275,14 @@ export const navGroups: NavGroup[] = [
         href: "/app/dashboard/realtime",
         icon: LineChart,
         permission: "reporting.dashboard.view",
+      },
+      {
+        // 12-09: natural-language query (FEATURE_NLQ, GROWTH+; permission nlq.query.run).
+        label: "Ask (NLQ)",
+        href: "/app/nlq",
+        icon: Sparkles,
+        permission: "nlq.query.run",
+        feature: "FEATURE_NLQ",
       },
     ],
   },

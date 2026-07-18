@@ -6,6 +6,13 @@ import type { ApiError } from "@/lib/api-client/errors";
 import type { NlqResult } from "@/lib/models/nlq.model";
 
 /**
+ * The error type a rejected NLQ query surfaces, re-exported through this Layer-3 hook so
+ * `components/**` can type it WITHOUT importing `@/lib/api-client` (the ESLint boundary forbids
+ * that; a component reading `error.code`/`error.status` imports this alias instead).
+ */
+export type { ApiError as NlqQueryError } from "@/lib/api-client/errors";
+
+/**
  * NLQ-01/NLQ-02: ask a plain-English question, get rows + the executed SQL + a narrative back.
  *
  * A PINNED mutation (`useMutation<NlqResult, ApiError, {question: string}>`) — the explicit
