@@ -133,7 +133,11 @@ class DepletionConsumerIT extends InventoryTestBase {
         assertThat(movement.getTotalCostPaisa()).isEqualTo(3600L); // 6 * 600
         assertThat(movement.getReferenceType()).isEqualTo("ORDER_CLOSED");
 
-        List<OutboxEntry> stockDepletedEntries = outboxRepository.findTop200ByStatusOrderByCreatedAtAsc("PENDING")
+        // Query ALL outbox rows (not filtered by status="PENDING") — the live OutboxRelay bean
+        // (@Scheduled fixedDelay=1000, not disabled in this test context) may have already flipped
+        // this row's status to "SENT" via the mocked RabbitTemplate by the time this assertion runs;
+        // filtering on status would make the assertion racy.
+        List<OutboxEntry> stockDepletedEntries = outboxRepository.findAll()
                 .stream().filter(e -> "STOCK_DEPLETED".equals(e.getEventType())).toList();
         assertThat(stockDepletedEntries).hasSize(1);
 
@@ -148,8 +152,7 @@ class DepletionConsumerIT extends InventoryTestBase {
 
         assertThat(movementRepository.findByReferenceId(orderId)).hasSize(1); // unchanged
 
-        long stockDepletedCountAfterDuplicate = outboxRepository
-                .findTop200ByStatusOrderByCreatedAtAsc("PENDING").stream()
+        long stockDepletedCountAfterDuplicate = outboxRepository.findAll().stream()
                 .filter(e -> "STOCK_DEPLETED".equals(e.getEventType())).count();
         assertThat(stockDepletedCountAfterDuplicate).isEqualTo(1); // unchanged — proves T-8-IDEM
     }
