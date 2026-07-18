@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-07-18T20:57:43.748Z"
+stopped_at: Completed 08-07-PLAN.md
+last_updated: "2026-07-18T21:18:32.761Z"
 last_activity: 2026-07-19
 last_activity_desc: "Completed 08-05-PLAN.md (3 tasks + 1 fix, 5 commits: 2cbe51a/c9fb9ee/0ea984e/992f90d/c6c1e7d)"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 95
-  completed_plans: 81
+  completed_plans: 82
   percent: 53
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
-Plan: 7 of 9 complete — 08-01 (Wave 1 foundation), 08-02, 08-03, 08-09, 08-04, and 08-05 done.
+Plan: 8 of 9 complete — 08-01 (Wave 1 foundation), 08-02, 08-03, 08-09, 08-04, and 08-05 done.
 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4, port
 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -207,6 +207,7 @@ _Updated after each plan completion_
 | Phase 08-inventory-recipe-management P04 | 13min | 2 tasks | 10 files |
 | Phase 08-inventory-recipe-management P05 | 12min | 3 tasks | 6 files |
 | Phase 08-inventory-recipe-management P06 | 18min | 2 tasks | 9 files |
+| Phase 08 P07 | 20min | 1 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -431,6 +432,8 @@ Recent decisions affecting current work:
 - [Phase ?]: COGS = effectiveBaseQty x avg_cost_paisa (aggregate MAC), never a lot's own receipt cost — FEFO governs which lots drop, MAC governs COGS (D-04/Pitfall 9). — 08-05
 - [Phase ?]: ReceiveStockRequest.unitCostPaisa is boxed Long (not primitive) with @NotNull @Positive, mirroring RecordOpeningBalanceRequest's 08-03 precedent. — 08-06
 - [Phase ?]: GrnPendingCountRepository.countPendingAsOf is a genuine tenant-scoped JPQL COUNT query filtered on a PENDING_GRN sentinel referenceType (not a hard-coded 0 literal) -- evaluates to 0 today since ReceiptService never writes that referenceType; Phase 10 purchasing will repoint the sentinel. — 08-06
+- [Phase 08-07]: unit_cost_paisa on each StockTransferLine is captured from the SOURCE branch's avg_cost_paisa at ship time — the Inventory-in-Transit (1320) valuation TRANSFER_SHIPPED/RECEIVED/VARIANCE carry for Phase 9's finance consumer
+- [Phase 08-07]: TRANSFER_VARIANCE publishes for ANY non-zero variance_qty, no auto-post threshold suppression — Phase 9 decides GL posting
 
 ### Pending Todos
 
@@ -473,9 +476,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-18T20:56:40.939Z
-Stopped at: Completed 08-05-PLAN.md
-Resume file: None
+Last session: 2026-07-18T21:18:32.748Z
+Stopped at: Completed 08-07-PLAN.md
+Resume file: 
 Last session: 2026-07-13
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
 Also stopped at (parallel plan): Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
