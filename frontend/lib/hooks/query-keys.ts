@@ -69,4 +69,14 @@ export const queryKeys = {
       ["kds", branchId, "tickets", ticketId] as const,
     stations: (branchId: string) => ["kds", branchId, "stations"] as const,
   },
+  reporting: {
+    reports: () => ["reporting", "reports"] as const,
+    reportRun: (branchId: string | null | undefined, code: string, from: string, to: string) =>
+      ["reporting", branchId ?? "all", "report-run", code, from, to] as const,
+    fbrTaxSummary: (branchId: string, from: string, to: string) =>
+      ["reporting", branchId, "fbr-tax-summary", from, to] as const,
+    // Also the cache key the dashboard WebSocket hook merges live pushes into (12-08) — the WS
+    // and the REST snapshot must agree on ONE key, not two competing states.
+    dashboardTiles: (branchId: string) => ["reporting", branchId, "dashboard-tiles"] as const,
+  },
 } as const;
