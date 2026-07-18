@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Completed 08-04-PLAN.md
-last_updated: "2026-07-18T20:05:58.459Z"
+stopped_at: Completed 08-05-PLAN.md
+last_updated: "2026-07-18T20:38:59.105Z"
 last_activity: 2026-07-19
-last_activity_desc: "Completed 08-04-PLAN.md (2 tasks, 2 commits: 426c13e/3f8f917)"
+last_activity_desc: "Completed 08-05-PLAN.md (3 tasks + 1 fix, 5 commits: 2cbe51a/c9fb9ee/0ea984e/992f90d/c6c1e7d)"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 95
-  completed_plans: 79
+  completed_plans: 80
   percent: 53
 ---
 
@@ -29,23 +29,28 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
-Plan: 5 of 9 complete — 08-01 (Wave 1 foundation), 08-02, 08-03, 08-09, and 08-04 done. 08-01
-stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4, port 8085,
-`inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event contract,
-and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
+Plan: 6 of 9 complete — 08-01 (Wave 1 foundation), 08-02, 08-03, 08-09, 08-04, and 08-05 done.
+08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4, port
+8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
+contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
 IngredientBranchStock/StockLot/InventoryMovement), `MacCalculator` (HALF_UP weighted-average
 cost, D-02 oversell-reset), ingredient/UOM/opening-balance CRUD, and the activated
 `/api/v1/inventory/**` gateway route. 08-09 delivered `InventoryAuthorizationService`
-(authorizeView/authorizeManage OPA seam) every inventory controller wires into. 08-04 (this
-plan) delivered versioned `Recipe`/`RecipeLine` BOM entities, CRUD, and the D-01
-effective-version resolution seam — `RecipeService.resolveEffectiveRecipe(menuItemId,
-atInstant)` resolves by `effective_from` window (never `is_current`), proven by
-`RecipeVersionResolutionTest` (4 unit) + `RecipeVersionResolutionIT` (3 integration) +
-`RecipeAccessControlIT` (2 integration, OPA enforcement) — 9/9 pass, 29/29 module-wide with no
-regression. See 08-04-SUMMARY.md for full detail. Next: 08-05 (depletion consumer —
-`OrderClosedConsumer` calling `RecipeService.resolveEffectiveRecipe` with the order's `closedAt`,
-pessimistic-lock stock mutation, FEFO lot walk).
-Last activity: 2026-07-19 — Completed 08-04-PLAN.md (2 tasks, 2 commits: 426c13e/3f8f917)
+(authorizeView/authorizeManage OPA seam) every inventory controller wires into. 08-04 delivered
+versioned `Recipe`/`RecipeLine` BOM entities, CRUD, and the D-01 effective-version resolution
+seam — `RecipeService.resolveEffectiveRecipe(menuItemId, atInstant)`. 08-05 (this plan, the
+correctness crux of the phase) delivered the `ORDER_CLOSED` depletion consumer (INV-03):
+`OrderClosedConsumer` (idempotent, consumer name `inventory.depletion`) wraps
+`DepletionService.deplete`, which resolves each item's effective recipe at `closedAt` (D-01),
+pre-sorts the distinct `ingredientId` set before any `PESSIMISTIC_WRITE` lock (Pitfall 6
+deadlock avoidance), walks lots FEFO with per-lot floor-at-zero while the aggregate
+`qty_on_hand` may go negative on oversell (D-02), values COGS at the aggregate MAC only — never
+a lot's own receipt cost (D-04/Pitfall 9) — and publishes `STOCK_DEPLETED`/`LOW_STOCK_ALERT`
+through the transactional outbox. Proven by `FefoLotWalkTest` (3 unit) + `DepletionCogsTest`
+(2 unit) + `DepletionConsumerIT` (2 integration, duplicate-eventId redelivery proven to deplete
+exactly once) — 20/20 module-wide with no regression. See 08-05-SUMMARY.md for full detail.
+Next: 08-06 (receipts — MAC recompute on stock receive, `STOCK_RECEIVED`).
+Last activity: 2026-07-19 — Completed 08-05-PLAN.md (3 tasks + 1 fix, 5 commits: 2cbe51a/c9fb9ee/0ea984e/992f90d/c6c1e7d)
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
@@ -138,7 +143,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 - Phase 07.2: 6/7 plans executed (07.2-06 verification checkpoint AWAITING USER)
 - Phase 07.3: 11/11 plans executed (COMPLETE — POS/KDS bug-fix + UX revamp, incl. gap-closure 07.3-11)
 - Phase 10: 18/18 plans executed (REOPENED gap-closure wave COMPLETE — 10-07..10-18 all landed; a phase-level UAT/verification re-pass is the next step, not another execution plan)
-- Phase 08: 5/9 plans executed (08-01 module scaffold; 08-02 InventoryTestBase/TestFixtures/SchemaMigrationIT test harness; 08-03 stock domain/MAC/master-data CRUD; 08-09 OPA authorization seam; 08-04 versioned recipes/BOM + D-01 effective-version resolution)
+- Phase 08: 6/9 plans executed (08-01 module scaffold; 08-02 InventoryTestBase/TestFixtures/SchemaMigrationIT test harness; 08-03 stock domain/MAC/master-data CRUD; 08-09 OPA authorization seam; 08-04 versioned recipes/BOM + D-01 effective-version resolution; 08-05 ORDER_CLOSED depletion consumer — INV-03 sorted-lock FEFO walk + aggregate-MAC COGS + transactional-outbox STOCK_DEPLETED)
 
 **By Phase:**
 
@@ -153,13 +158,13 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | 07.1-pos-production-operations                       | 10/10 | complete                                             |
 | 07.2-finance-accounting-period-provisioning          | 6/7   | 07.2-06 checkpoint awaiting user                     |
 | 07.3-pos-kitchen-bugfix-ux-revamp                    | 11/11 | complete (gap-closure 07.3-11 landed)                |
-| 08-inventory-recipe-management                       | 5/9   | executing — 08-01/02/03/04/09 done, 08-05..08-08 remain |
+| 08-inventory-recipe-management                       | 6/9   | executing — 08-01/02/03/04/05/09 done, 08-06..08-08 remain |
 | 10-purchasing-accounts-payable                       | 18/18 | gap-closure wave complete (10-07..10-18); UAT re-pass pending |
 
 **Recent Trend:**
 
-- Last completed plan: 08-04
-- Trend: Phase 08 (Inventory & Recipe Management) execution is 5/9 plans in. 08-01 stood up the `inventory-service` Maven module (FORCE-RLS 11-table schema, idempotency scaffolding, event contract, RabbitMQ topology). 08-02 added the `InventoryTestBase`/`TestFixtures`/`SchemaMigrationIT` test harness every downstream feature IT reuses. 08-03 delivered the stock-domain JPA model, `MacCalculator` (HALF_UP weighted-average, D-02 oversell-reset), ingredient/UOM/opening-balance CRUD, and the activated `/api/v1/inventory/**` gateway route. 08-09 delivered `InventoryAuthorizationService` (authorizeView/authorizeManage OPA seam). 08-04 (this session) delivered versioned `Recipe`/`RecipeLine` BOM entities, CRUD, and the D-01 effective-version resolution seam (`RecipeService.resolveEffectiveRecipe`) — 9/9 Recipe-specific tests pass, 29/29 module-wide, no regression. Next: 08-05 builds the `OrderClosedConsumer`/`DepletionService` (MAC + FEFO lot walk + calls `resolveEffectiveRecipe` with the order's `closedAt`) and the pessimistic-lock stock mutation pattern. Phase 10's gap-closure wave (10-07..10-18) remains separately complete pending its own UAT/verification re-pass (unrelated to Phase 08).
+- Last completed plan: 08-05
+- Trend: Phase 08 (Inventory & Recipe Management) execution is 6/9 plans in. 08-01 stood up the `inventory-service` Maven module (FORCE-RLS 11-table schema, idempotency scaffolding, event contract, RabbitMQ topology). 08-02 added the `InventoryTestBase`/`TestFixtures`/`SchemaMigrationIT` test harness every downstream feature IT reuses. 08-03 delivered the stock-domain JPA model, `MacCalculator` (HALF_UP weighted-average, D-02 oversell-reset), ingredient/UOM/opening-balance CRUD, and the activated `/api/v1/inventory/**` gateway route. 08-09 delivered `InventoryAuthorizationService` (authorizeView/authorizeManage OPA seam). 08-04 delivered versioned `Recipe`/`RecipeLine` BOM entities, CRUD, and the D-01 effective-version resolution seam (`RecipeService.resolveEffectiveRecipe`). 08-05 (this session, the correctness crux of the phase) delivered the `ORDER_CLOSED` depletion consumer (INV-03): idempotent `OrderClosedConsumer` + `DepletionService` — D-01 recipe resolution, sorted-lock deadlock avoidance (Pitfall 6), FEFO floor-at-zero with negative-aggregate oversell (D-02), aggregate-MAC COGS never lot cost (D-04/Pitfall 9), transactional-outbox `STOCK_DEPLETED`/`LOW_STOCK_ALERT` — proven by 5 unit + 2 integration tests (duplicate-eventId redelivery proven idempotent), 20/20 module-wide, no regression. Next: 08-06 (receipts — MAC recompute on stock receive, `STOCK_RECEIVED`). Phase 10's gap-closure wave (10-07..10-18) remains separately complete pending its own UAT/verification re-pass (unrelated to Phase 08).
 
 _Updated after each plan completion_
 
@@ -200,6 +205,7 @@ _Updated after each plan completion_
 | Phase 08 P09 | 3min | 2 tasks | 6 files |
 | Phase 08 P03 | 14min | 3 tasks | 25 files |
 | Phase 08-inventory-recipe-management P04 | 13min | 2 tasks | 10 files |
+| Phase 08-inventory-recipe-management P05 | 12min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -420,6 +426,8 @@ Recent decisions affecting current work:
 - [Phase 08-03]: MacCalculator D-02 oversell policy: a receipt landing on zero/negative on-hand resets MAC to the receipt's own unit cost rather than blending against a meaningless prior average.
 - [Phase 08-03]: RecordOpeningBalanceRequest.unitCostPaisa is boxed Long (not primitive long) so @NotNull actually rejects a missing value instead of a Jackson-defaulted 0.
 - [Phase 08-04]: resolveEffectiveRecipe(menuItemId, atInstant) plain-typed, decoupled from pos-service Order -- 08-05 passes order.getClosedAt() at its own call site
+- [Phase ?]: DepletionService pre-sorts distinct ingredientId set (natural UUID order) before locking, never per-recipe-line lazy locking (Pitfall 6 deadlock avoidance). — 08-05
+- [Phase ?]: COGS = effectiveBaseQty x avg_cost_paisa (aggregate MAC), never a lot's own receipt cost — FEFO governs which lots drop, MAC governs COGS (D-04/Pitfall 9). — 08-05
 
 ### Pending Todos
 
@@ -462,8 +470,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-19T00:04:51.952Z
-Stopped at: Completed 08-04-PLAN.md (versioned Recipe/RecipeLine BOM model + D-01 effective-version resolution seam — RecipeService.resolveEffectiveRecipe(menuItemId, atInstant), RecipeController wired into the OPA seam) — commits 426c13e (Task 1), 3f8f917 (Task 2). 9/9 Recipe-specific tests pass (4 unit + 5 integration, live Testcontainers Postgres), 29/29 module-wide with no regression.
+Last session: 2026-07-18T20:38:59.092Z
+Stopped at: Completed 08-05-PLAN.md
 Resume file: None
 Last session: 2026-07-13
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
