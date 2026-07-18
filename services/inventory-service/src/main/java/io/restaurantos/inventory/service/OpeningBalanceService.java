@@ -29,20 +29,27 @@ public class OpeningBalanceService {
     private final StockLotRepository lotRepository;
     private final InventoryMovementRepository movementRepository;
     private final TenantContext tenantContext;
+    private final TenantRegistryService tenantRegistryService;
 
     public OpeningBalanceService(IngredientBranchStockRepository stockRepository,
                                   StockLotRepository lotRepository,
                                   InventoryMovementRepository movementRepository,
-                                  TenantContext tenantContext) {
+                                  TenantContext tenantContext,
+                                  TenantRegistryService tenantRegistryService) {
         this.stockRepository = stockRepository;
         this.lotRepository = lotRepository;
         this.movementRepository = movementRepository;
         this.tenantContext = tenantContext;
+        this.tenantRegistryService = tenantRegistryService;
     }
 
     @Transactional
     public void recordOpeningBalance(RecordOpeningBalanceRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
+        // D6 gap-closure: register this tenant in the RLS-exempt cross-tenant registry (in the
+        // same transaction as the stock write below) so ExpirySweepService's ambient-context-free
+        // nightly cron trigger can discover it later.
+        tenantRegistryService.registerTenant(tenantId);
 
         IngredientBranchStock stock = stockRepository
                 .findForUpdate(tenantId, request.branchId(), request.ingredientId())

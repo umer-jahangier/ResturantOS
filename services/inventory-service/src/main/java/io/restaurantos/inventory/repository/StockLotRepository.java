@@ -2,8 +2,6 @@ package io.restaurantos.inventory.repository;
 
 import io.restaurantos.inventory.domain.model.StockLot;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -21,17 +19,11 @@ public interface StockLotRepository extends JpaRepository<StockLot, UUID> {
      */
     List<StockLot> findByStockIdOrderByExpiryDateAsc(UUID stockId);
 
-    /** Used by the nightly expiry sweep (later plan): lots expiring on/before a date with qty left. */
+    /**
+     * Used by the nightly expiry sweep's per-tenant loop ({@code ExpirySweepService.sweepTenant}):
+     * lots expiring on/before a date with qty left, scoped to one tenant at a time under an
+     * already-active {@code TenantContext}/RLS GUC.
+     */
     List<StockLot> findByTenantIdAndExpiryDateLessThanEqualAndQtyGreaterThan(
             UUID tenantId, LocalDate expiryDate, BigDecimal qty);
-
-    /**
-     * The distinct tenant set with at least one candidate lot for the nightly expiry sweep
-     * (08-08, INV-06 / D-04). Subject to the SAME FORCE RLS policy as every other query on this
-     * table — it only ever sees tenants visible under whatever {@code TenantContext} is active
-     * when it runs (see {@code ExpirySweepService.sweep}'s javadoc for the full explanation of this
-     * constraint).
-     */
-    @Query("SELECT DISTINCT l.tenantId FROM StockLot l WHERE l.expiryDate <= :cutoff AND l.qty > 0")
-    List<UUID> findDistinctTenantIdsWithExpiringLots(@Param("cutoff") LocalDate cutoff);
 }

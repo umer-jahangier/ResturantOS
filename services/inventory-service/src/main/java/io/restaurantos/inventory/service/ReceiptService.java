@@ -37,22 +37,29 @@ public class ReceiptService {
     private final InventoryMovementRepository movementRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
+    private final TenantRegistryService tenantRegistryService;
 
     public ReceiptService(IngredientBranchStockRepository stockRepository,
                            StockLotRepository lotRepository,
                            InventoryMovementRepository movementRepository,
                            EventPublisher eventPublisher,
-                           TenantContext tenantContext) {
+                           TenantContext tenantContext,
+                           TenantRegistryService tenantRegistryService) {
         this.stockRepository = stockRepository;
         this.lotRepository = lotRepository;
         this.movementRepository = movementRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+        this.tenantRegistryService = tenantRegistryService;
     }
 
     @Transactional
     public ReceiptResultDto receive(ReceiveStockRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
+        // D6 gap-closure: register this tenant in the RLS-exempt cross-tenant registry (in the
+        // same transaction as the stock write below) so ExpirySweepService's ambient-context-free
+        // nightly cron trigger can discover it later.
+        tenantRegistryService.registerTenant(tenantId);
 
         IngredientBranchStock stock = stockRepository
                 .findForUpdate(tenantId, request.branchId(), request.ingredientId())

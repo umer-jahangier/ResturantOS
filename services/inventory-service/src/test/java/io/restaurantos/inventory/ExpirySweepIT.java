@@ -1,8 +1,10 @@
 package io.restaurantos.inventory;
 
 import io.restaurantos.inventory.domain.model.StockLot;
+import io.restaurantos.inventory.entity.InventoryTenantRegistryEntity;
 import io.restaurantos.inventory.repository.IngredientBranchStockRepository;
 import io.restaurantos.inventory.repository.IngredientRepository;
+import io.restaurantos.inventory.repository.InventoryTenantRegistryRepository;
 import io.restaurantos.inventory.repository.StockLotRepository;
 import io.restaurantos.inventory.service.ExpirySweepService;
 import io.restaurantos.shared.event.OutboxEntry;
@@ -24,8 +26,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * with {@code expiry_date <= today + leadDays} AND {@code qty > 0} — lots beyond the window or
  * with {@code qty=0} produce none. Invoked directly with a fixed {@code today} (no cron wait),
  * per the plan's acceptance criteria; the test's own {@code tenantContext.set(...)} in
- * {@code @BeforeEach} is the ambient context the sweep's distinct-tenant discovery query relies on
- * (see {@code ExpirySweepService}'s javadoc for the full explanation of this RLS constraint).
+ * {@code @BeforeEach} scopes the direct fixture writes below to this test's tenant (RLS/Hibernate
+ * {@code tenantFilter}).
+ *
+ * <p>D6 gap-closure (08-VERIFICATION.md): discovery no longer depends on that ambient context —
+ * {@code sweep()} now discovers tenants from the RLS-exempt {@code inventory_tenant_registry} (see
+ * {@code ExpirySweepService}'s javadoc). Because {@link InventoryFixtures#seedStock} writes
+ * directly via the repository (bypassing the application services that upsert the registry in
+ * production), this test registers the tenant explicitly in {@code @BeforeEach} to mirror what a
+ * real opening-balance/receipt/transfer-receive/count call would already have done.
  */
 class ExpirySweepIT extends InventoryTestBase {
 
@@ -35,6 +44,7 @@ class ExpirySweepIT extends InventoryTestBase {
     @Autowired IngredientBranchStockRepository stockRepository;
     @Autowired StockLotRepository lotRepository;
     @Autowired OutboxRepository outboxRepository;
+    @Autowired InventoryTenantRegistryRepository tenantRegistryRepository;
 
     UUID tenantId;
     UUID branchId;
@@ -51,6 +61,13 @@ class ExpirySweepIT extends InventoryTestBase {
                 ingredientRepository, tenantId, "Milk", "SKU-EXP-001", "L", BigDecimal.ZERO).getId();
         stockId = InventoryFixtures.seedStock(stockRepository, tenantId, branchId, ingredientId,
                 BigDecimal.valueOf(100), 100L).getId();
+        // D6 gap-closure: production write paths (OpeningBalanceService/ReceiptService/...) upsert
+        // the registry themselves inside their own @Transactional method; this direct-fixture seed
+        // has no surrounding transaction, so it uses save() (a base CRUD method — implicitly
+        // transactional via SimpleJpaRepository) rather than the custom @Modifying upsertTenant
+        // query, which requires an already-active transaction.
+        tenantRegistryRepository.save(
+                InventoryTenantRegistryEntity.builder().tenantId(tenantId).build());
     }
 
     @Test

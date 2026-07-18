@@ -54,6 +54,7 @@ public class StockCountService {
     private final IngredientRepository ingredientRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
+    private final TenantRegistryService tenantRegistryService;
 
     public StockCountService(StockCountRepository stockCountRepository,
                               StockCountLineRepository stockCountLineRepository,
@@ -61,7 +62,8 @@ public class StockCountService {
                               InventoryMovementRepository movementRepository,
                               IngredientRepository ingredientRepository,
                               EventPublisher eventPublisher,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              TenantRegistryService tenantRegistryService) {
         this.stockCountRepository = stockCountRepository;
         this.stockCountLineRepository = stockCountLineRepository;
         this.stockRepository = stockRepository;
@@ -69,11 +71,16 @@ public class StockCountService {
         this.ingredientRepository = ingredientRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+        this.tenantRegistryService = tenantRegistryService;
     }
 
     @Transactional
     public StockCountDto postCount(CreateStockCountRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
+        // D6 gap-closure: register this tenant in the RLS-exempt cross-tenant registry (in the
+        // same transaction as the count-line stock adjustments below) so ExpirySweepService's
+        // ambient-context-free nightly cron trigger can discover it later.
+        tenantRegistryService.registerTenant(tenantId);
 
         StockCount count = new StockCount();
         count.setTenantId(tenantId);

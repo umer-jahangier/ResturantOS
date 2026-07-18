@@ -4,6 +4,7 @@ import io.restaurantos.inventory.config.InventoryRabbitConfig;
 import io.restaurantos.inventory.domain.model.StockLot;
 import io.restaurantos.inventory.event.InventoryEventPayloads;
 import io.restaurantos.inventory.event.InventoryEventPayloads.ExpiryAlertPayload;
+import io.restaurantos.inventory.repository.InventoryTenantRegistryRepository;
 import io.restaurantos.inventory.repository.StockLotRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -25,28 +26,30 @@ import java.util.UUID;
 /**
  * The nightly {@code @Scheduled} FEFO expiry sweep (INV-06 / D-04) — a SINGLE sweep query, never
  * per-batch timers. {@link #sweep(LocalDate, int)} is the directly-invokable core: it resolves the
- * distinct tenant set with candidate lots ({@code expiry_date <= today + leadDays AND qty > 0}),
- * then for EACH tenant activates {@link TenantContext} + pushes the RLS GUC onto the CURRENT
- * connection via {@link TenantGucHelper} (the transaction is already open by the time the loop
- * runs, so a plain {@code tenantContext.set(...)} alone would not re-trigger
+ * FULL tenant set from the RLS-exempt {@link InventoryTenantRegistryRepository} (D6 gap-closure,
+ * see below), then for EACH tenant activates {@link TenantContext} + pushes the RLS GUC onto the
+ * CURRENT connection via {@link TenantGucHelper} (the transaction is already open by the time the
+ * loop runs, so a plain {@code tenantContext.set(...)} alone would not re-trigger
  * {@code TenantAwareDataSource}'s checkout-time GUC write — mirrors
  * {@code InternalGrnController}/{@code TenantAwareMessageProcessor}'s {@code tenantContext.set}
  * pattern, adapted for a single long-lived sweep transaction instead of one connection per request)
  * so RLS + the Hibernate {@code tenantFilter} correctly scope that tenant's own lot query and
  * outbox publish, before moving to the next tenant and restoring the previous context.
  *
- * <p><b>Known constraint (documented, not silently worked around):</b> {@code stock_lots} carries
+ * <p><b>D6 gap-closure (08-VERIFICATION.md):</b> {@code stock_lots} carries
  * {@code FORCE ROW LEVEL SECURITY} (Pitfall 2 fix, 08-CONTEXT.md), and inventory-service's DB role
- * is {@code NOSUPERUSER NOBYPASSRLS} — so the distinct-tenant discovery query itself is bound by
- * the SAME RLS policy as every other query on this table. It can only see tenants visible under
- * whatever {@code TenantContext} happens to be active when {@link #sweep} is invoked. In the real
- * {@code @Scheduled} cron path (no ambient HTTP/consumer context), this means the discovery query
- * sees NO tenants and the sweep is a no-op — inventory-service has no cross-tenant registry / no
- * BYPASSRLS service account to close this gap without a new piece of infrastructure (a Rule-4
- * architectural change outside this plan's stated scope). {@code ExpirySweepIT} proves the
- * per-tenant filtering logic (expiry window + qty>0) correctly by activating one test tenant's
- * context before calling {@code sweep(...)} directly — exactly as the plan's acceptance criteria
- * require ("direct invocation with a fixed clock", not real end-to-end cross-tenant cron dispatch).
+ * is {@code NOSUPERUSER NOBYPASSRLS} — so a tenant-discovery query against {@code stock_lots}
+ * itself would be bound by the SAME RLS policy as every other query on that table, seeing only
+ * tenants visible under whatever {@code TenantContext} happened to already be active. In the real
+ * {@code @Scheduled} cron path (no ambient HTTP/consumer context) that discovery query would see
+ * NO tenants and the sweep would silently no-op forever. Discovery is therefore sourced from
+ * {@link InventoryTenantRegistryRepository#findAllTenantIds()} instead — an RLS-EXEMPT table (V3
+ * migration, mirrors the {@code V2__shared_infra_tables.sql} non-RLS convention) upserted by every
+ * write path that first persists tenant-scoped stock ({@code TenantRegistryService}). No BYPASSRLS
+ * grant was added and no domain table's FORCE RLS was relaxed — tenant isolation on
+ * {@code stock_lots}/{@code ingredient_branch_stock}/etc. is completely unchanged; only the
+ * DISCOVERY step no longer depends on ambient RLS visibility. The per-tenant loop below (GUC
+ * activation, Hibernate {@code tenantFilter}, per-tenant lot query, outbox publish) is unchanged.
  */
 @Service
 public class ExpirySweepService {
@@ -54,17 +57,20 @@ public class ExpirySweepService {
     private static final Logger log = LoggerFactory.getLogger(ExpirySweepService.class);
 
     private final StockLotRepository lotRepository;
+    private final InventoryTenantRegistryRepository tenantRegistryRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
     private final int defaultLeadDays;
 
     public ExpirySweepService(StockLotRepository lotRepository,
+                               InventoryTenantRegistryRepository tenantRegistryRepository,
                                EventPublisher eventPublisher,
                                TenantContext tenantContext,
                                EntityManager entityManager,
                                @Value("${inventory.expiry.lead-days:3}") int defaultLeadDays) {
         this.lotRepository = lotRepository;
+        this.tenantRegistryRepository = tenantRegistryRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
@@ -81,18 +87,20 @@ public class ExpirySweepService {
     }
 
     /**
-     * Resolves lots with {@code expiry_date <= today + leadDays AND qty > 0} across every tenant
-     * visible under the currently-active context, and publishes {@code EXPIRY_ALERT} for each one.
-     * Exposed as a public method (not just the {@code @Scheduled} wrapper) so {@code ExpirySweepIT}
-     * can invoke it directly with a fixed {@code today} — no cron wait. The whole sweep runs inside
-     * ONE transaction (never per-tenant self-invoked {@code @Transactional}, which Spring's proxy
-     * would silently skip on same-class invocation) so {@link TenantGucHelper#apply} can push each
-     * tenant's GUC onto the already-open connection mid-transaction.
+     * Resolves lots with {@code expiry_date <= today + leadDays AND qty > 0} across EVERY
+     * registered tenant (D6 gap-closure: discovered via {@link InventoryTenantRegistryRepository},
+     * which needs no ambient {@code TenantContext} — never via a query bound by {@code stock_lots}'
+     * FORCE RLS), and publishes {@code EXPIRY_ALERT} for each qualifying lot. Exposed as a public
+     * method (not just the {@code @Scheduled} wrapper) so tests can invoke it directly with a fixed
+     * {@code today} — no cron wait. The whole sweep runs inside ONE transaction (never per-tenant
+     * self-invoked {@code @Transactional}, which Spring's proxy would silently skip on same-class
+     * invocation) so {@link TenantGucHelper#apply} can push each tenant's GUC onto the already-open
+     * connection mid-transaction.
      */
     @Transactional
     public void sweep(LocalDate today, int leadDays) {
         LocalDate cutoff = today.plusDays(leadDays);
-        List<UUID> tenantIds = lotRepository.findDistinctTenantIdsWithExpiringLots(cutoff);
+        List<UUID> tenantIds = tenantRegistryRepository.findAllTenantIds();
         for (UUID tenantId : tenantIds) {
             sweepTenant(tenantId, cutoff);
         }
