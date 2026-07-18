@@ -5,23 +5,16 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-07-13T19:45:08.684Z"
-last_activity: 2026-07-13
-last_activity_desc: Phase 08 execution started
-current_phase: 10
-current_phase_name: Purchasing & Accounts Payable
-status: executing
-stopped_at: Completed 10-18-PLAN.md
-last_updated: "2026-07-14T00:00:00.000Z"
-last_activity: 2026-07-14
-last_activity_desc: Merged main into Mufazzal (Phases 07/07.1/07.2/07.3 + Phase 10 gap-closure wave)
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-07-18T18:51:25.000Z"
+last_activity: 2026-07-18
+last_activity_desc: Phase 08 Plan 01 complete — inventory-service module scaffolded (FORCE RLS schema, idempotency scaffolding, event contract)
 progress:
   total_phases: 15
   completed_phases: 8
-  total_plans: 69
-  completed_plans: 56
-  percent: 53
+  total_plans: 98
+  completed_plans: 77
+  percent: 79
 ---
 
 # Project State
@@ -36,6 +29,23 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
+Plan: 01 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
+module (Java 25 / Spring Boot 4, port 8085, `inventory_db`) registered in the root reactor and
+compiling; complete 11-table domain schema (`V1__inventory_schema.sql`) with `ENABLE` + `FORCE
+ROW LEVEL SECURITY` + NULLIF-guarded `tenant_isolation` policy on every table (first service in
+the repo to include FORCE from V1); RLS-exempt shared infra (`event_outbox`, `idempotency_keys`,
+`processed_events`) granted to `inventory_user`; `ProcessedEventService` idempotency scaffolding
+copied verbatim from kitchen-service; `InventoryEventPayloads` (inbound `OrderClosedPayload`
+mirroring pos-service exactly, plus all 9 outbound `inventory.topic` event records);
+`InventoryRabbitConfig` topology (`inventory.topic` exchange, `inventory.order-closed.queue` +
+DLQ); dev-stack registration in `scripts/start-dev.ps1` (port 8085). See
+08-01-SUMMARY.md for full detail. Next: 08-02 (recipes/depletion — `OrderClosedConsumer`,
+`DepletionService`, MAC calculator, FEFO lot walk).
+Last activity: 2026-07-18 — Completed 08-01-PLAN.md (3 tasks, 3 commits: 82978b0/e85b862/647fdf8)
+
+<details>
+<summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
+
 Plans: 10 plans across 3 waves + 1 gap-closure plan — 11/11 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
@@ -86,9 +96,14 @@ OrderCloseIdempotencyIT (subject retired) with its single-publish coverage prese
 via a new SettlementSemanticsIT backstop test; deleted orphaned frontend PaymentPanel
 component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
 frontend tsc clean. Phase 07.3 now 11/11 plans complete.
-Status: Executing Phase 08
-Last activity: 2026-07-13 — Phase 08 execution started
-**Current focus:** Phase 10 (Purchasing & AP) — gap-closure wave COMPLETE (18/18, 10-07..10-18); next step is a phase-level UAT/verification re-pass, not another execution plan. The 2026-07-14 merge of `main` brought Phases 07 (8/8), 07.1 (10/10), 07.2 (6/7), and 07.3 (11/11) onto this branch; Phase 8 (Inventory & Recipe Management) remains unstarted.
+Status: Phase complete — ready for verification (Phase 07.3, historical)
+Last activity: 2026-07-14 — Phase 07.3 merge landed (historical)
+
+</details>
+
+**Current focus:** Phase 08 (Inventory & Recipe Management) — 08-01 (Wave 1 foundation) complete;
+08-02..08-09 remain. Phase 10 (Purchasing & AP) gap-closure wave (18/18) is separately complete
+pending its own UAT/verification re-pass (see historical block below) — unrelated to Phase 08.
 
 ## Current Position
 
@@ -119,6 +134,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 - Phase 07.2: 6/7 plans executed (07.2-06 verification checkpoint AWAITING USER)
 - Phase 07.3: 11/11 plans executed (COMPLETE — POS/KDS bug-fix + UX revamp, incl. gap-closure 07.3-11)
 - Phase 10: 18/18 plans executed (REOPENED gap-closure wave COMPLETE — 10-07..10-18 all landed; a phase-level UAT/verification re-pass is the next step, not another execution plan)
+- Phase 08: 1/9 plans executed (08-01 — inventory-service module scaffolded: FORCE-RLS domain schema, idempotency scaffolding, event contract, RabbitMQ topology)
 
 **By Phase:**
 
@@ -133,12 +149,13 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | 07.1-pos-production-operations                       | 10/10 | complete                                             |
 | 07.2-finance-accounting-period-provisioning          | 6/7   | 07.2-06 checkpoint awaiting user                     |
 | 07.3-pos-kitchen-bugfix-ux-revamp                    | 11/11 | complete (gap-closure 07.3-11 landed)                |
+| 08-inventory-recipe-management                       | 1/9   | executing — 08-01 done, 08-02..08-09 remain          |
 | 10-purchasing-accounts-payable                       | 18/18 | gap-closure wave complete (10-07..10-18); UAT re-pass pending |
 
 **Recent Trend:**
 
-- Last completed plan: 10-18
-- Trend: Phase 10's gap-closure wave (10-07..10-18, 12 plans across 5 waves) is now fully executed. 10-18 (final plan) closed FIN-05's AR half — a house/corporate customer-account AR sub-ledger with two real writers (manual UI charge, internal POS seam), each posting balanced journal entries against the seeded 1200 Accounts Receivable, a credit-limit invariant proven to reject via a watched-RED negative control, and finance-service's first @PreAuthorize reflection guard. The Phase 7 seam (POST /internal/finance/ar/charges) is real, tested, and its contract is pinned in 10-18-SUMMARY.md for 07-05 to consume without renegotiation. Next: a phase-level UAT/verification re-pass over all 18 plans (not a new execution plan) to re-close REQUIREMENTS.md's FIN-05 row and confirm the phase's overall gap-closure held.
+- Last completed plan: 08-01
+- Trend: Phase 08 (Inventory & Recipe Management) execution has begun. 08-01 (Wave 1 foundation) stood up the new `inventory-service` Maven module — FORCE-RLS 11-table domain schema (first service in the repo to include FORCE from V1), RLS-exempt idempotency infra, `ProcessedEventService` scaffolding, the full `InventoryEventPayloads` event contract, and RabbitMQ topology + dev-stack wiring. No runtime DB/RabbitMQ verification yet (deferred to 08-02's SchemaMigrationIT per plan design). Next: 08-02 builds `OrderClosedConsumer`, `DepletionService` (MAC + FEFO lot walk + recipe effective-version resolution per D-01), and the pessimistic-lock stock mutation pattern. Phase 10's gap-closure wave (10-07..10-18) remains separately complete pending its own UAT/verification re-pass (unrelated to Phase 08).
 
 _Updated after each plan completion_
 
@@ -174,6 +191,7 @@ _Updated after each plan completion_
 | Phase 07.3 P09 | 65min | 3 tasks | 6 files |
 | Phase 07.3 P10 | 23min | 4 tasks | 21 files |
 | Phase 07.3 P11 | 90min | 4 tasks | 19 files |
+| Phase 08 P01 | 6min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -383,6 +401,9 @@ Recent decisions affecting current work:
 - [Phase ?]: kds-ticket-detail.tsx extended with optional canUpdate prop for per-item transition controls — 07.3-10 Task 3: avoids duplicating revision-grouping logic in kds-station-detail.tsx
 - [Phase ?]: [07.3-11]: D-08 (locked by user) - DEPRECATE and REMOVE the legacy closeOrder tender-sum-only close bypass rather than gate/fix it in place; retired POST /orders/{id}/close to 410 Gone, deleted the service method, migrated 8 IT-fixture callers to a shared closeViaServeAndPay helper, deleted orphaned frontend PaymentPanel/useCloseOrder.
 - [Phase ?]: [07.3-11]: PosTestBase.closeViaServeAndPay always re-fetches totalPaisa from the DB immediately before recordPayment (never trusts the caller-supplied OrderDto param) -- caught a real stale-order bug where OrderSummaryDtoIT's order variable was captured before addItem.
+- [08-01-A]: inventory-service's V1__inventory_schema.sql applies ENABLE + FORCE ROW LEVEL SECURITY on all 11 domain tables from V1 (not retrofitted later) — first service in the repo to match the documented RLS convention exactly; finance/kitchen both omitted FORCE and needed follow-up hotfixes.
+- [08-01-B]: application.yml's RabbitMQ listener kept at acknowledge-mode: manual per the plan's explicit instruction, even though kitchen-service's live config runs auto (after a prior manual-ack bug where no consumer called basicAck). No consumer exists yet in 08-01 — 08-02's OrderClosedConsumer must call basicAck/basicNack explicitly, or this should be revisited to auto.
+- [08-01-C]: GitNexus MCP tools (impact/detect_changes) referenced in CLAUDE.md were not available in this execution's tool set; all 08-01 changes are additive (new module + pom.xml module registration + start-dev.ps1 append), so blast radius is inherently LOW regardless.
 
 ### Pending Todos
 

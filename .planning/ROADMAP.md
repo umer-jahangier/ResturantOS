@@ -315,12 +315,12 @@ Plans:
   4. Stock receipts update MAC and publish `STOCK_RECEIVED`, and transfers ship/receive with in-transit accounting and variance handling.
   5. Stock counts post variances, and low-stock and expiry alerts fire.
 
-**Plans**: 9 plans (new `inventory-service` module; 4 waves)
+**Plans**: 1/9 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Wave 1: Module foundation, complete FORCE-RLS schema, infra tables, processed-events + event payloads (INV-01/03/07 infra)
+- [x] 08-01-PLAN.md — Wave 1: Module foundation, complete FORCE-RLS schema, infra tables, processed-events + event payloads (INV-01/03/07 infra)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -374,7 +374,9 @@ Plans:
    and settlement posts a balanced journal entry against account 1200, and the internal seam
    POST /internal/finance/ar/charges that Phase 7's POS "charge to account" tender will call is implemented
    and integration-tested. (Scope decided 2026-07-13, 10-17-A — see FIN-05.)
+
   5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
+
 **Plans**: 26 plans (10-01..10-06 shipped; 10-07..10-18 = gap closure round 1; 10-19..10-26 = gap closure round 2 after the 2026-07-14 real-browser UAT)
 **Status**: REOPENED 2026-07-14 (round 2) — real-browser UAT scored ~3 pass / 10 journeys. All 12 round-1 gap-closure plans were green (unit + real-Postgres ITs + real-OPA container ITs) and the module still did not work: no PO could be approved by anyone (internal authorize call path 401s), expense create failed 100%, PO/invoice detail pages hung on Loading forever, and a cashier saw the whole Purchasing module. Backend ITs verified the callee; nothing verified the caller, the browser, or the persona. See 10-UAT-2.md.
 **Scope decisions**: 2026-07-13 (10-17-A) — FIN-05's AR clause is IN scope, not descoped. Receivables
@@ -383,6 +385,7 @@ Phase 7 owns the POS "charge to account" tender that calls it, because POS does 
 is 0/4 plans) and an AR ledger with no writer would be an always-empty sub-ledger.
 
 Plans:
+
 - [x] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval + mock GRN foundation
 - [x] 10-02: Mock GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP aging (FIN-05 partial), MSW frontend
 - [x] 10-03: PUR-06 spend analytics (vendor/category + period comparison) + PUR-05 price-variance metric [wave 3]
@@ -391,6 +394,7 @@ Plans:
 - [x] 10-06: Requirement-doc reconciliation — re-derive PUR-01..06 + FIN-05 status from actual coverage [wave 4]
 
 Gap-closure plans (2026-07-13):
+
 - [ ] 10-07-PLAN.md — Canonical OPA action vocabulary + vendor.rego approval-limit & close_po rules + distinct-approver [wave 1]
 - [ ] 10-08-PLAN.md — Real-OPA container ITs for PO approve/close + expense approve (replace the mocked AuthorizationClient) [wave 2]
 - [ ] 10-09-PLAN.md — @PreAuthorize on all 18 purchasing endpoints + seed missing permissions + Cashier-403 IT [wave 1]
@@ -405,6 +409,7 @@ Gap-closure plans (2026-07-13):
 - [ ] 10-18-PLAN.md — AR sub-ledger: house/corporate customer accounts, charges + settlements, AR balances + AR aging, and the internal POS charge seam [wave 5]
 
 Gap-closure plans, round 2 (2026-07-14) — every plan ends in a real-browser journey assertion as a real seeded persona:
+
 - [ ] 10-19-PLAN.md — Dev-stack reproducibility: RabbitMQ zero-users root cause (load_definitions suppresses DEFAULT_USER bootstrap), repair `make dev-up`, health-gated one-command bring-up [wave 1]
 - [ ] 10-20-PLAN.md — Bug 4: Next-15 async `params` on PO + invoice detail pages, fixed as a codebase-wide class with a build-failing guard [wave 2]
 - [ ] 10-21-PLAN.md — Bug 3: frontend RBAC parity — PermissionGuard + nav `permission: vendor.view` + guard test (cashier no longer sees Purchasing) [wave 2]
@@ -474,7 +479,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
 | 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 10/10 | Complete    | 2026-07-11 |
-| 8. Inventory & Recipe Management | 0/3 | Not started | - |
+| 8. Inventory & Recipe Management | 1/9 | In Progress|  |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
