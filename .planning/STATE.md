@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Completed 08-08-PLAN.md
-last_updated: "2026-07-18T21:44:14.649Z"
+stopped_at: "D6 gap-closure fix landed on gsd/phase-08-inventory-recipe-management (expiry-sweep cross-tenant discovery)"
+last_updated: "2026-07-19T03:40:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: "Completed 08-08-PLAN.md (2 tasks, 2 commits: f3431da/ff13b77) — Phase 8 now 9/9 complete"
+last_activity_desc: "D6 gap-closure fix (08-VERIFICATION.md): inventory_tenant_registry (V3, RLS-exempt) + TenantRegistryService closes ExpirySweepService's real-cron-path tenant-discovery gap without BYPASSRLS/FORCE-RLS relaxation; new ExpirySweepCronPathIT + full module regression 18 IT + 5 unit classes green"
 progress:
   total_phases: 15
   completed_phases: 9
@@ -60,8 +60,20 @@ bound by the same FORCE RLS + NOBYPASSRLS constraint as every other `stock_lots`
 cron-path dispatch across a cold multi-tenant fleet is presently a no-op — closing this needs a
 future Rule-4 architectural decision (BYPASSRLS service account or tenant registry). See
 08-08-SUMMARY.md for full detail.
+**[2026-07-19 gap-closure]** 08-VERIFICATION.md flagged this as open gap D6 (not acceptable
+deferred scope — no later phase addressed it). Fixed on `gsd/phase-08-inventory-recipe-management`:
+added `inventory_tenant_registry` (V3 migration, RLS-EXEMPT, mirrors V2's non-RLS convention —
+NO BYPASSRLS grant, NO domain-table FORCE-RLS relaxation) + `TenantRegistryService.registerTenant`
+(idempotent, in-transaction upsert) hooked into `OpeningBalanceService`/`ReceiptService`/
+`TransferService.receive`/`StockCountService`. `ExpirySweepService.sweep()` now discovers tenants
+via the registry (no ambient `TenantContext` needed) instead of the removed
+`StockLotRepository.findDistinctTenantIdsWithExpiringLots`. New `ExpirySweepCronPathIT` proves the
+real cron shape (zero ambient context, tenants seeded via the real `ReceiptService` write path,
+registry asserted populated before sweep runs) — full module regression: 18 IT classes + 5 unit
+classes, all green. Tenant isolation on every domain table is completely unchanged. See
+08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-07-19 — Completed 08-08-PLAN.md (2 tasks, 2 commits: f3431da/ff13b77) — Phase 8 now 9/9 complete
+Last activity: 2026-07-19 — D6 gap-closure fix (inventory_tenant_registry + TenantRegistryService) closing the expiry-sweep cross-tenant discovery gap
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
