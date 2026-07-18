@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-07-18T19:08:25.129Z"
+stopped_at: Completed 08-09-PLAN.md
+last_updated: "2026-07-18T19:18:30.338Z"
 last_activity: 2026-07-18
 last_activity_desc: "Completed 08-01-PLAN.md (3 tasks, 3 commits: 82978b0/e85b862/647fdf8)"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 95
-  completed_plans: 76
+  completed_plans: 77
   percent: 53
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
-Plan: 2 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
+Plan: 3 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
 module (Java 25 / Spring Boot 4, port 8085, `inventory_db`) registered in the root reactor and
 compiling; complete 11-table domain schema (`V1__inventory_schema.sql`) with `ENABLE` + `FORCE
 ROW LEVEL SECURITY` + NULLIF-guarded `tenant_isolation` policy on every table (first service in
@@ -193,6 +193,7 @@ _Updated after each plan completion_
 | Phase 07.3 P11 | 90min | 4 tasks | 19 files |
 | Phase 08 P01 | 6min | 3 tasks | 13 files |
 | Phase 08-inventory-recipe-management P02 | 12min | 2 tasks | 3 files |
+| Phase 08 P09 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -407,6 +408,8 @@ Recent decisions affecting current work:
 - [08-01-C]: GitNexus MCP tools (impact/detect_changes) referenced in CLAUDE.md were not available in this execution's tool set; all 08-01 changes are additive (new module + pom.xml module registration + start-dev.ps1 append), so blast radius is inherently LOW regardless.
 - [Phase ?]: TestFixtures builds JwtClaims + SecurityContextHolder auth directly instead of RSA-signed JWT strings, matching kitchen-service's in-process controller IT pattern
 - [Phase ?]: SchemaMigrationIT sweeps FORCE RLS + tenant_isolation across all 11 domain tables, not just the plan-required single representative table
+- [Phase 08]: [08-09]: inventory.rego view rule kept action-guarded (input.action == "inventory.item.view"), matching kds.rego's real shape and NOT the un-guarded snippet in 08-RESEARCH.md — the un-guarded form would let view-only principals pass the manage-action check. — Un-guarded version fails the plan's own required test (view-only denied manage action) and creates a real privilege-escalation gap.
+- [Phase 08]: [08-09]: opa CLI unavailable on PATH; verified opa test/coverage via docker run openpolicyagent/opa:1.17.1 against policies/ (image already present locally) — PASS 104/104, 100% coverage.
 
 ### Pending Todos
 
@@ -449,9 +452,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-18T19:07:13.715Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-inventory-recipe-management/08-CONTEXT.md
+Last session: 2026-07-18T19:18:30.315Z
+Stopped at: Completed 08-09-PLAN.md
+Resume file: None
 Last session: 2026-07-13
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
 Also stopped at (parallel plan): Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
