@@ -56,6 +56,21 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             "/fallback"
     );
 
+    /**
+     * Path prefixes for WebSocket endpoints whose handshake auth MUST be allowed via a
+     * {@code ?token=} query param, because a browser's native {@code WebSocket} API cannot set
+     * a custom {@code Authorization} header on the upgrade request (12-12 gap closure, §1h).
+     *
+     * <p>This fallback is deliberately scoped to genuine WebSocket UPGRADE requests on these two
+     * prefixes only — ordinary REST traffic (no {@code Upgrade} header) always requires the
+     * {@code Authorization} header, so a JWT is never accepted from a URL/query string for normal
+     * API calls (where it could leak into logs/proxies/browser history).
+     */
+    private static final List<String> WS_UPGRADE_PATHS = List.of(
+            "/api/v1/reporting/dashboard/",
+            "/api/v1/kitchen/"
+    );
+
     private static final String UNAUTHENTICATED_BODY =
             "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Authentication required\"}}";
 
@@ -81,6 +96,22 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
+        if (isWebSocketUpgrade(exchange) && isWsUpgradePath(path)) {
+            String token = exchange.getRequest().getQueryParams().getFirst("token");
+            if (token == null || token.isBlank()) {
+                return writeError(exchange, HttpStatus.UNAUTHORIZED, UNAUTHENTICATED_BODY);
+            }
+
+            JwtClaims claims;
+            try {
+                claims = validateAndParse(token);
+            } catch (Exception e) {
+                return writeError(exchange, HttpStatus.UNAUTHORIZED, UNAUTHENTICATED_BODY);
+            }
+
+            return authorizeAndForward(exchange, claims, chain);
+        }
+
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return writeError(exchange, HttpStatus.UNAUTHORIZED, UNAUTHENTICATED_BODY);
@@ -95,6 +126,16 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             return writeError(exchange, HttpStatus.UNAUTHORIZED, UNAUTHENTICATED_BODY);
         }
 
+        return authorizeAndForward(exchange, claims, chain);
+    }
+
+    /**
+     * Resolves the tenant for {@code claims}, mutates the request with the downstream identity
+     * headers ({@code X-Tenant-Id}, {@code X-User-Id}, optionally {@code X-Impersonated-By}), and
+     * forwards the request down the filter chain. Shared by BOTH the header-auth path and the
+     * WS-upgrade query-param path to avoid duplicating the mutation logic.
+     */
+    private Mono<Void> authorizeAndForward(ServerWebExchange exchange, JwtClaims claims, GatewayFilterChain chain) {
         return tenantResolutionSupport.resolve(exchange, claims)
                 .flatMap(tenantId -> {
                     ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate()
@@ -112,6 +153,19 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
                     return chain.filter(mutated);
                 })
                 .onErrorResume(ex -> writeError(exchange, HttpStatus.UNAUTHORIZED, UNAUTHENTICATED_BODY));
+    }
+
+    /**
+     * True when the request is a WebSocket handshake (the {@code Upgrade} header case-insensitively
+     * equals {@code websocket}), matching RFC 6455 client handshake semantics.
+     */
+    private boolean isWebSocketUpgrade(ServerWebExchange exchange) {
+        String upgrade = exchange.getRequest().getHeaders().getFirst(HttpHeaders.UPGRADE);
+        return upgrade != null && upgrade.equalsIgnoreCase("websocket");
+    }
+
+    private boolean isWsUpgradePath(String path) {
+        return WS_UPGRADE_PATHS.stream().anyMatch(path::startsWith);
     }
 
     /**
