@@ -1,5 +1,6 @@
 package io.restaurantos.reporting.ws;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,7 @@ public class TilePushThrottle {
     private final ConcurrentHashMap<String, Instant> lastPushAt = new ConcurrentHashMap<>();
     private final Set<String> dirtyTileKeys = ConcurrentHashMap.newKeySet();
 
+    @Autowired
     public TilePushThrottle(
             @Value("${restaurantos.dashboard.tile-throttle-ms:1000}") long minIntervalMs) {
         this(Clock.systemUTC(), minIntervalMs);
