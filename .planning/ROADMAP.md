@@ -455,17 +455,17 @@ Note: `nlq-service` is **Java / Spring Boot** (user decision), not Python — it
 
 Plans:
 
-- [ ] 12-01: Platform seams — reporting-service + nlq-service scaffolds, gateway routes, FEATURE_NLQ flag fix, deploy/env
-- [ ] 12-02: ClickHouse analytics schema + locked-down nlq_readonly user (verified against the live 25.9 container)
-- [ ] 12-03: ETL — ORDER_CLOSED / TILL_CLOSED / VENDOR_INVOICE_MATCHED into ClickHouse facts, business-day boundary, idempotent
-- [ ] 12-04: NLQ 7-stage SQL AST validation pipeline (TDD, JSqlParser, adversarial suite)
-- [ ] 12-05: Named reports + FBR Tax Summary (output tax − input tax = net payable)
-- [ ] 12-06: Realtime dashboard WebSocket (<5s of close events) with per-tile throttle
-- [ ] 12-07: NLQ execution — Claude NL→SQL, read-only executor, quotas, 60s cache, impersonation-stamped audit log
-- [ ] 12-08: Frontend — reports, FBR page, realtime dashboard
-- [ ] 12-09: Frontend — NLQ ask page with honest rejection UX
-- [ ] 12-10: Real-stack end-to-end proof + requirements reconciliation
-- [ ] 12-11: auth-service permission seeding (reporting.* + nlq.query.run) wired into db.changelog-master.xml
+- [x] 12-01: Platform seams — reporting-service + nlq-service scaffolds, gateway routes, FEATURE_NLQ flag fix, deploy/env
+- [x] 12-02: ClickHouse analytics schema + locked-down nlq_readonly user (verified against the live 25.9 container)
+- [x] 12-03: ETL — ORDER_CLOSED / TILL_CLOSED / VENDOR_INVOICE_MATCHED into ClickHouse facts, business-day boundary, idempotent
+- [x] 12-04: NLQ 7-stage SQL AST validation pipeline (TDD, JSqlParser, adversarial suite)
+- [x] 12-05: Named reports + FBR Tax Summary (output tax − input tax = net payable)
+- [x] 12-06: Realtime dashboard WebSocket (<5s of close events) with per-tile throttle
+- [x] 12-07: NLQ execution — Claude NL→SQL, read-only executor, quotas, 60s cache, impersonation-stamped audit log
+- [x] 12-08: Frontend — reports, FBR page, realtime dashboard
+- [x] 12-09: Frontend — NLQ ask page with honest rejection UX
+- [x] 12-10: Real-stack end-to-end proof + requirements reconciliation
+- [x] 12-11: auth-service permission seeding (reporting.* + nlq.query.run) wired into db.changelog-master.xml
 
 ## Progress
 
@@ -488,4 +488,4 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
-| 12. Reporting, Dashboards & NLQ | 0/3 | Not started | - |
+| 12. Reporting, Dashboards & NLQ | 11/11 | **Executed — RPT-02 gap (gateway WS auth)** | 2026-07-19 |
