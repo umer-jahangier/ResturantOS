@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 12
 current_phase_name: Reporting, Dashboards & NLQ
 status: executing
-stopped_at: Completed 12-05 + 12-07 + 12-06 + 12-08 — Phase 12 at 9/11 (waves 1-2 + 12-05/12-06/12-07/12-08 of waves 3-4); remaining: 12-09 (NLQ frontend), 12-10 (E2E)
-last_updated: "2026-07-18T00:00:00.000Z"
-last_activity: 2026-07-18
-last_activity_desc: Completed 12-08 (reporting frontend — reports browser + [code] runner + FBR Tax Summary page + realtime KPI dashboard driven by 12-06's WebSocket; four-layer plumbing built from the real Java DTOs, cogs/margin honestly nullable never 0, negative FBR net payable labelled a refundable credit, useDashboardSocket cloned from use-kds-socket.ts merging into the same TanStack cache key as the REST snapshot; 260/260 frontend tests green, tsc/lint/build all clean). Also completed 12-06 (realtime dashboard WebSocket — DashboardWebSocketHandler cloned from KDS's proven JWT-in-query-param pattern, TilePushThrottle's leading-push+trailing-flush contract, DashboardTileService computing 4 KPI tiles from ClickHouse facts, REST snapshot endpoint, ETL consumers wired to push after the fact lands; 26 tests green incl. DashboardPushIT 6/6 on real containers proving sub-5s push + 100-event burst coalescing); 12-05 (reports + FBR, 20 tests green) and 12-07 (NLQ execution, 75 tests green incl. NlqServiceIT 14/14 on real containers)
+stopped_at: Phase 12 at 10/11 — only 12-10 (real-stack E2E proof) remains; 12-01..09 + 12-11 all done and verified
+last_updated: "2026-07-19T00:00:00.000Z"
+last_activity: 2026-07-19
+last_activity_desc: Completed 12-06 (dashboard WS), 12-08 (reporting frontend), 12-09 (NLQ frontend). Frontend 266/266 vitest + build green. Only 12-10 (real-stack E2E) left.
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 111
-  completed_plans: 87
-  percent: 78
+  completed_plans: 90
+  percent: 81
 ---
 
 # Project State
