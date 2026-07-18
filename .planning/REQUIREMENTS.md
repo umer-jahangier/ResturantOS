@@ -144,7 +144,7 @@
 ### Inventory (INV)
 
 - [x] **INV-01**: Manager can manage ingredients, UOM, reorder points
-- [ ] **INV-02**: Recipes/BOM versioned; depletion uses the recipe version effective at order time
+- [x] **INV-02**: Recipes/BOM versioned; depletion uses the recipe version effective at order time
 - [x] **INV-03**: `ORDER_CLOSED` consumer depletes stock with `SELECT FOR UPDATE`, MAC maintained
 - [ ] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
 - [ ] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
@@ -344,7 +344,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | KDS-04 | Phase 07.3 | Complete |
 | KDS-05 | Phase 07.3 | Complete |
 | INV-01 | Phase 8 | Complete |
-| INV-02 | Phase 8 | Pending |
+| INV-02 | Phase 8 | Complete |
 | INV-03 | Phase 8 | Complete |
 | INV-04 | Phase 8 | Pending |
 | INV-05 | Phase 8 | Pending |
