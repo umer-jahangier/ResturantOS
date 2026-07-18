@@ -27,7 +27,7 @@ function Stop-PortListener([int]$Port) {
 
 function Stop-DevStack {
     Write-Step "Stopping host services (ports 3000, 8080-8096)"
-    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8086, 8090, 8093, 8095, 8096) {
+    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8085, 8086, 8090, 8093, 8095, 8096) {
         Stop-PortListener $p
     }
     if (Test-Path $PidFile) { Remove-Item $PidFile -Force }
@@ -168,6 +168,7 @@ $pids["file-service"] = Start-ServiceWindow "file-service" "services/file-servic
 $pids["finance-service"] = Start-ServiceWindow "finance-service" "services/finance-service"
 $pids["pos-service"] = Start-ServiceWindow "pos-service" "services/pos-service"
 $pids["kitchen-service"] = Start-ServiceWindow "kitchen-service" "services/kitchen-service"
+$pids["inventory-service"] = Start-ServiceWindow "inventory-service" "services/inventory-service"
 
 Write-Step "Waiting for auth-service JWKS before gateway"
 if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 180)) {
@@ -218,7 +219,7 @@ Write-Host "  View a log live:   Get-Content $LogDir\gateway.log -Tail 50 -Wait"
 Write-Host "  Available logs:    auth-service, authorization-service, user-service,"
 Write-Host "                     platform-admin-service, audit-service, file-service,"
 Write-Host "                     finance-service, pos-service, kitchen-service,"
-Write-Host "                     gateway, frontend"
+Write-Host "                     inventory-service, gateway, frontend"
 Write-Host "  Tail all at once:  Get-Content $LogDir\*.log -Tail 5"
 Write-Host "  Stop everything:   .\scripts\start-dev.ps1 -Stop"
 Write-Host ""
