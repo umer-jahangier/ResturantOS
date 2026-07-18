@@ -149,7 +149,7 @@
 - [ ] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
 - [ ] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
 - [ ] **INV-06**: Stock counts with variance posting; low-stock and expiry alerts
-- [ ] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
+- [x] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
 
 ### Purchasing (PUR)
 
@@ -349,7 +349,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-04 | Phase 8 | Pending |
 | INV-05 | Phase 8 | Pending |
 | INV-06 | Phase 8 | Pending |
-| INV-07 | Phase 8 | Pending |
+| INV-07 | Phase 8 | Complete |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |

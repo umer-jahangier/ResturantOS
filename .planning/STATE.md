@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
-stopped_at: Completed 08-09-PLAN.md
-last_updated: "2026-07-18T19:18:30.338Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-07-18T19:49:47.729Z"
 last_activity: 2026-07-18
 last_activity_desc: "Completed 08-01-PLAN.md (3 tasks, 3 commits: 82978b0/e85b862/647fdf8)"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 95
-  completed_plans: 77
+  completed_plans: 78
   percent: 53
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
-Plan: 3 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
+Plan: 4 of 9 complete — 08-01 (Wave 1 foundation) done: new `services/inventory-service` Maven
 module (Java 25 / Spring Boot 4, port 8085, `inventory_db`) registered in the root reactor and
 compiling; complete 11-table domain schema (`V1__inventory_schema.sql`) with `ENABLE` + `FORCE
 ROW LEVEL SECURITY` + NULLIF-guarded `tenant_isolation` policy on every table (first service in
@@ -194,6 +194,7 @@ _Updated after each plan completion_
 | Phase 08 P01 | 6min | 3 tasks | 13 files |
 | Phase 08-inventory-recipe-management P02 | 12min | 2 tasks | 3 files |
 | Phase 08 P09 | 3min | 2 tasks | 6 files |
+| Phase 08 P03 | 14min | 3 tasks | 25 files |
 
 ## Accumulated Context
 
@@ -410,6 +411,9 @@ Recent decisions affecting current work:
 - [Phase ?]: SchemaMigrationIT sweeps FORCE RLS + tenant_isolation across all 11 domain tables, not just the plan-required single representative table
 - [Phase 08]: [08-09]: inventory.rego view rule kept action-guarded (input.action == "inventory.item.view"), matching kds.rego's real shape and NOT the un-guarded snippet in 08-RESEARCH.md — the un-guarded form would let view-only principals pass the manage-action check. — Un-guarded version fails the plan's own required test (view-only denied manage action) and creates a real privilege-escalation gap.
 - [Phase 08]: [08-09]: opa CLI unavailable on PATH; verified opa test/coverage via docker run openpolicyagent/opa:1.17.1 against policies/ (image already present locally) — PASS 104/104, 100% coverage.
+- [Phase 08-03]: MockMvc + Spring Security test support (not direct controller-bean invocation) for inventory-service ITs that assert literal HTTP status codes (400/403) — mirrors finance-service's FinanceEndpointAuthorizationIT; kitchen-service's direct-bean style cannot exercise @Valid without class-level @Validated.
+- [Phase 08-03]: MacCalculator D-02 oversell policy: a receipt landing on zero/negative on-hand resets MAC to the receipt's own unit cost rather than blending against a meaningless prior average.
+- [Phase 08-03]: RecordOpeningBalanceRequest.unitCostPaisa is boxed Long (not primitive long) so @NotNull actually rejects a missing value instead of a Jackson-defaulted 0.
 
 ### Pending Todos
 
@@ -452,8 +456,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-18T19:18:30.315Z
-Stopped at: Completed 08-09-PLAN.md
+Last session: 2026-07-18T19:49:47.717Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
 Last session: 2026-07-13
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
