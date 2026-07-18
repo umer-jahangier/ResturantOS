@@ -217,6 +217,23 @@ spring:
                       - 500
                       - 503
 
+            # ── Inventory Service (Phase 8) ──────────────────────────────────────
+            # Gated by FEATURE_INVENTORY (RouteFeatureMap) — FeatureFlagGlobalFilter
+            # enforces it before proxying. Ingredients/UOM/opening-balance/receipts/
+            # transfers/counts.
+            - id: inventory-route
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/v1/inventory/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: inventoryCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 500
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
             # - id: hr-route
             #   uri: lb://hr-service
@@ -246,26 +263,6 @@ spring:
             #     - name: CircuitBreaker
             #       args:
             #         name: nlqCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: inventory-route
-            #   uri: lb://inventory-service
-            #   predicates:
-            #     - Path=/api/v1/inventory/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: inventoryCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: finance-route
-            #   uri: lb://finance-service
-            #   predicates:
-            #     - Path=/api/v1/finance/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: financeCircuitBreaker
             #         fallbackUri: forward:/fallback/service-unavailable
 
     # Eureka: register with service discovery so other services can find the gateway

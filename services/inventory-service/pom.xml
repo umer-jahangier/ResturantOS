@@ -92,6 +92,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- 08-03: IngredientAdminIT/InventoryAccessControlIT/OpeningBalanceIT drive real HTTP
+             dispatch via MockMvc (SecurityMockMvcConfigurers/SecurityMockMvcRequestPostProcessors)
+             so @Valid + GlobalExceptionHandler + the OPA seam all actually fire — mirrors
+             finance-service's FinanceEndpointAuthorizationIT precedent. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
