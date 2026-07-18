@@ -6,14 +6,14 @@ current_phase: 08
 current_phase_name: inventory-recipe-management
 status: executing
 stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-07-18T20:38:59.105Z"
+last_updated: "2026-07-18T20:57:43.748Z"
 last_activity: 2026-07-19
 last_activity_desc: "Completed 08-05-PLAN.md (3 tasks + 1 fix, 5 commits: 2cbe51a/c9fb9ee/0ea984e/992f90d/c6c1e7d)"
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 95
-  completed_plans: 80
+  completed_plans: 81
   percent: 53
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08 (inventory-recipe-management) — EXECUTING
-Plan: 6 of 9 complete — 08-01 (Wave 1 foundation), 08-02, 08-03, 08-09, 08-04, and 08-05 done.
+Plan: 7 of 9 complete — 08-01 (Wave 1 foundation), 08-02, 08-03, 08-09, 08-04, and 08-05 done.
 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4, port
 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -206,6 +206,7 @@ _Updated after each plan completion_
 | Phase 08 P03 | 14min | 3 tasks | 25 files |
 | Phase 08-inventory-recipe-management P04 | 13min | 2 tasks | 10 files |
 | Phase 08-inventory-recipe-management P05 | 12min | 3 tasks | 6 files |
+| Phase 08-inventory-recipe-management P06 | 18min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -428,6 +429,8 @@ Recent decisions affecting current work:
 - [Phase 08-04]: resolveEffectiveRecipe(menuItemId, atInstant) plain-typed, decoupled from pos-service Order -- 08-05 passes order.getClosedAt() at its own call site
 - [Phase ?]: DepletionService pre-sorts distinct ingredientId set (natural UUID order) before locking, never per-recipe-line lazy locking (Pitfall 6 deadlock avoidance). — 08-05
 - [Phase ?]: COGS = effectiveBaseQty x avg_cost_paisa (aggregate MAC), never a lot's own receipt cost — FEFO governs which lots drop, MAC governs COGS (D-04/Pitfall 9). — 08-05
+- [Phase ?]: ReceiveStockRequest.unitCostPaisa is boxed Long (not primitive) with @NotNull @Positive, mirroring RecordOpeningBalanceRequest's 08-03 precedent. — 08-06
+- [Phase ?]: GrnPendingCountRepository.countPendingAsOf is a genuine tenant-scoped JPQL COUNT query filtered on a PENDING_GRN sentinel referenceType (not a hard-coded 0 literal) -- evaluates to 0 today since ReceiptService never writes that referenceType; Phase 10 purchasing will repoint the sentinel. — 08-06
 
 ### Pending Todos
 
@@ -470,7 +473,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-18T20:38:59.092Z
+Last session: 2026-07-18T20:56:40.939Z
 Stopped at: Completed 08-05-PLAN.md
 Resume file: None
 Last session: 2026-07-13

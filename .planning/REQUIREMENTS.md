@@ -146,7 +146,7 @@
 - [x] **INV-01**: Manager can manage ingredients, UOM, reorder points
 - [x] **INV-02**: Recipes/BOM versioned; depletion uses the recipe version effective at order time
 - [x] **INV-03**: `ORDER_CLOSED` consumer depletes stock with `SELECT FOR UPDATE`, MAC maintained
-- [ ] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
+- [x] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
 - [ ] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
 - [ ] **INV-06**: Stock counts with variance posting; low-stock and expiry alerts
 - [x] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
@@ -346,7 +346,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-01 | Phase 8 | Complete |
 | INV-02 | Phase 8 | Complete |
 | INV-03 | Phase 8 | Complete |
-| INV-04 | Phase 8 | Pending |
+| INV-04 | Phase 8 | Complete |
 | INV-05 | Phase 8 | Pending |
 | INV-06 | Phase 8 | Pending |
 | INV-07 | Phase 8 | Complete |
