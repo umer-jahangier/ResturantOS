@@ -102,6 +102,13 @@ type ProblemDetailBody = {
   properties?: Record<string, unknown> | null;
   traceId?: string | null;
   errors?: unknown;
+  /**
+   * `ProblemDetail#setProperty("code", ...)` is flattened onto the JSON root by Spring's
+   * `ProblemDetailJacksonMixin` — NOT nested under a `properties` key. `NlqGlobalExceptionHandler`
+   * uses this to carry the SPECIFIC failure code (e.g. `TENANT_FILTER_MISSING`,
+   * `QUOTA_EXCEEDED_MONTHLY`) alongside a generic `title` category (e.g. `QUERY_REJECTED`).
+   */
+  code?: string;
 };
 
 function isProblemDetailBody(value: unknown): value is ProblemDetailBody {
@@ -223,7 +230,21 @@ export function parseApiError(error: unknown): ApiError {
 
     if (isProblemDetailBody(body)) {
       const title = typeof body.title === "string" ? body.title : "";
-      const code = CODE_LIKE.test(title) ? title : `HTTP_${status || body.status || 0}`;
+      // nlq-service's NlqGlobalExceptionHandler sets `title` to a generic category
+      // (e.g. "QUERY_REJECTED", "QUOTA_EXCEEDED") and the SPECIFIC code (the actual
+      // RejectionCode, e.g. "TENANT_FILTER_MISSING") on the flattened `code` property —
+      // prefer it when present so callers can branch on the granular code, not the category.
+      const propsCode =
+        typeof body.code === "string"
+          ? body.code
+          : typeof body.properties?.code === "string"
+            ? body.properties.code
+            : "";
+      const code = CODE_LIKE.test(propsCode)
+        ? propsCode
+        : CODE_LIKE.test(title)
+          ? title
+          : `HTTP_${status || body.status || 0}`;
       const message =
         (typeof body.detail === "string" && body.detail) ||
         (title && !CODE_LIKE.test(title) ? title : "") ||
