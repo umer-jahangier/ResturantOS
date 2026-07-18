@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.reporting.config.ReportingRabbitConfig;
 import io.restaurantos.reporting.etl.SalesFactWriter;
 import io.restaurantos.reporting.event.ReportingEventPayloads.OrderClosedPayload;
+import io.restaurantos.reporting.service.DashboardTileService;
 import io.restaurantos.reporting.service.ProcessedEventService;
 import io.restaurantos.reporting.support.BranchTimeZoneResolver;
 import io.restaurantos.reporting.support.BusinessDay;
@@ -38,6 +39,7 @@ public class OrderClosedConsumer {
     private final BranchTimeZoneResolver branchTimeZoneResolver;
     private final BusinessDay businessDay;
     private final SalesFactWriter salesFactWriter;
+    private final DashboardTileService dashboardTileService;
     private final ObjectMapper objectMapper;
 
     public OrderClosedConsumer(ProcessedEventService processedEventService,
@@ -45,12 +47,14 @@ public class OrderClosedConsumer {
                                 BranchTimeZoneResolver branchTimeZoneResolver,
                                 BusinessDay businessDay,
                                 SalesFactWriter salesFactWriter,
+                                DashboardTileService dashboardTileService,
                                 @Qualifier("eventObjectMapper") ObjectMapper objectMapper) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.branchTimeZoneResolver = branchTimeZoneResolver;
         this.businessDay = businessDay;
         this.salesFactWriter = salesFactWriter;
+        this.dashboardTileService = dashboardTileService;
         this.objectMapper = objectMapper;
     }
 
@@ -70,6 +74,18 @@ public class OrderClosedConsumer {
                     ZoneId zone = branchTimeZoneResolver.resolve(env.branchId());
                     LocalDate businessDate = businessDay.businessDate(env.payload().closedAt(), zone);
                     salesFactWriter.write(env, businessDate);
+
+                    // A dashboard-push failure must NEVER poison the ETL: this call is wrapped and
+                    // swallowed. The fact row above is the durable truth; the WS push is cosmetic.
+                    // If an exception escaped here, it would roll back this tenantAwareMessageProcessor
+                    // block, undo the processed_events guard, and the event would be redelivered
+                    // forever — a broken dashboard would take out the ETL. DO NOT remove this catch.
+                    try {
+                        dashboardTileService.recomputeAndPush(env.tenantId(), env.branchId(), businessDate);
+                    } catch (Exception e) {
+                        log.warn("OrderClosedConsumer: dashboard tile push failed for branchId={}: {}",
+                                env.branchId(), e.getMessage());
+                    }
                 })
         );
     }

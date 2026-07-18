@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.reporting.config.ReportingRabbitConfig;
 import io.restaurantos.reporting.etl.TillSessionFactWriter;
 import io.restaurantos.reporting.event.ReportingEventPayloads.TillClosedPayload;
+import io.restaurantos.reporting.service.DashboardTileService;
 import io.restaurantos.reporting.service.ProcessedEventService;
 import io.restaurantos.reporting.support.BranchTimeZoneResolver;
 import io.restaurantos.reporting.support.BusinessDay;
@@ -37,6 +38,7 @@ public class TillClosedConsumer {
     private final BranchTimeZoneResolver branchTimeZoneResolver;
     private final BusinessDay businessDay;
     private final TillSessionFactWriter tillSessionFactWriter;
+    private final DashboardTileService dashboardTileService;
     private final ObjectMapper objectMapper;
 
     public TillClosedConsumer(ProcessedEventService processedEventService,
@@ -44,12 +46,14 @@ public class TillClosedConsumer {
                                BranchTimeZoneResolver branchTimeZoneResolver,
                                BusinessDay businessDay,
                                TillSessionFactWriter tillSessionFactWriter,
+                               DashboardTileService dashboardTileService,
                                @Qualifier("eventObjectMapper") ObjectMapper objectMapper) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.branchTimeZoneResolver = branchTimeZoneResolver;
         this.businessDay = businessDay;
         this.tillSessionFactWriter = tillSessionFactWriter;
+        this.dashboardTileService = dashboardTileService;
         this.objectMapper = objectMapper;
     }
 
@@ -69,6 +73,15 @@ public class TillClosedConsumer {
                     ZoneId zone = branchTimeZoneResolver.resolve(env.branchId());
                     LocalDate businessDate = businessDay.businessDate(env.occurredAt(), zone);
                     tillSessionFactWriter.write(env, businessDate);
+
+                    // A dashboard-push failure must NEVER poison the ETL — same rationale as
+                    // OrderClosedConsumer. DO NOT remove this catch.
+                    try {
+                        dashboardTileService.recomputeAndPush(env.tenantId(), env.branchId(), businessDate);
+                    } catch (Exception e) {
+                        log.warn("TillClosedConsumer: dashboard tile push failed for branchId={}: {}",
+                                env.branchId(), e.getMessage());
+                    }
                 })
         );
     }
