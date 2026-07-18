@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 12
 current_phase_name: Reporting, Dashboards & NLQ
 status: executing
-stopped_at: Completed 12-05 + 12-07 — Phase 12 at 7/11 (waves 1-2 + 12-05/12-07 of wave 3); remaining: 12-06 (dashboard WS), 12-08/12-09 (frontend), 12-10 (E2E)
+stopped_at: Completed 12-05 + 12-07 + 12-06 — Phase 12 at 8/11 (waves 1-2 + 12-05/12-06/12-07 of wave 3); remaining: 12-08/12-09 (frontend), 12-10 (E2E)
 last_updated: "2026-07-18T00:00:00.000Z"
 last_activity: 2026-07-18
-last_activity_desc: Completed 12-05 (reports + FBR, 20 tests green) and 12-07 (NLQ execution, 75 tests green incl. NlqServiceIT 14/14 on real containers); fixed 7 latent defects across both by driving their ITs to green
+last_activity_desc: Completed 12-06 (realtime dashboard WebSocket — DashboardWebSocketHandler cloned from KDS's proven JWT-in-query-param pattern, TilePushThrottle's leading-push+trailing-flush contract, DashboardTileService computing 4 KPI tiles from ClickHouse facts, REST snapshot endpoint, ETL consumers wired to push after the fact lands; 26 tests green incl. DashboardPushIT 6/6 on real containers proving sub-5s push + 100-event burst coalescing); also completed 12-05 (reports + FBR, 20 tests green) and 12-07 (NLQ execution, 75 tests green incl. NlqServiceIT 14/14 on real containers)
 progress:
   total_phases: 15
   completed_phases: 8
   total_plans: 111
-  completed_plans: 85
+  completed_plans: 86
   percent: 77
 ---
 
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 12 (Reporting, Dashboards & NLQ) — EXECUTING, 5/11 plans done. Waves 1-2 complete: 12-01 (platform seams: reporting-service + nlq-service scaffolds, gateway routes, phantom FEATURE_NLQ fix, reporting_db/nlq_db), 12-02 (ClickHouse analytics schema + locked-down `nlq_readonly`, applied live), 12-11 (auth permissions + changelog includes), 12-04 (NLQ 7-stage JSqlParser AST validation gate + adversarial injection suite), 12-03 (ETL → ClickHouse facts, EtlPipelineIT 6/6 on real containers). Next: wave 3 — 12-05 (named reports + FBR), 12-06 (dashboard WebSocket), 12-07 (NLQ execution).
+**Current focus:** Phase 12 (Reporting, Dashboards & NLQ) — EXECUTING, 8/11 plans done. Waves 1-2 complete: 12-01 (platform seams: reporting-service + nlq-service scaffolds, gateway routes, phantom FEATURE_NLQ fix, reporting_db/nlq_db), 12-02 (ClickHouse analytics schema + locked-down `nlq_readonly`, applied live), 12-11 (auth permissions + changelog includes), 12-04 (NLQ 7-stage JSqlParser AST validation gate + adversarial injection suite), 12-03 (ETL → ClickHouse facts, EtlPipelineIT 6/6 on real containers). Wave 3 complete: 12-05 (named reports + FBR Tax Summary), 12-06 (realtime dashboard WebSocket — throttled KPI-tile pushes within 5s of ORDER_CLOSED/TILL_CLOSED, REST snapshot endpoint, DashboardPushIT 6/6 on real containers), 12-07 (NLQ execution — Claude NL→SQL, read-only executor, audit log, NlqServiceIT 14/14). Next: 12-08/12-09 (frontend: reports UI + live dashboard + NLQ chat), 12-10 (E2E verification).
 
 Phase 10 (Purchasing & AP): goal VERIFIED 2026-07-14 (10-VERIFICATION-R2.md, `passed_with_gaps`) — procurement runs end-to-end on the real stack. Round-2 gap plans 10-20..10-26 remain unexecuted (polish/hardening, not blockers); 10-19 (dev-stack reproducibility) IS done. Note 10-25 (InternalServiceFilter never authenticates) is still open and touches the same internal-auth seam Phase 12's FBR report uses — may surface in 12-10.
 
@@ -32,10 +32,10 @@ Phase 8 (Inventory) and Phase 9 remain unstarted — Phase 12 is built to degrad
 
 ## Current Position
 
-Phase: 12 of 12 (Reporting, Dashboards & NLQ) — wave 2 in progress
-Plan: 12-04 complete (NLQ SQL validation pipeline). Phase-12 SUMMARYs on disk: 12-01, 12-02, 12-04, 12-11 (12-03 committed as `f055694 feat(12-03)` — SUMMARY pending from its concurrent executor).
-Status: 12-04 complete — the 7-stage JSqlParser-AST SQL validation gate between Claude-generated SQL and ClickHouse (the highest-risk surface in the project). Shape → parse → table-allowlist → PII-denylist → tenant-filter → branch-filter → limit-inject, run as a pure I/O-free pipeline (only the Redis-cached role allowlist touches I/O). Tenant/branch predicates are injected via the AST and PROVEN by re-parse; unprovable shapes (JOIN/CTE/UNION/subquery) are rejected, never executed unfiltered. TDD: 56 tests (7 contract + 29 adversarial `SqlInjectionAttackTest` each asserting a typed RejectionCode + 20 stage-branch), validator package at 95.3% line coverage behind a genuinely-scoped JaCoCo gate. Watched-RED controls proved the re-parse proof and the shape whitelist load-bearing; found+fixed a real aliased-star (`SELECT t.* FROM tbl t`) PII bypass. `nlq_allowed_tables` (role-keyed, platform-level, no RLS, seeded) + `nlq_query_log` (RLS FORCEd, `impersonated_by`) shipped via Flyway V1. Open Question 4 CLOSED (allowlist in nlq_db, role-keyed, Redis-cached 10min). NO Claude call and NO ClickHouse execution — deliberately isolated to 12-07. Contract pinned for 12-07 (validate() signature + QueryContext + supported query shape + nlq_query_log columns) and 12-09 (RejectionCode → user message) in 12-04-SUMMARY.md.
-Last activity: 2026-07-16 — Completed 12-04 (NLQ 7-stage SQL AST validation pipeline — 3 tasks, 3 commits, d19a15a/743d353/220733b)
+Phase: 12 of 12 (Reporting, Dashboards & NLQ) — wave 3 complete, wave 4 (frontend + E2E) next
+Plan: 12-06 complete (realtime dashboard WebSocket). Phase-12 SUMMARYs on disk: 12-01, 12-02, 12-04, 12-05, 12-06, 12-07, 12-11 (12-03 committed as `f055694 feat(12-03)` — SUMMARY pending from its concurrent executor).
+Status: 12-06 complete — DashboardWebSocketHandler (cloned from kitchen-service's proven KdsWebSocketHandler: JWT-in-query-param auth, 1008 policy-violation close, CopyOnWriteArrayList subscriber registry) at /api/v1/reporting/dashboard/{branchId}, gated on reporting.dashboard.view. TilePushThrottle adds the leading-push+trailing-flush contract KDS never needed: tryAcquire grants immediately if the window elapsed else marks dirty, and a @Scheduled(fixedDelay=1000) sweep force-flushes any dirty tile whose window has since elapsed — proven (fake-Clock unit test + a 100-event real-container burst test) to coalesce floods while still converging to the exact final total within ~2s. DashboardTileService computes 4 KPI tiles (todays-revenue/orders/tax, average-order-value) from sales_order_facts on the branch's business date, Redis-cached 10s so the REST snapshot (GET /api/v1/reporting/dashboard/{branchId}/tiles) and the WS push agree. open-tills tile deliberately DROPPED — till_session_facts only records CLOSED sessions, so "currently open" isn't computable; rendering 0 would be a lie. OrderClosedConsumer/TillClosedConsumer call recomputeAndPush after their existing fact write, wrapped in a swallow-and-log try/catch so a dashboard-push failure can never roll back the processed_events idempotency guard. 26 tests green (mvn -pl services/reporting-service verify) incl. new DashboardPushIT 6/6 on real Postgres+RabbitMQ+ClickHouse+Redis containers with a REAL WebSocket client, and EtlPipelineIT/ReportServiceIT/FbrTaxSummaryIT unregressed. Contract (WS URL shape, DashboardTileDto JSON, tile ids, REST snapshot) pinned in 12-06-SUMMARY.md for 12-08.
+Last activity: 2026-07-18 — Completed 12-06 (dashboard WebSocket + per-tile throttle — 3 tasks, 3 commits, 31c5e8b/bcb8163/b484901)
 
 ### Superseded — prior position (Phase 10)
 
