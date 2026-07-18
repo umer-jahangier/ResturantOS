@@ -3,6 +3,7 @@ package io.restaurantos.auth.service;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.repository.UserRepository;
 import io.restaurantos.shared.security.JwtClaims;
+import jakarta.persistence.EntityManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,15 +22,18 @@ public class ProvisioningAdminService {
     private final PasswordEncoder passwordEncoder;
     private final PermissionResolver permissionResolver;
     private final JwtSigningService jwtSigningService;
+    private final EntityManager entityManager;
 
     public ProvisioningAdminService(UserRepository userRepository,
                                     PasswordEncoder passwordEncoder,
                                     PermissionResolver permissionResolver,
-                                    JwtSigningService jwtSigningService) {
+                                    JwtSigningService jwtSigningService,
+                                    EntityManager entityManager) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.permissionResolver = permissionResolver;
         this.jwtSigningService = jwtSigningService;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -69,7 +73,14 @@ public class ProvisioningAdminService {
      * Loads the target user's active branch/permissions via PermissionResolver.
      * The token is NOT refreshable — expiry is hard-set at issuance.
      */
-    public ImpersonateResult impersonate(UUID targetUserId, UUID impersonatedBy, int expiresInSeconds) {
+    @Transactional
+    public ImpersonateResult impersonate(UUID tenantId, UUID targetUserId, UUID impersonatedBy, int expiresInSeconds) {
+        // RLS tenant GUC MUST be set as the first statement inside this transaction, before
+        // findById, so the GUC and the RLS-scoped SELECT share one connection (2099ac0 bug class).
+        if (tenantId != null) {
+            setTenantGuc(tenantId);
+        }
+
         UserEntity target = userRepository.findById(targetUserId)
             .orElseThrow(() -> new IllegalArgumentException("Target user not found: " + targetUserId));
 
@@ -95,6 +106,12 @@ public class ProvisioningAdminService {
         Duration ttl = Duration.ofSeconds(expiresInSeconds);
         String token = jwtSigningService.signImpersonationToken(targetClaims, impersonatedBy, ttl);
         return new ImpersonateResult(token, expiresInSeconds);
+    }
+
+    private void setTenantGuc(UUID tenantId) {
+        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+            .setParameter("tid", tenantId.toString())
+            .getSingleResult();
     }
 
     private String generateTempPassword() {

@@ -68,7 +68,7 @@ public class AuthProvisioningInternalController {
             @PathVariable UUID userId,
             @RequestBody ImpersonateRequest request) {
         ProvisioningAdminService.ImpersonateResult result =
-            provisioningAdminService.impersonate(userId, request.impersonatedBy(), request.expiresInSeconds());
+            provisioningAdminService.impersonate(request.tenantId(), userId, request.impersonatedBy(), request.expiresInSeconds());
         Map<String, Object> body = Map.of(
             "token", result.token(),
             "expiresIn", result.expiresIn()
@@ -78,5 +78,5 @@ public class AuthProvisioningInternalController {
 
     record ProvisionAdminRequest(String email) {}
     record ServiceTokenRequest(String service) {}
-    record ImpersonateRequest(UUID impersonatedBy, int expiresInSeconds) {}
+    record ImpersonateRequest(UUID tenantId, UUID impersonatedBy, int expiresInSeconds) {}
 }
