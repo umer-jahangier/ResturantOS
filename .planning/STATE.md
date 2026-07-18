@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 12
 current_phase_name: Reporting, Dashboards & NLQ
 status: executing
-stopped_at: Phase 12 at 11/11 (12-10 real-stack E2E proof complete) — phase-level UAT/verification re-pass is the next step, not another execution plan; 3 real gaps found by 12-10 (RPT-02 gateway WS auth gap, ntn/fbrStrn RLS-GUC gap, impersonation-issuance RLS-GUC gap) should become gap-closure plans before Phase 12 is called fully done
+stopped_at: Phase 12 gap-closure wave in progress — 12-13 (ntn/fbrStrn RLS-GUC gap) code+unit-test complete; real-stack proof PENDING a consolidated orchestrator run alongside sibling gap plans 12-12/12-14; RPT-02 gateway WS auth gap and impersonation-issuance RLS-GUC gap still need their own gap-closure plans (or are 12-12/12-14, running concurrently) before Phase 12 is called fully done
 last_updated: "2026-07-19T00:00:00.000Z"
 last_activity: 2026-07-19
-last_activity_desc: Completed 12-10 (real-stack E2E proof) — 4 commits, real infra + 10 host-run JVMs brought up, ETL/reports/FBR/dashboard-push/NLQ-security all driven live through the real gateway with real JWTs. REQUIREMENTS.md RPT-01/NLQ-01/NLQ-02 flipped Complete-with-a-note; RPT-02 left In Progress (real gateway WS auth gap discovered). Phase 12 all 11 plans executed.
+last_activity_desc: Completed 12-13 (GAP B — FBR ntn/fbrStrn RLS-GUC gap, code+unit-test portion) — 2 commits (9a4ed0a fix, 2f9f28f test). BranchInternalController.getBranch now falls back to TenantContext (forwarded JWT tenant claim) for the RLS tenant GUC when X-Tenant-Id is absent, instead of silently skipping it; 3 new unit tests pin JWT-fallback + header-precedence. Real-stack through-gateway proof deferred to a consolidated run covering 12-12/12-13/12-14 together (8GB host, one fleet at a time).
 progress:
   total_phases: 15
   completed_phases: 8
@@ -36,10 +36,10 @@ Phase 8 (Inventory) and Phase 9 remain unstarted — Phase 12 is built to degrad
 
 ## Current Position
 
-Phase: 12 of 12 (Reporting, Dashboards & NLQ) — ALL 11 PLANS EXECUTED (12-10 real-stack E2E proof completed 2026-07-19)
-Plan: 12-10 complete (real-stack E2E proof — final plan of Phase 12). Phase-12 SUMMARYs on disk: 12-01, 12-02, 12-04, 12-05, 12-06, 12-07, 12-08, 12-10, 12-11 (12-03 committed as `f055694 feat(12-03)` — SUMMARY pending from its concurrent executor; 12-09 SUMMARY pending from its executor).
-Status: 12-10 complete — see the "12-10 (real-stack E2E proof...)" paragraph above for full detail. Phase 12 execution is done; a phase-level UAT/verification re-pass (not another execution plan) is the next step, mirroring Phase 10's post-execution verification pattern — and the 3 real gaps 12-10 found (RPT-02 gateway WS auth gap, FBR ntn/fbrStrn RLS-GUC gap, impersonation-issuance RLS-GUC gap) should become gap-closure plans before that re-pass can call Phase 12 fully done.
-Last activity: 2026-07-19 — Completed 12-10 (real-stack E2E proof — 3 tasks, 4 commits: a1bcbab/45d4780/bd66f60/64dd07c)
+Phase: 12 of 12 (Reporting, Dashboards & NLQ) — gap-closure wave IN PROGRESS after 12-10's real-stack E2E proof found 3 real gaps
+Plan: 12-13 code+unit-test portion complete (GAP B — FBR ntn/fbrStrn RLS-GUC gap). Real-stack proof deferred to a consolidated run with concurrent sibling gap plans 12-12/12-14. Phase-12 SUMMARYs on disk: 12-01, 12-02, 12-04, 12-05, 12-06, 12-07, 12-08, 12-10, 12-11, 12-13 (12-03 committed as `f055694 feat(12-03)` — SUMMARY pending from its concurrent executor; 12-09 SUMMARY pending from its executor; 12-12/12-14 running concurrently for the other 2 gaps 12-10 found).
+Status: 12-13 code+unit-test portion complete — `BranchInternalController.getBranch` now falls back to the forwarded JWT's tenant claim (TenantContext) for the RLS tenant GUC when X-Tenant-Id is absent; 3 unit tests pin the behaviour; `mvn -pl services/user-service compile`+`test` green. Real-stack through-gateway proof (non-null ntn/fbrStrn) is PENDING — left for a single consolidated orchestrator fleet bring-up alongside 12-12/12-14 (8GB host cannot sustain parallel fleets). A phase-level UAT/verification re-pass remains the step after all 3 gap-closure plans (12-12, 12-13, 12-14) land and their consolidated real-stack proof runs.
+Last activity: 2026-07-19 — Completed 12-13 code+unit-test portion (GAP B — 2 tasks, 2 commits: 9a4ed0a fix, 2f9f28f test). Task 3 (real-stack proof) explicitly deferred per scope instruction.
 
 ### Superseded — prior position (Phase 10)
 
