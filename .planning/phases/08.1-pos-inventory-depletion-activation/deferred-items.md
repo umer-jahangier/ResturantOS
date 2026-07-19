@@ -46,3 +46,31 @@ Full both-service IT regression run after Wave 5:
 
   These are pre-existing dev-branch test defects to be triaged separately; Phase 08.1's own new
   pos-service IT (`MenuItemEventPublishingIT` 5/5) and capstone (`LiveOrderClosedPayloadIT` 1/1) pass.
+
+## 08.1-06 (Task 3 fleet blast-radius verification)
+
+**Dev-stack RabbitMQ collision (environmental, not a code regression):** the local dev stack's
+`restaurantos-rabbitmq` container was running on host `localhost:5672` for the duration of this
+plan's Task 3 verification. `inventory-service`/`kitchen-service`/`pos-service`'s test harnesses
+(`InventoryTestBase`, `KitchenTestBase`, `PosTestBase`) mock `RabbitTemplate` but do NOT run their
+own Testcontainers RabbitMQ broker, so `@RabbitListener` beans fall back to `application.yml`'s
+`localhost:5672` default at context startup — colliding with the live dev-stack broker's real
+credentials (`AuthenticationFailureException: ACCESS_REFUSED`), which is FATAL (crashes the whole
+`ApplicationContext`), unlike the documented non-fatal "connection refused" case (dev stack down).
+Ran these three services' verify with `RABBITMQ_HOST=127.0.0.1`/`RABBITMQ_PORT=59999` (an unused
+port) to force the tolerated connection-refused path instead of colliding with the live broker,
+without touching the running dev-stack container. Confirmed identical to the documented baseline:
+inventory-service 58/58, kitchen-service 29/29, pos-service `KitchenItemStatusSyncIT` 4/4 — all
+green. Not a code change; not a regression from this plan's shared-lib fix.
+
+**audit-service `AuditConsumerIT`/`AuditImmutabilityIT` — pre-existing, unrelated failure, NOT
+fixed here (out of scope):** both fail at Liquibase migration time with
+`ERROR: role "audit_writer" does not exist [Failed SQL: (0) GRANT INSERT ON audit_events TO
+audit_writer]`. `AuditConsumerIT`/`AuditImmutabilityIT` run their OWN dedicated
+`@Container PostgreSQLContainer` + `@Container RabbitMQContainer` (unlike the RabbitMQ collision
+above) with no init script that creates the `audit_writer` role before the `010-create-audit-events.xml`
+changeset's `GRANT INSERT ... TO audit_writer` runs — a gap in audit-service's own test harness,
+disjoint from every file this plan (08.1-06) modified (`TenantAwareMessageProcessor.java`,
+`ConsumerRlsGucPropagationIT.java`, `shared-lib`'s `BaseIntegrationTest.java`). Plan 08.1-06's own
+acceptance criteria only requires audit-service **test-compile parity**, which is green
+(`mvn -f services/audit-service/pom.xml -DskipTests test-compile` — EXIT=0).
