@@ -30,7 +30,9 @@ dist/
 **/playwright-report/
 **/blob-report/
 **/playwright/.cache/
-coverage/
+# Anchored to repo root (not a bare `coverage/`) — a bare pattern would also match
+# frontend/app/(tenant)/app/inventory/coverage/, a real route directory (08.1-04).
+/frontend/coverage/
 
 #logs
 .dev-logs/
