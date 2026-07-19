@@ -55,6 +55,25 @@ public final class InventoryEventPayloads {
             long lineTotalPaisa
     ) {}
 
+    // ─── Consume side (MENU_ITEM_UPSERTED/MENU_ITEM_DELETED from pos.topic) ────
+    // D-02: field-name + order parity with pos-service's PosEventPayloads
+    // MenuItemUpsertedPayload/MenuItemDeletedPayload (08.1-01) — the cross-service contract.
+
+    public static final String MENU_ITEM_UPSERTED = "MENU_ITEM_UPSERTED";
+    public static final String MENU_ITEM_DELETED = "MENU_ITEM_DELETED";
+
+    public record MenuItemUpsertedPayload(
+            UUID menuItemId,
+            String name,
+            UUID categoryId,
+            String categoryName,
+            boolean active,
+            long basePricePaisa,
+            Instant updatedAt
+    ) {}
+
+    public record MenuItemDeletedPayload(UUID menuItemId) {}
+
     // ─── Produce side (inventory.topic) ────────────────────────────────────────
 
     public static final String STOCK_DEPLETED = "STOCK_DEPLETED";
