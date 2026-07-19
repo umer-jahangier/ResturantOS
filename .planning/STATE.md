@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.1
 current_phase_name: pos-inventory-depletion-activation
 status: executing
-stopped_at: Completed 08.1-05-PLAN.md
-last_updated: "2026-07-19T13:55:37.233Z"
+stopped_at: Completed 08.1-06-PLAN.md
+last_updated: "2026-07-19T17:07:56.380Z"
 last_activity: 2026-07-19
-last_activity_desc: Completed 08.1-05 (INV-12 live E2E depletion proof) — all 5 waves executed, phase execution complete
+last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 16
   completed_phases: 9
-  total_plans: 100
-  completed_plans: 88
+  total_plans: 102
+  completed_plans: 89
   percent: 56
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.1 (pos-inventory-depletion-activation) — EXECUTING
-Plan: 5 of 5
+Plan: 2 of 7
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -236,6 +236,7 @@ _Updated after each plan completion_
 | Phase 08.1 P01 | 25min | 3 tasks | 8 files |
 | Phase 08.1 P02 | 15min | 3 tasks | 19 files |
 | Phase 08.1 P04 | 35min | 3 tasks | 15 files |
+| Phase 08.1 P06 | 45min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -473,6 +474,8 @@ Recent decisions affecting current work:
 - [Phase 08.1-02]: MenuItemNotFoundException gets its own 404 via a new local InventoryExceptionHandler advice bean rather than editing shared-lib's GlobalExceptionHandler, which always maps RestaurantOsException to 400
 - [Phase ?]: Registered inventoryHandlers in mocks/server.ts (not handlers.ts) — matches the codebase's actual current MSW registration pattern
 - [Phase ?]: e2e spec uses manager@demo.local (MANAGER role) — holds both inventory.item.view/manage with no TOTP
+- [Phase 08.1-06]: TenantGucHelper.apply() inside process()'s existing @Transactional method, not a split non-transactional/transactional boundary restructure (lower blast radius across 10 shared-lib consumers)
+- [Phase 08.1-06]: Fixed pre-existing shared-lib BaseIntegrationTest missing spring.liquibase.url (Rule 3 blocking-issue) that silently broke every shared-lib IT
 
 ### Pending Todos
 
@@ -515,8 +518,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-19T13:54:43.726Z
-Stopped at: Completed 08.1-03-PLAN.md
+Last session: 2026-07-19T17:07:56.364Z
+Stopped at: Completed 08.1-06-PLAN.md
 Resume file: 
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
