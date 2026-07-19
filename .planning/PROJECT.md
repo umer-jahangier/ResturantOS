@@ -14,7 +14,7 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 
 <!-- Shipped and confirmed valuable. -->
 
-(None yet — ship to validate)
+- [x] Inventory: stock, recipes/BOM, MAC (moving-average cost), `ORDER_CLOSED` depletion (FEFO, idempotent), receipts, inter-branch transfers, counts, low-stock/expiry alerts — *Validated in Phase 8 (2026-07-18): 9 plans, 5/5 success criteria, OPA 100%, INV-01..07*
 
 ### Active
 
@@ -28,7 +28,6 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 - [ ] User/Branch management + internal endpoints
 - [ ] POS: orders, tables, split-tender payments, till sessions, offline sync
 - [ ] Kitchen Display System (station routing)
-- [ ] Inventory: stock, recipes/BOM, MAC, depletion, transfers, counts
 - [ ] Purchasing / Vendor & Supply Chain: vendors, POs, GRN, vendor-invoice 3-way match, performance scorecard, spend analytics
 - [ ] Finance: GL, immutable balanced journal entries, AP/AR, period close, auto-posting recipes
 - [ ] HR: employees, payroll (Pakistan tax slabs via config), shift scheduling, time & attendance (incl. biometric devices — LAN ADMS push + USB bridge agent, edge matching, no central raw biometrics), leave management, labour-cost % vs revenue
@@ -78,4 +77,4 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 | Phase 1 scope = infra + shared-lib + Auth + Gateway + Platform Admin + User/Authz(OPA) + Next.js shell + CI/CD | Matches readiness report's Sprint-1 GO set | — Pending |
 
 ---
-*Last updated: 2026-06-25 — all six business modules made core/mandatory; added SuperAdmin tier-independent per-tenant module enable/disable; HR/Vendor/CRM operational sub-features added*
+*Last updated: 2026-07-18 — Phase 8 (Inventory & Recipe Management) complete: inventory-service shipped (versioned recipes, MAC valuation, ORDER_CLOSED depletion, receipts/transfers/counts, alerts); Inventory moved Active → Validated*
