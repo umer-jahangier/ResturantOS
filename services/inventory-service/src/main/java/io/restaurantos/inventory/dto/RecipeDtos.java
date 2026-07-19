@@ -50,4 +50,15 @@ public final class RecipeDtos {
             BigDecimal qty,
             String uomCode,
             BigDecimal yieldPct) {}
+
+    /** INV-11: a single active catalog menu item with no effective recipe as of the report time. */
+    public record MissingMenuItemDto(UUID menuItemId, String name) {}
+
+    /**
+     * INV-11 recipe-coverage report: {@code totalActiveMenuItems} is the size of the tenant's
+     * active {@code menu_item_catalog} universe; {@code covered} is how many currently resolve an
+     * effective recipe via {@link io.restaurantos.inventory.service.RecipeService#resolveEffectiveRecipe};
+     * {@code missing} lists the rest.
+     */
+    public record CoverageResponse(int totalActiveMenuItems, int covered, List<MissingMenuItemDto> missing) {}
 }

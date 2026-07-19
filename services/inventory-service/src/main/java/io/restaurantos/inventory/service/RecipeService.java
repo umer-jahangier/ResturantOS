@@ -1,8 +1,11 @@
 package io.restaurantos.inventory.service;
 
+import io.restaurantos.inventory.domain.model.MenuItemCatalog;
 import io.restaurantos.inventory.domain.model.Recipe;
 import io.restaurantos.inventory.domain.model.RecipeLine;
+import io.restaurantos.inventory.dto.RecipeDtos.CoverageResponse;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
+import io.restaurantos.inventory.dto.RecipeDtos.MissingMenuItemDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeLineDto;
 import io.restaurantos.inventory.exception.MenuItemNotFoundException;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,6 +69,26 @@ public class RecipeService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Effective recipe for menu item " + menuItemId + " at " + atInstant));
         return toDto(recipe);
+    }
+
+    /**
+     * INV-11: left-join the tenant's active {@code menu_item_catalog} universe against the
+     * existing {@link #resolveEffectiveRecipe(UUID, Instant)} seam (as of "now") — no new
+     * resolution logic, just visibility into the gap 08-05 left silent.
+     */
+    public CoverageResponse getCoverage() {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<MenuItemCatalog> activeItems = menuItemCatalogRepository.findByTenantIdAndActiveTrueOrderByNameAsc(tenantId);
+
+        List<MissingMenuItemDto> missing = new ArrayList<>();
+        Instant now = Instant.now();
+        for (MenuItemCatalog item : activeItems) {
+            if (resolveEffectiveRecipe(item.getMenuItemId(), now).isEmpty()) {
+                missing.add(new MissingMenuItemDto(item.getMenuItemId(), item.getName()));
+            }
+        }
+
+        return new CoverageResponse(activeItems.size(), activeItems.size() - missing.size(), missing);
     }
 
     @Transactional

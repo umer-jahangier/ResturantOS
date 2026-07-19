@@ -1,6 +1,7 @@
 package io.restaurantos.inventory.web;
 
 import io.restaurantos.inventory.authz.InventoryAuthorizationService;
+import io.restaurantos.inventory.dto.RecipeDtos.CoverageResponse;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeDto;
 import io.restaurantos.inventory.service.RecipeService;
@@ -61,5 +62,12 @@ public class RecipeController {
             @AuthenticationPrincipal JwtClaims claims) {
         authz.authorizeView(claims.tenantId(), claims.branchId());
         return ResponseEntity.ok(ApiResponse.ok(recipeService.getEffectiveRecipe(menuItemId, at)));
+    }
+
+    /** INV-11: recipe-coverage report — which active catalog menu items currently lack an effective recipe. */
+    @GetMapping("/coverage")
+    public ResponseEntity<ApiResponse<CoverageResponse>> coverage(@AuthenticationPrincipal JwtClaims claims) {
+        authz.authorizeView(claims.tenantId(), claims.branchId());
+        return ResponseEntity.ok(ApiResponse.ok(recipeService.getCoverage()));
     }
 }
