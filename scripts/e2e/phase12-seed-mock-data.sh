@@ -169,8 +169,9 @@ for d in range(days):
 def block(table, cols, rows):
     if not rows:
         return ""
-    return (f"INSERT INTO clickhouse_analytics.{table} ({cols}) VALUES\n"
-            + ",\n".join(rows) + ";\n")
+    # ONE physical line per statement (no internal newlines) so the bash loop can split on
+    # newlines with a plain `read` — portable across GNU and BSD/macOS tools. print() adds the \n.
+    return f"INSERT INTO clickhouse_analytics.{table} ({cols}) VALUES " + ",".join(rows) + ";"
 
 print(block("sales_order_facts",
       "tenant_id,branch_id,business_date,order_id,order_no,order_type,customer_id,"
@@ -191,11 +192,12 @@ PY
 
 # --- apply the ClickHouse inserts (one statement per line block) ---------------------------
 echo "-- inserting ClickHouse facts..."
-# Split on the trailing ';' of each INSERT and send individually so a bad block is isolated.
+# Each INSERT is generated as ONE physical line (see block() above), so a plain line-based read
+# sends one complete statement per iteration — portable, no NUL/awk-RS dependency.
 while IFS= read -r stmt; do
   [[ -z "${stmt// }" ]] && continue
   ch_query "$stmt" >/dev/null
-done < <(printf '%s\n' "$INSERT_SQL" | awk 'BEGIN{RS=";\n"} NF{print $0 ";"}')
+done <<< "$INSERT_SQL"
 
 # ReplacingMergeTree: force a merge so duplicate re-runs collapse immediately (not just on schedule).
 for t in sales_order_facts sales_item_facts purchase_tax_facts till_session_facts; do
@@ -223,12 +225,15 @@ UPDATE branches SET ntn = '$NTN_VALUE', fbr_strn = '$STRN_VALUE', updated_at = N
 WHERE id = '$BRANCH_ID' AND tenant_id = '$TENANT_ID';"
 
 run_pg() {
-  if command -v psql >/dev/null 2>&1 && [[ -n "${PGHOST:-}${DATABASE_URL:-}" ]]; then
-    psql "${DATABASE_URL:-}" -v ON_ERROR_STOP=1 -d "$USER_DB" -c "$PG_SQL"
-  elif command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${PG_CONTAINER}$"; then
+  # Prefer the known Docker container — a host psql often points at an unrelated local server
+  # (e.g. ServBay's socket) via an inherited PGHOST. Only fall back to host psql if explicitly
+  # told where to connect via DATABASE_URL.
+  if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${PG_CONTAINER}$"; then
     docker exec -i "$PG_CONTAINER" psql -U postgres -v ON_ERROR_STOP=1 -d "$USER_DB" -c "$PG_SQL"
+  elif command -v psql >/dev/null 2>&1 && [[ -n "${DATABASE_URL:-}" ]]; then
+    psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -d "$USER_DB" -c "$PG_SQL"
   else
-    echo "WARN: no psql/docker route to Postgres — skipping NTN/STRN update." >&2
+    echo "WARN: no docker/DATABASE_URL route to Postgres — skipping NTN/STRN update." >&2
     echo "      Run this manually against $USER_DB when the DB is reachable:" >&2
     echo "$PG_SQL" >&2
     return 1
