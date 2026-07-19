@@ -6,14 +6,14 @@ current_phase: 08.1
 current_phase_name: pos-inventory-depletion-activation
 status: executing
 stopped_at: Completed 08.1-03-PLAN.md
-last_updated: "2026-07-19T12:48:56.374Z"
+last_updated: "2026-07-19T13:55:37.233Z"
 last_activity: 2026-07-19
-last_activity_desc: Completed 08.1-03 (recipe coverage + DEPLETION_INCOMPLETE, INV-11)
+last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 16
   completed_phases: 9
   total_plans: 100
-  completed_plans: 86
+  completed_plans: 87
   percent: 56
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.1 (pos-inventory-depletion-activation) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -235,6 +235,7 @@ _Updated after each plan completion_
 | Phase 08 P08 | 24min | 2 tasks | 13 files |
 | Phase 08.1 P01 | 25min | 3 tasks | 8 files |
 | Phase 08.1 P02 | 15min | 3 tasks | 19 files |
+| Phase 08.1 P04 | 35min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -470,6 +471,8 @@ Recent decisions affecting current work:
 - [Phase 08.1-02]: menu_item_catalog follows V1's FORCE-RLS convention (not V3's RLS-EXEMPT registry pattern) since it is read under tenant context on the API path and written under tenant context resolved from the envelope on the consumer path
 - [Phase 08.1-02]: inventory.menu-item.queue is a deliberate one-queue/two-event-types exception (D-08) to this service's one-queue-per-event-type convention, dispatched by parsing eventType before choosing the payload class
 - [Phase 08.1-02]: MenuItemNotFoundException gets its own 404 via a new local InventoryExceptionHandler advice bean rather than editing shared-lib's GlobalExceptionHandler, which always maps RestaurantOsException to 400
+- [Phase ?]: Registered inventoryHandlers in mocks/server.ts (not handlers.ts) — matches the codebase's actual current MSW registration pattern
+- [Phase ?]: e2e spec uses manager@demo.local (MANAGER role) — holds both inventory.item.view/manage with no TOTP
 
 ### Pending Todos
 
@@ -512,7 +515,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-19T12:48:56.358Z
+Last session: 2026-07-19T13:54:43.726Z
 Stopped at: Completed 08.1-03-PLAN.md
 Resume file: 
 None
