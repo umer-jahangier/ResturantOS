@@ -1,7 +1,9 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.inventory.domain.model.MenuItemCatalog;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeLineRequest;
+import io.restaurantos.inventory.repository.MenuItemCatalogRepository;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.security.JwtClaims;
@@ -45,6 +47,7 @@ class RecipeAccessControlIT extends InventoryTestBase {
     @Autowired WebApplicationContext webApplicationContext;
     @Autowired TenantContext tenantContext;
     @Autowired ObjectMapper objectMapper;
+    @Autowired MenuItemCatalogRepository menuItemCatalogRepository;
 
     @MockitoBean FeatureFlagService featureFlagService;
 
@@ -103,6 +106,18 @@ class RecipeAccessControlIT extends InventoryTestBase {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
 
         CreateRecipeVersionRequest request = newRecipeRequest();
+
+        // Seed a catalog row for this request's menuItemId — RecipeService.createVersion now
+        // validates menuItemId against the tenant's synced menu_item_catalog (08.1-02, INV-09)
+        // and would otherwise 404 MENU_ITEM_NOT_FOUND before this test's OPA-authorization
+        // assertion is ever reached.
+        MenuItemCatalog catalogRow = new MenuItemCatalog();
+        catalogRow.setTenantId(tenantId);
+        catalogRow.setMenuItemId(request.menuItemId());
+        catalogRow.setName("House Burger");
+        catalogRow.setActive(true);
+        menuItemCatalogRepository.save(catalogRow);
+
         mockMvc.perform(post("/api/v1/inventory/recipes")
                         .with(asInventoryManager())
                         .contentType(MediaType.APPLICATION_JSON)

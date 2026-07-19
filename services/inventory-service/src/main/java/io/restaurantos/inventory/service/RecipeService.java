@@ -5,6 +5,8 @@ import io.restaurantos.inventory.domain.model.RecipeLine;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeLineDto;
+import io.restaurantos.inventory.exception.MenuItemNotFoundException;
+import io.restaurantos.inventory.repository.MenuItemCatalogRepository;
 import io.restaurantos.inventory.repository.RecipeLineRepository;
 import io.restaurantos.inventory.repository.RecipeRepository;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
@@ -28,13 +30,16 @@ public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final RecipeLineRepository recipeLineRepository;
+    private final MenuItemCatalogRepository menuItemCatalogRepository;
     private final TenantContext tenantContext;
 
     public RecipeService(RecipeRepository recipeRepository,
                           RecipeLineRepository recipeLineRepository,
+                          MenuItemCatalogRepository menuItemCatalogRepository,
                           TenantContext tenantContext) {
         this.recipeRepository = recipeRepository;
         this.recipeLineRepository = recipeLineRepository;
+        this.menuItemCatalogRepository = menuItemCatalogRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -65,6 +70,11 @@ public class RecipeService {
     @Transactional
     public RecipeDto createVersion(CreateRecipeVersionRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
+
+        if (!menuItemCatalogRepository.existsByTenantIdAndMenuItemIdAndActiveTrue(tenantId, request.menuItemId())) {
+            throw new MenuItemNotFoundException(request.menuItemId());
+        }
+
         List<Recipe> priorVersions = recipeRepository.findByMenuItemIdOrderByVersionDesc(request.menuItemId());
 
         int nextVersion = priorVersions.stream().findFirst().map(r -> r.getVersion() + 1).orElse(1);

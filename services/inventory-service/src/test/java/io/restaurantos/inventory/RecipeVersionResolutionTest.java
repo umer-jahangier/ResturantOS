@@ -1,6 +1,7 @@
 package io.restaurantos.inventory;
 
 import io.restaurantos.inventory.domain.model.Recipe;
+import io.restaurantos.inventory.repository.MenuItemCatalogRepository;
 import io.restaurantos.inventory.repository.RecipeLineRepository;
 import io.restaurantos.inventory.repository.RecipeRepository;
 import io.restaurantos.inventory.service.RecipeService;
@@ -44,9 +45,10 @@ class RecipeVersionResolutionTest {
     void setUp() {
         RecipeRepository recipeRepository = mock(RecipeRepository.class);
         RecipeLineRepository recipeLineRepository = mock(RecipeLineRepository.class);
+        MenuItemCatalogRepository menuItemCatalogRepository = mock(MenuItemCatalogRepository.class);
         TenantContext tenantContext = mock(TenantContext.class);
         when(tenantContext.requireTenantId()).thenReturn(tenantId);
-        recipeService = new RecipeService(recipeRepository, recipeLineRepository, tenantContext);
+        recipeService = new RecipeService(recipeRepository, recipeLineRepository, menuItemCatalogRepository, tenantContext);
 
         // v1 is stale (isCurrent=false) but still effective for its window; v2 is flagged current
         // but must NOT be preferred outside its own window — that is the entire point of D-01.
