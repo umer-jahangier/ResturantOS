@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
-- [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers)
+- [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
 - [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
 
@@ -479,7 +479,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
 | 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 10/10 | Complete    | 2026-07-11 |
-| 8. Inventory & Recipe Management | 9/9 | Complete   | 2026-07-18 |
+| 8. Inventory & Recipe Management | 9/9 | Complete    | 2026-07-18 |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |

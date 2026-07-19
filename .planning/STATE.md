@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08
-current_phase_name: inventory-recipe-management
+current_phase: 10
+current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: "D6 gap-closure fix landed on gsd/phase-08-inventory-recipe-management (expiry-sweep cross-tenant discovery)"
-last_updated: "2026-07-19T03:40:00.000Z"
+stopped_at: Completed 08-08-PLAN.md
+last_updated: "2026-07-19T10:08:58.424Z"
 last_activity: 2026-07-19
-last_activity_desc: "D6 gap-closure fix (08-VERIFICATION.md): inventory_tenant_registry (V3, RLS-exempt) + TenantRegistryService closes ExpirySweepService's real-cron-path tenant-discovery gap without BYPASSRLS/FORCE-RLS relaxation; new ExpirySweepCronPathIT + full module regression 18 IT + 5 unit classes green"
+last_activity_desc: Phase 08 complete, transitioned to Phase 10
 progress:
   total_phases: 15
   completed_phases: 9
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 08 (inventory-recipe-management) — COMPLETE (9/9 plans)
-Plan: 9 of 9 complete — 08-01 (Wave 1 foundation) through 08-08 all done; INV-01..INV-07 all
+Phase: 10 — Purchasing & Accounts Payable
+Plan: Not started
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -73,7 +73,7 @@ registry asserted populated before sweep runs) — full module regression: 18 IT
 classes, all green. Tenant isolation on every domain table is completely unchanged. See
 08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-07-19 — D6 gap-closure fix (inventory_tenant_registry + TenantRegistryService) closing the expiry-sweep cross-tenant discovery gap
+Last activity: 2026-07-19 — Phase 08 complete, transitioned to Phase 10
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>

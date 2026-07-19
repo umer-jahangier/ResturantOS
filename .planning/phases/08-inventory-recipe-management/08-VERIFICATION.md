@@ -1,146 +1,130 @@
 ---
 phase: 08-inventory-recipe-management
-verified: 2026-07-19T03:15:00Z
-status: gaps_found
-score: 4.5/5 success criteria verified (7/7 requirements code-backed; 1 requirement partially/functionally incomplete)
+verified: 2026-07-19T10:05:00Z
+status: passed
+score: 5/5 success criteria verified (7/7 requirements code-backed)
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "Expiry alerts fire (ROADMAP Success Criterion 5, INV-06)"
-    status: partial
-    reason: >
-      ExpirySweepService's per-tenant alert-generation logic (expiry-window + qty>0 filtering,
-      EXPIRY_ALERT publish) is correctly implemented and proven by ExpirySweepIT — but only when
-      an ambient TenantContext is pre-activated before sweep() runs (exactly what the IT does).
-      In the REAL @Scheduled cron trigger path (nightlySweep() -> sweep()), there is no ambient
-      tenant context on the background scheduler thread. sweep()'s first statement is
-      StockLotRepository.findDistinctTenantIdsWithExpiringLots(cutoff), a query against
-      stock_lots which carries FORCE ROW LEVEL SECURITY; inventory-service's DB role is
-      NOSUPERUSER NOBYPASSRLS. With no tenant GUC set, this discovery query is bound by the same
-      RLS policy as every other query on the table and returns zero tenant IDs — so in production,
-      across a cold multi-tenant fleet, the nightly sweep silently does nothing for any tenant,
-      every night, forever (not a rare edge case — this is the sweep's ONLY real invocation path).
-      Source-verified directly (services/inventory-service/.../ExpirySweepService.java lines 92-99):
-      no tenant/GUC activation precedes the discovery query. The gap is self-documented by the 08-08
-      executor as coverage item D6 (human_judgment: true) and again as a "Known Limitation" section
-      in 08-08-SUMMARY.md, requesting a future architectural decision (BYPASSRLS service account or
-      a cross-tenant registry) that is out of this plan's scope. No later ROADMAP phase addresses
-      this gap (checked Phase 9/10 and beyond — no cross-tenant scheduled-job or BYPASSRLS-role item
-      exists), so it is not a deferred/scheduled item, it is an open gap.
-    artifacts:
-      - path: "services/inventory-service/src/main/java/io/restaurantos/inventory/service/ExpirySweepService.java"
-        issue: "sweep()'s tenant-discovery query runs before any TenantContext/RLS-GUC activation, so it is blind to every tenant on the real (ambient-context-free) @Scheduled cron path; per-tenant logic is only proven under an artificially pre-seeded test context."
-    missing:
-      - "A tenant-discovery mechanism for the nightly sweep that does not depend on FORCE RLS visibility (e.g., a narrowly-scoped BYPASSRLS service role for this one query, or a cross-tenant registry table queried via a system-level connection) — OR an explicit product decision to trigger the sweep per-tenant from an external multi-tenant scheduler/orchestrator instead of Spring's in-process @Scheduled."
-human_verification:
-  - test: "Confirm whether the expiry-alert production gap (D6) is acceptable as documented deferred scope, or must be closed before Phase 8 ships"
-    expected: "A human/product decision: either (a) accept via an override entry in this file with a tracked follow-up ticket, since low-stock alerts (the other half of SC5) and all count-variance posting work correctly and are proven, or (b) require a follow-up plan/phase to add a BYPASSRLS service role or cross-tenant registry so the nightly sweep can discover tenants in the real cron path."
-    why_human: "This is an architecture-level trade-off (a new DB role or registry, touching deploy/init role provisioning shared by every service) explicitly flagged by the executor as outside Phase 8's scope — not something a verifier can resolve unilaterally."
+re_verification:
+  previous_status: gaps_found
+  previous_score: "4.5/5 success criteria verified"
+  gaps_closed:
+    - "Expiry alerts fire (ROADMAP Success Criterion 5, INV-06) — D6: ExpirySweepService's nightly @Scheduled cron trigger now discovers tenants via the RLS-exempt inventory_tenant_registry (V3 migration, commit 44a6530) instead of a FORCE-RLS-bound stock_lots query, so it is no longer blind on the real ambient-context-free cron path. Proven live by ExpirySweepCronPathIT in this session."
+  gaps_remaining: []
+  regressions: []
 ---
 
-> **D6 gap-closure update (2026-07-19):** The gap below (expiry-sweep cross-tenant discovery) has
-> been **RESOLVED** by a targeted fix on `gsd/phase-08-inventory-recipe-management` — see
-> `08-08-SUMMARY.md`'s "D6 Gap-Closure (2026-07-19)" section for the full approach (RLS-exempt
-> `inventory_tenant_registry` registry, no BYPASSRLS, no domain-table FORCE-RLS relaxation) and
-> test proof (`ExpirySweepCronPathIT`, full module regression 18 IT + 5 unit classes green). This
-> report's original findings below are left unmodified as the historical audit record.
-
-# Phase 8: Inventory & Recipe Management Verification Report
+# Phase 8: Inventory & Recipe Management Verification Report — RE-VERIFICATION (D6 gap-closure scope)
 
 **Phase Goal:** Inventory tracks stock and valuation accurately and reacts to sales — versioned recipes drive `ORDER_CLOSED` depletion with moving-average cost, and receipts/transfers/counts keep MAC and quantities correct.
-**Verified:** 2026-07-19T03:15:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-07-19T10:05:00Z
+**Status:** passed
+**Re-verification:** Yes — scoped re-verification of the single D6 gap from the 2026-07-19T03:15:00Z initial verification. Success Criteria 1-4 and 6/7 requirements were already independently VERIFIED there and are NOT re-litigated in this pass; their rows below are carried forward unchanged.
 
-**Branch confirmed:** `gsd/phase-08-inventory-recipe-management` (matches expected). Working tree confirmed clean except the two pre-existing unrelated dirty files (`.dev-pids.json` deleted, `bugs.md` modified) — ignored per instructions.
+**Branch confirmed:** `gsd/phase-08-inventory-recipe-management` (`git rev-parse --abbrev-ref HEAD`). Working tree confirmed clean except the two pre-existing, phase-unrelated dirty files (`.dev-pids.json` deleted, `bugs.md` modified) — left untouched per instructions.
 
-## Goal Achievement
+## D6 Gap-Closure Verification
+
+The prior verification's sole gap: `ExpirySweepService`'s nightly `@Scheduled` sweep discovered tenants via a query on `stock_lots` (FORCE ROW LEVEL SECURITY) with no ambient tenant context, so under the production `NOSUPERUSER NOBYPASSRLS` role it found zero tenants and expiry alerts never fired on the real cron path. Fixed by commit `44a6530` (+ docs commit `80f26a3`). Independently re-verified in this session — not trusted from SUMMARY.md claims:
+
+### 1. RLS-exempt tenant registry, isolation untouched
+
+**File:** `services/inventory-service/src/main/resources/db/migration/V3__tenant_registry.sql`
+
+- Adds `inventory_tenant_registry (tenant_id UUID PRIMARY KEY, first_seen TIMESTAMPTZ)` — **no `ENABLE`/`FORCE ROW LEVEL SECURITY` statement present** (read the migration in full; it mirrors V2's non-RLS shared-infra convention exactly).
+- `GRANT SELECT, INSERT ON inventory_tenant_registry TO inventory_user;` — no `BYPASSRLS` grant anywhere in this migration.
+- Confirmed **no `BYPASSRLS` grant exists anywhere in the repo** for `inventory_user`: `grep -rn BYPASSRLS deploy/init/` shows `inventory_user` still created `NOSUPERUSER NOBYPASSRLS` in `deploy/init/02-create-roles.sql` line 18, unchanged.
+- Confirmed **domain-table RLS is completely untouched**: `git diff 41efd24 44a6530 -- .../V1__inventory_schema.sql .../V2__shared_infra_tables.sql` is **empty** (zero changes to either file) and `V1__inventory_schema.sql` still has `FORCE ROW LEVEL SECURITY` on all 11 domain tables (`grep -c` = 11, same as initial verification). No `NO FORCE`/`DISABLE ROW LEVEL SECURITY` statement exists anywhere in the migration directory.
+- **Verdict: VERIFIED.** Isolation model for every domain table is unchanged; the registry is a narrow, non-sensitive existence-only side table.
+
+### 2. Sweep discovers tenants from the registry, per-tenant RLS loop unchanged
+
+**File:** `services/inventory-service/src/main/java/io/restaurantos/inventory/service/ExpirySweepService.java`
+
+- `sweep(today, leadDays)` now calls `tenantRegistryRepository.findAllTenantIds()` (source-read, line 103) — a plain JPQL `SELECT r.tenantId FROM InventoryTenantRegistryEntity r` against the RLS-exempt registry, needing no ambient `TenantContext`.
+- The old `StockLotRepository.findDistinctTenantIdsWithExpiringLots` (the broken FORCE-RLS-bound discovery query) was **removed entirely** — confirmed via `git diff` on `StockLotRepository.java`: the `@Query` method and its javadoc explaining the RLS constraint are deleted; only the legitimate per-tenant lot query (`findByTenantIdAndExpiryDateLessThanEqualAndQtyGreaterThan`) remains, now re-documented as scoped to "an already-active TenantContext/RLS GUC."
+- The per-tenant loop (`sweepTenant`) is unchanged in shape: `tenantContext.set(...)` -> `TenantGucHelper.apply(entityManager, tenantContext)` -> `session.enableFilter("tenantFilter")` -> per-tenant lot query -> `EXPIRY_ALERT` publish -> context restore/clear in a `finally` block (with an explicit `clear()` branch to avoid leaking a tenant context onto the pooled scheduler thread when there was no ambient context to restore — a correct and non-obvious detail, source-read in full).
+- **Verdict: VERIFIED.** Discovery no longer depends on RLS visibility; per-tenant enforcement is unchanged.
+
+### 3. Tenant registration hooked into every stock-creation write path
+
+**Files:** `OpeningBalanceService.java`, `ReceiptService.java`, `TransferService.java` (`receive`), `StockCountService.java`
+
+- All four call `tenantRegistryService.registerTenant(tenantId)` as the first statement inside their `@Transactional` method, immediately after resolving `tenantId` from `TenantContext`, before any stock read/write — confirmed by direct source read of all four call sites (`OpeningBalanceService` lines 46-52, `ReceiptService` lines 56-62, `StockCountService` lines 77-83, `TransferService.receive` lines 158-164).
+- `TenantRegistryService.registerTenant` deliberately carries **no `@Transactional` of its own** (source-read, javadoc explicit about this) — it joins the caller's already-open transaction via Spring's default `REQUIRED` propagation, so registration and the stock write commit or roll back atomically. `InventoryTenantRegistryRepository.upsertTenant` uses a native `INSERT ... ON CONFLICT (tenant_id) DO NOTHING`, confirmed idempotent.
+- **Verdict: VERIFIED.** All four write paths that first create tenant-scoped stock register the tenant in the same transaction, atomically and idempotently.
+
+### 4. Behavioral proof — cron-path IT run live (not code-inspected only)
+
+Docker/Testcontainers was unavailable at the start of this session (`docker info` failed — Docker Desktop was not running); it was started and became ready before the run, so this was **executed live, not code-inspected as a fallback**.
+
+```
+mvn -pl services/inventory-service verify -Dit.test=ExpirySweepCronPathIT,ExpirySweepIT -DfailIfNoTests=false
+```
+
+**Result — both green, confirmed via `target/failsafe-reports/` (report timestamps checked against the run's wall-clock time to confirm freshness — reports written 15:02, run completed 15:03 local):**
+
+| Test class | Tests run | Failures | Errors | Result |
+|---|---|---|---|---|
+| `ExpirySweepCronPathIT` | 1 | 0 | 0 | **PASS** |
+| `ExpirySweepIT` | 2 | 0 | 0 | **PASS** |
+
+`ExpirySweepCronPathIT.nightlySweep_withNoAmbientTenantContext_discoversAllTenantsViaRegistry_andAlertsEachOne` (source read in full) is designed specifically to avoid the false-positive risk of Testcontainers' superuser Postgres connection masking the production RLS-role bug: it seeds two tenants through the **real application write path** (`ReceiptService.receive`, not a direct-repository fixture), asserts `inventory_tenant_registry` contains both tenants **before** calling `sweep()`, then calls `sweep(today, leadDays)` with `tenantContext.getTenantId()` asserted empty (no ambient context) — i.e. the exact real cron shape. It asserts tenant A (lot inside the expiry window) gets exactly 1 `EXPIRY_ALERT` in the outbox and tenant B (lot outside the window) gets zero, and that the tenant context is empty again afterward (no thread-local leak onto the scheduler's pooled thread). This test passing is direct proof that `EXPIRY_ALERT` fires across multiple tenants with zero ambient tenant context — the exact production failure mode the original gap described.
+
+`ExpirySweepIT` (updated in the same commit to register its fixture-seeded tenant explicitly, since it bypasses the app services) also passes, confirming the pre-existing per-tenant alert-window/qty-filter logic still works under registry-driven discovery.
+
+- **Verdict: VERIFIED (behaviorally proven, not just presence-checked).**
+
+### Residual limitation (assessed, non-blocking)
+
+`inventory_tenant_registry` is populated only by the four write paths above — a tenant whose stock rows were created **before** this fix landed (e.g. via direct DB seed/migration outside the app, or in a deployment window prior to `44a6530`) would not appear in the registry until its next opening-balance/receipt/transfer-receive/count write touches that write path again. This is a real edge case in general, but assessed as **non-blocking for this phase**: Phase 8 is a newly-shipped module with a fresh schema — there is no pre-existing production inventory data predating this fix to backfill — and the same four write paths are the only way any tenant acquires stock in the first place, so every tenant that will ever have inventory data necessarily passes through one of them. No backfill migration is required for this phase's goal to be met.
+
+## Goal Achievement (carried forward from initial verification — unchanged, not re-litigated this pass)
 
 ### Observable Truths (ROADMAP Success Criteria)
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Managers manage ingredients, UOM, and reorder points; opening stock recorded via `OPENING_BALANCE` movement | ✓ VERIFIED | `IngredientController`/`UnitOfMeasureController`/`OpeningBalanceController` exist, call `InventoryAuthorizationService`; `OpeningBalanceService` writes stock+MAC+lot+movement. Code read directly; `mvn -pl services/inventory-service -am test-compile -q` succeeded. |
-| 2 | Recipes/BOM versioned; depletion uses the recipe version effective at order time | ✓ VERIFIED | `RecipeRepository.findEffectiveVersionsDesc` — grep-confirmed zero `is_current`/`isCurrent` references; `DepletionService.deplete` calls `recipeService.resolveEffectiveRecipe(item.menuItemId(), payload.closedAt())` (source-read, line ~97-99). `RecipeVersionResolutionTest` re-run independently: PASS. |
-| 3 | On `ORDER_CLOSED`, consumer depletes stock with `SELECT FOR UPDATE`, maintains MAC, idempotent on duplicate delivery | ✓ VERIFIED | `IngredientBranchStockRepository.findForUpdate` is `@Lock(PESSIMISTIC_WRITE)` (source-read); `MacCalculator.recomputeAvgCostPaisa` uses `HALF_UP`, zero `FLOOR` occurrences (source-read + independently re-run `MacCalculatorTest`: PASS); `OrderClosedConsumer` wraps `depletionService.deplete` in `processedEventService.tryProcess(CONSUMER_NAME="inventory.depletion", envelope.eventId(), ...)` (source-read). **`DepletionConsumerIT` independently re-run against a live Testcontainers Postgres in this session: BUILD SUCCESS** (proves duplicate-delivery idempotency end-to-end, not just claimed). |
-| 4 | Stock receipts update MAC and publish `STOCK_RECEIVED`; transfers ship/receive with in-transit accounting and variance handling | ✓ VERIFIED | `ReceiptService.receive` (source-read) recomputes MAC via `MacCalculator`, creates a `StockLot`, writes `RECEIPT` movement, publishes `STOCK_RECEIVED`. `TransferService.ship/receive` (source-read) locks source/destination stock, recomputes destination MAC, detects variance, publishes `TRANSFER_SHIPPED/RECEIVED/VARIANCE`. Both artifacts exist, compile, and follow the identical transactional-outbox shape already proven live for depletion. SUMMARY-recorded IT results (`MacRecomputeIT`, `ReceiptServiceIT`, `TransferLifecycleIT`, access-control ITs) not independently re-run in this session (time-boxed to depletion + schema as the highest-risk paths) but code inspection shows no deviation from the proven pattern. |
-| 5 | Stock counts post variances; low-stock and expiry alerts fire | ⚠️ PARTIAL — see Gap below | Count-variance posting: ✓ VERIFIED (`StockCountService.postCount`, source-read, mirrors proven depletion/receipt shape). Low-stock alerts: ✓ VERIFIED — wired into `DepletionService` and `StockCountService` (both source-read; fire on real, request/consumer-scoped transactions that already carry an ambient tenant context, so no RLS-discovery problem applies to them). Expiry alerts: ✗ **the real nightly `@Scheduled` cron trigger is a self-documented no-op across a multi-tenant fleet** — see Gaps section. |
+| 1 | Managers manage ingredients, UOM, and reorder points; opening stock recorded via `OPENING_BALANCE` movement | ✓ VERIFIED | Unchanged from initial verification (2026-07-19T03:15:00Z) — not re-checked this pass. |
+| 2 | Recipes/BOM versioned; depletion uses the recipe version effective at order time | ✓ VERIFIED | Unchanged from initial verification — not re-checked this pass. |
+| 3 | On `ORDER_CLOSED`, consumer depletes stock with `SELECT FOR UPDATE`, maintains MAC, idempotent on duplicate delivery | ✓ VERIFIED | Unchanged from initial verification — not re-checked this pass. |
+| 4 | Stock receipts update MAC and publish `STOCK_RECEIVED`; transfers ship/receive with in-transit accounting and variance handling | ✓ VERIFIED | Unchanged from initial verification — not re-checked this pass. `ReceiptService`/`TransferService` were additionally re-read in this pass (for the D6 tenant-registration hook) with no regression observed. |
+| 5 | Stock counts post variances; low-stock and expiry alerts fire | ✓ **VERIFIED (upgraded from ⚠️ PARTIAL)** | Count-variance posting and low-stock alerts: previously VERIFIED, unchanged. Expiry alerts: **the D6 gap is closed** — see "D6 Gap-Closure Verification" above. `ExpirySweepCronPathIT` proves `EXPIRY_ALERT` fires across multiple tenants via the real `sweep()` entry point with zero ambient tenant context, run live in this session. |
 
-**Score:** 4.5/5 success criteria fully verified (SC5 is half-verified: count-variance + low-stock genuinely work; expiry-alert production dispatch does not).
+**Score:** 5/5 success criteria fully verified.
 
-### Required Artifacts
-
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `services/inventory-service/src/main/resources/db/migration/V1__inventory_schema.sql` | 11 domain tables, FORCE RLS + NULLIF-guarded policy | ✓ VERIFIED | `grep -c "FORCE ROW LEVEL SECURITY"` = 11 (independently re-run, matches acceptance criteria exactly). |
-| `services/inventory-service/.../V2__shared_infra_tables.sql` | RLS-exempt infra tables, granted to `inventory_user` | ✓ VERIFIED | `grep -c "ENABLE ROW LEVEL SECURITY"` = 0; `grep -c "inventory_user"` = 3 (independently re-run). |
-| `MacCalculator.java` | HALF_UP weighted-average MAC, no FLOOR | ✓ VERIFIED | Source read in full — HALF_UP present, no FLOOR/taxPerLine reference; oversell-reset (oldQty<=0) policy present exactly as documented. |
-| `IngredientBranchStockRepository.java` | `findForUpdate` PESSIMISTIC_WRITE | ✓ VERIFIED | Source read — `@Lock(LockModeType.PESSIMISTIC_WRITE)` on the exact JPQL query described. |
-| `StockLotRepository.java` | FEFO ordering | ✓ VERIFIED | `findByStockIdOrderByExpiryDateAsc` present; NULLS LAST relies on Postgres default (documented, correct). |
-| `DepletionService.java` | Sorted-lock, FEFO floor-at-zero, MAC-only COGS, transactional outbox | ✓ VERIFIED | Full source read — `TreeSet` sort before locking; `walkFefoAndFloor` floors each lot but decrements aggregate by full demand (D-02); `computeCogsPaisa` takes only `avgCostPaisa`, never a lot's cost; `STOCK_DEPLETED` publish is the last statement. |
-| `OrderClosedConsumer.java` | Idempotent, tenant-aware, `inventory.depletion` | ✓ VERIFIED | Source read — `CONSUMER_NAME = "inventory.depletion"`; `tryProcess` wraps `tenantAwareMessageProcessor.process`. |
-| `RecipeRepository.java` | `findEffectiveVersionsDesc`, no `is_current` filter | ✓ VERIFIED | Source read — JPQL matches D-01 exactly, zero `is_current` reference. |
-| `ReceiptService.java`, `TransferService.java`, `StockCountService.java`, `ExpirySweepService.java` | Present, compile, follow the transactional-outbox pattern | ✓ VERIFIED (existence/pattern) / ⚠️ (ExpirySweepService — see gap) | All exist, all compile as part of the whole-module `test-compile` run. `ExpirySweepService`'s per-tenant logic is correct; its cross-tenant discovery is not. |
-| `policies/restaurantos/inventory.rego` + `inventory_test.rego` | Default-deny, view/manage on seeded codes, 100% coverage | ✓ VERIFIED | **Independently re-run in this session**: `docker run openpolicyagent/opa:1.17.1 test /policies/ -v` → `PASS: 104/104`; `--coverage --format json` → inventory.rego coverage 100, 0 not-covered lines. |
-| `InventoryAuthorizationService.java` | `authorizeView`/`authorizeManage` seam, fail-closed | ✓ VERIFIED | Source read + independently re-run `InventoryAuthorizationServiceTest`: PASS. |
-| Gateway route + `RouteFeatureMap` | `/api/v1/inventory/**` active, mapped to `FEATURE_INVENTORY` | ✓ VERIFIED | `gateway/src/main/resources/application.yml` has an active `inventory-route` (`Path=/api/v1/inventory/**` → `lb://inventory-service`); `RouteFeatureMap.java` line 46 maps `/api/v1/inventory/` → `FEATURE_INVENTORY`. |
-
-### Key Link Verification
-
-| From | To | Via | Status | Details |
-|------|-----|-----|--------|---------|
-| `OrderClosedConsumer` | `DepletionService.deplete` | `tryProcess` + `tenantAwareMessageProcessor.process` | ✓ WIRED | Source-confirmed; DepletionConsumerIT re-run proves it end-to-end (duplicate delivery → single depletion). |
-| `DepletionService` | `RecipeService.resolveEffectiveRecipe(menuItemId, closedAt)` | direct call | ✓ WIRED | Source-confirmed — passes `payload.closedAt()`, never `Instant.now()`. |
-| Every inventory controller | `InventoryAuthorizationService.authorizeView`/`authorizeManage` | direct call at top of endpoint | ✓ WIRED | `grep` across all 8 controller files shows every read endpoint calls `authorizeView` and every write endpoint calls `authorizeManage` — no controller skips the seam. |
-| `IngredientBranchStock`/`StockLot`/`InventoryMovement` mutations | `EventPublisher.publish(...)` (transactional outbox) | last statement of each `@Transactional` method | ✓ WIRED | Confirmed in `DepletionService` (source read in full) and consistent pattern in `ReceiptService`/`TransferService`/`StockCountService` (source read). |
-| `ExpirySweepService.sweep` | `StockLotRepository.findDistinctTenantIdsWithExpiringLots` | direct call, no prior tenant-context activation | ⚠️ PARTIAL | WIRED at the code level, but the call is made before any RLS/tenant-context activation — functionally blind on the real cron path (see gap). |
-| gateway `inventory-route` | `RouteFeatureMap` | `/api/v1/inventory/` prefix | ✓ WIRED | Confirmed in both files. |
-
-### Requirements Coverage
+### Requirements Coverage (INV-06 updated, all others carried forward)
 
 | Requirement | Source Plan(s) | Description | Status | Evidence |
 |-------------|----------------|--------------|--------|----------|
-| INV-01 | 08-01 (claimed), 08-03 (implements), 08-09 (OPA) | Manager can manage ingredients, UOM, reorder points | ✓ SATISFIED | Genuinely code-backed: `IngredientController`/`UnitOfMeasureController`/`IngredientService` exist and compile; OPA seam wired. The concern that INV-01 was marked complete by 08-02 before 08-03 landed is resolved — 08-03 landed later in the same execution run and the code now exists and compiles. |
-| INV-02 | 08-04 | Versioned recipes/BOM; depletion uses effective version at order time | ✓ SATISFIED | `Recipe`/`RecipeLine`/`RecipeRepository`/`RecipeService` exist; D-01 query verified by source read + independently re-run unit test. |
-| INV-03 | 08-01 (claimed), 08-05 (implements) | `ORDER_CLOSED` consumer depletes with `SELECT FOR UPDATE`, MAC maintained | ✓ SATISFIED | Same early-marking concern as INV-01, now resolved: `DepletionService`/`OrderClosedConsumer` exist, and **`DepletionConsumerIT` was independently re-run in this session against a live Postgres and passed**, proving the idempotent depletion algorithm for real, not just per the SUMMARY's claim. |
-| INV-04 | 08-06 | Stock receipts update MAC; `STOCK_RECEIVED` published | ✓ SATISFIED | `ReceiptService`/`ReceiptController`/`InternalGrnController` exist, compile, follow the proven transactional pattern. |
-| INV-05 | 08-07 | Transfers ship/receive with in-transit accounting + variance | ✓ SATISFIED | `TransferService`/`TransferController` exist, compile, reuse `DepletionService.walkFefoAndFloor` and `MacCalculator` directly (source-confirmed). |
-| INV-06 | 08-08 | Stock counts with variance posting; low-stock and expiry alerts | ⚠️ PARTIALLY SATISFIED | Count-variance posting and low-stock alerts are genuinely implemented and wired. **Expiry alerts are not functionally live in production** — see Gaps. The artifact (`ExpirySweepService`) exists and its algorithm is correct in isolation, but the real invocation path (nightly cron, no ambient tenant context) cannot discover any tenant under this codebase's FORCE-RLS + NOSUPERUSER-NOBYPASSRLS design, so it fires zero alerts, always, for every tenant, in the deployed system. |
-| INV-07 | 08-01 (claimed), 08-03 (implements) | Opening stock recorded via `OPENING_BALANCE` movement | ✓ SATISFIED | `OpeningBalanceService`/`OpeningBalanceController` exist, compile, follow the transactional-outbox-free (by design — internal movement only) pattern documented in the plan. |
+| INV-01 through INV-05, INV-07 | (see initial verification) | (unchanged) | ✓ SATISFIED | Unchanged from initial verification — not re-checked this pass. |
+| INV-06 | 08-08 (+ D6 gap-closure fix, `44a6530`/`80f26a3`) | Stock counts with variance posting; low-stock and expiry alerts | ✓ **SATISFIED (upgraded from ⚠️ PARTIALLY SATISFIED)** | Count-variance posting and low-stock alerts: previously satisfied, unchanged. Expiry alerts: the production no-op gap is closed — tenant discovery now sources from `inventory_tenant_registry` (RLS-exempt, V3), registered idempotently in-transaction by every stock-creation write path, and `ExpirySweepCronPathIT` proves `EXPIRY_ALERT` fires for the correct tenant/lot with zero ambient context, live-run in this session. |
 
-No orphaned requirements — all seven IDs (INV-01..INV-07) declared across the nine plans' frontmatter match REQUIREMENTS.md exactly.
+No orphaned requirements (unchanged from initial verification — all seven IDs INV-01..INV-07 match REQUIREMENTS.md).
 
-### Anti-Patterns Found
+### Anti-Patterns Found (D6 fix files, this pass)
 
-No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` markers found in any inventory-service main source file during source reads of the correctness-critical classes (`MacCalculator`, `DepletionService`, `OrderClosedConsumer`, `RecipeRepository`, `ExpirySweepService`, `IngredientBranchStockRepository`, `StockLotRepository`). The one self-documented "Known Limitation" in `ExpirySweepService`'s javadoc and 08-08-SUMMARY.md is treated as the gap above, not a hidden stub — it was proactively and honestly disclosed by the executor, which is exactly the behavior the process wants, but the underlying functional gap still needs a human decision per the escalation-gate pattern.
+No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` markers found in any of the fix's files (`V3__tenant_registry.sql`, `InventoryTenantRegistryEntity.java`, `InventoryTenantRegistryRepository.java`, `TenantRegistryService.java`, `ExpirySweepService.java`, `ExpirySweepCronPathIT.java`, and the four service call sites) — all read in full during this pass.
 
-### Independent Re-Verification Performed This Session
+### Independent Re-Verification Performed This Session (D6 scope)
 
-- `mvn -pl services/inventory-service -am test-compile -q` — **PASS** (whole module + test sources compile cleanly).
-- `mvn -pl services/inventory-service test -Dtest=MacCalculatorTest,FefoLotWalkTest,DepletionCogsTest,RecipeVersionResolutionTest,InventoryAuthorizationServiceTest` — **PASS** (all 5 pure-unit-test classes, no Docker required).
-- `mvn -pl services/inventory-service verify -Dit.test=SchemaMigrationIT,DepletionConsumerIT -DfailIfNoTests=false` — **BUILD SUCCESS** against a live Testcontainers Postgres (Docker was reachable this session) — independently proves FORCE RLS + tenant_isolation policy assertions (SchemaMigrationIT) and duplicate-ORDER_CLOSED idempotency + FEFO + MAC-COGS + outbox (DepletionConsumerIT), not merely SUMMARY-claimed.
-- `docker run openpolicyagent/opa:1.17.1 test /policies/ -v` — **PASS: 104/104**; `--coverage` — **100%, 0 not-covered lines** for `inventory.rego` and the whole `policies/` tree.
-- Full-module IT suites for 08-03/06/07/08 (`IngredientAdminIT`, `MacRecomputeIT`, `TransferLifecycleIT`, `StockCountIT`, `ExpirySweepIT`, etc.) were **not** independently re-run in this session (time-boxed to the highest-risk depletion/schema/OPA paths per the task's own suggestion that Testcontainers might not bootstrap — it did bootstrap, but re-running all ~52+ IT classes was judged unnecessary given consistent code-level correctness across every service in the same proven pattern). Relying on source inspection + the SUMMARY-recorded results for those, as explicitly permitted by the task brief.
+- Read `V3__tenant_registry.sql`, `ExpirySweepService.java`, `TenantRegistryService.java`, `InventoryTenantRegistryEntity.java`, `InventoryTenantRegistryRepository.java`, `ExpirySweepCronPathIT.java` in full.
+- `git diff 41efd24 44a6530` on `V1__inventory_schema.sql`/`V2__shared_infra_tables.sql` -> empty (domain-table RLS untouched); on `StockLotRepository.java` -> confirmed the broken discovery query was removed cleanly, the legitimate per-tenant query kept.
+- `grep -rn BYPASSRLS deploy/init/` -> `inventory_user` still `NOSUPERUSER NOBYPASSRLS`, unchanged.
+- Read the tenant-registration call sites in `OpeningBalanceService`, `ReceiptService`, `TransferService.receive`, `StockCountService` — all four correctly placed inside the transactional method, before the stock write, using the resolved `tenantId`.
+- Started Docker Desktop (was not running at session start), waited for the daemon to become ready, then ran:
+  `mvn -pl services/inventory-service verify -Dit.test=ExpirySweepCronPathIT,ExpirySweepIT -DfailIfNoTests=false` — **exit code 0**; `target/failsafe-reports/` confirms `ExpirySweepCronPathIT` 1/1 pass, `ExpirySweepIT` 2/2 pass, both with fresh timestamps matching this session's run (not stale reports from a prior run).
+- Confirmed clean working tree apart from the two pre-existing, phase-unrelated dirty files (`.dev-pids.json`, `bugs.md`), left untouched.
 
 ## Gaps Summary
 
-Nine of Phase 8's ten claimed capabilities (all correctness-critical claims specifically called out for scrutiny — pessimistic locking, MAC, idempotency, FEFO, transactional outbox, versioned-recipe resolution) are genuinely implemented, wired, and — for the highest-risk depletion/idempotency/RLS path — independently proven to work against a live database and a live OPA evaluation in this verification session, not merely asserted by the executors' SUMMARYs.
+**None remaining.** The single gap from the initial verification (D6 — expiry-sweep cross-tenant discovery blind on the real `@Scheduled` cron path under `FORCE RLS` + `NOSUPERUSER NOBYPASSRLS`) is closed by commit `44a6530`, independently confirmed in this session via source inspection (not SUMMARY.md claims) and a live Testcontainers run of `ExpirySweepCronPathIT` (which specifically proves the real cron shape — no ambient tenant context — discovers and alerts across multiple tenants) and `ExpirySweepIT` (regression-proven under registry-driven discovery). Tenant isolation is unchanged: no `BYPASSRLS` grant was added anywhere, and no domain table's `FORCE ROW LEVEL SECURITY` was relaxed — the fix only replaces the discovery mechanism with a narrow, non-sensitive, RLS-exempt existence registry, exactly as the fix's own documentation claims and as independently verified here.
 
-The one real gap: **`ExpirySweepService`'s nightly `@Scheduled` cross-tenant discovery is architecturally broken for its actual production trigger path.** The per-tenant alert logic is correct and IT-proven, but only because the IT pre-activates a tenant context that the real cron trigger never has. In production, on a cold multi-tenant fleet, the nightly sweep will discover zero tenants, every night, and never publish a single `EXPIRY_ALERT` — directly contradicting ROADMAP Success Criterion 5 ("...expiry alerts fire") and part of INV-06. This was self-disclosed by the 08-08 executor as `human_judgment: true` and flagged as needing an architectural decision (a BYPASSRLS service role or a cross-tenant registry) outside this plan's scope. No later phase in ROADMAP.md addresses this gap, so it cannot be treated as deferred scope without an explicit human decision.
+One residual limitation was assessed and judged non-blocking: tenants are registered only via the four stock-creation write paths, so any tenant with stock predating this fix (outside the scope of this newly-shipped phase) would need one further write-path touch to appear in the registry. This does not block Phase 8's goal since the phase ships with a fresh schema and no pre-existing data.
 
-**This looks like a legitimate scope trade-off, not a hidden defect** — the executor was honest about it, and low-stock alerts (the other alerting half of SC5) work correctly since they run inside already-tenant-scoped request/consumer transactions. If the team judges the expiry-sweep gap acceptable pending a fast-follow architectural fix, add an override:
-
-```yaml
-overrides:
-  - must_have: "Expiry alerts fire (ROADMAP Success Criterion 5 / INV-06)"
-    reason: "ExpirySweepService's per-tenant alert logic is correct and proven; the cross-tenant discovery gap under FORCE RLS is a known architectural constraint requiring a BYPASSRLS role or tenant registry, tracked as a follow-up outside Phase 8's original scope."
-    accepted_by: "<name>"
-    accepted_at: "<ISO timestamp>"
-```
-
-Absent that override, this phase should not be considered fully shipped until either (a) the override above is recorded, or (b) a follow-up plan closes the tenant-discovery gap (e.g., a scoped BYPASSRLS service account for this one query, or an external per-tenant scheduler trigger via a new `/internal/inventory/expiry-sweep?tenantId=...` endpoint mirroring the existing internal-service pattern).
+**Phase 8 is now fully verified: 5/5 success criteria, 7/7 requirements satisfied.**
 
 ---
 
-*Verified: 2026-07-19T03:15:00Z*
+*Verified: 2026-07-19T10:05:00Z*
 *Verifier: Claude (gsd-verifier)*
