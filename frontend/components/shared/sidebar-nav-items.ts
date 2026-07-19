@@ -152,7 +152,6 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         permission: "inventory.item.view",
         feature: "FEATURE_INVENTORY",
-        comingSoon: true, // /app/inventory page not built yet (Phase 8)
       },
     ],
   },
