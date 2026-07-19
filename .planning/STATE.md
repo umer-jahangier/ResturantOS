@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.1
 current_phase_name: pos-inventory-depletion-activation
 status: executing
-stopped_at: Completed 08.1-02-PLAN.md
-last_updated: "2026-07-19T12:32:24.781Z"
+stopped_at: Completed 08.1-03-PLAN.md
+last_updated: "2026-07-19T12:48:56.374Z"
 last_activity: 2026-07-19
-last_activity_desc: Phase 08.1 execution started
+last_activity_desc: Completed 08.1-03 (recipe coverage + DEPLETION_INCOMPLETE, INV-11)
 progress:
   total_phases: 16
   completed_phases: 9
   total_plans: 100
-  completed_plans: 85
+  completed_plans: 86
   percent: 56
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.1 (pos-inventory-depletion-activation) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -512,8 +512,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-19T12:32:24.765Z
-Stopped at: Completed 08.1-02-PLAN.md
+Last session: 2026-07-19T12:48:56.358Z
+Stopped at: Completed 08.1-03-PLAN.md
 Resume file: 
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
