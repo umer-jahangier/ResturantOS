@@ -24,6 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 07.2: Finance Accounting-Period Provisioning** *(INSERTED, URGENT)* - Guarantee open period at tenant onboarding, self-service open-period endpoint, configurable auto-seed fallback — resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants)
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
+- [ ] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
@@ -338,6 +339,30 @@ Plans:
 - [x] 08-06-PLAN.md — Wave 4: Stock receipts (MAC recompute + `STOCK_RECEIVED`) + `GET /internal/grn/pending-count` finance seam (INV-04)
 - [x] 08-07-PLAN.md — Wave 4: Inter-branch transfers ship/receive with in-transit accounting + variance (INV-05)
 - [x] 08-08-PLAN.md — Wave 4: Stock counts + variance posting, low-stock alerts, nightly `@Scheduled` expiry sweep (INV-06)
+
+### Phase 08.1: POS-Inventory Depletion Activation (INSERTED)
+
+**Goal**: The already-wired `ORDER_CLOSED`→depletion loop (built in Phase 8) becomes functional and trustworthy — POS menu items sync to inventory so recipes attach to real `menu_item_id`s with validation, operators author recipes via a UI, recipe coverage and un-recipe'd sales are surfaced instead of silently skipped, and a live order demonstrably depletes stock with correct COGS.
+**Depends on**: Phase 08
+**Requirements**: INV-09, INV-10, INV-11, INV-12
+**Success Criteria** (what must be TRUE):
+
+  1. POS publishes `MENU_ITEM_UPSERTED`/`MENU_ITEM_DELETED` on menu-item changes (plus a backfill/republish for existing items); inventory maintains a `menu_item_catalog` read-model from those events, and recipe creation rejects a `menu_item_id` not present/active in the catalog.
+  2. An operator can author a versioned recipe (menu item → ingredient lines with quantity + UOM + `effectiveFrom`) through the `/app/inventory` recipe-builder UI, selecting from the real synced menu-item catalog.
+  3. A recipe-coverage report shows which active menu items lack an effective recipe; when a sold line has no effective recipe at `closedAt`, depletion still processes the covered lines and publishes `DEPLETION_INCOMPLETE` (no silent no-op).
+  4. A live POS order (create → add → fire → pay → serve → `ORDER_CLOSED`) depletes stock FEFO, writes a `DEPLETION` movement, and emits `STOCK_DEPLETED` with correct aggregate-MAC `totalCogsPaisa`.
+
+**Scope note**: Finance consuming `STOCK_DEPLETED` to post the COGS journal entry is **out of scope** here — that lands in Phase 9 (Order-to-Ledger Auto-Posting). This phase publishes the event; Phase 9 subscribes. Depletion trigger stays `ORDER_CLOSED` (Paid AND Served); kitchen-service stays out of the inventory loop.
+
+**Plans:** 5 plans
+
+Plans:
+
+- [ ] 08.1-01-PLAN.md (wave 1) — pos-service: menu-item create/update/activate/deactivate/delete + MENU_ITEM_UPSERTED/MENU_ITEM_DELETED publish + republish backfill endpoint (D-02, D-05, INV-09)
+- [ ] 08.1-02-PLAN.md (wave 2) — inventory-service: menu_item_catalog read-model + MenuItemCatalogConsumer (D-07, D-08) + GET /menu-items + RecipeService.createVersion catalog validation (404 MENU_ITEM_NOT_FOUND) (INV-09)
+- [ ] 08.1-03-PLAN.md (wave 3) — inventory-service: GET /recipes/coverage + DepletionService DEPLETION_INCOMPLETE signal (removes the silent all-empty no-op, D-03) (INV-11)
+- [ ] 08.1-04-PLAN.md (wave 4) — frontend: `/app/inventory` recipe-builder UI (menu-item picker, ingredient lines) + coverage dashboard, four-layer pattern (D-04, INV-10)
+- [ ] 08.1-05-PLAN.md (wave 5) — live end-to-end depletion proof: real order lifecycle -> catalog sync -> validated recipe -> real consumer -> FEFO + aggregate-MAC COGS (INV-12)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 
