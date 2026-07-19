@@ -354,7 +354,7 @@ Plans:
 
 **Scope note**: Finance consuming `STOCK_DEPLETED` to post the COGS journal entry is **out of scope** here — that lands in Phase 9 (Order-to-Ledger Auto-Posting). This phase publishes the event; Phase 9 subscribes. Depletion trigger stays `ORDER_CLOSED` (Paid AND Served); kitchen-service stays out of the inventory loop.
 
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans complete
 
 Plans:
 
@@ -364,7 +364,7 @@ Plans:
 - [x] 08.1-04-PLAN.md (wave 4) — frontend: `/app/inventory` recipe-builder UI (menu-item picker, ingredient lines) + coverage dashboard, four-layer pattern (D-04, INV-10)
 - [x] 08.1-05-PLAN.md (wave 5) — live end-to-end depletion proof: real order lifecycle -> catalog sync -> validated recipe -> real consumer -> FEFO + aggregate-MAC COGS (INV-12)
 - [x] 08.1-06-PLAN.md (wave 1, gap-closure) — fix shared-lib TenantAwareMessageProcessor RLS-GUC checkout-ordering bug (consumer inserts to FORCE-RLS tables rejected 42501) + non-superuser regression IT + fleet blast-radius/sibling-loop verification (INV-09, INV-12)
-- [ ] 08.1-07-PLAN.md (wave 2, gap-closure) — live dev-stack re-verification: redeploy fixed inventory-service, re-emit MENU_ITEM_UPSERTED, confirm menu_item_catalog populates (10 items) + recipe-builder UI click-through (INV-09, INV-10)
+- [x] 08.1-07-PLAN.md (wave 2, gap-closure) — live dev-stack re-verification: redeploy fixed inventory-service, re-emit MENU_ITEM_UPSERTED, confirm menu_item_catalog populates (10 items) + recipe-builder UI click-through (INV-09, INV-10)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 
