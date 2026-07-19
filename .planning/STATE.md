@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08.1
-current_phase_name: pos-inventory-depletion-activation
+current_phase: 10
+current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: 08.1-07-PLAN.md Tasks 1-2 complete (live PASS); Task 3 checkpoint:human-verify AWAITING approval
-last_updated: "2026-07-19T17:07:56.380Z"
+stopped_at: "08.1-07-PLAN.md — Tasks 1-2 (live catalog sync + live depletion loop, both FORCE-RLS write paths) PASS with hard evidence (see 08.1-07-SUMMARY.md); Task 3 (checkpoint:human-verify, recipe-builder UI) has Playwright 4/4 PASS evidence gathered but is AWAITING explicit human approval — NOT self-approved. Plan/phase completion tracking intentionally left open pending that approval."
+last_updated: "2026-07-19T18:02:43.324Z"
 last_activity: 2026-07-19
-last_activity_desc: Phase 08.1 execution started
+last_activity_desc: Phase 08.1 complete, transitioned to Phase 10
 progress:
   total_phases: 16
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 102
-  completed_plans: 89
-  percent: 56
+  completed_plans: 90
+  percent: 63
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 08.1 (pos-inventory-depletion-activation) — EXECUTING
-Plan: 2 of 7
+Phase: 10 — Purchasing & Accounts Payable
+Plan: Not started
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -73,7 +73,7 @@ registry asserted populated before sweep runs) — full module regression: 18 IT
 classes, all green. Tenant isolation on every domain table is completely unchanged. See
 08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-07-19 — Phase 08.1 execution started
+Last activity: 2026-07-19 — Phase 08.1 complete, transitioned to Phase 10
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
