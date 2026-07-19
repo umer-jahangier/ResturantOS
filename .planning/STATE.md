@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 10
-current_phase_name: Purchasing & Accounts Payable
+current_phase: 08.1
+current_phase_name: pos-inventory-depletion-activation
 status: executing
 stopped_at: Completed 08-08-PLAN.md
-last_updated: "2026-07-19T11:21:08.165Z"
+last_updated: "2026-07-19T12:15:54.295Z"
 last_activity: 2026-07-19
-last_activity_desc: Phase 08 complete, transitioned to Phase 10
+last_activity_desc: Phase 08.1 execution started
 progress:
-  total_phases: 15
+  total_phases: 16
   completed_phases: 9
-  total_plans: 95
-  completed_plans: 83
-  percent: 60
+  total_plans: 100
+  completed_plans: 84
+  percent: 56
 ---
 
 # Project State
@@ -24,12 +24,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 08 — inventory-recipe-management
+**Current focus:** Phase 08.1 — pos-inventory-depletion-activation
 
 ## Current Position
 
-Phase: 10 — Purchasing & Accounts Payable
-Plan: Not started
+Phase: 08.1 (pos-inventory-depletion-activation) — EXECUTING
+Plan: 2 of 5
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -73,7 +73,7 @@ registry asserted populated before sweep runs) — full module regression: 18 IT
 classes, all green. Tenant isolation on every domain table is completely unchanged. See
 08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-07-19 — Phase 08 complete, transitioned to Phase 10
+Last activity: 2026-07-19 — Phase 08.1 execution started
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
@@ -233,6 +233,7 @@ _Updated after each plan completion_
 | Phase 08-inventory-recipe-management P06 | 18min | 2 tasks | 9 files |
 | Phase 08 P07 | 20min | 1 tasks | 9 files |
 | Phase 08 P08 | 24min | 2 tasks | 13 files |
+| Phase 08.1 P01 | 25min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -462,6 +463,9 @@ Recent decisions affecting current work:
 - [Phase ?]: StockCountLineRepository added (Rule 2) — mirrors StockTransferLineRepository's flat-FK pattern; every line-entity in Phase 8 gets its own repository, never a JPA @OneToMany cascade collection. — 08-08
 - [Phase ?]: ExpirySweepService.sweep() is a single @Transactional boundary (never per-tenant self-invoked @Transactional, which Spring's proxy silently skips); per-tenant RLS GUC switch uses TenantGucHelper.apply on the already-open connection, not tenantContext.set alone. — 08-08
 - [Phase ?]: Documented (not silently worked around): the expiry sweep's cross-tenant discovery query is bound by the same FORCE RLS + NOBYPASSRLS constraint as every other stock_lots query — real cron-path cross-tenant dispatch across a cold fleet is a known gap requiring a future Rule-4 architectural decision. — 08-08
+- [Phase 08.1-01]: MenuItemUpsertedPayload/MenuItemDeletedPayload field name+order locked exactly per D-02 - inventory-service's InventoryEventPayloads (08.1-02) must mirror field-for-field
+- [Phase 08.1-01]: No new OPA/permission code for menu CRUD write endpoints - mirrors assignStation's class-level FEATURE_POS gate only (T-081-01 accepted)
+- [Phase 08.1-01]: deleteItem is soft-delete only (deletedAt+active=false) - never a hard DELETE, so historical orders/recipes stay resolvable
 
 ### Pending Todos
 
@@ -504,7 +508,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-18T21:44:14.635Z
+Last session: 2026-07-19T12:14:27.205Z
 Stopped at: Completed 08-08-PLAN.md
 Resume file: 
 None
