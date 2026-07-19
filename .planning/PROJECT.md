@@ -15,6 +15,7 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 <!-- Shipped and confirmed valuable. -->
 
 - [x] Inventory: stock, recipes/BOM, MAC (moving-average cost), `ORDER_CLOSED` depletion (FEFO, idempotent), receipts, inter-branch transfers, counts, low-stock/expiry alerts — *Validated in Phase 8 (2026-07-18): 9 plans, 5/5 success criteria, OPA 100%, INV-01..07*
+- [x] POS→Inventory depletion loop activated & trustworthy: POS menu-item sync → inventory catalog + recipe `menu_item_id` validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live order→FEFO depletion→COGS proof; underlying shared-lib consumer-path FORCE-RLS GUC-ordering bug fixed so `@RabbitListener` inserts to FORCE-RLS tables persist (no SQLState 42501) — *Validated in Phase 08.1 (2026-07-19): 7 plans, 4/4 success criteria, live-verified, INV-09..12*
 
 ### Active
 
@@ -77,4 +78,5 @@ A restaurant tenant can run real operations end-to-end — take an order at the 
 | Phase 1 scope = infra + shared-lib + Auth + Gateway + Platform Admin + User/Authz(OPA) + Next.js shell + CI/CD | Matches readiness report's Sprint-1 GO set | — Pending |
 
 ---
-*Last updated: 2026-07-18 — Phase 8 (Inventory & Recipe Management) complete: inventory-service shipped (versioned recipes, MAC valuation, ORDER_CLOSED depletion, receipts/transfers/counts, alerts); Inventory moved Active → Validated*
+*Last updated: 2026-07-19 — Phase 08.1 (POS-Inventory Depletion Activation) complete: the ORDER_CLOSED→depletion loop is now functional and trustworthy end-to-end (POS menu-item sync, catalog-validated recipes, recipe-builder UI, coverage/DEPLETION_INCOMPLETE observability, live depletion proof); fixed the shared-lib consumer-path FORCE-RLS GUC-ordering bug (42501) blocking all @RabbitListener writes to FORCE-RLS tables.*
+*Prior: 2026-07-18 — Phase 8 (Inventory & Recipe Management) complete: inventory-service shipped (versioned recipes, MAC valuation, ORDER_CLOSED depletion, receipts/transfers/counts, alerts); Inventory moved Active → Validated*
