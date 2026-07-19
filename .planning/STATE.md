@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.1
 current_phase_name: pos-inventory-depletion-activation
 status: executing
-stopped_at: Completed 08.1-03-PLAN.md
+stopped_at: Completed 08.1-05-PLAN.md
 last_updated: "2026-07-19T13:55:37.233Z"
 last_activity: 2026-07-19
-last_activity_desc: Phase 08.1 execution started
+last_activity_desc: Completed 08.1-05 (INV-12 live E2E depletion proof) — all 5 waves executed, phase execution complete
 progress:
   total_phases: 16
   completed_phases: 9
   total_plans: 100
-  completed_plans: 87
+  completed_plans: 88
   percent: 56
 ---
 

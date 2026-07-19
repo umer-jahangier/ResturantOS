@@ -152,8 +152,8 @@
 - [x] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
 - [x] **INV-09**: POS menu items sync to inventory via `MENU_ITEM_UPSERTED`/`MENU_ITEM_DELETED` events into a `menu_item_catalog` read-model (with backfill); recipe authoring validates `menu_item_id` against the catalog
 - [x] **INV-10**: Operators author versioned recipes (menu item → ingredient lines with quantity + UOM + `effectiveFrom`) via the `/app/inventory` recipe-builder UI, selecting from the synced menu-item catalog
-- [ ] **INV-11**: Recipe coverage is reportable (active menu items with/without an effective recipe); un-recipe'd sold lines still deplete covered lines and emit `DEPLETION_INCOMPLETE` (no silent no-op)
-- [ ] **INV-12**: `ORDER_CLOSED` depletion is proven end-to-end against a live order — FEFO depletion + aggregate-MAC COGS + `STOCK_DEPLETED`
+- [x] **INV-11**: Recipe coverage is reportable (active menu items with/without an effective recipe); un-recipe'd sold lines still deplete covered lines and emit `DEPLETION_INCOMPLETE` (no silent no-op)
+- [x] **INV-12**: `ORDER_CLOSED` depletion is proven end-to-end against a live order — FEFO depletion + aggregate-MAC COGS + `STOCK_DEPLETED`
 
 ### Purchasing (PUR)
 
@@ -356,8 +356,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-07 | Phase 8 | Complete |
 | INV-09 | Phase 08.1 | Complete |
 | INV-10 | Phase 08.1 | Complete |
-| INV-11 | Phase 08.1 | Pending |
-| INV-12 | Phase 08.1 | Pending |
+| INV-11 | Phase 08.1 | Complete |
+| INV-12 | Phase 08.1 | Complete |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |

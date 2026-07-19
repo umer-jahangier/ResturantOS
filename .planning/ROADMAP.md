@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 07.2: Finance Accounting-Period Provisioning** *(INSERTED, URGENT)* - Guarantee open period at tenant onboarding, self-service open-period endpoint, configurable auto-seed fallback — resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants)
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
-- [ ] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof
+- [x] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof (completed 2026-07-19)
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
@@ -354,7 +354,7 @@ Plans:
 
 **Scope note**: Finance consuming `STOCK_DEPLETED` to post the COGS journal entry is **out of scope** here — that lands in Phase 9 (Order-to-Ledger Auto-Posting). This phase publishes the event; Phase 9 subscribes. Depletion trigger stays `ORDER_CLOSED` (Paid AND Served); kitchen-service stays out of the inventory loop.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 
@@ -362,7 +362,7 @@ Plans:
 - [x] 08.1-02-PLAN.md (wave 2) — inventory-service: menu_item_catalog read-model + MenuItemCatalogConsumer (D-07, D-08) + GET /menu-items + RecipeService.createVersion catalog validation (404 MENU_ITEM_NOT_FOUND) (INV-09)
 - [x] 08.1-03-PLAN.md (wave 3) — inventory-service: GET /recipes/coverage + DepletionService DEPLETION_INCOMPLETE signal (removes the silent all-empty no-op, D-03) (INV-11)
 - [x] 08.1-04-PLAN.md (wave 4) — frontend: `/app/inventory` recipe-builder UI (menu-item picker, ingredient lines) + coverage dashboard, four-layer pattern (D-04, INV-10)
-- [ ] 08.1-05-PLAN.md (wave 5) — live end-to-end depletion proof: real order lifecycle -> catalog sync -> validated recipe -> real consumer -> FEFO + aggregate-MAC COGS (INV-12)
+- [x] 08.1-05-PLAN.md (wave 5) — live end-to-end depletion proof: real order lifecycle -> catalog sync -> validated recipe -> real consumer -> FEFO + aggregate-MAC COGS (INV-12)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 
