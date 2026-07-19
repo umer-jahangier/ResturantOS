@@ -10,6 +10,7 @@ import io.restaurantos.inventory.domain.model.StockLot;
 import io.restaurantos.inventory.domain.model.UnitOfMeasure;
 import io.restaurantos.inventory.event.InventoryEventPayloads;
 import io.restaurantos.inventory.event.InventoryEventPayloads.DepletedLine;
+import io.restaurantos.inventory.event.InventoryEventPayloads.DepletionIncompletePayload;
 import io.restaurantos.inventory.event.InventoryEventPayloads.ItemEntry;
 import io.restaurantos.inventory.event.InventoryEventPayloads.LowStockAlertPayload;
 import io.restaurantos.inventory.event.InventoryEventPayloads.OrderClosedPayload;
@@ -93,12 +94,15 @@ public class DepletionService {
         // to base qty (M2.4), and accumulate the required qty per ingredientId across every
         // resolved line (summing when several menu items/lines share an ingredient).
         Map<UUID, BigDecimal> requiredByIngredient = new HashMap<>();
+        List<UUID> missingMenuItemIds = new ArrayList<>();
         for (ItemEntry item : payload.items()) {
             Optional<Recipe> recipeOpt = recipeService.resolveEffectiveRecipe(item.menuItemId(), payload.closedAt());
             if (recipeOpt.isEmpty()) {
-                // Claude's-Discretion (08-CONTEXT.md): missing recipe -> skip the line, no error.
+                // D-03: missing recipe -> skip the line (never throw/DLQ), but ALWAYS surface it via
+                // DEPLETION_INCOMPLETE below instead of a silent no-op.
                 log.info("DepletionService: no effective recipe for menuItemId={} at closedAt={} — skipping line",
                         item.menuItemId(), payload.closedAt());
+                missingMenuItemIds.add(item.menuItemId());
                 continue;
             }
             Recipe recipe = recipeOpt.get();
@@ -113,79 +117,89 @@ public class DepletionService {
             }
         }
 
-        if (requiredByIngredient.isEmpty()) {
-            log.info("DepletionService: orderId={} — no ingredients to deplete (no resolvable recipes)",
-                    payload.orderId());
-            return;
-        }
+        // D-03: no early return here — even when EVERY line is uncovered, fall through so
+        // DEPLETION_INCOMPLETE still publishes below. STOCK_DEPLETED only fires when at least one
+        // ingredient actually resolved (never with zero depletedLines just to signal something ran).
+        if (!requiredByIngredient.isEmpty()) {
+            // Step 3: pre-sort the DISTINCT ingredientId set (natural UUID order) before locking —
+            // never lock lazily in per-recipe-line encounter order (Pitfall 6 deadlock avoidance).
+            List<UUID> sortedIngredientIds = new ArrayList<>(new TreeSet<>(requiredByIngredient.keySet()));
 
-        // Step 3: pre-sort the DISTINCT ingredientId set (natural UUID order) before locking —
-        // never lock lazily in per-recipe-line encounter order (Pitfall 6 deadlock avoidance).
-        List<UUID> sortedIngredientIds = new ArrayList<>(new TreeSet<>(requiredByIngredient.keySet()));
+            List<DepletedLine> depletedLines = new ArrayList<>();
+            long totalCogsPaisa = 0L;
 
-        List<DepletedLine> depletedLines = new ArrayList<>();
-        long totalCogsPaisa = 0L;
+            for (UUID ingredientId : sortedIngredientIds) {
+                BigDecimal required = requiredByIngredient.get(ingredientId);
 
-        for (UUID ingredientId : sortedIngredientIds) {
-            BigDecimal required = requiredByIngredient.get(ingredientId);
+                // orElseGet SAVES immediately (not just constructs) so stock.getId() is populated before
+                // the FEFO lot lookup below — an ingredient that was never opening-balanced/received yet
+                // still depletes (and correctly goes negative, D-02) instead of throwing.
+                IngredientBranchStock stock = stockRepository.findForUpdate(tenantId, branchId, ingredientId)
+                        .orElseGet(() -> stockRepository.save(newStockRow(tenantId, branchId, ingredientId)));
 
-            // orElseGet SAVES immediately (not just constructs) so stock.getId() is populated before
-            // the FEFO lot lookup below — an ingredient that was never opening-balanced/received yet
-            // still depletes (and correctly goes negative, D-02) instead of throwing.
-            IngredientBranchStock stock = stockRepository.findForUpdate(tenantId, branchId, ingredientId)
-                    .orElseGet(() -> stockRepository.save(newStockRow(tenantId, branchId, ingredientId)));
+                // Step 4: FEFO lot walk, flooring each lot at zero (D-02 + D-04 composed).
+                walkFefoAndFloor(lotRepository.findByStockIdOrderByExpiryDateAsc(stock.getId()), required);
 
-            // Step 4: FEFO lot walk, flooring each lot at zero (D-02 + D-04 composed).
-            walkFefoAndFloor(lotRepository.findByStockIdOrderByExpiryDateAsc(stock.getId()), required);
+                // The AGGREGATE on-hand drops by the FULL required qty regardless of lot sufficiency —
+                // oversell is allowed to drive qty_on_hand negative (D-02), even though no lot row ever
+                // goes below zero individually.
+                stock.setQtyOnHand(stock.getQtyOnHand().subtract(required));
+                IngredientBranchStock savedStock = stockRepository.save(stock);
 
-            // The AGGREGATE on-hand drops by the FULL required qty regardless of lot sufficiency —
-            // oversell is allowed to drive qty_on_hand negative (D-02), even though no lot row ever
-            // goes below zero individually.
-            stock.setQtyOnHand(stock.getQtyOnHand().subtract(required));
-            IngredientBranchStock savedStock = stockRepository.save(stock);
+                // Step 5: COGS at the aggregate MAC — NEVER a lot's own receipt cost (D-04 / Pitfall 9).
+                long cogsPaisa = computeCogsPaisa(required, savedStock.getAvgCostPaisa());
 
-            // Step 5: COGS at the aggregate MAC — NEVER a lot's own receipt cost (D-04 / Pitfall 9).
-            long cogsPaisa = computeCogsPaisa(required, savedStock.getAvgCostPaisa());
+                // Step 6: DEPLETION movement (signed-negative qty).
+                InventoryMovement movement = new InventoryMovement();
+                movement.setTenantId(tenantId);
+                movement.setBranchId(branchId);
+                movement.setIngredientId(ingredientId);
+                movement.setMovementType("DEPLETION");
+                movement.setQty(required.negate());
+                movement.setUnitCostPaisa(savedStock.getAvgCostPaisa());
+                movement.setTotalCostPaisa(cogsPaisa);
+                movement.setReferenceType("ORDER_CLOSED");
+                movement.setReferenceId(payload.orderId());
+                movementRepository.save(movement);
 
-            // Step 6: DEPLETION movement (signed-negative qty).
-            InventoryMovement movement = new InventoryMovement();
-            movement.setTenantId(tenantId);
-            movement.setBranchId(branchId);
-            movement.setIngredientId(ingredientId);
-            movement.setMovementType("DEPLETION");
-            movement.setQty(required.negate());
-            movement.setUnitCostPaisa(savedStock.getAvgCostPaisa());
-            movement.setTotalCostPaisa(cogsPaisa);
-            movement.setReferenceType("ORDER_CLOSED");
-            movement.setReferenceId(payload.orderId());
-            movementRepository.save(movement);
+                // Step 7: reorder-point breach -> LOW_STOCK_ALERT.
+                Optional<Ingredient> ingredient = ingredientRepository.findById(ingredientId);
+                if (ingredient.isPresent()
+                        && savedStock.getQtyOnHand().compareTo(ingredient.get().getReorderPoint()) <= 0) {
+                    eventPublisher.publish(
+                            InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
+                            InventoryEventPayloads.LOW_STOCK_ALERT_ROUTING_KEY,
+                            InventoryEventPayloads.LOW_STOCK_ALERT,
+                            branchId,
+                            new LowStockAlertPayload(ingredientId, branchId, savedStock.getQtyOnHand(),
+                                    ingredient.get().getReorderPoint()));
+                }
 
-            // Step 7: reorder-point breach -> LOW_STOCK_ALERT.
-            Optional<Ingredient> ingredient = ingredientRepository.findById(ingredientId);
-            if (ingredient.isPresent()
-                    && savedStock.getQtyOnHand().compareTo(ingredient.get().getReorderPoint()) <= 0) {
-                eventPublisher.publish(
-                        InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                        InventoryEventPayloads.LOW_STOCK_ALERT_ROUTING_KEY,
-                        InventoryEventPayloads.LOW_STOCK_ALERT,
-                        branchId,
-                        new LowStockAlertPayload(ingredientId, branchId, savedStock.getQtyOnHand(),
-                                ingredient.get().getReorderPoint()));
+                depletedLines.add(new DepletedLine(ingredientId, required, cogsPaisa));
+                totalCogsPaisa += cogsPaisa;
             }
 
-            depletedLines.add(new DepletedLine(ingredientId, required, cogsPaisa));
-            totalCogsPaisa += cogsPaisa;
+            // Step 8: publish STOCK_DEPLETED through the transactional outbox. eventId is generated
+            // fresh inside DomainEventPublisher.publish; never copied from the inbound envelope.
+            eventPublisher.publish(
+                    InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
+                    InventoryEventPayloads.STOCK_DEPLETED_ROUTING_KEY,
+                    InventoryEventPayloads.STOCK_DEPLETED,
+                    branchId,
+                    new StockDepletedPayload(payload.orderId(), depletedLines, totalCogsPaisa));
         }
 
-        // Step 8: publish STOCK_DEPLETED through the transactional outbox — the LAST statement in
-        // this transaction (never before/outside the depletion mutation). eventId is generated
-        // fresh inside DomainEventPublisher.publish; never copied from the inbound envelope.
-        eventPublisher.publish(
-                InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                InventoryEventPayloads.STOCK_DEPLETED_ROUTING_KEY,
-                InventoryEventPayloads.STOCK_DEPLETED,
-                branchId,
-                new StockDepletedPayload(payload.orderId(), depletedLines, totalCogsPaisa));
+        // D-03: publish DEPLETION_INCOMPLETE whenever any line was skipped — independent of the
+        // STOCK_DEPLETED publish above (both may fire for a partially-covered order; only this one
+        // fires for a fully-uncovered order; never blocks/DLQs the message).
+        if (!missingMenuItemIds.isEmpty()) {
+            eventPublisher.publish(
+                    InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
+                    InventoryEventPayloads.DEPLETION_INCOMPLETE_ROUTING_KEY,
+                    InventoryEventPayloads.DEPLETION_INCOMPLETE,
+                    branchId,
+                    new DepletionIncompletePayload(payload.orderId(), payload.closedAt(), missingMenuItemIds));
+        }
     }
 
     /**

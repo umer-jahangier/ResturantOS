@@ -106,6 +106,17 @@ public final class InventoryEventPayloads {
 
     public record DepletedLine(UUID ingredientId, BigDecimal qtyBaseDepleted, long cogsPaisa) {}
 
+    public static final String DEPLETION_INCOMPLETE = "DEPLETION_INCOMPLETE";
+    public static final String DEPLETION_INCOMPLETE_ROUTING_KEY = "inventory.depletion.incomplete";
+
+    /**
+     * D-03: published whenever at least one ORDER_CLOSED line had no effective recipe at
+     * {@code closedAt} — independent of {@link StockDepletedPayload}, never a substitute for it.
+     * Both may publish for the same order (partial coverage); this alone publishes when EVERY
+     * line was uncovered (no STOCK_DEPLETED in that case).
+     */
+    public record DepletionIncompletePayload(UUID orderId, Instant closedAt, List<UUID> missingMenuItemIds) {}
+
     public record StockReceivedPayload(
             UUID ingredientId,
             UUID branchId,
