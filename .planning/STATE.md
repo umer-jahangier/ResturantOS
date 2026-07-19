@@ -5,7 +5,7 @@ milestone_name: milestone
 current_phase: 08.1
 current_phase_name: pos-inventory-depletion-activation
 status: executing
-stopped_at: Completed 08.1-06-PLAN.md
+stopped_at: 08.1-07-PLAN.md Tasks 1-2 complete (live PASS); Task 3 checkpoint:human-verify AWAITING approval
 last_updated: "2026-07-19T17:07:56.380Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 08.1 execution started
@@ -519,8 +519,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-07-19T17:07:56.364Z
-Stopped at: Completed 08.1-06-PLAN.md
-Resume file: 
+Stopped at: 08.1-07-PLAN.md — Tasks 1-2 (live catalog sync + live depletion loop, both FORCE-RLS write paths) PASS with hard evidence (see 08.1-07-SUMMARY.md); Task 3 (checkpoint:human-verify, recipe-builder UI) has Playwright 4/4 PASS evidence gathered but is AWAITING explicit human approval — NOT self-approved. Plan/phase completion tracking intentionally left open pending that approval.
+Resume file: .planning/phases/08.1-pos-inventory-depletion-activation/08.1-07-SUMMARY.md
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
 Also stopped at (parallel plan): Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
