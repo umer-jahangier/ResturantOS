@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.1
 current_phase_name: pos-inventory-depletion-activation
 status: executing
-stopped_at: Completed 08-08-PLAN.md
-last_updated: "2026-07-19T12:15:54.295Z"
+stopped_at: Completed 08.1-02-PLAN.md
+last_updated: "2026-07-19T12:32:24.781Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 08.1 execution started
 progress:
   total_phases: 16
   completed_phases: 9
   total_plans: 100
-  completed_plans: 84
+  completed_plans: 85
   percent: 56
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.1 (pos-inventory-depletion-activation) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -234,6 +234,7 @@ _Updated after each plan completion_
 | Phase 08 P07 | 20min | 1 tasks | 9 files |
 | Phase 08 P08 | 24min | 2 tasks | 13 files |
 | Phase 08.1 P01 | 25min | 3 tasks | 8 files |
+| Phase 08.1 P02 | 15min | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -466,6 +467,9 @@ Recent decisions affecting current work:
 - [Phase 08.1-01]: MenuItemUpsertedPayload/MenuItemDeletedPayload field name+order locked exactly per D-02 - inventory-service's InventoryEventPayloads (08.1-02) must mirror field-for-field
 - [Phase 08.1-01]: No new OPA/permission code for menu CRUD write endpoints - mirrors assignStation's class-level FEATURE_POS gate only (T-081-01 accepted)
 - [Phase 08.1-01]: deleteItem is soft-delete only (deletedAt+active=false) - never a hard DELETE, so historical orders/recipes stay resolvable
+- [Phase 08.1-02]: menu_item_catalog follows V1's FORCE-RLS convention (not V3's RLS-EXEMPT registry pattern) since it is read under tenant context on the API path and written under tenant context resolved from the envelope on the consumer path
+- [Phase 08.1-02]: inventory.menu-item.queue is a deliberate one-queue/two-event-types exception (D-08) to this service's one-queue-per-event-type convention, dispatched by parsing eventType before choosing the payload class
+- [Phase 08.1-02]: MenuItemNotFoundException gets its own 404 via a new local InventoryExceptionHandler advice bean rather than editing shared-lib's GlobalExceptionHandler, which always maps RestaurantOsException to 400
 
 ### Pending Todos
 
@@ -508,8 +512,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-19T12:14:27.205Z
-Stopped at: Completed 08-08-PLAN.md
+Last session: 2026-07-19T12:32:24.765Z
+Stopped at: Completed 08.1-02-PLAN.md
 Resume file: 
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
