@@ -150,6 +150,10 @@
 - [x] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
 - [x] **INV-06**: Stock counts with variance posting; low-stock and expiry alerts
 - [x] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
+- [ ] **INV-09**: POS menu items sync to inventory via `MENU_ITEM_UPSERTED`/`MENU_ITEM_DELETED` events into a `menu_item_catalog` read-model (with backfill); recipe authoring validates `menu_item_id` against the catalog
+- [ ] **INV-10**: Operators author versioned recipes (menu item → ingredient lines with quantity + UOM + `effectiveFrom`) via the `/app/inventory` recipe-builder UI, selecting from the synced menu-item catalog
+- [ ] **INV-11**: Recipe coverage is reportable (active menu items with/without an effective recipe); un-recipe'd sold lines still deplete covered lines and emit `DEPLETION_INCOMPLETE` (no silent no-op)
+- [ ] **INV-12**: `ORDER_CLOSED` depletion is proven end-to-end against a live order — FEFO depletion + aggregate-MAC COGS + `STOCK_DEPLETED`
 
 ### Purchasing (PUR)
 
@@ -350,6 +354,10 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-05 | Phase 8 | Complete |
 | INV-06 | Phase 8 | Complete |
 | INV-07 | Phase 8 | Complete |
+| INV-09 | Phase 08.1 | Pending |
+| INV-10 | Phase 08.1 | Pending |
+| INV-11 | Phase 08.1 | Pending |
+| INV-12 | Phase 08.1 | Pending |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |
@@ -378,8 +386,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 
 **Coverage:**
 
-- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
-- Mapped to phases: 112/112 (100%) — each requirement mapped to exactly one phase
+- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE); +4 added for Phase 08.1 (INV-09..INV-12) = 116
+- Mapped to phases: 116/116 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
 - 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)
 - 2026-07-11 addition (+4): Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning — FIN-07 (guaranteed open period at onboarding / saga fail-not-swallow), FIN-08 (self-service finance.period.open provision endpoint), FIN-09 (config-gated auto-seed-on-miss with WARN audit), FIN-10 (calendar-based frontend provisioning UI)

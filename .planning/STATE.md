@@ -6,7 +6,7 @@ current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
 stopped_at: Completed 08-08-PLAN.md
-last_updated: "2026-07-19T10:08:58.424Z"
+last_updated: "2026-07-19T11:21:08.165Z"
 last_activity: 2026-07-19
 last_activity_desc: Phase 08 complete, transitioned to Phase 10
 progress:
@@ -140,7 +140,7 @@ unrelated to Phase 08.
 
 ## Current Position
 
-Phase: 10 of 12 (Purchasing & Accounts Payable) — gap-closure wave COMPLETE (18/18 plans; 10-18 was the final plan)
+Phase: 10 of 11 (Purchasing & Accounts Payable) — gap-closure wave COMPLETE (18/18 plans; 10-18 was the final plan)
 Plan: 18 of 18 — ALL gap-closure plans (10-07..10-18) now landed
 Status: 10-18 complete (this plan) — AR sub-ledger + house/corporate customer-account entity + AR aging + the internal POS-charge seam (POST /internal/finance/ar/charges, the Phase 7 contract) closing FIN-05's AR half. customer_accounts + ar_transactions (Flyway V6, RLS FORCEd, POS-retry idempotency index), ArService (credit-limit invariant checked before any write, manual+internal writers funnel into one postCharge()), finance.ar.view/finance.ar.manage permissions seeded, finance-service's first @PreAuthorize reflection guard (FinanceEndpointAuthorizationIT, found and correctly excluded one pre-existing internal endpoint mis-homed in a public controller), House Accounts + AR Aging frontend pages. Full finance-service `mvn verify`: 40 ITs, 34 pass, only the same 3 pre-existing "Branch context required" failures remain (unchanged). Real-stack click-path NOT completed — blocked by a pre-existing, stack-wide FEATURE_DISABLED gateway response affecting ALL modules (finance AND purchasing), confirmed via real login + real JWT + real gateway routing; see 10-18-SUMMARY.md Issues Encountered. Phase 10 gap-closure wave (10-07..10-18, 12 plans) is now fully executed; a phase-level UAT/verification re-pass (not this plan) owns flipping FIN-05 back to Complete in REQUIREMENTS.md.
 Last activity: 2026-07-13 — Completed 10-18 (AR sub-ledger + internal POS seam + house-accounts/AR-aging UI — 3 tasks, 3 commits, ce326c9/f24fa0d/8699b91)
