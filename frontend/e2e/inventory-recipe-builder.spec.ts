@@ -65,8 +65,18 @@ test.describe("D-04/INV-10: /app/inventory recipe-builder + coverage dashboard s
       await login(MANAGER_EMAIL, MANAGER_PASSWORD);
 
       // ── /app/inventory is a real, live page — not a coming-soon/404 placeholder (D-04) ──
+      // NOTE (08.1-07 live-verification fix): the sidebar's nav items depend on an async
+      // feature-flags/permissions fetch that resolves AFTER waitForURL fires on navigation to
+      // /app/**. Locator.isVisible() does NOT auto-retry/poll (per Playwright docs it "does not
+      // wait for the element to become visible ... and returns immediately") — it only reflects
+      // the DOM at the instant it's called. Racing it right after waitForURL made this smoke test
+      // flaky (BLOCKED on a false negative) whenever the fetch hadn't resolved yet. Using
+      // expect(...).toBeVisible() polls until the timeout, which is what auto-detecting a
+      // genuinely-missing permission/feature (vs. a rendering race) requires.
       const inventoryLink = page.locator('a[href="/app/inventory"]').first();
-      if (!(await inventoryLink.isVisible({ timeout: 5000 }).catch(() => false))) {
+      try {
+        await expect(inventoryLink).toBeVisible({ timeout: 8000 });
+      } catch {
         throw new Blocked("no sidebar Inventory link visible — inventory.item.view/FEATURE_INVENTORY may be missing for this account");
       }
       await inventoryLink.click();
