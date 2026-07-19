@@ -1,5 +1,6 @@
 package io.restaurantos.pos.event;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -98,6 +99,26 @@ public class PosEventPayloads {
             UUID tenantId,
             UUID branchId,
             UUID orderItemId
+    ) {}
+
+    /**
+     * MENU_ITEM_UPSERTED/MENU_ITEM_DELETED — emitted on every pos-service menu-item mutation
+     * (D-02/INV-09); consumed by inventory-service's {@code menu_item_catalog} read-model
+     * (08.1-02). Field name and order must exactly match what inventory-service's
+     * InventoryEventPayloads will declare in 08.1-02 — never reorder.
+     */
+    public record MenuItemUpsertedPayload(
+            UUID menuItemId,
+            String name,
+            UUID categoryId,
+            String categoryName,
+            boolean active,
+            long basePricePaisa,
+            Instant updatedAt
+    ) {}
+
+    public record MenuItemDeletedPayload(
+            UUID menuItemId
     ) {}
 
     private PosEventPayloads() {}

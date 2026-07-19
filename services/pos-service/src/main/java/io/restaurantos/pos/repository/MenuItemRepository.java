@@ -19,4 +19,7 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
 
     @Query("SELECT i FROM MenuItem i WHERE i.active = true ORDER BY i.name ASC")
     Page<MenuItem> findByActiveTrue(Pageable pageable);
+
+    @Query("SELECT i FROM MenuItem i WHERE i.active = true ORDER BY i.name ASC")
+    List<MenuItem> findByActiveTrueOrderByName();
 }
