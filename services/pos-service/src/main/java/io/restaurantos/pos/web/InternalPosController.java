@@ -1,6 +1,7 @@
 package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +21,13 @@ public class InternalPosController {
 
     private final OrderRepository orderRepository;
     private final TenantContext tenantContext;
+    private final MenuService menuService;
 
-    public InternalPosController(OrderRepository orderRepository, TenantContext tenantContext) {
+    public InternalPosController(OrderRepository orderRepository, TenantContext tenantContext,
+                                  MenuService menuService) {
         this.orderRepository = orderRepository;
         this.tenantContext = tenantContext;
+        this.menuService = menuService;
     }
 
     /**
@@ -42,6 +46,25 @@ public class InternalPosController {
             tenantContext.set(tenantId, null, null, null);
         }
         long count = orderRepository.countOpenOrdersByBusinessDateRange(periodStart, periodEnd);
+        return ResponseEntity.ok(count);
+    }
+
+    /**
+     * D-05 backfill: re-emits MENU_ITEM_UPSERTED for every currently-active menu item in the
+     * resolved tenant, so pre-existing (e.g. seeded) menu items — which never went through the
+     * new write path — enter inventory-service's menu_item_catalog read-model (08.1-02). Already
+     * covered by PosInternalServiceFilter's existing {@code /internal/**} X-Internal-Service
+     * secret guard — no new security wiring needed.
+     *
+     * @return bare Long (NOT ApiResponse-wrapped) — mirrors this controller's existing contract
+     */
+    @PostMapping("/menu-items/republish")
+    public ResponseEntity<Long> republishMenuItems(
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
+        if (tenantId != null && tenantContext.getTenantId().isEmpty()) {
+            tenantContext.set(tenantId, null, null, null);
+        }
+        long count = menuService.republishAllActive();
         return ResponseEntity.ok(count);
     }
 }

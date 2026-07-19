@@ -1,10 +1,13 @@
 package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.MenuCategoryDto;
+import io.restaurantos.pos.dto.MenuItemAdminDtos.CreateMenuItemRequest;
+import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemDto;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -60,4 +63,33 @@ public class MenuController {
     }
 
     public record AssignStationRequest(UUID stationId) {}
+
+    @PostMapping("/items")
+    public ResponseEntity<ApiResponse<MenuItemDto>> createItem(
+            @Valid @RequestBody CreateMenuItemRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.createItem(request)));
+    }
+
+    @PutMapping("/items/{id}")
+    public ResponseEntity<ApiResponse<MenuItemDto>> updateItem(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateMenuItemRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.updateItem(id, request)));
+    }
+
+    @PatchMapping("/items/{id}/activate")
+    public ResponseEntity<ApiResponse<MenuItemDto>> activateItem(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setActive(id, true)));
+    }
+
+    @PatchMapping("/items/{id}/deactivate")
+    public ResponseEntity<ApiResponse<MenuItemDto>> deactivateItem(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setActive(id, false)));
+    }
+
+    @DeleteMapping("/items/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteItem(@PathVariable UUID id) {
+        menuService.deleteItem(id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
 }
