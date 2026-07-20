@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSessionStore } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/hooks/query-keys";
+import { wsUrl } from "@/lib/hooks/ws-base-url";
 import { apiKdsTicketSchema } from "@/lib/api-client/schemas/kds.schema";
 import { adaptKdsTicket } from "@/lib/adapters/kds.adapter";
 import type { KdsTicket } from "@/lib/models/kds.model";
@@ -62,9 +63,7 @@ export function useKdsSocket({ branchId, stationCode }: UseKdsSocketOptions): Us
     function openSocket() {
       if (destroyed) return;
 
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = process.env.NEXT_PUBLIC_KITCHEN_WS_URL ?? window.location.host;
-      const url = `${protocol}//${host}/api/v1/kitchen/kds/${branchId}/${stationCode}?token=${accessToken}`;
+      const url = wsUrl(`/api/v1/kitchen/kds/${branchId}/${stationCode}?token=${accessToken}`);
 
       ws = new WebSocket(url);
 

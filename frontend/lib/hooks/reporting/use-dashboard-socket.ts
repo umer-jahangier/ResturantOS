@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSessionStore } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/hooks/query-keys";
+import { wsUrl } from "@/lib/hooks/ws-base-url";
 import { apiDashboardTileSchema } from "@/lib/api-client/schemas/reporting.schema";
 import { adaptDashboardTile } from "@/lib/adapters/reporting.adapter";
 import type { DashboardTile } from "@/lib/models/reporting.model";
@@ -52,9 +53,7 @@ export function useDashboardSocket({ branchId }: UseDashboardSocketOptions): Use
     function openSocket() {
       if (destroyed) return;
 
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = process.env.NEXT_PUBLIC_REPORTING_WS_URL ?? window.location.host;
-      const url = `${protocol}//${host}/api/v1/reporting/dashboard/${branchId}?token=${accessToken}`;
+      const url = wsUrl(`/api/v1/reporting/dashboard/${branchId}?token=${accessToken}`);
 
       ws = new WebSocket(url);
 
