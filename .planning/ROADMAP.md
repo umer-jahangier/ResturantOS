@@ -449,7 +449,7 @@ Plans:
   3. An NLQ request converts NL→SQL via Claude and passes 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject); a query missing the tenant or branch filter is rejected.
   4. NLQ enforces read-only execution, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas, a 60s result cache, and stamps impersonation in `nlq_query_log`.
 
-**Plans**: 11 plans + 4 gap-closure plans (12-12..12-15, closing the 4 real live-only gaps 12-10 found)
+**Plans**: 11 plans + 5 gap-closure plans (12-12..12-16, closing the real live-only gaps 12-10 found + the browser WS-target gap from 12-UAT)
 
 Note: `nlq-service` is **Java / Spring Boot** (user decision), not Python — it reuses the proven shared-lib + Eureka + Config Server + internal-JWT wiring, and uses JSqlParser (not sqlglot) for the 7-stage AST validation.
 
@@ -473,6 +473,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 - [ ] 12-13: GAP B — user-service getBranch derives tenant GUC from the forwarded JWT (FBR ntn/fbrStrn non-null live)
 - [ ] 12-14: GAP C — auth-service impersonation issuance sets tenant GUC before findById (platform-admin threads tenantId); real endpoint returns a token + stamp lands live
 - [ ] 12-15: GAP D — correct stale Anthropic model IDs in deploy/.env; runnable real-key round-trip recipe (live proof honestly deferred)
+- [ ] 12-16: UAT Test 3+4 — route the 3 browser WS hooks through NEXT_PUBLIC_WS_BASE_URL (gateway :8080) instead of unset NEXT_PUBLIC_*_WS_URL (localhost:3000); static guard + real-browser push proof
 
 ## Progress
 
@@ -495,4 +496,4 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
-| 12. Reporting, Dashboards & NLQ | 11/11 (+4 gap plans 12-12..12-15 pending) | **Executed — 4 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model)** | 2026-07-19 |
+| 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |
