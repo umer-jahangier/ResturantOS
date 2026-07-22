@@ -6,14 +6,14 @@ current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
 stopped_at: "Phase 08.2 planned — 20 plans across 5 waves, plan-checker VERIFICATION PASSED (iteration 2). Next: /gsd-execute-phase 08.2"
-last_updated: "2026-07-22T20:40:49.294Z"
+last_updated: "2026-07-22T21:14:45.841Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 90
+  completed_plans: 91
   percent: 59
 ---
 
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 1 of 20
-Status: Executing Phase 08.2
+Plan: 2 of 20
+Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
 Wave 1 (01-05, 20) = additive Flyway migrations (inventory V5, purchasing V5), the
@@ -254,6 +254,7 @@ _Updated after each plan completion_
 | Phase 08.1 P02 | 15min | 3 tasks | 19 files |
 | Phase 08.1 P04 | 35min | 3 tasks | 15 files |
 | Phase 08.1 P06 | 45min | 3 tasks | 3 files |
+| Phase 08.2 P01 | 25min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -493,6 +494,8 @@ Recent decisions affecting current work:
 - [Phase ?]: e2e spec uses manager@demo.local (MANAGER role) — holds both inventory.item.view/manage with no TOTP
 - [Phase 08.1-06]: TenantGucHelper.apply() inside process()'s existing @Transactional method, not a split non-transactional/transactional boundary restructure (lower blast radius across 10 shared-lib consumers)
 - [Phase 08.1-06]: Fixed pre-existing shared-lib BaseIntegrationTest missing spring.liquibase.url (Rule 3 blocking-issue) that silently broke every shared-lib IT
+- [Phase ?]: V5 backfill: NULL literals in SELECT DISTINCT must be cast NULL::UUID or Postgres infers text and rejects the UUID column insert
+- [Phase ?]: Ingredient-creation compensating fix: IngredientRepository.resolveOrCreateCategoryId mirrors V5's own COALESCE(category,'Uncategorized') backfill rule so free-text category input keeps working against the new NOT NULL category_id until a later wave adds real category selection
 
 ### Pending Todos
 
@@ -536,7 +539,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-21T21:31:25.884Z
+Last session: 2026-07-22T21:11:48.076Z
 Stopped at: Phase 08.2 UI-SPEC approved (6/6 dimensions; commits cce64ef + 9297e68). Next: /gsd-plan-phase 08.2
 Resume file: .planning/phases/08.2-inventory-master-data-procurement-catalog/08.2-UI-SPEC.md
 None
