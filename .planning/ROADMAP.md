@@ -385,7 +385,7 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 7/20 plans executed
+**Plans:** 8/20 plans executed
 
 Plans:
 
@@ -395,7 +395,7 @@ Plans:
 - [x] 08.2-04-PLAN.md
 - [x] 08.2-05-PLAN.md
 - [x] 08.2-06-PLAN.md
-- [ ] 08.2-07-PLAN.md
+- [x] 08.2-07-PLAN.md
 - [ ] 08.2-08-PLAN.md
 - [ ] 08.2-09-PLAN.md
 - [ ] 08.2-10-PLAN.md
@@ -421,7 +421,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 — APIs over the new schema)*
 
-- [ ] 08.2-06: Category tree API — CRUD, re-parent with cycle + depth validation, archive-with-refusal (INV-13)
+- [x] 08.2-06: Category tree API — CRUD, re-parent with cycle + depth validation, archive-with-refusal (INV-13)
 - [ ] 08.2-07: Non-persisting recipe cost-preview endpoint for the live plate-cost panel (INV-15)
 - [ ] 08.2-08: `VendorItem` service + controller with append-only pricing (PUR-07)
 

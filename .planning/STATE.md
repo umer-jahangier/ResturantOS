@@ -6,14 +6,14 @@ current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
 stopped_at: Completed 08.2-06-PLAN.md
-last_updated: "2026-07-22T23:20:41.471Z"
+last_updated: "2026-07-22T23:42:44.411Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 97
+  completed_plans: 98
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 8 of 20
+Plan: 9 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -261,6 +261,7 @@ _Updated after each plan completion_
 | Phase 08.2 P05 | 25min | 3 tasks | 11 files |
 | Phase 08.2 P20 | 18min | 2 tasks | 4 files |
 | Phase 08.2 P06 | 40min | 3 tasks | 11 files |
+| Phase 08.2 P07 | 50min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -513,6 +514,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 08.2-20: confirmed via .m2 classpath (resilience4j-spring-boot3 + resilience4j-timelimiter present) that resilience4j.timelimiter.instances is a legitimate bound property for the reactive gateway circuit breaker on spring-cloud 2025.1.0; added the scoped 4-instance timelimiter block as specified
 - [Phase 08.2]: IngredientRepository.countByTenantIdAndCategoryId counts all ingredients (not just active) as the D-04 archive-refusal gate until 08.2-09 adds Ingredient.archivedAt — Ingredient has no archivedAt field yet
 - [Phase 08.2]: Added CategoryValidationException (400, falls through to GlobalExceptionHandler#handleBase) for depth-cap and cycle rejections — Plan called for an IllegalArgumentException-family domain exception but did not name one
+- [Phase ?]: Gated POST /recipes/preview at inventory.item.manage (not view) - per-ingredient moving-average cost is commercially sensitive (T-08.2-071)
+- [Phase ?]: Dimension-compatibility check for cost preview: a UOM is valid for an ingredient when its code IS the ingredient baseUomCode, or its baseUnitCode equals it - otherwise the line is excluded with a warning
 
 ### Pending Todos
 
@@ -556,7 +559,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-22T23:20:24.422Z
+Last session: 2026-07-22T23:42:04.278Z
 Stopped at: Completed 08.2-06-PLAN.md
 Resume file: None
 None
