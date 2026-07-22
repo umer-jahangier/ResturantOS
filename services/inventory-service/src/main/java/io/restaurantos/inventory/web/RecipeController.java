@@ -3,13 +3,17 @@ package io.restaurantos.inventory.web;
 import io.restaurantos.inventory.authz.InventoryAuthorizationService;
 import io.restaurantos.inventory.dto.RecipeDtos.CoverageResponse;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
+import io.restaurantos.inventory.dto.RecipeDtos.PreviewRecipeCostRequest;
+import io.restaurantos.inventory.dto.RecipeDtos.RecipeCostPreviewDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeDto;
+import io.restaurantos.inventory.service.RecipeCostPreviewService;
 import io.restaurantos.inventory.service.RecipeService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import io.restaurantos.shared.security.JwtClaims;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,10 +40,13 @@ public class RecipeController {
 
     private final InventoryAuthorizationService authz;
     private final RecipeService recipeService;
+    private final RecipeCostPreviewService recipeCostPreviewService;
 
-    public RecipeController(InventoryAuthorizationService authz, RecipeService recipeService) {
+    public RecipeController(InventoryAuthorizationService authz, RecipeService recipeService,
+                             RecipeCostPreviewService recipeCostPreviewService) {
         this.authz = authz;
         this.recipeService = recipeService;
+        this.recipeCostPreviewService = recipeCostPreviewService;
     }
 
     @PostMapping
@@ -69,5 +76,24 @@ public class RecipeController {
     public ResponseEntity<ApiResponse<CoverageResponse>> coverage(@AuthenticationPrincipal JwtClaims claims) {
         authz.authorizeView(claims.tenantId(), claims.branchId());
         return ResponseEntity.ok(ApiResponse.ok(recipeService.getCoverage()));
+    }
+
+    /**
+     * INV-15: non-persisting plate-cost preview for the live cost panel (08.2-UI-SPEC.md
+     * Screen 3). Gated on {@code inventory.item.manage} — not {@code authorizeView} — because
+     * per-ingredient moving-average cost is commercially sensitive (T-08.2-071) and this endpoint
+     * is only ever reached from the recipe authoring surface, which already requires manage.
+     * {@code branchId} selects which branch's costs are read and must equal the caller's JWT
+     * branch claim (T-08.2-072) — never caller-chosen, mirroring
+     * {@code StockLevelController}'s guard.
+     */
+    @PostMapping("/preview")
+    public ResponseEntity<ApiResponse<RecipeCostPreviewDto>> preview(
+            @Valid @RequestBody PreviewRecipeCostRequest request, @AuthenticationPrincipal JwtClaims claims) {
+        authz.authorizeManage(claims.tenantId(), claims.branchId());
+        if (!request.branchId().equals(claims.branchId())) {
+            throw new AccessDeniedException("Cannot preview recipe cost for another branch");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(recipeCostPreviewService.preview(request)));
     }
 }
