@@ -36,6 +36,16 @@ public class Ingredient extends TenantAuditableEntity {
     @Column(name = "category", length = 80)
     private String category;
 
+    /**
+     * FK to {@code item_categories.id} (V5 migration, 08.2-01). NOT NULL at the DB level —
+     * {@link io.restaurantos.inventory.service.IngredientService} resolves this from the
+     * free-text {@link #category} via {@code IngredientRepository.resolveOrCreateCategoryId},
+     * the same COALESCE(category, 'Uncategorized') default-root-category rule V5's backfill
+     * uses for pre-existing rows. Full category selection/CRUD is a later-wave concern.
+     */
+    @Column(name = "category_id", nullable = false)
+    private UUID categoryId;
+
     @Column(name = "reorder_point", nullable = false, precision = 18, scale = 4)
     private BigDecimal reorderPoint = BigDecimal.ZERO;
 

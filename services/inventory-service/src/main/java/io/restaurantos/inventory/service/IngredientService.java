@@ -47,12 +47,14 @@ public class IngredientService {
 
     @Transactional
     public IngredientDto createIngredient(CreateIngredientRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
         Ingredient ingredient = new Ingredient();
-        ingredient.setTenantId(tenantContext.requireTenantId());
+        ingredient.setTenantId(tenantId);
         ingredient.setName(request.name());
         ingredient.setSku(request.sku());
         ingredient.setBaseUomCode(request.baseUomCode());
         ingredient.setCategory(request.category());
+        ingredient.setCategoryId(ingredientRepository.resolveOrCreateCategoryId(tenantId, request.category()));
         ingredient.setReorderPoint(request.reorderPoint());
         ingredient.setActive(true);
         return toDto(ingredientRepository.save(ingredient));
@@ -64,6 +66,8 @@ public class IngredientService {
         ingredient.setName(request.name());
         ingredient.setBaseUomCode(request.baseUomCode());
         ingredient.setCategory(request.category());
+        ingredient.setCategoryId(ingredientRepository.resolveOrCreateCategoryId(
+                ingredient.getTenantId(), request.category()));
         ingredient.setReorderPoint(request.reorderPoint());
         return toDto(ingredientRepository.save(ingredient));
     }

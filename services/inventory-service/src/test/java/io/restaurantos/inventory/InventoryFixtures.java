@@ -47,6 +47,10 @@ public final class InventoryFixtures {
         ingredient.setName(name);
         ingredient.setSku(sku);
         ingredient.setBaseUomCode(baseUomCode);
+        // V5 (08.2-01) made ingredients.category_id NOT NULL; fixtures don't exercise category
+        // selection, so resolve/create the tenant's default "Uncategorized" root category —
+        // the same rule IngredientService.createIngredient uses for un-categorized input.
+        ingredient.setCategoryId(repository.resolveOrCreateCategoryId(tenantId, null));
         ingredient.setReorderPoint(reorderPoint);
         ingredient.setActive(true);
         return repository.save(ingredient);
