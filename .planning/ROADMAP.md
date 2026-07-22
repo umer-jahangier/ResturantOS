@@ -25,6 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
 - [x] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof (completed 2026-07-19)
+- [ ] **Phase 08.2: Inventory Master Data & Procurement Catalog** *(INSERTED)* - Ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/revise with live plate cost, vendor item catalog with effective-dated pricing, stock-operations UI, catalog-driven PO line picker
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
@@ -365,6 +366,63 @@ Plans:
 - [x] 08.1-05-PLAN.md (wave 5) — live end-to-end depletion proof: real order lifecycle -> catalog sync -> validated recipe -> real consumer -> FEFO + aggregate-MAC COGS (INV-12)
 - [x] 08.1-06-PLAN.md (wave 1, gap-closure) — fix shared-lib TenantAwareMessageProcessor RLS-GUC checkout-ordering bug (consumer inserts to FORCE-RLS tables rejected 42501) + non-superuser regression IT + fleet blast-radius/sibling-loop verification (INV-09, INV-12)
 - [x] 08.1-07-PLAN.md (wave 2, gap-closure) — live dev-stack re-verification: redeploy fixed inventory-service, re-emit MENU_ITEM_UPSERTED, confirm menu_item_catalog populates (10 items) + recipe-builder UI click-through (INV-09, INV-10)
+
+### Phase 08.2: Inventory Master Data & Procurement Catalog (INSERTED)
+
+**Goal**: The inventory and procurement modules become operable by a restaurant manager without SQL — ingredients and their categories are first-class, editable master data; recipes can be viewed and revised with live plate cost; vendors carry a real item catalog with effective-dated pricing; and a purchase order line is chosen from that catalog instead of a hand-typed UUID. Phases 8/08.1/10 delivered the backend spine and proved the depletion loop; this phase closes the master-data and UI gap that leaves 11 backend endpoints with no consumer.
+**Depends on**: Phase 8, Phase 08.1, Phase 10
+**Requirements**: INV-01 (re-open — UI), INV-13, INV-14, INV-15, PUR-07, PUR-08
+**Success Criteria** (what must be TRUE):
+
+  1. A manager creates, edits, re-parents and archives ingredient categories in a tree capped at 3 levels, and every ingredient carries exactly one required primary category; archiving a category in use is refused rather than cascading.
+  2. A manager creates, searches, edits and archives ingredients entirely through `/app/inventory/ingredients` — including purchase/stock/recipe UOM with conversions, par level, reorder point, storage location and allergens — with no hard delete once stock movements exist.
+  3. An existing recipe's ingredient lines are viewable, and a revision can be authored pre-filled from the current version (never a destructive edit), with a live plate-cost panel showing batch cost, cost per portion, food-cost % and each line's share of plate cost.
+  4. The coverage report distinguishes "no recipe" from "recipe scheduled from `<date>`", so a future-dated recipe is visibly pending instead of silently uncounted.
+  5. A vendor is linked to the ingredients it supplies through a vendor item catalog (vendor SKU, pack size, purchase UOM, MOQ, lead time) with append-only effective-dated pricing, plus category tags used only to filter and suggest — never to authorize a purchase.
+  6. A purchase-order line is selected with a search-as-you-type picker showing pack size, vendor SKU and contract price, filtered to the vendor's catalog/categories; the hand-typed ingredient UUID field is gone.
+  7. Spend-by-category analytics is computed from real ingredient categories — `MockIngredientCategoryResolver` and its static `spend-category-map.yml` are deleted, not bypassed.
+  8. Stock receipts, transfers, counts and opening balances are all driveable from the UI, and on-hand stock per branch is readable through a real endpoint (`ingredient_branch_stock` has no controller today).
+
+**Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
+
+**Plans:** 20 plans across 5 waves
+
+Plans:
+
+**Wave 1** *(no dependencies — migrations, read seams and shared foundations run in parallel)*
+
+- [ ] 08.2-01: Flyway V5 — `item_categories` self-referencing tree hard-capped at 3 levels by DB trigger + required `ingredients.category_id` backfilled from legacy free-text column (INV-13)
+- [ ] 08.2-02: First read path for `ingredient_branch_stock` — on-hand stock per branch (INV-15)
+- [ ] 08.2-03: Recipe coverage distinguishes "no recipe" from "recipe scheduled from `<date>`" — closes the origin bug (INV-15)
+- [ ] 08.2-04: Purchasing Flyway V5 — `vendor_items` + append-only effective-dated `vendor_item_price` (PUR-07, PUR-08)
+- [ ] 08.2-05: Shared frontend foundation — new primitives, `calendarDateToInstant` extraction + local-midnight regression test, query keys (INV-13, INV-14, INV-15, PUR-07, PUR-08)
+- [ ] 08.2-20: Carried-over infra defects — gateway `resilience4j` circuitbreaker instances for inventory/purchasing/pos/kitchen + `start-dev.sh`/`local-service-env.sh` parity (INV-15, PUR-08)
+
+**Wave 2** *(blocked on Wave 1 — APIs over the new schema)*
+
+- [ ] 08.2-06: Category tree API — CRUD, re-parent with cycle + depth validation, archive-with-refusal (INV-13)
+- [ ] 08.2-07: Non-persisting recipe cost-preview endpoint for the live plate-cost panel (INV-15)
+- [ ] 08.2-08: `VendorItem` service + controller with append-only pricing (PUR-07)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 08.2-09: Ingredient master data — additive V6 columns, per-item UOM conversions, three distinct yield numbers incl. `recipes.net_yield_pct` (INV-01, INV-14, PUR-08)
+- [ ] 08.2-10: Purchase-order line accepts `vendorItemId` and derives ingredient / unit / price server-side (PUR-08)
+
+**Wave 4** *(blocked on Wave 3 — analytics cutover + frontend data layers)*
+
+- [ ] 08.2-11: Delete `MockIngredientCategoryResolver` + `spend-category-map.yml`; spend-by-category computed from real categories (PUR-08)
+- [ ] 08.2-12: Inventory frontend data layer — Zod schemas, adapters, repositories, TanStack hooks (INV-01, INV-13, INV-14, INV-15)
+- [ ] 08.2-13: Purchasing frontend data layer — vendor catalog + catalog-driven PO line (PUR-07, PUR-08)
+
+**Wave 5** *(blocked on Wave 4 — user-facing screens)*
+
+- [ ] 08.2-14: Ingredient-category management screen — recursive 3-level tree, create/edit, reparent, archive (INV-13)
+- [ ] 08.2-15: Ingredient master-data screen — searchable/filterable grid + grouped create-or-edit dialog (INV-01, INV-14)
+- [ ] 08.2-16: Recipe detail + revision-authoring page with live plate-cost panel (INV-15)
+- [ ] 08.2-17: Stock screen — on-hand read view + receipts, transfers, counts, opening balances (INV-15)
+- [ ] 08.2-18: Vendor detail — catalog section, price-change history, filter-only category tags (PUR-07)
+- [ ] 08.2-19: Catalog picker replaces the hand-typed ingredient UUID on the PO line (PUR-08)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 

@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 10
-current_phase_name: Purchasing & Accounts Payable
-status: executing
-stopped_at: "08.1-07-PLAN.md — Tasks 1-2 (live catalog sync + live depletion loop, both FORCE-RLS write paths) PASS with hard evidence (see 08.1-07-SUMMARY.md); Task 3 (checkpoint:human-verify, recipe-builder UI) has Playwright 4/4 PASS evidence gathered but is AWAITING explicit human approval — NOT self-approved. Plan/phase completion tracking intentionally left open pending that approval."
-last_updated: "2026-07-19T18:02:43.324Z"
-last_activity: 2026-07-19
-last_activity_desc: Phase 08.1 complete, transitioned to Phase 10
+current_phase: 08.2
+current_phase_name: INSERTED
+status: ready_to_execute
+stopped_at: "Phase 08.2 planned — 20 plans across 5 waves, plan-checker VERIFICATION PASSED (iteration 2). Next: /gsd-execute-phase 08.2"
+last_updated: "2026-07-22T00:00:00.000Z"
+last_activity: 2026-07-22
+last_activity_desc: Phase 08.2 planned — 20 plans, 5 waves, checker passed
 progress:
-  total_phases: 16
+  total_phases: 17
   completed_phases: 10
-  total_plans: 102
+  total_plans: 122
   completed_plans: 90
-  percent: 63
+  percent: 59
 ---
 
 # Project State
@@ -28,8 +28,25 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 10 — Purchasing & Accounts Payable
-Plan: Not started
+Phase: 08.2 — Inventory Master Data & Procurement Catalog (INSERTED)
+Plan: 0 of 20 — PLANNED, ready to execute (`/gsd-execute-phase 08.2`)
+Status: 20 plans across 5 waves. Plan-checker returned VERIFICATION PASSED on iteration 2
+(iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
+(INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
+Wave 1 (01-05, 20) = additive Flyway migrations (inventory V5, purchasing V5), the
+`ingredient_branch_stock` read seam, the recipe-coverage origin-bug fix, the shared frontend
+foundation, and the carried-over infra defects. Wave 2 (06-08) = APIs over the new schema.
+Wave 3 (09-10) = ingredient master data (inventory V6) + catalog-driven PO line server side.
+Wave 4 (11-13) = mock-resolver deletion + both frontend data layers. Wave 5 (14-19) = the six
+user-facing screens. Plan 08.2-20 was added during revision: CONTEXT.md's "carried-over
+defects" section committed the gateway `resilience4j.circuitbreaker.instances` gap
+(inventory/purchasing/pos/kitchen inherit defaults → persistent 503s after any upstream
+restart) and the `start-dev.sh` purchasing-service exclusion as in-scope, and no plan owned
+them; revision also found `local-service-env.sh` is missing the `PURCHASING_DB_*` block
+entirely, so the `mvn -pl` fix alone would have been cosmetic.
+Note: Nyquist validation was knowingly waived for this phase — RESEARCH.md has no
+`## Validation Architecture` section, so no VALIDATION.md exists; per-plan `<verify>` blocks
+compensate.
 delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
 port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
 contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
@@ -515,12 +532,13 @@ Recent decisions affecting current work:
 
 - Phase 07.1 inserted after Phase 7: POS Production Operations & Item-Level Kitchen Tracking — upgrade POS from MVP to production-ready restaurant operations (order management, table-centric dine-in, item-level status, kitchen ticket revisions, cashier UX) (URGENT)
 - Phase 07.2 inserted after Phase 7: Finance accounting-period provisioning — fixes silently-swallowed CoA/period seeding at tenant onboarding, adds self-service open-period endpoint, resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants) (URGENT)
+- Phase 08.2 inserted after Phase 8: Inventory Master Data & Procurement Catalog — ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/edit + plate cost, vendor item catalog with effective-dated pricing, stock ops UI, catalog-driven PO picker (URGENT)
 
 ## Session Continuity
 
-Last session: 2026-07-19T17:07:56.364Z
-Stopped at: 08.1-07-PLAN.md — Tasks 1-2 (live catalog sync + live depletion loop, both FORCE-RLS write paths) PASS with hard evidence (see 08.1-07-SUMMARY.md); Task 3 (checkpoint:human-verify, recipe-builder UI) has Playwright 4/4 PASS evidence gathered but is AWAITING explicit human approval — NOT self-approved. Plan/phase completion tracking intentionally left open pending that approval.
-Resume file: .planning/phases/08.1-pos-inventory-depletion-activation/08.1-07-SUMMARY.md
+Last session: 2026-07-21T21:31:25.884Z
+Stopped at: Phase 08.2 UI-SPEC approved (6/6 dimensions; commits cce64ef + 9297e68). Next: /gsd-plan-phase 08.2
+Resume file: .planning/phases/08.2-inventory-master-data-procurement-catalog/08.2-UI-SPEC.md
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
 Also stopped at (parallel plan): Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
