@@ -289,6 +289,9 @@ management:
         enabled: true
 
 # Resilience4j circuit-breaker instances (one per upstream that exists in Phase 3)
+# UPDATE: that comment is now four upstreams out of date. The rule going forward is: every
+# instance name referenced by a `CircuitBreaker` filter anywhere in the routes list (or in
+# default-filters) above MUST have a declaration here — GatewayResilienceConfigTest enforces it.
 resilience4j:
   circuitbreaker:
     instances:
@@ -322,6 +325,47 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
+      purchasingCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      posCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      kitchenCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      inventoryCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  # Reactive Spring Cloud CircuitBreaker applies a 1s call timeout when no time limiter is
+  # configured for an instance. purchasing/pos/kitchen/inventory are the four routes this phase
+  # puts real traffic on for the first time (recursive category-tree read, batch ingredient-category
+  # lookup up to 500 ids, recipe cost preview, spend-by-category analytics) and are the most likely
+  # to exceed 1s on a cold JIT — which would otherwise count a merely-slow first call as a breaker
+  # failure. Scoped to these four only: the six pre-existing instances are deliberately left on the
+  # current default so no already-working route changes behaviour as a side effect of this plan.
+  timelimiter:
+    instances:
+      purchasingCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      posCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      kitchenCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      inventoryCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
 
 # Gateway-specific properties
 restaurantos:
