@@ -157,6 +157,11 @@ const USER_FACING_BY_CODE: Record<string, string> = {
   INTERNAL_ERROR: "Something went wrong. Please try again.",
   NETWORK_ERROR: "Unable to reach the server. Check your connection and try again.",
   UNKNOWN_ERROR: "Something went wrong. Please try again.",
+  // Gateway fallback (FallbackController) — module-agnostic since this map is keyed by code
+  // only; screens that know their module (e.g. inventory) override locally with the
+  // Copywriting Contract's module-specific wording. Fixes the carried-over 08.2-CONTEXT.md gap
+  // where users saw raw gateway text with no indication of which module was down.
+  SERVICE_UNAVAILABLE: "This module is temporarily unavailable. Try again in a moment.",
 };
 
 function looksLikeValidationDump(message: string): boolean {
