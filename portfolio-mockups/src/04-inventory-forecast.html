@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forecasting — Demand &amp; replenishment</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .kpis { grid-template-columns: repeat(4, 1fr); flex: none; }
+  .kpi { padding: 11px 14px; }
+  .kpi-v { font-size: 23px; }
+
+  .body { display: grid; grid-template-columns: minmax(0,1fr) 396px; gap: 14px;
+          flex: 1; min-height: 0; }
+  .lcol { display: grid; grid-template-rows: 392px minmax(0,1fr); gap: 14px;
+          min-width: 0; min-height: 0; }
+  .rcol { display: grid; grid-template-rows: auto minmax(0,1fr); gap: 14px; min-height: 0; }
+
+  /* replenishment table */
+  .tbl thead th { padding-bottom: 5px; }
+  .tbl tbody td { padding: 6.5px 10px; }
+  .tbl tbody td:first-child { padding-left: 14px; }
+  .tbl tbody td:last-child { padding-right: 14px; }
+  .tbl thead th:first-child { padding-left: 14px; }
+  .tbl thead th:last-child { padding-right: 14px; }
+  .st { display: inline-flex; align-items: center; height: 19px; padding: 0 7px;
+        border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+  .st.c { background: var(--neg-soft); color: var(--neg); }
+  .st.l { background: var(--warn-soft); color: var(--warn); }
+  .st.o { background: var(--pos-soft); color: var(--pos); }
+
+  /* draft PO */
+  .po-h { padding: 12px 14px; border-bottom: 1px solid var(--gold-line); display: flex;
+          align-items: center; gap: 10px; }
+  .vend { display: flex; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+          background: rgba(240,180,41,.035); }
+  .vend .l { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase;
+             color: var(--fg-dim); font-weight: 620; }
+  .vend .v { font-size: 12px; font-weight: 600; margin-top: 2px; letter-spacing: -.01em; }
+  .pol { display: flex; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--line);
+         align-items: flex-start; }
+  .pol:first-of-type { border-top: none; }
+  .pol .n { font-size: 12px; font-weight: 570; }
+  .pol .s { font-size: 10.5px; color: var(--fg-dim); margin-top: 1px; }
+  .pol .amt { margin-left: auto; text-align: right; flex: none; }
+  .pol .amt b { font-size: 12.5px; font-weight: 640; font-variant-numeric: tabular-nums; }
+  .pol .amt span { display: block; font-size: 10px; color: var(--fg-dim);
+                   font-variant-numeric: tabular-nums; }
+  .sumr { display: flex; align-items: center; font-size: 12px; color: var(--fg-mut);
+          padding: 2.5px 14px; }
+  .sumr b { margin-left: auto; color: var(--fg); font-weight: 620;
+            font-variant-numeric: tabular-nums; }
+  .sumr.big { font-size: 14px; font-weight: 660; color: var(--fg); padding-top: 7px;
+              margin-top: 6px; border-top: 1px solid var(--line-2); }
+  .sumr.big b { font-size: 17px; font-weight: 720; letter-spacing: -.03em; }
+
+  .dr { display: flex; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line);
+        align-items: center; flex: 1; }
+  .dr:first-child { border-top: none; }
+  .dr .n { font-size: 12px; font-weight: 590; }
+  .dr .s { font-size: 10.5px; color: var(--fg-dim); margin-top: 2px; }
+  .dr .amt { margin-left: auto; text-align: right; flex: none; }
+  .dr .amt b { font-size: 12.5px; font-weight: 640; font-variant-numeric: tabular-nums; }
+  .dr .amt span { display: block; font-size: 10px; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ───────────────────────────────────────────────────────────────── KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-l">Forecast accuracy · MAPE</div>
+      <div class="kpi-v">6.8<small>%</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ 1.2pp</span>
+        <span>28-day, 148 SKUs</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Stock-out risk items</div>
+      <div class="kpi-v">3 <small>/ 148 SKUs</small></div>
+      <div class="kpi-d"><span class="chip neg" style="height:19px;padding:0 6px;font-size:10.5px">2 within 48 h</span>
+        <span>all have a draft PO</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Working capital in stock</div>
+      <div class="kpi-v">Rs 4,182,000</div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ Rs 214,000</span>
+        <span>vs June · 11.4 days cover</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Projected waste avoided</div>
+      <div class="kpi-v">Rs 96,400 <small>/ mo</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 18%</span>
+        <span>FEFO + right-sized POs</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="lcol">
+
+      <!-- ────────────────────────────────────────────────────── forecast chart -->
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-h">
+          <div>
+            <div class="card-t">Chicken boneless — daily demand, kg</div>
+            <div class="card-s">15 days actual · 7 days forecast · gradient-boosted, weekday + weather features</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="legend">
+            <span><i style="background:var(--s1)"></i>Actual</span>
+            <span><i style="background:var(--s3)"></i>Forecast</span>
+            <span><i style="background:rgba(57,135,229,.28)"></i>80% interval</span>
+            <span><i style="background:rgba(255,255,255,.35);height:2px;border-radius:1px;width:12px"></i>On hand</span>
+          </div>
+          <div class="chip gold" style="margin-left:12px">MAPE 6.8%</div>
+        </div>
+        <div class="card-b rel" style="flex:1;padding:12px 14px">
+          <svg viewBox="0 0 892 300" width="892" height="300" role="img"
+               aria-label="Chicken boneless daily demand in kg, 15 days actual and 7 days forecast">
+            <g class="gridline">
+              <line x1="46" y1="246" x2="884" y2="246"/><line x1="46" y1="187" x2="884" y2="187"/>
+              <line x1="46" y1="128" x2="884" y2="128"/><line x1="46" y1="69" x2="884" y2="69"/>
+              <line x1="46" y1="10" x2="884" y2="10"/>
+            </g>
+            <g class="axis" text-anchor="end">
+              <text x="36" y="250">0</text><text x="36" y="191">25</text>
+              <text x="36" y="132">50</text><text x="36" y="73">75</text><text x="36" y="14">100</text>
+            </g>
+
+            <!-- 80% prediction interval, future only -->
+            <path d="M604.6,94.9 L644.5,54.8 L684.4,66.6 L724.3,111.5 L764.2,116.2 L804.1,95.0
+                     L844.0,76.1 L883.9,38.3 L883.9,118.6 L844.0,139.8 L804.1,149.2 L764.2,161.0
+                     L724.3,151.6 L684.4,111.5 L644.5,95.0 Z"
+                  fill="rgba(57,135,229,.22)"/>
+
+            <!-- actual -->
+            <path d="M46,90.2 L85.9,71.4 L125.8,83.2 L165.7,132.7 L205.6,139.8 L245.5,128.0
+                     L285.4,116.2 L325.3,85.5 L365.2,62.0 L405.1,78.4 L445,128.0 L484.9,135.1
+                     L524.8,123.3 L564.7,109.1 L604.6,94.9 L604.6,246 L46,246 Z"
+                  fill="var(--s1)" opacity=".1"/>
+            <path d="M46,90.2 L85.9,71.4 L125.8,83.2 L165.7,132.7 L205.6,139.8 L245.5,128.0
+                     L285.4,116.2 L325.3,85.5 L365.2,62.0 L405.1,78.4 L445,128.0 L484.9,135.1
+                     L524.8,123.3 L564.7,109.1 L604.6,94.9"
+                  fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"
+                  stroke-linecap="round"/>
+
+            <!-- forecast -->
+            <path d="M604.6,94.9 L644.5,76.1 L684.4,90.2 L724.3,132.7 L764.2,139.8 L804.1,123.3
+                     L844.0,109.1 L883.9,80.8"
+                  fill="none" stroke="var(--s3)" stroke-width="2" stroke-dasharray="5 4"
+                  stroke-linejoin="round"/>
+
+            <!-- on-hand reference -->
+            <line x1="46" y1="71.4" x2="884" y2="71.4" stroke="rgba(255,255,255,.30)"
+                  stroke-width="1.5" stroke-dasharray="6 4"/>
+            <rect x="212" y="55" width="126" height="15" rx="4" fill="var(--card)"/>
+            <text class="axis" x="218" y="66.5" fill="#a3aab8">On hand now — 74 kg</text>
+
+            <!-- now divider -->
+            <line x1="604.6" y1="10" x2="604.6" y2="246" stroke="rgba(255,255,255,.28)"
+                  stroke-width="1" stroke-dasharray="3 3"/>
+            <rect x="574" y="254" width="62" height="16" rx="4" fill="var(--elev)"/>
+            <text class="axis" x="605" y="265.5" text-anchor="middle" fill="#a3aab8"
+                  style="font-weight:600;letter-spacing:.05em">NOW · 22 JUL</text>
+
+            <!-- markers -->
+            <circle cx="604.6" cy="94.9" r="7.5" fill="var(--s1)" opacity=".2"/>
+            <circle cx="604.6" cy="94.9" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/>
+            <circle cx="644.5" cy="76.1" r="7.5" fill="var(--s3)" opacity=".2"/>
+            <circle cx="644.5" cy="76.1" r="4" fill="var(--s3)" stroke="var(--card)" stroke-width="2"/>
+
+            <g class="axis" text-anchor="middle">
+              <text x="46" y="265.5" text-anchor="start">8 Jul</text>
+              <text x="205.6" y="265.5">12 Jul</text><text x="365.2" y="265.5">16 Jul</text>
+              <text x="524.8" y="265.5">20 Jul</text><text x="724.3" y="265.5">25 Jul</text>
+              <text x="883.9" y="265.5" text-anchor="end">29 Jul</text>
+            </g>
+            <line class="axisline" x1="46" y1="246" x2="884" y2="246"/>
+
+            <text class="axis" x="46" y="290" fill="#7c8494">
+              Next 3 days 186 kg vs 74 kg on hand · cover 1.2 d · weekend driver +36%
+            </text>
+            <text class="axis" x="884" y="290" text-anchor="end" fill="#7c8494">
+              Draft PO-2026-0774 · 240 kg · lands Sun 24 Jul 07:30
+            </text>
+          </svg>
+
+          <div class="tip" style="left:636px;top:176px">
+            <div class="tip-t">Sat 23 Jul · forecast</div>
+            <div class="tip-r"><i class="dot" style="background:var(--s3)"></i>Point forecast <b>72 kg</b></div>
+            <div class="tip-r"><i class="dot" style="background:rgba(57,135,229,.45)"></i>80% interval <b>64 – 81 kg</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ───────────────────────────────────────────────── replenishment table -->
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-h">
+          <div>
+            <div class="card-t">Replenishment plan</div>
+            <div class="card-s">Cover days = on hand ÷ forecast daily demand · MAC valuation</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="chip neg">3 critical</div>
+          <div class="chip warn">4 low</div>
+          <div class="btn sm gold-o">Draft all POs</div>
+        </div>
+        <div style="flex:1;min-height:0;padding-top:11px">
+          <table class="tbl">
+            <thead><tr>
+              <th>Ingredient</th>
+              <th class="num">On hand</th>
+              <th class="num">3-day fc</th>
+              <th class="num">Cover</th>
+              <th class="num">ROP</th>
+              <th class="num">Lead</th>
+              <th>Vendor</th>
+              <th class="num">Suggested</th>
+              <th>Status</th>
+            </tr></thead>
+            <tbody>
+              <tr class="hl">
+                <td class="k">Chicken boneless</td>
+                <td class="num">74 kg</td><td class="num">186 kg</td>
+                <td class="num neg" style="font-weight:620">1.2 d</td>
+                <td class="num">150 kg</td><td class="num">2 d</td>
+                <td>Al-Karam Poultry</td>
+                <td class="num k">240 kg</td>
+                <td><span class="st c">CRITICAL</span></td>
+              </tr>
+              <tr>
+                <td class="k">Beef mince 90/10</td>
+                <td class="num">62 kg</td><td class="num">84 kg</td>
+                <td class="num neg" style="font-weight:620">2.2 d</td>
+                <td class="num">55 kg</td><td class="num">2 d</td>
+                <td>Sabzi Mandi Traders</td>
+                <td class="num k">120 kg</td>
+                <td><span class="st c">CRITICAL</span></td>
+              </tr>
+              <tr>
+                <td class="k">Fresh cream</td>
+                <td class="num">22 L</td><td class="num">33 L</td>
+                <td class="num neg" style="font-weight:620">2.0 d</td>
+                <td class="num">25 L</td><td class="num">2 d</td>
+                <td>Nurpur Dairy</td>
+                <td class="num k">45 L</td>
+                <td><span class="st c">CRITICAL</span></td>
+              </tr>
+              <tr>
+                <td class="k">Yoghurt (dahi)</td>
+                <td class="num">48 kg</td><td class="num">51 kg</td>
+                <td class="num">2.8 d</td>
+                <td class="num">40 kg</td><td class="num">1 d</td>
+                <td>Nurpur Dairy</td>
+                <td class="num k">60 kg</td>
+                <td><span class="st l">LOW</span></td>
+              </tr>
+              <tr>
+                <td class="k">Green chilli</td>
+                <td class="num">16 kg</td><td class="num">21 kg</td>
+                <td class="num">2.3 d</td>
+                <td class="num">12 kg</td><td class="num">1 d</td>
+                <td>Sabzi Mandi Traders</td>
+                <td class="num k">30 kg</td>
+                <td><span class="st l">LOW</span></td>
+              </tr>
+              <tr>
+                <td class="k">Mutton shoulder</td>
+                <td class="num">100 kg</td><td class="num">66 kg</td>
+                <td class="num">4.5 d</td>
+                <td class="num">60 kg</td><td class="num">3 d</td>
+                <td>Bhai Khan Meats</td>
+                <td class="num k">60 kg</td>
+                <td><span class="st l">LOW</span></td>
+              </tr>
+              <tr>
+                <td class="k">Cooking oil</td>
+                <td class="num">96 L</td><td class="num">63 L</td>
+                <td class="num">4.6 d</td>
+                <td class="num">70 L</td><td class="num">3 d</td>
+                <td>Dalda Distribution</td>
+                <td class="num k">80 L</td>
+                <td><span class="st l">LOW</span></td>
+              </tr>
+              <tr>
+                <td class="k">Basmati sella rice</td>
+                <td class="num">340 kg</td><td class="num">96 kg</td>
+                <td class="num">10.6 d</td>
+                <td class="num">120 kg</td><td class="num">4 d</td>
+                <td>Kisan Foods</td>
+                <td class="num dim">—</td>
+                <td><span class="st o">OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex ac g8" style="padding:10px 14px;border-top:1px solid var(--line);
+             font-size:11px;color:var(--fg-dim)">
+          Critical when cover ≤ lead time + 1 day · Low ≤ lead time + 3 days · suggested qty rounds
+          to vendor pack size
+          <span class="spacer"></span><span class="gold b6">All 148 SKUs →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────────────────── drafted PO -->
+    <div class="rcol">
+      <div class="ai-band" style="display:flex;flex-direction:column">
+        <div class="po-h">
+          <div class="ins-ico gold" style="width:30px;height:30px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="card-t">Draft purchase order <span class="mono dim"
+              style="font-weight:450">PO-2026-0774</span></div>
+            <div class="card-s">Pre-filled by AI · awaiting your approval</div>
+          </div>
+          <span class="conf" title="confidence 5 of 5"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>
+        </div>
+
+        <div class="vend">
+          <div style="flex:1">
+            <div class="l">Vendor</div>
+            <div class="v">Al-Karam Poultry</div>
+            <div class="f11 dim" style="margin-top:1px"><span class="mono">CTR-2026-118</span> · OTIF 96%</div>
+          </div>
+          <div style="border-left:1px solid var(--line);padding-left:12px;flex:none;text-align:right">
+            <div class="l">Expected delivery</div>
+            <div class="v">Sun 24 Jul · 07:30</div>
+            <div class="f11 dim" style="margin-top:1px">2-day lead · before Sat close</div>
+          </div>
+        </div>
+
+        <div class="pol">
+          <div style="min-width:0">
+            <div class="n">Chicken boneless (skinless)</div>
+            <div class="s">240 kg @ Rs 699 · contract price locked</div>
+          </div>
+          <div class="amt"><b>Rs 167,760</b><span>covers to Mon 25 Jul</span></div>
+        </div>
+        <div class="pol">
+          <div style="min-width:0">
+            <div class="n">Chicken thigh boneless</div>
+            <div class="s">60 kg @ Rs 570 · karahi + handi recipes</div>
+          </div>
+          <div class="amt"><b>Rs 34,200</b><span>cover 3.1 d</span></div>
+        </div>
+
+        <div style="padding:10px 0 12px;border-top:1px solid var(--line);margin-top:2px">
+          <div class="sumr">Subtotal · 2 lines <b>Rs 201,960</b></div>
+          <div class="sumr">GST 16% <b>Rs 32,314</b></div>
+          <div class="sumr big">Order total <b>Rs 234,274</b></div>
+        </div>
+
+        <div class="insight" style="padding:10px 14px">
+          <div class="ins-body">
+            <div class="ins-why" style="align-items:flex-start;line-height:1.5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                style="width:12px;height:12px;flex:none;margin-top:2px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+              <span><b class="mut">Why this quantity:</b> 186 kg forecast demand to Mon 25 Jul plus
+                54 kg safety stock, rounded to the 20 kg crate. Sat–Sun runs <b class="mut">+36%</b>
+                above the weekday mean, Eid-adjacent seasonality adds <b class="mut">6%</b>, and the
+                2-day lead time means today is the last order date.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex ac g8" style="padding:0 14px 12px">
+          <span class="chip">3-way match at GRN</span>
+          <div class="spacer"></div>
+          <span class="btn sm ghost">Edit lines</span>
+          <span class="btn sm pri">Approve &amp; send</span>
+        </div>
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column;min-height:0">
+        <div class="card-h" style="padding:11px 14px">
+          <div>
+            <div class="card-t">Queued drafts</div>
+            <div class="card-s">Grouped by vendor · same-cycle delivery</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="chip gold">3 drafts</div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+          <div class="dr">
+            <div style="min-width:0">
+              <div class="n">Sabzi Mandi Traders</div>
+              <div class="s">Beef mince 120 kg · green chilli 30 kg · tomato 40 kg</div>
+              <div class="s">Deliver Sat 23 Jul · 06:00</div>
+            </div>
+            <div class="amt"><b>Rs 88,740</b><span>3 lines</span></div>
+          </div>
+          <div class="dr">
+            <div style="min-width:0">
+              <div class="n">Nurpur Dairy</div>
+              <div class="s">Fresh cream 45 L · yoghurt 60 kg</div>
+              <div class="s">Deliver Sat 23 Jul · 05:30</div>
+            </div>
+            <div class="amt"><b>Rs 41,260</b><span>2 lines</span></div>
+          </div>
+          <div class="dr">
+            <div style="min-width:0">
+              <div class="n">Bhai Khan Meats</div>
+              <div class="s">Mutton shoulder 60 kg</div>
+              <div class="s">Deliver Mon 25 Jul · 06:30</div>
+            </div>
+            <div class="amt"><b>Rs 62,400</b><span>1 line</span></div>
+          </div>
+        </div>
+        <div class="flex ac g8" style="padding:10px 14px;border-top:1px solid var(--line);
+             font-size:10.5px;color:var(--fg-dim)">
+          OPA policy: branch manager may approve ≤ Rs 250,000
+          <span class="spacer"></span><span class="gold b6">Review all →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('forecast', ['Bayleaf Group', 'Clifton, Karachi', 'Forecasting'],
+    `<div class="chip">Horizon 7 days</div>
+     <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

@@ -169,6 +169,7 @@ $pids["finance-service"] = Start-ServiceWindow "finance-service" "services/finan
 $pids["pos-service"] = Start-ServiceWindow "pos-service" "services/pos-service"
 $pids["kitchen-service"] = Start-ServiceWindow "kitchen-service" "services/kitchen-service"
 $pids["inventory-service"] = Start-ServiceWindow "inventory-service" "services/inventory-service"
+$pids["purchasing-service"] = Start-ServiceWindow "purchasing-service" "services/purchasing-service"
 
 Write-Step "Waiting for auth-service JWKS before gateway"
 if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 180)) {

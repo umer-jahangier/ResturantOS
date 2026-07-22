@@ -154,6 +154,9 @@
 - [x] **INV-10**: Operators author versioned recipes (menu item → ingredient lines with quantity + UOM + `effectiveFrom`) via the `/app/inventory` recipe-builder UI, selecting from the synced menu-item catalog
 - [x] **INV-11**: Recipe coverage is reportable (active menu items with/without an effective recipe); un-recipe'd sold lines still deplete covered lines and emit `DEPLETION_INCOMPLETE` (no silent no-op)
 - [x] **INV-12**: `ORDER_CLOSED` depletion is proven end-to-end against a live order — FEFO depletion + aggregate-MAC COGS + `STOCK_DEPLETED`
+- [ ] **INV-13**: Ingredient categories are first-class master data — a self-referencing tree hard-capped at 3 levels, CRUD + re-parent + archive through the UI, carrying default GL accounts inherited most-specific-wins; every ingredient has exactly one required primary category, and a category in use cannot be archived (RESTRICT, never cascade)
+- [ ] **INV-14**: Ingredients and units of measure are fully manageable through the UI — create/search/edit/archive with purchase/stock/recipe UOM + per-item conversions, AP→EP yield, par level, reorder point, storage location, shelf life and allergens; master data with transaction history is archived (`archived_at`), never hard-deleted
+- [ ] **INV-15**: An existing recipe's ingredient lines are viewable and revisable (new version pre-filled from current — never a destructive edit) with a live plate-cost panel (batch cost, cost/portion, food-cost %, per-line share of plate cost); coverage distinguishes "no recipe" from "recipe scheduled from `<date>`"; stock receipts, transfers, counts and opening balances are driveable from the UI and on-hand stock per branch is readable via a real endpoint
 
 ### Purchasing (PUR)
 
@@ -163,6 +166,8 @@
 - [x] **PUR-04**: Vendor-invoice 3-way match → AP; payment posts and `AP_PAYMENT_PROCESSED`
 - [x] **PUR-05**: Vendor performance scorecard — lead-time adherence (on-time delivery), fill rate, price variance per vendor
 - [x] **PUR-06**: Spend analytics by vendor and by category, with period comparison
+- [ ] **PUR-07**: Vendors carry a real item catalog — `vendor_item` (vendor SKU, pack size, purchase UOM, MOQ, lead time) linked to an ingredient, with append-only effective-dated `vendor_item_price` (never an in-place price update, so price-change history, contract compliance and historical costing all hold); vendor↔category tags exist only to filter pickers and suggest vendors, never to authorize a purchase
+- [ ] **PUR-08**: A purchase-order line is chosen from the vendor's catalog with a search-as-you-type picker showing pack size, vendor SKU and contract price (replacing the hand-typed ingredient UUID and free-text unit), and spend-by-category analytics is computed from real ingredient categories — `MockIngredientCategoryResolver` + `spend-category-map.yml` deleted
 
 ### Finance (FIN)
 
@@ -358,6 +363,9 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-10 | Phase 08.1 | Complete |
 | INV-11 | Phase 08.1 | Complete |
 | INV-12 | Phase 08.1 | Complete |
+| INV-13 | Phase 08.2 | Not started |
+| INV-14 | Phase 08.2 | Not started |
+| INV-15 | Phase 08.2 | Not started |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |
@@ -370,6 +378,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PUR-04 | Phase 10 (10-01/10-02) | Complete |
 | PUR-05 | Phase 10 (10-03) | Complete |
 | PUR-06 | Phase 10 (10-03) | Complete |
+| PUR-07 | Phase 08.2 | Not started |
+| PUR-08 | Phase 08.2 | Not started |
 | FIN-05 | Phase 10 (10-02/10-05 AP; 10-18 AR) + Phase 7 (POS charge-to-account tender) | In Progress |
 | HR-01 | Phase 11 | Pending |
 | HR-02 | Phase 11 | Pending |
@@ -386,7 +396,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 
 **Coverage:**
 
-- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE); +4 added for Phase 08.1 (INV-09..INV-12) = 116
+- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE); +4 added for Phase 08.1 (INV-09..INV-12) = 116; +5 added for Phase 08.2 (INV-13..INV-15, PUR-07..PUR-08) = 121
 - Mapped to phases: 116/116 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
 - 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)

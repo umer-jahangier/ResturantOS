@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 08.2
-current_phase_name: INSERTED
-status: ready_to_execute
+current_phase_name: inventory-master-data-procurement-catalog
+status: executing
 stopped_at: "Phase 08.2 planned — 20 plans across 5 waves, plan-checker VERIFICATION PASSED (iteration 2). Next: /gsd-execute-phase 08.2"
-last_updated: "2026-07-22T00:00:00.000Z"
+last_updated: "2026-07-22T20:40:49.294Z"
 last_activity: 2026-07-22
-last_activity_desc: Phase 08.2 planned — 20 plans, 5 waves, checker passed
+last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
@@ -24,13 +24,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 08.1 — pos-inventory-depletion-activation
+**Current focus:** Phase 08.2 — inventory-master-data-procurement-catalog
 
 ## Current Position
 
-Phase: 08.2 — Inventory Master Data & Procurement Catalog (INSERTED)
-Plan: 0 of 20 — PLANNED, ready to execute (`/gsd-execute-phase 08.2`)
-Status: 20 plans across 5 waves. Plan-checker returned VERIFICATION PASSED on iteration 2
+Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
+Plan: 1 of 20
+Status: Executing Phase 08.2
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
 Wave 1 (01-05, 20) = additive Flyway migrations (inventory V5, purchasing V5), the
@@ -90,7 +90,7 @@ registry asserted populated before sweep runs) — full module regression: 18 IT
 classes, all green. Tenant isolation on every domain table is completely unchanged. See
 08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-07-19 — Phase 08.1 complete, transitioned to Phase 10
+Last activity: 2026-07-22 — Phase 08.2 execution started
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>

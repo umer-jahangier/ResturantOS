@@ -1,13 +1,14 @@
 ﻿{
-    "user-service":  43348,
-    "gateway":  34288,
-    "pos-service":  14432,
-    "auth-service":  3576,
-    "file-service":  22992,
-    "kitchen-service":  40600,
-    "audit-service":  26268,
-    "frontend":  13244,
-    "authorization-service":  34392,
-    "platform-admin-service":  42524,
-    "finance-service":  44024
+    "user-service":  22668,
+    "gateway":  26184,
+    "pos-service":  13968,
+    "inventory-service":  8232,
+    "auth-service":  22920,
+    "file-service":  10664,
+    "kitchen-service":  22860,
+    "audit-service":  24092,
+    "frontend":  4440,
+    "authorization-service":  15180,
+    "platform-admin-service":  20976,
+    "finance-service":  26252
 }
