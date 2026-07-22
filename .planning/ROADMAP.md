@@ -385,7 +385,7 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 6/20 plans executed
+**Plans:** 7/20 plans executed
 
 Plans:
 
@@ -394,7 +394,7 @@ Plans:
 - [x] 08.2-03-PLAN.md
 - [x] 08.2-04-PLAN.md
 - [x] 08.2-05-PLAN.md
-- [ ] 08.2-06-PLAN.md
+- [x] 08.2-06-PLAN.md
 - [ ] 08.2-07-PLAN.md
 - [ ] 08.2-08-PLAN.md
 - [ ] 08.2-09-PLAN.md
@@ -417,7 +417,7 @@ Plans:
 - [x] 08.2-03: Recipe coverage distinguishes "no recipe" from "recipe scheduled from `<date>`" — closes the origin bug (INV-15)
 - [x] 08.2-04: Purchasing Flyway V5 — `vendor_items` + append-only effective-dated `vendor_item_price` (PUR-07, PUR-08)
 - [x] 08.2-05: Shared frontend foundation — new primitives, `calendarDateToInstant` extraction + local-midnight regression test, query keys (INV-13, INV-14, INV-15, PUR-07, PUR-08)
-- [ ] 08.2-20: Carried-over infra defects — gateway `resilience4j` circuitbreaker instances for inventory/purchasing/pos/kitchen + `start-dev.sh`/`local-service-env.sh` parity (INV-15, PUR-08)
+- [x] 08.2-20: Carried-over infra defects — gateway `resilience4j` circuitbreaker instances for inventory/purchasing/pos/kitchen + `start-dev.sh`/`local-service-env.sh` parity (INV-15, PUR-08)
 
 **Wave 2** *(blocked on Wave 1 — APIs over the new schema)*
 
