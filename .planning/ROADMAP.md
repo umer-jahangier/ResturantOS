@@ -385,13 +385,13 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 2/20 plans executed
+**Plans:** 3/20 plans executed
 
 Plans:
 
 - [x] 08.2-01-PLAN.md
 - [x] 08.2-02-PLAN.md
-- [ ] 08.2-03-PLAN.md
+- [x] 08.2-03-PLAN.md
 - [ ] 08.2-04-PLAN.md
 - [ ] 08.2-05-PLAN.md
 - [ ] 08.2-06-PLAN.md
@@ -413,7 +413,7 @@ Plans:
 **Wave 1** *(no dependencies — migrations, read seams and shared foundations run in parallel)*
 
 - [x] 08.2-01: Flyway V5 — `item_categories` self-referencing tree hard-capped at 3 levels by DB trigger + required `ingredients.category_id` backfilled from legacy free-text column (INV-13)
-- [ ] 08.2-02: First read path for `ingredient_branch_stock` — on-hand stock per branch (INV-15)
+- [x] 08.2-02: First read path for `ingredient_branch_stock` — on-hand stock per branch (INV-15)
 - [ ] 08.2-03: Recipe coverage distinguishes "no recipe" from "recipe scheduled from `<date>`" — closes the origin bug (INV-15)
 - [ ] 08.2-04: Purchasing Flyway V5 — `vendor_items` + append-only effective-dated `vendor_item_price` (PUR-07, PUR-08)
 - [ ] 08.2-05: Shared frontend foundation — new primitives, `calendarDateToInstant` extraction + local-midnight regression test, query keys (INV-13, INV-14, INV-15, PUR-07, PUR-08)

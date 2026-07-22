@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
-stopped_at: "Phase 08.2 planned — 20 plans across 5 waves, plan-checker VERIFICATION PASSED (iteration 2). Next: /gsd-execute-phase 08.2"
-last_updated: "2026-07-22T21:47:39.263Z"
+stopped_at: Completed 08.2-03-PLAN.md
+last_updated: "2026-07-22T22:14:40.943Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 92
+  completed_plans: 93
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 3 of 20
+Plan: 4 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -256,6 +256,7 @@ _Updated after each plan completion_
 | Phase 08.1 P06 | 45min | 3 tasks | 3 files |
 | Phase 08.2 P01 | 25min | 3 tasks | 7 files |
 | Phase 08.2 P02 | 40min | 3 tasks | 7 files |
+| Phase 08.2 P03 | 55min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -499,6 +500,7 @@ Recent decisions affecting current work:
 - [Phase ?]: Ingredient-creation compensating fix: IngredientRepository.resolveOrCreateCategoryId mirrors V5's own COALESCE(category,'Uncategorized') backfill rule so free-text category input keeps working against the new NOT NULL category_id until a later wave adds real category selection
 - [Phase ?]: categoryId/categoryName in StockLevelDto declared but left null in 08.2-02 -- populated by 08.2-09 once ingredient DTO exposes item_categories
 - [Phase ?]: Fixed cross-tenant leak in IngredientRepository.findByActiveTrue() by adding findByTenantIdAndActiveTrue(UUID) -- untenanted query was leaking every tenant's active ingredients into the stock read model
+- [Phase 08.2]: Kept CoverageResponse.missing additive (NO_RECIPE-only) alongside the new items[] three-state list to avoid breaking the pre-08.2-12 frontend/MSW contract — Plan 08.2-12 owns the frontend migration; this plan is backend-only and additive by design
 
 ### Pending Todos
 
@@ -542,9 +544,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-22T21:44:35.048Z
-Stopped at: Phase 08.2 UI-SPEC approved (6/6 dimensions; commits cce64ef + 9297e68). Next: /gsd-plan-phase 08.2
-Resume file: .planning/phases/08.2-inventory-master-data-procurement-catalog/08.2-UI-SPEC.md
+Last session: 2026-07-22T22:14:40.927Z
+Stopped at: Completed 08.2-03-PLAN.md
+Resume file: None
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
 Also stopped at (parallel plan): Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
