@@ -55,7 +55,7 @@ public class StockLevelService {
         Map<UUID, IngredientBranchStock> stockByIngredientId = stockRows.stream()
                 .collect(Collectors.toMap(IngredientBranchStock::getIngredientId, Function.identity()));
 
-        List<Ingredient> activeIngredients = ingredientRepository.findByActiveTrue();
+        List<Ingredient> activeIngredients = ingredientRepository.findByTenantIdAndActiveTrue(tenantId);
 
         // Union of every active ingredient (even with no stock row yet, rendered at zero
         // on-hand) plus any archived ingredient that still holds nonzero stock at this branch —

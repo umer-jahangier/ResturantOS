@@ -20,6 +20,16 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
     List<Ingredient> findByActiveTrue();
 
     /**
+     * Tenant-scoped variant of {@link #findByActiveTrue()} — carries an explicit
+     * {@code tenantId} predicate rather than relying on FORCE-RLS + the Hibernate tenant filter
+     * alone (the same defect class CONTEXT.md flags on
+     * {@code RecipeRepository.findByMenuItemIdOrderByVersionDesc}). Added for
+     * {@code StockLevelService.listStockLevels}, which otherwise leaked every tenant's active
+     * ingredients into the per-branch stock read model.
+     */
+    List<Ingredient> findByTenantIdAndActiveTrue(UUID tenantId);
+
+    /**
      * Idempotently ensures a root (level 1) {@code item_categories} row named {@code name}
      * exists for {@code tenantId} — mirrors V5__item_categories.sql's backfill INSERT verbatim
      * (same {@code uq_item_category_tenant_parent_name} conflict target), so a fresh category
