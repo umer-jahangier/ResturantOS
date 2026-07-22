@@ -10,10 +10,11 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Proves the 08-01 schema (V1__inventory_schema.sql + V2__shared_infra_tables.sql) applies
- * cleanly against a real Postgres via Flyway, AND that FORCE ROW LEVEL SECURITY + the
- * tenant_isolation policy are actually enforced at the pg_catalog level on domain tables —
- * the runtime proof of the T-8-XTEN mitigation (08-01's FORCE-RLS-from-V1 guarantee).
+ * Proves the 08-01 schema (V1__inventory_schema.sql + V2__shared_infra_tables.sql) plus the
+ * 08.2-01 V5__item_categories.sql addition applies cleanly against a real Postgres via Flyway,
+ * AND that FORCE ROW LEVEL SECURITY + the tenant_isolation policy are actually enforced at the
+ * pg_catalog level on domain tables — the runtime proof of the T-8-XTEN mitigation (08-01's
+ * FORCE-RLS-from-V1 guarantee, extended by V5's T-08.2-011 item_categories mitigation).
  *
  * Because the Testcontainers Postgres connection is a superuser, RLS row-visibility cannot
  * be exercised by attempting a cross-tenant SELECT (superusers bypass RLS regardless of
@@ -29,7 +30,7 @@ class SchemaMigrationIT extends InventoryTestBase {
     private static final List<String> DOMAIN_TABLES = List.of(
             "units_of_measure", "ingredients", "ingredient_branch_stock", "stock_lots",
             "recipes", "recipe_lines", "inventory_movements", "stock_transfers",
-            "stock_transfer_lines", "stock_counts", "stock_count_lines"
+            "stock_transfer_lines", "stock_counts", "stock_count_lines", "item_categories"
     );
 
     private static final List<String> INFRA_TABLES = List.of(
@@ -48,7 +49,7 @@ class SchemaMigrationIT extends InventoryTestBase {
         expected.addAll(INFRA_TABLES);
 
         assertThat(tables).containsAll(expected);
-        assertThat(DOMAIN_TABLES).hasSize(11);
+        assertThat(DOMAIN_TABLES).hasSize(12);
         assertThat(INFRA_TABLES).hasSize(3);
     }
 
@@ -65,6 +66,23 @@ class SchemaMigrationIT extends InventoryTestBase {
         Integer policyCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM pg_policies WHERE tablename = ? AND policyname = ?",
                 Integer.class, "ingredient_branch_stock", "tenant_isolation");
+
+        assertThat(policyCount).isEqualTo(1);
+    }
+
+    @Test
+    void itemCategories_hasForceRlsAndTenantIsolationPolicy() {
+        var rlsFlags = jdbcTemplate.queryForMap(
+                "SELECT relrowsecurity, relforcerowsecurity FROM pg_class "
+                        + "WHERE relname = ? AND relnamespace = 'public'::regnamespace",
+                "item_categories");
+
+        assertThat(rlsFlags.get("relrowsecurity")).isEqualTo(true);
+        assertThat(rlsFlags.get("relforcerowsecurity")).isEqualTo(true);
+
+        Integer policyCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_policies WHERE tablename = ? AND policyname = ?",
+                Integer.class, "item_categories", "tenant_isolation");
 
         assertThat(policyCount).isEqualTo(1);
     }
