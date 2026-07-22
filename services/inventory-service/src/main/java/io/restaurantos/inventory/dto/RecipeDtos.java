@@ -55,10 +55,36 @@ public final class RecipeDtos {
     public record MissingMenuItemDto(UUID menuItemId, String name) {}
 
     /**
-     * INV-11 recipe-coverage report: {@code totalActiveMenuItems} is the size of the tenant's
-     * active {@code menu_item_catalog} universe; {@code covered} is how many currently resolve an
-     * effective recipe via {@link io.restaurantos.inventory.service.RecipeService#resolveEffectiveRecipe};
-     * {@code missing} lists the rest.
+     * INV-15: the three-state coverage classification for a single active menu item, computed
+     * exclusively from {@code effective_from <= now()} — never from
+     * {@link io.restaurantos.inventory.domain.model.Recipe#isCurrent()}.
+     * {@code COVERED} has at least one version with {@code effectiveFrom <= now}; {@code SCHEDULED}
+     * has only future-dated versions ({@code scheduledFrom} is the earliest of them); {@code
+     * NO_RECIPE} has no versions at all.
      */
-    public record CoverageResponse(int totalActiveMenuItems, int covered, List<MissingMenuItemDto> missing) {}
+    public enum CoverageState { COVERED, SCHEDULED, NO_RECIPE }
+
+    /**
+     * INV-15: per-menu-item coverage detail. {@code scheduledFrom} is non-null only when {@code
+     * state == SCHEDULED}, in which case it is the earliest future {@code effectiveFrom} among the
+     * item's versions — the instant the item actually becomes covered.
+     */
+    public record MenuItemCoverageDto(
+            UUID menuItemId, String name, CoverageState state, Instant scheduledFrom) {}
+
+    /**
+     * INV-11/INV-15 recipe-coverage report: {@code totalActiveMenuItems} is the size of the
+     * tenant's active {@code menu_item_catalog} universe; {@code covered}/{@code scheduled}/
+     * {@code noRecipe} are the three-state counts. {@code items} is the authoritative three-state
+     * list the frontend must consume verbatim (never re-derive coverage state from a boolean).
+     * {@code missing} is retained for additive backward compatibility with the pre-08.2-03 shape
+     * and now means {@code NO_RECIPE} only — it no longer includes scheduled items.
+     */
+    public record CoverageResponse(
+            int totalActiveMenuItems,
+            int covered,
+            int scheduled,
+            int noRecipe,
+            List<MenuItemCoverageDto> items,
+            List<MissingMenuItemDto> missing) {}
 }

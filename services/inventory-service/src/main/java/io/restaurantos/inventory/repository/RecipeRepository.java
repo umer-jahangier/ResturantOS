@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,5 +28,14 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
             @Param("menuItemId") UUID menuItemId,
             @Param("atInstant") Instant atInstant);
 
-    List<Recipe> findByMenuItemIdOrderByVersionDesc(UUID menuItemId);
+    /** Tenant-scoped replacement for the deleted, un-scoped {@code findByMenuItemIdOrderByVersionDesc}. */
+    List<Recipe> findByTenantIdAndMenuItemIdOrderByVersionDesc(UUID tenantId, UUID menuItemId);
+
+    /**
+     * INV-15: batch fetch of every version for a set of menu items, most-recent-effective-first,
+     * for the coverage report's single grouping query (replaces an N+1 of per-item
+     * {@code resolveEffectiveRecipe} calls).
+     */
+    List<Recipe> findByTenantIdAndMenuItemIdInOrderByEffectiveFromDesc(
+            UUID tenantId, Collection<UUID> menuItemIds);
 }

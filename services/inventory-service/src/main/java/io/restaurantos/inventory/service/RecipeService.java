@@ -4,7 +4,9 @@ import io.restaurantos.inventory.domain.model.MenuItemCatalog;
 import io.restaurantos.inventory.domain.model.Recipe;
 import io.restaurantos.inventory.domain.model.RecipeLine;
 import io.restaurantos.inventory.dto.RecipeDtos.CoverageResponse;
+import io.restaurantos.inventory.dto.RecipeDtos.CoverageState;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
+import io.restaurantos.inventory.dto.RecipeDtos.MenuItemCoverageDto;
 import io.restaurantos.inventory.dto.RecipeDtos.MissingMenuItemDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeLineDto;
@@ -20,9 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Versioned recipe/BOM CRUD (INV-02) + the D-01 effective-version resolution seam that depletion
@@ -48,7 +53,8 @@ public class RecipeService {
     }
 
     public List<RecipeDto> listVersions(UUID menuItemId) {
-        return recipeRepository.findByMenuItemIdOrderByVersionDesc(menuItemId).stream()
+        UUID tenantId = tenantContext.requireTenantId();
+        return recipeRepository.findByTenantIdAndMenuItemIdOrderByVersionDesc(tenantId, menuItemId).stream()
                 .map(this::toDto)
                 .toList();
     }
@@ -72,23 +78,56 @@ public class RecipeService {
     }
 
     /**
-     * INV-11: left-join the tenant's active {@code menu_item_catalog} universe against the
-     * existing {@link #resolveEffectiveRecipe(UUID, Instant)} seam (as of "now") — no new
-     * resolution logic, just visibility into the gap 08-05 left silent.
+     * INV-15: three-state coverage report — {@code COVERED} / {@code SCHEDULED} / {@code
+     * NO_RECIPE} — computed in exactly two repository calls (no N+1 across the active menu). A
+     * single {@code now} is captured before classification so a slow report cannot classify two
+     * items against different clocks. Coverage state is derived exclusively from {@code
+     * effectiveFrom <= now} — {@link Recipe#isCurrent()} is never consulted here; that boolean is
+     * exactly what disagreed with this definition and caused the origin bug (CONTEXT.md).
      */
     public CoverageResponse getCoverage() {
         UUID tenantId = tenantContext.requireTenantId();
         List<MenuItemCatalog> activeItems = menuItemCatalogRepository.findByTenantIdAndActiveTrueOrderByNameAsc(tenantId);
 
-        List<MissingMenuItemDto> missing = new ArrayList<>();
+        List<UUID> menuItemIds = activeItems.stream().map(MenuItemCatalog::getMenuItemId).toList();
+        Map<UUID, List<Recipe>> versionsByMenuItem = menuItemIds.isEmpty()
+                ? Map.of()
+                : recipeRepository.findByTenantIdAndMenuItemIdInOrderByEffectiveFromDesc(tenantId, menuItemIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(Recipe::getMenuItemId, HashMap::new, Collectors.toList()));
+
         Instant now = Instant.now();
+        List<MenuItemCoverageDto> items = new ArrayList<>();
+        List<MissingMenuItemDto> missing = new ArrayList<>();
+        int covered = 0;
+        int scheduled = 0;
+        int noRecipe = 0;
+
         for (MenuItemCatalog item : activeItems) {
-            if (resolveEffectiveRecipe(item.getMenuItemId(), now).isEmpty()) {
+            List<Recipe> versions = versionsByMenuItem.getOrDefault(item.getMenuItemId(), List.of());
+
+            boolean hasEffective = versions.stream().anyMatch(r -> !r.getEffectiveFrom().isAfter(now));
+            Instant earliestFuture = versions.stream()
+                    .map(Recipe::getEffectiveFrom)
+                    .filter(effectiveFrom -> effectiveFrom.isAfter(now))
+                    .min(Instant::compareTo)
+                    .orElse(null);
+
+            if (hasEffective) {
+                covered++;
+                items.add(new MenuItemCoverageDto(item.getMenuItemId(), item.getName(), CoverageState.COVERED, null));
+            } else if (earliestFuture != null) {
+                scheduled++;
+                items.add(new MenuItemCoverageDto(
+                        item.getMenuItemId(), item.getName(), CoverageState.SCHEDULED, earliestFuture));
+            } else {
+                noRecipe++;
+                items.add(new MenuItemCoverageDto(item.getMenuItemId(), item.getName(), CoverageState.NO_RECIPE, null));
                 missing.add(new MissingMenuItemDto(item.getMenuItemId(), item.getName()));
             }
         }
 
-        return new CoverageResponse(activeItems.size(), activeItems.size() - missing.size(), missing);
+        return new CoverageResponse(activeItems.size(), covered, scheduled, noRecipe, items, missing);
     }
 
     @Transactional
@@ -99,7 +138,8 @@ public class RecipeService {
             throw new MenuItemNotFoundException(request.menuItemId());
         }
 
-        List<Recipe> priorVersions = recipeRepository.findByMenuItemIdOrderByVersionDesc(request.menuItemId());
+        List<Recipe> priorVersions =
+                recipeRepository.findByTenantIdAndMenuItemIdOrderByVersionDesc(tenantId, request.menuItemId());
 
         int nextVersion = priorVersions.stream().findFirst().map(r -> r.getVersion() + 1).orElse(1);
 
