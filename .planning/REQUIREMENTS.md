@@ -166,8 +166,8 @@
 - [x] **PUR-04**: Vendor-invoice 3-way match → AP; payment posts and `AP_PAYMENT_PROCESSED`
 - [x] **PUR-05**: Vendor performance scorecard — lead-time adherence (on-time delivery), fill rate, price variance per vendor
 - [x] **PUR-06**: Spend analytics by vendor and by category, with period comparison
-- [ ] **PUR-07**: Vendors carry a real item catalog — `vendor_item` (vendor SKU, pack size, purchase UOM, MOQ, lead time) linked to an ingredient, with append-only effective-dated `vendor_item_price` (never an in-place price update, so price-change history, contract compliance and historical costing all hold); vendor↔category tags exist only to filter pickers and suggest vendors, never to authorize a purchase
-- [ ] **PUR-08**: A purchase-order line is chosen from the vendor's catalog with a search-as-you-type picker showing pack size, vendor SKU and contract price (replacing the hand-typed ingredient UUID and free-text unit), and spend-by-category analytics is computed from real ingredient categories — `MockIngredientCategoryResolver` + `spend-category-map.yml` deleted
+- [x] **PUR-07**: Vendors carry a real item catalog — `vendor_item` (vendor SKU, pack size, purchase UOM, MOQ, lead time) linked to an ingredient, with append-only effective-dated `vendor_item_price` (never an in-place price update, so price-change history, contract compliance and historical costing all hold); vendor↔category tags exist only to filter pickers and suggest vendors, never to authorize a purchase
+- [x] **PUR-08**: A purchase-order line is chosen from the vendor's catalog with a search-as-you-type picker showing pack size, vendor SKU and contract price (replacing the hand-typed ingredient UUID and free-text unit), and spend-by-category analytics is computed from real ingredient categories — `MockIngredientCategoryResolver` + `spend-category-map.yml` deleted
 
 ### Finance (FIN)
 
