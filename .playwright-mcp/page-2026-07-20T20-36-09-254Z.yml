@@ -1,0 +1,93 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - complementary [ref=f5e3]:
+      - generic [ref=f5e4]: RestaurantOS
+      - navigation "Primary" [ref=f5e9]:
+        - generic [ref=f5e10]:
+          - paragraph [ref=f5e11]: Overview
+          - link "Dashboard" [ref=f5e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f5e94]:
+          - paragraph [ref=f5e95]: Orders
+          - generic [ref=f5e96]:
+            - link "POS" [ref=f5e98] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f5e105] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f5e109]:
+          - paragraph [ref=f5e110]: Menu
+          - link "Inventory" [ref=f5e113] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f5e125]:
+          - paragraph [ref=f5e126]: Purchasing
+          - link "Purchasing" [ref=f5e129] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f5e136]:
+          - paragraph [ref=f5e137]: People
+          - generic [ref=f5e138]:
+            - link "HR" [ref=f5e140] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f5e148] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f5e154]:
+          - paragraph [ref=f5e155]: Reporting
+          - generic [ref=f5e156]:
+            - link "Reporting" [ref=f5e158] [cursor=pointer]:
+              - /url: /app/reporting
+            - link "Reports" [ref=f5e163] [cursor=pointer]:
+              - /url: /app/reports
+            - link "Realtime Dashboard" [ref=f5e168] [cursor=pointer]:
+              - /url: /app/dashboard/realtime
+            - link "Ask (NLQ)" [ref=f5e174] [cursor=pointer]:
+              - /url: /app/nlq
+        - generic [ref=f5e21]:
+          - paragraph [ref=f5e22]: Settings
+          - generic [ref=f5e23]:
+            - link "General" [ref=f5e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f5e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f5e40]:
+        - generic [ref=f5e43]: Collapse
+    - generic [ref=f5e44]:
+      - banner [ref=f5e45]:
+        - navigation "Breadcrumb" [ref=f5e47]:
+          - generic [ref=f5e48]: App
+          - generic [ref=f5e50]: Dashboard
+          - generic [ref=f5e54]: Realtime
+        - generic [ref=f5e179]: Main Branch (HQ)
+        - generic [ref=f5e58]:
+          - button "Open command palette" [ref=f5e59]:
+            - generic [ref=f5e63]: Search…
+            - generic [ref=f5e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f5e66]
+          - button "Switch to light mode" [ref=f5e180]
+          - button "Open profile menu" [ref=f5e74]: C
+      - main [ref=f5e181]:
+        - generic [ref=f5e184]:
+          - generic [ref=f5e185]:
+            - generic [ref=f5e186]:
+              - heading "Realtime Dashboard" [level=1] [ref=f5e187]
+              - paragraph [ref=f5e188]: Updates automatically when an order or till closes.
+            - generic [ref=f5e189]: Live
+          - generic [ref=f5e192]:
+            - generic [ref=f5e193]:
+              - paragraph [ref=f5e194]: Today's Revenue
+              - text: Rs 10,579.20
+              - paragraph [ref=f5e195]: updated 15s ago
+            - generic [ref=f5e196]:
+              - paragraph [ref=f5e197]: Today's Orders
+              - text: "5"
+              - paragraph [ref=f5e198]: updated 15s ago
+            - generic [ref=f5e199]:
+              - paragraph [ref=f5e200]: Today's Tax
+              - text: Rs 1,459.20
+              - paragraph [ref=f5e201]: updated 15s ago
+            - generic [ref=f5e202]:
+              - paragraph [ref=f5e203]: Average Order Value
+              - text: Rs 2,115.84
+              - paragraph [ref=f5e204]: updated 15s ago
+  - status [ref=f5e84]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f5e90] [cursor=pointer]
+  - alert [ref=f5e205]

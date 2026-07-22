@@ -1,0 +1,72 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e119]:
+    - complementary [ref=f1e120]:
+      - generic [ref=f1e121]: RestaurantOS
+      - navigation "Primary" [ref=f1e126]:
+        - generic [ref=f1e127]:
+          - paragraph [ref=f1e128]: Overview
+          - link "Dashboard" [ref=f1e131] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f1e138]:
+          - paragraph [ref=f1e139]: Orders
+          - generic [ref=f1e140]:
+            - link "POS" [ref=f1e142] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f1e149] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f1e153]:
+          - paragraph [ref=f1e154]: Menu
+          - link "Inventory" [ref=f1e157] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f1e169]:
+          - paragraph [ref=f1e170]: Purchasing
+          - link "Purchasing" [ref=f1e173] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f1e180]:
+          - paragraph [ref=f1e181]: People
+          - generic [ref=f1e182]:
+            - link "HR" [ref=f1e184] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f1e192] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f1e198]:
+          - paragraph [ref=f1e199]: Reporting
+          - generic [ref=f1e200]:
+            - link "Reporting" [ref=f1e202] [cursor=pointer]:
+              - /url: /app/reporting
+            - link "Reports" [ref=f1e207] [cursor=pointer]:
+              - /url: /app/reports
+            - link "Realtime Dashboard" [ref=f1e212] [cursor=pointer]:
+              - /url: /app/dashboard/realtime
+            - link "Ask (NLQ)" [ref=f1e218] [cursor=pointer]:
+              - /url: /app/nlq
+        - generic [ref=f1e223]:
+          - paragraph [ref=f1e224]: Settings
+          - generic [ref=f1e225]:
+            - link "General" [ref=f1e227] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f1e233] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f1e242]:
+        - generic [ref=f1e245]: Collapse
+    - generic [ref=f1e246]:
+      - banner [ref=f1e247]:
+        - navigation "Breadcrumb" [ref=f1e249]:
+          - generic [ref=f1e250]: App
+          - generic [ref=f1e252]: Dashboard
+        - generic [ref=f1e256]: Main Branch (HQ)
+        - generic [ref=f1e257]:
+          - button "Open command palette" [ref=f1e258]:
+            - generic [ref=f1e262]: Search…
+            - generic [ref=f1e263]: ⌘K
+          - button "Notifications (3 unread)" [ref=f1e265]
+          - button "Switch to light mode" [ref=f1e270]
+          - button "Open profile menu" [ref=f1e273]: C
+      - main [ref=f1e274]:
+        - generic [ref=f1e276]:
+          - heading "Dashboard" [level=1] [ref=f1e277]
+          - paragraph [ref=f1e278]: Tenant app shell placeholder.
+  - status [ref=f1e78]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f1e103] [cursor=pointer]
+  - alert [ref=f1e107]: Dashboard

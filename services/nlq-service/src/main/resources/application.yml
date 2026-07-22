@@ -30,6 +30,14 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+  # REQUIRED — shared-lib's outbox/event wiring opens an AMQP connection at startup, and the broker
+  # only has the declarative `restaurantos` user (guest is removed). Without this block Spring
+  # defaults to guest/guest and the connection is refused (ACCESS_REFUSED), failing readiness.
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
+    password: ${RABBITMQ_PASSWORD:guest}
   cloud:
     config:
       uri: ${CONFIG_URI:http://localhost:8888}

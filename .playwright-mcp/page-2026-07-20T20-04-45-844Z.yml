@@ -1,0 +1,72 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e39]:
+    - complementary [ref=e40]:
+      - generic [ref=e41]: RestaurantOS
+      - navigation "Primary" [ref=e46]:
+        - generic [ref=e47]:
+          - paragraph [ref=e48]: Overview
+          - link "Dashboard" [ref=e51] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=e58]:
+          - paragraph [ref=e59]: Orders
+          - generic [ref=e60]:
+            - link "POS" [ref=e62] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=e69] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=e73]:
+          - paragraph [ref=e74]: Menu
+          - link "Inventory" [ref=e77] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=e89]:
+          - paragraph [ref=e90]: Purchasing
+          - link "Purchasing" [ref=e93] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=e100]:
+          - paragraph [ref=e101]: People
+          - generic [ref=e102]:
+            - link "HR" [ref=e104] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=e112] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=e118]:
+          - paragraph [ref=e119]: Reporting
+          - generic [ref=e120]:
+            - link "Reporting" [ref=e122] [cursor=pointer]:
+              - /url: /app/reporting
+            - link "Reports" [ref=e127] [cursor=pointer]:
+              - /url: /app/reports
+            - link "Realtime Dashboard" [ref=e132] [cursor=pointer]:
+              - /url: /app/dashboard/realtime
+            - link "Ask (NLQ)" [ref=e138] [cursor=pointer]:
+              - /url: /app/nlq
+        - generic [ref=e143]:
+          - paragraph [ref=e144]: Settings
+          - generic [ref=e145]:
+            - link "General" [ref=e147] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=e153] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=e162]:
+        - generic [ref=e165]: Collapse
+    - generic [ref=e166]:
+      - banner [ref=e167]:
+        - navigation "Breadcrumb" [ref=e169]:
+          - generic [ref=e170]: App
+          - generic [ref=e172]: Dashboard
+        - generic [ref=e176]: Main Branch (HQ)
+        - generic [ref=e177]:
+          - button "Open command palette" [ref=e178]:
+            - generic [ref=e182]: Search…
+            - generic [ref=e183]: ⌘K
+          - button "Notifications (3 unread)" [ref=e185]
+          - button "Switch to light mode" [ref=e190]
+          - button "Open profile menu" [ref=e193]: C
+      - main [ref=e194]:
+        - generic [ref=e196]:
+          - heading "Dashboard" [level=1] [ref=e197]
+          - paragraph [ref=e198]: Tenant app shell placeholder.
+  - status [ref=e20]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e26] [cursor=pointer]
+  - alert [ref=e30]

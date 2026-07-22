@@ -77,6 +77,36 @@ export PLATFORM_ADMIN_URI=http://127.0.0.1:8096
 export CONFIG_URI=http://127.0.0.1:8888
 export FAIL_OPEN_ON_PLATFORM_DOWN=true
 
+# pos-service (order lifecycle; publishes ORDER_CLOSED consumed by the dashboard/ETL)
+export POS_DB_URL=jdbc:postgresql://127.0.0.1:5432/pos_db
+export POS_DB_USER=pos_user
+export POS_DB_PASSWORD="${POS_DB_PASSWORD}"
+
+# kitchen-service (KDS routing + WebSocket board)
+export KITCHEN_DB_URL=jdbc:postgresql://127.0.0.1:5432/kitchen_db
+export KITCHEN_DB_USER=kitchen_user
+export KITCHEN_DB_PASSWORD="${KITCHEN_DB_PASSWORD}"
+
+# ClickHouse analytics store (host-run: docker 'clickhouse' hostname -> localhost). Shared by
+# reporting-service (default user, read path) and nlq-service (locked-down nlq_readonly user).
+export CLICKHOUSE_URL=http://127.0.0.1:8123
+export CLICKHOUSE_DB=clickhouse_analytics
+export CLICKHOUSE_USER=default
+export CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD}"
+export CLICKHOUSE_READONLY_USER="${CLICKHOUSE_READONLY_USER:-nlq_readonly}"
+export CLICKHOUSE_READONLY_PASSWORD="${CLICKHOUSE_READONLY_PASSWORD}"
+
+# reporting-service (ClickHouse-backed named reports + FBR + realtime dashboard WS) — Phase 12
+export REPORTING_DB_URL=jdbc:postgresql://127.0.0.1:5432/reporting_db
+export REPORTING_DB_USER=reporting_user
+export REPORTING_DB_PASSWORD="${REPORTING_DB_PASSWORD}"
+
+# nlq-service (NL->SQL via Claude, 7-stage AST validation) — Phase 12. ANTHROPIC_API_KEY is a
+# placeholder in deploy/.env by default; the live-Claude round-trip skips honestly without a real key.
+export NLQ_DB_URL=jdbc:postgresql://127.0.0.1:5432/nlq_db
+export NLQ_DB_USER=nlq_user
+export NLQ_DB_PASSWORD="${NLQ_DB_PASSWORD}"
+
 # Host-run mode: every service is on this machine, so register with Eureka on loopback.
 # The services default to prefer-ip-address, which advertises the LAN IP (e.g. 192.168.x.x).
 # That address changes with the network and is blocked by the macOS firewall for freshly-started

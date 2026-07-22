@@ -1,0 +1,26 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - navigation "Loading navigation" [ref=f6e3]
+    - generic [ref=f6e38]:
+      - banner [ref=f6e39]:
+        - navigation "Breadcrumb" [ref=f6e41]:
+          - generic [ref=f6e42]: App
+          - generic [ref=f6e44]: Dashboard
+          - generic [ref=f6e48]: Realtime
+        - generic [ref=f6e52]:
+          - button "Open command palette" [ref=f6e53]:
+            - generic [ref=f6e57]: Search…
+            - generic [ref=f6e58]: ⌘K
+          - button "Notifications (3 unread)" [ref=f6e60]
+          - button "Toggle theme" [disabled] [ref=f6e65]
+          - button "Open profile menu" [ref=f6e68]: U
+      - main [ref=f6e69]:
+        - generic [ref=f6e71]:
+          - generic [ref=f6e74]:
+            - heading "Access denied" [level=1] [ref=f6e75]
+            - paragraph [ref=f6e76]: You do not have permission to view this page.
+          - link "Back to dashboard" [ref=f6e77] [cursor=pointer]:
+            - /url: /app/dashboard
+  - status [ref=f6e78]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f6e84] [cursor=pointer]
