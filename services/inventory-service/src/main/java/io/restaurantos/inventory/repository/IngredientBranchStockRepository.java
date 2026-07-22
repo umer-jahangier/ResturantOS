@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,4 +28,12 @@ public interface IngredientBranchStockRepository extends JpaRepository<Ingredien
             @Param("ingredientId") UUID ingredientId);
 
     Optional<IngredientBranchStock> findByBranchIdAndIngredientId(UUID branchId, UUID ingredientId);
+
+    /**
+     * Read model for {@code GET /api/v1/inventory/stock} (INV-15). Carries an explicit
+     * {@code tenantId} predicate rather than relying on FORCE-RLS + the Hibernate tenant filter
+     * alone — the same defect CONTEXT.md flags on
+     * {@code RecipeRepository.findByMenuItemIdOrderByVersionDesc}.
+     */
+    List<IngredientBranchStock> findByTenantIdAndBranchIdOrderByIngredientIdAsc(UUID tenantId, UUID branchId);
 }
