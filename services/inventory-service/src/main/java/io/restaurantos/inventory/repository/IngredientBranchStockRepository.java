@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,4 +37,14 @@ public interface IngredientBranchStockRepository extends JpaRepository<Ingredien
      * {@code RecipeRepository.findByMenuItemIdOrderByVersionDesc}.
      */
     List<IngredientBranchStock> findByTenantIdAndBranchIdOrderByIngredientIdAsc(UUID tenantId, UUID branchId);
+
+    /**
+     * Batch read of every ingredient's per-branch moving-average cost for
+     * {@code RecipeCostPreviewService} — one query for the whole draft line array rather than one
+     * per line (T-08.2-074). Carries the same explicit {@code tenantId} predicate as
+     * {@link #findByTenantIdAndBranchIdOrderByIngredientIdAsc} rather than relying on FORCE-RLS +
+     * the Hibernate tenant filter alone.
+     */
+    List<IngredientBranchStock> findByTenantIdAndBranchIdAndIngredientIdIn(
+            UUID tenantId, UUID branchId, Collection<UUID> ingredientIds);
 }

@@ -34,6 +34,49 @@ public final class RecipeDtos {
             @NotBlank String uomCode,
             @PositiveOrZero BigDecimal yieldPct) {}
 
+    /**
+     * INV-15: draft cost-preview request for the live plate-cost panel. Reuses
+     * {@link RecipeLineRequest} verbatim so the preview payload and the create-version payload
+     * share an identical line shape — the frontend can send the same draft array to both.
+     * {@code tenantId} is intentionally absent (TenantContext/JWT only); {@code branchId} selects
+     * which branch's moving-average costs are read and must equal the caller's JWT branch claim
+     * (enforced in {@code RecipeController}, never trusted from the body).
+     */
+    public record PreviewRecipeCostRequest(
+            @NotNull UUID branchId,
+            UUID menuItemId,
+            @NotNull @Positive BigDecimal yieldServings,
+            @NotEmpty @Valid List<RecipeLineRequest> lines) {}
+
+    /**
+     * INV-15: a single preview line's costed (or excluded) result, one entry per
+     * {@link RecipeCostPreviewDto#lines()}. {@code lineCostPaisa} and {@code sharePctOfBatch} are
+     * null exactly when {@code warning} is non-null — a degraded line never carries a partial/
+     * misleading cost figure.
+     */
+    public record RecipeCostLineDto(
+            int index,
+            UUID ingredientId,
+            String ingredientName,
+            BigDecimal effectiveBaseQty,
+            Long lineCostPaisa,
+            Integer sharePctOfBatch,
+            String warning) {}
+
+    /**
+     * INV-15: the non-persisting plate-cost preview response — batch cost, cost per portion,
+     * food-cost % and each line's share of plate cost, per the UI contract (08.2-UI-SPEC.md
+     * Screen 3). {@code foodCostPct} is null whenever {@code menuItemPricePaisa} is null or zero.
+     */
+    public record RecipeCostPreviewDto(
+            long batchCostPaisa,
+            long portionCostPaisa,
+            BigDecimal yieldServings,
+            Long menuItemPricePaisa,
+            BigDecimal foodCostPct,
+            int excludedLineCount,
+            List<RecipeCostLineDto> lines) {}
+
     public record RecipeDto(
             UUID id,
             UUID menuItemId,
