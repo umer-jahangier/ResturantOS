@@ -59,4 +59,13 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
         ensureRootCategory(tenantId, name);
         return findRootCategoryId(tenantId, name);
     }
+
+    /**
+     * Counts ingredients assigned to {@code categoryId} — the D-04 archive-refusal gate for
+     * {@code ItemCategoryService.archive} (08.2-06). {@code Ingredient} has no {@code archivedAt}
+     * field until plan 08.2-09 adds it; until then every ingredient in the category counts,
+     * archived or not. TODO(08.2-09): tighten to {@code countByTenantIdAndCategoryIdAndArchivedAtIsNull}
+     * once {@code Ingredient.archivedAt} exists.
+     */
+    long countByTenantIdAndCategoryId(UUID tenantId, UUID categoryId);
 }
