@@ -385,12 +385,12 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 1/20 plans executed
+**Plans:** 2/20 plans executed
 
 Plans:
 
 - [x] 08.2-01-PLAN.md
-- [ ] 08.2-02-PLAN.md
+- [x] 08.2-02-PLAN.md
 - [ ] 08.2-03-PLAN.md
 - [ ] 08.2-04-PLAN.md
 - [ ] 08.2-05-PLAN.md
