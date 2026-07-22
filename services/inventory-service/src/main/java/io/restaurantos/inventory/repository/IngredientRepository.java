@@ -68,4 +68,13 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
      * once {@code Ingredient.archivedAt} exists.
      */
     long countByTenantIdAndCategoryId(UUID tenantId, UUID categoryId);
+
+    /**
+     * Ingredient count per {@code categoryId} for {@code tenantId} in a single grouped query —
+     * feeds {@code ItemCategoryService}'s list/tree DTOs' {@code ingredientCount} field without
+     * issuing one count query per node (08.2-PATTERNS.md's explicit "never one count query per
+     * node" instruction). Row shape: {@code [UUID categoryId, Long count]}.
+     */
+    @Query("SELECT i.categoryId, COUNT(i) FROM Ingredient i WHERE i.tenantId = :tenantId GROUP BY i.categoryId")
+    List<Object[]> countByTenantIdGroupedByCategory(@Param("tenantId") UUID tenantId);
 }

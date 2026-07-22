@@ -1,5 +1,6 @@
 package io.restaurantos.inventory.web;
 
+import io.restaurantos.inventory.exception.CategoryInUseException;
 import io.restaurantos.inventory.exception.MenuItemNotFoundException;
 import io.restaurantos.shared.api.ApiError;
 import org.slf4j.MDC;
@@ -27,5 +28,16 @@ public class InventoryExceptionHandler {
     public ResponseEntity<ApiError> handleMenuItemNotFound(MenuItemNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
+    }
+
+    /**
+     * D-04 archive-refusal (INV-13) — a category still referenced by a non-archived child or an
+     * ingredient is never deleted, it is refused with a 409 the "Archive category" dialog can
+     * render verbatim (08.2-UI-SPEC.md Copywriting Contract).
+     */
+    @ExceptionHandler(CategoryInUseException.class)
+    public ResponseEntity<ApiError> handleCategoryInUse(CategoryInUseException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiError.of("CATEGORY_IN_USE", ex.getMessage(), traceId()));
     }
 }
