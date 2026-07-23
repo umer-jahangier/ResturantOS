@@ -6,14 +6,14 @@ current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
 stopped_at: Completed 08.2-12-PLAN.md
-last_updated: "2026-07-23T20:35:39.009Z"
+last_updated: "2026-07-23T21:13:47.216Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 103
+  completed_plans: 104
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 13 of 20
+Plan: 14 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -267,6 +267,7 @@ _Updated after each plan completion_
 | Phase 08.2 P10 | ~50min | 3 tasks | 7 files |
 | Phase 08.2 P11 | 50min | 3 tasks | 9 files |
 | Phase 08.2 P12 | 45min | 3 tasks | 5 files |
+| Phase 08.2 P13 | 40min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -532,6 +533,8 @@ Recent decisions affecting current work:
 - [Phase 08.2]: Added MockIngredientCategoryAdapter (Uncategorized-only stub) so mock mode keeps exactly one IngredientCategoryResolver bean after the classpath mock was deleted, rather than leaving mock mode unimplemented
 - [Phase 08.2]: 08.2-12: apiItemCategoryNodeSchema's recursive type uses non-exported internal names (ItemCategoryValue/ItemCategoryNodeShape) instead of an inline z.infer to avoid a false-positive on the plan's own 'category: z' acceptance grep, while the actual zod field stays named category exactly as ItemCategoryNodeDto requires.
 - [Phase 08.2]: 08.2-12: useStockLevels appends search as an extra query-key tuple element (mirroring useCategories/useCategoryTree's includeArchived pattern) rather than extending the 08.2-05-owned stockLevels query-key factory's filters shape.
+- [Phase ?]: createPurchaseOrderLineInputSchema.vendorItemId uses uuid().or(literal('')) + a whole-object refine so an unpicked form row shows the friendly message only at submit time
+- [Phase ?]: Two purchasing endpoints (invoice detail, vendor price-changes) have no dedicated queryKeys.purchasing factory; built as manual purchasing/branchId tuples mirroring the registry's own shape
 
 ### Pending Todos
 
@@ -575,7 +578,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-23T20:35:38.456Z
+Last session: 2026-07-23T21:10:59.758Z
 Stopped at: Completed 08.2-12-PLAN.md
 Resume file: None
 None
