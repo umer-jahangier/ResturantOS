@@ -18,9 +18,9 @@ import java.util.UUID;
  * Internal ingredient-category resolution seam (08.2-09, D-09) — secured by the
  * {@code X-Internal-Service} shared-secret header ({@code InventoryInternalServiceFilter}), NOT
  * JWT/OPA (service-to-service, not user-facing). This is the seam purchasing-service's
- * spend-analytics category resolver (plan 08.2-11) calls, replacing the
- * {@code MockIngredientCategoryResolver} classpath-map mock (D-09: delete the mock, don't bypass
- * it). Mirrors {@link InternalGrnController}'s optional {@code X-Tenant-Id} header + manual
+ * spend-analytics category resolver (plan 08.2-11) calls, replacing the classpath-backed category
+ * mock deleted in that plan (D-09: delete the mock, don't bypass it). Mirrors
+ * {@link InternalGrnController}'s optional {@code X-Tenant-Id} header + manual
  * {@code tenantContext.set} fallback (Pitfall 5: a Feign client does not forward tenant context)
  * and its bare (NOT {@code ApiResponse}-wrapped) response body convention.
  *

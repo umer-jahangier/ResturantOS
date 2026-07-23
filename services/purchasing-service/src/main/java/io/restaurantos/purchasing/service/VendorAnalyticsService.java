@@ -140,9 +140,10 @@ public class VendorAnalyticsService {
 
     /**
      * PUR-06: spend aggregated by vendor and by category over [from, to], with a prior-period comparison.
-     * Spend is drawn only from MATCHED/PAID vendor invoices. Category is resolved mock-first via
-     * invoiceLine.poLineId -> PurchaseOrderLine.ingredientId -> {@link IngredientCategoryResolver}, so this
-     * has no Phase 8 / inventory-service dependency.
+     * Spend is drawn only from MATCHED/PAID vendor invoices. Category is resolved via
+     * invoiceLine.poLineId -> PurchaseOrderLine.ingredientId -> {@link IngredientCategoryResolver#resolveAll},
+     * called exactly once per report with the full distinct ingredient-id set across both windows
+     * (D-09/T-08.2-113) — never once per invoice line.
      *
      * <p>When {@code compareFrom}/{@code compareTo} are not supplied, the prior window defaults to an
      * equal-length window ending the day before {@code from}.
@@ -165,14 +166,15 @@ public class VendorAnalyticsService {
 
         Map<UUID, PurchaseOrderLine> poLinesById = loadPoLines(currentInvoices, priorInvoices);
         Map<UUID, String> vendorNamesById = loadVendorNames(currentInvoices, priorInvoices);
+        Map<UUID, String> categoryLabelsByIngredientId = resolveCategoryLabels(poLinesById);
 
         Map<UUID, Long> currentByVendor = new HashMap<>();
         Map<String, Long> currentByCategory = new HashMap<>();
-        aggregate(currentInvoices, poLinesById, currentByVendor, currentByCategory);
+        aggregate(currentInvoices, poLinesById, categoryLabelsByIngredientId, currentByVendor, currentByCategory);
 
         Map<UUID, Long> priorByVendor = new HashMap<>();
         Map<String, Long> priorByCategory = new HashMap<>();
-        aggregate(priorInvoices, poLinesById, priorByVendor, priorByCategory);
+        aggregate(priorInvoices, poLinesById, categoryLabelsByIngredientId, priorByVendor, priorByCategory);
 
         List<SpendBucketDto> byVendor = buildVendorBuckets(currentByVendor, priorByVendor, vendorNamesById);
         List<SpendBucketDto> byCategory = buildLabelBuckets(currentByCategory, priorByCategory);
@@ -216,7 +218,24 @@ public class VendorAnalyticsService {
         return result;
     }
 
+    /**
+     * Collects the distinct non-null ingredient ids referenced by the loaded PO lines and resolves
+     * them all in exactly one {@link IngredientCategoryResolver#resolveAll} call — the single seam
+     * both the current and prior aggregation windows read from, so a report never issues more than
+     * one category-resolution call regardless of invoice-line count (T-08.2-113).
+     */
+    private Map<UUID, String> resolveCategoryLabels(Map<UUID, PurchaseOrderLine> poLinesById) {
+        Set<UUID> ingredientIds = new HashSet<>();
+        for (PurchaseOrderLine line : poLinesById.values()) {
+            if (line.getIngredientId() != null) {
+                ingredientIds.add(line.getIngredientId());
+            }
+        }
+        return ingredientCategoryResolver.resolveAll(ingredientIds);
+    }
+
     private void aggregate(List<VendorInvoice> invoices, Map<UUID, PurchaseOrderLine> poLinesById,
+                           Map<UUID, String> categoryLabelsByIngredientId,
                            Map<UUID, Long> byVendor, Map<String, Long> byCategory) {
         for (VendorInvoice invoice : invoices) {
             for (VendorInvoiceLine line : invoice.getLines()) {
@@ -224,7 +243,9 @@ public class VendorAnalyticsService {
 
                 PurchaseOrderLine poLine = poLinesById.get(line.getPoLineId());
                 UUID ingredientId = poLine != null ? poLine.getIngredientId() : null;
-                String category = ingredientCategoryResolver.resolve(ingredientId);
+                String category = ingredientId != null
+                        ? categoryLabelsByIngredientId.getOrDefault(ingredientId, "Uncategorized")
+                        : "Uncategorized";
                 byCategory.merge(category, line.getLineTotalPaisa(), Long::sum);
             }
         }
