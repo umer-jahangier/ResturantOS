@@ -6,6 +6,14 @@
             http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
 
     <changeSet id="crm-1.0.0-900-seed-loyalty-config" author="restaurantos-agent" context="seed">
+        <!-- loyalty_tier_config has RLS: tenant_id must equal current_setting('app.current_tenant_id').
+             Liquibase runs as crm_user (NOSUPERUSER NOBYPASSRLS) with no tenant context, so the INSERT
+             below is rejected by the policy's WITH CHECK unless we set the GUC first. Without this the
+             service cannot start at all. The ITs never caught it because they run with
+             spring.liquibase.contexts="" and skip this changeset. -->
+        <sql>
+            SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000001', false);
+        </sql>
         <sql>
             INSERT INTO loyalty_tier_config (tenant_id, tier, min_lifetime_spend_paisa, points_per_pkr_paisa)
             SELECT '00000000-0000-0000-0000-000000000001'::uuid, tier, min_spend, 100
