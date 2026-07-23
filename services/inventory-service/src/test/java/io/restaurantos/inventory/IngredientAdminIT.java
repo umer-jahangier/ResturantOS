@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateIngredientRequest;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateUomRequest;
+import io.restaurantos.inventory.repository.IngredientRepository;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.security.JwtClaims;
@@ -40,18 +41,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * An INVENTORY_MANAGER can create/list/get ingredients and UOM over real HTTP dispatch (proving
  * {@code @Valid} + {@code GlobalExceptionHandler} + the OPA seam all actually fire); negative
  * reorder point and non-positive UOM factor are rejected 400 at the API boundary (T-8-NEGQTY).
+ * A required {@code categoryId} is seeded via {@code IngredientRepository.resolveOrCreateCategoryId}
+ * in {@code @BeforeEach} (08.2-09: category is now required at the API, not just the schema).
  */
 class IngredientAdminIT extends InventoryTestBase {
 
     @Autowired WebApplicationContext webApplicationContext;
     @Autowired TenantContext tenantContext;
     @Autowired ObjectMapper objectMapper;
+    @Autowired IngredientRepository ingredientRepository;
 
     @MockitoBean FeatureFlagService featureFlagService;
 
     MockMvc mockMvc;
     UUID tenantId;
     UUID branchId;
+    UUID categoryId;
 
     @BeforeEach
     void setUp() {
@@ -63,6 +68,7 @@ class IngredientAdminIT extends InventoryTestBase {
         tenantContext.set(tenantId, branchId, null, null);
         when(featureFlagService.isEnabled(any(), any())).thenReturn(true);
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
+        categoryId = ingredientRepository.resolveOrCreateCategoryId(tenantId, "Grains");
     }
 
     private RequestPostProcessor asManager() {
@@ -76,7 +82,9 @@ class IngredientAdminIT extends InventoryTestBase {
     @Test
     void managerCanCreateListAndGetIngredient() throws Exception {
         CreateIngredientRequest request = new CreateIngredientRequest(
-                "Basmati Rice", "SKU-RICE-001", "KG", "Grains", BigDecimal.valueOf(10));
+                "Basmati Rice", "SKU-RICE-001", "KG", categoryId,
+                null, null, null, null, null, null, null, null, null, null,
+                BigDecimal.valueOf(10), null, null, null);
 
         MvcResult createResult = mockMvc.perform(post("/api/v1/inventory/ingredients")
                         .with(asManager())
@@ -88,6 +96,8 @@ class IngredientAdminIT extends InventoryTestBase {
 
         JsonNode created = objectMapper.readTree(createResult.getResponse().getContentAsString()).path("data");
         assertThat(created.path("name").asText()).isEqualTo("Basmati Rice");
+        assertThat(created.path("categoryId").asText()).isEqualTo(categoryId.toString());
+        assertThat(created.path("categoryName").asText()).isEqualTo("Grains");
         assertThat(created.path("reorderPoint").decimalValue()).isEqualByComparingTo(BigDecimal.valueOf(10));
         String id = created.path("id").asText();
 
@@ -111,7 +121,23 @@ class IngredientAdminIT extends InventoryTestBase {
     @Test
     void negativeReorderPoint_isRejected() throws Exception {
         CreateIngredientRequest request = new CreateIngredientRequest(
-                "Bad Ingredient", "SKU-BAD-001", "KG", "Grains", BigDecimal.valueOf(-1));
+                "Bad Ingredient", "SKU-BAD-001", "KG", categoryId,
+                null, null, null, null, null, null, null, null, null, null,
+                BigDecimal.valueOf(-1), null, null, null);
+
+        mockMvc.perform(post("/api/v1/inventory/ingredients")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void missingCategoryId_isRejected() throws Exception {
+        CreateIngredientRequest request = new CreateIngredientRequest(
+                "No Category Ingredient", "SKU-NOCAT-001", "KG", null,
+                null, null, null, null, null, null, null, null, null, null,
+                BigDecimal.valueOf(5), null, null, null);
 
         mockMvc.perform(post("/api/v1/inventory/ingredients")
                         .with(asManager())

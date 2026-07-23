@@ -2,6 +2,7 @@ package io.restaurantos.inventory;
 
 import io.restaurantos.inventory.dto.InventoryDtos.CreateIngredientRequest;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateUomRequest;
+import io.restaurantos.inventory.repository.IngredientRepository;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.security.JwtClaims;
@@ -44,6 +45,7 @@ class InventoryAccessControlIT extends InventoryTestBase {
     @Autowired WebApplicationContext webApplicationContext;
     @Autowired TenantContext tenantContext;
     @Autowired ObjectMapper objectMapper;
+    @Autowired IngredientRepository ingredientRepository;
 
     @MockitoBean FeatureFlagService featureFlagService;
 
@@ -81,8 +83,11 @@ class InventoryAccessControlIT extends InventoryTestBase {
     void viewOnlyPrincipal_isDenied_onIngredientCreate() throws Exception {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(false));
 
+        UUID categoryId = ingredientRepository.resolveOrCreateCategoryId(tenantId, "Grains");
         CreateIngredientRequest request = new CreateIngredientRequest(
-                "Flour", "SKU-FLOUR-001", "KG", "Grains", BigDecimal.valueOf(5));
+                "Flour", "SKU-FLOUR-001", "KG", categoryId,
+                null, null, null, null, null, null, null, null, null, null,
+                BigDecimal.valueOf(5), null, null, null);
 
         mockMvc.perform(post("/api/v1/inventory/ingredients")
                         .with(asViewOnly())
@@ -108,8 +113,11 @@ class InventoryAccessControlIT extends InventoryTestBase {
     void inventoryManager_isAllowed_onIngredientCreateAndUomCreateAndRead() throws Exception {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
 
+        UUID categoryId = ingredientRepository.resolveOrCreateCategoryId(tenantId, "Grocery");
         CreateIngredientRequest ingredientRequest = new CreateIngredientRequest(
-                "Sugar", "SKU-SUGAR-001", "KG", "Grocery", BigDecimal.valueOf(20));
+                "Sugar", "SKU-SUGAR-001", "KG", categoryId,
+                null, null, null, null, null, null, null, null, null, null,
+                BigDecimal.valueOf(20), null, null, null);
         mockMvc.perform(post("/api/v1/inventory/ingredients")
                         .with(asInventoryManager())
                         .contentType(MediaType.APPLICATION_JSON)

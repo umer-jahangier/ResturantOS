@@ -84,8 +84,11 @@ class CategoryAdminIT extends InventoryTestBase {
         return objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
     }
 
-    private JsonNode createIngredient(String name, String sku, String category) throws Exception {
-        CreateIngredientRequest request = new CreateIngredientRequest(name, sku, "KG", category, BigDecimal.TEN);
+    private JsonNode createIngredient(String name, String sku, UUID categoryId) throws Exception {
+        CreateIngredientRequest request = new CreateIngredientRequest(
+                name, sku, "KG", categoryId,
+                null, null, null, null, null, null, null, null, null, null,
+                BigDecimal.TEN, null, null, null);
         MvcResult result = mockMvc.perform(post("/api/v1/inventory/ingredients")
                         .with(asManager())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -180,7 +183,7 @@ class CategoryAdminIT extends InventoryTestBase {
     void archivingACategoryWithIngredientsIsRefused() throws Exception {
         JsonNode category = createCategory(new CreateItemCategoryRequest(
                 null, "Dairy", null, null, null, null, null, null, null));
-        createIngredient("Milk", "SKU-MILK-001", "Dairy");
+        createIngredient("Milk", "SKU-MILK-001", UUID.fromString(category.path("id").asText()));
 
         String id = category.path("id").asText();
         mockMvc.perform(post("/api/v1/inventory/categories/" + id + "/archive").with(asManager()))
