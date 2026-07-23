@@ -30,7 +30,8 @@ class SchemaMigrationIT extends InventoryTestBase {
     private static final List<String> DOMAIN_TABLES = List.of(
             "units_of_measure", "ingredients", "ingredient_branch_stock", "stock_lots",
             "recipes", "recipe_lines", "inventory_movements", "stock_transfers",
-            "stock_transfer_lines", "stock_counts", "stock_count_lines", "item_categories"
+            "stock_transfer_lines", "stock_counts", "stock_count_lines", "item_categories",
+            "ingredient_uom_conversions", "ingredient_allergens"
     );
 
     private static final List<String> INFRA_TABLES = List.of(
@@ -49,7 +50,7 @@ class SchemaMigrationIT extends InventoryTestBase {
         expected.addAll(INFRA_TABLES);
 
         assertThat(tables).containsAll(expected);
-        assertThat(DOMAIN_TABLES).hasSize(12);
+        assertThat(DOMAIN_TABLES).hasSize(14);
         assertThat(INFRA_TABLES).hasSize(3);
     }
 
@@ -85,6 +86,55 @@ class SchemaMigrationIT extends InventoryTestBase {
                 Integer.class, "item_categories", "tenant_isolation");
 
         assertThat(policyCount).isEqualTo(1);
+    }
+
+    @Test
+    void ingredientUomConversions_hasForceRlsAndTenantIsolationPolicy() {
+        var rlsFlags = jdbcTemplate.queryForMap(
+                "SELECT relrowsecurity, relforcerowsecurity FROM pg_class "
+                        + "WHERE relname = ? AND relnamespace = 'public'::regnamespace",
+                "ingredient_uom_conversions");
+
+        assertThat(rlsFlags.get("relrowsecurity")).isEqualTo(true);
+        assertThat(rlsFlags.get("relforcerowsecurity")).isEqualTo(true);
+
+        Integer policyCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_policies WHERE tablename = ? AND policyname = ?",
+                Integer.class, "ingredient_uom_conversions", "tenant_isolation");
+
+        assertThat(policyCount).isEqualTo(1);
+    }
+
+    @Test
+    void ingredientAllergens_hasForceRlsAndTenantIsolationPolicy() {
+        var rlsFlags = jdbcTemplate.queryForMap(
+                "SELECT relrowsecurity, relforcerowsecurity FROM pg_class "
+                        + "WHERE relname = ? AND relnamespace = 'public'::regnamespace",
+                "ingredient_allergens");
+
+        assertThat(rlsFlags.get("relrowsecurity")).isEqualTo(true);
+        assertThat(rlsFlags.get("relforcerowsecurity")).isEqualTo(true);
+
+        Integer policyCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_policies WHERE tablename = ? AND policyname = ?",
+                Integer.class, "ingredient_allergens", "tenant_isolation");
+
+        assertThat(policyCount).isEqualTo(1);
+    }
+
+    /**
+     * D-07's third yield number as an executable claim, not just a migration comment: the guard
+     * that fails if a future edit strips {@code recipes.net_yield_pct} back out while the
+     * prep/sub-recipe builder is still deferred.
+     */
+    @Test
+    void recipeHeaderCarriesNetYieldPct() {
+        var column = jdbcTemplate.queryForMap(
+                "SELECT is_nullable, data_type FROM information_schema.columns "
+                        + "WHERE table_name = 'recipes' AND column_name = 'net_yield_pct'");
+
+        assertThat(column.get("is_nullable")).isEqualTo("NO");
+        assertThat(column.get("data_type")).isEqualTo("numeric");
     }
 
     @Test
