@@ -385,7 +385,7 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 14/20 plans executed
+**Plans:** 15/20 plans executed
 
 Plans:
 
@@ -402,7 +402,7 @@ Plans:
 - [x] 08.2-11-PLAN.md
 - [x] 08.2-12-PLAN.md
 - [x] 08.2-13-PLAN.md
-- [ ] 08.2-14-PLAN.md
+- [x] 08.2-14-PLAN.md
 - [ ] 08.2-15-PLAN.md
 - [ ] 08.2-16-PLAN.md
 - [ ] 08.2-17-PLAN.md
@@ -434,7 +434,7 @@ Plans:
 
 - [x] 08.2-11: Delete `MockIngredientCategoryResolver` + `spend-category-map.yml`; spend-by-category computed from real categories (PUR-08)
 - [x] 08.2-12: Inventory frontend data layer — Zod schemas, adapters, repositories, TanStack hooks (INV-01, INV-13, INV-14, INV-15)
-- [ ] 08.2-13: Purchasing frontend data layer — vendor catalog + catalog-driven PO line (PUR-07, PUR-08)
+- [x] 08.2-13: Purchasing frontend data layer — vendor catalog + catalog-driven PO line (PUR-07, PUR-08)
 
 **Wave 5** *(blocked on Wave 4 — user-facing screens)*
 
