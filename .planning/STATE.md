@@ -6,14 +6,14 @@ current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
 stopped_at: Completed 08.2-16-PLAN.md
-last_updated: "2026-07-23T22:56:45.688Z"
+last_updated: "2026-07-23T23:43:20.434Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 107
+  completed_plans: 108
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 17 of 20
+Plan: 18 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -271,6 +271,7 @@ _Updated after each plan completion_
 | Phase 08.2 P14 | 40min | 3 tasks | 6 files |
 | Phase 08.2 P15 | 50min | 3 tasks | 3 files |
 | Phase 08.2 P16 | 55min | 3 tasks | 6 files |
+| Phase 08.2 P17 | 60min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -545,6 +546,8 @@ Recent decisions affecting current work:
 - [Phase 08.2-15]: Grouped section headings use font-semibold (600), not font-medium — the UI-SPEC restricts font-medium to Label/FormLabel and the useFieldArray sub-heading exception only
 - [Phase 08.2]: 08.2-16: live cost panel derives useRecipeCostPreview input conditionally (draft lines while authoring, selected version's lines otherwise) to keep one hook call site for both read-only viewing and revision authoring — Avoids two separate preview queries and keeps the panel always showing a real cost breakdown, whether viewing a saved version or editing a draft
 - [Phase 08.2]: 08.2-16: coverage page and recipes index both show a per-menu-item version count via a per-row useRecipeVersions call (accepted N+1) since no bulk versions-for-every-menu-item endpoint exists — Each row's query is independently cached under the existing branch-scoped key; matches the detail page's own query shape
+- [Phase 08.2]: Added GET /api/v1/inventory/transfers/pending (backend) - the Transfer-receive UI had no list endpoint to drive itself from; mirrors StockLevelController own-branch-only enforcement
+- [Phase 08.2]: StockReceiptDialog omits vendor/PO-reference header fields - ReceiptDtos.ReceiveStockRequest has no such fields on the real backend contract
 
 ### Pending Todos
 
@@ -588,7 +591,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-23T22:56:45.661Z
+Last session: 2026-07-23T23:41:28.513Z
 Stopped at: Completed 08.2-16-PLAN.md
 Resume file: None
 None
