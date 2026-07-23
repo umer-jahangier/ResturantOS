@@ -365,7 +365,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-12 | Phase 08.1 | Complete |
 | INV-13 | Phase 08.2 | Not started |
 | INV-14 | Phase 08.2 | Not started |
-| INV-15 | Phase 08.2 | In progress (08.2-02: backend stock read endpoint delivered; 08.2-03: three-state recipe coverage server-side) |
+| INV-15 | Phase 08.2 | In progress (08.2-02: backend stock read endpoint delivered; 08.2-03: three-state recipe coverage server-side; 08.2-16: recipe detail/revision-authoring page + live plate-cost panel + three-state coverage UI delivered; stock-operations UI slice remains) |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |

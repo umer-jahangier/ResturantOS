@@ -385,7 +385,7 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 16/20 plans executed
+**Plans:** 17/20 plans executed
 
 Plans:
 
@@ -404,7 +404,7 @@ Plans:
 - [x] 08.2-13-PLAN.md
 - [x] 08.2-14-PLAN.md
 - [x] 08.2-15-PLAN.md
-- [ ] 08.2-16-PLAN.md
+- [x] 08.2-16-PLAN.md
 - [ ] 08.2-17-PLAN.md
 - [ ] 08.2-18-PLAN.md
 - [ ] 08.2-19-PLAN.md
@@ -439,7 +439,7 @@ Plans:
 **Wave 5** *(blocked on Wave 4 — user-facing screens)*
 
 - [x] 08.2-14: Ingredient-category management screen — recursive 3-level tree, create/edit, reparent, archive (INV-13)
-- [ ] 08.2-15: Ingredient master-data screen — searchable/filterable grid + grouped create-or-edit dialog (INV-01, INV-14)
+- [x] 08.2-15: Ingredient master-data screen — searchable/filterable grid + grouped create-or-edit dialog (INV-01, INV-14)
 - [ ] 08.2-16: Recipe detail + revision-authoring page with live plate-cost panel (INV-15)
 - [ ] 08.2-17: Stock screen — on-hand read view + receipts, transfers, counts, opening balances (INV-15)
 - [ ] 08.2-18: Vendor detail — catalog section, price-change history, filter-only category tags (PUR-07)
