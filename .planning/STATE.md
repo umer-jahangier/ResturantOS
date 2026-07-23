@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
-stopped_at: Completed 08.2-14-PLAN.md
-last_updated: "2026-07-23T21:47:32.413Z"
+stopped_at: Completed 08.2-15-PLAN.md
+last_updated: "2026-07-23T22:27:16.328Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 105
+  completed_plans: 106
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 15 of 20
+Plan: 16 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -269,6 +269,7 @@ _Updated after each plan completion_
 | Phase 08.2 P12 | 45min | 3 tasks | 5 files |
 | Phase 08.2 P13 | 40min | 3 tasks | 7 files |
 | Phase 08.2 P14 | 40min | 3 tasks | 6 files |
+| Phase 08.2 P15 | 50min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -539,6 +540,8 @@ Recent decisions affecting current work:
 - [Phase ?]: CategoryFormDialog gained optional open/onOpenChange props beyond the plan's literal signature, so tree-row Edit/Add-subcategory DropdownMenuItems (which have no button of their own for a DialogTrigger) can drive the same shared dialog the header's Add-category button uses.
 - [Phase ?]: GL-account chips render resolvedGlAccounts.*AccountCode (the server-resolved, most-specific-wins value), never the category's own possibly-null default field -- required for the inherited-account suffix to ever appear.
 - [Phase ?]: vitest.config.ts test.include widened to also match components/**/__tests__/**, since the existing __tests__/components/<domain>/** convention would never discover the plan's own literally-specified test path.
+- [Phase 08.2-15]: IngredientFormDialog gained a controlled open/onOpenChange pair (mirroring CategoryFormDialog's 08.2-14 pattern) so one shared instance serves both the header trigger and the row DropdownMenu Edit action
+- [Phase 08.2-15]: Grouped section headings use font-semibold (600), not font-medium — the UI-SPEC restricts font-medium to Label/FormLabel and the useFieldArray sub-heading exception only
 
 ### Pending Todos
 
@@ -582,8 +585,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-23T21:47:32.334Z
-Stopped at: Completed 08.2-14-PLAN.md
+Last session: 2026-07-23T22:27:16.297Z
+Stopped at: Completed 08.2-15-PLAN.md
 Resume file: None
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
