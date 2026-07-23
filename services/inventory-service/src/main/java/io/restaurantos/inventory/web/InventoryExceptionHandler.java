@@ -1,6 +1,7 @@
 package io.restaurantos.inventory.web;
 
 import io.restaurantos.inventory.exception.CategoryInUseException;
+import io.restaurantos.inventory.exception.IngredientCategoryInvalidException;
 import io.restaurantos.inventory.exception.MenuItemNotFoundException;
 import io.restaurantos.shared.api.ApiError;
 import org.slf4j.MDC;
@@ -39,5 +40,17 @@ public class InventoryExceptionHandler {
     public ResponseEntity<ApiError> handleCategoryInUse(CategoryInUseException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiError.of("CATEGORY_IN_USE", ex.getMessage(), traceId()));
+    }
+
+    /**
+     * T-08.2-093 / D-02 (08.2-09): the requested {@code categoryId} exists for the tenant but is
+     * archived, so it cannot be assigned as a primary category. A tenant-foreign or nonexistent
+     * id is instead a plain 404 via {@code ResourceNotFoundException} — this handler is only for
+     * "found, but not currently assignable."
+     */
+    @ExceptionHandler(IngredientCategoryInvalidException.class)
+    public ResponseEntity<ApiError> handleIngredientCategoryInvalid(IngredientCategoryInvalidException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiError.of("INGREDIENT_CATEGORY_INVALID", ex.getMessage(), traceId()));
     }
 }

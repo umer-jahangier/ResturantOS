@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,6 +19,20 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
     Optional<Ingredient> findBySku(String sku);
 
     List<Ingredient> findByActiveTrue();
+
+    /** Tenant-scoped, single-row lookup — used by write paths that must never touch a row
+     * belonging to another tenant even under a lapsed Hibernate tenant filter. */
+    Optional<Ingredient> findByTenantIdAndId(UUID tenantId, UUID id);
+
+    /** Default list surface (INV-14): live ingredients only, name-ordered for pickers. */
+    List<Ingredient> findByTenantIdAndArchivedAtIsNullOrderByNameAsc(UUID tenantId);
+
+    /** {@code status=ALL} list surface — every ingredient regardless of archive state. */
+    List<Ingredient> findByTenantIdOrderByNameAsc(UUID tenantId);
+
+    /** Bounded batch lookup for the internal category-resolution seam
+     * ({@code InternalIngredientCategoryController}) — one query regardless of batch size. */
+    List<Ingredient> findByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
     /**
      * Tenant-scoped variant of {@link #findByActiveTrue()} — carries an explicit
@@ -61,13 +76,12 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
     }
 
     /**
-     * Counts ingredients assigned to {@code categoryId} — the D-04 archive-refusal gate for
-     * {@code ItemCategoryService.archive} (08.2-06). {@code Ingredient} has no {@code archivedAt}
-     * field until plan 08.2-09 adds it; until then every ingredient in the category counts,
-     * archived or not. TODO(08.2-09): tighten to {@code countByTenantIdAndCategoryIdAndArchivedAtIsNull}
-     * once {@code Ingredient.archivedAt} exists.
+     * Counts LIVE (non-archived) ingredients assigned to {@code categoryId} — the D-04
+     * archive-refusal gate for {@code ItemCategoryService.archive} (08.2-06, tightened here in
+     * 08.2-09 now that {@code Ingredient.archivedAt} exists). An archived ingredient no longer
+     * blocks its category from being archived.
      */
-    long countByTenantIdAndCategoryId(UUID tenantId, UUID categoryId);
+    long countByTenantIdAndCategoryIdAndArchivedAtIsNull(UUID tenantId, UUID categoryId);
 
     /**
      * Ingredient count per {@code categoryId} for {@code tenantId} in a single grouped query —

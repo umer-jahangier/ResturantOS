@@ -182,7 +182,7 @@ public class ItemCategoryService {
     public void archive(UUID id) {
         UUID tenantId = tenantContext.requireTenantId();
         ItemCategory category = requireCategory(tenantId, id);
-        long ingredientCount = ingredientRepository.countByTenantIdAndCategoryId(tenantId, id);
+        long ingredientCount = ingredientRepository.countByTenantIdAndCategoryIdAndArchivedAtIsNull(tenantId, id);
         long childCount = itemCategoryRepository.countByTenantIdAndParentIdAndArchivedAtIsNull(tenantId, id);
         if (ingredientCount > 0 || childCount > 0) {
             throw new CategoryInUseException(id, ingredientCount, childCount);
