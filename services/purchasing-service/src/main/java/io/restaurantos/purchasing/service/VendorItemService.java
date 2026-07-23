@@ -10,12 +10,12 @@ import io.restaurantos.purchasing.dto.UpdateVendorItemRequest;
 import io.restaurantos.purchasing.dto.VendorCategoryDto;
 import io.restaurantos.purchasing.dto.VendorItemDto;
 import io.restaurantos.purchasing.dto.VendorItemPriceDto;
-import io.restaurantos.purchasing.exception.DuplicateVendorSkuException;
 import io.restaurantos.purchasing.repository.VendorCategoryRepository;
 import io.restaurantos.purchasing.repository.VendorItemPriceRepository;
 import io.restaurantos.purchasing.repository.VendorItemRepository;
 import io.restaurantos.purchasing.repository.VendorRepository;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
+import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -79,7 +79,7 @@ public class VendorItemService {
         requireVendor(tenantId, vendorId);
 
         if (vendorItemRepository.existsByTenantIdAndVendorIdAndVendorSku(tenantId, vendorId, req.vendorSku())) {
-            throw new DuplicateVendorSkuException(req.vendorSku());
+            throw new StateInvalidException("Duplicate vendor SKU for this vendor: " + req.vendorSku());
         }
 
         VendorItem item = new VendorItem();
