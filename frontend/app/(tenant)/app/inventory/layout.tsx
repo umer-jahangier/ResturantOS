@@ -8,9 +8,13 @@ import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { cn } from "@/lib/utils";
 
+// Owned by plan 08.2-14 for the whole phase — plans 08.2-15/16/17 must not modify this list.
 const TABS = [
+  { href: "/app/inventory/ingredients", label: "Ingredients" },
+  { href: "/app/inventory/categories", label: "Categories" },
   { href: "/app/inventory/recipes", label: "Recipes" },
   { href: "/app/inventory/coverage", label: "Coverage" },
+  { href: "/app/inventory/stock", label: "Stock" },
 ];
 
 function InventoryTabs() {
