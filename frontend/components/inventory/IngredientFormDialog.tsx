@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -149,7 +149,14 @@ function toIngredientInput(values: IngredientFormValues): Omit<IngredientInput, 
 interface IngredientFormDialogProps {
   /** Absent = create a new ingredient; present = edit that ingredient. */
   ingredient?: Ingredient;
-  trigger: React.ReactNode;
+  /** Uncontrolled usage (e.g. the page header's "Add ingredient" button): render a trigger and
+   * the dialog manages its own open state. Omit `trigger` and pass `open`/`onOpenChange` instead
+   * for controlled usage (e.g. a row's "Edit" action inside a DropdownMenu, which has no button
+   * of its own to serve as a DialogTrigger) — mirrors CategoryFormDialog's controlled-dialog
+   * extension (08.2-14). */
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -158,8 +165,15 @@ interface IngredientFormDialogProps {
  * field-array hook) mirroring RecipeFormDialog's dynamic-line-array shape, and a server-computed
  * measure-type lock (never re-derived in the browser).
  */
-export function IngredientFormDialog({ ingredient, trigger }: IngredientFormDialogProps) {
-  const [open, setOpen] = useState(false);
+export function IngredientFormDialog({
+  ingredient,
+  trigger,
+  open: openProp,
+  onOpenChange,
+}: IngredientFormDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : internalOpen;
   const isEdit = ingredient !== undefined;
   const locked = ingredient?.measureTypeLocked ?? false;
 
@@ -176,11 +190,18 @@ export function IngredientFormDialog({ ingredient, trigger }: IngredientFormDial
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "conversions" });
 
+  // Reset to the latest entity's values every time the dialog transitions to open — covers both
+  // the uncontrolled (trigger-click, which round-trips through handleOpenChange) and controlled
+  // (row-action-driven, which does not) opening paths with one code path (matches
+  // CategoryFormDialog's identical useEffect).
+  useEffect(() => {
+    if (open) form.reset(defaultsFor(ingredient));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   function handleOpenChange(next: boolean) {
-    setOpen(next);
-    // Reset on every open so an edit dialog always reflects the current ingredient, and a create
-    // dialog never retains the previous attempt's values (matches VendorFormDialog).
-    if (next) form.reset(defaultsFor(ingredient));
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
   }
 
   function onSubmit(values: IngredientFormValues) {
@@ -191,7 +212,7 @@ export function IngredientFormDialog({ ingredient, trigger }: IngredientFormDial
         {
           onSuccess: (saved) => {
             toast.success(`Updated ${saved.name}`);
-            setOpen(false);
+            handleOpenChange(false);
           },
           onError: (error) => {
             toast.error(error.message || "Could not save the ingredient. Please try again.");
@@ -204,7 +225,7 @@ export function IngredientFormDialog({ ingredient, trigger }: IngredientFormDial
         {
           onSuccess: (saved) => {
             toast.success(`Added ${saved.name}`);
-            setOpen(false);
+            handleOpenChange(false);
           },
           onError: (error) => {
             toast.error(error.message || "Could not save the ingredient. Please try again.");
@@ -218,7 +239,7 @@ export function IngredientFormDialog({ ingredient, trigger }: IngredientFormDial
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit ingredient" : "Add ingredient"}</DialogTitle>
@@ -672,7 +693,7 @@ export function IngredientFormDialog({ ingredient, trigger }: IngredientFormDial
         </TooltipProvider>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
           <Button type="submit" form="ingredient-form" disabled={mutation.isPending}>
