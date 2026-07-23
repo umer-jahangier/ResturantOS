@@ -15,6 +15,17 @@ const LINE_ID_2 = "e0000001-0000-4000-8000-000000000002";
 const ING_1 = "11111111-1111-4111-8111-111111110001";
 const ING_2 = "11111111-1111-4111-8111-111111110002";
 
+// 08.2-13 (PUR-07): vendor item catalog fixtures. VENDOR_ITEM_1 has two price rows so the
+// price-change history table has a real delta to render; VENDOR_ITEM_3 is archived (excluded from
+// the default catalog list, but its price history is preserved — nothing is ever deleted).
+const VENDOR_ITEM_1 = "a1000001-0000-4000-8000-000000000001";
+const VENDOR_ITEM_2 = "a1000001-0000-4000-8000-000000000002";
+const VENDOR_ITEM_3 = "a1000001-0000-4000-8000-000000000003";
+const VENDOR_ITEM_PRICE_1A = "a2000001-0000-4000-8000-000000000001";
+const VENDOR_ITEM_PRICE_1B = "a2000001-0000-4000-8000-000000000002";
+const VENDOR_ITEM_PRICE_2A = "a2000001-0000-4000-8000-000000000003";
+const VENDOR_CATEGORY_PRODUCE = "a3000001-0000-4000-8000-000000000001";
+
 let poStatus = "SENT";
 // Per-line received-to-date, keyed by poLineId — the regression pin for the "one qty broadcast to
 // every line" bug (10-12 gap closure). Ordered qty: LINE_ID=100, LINE_ID_2=50.
@@ -82,6 +93,8 @@ function matchLineStatus(receivedQty: number, invQty: number, poPrice: number, i
   return "OK";
 }
 
+// 08.2-13 (PUR-08): vendorItemId/vendorSku/packDescription/priceOverridden are all null for a
+// legacy (hand-typed-ingredient) line — only lines created from vendorItemId populate them.
 interface MockPoLine {
   id: string;
   ingredientId: string;
@@ -89,6 +102,10 @@ interface MockPoLine {
   uom: string;
   unitPricePaisa: number;
   lineTotalPaisa: number;
+  vendorItemId: string | null;
+  vendorSku: string | null;
+  packDescription: string | null;
+  priceOverridden: boolean;
 }
 
 interface MockPo {
@@ -108,12 +125,26 @@ interface MockPo {
   lines: MockPoLine[];
 }
 
+/**
+ * A PO-creation line body may carry EITHER `vendorItemId` (08.2-10's catalog-driven path — `uom`/
+ * `unitPricePaisa` optional, server-filled from the catalog) OR the legacy hand-typed
+ * `ingredientId`+`uom`+`unitPricePaisa`, mirroring `CreatePurchaseOrderRequest.Line`'s real
+ * mutually-exclusive contract.
+ */
+interface CreatePoLineBody {
+  vendorItemId?: string;
+  ingredientId?: string;
+  qty: string;
+  uom?: string;
+  unitPricePaisa?: number;
+}
+
 interface CreatePoBody {
   vendorId: string;
   branchId: string;
   expectedDeliveryDate?: string | null;
   notes?: string | null;
-  lines: { ingredientId: string; qty: string; uom: string; unitPricePaisa: number }[];
+  lines: CreatePoLineBody[];
 }
 
 /**
@@ -144,6 +175,10 @@ const purchaseOrders: MockPo[] = [
         uom: "kg",
         unitPricePaisa: 1000,
         lineTotalPaisa: 100_000,
+        vendorItemId: null,
+        vendorSku: null,
+        packDescription: null,
+        priceOverridden: false,
       },
       {
         id: LINE_ID_2,
@@ -152,10 +187,172 @@ const purchaseOrders: MockPo[] = [
         uom: "kg",
         unitPricePaisa: 1000,
         lineTotalPaisa: 50_000,
+        vendorItemId: null,
+        vendorSku: null,
+        packDescription: null,
+        priceOverridden: false,
       },
     ],
   },
 ];
+
+// ── Vendor item catalog (PUR-07) ────────────────────────────────────────────────────────────
+
+interface MockVendorItem {
+  id: string;
+  vendorId: string;
+  ingredientId: string;
+  vendorSku: string | null;
+  vendorDescription: string | null;
+  orderUom: string;
+  packDescription: string | null;
+  packQty: string;
+  packUom: string;
+  minOrderQty: string | null;
+  orderMultiple: string | null;
+  leadTimeDays: number | null;
+  preferred: boolean;
+  catchWeight: boolean;
+  archivedAt: string | null;
+}
+
+interface MockVendorItemPrice {
+  id: string;
+  vendorItemId: string;
+  branchId: string | null;
+  unitPricePaisa: number;
+  priceUom: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  source: string | null;
+  contractPrice: boolean;
+}
+
+interface MockVendorCategory {
+  categoryId: string;
+  categoryName: string;
+  preferred: boolean;
+}
+
+/** Two vendors, three catalog items (one archived) — VENDOR_ITEM_1 carries two price rows. */
+const vendorItems: MockVendorItem[] = [
+  {
+    id: VENDOR_ITEM_1,
+    vendorId: VENDOR_ID,
+    ingredientId: ING_1,
+    vendorSku: "FF-CHKN-01",
+    vendorDescription: "Chicken breast, boneless",
+    orderUom: "kg",
+    packDescription: "10kg case",
+    packQty: "10",
+    packUom: "kg",
+    minOrderQty: "10",
+    orderMultiple: "10",
+    leadTimeDays: 2,
+    preferred: true,
+    catchWeight: false,
+    archivedAt: null,
+  },
+  {
+    id: VENDOR_ITEM_2,
+    vendorId: VENDOR_ID,
+    ingredientId: ING_2,
+    vendorSku: "FF-TOM-01",
+    vendorDescription: "Roma tomatoes",
+    orderUom: "kg",
+    packDescription: "5kg crate",
+    packQty: "5",
+    packUom: "kg",
+    minOrderQty: "5",
+    orderMultiple: "5",
+    leadTimeDays: 1,
+    preferred: false,
+    catchWeight: false,
+    archivedAt: null,
+  },
+  {
+    id: VENDOR_ITEM_3,
+    vendorId: VENDOR_ID,
+    ingredientId: ING_1,
+    vendorSku: "FF-CHKN-02",
+    vendorDescription: "Chicken breast, bulk pack (discontinued)",
+    orderUom: "kg",
+    packDescription: "25kg case",
+    packQty: "25",
+    packUom: "kg",
+    minOrderQty: "25",
+    orderMultiple: "25",
+    leadTimeDays: 3,
+    preferred: false,
+    catchWeight: false,
+    archivedAt: "2026-05-01T00:00:00Z",
+  },
+];
+
+/** VENDOR_ITEM_1's two rows: PRICE_1A is the closed (superseded) row, PRICE_1B is the open one. */
+const vendorItemPrices: MockVendorItemPrice[] = [
+  {
+    id: VENDOR_ITEM_PRICE_1A,
+    vendorItemId: VENDOR_ITEM_1,
+    branchId: null,
+    unitPricePaisa: 90_000,
+    priceUom: "kg",
+    effectiveFrom: "2026-05-01T00:00:00Z",
+    effectiveTo: "2026-06-01T00:00:00Z",
+    source: "manual",
+    contractPrice: false,
+  },
+  {
+    id: VENDOR_ITEM_PRICE_1B,
+    vendorItemId: VENDOR_ITEM_1,
+    branchId: null,
+    unitPricePaisa: 95_000,
+    priceUom: "kg",
+    effectiveFrom: "2026-06-01T00:00:00Z",
+    effectiveTo: null,
+    source: "manual",
+    contractPrice: false,
+  },
+  {
+    id: VENDOR_ITEM_PRICE_2A,
+    vendorItemId: VENDOR_ITEM_2,
+    branchId: null,
+    unitPricePaisa: 25_000,
+    priceUom: "kg",
+    effectiveFrom: "2026-06-01T00:00:00Z",
+    effectiveTo: null,
+    source: "manual",
+    contractPrice: false,
+  },
+];
+
+const vendorCategoriesByVendor: Record<string, MockVendorCategory[]> = {
+  [VENDOR_ID]: [{ categoryId: VENDOR_CATEGORY_PRODUCE, categoryName: "Produce", preferred: true }],
+  [VENDOR_B_ID]: [],
+};
+
+/** The row whose window (`effectiveFrom <= now`, `effectiveTo` null or in the future) covers now. */
+function currentPriceFor(vendorItemId: string): MockVendorItemPrice | undefined {
+  const now = Date.now();
+  return vendorItemPrices
+    .filter((p) => p.vendorItemId === vendorItemId)
+    .filter(
+      (p) =>
+        new Date(p.effectiveFrom).getTime() <= now &&
+        (!p.effectiveTo || new Date(p.effectiveTo).getTime() > now),
+    )
+    .sort((a, b) => new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime())[0];
+}
+
+function toVendorItemDto(item: MockVendorItem) {
+  const price = currentPriceFor(item.id);
+  return {
+    ...item,
+    currentUnitPricePaisa: price?.unitPricePaisa ?? null,
+    currentPriceUom: price?.priceUom ?? null,
+    currentPriceEffectiveFrom: price?.effectiveFrom ?? null,
+  };
+}
 
 /** Approvers already recorded per PO id — mirrors 10-07's distinct-approver rule. */
 const approversByPo: Record<string, Set<string>> = {};
@@ -298,6 +495,189 @@ export const purchasingHandlers = [
     return ok(updated);
   }),
 
+  // ── Vendor item catalog (PUR-07) ──────────────────────────────────────────────────────────
+
+  // Paginated, excludes archived rows by default, attaches the currently effective price to each
+  // row — mirrors VendorItemController#list + VendorItemDto's current-price trio.
+  http.get("*/api/v1/purchasing/vendors/:vendorId/items", ({ params, request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? "0");
+    const size = Number(url.searchParams.get("size") ?? "20");
+    const rows = vendorItems.filter((v) => v.vendorId === params.vendorId && !v.archivedAt).map(toVendorItemDto);
+    const start = page * size;
+    const pageRows = rows.slice(start, start + size);
+    return HttpResponse.json({
+      data: pageRows,
+      meta: { page, size, totalElements: rows.length, totalPages: Math.max(1, Math.ceil(rows.length / size)) },
+      warnings: [],
+    });
+  }),
+
+  // Create a catalog item; an initialUnitPricePaisa seeds the first price row (append-only, via
+  // the same currentPriceFor()-backed resolution as every other write path in this file).
+  http.post("*/api/v1/purchasing/vendors/:vendorId/items", async ({ params, request }) => {
+    const body = (await request.json()) as {
+      ingredientId: string;
+      vendorSku?: string;
+      vendorDescription?: string;
+      orderUom: string;
+      packDescription?: string;
+      packQty: string;
+      packUom: string;
+      minOrderQty?: string;
+      orderMultiple?: string;
+      leadTimeDays?: number;
+      preferred?: boolean;
+      catchWeight?: boolean;
+      initialUnitPricePaisa?: number;
+      initialPriceUom?: string;
+      initialPriceEffectiveFrom?: string;
+    };
+    if (!body.ingredientId || !body.orderUom?.trim() || !body.packQty || !body.packUom?.trim()) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "ingredientId, orderUom, packQty and packUom are required",
+        400,
+      );
+    }
+    const seq = String(vendorItems.length + 1).padStart(12, "0");
+    const created: MockVendorItem = {
+      id: `a1000001-0000-4000-8000-${seq}`,
+      vendorId: params.vendorId as string,
+      ingredientId: body.ingredientId,
+      vendorSku: body.vendorSku ?? null,
+      vendorDescription: body.vendorDescription ?? null,
+      orderUom: body.orderUom,
+      packDescription: body.packDescription ?? null,
+      packQty: body.packQty,
+      packUom: body.packUom,
+      minOrderQty: body.minOrderQty ?? null,
+      orderMultiple: body.orderMultiple ?? null,
+      leadTimeDays: body.leadTimeDays ?? null,
+      preferred: body.preferred ?? false,
+      catchWeight: body.catchWeight ?? false,
+      archivedAt: null,
+    };
+    vendorItems.push(created);
+    if (body.initialUnitPricePaisa != null) {
+      const priceSeq = String(vendorItemPrices.length + 1).padStart(12, "0");
+      vendorItemPrices.push({
+        id: `a2000001-0000-4000-8000-${priceSeq}`,
+        vendorItemId: created.id,
+        branchId: null,
+        unitPricePaisa: body.initialUnitPricePaisa,
+        priceUom: body.initialPriceUom ?? body.orderUom,
+        effectiveFrom: body.initialPriceEffectiveFrom ?? new Date().toISOString(),
+        effectiveTo: null,
+        source: "manual",
+        contractPrice: false,
+      });
+    }
+    return ok(toVendorItemDto(created));
+  }),
+
+  // Update a catalog row's pack/UOM/MOQ/lead-time fields — no ingredient reference here (immutable
+  // once set) and no price field (price changes go exclusively through the /prices endpoint below).
+  http.put("*/api/v1/purchasing/vendor-items/:id", async ({ params, request }) => {
+    const idx = vendorItems.findIndex((v) => v.id === params.id);
+    if (idx === -1) return apiError("NOT_FOUND", "Vendor item not found", 404);
+    const body = (await request.json()) as Partial<MockVendorItem>;
+    vendorItems[idx] = { ...vendorItems[idx]!, ...body, id: vendorItems[idx]!.id, vendorId: vendorItems[idx]!.vendorId };
+    return ok(toVendorItemDto(vendorItems[idx]!));
+  }),
+
+  // Archive a catalog row — a POST sub-resource, never a DELETE. Price history is untouched.
+  http.post("*/api/v1/purchasing/vendor-items/:id/archive", ({ params }) => {
+    const idx = vendorItems.findIndex((v) => v.id === params.id);
+    if (idx === -1) return apiError("NOT_FOUND", "Vendor item not found", 404);
+    vendorItems[idx] = { ...vendorItems[idx]!, archivedAt: new Date().toISOString() };
+    return ok(toVendorItemDto(vendorItems[idx]!));
+  }),
+
+  http.get("*/api/v1/purchasing/vendor-items/:id/prices", ({ params }) =>
+    ok(vendorItemPrices.filter((p) => p.vendorItemId === params.id)),
+  ),
+
+  /**
+   * Record a new price. This handler APPENDS a new row and closes the prior open row's
+   * `effectiveTo` — it never overwrites a prior row's `unitPricePaisa`, mirroring
+   * `VendorItemPriceService.recordNewPrice` exactly. There is no corresponding update-price
+   * handler anywhere in this file.
+   */
+  http.post("*/api/v1/purchasing/vendor-items/:id/prices", async ({ params, request }) => {
+    const vendorItemId = params.id as string;
+    if (!vendorItems.some((v) => v.id === vendorItemId)) {
+      return apiError("NOT_FOUND", "Vendor item not found", 404);
+    }
+    const body = (await request.json()) as {
+      unitPricePaisa: number;
+      priceUom: string;
+      effectiveFrom?: string;
+      branchId?: string;
+      contractPrice?: boolean;
+      source?: string;
+    };
+    if (body.unitPricePaisa == null || !body.priceUom?.trim()) {
+      return apiError("VALIDATION_ERROR", "unitPricePaisa and priceUom are required", 400);
+    }
+    const effectiveFrom = body.effectiveFrom ?? new Date().toISOString();
+    const openRow = vendorItemPrices.find((p) => p.vendorItemId === vendorItemId && p.effectiveTo === null);
+    if (openRow) openRow.effectiveTo = effectiveFrom;
+    const seq = String(vendorItemPrices.length + 1).padStart(12, "0");
+    const created: MockVendorItemPrice = {
+      id: `a2000001-0000-4000-8000-${seq}`,
+      vendorItemId,
+      branchId: body.branchId ?? null,
+      unitPricePaisa: body.unitPricePaisa,
+      priceUom: body.priceUom,
+      effectiveFrom,
+      effectiveTo: null,
+      source: body.source ?? "manual",
+      contractPrice: body.contractPrice ?? false,
+    };
+    vendorItemPrices.push(created);
+    return ok(created);
+  }),
+
+  // PUR-05/PUR-07: chronological price-change report with HALF_UP-style percentage deltas.
+  http.get("*/api/v1/purchasing/vendors/:vendorId/price-changes", ({ params }) => {
+    const itemIds = new Set(vendorItems.filter((v) => v.vendorId === params.vendorId).map((v) => v.id));
+    const rows = vendorItemPrices
+      .filter((p) => itemIds.has(p.vendorItemId))
+      .sort((a, b) => new Date(a.effectiveFrom).getTime() - new Date(b.effectiveFrom).getTime());
+    const changes = rows.map((row, idx) => {
+      const item = vendorItems.find((v) => v.id === row.vendorItemId);
+      const previous = rows
+        .slice(0, idx)
+        .reverse()
+        .find((r) => r.vendorItemId === row.vendorItemId);
+      const deltaPct = previous
+        ? Number((((row.unitPricePaisa - previous.unitPricePaisa) / previous.unitPricePaisa) * 100).toFixed(2))
+        : null;
+      return {
+        vendorItemId: row.vendorItemId,
+        vendorSku: item?.vendorSku ?? null,
+        vendorDescription: item?.vendorDescription ?? null,
+        previousUnitPricePaisa: previous?.unitPricePaisa ?? null,
+        newUnitPricePaisa: row.unitPricePaisa,
+        deltaPct,
+        effectiveFrom: row.effectiveFrom,
+      };
+    });
+    return ok(changes);
+  }),
+
+  // Filter/suggestion tags only — never consulted by any authorization decision.
+  http.get("*/api/v1/purchasing/vendors/:vendorId/categories", ({ params }) =>
+    ok(vendorCategoriesByVendor[params.vendorId as string] ?? []),
+  ),
+
+  http.put("*/api/v1/purchasing/vendors/:vendorId/categories", async ({ params, request }) => {
+    const categories = (await request.json()) as MockVendorCategory[];
+    vendorCategoriesByVendor[params.vendorId as string] = categories;
+    return ok(categories);
+  }),
+
   // 10-10: branch-scoped PO list, optionally narrowed by ?status=. The primary fixture (PO_ID)
   // always reflects the shared poStatus/closedAt/closeReason module state so a submit->approve->
   // send->receive->close sequence stays consistent whether read through the list or the detail
@@ -310,26 +690,78 @@ export const purchasingHandlers = [
     return ok(filtered);
   }),
 
-  // 10-12: create a DRAFT PO. `qty * unitPricePaisa` (rounded) becomes each line's total; the PO
-  // total is the sum of line totals.
+  /**
+   * 10-12/08.2-10 (PUR-08): create a DRAFT PO. Each line supplies EITHER `vendorItemId`
+   * (catalog-driven — `ingredientId`/`uom`/`unitPricePaisa` are derived from the vendor's active
+   * catalog) or the legacy `ingredientId`+`uom`+`unitPricePaisa`. A `vendorItemId` unknown to this
+   * mock, archived, or belonging to a different vendor is rejected 422 — mirroring
+   * `PurchaseOrderService.create()`'s real cross-vendor/archived/unknown rejection, all
+   * indistinguishably. `qty * unitPricePaisa` (rounded) becomes each line's total; the PO total is
+   * the sum of line totals.
+   */
   http.post("*/api/v1/purchasing/purchase-orders", async ({ request }) => {
     const body = (await request.json()) as CreatePoBody;
     if (!body.vendorId || !body.branchId || !body.lines?.length) {
       return apiError("VALIDATION_ERROR", "vendorId, branchId and at least one line are required", 400);
     }
+
+    const lines: MockPoLine[] = [];
+    for (let idx = 0; idx < body.lines.length; idx += 1) {
+      const l = body.lines[idx]!;
+      if (!l.vendorItemId && !l.ingredientId) {
+        return apiError(
+          "VALIDATION_ERROR",
+          "Each line must supply either vendorItemId or ingredientId",
+          400,
+        );
+      }
+
+      if (l.vendorItemId) {
+        const catalogItem = vendorItems.find((v) => v.id === l.vendorItemId);
+        if (!catalogItem || catalogItem.vendorId !== body.vendorId || catalogItem.archivedAt) {
+          return apiError(
+            "VENDOR_ITEM_CATALOG_MISMATCH",
+            "The referenced catalog item is unknown, archived, or belongs to a different vendor",
+            422,
+          );
+        }
+        const currentPrice = currentPriceFor(catalogItem.id);
+        const unitPricePaisa = l.unitPricePaisa ?? currentPrice?.unitPricePaisa ?? 0;
+        const priceOverridden =
+          l.unitPricePaisa != null &&
+          currentPrice != null &&
+          l.unitPricePaisa !== currentPrice.unitPricePaisa;
+        lines.push({
+          id: `e0000002-0000-4000-8000-${String(idx + 1).padStart(12, "0")}`,
+          ingredientId: catalogItem.ingredientId,
+          qty: l.qty,
+          uom: l.uom ?? catalogItem.orderUom,
+          unitPricePaisa,
+          lineTotalPaisa: Math.round(Number(l.qty) * unitPricePaisa),
+          vendorItemId: catalogItem.id,
+          vendorSku: catalogItem.vendorSku,
+          packDescription: catalogItem.packDescription,
+          priceOverridden,
+        });
+      } else {
+        const unitPricePaisa = l.unitPricePaisa ?? 0;
+        lines.push({
+          id: `e0000002-0000-4000-8000-${String(idx + 1).padStart(12, "0")}`,
+          ingredientId: l.ingredientId!,
+          qty: l.qty,
+          uom: l.uom ?? "",
+          unitPricePaisa,
+          lineTotalPaisa: Math.round(Number(l.qty) * unitPricePaisa),
+          vendorItemId: null,
+          vendorSku: null,
+          packDescription: null,
+          priceOverridden: false,
+        });
+      }
+    }
+
     const seq = String(purchaseOrders.length + 1).padStart(12, "0");
     const id = `d0000002-0000-4000-8000-${seq}`;
-    const lines: MockPoLine[] = body.lines.map((l, idx) => {
-      const lineTotalPaisa = Math.round(Number(l.qty) * l.unitPricePaisa);
-      return {
-        id: `e0000002-0000-4000-8000-${String(idx + 1).padStart(12, "0")}`,
-        ingredientId: l.ingredientId,
-        qty: l.qty,
-        uom: l.uom,
-        unitPricePaisa: l.unitPricePaisa,
-        lineTotalPaisa,
-      };
-    });
     const created: MockPo = {
       id,
       vendorId: body.vendorId,
