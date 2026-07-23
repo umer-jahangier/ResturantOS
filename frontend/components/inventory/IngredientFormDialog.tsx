@@ -315,7 +315,7 @@ export function IngredientFormDialog({
                       <FormItem>
                         <FormLabel>Primary category *</FormLabel>
                         <FormControl>
-                          <select {...field} aria-label="Primary category" className={selectClass}>
+                          <select {...field} aria-label="Primary category *" className={selectClass}>
                             <option value="">Select a category…</option>
                             {activeCategories.map((c) => (
                               <option key={c.id} value={c.id}>
@@ -516,7 +516,7 @@ export function IngredientFormDialog({
                           <FormItem>
                             <FormLabel className="text-xs">From</FormLabel>
                             <FormControl>
-                              <select {...field} aria-label="From unit" className={selectClass}>
+                              <select {...field} aria-label="From" className={selectClass}>
                                 <option value="">Select…</option>
                                 {(uoms ?? []).map((u) => (
                                   <option key={u.id} value={u.code}>
@@ -536,7 +536,7 @@ export function IngredientFormDialog({
                           <FormItem>
                             <FormLabel className="text-xs">To</FormLabel>
                             <FormControl>
-                              <select {...field} aria-label="To unit" className={selectClass}>
+                              <select {...field} aria-label="To" className={selectClass}>
                                 <option value="">Select…</option>
                                 {(uoms ?? []).map((u) => (
                                   <option key={u.id} value={u.code}>
