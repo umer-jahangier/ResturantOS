@@ -385,7 +385,7 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 10/20 plans executed
+**Plans:** 11/20 plans executed
 
 Plans:
 
@@ -398,7 +398,7 @@ Plans:
 - [x] 08.2-07-PLAN.md
 - [x] 08.2-08-PLAN.md
 - [x] 08.2-09-PLAN.md
-- [ ] 08.2-10-PLAN.md
+- [x] 08.2-10-PLAN.md
 - [ ] 08.2-11-PLAN.md
 - [ ] 08.2-12-PLAN.md
 - [ ] 08.2-13-PLAN.md
@@ -427,7 +427,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 08.2-09: Ingredient master data — additive V6 columns, per-item UOM conversions, three distinct yield numbers incl. `recipes.net_yield_pct` (INV-01, INV-14, PUR-08)
+- [x] 08.2-09: Ingredient master data — additive V6 columns, per-item UOM conversions, three distinct yield numbers incl. `recipes.net_yield_pct` (INV-01, INV-14, PUR-08)
 - [ ] 08.2-10: Purchase-order line accepts `vendorItemId` and derives ingredient / unit / price server-side (PUR-08)
 
 **Wave 4** *(blocked on Wave 3 — analytics cutover + frontend data layers)*
