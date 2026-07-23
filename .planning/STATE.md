@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
-stopped_at: Completed 08.2-06-PLAN.md
-last_updated: "2026-07-22T23:42:44.411Z"
+stopped_at: Completed 08.2-08-PLAN.md
+last_updated: "2026-07-23T00:12:06.086Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 98
+  completed_plans: 99
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 9 of 20
+Plan: 10 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -262,6 +262,7 @@ _Updated after each plan completion_
 | Phase 08.2 P20 | 18min | 2 tasks | 4 files |
 | Phase 08.2 P06 | 40min | 3 tasks | 11 files |
 | Phase 08.2 P07 | 50min | 3 tasks | 7 files |
+| Phase 08.2 P08 | 55min | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -516,6 +517,8 @@ Recent decisions affecting current work:
 - [Phase 08.2]: Added CategoryValidationException (400, falls through to GlobalExceptionHandler#handleBase) for depth-cap and cycle rejections — Plan called for an IllegalArgumentException-family domain exception but did not name one
 - [Phase ?]: Gated POST /recipes/preview at inventory.item.manage (not view) - per-ingredient moving-average cost is commercially sensitive (T-08.2-071)
 - [Phase ?]: Dimension-compatibility check for cost preview: a UOM is valid for an ingredient when its code IS the ingredient baseUomCode, or its baseUnitCode equals it - otherwise the line is excluded with a warning
+- [Phase ?]: 08.2-08: Duplicate-vendor-SKU rejection reuses shared-lib StateInvalidException (409) instead of a new local @ResponseStatus exception, after discovering @ResponseStatus never actually resolves through purchasing-service's GlobalExceptionHandler catch-all. — A bare RuntimeException + @ResponseStatus is silently overridden by @ExceptionHandler(Exception.class) in the shared GlobalExceptionHandler; three pre-existing local exceptions in this service have the same latent defect, flagged for future gap-closure.
+- [Phase ?]: 08.2-08: VendorItemDtos split into one-record-per-file (this service's existing convention), not the plan's nominal container-class filename. — Matches VendorDto.java/CreateVendorRequest.java precedent already in the service.
 
 ### Pending Todos
 
@@ -559,8 +562,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-22T23:42:04.278Z
-Stopped at: Completed 08.2-06-PLAN.md
+Last session: 2026-07-23T00:12:06.052Z
+Stopped at: Completed 08.2-08-PLAN.md
 Resume file: None
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
