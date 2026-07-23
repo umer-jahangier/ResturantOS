@@ -25,10 +25,17 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 
 // Every numeric field is a string here because that is what an <input> yields; conversion to the
 // wire shape (numbers, paisa) happens in toPurchaseOrderInput() on submit.
+//
+// 08.2-13: the write contract's PO line now requires vendorItemId (a catalog reference) instead
+// of the old free-text ingredientId — createPurchaseOrderLineInputSchema no longer has an
+// ingredientId key at all. This form still hand-types a UUID into that field for now; replacing
+// it with a real catalog picker (CatalogItemCombobox + useVendorItems, scoped to the selected
+// vendor) is plan 08.2-19's job, not this one's — this rename only keeps the write contract and
+// this pre-existing form compiling and functionally equivalent in the meantime.
 const lineFormSchema = z.object({
-  ingredientId: z
+  vendorItemId: z
     .string()
-    .uuid("Ingredient must be a UUID — no ingredient picker exists yet (see SUMMARY)"),
+    .uuid("Catalog item ID must be a UUID — the catalog picker lands in a later plan"),
   uom: z.string().min(1, "Unit is required"),
   qty: z.string().refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive quantity"),
   unitPriceRupees: z
@@ -45,7 +52,7 @@ const poFormSchema = z.object({
 
 type PoFormValues = z.infer<typeof poFormSchema>;
 
-const EMPTY_LINE = { ingredientId: "", uom: "", qty: "", unitPriceRupees: "" };
+const EMPTY_LINE = { vendorItemId: "", uom: "", qty: "", unitPriceRupees: "" };
 
 function defaultValues(): PoFormValues {
   return {
@@ -63,7 +70,7 @@ function toPurchaseOrderInput(values: PoFormValues, branchId: string): PurchaseO
     expectedDeliveryDate: values.expectedDeliveryDate.trim() === "" ? undefined : values.expectedDeliveryDate,
     notes: values.notes.trim() === "" ? undefined : values.notes.trim(),
     lines: values.lines.map((l) => ({
-      ingredientId: l.ingredientId,
+      vendorItemId: l.vendorItemId,
       qty: l.qty.trim(),
       uom: l.uom.trim(),
       unitPricePaisa: Math.round(Number(l.unitPriceRupees) * 100),
@@ -198,10 +205,10 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
                 <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-end gap-2 rounded border p-2">
                   <FormField
                     control={form.control}
-                    name={`lines.${idx}.ingredientId`}
+                    name={`lines.${idx}.vendorItemId`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Ingredient ID</FormLabel>
+                        <FormLabel className="text-xs">Catalog item ID</FormLabel>
                         <FormControl>
                           <Input placeholder="uuid" {...field} />
                         </FormControl>
