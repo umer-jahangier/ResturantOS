@@ -3,12 +3,17 @@ package io.restaurantos.purchasing.service;
 import io.restaurantos.purchasing.domain.enums.PoStatus;
 import io.restaurantos.purchasing.domain.model.PurchaseOrder;
 import io.restaurantos.purchasing.domain.model.PurchaseOrderLine;
+import io.restaurantos.purchasing.domain.model.VendorItem;
+import io.restaurantos.purchasing.domain.model.VendorItemPrice;
 import io.restaurantos.purchasing.dto.CreatePurchaseOrderRequest;
 import io.restaurantos.purchasing.dto.PurchaseOrderDto;
 import io.restaurantos.purchasing.exception.ApprovalLimitExceededException;
 import io.restaurantos.purchasing.exception.InvalidPoStateException;
+import io.restaurantos.purchasing.exception.VendorItemCatalogMismatchException;
 import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
+import io.restaurantos.purchasing.repository.VendorItemPriceRepository;
+import io.restaurantos.purchasing.repository.VendorItemRepository;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -20,7 +25,9 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class PurchaseOrderService {
@@ -35,17 +42,23 @@ public class PurchaseOrderService {
     private final TenantSetupService tenantSetupService;
     private final AuthorizationClient authorizationClient;
     private final EventPublisher eventPublisher;
+    private final VendorItemRepository vendorItemRepository;
+    private final VendorItemPriceRepository vendorItemPriceRepository;
 
     public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
                                 TenantContext tenantContext,
                                 TenantSetupService tenantSetupService,
                                 AuthorizationClient authorizationClient,
-                                EventPublisher eventPublisher) {
+                                EventPublisher eventPublisher,
+                                VendorItemRepository vendorItemRepository,
+                                VendorItemPriceRepository vendorItemPriceRepository) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.tenantContext = tenantContext;
         this.tenantSetupService = tenantSetupService;
         this.authorizationClient = authorizationClient;
         this.eventPublisher = eventPublisher;
+        this.vendorItemRepository = vendorItemRepository;
+        this.vendorItemPriceRepository = vendorItemPriceRepository;
     }
 
     @Transactional
@@ -59,15 +72,55 @@ public class PurchaseOrderService {
         po.setExpectedDeliveryDate(req.expectedDeliveryDate());
         po.setNotes(req.notes());
         po.setRequesterId(tenantContext.getUserId().orElse(null));
+
+        // Cross-vendor guard (T-08.2-101) + tenant scoping (T-08.2-102) + the DoS mitigation
+        // (T-08.2-105): ONE query for the whole request, scoped to this PO's own vendor and
+        // excluding archived rows. A foreign-vendor, foreign-tenant, archived or nonexistent
+        // vendorItemId is simply absent from this map and rejected below, all indistinguishably.
+        // Never keyed or filtered by category — category tags are a UI filter only (D-01).
+        boolean referencesCatalog = req.lines().stream().anyMatch(l -> l.vendorItemId() != null);
+        Map<UUID, VendorItem> catalogById = referencesCatalog
+                ? vendorItemRepository.findByTenantIdAndVendorIdAndArchivedAtIsNull(tenantId, req.vendorId()).stream()
+                        .collect(Collectors.toMap(VendorItem::getId, v -> v))
+                : Map.of();
+
+        List<UUID> idsNeedingDerivedPrice = req.lines().stream()
+                .filter(l -> l.vendorItemId() != null && l.unitPricePaisa() == null)
+                .map(CreatePurchaseOrderRequest.Line::vendorItemId)
+                .distinct()
+                .toList();
+        Map<UUID, VendorItemPrice> currentPriceById = currentPricesByItem(tenantId, idsNeedingDerivedPrice);
+
         for (CreatePurchaseOrderRequest.Line lineReq : req.lines()) {
             PurchaseOrderLine line = new PurchaseOrderLine();
             line.setTenantId(tenantId);
             line.setPurchaseOrder(po);
-            line.setIngredientId(lineReq.ingredientId());
             line.setQty(lineReq.qty());
-            line.setUom(lineReq.uom());
-            line.setUnitPricePaisa(lineReq.unitPricePaisa());
-            line.setLineTotalPaisa(lineReq.qty().multiply(BigDecimal.valueOf(lineReq.unitPricePaisa())).longValue());
+
+            if (lineReq.vendorItemId() != null) {
+                VendorItem catalogItem = catalogById.get(lineReq.vendorItemId());
+                if (catalogItem == null) {
+                    throw new VendorItemCatalogMismatchException(
+                            "vendorItemId " + lineReq.vendorItemId() + " is not in vendor " + req.vendorId()
+                                    + "'s active catalog");
+                }
+                line.setVendorItemId(catalogItem.getId());
+                line.setIngredientId(catalogItem.getIngredientId());
+                line.setUom(lineReq.uom() != null && !lineReq.uom().isBlank()
+                        ? lineReq.uom() : catalogItem.getOrderUom());
+                if (lineReq.unitPricePaisa() != null) {
+                    line.setUnitPricePaisa(lineReq.unitPricePaisa());
+                } else {
+                    VendorItemPrice currentPrice = currentPriceById.get(lineReq.vendorItemId());
+                    line.setUnitPricePaisa(currentPrice != null ? currentPrice.getUnitPricePaisa() : 0L);
+                }
+            } else {
+                line.setIngredientId(lineReq.ingredientId());
+                line.setUom(lineReq.uom());
+                line.setUnitPricePaisa(lineReq.unitPricePaisa() != null ? lineReq.unitPricePaisa() : 0L);
+            }
+
+            line.setLineTotalPaisa(lineReq.qty().multiply(BigDecimal.valueOf(line.getUnitPricePaisa())).longValue());
             po.getLines().add(line);
         }
         po.setTotalPaisa(po.getLines().stream().mapToLong(PurchaseOrderLine::getLineTotalPaisa).sum());
@@ -179,14 +232,62 @@ public class PurchaseOrderService {
         return po;
     }
 
+    /**
+     * The tenant-wide (branchId == null) current price per vendor item, in ONE batched call —
+     * the same shape as {@code VendorItemService.currentPricesByItem}, replicated here rather
+     * than exposing a new public method on that service, since this is the DTO-enrichment /
+     * price-derivation seam local to purchase-order lines.
+     */
+    private Map<UUID, VendorItemPrice> currentPricesByItem(UUID tenantId, List<UUID> vendorItemIds) {
+        if (vendorItemIds.isEmpty()) {
+            return Map.of();
+        }
+        return vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()).stream()
+                .filter(p -> p.getBranchId() == null)
+                .collect(Collectors.toMap(VendorItemPrice::getVendorItemId, p -> p, (first, second) -> first));
+    }
+
     PurchaseOrderDto toDto(PurchaseOrder po) {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<UUID> vendorItemIds = po.getLines().stream()
+                .map(PurchaseOrderLine::getVendorItemId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        // Denormalization lookups (vendorSku/packDescription/priceOverridden), also ONE query
+        // each — bounded by the PO's own distinct catalog references, not per line. Not filtered
+        // by archivedAt: an already-archived catalog item's SKU/pack still belongs on a PO that
+        // referenced it before archival.
+        Map<UUID, VendorItem> catalogById = vendorItemIds.isEmpty()
+                ? Map.of()
+                : vendorItemRepository.findAllById(vendorItemIds).stream()
+                        .filter(v -> tenantId.equals(v.getTenantId()))
+                        .collect(Collectors.toMap(VendorItem::getId, v -> v));
+        Map<UUID, VendorItemPrice> currentPriceById = currentPricesByItem(tenantId, vendorItemIds);
+
         return new PurchaseOrderDto(
                 po.getId(), po.getVendorId(), po.getBranchId(), po.getStatus(),
                 po.getExpectedDeliveryDate(), po.getTotalPaisa(), po.getNotes(),
                 po.getRequesterId(), po.getSubmittedAt(), po.getRequiredTiers(), po.getTiersApproved(),
                 po.getClosedAt(), po.getCloseReason(),
-                po.getLines().stream().map(l -> new PurchaseOrderDto.LineDto(
-                        l.getId(), l.getIngredientId(), l.getQty(), l.getUom(),
-                        l.getUnitPricePaisa(), l.getLineTotalPaisa())).toList());
+                po.getLines().stream().map(l -> {
+                    VendorItem catalogItem = l.getVendorItemId() != null ? catalogById.get(l.getVendorItemId()) : null;
+                    VendorItemPrice currentPrice = l.getVendorItemId() != null
+                            ? currentPriceById.get(l.getVendorItemId()) : null;
+                    // priceOverridden is derived, not persisted (no new column in scope for this
+                    // plan): a supplied price that mismatches the catalog's currently effective
+                    // price is a booked one-off deal. If the catalog price later changes, this
+                    // recomputes against the new current price rather than the price at order
+                    // time — an accepted, documented trade-off for a display-only flag.
+                    boolean overridden = currentPrice != null
+                            && currentPrice.getUnitPricePaisa() != l.getUnitPricePaisa();
+                    return new PurchaseOrderDto.LineDto(
+                            l.getId(), l.getIngredientId(), l.getQty(), l.getUom(),
+                            l.getUnitPricePaisa(), l.getLineTotalPaisa(),
+                            l.getVendorItemId(),
+                            catalogItem != null ? catalogItem.getVendorSku() : null,
+                            catalogItem != null ? catalogItem.getPackDescription() : null,
+                            overridden);
+                }).toList());
     }
 }
