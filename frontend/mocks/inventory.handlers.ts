@@ -14,6 +14,11 @@ const MENU_ITEM_CAKE = "21111111-1111-4111-8111-111111110003";
 const ING_CHICKEN = "31111111-1111-4111-8111-111111110001";
 const ING_FLOUR = "31111111-1111-4111-8111-111111110002";
 const ING_SUGAR = "31111111-1111-4111-8111-111111110003";
+// 08.2-17: a pure non-positive (destructive-only, no warning) fixture — reorderPoint "0" means
+// belowReorderPoint can never be true for this ingredient (mirrors StockLevelService.toDto()'s
+// `reorderPoint.signum() > 0` guard), so the destructive-wash test has a genuinely single-flag row
+// distinct from Sugar's both-flags-set case.
+const ING_MILK = "31111111-1111-4111-8111-111111110004";
 
 const UOM_KG = "41111111-1111-4111-8111-111111110001";
 const UOM_G = "41111111-1111-4111-8111-111111110002";
@@ -309,6 +314,34 @@ const ingredients: MockIngredient[] = [
     archivedAt: null,
     active: true,
   },
+  {
+    id: ING_MILK,
+    name: "Milk",
+    sku: "ING-MLK",
+    baseUomCode: "l",
+    categoryId: CAT_DRY_GOODS,
+    categoryName: "Dry Goods",
+    categoryPath: "Dry Goods",
+    shortName: "Milk",
+    description: null,
+    itemType: "RAW",
+    producedByRecipeId: null,
+    measureType: "VOLUME",
+    measureTypeLocked: false,
+    recipeUomCode: "l",
+    defaultYieldPct: "100",
+    storageLocation: "Walk-in Cooler",
+    shelfLifeDays: 5,
+    perishable: true,
+    // No reorder-point tracking (0) — belowReorderPoint can never be true for this ingredient;
+    // its stock row (below) is oversold to exercise the destructive-ONLY row-wash case.
+    reorderPoint: "0",
+    parLevel: null,
+    conversions: [],
+    allergenCodes: [],
+    archivedAt: null,
+    active: true,
+  },
 ];
 
 let ingredientSeq = ingredients.length;
@@ -341,6 +374,7 @@ const stockRows: MockStockRow[] = [
   { ingredientId: ING_CHICKEN, qtyOnHand: "4", avgCostPaisa: 85_000, lastCountedAt: "2026-07-20T08:00:00Z" },
   { ingredientId: ING_FLOUR, qtyOnHand: "35", avgCostPaisa: 12_000, lastCountedAt: "2026-07-18T08:00:00Z" },
   { ingredientId: ING_SUGAR, qtyOnHand: "-2", avgCostPaisa: 9_000, lastCountedAt: "2026-07-15T08:00:00Z" },
+  { ingredientId: ING_MILK, qtyOnHand: "-3", avgCostPaisa: 5_000, lastCountedAt: "2026-07-10T08:00:00Z" },
 ];
 
 // Fixed per-base-unit cost table backing the recipe cost-preview handler.
@@ -521,6 +555,229 @@ interface CreateIngredientBody {
   allergenCodes?: string[];
   active?: boolean;
 }
+
+// ── Stock operations (INV-15 Screen 7, plan 08.2-17) ───────────────────────────────────────────
+// The four Phase-8 write endpoints (opening-balance/receipts/transfers/counts) had no mock at
+// all until this plan — mutating the SAME `stockRows` array the GET /stock handler above reads,
+// so a receipt/transfer/count posted from a dialog is immediately visible on the stock page.
+
+interface RecordOpeningBalanceBody {
+  ingredientId: string;
+  branchId: string;
+  qty: string | number;
+  unitCostPaisa: number;
+  expiryDate?: string | null;
+}
+
+interface ReceiveStockBody {
+  ingredientId: string;
+  branchId: string;
+  qty: string | number;
+  unitCostPaisa: number;
+  expiryDate?: string | null;
+}
+
+interface TransferLineBody {
+  ingredientId: string;
+  qty: string | number;
+}
+
+interface CreateTransferBody {
+  fromBranchId: string;
+  toBranchId: string;
+  lines: TransferLineBody[];
+}
+
+interface ReceiveLineBody {
+  ingredientId: string;
+  qtyReceived: string | number;
+}
+
+interface ReceiveTransferBody {
+  transferId: string;
+  lines: ReceiveLineBody[];
+}
+
+interface CountLineBody {
+  ingredientId: string;
+  countedQty: string | number;
+}
+
+interface CreateStockCountBody {
+  branchId: string;
+  lines: CountLineBody[];
+}
+
+interface MockTransferLine {
+  ingredientId: string;
+  qtyShipped: string;
+  qtyReceived: string | null;
+  varianceQty: string | null;
+  unitCostPaisa: number;
+}
+
+interface MockTransfer {
+  transferId: string;
+  fromBranchId: string;
+  toBranchId: string;
+  status: string;
+  lines: MockTransferLine[];
+}
+
+const transfers: MockTransfer[] = [];
+let transferSeq = 0;
+let receiptSeq = 0;
+let countSeq = 0;
+
+/** Finds (or lazily creates, zero on-hand) the mutable stock row for an ingredient — mirrors the
+ * always-a-row-exists shape `IngredientBranchStockRepository`'s real read path guarantees. */
+function findOrCreateStockRow(ingredientId: string): MockStockRow {
+  let row = stockRows.find((r) => r.ingredientId === ingredientId);
+  if (!row) {
+    row = { ingredientId, qtyOnHand: "0", avgCostPaisa: 0, lastCountedAt: null };
+    stockRows.push(row);
+  }
+  return row;
+}
+
+/** Weighted-average recompute on receive — a simplified mock of `MacCalculator`'s HALF_UP
+ * weighted-average (D-02's oversell-reset edge case is out of scope for this mock). */
+function applyReceipt(ingredientId: string, qty: number, unitCostPaisa: number) {
+  const row = findOrCreateStockRow(ingredientId);
+  const oldQty = Number(row.qtyOnHand);
+  const newQty = oldQty + qty;
+  row.avgCostPaisa =
+    newQty > 0 ? Math.round((oldQty * row.avgCostPaisa + qty * unitCostPaisa) / newQty) : unitCostPaisa;
+  row.qtyOnHand = String(newQty);
+  return { newQtyOnHand: row.qtyOnHand, newAvgCostPaisa: row.avgCostPaisa };
+}
+
+const stockOperationHandlers = [
+  http.post("*/api/v1/inventory/opening-balance", async ({ request }) => {
+    const body = (await request.json()) as RecordOpeningBalanceBody;
+    if (!body.ingredientId || !body.branchId || Number(body.qty) <= 0) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "ingredientId, branchId and a positive qty are required",
+        400,
+      );
+    }
+    applyReceipt(body.ingredientId, Number(body.qty), body.unitCostPaisa);
+    return ok(null);
+  }),
+
+  http.post("*/api/v1/inventory/receipts", async ({ request }) => {
+    const body = (await request.json()) as ReceiveStockBody;
+    if (!body.ingredientId || Number(body.qty) <= 0 || !body.unitCostPaisa) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "ingredientId, a positive qty and unitCostPaisa are required",
+        400,
+      );
+    }
+    const { newQtyOnHand, newAvgCostPaisa } = applyReceipt(
+      body.ingredientId,
+      Number(body.qty),
+      body.unitCostPaisa,
+    );
+    receiptSeq += 1;
+    return ok({
+      lotId: `81111111-1111-4111-8111-${String(receiptSeq).padStart(12, "0")}`,
+      newQtyOnHand,
+      newAvgCostPaisa,
+    });
+  }),
+
+  http.post("*/api/v1/inventory/transfers/ship", async ({ request }) => {
+    const body = (await request.json()) as CreateTransferBody;
+    if (!body.fromBranchId || !body.toBranchId || !body.lines?.length) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "fromBranchId, toBranchId and at least one line are required",
+        400,
+      );
+    }
+    transferSeq += 1;
+    const lines: MockTransferLine[] = body.lines.map((l) => {
+      const row = findOrCreateStockRow(l.ingredientId);
+      const unitCostPaisa = row.avgCostPaisa;
+      row.qtyOnHand = String(Number(row.qtyOnHand) - Number(l.qty));
+      return {
+        ingredientId: l.ingredientId,
+        qtyShipped: String(l.qty),
+        qtyReceived: null,
+        varianceQty: null,
+        unitCostPaisa,
+      };
+    });
+    const created: MockTransfer = {
+      transferId: `91111111-1111-4111-8111-${String(transferSeq).padStart(12, "0")}`,
+      fromBranchId: body.fromBranchId,
+      toBranchId: body.toBranchId,
+      status: "SHIPPED",
+      lines,
+    };
+    transfers.push(created);
+    return ok(created);
+  }),
+
+  // 08.2-17: the real backend gained this GET endpoint as part of this plan — no consumer
+  // existed before (ship/receive were write-only). Mirrors TransferController.pending's
+  // own-branch filter (the mock ignores the `branchId` query param itself since this fixture
+  // set only ever seeds one destination branch, but ALL fixtures target that same branch).
+  http.get("*/api/v1/inventory/transfers/pending", () =>
+    ok(transfers.filter((t) => t.status === "SHIPPED")),
+  ),
+
+  http.post("*/api/v1/inventory/transfers/receive", async ({ request }) => {
+    const body = (await request.json()) as ReceiveTransferBody;
+    const transfer = transfers.find((t) => t.transferId === body.transferId);
+    if (!transfer) return apiError("TRANSFER_NOT_FOUND", "Transfer not found", 404);
+    for (const line of transfer.lines) {
+      const receiveLine = body.lines.find((l) => l.ingredientId === line.ingredientId);
+      const qtyReceived = receiveLine ? Number(receiveLine.qtyReceived) : 0;
+      const row = findOrCreateStockRow(line.ingredientId);
+      row.qtyOnHand = String(Number(row.qtyOnHand) + qtyReceived);
+      line.qtyReceived = String(qtyReceived);
+      line.varianceQty = String(Number(line.qtyShipped) - qtyReceived);
+    }
+    transfer.status = "RECEIVED";
+    return ok(transfer);
+  }),
+
+  http.post("*/api/v1/inventory/counts", async ({ request }) => {
+    const body = (await request.json()) as CreateStockCountBody;
+    if (!body.branchId || !body.lines?.length) {
+      return apiError("VALIDATION_ERROR", "branchId and at least one count line are required", 400);
+    }
+    let totalVarianceCostPaisa = 0;
+    const lines = body.lines.map((l) => {
+      const row = findOrCreateStockRow(l.ingredientId);
+      const systemQty = row.qtyOnHand;
+      const countedQty = String(l.countedQty);
+      const varianceQty = Number(countedQty) - Number(systemQty);
+      const varianceCostPaisa = Math.round(varianceQty * row.avgCostPaisa);
+      totalVarianceCostPaisa += varianceCostPaisa;
+      row.qtyOnHand = countedQty;
+      row.lastCountedAt = new Date().toISOString();
+      return {
+        ingredientId: l.ingredientId,
+        systemQty,
+        countedQty,
+        varianceQty: String(varianceQty),
+        varianceCostPaisa,
+      };
+    });
+    countSeq += 1;
+    return ok({
+      countId: `a1111111-1111-4111-8111-${String(countSeq).padStart(12, "0")}`,
+      branchId: body.branchId,
+      status: "POSTED",
+      lines,
+      totalVarianceCostPaisa,
+    });
+  }),
+];
 
 /** MSW fixtures for the inventory master-data/recipe-builder/coverage/stock surfaces (08.2-12). */
 export const inventoryHandlers = [
@@ -787,7 +1044,13 @@ export const inventoryHandlers = [
         avgCostPaisa: row.avgCostPaisa,
         stockValuePaisa,
         lastCountedAt: row.lastCountedAt,
-        belowReorderPoint: qtyOnHand < reorderPoint,
+        // Mirrors StockLevelService.toDto() exactly (belowReorderPoint requires a POSITIVE
+        // reorder point AND qty at-or-below it; "at or below zero" is inclusive `<=`) — fixed as
+        // part of 08.2-17 (was a plain `qtyOnHand < reorderPoint` with no positive-reorder-point
+        // guard, which could flag a row with reorderPoint=0 as below-reorder, unlike the real
+        // backend). This is exactly the class of frontend/backend divergence this phase exists
+        // to close, so it's fixed here rather than worked around with different fixture data.
+        belowReorderPoint: reorderPoint > 0 && qtyOnHand <= reorderPoint,
         nonPositive: qtyOnHand <= 0,
       };
     });
@@ -922,4 +1185,7 @@ export const inventoryHandlers = [
   }),
 
   http.get("*/api/v1/inventory/recipes/coverage", () => ok(computeCoverage())),
+
+  // ── Stock operations (INV-15 Screen 7, plan 08.2-17) ─────────────────────────────────────
+  ...stockOperationHandlers,
 ];

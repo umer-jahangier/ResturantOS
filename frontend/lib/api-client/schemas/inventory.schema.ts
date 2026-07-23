@@ -331,3 +331,118 @@ export const apiRecipeCostPreviewSchema = z.object({
   excludedLineCount: z.number().int(),
   lines: z.array(apiRecipeCostLineSchema),
 });
+
+// ── Stock operations (INV-15 Screen 7, OpeningBalanceController/ReceiptController/
+// TransferController/StockCountController — plan 08.2-17) ─────────────────────────────────────
+// The four Phase-8 write endpoints existed with no frontend consumer until this plan. `tenantId`
+// is never part of any request here either — server-derived from TenantContext/JWT, matching
+// every other write schema in this file.
+
+// Mirrors InventoryDtos.RecordOpeningBalanceRequest exactly (ingredientId/branchId/qty/
+// unitCostPaisa/expiryDate) — POST /api/v1/inventory/opening-balance. `expiryDate` is a bare
+// LocalDate ("YYYY-MM-DD"), never run through calendarDateToInstant (that helper is for Instant
+// fields only).
+export const recordOpeningBalanceInputSchema = z.object({
+  ingredientId: z.string().uuid(),
+  branchId: z.string().uuid(),
+  qty: qtyInputField,
+  unitCostPaisa: z.number().int().nonnegative(),
+  expiryDate: z.string().nullable().optional(),
+});
+
+// Mirrors ReceiptDtos.ReceiveStockRequest exactly — POST /api/v1/inventory/receipts. One
+// ingredient per request (no `lines` array on the real backend contract); a multi-line receipt
+// form issues one call per line — see StockReceiptDialog.tsx.
+export const receiveStockInputSchema = z.object({
+  ingredientId: z.string().uuid(),
+  branchId: z.string().uuid(),
+  qty: qtyInputField,
+  unitCostPaisa: z.number().int().positive(),
+  expiryDate: z.string().nullable().optional(),
+});
+
+// Mirrors ReceiptDtos.ReceiptResultDto exactly (lotId/newQtyOnHand/newAvgCostPaisa).
+export const apiReceiptResultSchema = z.object({
+  lotId: z.string().uuid(),
+  newQtyOnHand: qtyField,
+  newAvgCostPaisa: z.number().int(),
+});
+
+// Mirrors TransferDtos.TransferLineRequest exactly (ingredientId/qty).
+export const transferLineInputSchema = z.object({
+  ingredientId: z.string().uuid(),
+  qty: qtyInputField,
+});
+
+// Mirrors TransferDtos.CreateTransferRequest exactly — POST /api/v1/inventory/transfers/ship.
+export const createTransferInputSchema = z.object({
+  fromBranchId: z.string().uuid(),
+  toBranchId: z.string().uuid(),
+  lines: z.array(transferLineInputSchema).min(1, "Add at least one ingredient line"),
+});
+
+// Mirrors TransferDtos.ReceiveLineRequest exactly (ingredientId/qtyReceived).
+export const receiveTransferLineInputSchema = z.object({
+  ingredientId: z.string().uuid(),
+  qtyReceived: qtyInputField,
+});
+
+// Mirrors TransferDtos.ReceiveTransferRequest exactly — POST /api/v1/inventory/transfers/receive.
+export const receiveTransferInputSchema = z.object({
+  transferId: z.string().uuid(),
+  lines: z.array(receiveTransferLineInputSchema).min(1, "Add at least one ingredient line"),
+});
+
+// Mirrors TransferDtos.TransferLineDto exactly (ingredientId/qtyShipped/qtyReceived/
+// varianceQty/unitCostPaisa). `qtyReceived`/`varianceQty` are null on a SHIPPED transfer that has
+// not been received yet (TransferService.ship() never sets them).
+export const apiTransferLineSchema = z.object({
+  ingredientId: z.string().uuid(),
+  qtyShipped: qtyField,
+  qtyReceived: qtyField.nullable().optional(),
+  varianceQty: qtyField.nullable().optional(),
+  unitCostPaisa: z.number().int(),
+});
+
+// Mirrors TransferDtos.TransferDto exactly (transferId/fromBranchId/toBranchId/status/lines) —
+// the ship/receive response AND (08.2-17) the GET /api/v1/inventory/transfers/pending list-item
+// shape (TransferService.listPendingForBranch reuses the same toDto() mapper).
+export const apiTransferSchema = z.object({
+  transferId: z.string().uuid(),
+  fromBranchId: z.string().uuid(),
+  toBranchId: z.string().uuid(),
+  status: z.string(),
+  lines: z.array(apiTransferLineSchema),
+});
+
+// Mirrors StockCountDtos.CountLineRequest exactly (ingredientId/countedQty).
+export const countLineInputSchema = z.object({
+  ingredientId: z.string().uuid(),
+  countedQty: qtyInputField,
+});
+
+// Mirrors StockCountDtos.CreateStockCountRequest exactly — POST /api/v1/inventory/counts.
+export const createStockCountInputSchema = z.object({
+  branchId: z.string().uuid(),
+  lines: z.array(countLineInputSchema).min(1, "Add at least one ingredient line"),
+});
+
+// Mirrors StockCountDtos.CountLineDto exactly (ingredientId/systemQty/countedQty/varianceQty/
+// varianceCostPaisa).
+export const apiCountLineSchema = z.object({
+  ingredientId: z.string().uuid(),
+  systemQty: qtyField,
+  countedQty: qtyField,
+  varianceQty: qtyField,
+  varianceCostPaisa: z.number().int(),
+});
+
+// Mirrors StockCountDtos.StockCountDto exactly (countId/branchId/status/lines/
+// totalVarianceCostPaisa) — the POST /api/v1/inventory/counts response.
+export const apiStockCountSchema = z.object({
+  countId: z.string().uuid(),
+  branchId: z.string().uuid(),
+  status: z.string(),
+  lines: z.array(apiCountLineSchema),
+  totalVarianceCostPaisa: z.number().int(),
+});

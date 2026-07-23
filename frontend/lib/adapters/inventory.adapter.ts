@@ -1,21 +1,31 @@
 import type { z } from "zod";
 import type {
+  apiCountLineSchema,
   apiCoverageSchema,
   apiIngredientSchema,
   apiItemCategoryNodeSchema,
   apiItemCategorySchema,
   apiMenuItemCatalogSchema,
   apiMenuItemCoverageSchema,
+  apiReceiptResultSchema,
   apiRecipeCostPreviewSchema,
   apiRecipeSchema,
+  apiStockCountSchema,
   apiStockLevelSchema,
   apiStockLevelsResponseSchema,
+  apiTransferLineSchema,
+  apiTransferSchema,
   apiUomSchema,
   createIngredientInputSchema,
   createItemCategoryInputSchema,
   createRecipeInputSchema,
+  createStockCountInputSchema,
+  createTransferInputSchema,
   moveItemCategoryInputSchema,
   previewRecipeCostInputSchema,
+  receiveStockInputSchema,
+  receiveTransferInputSchema,
+  recordOpeningBalanceInputSchema,
   updateIngredientInputSchema,
   updateItemCategoryInputSchema,
 } from "@/lib/api-client/schemas/inventory.schema";
@@ -93,5 +103,35 @@ export function adaptStockLevelsResponse(raw: StockLevelsResponse): StockLevelsR
 }
 
 export function adaptRecipeCostPreview(raw: RecipeCostPreview): RecipeCostPreview {
+  return raw;
+}
+
+// ── Stock operations (INV-15 Screen 7, plan 08.2-17) ────────────────────────────────────────
+/** Write payload for `POST /api/v1/inventory/opening-balance`. */
+export type OpeningBalanceInput = z.infer<typeof recordOpeningBalanceInputSchema>;
+/** Write payload for `POST /api/v1/inventory/receipts` (one ingredient per call). */
+export type ReceiveStockInput = z.infer<typeof receiveStockInputSchema>;
+export type ReceiptResult = z.infer<typeof apiReceiptResultSchema>;
+/** Write payload for `POST /api/v1/inventory/transfers/ship`. */
+export type CreateTransferInput = z.infer<typeof createTransferInputSchema>;
+/** Write payload for `POST /api/v1/inventory/transfers/receive`. */
+export type ReceiveTransferInput = z.infer<typeof receiveTransferInputSchema>;
+export type TransferLine = z.infer<typeof apiTransferLineSchema>;
+/** Ship/receive response AND the GET .../transfers/pending list-item shape. */
+export type Transfer = z.infer<typeof apiTransferSchema>;
+/** Write payload for `POST /api/v1/inventory/counts`. */
+export type CreateStockCountInput = z.infer<typeof createStockCountInputSchema>;
+export type CountLine = z.infer<typeof apiCountLineSchema>;
+export type StockCount = z.infer<typeof apiStockCountSchema>;
+
+export function adaptReceiptResult(raw: ReceiptResult): ReceiptResult {
+  return raw;
+}
+
+export function adaptTransfer(raw: Transfer): Transfer {
+  return raw;
+}
+
+export function adaptStockCount(raw: StockCount): StockCount {
   return raw;
 }

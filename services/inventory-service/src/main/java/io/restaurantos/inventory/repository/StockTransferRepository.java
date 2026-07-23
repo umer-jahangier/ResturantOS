@@ -18,4 +18,12 @@ public interface StockTransferRepository extends JpaRepository<StockTransfer, UU
     Optional<StockTransfer> findByIdAndTenantId(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
 
     List<StockTransfer> findByStatus(String status);
+
+    /**
+     * 08.2-17: transfers SHIPPED to a branch, awaiting receive — backs the stock screen's
+     * Transfer-receive list (UI-SPEC Screen 7). Tenant-scoped (belt-and-suspenders alongside
+     * FORCE RLS), ordered oldest-first so the longest-in-transit transfer surfaces first.
+     */
+    List<StockTransfer> findByTenantIdAndToBranchIdAndStatusOrderByShippedAtAsc(
+            UUID tenantId, UUID toBranchId, String status);
 }

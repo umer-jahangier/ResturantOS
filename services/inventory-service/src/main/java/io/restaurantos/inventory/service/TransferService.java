@@ -263,6 +263,22 @@ public class TransferService {
         return toDto(savedTransfer, sortedLines);
     }
 
+    /**
+     * 08.2-17: transfers SHIPPED to {@code branchId}, awaiting receive — backs the stock screen's
+     * Transfer-receive list (UI-SPEC Screen 7). Read-only; reuses the same {@link #toDto} mapper
+     * ship()/receive() already use so the list-item shape and the ship/receive response shape
+     * never drift apart.
+     */
+    @Transactional(readOnly = true)
+    public List<TransferDto> listPendingForBranch(UUID branchId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<StockTransfer> pending = transferRepository
+                .findByTenantIdAndToBranchIdAndStatusOrderByShippedAtAsc(tenantId, branchId, "SHIPPED");
+        return pending.stream()
+                .map(t -> toDto(t, transferLineRepository.findByTransferId(t.getId())))
+                .toList();
+    }
+
     /** FEFO floor-at-zero walk over the source branch's lots — mirrors DepletionService's shape. */
     private void walkFefoOverSourceLots(UUID stockId, BigDecimal demand) {
         List<StockLot> lots = lotRepository.findByStockIdOrderByExpiryDateAsc(stockId);

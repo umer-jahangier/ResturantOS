@@ -5,15 +5,23 @@ import {
   apiItemCategoryNodeSchema,
   apiItemCategorySchema,
   apiMenuItemCatalogSchema,
+  apiReceiptResultSchema,
   apiRecipeCostPreviewSchema,
   apiRecipeSchema,
+  apiStockCountSchema,
   apiStockLevelsResponseSchema,
+  apiTransferSchema,
   apiUomSchema,
   createIngredientInputSchema,
   createItemCategoryInputSchema,
   createRecipeInputSchema,
+  createStockCountInputSchema,
+  createTransferInputSchema,
   moveItemCategoryInputSchema,
   previewRecipeCostInputSchema,
+  receiveStockInputSchema,
+  receiveTransferInputSchema,
+  recordOpeningBalanceInputSchema,
   updateIngredientInputSchema,
   updateItemCategoryInputSchema,
 } from "@/lib/api-client/schemas/inventory.schema";
@@ -23,25 +31,36 @@ import {
   adaptItemCategory,
   adaptItemCategoryNode,
   adaptMenuItemCatalogEntry,
+  adaptReceiptResult,
   adaptRecipe,
   adaptRecipeCostPreview,
+  adaptStockCount,
   adaptStockLevelsResponse,
+  adaptTransfer,
   adaptUom,
 } from "@/lib/adapters/inventory.adapter";
 import type {
   Coverage,
   CreateItemCategoryInput,
+  CreateStockCountInput,
+  CreateTransferInput,
   Ingredient,
   IngredientInput,
   ItemCategory,
   ItemCategoryNode,
   MenuItemCatalogEntry,
   MoveItemCategoryInput,
+  OpeningBalanceInput,
   PreviewRecipeCostInput,
+  ReceiptResult,
+  ReceiveStockInput,
+  ReceiveTransferInput,
   Recipe,
   RecipeCostPreview,
   RecipeInput,
+  StockCount,
   StockLevelsResponse,
+  Transfer,
   UpdateIngredientInput,
   UpdateItemCategoryInput,
   Uom,
@@ -186,5 +205,45 @@ export const InventoryRepository = {
       previewRecipeCostInputSchema.parse(input),
     );
     return adaptRecipeCostPreview(apiRecipeCostPreviewSchema.parse(raw));
+  },
+
+  // ── Stock operations (INV-15 Screen 7, plan 08.2-17) ─────────────────────────────────────
+  /** Records a one-time opening balance. The endpoint returns no body (`ApiResponse<Void>`). */
+  async recordOpeningBalance(input: OpeningBalanceInput): Promise<void> {
+    await post("/api/v1/inventory/opening-balance", recordOpeningBalanceInputSchema.parse(input));
+  },
+
+  /** Logs a receipt for one ingredient — `ReceiptDtos.ReceiveStockRequest` carries no `lines`
+   * array; a multi-line receipt form issues one call per line (see StockReceiptDialog.tsx). */
+  async receiveStock(input: ReceiveStockInput): Promise<ReceiptResult> {
+    const raw = await post("/api/v1/inventory/receipts", receiveStockInputSchema.parse(input));
+    return adaptReceiptResult(apiReceiptResultSchema.parse(raw));
+  },
+
+  async shipTransfer(input: CreateTransferInput): Promise<Transfer> {
+    const raw = await post(
+      "/api/v1/inventory/transfers/ship",
+      createTransferInputSchema.parse(input),
+    );
+    return adaptTransfer(apiTransferSchema.parse(raw));
+  },
+
+  async receiveTransfer(input: ReceiveTransferInput): Promise<Transfer> {
+    const raw = await post(
+      "/api/v1/inventory/transfers/receive",
+      receiveTransferInputSchema.parse(input),
+    );
+    return adaptTransfer(apiTransferSchema.parse(raw));
+  },
+
+  /** `branchId` is required — mirrors `getStockLevels`'s own-branch-only contract. */
+  async listPendingTransfers(branchId: string): Promise<Transfer[]> {
+    const raw = await get<unknown[]>("/api/v1/inventory/transfers/pending", { branchId });
+    return (raw ?? []).map((t) => adaptTransfer(apiTransferSchema.parse(t)));
+  },
+
+  async postStockCount(input: CreateStockCountInput): Promise<StockCount> {
+    const raw = await post("/api/v1/inventory/counts", createStockCountInputSchema.parse(input));
+    return adaptStockCount(apiStockCountSchema.parse(raw));
   },
 };

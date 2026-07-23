@@ -10,15 +10,23 @@ import { useDebouncedValue } from "@/lib/hooks/use-debounce";
 import type {
   Coverage,
   CreateItemCategoryInput,
+  CreateStockCountInput,
+  CreateTransferInput,
   Ingredient,
   IngredientInput,
   ItemCategory,
   MoveItemCategoryInput,
+  OpeningBalanceInput,
   PreviewRecipeCostInput,
+  ReceiptResult,
+  ReceiveStockInput,
+  ReceiveTransferInput,
   Recipe,
   RecipeCostPreview,
   RecipeInput,
+  StockCount,
   StockLevelsResponse,
+  Transfer,
   UpdateIngredientInput,
   UpdateItemCategoryInput,
 } from "@/lib/adapters/inventory.adapter";
@@ -268,5 +276,90 @@ export function useRecipeCostPreview(input: PreviewRecipeCostInput) {
     queryFn: () => InventoryRepository.previewRecipeCost(debouncedInput),
     enabled: isAuthenticated && !!branchId && debouncedInput.lines.length > 0,
     placeholderData: (previous) => previous,
+  });
+}
+
+// ── Stock operations (INV-15 Screen 7, plan 08.2-17) ──────────────────────────────────────────
+// The four Phase-8 write endpoints (opening-balance/receipts/transfers/counts) had no hook at
+// all until this plan — 08.2-12 only covered the read side (useStockLevels above). Every
+// mutation here invalidates the same `["inventory", branchId, "stock-levels"]` broad-prefix key
+// `invalidateIngredientQueries` already uses, so the stock screen refetches immediately on any
+// write from its own dialogs.
+
+/** Records a one-time opening balance for an ingredient at a branch. */
+export function useRecordOpeningBalance() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<void, ApiError, OpeningBalanceInput>({
+    mutationFn: (input) => InventoryRepository.recordOpeningBalance(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "stock-levels"] });
+    },
+  });
+}
+
+/** Logs a receipt for one ingredient (INV-04) — a multi-line receipt form calls this once per
+ * line (`ReceiveStockRequest` has no `lines` array on the real backend contract). */
+export function useReceiveStock() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<ReceiptResult, ApiError, ReceiveStockInput>({
+    mutationFn: (input) => InventoryRepository.receiveStock(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "stock-levels"] });
+    },
+  });
+}
+
+/** Ships an inter-branch transfer (INV-05). */
+export function useShipTransfer() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<Transfer, ApiError, CreateTransferInput>({
+    mutationFn: (input) => InventoryRepository.shipTransfer(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "stock-levels"] });
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "pending-transfers"] });
+    },
+  });
+}
+
+/**
+ * GET /api/v1/inventory/transfers/pending (08.2-17 backend addition — no list endpoint existed
+ * for in-transit transfers before this plan; ship/receive were write-only). No registry factory
+ * exists for this key yet (`query-keys.ts` is 08.2-05's file) — the manual partial-array key
+ * mirrors the cross-entity invalidation convention already used elsewhere in this file.
+ */
+export function usePendingTransfers() {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery<Transfer[]>({
+    queryKey: ["inventory", branchId, "pending-transfers"],
+    queryFn: () => InventoryRepository.listPendingTransfers(branchId),
+    enabled: isAuthenticated && !!branchId,
+  });
+}
+
+/** Receives an in-transit transfer (INV-05) — invalidates both stockLevels and the pending list. */
+export function useReceiveTransfer() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<Transfer, ApiError, ReceiveTransferInput>({
+    mutationFn: (input) => InventoryRepository.receiveTransfer(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "stock-levels"] });
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "pending-transfers"] });
+    },
+  });
+}
+
+/** Posts a stock count with variance (INV-06). */
+export function usePostStockCount() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<StockCount, ApiError, CreateStockCountInput>({
+    mutationFn: (input) => InventoryRepository.postStockCount(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "stock-levels"] });
+    },
   });
 }
