@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useVendors } from "@/lib/hooks/purchasing/use-purchasing";
 import { VendorFormDialog } from "@/components/purchasing/VendorFormDialog";
 import { Button } from "@/components/ui/button";
@@ -41,14 +43,22 @@ export default function VendorsPage() {
                   {v.bankAccountLast4 ? ` · Bank •••• ${v.bankAccountLast4}` : ""}
                 </div>
               </div>
-              <VendorFormDialog
-                vendor={v}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    Edit
-                  </Button>
-                }
-              />
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/app/purchasing/vendors/${v.id}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Manage catalog →
+                </Link>
+                <VendorFormDialog
+                  vendor={v}
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
+                  }
+                />
+              </div>
             </li>
           ))}
         </ul>
