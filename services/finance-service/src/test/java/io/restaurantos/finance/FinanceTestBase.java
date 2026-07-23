@@ -55,6 +55,10 @@ public abstract class FinanceTestBase {
         registry.add("spring.flyway.enabled", () -> "false");
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("spring.cloud.config.enabled", () -> "false");
+        // Phase 9 added @EnableRabbit to FinanceServiceApplication, so @RabbitListener beans
+        // now start in every context. These tests run no broker and mocking RabbitTemplate
+        // does not prevent the listener registry from connecting — keep the listeners down.
+        registry.add("spring.rabbitmq.listener.simple.auto-startup", () -> "false");
         registry.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
     }
 
