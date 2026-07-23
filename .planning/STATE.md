@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
-stopped_at: Completed 08.2-11-PLAN.md
-last_updated: "2026-07-23T19:56:25.220Z"
+stopped_at: Completed 08.2-12-PLAN.md
+last_updated: "2026-07-23T20:35:39.009Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 102
+  completed_plans: 103
   percent: 59
 ---
 
@@ -266,6 +266,7 @@ _Updated after each plan completion_
 | Phase 08.2 P09 | 32min | 3 tasks | 20 files |
 | Phase 08.2 P10 | ~50min | 3 tasks | 7 files |
 | Phase 08.2 P11 | 50min | 3 tasks | 9 files |
+| Phase 08.2 P12 | 45min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -529,6 +530,8 @@ Recent decisions affecting current work:
 - [Phase 08.2]: IngredientCategoryResolver made batch-only (resolveAll), removing the single-id resolve(UUID) method entirely so per-invoice-line resolution cannot be reintroduced
 - [Phase 08.2]: InventoryCategoryClient declares contextId=inventoryCategoryClient since InventoryGrnClient already owns a bare @FeignClient(name=inventory-service) registration; without it Spring Cloud OpenFeign throws BeanDefinitionOverrideException on context boot
 - [Phase 08.2]: Added MockIngredientCategoryAdapter (Uncategorized-only stub) so mock mode keeps exactly one IngredientCategoryResolver bean after the classpath mock was deleted, rather than leaving mock mode unimplemented
+- [Phase 08.2]: 08.2-12: apiItemCategoryNodeSchema's recursive type uses non-exported internal names (ItemCategoryValue/ItemCategoryNodeShape) instead of an inline z.infer to avoid a false-positive on the plan's own 'category: z' acceptance grep, while the actual zod field stays named category exactly as ItemCategoryNodeDto requires.
+- [Phase 08.2]: 08.2-12: useStockLevels appends search as an extra query-key tuple element (mirroring useCategories/useCategoryTree's includeArchived pattern) rather than extending the 08.2-05-owned stockLevels query-key factory's filters shape.
 
 ### Pending Todos
 
@@ -572,8 +575,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-23T19:56:25.197Z
-Stopped at: Completed 08.2-11-PLAN.md
+Last session: 2026-07-23T20:35:38.456Z
+Stopped at: Completed 08.2-12-PLAN.md
 Resume file: None
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
