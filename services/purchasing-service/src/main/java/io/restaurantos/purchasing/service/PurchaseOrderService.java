@@ -14,8 +14,10 @@ import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
 import io.restaurantos.purchasing.repository.VendorItemPriceRepository;
 import io.restaurantos.purchasing.repository.VendorItemRepository;
+import io.restaurantos.purchasing.repository.VendorRepository;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +46,7 @@ public class PurchaseOrderService {
     private final EventPublisher eventPublisher;
     private final VendorItemRepository vendorItemRepository;
     private final VendorItemPriceRepository vendorItemPriceRepository;
+    private final VendorRepository vendorRepository;
 
     public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
                                 TenantContext tenantContext,
@@ -51,7 +54,8 @@ public class PurchaseOrderService {
                                 AuthorizationClient authorizationClient,
                                 EventPublisher eventPublisher,
                                 VendorItemRepository vendorItemRepository,
-                                VendorItemPriceRepository vendorItemPriceRepository) {
+                                VendorItemPriceRepository vendorItemPriceRepository,
+                                VendorRepository vendorRepository) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.tenantContext = tenantContext;
         this.tenantSetupService = tenantSetupService;
@@ -59,12 +63,23 @@ public class PurchaseOrderService {
         this.eventPublisher = eventPublisher;
         this.vendorItemRepository = vendorItemRepository;
         this.vendorItemPriceRepository = vendorItemPriceRepository;
+        this.vendorRepository = vendorRepository;
     }
 
     @Transactional
     public PurchaseOrderDto create(CreatePurchaseOrderRequest req) {
         tenantSetupService.ensureDefaults();
         UUID tenantId = tenantContext.requireTenantId();
+
+        // 08.2 code-review WR-02: resolve and tenant-check the vendor before building the PO,
+        // mirroring VendorItemService.requireVendor which every catalog write goes through. Without
+        // this, a nonexistent or foreign vendorId on the legacy ingredient-typed line path (which has
+        // no empty-catalog 422 backstop) would persist an orphan PO pointing at a vendor that does
+        // not exist for this tenant.
+        vendorRepository.findById(req.vendorId())
+                .filter(v -> tenantId.equals(v.getTenantId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor", req.vendorId()));
+
         PurchaseOrder po = new PurchaseOrder();
         po.setTenantId(tenantId);
         po.setVendorId(req.vendorId());
