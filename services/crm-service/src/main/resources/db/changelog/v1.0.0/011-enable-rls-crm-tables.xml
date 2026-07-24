@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="crm-1.0.0-011-enable-rls" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE customers FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON customers
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE loyalty_accounts ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE loyalty_accounts FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON loyalty_accounts
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE loyalty_transactions ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE loyalty_transactions FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON loyalty_transactions
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE loyalty_tier_config ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE loyalty_tier_config FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON loyalty_tier_config
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE promotions FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON promotions
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE customer_feedback ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE customer_feedback FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON customer_feedback
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
