@@ -6,15 +6,15 @@ current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
 stopped_at: Completed 08.2-18-PLAN.md
-last_updated: "2026-07-24T00:19:41.835Z"
+last_updated: "2026-07-24T00:52:19.159Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 122
-  completed_plans: 109
-  percent: 59
+  completed_plans: 110
+  percent: 65
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 19 of 20
+Plan: 20 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -273,6 +273,7 @@ _Updated after each plan completion_
 | Phase 08.2 P16 | 55min | 3 tasks | 6 files |
 | Phase 08.2 P17 | 60min | 3 tasks | 14 files |
 | Phase 08.2 P18 | 35min | 3 tasks | 6 files |
+| Phase 08.2 P19 | 45min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -552,6 +553,8 @@ Recent decisions affecting current work:
 - [Phase 08.2]: Vendor catalog dialogs (VendorItemFormDialog/VendorItemPriceDialog) use the controlled-or-uncontrolled dialog shape (open/onOpenChange/trigger all optional) rather than trigger-only, since row actions open them from inside a DropdownMenuItem — Mirrors IngredientFormDialog's established extension of VendorFormDialog's shape (08.2-14)
 - [Phase 08.2]: Vendor detail page derives the vendor header from the existing useVendors() list (find-by-id) - no single-vendor GET endpoint exists on the backend or in PurchasingRepository — The flat vendors list stays the source of vendor header data per the plan; only catalog/price management moves to the new route
 - [Phase 08.2]: VendorItemPriceDialog's branch scope is a simple this-branch-only/all-branches aria-pressed toggle using the current user's branchId, not a full branch-select dropdown — No useBranches/branch-list hook exists in the purchasing frontend; inventing a new endpoint was out of this plan's scope
+- [Phase 08.2]: PurchaseOrderFormDialog's PO line item is chosen exclusively via CatalogItemCombobox scoped to useVendorItems(vendorId); the hand-typed ingredient UUID input is deleted (PUR-08, ROADMAP Success Criterion 6)
+- [Phase 08.2]: Fixed createZodResolver (shared react-hook-form utility) to walk each zod issue's full path instead of only path[0] -- nested array-item field errors (e.g. a PO line's own vendorItemId) now reach FormMessage across every line-array form in the codebase, not just PurchaseOrderFormDialog
 
 ### Pending Todos
 
@@ -595,7 +598,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-24T00:19:41.773Z
+Last session: 2026-07-24T00:51:13.261Z
 Stopped at: Completed 08.2-18-PLAN.md
 Resume file: None
 None

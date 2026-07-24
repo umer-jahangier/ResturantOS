@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
 - [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
 - [x] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof (completed 2026-07-19)
-- [ ] **Phase 08.2: Inventory Master Data & Procurement Catalog** *(INSERTED)* - Ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/revise with live plate cost, vendor item catalog with effective-dated pricing, stock-operations UI, catalog-driven PO line picker
+- [x] **Phase 08.2: Inventory Master Data & Procurement Catalog** *(INSERTED)* - Ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/revise with live plate cost, vendor item catalog with effective-dated pricing, stock-operations UI, catalog-driven PO line picker (completed 2026-07-24)
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
@@ -385,7 +385,7 @@ Plans:
 
 **Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
 
-**Plans:** 19/20 plans executed
+**Plans:** 20/20 plans complete
 
 Plans:
 
@@ -407,7 +407,7 @@ Plans:
 - [x] 08.2-16-PLAN.md
 - [x] 08.2-17-PLAN.md
 - [x] 08.2-18-PLAN.md
-- [ ] 08.2-19-PLAN.md
+- [x] 08.2-19-PLAN.md
 - [x] 08.2-20-PLAN.md
 
 **Wave 1** *(no dependencies — migrations, read seams and shared foundations run in parallel)*
@@ -442,7 +442,7 @@ Plans:
 - [x] 08.2-15: Ingredient master-data screen — searchable/filterable grid + grouped create-or-edit dialog (INV-01, INV-14)
 - [x] 08.2-16: Recipe detail + revision-authoring page with live plate-cost panel (INV-15)
 - [x] 08.2-17: Stock screen — on-hand read view + receipts, transfers, counts, opening balances (INV-15)
-- [ ] 08.2-18: Vendor detail — catalog section, price-change history, filter-only category tags (PUR-07)
+- [x] 08.2-18: Vendor detail — catalog section, price-change history, filter-only category tags (PUR-07)
 - [ ] 08.2-19: Catalog picker replaces the hand-typed ingredient UUID on the PO line (PUR-08)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
