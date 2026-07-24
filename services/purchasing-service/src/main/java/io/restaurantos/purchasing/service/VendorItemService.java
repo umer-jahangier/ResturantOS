@@ -45,19 +45,22 @@ public class VendorItemService {
     private final VendorRepository vendorRepository;
     private final TenantContext tenantContext;
     private final VendorItemPriceService vendorItemPriceService;
+    private final IngredientReferenceValidator ingredientReferenceValidator;
 
     public VendorItemService(VendorItemRepository vendorItemRepository,
                               VendorItemPriceRepository vendorItemPriceRepository,
                               VendorCategoryRepository vendorCategoryRepository,
                               VendorRepository vendorRepository,
                               TenantContext tenantContext,
-                              VendorItemPriceService vendorItemPriceService) {
+                              VendorItemPriceService vendorItemPriceService,
+                              IngredientReferenceValidator ingredientReferenceValidator) {
         this.vendorItemRepository = vendorItemRepository;
         this.vendorItemPriceRepository = vendorItemPriceRepository;
         this.vendorCategoryRepository = vendorCategoryRepository;
         this.vendorRepository = vendorRepository;
         this.tenantContext = tenantContext;
         this.vendorItemPriceService = vendorItemPriceService;
+        this.ingredientReferenceValidator = ingredientReferenceValidator;
     }
 
     public Page<VendorItemDto> list(UUID vendorId, Pageable pageable) {
@@ -77,6 +80,12 @@ public class VendorItemService {
     public VendorItemDto create(UUID vendorId, CreateVendorItemRequest req) {
         UUID tenantId = tenantContext.requireTenantId();
         requireVendor(tenantId, vendorId);
+
+        // T-08.2-044: the referenced ingredient lives in inventory-service (no cross-database FK is
+        // possible), so verify it resolves to a live ingredient in this tenant before persisting a
+        // catalog row that would otherwise carry a dangling/foreign reference onto PO lines and
+        // spend analytics. Authoritative under integration-mode=feign; a permissive no-op in mock.
+        ingredientReferenceValidator.requireIngredientInTenant(req.ingredientId());
 
         if (vendorItemRepository.existsByTenantIdAndVendorIdAndVendorSku(tenantId, vendorId, req.vendorSku())) {
             throw new StateInvalidException("Duplicate vendor SKU for this vendor: " + req.vendorSku());

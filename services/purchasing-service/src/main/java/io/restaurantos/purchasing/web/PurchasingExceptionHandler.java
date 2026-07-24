@@ -1,5 +1,6 @@
 package io.restaurantos.purchasing.web;
 
+import io.restaurantos.purchasing.exception.IngredientNotInTenantException;
 import io.restaurantos.purchasing.exception.VendorItemCatalogMismatchException;
 import io.restaurantos.shared.api.ApiError;
 import org.slf4j.MDC;
@@ -26,6 +27,12 @@ public class PurchasingExceptionHandler {
 
     @ExceptionHandler(VendorItemCatalogMismatchException.class)
     public ResponseEntity<ApiError> handleVendorItemCatalogMismatch(VendorItemCatalogMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
+    }
+
+    @ExceptionHandler(IngredientNotInTenantException.class)
+    public ResponseEntity<ApiError> handleIngredientNotInTenant(IngredientNotInTenantException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
     }
