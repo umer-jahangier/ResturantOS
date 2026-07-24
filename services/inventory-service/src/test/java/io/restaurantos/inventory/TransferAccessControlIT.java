@@ -36,7 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -249,5 +251,36 @@ class TransferAccessControlIT extends InventoryTestBase {
         long receivedOutboxCount = outboxRepository.findAll().stream()
                 .filter(e -> tenantId.equals(e.getTenantId()) && "TRANSFER_RECEIVED".equals(e.getEventType())).count();
         assertThat(receivedOutboxCount).isZero();
+    }
+
+    /**
+     * 08.2-17: GET /pending is gated on inventory.item.view AND own-branch only — a caller cannot
+     * list another branch's in-transit transfers by passing a foreign branchId query param. (Closes
+     * the verification report's noted test-coverage gap for the pending-transfers read path.)
+     */
+    @Test
+    void managerCannotListAnotherBranchesPendingTransfers() throws Exception {
+        when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
+
+        mockMvc.perform(get("/api/v1/inventory/transfers/pending")
+                        .param("branchId", toBranchId.toString())
+                        .with(asInventoryManagerAtBranch(fromBranchId)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerListsOwnBranchesPendingTransfers() throws Exception {
+        // Seed a real SHIPPED transfer fromBranchId -> toBranchId (bean-level), then list it as the
+        // destination-branch manager.
+        when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
+        transferService.ship(new CreateTransferRequest(
+                fromBranchId, toBranchId, List.of(new TransferLineRequest(ingredientId, BigDecimal.TEN))));
+
+        mockMvc.perform(get("/api/v1/inventory/transfers/pending")
+                        .param("branchId", toBranchId.toString())
+                        .with(asInventoryManagerAtBranch(toBranchId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].toBranchId").value(toBranchId.toString()))
+                .andExpect(jsonPath("$.data[0].status").value("SHIPPED"));
     }
 }
