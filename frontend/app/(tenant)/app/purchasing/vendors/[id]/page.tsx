@@ -54,9 +54,19 @@ const SECTIONS = [
  * vendors list stays the place vendors themselves are created/edited (header CRUD); only catalog
  * and price-change management move here. Prices are append-only end to end: this page never
  * imports an update-price hook, only `VendorItemPriceDialog`'s create-only mutation.
+ *
+ * Split into a thin `use(params)`-unwrapping default export and a named `VendorDetailPageContent`
+ * that takes a plain `vendorId` prop — the same App Router params-Promise convention every other
+ * dynamic route page in this app uses, just with the body extracted so component tests can render
+ * it directly without fighting React's `use()`/Suspense timing in jsdom (no consuming test exists
+ * anywhere in this codebase for that pattern yet).
  */
 export default function VendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: vendorId } = use(params);
+  const { id } = use(params);
+  return <VendorDetailPageContent vendorId={id} />;
+}
+
+export function VendorDetailPageContent({ vendorId }: { vendorId: string }) {
   const { data: vendors, isLoading: isLoadingVendor } = useVendors();
   const vendor = (vendors ?? []).find((v) => v.id === vendorId);
 
@@ -236,8 +246,7 @@ export default function VendorDetailPage({ params }: { params: Promise<{ id: str
             ) : isDecrease ? (
               <TrendingDown className="size-3.5" aria-hidden="true" />
             ) : null}
-            {pct > 0 ? "+" : ""}
-            {pct.toFixed(2)}%
+            <span>{`${pct > 0 ? "+" : ""}${pct.toFixed(2)}%`}</span>
           </span>
         );
       },
