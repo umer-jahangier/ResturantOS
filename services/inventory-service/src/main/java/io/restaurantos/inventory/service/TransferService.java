@@ -86,6 +86,12 @@ public class TransferService {
     public TransferDto ship(CreateTransferRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
 
+        // 08.2 code-review WR-01: reject a self-transfer — decrementing the source with no distinct
+        // receiving counterpart is meaningless and would leave dangling in-transit valuation.
+        if (request.fromBranchId().equals(request.toBranchId())) {
+            throw new StateInvalidException("Cannot transfer stock to the same branch");
+        }
+
         // Sorted-lock deadlock avoidance (Pitfall 6, reused from DepletionService): accumulate
         // required qty per ingredientId, then lock the DISTINCT ingredientId set in natural UUID
         // order — never lock lazily in per-line encounter order.
@@ -112,6 +118,16 @@ public class TransferService {
             IngredientBranchStock stock = stockRepository
                     .findForUpdate(tenantId, request.fromBranchId(), ingredientId)
                     .orElseGet(() -> stockRepository.save(newStockRow(tenantId, request.fromBranchId(), ingredientId)));
+
+            // 08.2 code-review WR-01: assert sufficient on-hand before decrementing. Without this,
+            // shipping from a branch that never stocked the ingredient books a fresh zero row and
+            // drives the aggregate on-hand negative at unitCostPaisa=0, letting the receiving branch
+            // book real stock at cost 0 — a GL-posting hazard for Phase 9. The FEFO floor-at-zero on
+            // individual lots is intentional; the aggregate on-hand must never go negative.
+            if (stock.getQtyOnHand().compareTo(qty) < 0) {
+                throw new StateInvalidException("Insufficient on-hand for ingredient " + ingredientId
+                        + " at branch " + request.fromBranchId());
+            }
 
             long unitCostPaisa = stock.getAvgCostPaisa();
 
