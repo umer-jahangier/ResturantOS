@@ -24,6 +24,7 @@ import io.restaurantos.inventory.repository.StockLotRepository;
 import io.restaurantos.inventory.repository.StockTransferLineRepository;
 import io.restaurantos.inventory.repository.StockTransferRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -167,6 +168,16 @@ public class TransferService {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown transferId: " + request.transferId()));
         if (!transfer.getToBranchId().equals(receivingBranchId)) {
             throw new AccessDeniedException("Cannot receive a transfer destined for another branch");
+        }
+        // Idempotency/state guard (08.2 code-review CR-01): a transfer may only be received while it
+        // is still SHIPPED. Without this, a duplicate submit, an at-least-once client retry, or a
+        // deliberate replay re-runs the whole receive body — re-incrementing destination qtyOnHand,
+        // re-polluting the moving-average cost, inserting duplicate lots/movements, and re-emitting
+        // TRANSFER_RECEIVED. Reject any non-SHIPPED transfer before the first write, mirroring how the
+        // sibling PurchaseOrderService lifecycle methods assert their source state.
+        if (!"SHIPPED".equals(transfer.getStatus())) {
+            throw new StateInvalidException("Transfer " + transfer.getId() + " is not awaiting receive (status="
+                    + transfer.getStatus() + ")");
         }
 
         // D6 gap-closure: register this tenant in the RLS-exempt cross-tenant registry (in the
