@@ -443,7 +443,7 @@ Plans:
 - [x] 08.2-16: Recipe detail + revision-authoring page with live plate-cost panel (INV-15)
 - [x] 08.2-17: Stock screen — on-hand read view + receipts, transfers, counts, opening balances (INV-15)
 - [x] 08.2-18: Vendor detail — catalog section, price-change history, filter-only category tags (PUR-07)
-- [ ] 08.2-19: Catalog picker replaces the hand-typed ingredient UUID on the PO line (PUR-08)
+- [x] 08.2-19: Catalog picker replaces the hand-typed ingredient UUID on the PO line (PUR-08)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 
