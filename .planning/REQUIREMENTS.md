@@ -363,9 +363,9 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INV-10 | Phase 08.1 | Complete |
 | INV-11 | Phase 08.1 | Complete |
 | INV-12 | Phase 08.1 | Complete |
-| INV-13 | Phase 08.2 | Not started |
-| INV-14 | Phase 08.2 | Not started |
-| INV-15 | Phase 08.2 | In progress (08.2-02: backend stock read endpoint delivered; 08.2-03: three-state recipe coverage server-side; 08.2-16: recipe detail/revision-authoring page + live plate-cost panel + three-state coverage UI delivered; stock-operations UI slice remains) |
+| INV-13 | Phase 08.2 | Complete (08.2-01 category tree V5 + trigger; 08.2-06 category admin API; 08.2-14 category management UI) |
+| INV-14 | Phase 08.2 | Complete (08.2-09 ingredient master-data V6 + API; 08.2-15 ingredient grid + form UI) |
+| INV-15 | Phase 08.2 | Complete (08.2-02 stock read endpoint; 08.2-03 three-state coverage; 08.2-07 cost-preview endpoint; 08.2-16 recipe detail/revision + live plate-cost panel + coverage UI; 08.2-17 stock-operations UI + on-hand read view) |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |
@@ -378,8 +378,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PUR-04 | Phase 10 (10-01/10-02) | Complete |
 | PUR-05 | Phase 10 (10-03) | Complete |
 | PUR-06 | Phase 10 (10-03) | Complete |
-| PUR-07 | Phase 08.2 | Not started |
-| PUR-08 | Phase 08.2 | Not started |
+| PUR-07 | Phase 08.2 | Complete (08.2-04 vendor-catalog V5; 08.2-08 vendor item/append-only price API; 08.2-18 vendor detail + catalog/price UI) |
+| PUR-08 | Phase 08.2 | Complete (08.2-10 catalog-driven PO line; 08.2-11 real spend-by-category analytics, mock resolver deleted; 08.2-13 purchasing data layer; 08.2-19 PO-line catalog picker) |
 | FIN-05 | Phase 10 (10-02/10-05 AP; 10-18 AR) + Phase 7 (POS charge-to-account tender) | In Progress |
 | HR-01 | Phase 11 | Pending |
 | HR-02 | Phase 11 | Pending |
