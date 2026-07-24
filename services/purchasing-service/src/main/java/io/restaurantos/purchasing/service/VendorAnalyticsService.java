@@ -15,6 +15,7 @@ import io.restaurantos.purchasing.repository.PurchaseOrderLineRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
 import io.restaurantos.purchasing.repository.VendorInvoiceRepository;
 import io.restaurantos.purchasing.repository.VendorRepository;
+import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -155,6 +156,18 @@ public class VendorAnalyticsService {
     public SpendAnalyticsDto spendReport(UUID branchId, LocalDate from, LocalDate to,
                                          LocalDate compareFrom, LocalDate compareTo) {
         UUID tenantId = tenantContext.requireTenantId();
+
+        // 08.2 code-review WR-06: reject an inverted reporting window. An inverted primary window makes
+        // ChronoUnit.DAYS.between(from, to) negative, which silently extends/inverts the derived prior
+        // window in the wrong direction instead of failing — producing a nonsensical comparison rather
+        // than a validation error. Validate both the primary and (when both bounds are supplied) the
+        // explicit compare window.
+        if (to.isBefore(from)) {
+            throw new StateInvalidException("'to' must be on or after 'from'");
+        }
+        if (compareFrom != null && compareTo != null && compareTo.isBefore(compareFrom)) {
+            throw new StateInvalidException("'compareTo' must be on or after 'compareFrom'");
+        }
 
         LocalDate resolvedCompareTo = compareTo != null ? compareTo : from.minusDays(1);
         LocalDate resolvedCompareFrom = compareFrom != null ? compareFrom
