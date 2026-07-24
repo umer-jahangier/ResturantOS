@@ -98,10 +98,21 @@ public class VendorItemPriceService {
                 .toList();
     }
 
-    /** The row whose effective window covers {@code at}, if any. */
+    /**
+     * The tenant-wide (branchId == null) row whose effective window covers {@code at}, if any.
+     *
+     * <p>08.2 code-review WR-05: {@code findCurrentForVendorItems} returns BOTH tenant-wide and
+     * branch-specific rows ordered by {@code effectiveFrom DESC}, so a bare {@code findFirst()} could
+     * return a branch-scoped override — disagreeing with {@code VendorItemService.currentPricesByItem}
+     * and {@code PurchaseOrderService.currentPricesByItem}, which both deliberately filter
+     * {@code branchId == null} to pick the tenant-wide price. Filter here too so the single-item
+     * endpoint, the catalog list, and PO-line derivation never disagree about "the current price"
+     * for the same item in a money-bearing path.
+     */
     public Optional<VendorItemPriceDto> currentPrice(UUID vendorItemId, Instant at) {
         UUID tenantId = tenantContext.requireTenantId();
         return vendorItemPriceRepository.findCurrentForVendorItems(tenantId, List.of(vendorItemId), at).stream()
+                .filter(p -> p.getBranchId() == null)
                 .findFirst()
                 .map(VendorItemPriceService::toDto);
     }
