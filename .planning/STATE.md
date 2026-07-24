@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 08.2
 current_phase_name: inventory-master-data-procurement-catalog
 status: executing
-stopped_at: Completed 08.2-16-PLAN.md
-last_updated: "2026-07-23T23:43:20.434Z"
+stopped_at: Completed 08.2-18-PLAN.md
+last_updated: "2026-07-24T00:19:41.835Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase 08.2 execution started
 progress:
   total_phases: 17
   completed_phases: 10
   total_plans: 122
-  completed_plans: 108
+  completed_plans: 109
   percent: 59
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 08.2 (inventory-master-data-procurement-catalog) — EXECUTING
-Plan: 18 of 20
+Plan: 19 of 20
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -272,6 +272,7 @@ _Updated after each plan completion_
 | Phase 08.2 P15 | 50min | 3 tasks | 3 files |
 | Phase 08.2 P16 | 55min | 3 tasks | 6 files |
 | Phase 08.2 P17 | 60min | 3 tasks | 14 files |
+| Phase 08.2 P18 | 35min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -548,6 +549,9 @@ Recent decisions affecting current work:
 - [Phase 08.2]: 08.2-16: coverage page and recipes index both show a per-menu-item version count via a per-row useRecipeVersions call (accepted N+1) since no bulk versions-for-every-menu-item endpoint exists — Each row's query is independently cached under the existing branch-scoped key; matches the detail page's own query shape
 - [Phase 08.2]: Added GET /api/v1/inventory/transfers/pending (backend) - the Transfer-receive UI had no list endpoint to drive itself from; mirrors StockLevelController own-branch-only enforcement
 - [Phase 08.2]: StockReceiptDialog omits vendor/PO-reference header fields - ReceiptDtos.ReceiveStockRequest has no such fields on the real backend contract
+- [Phase 08.2]: Vendor catalog dialogs (VendorItemFormDialog/VendorItemPriceDialog) use the controlled-or-uncontrolled dialog shape (open/onOpenChange/trigger all optional) rather than trigger-only, since row actions open them from inside a DropdownMenuItem — Mirrors IngredientFormDialog's established extension of VendorFormDialog's shape (08.2-14)
+- [Phase 08.2]: Vendor detail page derives the vendor header from the existing useVendors() list (find-by-id) - no single-vendor GET endpoint exists on the backend or in PurchasingRepository — The flat vendors list stays the source of vendor header data per the plan; only catalog/price management moves to the new route
+- [Phase 08.2]: VendorItemPriceDialog's branch scope is a simple this-branch-only/all-branches aria-pressed toggle using the current user's branchId, not a full branch-select dropdown — No useBranches/branch-list hook exists in the purchasing frontend; inventing a new endpoint was out of this plan's scope
 
 ### Pending Todos
 
@@ -591,8 +595,8 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-07-23T23:41:28.513Z
-Stopped at: Completed 08.2-16-PLAN.md
+Last session: 2026-07-24T00:19:41.773Z
+Stopped at: Completed 08.2-18-PLAN.md
 Resume file: None
 None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
