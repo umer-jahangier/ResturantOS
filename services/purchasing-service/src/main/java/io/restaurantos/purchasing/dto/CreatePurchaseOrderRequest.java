@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,7 +31,7 @@ public record CreatePurchaseOrderRequest(
     public record Line(
             UUID vendorItemId,
             UUID ingredientId,
-            @NotNull BigDecimal qty,
+            @NotNull @Positive BigDecimal qty,
             String uom,
             Long unitPricePaisa
     ) {

@@ -111,8 +111,17 @@ public class PurchaseOrderService {
                 if (lineReq.unitPricePaisa() != null) {
                     line.setUnitPricePaisa(lineReq.unitPricePaisa());
                 } else {
+                    // A catalog line with no caller-supplied price MUST resolve to a real current
+                    // price. Defaulting to 0 here silently under-reports po.totalPaisa, which
+                    // submit() feeds straight into requiredTiersForAmount(...) — a zero-priced line
+                    // could lower a real PO's required approval tiers (08.2 code-review CR-2).
                     VendorItemPrice currentPrice = currentPriceById.get(lineReq.vendorItemId());
-                    line.setUnitPricePaisa(currentPrice != null ? currentPrice.getUnitPricePaisa() : 0L);
+                    if (currentPrice == null) {
+                        throw new VendorItemCatalogMismatchException(
+                                "vendorItemId " + lineReq.vendorItemId() + " has no current catalog price;"
+                                        + " supply unitPricePaisa explicitly");
+                    }
+                    line.setUnitPricePaisa(currentPrice.getUnitPricePaisa());
                 }
             } else {
                 line.setIngredientId(lineReq.ingredientId());
