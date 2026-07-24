@@ -99,7 +99,7 @@ class TransferLifecycleIT extends InventoryTestBase {
                 fromBranchId, toBranchId, List.of(new TransferLineRequest(ingredientId, BigDecimal.valueOf(20)))));
 
         TransferDto received = transferService.receive(new ReceiveTransferRequest(
-                shipped.transferId(), List.of(new ReceiveLineRequest(ingredientId, BigDecimal.valueOf(20)))));
+                shipped.transferId(), List.of(new ReceiveLineRequest(ingredientId, BigDecimal.valueOf(20)))), toBranchId);
 
         assertThat(received.status()).isEqualTo("RECEIVED");
         assertThat(received.lines().get(0).qtyReceived()).isEqualByComparingTo(BigDecimal.valueOf(20));
@@ -131,7 +131,7 @@ class TransferLifecycleIT extends InventoryTestBase {
                 fromBranchId, toBranchId, List.of(new TransferLineRequest(ingredientId, BigDecimal.valueOf(20)))));
 
         TransferDto received = transferService.receive(new ReceiveTransferRequest(
-                shipped.transferId(), List.of(new ReceiveLineRequest(ingredientId, BigDecimal.valueOf(15)))));
+                shipped.transferId(), List.of(new ReceiveLineRequest(ingredientId, BigDecimal.valueOf(15)))), toBranchId);
 
         assertThat(received.status()).isEqualTo("RECEIVED");
         assertThat(received.lines().get(0).qtyReceived()).isEqualByComparingTo(BigDecimal.valueOf(15));

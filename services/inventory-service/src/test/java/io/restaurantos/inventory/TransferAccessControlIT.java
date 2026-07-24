@@ -82,7 +82,11 @@ class TransferAccessControlIT extends InventoryTestBase {
     }
 
     private RequestPostProcessor asInventoryManager() {
-        JwtClaims claims = new JwtClaims(UUID.randomUUID(), tenantId, fromBranchId,
+        return asInventoryManagerAtBranch(fromBranchId);
+    }
+
+    private RequestPostProcessor asInventoryManagerAtBranch(UUID branchId) {
+        JwtClaims claims = new JwtClaims(UUID.randomUUID(), tenantId, branchId,
                 List.of("INVENTORY_MANAGER"),
                 List.of("inventory.item.view", "inventory.item.manage"), Map.of(), null);
         return SecurityMockMvcRequestPostProcessors.authentication(
@@ -172,10 +176,78 @@ class TransferAccessControlIT extends InventoryTestBase {
         ReceiveTransferRequest receiveRequest = new ReceiveTransferRequest(
                 transferId, List.of(new ReceiveLineRequest(ingredientId, BigDecimal.TEN)));
 
+        // Receive is performed by a manager AT THE DESTINATION branch (toBranchId) — the caller
+        // may only receive into their own branch (CR-1). Shipping manager is at fromBranchId.
         mockMvc.perform(post("/api/v1/inventory/transfers/receive")
-                        .with(asInventoryManager())
+                        .with(asInventoryManagerAtBranch(toBranchId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(receiveRequest)))
                 .andExpect(status().isOk());
+    }
+
+    /**
+     * 08.2 code-review CR-1: an inventory.item.manage holder at Branch A may not ship stock OUT of a
+     * different branch. OPA grants inventory.item.manage (permission passes); the controller's
+     * branch-ownership guard must still 403 because request.fromBranchId != caller's own branch, and
+     * no TRANSFER_OUT movement is written.
+     */
+    @Test
+    void managerAtOwnBranch_cannotShipFromAnotherBranch() throws Exception {
+        when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
+        UUID otherSourceBranchId = UUID.randomUUID();
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                otherSourceBranchId, toBranchId, List.of(new TransferLineRequest(ingredientId, BigDecimal.TEN)));
+
+        mockMvc.perform(post("/api/v1/inventory/transfers/ship")
+                        .with(asInventoryManagerAtBranch(fromBranchId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        // Scoped by this test's per-method ingredientId — InventoryTestBase.clean() runs once per
+        // test CLASS, so sibling methods' TRANSFER_OUT rows (their own ingredientIds) would
+        // otherwise be counted here.
+        long transferOutCount = movementRepository.findAll().stream()
+                .filter(m -> m.getIngredientId().equals(ingredientId) && "TRANSFER_OUT".equals(m.getMovementType()))
+                .count();
+        assertThat(transferOutCount).isZero();
+
+        long shippedOutboxCount = outboxRepository.findAll().stream()
+                .filter(e -> tenantId.equals(e.getTenantId()) && "TRANSFER_SHIPPED".equals(e.getEventType())).count();
+        assertThat(shippedOutboxCount).isZero();
+    }
+
+    /**
+     * 08.2 code-review CR-1: an inventory.item.manage holder whose own branch is NOT the transfer's
+     * destination may not receive it. OPA grants the permission; the service's destination-branch
+     * guard must 403 before any TRANSFER_IN movement is written, even against a real SHIPPED
+     * transfer.
+     */
+    @Test
+    void managerAtNonDestinationBranch_cannotReceive() throws Exception {
+        // Seed a real SHIPPED transfer fromBranchId -> toBranchId (bean-level).
+        when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
+        var shipped = transferService.ship(new CreateTransferRequest(
+                fromBranchId, toBranchId, List.of(new TransferLineRequest(ingredientId, BigDecimal.TEN))));
+
+        // A manager at fromBranchId (NOT the destination toBranchId) attempts to receive it.
+        ReceiveTransferRequest request = new ReceiveTransferRequest(
+                shipped.transferId(), List.of(new ReceiveLineRequest(ingredientId, BigDecimal.TEN)));
+
+        mockMvc.perform(post("/api/v1/inventory/transfers/receive")
+                        .with(asInventoryManagerAtBranch(fromBranchId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        long transferInCount = movementRepository.findAll().stream()
+                .filter(m -> m.getIngredientId().equals(ingredientId) && "TRANSFER_IN".equals(m.getMovementType()))
+                .count();
+        assertThat(transferInCount).isZero();
+
+        long receivedOutboxCount = outboxRepository.findAll().stream()
+                .filter(e -> tenantId.equals(e.getTenantId()) && "TRANSFER_RECEIVED".equals(e.getEventType())).count();
+        assertThat(receivedOutboxCount).isZero();
     }
 }

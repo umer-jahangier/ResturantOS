@@ -47,6 +47,12 @@ public class TransferController {
             @Valid @RequestBody CreateTransferRequest request,
             @AuthenticationPrincipal JwtClaims claims) {
         authz.authorizeManage(claims.tenantId(), claims.branchId());
+        // Ship OUT of your own branch only. Without this, an inventory.item.manage holder at
+        // Branch A could ship stock out of any branch in the tenant (08.2 code-review CR-1),
+        // mirroring the own-branch guard StockLevelController/pending already enforce.
+        if (!request.fromBranchId().equals(claims.branchId())) {
+            throw new AccessDeniedException("Cannot ship stock from another branch");
+        }
         return ResponseEntity.ok(ApiResponse.ok(transferService.ship(request)));
     }
 
@@ -55,7 +61,10 @@ public class TransferController {
             @Valid @RequestBody ReceiveTransferRequest request,
             @AuthenticationPrincipal JwtClaims claims) {
         authz.authorizeManage(claims.tenantId(), claims.branchId());
-        return ResponseEntity.ok(ApiResponse.ok(transferService.receive(request)));
+        // Receive INTO your own branch only — the transfer's destination branch (resolved from the
+        // DB inside the service) must equal the caller's branch, else 403 before any stock mutation
+        // (08.2 code-review CR-1).
+        return ResponseEntity.ok(ApiResponse.ok(transferService.receive(request, claims.branchId())));
     }
 
     /** 08.2-17: transfers SHIPPED to {@code branchId}, awaiting receive — the stock screen's

@@ -25,6 +25,7 @@ import io.restaurantos.inventory.repository.StockTransferLineRepository;
 import io.restaurantos.inventory.repository.StockTransferRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.tenant.TenantContext;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -156,15 +157,22 @@ public class TransferService {
     }
 
     @Transactional
-    public TransferDto receive(ReceiveTransferRequest request) {
+    public TransferDto receive(ReceiveTransferRequest request, UUID receivingBranchId) {
         UUID tenantId = tenantContext.requireTenantId();
+
+        // Load the transfer and enforce destination-branch ownership BEFORE any write: the caller
+        // may only receive a transfer whose toBranchId is their own branch (08.2 code-review CR-1).
+        // This precedes registerTenant() so a denied caller performs no side effect at all.
+        StockTransfer transfer = transferRepository.findByIdAndTenantId(request.transferId(), tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown transferId: " + request.transferId()));
+        if (!transfer.getToBranchId().equals(receivingBranchId)) {
+            throw new AccessDeniedException("Cannot receive a transfer destined for another branch");
+        }
+
         // D6 gap-closure: register this tenant in the RLS-exempt cross-tenant registry (in the
         // same transaction as the destination-branch stock write below) so ExpirySweepService's
         // ambient-context-free nightly cron trigger can discover it later.
         tenantRegistryService.registerTenant(tenantId);
-
-        StockTransfer transfer = transferRepository.findByIdAndTenantId(request.transferId(), tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown transferId: " + request.transferId()));
 
         List<StockTransferLine> transferLines = transferLineRepository.findByTransferId(transfer.getId());
 
