@@ -163,7 +163,8 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrderDto withdraw(UUID id) {
-        PurchaseOrder po = purchaseOrderRepository.findById(id).orElseThrow();
+        PurchaseOrder po = purchaseOrderRepository.findByIdAndTenantId(id, tenantContext.requireTenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id));
         if (po.getStatus() != PoStatus.PENDING_APPROVAL) {
             throw new InvalidPoStateException("Only PENDING_APPROVAL can be withdrawn");
         }
@@ -174,7 +175,8 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrderDto send(UUID id) {
-        PurchaseOrder po = purchaseOrderRepository.findById(id).orElseThrow();
+        PurchaseOrder po = purchaseOrderRepository.findByIdAndTenantId(id, tenantContext.requireTenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id));
         if (po.getStatus() != PoStatus.APPROVED) {
             throw new InvalidPoStateException("Only APPROVED PO can be sent");
         }
@@ -184,7 +186,8 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     public PurchaseOrderDto get(UUID id) {
-        return toDto(purchaseOrderRepository.findById(id).orElseThrow());
+        return toDto(purchaseOrderRepository.findByIdAndTenantId(id, tenantContext.requireTenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id)));
     }
 
     /**
@@ -203,7 +206,8 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrderDto close(UUID id, String reason) {
-        PurchaseOrder po = purchaseOrderRepository.findById(id).orElseThrow();
+        PurchaseOrder po = purchaseOrderRepository.findByIdAndTenantId(id, tenantContext.requireTenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id));
         if (po.getStatus() != PoStatus.FULLY_RECEIVED && po.getStatus() != PoStatus.PARTIALLY_RECEIVED) {
             throw new InvalidPoStateException("Only FULLY_RECEIVED or PARTIALLY_RECEIVED PO can be closed");
         }
@@ -249,7 +253,8 @@ public class PurchaseOrderService {
     }
 
     private PurchaseOrder getDraft(UUID id) {
-        PurchaseOrder po = purchaseOrderRepository.findById(id).orElseThrow();
+        PurchaseOrder po = purchaseOrderRepository.findByIdAndTenantId(id, tenantContext.requireTenantId())
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id));
         if (po.getStatus() != PoStatus.DRAFT) {
             throw new InvalidPoStateException("PO must be DRAFT");
         }
