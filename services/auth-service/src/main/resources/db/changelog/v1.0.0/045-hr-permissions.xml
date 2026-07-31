@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-045-hr-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <!-- HR permission catalogue (module = hr) — Phase 11 HR & Payroll, spec §B.7 -->
+        <insert tableName="permissions">
+            <column name="code" value="hr.employee.view"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="View employee records"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.employee.manage"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Create and update employee records"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.attendance.view"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="View attendance and shift punches"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.attendance.manage"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Manage shifts, schedules and attendance corrections"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.leave.view"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="View leave requests and balances"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.leave.approve"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Approve or reject leave requests"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.payroll.run"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Calculate/run a payroll cycle"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.payroll.approve"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Approve a calculated payroll run for disbursement (TOTP-gated)"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.payroll.view"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="View payroll runs and payslips"/>
+        </insert>
+
+        <!-- MANAGER: operational subset — no payroll.run/approve -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="hr.employee.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="hr.attendance.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="hr.attendance.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="hr.leave.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="hr.leave.approve"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="hr.payroll.view"/>
+        </insert>
+
+        <!-- ACCOUNTANT: executes payroll runs; approval stays restricted to OWNER/TENANT_ADMIN (TOTP-gated) -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="hr.employee.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="hr.payroll.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="hr.payroll.run"/>
+        </insert>
+
+        <!-- FINANCE_VIEWER: read-only payroll visibility -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="FINANCE_VIEWER"/>
+            <column name="permission_code" value="hr.payroll.view"/>
+        </insert>
+
+        <!-- OWNER: inherit all hr.* permissions not yet assigned -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'OWNER', code FROM permissions p
+            WHERE p.module = 'hr'
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions rp
+                WHERE rp.role_code = 'OWNER' AND rp.permission_code = p.code
+            );
+        </sql>
+
+        <!-- TENANT_ADMIN: inherit all hr.* permissions not yet assigned -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'TENANT_ADMIN', code FROM permissions p
+            WHERE p.module = 'hr'
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions rp
+                WHERE rp.role_code = 'TENANT_ADMIN' AND rp.permission_code = p.code
+            );
+        </sql>
+
+        <rollback>
+            <sql>DELETE FROM role_permissions WHERE permission_code IN (
+                'hr.employee.view', 'hr.employee.manage',
+                'hr.attendance.view', 'hr.attendance.manage',
+                'hr.leave.view', 'hr.leave.approve',
+                'hr.payroll.run', 'hr.payroll.approve', 'hr.payroll.view'
+            );</sql>
+            <sql>DELETE FROM permissions WHERE code IN (
+                'hr.employee.view', 'hr.employee.manage',
+                'hr.attendance.view', 'hr.attendance.manage',
+                'hr.leave.view', 'hr.leave.approve',
+                'hr.payroll.run', 'hr.payroll.approve', 'hr.payroll.view'
+            );</sql>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
