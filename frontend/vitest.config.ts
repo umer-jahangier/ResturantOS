@@ -22,6 +22,14 @@ export default defineConfig({
       // so the discovery glob is widened rather than fighting the plan's literal path.
       "components/**/__tests__/**/*.{test,spec}.{ts,tsx}",
     ],
+    // Visible to the whole test process BEFORE any test module is imported, so the
+    // module-level constant in lib/hooks/ws-base-url.ts captures the real gateway base
+    // rather than undefined (which would fall back to same-origin ws://localhost:3000 under
+    // jsdom — the exact regression the ws-base-url tests guard against). Mirrors
+    // scripts/start-dev.sh / deploy/.env's dev value.
+    env: {
+      NEXT_PUBLIC_WS_BASE_URL: "ws://localhost:8080",
+    },
     coverage: {
       provider: "v8",
       include: ["lib/**/*.ts"],

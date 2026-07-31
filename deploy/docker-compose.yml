@@ -22,6 +22,12 @@ services:
       PURCHASING_DB_PASSWORD: ${PURCHASING_DB_PASSWORD}
       HR_DB_PASSWORD: ${HR_DB_PASSWORD}
       CRM_DB_PASSWORD: ${CRM_DB_PASSWORD}
+      # Phase 12. init/02-create-roles.sql reads these when the data dir is empty; without them a
+      # FIRST-TIME init creates reporting_user/nlq_user with empty passwords. (Existing volumes are
+      # provisioned instead by init/02b-ensure-runtime-roles.sql via ensure-dev-infra, since the
+      # docker entrypoint never re-runs init scripts on a populated data dir.)
+      REPORTING_DB_PASSWORD: ${REPORTING_DB_PASSWORD}
+      NLQ_DB_PASSWORD: ${NLQ_DB_PASSWORD}
       KITCHEN_DB_PASSWORD: ${KITCHEN_DB_PASSWORD}
       NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
       AUDIT_DB_PASSWORD: ${AUDIT_DB_PASSWORD}
@@ -67,6 +73,13 @@ services:
     container_name: restaurantos-rabbitmq
     restart: unless-stopped
     environment:
+      # NOTE: RabbitMQ SKIPS the RABBITMQ_DEFAULT_USER/PASS bootstrap entirely when
+      # rabbitmq.conf sets `load_definitions` (see deploy/init/rabbitmq.conf) — these two
+      # vars are inert once a definitions file is loaded. The real user is created
+      # declaratively via deploy/init/rabbitmq-definitions.json (rendered from
+      # rabbitmq-definitions.template.json by scripts/dev-stack-up.sh). Kept here only so
+      # `docker compose up rabbitmq` still boots with SOME creds if load_definitions is
+      # ever removed.
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
       RABBITMQ_DEFINITIONS_FILE: /etc/rabbitmq/definitions.json

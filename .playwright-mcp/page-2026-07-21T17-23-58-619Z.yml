@@ -1,0 +1,93 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - complementary [ref=f2e3]:
+      - generic [ref=f2e4]: RestaurantOS
+      - navigation "Primary" [ref=f2e9]:
+        - generic [ref=f2e10]:
+          - paragraph [ref=f2e11]: Overview
+          - link "Dashboard" [ref=f2e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f2e94]:
+          - paragraph [ref=f2e95]: Orders
+          - generic [ref=f2e96]:
+            - link "POS" [ref=f2e98] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f2e105] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f2e109]:
+          - paragraph [ref=f2e110]: Menu
+          - link "Inventory" [ref=f2e113] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f2e125]:
+          - paragraph [ref=f2e126]: Purchasing
+          - link "Purchasing" [ref=f2e129] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f2e136]:
+          - paragraph [ref=f2e137]: People
+          - generic [ref=f2e138]:
+            - link "HR" [ref=f2e140] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f2e148] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f2e154]:
+          - paragraph [ref=f2e155]: Reporting
+          - generic [ref=f2e156]:
+            - link "Reporting" [ref=f2e158] [cursor=pointer]:
+              - /url: /app/reporting
+            - link "Reports" [ref=f2e163] [cursor=pointer]:
+              - /url: /app/reports
+            - link "Realtime Dashboard" [ref=f2e168] [cursor=pointer]:
+              - /url: /app/dashboard/realtime
+            - link "Ask (NLQ)" [ref=f2e174] [cursor=pointer]:
+              - /url: /app/nlq
+        - generic [ref=f2e21]:
+          - paragraph [ref=f2e22]: Settings
+          - generic [ref=f2e23]:
+            - link "General" [ref=f2e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f2e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f2e40]:
+        - generic [ref=f2e43]: Collapse
+    - generic [ref=f2e44]:
+      - banner [ref=f2e45]:
+        - navigation "Breadcrumb" [ref=f2e47]:
+          - generic [ref=f2e48]: App
+          - generic [ref=f2e50]: Dashboard
+          - generic [ref=f2e54]: Realtime
+        - generic [ref=f2e179]: Main Branch (HQ)
+        - generic [ref=f2e58]:
+          - button "Open command palette" [ref=f2e59]:
+            - generic [ref=f2e63]: Search…
+            - generic [ref=f2e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f2e66]
+          - button "Switch to light mode" [ref=f2e180]
+          - button "Open profile menu" [ref=f2e74]: C
+      - main [ref=f2e181]:
+        - generic [ref=f2e184]:
+          - generic [ref=f2e185]:
+            - generic [ref=f2e186]:
+              - heading "Realtime Dashboard" [level=1] [ref=f2e187]
+              - paragraph [ref=f2e188]: Updates automatically when an order or till closes.
+            - generic [ref=f2e189]: Live
+          - generic [ref=f2e192]:
+            - generic [ref=f2e193]:
+              - paragraph [ref=f2e194]: Today's Revenue
+              - text: Rs 0.00
+              - paragraph [ref=f2e195]: updated 5s ago
+            - generic [ref=f2e196]:
+              - paragraph [ref=f2e197]: Today's Orders
+              - text: "0"
+              - paragraph [ref=f2e198]: updated 5s ago
+            - generic [ref=f2e199]:
+              - paragraph [ref=f2e200]: Today's Tax
+              - text: Rs 0.00
+              - paragraph [ref=f2e201]: updated 5s ago
+            - generic [ref=f2e202]:
+              - paragraph [ref=f2e203]: Average Order Value
+              - text: —
+              - paragraph [ref=f2e204]: updated 5s ago
+  - status [ref=f2e84]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f2e90] [cursor=pointer]
+  - alert [ref=f2e205]

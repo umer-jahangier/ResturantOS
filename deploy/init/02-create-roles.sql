@@ -11,6 +11,8 @@
 \set audit_pw `echo "$AUDIT_DB_PASSWORD"`
 \set file_pw `echo "$FILE_DB_PASSWORD"`
 \set platform_pw `echo "$PLATFORM_DB_PASSWORD"`
+\set rpt_pw `echo "$REPORTING_DB_PASSWORD"`
+\set nlq_pw `echo "$NLQ_DB_PASSWORD"`
 
 CREATE ROLE auth_user        LOGIN PASSWORD :'auth_pw'     NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE user_user        LOGIN PASSWORD :'user_pw'     NOSUPERUSER NOBYPASSRLS;
@@ -25,6 +27,8 @@ CREATE ROLE notification_user LOGIN PASSWORD :'notif_pw'   NOSUPERUSER NOBYPASSR
 CREATE ROLE audit_user       LOGIN PASSWORD :'audit_pw'    NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE file_user        LOGIN PASSWORD :'file_pw'     NOSUPERUSER NOBYPASSRLS;
 CREATE ROLE platform_user    LOGIN PASSWORD :'platform_pw' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE reporting_user   LOGIN PASSWORD :'rpt_pw'      NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE nlq_user         LOGIN PASSWORD :'nlq_pw'      NOSUPERUSER NOBYPASSRLS;
 
 -- Least-privilege runtime roles referenced by service Liquibase GRANTs.
 -- user-service connects as user_service (its application.yml default) and runs Liquibase as it.
@@ -47,6 +51,8 @@ GRANT ALL PRIVILEGES ON DATABASE notification_db TO notification_user;
 GRANT ALL PRIVILEGES ON DATABASE audit_db       TO audit_user;
 GRANT ALL PRIVILEGES ON DATABASE file_db        TO file_user;
 GRANT ALL PRIVILEGES ON DATABASE platform_db    TO platform_user;
+GRANT ALL PRIVILEGES ON DATABASE reporting_db   TO reporting_user;
+GRANT ALL PRIVILEGES ON DATABASE nlq_db         TO nlq_user;
 GRANT ALL PRIVILEGES ON DATABASE user_db        TO user_service;
 GRANT ALL PRIVILEGES ON DATABASE file_db        TO file_service;
 GRANT CONNECT        ON DATABASE audit_db        TO audit_writer;

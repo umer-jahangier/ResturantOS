@@ -560,13 +560,31 @@ Plans:
   3. An NLQ request converts NL→SQL via Claude and passes 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject); a query missing the tenant or branch filter is rejected.
   4. NLQ enforces read-only execution, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas, a 60s result cache, and stamps impersonation in `nlq_query_log`.
 
-**Plans**: 3 plans
+**Plans**: 11 plans + 5 gap-closure plans (12-12..12-16, closing the real live-only gaps 12-10 found + the browser WS-target gap from 12-UAT)
+
+Note: `nlq-service` is **Java / Spring Boot** (user decision), not Python — it reuses the proven shared-lib + Eureka + Config Server + internal-JWT wiring, and uses JSqlParser (not sqlglot) for the 7-stage AST validation.
 
 Plans:
 
-- [ ] 12-01: ClickHouse ETL from events + named/FBR reports (business-day boundary)
-- [ ] 12-02: Realtime dashboard WebSocket (<5s of close events)
-- [ ] 12-03: NLQ service — NL→SQL, 7-stage AST validation, quotas/cache/read-only
+- [x] 12-01: Platform seams — reporting-service + nlq-service scaffolds, gateway routes, FEATURE_NLQ flag fix, deploy/env
+- [x] 12-02: ClickHouse analytics schema + locked-down nlq_readonly user (verified against the live 25.9 container)
+- [x] 12-03: ETL — ORDER_CLOSED / TILL_CLOSED / VENDOR_INVOICE_MATCHED into ClickHouse facts, business-day boundary, idempotent
+- [x] 12-04: NLQ 7-stage SQL AST validation pipeline (TDD, JSqlParser, adversarial suite)
+- [x] 12-05: Named reports + FBR Tax Summary (output tax − input tax = net payable)
+- [x] 12-06: Realtime dashboard WebSocket (<5s of close events) with per-tile throttle
+- [x] 12-07: NLQ execution — Claude NL→SQL, read-only executor, quotas, 60s cache, impersonation-stamped audit log
+- [x] 12-08: Frontend — reports, FBR page, realtime dashboard
+- [x] 12-09: Frontend — NLQ ask page with honest rejection UX
+- [x] 12-10: Real-stack end-to-end proof + requirements reconciliation
+- [x] 12-11: auth-service permission seeding (reporting.* + nlq.query.run) wired into db.changelog-master.xml
+
+Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute-phase 12 --gaps-only`):
+
+- [ ] 12-12: GAP A — gateway JwtGlobalFilter WS-upgrade query-param JWT fallback (unblocks dashboard WS + KDS through the real gateway; RPT-02 blocker)
+- [ ] 12-13: GAP B — user-service getBranch derives tenant GUC from the forwarded JWT (FBR ntn/fbrStrn non-null live)
+- [ ] 12-14: GAP C — auth-service impersonation issuance sets tenant GUC before findById (platform-admin threads tenantId); real endpoint returns a token + stamp lands live
+- [ ] 12-15: GAP D — correct stale Anthropic model IDs in deploy/.env; runnable real-key round-trip recipe (live proof honestly deferred)
+- [ ] 12-16: UAT Test 3+4 — route the 3 browser WS hooks through NEXT_PUBLIC_WS_BASE_URL (gateway :8080) instead of unset NEXT_PUBLIC_*_WS_URL (localhost:3000); static guard + real-browser push proof
 
 ## Progress
 
@@ -589,4 +607,4 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
-| 12. Reporting, Dashboards & NLQ | 0/3 | Not started | - |
+| 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |

@@ -34,3 +34,36 @@ WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'file_service')
 SELECT 'GRANT ALL PRIVILEGES ON DATABASE file_db TO file_service'
 WHERE EXISTS (SELECT FROM pg_roles WHERE rolname = 'file_service')
 \gexec
+
+-- Phase 12 (reporting-service, nlq-service): create their databases and roles idempotently so dev
+-- volumes provisioned before Phase 12 (where 01/02 will not re-run) still get them. CREATE DATABASE
+-- runs first so the DATABASE grants below cannot abort under ON_ERROR_STOP on a missing database.
+SELECT 'CREATE DATABASE reporting_db'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'reporting_db')
+\gexec
+
+SELECT 'CREATE DATABASE nlq_db'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'nlq_db')
+\gexec
+
+SELECT format(
+  'CREATE ROLE reporting_user LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS',
+  :'rpt_pw'
+)
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'reporting_user')
+\gexec
+
+SELECT 'GRANT ALL PRIVILEGES ON DATABASE reporting_db TO reporting_user'
+WHERE EXISTS (SELECT FROM pg_roles WHERE rolname = 'reporting_user')
+\gexec
+
+SELECT format(
+  'CREATE ROLE nlq_user LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS',
+  :'nlq_pw'
+)
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'nlq_user')
+\gexec
+
+SELECT 'GRANT ALL PRIVILEGES ON DATABASE nlq_db TO nlq_user'
+WHERE EXISTS (SELECT FROM pg_roles WHERE rolname = 'nlq_user')
+\gexec

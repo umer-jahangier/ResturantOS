@@ -26,6 +26,13 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
 **Current focus:** Phase 08.2 — inventory-master-data-procurement-catalog
 
+> **Merge note (2026-08-01):** branch `origin/Mufazzal` (Phase 12 — Reporting, Dashboards & NLQ)
+> was merged into `prod`. Its `reporting-service` and `nlq-service` modules, migrations, gateway
+> routes and frontend pages are now on this branch, and its phase artifacts are under
+> `.planning/phases/`. The counters above are `prod`'s own and were deliberately NOT replaced by
+> that branch's (which were older — 2026-07-21 vs 2026-07-24 — and counted a different phase set);
+> they do not yet account for Phase 12's plans. Reconcile via the GSD tooling rather than by hand.
+
 ## Current Position
 
 Phase: 10 — Purchasing & Accounts Payable

@@ -1,0 +1,269 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - complementary [ref=f4e3]:
+      - generic [ref=f4e4]: RestaurantOS
+      - navigation "Primary" [ref=f4e9]:
+        - generic [ref=f4e10]:
+          - paragraph [ref=f4e11]: Overview
+          - link "Dashboard" [ref=f4e14] [cursor=pointer]:
+            - /url: /app/dashboard
+        - generic [ref=f4e87]:
+          - paragraph [ref=f4e88]: Orders
+          - generic [ref=f4e89]:
+            - link "POS" [ref=f4e91] [cursor=pointer]:
+              - /url: /app/pos
+            - link "Kitchen Display" [ref=f4e98] [cursor=pointer]:
+              - /url: /app/kitchen
+        - generic [ref=f4e102]:
+          - paragraph [ref=f4e103]: Menu
+          - link "Inventory" [ref=f4e106] [cursor=pointer]:
+            - /url: /app/inventory
+        - generic [ref=f4e118]:
+          - paragraph [ref=f4e119]: Purchasing
+          - link "Purchasing" [ref=f4e122] [cursor=pointer]:
+            - /url: /app/purchasing
+        - generic [ref=f4e129]:
+          - paragraph [ref=f4e130]: People
+          - generic [ref=f4e131]:
+            - link "HR" [ref=f4e133] [cursor=pointer]:
+              - /url: /app/hr
+            - link "CRM" [ref=f4e141] [cursor=pointer]:
+              - /url: /app/crm
+        - generic [ref=f4e147]:
+          - paragraph [ref=f4e148]: Reporting
+          - generic [ref=f4e149]:
+            - link "Reporting" [ref=f4e151] [cursor=pointer]:
+              - /url: /app/reporting
+            - link "Reports" [ref=f4e156] [cursor=pointer]:
+              - /url: /app/reports
+            - link "Realtime Dashboard" [ref=f4e161] [cursor=pointer]:
+              - /url: /app/dashboard/realtime
+            - link "Ask (NLQ)" [ref=f4e167] [cursor=pointer]:
+              - /url: /app/nlq
+        - generic [ref=f4e21]:
+          - paragraph [ref=f4e22]: Settings
+          - generic [ref=f4e23]:
+            - link "General" [ref=f4e25] [cursor=pointer]:
+              - /url: /app/settings
+            - link "Appearance" [ref=f4e31] [cursor=pointer]:
+              - /url: /settings/appearance
+      - button "Collapse sidebar" [ref=f4e40]:
+        - generic [ref=f4e43]: Collapse
+    - generic [ref=f4e44]:
+      - banner [ref=f4e45]:
+        - navigation "Breadcrumb" [ref=f4e47]:
+          - generic [ref=f4e48]: App
+          - generic [ref=f4e50]: Kitchen
+          - generic [ref=f4e54]: DEFAULT
+        - generic [ref=f4e172]: Main Branch (HQ)
+        - generic [ref=f4e58]:
+          - button "Open command palette" [ref=f4e59]:
+            - generic [ref=f4e63]: Search…
+            - generic [ref=f4e64]: ⌘K
+          - button "Notifications (3 unread)" [ref=f4e66]
+          - button "Switch to light mode" [ref=f4e173]
+          - button "Open profile menu" [ref=f4e74]: C
+      - main [ref=f4e174]:
+        - generic [ref=f4e176]:
+          - generic [ref=f4e177]:
+            - heading "DEFAULT" [level=1] [ref=f4e179]
+            - generic [ref=f4e180]:
+              - button "All stations" [ref=f4e181]
+              - generic "Live" [ref=f4e187]
+          - generic [ref=f4e188]:
+            - generic [ref=f4e189]:
+              - heading "New" [level=3] [ref=f4e191]
+              - generic [ref=f4e192]:
+                - button "Open ticket detail for ORD-20260719-0020" [ref=f4e194]:
+                  - generic [ref=f4e195]:
+                    - generic [ref=f4e196]:
+                      - generic [ref=f4e197]: ORD-20260719-0020
+                      - generic [ref=f4e198]: 1458m
+                    - generic [ref=f4e199]:
+                      - generic [ref=f4e200]: Dine-in
+                      - generic [ref=f4e201]: No table
+                    - generic [ref=f4e202]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0019" [ref=f4e204]:
+                  - generic [ref=f4e205]:
+                    - generic [ref=f4e206]:
+                      - generic [ref=f4e207]: ORD-20260719-0019
+                      - generic [ref=f4e208]: 1458m
+                    - generic [ref=f4e209]:
+                      - generic [ref=f4e210]: Dine-in
+                      - generic [ref=f4e211]: No table
+                    - generic [ref=f4e212]: 1× E2E Item C (tax 500)
+                - button "Open ticket detail for ORD-20260719-0018" [ref=f4e214]:
+                  - generic [ref=f4e215]:
+                    - generic [ref=f4e216]:
+                      - generic [ref=f4e217]: ORD-20260719-0018
+                      - generic [ref=f4e218]: 1458m
+                    - generic [ref=f4e219]:
+                      - generic [ref=f4e220]: Dine-in
+                      - generic [ref=f4e221]: No table
+                    - generic [ref=f4e222]: 1× E2E Item B (tax 2500)
+                - button "Open ticket detail for ORD-20260719-0017" [ref=f4e224]:
+                  - generic [ref=f4e225]:
+                    - generic [ref=f4e226]:
+                      - generic [ref=f4e227]: ORD-20260719-0017
+                      - generic [ref=f4e228]: 1458m
+                    - generic [ref=f4e229]:
+                      - generic [ref=f4e230]: Dine-in
+                      - generic [ref=f4e231]: No table
+                    - generic [ref=f4e232]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0016" [ref=f4e234]:
+                  - generic [ref=f4e235]:
+                    - generic [ref=f4e236]:
+                      - generic [ref=f4e237]: ORD-20260719-0016
+                      - generic [ref=f4e238]: 1458m
+                    - generic [ref=f4e239]:
+                      - generic [ref=f4e240]: Dine-in
+                      - generic [ref=f4e241]: No table
+                    - generic [ref=f4e242]: 1× E2E Item C (tax 500)
+                - button "Open ticket detail for ORD-20260719-0015" [ref=f4e244]:
+                  - generic [ref=f4e245]:
+                    - generic [ref=f4e246]:
+                      - generic [ref=f4e247]: ORD-20260719-0015
+                      - generic [ref=f4e248]: 1458m
+                    - generic [ref=f4e249]:
+                      - generic [ref=f4e250]: Dine-in
+                      - generic [ref=f4e251]: No table
+                    - generic [ref=f4e252]: 1× E2E Item B (tax 2500)
+                - button "Open ticket detail for ORD-20260719-0014" [ref=f4e254]:
+                  - generic [ref=f4e255]:
+                    - generic [ref=f4e256]:
+                      - generic [ref=f4e257]: ORD-20260719-0014
+                      - generic [ref=f4e258]: 1458m
+                    - generic [ref=f4e259]:
+                      - generic [ref=f4e260]: Dine-in
+                      - generic [ref=f4e261]: No table
+                    - generic [ref=f4e262]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0013" [ref=f4e264]:
+                  - generic [ref=f4e265]:
+                    - generic [ref=f4e266]:
+                      - generic [ref=f4e267]: ORD-20260719-0013
+                      - generic [ref=f4e268]: 1458m
+                    - generic [ref=f4e269]:
+                      - generic [ref=f4e270]: Dine-in
+                      - generic [ref=f4e271]: No table
+                    - generic [ref=f4e272]: 1× E2E Item C (tax 500)
+                - button "Open ticket detail for ORD-20260719-0012" [ref=f4e274]:
+                  - generic [ref=f4e275]:
+                    - generic [ref=f4e276]:
+                      - generic [ref=f4e277]: ORD-20260719-0012
+                      - generic [ref=f4e278]: 1458m
+                    - generic [ref=f4e279]:
+                      - generic [ref=f4e280]: Dine-in
+                      - generic [ref=f4e281]: No table
+                    - generic [ref=f4e282]: 1× E2E Item B (tax 2500)
+                - button "Open ticket detail for ORD-20260719-0011" [ref=f4e284]:
+                  - generic [ref=f4e285]:
+                    - generic [ref=f4e286]:
+                      - generic [ref=f4e287]: ORD-20260719-0011
+                      - generic [ref=f4e288]: 1458m
+                    - generic [ref=f4e289]:
+                      - generic [ref=f4e290]: Dine-in
+                      - generic [ref=f4e291]: No table
+                    - generic [ref=f4e292]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0010" [ref=f4e294]:
+                  - generic [ref=f4e295]:
+                    - generic [ref=f4e296]:
+                      - generic [ref=f4e297]: ORD-20260719-0010
+                      - generic [ref=f4e298]: 1458m
+                    - generic [ref=f4e299]:
+                      - generic [ref=f4e300]: Dine-in
+                      - generic [ref=f4e301]: No table
+                    - generic [ref=f4e302]: 1× E2E Item C (tax 500)
+                - button "Open ticket detail for ORD-20260719-0009" [ref=f4e304]:
+                  - generic [ref=f4e305]:
+                    - generic [ref=f4e306]:
+                      - generic [ref=f4e307]: ORD-20260719-0009
+                      - generic [ref=f4e308]: 1458m
+                    - generic [ref=f4e309]:
+                      - generic [ref=f4e310]: Dine-in
+                      - generic [ref=f4e311]: No table
+                    - generic [ref=f4e312]: 1× E2E Item B (tax 2500)
+                - button "Open ticket detail for ORD-20260719-0008" [ref=f4e314]:
+                  - generic [ref=f4e315]:
+                    - generic [ref=f4e316]:
+                      - generic [ref=f4e317]: ORD-20260719-0008
+                      - generic [ref=f4e318]: 1458m
+                    - generic [ref=f4e319]:
+                      - generic [ref=f4e320]: Dine-in
+                      - generic [ref=f4e321]: No table
+                    - generic [ref=f4e322]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0007" [ref=f4e324]:
+                  - generic [ref=f4e325]:
+                    - generic [ref=f4e326]:
+                      - generic [ref=f4e327]: ORD-20260719-0007
+                      - generic [ref=f4e328]: 1458m
+                    - generic [ref=f4e329]:
+                      - generic [ref=f4e330]: Dine-in
+                      - generic [ref=f4e331]: No table
+                    - generic [ref=f4e332]: 1× E2E Item C (tax 500)
+                - button "Open ticket detail for ORD-20260719-0006" [ref=f4e334]:
+                  - generic [ref=f4e335]:
+                    - generic [ref=f4e336]:
+                      - generic [ref=f4e337]: ORD-20260719-0006
+                      - generic [ref=f4e338]: 1458m
+                    - generic [ref=f4e339]:
+                      - generic [ref=f4e340]: Dine-in
+                      - generic [ref=f4e341]: No table
+                    - generic [ref=f4e342]: 1× E2E Item B (tax 2500)
+                - button "Open ticket detail for ORD-20260719-0005" [ref=f4e344]:
+                  - generic [ref=f4e345]:
+                    - generic [ref=f4e346]:
+                      - generic [ref=f4e347]: ORD-20260719-0005
+                      - generic [ref=f4e348]: 1458m
+                    - generic [ref=f4e349]:
+                      - generic [ref=f4e350]: Dine-in
+                      - generic [ref=f4e351]: No table
+                    - generic [ref=f4e352]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0004" [ref=f4e354]:
+                  - generic [ref=f4e355]:
+                    - generic [ref=f4e356]:
+                      - generic [ref=f4e357]: ORD-20260719-0004
+                      - generic [ref=f4e358]: 1458m
+                    - generic [ref=f4e359]:
+                      - generic [ref=f4e360]: Dine-in
+                      - generic [ref=f4e361]: No table
+                    - generic [ref=f4e362]: 1× E2E Item A (tax 1000)
+                - button "Open ticket detail for ORD-20260719-0003" [ref=f4e364]:
+                  - generic [ref=f4e365]:
+                    - generic [ref=f4e366]:
+                      - generic [ref=f4e367]: ORD-20260719-0003
+                      - generic [ref=f4e368]: 1458m
+                    - generic [ref=f4e369]:
+                      - generic [ref=f4e370]: Dine-in
+                      - generic [ref=f4e371]: No table
+                    - generic [ref=f4e372]: 1× E2E Item C (tax 500)
+                - button "Open ticket detail for ORD-20260719-0002" [ref=f4e374]:
+                  - generic [ref=f4e375]:
+                    - generic [ref=f4e376]:
+                      - generic [ref=f4e377]: ORD-20260719-0002
+                      - generic [ref=f4e378]: 1458m
+                    - generic [ref=f4e379]:
+                      - generic [ref=f4e380]: Dine-in
+                      - generic [ref=f4e381]: No table
+                    - generic [ref=f4e382]: 1× E2E Item B (tax 2500)
+                - button "Open ticket detail for ORD-20260719-0001" [ref=f4e384]:
+                  - generic [ref=f4e385]:
+                    - generic [ref=f4e386]:
+                      - generic [ref=f4e387]: ORD-20260719-0001
+                      - generic [ref=f4e388]: 1458m
+                    - generic [ref=f4e389]:
+                      - generic [ref=f4e390]: Dine-in
+                      - generic [ref=f4e391]: No table
+                    - generic [ref=f4e392]: 1× E2E Item A (tax 1000)
+            - generic [ref=f4e393]:
+              - heading "Started" [level=3] [ref=f4e395]
+              - generic [ref=f4e396]: —
+            - generic [ref=f4e398]:
+              - heading "Preparing" [level=3] [ref=f4e400]
+              - generic [ref=f4e401]: —
+            - generic [ref=f4e403]:
+              - heading "Ready" [level=3] [ref=f4e405]
+              - generic [ref=f4e406]: —
+  - status [ref=f4e77]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f4e83] [cursor=pointer]
+  - alert [ref=f4e408]

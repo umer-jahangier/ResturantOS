@@ -1,0 +1,25 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - navigation "Loading navigation" [ref=f1e3]
+    - generic [ref=f1e38]:
+      - banner [ref=f1e39]:
+        - navigation "Breadcrumb" [ref=f1e41]:
+          - generic [ref=f1e42]: App
+          - generic [ref=f1e44]: Dashboard
+          - generic [ref=f1e48]: Realtime
+        - generic [ref=f1e52]:
+          - button "Open command palette" [ref=f1e53]:
+            - generic [ref=f1e57]: Search…
+            - generic [ref=f1e58]: ⌘K
+          - button "Notifications (3 unread)" [ref=f1e60]
+          - button "Toggle theme" [disabled] [ref=f1e65]
+          - button "Open profile menu" [ref=f1e68]: U
+      - main [ref=f1e69]:
+        - generic [ref=f1e71]:
+          - generic [ref=f1e74]:
+            - heading "Access denied" [level=1] [ref=f1e75]
+            - paragraph [ref=f1e76]: You do not have permission to view this page.
+          - link "Back to dashboard" [ref=f1e77] [cursor=pointer]:
+            - /url: /app/dashboard
+  - status [ref=f1e78]
+  - region "Notifications alt+T"

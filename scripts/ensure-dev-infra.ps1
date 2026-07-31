@@ -41,11 +41,29 @@ function Invoke-PsqlFile([string]$Database, [string]$RelPath, [hashtable]$Vars) 
 }
 
 Write-Host "==> Ensuring runtime Postgres roles (idempotent)..." -ForegroundColor Cyan
-Invoke-PsqlFile "postgres" "init/02b-ensure-runtime-roles.sql" @{
+# Must stay in lockstep with deploy/scripts/ensure-dev-infra.sh and with every :'var' that
+# init/02b-ensure-runtime-roles.sql actually references. The phase-12 merge added reporting_db /
+# nlq_db provisioning to that SQL and taught only the .sh half to pass rpt_pw/nlq_pw; this file
+# did not conflict, so it silently kept the old three-variable call. Under ON_ERROR_STOP=1 an
+# unset psql variable aborts the file, taking the whole stack launch with it.
+$rolePasswords = [ordered]@{
     user_pw  = $envMap["USER_DB_PASSWORD"]
     audit_pw = $envMap["AUDIT_DB_PASSWORD"]
     file_pw  = $envMap["FILE_DB_PASSWORD"]
+    rpt_pw   = $envMap["REPORTING_DB_PASSWORD"]
+    nlq_pw   = $envMap["NLQ_DB_PASSWORD"]
 }
+# A missing key yields $null, which psql would happily turn into a role with an EMPTY password;
+# the service then fails much later with an opaque authentication error. Say so here instead.
+# (ASCII only in this message: PowerShell 5.1 reads this file as ANSI and a non-ASCII character
+# inside a string literal is a parse error, not a display glitch.)
+$missing = $rolePasswords.Keys | Where-Object { [string]::IsNullOrWhiteSpace($rolePasswords[$_]) }
+if ($missing) {
+    Write-Error ("deploy/.env is missing values for: $($missing -join ', '). " +
+        "Add the corresponding *_DB_PASSWORD entries (REPORTING_DB_PASSWORD / NLQ_DB_PASSWORD " +
+        "arrived with phase 12). Creating these roles with empty passwords only defers the failure.")
+}
+Invoke-PsqlFile "postgres" "init/02b-ensure-runtime-roles.sql" $rolePasswords
 
 Write-Host "==> Ensuring Postgres schema grants (idempotent)..." -ForegroundColor Cyan
 Invoke-PsqlFile "postgres" "init/03-grant-schema-privileges.sql" @{}

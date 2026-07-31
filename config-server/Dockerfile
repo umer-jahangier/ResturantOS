@@ -26,6 +26,8 @@ COPY services/pos-service/pom.xml services/pos-service/pom.xml
 COPY services/kitchen-service/pom.xml services/kitchen-service/pom.xml
 COPY services/inventory-service/pom.xml services/inventory-service/pom.xml
 COPY services/crm-service/pom.xml services/crm-service/pom.xml
+COPY services/reporting-service/pom.xml services/reporting-service/pom.xml
+COPY services/nlq-service/pom.xml services/nlq-service/pom.xml
 
 # Pre-download dependencies (runs before sources are copied)
 RUN mvn -pl config-server -am -q dependency:go-offline -DskipTests || true

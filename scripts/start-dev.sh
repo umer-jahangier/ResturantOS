@@ -63,8 +63,9 @@ stop_dev_stack() {
   local port
   # Must cover every port start_service actually binds — a missing one leaves that service
   # running and the next start fails on a bound port. 8084 pos, 8085 inventory, 8087 purchasing,
-  # 8089 crm and 8090 kitchen were all absent here.
-  for port in 3000 8080 8081 8082 8083 8084 8085 8086 8087 8089 8090 8093 8095 8096; do
+  # 8089 crm and 8090 kitchen were all absent here; 8092 reporting and 8094 nlq arrived with the
+  # phase-12 merge and were likewise never added.
+  for port in 3000 8080 8081 8082 8083 8084 8085 8086 8087 8089 8090 8092 8093 8094 8095 8096; do
     stop_port "$port"
   done
 
@@ -189,7 +190,7 @@ fi
 
 if [[ "$SKIP_BUILD" != true ]]; then
   step "Building backend JARs (skip next time with --skip-build)"
-  mvn -pl services/auth-service,services/authorization-service,services/user-service,services/platform-admin-service,services/audit-service,services/file-service,services/finance-service,services/pos-service,services/kitchen-service,services/inventory-service,services/purchasing-service,services/crm-service,gateway \
+  mvn -pl services/auth-service,services/authorization-service,services/user-service,services/platform-admin-service,services/audit-service,services/file-service,services/finance-service,services/pos-service,services/kitchen-service,services/inventory-service,services/purchasing-service,services/crm-service,services/reporting-service,services/nlq-service,gateway \
     -am -DskipTests package -q
 fi
 
@@ -208,6 +209,8 @@ KITCHEN_PID=$(start_service kitchen-service services/kitchen-service)
 INVENTORY_PID=$(start_service inventory-service services/inventory-service)
 PURCHASING_PID=$(start_service purchasing-service services/purchasing-service)
 CRM_PID=$(start_service crm-service services/crm-service)
+REPORTING_PID=$(start_service reporting-service services/reporting-service)
+NLQ_PID=$(start_service nlq-service services/nlq-service)
 
 step "Waiting for auth-service JWKS before gateway"
 if ! wait_http_ok "http://localhost:8081/.well-known/jwks.json" 180; then
@@ -249,6 +252,8 @@ cat >"$PID_FILE" <<EOF
   "inventory-service": ${INVENTORY_PID},
   "purchasing-service": ${PURCHASING_PID},
   "crm-service": ${CRM_PID},
+  "reporting-service": ${REPORTING_PID},
+  "nlq-service": ${NLQ_PID},
   "gateway": ${GATEWAY_PID},
   "frontend": ${FRONTEND_PID}
 }

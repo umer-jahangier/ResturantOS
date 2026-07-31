@@ -30,10 +30,10 @@ function Stop-PortListener([int]$Port) {
 
 function Stop-DevStack {
     Write-Step "Stopping host services (ports 3000, 8080-8096)"
-    # 8087 purchasing / 8089 crm: each side of the phase-08.2 merge knew only its own services, so
-    # the union is only correct here. A port missing from this list leaves that service running and
-    # the next start fails on a bound port.
-    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8089, 8090, 8093, 8095, 8096) {
+    # 8087 purchasing / 8089 crm / 8092 reporting / 8094 nlq: every branch merge so far has brought
+    # services this list did not know about, so the union is only correct here. A port missing from
+    # this list leaves that service running and the next start fails on a bound port.
+    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8089, 8090, 8092, 8093, 8094, 8095, 8096) {
         Stop-PortListener $p
     }
     if (Test-Path $PidFile) { Remove-Item $PidFile -Force }
@@ -99,7 +99,9 @@ $DevMavenModules = @(
     "services/kitchen-service",
     "services/inventory-service",
     "services/purchasing-service",
-    "services/crm-service"
+    "services/crm-service",
+    "services/reporting-service",
+    "services/nlq-service"
 )
 
 function Build-DevServices {
@@ -266,6 +268,8 @@ $pids["kitchen-service"] = Start-ServiceWindow "kitchen-service" "services/kitch
 $pids["inventory-service"] = Start-ServiceWindow "inventory-service" "services/inventory-service"
 $pids["purchasing-service"] = Start-ServiceWindow "purchasing-service" "services/purchasing-service"
 $pids["crm-service"] = Start-ServiceWindow "crm-service" "services/crm-service"
+$pids["reporting-service"] = Start-ServiceWindow "reporting-service" "services/reporting-service"
+$pids["nlq-service"] = Start-ServiceWindow "nlq-service" "services/nlq-service"
 
 Write-Step "Waiting for auth-service JWKS before gateway"
 if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 300)) {

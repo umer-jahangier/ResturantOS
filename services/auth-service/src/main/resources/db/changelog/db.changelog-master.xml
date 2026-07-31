@@ -18,6 +18,12 @@
     <include file="db/changelog/v1.0.0/044-finance-period-open-permission.xml"/>
     <include file="db/changelog/v1.0.0/045-repair-vendor-manage-approve-grants.xml"/>
     <include file="db/changelog/v1.0.0/046-pos-till-review-permission.xml"/>
+    <!-- The 045/046 numbers are used twice: this branch and the phase-12 branch each picked the
+         next two free prefixes independently. Harmless — Liquibase keys history on
+         (id, author, filename), and all four changeset ids are distinct — so renumbering would
+         only invalidate history on databases that already ran them. Kept as-is deliberately. -->
+    <include file="db/changelog/v1.0.0/045-reporting-permissions.xml"/>
+    <include file="db/changelog/v1.0.0/046-nlq-permissions.xml"/>
     <include file="db/changelog/v1.0.0/040-create-user-branch-roles.xml"/>
     <include file="db/changelog/v1.0.0/050-create-refresh-sessions.xml"/>
     <include file="db/changelog/v1.0.0/052-refresh-session-lookup-function.xml"/>

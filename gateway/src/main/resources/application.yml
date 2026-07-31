@@ -252,15 +252,48 @@ spring:
                       - 500
                       - 503
 
+            # ── Reporting Service (reports, FBR, realtime dashboard WS) ──────────
+            # No feature gate in RouteFeatureMap — reports are core for every ACTIVE tenant
+            # (same rationale as pos-route). Do NOT add /api/v1/reporting/ to RouteFeatureMap:
+            # FEATURE_REPORTING_ADVANCED is GROWTH-and-above only, so gating this path would 403
+            # every STARTER tenant out of basic reporting. Spring Cloud Gateway proxies the WS
+            # upgrade transparently over the same Path predicate (as kitchen-route does for KDS).
+            - id: reporting-route
+              uri: lb://reporting-service
+              predicates:
+                - Path=/api/v1/reporting/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: reportingCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
+            # ── NLQ Service (natural-language query → validated read-only SQL) ───
+            # Feature-gated on FEATURE_NLQ (GROWTH+) in RouteFeatureMap. The flag is now defined
+            # in TierFeatureDefaults (it was previously a phantom flag that 403'd every request).
+            - id: nlq-route
+              uri: lb://nlq-service
+              predicates:
+                - Path=/api/v1/nlq/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: nlqCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
-            # - id: nlq-route
-            #   uri: lb://nlq-service
+            # - id: hr-route
+            #   uri: lb://hr-service
             #   predicates:
-            #     - Path=/api/v1/nlq/**
+            #     - Path=/api/v1/hr/**
             #   filters:
             #     - name: CircuitBreaker
             #       args:
-            #         name: nlqCircuitBreaker
+            #         name: hrCircuitBreaker
             #         fallbackUri: forward:/fallback/service-unavailable
 
     # Eureka: register with service discovery so other services can find the gateway
@@ -348,6 +381,20 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
+      # reporting-route and nlq-route arrived referencing these two names with NO instance
+      # declared anywhere — exactly the drift GatewayResilienceConfigTest was written to catch,
+      # and the same shape as the bug its docstring describes (route silently runs on
+      # resilience4j defaults, then 503s persistently after an upstream restart).
+      reportingCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      nlqCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
   # Reactive Spring Cloud CircuitBreaker applies a 1s call timeout when no time limiter is
   # configured for an instance. purchasing/pos/kitchen/inventory are the four routes this phase
   # puts real traffic on for the first time (recursive category-tree read, batch ingredient-category
@@ -368,6 +415,17 @@ resilience4j:
         cancelRunningFuture: true
       inventoryCircuitBreaker:
         timeoutDuration: 5s
+        cancelRunningFuture: true
+      # Reporting aggregates over ClickHouse fact tables; same class of work as the four above.
+      reportingCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      # NLQ is the one route where the 1s default is not merely tight but guaranteed to fail:
+      # a single request makes TWO Anthropic calls (SQL generation, then narrative) and then runs
+      # the generated query, which nlq-service itself caps at NLQ_TIMEOUT_SECONDS=5. 30s leaves
+      # the service's own timeout as the binding constraint rather than the gateway's.
+      nlqCircuitBreaker:
+        timeoutDuration: 30s
         cancelRunningFuture: true
 
 # Gateway-specific properties
