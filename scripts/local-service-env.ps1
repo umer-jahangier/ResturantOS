@@ -82,6 +82,11 @@ $env:POS_DB_URL = "jdbc:postgresql://127.0.0.1:5432/pos_db"
 $env:POS_DB_USER = "pos_user"
 $env:POS_DB_PASSWORD = $env:POS_DB_PASSWORD
 
+# hr-service (Liquibase + runtime as hr_user)
+$env:HR_DB_URL = "jdbc:postgresql://127.0.0.1:5432/hr_db"
+$env:HR_DB_USER = "hr_user"
+$env:HR_DB_PASSWORD = $env:HR_DB_PASSWORD
+
 # RabbitMQ credentials: services read RABBITMQ_USERNAME/RABBITMQ_PASSWORD (both come from
 # deploy/.env, loaded above). Default 'guest' only works on loopback, so be explicit.
 $env:RABBITMQ_USERNAME = $env:RABBITMQ_USERNAME

@@ -27,7 +27,7 @@ function Stop-PortListener([int]$Port) {
 
 function Stop-DevStack {
     Write-Step "Stopping host services (ports 3000, 8080-8096)"
-    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8086, 8090, 8093, 8095, 8096) {
+    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8086, 8088, 8090, 8093, 8095, 8096) {
         Stop-PortListener $p
     }
     if (Test-Path $PidFile) { Remove-Item $PidFile -Force }
@@ -89,7 +89,8 @@ $DevMavenModules = @(
     "services/audit-service",
     "services/file-service",
     "services/finance-service",
-    "services/crm-service"
+    "services/crm-service",
+    "services/hr-service"
 )
 
 function Build-DevServices {
@@ -209,6 +210,7 @@ $pids["finance-service"] = Start-ServiceWindow "finance-service" "services/finan
 $pids["pos-service"] = Start-ServiceWindow "pos-service" "services/pos-service"
 $pids["kitchen-service"] = Start-ServiceWindow "kitchen-service" "services/kitchen-service"
 $pids["crm-service"] = Start-ServiceWindow "crm-service" "services/crm-service"
+$pids["hr-service"] = Start-ServiceWindow "hr-service" "services/hr-service"
 
 Write-Step "Waiting for auth-service JWKS before gateway"
 if (-not (Wait-HttpOk "http://localhost:8081/.well-known/jwks.json" 300)) {
@@ -261,7 +263,7 @@ Write-Host "  Services now run hidden in the background (no extra windows)."
 Write-Host "  View a log live:   Get-Content $LogDir\gateway.log -Tail 50 -Wait"
 Write-Host "  Available logs:    auth-service, authorization-service, user-service,"
 Write-Host "                     platform-admin-service, audit-service, file-service,"
-Write-Host "                     finance-service, pos-service, kitchen-service,"
+Write-Host "                     finance-service, pos-service, kitchen-service, hr-service,"
 Write-Host "                     gateway, frontend"
 Write-Host "  Tail all at once:  Get-Content $LogDir\*.log -Tail 5"
 Write-Host "  Stop everything:   .\scripts\start-dev.ps1 -Stop"

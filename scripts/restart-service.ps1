@@ -24,6 +24,7 @@ $Services = [ordered]@{
     "user-service"            = @{ Port = 8082; Module = "services/user-service" }
     "authorization-service"   = @{ Port = 8083; Module = "services/authorization-service" }
     "finance-service"         = @{ Port = 8086; Module = "services/finance-service" }
+    "hr-service"              = @{ Port = 8088; Module = "services/hr-service" }
     "pos-service"             = @{ Port = 8084; Module = "services/pos-service" }
     "kitchen-service"         = @{ Port = 8090; Module = "services/kitchen-service" }
     "audit-service"           = @{ Port = 8093; Module = "services/audit-service" }
