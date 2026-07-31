@@ -148,7 +148,7 @@ class IngredientAdminIT extends InventoryTestBase {
 
     @Test
     void nonPositiveToBaseFactor_isRejected() throws Exception {
-        CreateUomRequest request = new CreateUomRequest("BAD", "Bad Unit", "KG", BigDecimal.ZERO);
+        CreateUomRequest request = new CreateUomRequest("BAD", "Bad Unit", "WEIGHT", "KG", BigDecimal.ZERO);
 
         mockMvc.perform(post("/api/v1/inventory/uom")
                         .with(asManager())

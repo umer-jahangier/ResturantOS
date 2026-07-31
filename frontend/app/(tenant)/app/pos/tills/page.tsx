@@ -20,7 +20,7 @@ export default function TillsPage() {
       }
     >
       <PermissionGuard
-        require="pos.order.view.all"
+        require="pos.till.review"
         fallback={
           <div className="flex h-full items-center justify-center text-muted-foreground">
             You do not have permission to review tills.

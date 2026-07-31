@@ -34,6 +34,28 @@ export const apiResolvedGlAccountsSchema = z.object({
   inventoryInherited: z.boolean(),
   costInherited: z.boolean(),
   wasteInherited: z.boolean(),
+  // The account's name from finance-service, so a category reads as "1400 · Food Inventory"
+  // instead of a bare number. BEST-EFFORT server-side — null when finance-service was unreachable
+  // for that read, which must never break browsing (unlike a category SAVE, which fails closed).
+  inventoryAccountName: z.string().nullable().optional(),
+  costAccountName: z.string().nullable().optional(),
+  wasteAccountName: z.string().nullable().optional(),
+  // Which ancestor category an inherited value came from, so the form can render
+  // "Inherited from Proteins — 5010 · Food Cost" as a placeholder rather than leaving a manager to
+  // work out why a field they never filled in already shows a value.
+  inventoryInheritedFrom: z.string().nullable().optional(),
+  costInheritedFrom: z.string().nullable().optional(),
+  wasteInheritedFrom: z.string().nullable().optional(),
+});
+
+// Mirrors ItemCategoryDtos.GlAccountOptionDto — one selectable account from
+// GET /api/v1/inventory/gl-accounts, inventory's own narrow proxy onto finance-service's chart of
+// accounts (active accounts of the types the requested slot accepts, and nothing else).
+export const apiGlAccountOptionSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  accountType: z.string(),
 });
 
 // Mirrors ItemCategoryDtos.ItemCategoryDto exactly (id/parentId/level/code/name/
@@ -131,7 +153,11 @@ export const createIngredientInputSchema = z.object({
   measureType: z.string().optional(),
   recipeUomCode: z.string().optional(),
   defaultYieldPct: qtyInputField.optional(),
-  storageLocation: z.string().optional(),
+  // V10 replaced a free-text `storageLocation` here with a reference to tenant-managed master
+  // data, for the same reason `categoryId` replaced free-text `category`: three spellings of one
+  // shelf is three shelves to a database. The text is still RETURNED (below) — derived from this
+  // location's name — but it is no longer accepted, so there is no field to set and watch ignored.
+  storageLocationId: z.string().uuid().optional(),
   shelfLifeDays: z.number().int().positive().optional(),
   perishable: z.boolean().optional(),
   reorderPoint: qtyInputField,
@@ -165,6 +191,8 @@ export const apiIngredientSchema = z.object({
   measureTypeLocked: z.boolean(),
   recipeUomCode: z.string().nullable().optional(),
   defaultYieldPct: qtyField.nullable().optional(),
+  storageLocationId: z.string().uuid().nullable().optional(),
+  /** Derived server-side from `storageLocationId`'s name (V10) — display only, never sent back. */
   storageLocation: z.string().nullable().optional(),
   shelfLifeDays: z.number().int().nullable().optional(),
   perishable: z.boolean(),
@@ -176,15 +204,51 @@ export const apiIngredientSchema = z.object({
   active: z.boolean(),
 });
 
-// Mirrors InventoryDtos.UomDto (id/code/name/baseUnitCode/toBaseFactor) — returned by
-// GET /api/v1/inventory/uom (UnitOfMeasureController).
+// Mirrors InventoryDtos.UomDto (id/code/name/measureType/baseUnitCode/toBaseFactor) — returned by
+// GET /api/v1/inventory/uom (UnitOfMeasureController). `measureType` (V7) is what the ingredient
+// form filters its two unit selects on; it is the server's own WEIGHT/VOLUME/COUNT value and is
+// never re-derived in the browser from the unit's code or baseUnitCode chain.
 export const apiUomSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   name: z.string(),
+  measureType: z.string(),
   baseUnitCode: z.string().nullable().optional(),
   toBaseFactor: qtyField,
 });
+
+// Mirrors InventoryDtos.CreateUomRequest — the write payload for `POST /api/v1/inventory/uom`,
+// which had no caller at all until the Setup screen. `baseUnitCode` absent means "this unit IS
+// the base of its family", which the server enforces by also requiring a factor of exactly 1.
+export const createUomInputSchema = z.object({
+  code: z.string().min(1, "Code is required").max(20),
+  name: z.string().min(1, "Name is required").max(60),
+  measureType: z.enum(["WEIGHT", "VOLUME", "COUNT"]),
+  baseUnitCode: z.string().optional(),
+  toBaseFactor: qtyInputField,
+});
+
+// ── Storage locations (V10, StorageLocationDtos.java) ──────────────────────────────────────────
+
+// Mirrors StorageLocationDtos.StorageLocationDto. `ingredientCount` is the number of LIVE items
+// filed here — the same number the archive gate checks, so the row can say why archiving will be
+// refused before anyone tries it.
+export const apiStorageLocationSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  sortOrder: z.number().int(),
+  ingredientCount: z.number().int(),
+  archivedAt: z.string().nullable().optional(),
+});
+
+export const createStorageLocationInputSchema = z.object({
+  name: z.string().min(1, "Name is required").max(80),
+  description: z.string().max(255).optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+export const updateStorageLocationInputSchema = createStorageLocationInputSchema;
 
 // ── Stock levels (INV-15, StockLevelDtos.java / plan 08.2-02) ──────────────────────────────────
 
@@ -206,6 +270,11 @@ export const apiStockLevelSchema = z.object({
   lastCountedAt: z.string().nullable().optional(),
   belowReorderPoint: z.boolean(),
   nonPositive: z.boolean(),
+  // The ingredient's effective variance cap, resolved server-side up its category tree; null when
+  // uncapped. Lets the count sheet flag an over-cap line WHILE it is being typed instead of only
+  // after the post is rejected — same resolved number the server enforces on, so the warning and
+  // the rejection can never disagree.
+  varianceCapPct: qtyField.nullable().optional(),
 });
 
 // Mirrors StockLevelDtos.StockLevelsResponse exactly (branchId/items/totalStockValuePaisa) — the
@@ -258,6 +327,17 @@ export const apiRecipeSchema = z.object({
   yieldServings: qtyField,
   name: z.string().nullable().optional(),
   lines: z.array(apiRecipeLineSchema),
+});
+
+// Mirrors RecipeDtos.RecipeOptionDto — the current version of each menu item's recipe, for the
+// ingredient form's "Produced by" picker. Deliberately not apiRecipeSchema: a picker needs a
+// label, not every line of every recipe in the tenant.
+export const apiRecipeOptionSchema = z.object({
+  recipeId: z.string().uuid(),
+  menuItemId: z.string().uuid(),
+  menuItemName: z.string(),
+  name: z.string().nullable().optional(),
+  version: z.number().int(),
 });
 
 // Mirrors RecipeDtos.MissingMenuItemDto (menuItemId/name) — one active catalog menu item with no
@@ -415,10 +495,14 @@ export const apiTransferSchema = z.object({
   lines: z.array(apiTransferLineSchema),
 });
 
-// Mirrors StockCountDtos.CountLineRequest exactly (ingredientId/countedQty).
+// Mirrors StockCountDtos.CountLineRequest exactly (ingredientId/countedQty/overrideReason).
+// `overrideReason` is required by the SERVER only when the line's variance exceeds its category's
+// cap — sending it on a within-cap line is harmless and simply not persisted, so a stored reason
+// always means the line really did breach.
 export const countLineInputSchema = z.object({
   ingredientId: z.string().uuid(),
   countedQty: qtyInputField,
+  overrideReason: z.string().max(500).optional(),
 });
 
 // Mirrors StockCountDtos.CreateStockCountRequest exactly — POST /api/v1/inventory/counts.
@@ -435,6 +519,12 @@ export const apiCountLineSchema = z.object({
   countedQty: qtyField,
   varianceQty: qtyField,
   varianceCostPaisa: z.number().int(),
+  // V9 variance-cap audit trail. `variancePct` is null when system qty was zero (a percentage
+  // needs a base); `capPct` is null when nothing up the category tree set one; `overrideReason` is
+  // non-null exactly for lines that breached their cap and were posted anyway.
+  variancePct: qtyField.nullable().optional(),
+  capPct: qtyField.nullable().optional(),
+  overrideReason: z.string().nullable().optional(),
 });
 
 // Mirrors StockCountDtos.StockCountDto exactly (countId/branchId/status/lines/

@@ -37,13 +37,16 @@ public class StockLevelService {
 
     private final IngredientBranchStockRepository stockRepository;
     private final IngredientRepository ingredientRepository;
+    private final ItemCategoryService itemCategoryService;
     private final TenantContext tenantContext;
 
     public StockLevelService(IngredientBranchStockRepository stockRepository,
                               IngredientRepository ingredientRepository,
+                              ItemCategoryService itemCategoryService,
                               TenantContext tenantContext) {
         this.stockRepository = stockRepository;
         this.ingredientRepository = ingredientRepository;
+        this.itemCategoryService = itemCategoryService;
         this.tenantContext = tenantContext;
     }
 
@@ -75,11 +78,17 @@ public class StockLevelService {
 
         String needle = (search == null || search.isBlank()) ? null : search.trim().toLowerCase(Locale.ROOT);
 
+        // One whole-tenant category walk for the whole page: supplies each row's category name and
+        // its inherited variance cap, both of which are per-category rather than per-ingredient.
+        Map<UUID, ItemCategoryService.CategoryDefaults> categoryDefaults =
+                itemCategoryService.resolveDefaultsByCategory(tenantId);
+
         List<StockLevelDto> items = distinctIds.stream()
                 .map(ingredientsById::get)
                 .filter(Objects::nonNull)
                 .filter(ingredient -> matchesSearch(ingredient, needle))
-                .map(ingredient -> toDto(ingredient, stockByIngredientId.get(ingredient.getId())))
+                .map(ingredient -> toDto(ingredient, stockByIngredientId.get(ingredient.getId()),
+                        categoryDefaults.get(ingredient.getCategoryId())))
                 .sorted(Comparator.comparing(dto -> dto.ingredientName().toLowerCase(Locale.ROOT)))
                 .toList();
 
@@ -99,7 +108,8 @@ public class StockLevelService {
         return nameMatches || skuMatches;
     }
 
-    private static StockLevelDto toDto(Ingredient ingredient, IngredientBranchStock stock) {
+    private static StockLevelDto toDto(Ingredient ingredient, IngredientBranchStock stock,
+                                        ItemCategoryService.CategoryDefaults category) {
         BigDecimal qtyOnHand = stock != null ? stock.getQtyOnHand() : BigDecimal.ZERO;
         long avgCostPaisa = stock != null ? stock.getAvgCostPaisa() : 0L;
         var lastCountedAt = stock != null ? stock.getLastCountedAt() : null;
@@ -118,14 +128,20 @@ public class StockLevelService {
                 ingredient.getName(),
                 ingredient.getSku(),
                 ingredient.getBaseUomCode(),
-                null, // categoryId — populated by plan 08.2-09 once the ingredient DTO exposes it
-                null, // categoryName — populated by plan 08.2-09
+                // These two were hardcoded null pending "plan 08.2-09 once the ingredient DTO
+                // exposes item_categories" — which landed, but these were never wired up. The
+                // visible effect: every Stock row showed "—" for Category, and the page's category
+                // filter matched nothing at all, since it compares against this always-null id.
+                // Populated here because resolving the variance cap needs the very same map.
+                ingredient.getCategoryId(),
+                category == null ? null : category.categoryName(),
                 qtyOnHand,
                 reorderPoint,
                 avgCostPaisa,
                 stockValuePaisa,
                 lastCountedAt,
                 belowReorderPoint,
-                nonPositive);
+                nonPositive,
+                category == null ? null : category.varianceCapPct());
     }
 }

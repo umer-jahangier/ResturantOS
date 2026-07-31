@@ -16,12 +16,16 @@ import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.event.OutboxEntry;
 import io.restaurantos.shared.event.OutboxRepository;
+import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,6 +79,13 @@ class LiveOrderClosedPayloadIT extends PosTestBase {
 
         // createOrder's financial-integrity guard requires an OPEN till for the branch.
         openTillForCashier(branchId);
+
+        // MenuServiceImpl.createItem now requires pos.menu.manage (this test calls it directly,
+        // bypassing the HTTP filter chain that would normally populate this).
+        JwtClaims claims = new JwtClaims(
+                cashierId, tenantId, branchId, List.of("OWNER"), List.of("pos.menu.manage"), Map.of(), null);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(claims, null, List.of()));
     }
 
     @Test

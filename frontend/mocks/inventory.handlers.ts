@@ -22,6 +22,10 @@ const ING_MILK = "31111111-1111-4111-8111-111111110004";
 
 const UOM_KG = "41111111-1111-4111-8111-111111110001";
 const UOM_G = "41111111-1111-4111-8111-111111110002";
+const UOM_EACH = "41111111-1111-4111-8111-111111110003";
+
+const LOC_WALK_IN = "81111111-1111-4111-8111-111111110001";
+const LOC_DRY_STORE = "81111111-1111-4111-8111-111111110002";
 
 const RECIPE_BURGER_V1 = "51111111-1111-4111-8111-111111110001";
 const RECIPE_BIRYANI_FUTURE = "51111111-1111-4111-8111-111111110002";
@@ -58,6 +62,12 @@ interface MockResolvedGlAccounts {
   inventoryInherited: boolean;
   costInherited: boolean;
   wasteInherited: boolean;
+  inventoryAccountName: string | null;
+  costAccountName: string | null;
+  wasteAccountName: string | null;
+  inventoryInheritedFrom: string | null;
+  costInheritedFrom: string | null;
+  wasteInheritedFrom: string | null;
 }
 
 interface MockItemCategory {
@@ -144,11 +154,13 @@ function resolveGlAccounts(category: MockItemCategory): MockResolvedGlAccounts {
     let inherited = false;
     while (current) {
       const value = current[field];
-      if (value) return { value, inherited };
+      // `from` is the category the winning value actually came from — the server sends this so the
+      // form can attribute an inherited placeholder to the right ancestor.
+      if (value) return { value, inherited, from: inherited ? current.name : null };
       current = categories.find((c) => c.id === current?.parentId);
       inherited = true;
     }
-    return { value: null, inherited: false };
+    return { value: null, inherited: false, from: null };
   }
   const inv = resolve("defaultInventoryAccountCode");
   const cost = resolve("defaultCostAccountCode");
@@ -160,7 +172,53 @@ function resolveGlAccounts(category: MockItemCategory): MockResolvedGlAccounts {
     inventoryInherited: inv.inherited,
     costInherited: cost.inherited,
     wasteInherited: waste.inherited,
+    inventoryAccountName: glAccountName(inv.value),
+    costAccountName: glAccountName(cost.value),
+    wasteAccountName: glAccountName(waste.value),
+    inventoryInheritedFrom: inv.from,
+    costInheritedFrom: cost.from,
+    wasteInheritedFrom: waste.from,
   };
+}
+
+// ── GL accounts (the category form's three pickers) ────────────────────────────────────────────
+// Served by inventory's own narrow proxy onto finance-service's chart of accounts, so an inventory
+// manager needs no finance permission. The handler filters by `usage` exactly as the server does —
+// the browser is never trusted to narrow the chart itself.
+
+interface MockGlAccount {
+  id: string;
+  code: string;
+  name: string;
+  accountType: string;
+}
+
+const glAccounts: MockGlAccount[] = [
+  { id: "51111111-1111-4111-8111-111111110001", code: "1400", name: "Food Inventory", accountType: "ASSET" },
+  { id: "51111111-1111-4111-8111-111111110002", code: "1410", name: "Beverage Inventory", accountType: "ASSET" },
+  { id: "51111111-1111-4111-8111-111111110003", code: "5010", name: "Food Cost", accountType: "COGS" },
+  { id: "51111111-1111-4111-8111-111111110004", code: "5020", name: "Beverage Cost", accountType: "COGS" },
+  { id: "51111111-1111-4111-8111-111111110005", code: "6100", name: "Wastage & Spoilage", accountType: "EXPENSE" },
+];
+
+const GL_USAGE_TYPES: Record<string, string[]> = {
+  INVENTORY: ["ASSET"],
+  COST: ["COGS", "EXPENSE"],
+  WASTE: ["EXPENSE", "COGS"],
+};
+
+function glAccountName(code: string | null): string | null {
+  return glAccounts.find((a) => a.code === code)?.name ?? null;
+}
+
+/** Most-specific-wins walk up the category tree, mirroring ItemCategoryService's resolution. */
+function resolveVarianceCapPct(categoryId: string | null): string | null {
+  let current = categories.find((c) => c.id === categoryId);
+  while (current) {
+    if (current.varianceCapPct) return current.varianceCapPct;
+    current = categories.find((c) => c.id === current?.parentId);
+  }
+  return null;
 }
 
 function ingredientCountForCategory(categoryId: string): number {
@@ -224,6 +282,7 @@ interface MockIngredient {
   measureTypeLocked: boolean;
   recipeUomCode: string | null;
   defaultYieldPct: string | null;
+  storageLocationId: string | null;
   storageLocation: string | null;
   shelfLifeDays: number | null;
   perishable: boolean;
@@ -246,12 +305,13 @@ const ingredients: MockIngredient[] = [
     categoryPath: "Meat & Poultry / Poultry",
     shortName: "Chicken",
     description: "Fresh whole chicken",
-    itemType: "RAW",
+    itemType: "PURCHASED",
     producedByRecipeId: null,
     measureType: "WEIGHT",
     measureTypeLocked: false,
     recipeUomCode: "kg",
     defaultYieldPct: "95",
+    storageLocationId: LOC_WALK_IN,
     storageLocation: "Walk-in Cooler",
     shelfLifeDays: 3,
     perishable: true,
@@ -272,12 +332,13 @@ const ingredients: MockIngredient[] = [
     categoryPath: "Dry Goods",
     shortName: "Flour",
     description: "All-purpose flour",
-    itemType: "RAW",
+    itemType: "PURCHASED",
     producedByRecipeId: null,
     measureType: "WEIGHT",
     measureTypeLocked: false,
     recipeUomCode: "kg",
     defaultYieldPct: "100",
+    storageLocationId: LOC_DRY_STORE,
     storageLocation: "Dry Store",
     shelfLifeDays: null,
     perishable: false,
@@ -298,12 +359,13 @@ const ingredients: MockIngredient[] = [
     categoryPath: "Dry Goods",
     shortName: "Sugar",
     description: null,
-    itemType: "RAW",
+    itemType: "PURCHASED",
     producedByRecipeId: null,
     measureType: "WEIGHT",
     measureTypeLocked: false,
     recipeUomCode: "kg",
     defaultYieldPct: "100",
+    storageLocationId: LOC_DRY_STORE,
     storageLocation: "Dry Store",
     shelfLifeDays: null,
     perishable: false,
@@ -324,12 +386,13 @@ const ingredients: MockIngredient[] = [
     categoryPath: "Dry Goods",
     shortName: "Milk",
     description: null,
-    itemType: "RAW",
+    itemType: "PURCHASED",
     producedByRecipeId: null,
     measureType: "VOLUME",
     measureTypeLocked: false,
     recipeUomCode: "l",
     defaultYieldPct: "100",
+    storageLocationId: LOC_WALK_IN,
     storageLocation: "Walk-in Cooler",
     shelfLifeDays: 5,
     perishable: true,
@@ -350,14 +413,65 @@ interface MockUom {
   id: string;
   code: string;
   name: string;
+  measureType: string;
   baseUnitCode: string | null;
   toBaseFactor: string;
 }
 
+// `measureType` mirrors InventoryDtos.UomDto (V7) — the ingredient form filters its Stock/Recipe
+// unit selects on it, so this fixture carries at least one unit outside WEIGHT to keep that
+// filtering observable rather than vacuously true.
 const uoms: MockUom[] = [
-  { id: UOM_KG, code: "kg", name: "Kilogram", baseUnitCode: "kg", toBaseFactor: "1" },
-  { id: UOM_G, code: "g", name: "Gram", baseUnitCode: "kg", toBaseFactor: "0.001" },
+  // baseUnitCode null means "this IS the family's base unit" — the same invariant the real
+  // UnitOfMeasure rows carry, and what RecipeCostPreviewService.dimensionMatches reads. This
+  // fixture previously pointed kg at itself, which no real row ever does.
+  { id: UOM_KG, code: "kg", name: "Kilogram", measureType: "WEIGHT", baseUnitCode: null, toBaseFactor: "1" },
+  { id: UOM_G, code: "g", name: "Gram", measureType: "WEIGHT", baseUnitCode: "kg", toBaseFactor: "0.001" },
+  {
+    id: UOM_EACH,
+    code: "each",
+    name: "Each",
+    measureType: "COUNT",
+    baseUnitCode: null,
+    toBaseFactor: "1",
+  },
 ];
+
+let uomSeq = uoms.length;
+
+// ── Storage locations (V10) ────────────────────────────────────────────────────────────────────
+// Tenant-managed master data replacing ingredients.storage_location's free text. `ingredientCount`
+// is derived from the ingredients array below rather than stored, so the archive refusal here
+// behaves like the server's: it counts what is actually filed there right now.
+
+interface MockStorageLocation {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  archivedAt: string | null;
+}
+
+const storageLocations: MockStorageLocation[] = [
+  { id: LOC_WALK_IN, name: "Walk-in Cooler", description: "Chilled, 2–4°C", sortOrder: 1, archivedAt: null },
+  { id: LOC_DRY_STORE, name: "Dry Store", description: null, sortOrder: 2, archivedAt: null },
+];
+
+let storageLocationSeq = storageLocations.length;
+
+/** The name the server would derive for an ingredient's legacy free-text column (V10). */
+function storageLocationName(id: string | null | undefined): string | null {
+  if (!id) return null;
+  return storageLocations.find((l) => l.id === id)?.name ?? null;
+}
+
+function liveIngredientsIn(locationId: string): number {
+  return ingredients.filter((i) => i.storageLocationId === locationId && i.archivedAt == null).length;
+}
+
+function storageLocationDto(location: MockStorageLocation) {
+  return { ...location, ingredientCount: liveIngredientsIn(location.id) };
+}
 
 // ── Stock levels (INV-15) ──────────────────────────────────────────────────────────────────────
 // One row per ingredient; qtyOnHand/reorderPoint drive the belowReorderPoint/nonPositive flags —
@@ -546,7 +660,7 @@ interface CreateIngredientBody {
   measureType?: string;
   recipeUomCode?: string;
   defaultYieldPct?: string | number;
-  storageLocation?: string;
+  storageLocationId?: string;
   shelfLifeDays?: number;
   perishable?: boolean;
   reorderPoint: string | number;
@@ -958,7 +1072,8 @@ export const inventoryHandlers = [
       measureTypeLocked: false,
       recipeUomCode: body.recipeUomCode ?? null,
       defaultYieldPct: body.defaultYieldPct != null ? String(body.defaultYieldPct) : null,
-      storageLocation: body.storageLocation ?? null,
+      storageLocationId: body.storageLocationId ?? null,
+      storageLocation: storageLocationName(body.storageLocationId),
       shelfLifeDays: body.shelfLifeDays ?? null,
       perishable: body.perishable ?? false,
       reorderPoint: String(body.reorderPoint),
@@ -993,7 +1108,10 @@ export const inventoryHandlers = [
     ingredient.measureType = body.measureType ?? null;
     ingredient.recipeUomCode = body.recipeUomCode ?? null;
     ingredient.defaultYieldPct = body.defaultYieldPct != null ? String(body.defaultYieldPct) : null;
-    ingredient.storageLocation = body.storageLocation ?? null;
+    ingredient.storageLocationId = body.storageLocationId ?? null;
+    // Derived, never echoed — mirrors IngredientService keeping the legacy text column in sync
+    // with the referenced location's name (V10).
+    ingredient.storageLocation = storageLocationName(body.storageLocationId);
     ingredient.shelfLifeDays = body.shelfLifeDays ?? null;
     ingredient.perishable = body.perishable ?? false;
     ingredient.reorderPoint = String(body.reorderPoint);
@@ -1022,6 +1140,156 @@ export const inventoryHandlers = [
   }),
 
   http.get("*/api/v1/inventory/uom", () => ok(uoms)),
+
+  // Mirrors IngredientService.createUom's validation order, so a Setup-screen test sees the same
+  // refusals a real tenant would: duplicate code, then base-unit resolution/dimension, then the
+  // factor-must-be-1 rule for a unit that declares itself a family base.
+  http.post("*/api/v1/inventory/uom", async ({ request }) => {
+    const body = (await request.json()) as {
+      code: string;
+      name: string;
+      measureType: string;
+      baseUnitCode?: string;
+      toBaseFactor: string | number;
+    };
+    const code = body.code?.trim() ?? "";
+    const clash = uoms.find((u) => u.code.toLowerCase() === code.toLowerCase());
+    if (clash) {
+      return apiError(
+        "UOM_DUPLICATE_CODE",
+        `The unit code "${clash.code}" is already used by "${clash.name}".`,
+        422,
+      );
+    }
+    let baseUnitCode: string | null = null;
+    if (body.baseUnitCode?.trim()) {
+      const base = uoms.find((u) => u.code.toLowerCase() === body.baseUnitCode!.trim().toLowerCase());
+      if (!base) {
+        return apiError("UOM_NOT_FOUND", `Unknown unit of measure "${body.baseUnitCode}" for the base unit.`, 422);
+      }
+      if (base.measureType !== body.measureType) {
+        return apiError(
+          "UOM_DIMENSION_MISMATCH",
+          `Base unit "${base.code}" measures a different quantity than this unit.`,
+          422,
+        );
+      }
+      baseUnitCode = base.code;
+    } else if (Number(body.toBaseFactor) !== 1) {
+      return apiError(
+        "UOM_CONVERSION_INVALID",
+        "A unit with no base unit is the base of its own family, so its factor must be 1.",
+        422,
+      );
+    }
+    uomSeq += 1;
+    const created: MockUom = {
+      id: `41111111-1111-4111-8111-${String(uomSeq).padStart(12, "0")}`,
+      code,
+      name: body.name.trim(),
+      measureType: body.measureType,
+      baseUnitCode,
+      toBaseFactor: String(body.toBaseFactor),
+    };
+    uoms.push(created);
+    return ok(created);
+  }),
+
+  // ── Storage locations (V10) ────────────────────────────────────────────────────────────────
+  http.get("*/api/v1/inventory/storage-locations", ({ request }) => {
+    const includeArchived = new URL(request.url).searchParams.get("includeArchived") === "true";
+    return ok(
+      storageLocations
+        .filter((l) => includeArchived || l.archivedAt == null)
+        .map(storageLocationDto),
+    );
+  }),
+
+  http.post("*/api/v1/inventory/storage-locations", async ({ request }) => {
+    const body = (await request.json()) as { name: string; description?: string; sortOrder?: number };
+    const name = body.name?.trim() ?? "";
+    const clash = storageLocations.find((l) => l.name.toLowerCase() === name.toLowerCase());
+    if (clash) {
+      return apiError(
+        "STORAGE_LOCATION_DUPLICATE",
+        `A storage location named "${clash.name}" already exists.`,
+        422,
+      );
+    }
+    storageLocationSeq += 1;
+    const created: MockStorageLocation = {
+      id: `81111111-1111-4111-8111-${String(storageLocationSeq).padStart(12, "0")}`,
+      name,
+      description: body.description?.trim() || null,
+      sortOrder: body.sortOrder ?? 0,
+      archivedAt: null,
+    };
+    storageLocations.push(created);
+    return ok(storageLocationDto(created));
+  }),
+
+  http.put("*/api/v1/inventory/storage-locations/:id", async ({ params, request }) => {
+    const location = storageLocations.find((l) => l.id === params.id);
+    if (!location) return apiError("STORAGE_LOCATION_NOT_FOUND", "Storage location not found", 404);
+    const body = (await request.json()) as { name: string; description?: string; sortOrder?: number };
+    const name = body.name?.trim() ?? "";
+    const clash = storageLocations.find(
+      (l) => l.id !== location.id && l.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (clash) {
+      return apiError(
+        "STORAGE_LOCATION_DUPLICATE",
+        `A storage location named "${clash.name}" already exists.`,
+        422,
+      );
+    }
+    location.name = name;
+    location.description = body.description?.trim() || null;
+    if (body.sortOrder != null) location.sortOrder = body.sortOrder;
+    // Keep every ingredient's derived text in step with the rename, as the server's read path does.
+    ingredients
+      .filter((i) => i.storageLocationId === location.id)
+      .forEach((i) => {
+        i.storageLocation = location.name;
+      });
+    return ok(storageLocationDto(location));
+  }),
+
+  http.post("*/api/v1/inventory/storage-locations/:id/archive", ({ params }) => {
+    const location = storageLocations.find((l) => l.id === params.id);
+    if (!location) return apiError("STORAGE_LOCATION_NOT_FOUND", "Storage location not found", 404);
+    const inUse = liveIngredientsIn(location.id);
+    if (inUse > 0) {
+      return apiError(
+        "STORAGE_LOCATION_IN_USE",
+        `Can't archive "${location.name}" — ${inUse} ${inUse === 1 ? "item is" : "items are"} still stored there. Move them first.`,
+        409,
+      );
+    }
+    location.archivedAt = new Date().toISOString();
+    return ok(storageLocationDto(location));
+  }),
+
+  http.post("*/api/v1/inventory/storage-locations/:id/restore", ({ params }) => {
+    const location = storageLocations.find((l) => l.id === params.id);
+    if (!location) return apiError("STORAGE_LOCATION_NOT_FOUND", "Storage location not found", 404);
+    location.archivedAt = null;
+    return ok(storageLocationDto(location));
+  }),
+
+  http.get("*/api/v1/inventory/gl-accounts", ({ request }) => {
+    const url = new URL(request.url);
+    const usage = url.searchParams.get("usage") ?? "";
+    const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+    const types = GL_USAGE_TYPES[usage] ?? [];
+    return ok(
+      glAccounts.filter(
+        (a) =>
+          types.includes(a.accountType) &&
+          (!q || a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)),
+      ),
+    );
+  }),
 
   // ── Stock levels (INV-15) ────────────────────────────────────────────────────────────────
   http.get("*/api/v1/inventory/stock", ({ request }) => {
@@ -1052,6 +1320,10 @@ export const inventoryHandlers = [
         // to close, so it's fixed here rather than worked around with different fixture data.
         belowReorderPoint: reorderPoint > 0 && qtyOnHand <= reorderPoint,
         nonPositive: qtyOnHand <= 0,
+        // Resolved most-specific-wins up the category tree, exactly as StockLevelService does via
+        // ItemCategoryService.resolveDefaultsByCategory — the count sheet reads this to warn about
+        // an over-cap line before the post is rejected.
+        varianceCapPct: resolveVarianceCapPct(ingredient?.categoryId ?? null),
       };
     });
     if (search) {
@@ -1176,6 +1448,24 @@ export const inventoryHandlers = [
       lines: costedLines,
     });
   }),
+
+  // Registered BEFORE the bare "/recipes" handler below: MSW matches in registration order, and
+  // "/recipes" would otherwise never let "/recipes/options" through.
+  http.get("*/api/v1/inventory/recipes/options", () =>
+    ok(
+      recipes
+        .filter((r) => r.current)
+        .map((r) => ({
+          recipeId: r.id,
+          menuItemId: r.menuItemId,
+          menuItemName:
+            menuItems.find((mi) => mi.menuItemId === r.menuItemId)?.name ?? "Unknown menu item",
+          name: r.name ?? null,
+          version: r.version,
+        }))
+        .sort((a, b) => a.menuItemName.localeCompare(b.menuItemName)),
+    ),
+  ),
 
   http.get("*/api/v1/inventory/recipes", ({ request }) => {
     const url = new URL(request.url);

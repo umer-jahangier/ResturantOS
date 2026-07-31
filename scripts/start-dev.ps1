@@ -15,6 +15,9 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LogDir = Join-Path $RepoRoot ".dev-logs"
 $PidFile = Join-Path $RepoRoot ".dev-pids.json"
 
+# Test-ModuleStale / Get-ModuleBuildArgs — jar freshness and the narrowest build that fixes it.
+. (Join-Path $PSScriptRoot "build-freshness.ps1")
+
 function Write-Step($msg) {
     Write-Host ""
     Write-Host "==> $msg" -ForegroundColor Cyan
@@ -122,18 +125,32 @@ function Start-ServiceWindow(
     [string]$ExtraEnvBlock = ""
 ) {
     $logFile = Join-Path $LogDir "$Name.log"
-    $artifact = Split-Path $MavenModule -Leaf
-    $jarPath = Join-Path $RepoRoot "$MavenModule/target/$artifact-1.0.0.jar"
-    $needsBuild = -not $SkipBuild.IsPresent -or -not (Test-BootJar $jarPath)
+    $jarPath = Get-ModuleJarPath $RepoRoot $MavenModule
+    $isStale = Test-ModuleStale $RepoRoot $MavenModule
+    if ($SkipBuild.IsPresent -and $isStale) {
+        Write-Host "  $Name`: $(Get-StaleReason $RepoRoot $MavenModule) - rebuilding (-SkipBuild only skips UNCHANGED modules)" -ForegroundColor Yellow
+    }
+    $needsBuild = -not $SkipBuild.IsPresent -or $isStale -or -not (Test-BootJar $jarPath)
     if ($needsBuild) {
         Write-Host "  Building $Name..."
         Push-Location $RepoRoot
-        mvn -pl $MavenModule -am -DskipTests package -q
-        if ($LASTEXITCODE -ne 0) {
+        # Narrowest correct scope: -am only when shared-lib itself needs rebuilding.
+        #
+        # Maven's stderr warnings would otherwise become terminating errors under this script's
+        # "Stop" preference the moment anyone pipes its output — stopping the stack mid-launch. A
+        # native command is judged by its exit code.
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            mvn @(Get-ModuleBuildArgs $RepoRoot $MavenModule)
+            $mvnExit = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousPreference
             Pop-Location
-            Write-Error "Maven build failed for $Name"
         }
-        Pop-Location
+        if ($mvnExit -ne 0) {
+            Write-Error "Maven build failed for $Name (exit $mvnExit)"
+        }
         if (-not (Test-BootJar $jarPath)) {
             Write-Error "Expected executable Spring Boot jar at $jarPath (missing Main-Class). Re-run without -SkipBuild."
         }
@@ -155,6 +172,22 @@ java -jar '$jarPath' *>&1 | Tee-Object -FilePath '$logFile'
 
 # ── Backend services (order matters: auth before gateway) ─────────────────────
 Write-Step "Starting backend services (separate windows)"
+
+# Reported once, not per service, and never acted on automatically: rebuilding everything that
+# predates shared-lib is a full-stack build, and that should be an explicit choice.
+if ($SkipBuild.IsPresent) {
+    $allModules = @("gateway") + (Get-ChildItem (Join-Path $RepoRoot "services") -Directory |
+        ForEach-Object { "services/$($_.Name)" })
+    $behind = $allModules | Where-Object {
+        (Test-Path (Join-Path $RepoRoot "$_/pom.xml")) -and
+        -not (Test-ModuleStale $RepoRoot $_) -and
+        (Test-ModuleBehindSharedLib $RepoRoot $_)
+    } | ForEach-Object { Split-Path $_ -Leaf }
+    if ($behind) {
+        Write-Host "  Note: $($behind.Count) module(s) were packaged before the current shared-lib: $($behind -join ', ')" -ForegroundColor DarkYellow
+        Write-Host "        Their own code is current. Re-run without -SkipBuild if you need shared-lib changes picked up." -ForegroundColor DarkYellow
+    }
+}
 
 $pids = @{}
 $pids["auth-service"] = Start-ServiceWindow "auth-service" "services/auth-service"

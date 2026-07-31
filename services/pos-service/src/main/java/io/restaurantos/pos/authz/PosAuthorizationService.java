@@ -2,6 +2,7 @@ package io.restaurantos.pos.authz;
 
 import io.restaurantos.shared.authz.AuthorizationService;
 import io.restaurantos.shared.authz.OpaInput;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.security.JwtClaims;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -69,5 +70,17 @@ public class PosAuthorizationService {
             return false;
         }
         return claims.permissions() != null && claims.permissions().contains(permission);
+    }
+
+    /**
+     * Menu write gate (create/update/activate/deactivate/delete item or category). A plain
+     * claims check like {@link #hasPermission}, not an OPA rule — there is no resource-scoped
+     * nuance here (no owner-vs-any, no approval limit) the way void/refund/discount have; it is
+     * a flat tenant-level permission, same shape as {@code inventory.item.manage}.
+     */
+    public void requireMenuManage() {
+        if (!hasPermission("pos.menu.manage")) {
+            throw new PermissionDeniedException("Requires pos.menu.manage");
+        }
     }
 }

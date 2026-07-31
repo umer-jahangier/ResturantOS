@@ -1,5 +1,9 @@
 import type { z } from "zod";
 import type {
+  apiOrderSuggestionSchema,
+  apiOrderSuggestionVendorGroupSchema,
+  apiOrderSuggestionsResponseSchema,
+  createDraftsFromSuggestionsInputSchema,
   apiApPaymentSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
@@ -99,5 +103,16 @@ export function adaptVendorItemPriceChange(raw: VendorItemPriceChange): VendorIt
 }
 
 export function adaptVendorCategory(raw: VendorCategory): VendorCategory {
+  return raw;
+}
+
+// ── Order suggestions ────────────────────────────────────────────────────────────────────────
+export type OrderSuggestion = z.infer<typeof apiOrderSuggestionSchema>;
+export type OrderSuggestionVendorGroup = z.infer<typeof apiOrderSuggestionVendorGroupSchema>;
+export type OrderSuggestionsResponse = z.infer<typeof apiOrderSuggestionsResponseSchema>;
+/** Write payload for `POST /api/v1/purchasing/order-suggestions/drafts`. */
+export type CreateDraftsFromSuggestionsInput = z.infer<typeof createDraftsFromSuggestionsInputSchema>;
+
+export function adaptOrderSuggestionsResponse(raw: OrderSuggestionsResponse): OrderSuggestionsResponse {
   return raw;
 }

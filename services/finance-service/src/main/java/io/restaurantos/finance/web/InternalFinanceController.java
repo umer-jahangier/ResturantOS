@@ -1,6 +1,8 @@
 package io.restaurantos.finance.web;
 
 import io.restaurantos.finance.config.InternalTenantContextHelper;
+import io.restaurantos.finance.domain.enums.AccountType;
+import io.restaurantos.finance.dto.AccountDto;
 import io.restaurantos.finance.dto.ArTransactionDto;
 import io.restaurantos.finance.dto.InternalArChargeRequest;
 import io.restaurantos.finance.dto.InternalAutoPostJeRequest;
@@ -8,14 +10,20 @@ import io.restaurantos.finance.dto.InternalJePostResponse;
 import io.restaurantos.finance.dto.PeriodStatusResponse;
 import io.restaurantos.finance.service.AccountingPeriodService;
 import io.restaurantos.finance.service.ArService;
+import io.restaurantos.finance.service.CoaService;
 import io.restaurantos.finance.service.JournalEntryService;
 import io.restaurantos.shared.api.ApiResponse;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,15 +38,18 @@ public class InternalFinanceController {
     private final JournalEntryService jeService;
     private final AccountingPeriodService periodService;
     private final ArService arService;
+    private final CoaService coaService;
     private final InternalTenantContextHelper tenantHelper;
 
     public InternalFinanceController(JournalEntryService jeService,
                                        AccountingPeriodService periodService,
                                        ArService arService,
+                                       CoaService coaService,
                                        InternalTenantContextHelper tenantHelper) {
         this.jeService = jeService;
         this.periodService = periodService;
         this.arService = arService;
+        this.coaService = coaService;
         this.tenantHelper = tenantHelper;
     }
 
@@ -90,6 +101,67 @@ public class InternalFinanceController {
         tenantHelper.activate(tenantId);
         try {
             return ResponseEntity.ok(ApiResponse.ok(periodService.getPeriodStatus(branchId, date)));
+        } finally {
+            tenantHelper.clear();
+        }
+    }
+
+    /**
+     * Chart-of-accounts search for other services' account pickers, narrowed to active accounts of
+     * the requested types.
+     *
+     * <p>Exists so a service can offer its users an account picker WITHOUT them holding
+     * {@code finance.coa.view}. Inventory's category form is the first caller: an inventory manager
+     * needs to name three GL accounts, but granting them the finance permission would hand over the
+     * whole chart-of-accounts surface (and its {@code manage} siblings) to fill in three fields.
+     * Instead the caller gates on its own permission and brokers the lookup through here, which
+     * returns nothing but active accounts of the types it asked for.
+     *
+     * @param types required — an unfiltered chart is never what a picker wants, and defaulting to
+     *              "all" would quietly re-open the surface this endpoint exists to keep narrow
+     */
+    @GetMapping("/accounts/search")
+    public ResponseEntity<ApiResponse<List<AccountDto>>> searchAccounts(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestParam(required = false) String q,
+            @RequestParam List<AccountType> types,
+            @PageableDefault(size = 20) Pageable pageable) {
+        tenantHelper.activate(tenantId);
+        try {
+            Page<AccountDto> page = coaService.searchActiveAccountsForTenant(tenantId, q, types, pageable);
+            return ResponseEntity.ok(ApiResponse.ok(page.getContent()));
+        } finally {
+            tenantHelper.clear();
+        }
+    }
+
+    /**
+     * Batch resolve account codes, for a caller validating account references at write time.
+     *
+     * <p>Returns a code → account map containing ONLY the codes that resolved; the caller decides
+     * what an absent code means for the specific field it came from, which is what lets inventory
+     * answer "Inventory GL account 14OO doesn't exist" instead of one generic rejection.
+     */
+    @PostMapping("/accounts/resolve")
+    public ResponseEntity<ApiResponse<Map<String, AccountDto>>> resolveAccounts(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestBody List<String> codes) {
+        tenantHelper.activate(tenantId);
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(coaService.resolveByCodes(tenantId, codes)));
+        } finally {
+            tenantHelper.clear();
+        }
+    }
+
+    /** Id-keyed counterpart of {@link #resolveAccounts} for callers storing an account's id. */
+    @PostMapping("/accounts/resolve-by-id")
+    public ResponseEntity<ApiResponse<Map<UUID, AccountDto>>> resolveAccountsById(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestBody List<UUID> ids) {
+        tenantHelper.activate(tenantId);
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(coaService.resolveByIds(tenantId, ids)));
         } finally {
             tenantHelper.clear();
         }

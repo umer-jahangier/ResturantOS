@@ -33,7 +33,8 @@ public class AuditIngestionService {
             "TENANT_PROVISIONED",
             "RBAC_CHANGED",
             "VOID_CREATED",
-            "REFUND_CREATED"
+            "REFUND_CREATED",
+            "TILL_REVIEWED"
     );
 
     /** Topic-based auditing: ALL events from these sources are audited regardless of type. */

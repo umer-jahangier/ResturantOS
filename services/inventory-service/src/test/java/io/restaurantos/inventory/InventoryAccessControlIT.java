@@ -100,7 +100,7 @@ class InventoryAccessControlIT extends InventoryTestBase {
     void viewOnlyPrincipal_isDenied_onUomCreate() throws Exception {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(false));
 
-        CreateUomRequest request = new CreateUomRequest("LTR", "Liter", "LTR", BigDecimal.ONE);
+        CreateUomRequest request = new CreateUomRequest("LTR", "Liter", "VOLUME", "LTR", BigDecimal.ONE);
 
         mockMvc.perform(post("/api/v1/inventory/uom")
                         .with(asViewOnly())
@@ -124,7 +124,11 @@ class InventoryAccessControlIT extends InventoryTestBase {
                         .content(objectMapper.writeValueAsString(ingredientRequest)))
                 .andExpect(status().isOk());
 
-        CreateUomRequest uomRequest = new CreateUomRequest("GRM", "Gram", "KG", BigDecimal.valueOf(0.001));
+        // A house unit measured in its family's BASE unit. This used to say "GRM, measured in KG"
+        // — which createUom now refuses, because KG is itself measured in G and UomConverter only
+        // ever applies one hop to the base. This test is about authorization, so it uses a pair
+        // that is actually valid rather than one that happened to be accepted unvalidated.
+        CreateUomRequest uomRequest = new CreateUomRequest("CASE", "Case", "COUNT", "EACH", BigDecimal.valueOf(24));
         mockMvc.perform(post("/api/v1/inventory/uom")
                         .with(asInventoryManager())
                         .contentType(MediaType.APPLICATION_JSON)

@@ -11,7 +11,11 @@ import type {
   Coverage,
   CreateItemCategoryInput,
   CreateStockCountInput,
+  CreateStorageLocationInput,
   CreateTransferInput,
+  CreateUomInput,
+  GlAccountOption,
+  GlAccountUsage,
   Ingredient,
   IngredientInput,
   ItemCategory,
@@ -24,23 +28,36 @@ import type {
   Recipe,
   RecipeCostPreview,
   RecipeInput,
+  RecipeOption,
   StockCount,
   StockLevelsResponse,
+  StorageLocation,
   Transfer,
   UpdateIngredientInput,
   UpdateItemCategoryInput,
+  UpdateStorageLocationInput,
+  Uom,
 } from "@/lib/adapters/inventory.adapter";
 // Type-only import — permitted from a lib/hooks/** file (the ESLint layer-boundary rule only
 // blocks components/**); mirrors use-purchasing.ts's exact justification for this import.
 import type { ApiError } from "@/lib/api-client/errors";
 
-/** 08.1-02: the synced menu-item catalog — drives the recipe-builder's menu-item picker. */
-export function useMenuItemCatalog() {
+/**
+ * 08.1-02: the synced menu-item catalog — drives the recipe-builder's menu-item picker.
+ *
+ * @param refetchInterval Pass a millisecond interval (default `false`, i.e. off) to poll — used
+ * by RecipeFormDialog's inline "+ Create new menu item" quick-create: a menu item created in
+ * pos-service reaches THIS list asynchronously, via a RabbitMQ event
+ * (MenuItemCatalogConsumer), so the dialog polls briefly rather than assuming it is already
+ * there the instant the create call returns.
+ */
+export function useMenuItemCatalog(refetchInterval: number | false = false) {
   const { branchId, isAuthenticated } = useCurrentUser();
   return useQuery({
     queryKey: queryKeys.inventory.menuItems(branchId),
     queryFn: () => InventoryRepository.listMenuItems(),
     enabled: isAuthenticated && !!branchId,
+    refetchInterval,
   });
 }
 
@@ -202,6 +219,98 @@ export function useUoms() {
   });
 }
 
+/**
+ * Adds a house unit. Invalidates ingredients too, not just uoms: the ingredient form's Stock and
+ * Recipe selects are built from this list, so a newly added unit has to be offerable immediately
+ * rather than after a reload.
+ */
+export function useCreateUom() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<Uom, ApiError, CreateUomInput>({
+    mutationFn: (input) => InventoryRepository.createUom(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.uoms(branchId) });
+      qc.invalidateQueries({ queryKey: ["inventory", branchId, "ingredients"] });
+    },
+  });
+}
+
+// ── Storage locations (V10) ───────────────────────────────────────────────────────────────
+
+export function useStorageLocations(includeArchived = false) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery<StorageLocation[]>({
+    queryKey: [...queryKeys.inventory.storageLocations(branchId), includeArchived],
+    queryFn: () => InventoryRepository.listStorageLocations(includeArchived),
+    enabled: isAuthenticated && !!branchId,
+  });
+}
+
+/** Every location write invalidates ingredients as well — an ingredient row renders its storage
+ * location's name, mirroring `invalidateCategoryQueries`'s reasoning above. */
+function invalidateStorageLocationQueries(qc: ReturnType<typeof useQueryClient>, branchId: string) {
+  qc.invalidateQueries({ queryKey: queryKeys.inventory.storageLocations(branchId) });
+  qc.invalidateQueries({ queryKey: ["inventory", branchId, "ingredients"] });
+}
+
+export function useCreateStorageLocation() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<StorageLocation, ApiError, CreateStorageLocationInput>({
+    mutationFn: (input) => InventoryRepository.createStorageLocation(input),
+    onSuccess: () => invalidateStorageLocationQueries(qc, branchId),
+  });
+}
+
+export function useUpdateStorageLocation() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<StorageLocation, ApiError, { id: string; input: UpdateStorageLocationInput }>({
+    mutationFn: ({ id, input }) => InventoryRepository.updateStorageLocation(id, input),
+    onSuccess: () => invalidateStorageLocationQueries(qc, branchId),
+  });
+}
+
+export function useArchiveStorageLocation() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<StorageLocation, ApiError, string>({
+    mutationFn: (id) => InventoryRepository.archiveStorageLocation(id),
+    onSuccess: () => invalidateStorageLocationQueries(qc, branchId),
+  });
+}
+
+export function useRestoreStorageLocation() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<StorageLocation, ApiError, string>({
+    mutationFn: (id) => InventoryRepository.restoreStorageLocation(id),
+    onSuccess: () => invalidateStorageLocationQueries(qc, branchId),
+  });
+}
+
+// ── GL accounts (category form pickers) ───────────────────────────────────────────────────
+
+/**
+ * Chart-of-accounts options for one of a category's three GL slots, debounced off the picker's
+ * keystrokes.
+ *
+ * <p>A blank query is deliberately still enabled, unlike `useAccountSearch` in the finance
+ * namespace: the dropdown should show a first page the moment it opens rather than an empty box
+ * until the user guesses at a search term. Filtering by account type happens server-side, so the
+ * browser never holds the unfiltered chart.
+ */
+export function useGlAccountSearch(usage: GlAccountUsage, query: string, enabled = true) {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
+  return useQuery<GlAccountOption[]>({
+    queryKey: queryKeys.inventory.glAccounts(branchId, usage, debouncedQuery),
+    queryFn: () => InventoryRepository.searchGlAccounts(usage, debouncedQuery || undefined),
+    enabled: enabled && isAuthenticated && !!branchId,
+  });
+}
+
 // ── Stock levels (INV-15) ─────────────────────────────────────────────────────────────────
 
 /**
@@ -238,6 +347,20 @@ export function useCreateRecipe() {
         queryKey: queryKeys.inventory.recipeVersions(branchId, recipe.menuItemId),
       });
     },
+  });
+}
+
+/**
+ * The ingredient form's "Produced by" options. Enabled unconditionally rather than only when the
+ * item type is PREPARED/BOTH: the list is small, and having it already in cache is what lets the
+ * picker appear filled the instant someone switches the type, instead of flashing empty.
+ */
+export function useRecipeOptions() {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery<RecipeOption[]>({
+    queryKey: queryKeys.inventory.recipeOptions(branchId),
+    queryFn: () => InventoryRepository.listRecipeOptions(),
+    enabled: isAuthenticated && !!branchId,
   });
 }
 

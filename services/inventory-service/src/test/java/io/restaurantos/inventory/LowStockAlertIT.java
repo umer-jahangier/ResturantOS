@@ -51,7 +51,7 @@ class LowStockAlertIT extends InventoryTestBase {
 
         // Count down to exactly the reorder point (10) -> breach (<=).
         stockCountService.postCount(new CreateStockCountRequest(
-                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(10)))));
+                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(10), null))));
 
         List<OutboxEntry> lowStockEntries = outboxRepository.findAll().stream()
                 .filter(e -> tenantId.equals(e.getTenantId()) && "LOW_STOCK_ALERT".equals(e.getEventType()))
@@ -68,7 +68,7 @@ class LowStockAlertIT extends InventoryTestBase {
 
         // Count to well above the reorder point (10) -> no breach.
         stockCountService.postCount(new CreateStockCountRequest(
-                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(40)))));
+                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(40), null))));
 
         long lowStockCount = outboxRepository.findAll().stream()
                 .filter(e -> tenantId.equals(e.getTenantId()) && "LOW_STOCK_ALERT".equals(e.getEventType()))

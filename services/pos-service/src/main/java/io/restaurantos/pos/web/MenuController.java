@@ -1,5 +1,7 @@
 package io.restaurantos.pos.web;
 
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.CreateMenuCategoryRequest;
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.UpdateMenuCategoryRequest;
 import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.CreateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
@@ -32,6 +34,37 @@ public class MenuController {
         return ResponseEntity.ok(ApiResponse.ok(menuService.listCategories()));
     }
 
+    /** Admin listing (Menu Items management page) — includes inactive categories. Gated on
+     * {@code pos.menu.manage} inside {@code MenuServiceImpl}, same as every write below: a
+     * cashier has no reason to see a deactivated category either. */
+    @GetMapping("/categories/admin")
+    public ResponseEntity<ApiResponse<List<MenuCategoryDto>>> listCategoriesForAdmin() {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.listCategoriesForAdmin()));
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> createCategory(
+            @Valid @RequestBody CreateMenuCategoryRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.createCategory(request)));
+    }
+
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> updateCategory(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateMenuCategoryRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.updateCategory(id, request)));
+    }
+
+    @PatchMapping("/categories/{id}/activate")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> activateCategory(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setCategoryActive(id, true)));
+    }
+
+    @PatchMapping("/categories/{id}/deactivate")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> deactivateCategory(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setCategoryActive(id, false)));
+    }
+
     @GetMapping("/items")
     public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItems(
             @RequestParam(required = false) UUID categoryId,
@@ -39,6 +72,14 @@ public class MenuController {
             Pageable pageable) {
         Page<MenuItemDto> page = menuService.listItems(categoryId, branchId, pageable);
         return ResponseEntity.ok(ApiResponse.ok(page.getContent()));
+    }
+
+    /** Admin listing — includes inactive items. See {@code listCategoriesForAdmin}'s note on
+     * why the permission gate lives in the service, not here. */
+    @GetMapping("/items/admin")
+    public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItemsForAdmin(
+            @RequestParam(required = false) UUID categoryId) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.listItemsForAdmin(categoryId)));
     }
 
     @GetMapping("/items/{id}")

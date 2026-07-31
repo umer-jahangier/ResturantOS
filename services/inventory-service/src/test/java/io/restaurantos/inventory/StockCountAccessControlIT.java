@@ -97,7 +97,7 @@ class StockCountAccessControlIT extends InventoryTestBase {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(false));
 
         CreateStockCountRequest request = new CreateStockCountRequest(
-                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(25))));
+                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(25), null)));
 
         mockMvc.perform(post("/api/v1/inventory/counts")
                         .with(asViewOnly())
@@ -121,7 +121,7 @@ class StockCountAccessControlIT extends InventoryTestBase {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
 
         CreateStockCountRequest request = new CreateStockCountRequest(
-                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(25))));
+                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(25), null)));
 
         mockMvc.perform(post("/api/v1/inventory/counts")
                         .with(asInventoryManager())

@@ -433,3 +433,72 @@ export const apiVendorScorecardSchema = z.object({
   totalSpendPaisa: z.number().int(),
   purchaseOrderCount: z.number().int(),
 });
+
+// ── Order suggestions (PUR: the first consumer of ingredients.par_level) ──────────────────────
+
+/**
+ * Mirrors OrderSuggestionDto. Two quantities on purpose: `shortfallQty` is what the shelf is
+ * missing in the STOCK unit ("15 kg"), `orderQty` is what you actually buy in the supplier's ORDER
+ * unit after pack size, minimum order and order multiple ("2 cases"). Showing only the second
+ * hides why it is bigger than expected; showing only the first is not orderable.
+ *
+ * A non-null `blockedReason` means the row cannot become a PO line as it stands. Such rows are
+ * still returned — a list that silently drops what it cannot solve reads as "everything else is
+ * fine".
+ */
+export const apiOrderSuggestionSchema = z.object({
+  ingredientId: z.string().uuid(),
+  ingredientName: z.string(),
+  sku: z.string().nullable().optional(),
+  categoryName: z.string().nullable().optional(),
+
+  qtyOnHand: qtyField,
+  reorderPoint: qtyField,
+  parLevel: qtyField,
+  stockUom: z.string().nullable().optional(),
+  shortfallQty: qtyField.nullable().optional(),
+
+  vendorId: z.string().uuid().nullable().optional(),
+  vendorName: z.string().nullable().optional(),
+  vendorItemId: z.string().uuid().nullable().optional(),
+  vendorSku: z.string().nullable().optional(),
+  packDescription: z.string().nullable().optional(),
+  orderUom: z.string().nullable().optional(),
+  orderQty: qtyField.nullable().optional(),
+  unitPricePaisa: z.number().int().nullable().optional(),
+  lineTotalPaisa: z.number().int().nullable().optional(),
+  leadTimeDays: z.number().int().nullable().optional(),
+
+  blockedReason: z.string().nullable().optional(),
+});
+
+/** One purchase order goes to one supplier, so the server groups by vendor and the UI renders
+ * that grouping rather than re-deriving it. */
+export const apiOrderSuggestionVendorGroupSchema = z.object({
+  vendorId: z.string().uuid(),
+  vendorName: z.string().nullable().optional(),
+  leadTimeDays: z.number().int().nullable().optional(),
+  estimatedTotalPaisa: z.number().int(),
+  lines: z.array(apiOrderSuggestionSchema),
+});
+
+export const apiOrderSuggestionsResponseSchema = z.object({
+  branchId: z.string().uuid(),
+  vendorGroups: z.array(apiOrderSuggestionVendorGroupSchema),
+  unassigned: z.array(apiOrderSuggestionSchema),
+  blockedCount: z.number().int(),
+  estimatedTotalPaisa: z.number().int(),
+});
+
+/**
+ * Mirrors OrderSuggestionDto.CreateFromSuggestionsRequest. The REVIEWED numbers are sent back
+ * rather than a "create everything" flag: suggestions recompute on every read, so acting on a
+ * server-side recomputation would order whatever was true at click time instead of what the buyer
+ * actually saw.
+ */
+export const createDraftsFromSuggestionsInputSchema = z.object({
+  branchId: z.string().uuid(),
+  lines: z
+    .array(z.object({ vendorItemId: z.string().uuid(), qty: z.string().min(1) }))
+    .min(1, "Select at least one line"),
+});

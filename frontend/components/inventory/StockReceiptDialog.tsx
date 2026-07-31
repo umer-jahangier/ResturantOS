@@ -21,6 +21,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FieldLabel } from "@/components/shared/field-help";
 
 // Every numeric field is a string here because that is what an <input> yields; conversion to the
 // wire shape (ReceiveStockInput, one call per line) happens in onSubmit.
@@ -153,7 +154,7 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     name={`lines.${idx}.ingredientId`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Ingredient</FormLabel>
+                        <FieldLabel className="text-xs" help="The item that arrived.">Ingredient</FieldLabel>
                         <FormControl>
                           <CatalogItemCombobox
                             options={ingredientOptions}
@@ -173,7 +174,7 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     name={`lines.${idx}.qty`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Qty</FormLabel>
+                        <FieldLabel className="text-xs" help="How much arrived, in the unit selected beside it.">Qty</FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="10" {...field} />
                         </FormControl>
@@ -182,7 +183,7 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     )}
                   />
                   <FormItem>
-                    <FormLabel className="text-xs">Unit</FormLabel>
+                    <FieldLabel className="text-xs" help="The unit the delivery was measured in. It’s converted to the item’s stock unit.">Unit</FieldLabel>
                     <FormControl>
                       <Input
                         value={unitFor(watchedLines[idx]?.ingredientId ?? "")}
@@ -197,7 +198,7 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     name={`lines.${idx}.unitCostRupees`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Unit cost (PKR)</FormLabel>
+                        <FieldLabel className="text-xs" help="What you paid per unit on this delivery. This updates the item’s running average cost.">Unit cost (PKR)</FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="120.00" {...field} />
                         </FormControl>

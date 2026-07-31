@@ -30,6 +30,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FieldLabel } from "@/components/shared/field-help";
 import { EmptyState } from "@/components/ui/empty-state";
 
 const selectClass =
@@ -213,7 +214,7 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                 name="toBranchId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Destination branch</FormLabel>
+                    <FieldLabel help="Where the stock is going. It leaves here now and arrives when they confirm it.">Destination branch</FieldLabel>
                     <FormControl>
                       <select {...field} aria-label="Destination branch" className={selectClass}>
                         <option value="">Select a branch…</option>
@@ -244,7 +245,7 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                       name={`lines.${idx}.ingredientId`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs">Ingredient</FormLabel>
+                          <FieldLabel className="text-xs" help="The item being sent.">Ingredient</FieldLabel>
                           <FormControl>
                             <CatalogItemCombobox
                               options={ingredientOptions}
@@ -264,7 +265,7 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                       name={`lines.${idx}.qty`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs">Qty</FormLabel>
+                          <FieldLabel className="text-xs" help="How much is being sent, in the item’s stock unit.">Qty</FieldLabel>
                           <FormControl>
                             <Input inputMode="decimal" placeholder="10" {...field} />
                           </FormControl>

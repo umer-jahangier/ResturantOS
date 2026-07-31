@@ -31,10 +31,23 @@ public final class InventoryFixtures {
 
     public static UnitOfMeasure seedUom(UnitOfMeasureRepository repository, UUID tenantId,
                                          String code, String name, BigDecimal toBaseFactor) {
+        return seedUom(repository, tenantId, code, name, "COUNT", null, toBaseFactor);
+    }
+
+    /**
+     * Full-control variant (V7): sets {@code measureType} and {@code baseUnitCode} explicitly, for
+     * tests that need a unit the dimension checks in {@code IngredientService.resolveUnits} will
+     * actually accept, or that need to reproduce a pre-provisioning tenant's own casing.
+     */
+    public static UnitOfMeasure seedUom(UnitOfMeasureRepository repository, UUID tenantId,
+                                         String code, String name, String measureType,
+                                         String baseUnitCode, BigDecimal toBaseFactor) {
         UnitOfMeasure uom = new UnitOfMeasure();
         uom.setTenantId(tenantId);
         uom.setCode(code);
         uom.setName(name);
+        uom.setMeasureType(measureType);
+        uom.setBaseUnitCode(baseUnitCode);
         uom.setToBaseFactor(toBaseFactor);
         return repository.save(uom);
     }

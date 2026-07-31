@@ -100,7 +100,7 @@ class TillReconciliationIT extends PosTestBase {
         order.setOpenedAt(Instant.now());
         orderRepository.save(order);
 
-        assertThatThrownBy(() -> tillService.closeTill(till.id(), new CloseTillRequest(10000L)))
+        assertThatThrownBy(() -> tillService.closeTill(till.id(), new CloseTillRequest(10000L, null)))
                 .isInstanceOf(PosExceptions.TillHasOpenOrdersException.class);
     }
 
@@ -121,13 +121,15 @@ class TillReconciliationIT extends PosTestBase {
 
         // Close with declared cash = 60000 (no cash payments on order, so expected = float only = 50000)
         // Variance = 60000 - 50000 = 10000
-        CloseTillRequest closeReq = new CloseTillRequest(60000L);
+        CloseTillRequest closeReq = new CloseTillRequest(60000L, "Drawer over by 100 — customer overpaid tip");
         TillSessionDto closed = tillService.closeTill(till.id(), closeReq);
 
         assertThat(closed.status().name()).isEqualTo("CLOSED");
         assertThat(closed.expectedClosingPaisa()).isEqualTo(50000L);
         assertThat(closed.declaredClosingPaisa()).isEqualTo(60000L);
         assertThat(closed.variancePaisa()).isEqualTo(10000L);
+        assertThat(closed.note()).isEqualTo("Drawer over by 100 — customer overpaid tip");
+        assertThat(closed.reviewStatus().name()).isEqualTo("PENDING_REVIEW");
 
         long tillClosedCount = outboxRepository.findAll().stream()
                 .filter(e -> "TILL_CLOSED".equals(e.getEventType()))
@@ -155,7 +157,7 @@ class TillReconciliationIT extends PosTestBase {
         assertThat(persisted.getTillSessionId()).isEqualTo(till.id());
         assertThat(persisted.getCashierId()).isEqualTo(cashierId);
 
-        assertThatThrownBy(() -> tillService.closeTill(till.id(), new CloseTillRequest(50000L)))
+        assertThatThrownBy(() -> tillService.closeTill(till.id(), new CloseTillRequest(50000L, null)))
                 .isInstanceOf(PosExceptions.TillHasOpenOrdersException.class);
     }
 }

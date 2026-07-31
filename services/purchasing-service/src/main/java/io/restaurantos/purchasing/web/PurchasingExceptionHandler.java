@@ -1,6 +1,7 @@
 package io.restaurantos.purchasing.web;
 
 import io.restaurantos.purchasing.exception.IngredientNotInTenantException;
+import io.restaurantos.purchasing.exception.InventoryUnavailableException;
 import io.restaurantos.purchasing.exception.VendorItemCatalogMismatchException;
 import io.restaurantos.shared.api.ApiError;
 import org.slf4j.MDC;
@@ -34,6 +35,17 @@ public class PurchasingExceptionHandler {
     @ExceptionHandler(IngredientNotInTenantException.class)
     public ResponseEntity<ApiError> handleIngredientNotInTenant(IngredientNotInTenantException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
+    }
+
+    /**
+     * 503, not a 4xx — inventory being unreachable says nothing about whether the caller's request
+     * was valid, and telling someone to fix input that is not wrong wastes their time. Retryable
+     * and honest, mirroring inventory-service's own {@code FinanceUnavailableException} handling.
+     */
+    @ExceptionHandler(InventoryUnavailableException.class)
+    public ResponseEntity<ApiError> handleInventoryUnavailable(InventoryUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
     }
 }

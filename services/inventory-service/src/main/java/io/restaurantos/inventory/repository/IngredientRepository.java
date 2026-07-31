@@ -91,4 +91,19 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
      */
     @Query("SELECT i.categoryId, COUNT(i) FROM Ingredient i WHERE i.tenantId = :tenantId GROUP BY i.categoryId")
     List<Object[]> countByTenantIdGroupedByCategory(@Param("tenantId") UUID tenantId);
+
+    /**
+     * The archive gate for {@code StorageLocationService.archive}, mirroring
+     * {@link #countByTenantIdAndCategoryIdAndArchivedAtIsNull} above: only LIVE ingredients block
+     * a location from being archived, since an archived ingredient is not going to be walked past
+     * on a stock count.
+     */
+    long countByTenantIdAndStorageLocationIdAndArchivedAtIsNull(UUID tenantId, UUID storageLocationId);
+
+    /** Per-location ingredient counts in ONE grouped query — same "never one count per node" rule
+     * as {@link #countByTenantIdGroupedByCategory}. Row shape: {@code [UUID storageLocationId, Long count]}. */
+    @Query("SELECT i.storageLocationId, COUNT(i) FROM Ingredient i "
+            + "WHERE i.tenantId = :tenantId AND i.storageLocationId IS NOT NULL "
+            + "GROUP BY i.storageLocationId")
+    List<Object[]> countByTenantIdGroupedByStorageLocation(@Param("tenantId") UUID tenantId);
 }

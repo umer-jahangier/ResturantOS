@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
@@ -21,6 +21,91 @@ function renderWithSession(ui: React.ReactElement) {
   const Wrapper = createQueryWrapper();
   return render(<Wrapper>{ui}</Wrapper>);
 }
+
+// Chicken (MSW fixture): 4 on hand, in Poultry, which sets no cap of its own and inherits Meat &
+// Poultry's 5% — so these tests exercise the inherited-cap path, not a hand-set leaf value.
+describe("Stock count — variance cap requires an attributed override", () => {
+  afterEach(() => clearSession());
+
+  // A REAL uuid branch, unlike the harness default of "branch-1": posting a count runs the request
+  // body through `createStockCountInputSchema`, whose `branchId` is `z.string().uuid()`. With the
+  // default the parse throws before any HTTP call, so a post could never be observed at all.
+  const BRANCH_ID = "b0000001-0000-4000-8000-000000000001";
+
+  async function openCountSheet() {
+    seedSession({
+      branchId: BRANCH_ID,
+      permissions: ["inventory.item.view", "inventory.item.manage"],
+    });
+    const Wrapper = createQueryWrapper();
+    render(<Wrapper><StockCountDialog trigger={<button type="button">Open count</button>} /></Wrapper>);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Open count" }));
+    const dialog = await screen.findByRole("dialog");
+    await screen.findByLabelText("Counted quantity for Chicken");
+    return { user, dialog };
+  }
+
+  it("aWithinCapVarianceAsksForNothing", async () => {
+    const { user, dialog } = await openCountSheet();
+
+    await user.type(within(dialog).getByLabelText("Counted quantity for Chicken"), "4");
+
+    // Counted exactly what was expected — no variance, so no cap warning and no reason field.
+    expect(within(dialog).queryByText(/variance cap/i)).toBeNull();
+    expect(
+      within(dialog).queryByLabelText("Reason for over-cap variance on Chicken"),
+    ).toBeNull();
+  });
+
+  it("anOverCapVarianceSurfacesTheCapAndAsksWhy", async () => {
+    const { user, dialog } = await openCountSheet();
+
+    // 1 counted against 4 expected is -75%, well past the inherited 5% cap.
+    await user.type(within(dialog).getByLabelText("Counted quantity for Chicken"), "1");
+
+    // The cap is NAMED, so the number isn't a mystery, and the reason field appears inline on the
+    // offending row rather than as a modal after a failed post.
+    expect(within(dialog).getByText(/Over the 5% variance cap/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByLabelText("Reason for over-cap variance on Chicken"),
+    ).toBeInTheDocument();
+    // Colour is never the sole signal — the row carries an icon and the text above.
+    expect(within(dialog).getByText("(-75.0%)")).toBeInTheDocument();
+  });
+
+  it("postingIsBlockedUntilAReasonIsGivenThenSucceeds", async () => {
+    const posted: unknown[] = [];
+    server.use(
+      http.post("*/api/v1/inventory/counts", async ({ request }) => {
+        posted.push(await request.json());
+        return HttpResponse.json({
+          data: { countId: "9c111111-1111-4111-8111-111111110001", branchId: "b", status: "POSTED", lines: [], totalVarianceCostPaisa: 0 },
+        });
+      }),
+    );
+
+    const { user, dialog } = await openCountSheet();
+    await user.type(within(dialog).getByLabelText("Counted quantity for Chicken"), "1");
+
+    await user.click(within(dialog).getByRole("button", { name: "Post count" }));
+    // Caught before the round trip — the server enforces the same rule regardless, but there is no
+    // reason to make the user wait for a rejection the sheet can already see coming.
+    expect(posted).toHaveLength(0);
+
+    await user.type(
+      within(dialog).getByLabelText("Reason for over-cap variance on Chicken"),
+      "Freezer failure",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Post count" }));
+
+    // A count must always be able to record physical reality — the cap makes a large write-off
+    // deliberate and attributed, it does not forbid it.
+    await waitFor(() => expect(posted).toHaveLength(1));
+    const body = posted[0] as { lines: Array<{ overrideReason?: string }> };
+    expect(body.lines[0]?.overrideReason).toBe("Freezer failure");
+  }, 15000);
+});
 
 describe("Stock page — row emphasis reads server flags only (INV-15, T-08.2-173/175)", () => {
   afterEach(() => clearSession());
@@ -113,28 +198,37 @@ describe("StockCountDialog — live variance from the real stock-levels read mod
     expect(await screen.findByText("+2")).toBeInTheDocument();
   });
 
-  it("countRowWithLargeVarianceIsEmphasised", async () => {
+  it("countRowEmphasisDistinguishesRoutineVarianceFromAnOverCapOne", async () => {
     renderWithSession(<StockCountDialog trigger={<button type="button">Open count</button>} />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Open count" }));
     await screen.findByText("Chicken");
 
-    const countedInput = screen.getByRole("textbox", { name: "Counted quantity for Chicken" });
-    await user.type(countedInput, "6");
-    await screen.findByText("+2");
+    // Flour: 35 expected, in Dry Goods (3% cap). Counting 36 is +2.9% — a real variance, but one
+    // that will post without comment, so it takes the ordinary amber wash.
+    const flourInput = screen.getByRole("textbox", { name: "Counted quantity for Flour" });
+    await user.type(flourInput, "36");
+    await screen.findByText("+1");
+    const flourRow = flourInput.closest("tr");
+    expect(flourRow).toHaveClass("bg-warning/10");
+    expect(flourRow).not.toHaveClass("bg-destructive/10");
 
-    const countedRow = countedInput.closest("tr");
-    expect(countedRow).not.toBeNull();
-    expect(countedRow).toHaveClass("bg-warning/10");
+    // Chicken: 4 expected, inheriting Meat & Poultry's 5% cap. Counting 6 is +50%, which cannot
+    // post without a reason — materially different from Flour's +2.9%, so it reads differently.
+    const chickenInput = screen.getByRole("textbox", { name: "Counted quantity for Chicken" });
+    await user.type(chickenInput, "6");
+    const chickenRow = chickenInput.closest("tr");
+    expect(chickenRow).toHaveClass("bg-destructive/10");
+    expect(chickenRow).not.toHaveClass("bg-warning/10");
 
     // A typed-negative counted value takes the destructive wash immediately, even though the
     // backend contract (`@PositiveOrZero`) would refuse it on submit.
-    await user.clear(countedInput);
-    await user.type(countedInput, "-1");
-    expect(countedRow).toHaveClass("bg-destructive/10");
-    expect(countedRow).not.toHaveClass("bg-warning/10");
-  });
+    await user.clear(flourInput);
+    await user.type(flourInput, "-1");
+    expect(flourRow).toHaveClass("bg-destructive/10");
+    expect(flourRow).not.toHaveClass("bg-warning/10");
+  }, 15000);
 });
 
 describe("StockReceiptDialog — ingredient selection is the shared combobox (T-08.2-174)", () => {

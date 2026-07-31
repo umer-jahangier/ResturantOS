@@ -1,22 +1,27 @@
 import { get, post, put } from "@/lib/api-client/request";
 import {
   apiCoverageSchema,
+  apiGlAccountOptionSchema,
   apiIngredientSchema,
   apiItemCategoryNodeSchema,
   apiItemCategorySchema,
   apiMenuItemCatalogSchema,
   apiReceiptResultSchema,
   apiRecipeCostPreviewSchema,
+  apiRecipeOptionSchema,
   apiRecipeSchema,
   apiStockCountSchema,
   apiStockLevelsResponseSchema,
+  apiStorageLocationSchema,
   apiTransferSchema,
   apiUomSchema,
   createIngredientInputSchema,
   createItemCategoryInputSchema,
   createRecipeInputSchema,
   createStockCountInputSchema,
+  createStorageLocationInputSchema,
   createTransferInputSchema,
+  createUomInputSchema,
   moveItemCategoryInputSchema,
   previewRecipeCostInputSchema,
   receiveStockInputSchema,
@@ -24,6 +29,7 @@ import {
   recordOpeningBalanceInputSchema,
   updateIngredientInputSchema,
   updateItemCategoryInputSchema,
+  updateStorageLocationInputSchema,
 } from "@/lib/api-client/schemas/inventory.schema";
 import {
   adaptCoverage,
@@ -34,8 +40,10 @@ import {
   adaptReceiptResult,
   adaptRecipe,
   adaptRecipeCostPreview,
+  adaptRecipeOption,
   adaptStockCount,
   adaptStockLevelsResponse,
+  adaptStorageLocation,
   adaptTransfer,
   adaptUom,
 } from "@/lib/adapters/inventory.adapter";
@@ -43,7 +51,11 @@ import type {
   Coverage,
   CreateItemCategoryInput,
   CreateStockCountInput,
+  CreateStorageLocationInput,
   CreateTransferInput,
+  CreateUomInput,
+  GlAccountOption,
+  GlAccountUsage,
   Ingredient,
   IngredientInput,
   ItemCategory,
@@ -58,11 +70,14 @@ import type {
   Recipe,
   RecipeCostPreview,
   RecipeInput,
+  RecipeOption,
   StockCount,
   StockLevelsResponse,
+  StorageLocation,
   Transfer,
   UpdateIngredientInput,
   UpdateItemCategoryInput,
+  UpdateStorageLocationInput,
   Uom,
 } from "@/lib/adapters/inventory.adapter";
 
@@ -126,6 +141,17 @@ export const InventoryRepository = {
     return adaptItemCategory(apiItemCategorySchema.parse(raw));
   },
 
+  /**
+   * Chart-of-accounts options for one of a category's three GL slots. Served by inventory's own
+   * narrow proxy onto finance-service, so the caller needs only `inventory.item.view` — not
+   * `finance.coa.view`, which would carry the whole finance read surface. The server filters to
+   * active accounts of the types `usage` accepts; the browser never filters the chart itself.
+   */
+  async searchGlAccounts(usage: GlAccountUsage, q?: string): Promise<GlAccountOption[]> {
+    const raw = await get<unknown[]>("/api/v1/inventory/gl-accounts", { usage, q });
+    return (raw ?? []).map((a) => apiGlAccountOptionSchema.parse(a));
+  },
+
   // ── Ingredients (INV-01/INV-14) ──────────────────────────────────────────────────────────
   async listIngredients(filters?: IngredientListFilters): Promise<Ingredient[]> {
     const raw = await get<unknown[]>("/api/v1/inventory/ingredients", {
@@ -173,6 +199,51 @@ export const InventoryRepository = {
     return (raw ?? []).map((u) => adaptUom(apiUomSchema.parse(u)));
   },
 
+  /** Creates a house unit alongside the standard set. This endpoint has existed since 08.2-01 and
+   * had no caller until the Setup screen — which is why every tenant's unit list was whatever the
+   * lazy standard provisioning gave it, and nothing else. */
+  async createUom(input: CreateUomInput): Promise<Uom> {
+    const raw = await post("/api/v1/inventory/uom", createUomInputSchema.parse(input));
+    return adaptUom(apiUomSchema.parse(raw));
+  },
+
+  // ── Storage locations (V10) ──────────────────────────────────────────────────────────────
+  async listStorageLocations(includeArchived = false): Promise<StorageLocation[]> {
+    const raw = await get<unknown[]>("/api/v1/inventory/storage-locations", { includeArchived });
+    return (raw ?? []).map((s) => adaptStorageLocation(apiStorageLocationSchema.parse(s)));
+  },
+
+  async createStorageLocation(input: CreateStorageLocationInput): Promise<StorageLocation> {
+    const raw = await post(
+      "/api/v1/inventory/storage-locations",
+      createStorageLocationInputSchema.parse(input),
+    );
+    return adaptStorageLocation(apiStorageLocationSchema.parse(raw));
+  },
+
+  async updateStorageLocation(
+    id: string,
+    input: UpdateStorageLocationInput,
+  ): Promise<StorageLocation> {
+    const raw = await put(
+      `/api/v1/inventory/storage-locations/${id}`,
+      updateStorageLocationInputSchema.parse(input),
+    );
+    return adaptStorageLocation(apiStorageLocationSchema.parse(raw));
+  },
+
+  /** D-04: archive is a POST sub-resource, never DELETE — and the server refuses while live
+   * ingredients are still filed here rather than silently detaching them. */
+  async archiveStorageLocation(id: string): Promise<StorageLocation> {
+    const raw = await post(`/api/v1/inventory/storage-locations/${id}/archive`);
+    return adaptStorageLocation(apiStorageLocationSchema.parse(raw));
+  },
+
+  async restoreStorageLocation(id: string): Promise<StorageLocation> {
+    const raw = await post(`/api/v1/inventory/storage-locations/${id}/restore`);
+    return adaptStorageLocation(apiStorageLocationSchema.parse(raw));
+  },
+
   // ── Stock levels (INV-15) ────────────────────────────────────────────────────────────────
   /** `branchId` is required — the backend refuses any branchId that isn't the caller's own. */
   async getStockLevels(branchId: string, search?: string): Promise<StockLevelsResponse> {
@@ -190,6 +261,12 @@ export const InventoryRepository = {
   async listRecipeVersions(menuItemId: string): Promise<Recipe[]> {
     const raw = await get<unknown[]>("/api/v1/inventory/recipes", { menuItemId });
     return (raw ?? []).map((r) => adaptRecipe(apiRecipeSchema.parse(r)));
+  },
+
+  /** Current recipe versions, labelled by menu item — the ingredient form's "Produced by" options. */
+  async listRecipeOptions(): Promise<RecipeOption[]> {
+    const raw = await get<unknown[]>("/api/v1/inventory/recipes/options");
+    return (raw ?? []).map((r) => adaptRecipeOption(apiRecipeOptionSchema.parse(r)));
   },
 
   /** 08.1-03 (INV-11): recipe-coverage report for the coverage dashboard. */

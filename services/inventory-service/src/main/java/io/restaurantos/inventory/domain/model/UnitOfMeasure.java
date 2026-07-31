@@ -35,4 +35,15 @@ public class UnitOfMeasure extends TenantAuditableEntity {
 
     @Column(name = "to_base_factor", nullable = false, precision = 18, scale = 8)
     private BigDecimal toBaseFactor = BigDecimal.ONE;
+
+    /**
+     * WEIGHT / VOLUME / COUNT — the physical dimension this unit measures (V7 migration, CHECK
+     * constrained). Shares its vocabulary with {@link Ingredient#getMeasureType()} so the two can
+     * be compared directly: {@code IngredientService} rejects an ingredient whose declared measure
+     * type disagrees with its stock unit's, and the ingredient form filters both unit selects on
+     * it. Before V7 the dimension was only implicit in the {@link #baseUnitCode} chain, which the
+     * UI could not see.
+     */
+    @Column(name = "measure_type", nullable = false, length = 10)
+    private String measureType = "COUNT";
 }

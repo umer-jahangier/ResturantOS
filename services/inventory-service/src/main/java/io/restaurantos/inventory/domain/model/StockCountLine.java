@@ -46,4 +46,23 @@ public class StockCountLine extends TenantAuditableEntity {
 
     @Column(name = "variance_cost_paisa", nullable = false)
     private long varianceCostPaisa;
+
+    /**
+     * The V9 variance-cap audit trail: the percentage this line's variance represented, the cap in
+     * force for it at post time, and — only when the line exceeded that cap — why it was posted
+     * anyway.
+     *
+     * <p>All three are recorded rather than recomputed on read. A category can be re-capped after
+     * the fact, and an audit trail that silently re-answers "was this allowed?" against today's
+     * threshold is worse than not having one. {@code variancePct} is null when system qty was zero
+     * (a percentage needs a base); {@code capPct} is null when no ancestor category set one.
+     */
+    @Column(name = "variance_pct", precision = 9, scale = 2)
+    private BigDecimal variancePct;
+
+    @Column(name = "cap_pct", precision = 6, scale = 2)
+    private BigDecimal capPct;
+
+    @Column(name = "override_reason", length = 500)
+    private String overrideReason;
 }

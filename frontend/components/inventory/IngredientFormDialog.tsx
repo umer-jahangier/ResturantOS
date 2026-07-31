@@ -10,11 +10,14 @@ import { createZodResolver } from "@/lib/forms/zod-resolver";
 import {
   useCategories,
   useCreateIngredient,
+  useRecipeOptions,
+  useStorageLocations,
   useUoms,
   useUpdateIngredient,
 } from "@/lib/hooks/inventory/use-inventory";
-import type { Ingredient, IngredientInput } from "@/lib/adapters/inventory.adapter";
+import type { Ingredient, IngredientInput, Uom } from "@/lib/adapters/inventory.adapter";
 import { AllergenPillToggle } from "@/components/inventory/allergen-pill-toggle";
+import { FieldHelp, FieldLabel } from "@/components/shared/field-help";
 import {
   Dialog,
   DialogContent,
@@ -59,6 +62,7 @@ const ingredientFormSchema = z.object({
   categoryId: z.string().min(1, "A category is required"),
   description: z.string(),
   itemType: z.string(),
+  producedByRecipeId: z.string(),
   measureType: z.string(),
   baseUomCode: z.string().min(1, "Stock unit is required"),
   recipeUomCode: z.string(),
@@ -68,7 +72,7 @@ const ingredientFormSchema = z.object({
   reorderPoint: z
     .string()
     .refine((v) => v.trim() !== "" && Number(v) >= 0, "Enter a reorder point"),
-  storageLocation: z.string(),
+  storageLocationId: z.string(),
   shelfLifeDays: z.string(),
   perishable: z.boolean(),
   allergenCodes: z.array(z.string()),
@@ -79,6 +83,21 @@ type IngredientFormValues = z.infer<typeof ingredientFormSchema>;
 
 const EMPTY_CONVERSION = { fromUomCode: "", toUomCode: "", factor: "", note: "" };
 
+/** Renders unit `<option>`s as `code · name` — with a standard set now provisioned per tenant,
+ * a bare code list ("g", "kg", "mg", "lb", "oz", …) is no longer self-explanatory at a glance. */
+function unitOptions(units: Uom[]) {
+  return units.map((u) => (
+    <option key={u.id} value={u.code}>
+      {u.code} · {u.name}
+    </option>
+  ));
+}
+
+/** PREPARED and BOTH are the two item types a recipe can produce; PURCHASED is not. */
+function isPrepared(itemType: string): boolean {
+  return itemType === "PREPARED" || itemType === "BOTH";
+}
+
 function defaultsFor(ingredient?: Ingredient): IngredientFormValues {
   return {
     name: ingredient?.name ?? "",
@@ -87,6 +106,7 @@ function defaultsFor(ingredient?: Ingredient): IngredientFormValues {
     categoryId: ingredient?.categoryId ?? "",
     description: ingredient?.description ?? "",
     itemType: ingredient?.itemType ?? "PURCHASED",
+    producedByRecipeId: ingredient?.producedByRecipeId ?? "",
     measureType: ingredient?.measureType ?? "COUNT",
     baseUomCode: ingredient?.baseUomCode ?? "",
     recipeUomCode: ingredient?.recipeUomCode ?? "",
@@ -101,7 +121,7 @@ function defaultsFor(ingredient?: Ingredient): IngredientFormValues {
       : [],
     parLevel: ingredient?.parLevel ?? "",
     reorderPoint: ingredient?.reorderPoint ?? "",
-    storageLocation: ingredient?.storageLocation ?? "",
+    storageLocationId: ingredient?.storageLocationId ?? "",
     shelfLifeDays: ingredient?.shelfLifeDays != null ? String(ingredient.shelfLifeDays) : "",
     perishable: ingredient?.perishable ?? false,
     allergenCodes: ingredient?.allergenCodes ?? [],
@@ -133,10 +153,14 @@ function toIngredientInput(values: IngredientFormValues): Omit<IngredientInput, 
     shortName: trimmed(values.shortName),
     description: trimmed(values.description),
     itemType: trimmed(values.itemType),
+    // Only a prepared item may name a producing recipe — the server rejects the pair outright
+    // rather than silently dropping it, so a stale id left behind by switching the type back to
+    // Purchased must not be sent.
+    producedByRecipeId: isPrepared(values.itemType) ? trimmed(values.producedByRecipeId) : undefined,
     measureType: trimmed(values.measureType),
     recipeUomCode: trimmed(values.recipeUomCode),
     defaultYieldPct: values.defaultYieldPct.trim() === "" ? undefined : values.defaultYieldPct.trim(),
-    storageLocation: trimmed(values.storageLocation),
+    storageLocationId: trimmed(values.storageLocationId),
     shelfLifeDays: values.shelfLifeDays.trim() === "" ? undefined : Number(values.shelfLifeDays),
     perishable: values.perishable,
     reorderPoint: values.reorderPoint.trim(),
@@ -179,6 +203,8 @@ export function IngredientFormDialog({
 
   const { data: categories } = useCategories();
   const { data: uoms } = useUoms();
+  const { data: storageLocations } = useStorageLocations();
+  const { data: recipeOptions } = useRecipeOptions();
   const createIngredient = useCreateIngredient();
   const updateIngredient = useUpdateIngredient();
   const mutation = isEdit ? updateIngredient : createIngredient;
@@ -189,6 +215,22 @@ export function IngredientFormDialog({
   });
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "conversions" });
+
+  // The Stock/Recipe unit selects only offer units in the SELECTED dimension — a COUNT item can
+  // never be stocked in grams. `measureType` is the server's own value on each UomDto (V7); it is
+  // never re-derived here from the unit's code or its baseUnitCode chain, so this filter cannot
+  // drift from IngredientService's matching server-side rejection.
+  //
+  // Conversions deliberately keep the UNFILTERED list below: crossing dimensions is their whole
+  // purpose ("1 each = 0.18 kg" is how an item purchased by count is stocked by weight).
+  const measureType = form.watch("measureType");
+  const dimensionUnits = (uoms ?? []).filter((u) => u.measureType === measureType);
+
+  const itemType = form.watch("itemType");
+  // Archived locations are excluded from the picker but NOT from a saved ingredient — an item
+  // already filed in a location that later gets archived keeps its value, exactly as with
+  // categories. Only new assignments are blocked (server-side too, with a 422).
+  const activeLocations = (storageLocations ?? []).filter((l) => l.archivedAt == null);
 
   // Reset to the latest entity's values every time the dialog transitions to open — covers both
   // the uncontrolled (trigger-click, which round-trips through handleOpenChange) and controlled
@@ -258,6 +300,9 @@ export function IngredientFormDialog({
               noValidate
             >
               {/* General */}
+              {/* Name and Description carry no help affordance on purpose: a "?" that only
+                  restates the label is noise, and thirty fields of noise is what makes help
+                  invisible on the fields that genuinely need it. */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold">General</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -280,7 +325,7 @@ export function IngredientFormDialog({
                     name="shortName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Short name</FormLabel>
+                        <FieldLabel help="A shorter label for tight spaces — count sheets, kitchen tickets, narrow reports.">Short name</FieldLabel>
                         <FormControl>
                           <Input placeholder="Optional" {...field} />
                         </FormControl>
@@ -294,7 +339,7 @@ export function IngredientFormDialog({
                     name="sku"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>SKU</FormLabel>
+                        <FieldLabel help="Your own code for this item. Used to search for it and to line it up with supplier catalogues. It can’t be changed later.">SKU</FieldLabel>
                         <FormControl>
                           <Input placeholder="ING-CHK" disabled={isEdit} {...field} />
                         </FormControl>
@@ -313,7 +358,7 @@ export function IngredientFormDialog({
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Primary category *</FormLabel>
+                        <FieldLabel help="Decides which GL accounts this item posts to, and how it’s grouped in cost reports. Every item needs exactly one.">Primary category *</FieldLabel>
                         <FormControl>
                           <select {...field} aria-label="Primary category *" className={selectClass}>
                             <option value="">Select a category…</option>
@@ -334,9 +379,22 @@ export function IngredientFormDialog({
                     name="itemType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Item type</FormLabel>
+                        <FieldLabel help="Purchased = you buy it in. Prepared = your kitchen makes it. Both = you do either, depending on the day.">Item type</FieldLabel>
                         <FormControl>
-                          <select {...field} aria-label="Item type" className={selectClass}>
+                          <select
+                            {...field}
+                            aria-label="Item type"
+                            className={selectClass}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              // Switching back to Purchased clears the recipe rather than hiding
+                              // it: a value the user can no longer see but would still submit is
+                              // exactly the mismatch the server refuses.
+                              if (!isPrepared(e.target.value)) {
+                                form.setValue("producedByRecipeId", "");
+                              }
+                            }}
+                          >
                             <option value="PURCHASED">Purchased</option>
                             <option value="PREPARED">Prepared</option>
                             <option value="BOTH">Both</option>
@@ -346,6 +404,40 @@ export function IngredientFormDialog({
                       </FormItem>
                     )}
                   />
+
+                  {/* Only rendered for a prepared item — an in-house prep has a recipe behind it,
+                      a purchased one does not, and the server enforces the same pairing. */}
+                  {isPrepared(itemType) ? (
+                    <FormField
+                      control={form.control}
+                      name="producedByRecipeId"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FieldLabel help="The recipe your kitchen follows to make this item.">Produced by recipe</FieldLabel>
+                          <FormControl>
+                            <select
+                              {...field}
+                              aria-label="Produced by recipe"
+                              className={selectClass}
+                            >
+                              <option value="">Not linked yet</option>
+                              {(recipeOptions ?? []).map((r) => (
+                                <option key={r.recipeId} value={r.recipeId}>
+                                  {r.name ? `${r.menuItemName} — ${r.name}` : r.menuItemName} (v
+                                  {r.version})
+                                </option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">
+                            Optional. You can save the item now and link its recipe once you&apos;ve
+                            written one — the recipe has to reference this item, so it comes second.
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : null}
 
                   <FormField
                     control={form.control}
@@ -372,7 +464,7 @@ export function IngredientFormDialog({
                     name="measureType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Measure type</FormLabel>
+                        <FieldLabel help="Whether you track this by weight, by volume, or by counting units. It locks once stock has moved.">Measure type</FieldLabel>
                         <FormControl>
                           {locked ? (
                             <Tooltip>
@@ -394,7 +486,20 @@ export function IngredientFormDialog({
                               <TooltipContent>{LOCK_COPY}</TooltipContent>
                             </Tooltip>
                           ) : (
-                            <select {...field} aria-label="Measure type" className={selectClass}>
+                            <select
+                              {...field}
+                              aria-label="Measure type"
+                              className={selectClass}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                // Both unit fields are scoped to the dimension, so a value picked
+                                // under the old one is no longer offered — clear rather than leave
+                                // a selection the user can see in neither dropdown but would still
+                                // submit (and which the server would reject as a mismatch).
+                                form.setValue("baseUomCode", "");
+                                form.setValue("recipeUomCode", "");
+                              }}
+                            >
                               <option value="WEIGHT">Weight</option>
                               <option value="VOLUME">Volume</option>
                               <option value="COUNT">Count</option>
@@ -411,7 +516,7 @@ export function IngredientFormDialog({
                     name="baseUomCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Stock unit</FormLabel>
+                        <FieldLabel help="The unit you hold and count stock in. Everything else converts to this.">Stock unit</FieldLabel>
                         <FormControl>
                           {locked ? (
                             <Tooltip>
@@ -425,11 +530,7 @@ export function IngredientFormDialog({
                                     className={selectClass}
                                   >
                                     <option value="">Select…</option>
-                                    {(uoms ?? []).map((u) => (
-                                      <option key={u.id} value={u.code}>
-                                        {u.code}
-                                      </option>
-                                    ))}
+                                    {unitOptions(dimensionUnits)}
                                   </select>
                                 </span>
                               </TooltipTrigger>
@@ -438,11 +539,7 @@ export function IngredientFormDialog({
                           ) : (
                             <select {...field} aria-label="Stock unit" className={selectClass}>
                               <option value="">Select…</option>
-                              {(uoms ?? []).map((u) => (
-                                <option key={u.id} value={u.code}>
-                                  {u.code}
-                                </option>
-                              ))}
+                              {unitOptions(dimensionUnits)}
                             </select>
                           )}
                         </FormControl>
@@ -456,15 +553,11 @@ export function IngredientFormDialog({
                     name="recipeUomCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Recipe unit</FormLabel>
+                        <FieldLabel help="The unit recipes usually call for, when that differs from how you stock it — stocked in kg, cooked in g.">Recipe unit</FieldLabel>
                         <FormControl>
                           <select {...field} aria-label="Recipe unit" className={selectClass}>
                             <option value="">Same as stock unit</option>
-                            {(uoms ?? []).map((u) => (
-                              <option key={u.id} value={u.code}>
-                                {u.code}
-                              </option>
-                            ))}
+                            {unitOptions(dimensionUnits)}
                           </select>
                         </FormControl>
                         <FormMessage />
@@ -477,7 +570,7 @@ export function IngredientFormDialog({
                     name="defaultYieldPct"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Default yield %</FormLabel>
+                        <FieldLabel help="How much is left after trimming, peeling or boning. 100% means no loss; chicken at 95% means 1 kg buys you 950 g usable.">Default yield %</FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="100" {...field} />
                         </FormControl>
@@ -488,12 +581,22 @@ export function IngredientFormDialog({
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  The purchase unit is set per vendor item on the vendor&apos;s catalog, not here.
+                  Stock and recipe units are limited to the selected measure type. Conversions below
+                  may cross measure types — that is how an item purchased by count is stocked by
+                  weight. The purchase unit is set per vendor item on the vendor&apos;s catalog, not
+                  here.
                 </p>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Conversions</h4>
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-sm font-medium">Conversions</h4>
+                      <FieldHelp label="Conversions">
+                        How this item&apos;s units relate to each other, when the standard ones
+                        can&apos;t say it — &ldquo;1 crate = 12 kg&rdquo;. Only needed for items you
+                        buy one way and stock another.
+                      </FieldHelp>
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
@@ -518,11 +621,7 @@ export function IngredientFormDialog({
                             <FormControl>
                               <select {...field} aria-label="From" className={selectClass}>
                                 <option value="">Select…</option>
-                                {(uoms ?? []).map((u) => (
-                                  <option key={u.id} value={u.code}>
-                                    {u.code}
-                                  </option>
-                                ))}
+                                {unitOptions(uoms ?? [])}
                               </select>
                             </FormControl>
                             <FormMessage />
@@ -538,11 +637,7 @@ export function IngredientFormDialog({
                             <FormControl>
                               <select {...field} aria-label="To" className={selectClass}>
                                 <option value="">Select…</option>
-                                {(uoms ?? []).map((u) => (
-                                  <option key={u.id} value={u.code}>
-                                    {u.code}
-                                  </option>
-                                ))}
+                                {unitOptions(uoms ?? [])}
                               </select>
                             </FormControl>
                             <FormMessage />
@@ -592,7 +687,7 @@ export function IngredientFormDialog({
                     name="parLevel"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Par level</FormLabel>
+                        <FieldLabel help="How much you want on the shelf when fully stocked. Ordering suggestions top you back up to this number.">Par level</FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="Optional" {...field} />
                         </FormControl>
@@ -606,7 +701,7 @@ export function IngredientFormDialog({
                     name="reorderPoint"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reorder point</FormLabel>
+                        <FieldLabel help="The level that triggers a low-stock warning. Set it high enough to cover how long your supplier takes to deliver.">Reorder point</FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="10" {...field} />
                         </FormControl>
@@ -615,15 +710,30 @@ export function IngredientFormDialog({
                     )}
                   />
 
+                  {/* Was a free-text Input until V10 made storage location master data, for the
+                      same reason the category field is a select: three spellings of one walk-in
+                      is three walk-ins to every report that tries to group by it. */}
                   <FormField
                     control={form.control}
-                    name="storageLocation"
+                    name="storageLocationId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Storage location</FormLabel>
+                        <FieldLabel help="Where this physically lives, so a count sheet can follow the room instead of jumping around.">Storage location</FieldLabel>
                         <FormControl>
-                          <Input placeholder="Walk-in Cooler" {...field} />
+                          <select {...field} aria-label="Storage location" className={selectClass}>
+                            <option value="">Not specified</option>
+                            {activeLocations.map((l) => (
+                              <option key={l.id} value={l.id}>
+                                {l.name}
+                              </option>
+                            ))}
+                          </select>
                         </FormControl>
+                        {activeLocations.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            No locations yet — add them under Inventory → Setup.
+                          </p>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -634,7 +744,7 @@ export function IngredientFormDialog({
                     name="shelfLifeDays"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Shelf life (days)</FormLabel>
+                        <FieldLabel help="How long it stays good after delivery. Used to warn you before stock expires.">Shelf life (days)</FieldLabel>
                         <FormControl>
                           <Input inputMode="numeric" placeholder="Optional" {...field} />
                         </FormControl>
@@ -648,7 +758,7 @@ export function IngredientFormDialog({
                     name="perishable"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Perishable</FormLabel>
+                        <FieldLabel help="Mark items that spoil. These are tracked by expiry date and always used oldest-first.">Perishable</FieldLabel>
                         <FormControl>
                           <button
                             type="button"
@@ -679,7 +789,7 @@ export function IngredientFormDialog({
                   name="allergenCodes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Allergens</FormLabel>
+                      <FieldLabel help="Carries through to every recipe using this item, and onto menus and kitchen tickets.">Allergens</FieldLabel>
                       <FormControl>
                         <AllergenPillToggle value={field.value} onChange={field.onChange} />
                       </FormControl>

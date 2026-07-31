@@ -24,7 +24,11 @@ interface CatalogItemComboboxProps {
   disabledPlaceholder?: string
   placeholder?: string
   emptyHeading?: string
-  emptyBody?: string
+  /**
+   * Usually a sentence. Accepts a node so a caller whose options come from another service can
+   * offer a way OUT of the empty state — a retry, a link — rather than only describing it.
+   */
+  emptyBody?: React.ReactNode
   isLoading?: boolean
   onSearchChange?: (query: string) => void
   className?: string
@@ -96,7 +100,13 @@ export function CatalogItemCombobox({
         <button
           type="button"
           disabled={disabled}
-          aria-label={disabled ? disabledPlaceholder : placeholder}
+          // Reflects the CURRENT SELECTION, not just the placeholder. Previously this was
+          // `disabled ? disabledPlaceholder : placeholder`, so the button's accessible name never
+          // changed after a choice was made — a screen-reader user heard "Select an item…" forever
+          // while sighted users saw the item they had picked. Only the visible <span> below ever
+          // updated. (Logged in 08.2's deferred-items.md; fixed here because the GL account picker
+          // now depends on this component for a field where the selected value is the whole point.)
+          aria-label={disabled ? disabledPlaceholder : (selected?.name ?? placeholder)}
           className={cn(
             "flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
             className
@@ -124,7 +134,7 @@ export function CatalogItemCombobox({
             ) : filtered.length === 0 ? (
               <Command.Empty className="flex flex-col gap-0.5 px-2 py-4">
                 <span className="text-sm font-semibold">{emptyHeading}</span>
-                <span className="text-xs text-muted-foreground">{emptyBody}</span>
+                <div className="text-xs text-muted-foreground">{emptyBody}</div>
               </Command.Empty>
             ) : (
               filtered.map((option) => (

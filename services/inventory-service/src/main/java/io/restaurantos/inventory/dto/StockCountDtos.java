@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,9 +24,17 @@ public final class StockCountDtos {
             @NotNull UUID branchId,
             @NotEmpty @Valid List<CountLineRequest> lines) {}
 
+    /**
+     * {@code overrideReason} is required ONLY when the line's variance exceeds its category's
+     * variance cap; {@code StockCountService} rejects such a line with 422
+     * {@code COUNT_VARIANCE_OVER_CAP} when it is absent. Supplying one on a within-cap line is
+     * harmless but pointless — it is not persisted, so the presence of a stored reason always
+     * means "this line really did breach its cap".
+     */
     public record CountLineRequest(
             @NotNull UUID ingredientId,
-            @NotNull @PositiveOrZero BigDecimal countedQty) {}
+            @NotNull @PositiveOrZero BigDecimal countedQty,
+            @Size(max = 500) String overrideReason) {}
 
     public record StockCountDto(
             UUID countId,
@@ -34,10 +43,19 @@ public final class StockCountDtos {
             List<CountLineDto> lines,
             long totalVarianceCostPaisa) {}
 
+    /**
+     * {@code variancePct} is null when system qty was zero — a percentage needs a base, and the
+     * first count of an item legitimately has none. {@code capPct} is null when neither the
+     * ingredient's category nor any ancestor sets a cap. {@code overrideReason} is non-null exactly
+     * for the lines that breached their cap and were posted anyway.
+     */
     public record CountLineDto(
             UUID ingredientId,
             BigDecimal systemQty,
             BigDecimal countedQty,
             BigDecimal varianceQty,
-            long varianceCostPaisa) {}
+            long varianceCostPaisa,
+            BigDecimal variancePct,
+            BigDecimal capPct,
+            String overrideReason) {}
 }

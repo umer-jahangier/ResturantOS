@@ -22,6 +22,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FieldLabel } from "@/components/shared/field-help";
 
 // Every numeric field is a string here because that is what an <input> yields; conversion to the
 // wire shape (OpeningBalanceInput) happens in onSubmit, mirroring RecipeFormDialog's
@@ -141,7 +142,7 @@ export function OpeningBalanceDialog({
               name="ingredientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ingredient</FormLabel>
+                  <FieldLabel help="The item you’re recording a starting quantity for.">Ingredient</FieldLabel>
                   <FormControl>
                     <CatalogItemCombobox
                       options={ingredientOptions}
@@ -158,7 +159,7 @@ export function OpeningBalanceDialog({
             />
 
             <FormItem>
-              <FormLabel>Branch</FormLabel>
+              <FieldLabel help="Which location this stock is sitting at.">Branch</FieldLabel>
               <FormControl>
                 <Input value={branchName} disabled readOnly aria-label="Branch" />
               </FormControl>
@@ -169,7 +170,7 @@ export function OpeningBalanceDialog({
               name="qty"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Quantity</FormLabel>
+                  <FieldLabel help="How much is physically on hand right now, in this item’s stock unit.">Quantity</FieldLabel>
                   <FormControl>
                     <Input inputMode="decimal" placeholder="10" {...field} />
                   </FormControl>
@@ -183,7 +184,7 @@ export function OpeningBalanceDialog({
               name="unitCostRupees"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Unit cost (PKR)</FormLabel>
+                  <FieldLabel help="What one unit cost you. This seeds the running average cost used to value the stock.">Unit cost (PKR)</FieldLabel>
                   <FormControl>
                     <Input inputMode="decimal" placeholder="120.00" {...field} />
                   </FormControl>
@@ -197,7 +198,7 @@ export function OpeningBalanceDialog({
               name="expiryDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Expiry date</FormLabel>
+                  <FieldLabel help="Optional. If set, this batch is used before later ones and warns you as it nears.">Expiry date</FieldLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>

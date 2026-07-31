@@ -11,6 +11,7 @@ import io.restaurantos.inventory.dto.InventoryDtos.UpdateIngredientRequest;
 import io.restaurantos.inventory.dto.ItemCategoryDtos.CreateItemCategoryRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeLineRequest;
+import io.restaurantos.inventory.dto.StorageLocationDtos.CreateStorageLocationRequest;
 import io.restaurantos.inventory.repository.MenuItemCatalogRepository;
 import io.restaurantos.inventory.web.InternalIngredientCategoryController;
 import io.restaurantos.shared.authz.OpaDecision;
@@ -36,6 +37,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -69,6 +71,7 @@ class IngredientMasterDataIT extends InventoryTestBase {
     MockMvc mockMvc;
     UUID tenantId;
     UUID branchId;
+    final Map<String, UUID> storageLocationIds = new HashMap<>();
 
     @BeforeEach
     void setUp() {
@@ -110,13 +113,36 @@ class IngredientMasterDataIT extends InventoryTestBase {
                 .andExpect(status().isOk());
     }
 
+    /**
+     * Memoized per name: V10 turned storage location into master data, so a test that builds two
+     * ingredients "in the walk-in" must reference ONE row, not create the name twice and collide
+     * with {@code uq_storage_location_tenant_name_ci}.
+     */
+    private UUID storageLocation(String name) throws Exception {
+        UUID cached = storageLocationIds.get(name);
+        if (cached != null) {
+            return cached;
+        }
+        MvcResult result = mockMvc.perform(post("/api/v1/inventory/storage-locations")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new CreateStorageLocationRequest(name, null, null))))
+                .andExpect(status().isOk())
+                .andReturn();
+        UUID id = UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("id").asText());
+        storageLocationIds.put(name, id);
+        return id;
+    }
+
     private CreateIngredientRequest fullCreateRequest(String name, String sku, UUID categoryId,
                                                        List<IngredientConversionDto> conversions,
-                                                       List<String> allergenCodes) {
+                                                       List<String> allergenCodes) throws Exception {
         return new CreateIngredientRequest(
                 name, sku, "KG", categoryId,
                 "Short " + name, "Description of " + name, "PURCHASED", null, "WEIGHT", "G",
-                BigDecimal.valueOf(95), "Walk-in Cooler, Shelf 3", 14, true,
+                BigDecimal.valueOf(95), storageLocation("Walk-in Cooler"), 14, true,
                 BigDecimal.valueOf(5), BigDecimal.valueOf(20), conversions, allergenCodes);
     }
 
@@ -228,7 +254,11 @@ class IngredientMasterDataIT extends InventoryTestBase {
         assertThat(fetched.path("measureType").asText()).isEqualTo("WEIGHT");
         assertThat(fetched.path("recipeUomCode").asText()).isEqualTo("G");
         assertThat(fetched.path("defaultYieldPct").decimalValue()).isEqualByComparingTo(BigDecimal.valueOf(95));
-        assertThat(fetched.path("storageLocation").asText()).isEqualTo("Walk-in Cooler, Shelf 3");
+        // The free-text column is now DERIVED from the referenced location (V10), so this
+        // asserts the resolution round-tripped, not that a string was echoed back.
+        assertThat(fetched.path("storageLocation").asText()).isEqualTo("Walk-in Cooler");
+        assertThat(fetched.path("storageLocationId").asText())
+                .isEqualTo(storageLocation("Walk-in Cooler").toString());
         assertThat(fetched.path("shelfLifeDays").asInt()).isEqualTo(14);
         assertThat(fetched.path("perishable").asBoolean()).isTrue();
         assertThat(fetched.path("parLevel").decimalValue()).isEqualByComparingTo(BigDecimal.valueOf(20));
@@ -267,7 +297,7 @@ class IngredientMasterDataIT extends InventoryTestBase {
         UpdateIngredientRequest updateRequest = new UpdateIngredientRequest(
                 "Cheddar Cheese", "KG", categoryId,
                 "Short Cheddar", "Updated description", "PURCHASED", null, "WEIGHT", "G",
-                BigDecimal.valueOf(95), "Walk-in Cooler, Shelf 3", 14, true,
+                BigDecimal.valueOf(95), storageLocation("Walk-in Cooler"), 14, true,
                 BigDecimal.valueOf(5), BigDecimal.valueOf(20), reducedConversions, reducedAllergens, true);
 
         mockMvc.perform(put("/api/v1/inventory/ingredients/" + id)
@@ -300,7 +330,7 @@ class IngredientMasterDataIT extends InventoryTestBase {
         UpdateIngredientRequest changeMeasureType = new UpdateIngredientRequest(
                 "Long Rice", "KG", categoryId,
                 "Short Long Rice", "desc", "PURCHASED", null, "COUNT", "EACH",
-                BigDecimal.valueOf(95), "Dry Storage", 365, false,
+                BigDecimal.valueOf(95), storageLocation("Dry Storage"), 365, false,
                 BigDecimal.valueOf(5), BigDecimal.valueOf(20), null, null, true);
 
         mockMvc.perform(put("/api/v1/inventory/ingredients/" + id)
@@ -320,10 +350,13 @@ class IngredientMasterDataIT extends InventoryTestBase {
 
         assertThat(created.path("measureTypeLocked").asBoolean()).isFalse();
 
+        // Switching to COUNT means switching the stock unit to a COUNT unit in the same request —
+        // since V7 the stock unit's dimension must agree with the ingredient's measure type, so
+        // "KG + COUNT" (which this test used to assert saved happily) is now a 422.
         UpdateIngredientRequest changeMeasureType = new UpdateIngredientRequest(
-                "Short Rice", "KG", categoryId,
+                "Short Rice", "EACH", categoryId,
                 "Short Short Rice", "desc", "PURCHASED", null, "COUNT", "EACH",
-                BigDecimal.valueOf(95), "Dry Storage", 365, false,
+                BigDecimal.valueOf(95), storageLocation("Dry Storage"), 365, false,
                 BigDecimal.valueOf(5), BigDecimal.valueOf(20), null, null, true);
 
         mockMvc.perform(put("/api/v1/inventory/ingredients/" + id)

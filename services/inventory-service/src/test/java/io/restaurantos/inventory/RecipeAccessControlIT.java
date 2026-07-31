@@ -1,8 +1,12 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.inventory.domain.model.Ingredient;
+import io.restaurantos.inventory.domain.model.ItemCategory;
 import io.restaurantos.inventory.domain.model.MenuItemCatalog;
 import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeLineRequest;
+import io.restaurantos.inventory.repository.IngredientRepository;
+import io.restaurantos.inventory.repository.ItemCategoryRepository;
 import io.restaurantos.inventory.repository.MenuItemCatalogRepository;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.feature.FeatureFlagService;
@@ -48,6 +52,8 @@ class RecipeAccessControlIT extends InventoryTestBase {
     @Autowired TenantContext tenantContext;
     @Autowired ObjectMapper objectMapper;
     @Autowired MenuItemCatalogRepository menuItemCatalogRepository;
+    @Autowired IngredientRepository ingredientRepository;
+    @Autowired ItemCategoryRepository itemCategoryRepository;
 
     @MockitoBean FeatureFlagService featureFlagService;
 
@@ -82,12 +88,40 @@ class RecipeAccessControlIT extends InventoryTestBase {
     }
 
     private CreateRecipeVersionRequest newRecipeRequest() {
+        return newRecipeRequest(UUID.randomUUID());
+    }
+
+    private CreateRecipeVersionRequest newRecipeRequest(UUID ingredientId) {
         return new CreateRecipeVersionRequest(
                 UUID.randomUUID(),
                 BigDecimal.TEN,
                 null,
                 "House Burger",
-                List.of(new RecipeLineRequest(UUID.randomUUID(), BigDecimal.valueOf(0.2), "KG", BigDecimal.valueOf(100))));
+                List.of(new RecipeLineRequest(ingredientId, BigDecimal.valueOf(0.2), "KG", BigDecimal.valueOf(100))));
+    }
+
+    /**
+     * A real, tenant-owned ingredient measured by weight. {@code createVersion} now validates every
+     * line's ingredient and unit, so the random UUID this test used to send is refused (404) before
+     * the OPA-authorization assertion it actually exists to make is ever reached — the same shape
+     * of fixture gap the menu-item catalog row below already had to close.
+     */
+    private UUID seedWeightIngredient() {
+        ItemCategory category = new ItemCategory();
+        category.setTenantId(tenantId);
+        category.setName("Proteins " + UUID.randomUUID());
+        category.setLevel((short) 1);
+        itemCategoryRepository.save(category);
+
+        Ingredient ingredient = new Ingredient();
+        ingredient.setTenantId(tenantId);
+        ingredient.setName("Chicken");
+        ingredient.setSku("ING-" + UUID.randomUUID());
+        ingredient.setBaseUomCode("KG");
+        ingredient.setMeasureType("WEIGHT");
+        ingredient.setCategoryId(category.getId());
+        ingredient.setReorderPoint(BigDecimal.ZERO);
+        return ingredientRepository.save(ingredient).getId();
     }
 
     @Test
@@ -105,7 +139,7 @@ class RecipeAccessControlIT extends InventoryTestBase {
     void inventoryManager_isAllowed_onRecipeVersionCreateAndRead() throws Exception {
         when(opaClient.evaluate(eq("inventory"), any())).thenReturn(new OpaDecision(true));
 
-        CreateRecipeVersionRequest request = newRecipeRequest();
+        CreateRecipeVersionRequest request = newRecipeRequest(seedWeightIngredient());
 
         // Seed a catalog row for this request's menuItemId — RecipeService.createVersion now
         // validates menuItemId against the tenant's synced menu_item_catalog (08.1-02, INV-09)

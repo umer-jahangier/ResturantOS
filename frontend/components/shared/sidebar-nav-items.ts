@@ -1,4 +1,5 @@
 import {
+  Banknote,
   BarChart3,
   BookOpen,
   Boxes,
@@ -16,6 +17,7 @@ import {
   ShoppingCart,
   Truck,
   Users,
+  UtensilsCrossed,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -141,6 +143,15 @@ export const navGroups: NavGroup[] = [
         permission: "pos.kds.view",
         feature: "FEATURE_KDS",
       },
+      {
+        // Manager/owner till review — approve, flag, or annotate a cashier's closed till.
+        // Gated on the same permission the review endpoints enforce, so cashiers never see it.
+        label: "Till Review",
+        href: "/app/pos/tills",
+        icon: Banknote,
+        permission: "pos.till.review",
+        feature: "FEATURE_POS",
+      },
     ],
   },
   {
@@ -152,6 +163,16 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         permission: "inventory.item.view",
         feature: "FEATURE_INVENTORY",
+      },
+      {
+        // Menu item/category self-serve creation — sits under the same "Menu" group as
+        // Inventory (where recipes are written for these items), even though pos-service owns
+        // the data. gated on pos.menu.manage: only OWNER/TENANT_ADMIN/MANAGER can edit the menu.
+        label: "Menu Items",
+        href: "/app/menu/items",
+        icon: UtensilsCrossed,
+        permission: "pos.menu.manage",
+        feature: "FEATURE_POS",
       },
     ],
   },

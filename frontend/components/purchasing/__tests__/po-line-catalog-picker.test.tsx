@@ -8,23 +8,9 @@ import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { server } from "@/mocks/server";
 import { PurchaseOrderFormDialog } from "@/components/purchasing/PurchaseOrderFormDialog";
 
-// jsdom has neither ResizeObserver nor Element.scrollIntoView, both of which cmdk's Command.List
-// uses to track/scroll the highlighted option. This is the first test in the codebase to actually
-// open a CatalogItemCombobox popover (every prior combobox test only asserted the disabled
-// trigger), so no polyfill for either exists yet anywhere in the shared test setup; stubbed
-// locally here rather than in the global vitest.setup.ts to keep the fix scoped to the file that
-// needs it.
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-if (typeof globalThis.ResizeObserver === "undefined") {
-  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
-}
-if (typeof Element.prototype.scrollIntoView !== "function") {
-  Element.prototype.scrollIntoView = () => {};
-}
+// The jsdom ResizeObserver/scrollIntoView stubs cmdk needs to open a combobox popover were stubbed
+// locally here while this was the only such test; they now live in vitest.setup.ts, shared with
+// the GL account picker tests.
 
 // po-line-catalog-picker.test.tsx — 08.2-19 Task 2: the PO line's item picker is scoped to the
 // selected vendor's catalog (PUR-08), fills unit/price from the picked catalog row while both stay
@@ -130,7 +116,7 @@ function seedTwoVendorCatalogs() {
             currentPriceEffectiveFrom: "2026-06-01T00:00:00Z",
           },
         ],
-        meta: { page: 0, size: 20, totalElements: 1, totalPages: 1 },
+        meta: { page: { cursor: "0", nextCursor: null, limit: 20 }, totalCount: 1 },
         warnings: [],
       }),
     ),

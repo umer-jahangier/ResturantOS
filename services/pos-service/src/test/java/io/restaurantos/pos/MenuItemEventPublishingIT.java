@@ -9,12 +9,17 @@ import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.event.OutboxRepository;
+import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +63,13 @@ class MenuItemEventPublishingIT extends PosTestBase {
         category.setSortOrder(1);
         category = menuCategoryRepository.save(category);
         categoryId = category.getId();
+
+        // MenuServiceImpl's write methods now require pos.menu.manage (this class calls the
+        // service directly, bypassing the HTTP filter chain that would normally populate this).
+        JwtClaims claims = new JwtClaims(
+                UUID.randomUUID(), tenantId, branchId, List.of("OWNER"), List.of("pos.menu.manage"), Map.of(), null);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(claims, null, List.of()));
     }
 
     private CreateMenuItemRequest newCreateRequest(String name) {

@@ -203,7 +203,11 @@ public class RecipeCostPreviewService {
         if (uom.getCode().equalsIgnoreCase(ingredientBase)) {
             return true;
         }
-        return ingredientBase.equals(uom.getBaseUnitCode());
+        // Case-insensitive on BOTH branches. Unit codes have never been normalised at rest —
+        // fixtures write 'KG'/'G' while live tenant rows are lowercase 'g' — so a case-sensitive
+        // comparison here silently reported a dimension mismatch (and dropped the line's cost)
+        // for pairs that are in fact the same unit family.
+        return ingredientBase != null && ingredientBase.equalsIgnoreCase(uom.getBaseUnitCode());
     }
 
     /** Internal per-line pricing outcome — never exposed outside this service. */

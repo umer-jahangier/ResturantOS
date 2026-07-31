@@ -1,5 +1,6 @@
 package io.restaurantos.pos.dto;
 
+import io.restaurantos.pos.domain.enums.TillReviewStatus;
 import io.restaurantos.pos.domain.enums.TillStatus;
 
 import java.time.Instant;
@@ -15,5 +16,7 @@ public record TillSessionDto(
         Long variancePaisa,
         TillStatus status,
         Instant openedAt,
-        Instant closedAt
+        Instant closedAt,
+        String note,
+        TillReviewStatus reviewStatus
 ) {}

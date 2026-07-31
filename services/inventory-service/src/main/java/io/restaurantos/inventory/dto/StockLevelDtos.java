@@ -37,7 +37,14 @@ public final class StockLevelDtos {
             long stockValuePaisa,
             Instant lastCountedAt,
             boolean belowReorderPoint,
-            boolean nonPositive) {}
+            boolean nonPositive,
+            /**
+             * The variance cap in force for this ingredient, resolved most-specific-wins up its
+             * category tree; null when uncapped. Sent so the count sheet can warn about an over-cap
+             * line WHILE it is being typed rather than only on a rejected post — both the warning
+             * and the enforcement read the same resolved number, so they cannot disagree.
+             */
+            BigDecimal varianceCapPct) {}
 
     public record StockLevelsResponse(UUID branchId, List<StockLevelDto> items, long totalStockValuePaisa) {}
 }

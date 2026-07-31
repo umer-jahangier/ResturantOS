@@ -18,7 +18,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -118,6 +121,48 @@ public class CoaServiceImpl implements CoaService {
             return Page.empty(pageable);
         }
         return coaRepo.searchActiveByCodeOrName(query.trim(), pageable).map(mapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AccountDto> searchActiveAccountsForTenant(UUID tenantId, String query,
+                                                           Collection<AccountType> types, Pageable pageable) {
+        ensureTenantGuc();
+        if (types == null || types.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        // A blank query is a valid "show me the first page" request from a picker that has just
+        // opened — unlike searchActiveAccounts, which returns nothing until the user types.
+        String needle = query == null ? "" : query.trim();
+        return coaRepo.searchActiveByTypeAndCodeOrName(tenantId, types, needle, pageable).map(mapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, AccountDto> resolveByCodes(UUID tenantId, Collection<String> codes) {
+        ensureTenantGuc();
+        if (codes == null || codes.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, AccountDto> byCode = new LinkedHashMap<>();
+        for (ChartOfAccount account : coaRepo.findByTenantIdAndCodeIn(tenantId, codes)) {
+            byCode.put(account.getCode(), mapper.toDto(account));
+        }
+        return byCode;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, AccountDto> resolveByIds(UUID tenantId, Collection<UUID> ids) {
+        ensureTenantGuc();
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, AccountDto> byId = new LinkedHashMap<>();
+        for (ChartOfAccount account : coaRepo.findByTenantIdAndIdIn(tenantId, ids)) {
+            byId.put(account.getId(), mapper.toDto(account));
+        }
+        return byId;
     }
 
     @Override

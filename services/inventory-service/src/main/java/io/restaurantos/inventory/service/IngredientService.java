@@ -4,6 +4,7 @@ import io.restaurantos.inventory.domain.model.Ingredient;
 import io.restaurantos.inventory.domain.model.IngredientAllergen;
 import io.restaurantos.inventory.domain.model.IngredientUomConversion;
 import io.restaurantos.inventory.domain.model.ItemCategory;
+import io.restaurantos.inventory.domain.model.StorageLocation;
 import io.restaurantos.inventory.domain.model.UnitOfMeasure;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateIngredientRequest;
 import io.restaurantos.inventory.dto.InventoryDtos.CreateUomRequest;
@@ -13,11 +14,14 @@ import io.restaurantos.inventory.dto.InventoryDtos.IngredientDto;
 import io.restaurantos.inventory.dto.InventoryDtos.UomDto;
 import io.restaurantos.inventory.dto.InventoryDtos.UpdateIngredientRequest;
 import io.restaurantos.inventory.exception.IngredientCategoryInvalidException;
+import io.restaurantos.inventory.exception.ItemTypeInvalidException;
+import io.restaurantos.inventory.exception.UomInvalidException;
 import io.restaurantos.inventory.repository.IngredientAllergenRepository;
 import io.restaurantos.inventory.repository.IngredientRepository;
 import io.restaurantos.inventory.repository.IngredientUomConversionRepository;
 import io.restaurantos.inventory.repository.InventoryMovementRepository;
 import io.restaurantos.inventory.repository.ItemCategoryRepository;
+import io.restaurantos.inventory.repository.RecipeRepository;
 import io.restaurantos.inventory.repository.StockLotRepository;
 import io.restaurantos.inventory.repository.UnitOfMeasureRepository;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
@@ -30,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +55,13 @@ import java.util.UUID;
  * than surfacing a submit-time error. Archiving (D-04) never deletes: unlike categories, there is
  * no in-use refusal — an archived ingredient simply drops out of active pickers while existing
  * recipes, stock and purchase history keep resolving it.
+ *
+ * <p>Unit codes are validated on the same footing as the category (see {@link #resolveUnits}):
+ * every {@code baseUomCode}, {@code recipeUomCode} and conversion code must resolve to a real
+ * {@code units_of_measure} row for the tenant, the stock unit's dimension must agree with the
+ * ingredient's measure type, and the resolved row's own code is what gets stored. Each write path
+ * first calls {@link UomProvisioningService#ensureStandardUoms} so a tenant that has never had
+ * units provisioned self-heals instead of rejecting every ingredient it owns.
  */
 @Service
 @Transactional(readOnly = true)
@@ -66,6 +78,9 @@ public class IngredientService {
     private final ItemCategoryRepository itemCategoryRepository;
     private final InventoryMovementRepository movementRepository;
     private final StockLotRepository stockLotRepository;
+    private final UomProvisioningService uomProvisioningService;
+    private final StorageLocationService storageLocationService;
+    private final RecipeRepository recipeRepository;
     private final TenantContext tenantContext;
 
     public IngredientService(IngredientRepository ingredientRepository,
@@ -75,6 +90,9 @@ public class IngredientService {
                               ItemCategoryRepository itemCategoryRepository,
                               InventoryMovementRepository movementRepository,
                               StockLotRepository stockLotRepository,
+                              UomProvisioningService uomProvisioningService,
+                              StorageLocationService storageLocationService,
+                              RecipeRepository recipeRepository,
                               TenantContext tenantContext) {
         this.ingredientRepository = ingredientRepository;
         this.uomRepository = uomRepository;
@@ -83,6 +101,9 @@ public class IngredientService {
         this.itemCategoryRepository = itemCategoryRepository;
         this.movementRepository = movementRepository;
         this.stockLotRepository = stockLotRepository;
+        this.uomProvisioningService = uomProvisioningService;
+        this.storageLocationService = storageLocationService;
+        this.recipeRepository = recipeRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -113,22 +134,24 @@ public class IngredientService {
     public IngredientDto createIngredient(CreateIngredientRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
         requireAssignableCategory(tenantId, request.categoryId());
+        ResolvedUnits units = resolveUnits(tenantId, request.baseUomCode(), request.measureType(),
+                request.recipeUomCode(), request.conversions());
 
         Ingredient ingredient = new Ingredient();
         ingredient.setTenantId(tenantId);
         ingredient.setName(request.name());
         ingredient.setSku(request.sku());
-        ingredient.setBaseUomCode(request.baseUomCode());
+        ingredient.setBaseUomCode(units.baseUomCode());
         ingredient.setCategoryId(request.categoryId());
-        applyMasterDataFields(ingredient, request.shortName(), request.description(), request.itemType(),
-                request.producedByRecipeId(), request.measureType(), request.recipeUomCode(),
-                request.defaultYieldPct(), request.storageLocation(), request.shelfLifeDays(),
+        applyMasterDataFields(ingredient, tenantId, request.shortName(), request.description(), request.itemType(),
+                request.producedByRecipeId(), units.measureType(), units.recipeUomCode(),
+                request.defaultYieldPct(), request.storageLocationId(), request.shelfLifeDays(),
                 request.perishable(), request.parLevel());
         ingredient.setReorderPoint(request.reorderPoint());
         ingredient.setActive(true);
 
         Ingredient saved = ingredientRepository.save(ingredient);
-        replaceConversions(tenantId, saved.getId(), request.conversions());
+        replaceConversions(tenantId, saved.getId(), units.conversions());
         replaceAllergens(tenantId, saved.getId(), request.allergenCodes());
 
         return toDtos(List.of(saved), tenantId).get(0);
@@ -140,24 +163,34 @@ public class IngredientService {
         Ingredient ingredient = requireIngredient(tenantId, id);
         requireAssignableCategory(tenantId, request.categoryId());
 
-        String requestedMeasureType = normalizeMeasureType(request.measureType());
-        boolean measureTypeLocked = isMeasureTypeLocked(tenantId, id);
-        if (!Objects.equals(ingredient.getMeasureType(), requestedMeasureType) && measureTypeLocked) {
+        // The lock is checked against the RAW requested measure type, before any unit validation,
+        // so an attempt to change a locked ingredient's dimension still answers with the lock
+        // message rather than a dimension-mismatch complaint about the pair it was changing to —
+        // the lock is the more actionable fact, and it is the outcome D-06's contract promises.
+        // A blank measure type is not a change request: resolveUnits derives it from the stock
+        // unit below, where it will simply agree with what the ingredient already has.
+        String requestedMeasureType = trimToNull(request.measureType());
+        if (requestedMeasureType != null
+                && !Objects.equals(ingredient.getMeasureType(), requestedMeasureType)
+                && isMeasureTypeLocked(tenantId, id)) {
             throw new StateInvalidException(MEASURE_TYPE_LOCK_MESSAGE);
         }
 
+        ResolvedUnits units = resolveUnits(tenantId, request.baseUomCode(), request.measureType(),
+                request.recipeUomCode(), request.conversions());
+
         ingredient.setName(request.name());
-        ingredient.setBaseUomCode(request.baseUomCode());
+        ingredient.setBaseUomCode(units.baseUomCode());
         ingredient.setCategoryId(request.categoryId());
-        applyMasterDataFields(ingredient, request.shortName(), request.description(), request.itemType(),
-                request.producedByRecipeId(), requestedMeasureType, request.recipeUomCode(),
-                request.defaultYieldPct(), request.storageLocation(), request.shelfLifeDays(),
+        applyMasterDataFields(ingredient, tenantId, request.shortName(), request.description(), request.itemType(),
+                request.producedByRecipeId(), units.measureType(), units.recipeUomCode(),
+                request.defaultYieldPct(), request.storageLocationId(), request.shelfLifeDays(),
                 request.perishable(), request.parLevel());
         ingredient.setReorderPoint(request.reorderPoint());
         ingredient.setActive(request.active());
 
         Ingredient saved = ingredientRepository.save(ingredient);
-        replaceConversions(tenantId, saved.getId(), request.conversions());
+        replaceConversions(tenantId, saved.getId(), units.conversions());
         replaceAllergens(tenantId, saved.getId(), request.allergenCodes());
 
         return toDtos(List.of(saved), tenantId).get(0);
@@ -218,17 +251,79 @@ public class IngredientService {
         return result;
     }
 
+    /**
+     * Read-WRITE by design: this is the ingredient form's only source of units, so it is also where
+     * a tenant that has never been provisioned gets its standard set
+     * ({@link UomProvisioningService#ensureStandardUoms}). Without that, the form's required
+     * "Stock unit" select renders empty with no way to fill it — the UI never calls
+     * {@code POST /api/v1/inventory/uom}.
+     */
+    @Transactional
     public List<UomDto> listUoms() {
-        return uomRepository.findAll().stream().map(IngredientService::toDto).toList();
+        UUID tenantId = tenantContext.requireTenantId();
+        return uomProvisioningService.ensureStandardUoms(tenantId).stream()
+                .sorted(Comparator.comparing(UnitOfMeasure::getMeasureType, Comparator.nullsLast(String::compareTo))
+                        .thenComparing(UnitOfMeasure::getCode, String.CASE_INSENSITIVE_ORDER))
+                .map(IngredientService::toDto)
+                .toList();
     }
 
+    /**
+     * Creates a house unit ("Case", "Bunch", "Sheet Pan") alongside the standard set.
+     *
+     * <p>Every field is validated here now that a screen actually calls this endpoint. Before that
+     * it took whatever it was handed: a duplicate code hit {@code uq_uom_tenant_code_ci} and came
+     * back as a constraint-violation 500, and an unknown or cross-dimension {@code baseUnitCode}
+     * saved happily — producing a unit that {@code UomConverter} can never convert, so every recipe
+     * line and receipt using it silently fails to cost.
+     *
+     * <p>The base unit is required for a derived unit and forbidden for a base one, which is the
+     * invariant {@code RecipeCostPreviewService.dimensionMatches} reads: a null
+     * {@code baseUnitCode} means "this IS the family base", so a unit claiming that while carrying
+     * a factor of 12 is simply wrong.
+     */
     @Transactional
     public UomDto createUom(CreateUomRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        String code = trimToNull(request.code());
+        String measureType = requireMeasureType(request.measureType());
+
+        Map<String, UnitOfMeasure> byCode = new HashMap<>();
+        for (UnitOfMeasure uom : uomProvisioningService.ensureStandardUoms(tenantId)) {
+            byCode.put(UomProvisioningService.normalize(uom.getCode()), uom);
+        }
+
+        UnitOfMeasure clash = byCode.get(UomProvisioningService.normalize(code));
+        if (clash != null) {
+            throw UomInvalidException.duplicateCode(clash.getCode(), clash.getName());
+        }
+
+        String baseUnitCode = null;
+        if (trimToNull(request.baseUnitCode()) != null) {
+            UnitOfMeasure base = require(byCode, request.baseUnitCode(), "the base unit");
+            if (!measureType.equalsIgnoreCase(base.getMeasureType())) {
+                throw UomInvalidException.dimensionMismatch(
+                        "Base unit \"" + base.getCode() + "\" measures " + describe(base.getMeasureType())
+                                + ", but this unit is set to " + describe(measureType) + ".");
+            }
+            if (base.getBaseUnitCode() != null) {
+                throw UomInvalidException.conversionInvalid(
+                        "\"" + base.getCode() + "\" is itself measured in \"" + base.getBaseUnitCode()
+                                + "\". Convert to the base unit of the family directly.");
+            }
+            baseUnitCode = base.getCode();
+        } else if (request.toBaseFactor().compareTo(BigDecimal.ONE) != 0) {
+            throw UomInvalidException.conversionInvalid(
+                    "A unit with no base unit is the base of its own family, so its factor must be 1 — got "
+                            + request.toBaseFactor().stripTrailingZeros().toPlainString() + ".");
+        }
+
         UnitOfMeasure uom = new UnitOfMeasure();
-        uom.setTenantId(tenantContext.requireTenantId());
-        uom.setCode(request.code());
-        uom.setName(request.name());
-        uom.setBaseUnitCode(request.baseUnitCode());
+        uom.setTenantId(tenantId);
+        uom.setCode(code);
+        uom.setName(request.name().trim());
+        uom.setMeasureType(measureType);
+        uom.setBaseUnitCode(baseUnitCode);
         uom.setToBaseFactor(request.toBaseFactor());
         return toDto(uomRepository.save(uom));
     }
@@ -280,26 +375,175 @@ public class IngredientService {
                 || stockLotRepository.existsByTenantIdAndIngredientId(tenantId, ingredientId);
     }
 
-    private void applyMasterDataFields(Ingredient ingredient, String shortName, String description, String itemType,
-                                        UUID producedByRecipeId, String measureType, String recipeUomCode,
-                                        BigDecimal defaultYieldPct, String storageLocation, Integer shelfLifeDays,
-                                        Boolean perishable, BigDecimal parLevel) {
+    /**
+     * Resolves and validates every unit code on an ingredient write, returning the CANONICAL codes
+     * to persist — i.e. each resolved {@code units_of_measure} row's own {@code code}, not the
+     * casing the request happened to use. Storing the canonical form is what keeps
+     * {@code RecipeCostPreviewService.dimensionMatches} and {@code UomConverter} able to line an
+     * ingredient's stock unit up against a recipe line's unit later.
+     *
+     * <p>Rules, in order:
+     * <ol>
+     *   <li>The tenant's standard units are provisioned first, so a never-provisioned tenant
+     *       self-heals rather than having every ingredient rejected.</li>
+     *   <li>{@code baseUomCode} must resolve. This is the check whose absence let unknown unit
+     *       codes save silently.</li>
+     *   <li>A blank {@code measureType} is DERIVED from the stock unit rather than defaulting to
+     *       {@code COUNT}. The old blind default is what produced the "Measure type: Count, stock
+     *       unit: grams" rows — the request simply omitted the field and got COUNT regardless of
+     *       what unit it paired with. An explicitly supplied measure type must agree.</li>
+     *   <li>{@code recipeUomCode} is optional, must resolve when present, and must share the stock
+     *       unit's dimension — a recipe cannot call for millilitres of an item stocked by weight.</li>
+     *   <li>Both codes on every conversion row must resolve and must differ from each other.
+     *       Cross-DIMENSION conversions are deliberately allowed here: "1 EACH = 0.18 KG" is the
+     *       entire reason per-ingredient conversions exist, letting an item be purchased by count
+     *       and stocked by weight.</li>
+     * </ol>
+     */
+    private ResolvedUnits resolveUnits(UUID tenantId, String baseUomCode, String requestedMeasureType,
+                                        String recipeUomCode, List<IngredientConversionDto> conversions) {
+        Map<String, UnitOfMeasure> byCode = new HashMap<>();
+        for (UnitOfMeasure uom : uomProvisioningService.ensureStandardUoms(tenantId)) {
+            byCode.put(UomProvisioningService.normalize(uom.getCode()), uom);
+        }
+
+        UnitOfMeasure base = require(byCode, baseUomCode, "the stock unit");
+
+        String measureType = trimToNull(requestedMeasureType);
+        if (measureType == null) {
+            measureType = base.getMeasureType();
+        } else if (!measureType.equalsIgnoreCase(base.getMeasureType())) {
+            throw UomInvalidException.dimensionMismatch(
+                    "Stock unit \"" + base.getCode() + "\" measures " + describe(base.getMeasureType())
+                            + ", but this ingredient is set to " + describe(measureType)
+                            + ". Pick a " + describe(measureType) + " unit, or change the measure type.");
+        }
+
+        String resolvedRecipeUom = null;
+        if (trimToNull(recipeUomCode) != null) {
+            UnitOfMeasure recipeUom = require(byCode, recipeUomCode, "the recipe unit");
+            if (!recipeUom.getMeasureType().equalsIgnoreCase(base.getMeasureType())) {
+                throw UomInvalidException.dimensionMismatch(
+                        "Recipe unit \"" + recipeUom.getCode() + "\" measures "
+                                + describe(recipeUom.getMeasureType()) + ", but the stock unit \""
+                                + base.getCode() + "\" measures " + describe(base.getMeasureType()) + ".");
+            }
+            resolvedRecipeUom = recipeUom.getCode();
+        }
+
+        List<IngredientConversionDto> resolvedConversions = new ArrayList<>();
+        if (conversions != null) {
+            for (IngredientConversionDto dto : conversions) {
+                UnitOfMeasure from = require(byCode, dto.fromUomCode(), "a conversion's source unit");
+                UnitOfMeasure to = require(byCode, dto.toUomCode(), "a conversion's target unit");
+                if (from.getCode().equalsIgnoreCase(to.getCode())) {
+                    throw UomInvalidException.conversionInvalid(
+                            "A conversion can't go from \"" + from.getCode() + "\" to itself.");
+                }
+                resolvedConversions.add(new IngredientConversionDto(
+                        from.getCode(), to.getCode(), dto.factor(), dto.note()));
+            }
+        }
+
+        return new ResolvedUnits(base.getCode(), measureType.toUpperCase(Locale.ROOT),
+                resolvedRecipeUom, resolvedConversions);
+    }
+
+    /** Canonical, validated unit codes for one ingredient write. */
+    private record ResolvedUnits(String baseUomCode, String measureType, String recipeUomCode,
+                                  List<IngredientConversionDto> conversions) {}
+
+    private static UnitOfMeasure require(Map<String, UnitOfMeasure> byCode, String code, String field) {
+        String normalized = UomProvisioningService.normalize(code);
+        UnitOfMeasure uom = normalized == null ? null : byCode.get(normalized);
+        if (uom == null) {
+            throw UomInvalidException.notFound(field, code);
+        }
+        return uom;
+    }
+
+    /** Measure types read back to a manager as words, never as the stored enum token. */
+    private static String describe(String measureType) {
+        return switch (measureType == null ? "" : measureType.toUpperCase(Locale.ROOT)) {
+            case "WEIGHT" -> "weight";
+            case "VOLUME" -> "volume";
+            case "COUNT" -> "count";
+            default -> measureType;
+        };
+    }
+
+    private static String requireMeasureType(String measureType) {
+        String normalized = trimToNull(measureType);
+        if (normalized == null) {
+            return StandardUomCatalog.COUNT;
+        }
+        String upper = normalized.toUpperCase(Locale.ROOT);
+        if (!StandardUomCatalog.WEIGHT.equals(upper)
+                && !StandardUomCatalog.VOLUME.equals(upper)
+                && !StandardUomCatalog.COUNT.equals(upper)) {
+            throw UomInvalidException.dimensionMismatch(
+                    "Measure type must be WEIGHT, VOLUME or COUNT — got \"" + measureType + "\".");
+        }
+        return upper;
+    }
+
+    private static String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void applyMasterDataFields(Ingredient ingredient, UUID tenantId, String shortName, String description,
+                                        String itemType, UUID producedByRecipeId, String measureType,
+                                        String recipeUomCode, BigDecimal defaultYieldPct, UUID storageLocationId,
+                                        Integer shelfLifeDays, Boolean perishable, BigDecimal parLevel) {
+        ProducedBy producedBy = resolveProducedBy(tenantId, itemType, producedByRecipeId);
+        StorageLocation storageLocation = storageLocationService.resolveAssignable(tenantId, storageLocationId);
+
         ingredient.setShortName(shortName);
         ingredient.setDescription(description);
-        ingredient.setItemType(itemType == null || itemType.isBlank() ? "PURCHASED" : itemType);
-        ingredient.setProducedByRecipeId(producedByRecipeId);
-        ingredient.setMeasureType(normalizeMeasureType(measureType));
+        ingredient.setItemType(producedBy.itemType());
+        ingredient.setProducedByRecipeId(producedBy.recipeId());
+        ingredient.setMeasureType(measureType);
         ingredient.setRecipeUomCode(recipeUomCode);
         ingredient.setDefaultYieldPct(defaultYieldPct != null ? defaultYieldPct : BigDecimal.valueOf(100));
-        ingredient.setStorageLocation(storageLocation);
+        ingredient.setStorageLocationId(storageLocation == null ? null : storageLocation.getId());
+        // The legacy free-text column stays written, mirroring the resolved location's name (V10).
+        // V5 stopped writing ingredients.category for the same shape of change, but this one is
+        // still read by reports and exports, so leaving it frozen at its pre-V10 value would make
+        // it quietly disagree with the id beside it.
+        ingredient.setStorageLocation(storageLocation == null ? null : storageLocation.getName());
         ingredient.setShelfLifeDays(shelfLifeDays);
         ingredient.setPerishable(Boolean.TRUE.equals(perishable));
         ingredient.setParLevel(parLevel != null ? parLevel : BigDecimal.ZERO);
     }
 
-    private static String normalizeMeasureType(String measureType) {
-        return measureType == null || measureType.isBlank() ? "COUNT" : measureType;
+    /**
+     * D-03: reconciles {@code itemType} with {@code producedByRecipeId}, which until now were both
+     * accepted unvalidated — making {@code PREPARED}/{@code BOTH} a dead option that looked
+     * meaningful on the form and meant nothing downstream.
+     *
+     * <p>A named recipe must exist and belong to this tenant. It is NOT required, though: the
+     * recipe that produces a prep item references that item, so the item has to be creatable
+     * first. Requiring the link up front would make the only correct authoring order impossible.
+     */
+    private ProducedBy resolveProducedBy(UUID tenantId, String itemType, UUID producedByRecipeId) {
+        String resolved = trimToNull(itemType) == null
+                ? "PURCHASED"
+                : itemType.trim().toUpperCase(Locale.ROOT);
+        if (!"PURCHASED".equals(resolved) && !"PREPARED".equals(resolved) && !"BOTH".equals(resolved)) {
+            throw ItemTypeInvalidException.unknownItemType(itemType);
+        }
+        if (producedByRecipeId == null) {
+            return new ProducedBy(resolved, null);
+        }
+        if ("PURCHASED".equals(resolved)) {
+            throw ItemTypeInvalidException.recipeOnPurchasedItem();
+        }
+        recipeRepository.findByTenantIdAndId(tenantId, producedByRecipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe", producedByRecipeId));
+        return new ProducedBy(resolved, producedByRecipeId);
     }
+
+    private record ProducedBy(String itemType, UUID recipeId) {}
 
     /** Replaces the whole conversion set for one ingredient — delete-then-insert inside the
      * caller's transaction, never a partial merge. */
@@ -414,6 +658,7 @@ public class IngredientService {
                     measureTypeLocked,
                     ingredient.getRecipeUomCode(),
                     ingredient.getDefaultYieldPct(),
+                    ingredient.getStorageLocationId(),
                     ingredient.getStorageLocation(),
                     ingredient.getShelfLifeDays(),
                     ingredient.isPerishable(),
@@ -432,6 +677,7 @@ public class IngredientService {
                 uom.getId(),
                 uom.getCode(),
                 uom.getName(),
+                uom.getMeasureType(),
                 uom.getBaseUnitCode(),
                 uom.getToBaseFactor());
     }

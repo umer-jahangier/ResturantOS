@@ -64,6 +64,16 @@ public final class ItemCategoryDtos {
     /**
      * Most-specific-wins GL account resolution. The {@code *Inherited} booleans drive the UI's
      * "(inherited)" suffix without the browser re-deriving anything.
+     *
+     * <p>{@code *AccountName} is the account's name from finance-service, so a category renders as
+     * "1400 · Food Inventory" rather than a bare number nobody can read at a glance. It is
+     * BEST-EFFORT and null when finance-service could not be reached — browsing and reorganising
+     * categories must keep working while accounting is down, unlike a category SAVE, which fails
+     * closed rather than persisting an unverified account.
+     *
+     * <p>{@code *InheritedFrom} names the ancestor category an inherited value came from, letting
+     * the form show "Inherited from Proteins — 1400 · Food Inventory" as a placeholder instead of
+     * leaving a manager to work out why an untouched field already has a value.
      */
     public record ResolvedGlAccountsDto(
             String inventoryAccountCode,
@@ -71,5 +81,26 @@ public final class ItemCategoryDtos {
             String wasteAccountCode,
             boolean inventoryInherited,
             boolean costInherited,
-            boolean wasteInherited) {}
+            boolean wasteInherited,
+            String inventoryAccountName,
+            String costAccountName,
+            String wasteAccountName,
+            String inventoryInheritedFrom,
+            String costInheritedFrom,
+            String wasteInheritedFrom) {}
+
+    /**
+     * One selectable account in the category form's GL picker — the shape
+     * {@code GET /api/v1/inventory/gl-accounts} returns.
+     *
+     * <p>Inventory re-exposes finance's chart of accounts through its own endpoint, narrowed to
+     * active accounts of the types the requested slot accepts, so an inventory manager can pick an
+     * account WITHOUT holding {@code finance.coa.view} — a permission that would otherwise hand
+     * them the whole finance read surface just to fill in three fields.
+     */
+    public record GlAccountOptionDto(
+            UUID id,
+            String code,
+            String name,
+            String accountType) {}
 }

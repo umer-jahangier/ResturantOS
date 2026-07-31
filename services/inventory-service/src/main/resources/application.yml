@@ -59,6 +59,18 @@ eureka:
   instance:
     prefer-ip-address: true
 
+# FinanceCoaClient's chart-of-accounts lookup runs INSIDE the @Transactional category write that
+# needs it, so an unbounded timeout would pin a database connection for as long as an unreachable
+# finance-service takes to give up — Feign's own defaults are far too generous for that. Bounded to
+# the same 5s finance-service uses for its outbound calls, which caps the blast radius of an
+# accounting outage at a slow-but-finite 503 on category saves.
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 5000
+
 management:
   endpoints:
     web:

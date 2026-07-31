@@ -1,8 +1,12 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.inventory.feign.FinanceCoaClient;
+import io.restaurantos.inventory.feign.GlAccountDto;
+import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -10,6 +14,16 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.when;
 
 /**
  * Base class for inventory-service integration tests.
@@ -77,4 +91,45 @@ public abstract class InventoryTestBase {
 
     @MockitoBean
     protected OpaClient opaClient;
+
+    /**
+     * finance-service's chart of accounts, mocked at the transport boundary — the same treatment
+     * {@link #opaClient} gets, and for the same reason: there is no finance-service (nor Eureka to
+     * find one) in an integration test. Without this, every category write that names a GL account
+     * would fail with a 503 from {@code GlAccountLookupService}'s fail-closed error handling.
+     *
+     * <p>Imports from {@code io.restaurantos.inventory.feign} rather than {@code domain.model}, so
+     * this class stays free of Phase-8 domain entities per the note above.
+     */
+    @MockitoBean
+    protected FinanceCoaClient financeCoaClient;
+
+    /**
+     * Default stub: every requested account code resolves to a real, active account whose TYPE
+     * follows standard chart-of-accounts numbering — 1xxx is an asset, everything else an expense.
+     * That keeps the type check in {@code ItemCategoryService} meaningful (an inventory slot still
+     * demands a 1xxx account) while letting the many ITs that merely pass a plausible code through
+     * work without each stubbing finance themselves.
+     *
+     * <p>Runs before every subclass {@code @BeforeEach} (JUnit orders superclass callbacks first),
+     * and any test needing different behaviour just re-stubs the mock.
+     */
+    @BeforeEach
+    void stubFinanceChartOfAccounts() {
+        when(financeCoaClient.resolveByCodes(any(), anyList())).thenAnswer(invocation -> {
+            List<String> codes = invocation.getArgument(1);
+            Map<String, GlAccountDto> resolved = new LinkedHashMap<>();
+            for (String code : codes) {
+                resolved.put(code, account(code));
+            }
+            return ApiResponse.ok(resolved);
+        });
+        when(financeCoaClient.searchAccounts(any(), any(), anyList(), anyInt()))
+                .thenReturn(ApiResponse.ok(List.of()));
+    }
+
+    protected static GlAccountDto account(String code) {
+        String type = code != null && code.startsWith("1") ? "ASSET" : "EXPENSE";
+        return new GlAccountDto(UUID.randomUUID(), code, "Account " + code, type, null, false, null, true);
+    }
 }

@@ -94,6 +94,19 @@ public final class RecipeDtos {
             String uomCode,
             BigDecimal yieldPct) {}
 
+    /**
+     * A pickable recipe for the ingredient form's "Produced by" select — the current version of
+     * each menu item's recipe, with the menu item's name resolved so the option reads as something
+     * a chef recognises rather than as a bare UUID. Deliberately not {@link RecipeDto}: the picker
+     * needs a label, not every line of every recipe in the tenant.
+     */
+    public record RecipeOptionDto(
+            UUID recipeId,
+            UUID menuItemId,
+            String menuItemName,
+            String name,
+            int version) {}
+
     /** INV-11: a single active catalog menu item with no effective recipe as of the report time. */
     public record MissingMenuItemDto(UUID menuItemId, String name) {}
 

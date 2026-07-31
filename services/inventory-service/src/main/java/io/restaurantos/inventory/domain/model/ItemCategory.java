@@ -43,14 +43,34 @@ public class ItemCategory extends TenantAuditableEntity {
     @Column(name = "name", nullable = false, length = 160)
     private String name;
 
+    /**
+     * The three {@code *_account_code} columns are a DISPLAY CACHE of the account each
+     * {@code *_account_id} beside them points at (V8). The id is the authoritative reference —
+     * account codes get renumbered by chart-of-accounts restructures, ids do not. Both are written
+     * together by {@code ItemCategoryService}, from the account it resolved through
+     * finance-service, so the cached code is always that account's real code and never free text.
+     *
+     * <p>Rows predating V8 have a code but no id (the migration could not translate one into the
+     * other — {@code chart_of_accounts} lives in a different service's database). Every read path
+     * falls back to the code, and the id is filled in the next time the category is saved.
+     */
     @Column(name = "default_inventory_account_code", length = 20)
     private String defaultInventoryAccountCode;
+
+    @Column(name = "default_inventory_account_id")
+    private UUID defaultInventoryAccountId;
 
     @Column(name = "default_cost_account_code", length = 20)
     private String defaultCostAccountCode;
 
+    @Column(name = "default_cost_account_id")
+    private UUID defaultCostAccountId;
+
     @Column(name = "default_waste_account_code", length = 20)
     private String defaultWasteAccountCode;
+
+    @Column(name = "default_waste_account_id")
+    private UUID defaultWasteAccountId;
 
     @Column(name = "variance_cap_pct", precision = 6, scale = 2)
     private BigDecimal varianceCapPct;

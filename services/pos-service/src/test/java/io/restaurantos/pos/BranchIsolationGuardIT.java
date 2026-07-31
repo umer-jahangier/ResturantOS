@@ -12,6 +12,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.UUID;
 
@@ -100,7 +101,7 @@ class BranchIsolationGuardIT extends PosTestBase {
 
     @Test
     void listTillsForBranch_foreignBranch_denied() {
-        assertThatThrownBy(() -> tillService.listTillsForBranch(foreignBranch))
+        assertThatThrownBy(() -> tillService.listTillsForBranch(foreignBranch, PageRequest.of(0, 20)))
                 .isInstanceOf(PermissionDeniedException.class);
     }
 }

@@ -48,7 +48,12 @@ class RecipeVersionResolutionTest {
         MenuItemCatalogRepository menuItemCatalogRepository = mock(MenuItemCatalogRepository.class);
         TenantContext tenantContext = mock(TenantContext.class);
         when(tenantContext.requireTenantId()).thenReturn(tenantId);
-        recipeService = new RecipeService(recipeRepository, recipeLineRepository, menuItemCatalogRepository, tenantContext);
+        // The ingredient repository and UOM provisioner are only reached by createVersion's line
+        // validation, which this test never calls — bare mocks keep the D-01 resolution focus.
+        recipeService = new RecipeService(recipeRepository, recipeLineRepository, menuItemCatalogRepository,
+                mock(io.restaurantos.inventory.repository.IngredientRepository.class),
+                mock(io.restaurantos.inventory.service.UomProvisioningService.class),
+                tenantContext);
 
         // v1 is stale (isCurrent=false) but still effective for its window; v2 is flagged current
         // but must NOT be preferred outside its own window — that is the entire point of D-01.

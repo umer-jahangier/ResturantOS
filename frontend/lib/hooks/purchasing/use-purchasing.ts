@@ -5,6 +5,8 @@ import { PurchasingRepository } from "@/lib/repositories/purchasing.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type {
+  CreateDraftsFromSuggestionsInput,
+  OrderSuggestionsResponse,
   ApPayment,
   ApPaymentInput,
   PurchaseOrder,
@@ -360,5 +362,36 @@ export function useVendorScorecard(vendorId: string, branchId: string) {
     queryKey: queryKeys.purchasing.scorecard(branchId, vendorId),
     queryFn: () => PurchasingRepository.getVendorScorecard(vendorId, branchId),
     enabled: Boolean(vendorId && branchId),
+  });
+}
+
+// ── Order suggestions ──────────────────────────────────────────────────────────────────────
+// The first frontend consumer of `ingredients.par_level`: until this, a manager could record
+// "keep 25 kg on the shelf" and have it change nothing anywhere.
+
+/** What is below its reorder point at the current branch, how much to buy, and from whom. */
+export function useOrderSuggestions() {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery<OrderSuggestionsResponse>({
+    queryKey: queryKeys.purchasing.orderSuggestions(branchId),
+    queryFn: () => PurchasingRepository.getOrderSuggestions(branchId),
+    enabled: isAuthenticated && !!branchId,
+  });
+}
+
+/**
+ * Creates one DRAFT purchase order per vendor from the accepted lines. Invalidates the PO list AND
+ * the suggestions themselves — the items just ordered are still below par until the delivery
+ * lands, so leaving the old list up would invite ordering them twice.
+ */
+export function useCreateDraftsFromSuggestions() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<PurchaseOrder[], ApiError, CreateDraftsFromSuggestionsInput>({
+    mutationFn: (input) => PurchasingRepository.createDraftsFromSuggestions(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["purchasing", branchId, "purchase-orders"] });
+      qc.invalidateQueries({ queryKey: queryKeys.purchasing.orderSuggestions(branchId) });
+    },
   });
 }

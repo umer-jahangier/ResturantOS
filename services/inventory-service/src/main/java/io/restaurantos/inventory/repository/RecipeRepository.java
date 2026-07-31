@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -38,4 +39,16 @@ public interface RecipeRepository extends JpaRepository<Recipe, UUID> {
      */
     List<Recipe> findByTenantIdAndMenuItemIdInOrderByEffectiveFromDesc(
             UUID tenantId, Collection<UUID> menuItemIds);
+
+    /** Tenant-scoped single-row lookup — validates {@code Ingredient.producedByRecipeId} on write
+     * so a prep item can never point at another tenant's recipe, or at nothing at all. */
+    Optional<Recipe> findByTenantIdAndId(UUID tenantId, UUID id);
+
+    /**
+     * Every menu item's latest-edited version, for the ingredient form's "Produced by" picker.
+     * Uses the {@code current} flag rather than {@code effectiveFrom <= now}, unlike the coverage
+     * report: this is an authoring picker, so what a manager is choosing between is the version
+     * they last edited, including one they have scheduled for next week.
+     */
+    List<Recipe> findByTenantIdAndCurrentTrue(UUID tenantId);
 }

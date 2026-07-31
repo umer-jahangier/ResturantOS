@@ -208,6 +208,8 @@ interface MockVendorItem {
   packDescription: string | null;
   packQty: string;
   packUom: string;
+  /** How many STOCK units one ORDER unit holds. Absent means they are the same unit. */
+  qtyPerOrderUnitInStockUom?: string | null;
   minOrderQty: string | null;
   orderMultiple: string | null;
   leadTimeDays: number | null;
@@ -453,7 +455,192 @@ function apiError(code: string, message: string, status: number) {
 }
 
 /** MSW fixtures F1–F8 for frontend-only purchasing dev (Phase 10). */
+
+// ── Order suggestions ──────────────────────────────────────────────────────────────────────────
+// Mirrors OrderSuggestionService's join, including the parts that REFUSE to guess: an ingredient
+// with no catalog row, or with several non-preferred ones, comes back carrying a reason rather
+// than an arbitrary supplier.
+
+/** ING_1 (chicken) is low and has a preferred catalog row; ING_2 (tomatoes) is low with only a
+ * non-preferred row, which is still unambiguous because it is the ONLY one. ING_3 is low with no
+ * supplier at all — the "needs setting up" case. */
+const reorderShortfalls = [
+  {
+    ingredientId: ING_1,
+    ingredientName: "Chicken breast",
+    sku: "ING-CHK",
+    stockUom: "kg",
+    categoryName: "Poultry",
+    qtyOnHand: "4",
+    reorderPoint: "10",
+    parLevel: "25",
+    shortfallQty: "21",
+  },
+  {
+    ingredientId: ING_2,
+    ingredientName: "Tomatoes",
+    sku: "ING-TOM",
+    stockUom: "kg",
+    categoryName: "Produce",
+    qtyOnHand: "2",
+    reorderPoint: "8",
+    parLevel: "20",
+    shortfallQty: "18",
+  },
+];
+
+/** Rounds a stock-unit shortfall up through pack size, order multiple and minimum order — the
+ * same ceiling-at-every-step rule the server applies, because rounding down would land the
+ * delivery already below par. */
+function orderQtyFor(shortfall: string, item: MockVendorItem): string {
+  // qtyPerOrderUnitInStockUom, NOT packQty: a row can describe a "10kg case" while still being
+  // ordered by the kilo, and dividing by the pack size there would under-order tenfold. Absent
+  // means the order unit IS the stock unit, matching OrderSuggestionService.
+  const perOrderUnit = Number(item.qtyPerOrderUnitInStockUom ?? 1) || 1;
+  let units = Math.ceil(Number(shortfall) / perOrderUnit);
+  const multiple = Number(item.orderMultiple);
+  if (multiple > 0) units = Math.ceil(units / multiple) * multiple;
+  const minimum = Number(item.minOrderQty);
+  if (minimum > units) units = minimum;
+  return String(units);
+}
+
+function buildOrderSuggestions(branchId: string) {
+  const groups: Record<string, ReturnType<typeof buildLine>[]> = {};
+  const unassigned: ReturnType<typeof buildLine>[] = [];
+
+  for (const shortfall of reorderShortfalls) {
+    const catalog = vendorItems.filter((v) => v.ingredientId === shortfall.ingredientId && !v.archivedAt);
+    const preferred = catalog.filter((v) => v.preferred);
+    const chosen = preferred[0] ?? (catalog.length === 1 ? catalog[0] : undefined);
+
+    if (!chosen) {
+      unassigned.push(
+        buildLine(shortfall, undefined, undefined,
+          catalog.length === 0
+            ? "No supplier set up for this item. Add it to a vendor's catalogue first."
+            : "Several suppliers sell this and none is marked preferred. Mark one to order it automatically."),
+      );
+      continue;
+    }
+    const price = currentPriceFor(chosen.id);
+    if (!price) {
+      unassigned.push(buildLine(shortfall, chosen, undefined,
+        "This supplier has no current price for the item, so the order value can't be worked out."));
+      continue;
+    }
+    const line = buildLine(shortfall, chosen, price, null);
+    (groups[chosen.vendorId] ??= []).push(line);
+  }
+
+  const vendorGroups = Object.entries(groups).map(([vendorId, lines]) => ({
+    vendorId,
+    vendorName: vendors.find((v) => v.id === vendorId)?.name ?? null,
+    leadTimeDays: lines[0]?.leadTimeDays ?? null,
+    estimatedTotalPaisa: lines.reduce((sum, l) => sum + (l.lineTotalPaisa ?? 0), 0),
+    lines,
+  }));
+
+  return {
+    branchId,
+    vendorGroups,
+    unassigned,
+    blockedCount: unassigned.length,
+    estimatedTotalPaisa: vendorGroups.reduce((sum, g) => sum + g.estimatedTotalPaisa, 0),
+  };
+}
+
+function buildLine(
+  shortfall: (typeof reorderShortfalls)[number],
+  item: MockVendorItem | undefined,
+  price: MockVendorItemPrice | undefined,
+  blockedReason: string | null,
+) {
+  const orderQty = item ? orderQtyFor(shortfall.shortfallQty, item) : null;
+  return {
+    ingredientId: shortfall.ingredientId,
+    ingredientName: shortfall.ingredientName,
+    sku: shortfall.sku,
+    categoryName: shortfall.categoryName,
+    qtyOnHand: shortfall.qtyOnHand,
+    reorderPoint: shortfall.reorderPoint,
+    parLevel: shortfall.parLevel,
+    stockUom: shortfall.stockUom,
+    shortfallQty: shortfall.shortfallQty,
+    vendorId: item?.vendorId ?? null,
+    vendorName: item ? (vendors.find((v) => v.id === item.vendorId)?.name ?? null) : null,
+    vendorItemId: item?.id ?? null,
+    vendorSku: item?.vendorSku ?? null,
+    packDescription: item?.packDescription ?? null,
+    orderUom: item?.orderUom ?? null,
+    orderQty: blockedReason ? null : orderQty,
+    unitPricePaisa: price?.unitPricePaisa ?? null,
+    lineTotalPaisa:
+      price && orderQty && !blockedReason ? Math.round(Number(orderQty) * price.unitPricePaisa) : null,
+    leadTimeDays: item?.leadTimeDays ?? null,
+    blockedReason,
+  };
+}
+
 export const purchasingHandlers = [
+  http.get("*/api/v1/purchasing/order-suggestions", ({ request }) => {
+    const branchId = new URL(request.url).searchParams.get("branchId") ?? BRANCH;
+    return ok(buildOrderSuggestions(branchId));
+  }),
+
+  http.post("*/api/v1/purchasing/order-suggestions/drafts", async ({ request }) => {
+    const body = (await request.json()) as {
+      branchId: string;
+      lines: Array<{ vendorItemId: string; qty: string }>;
+    };
+    // One draft per vendor, exactly as the server groups them — a PO goes to one supplier.
+    const byVendor = new Map<string, Array<{ vendorItemId: string; qty: string }>>();
+    for (const line of body.lines) {
+      const item = vendorItems.find((v) => v.id === line.vendorItemId);
+      if (!item) {
+        return apiError("VENDOR_ITEM_CATALOG_MISMATCH", "Unknown vendor item", 422);
+      }
+      const bucket = byVendor.get(item.vendorId) ?? [];
+      bucket.push(line);
+      byVendor.set(item.vendorId, bucket);
+    }
+    const drafts = [...byVendor.entries()].map(([vendorId, lines], index) => ({
+      id: `d0000001-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+      vendorId,
+      branchId: body.branchId,
+      status: "DRAFT",
+      expectedDeliveryDate: null,
+      totalPaisa: lines.reduce((sum, l) => {
+        const price = currentPriceFor(l.vendorItemId);
+        return sum + Math.round(Number(l.qty) * (price?.unitPricePaisa ?? 0));
+      }, 0),
+      notes: "Created from order suggestions",
+      requesterId: null,
+      submittedAt: null,
+      requiredTiers: 1,
+      tiersApproved: 0,
+      closedAt: null,
+      closeReason: null,
+      lines: lines.map((l, lineIndex) => {
+        const item = vendorItems.find((v) => v.id === l.vendorItemId)!;
+        const price = currentPriceFor(l.vendorItemId);
+        return {
+          id: `d1000001-0000-4000-8000-${String(lineIndex + 1).padStart(12, "0")}`,
+          ingredientId: item.ingredientId,
+          qty: l.qty,
+          uom: item.orderUom,
+          unitPricePaisa: price?.unitPricePaisa ?? 0,
+          lineTotalPaisa: Math.round(Number(l.qty) * (price?.unitPricePaisa ?? 0)),
+          vendorItemId: item.id,
+          vendorSku: item.vendorSku,
+          packDescription: item.packDescription,
+          priceOverridden: false,
+        };
+      }),
+    }));
+    return ok(drafts);
+  }),
+
   http.get("*/api/v1/purchasing/vendors", () => ok(vendors)),
 
   // PUR-01: create a vendor. The account number is write-only — the response carries last4 only.
@@ -508,7 +695,14 @@ export const purchasingHandlers = [
     const pageRows = rows.slice(start, start + size);
     return HttpResponse.json({
       data: pageRows,
-      meta: { page, size, totalElements: rows.length, totalPages: Math.max(1, Math.ceil(rows.length / size)) },
+      meta: {
+        page: {
+          cursor: String(page),
+          nextCursor: start + size < rows.length ? String(page + 1) : null,
+          limit: size,
+        },
+        totalCount: rows.length,
+      },
       warnings: [],
     });
   }),

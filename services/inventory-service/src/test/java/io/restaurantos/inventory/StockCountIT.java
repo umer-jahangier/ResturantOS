@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code varianceCostPaisa = round(varianceQty x avg_cost_paisa)}, sets the count POSTED, and
  * publishes {@code COUNT_VARIANCE_POSTED}; {@code countedQty < systemQty} lowers {@code qty_on_hand}
  * (shrinkage) and records a negative variance. Drives {@link StockCountService} directly
- * (bean-level, no HTTP/OPA) against a live Testcontainers Postgres — mirrors
+ * (bean-level, no HTTP/OPA) against a live Testcontainers Postgres â€” mirrors
  * {@code TransferLifecycleIT}'s precedent.
  */
 class StockCountIT extends InventoryTestBase {
@@ -59,7 +59,7 @@ class StockCountIT extends InventoryTestBase {
     @Test
     void countedQtyGreaterThanSystemQty_raisesQtyOnHand_writesPositiveCountVarianceMovement_postsCount() {
         StockCountDto posted = stockCountService.postCount(new CreateStockCountRequest(
-                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(60)))));
+                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(60), null))));
 
         assertThat(posted.status()).isEqualTo("POSTED");
         assertThat(posted.lines()).hasSize(1);
@@ -87,7 +87,7 @@ class StockCountIT extends InventoryTestBase {
     @Test
     void countedQtyLessThanSystemQty_lowersQtyOnHand_recordsNegativeVariance() {
         StockCountDto posted = stockCountService.postCount(new CreateStockCountRequest(
-                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(35)))));
+                branchId, List.of(new CountLineRequest(ingredientId, BigDecimal.valueOf(35), null))));
 
         assertThat(posted.lines().get(0).varianceQty()).isEqualByComparingTo(BigDecimal.valueOf(-15)); // 35 - 50
         assertThat(posted.lines().get(0).varianceCostPaisa()).isEqualTo(-6000L); // -15 * 400

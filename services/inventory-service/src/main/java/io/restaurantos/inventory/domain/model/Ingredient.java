@@ -90,8 +90,18 @@ public class Ingredient extends TenantAuditableEntity {
     @Column(name = "par_level", nullable = false, precision = 18, scale = 4)
     private BigDecimal parLevel = BigDecimal.ZERO;
 
+    /**
+     * Legacy free-text label (V6). Retained and kept in sync with {@link #storageLocationId}'s
+     * name by {@code IngredientService} — same treatment V5 gave {@link #category}, except that
+     * this one stays written so anything still reading the text keeps working.
+     */
     @Column(name = "storage_location", length = 80)
     private String storageLocation;
+
+    /** FK to {@code storage_locations.id} (V10) — the source of truth. Nullable by design: a
+     * storage location is genuinely optional, unlike {@link #categoryId}. */
+    @Column(name = "storage_location_id")
+    private UUID storageLocationId;
 
     @Column(name = "shelf_life_days")
     private Integer shelfLifeDays;

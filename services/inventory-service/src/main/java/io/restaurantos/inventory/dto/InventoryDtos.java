@@ -20,6 +20,11 @@ public final class InventoryDtos {
      * {@code categoryId} is required (D-02: exactly one deterministic primary category) —
      * enforced both by {@code @NotNull} here and, at the DB level, by the NOT NULL FK V5 already
      * added to {@code ingredients.category_id}.
+     *
+     * <p>{@code storageLocationId} REPLACED a free-text {@code storageLocation} field here in V10.
+     * The text column still exists and is still returned on {@link IngredientDto}, but it is now
+     * derived from the referenced location's name — so accepting it on the way in would be a field
+     * a caller could set and watch be ignored.
      */
     public record CreateIngredientRequest(
             @NotBlank String name,
@@ -33,7 +38,7 @@ public final class InventoryDtos {
             String measureType,
             String recipeUomCode,
             BigDecimal defaultYieldPct,
-            String storageLocation,
+            UUID storageLocationId,
             Integer shelfLifeDays,
             Boolean perishable,
             @NotNull @PositiveOrZero BigDecimal reorderPoint,
@@ -52,7 +57,7 @@ public final class InventoryDtos {
             String measureType,
             String recipeUomCode,
             BigDecimal defaultYieldPct,
-            String storageLocation,
+            UUID storageLocationId,
             Integer shelfLifeDays,
             Boolean perishable,
             @NotNull @PositiveOrZero BigDecimal reorderPoint,
@@ -77,6 +82,7 @@ public final class InventoryDtos {
             boolean measureTypeLocked,
             String recipeUomCode,
             BigDecimal defaultYieldPct,
+            UUID storageLocationId,
             String storageLocation,
             Integer shelfLifeDays,
             boolean perishable,
@@ -106,16 +112,27 @@ public final class InventoryDtos {
             String categoryName,
             String categoryPath) {}
 
+    /**
+     * {@code measureType} (WEIGHT/VOLUME/COUNT) is optional for backwards compatibility and
+     * defaults to {@code COUNT}, matching the column default V7 gives {@code units_of_measure}.
+     */
     public record CreateUomRequest(
             @NotBlank String code,
             @NotBlank String name,
+            String measureType,
             String baseUnitCode,
             @NotNull @Positive BigDecimal toBaseFactor) {}
 
+    /**
+     * {@code measureType} is what lets the ingredient form show only units in the selected
+     * dimension — before V7 it did not exist, so both unit selects listed every unit in the tenant
+     * regardless of whether it could legally be paired with the item.
+     */
     public record UomDto(
             UUID id,
             String code,
             String name,
+            String measureType,
             String baseUnitCode,
             BigDecimal toBaseFactor) {}
 

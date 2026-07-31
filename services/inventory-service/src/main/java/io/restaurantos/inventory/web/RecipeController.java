@@ -6,6 +6,7 @@ import io.restaurantos.inventory.dto.RecipeDtos.CreateRecipeVersionRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.PreviewRecipeCostRequest;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeCostPreviewDto;
 import io.restaurantos.inventory.dto.RecipeDtos.RecipeDto;
+import io.restaurantos.inventory.dto.RecipeDtos.RecipeOptionDto;
 import io.restaurantos.inventory.service.RecipeCostPreviewService;
 import io.restaurantos.inventory.service.RecipeService;
 import io.restaurantos.shared.api.ApiResponse;
@@ -69,6 +70,17 @@ public class RecipeController {
             @AuthenticationPrincipal JwtClaims claims) {
         authz.authorizeView(claims.tenantId(), claims.branchId());
         return ResponseEntity.ok(ApiResponse.ok(recipeService.getEffectiveRecipe(menuItemId, at)));
+    }
+
+    /**
+     * The option list behind the ingredient form's "Produced by" picker — one entry per menu item's
+     * current recipe version. Gated on {@code authorizeView} rather than {@code authorizeManage}
+     * (unlike {@code /preview} below) because it carries names and versions only, no costs.
+     */
+    @GetMapping("/options")
+    public ResponseEntity<ApiResponse<List<RecipeOptionDto>>> options(@AuthenticationPrincipal JwtClaims claims) {
+        authz.authorizeView(claims.tenantId(), claims.branchId());
+        return ResponseEntity.ok(ApiResponse.ok(recipeService.listOptions()));
     }
 
     /** INV-11: recipe-coverage report — which active catalog menu items currently lack an effective recipe. */

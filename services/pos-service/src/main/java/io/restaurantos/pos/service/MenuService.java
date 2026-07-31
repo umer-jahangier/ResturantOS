@@ -1,5 +1,7 @@
 package io.restaurantos.pos.service;
 
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.CreateMenuCategoryRequest;
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.UpdateMenuCategoryRequest;
 import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.CreateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
@@ -12,7 +14,17 @@ import java.util.UUID;
 
 public interface MenuService {
     List<MenuCategoryDto> listCategories();
+
+    /** Admin listing (Menu Items management page) — includes inactive categories, unlike
+     * {@link #listCategories}, which backs the order-taking menu grid and must stay
+     * active-only. */
+    List<MenuCategoryDto> listCategoriesForAdmin();
+
     Page<MenuItemDto> listItems(UUID categoryId, UUID branchId, Pageable pageable);
+
+    /** Admin listing — includes inactive items, unlike {@link #listItems}. No pricing/branch
+     * override resolution (that's an order-taking concern); {@code categoryId} is optional. */
+    List<MenuItemDto> listItemsForAdmin(UUID categoryId);
     MenuItemDto getItem(UUID itemId, UUID branchId);
 
     /**
@@ -53,4 +65,23 @@ public interface MenuService {
      * caller's current tenant. Returns the number of items republished.
      */
     int republishAllActive();
+
+    /**
+     * Create a new menu category. Purely pos-service-local — inventory-service's
+     * {@code menu_item_catalog} read-model tracks items, never categories, so unlike
+     * {@link #createItem} this publishes no event.
+     */
+    MenuCategoryDto createCategory(CreateMenuCategoryRequest request);
+
+    /** Rename/redescribe/resort an existing menu category. {@code active} is untouched — use
+     * {@link #setCategoryActive} for that. */
+    MenuCategoryDto updateCategory(UUID categoryId, UpdateMenuCategoryRequest request);
+
+    /**
+     * Activate/deactivate a menu category (D-04 archive-not-delete, mirroring {@link #setActive}
+     * for items). Deactivating does not touch the items inside it — an item's own
+     * {@code active} flag is independent, matching how archiving an Inventory category doesn't
+     * archive its ingredients.
+     */
+    MenuCategoryDto setCategoryActive(UUID categoryId, boolean active);
 }

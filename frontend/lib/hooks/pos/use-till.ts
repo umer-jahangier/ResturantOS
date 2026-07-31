@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { PosRepository } from "@/lib/repositories/pos.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -44,19 +44,32 @@ export function useActiveTill() {
  */
 export function useTillReconciliation(tillId: string | null | undefined) {
   return useQuery({
-    queryKey: ["pos", "till-reconciliation", tillId ?? ""],
+    queryKey: queryKeys.pos.tillReconciliation(tillId ?? ""),
     queryFn: () => PosRepository.getTillReconciliation(tillId!),
     enabled: !!tillId,
     refetchInterval: 10_000,
   });
 }
 
-/** Branch-wide till history for the admin till-review table (newest first). */
-export function useBranchTills(branchId: string | null | undefined) {
+/**
+ * Branch-wide till history for the manager till-review table (newest first), server-paginated.
+ * `keepPreviousData` so paging doesn't drop the table back to a loading skeleton.
+ */
+export function useBranchTills(branchId: string | null | undefined, page = 0, size = 20) {
   return useQuery({
-    queryKey: ["pos", "branch-tills", branchId ?? ""],
-    queryFn: () => PosRepository.listBranchTills(branchId!),
+    queryKey: queryKeys.pos.branchTills(branchId ?? "", page, size),
+    queryFn: () => PosRepository.listBranchTills({ branchId: branchId!, page, size }),
     enabled: !!branchId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Append-only manager review history for one till session. */
+export function useTillReviewActions(tillId: string | null | undefined) {
+  return useQuery({
+    queryKey: queryKeys.pos.tillReviewActions(tillId ?? ""),
+    queryFn: () => PosRepository.listTillReviewActions(tillId!),
+    enabled: !!tillId,
   });
 }
 
@@ -111,5 +124,43 @@ export function useCloseTill() {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.till(tillId) });
       queryClient.invalidateQueries({ queryKey: ["pos", "tills"] });
     },
+  });
+}
+
+// ── Manager/owner till review ────────────────────────────────────────────────
+// Back-office screen, so these deliberately keep React Query's DEFAULT networkMode —
+// the "always" override above exists only for the cashier-facing offline POS terminal.
+
+/** Invalidates every page of the branch list plus this session's review history. */
+function useTillReviewInvalidation() {
+  const queryClient = useQueryClient();
+  return (tillId: string, branchId: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.pos.branchTillsAll(branchId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.pos.tillReviewActions(tillId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.pos.till(tillId) });
+  };
+}
+
+export function useApproveTill() {
+  const invalidate = useTillReviewInvalidation();
+  return useMutation<TillSession, ApiError, { tillId: string; branchId: string }>({
+    mutationFn: ({ tillId }) => PosRepository.approveTill(tillId),
+    onSuccess: (_data, { tillId, branchId }) => invalidate(tillId, branchId),
+  });
+}
+
+export function useFlagTill() {
+  const invalidate = useTillReviewInvalidation();
+  return useMutation<TillSession, ApiError, { tillId: string; branchId: string; reason: string }>({
+    mutationFn: ({ tillId, reason }) => PosRepository.flagTill(tillId, { reason }),
+    onSuccess: (_data, { tillId, branchId }) => invalidate(tillId, branchId),
+  });
+}
+
+export function useAddTillNote() {
+  const invalidate = useTillReviewInvalidation();
+  return useMutation<TillSession, ApiError, { tillId: string; branchId: string; note: string }>({
+    mutationFn: ({ tillId, note }) => PosRepository.addTillNote(tillId, { note }),
+    onSuccess: (_data, { tillId, branchId }) => invalidate(tillId, branchId),
   });
 }

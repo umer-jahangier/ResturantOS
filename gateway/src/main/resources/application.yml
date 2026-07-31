@@ -53,6 +53,21 @@ spring:
                 redis-rate-limiter.burstCapacity: ${RATE_LIMIT_API_PER_MIN:600}
                 key-resolver: "#{@ipKeyResolver}"
 
+          # Every route's CircuitBreaker filter below lists `statusCodes: [503]` only — 500 was
+          # removed from all ten. With 500 included, Spring Cloud Gateway rewrites the FIRST
+          # matching response into the generic fallback body, regardless of whether the breaker
+          # is actually open: a backend returning one well-formed 500 (its own ApiError JSON, real
+          # code and message) had that body discarded and replaced with
+          # `{"code":"SERVICE_UNAVAILABLE","message":"...temporarily unavailable..."}` — identical
+          # wording whether the backend was down or just answered one ordinary request-level error
+          # (e.g. a uniqueness conflict a service hadn't yet turned into a proper 4xx). The
+          # backend's own 500 handler already logs a traceId for genuine bugs; masking its body at
+          # the edge only cost diagnosability, on every route, for every 500, always.
+          # A 503 is different: it's a service's OWN "I am deliberately unavailable" signal, so
+          # folding it into the generic fallback is redundant, not lossy — see e.g.
+          # inventory-service's FinanceUnavailableException. An unreachable/connection-refused
+          # upstream still trips the breaker via the client exception path, not `statusCodes`, so
+          # GatewayRoutingIT#circuitBreakerFallback_deadUpstream_returns503 is unaffected.
           routes:
             # ── Auth Service ────────────────────────────────────────────────────────
             - id: auth-route
@@ -72,7 +87,6 @@ spring:
                     name: authCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── JWKS public endpoint (served by auth-service) ────────────────────
@@ -97,7 +111,6 @@ spring:
                     name: authorizationCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Platform Admin Service ───────────────────────────────────────────
@@ -111,7 +124,6 @@ spring:
                     name: platformAdminCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── User Service ─────────────────────────────────────────────────────
@@ -125,7 +137,6 @@ spring:
                     name: userCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── File Service ──────────────────────────────────────────────────────
@@ -139,7 +150,6 @@ spring:
                     name: fileCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Feature Flags (public, tenant-scoped) — served by platform-admin ──
@@ -156,7 +166,6 @@ spring:
                     name: platformAdminCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Finance Service ───────────────────────────────────────────────────
@@ -172,7 +181,6 @@ spring:
                     name: financeCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Purchasing Service ───────────────────────────────────────────────
@@ -186,7 +194,6 @@ spring:
                     name: purchasingCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── POS Service ───────────────────────────────────────────────────────
@@ -200,7 +207,6 @@ spring:
                     name: posCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Kitchen Service ───────────────────────────────────────────────────
@@ -214,7 +220,6 @@ spring:
                     name: kitchenCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Inventory Service (Phase 8) ──────────────────────────────────────
@@ -231,7 +236,6 @@ spring:
                     name: inventoryCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Feature-flagged routes (later phases) — commented stubs ──────────

@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type {
   apiCountLineSchema,
   apiCoverageSchema,
+  apiGlAccountOptionSchema,
   apiIngredientSchema,
   apiItemCategoryNodeSchema,
   apiItemCategorySchema,
@@ -9,10 +10,12 @@ import type {
   apiMenuItemCoverageSchema,
   apiReceiptResultSchema,
   apiRecipeCostPreviewSchema,
+  apiRecipeOptionSchema,
   apiRecipeSchema,
   apiStockCountSchema,
   apiStockLevelSchema,
   apiStockLevelsResponseSchema,
+  apiStorageLocationSchema,
   apiTransferLineSchema,
   apiTransferSchema,
   apiUomSchema,
@@ -20,7 +23,9 @@ import type {
   createItemCategoryInputSchema,
   createRecipeInputSchema,
   createStockCountInputSchema,
+  createStorageLocationInputSchema,
   createTransferInputSchema,
+  createUomInputSchema,
   moveItemCategoryInputSchema,
   previewRecipeCostInputSchema,
   receiveStockInputSchema,
@@ -28,15 +33,33 @@ import type {
   recordOpeningBalanceInputSchema,
   updateIngredientInputSchema,
   updateItemCategoryInputSchema,
+  updateStorageLocationInputSchema,
 } from "@/lib/api-client/schemas/inventory.schema";
 
 export type MenuItemCatalogEntry = z.infer<typeof apiMenuItemCatalogSchema>;
 export type Ingredient = z.infer<typeof apiIngredientSchema>;
 export type Uom = z.infer<typeof apiUomSchema>;
+/** Write payload for `POST /api/v1/inventory/uom`. */
+export type CreateUomInput = z.infer<typeof createUomInputSchema>;
 export type Recipe = z.infer<typeof apiRecipeSchema>;
+/** A pickable recipe for the ingredient form's "Produced by" select. */
+export type RecipeOption = z.infer<typeof apiRecipeOptionSchema>;
+
+// ── Storage locations (V10) ─────────────────────────────────────────────────────────────────
+export type StorageLocation = z.infer<typeof apiStorageLocationSchema>;
+/** Write payload for `POST /api/v1/inventory/storage-locations`. */
+export type CreateStorageLocationInput = z.infer<typeof createStorageLocationInputSchema>;
+/** Write payload for `PUT /api/v1/inventory/storage-locations/{id}`. */
+export type UpdateStorageLocationInput = z.infer<typeof updateStorageLocationInputSchema>;
 /** Write payload for `POST /api/v1/inventory/recipes` (mirrors the create-recipe request). */
 export type RecipeInput = z.infer<typeof createRecipeInputSchema>;
 export type Coverage = z.infer<typeof apiCoverageSchema>;
+
+// ── GL accounts (the category form's three account slots) ───────────────────────────────────
+export type GlAccountOption = z.infer<typeof apiGlAccountOptionSchema>;
+/** Which of a category's three GL slots an account is being picked for — decides which account
+ * types the server will offer, and which it will accept on save. */
+export type GlAccountUsage = "INVENTORY" | "COST" | "WASTE";
 
 // ── Item categories ─────────────────────────────────────────────────────────────────────────
 export type ItemCategory = z.infer<typeof apiItemCategorySchema>;
@@ -79,6 +102,14 @@ export function adaptUom(raw: Uom): Uom {
 }
 
 export function adaptRecipe(raw: Recipe): Recipe {
+  return raw;
+}
+
+export function adaptRecipeOption(raw: RecipeOption): RecipeOption {
+  return raw;
+}
+
+export function adaptStorageLocation(raw: StorageLocation): StorageLocation {
   return raw;
 }
 

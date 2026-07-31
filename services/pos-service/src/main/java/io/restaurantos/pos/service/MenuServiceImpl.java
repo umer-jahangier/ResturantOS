@@ -1,8 +1,11 @@
 package io.restaurantos.pos.service;
 
+import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.model.BranchMenuOverride;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.CreateMenuCategoryRequest;
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.UpdateMenuCategoryRequest;
 import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.CreateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
@@ -44,26 +47,50 @@ public class MenuServiceImpl implements MenuService {
     private final StationRepository stationRepository;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
+    private final PosAuthorizationService posAuthorizationService;
 
     public MenuServiceImpl(MenuCategoryRepository categoryRepository,
                            MenuItemRepository itemRepository,
                            BranchMenuOverrideRepository overrideRepository,
                            StationRepository stationRepository,
                            TenantContext tenantContext,
-                           EventPublisher eventPublisher) {
+                           EventPublisher eventPublisher,
+                           PosAuthorizationService posAuthorizationService) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
         this.overrideRepository = overrideRepository;
         this.stationRepository = stationRepository;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
+        this.posAuthorizationService = posAuthorizationService;
     }
 
     @Override
     public List<MenuCategoryDto> listCategories() {
         return categoryRepository.findAllActiveOrderBySortOrder().stream()
-                .map(c -> new MenuCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getSortOrder(), c.isActive()))
+                .map(this::toCategoryDto)
                 .toList();
+    }
+
+    @Override
+    public List<MenuCategoryDto> listCategoriesForAdmin() {
+        posAuthorizationService.requireMenuManage();
+        return categoryRepository.findAllOrderBySortOrder().stream()
+                .map(this::toCategoryDto)
+                .toList();
+    }
+
+    private MenuCategoryDto toCategoryDto(MenuCategory c) {
+        return new MenuCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getSortOrder(), c.isActive());
+    }
+
+    @Override
+    public List<MenuItemDto> listItemsForAdmin(UUID categoryId) {
+        posAuthorizationService.requireMenuManage();
+        List<MenuItem> items = categoryId != null
+                ? itemRepository.findByCategoryIdOrderByName(categoryId)
+                : itemRepository.findAllOrderByName(Pageable.unpaged()).getContent();
+        return items.stream().map(item -> toDto(item, null)).toList();
     }
 
     @Override
@@ -110,6 +137,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public MenuItemDto assignStation(UUID itemId, UUID branchId, UUID stationId) {
+        posAuthorizationService.requireMenuManage();
         requireOwnBranchIfPresent(branchId);
         if (branchId == null) {
             throw new PermissionDeniedException("branchId is required to assign a station");
@@ -136,6 +164,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public MenuItemDto createItem(CreateMenuItemRequest request) {
+        posAuthorizationService.requireMenuManage();
         MenuCategory category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + request.categoryId()));
 
@@ -159,6 +188,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public MenuItemDto updateItem(UUID itemId, UpdateMenuItemRequest request) {
+        posAuthorizationService.requireMenuManage();
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
 
@@ -183,6 +213,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public MenuItemDto setActive(UUID itemId, boolean active) {
+        posAuthorizationService.requireMenuManage();
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
         item.setActive(active);
@@ -194,6 +225,7 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional
     public void deleteItem(UUID itemId) {
+        posAuthorizationService.requireMenuManage();
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
         item.setDeletedAt(Instant.now());
@@ -211,6 +243,45 @@ public class MenuServiceImpl implements MenuService {
             publishUpserted(item);
         }
         return activeItems.size();
+    }
+
+    @Override
+    @Transactional
+    public MenuCategoryDto createCategory(CreateMenuCategoryRequest request) {
+        posAuthorizationService.requireMenuManage();
+        MenuCategory category = new MenuCategory();
+        category.setTenantId(tenantContext.requireTenantId());
+        category.setName(request.name());
+        category.setDescription(request.description());
+        if (request.sortOrder() != null) {
+            category.setSortOrder(request.sortOrder());
+        }
+        category.setActive(true);
+        return toCategoryDto(categoryRepository.save(category));
+    }
+
+    @Override
+    @Transactional
+    public MenuCategoryDto updateCategory(UUID categoryId, UpdateMenuCategoryRequest request) {
+        posAuthorizationService.requireMenuManage();
+        MenuCategory category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + categoryId));
+        category.setName(request.name());
+        category.setDescription(request.description());
+        if (request.sortOrder() != null) {
+            category.setSortOrder(request.sortOrder());
+        }
+        return toCategoryDto(categoryRepository.save(category));
+    }
+
+    @Override
+    @Transactional
+    public MenuCategoryDto setCategoryActive(UUID categoryId, boolean active) {
+        posAuthorizationService.requireMenuManage();
+        MenuCategory category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + categoryId));
+        category.setActive(active);
+        return toCategoryDto(categoryRepository.save(category));
     }
 
     /**

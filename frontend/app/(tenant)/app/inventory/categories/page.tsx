@@ -57,7 +57,8 @@ function countIngredientsInSubtree(node: ItemCategoryNode): number {
 // URL: /app/inventory/categories — INV-13's whole UI surface: create/edit/reparent/archive a
 // 3-level ingredient-category tree (UI-SPEC Screen 1).
 export default function CategoriesPage() {
-  const { data: tree, isLoading } = useCategoryTree();
+  const [showArchived, setShowArchived] = useState(false);
+  const { data: tree, isLoading } = useCategoryTree(showArchived);
   const moveCategory = useMoveCategory();
   const archiveCategory = useArchiveCategory();
   const restoreCategory = useRestoreCategory();
@@ -142,6 +143,20 @@ export default function CategoriesPage() {
           </Button>
         </PermissionGuard>
       </div>
+
+      {/* Archived categories still reserve their name (creating a new one with the same name is
+          refused), so without this a manager can be told a name "already exists" while looking
+          at a screen that shows nothing with that name — this is the only way to see, and
+          restore, the category actually holding it. */}
+      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={showArchived}
+          onChange={(e) => setShowArchived(e.target.checked)}
+          className="size-4 rounded border-input"
+        />
+        Show archived
+      </label>
 
       {isLoading ? (
         <div className="grid gap-2">

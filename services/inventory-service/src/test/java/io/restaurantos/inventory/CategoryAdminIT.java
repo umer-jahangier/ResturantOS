@@ -289,4 +289,143 @@ class CategoryAdminIT extends InventoryTestBase {
         JsonNode grandchildAfterMove = objectMapper.readTree(grandchildResult.getResponse().getContentAsString()).path("data");
         assertThat(grandchildAfterMove.path("level").asInt()).isEqualTo(3);
     }
+
+    // ── uq_item_category_tenant_parent_name (three doors onto the same constraint) ────────────
+    //
+    // Before this, a name collision on any of create/rename/move reached the DB constraint
+    // directly: an unhandled DataIntegrityViolationException, answered with a bare 500. Pins the
+    // fix — a 409 naming the actual sibling — rather than the constraint's raw SQLSTATE.
+
+    @Test
+    void creatingTwoRootCategoriesWithTheSameNameIsRefusedNotA500() throws Exception {
+        createCategory(new CreateItemCategoryRequest(
+                null, "Groceries", null, null, null, null, null, null, null));
+
+        mockMvc.perform(post("/api/v1/inventory/categories")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateItemCategoryRequest(
+                                null, "Groceries", null, null, null, null, null, null, null))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CATEGORY_NAME_DUPLICATE"))
+                .andExpect(jsonPath("$.error.message").value(org.hamcrest.Matchers.containsString("Groceries")));
+    }
+
+    @Test
+    void creatingTwoSubcategoriesWithTheSameNameUnderOneParentIsRefused() throws Exception {
+        JsonNode root = createCategory(new CreateItemCategoryRequest(
+                null, "Groceries", null, null, null, null, null, null, null));
+        createCategory(new CreateItemCategoryRequest(
+                UUID.fromString(root.path("id").asText()), "Dairy", null, null, null, null, null, null, null));
+
+        mockMvc.perform(post("/api/v1/inventory/categories")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateItemCategoryRequest(
+                                UUID.fromString(root.path("id").asText()), "Dairy",
+                                null, null, null, null, null, null, null))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CATEGORY_NAME_DUPLICATE"))
+                .andExpect(jsonPath("$.error.message").value("\"Groceries\" already has a subcategory named \"Dairy\"."));
+    }
+
+    @Test
+    void theSameNameUnderTwoDifferentParentsIsNotAConflict() throws Exception {
+        // The constraint is (tenant_id, parent_id, name) — "Dairy" under two different roots is
+        // two distinct rows, not a collision. Proves the check is scoped correctly, not just that
+        // it exists.
+        JsonNode rootA = createCategory(new CreateItemCategoryRequest(
+                null, "Groceries", null, null, null, null, null, null, null));
+        JsonNode rootB = createCategory(new CreateItemCategoryRequest(
+                null, "Beverages", null, null, null, null, null, null, null));
+        createCategory(new CreateItemCategoryRequest(
+                UUID.fromString(rootA.path("id").asText()), "Dairy", null, null, null, null, null, null, null));
+
+        mockMvc.perform(post("/api/v1/inventory/categories")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateItemCategoryRequest(
+                                UUID.fromString(rootB.path("id").asText()), "Dairy",
+                                null, null, null, null, null, null, null))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void renamingACategoryToItsSiblingsNameIsRefused() throws Exception {
+        JsonNode root = createCategory(new CreateItemCategoryRequest(
+                null, "Groceries", null, null, null, null, null, null, null));
+        createCategory(new CreateItemCategoryRequest(
+                UUID.fromString(root.path("id").asText()), "Dairy", null, null, null, null, null, null, null));
+        JsonNode produce = createCategory(new CreateItemCategoryRequest(
+                UUID.fromString(root.path("id").asText()), "Produce", null, null, null, null, null, null, null));
+
+        mockMvc.perform(put("/api/v1/inventory/categories/" + produce.path("id").asText())
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpdateItemCategoryRequest(
+                                "Dairy", null, null, null, null, null, null, null))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CATEGORY_NAME_DUPLICATE"));
+    }
+
+    @Test
+    void renamingACategoryToItsOwnCurrentNameIsAllowed() throws Exception {
+        // The pre-check excludes the row's own id — otherwise every no-op save of an unrelated
+        // field (sort order, a GL account) would 409 against itself.
+        JsonNode category = createCategory(new CreateItemCategoryRequest(
+                null, "Groceries", null, null, null, null, null, null, null));
+
+        mockMvc.perform(put("/api/v1/inventory/categories/" + category.path("id").asText())
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpdateItemCategoryRequest(
+                                "Groceries", null, null, null, null, null, null, null))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void recreatingAnArchivedCategorysNameExplainsWhyRatherThanJustSayingItExists() throws Exception {
+        // The exact confusion this is pinned against: the default category list hides archived
+        // rows entirely, so a bare "already exists" points at something the manager's screen
+        // provably does not show — they see nothing named "Refreshment" and are told it exists.
+        JsonNode refreshment = createCategory(new CreateItemCategoryRequest(
+                null, "Refreshment", null, null, null, null, null, null, null));
+        mockMvc.perform(post("/api/v1/inventory/categories/" + refreshment.path("id").asText() + "/archive")
+                        .with(asManager()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/inventory/categories")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateItemCategoryRequest(
+                                null, "Refreshment", null, null, null, null, null, null, null))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CATEGORY_NAME_DUPLICATE"))
+                .andExpect(jsonPath("$.error.message").value(
+                        "A top-level category named \"Refreshment\" already exists, but it's archived. "
+                                + "Restore it, or use a different name."));
+    }
+
+    @Test
+    void movingACategoryUnderAParentThatAlreadyHasThatNameIsRefused() throws Exception {
+        JsonNode rootA = createCategory(new CreateItemCategoryRequest(
+                null, "Groceries", null, null, null, null, null, null, null));
+        createCategory(new CreateItemCategoryRequest(
+                UUID.fromString(rootA.path("id").asText()), "Dairy", null, null, null, null, null, null, null));
+        JsonNode rootB = createCategory(new CreateItemCategoryRequest(
+                null, "Beverages", null, null, null, null, null, null, null));
+        JsonNode dairyUnderB = createCategory(new CreateItemCategoryRequest(
+                UUID.fromString(rootB.path("id").asText()), "Dairy", null, null, null, null, null, null, null));
+
+        // Moving "Dairy" (under Beverages) to become a sibling of the existing "Dairy" under
+        // Groceries — same collision create()/update() guard against, reached by re-parenting
+        // instead of naming.
+        mockMvc.perform(put("/api/v1/inventory/categories/" + dairyUnderB.path("id").asText() + "/parent")
+                        .with(asManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new MoveItemCategoryRequest(UUID.fromString(rootA.path("id").asText())))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CATEGORY_NAME_DUPLICATE"));
+    }
 }

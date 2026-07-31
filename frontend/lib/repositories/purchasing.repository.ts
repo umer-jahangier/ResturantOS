@@ -1,5 +1,7 @@
 import { get, getPaginated, post, put, type PaginatedResult } from "@/lib/api-client/request";
 import {
+  apiOrderSuggestionsResponseSchema,
+  createDraftsFromSuggestionsInputSchema,
   apiApPaymentSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
@@ -24,6 +26,7 @@ import {
   type PoStatus,
 } from "@/lib/api-client/schemas/purchasing.schema";
 import {
+  adaptOrderSuggestionsResponse,
   adaptApPayment,
   adaptPurchaseOrder,
   adaptSpendAnalytics,
@@ -36,6 +39,8 @@ import {
   adaptVendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
 import type {
+  CreateDraftsFromSuggestionsInput,
+  OrderSuggestionsResponse,
   ApPayment,
   ApPaymentInput,
   PurchaseOrder,
@@ -254,5 +259,25 @@ export const PurchasingRepository = {
   async getVendorScorecard(vendorId: string, branchId: string): Promise<VendorScorecard> {
     const raw = await get("/api/v1/purchasing/analytics/scorecard", { vendorId, branchId });
     return adaptVendorScorecard(apiVendorScorecardSchema.parse(raw));
+  },
+
+  // ── Order suggestions ────────────────────────────────────────────────────────────────────
+  /** What is below its reorder point at `branchId`, how much to buy, and from whom. */
+  async getOrderSuggestions(branchId: string): Promise<OrderSuggestionsResponse> {
+    const raw = await get("/api/v1/purchasing/order-suggestions", { branchId });
+    return adaptOrderSuggestionsResponse(apiOrderSuggestionsResponseSchema.parse(raw));
+  },
+
+  /** Turns the accepted lines into one DRAFT purchase order per vendor. */
+  async createDraftsFromSuggestions(
+    input: CreateDraftsFromSuggestionsInput,
+  ): Promise<PurchaseOrder[]> {
+    const raw = await post(
+      "/api/v1/purchasing/order-suggestions/drafts",
+      createDraftsFromSuggestionsInputSchema.parse(input),
+    );
+    return ((raw ?? []) as unknown[]).map((po) =>
+      adaptPurchaseOrder(apiPurchaseOrderSchema.parse(po)),
+    );
   },
 };

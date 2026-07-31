@@ -139,7 +139,14 @@ public final class InventoryEventPayloads {
             long totalVarianceCostPaisa
     ) {}
 
-    public record CountVarianceLine(UUID ingredientId, BigDecimal varianceQty, long varianceCostPaisa) {}
+    /**
+     * {@code overCap}/{@code overrideReason} are additive (V9): a line that breached its category's
+     * variance cap and was posted with an explicit reason carries both, everything else carries
+     * {@code false}/null. Phase 9's GL posting can use this to route large, attributed write-offs
+     * differently from routine shrinkage instead of treating every variance alike.
+     */
+    public record CountVarianceLine(UUID ingredientId, BigDecimal varianceQty, long varianceCostPaisa,
+                                     boolean overCap, String overrideReason) {}
 
     public record WastageRecordedPayload(UUID ingredientId, UUID branchId, BigDecimal qty, long costPaisa, String reason) {}
 
