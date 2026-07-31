@@ -57,6 +57,11 @@ $env:FILE_DB_URL = "jdbc:postgresql://127.0.0.1:5432/file_db"
 $env:FILE_DB_USER = "file_service"
 $env:FILE_DB_PASSWORD = $env:FILE_DB_PASSWORD
 
+# purchasing-service (Flyway + runtime as purchasing_user; role created by init/02-create-roles.sql)
+$env:PURCHASING_DB_URL = "jdbc:postgresql://127.0.0.1:5432/purchasing_db"
+$env:PURCHASING_DB_USER = "purchasing_user"
+$env:PURCHASING_DB_PASSWORD = $env:PURCHASING_DB_PASSWORD
+
 # finance-service (Flyway + runtime as finance_user). NOTE: finance-service reads
 # EUREKA_URI / JWKS_URI / CONFIG_URI (distinct names from EUREKA_URL above), so set
 # them to localhost for host-run mode. FINANCE_DB_PASSWORD comes from deploy/.env.

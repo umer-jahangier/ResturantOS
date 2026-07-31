@@ -1,16 +1,28 @@
 import type { z } from "zod";
 import type {
+  apiOrderSuggestionSchema,
+  apiOrderSuggestionVendorGroupSchema,
+  apiOrderSuggestionsResponseSchema,
+  createDraftsFromSuggestionsInputSchema,
   apiApPaymentSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
+  apiVendorCategorySchema,
   apiVendorInvoiceSchema,
+  apiVendorItemPriceChangeSchema,
+  apiVendorItemPriceSchema,
+  apiVendorItemSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
   createApPaymentInputSchema,
   createPurchaseOrderInputSchema,
   createVendorInvoiceInputSchema,
+  createVendorItemInputSchema,
   overrideMatchInputSchema,
+  recordVendorItemPriceInputSchema,
   rejectPoInputSchema,
+  updateVendorItemInputSchema,
+  vendorCategoriesInputSchema,
   vendorInputSchema,
 } from "@/lib/api-client/schemas/purchasing.schema";
 
@@ -33,6 +45,27 @@ export type ApPaymentInput = z.infer<typeof createApPaymentInputSchema>;
 export type SpendAnalytics = z.infer<typeof apiSpendAnalyticsSchema>;
 export type VendorScorecard = z.infer<typeof apiVendorScorecardSchema>;
 
+// ── Vendor item catalog (PUR-07) ─────────────────────────────────────────────────────────────
+export type VendorItem = z.infer<typeof apiVendorItemSchema>;
+/** Write payload for `POST /vendors/{vendorId}/items` (mirrors CreateVendorItemRequest). */
+export type VendorItemInput = z.infer<typeof createVendorItemInputSchema>;
+/**
+ * Write payload for `PUT /vendor-items/{id}` (mirrors UpdateVendorItemRequest — no ingredientId,
+ * no price fields; price changes go exclusively through VendorItemPriceInput below).
+ */
+export type UpdateVendorItemInput = z.infer<typeof updateVendorItemInputSchema>;
+export type VendorItemPrice = z.infer<typeof apiVendorItemPriceSchema>;
+/**
+ * Write payload for `POST /vendor-items/{id}/prices` — the ONLY vendor-item price write. There is
+ * no corresponding "update price" input type anywhere in this file; recording a price is always a
+ * create, mirroring the backend's append-only pricing model.
+ */
+export type VendorItemPriceInput = z.infer<typeof recordVendorItemPriceInputSchema>;
+export type VendorItemPriceChange = z.infer<typeof apiVendorItemPriceChangeSchema>;
+export type VendorCategory = z.infer<typeof apiVendorCategorySchema>;
+/** Write payload for `PUT /vendors/{vendorId}/categories` — a bare array, no wrapper object. */
+export type VendorCategoriesInput = z.infer<typeof vendorCategoriesInputSchema>;
+
 export function adaptVendor(raw: Vendor): Vendor {
   return raw;
 }
@@ -54,5 +87,32 @@ export function adaptSpendAnalytics(raw: SpendAnalytics): SpendAnalytics {
 }
 
 export function adaptVendorScorecard(raw: VendorScorecard): VendorScorecard {
+  return raw;
+}
+
+export function adaptVendorItem(raw: VendorItem): VendorItem {
+  return raw;
+}
+
+export function adaptVendorItemPrice(raw: VendorItemPrice): VendorItemPrice {
+  return raw;
+}
+
+export function adaptVendorItemPriceChange(raw: VendorItemPriceChange): VendorItemPriceChange {
+  return raw;
+}
+
+export function adaptVendorCategory(raw: VendorCategory): VendorCategory {
+  return raw;
+}
+
+// ── Order suggestions ────────────────────────────────────────────────────────────────────────
+export type OrderSuggestion = z.infer<typeof apiOrderSuggestionSchema>;
+export type OrderSuggestionVendorGroup = z.infer<typeof apiOrderSuggestionVendorGroupSchema>;
+export type OrderSuggestionsResponse = z.infer<typeof apiOrderSuggestionsResponseSchema>;
+/** Write payload for `POST /api/v1/purchasing/order-suggestions/drafts`. */
+export type CreateDraftsFromSuggestionsInput = z.infer<typeof createDraftsFromSuggestionsInputSchema>;
+
+export function adaptOrderSuggestionsResponse(raw: OrderSuggestionsResponse): OrderSuggestionsResponse {
   return raw;
 }

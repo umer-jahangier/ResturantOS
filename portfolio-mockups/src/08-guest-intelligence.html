@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guest Intelligence</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .kpis { grid-template-columns: repeat(4, 1fr); }
+  .row2 { display: grid; grid-template-columns: minmax(0, 1fr) 646px; gap: 14px;
+          height: 405px; flex: none; min-height: 0; }
+  .tblcard { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .tblcard tbody td { padding: 7px 12px; }
+
+  /* tier funnel — paired member / revenue bars */
+  .tier { padding: 9px 0 8px; border-top: 1px solid var(--line); }
+  .tier:first-child { border-top: none; padding-top: 1px; }
+  .tier-h { display: flex; align-items: center; }
+  .tier-n { font-size: 12.5px; font-weight: 650; display: flex; align-items: center; }
+  .mrow { display: flex; align-items: center; gap: 9px; margin-top: 6px; }
+  .mlab { width: 58px; flex: none; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+          color: var(--fg-dim); font-weight: 620; }
+  .trk { position: relative; height: 13px; background: var(--sunken); border-radius: 4px;
+         flex: 1; min-width: 0; }
+  .trk i { display: block; height: 100%; border-radius: 4px; }
+  .trk b { position: absolute; top: 0; font-size: 11px; font-weight: 600; color: var(--fg-mut);
+           font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 13px; }
+  .tmeta { font-size: 10.5px; color: var(--fg-dim); margin-top: 7px; margin-left: 67px; }
+  .sw { width: 9px; height: 9px; border-radius: 2.5px; display: inline-block; margin-right: 7px;
+        vertical-align: -1px; }
+
+  /* sentiment themes */
+  .theme { padding: 5px 0 6px; border-top: 1px solid var(--line); }
+  .theme:first-child { border-top: none; padding-top: 2px; }
+  .th-top { display: flex; align-items: baseline; gap: 8px; }
+  .th-n { font-size: 12px; font-weight: 600; }
+  .th-v { font-size: 10.5px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+  .sp { display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden;
+        width: 168px; flex: none; }
+  .sp i { display: block; height: 100%; }
+  .th-b { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+  .th-lab { font-size: 11px; font-weight: 570; font-variant-numeric: tabular-nums; }
+
+  .quote { border-left: 2px solid var(--line-2); padding: 0 0 0 10px; margin-top: 6px; }
+  .quote p { font-size: 11.5px; color: var(--fg-mut); line-height: 1.45; font-style: italic; }
+  .quote .m { font-size: 10.5px; color: var(--fg-dim); margin-top: 3px; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ─────────────────────────────────────────────────────────────── KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-l">Active loyalty members</div>
+      <div class="kpi-v">18,472</div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 1,284</span>
+        <span>+7.5% vs last quarter</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Repeat-visit rate · 90 d</div>
+      <div class="kpi-v">43.8<small>%</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 2.1pp</span>
+        <span>target ≥ 42.0%</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Avg guest lifetime value</div>
+      <div class="kpi-v">Rs 38,460</div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 4.2%</span>
+        <span>Gold cohort Rs 186,900</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">NPS · avg rating</div>
+      <div class="kpi-v">62 <small>/ 4.5 ★</small></div>
+      <div class="kpi-d"><span class="chip warn" style="height:19px;padding:0 6px;font-size:10.5px">▼ 3 pts</span>
+        <span>1,026 reviews, 30 d</span></div>
+    </div>
+  </div>
+
+  <div class="row2">
+
+    <!-- ────────────────────────────────────────────────── loyalty tier funnel -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Loyalty tier funnel — members vs revenue</div>
+          <div class="card-s">Rolling 90 days · solid bar = members, outlined = revenue share</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="legend">
+          <span><i style="background:var(--r1)"></i>Bronze</span>
+          <span><i style="background:var(--r3)"></i>Silver</span>
+          <span><i style="background:var(--r5)"></i>Gold</span>
+        </div>
+      </div>
+      <div class="card-b rel" style="flex:1;padding:10px 14px 10px">
+
+        <div class="tier">
+          <div class="tier-h"><span class="tier-n"><i class="sw" style="background:var(--r5)"></i>Gold</span>
+            <span class="f11 gold b6" style="margin-left:11px">4.17× revenue index</span></div>
+          <div class="mrow"><span class="mlab">Members</span>
+            <div class="trk"><i style="width:7.0%;background:var(--r5)"></i>
+              <b style="left:calc(7.0% + 10px)">7.0% · 1,289 members</b></div></div>
+          <div class="mrow"><span class="mlab">Revenue</span>
+            <div class="trk"><i style="width:29.2%;background:rgba(240,192,95,.34);
+              box-shadow:inset 0 0 0 1px var(--r5)"></i>
+              <b style="left:calc(29.2% + 10px)">29.2% · Rs 17.92M</b></div></div>
+          <div class="tmeta">Rs 5,940 avg check · 2.34 visits per 90 days · 92% offer opt-in</div>
+        </div>
+
+        <div class="tier">
+          <div class="tier-h"><span class="tier-n"><i class="sw" style="background:var(--r3)"></i>Silver</span>
+            <span class="f11 mut b6" style="margin-left:11px">1.42× revenue index</span></div>
+          <div class="mrow"><span class="mlab">Members</span>
+            <div class="trk"><i style="width:23.0%;background:var(--r3)"></i>
+              <b style="left:calc(23.0% + 10px)">23.0% · 4,248 members</b></div></div>
+          <div class="mrow"><span class="mlab">Revenue</span>
+            <div class="trk"><i style="width:32.7%;background:rgba(201,133,0,.34);
+              box-shadow:inset 0 0 0 1px var(--r3)"></i>
+              <b style="left:calc(32.7% + 10px)">32.7% · Rs 20.07M</b></div></div>
+          <div class="tmeta">Rs 4,180 avg check · 1.13 visits per 90 days · 74% offer opt-in</div>
+        </div>
+
+        <div class="tier">
+          <div class="tier-h"><span class="tier-n"><i class="sw" style="background:var(--r1)"></i>Bronze</span>
+            <span class="f11 mut b6" style="margin-left:11px">0.54× revenue index</span></div>
+          <div class="mrow"><span class="mlab">Members</span>
+            <div class="trk"><i style="width:70.0%;background:var(--r1)"></i>
+              <b style="left:calc(70.0% + 10px)">70.0% · 12,935</b></div></div>
+          <div class="mrow"><span class="mlab">Revenue</span>
+            <div class="trk"><i style="width:38.1%;background:rgba(125,83,6,.5);
+              box-shadow:inset 0 0 0 1px var(--r1)"></i>
+              <b style="left:calc(38.1% + 10px)">38.1% · Rs 23.39M</b></div></div>
+          <div class="tmeta">Rs 2,870 avg check · 0.63 visits per 90 days · 51% offer opt-in</div>
+        </div>
+
+        <div class="flex ac g8" style="margin-top:10px;padding-top:9px;border-top:1px solid var(--line);
+             font-size:11px;color:var(--fg-dim)">
+          <span class="dot" style="background:var(--r5)"></span>
+          18,472 members · Rs 61.38M member revenue · 214 upgrades / 26 downgrades in 30 days
+          <span class="spacer"></span><span class="gold b6">Tier rules →</span>
+        </div>
+
+        <div class="tip" style="left:428px;top:6px">
+          <div class="tip-t">Gold · revenue share</div>
+          <div class="tip-r"><i class="dot" style="background:var(--r5)"></i>Members <b>1,289 · 7.0%</b></div>
+          <div class="tip-r"><i class="dot" style="background:var(--r5)"></i>Revenue <b>Rs 17.92M · 29.2%</b></div>
+          <div class="tip-r" style="border-top:1px solid var(--line);margin-top:5px;padding-top:5px">
+            <span>Revenue index</span><b style="color:var(--gold)">4.17× base</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────── feedback sentiment -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Feedback themes</div>
+          <div class="card-s">1,026 reviews &amp; comments · last 30 days · auto-clustered</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip neg">Service speed worsening</div>
+      </div>
+      <div class="card-b" style="flex:1;padding:8px 14px 9px">
+
+        <div class="theme">
+          <div class="th-top"><span class="th-n">Service speed</span>
+            <span class="th-v">412 mentions · 40.2% of volume</span></div>
+          <div class="th-b">
+            <div class="sp"><i style="width:36%;background:var(--pos)"></i>
+              <i style="width:6%;background:var(--fg-dim)"></i>
+              <i style="width:58%;background:var(--neg)"></i></div>
+            <span class="th-lab neg">58% negative</span>
+            <span class="th-lab dim">36% positive</span>
+            <span class="spacer"></span>
+            <span class="chip neg" style="height:19px;padding:0 6px;font-size:10.5px">▲ 9pp negative</span>
+          </div>
+        </div>
+
+        <div class="theme">
+          <div class="th-top"><span class="th-n">Food temperature</span>
+            <span class="th-v">268 mentions · 26.1% of volume</span></div>
+          <div class="th-b">
+            <div class="sp"><i style="width:44%;background:var(--pos)"></i>
+              <i style="width:7%;background:var(--fg-dim)"></i>
+              <i style="width:49%;background:var(--neg)"></i></div>
+            <span class="th-lab neg">49% negative</span>
+            <span class="th-lab dim">44% positive</span>
+            <span class="spacer"></span>
+            <span class="chip neg" style="height:19px;padding:0 6px;font-size:10.5px">▲ 4pp negative</span>
+          </div>
+        </div>
+
+        <div class="theme">
+          <div class="th-top"><span class="th-n">Portion size</span>
+            <span class="th-v">190 mentions · 18.5% of volume</span></div>
+          <div class="th-b">
+            <div class="sp"><i style="width:71%;background:var(--pos)"></i>
+              <i style="width:7%;background:var(--fg-dim)"></i>
+              <i style="width:22%;background:var(--neg)"></i></div>
+            <span class="th-lab pos">71% positive</span>
+            <span class="th-lab dim">22% negative</span>
+            <span class="spacer"></span>
+            <span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ 3pp negative</span>
+          </div>
+        </div>
+
+        <div class="theme">
+          <div class="th-top"><span class="th-n">Ambience</span>
+            <span class="th-v">156 mentions · 15.2% of volume</span></div>
+          <div class="th-b">
+            <div class="sp"><i style="width:83%;background:var(--pos)"></i>
+              <i style="width:8%;background:var(--fg-dim)"></i>
+              <i style="width:9%;background:var(--neg)"></i></div>
+            <span class="th-lab pos">83% positive</span>
+            <span class="th-lab dim">9% negative</span>
+            <span class="spacer"></span>
+            <span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 2pp positive</span>
+          </div>
+        </div>
+
+        <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--line)">
+          <div class="f11 dim b6" style="letter-spacing:.06em;text-transform:uppercase">
+            Representative verbatims · top 2 themes</div>
+          <div class="quote">
+            <p>“Food was excellent but we waited 34 minutes for the karahi on a Tuesday night.”</p>
+            <div class="m">Ayesha Tariq · Gold · 3 ★ · 19 Jul · theme <span class="mut">service speed</span></div>
+          </div>
+          <div class="quote">
+            <p>“Nihari arrived lukewarm, the naan was fresh though. Second time this month.”</p>
+            <div class="m">Bilal Hussain · Gold · 3 ★ · 20 Jul · theme <span class="mut">food temperature</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────────────────────────────────────────────── churn risk + offers -->
+  <div class="card tblcard">
+    <div class="card-h">
+      <div>
+        <div class="card-t">Churn risk &amp; next-best offer</div>
+        <div class="card-s">412 members flagged at risk · ranked by lifetime value × churn probability</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chip gold">Model v4 · AUC 0.86</div>
+      <div class="chip">Scored 21:12 PKT</div>
+      <span class="btn sm gold-o">Push 6 offers</span>
+    </div>
+    <div class="card-b" style="padding:12px 0 0;flex:1;min-height:0">
+      <table>
+        <thead><tr>
+          <th style="padding-left:14px">Guest</th>
+          <th>Tier</th>
+          <th class="num">Visits 12 mo</th>
+          <th class="num">Last visit</th>
+          <th class="num">Avg spend</th>
+          <th class="num">Lifetime value</th>
+          <th style="padding-left:22px">Churn risk</th>
+          <th style="padding-right:14px">AI next-best offer</th>
+        </tr></thead>
+        <tbody>
+          <tr class="hl">
+            <td class="k" style="padding-left:14px">Ayesha Tariq</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(240,192,95,.14);border-color:rgba(240,192,95,.32);color:var(--r5)">Gold</span></td>
+            <td class="num">34</td><td class="num">41 d ago</td>
+            <td class="num mono">Rs 6,180</td><td class="num k">Rs 210,120</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">82</b>
+                <div class="bar" style="width:56px"><i style="width:82%;background:var(--neg)"></i></div>
+                <span class="f11 neg b6">High</span></div>
+            </td>
+            <td style="padding-right:14px">Free Kheer with Beef Nihari · valid 10 days
+              <span class="chip gold" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px">41% predicted redemption</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Bilal Hussain</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(240,192,95,.14);border-color:rgba(240,192,95,.32);color:var(--r5)">Gold</span></td>
+            <td class="num">28</td><td class="num">33 d ago</td>
+            <td class="num mono">Rs 5,420</td><td class="num k">Rs 151,760</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">74</b>
+                <div class="bar" style="width:56px"><i style="width:74%;background:var(--neg)"></i></div>
+                <span class="f11 neg b6">High</span></div>
+            </td>
+            <td style="padding-right:14px">Rs 1,000 off Mutton Karahi ½kg, 4+ covers
+              <span class="chip gold" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px">36% predicted redemption</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Zeeshan Malik</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(125,83,6,.3);border-color:rgba(160,107,4,.5);color:#d9ab63">Bronze</span></td>
+            <td class="num">9</td><td class="num">52 d ago</td>
+            <td class="num mono">Rs 2,940</td><td class="num k">Rs 26,460</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">68</b>
+                <div class="bar" style="width:56px"><i style="width:68%;background:var(--warn)"></i></div>
+                <span class="f11 b6" style="color:var(--warn)">Elevated</span></div>
+            </td>
+            <td style="padding-right:14px">Zinger Burger + drink at Rs 899 · valid 7 days
+              <span class="chip gold" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px">38% predicted redemption</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Farah Siddiqui</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(201,133,0,.14);border-color:rgba(201,133,0,.34);color:#c9a15c">Silver</span></td>
+            <td class="num">19</td><td class="num">27 d ago</td>
+            <td class="num mono">Rs 4,240</td><td class="num k">Rs 80,560</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">61</b>
+                <div class="bar" style="width:56px"><i style="width:61%;background:var(--warn)"></i></div>
+                <span class="f11 b6" style="color:var(--warn)">Elevated</span></div>
+            </td>
+            <td style="padding-right:14px">2× points on Friday dinner, next 2 visits
+              <span class="chip gold" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px">33% predicted redemption</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Usman Qureshi</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(240,192,95,.14);border-color:rgba(240,192,95,.32);color:var(--r5)">Gold</span></td>
+            <td class="num">41</td><td class="num">18 d ago</td>
+            <td class="num mono">Rs 5,960</td><td class="num k">Rs 244,360</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">47</b>
+                <div class="bar" style="width:56px"><i style="width:47%;background:var(--fg-dim)"></i></div>
+                <span class="f11 mut b6">Moderate</span></div>
+            </td>
+            <td style="padding-right:14px">Early access to the Sunday Haleem counter
+              <span class="chip gold" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px">29% predicted redemption</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Hina Raza</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(201,133,0,.14);border-color:rgba(201,133,0,.34);color:#c9a15c">Silver</span></td>
+            <td class="num">22</td><td class="num">24 d ago</td>
+            <td class="num mono">Rs 3,880</td><td class="num k">Rs 85,360</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">44</b>
+                <div class="bar" style="width:56px"><i style="width:44%;background:var(--fg-dim)"></i></div>
+                <span class="f11 mut b6">Moderate</span></div>
+            </td>
+            <td style="padding-right:14px">Complimentary Chapli Kebab on a Rs 4,000 bill
+              <span class="chip gold" style="height:18px;padding:0 6px;font-size:10px;margin-left:6px">31% predicted redemption</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Nadia Aslam</td>
+            <td><span class="chip" style="height:19px;padding:0 7px;font-size:10.5px;background:rgba(201,133,0,.14);border-color:rgba(201,133,0,.34);color:#c9a15c">Silver</span></td>
+            <td class="num">16</td><td class="num">12 d ago</td>
+            <td class="num mono">Rs 4,510</td><td class="num k">Rs 72,160</td>
+            <td style="padding-left:22px">
+              <div class="flex ac g8"><b class="tnum" style="color:var(--fg);width:20px">23</b>
+                <div class="bar" style="width:56px"><i style="width:23%;background:var(--pos)"></i></div>
+                <span class="f11 pos b6">Low</span></div>
+            </td>
+            <td style="padding-right:14px" class="dim">No offer — hold margin, re-score at 30 days idle</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="flex ac g8" style="padding:10px 14px;border-top:1px solid var(--line);
+           margin-top:2px;font-size:11px;color:var(--fg-dim)">
+        Lifetime value = visits × average spend, from closed
+        <span class="mono" style="color:var(--s5)">ORDER_CLOSED</span> events only — voids and refunds excluded.
+        <span class="spacer"></span>
+        <span>Offers cost <b class="mut">Rs 41,600</b> against <b class="mut">Rs 798,620</b> of lifetime value defended</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('crm', ['Bayleaf Group', 'Clifton, Karachi', 'CRM & Loyalty'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

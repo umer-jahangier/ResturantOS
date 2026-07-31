@@ -1,13 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useBranchTills, useTillReconciliation } from "@/lib/hooks/pos/use-till";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  useBranchTills,
+  useTillReconciliation,
+  useTillReviewActions,
+  useApproveTill,
+  useFlagTill,
+  useAddTillNote,
+} from "@/lib/hooks/pos/use-till";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import type { TillSession } from "@/lib/models/pos.model";
+import type { TillSession, TillReviewStatus } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 20;
+
+const REVIEW_BADGE: Record<TillReviewStatus, string> = {
+  PENDING_REVIEW: "bg-amber-500/15 text-amber-600",
+  APPROVED: "bg-emerald-500/15 text-emerald-600",
+  FLAGGED: "bg-red-500/15 text-red-600",
+};
 
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
@@ -16,16 +48,22 @@ function fmtTime(iso: string | null): string {
 }
 
 /**
- * Admin till-review (POS till reconciliation): a table of every till session for the branch
- * (opening/closing, cashier, float, expected/declared/variance) that expands into the session's
- * orders + cash collected. Backs "a table of tills the admin can review".
+ * Manager/owner till review: a paginated table of the branch's till sessions (opening/closing,
+ * cashier, float, expected/declared/variance, review state) that expands into the session's
+ * orders + cash collected and its review history. Closed sessions can be approved, flagged, or
+ * annotated — every action is recorded server-side as an append-only review record.
  */
 export function TillReview() {
   const { branchId } = useCurrentUser();
-  const { data: tills = [], isLoading, isFetching, refetch } = useBranchTills(branchId);
+  const [page, setPage] = useState(0);
+  const { data, isLoading, isFetching, refetch } = useBranchTills(branchId, page, PAGE_SIZE);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  if (!isLoading && tills.length === 0) {
+  const tills = data?.data ?? [];
+  const totalCount = data?.meta?.totalCount ?? 0;
+  const hasNext = Boolean(data?.meta?.page?.nextCursor);
+
+  if (!isLoading && tills.length === 0 && page === 0) {
     return (
       <div className="p-6">
         <EmptyState title="No till sessions yet" description="Opened and closed tills appear here for review." />
@@ -56,10 +94,12 @@ export function TillReview() {
               <th className="px-3 py-2 text-left">Closed</th>
               <th className="px-3 py-2 text-left">Cashier</th>
               <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Review</th>
               <th className="px-3 py-2 text-right">Float</th>
               <th className="px-3 py-2 text-right">Expected</th>
               <th className="px-3 py-2 text-right">Declared</th>
               <th className="px-3 py-2 text-right">Variance</th>
+              <th className="px-3 py-2 text-right">Actions</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
@@ -68,6 +108,7 @@ export function TillReview() {
               <TillRow
                 key={till.id}
                 till={till}
+                branchId={branchId}
                 expanded={selectedId === till.id}
                 onToggle={() => setSelectedId(selectedId === till.id ? null : till.id)}
               />
@@ -75,11 +116,47 @@ export function TillReview() {
           </tbody>
         </table>
       </div>
+
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span data-testid="till-review-page-info">
+          Page {page + 1} · {totalCount} session{totalCount === 1 ? "" : "s"} total
+        </span>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            data-testid="till-review-prev"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0 || isFetching}
+            className="rounded-full border px-3 py-2 font-medium hover:bg-muted disabled:opacity-60"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            data-testid="till-review-next"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!hasNext || isFetching}
+            className="rounded-full border px-3 py-2 font-medium hover:bg-muted disabled:opacity-60"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function TillRow({ till, expanded, onToggle }: { till: TillSession; expanded: boolean; onToggle: () => void }) {
+function TillRow({
+  till,
+  branchId,
+  expanded,
+  onToggle,
+}: {
+  till: TillSession;
+  branchId: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const variance = till.variancePaisa;
   return (
     <>
@@ -97,6 +174,11 @@ function TillRow({ till, expanded, onToggle }: { till: TillSession; expanded: bo
             {till.status}
           </span>
         </td>
+        <td className="px-3 py-2">
+          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", REVIEW_BADGE[till.reviewStatus])}>
+            {till.reviewStatus.replace("_", " ")}
+          </span>
+        </td>
         <td className="px-3 py-2 text-right"><MoneyDisplay paisa={till.openingFloatPaisa} className="text-xs" /></td>
         <td className="px-3 py-2 text-right">
           {till.expectedClosingPaisa !== null ? <MoneyDisplay paisa={till.expectedClosingPaisa} className="text-xs" /> : "—"}
@@ -108,19 +190,228 @@ function TillRow({ till, expanded, onToggle }: { till: TillSession; expanded: bo
           {variance !== null ? <MoneyDisplay paisa={variance} className="text-xs" /> : "—"}
         </td>
         <td className="px-3 py-2 text-right">
+          {till.status === "CLOSED" ? (
+            <TillReviewActions till={till} branchId={branchId} />
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </td>
+        <td className="px-3 py-2 text-right">
           <button type="button" onClick={onToggle} className="text-xs font-medium text-primary underline">
-            {expanded ? "Hide" : "Orders"}
+            {expanded ? "Hide" : "Details"}
           </button>
         </td>
       </tr>
+      {till.note && (
+        <tr>
+          <td colSpan={11} className="px-3 pb-2 text-xs text-muted-foreground">
+            <span className="font-medium">Cashier note:</span> {till.note}
+          </td>
+        </tr>
+      )}
       {expanded && (
         <tr>
-          <td colSpan={9} className="bg-muted/20 px-3 py-3">
+          <td colSpan={11} className="bg-muted/20 px-3 py-3">
             <TillReconciliationDetail tillId={till.id} />
           </td>
         </tr>
       )}
     </>
+  );
+}
+
+/**
+ * Unreviewed tills get the decision buttons inline (approve/flag is the whole point of the
+ * screen). Once a decision exists, those collapse into a single "Change status" menu that omits
+ * the status the till is already in — re-offering "Approve" on an approved till is just noise.
+ */
+function TillReviewActions({ till, branchId }: { till: TillSession; branchId: string }) {
+  const approve = useApproveTill();
+  const flag = useFlagTill();
+  const addNote = useAddTillNote();
+  const [dialog, setDialog] = useState<"FLAG" | "NOTE" | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const busy = approve.isPending || flag.isPending || addNote.isPending;
+  const undecided = till.reviewStatus === "PENDING_REVIEW";
+
+  const doApprove = () =>
+    approve.mutate(
+      { tillId: till.id, branchId },
+      { onError: (e) => toast.error(e.message ?? "Failed to approve till session.") },
+    );
+
+  // Close the menu first, then open the dialog on the next frame — otherwise Radix's
+  // close-auto-focus (returning focus to the trigger) races the dialog's focus trap.
+  const openDialogFromMenu = (which: "FLAG" | "NOTE") => {
+    setMenuOpen(false);
+    requestAnimationFrame(() => setDialog(which));
+  };
+
+  return (
+    <>
+      {undecided ? (
+        <div className="flex justify-end gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="till-approve-button"
+            disabled={busy}
+            onClick={doApprove}
+          >
+            {approve.isPending ? "Approving…" : "Approve"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            data-testid="till-flag-button"
+            disabled={busy}
+            onClick={() => setDialog("FLAG")}
+          >
+            Flag
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            data-testid="till-note-button"
+            disabled={busy}
+            onClick={() => setDialog("NOTE")}
+          >
+            Note
+          </Button>
+        </div>
+      ) : (
+        <div className="flex justify-end">
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                data-testid="till-change-status-button"
+                disabled={busy}
+              >
+                {busy ? "Saving…" : "Change status"}
+                <ChevronDown className="size-3.5" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {till.reviewStatus !== "APPROVED" && (
+                <DropdownMenuItem onSelect={doApprove}>Approve</DropdownMenuItem>
+              )}
+              {till.reviewStatus !== "FLAGGED" && (
+                <DropdownMenuItem onSelect={() => openDialogFromMenu("FLAG")}>Flag</DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => openDialogFromMenu("NOTE")}>Add note</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      <ReviewTextDialog
+        open={dialog === "FLAG"}
+        onOpenChange={(next) => setDialog(next ? "FLAG" : null)}
+        title="Flag till session"
+        description="A reason is required and is recorded on the till session."
+        inputLabel="Flag reason"
+        confirmLabel="Flag"
+        confirmVariant="destructive"
+        isPending={flag.isPending}
+        onConfirm={(reason) =>
+          flag.mutate(
+            { tillId: till.id, branchId, reason },
+            { onError: (e) => toast.error(e.message ?? "Failed to flag till session.") },
+          )
+        }
+      />
+      <ReviewTextDialog
+        open={dialog === "NOTE"}
+        onOpenChange={(next) => setDialog(next ? "NOTE" : null)}
+        title="Add review note"
+        description="Recorded on the till session's review history. Does not change its review status."
+        inputLabel="Review note"
+        confirmLabel="Add note"
+        confirmVariant="default"
+        isPending={addNote.isPending}
+        onConfirm={(note) =>
+          addNote.mutate(
+            { tillId: till.id, branchId, note },
+            { onError: (e) => toast.error(e.message ?? "Failed to add note.") },
+          )
+        }
+      />
+    </>
+  );
+}
+
+/** Controlled — the caller owns `open` so both the inline buttons and the menu can drive it. */
+function ReviewTextDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  inputLabel,
+  confirmLabel,
+  confirmVariant,
+  isPending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+  title: string;
+  description: string;
+  inputLabel: string;
+  confirmLabel: string;
+  confirmVariant: "default" | "destructive";
+  isPending: boolean;
+  onConfirm: (text: string) => void;
+}) {
+  const [text, setText] = useState("");
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setText("");
+        onOpenChange(next);
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <textarea
+          aria-label={inputLabel}
+          placeholder={inputLabel}
+          maxLength={500}
+          rows={3}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full resize-none rounded border px-3 py-2 text-sm"
+        />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant={confirmVariant}
+            disabled={isPending || text.trim().length === 0}
+            onClick={() => {
+              onConfirm(text.trim());
+              onOpenChange(false);
+            }}
+          >
+            {isPending ? "Saving…" : confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -131,7 +422,7 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
   if (!recon) return <p className="text-xs text-muted-foreground">No data.</p>;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex flex-wrap gap-4 text-xs">
         <span>Orders: <span className="font-medium">{recon.orderCount}</span></span>
         <span>Cash: <MoneyDisplay paisa={recon.cashCollectedPaisa} className="text-xs" /></span>
@@ -162,6 +453,42 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
           </tbody>
         </table>
       )}
+      <TillReviewHistory tillId={tillId} />
+    </div>
+  );
+}
+
+function TillReviewHistory({ tillId }: { tillId: string }) {
+  const { data: actions, isLoading } = useTillReviewActions(tillId);
+
+  if (isLoading) return <p className="text-xs text-muted-foreground">Loading review history…</p>;
+  if (!actions || actions.length === 0) {
+    return <p className="text-xs text-muted-foreground">No review actions yet.</p>;
+  }
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium">Review history</p>
+      <table className="w-full text-xs" data-testid="till-review-history">
+        <thead className="text-muted-foreground">
+          <tr>
+            <th className="py-1 text-left">When</th>
+            <th className="py-1 text-left">Reviewer</th>
+            <th className="py-1 text-left">Action</th>
+            <th className="py-1 text-left">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {actions.map((a) => (
+            <tr key={a.id} className="border-t border-border/50">
+              <td className="py-1">{fmtTime(a.actedAt)}</td>
+              <td className="py-1 font-mono text-muted-foreground">{a.reviewerId.slice(0, 8)}</td>
+              <td className="py-1">{a.action}</td>
+              <td className="py-1">{a.note ?? "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

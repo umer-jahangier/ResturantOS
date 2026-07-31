@@ -11,12 +11,15 @@ import {
   CircleDashed,
   Lock,
   Undo2,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // Legacy generic variants (Finance AccountTable / account detail page) — label-only,
 // no icon. Kept exactly as-is for backward compatibility; the phase 07.1 UI-SPEC's
 // icon-per-status contract only applies to the POS/KDS status keys below.
+// "archived" (08.2, Status System Additions) joins this label-only set — categories/
+// ingredients/vendor-items reuse it, not a new icon-bearing variant.
 type LegacyStatusVariant =
   | "active"
   | "inactive"
@@ -24,6 +27,7 @@ type LegacyStatusVariant =
   | "error"
   | "warning"
   | "success"
+  | "archived"
 
 // 7-value line-item status (UI-SPEC "Status System" — item-level).
 export type LineItemStatusVariant =
@@ -47,7 +51,14 @@ export type OrderStatusVariant =
   | "VOIDED"
   | "REFUNDED"
 
-export type StatusVariant = LegacyStatusVariant | LineItemStatusVariant | OrderStatusVariant
+// 08.2 recipe-coverage 3-state (Status System Additions — COVERED/NO_RECIPE/SCHEDULED).
+export type CoverageStatusVariant = "COVERED" | "NO_RECIPE" | "SCHEDULED"
+
+export type StatusVariant =
+  | LegacyStatusVariant
+  | LineItemStatusVariant
+  | OrderStatusVariant
+  | CoverageStatusVariant
 
 interface StatusBadgeProps {
   status: StatusVariant
@@ -68,6 +79,8 @@ const legacyClassMap: Record<LegacyStatusVariant, string> = {
     "bg-info/15 text-info border-info/30",
   inactive:
     "bg-muted text-muted-foreground border-border",
+  archived:
+    "bg-muted text-muted-foreground border-border",
 }
 
 interface PosStatusDescriptor {
@@ -78,9 +91,9 @@ interface PosStatusDescriptor {
   pulse?: boolean
 }
 
-// Union type (LineItemStatusVariant | OrderStatusVariant) — SERVED appears once since
-// both tables specify the identical treatment (success/CheckCheck/"Served").
-type PosStatusKey = LineItemStatusVariant | OrderStatusVariant
+// Union type (LineItemStatusVariant | OrderStatusVariant | CoverageStatusVariant) — SERVED
+// appears once since both tables specify the identical treatment (success/CheckCheck/"Served").
+type PosStatusKey = LineItemStatusVariant | OrderStatusVariant | CoverageStatusVariant
 
 // Semantic-token-only mapping, never raw Tailwind palette classes (UI-SPEC Color
 // contract / DS §18). Color is never the sole channel — every entry pairs a hue with a
@@ -153,6 +166,24 @@ const posStatusMap: Record<PosStatusKey, PosStatusDescriptor> = {
     className: "bg-warning/15 text-warning border-warning/30",
     icon: Undo2,
     label: "Refunded",
+  },
+  // ── Recipe-coverage 3-state (08.2 INV-15, UI-SPEC Status System Additions) ──────
+  COVERED: {
+    className: "bg-success/15 text-success border-success/30",
+    icon: CheckCheck,
+    label: "Covered",
+  },
+  NO_RECIPE: {
+    className: "bg-warning/15 text-warning border-warning/30",
+    icon: AlertTriangle,
+    label: "No recipe",
+  },
+  SCHEDULED: {
+    // Label is date-interpolated by the caller via the `label` prop
+    // (e.g. `label={`Scheduled from ${formatted}`}`); this default covers the bare case.
+    className: "bg-info/15 text-info border-info/30",
+    icon: Clock,
+    label: "Scheduled",
   },
 }
 

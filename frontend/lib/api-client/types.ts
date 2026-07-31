@@ -6,11 +6,18 @@ export interface ApiWarning {
   message: string;
 }
 
+/**
+ * Mirrors shared-lib `PageMeta(Page page, Long totalCount)` — `cursor`/`nextCursor` carry the
+ * page NUMBER as a string (backends build them from `Page.getNumber()`), and `nextCursor` is
+ * null on the last page.
+ */
 export interface PageMeta {
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
+  page: {
+    cursor: string;
+    nextCursor: string | null;
+    limit: number;
+  };
+  totalCount: number;
 }
 
 /** `{ data, meta, warnings }` — meta is null for non-paginated responses. */

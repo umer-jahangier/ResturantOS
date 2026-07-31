@@ -50,6 +50,7 @@ public abstract class BaseIntegrationTest {
         r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         r.add("spring.datasource.username", () -> "shared_test_user");
         r.add("spring.datasource.password", () -> "test-pass");
+        r.add("spring.liquibase.url", POSTGRES::getJdbcUrl);
         r.add("spring.liquibase.user", POSTGRES::getUsername);
         r.add("spring.liquibase.password", POSTGRES::getPassword);
         r.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");

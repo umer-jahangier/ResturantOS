@@ -27,6 +27,11 @@ services:
       AUDIT_DB_PASSWORD: ${AUDIT_DB_PASSWORD}
       FILE_DB_PASSWORD: ${FILE_DB_PASSWORD}
       PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+    # Each of the 13 services opens its own HikariCP pool (default max 10), and auth_db is
+    # shared by auth- + authorization-service. The postgres default of 100 is exhausted at
+    # ~12 services, and the 13th fails Flyway with "remaining connection slots are reserved
+    # for roles with the SUPERUSER attribute". 300 leaves headroom for the full fleet + psql.
+    command: ["postgres", "-c", "max_connections=300"]
     ports:
       - "5432:5432"
     volumes:

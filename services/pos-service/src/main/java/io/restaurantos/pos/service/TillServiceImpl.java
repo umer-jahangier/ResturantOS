@@ -15,6 +15,8 @@ import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.tenant.TenantContext;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -117,6 +119,7 @@ public class TillServiceImpl implements TillService {
         session.setDeclaredClosingPaisa(request.declaredClosingPaisa());
         session.setStatus(TillStatus.CLOSED);
         session.setClosedAt(Instant.now());
+        session.setNote(request.note());
         tillSessionRepository.saveAndFlush(session);
 
         // Refresh to get DB-computed variance
@@ -166,13 +169,12 @@ public class TillServiceImpl implements TillService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TillSessionDto> listTillsForBranch(UUID branchId) {
+    public Page<TillSessionDto> listTillsForBranch(UUID branchId, Pageable pageable) {
         // SECURITY (branch isolation): a client-supplied sibling branchId must not expose another
         // branch's till history within the same tenant — RLS is tenant-only, so guard here.
         requireOwnBranch(branchId);
-        return tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId).stream()
-                .map(this::toDto)
-                .toList();
+        return tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId, pageable)
+                .map(this::toDto);
     }
 
     @Override
@@ -212,8 +214,9 @@ public class TillServiceImpl implements TillService {
      * Defense-in-depth against a client-supplied {@code branchId} that widens scope beyond the
      * caller's JWT branch. Mirrors {@code TableServiceImpl.requireOwnBranch} — {@code branchId}
      * stays an explicit request parameter but must always equal the verified JWT branch.
+     * Package-visible so {@link TillReviewService} can reuse the same check.
      */
-    private void requireOwnBranch(UUID branchId) {
+    void requireOwnBranch(UUID branchId) {
         UUID jwtBranchId = tenantContext.getBranchId()
                 .orElseThrow(() -> new PermissionDeniedException("Branch context required"));
         if (!jwtBranchId.equals(branchId)) {
@@ -232,7 +235,9 @@ public class TillServiceImpl implements TillService {
                 s.getVariancePaisa(),
                 s.getStatus(),
                 s.getOpenedAt(),
-                s.getClosedAt()
+                s.getClosedAt(),
+                s.getNote(),
+                s.getReviewStatus()
         );
     }
 }

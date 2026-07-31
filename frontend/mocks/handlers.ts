@@ -38,7 +38,7 @@ const DEMO_USERS: Record<string, DemoUser> = {
       "finance.journal.view", "finance.journal.post", "finance.period.close",
       "finance.expense.approve",
       "vendor.manage", "vendor.po.approve",
-      "rbac.manage",
+      "rbac.manage", "pos.menu.manage",
     ],
     approvalLimit: 100_000_000,
   },

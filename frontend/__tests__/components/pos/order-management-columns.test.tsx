@@ -80,7 +80,7 @@ const rawOrderClosed = {
 function pagedResponse(rows: unknown[]) {
   return HttpResponse.json({
     data: rows,
-    meta: { page: 0, size: 10, totalElements: rows.length, totalPages: 1 },
+    meta: { page: { cursor: "0", nextCursor: null, limit: 10 }, totalCount: rows.length },
     warnings: [],
   });
 }

@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Yield Variance Intelligence</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .kpis { grid-template-columns: repeat(5, 1fr); }
+  .body { display: grid; grid-template-columns: 1fr 400px; gap: 14px; flex: 1; min-height: 0; }
+  .lcol { display: grid; grid-template-rows: 416px minmax(0, 1fr); gap: 14px;
+          min-width: 0; min-height: 0; }
+  .lbot { display: grid; grid-template-columns: 1fr 448px; gap: 14px; min-height: 0; min-width: 0; }
+
+  /* ---- heat grid ---- */
+  .hg { display: grid; grid-template-columns: 108px repeat(4, 1fr) 48px; gap: 6px; }
+  .hg-hd { font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--fg-dim);
+           font-weight: 620; text-align: center; padding-bottom: 1px; }
+  .hg-hd.l { text-align: left; }
+  .hg-rw { font-size: 11px; color: var(--fg); font-weight: 550; display: flex; align-items: center;
+           gap: 6px; min-width: 0; }
+  .hg-rw u { font-size: 9.5px; color: var(--fg-dim); text-decoration: none; font-weight: 500; }
+  .hc { border-radius: 5px; display: grid; place-items: center; font-size: 11.5px; font-weight: 600;
+        font-variant-numeric: tabular-nums; height: 32px; }
+  .hc.r1 { background: var(--r1); color: #eceef2; }
+  .hc.r2 { background: var(--r2); color: #f6f7f9; }
+  .hc.r3 { background: var(--r3); color: #1a1408; }
+  .hc.r4 { background: var(--r4); color: #1a1408; }
+  .hc.r5 { background: var(--r5); color: #1a1408; }
+  .hc.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--fg); }
+  .hg-tot { display: grid; place-items: center; font-size: 11px; font-weight: 620; color: var(--fg-mut);
+            font-variant-numeric: tabular-nums; }
+  .hg-ft { font-size: 10px; color: var(--fg-dim); font-weight: 600; letter-spacing: .04em;
+           display: grid; place-items: center; text-transform: uppercase; }
+  .ramp { display: flex; align-items: center; gap: 0; }
+  .ramp i { width: 26px; height: 8px; display: block; }
+  .ramp i:first-child { border-radius: 3px 0 0 3px; }
+  .ramp i:last-child { border-radius: 0 3px 3px 0; }
+
+  /* ---- AI panel ---- */
+  .aicol { display: flex; flex-direction: column; min-height: 0; }
+  .ai-h { padding: 11px 14px; border-bottom: 1px solid var(--gold-line); }
+  .ai-sum { display: flex; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--line);
+            background: rgba(240,180,41,.035); }
+  .ai-sum div { flex: 1; }
+  .ai-sum .l { font-size: 9.5px; color: var(--fg-dim); font-weight: 600; letter-spacing: .05em; }
+  .ai-sum .v { font-size: 15px; font-weight: 680; letter-spacing: -.03em; margin-top: 1px;
+               font-variant-numeric: tabular-nums; }
+  .sec { padding: 8px 14px; border-top: 1px solid var(--line); }
+  .sec-l { font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+           font-weight: 650; margin-bottom: 7px; }
+  .er { display: flex; gap: 8px; padding: 2.5px 0; align-items: flex-start; }
+  .er i.bt { width: 5px; height: 5px; border-radius: 50%; background: var(--s2); flex: none; margin-top: 5.5px; }
+  .er i.bx { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-dim); flex: none; margin-top: 5.5px; }
+  .er-t { font-size: 11px; color: var(--fg); font-weight: 580; }
+  .er-d { font-size: 10.5px; color: var(--fg-mut); line-height: 1.45; font-weight: 450; }
+  .er-d b { color: var(--fg); font-weight: 600; }
+  .act { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; }
+  .act .n { width: 15px; height: 15px; border-radius: 4px; background: var(--gold-soft); color: var(--gold);
+            font-size: 9.5px; font-weight: 700; display: grid; place-items: center; flex: none; margin-top: 2px; }
+  .h2 { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .h2 .rk { font-size: 9.5px; font-weight: 700; color: var(--fg-dim); background: var(--elev);
+            border-radius: 4px; padding: 1px 4px; flex: none; }
+  .ai-f { padding: 9px 14px; border-top: 1px solid var(--line); display: flex; align-items: center;
+          gap: 7px; font-size: 10.5px; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ─────────────────────────────────────────────────────────────── KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-l">Net variance value · MTD</div>
+      <div class="kpi-v">Rs 268,410</div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ Rs 41,200</span>
+        <span>vs Jun same-day</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Variance % of theoretical</div>
+      <div class="kpi-v">3.0<small>%</small></div>
+      <div class="kpi-d"><span class="chip warn" style="height:19px;padding:0 6px;font-size:10.5px">▲ 0.5pp</span>
+        <span>tolerance ≤ 2.5%</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Theoretical food cost</div>
+      <div class="kpi-v">30.0<small>%</small></div>
+      <div class="kpi-d"><span>Rs 8,940,000 BOM-depleted (FEFO)</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Actual food cost</div>
+      <div class="kpi-v">30.9<small>%</small></div>
+      <div class="kpi-d"><span class="chip neg" style="height:19px;padding:0 6px;font-size:10.5px">▲ 0.90pp</span>
+        <span>gap = Rs 268,410</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Waste avoided since AI on</div>
+      <div class="kpi-v gold">Rs 1,184,600</div>
+      <div class="kpi-d"><span>variance 5.8% → 3.0% since 12 Mar</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="lcol">
+
+      <!-- ───────────────────────────────────── variance by ingredient table -->
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-h">
+          <div>
+            <div class="card-t">Variance by ingredient — theoretical vs actual</div>
+            <div class="card-s">Recipe BOM depleted per <span class="mono" style="font-size:10.5px">ORDER_CLOSED</span>
+              vs signed stock counts · sorted by rupee impact</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="chip">1 – 21 Jul 2026</div>
+          <div class="chip gold">MAC valued</div>
+        </div>
+        <div class="card-b" style="padding:12px 0 0;flex:1;min-height:0">
+          <table>
+            <thead><tr>
+              <th style="padding-left:14px">Ingredient</th>
+              <th class="num">Theoretical</th>
+              <th class="num">Actual</th>
+              <th class="num">Variance</th>
+              <th class="num">Var %</th>
+              <th class="num">MAC / unit</th>
+              <th class="num">Value</th>
+              <th style="padding-right:14px;text-align:right">21-day trend</th>
+            </tr></thead>
+            <tbody>
+              <tr class="hl">
+                <td class="k" style="padding-left:14px">Chicken boneless <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">1,240.0</td><td class="num mono">1,326.9</td>
+                <td class="num neg mono">+86.9</td><td class="num neg b6">+7.0%</td>
+                <td class="num mono">742.00</td><td class="num k">Rs 64,480</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,11 L11,10 L20,8 L29,9 L38,5 L47,3" fill="none" stroke="var(--neg)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="3" r="2" fill="var(--neg)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Mutton shoulder <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">486.0</td><td class="num mono">511.7</td>
+                <td class="num neg mono">+25.7</td><td class="num neg b6">+5.3%</td>
+                <td class="num mono">1,940.00</td><td class="num k">Rs 49,858</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,9 L11,7 L20,8 L29,5 L38,6 L47,4" fill="none" stroke="var(--neg)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="4" r="2" fill="var(--neg)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Cooking oil <span class="dim" style="font-weight:450">· litre</span></td>
+                <td class="num mono">940.0</td><td class="num mono">1,010.5</td>
+                <td class="num neg mono">+70.5</td><td class="num neg b6">+7.5%</td>
+                <td class="num mono">615.00</td><td class="num k">Rs 43,358</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,8 L11,9 L20,6 L29,7 L38,4 L47,2" fill="none" stroke="var(--neg)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="2" r="2" fill="var(--neg)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Mozzarella <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">604.5</td><td class="num mono">642.0</td>
+                <td class="num neg mono">+37.5</td><td class="num neg b6">+6.2%</td>
+                <td class="num mono">1,150.00</td><td class="num k">Rs 43,125</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,10 L11,8 L20,9 L29,6 L38,5 L47,4" fill="none" stroke="var(--neg)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="4" r="2" fill="var(--neg)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Beef shank <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">512.0</td><td class="num mono">533.5</td>
+                <td class="num neg mono">+21.5</td><td class="num neg b6">+4.2%</td>
+                <td class="num mono">1,280.00</td><td class="num k">Rs 27,520</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,6 L11,7 L20,6 L29,8 L38,7 L47,6" fill="none" stroke="var(--fg-dim)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="6" r="2" fill="var(--fg-dim)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Basmati rice <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">1,105.0</td><td class="num mono">1,138.2</td>
+                <td class="num neg mono">+33.2</td><td class="num neg b6">+3.0%</td>
+                <td class="num mono">384.00</td><td class="num k">Rs 12,749</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,5 L11,6 L20,7 L29,7 L38,8 L47,8" fill="none" stroke="var(--fg-dim)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="8" r="2" fill="var(--fg-dim)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Onion <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">880.0</td><td class="num mono">851.6</td>
+                <td class="num mono" style="color:var(--info)">−28.4</td>
+                <td class="num b6" style="color:var(--info)">−3.2%</td>
+                <td class="num mono">96.00</td><td class="num k">−Rs 2,726</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,6 L11,7 L20,9 L29,8 L38,10 L47,11" fill="none" stroke="var(--info)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="11" r="2" fill="var(--info)"/></svg></td>
+              </tr>
+              <tr>
+                <td class="k" style="padding-left:14px">Yoghurt <span class="dim" style="font-weight:450">· kg</span></td>
+                <td class="num mono">430.0</td><td class="num mono">421.4</td>
+                <td class="num mono" style="color:var(--info)">−8.6</td>
+                <td class="num b6" style="color:var(--info)">−2.0%</td>
+                <td class="num mono">268.00</td><td class="num k">−Rs 2,305</td>
+                <td style="padding-right:14px;text-align:right">
+                  <svg width="56" height="15" viewBox="0 0 56 15" style="vertical-align:-3px">
+                    <path d="M2,7 L11,6 L20,8 L29,9 L38,9 L47,10" fill="none" stroke="var(--info)" stroke-width="1.6"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="47" cy="10" r="2" fill="var(--info)"/></svg></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="flex ac g8" style="padding:9px 14px;border-top:1px solid var(--line);
+               font-size:11px;color:var(--fg-dim)">
+            8 of 214 tracked items · <b class="mut">Rs 236,059</b> = 88% of net variance ·
+            counts signed 21:05 by Imran Qureshi
+            <span class="spacer"></span><span class="gold b6">Export variance journal →</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lbot">
+        <!-- ──────────────────────────────────────── diverging variance chart -->
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="card-h">
+            <div>
+              <div class="card-t">Variance % around recipe theoretical</div>
+              <div class="card-s">Zero = plates matched the BOM exactly</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="legend">
+              <span><i style="background:var(--neg)"></i>Over-usage</span>
+              <span><i style="background:var(--info)"></i>Under-usage</span>
+            </div>
+          </div>
+          <div class="card-b rel" style="flex:1;min-height:0">
+            <svg viewBox="0 0 426 277" width="426" height="277" role="img"
+                 aria-label="Diverging bar chart of ingredient usage variance percent against recipe theoretical">
+              <g class="gridline">
+                <line x1="112" y1="6" x2="112" y2="240"/><line x1="163.3" y1="6" x2="163.3" y2="240"/>
+                <line x1="266" y1="6" x2="266" y2="240"/><line x1="317.3" y1="6" x2="317.3" y2="240"/>
+                <line x1="368.7" y1="6" x2="368.7" y2="240"/><line x1="420" y1="6" x2="420" y2="240"/>
+              </g>
+
+              <!-- over-usage -->
+              <rect x="214.7" y="12.5" width="192.5" height="15" rx="4" fill="var(--neg)"/>
+              <rect x="214.7" y="40.5" width="179.7" height="15" rx="4" fill="var(--neg)"/>
+              <rect x="214.7" y="68.5" width="159.1" height="15" rx="4" fill="var(--neg)"/>
+              <rect x="214.7" y="96.5" width="136.0" height="15" rx="4" fill="var(--neg)"/>
+              <rect x="214.7" y="124.5" width="107.8" height="15" rx="4" fill="var(--neg)"/>
+              <rect x="214.7" y="152.5" width="77.0" height="15" rx="4" fill="var(--neg)"/>
+              <!-- under-usage -->
+              <rect x="163.4" y="180.5" width="51.3" height="15" rx="4" fill="var(--info)"/>
+              <rect x="132.6" y="208.5" width="82.1" height="15" rx="4" fill="var(--info)"/>
+
+              <!-- zero baseline (neutral) -->
+              <line x1="214.7" y1="6" x2="214.7" y2="240" stroke="rgba(255,255,255,.34)" stroke-width="1.5"/>
+
+              <!-- ingredient labels -->
+              <g class="axis" text-anchor="end" fill="#a3aab8">
+                <text x="104" y="23.5">Cooking oil</text>
+                <text x="104" y="51.5">Chicken boneless</text>
+                <text x="104" y="79.5">Mozzarella</text>
+                <text x="104" y="107.5">Mutton shoulder</text>
+                <text x="104" y="135.5">Beef shank</text>
+                <text x="104" y="163.5">Basmati rice</text>
+                <text x="104" y="191.5">Yoghurt</text>
+                <text x="104" y="219.5">Onion</text>
+              </g>
+              <!-- selective value labels, set inside the bar -->
+              <g class="axis" style="font-weight:700" fill="var(--bg)">
+                <text x="400.2" y="23.5" text-anchor="end">+7.5%</text>
+                <text x="387.4" y="51.5" text-anchor="end">+7.0%</text>
+                <text x="170.4" y="191.5">−2.0%</text>
+                <text x="139.6" y="219.5">−3.2%</text>
+              </g>
+
+              <line class="axisline" x1="112" y1="240" x2="420" y2="240"/>
+              <g class="axis" text-anchor="middle">
+                <text x="112" y="254">−4%</text><text x="163.3" y="254">−2%</text>
+                <text x="214.7" y="254">0</text><text x="266" y="254">+2%</text>
+                <text x="317.3" y="254">+4%</text><text x="368.7" y="254">+6%</text>
+                <text x="420" y="254">+8%</text>
+              </g>
+              <text class="axis" x="112" y="272" fill="#7c8494">Under-used ←</text>
+              <text class="axis" x="420" y="272" text-anchor="end" fill="#7c8494">→ Over-used (waste)</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ──────────────────────────────────────── shift × station heat grid -->
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="card-h">
+            <div>
+              <div class="card-t">Where the variance happens</div>
+              <div class="card-s">Variance value by station × shift · Rs '000</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="chip">21 days</div>
+          </div>
+          <div class="card-b rel" style="flex:1;min-height:0;padding:12px 14px">
+            <div class="hg">
+              <div class="hg-hd l"></div>
+              <div class="hg-hd">11–15</div><div class="hg-hd">15–19</div>
+              <div class="hg-hd">19–23</div><div class="hg-hd">23–01</div>
+              <div class="hg-hd">Total</div>
+
+              <div class="hg-rw">Grill &amp; Kebab <u>S2</u></div>
+              <div class="hc r2">7.4</div><div class="hc r3">11.2</div>
+              <div class="hc r5 on">62.8</div><div class="hc r3">14.9</div>
+              <div class="hg-tot">96.3</div>
+
+              <div class="hg-rw">Prep &amp; Butchery <u>S5</u></div>
+              <div class="hc r2">8.6</div><div class="hc r3">10.4</div>
+              <div class="hc r4">24.6</div><div class="hc r4">18.2</div>
+              <div class="hg-tot">61.8</div>
+
+              <div class="hg-rw">Fry &amp; Burger <u>S4</u></div>
+              <div class="hc r1">5.6</div><div class="hc r2">8.4</div>
+              <div class="hc r4">22.7</div><div class="hc r2">7.8</div>
+              <div class="hg-tot">44.5</div>
+
+              <div class="hg-rw">Karahi &amp; Curry <u>S1</u></div>
+              <div class="hc r1">4.1</div><div class="hc r2">6.3</div>
+              <div class="hc r4">18.9</div><div class="hc r1">5.2</div>
+              <div class="hg-tot">34.5</div>
+
+              <div class="hg-rw">Tandoor &amp; Naan <u>S3</u></div>
+              <div class="hc r1">4.2</div><div class="hc r2">6.7</div>
+              <div class="hc r3">12.6</div><div class="hc r2">7.8</div>
+              <div class="hg-tot">31.3</div>
+
+              <div class="hg-ft" style="justify-items:start">Shift total</div>
+              <div class="hg-tot">29.9</div><div class="hg-tot">43.0</div>
+              <div class="hg-tot" style="color:var(--fg)">141.6</div><div class="hg-tot">53.9</div>
+              <div class="hg-tot" style="color:var(--fg)">268.4</div>
+            </div>
+
+            <div class="flex ac g10" style="margin-top:11px;padding-top:9px;border-top:1px solid var(--line)">
+              <span class="f11 dim">Rs '000</span>
+              <div>
+                <div class="ramp">
+                  <i style="background:var(--r1)"></i><i style="background:var(--r2)"></i>
+                  <i style="background:var(--r3)"></i><i style="background:var(--r4)"></i>
+                  <i style="background:var(--r5)"></i>
+                </div>
+                <div class="flex" style="font-size:9px;color:var(--fg-dim);width:130px;
+                     justify-content:space-between;margin-top:2px;font-variant-numeric:tabular-nums">
+                  <span>0</span><span>6</span><span>10</span><span>16</span><span>25</span><span>65</span>
+                </div>
+              </div>
+              <span class="spacer"></span>
+              <span class="f11 dim">Evening carries <b class="mut">53%</b> of variance</span>
+            </div>
+
+            <div class="tip" style="left:128px;top:112px">
+              <div class="tip-t">Grill &amp; Kebab · 19:00–23:00 · 21 days</div>
+              <div class="tip-r"><span>Theoretical</span><b style="margin-left:6px">Rs 402,100</b>
+                <span style="margin-left:12px">Actual</span><b style="margin-left:6px">Rs 464,900</b></div>
+              <div class="tip-r"><span>Variance</span>
+                <b style="margin-left:6px;color:var(--neg)">+Rs 62,800 · +15.6%</b>
+                <span style="margin-left:12px">Share</span><b style="margin-left:6px">23.4%</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────────── AI ROOT-CAUSE PANEL -->
+    <div class="ai-band aicol">
+      <div class="ai-h flex ac g10">
+        <div class="ins-ico gold" style="width:30px;height:30px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="card-t">Root-cause analysis</div>
+          <div class="card-s">Rebuilt 21:12 from 18,412 depletion lines</div>
+        </div>
+        <div class="chip gold">3 hypotheses</div>
+      </div>
+
+      <div class="ai-sum">
+        <div><div class="l">LOCALISED</div><div class="v gold">Rs 226,200</div></div>
+        <div style="border-left:1px solid var(--line);padding-left:10px">
+          <div class="l">UNEXPLAINED</div><div class="v">Rs 42,210</div></div>
+        <div style="border-left:1px solid var(--line);padding-left:10px">
+          <div class="l">COVERAGE</div><div class="v">84%</div></div>
+      </div>
+
+      <!-- H1 -->
+      <div style="padding:11px 14px;background:rgba(240,180,41,.045)">
+        <div class="flex ac g8">
+          <span class="chip gold" style="height:19px;padding:0 6px;font-size:10px">H1</span>
+          <div class="ins-t" style="flex:1">Over-portioning — evening grill, Station 2</div>
+          <span class="impact neg">Rs 62,800</span>
+        </div>
+        <div class="ins-d" style="margin-top:5px">Median plated weight of chicken boneless is
+          <b>152 g</b> against a <b>130 g</b> spec — <b>+16.9%</b>, and only on the 19:00–23:00 shift.
+          Under-portioning never appears, so this is drift, not measurement noise.</div>
+        <div class="ins-f">
+          <span class="f11 dim">Run-rate <b class="mut">Rs 89,700 / mo</b></span>
+          <div class="spacer"></div>
+          <span class="f11 dim">Confidence</span>
+          <span class="conf"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-l">Evidence used</div>
+        <div class="er"><i class="bt"></i><div class="er-d"><b>Count cadence</b> — 14 blind counts in 21 days,
+          0 missed; last signed 21:05 by Imran Qureshi</div></div>
+        <div class="er"><i class="bt"></i><div class="er-d"><b>FEFO depletion records</b> — 18,412 recipe lines
+          from 4,206 <span class="mono" style="font-size:10px">ORDER_CLOSED</span> events</div></div>
+        <div class="er"><i class="bt"></i><div class="er-d"><b>Portion-size distribution</b> — 412 sampled plate
+          weights; evening median 152 g, p90 168 g, day median 133 g</div></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-l">Ruled out</div>
+        <div class="er"><i class="bx"></i><div class="er-d"><b>Spoilage</b> — waste log Rs 4,100 = 1.5% of variance</div></div>
+        <div class="er"><i class="bx"></i><div class="er-d"><b>Theft</b> — no count-to-count step change; 46 gate passes clean</div></div>
+        <div class="er"><i class="bx"></i><div class="er-d"><b>Supplier short-weight</b> — 3-way match clean on 46 GRNs</div></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-l">Recommended actions</div>
+        <div class="act"><span class="n">1</span><div class="er-d">
+          Scale-verified portioning at the Station 2 pass window, evening shift
+          <b class="pos"> +Rs 71,800 / mo</b></div></div>
+        <div class="act"><span class="n">2</span><div class="er-d">
+          Re-brief 3 evening grill staff against plated spec cards <b class="pos"> +Rs 12,400 / mo</b></div></div>
+        <div class="act"><span class="n">3</span><div class="er-d">
+          Tighten the chicken yield alert 5% → 3% — catches this drift 6 days earlier</div></div>
+        <div class="flex ac g8" style="margin-top:8px">
+          <span class="btn sm gold-o">Apply all 3</span>
+          <span class="btn sm ghost">Open evidence</span>
+          <span class="spacer"></span>
+          <span class="f11 dim">recovers 94%</span>
+        </div>
+      </div>
+
+      <div class="sec" style="flex:1;min-height:0">
+        <div class="sec-l">Lower-ranked hypotheses</div>
+        <div class="h2"><span class="rk">H2</span>
+          <div class="er-d" style="flex:1">Recipe BOM drift — Mutton Karahi plates at 640 g vs a 610 g spec</div>
+          <span class="f11 mut b6">Rs 24,600</span>
+          <span class="conf"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span>
+        </div>
+        <div class="h2"><span class="rk">H3</span>
+          <div class="er-d" style="flex:1">Unlogged oil top-ups at Fry — transfers not raised</div>
+          <span class="f11 mut b6">Rs 18,900</span>
+          <span class="conf"><i class="f"></i><i class="f"></i><i></i><i></i><i></i></span>
+        </div>
+      </div>
+
+      <div class="ai-f">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+        Every hypothesis links back to the rows that produced it.
+        <span class="spacer"></span>
+        <span class="gold b6">Audit log →</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('insights', ['Bayleaf Group', 'Clifton, Karachi', 'AI Insights', 'Yield Variance'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Period 1 – 21 Jul 2026 · MTD</div>`);
+</script>
+</body>
+</html>

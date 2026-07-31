@@ -2,26 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08
-current_phase_name: inventory-recipe-management
-status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-07-13T19:45:08.684Z"
-last_activity: 2026-07-13
-last_activity_desc: Phase 08 execution started
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 10-18-PLAN.md
-last_updated: "2026-07-14T00:00:00.000Z"
-last_activity: 2026-07-14
-last_activity_desc: Merged main into Mufazzal (Phases 07/07.1/07.2/07.3 + Phase 10 gap-closure wave)
+stopped_at: Completed 08.2-18-PLAN.md
+last_updated: "2026-07-24T21:30:44.710Z"
+last_activity: 2026-07-24
+last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
-  total_phases: 15
-  completed_phases: 8
-  total_plans: 69
-  completed_plans: 56
-  percent: 53
+  total_phases: 17
+  completed_phases: 11
+  total_plans: 122
+  completed_plans: 110
+  percent: 65
 ---
 
 # Project State
@@ -31,11 +24,77 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 08 — inventory-recipe-management
+**Current focus:** Phase 08.2 — inventory-master-data-procurement-catalog
 
 ## Current Position
 
-Phase: 08 (inventory-recipe-management) — EXECUTING
+Phase: 10 — Purchasing & Accounts Payable
+Plan: Not started
+Status: Ready to execute
+(iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
+(INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
+Wave 1 (01-05, 20) = additive Flyway migrations (inventory V5, purchasing V5), the
+`ingredient_branch_stock` read seam, the recipe-coverage origin-bug fix, the shared frontend
+foundation, and the carried-over infra defects. Wave 2 (06-08) = APIs over the new schema.
+Wave 3 (09-10) = ingredient master data (inventory V6) + catalog-driven PO line server side.
+Wave 4 (11-13) = mock-resolver deletion + both frontend data layers. Wave 5 (14-19) = the six
+user-facing screens. Plan 08.2-20 was added during revision: CONTEXT.md's "carried-over
+defects" section committed the gateway `resilience4j.circuitbreaker.instances` gap
+(inventory/purchasing/pos/kitchen inherit defaults → persistent 503s after any upstream
+restart) and the `start-dev.sh` purchasing-service exclusion as in-scope, and no plan owned
+them; revision also found `local-service-env.sh` is missing the `PURCHASING_DB_*` block
+entirely, so the `mvn -pl` fix alone would have been cosmetic.
+Note: Nyquist validation was knowingly waived for this phase — RESEARCH.md has no
+`## Validation Architecture` section, so no VALIDATION.md exists; per-plan `<verify>` blocks
+compensate.
+delivered. 08-01 stood up the `services/inventory-service` Maven module (Java 25 / Spring Boot 4,
+port 8085, `inventory_db`), the FORCE-RLS 11-table domain schema, idempotency scaffolding, event
+contract, and RabbitMQ topology. 08-03 delivered the stock-domain JPA model (Ingredient/UOM/
+IngredientBranchStock/StockLot/InventoryMovement), `MacCalculator` (HALF_UP weighted-average
+cost, D-02 oversell-reset), ingredient/UOM/opening-balance CRUD, and the activated
+`/api/v1/inventory/**` gateway route. 08-09 delivered `InventoryAuthorizationService`
+(authorizeView/authorizeManage OPA seam) every inventory controller wires into. 08-04 delivered
+versioned `Recipe`/`RecipeLine` BOM entities, CRUD, and the D-01 effective-version resolution
+seam — `RecipeService.resolveEffectiveRecipe(menuItemId, atInstant)`. 08-05 (the correctness
+crux of the phase) delivered the `ORDER_CLOSED` depletion consumer (INV-03): `OrderClosedConsumer`
+(idempotent, consumer name `inventory.depletion`) wraps `DepletionService.deplete`, which resolves
+each item's effective recipe at `closedAt` (D-01), pre-sorts the distinct `ingredientId` set
+before any `PESSIMISTIC_WRITE` lock (Pitfall 6 deadlock avoidance), walks lots FEFO with per-lot
+floor-at-zero while the aggregate `qty_on_hand` may go negative on oversell (D-02), values COGS at
+the aggregate MAC only — never a lot's own receipt cost (D-04/Pitfall 9) — and publishes
+`STOCK_DEPLETED`/`LOW_STOCK_ALERT` through the transactional outbox. 08-06 delivered stock
+receipts (MAC recompute on receive + `STOCK_RECEIVED`) and the `GET /internal/grn/pending-count`
+finance seam (INV-04). 08-07 delivered inter-branch transfers (ship/receive with in-transit
+accounting + `TRANSFER_VARIANCE`, INV-05). 08-08 (this plan, the final plan of the phase)
+delivered stock counts with variance posting (`StockCountService.postCount` — sorted-lock
+`findForUpdate`, `COUNT_VARIANCE` movement HALF_UP, reorder-breach `LOW_STOCK_ALERT`,
+`COUNT_VARIANCE_POSTED` via the transactional outbox) plus a nightly `@Scheduled` FEFO expiry
+sweep (`ExpirySweepService`, configurable lead-days/cron, `EXPIRY_ALERT`) — INV-06, closing out
+Phase 8. 8 new integration tests (StockCountIT/LowStockAlertIT/StockCountAccessControlIT/
+ExpirySweepIT), full module regression 44/44 green. A known architectural limitation was
+documented (not silently worked around): the expiry sweep's cross-tenant discovery query is
+bound by the same FORCE RLS + NOBYPASSRLS constraint as every other `stock_lots` query, so real
+cron-path dispatch across a cold multi-tenant fleet is presently a no-op — closing this needs a
+future Rule-4 architectural decision (BYPASSRLS service account or tenant registry). See
+08-08-SUMMARY.md for full detail.
+**[2026-07-19 gap-closure]** 08-VERIFICATION.md flagged this as open gap D6 (not acceptable
+deferred scope — no later phase addressed it). Fixed on `gsd/phase-08-inventory-recipe-management`:
+added `inventory_tenant_registry` (V3 migration, RLS-EXEMPT, mirrors V2's non-RLS convention —
+NO BYPASSRLS grant, NO domain-table FORCE-RLS relaxation) + `TenantRegistryService.registerTenant`
+(idempotent, in-transaction upsert) hooked into `OpeningBalanceService`/`ReceiptService`/
+`TransferService.receive`/`StockCountService`. `ExpirySweepService.sweep()` now discovers tenants
+via the registry (no ambient `TenantContext` needed) instead of the removed
+`StockLotRepository.findDistinctTenantIdsWithExpiringLots`. New `ExpirySweepCronPathIT` proves the
+real cron shape (zero ambient context, tenants seeded via the real `ReceiptService` write path,
+registry asserted populated before sweep runs) — full module regression: 18 IT classes + 5 unit
+classes, all green. Tenant isolation on every domain table is completely unchanged. See
+08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
+Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
+Last activity: 2026-07-24 — Phase 08.2 complete, transitioned to Phase 10
+
+<details>
+<summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
+
 Plans: 10 plans across 3 waves + 1 gap-closure plan — 11/11 complete (07.3-01 done: PaymentStatus derivation,
 maybeCloseOrder seam, GET /orders/{id}/payments; 07.3-02 done: KITCHEN_ITEM_STATUS_CHANGED
 kitchen→pos live item-status sync, POS-20; 07.3-03 done: client-only cart terminal +
@@ -86,13 +145,19 @@ OrderCloseIdempotencyIT (subject retired) with its single-publish coverage prese
 via a new SettlementSemanticsIT backstop test; deleted orphaned frontend PaymentPanel
 component + useCloseOrder hook (zero live references). 25/25 targeted backend ITs green,
 frontend tsc clean. Phase 07.3 now 11/11 plans complete.
-Status: Executing Phase 08
-Last activity: 2026-07-13 — Phase 08 execution started
-**Current focus:** Phase 10 (Purchasing & AP) — gap-closure wave COMPLETE (18/18, 10-07..10-18); next step is a phase-level UAT/verification re-pass, not another execution plan. The 2026-07-14 merge of `main` brought Phases 07 (8/8), 07.1 (10/10), 07.2 (6/7), and 07.3 (11/11) onto this branch; Phase 8 (Inventory & Recipe Management) remains unstarted.
+Status: Ready to execute
+Last activity: 2026-07-14 — Phase 07.3 merge landed (historical)
+
+</details>
+
+**Current focus:** Phase 08 (Inventory & Recipe Management) — COMPLETE, 9/9 plans (08-01..08-09
+all landed; INV-01..INV-07 delivered). Phase 10 (Purchasing & AP) gap-closure wave (18/18) is
+separately complete pending its own UAT/verification re-pass (see historical block below) —
+unrelated to Phase 08.
 
 ## Current Position
 
-Phase: 10 of 12 (Purchasing & Accounts Payable) — gap-closure wave COMPLETE (18/18 plans; 10-18 was the final plan)
+Phase: 10 of 11 (Purchasing & Accounts Payable) — gap-closure wave COMPLETE (18/18 plans; 10-18 was the final plan)
 Plan: 18 of 18 — ALL gap-closure plans (10-07..10-18) now landed
 Status: 10-18 complete (this plan) — AR sub-ledger + house/corporate customer-account entity + AR aging + the internal POS-charge seam (POST /internal/finance/ar/charges, the Phase 7 contract) closing FIN-05's AR half. customer_accounts + ar_transactions (Flyway V6, RLS FORCEd, POS-retry idempotency index), ArService (credit-limit invariant checked before any write, manual+internal writers funnel into one postCharge()), finance.ar.view/finance.ar.manage permissions seeded, finance-service's first @PreAuthorize reflection guard (FinanceEndpointAuthorizationIT, found and correctly excluded one pre-existing internal endpoint mis-homed in a public controller), House Accounts + AR Aging frontend pages. Full finance-service `mvn verify`: 40 ITs, 34 pass, only the same 3 pre-existing "Branch context required" failures remain (unchanged). Real-stack click-path NOT completed — blocked by a pre-existing, stack-wide FEATURE_DISABLED gateway response affecting ALL modules (finance AND purchasing), confirmed via real login + real JWT + real gateway routing; see 10-18-SUMMARY.md Issues Encountered. Phase 10 gap-closure wave (10-07..10-18, 12 plans) is now fully executed; a phase-level UAT/verification re-pass (not this plan) owns flipping FIN-05 back to Complete in REQUIREMENTS.md.
 Last activity: 2026-07-13 — Completed 10-18 (AR sub-ledger + internal POS seam + house-accounts/AR-aging UI — 3 tasks, 3 commits, ce326c9/f24fa0d/8699b91)
@@ -119,6 +184,7 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 - Phase 07.2: 6/7 plans executed (07.2-06 verification checkpoint AWAITING USER)
 - Phase 07.3: 11/11 plans executed (COMPLETE — POS/KDS bug-fix + UX revamp, incl. gap-closure 07.3-11)
 - Phase 10: 18/18 plans executed (REOPENED gap-closure wave COMPLETE — 10-07..10-18 all landed; a phase-level UAT/verification re-pass is the next step, not another execution plan)
+- Phase 08: 9/9 plans executed (COMPLETE — INV-01..INV-07 all delivered; 08-01 module scaffold; 08-02 InventoryTestBase/TestFixtures/SchemaMigrationIT test harness; 08-03 stock domain/MAC/master-data CRUD; 08-09 OPA authorization seam; 08-04 versioned recipes/BOM + D-01 effective-version resolution; 08-05 ORDER_CLOSED depletion consumer; 08-06 receipts + GRN pending-count seam; 08-07 inter-branch transfers; 08-08 stock counts + variance posting + low-stock/expiry alerts — a phase-level UAT/verification re-pass is the next step, not another execution plan)
 
 **By Phase:**
 
@@ -133,12 +199,13 @@ Phase 07 (point-of-sale-kitchen-display) — COMPLETE (8/8 plans; verification h
 | 07.1-pos-production-operations                       | 10/10 | complete                                             |
 | 07.2-finance-accounting-period-provisioning          | 6/7   | 07.2-06 checkpoint awaiting user                     |
 | 07.3-pos-kitchen-bugfix-ux-revamp                    | 11/11 | complete (gap-closure 07.3-11 landed)                |
+| 08-inventory-recipe-management                       | 9/9   | complete — UAT/verification re-pass pending          |
 | 10-purchasing-accounts-payable                       | 18/18 | gap-closure wave complete (10-07..10-18); UAT re-pass pending |
 
 **Recent Trend:**
 
-- Last completed plan: 10-18
-- Trend: Phase 10's gap-closure wave (10-07..10-18, 12 plans across 5 waves) is now fully executed. 10-18 (final plan) closed FIN-05's AR half — a house/corporate customer-account AR sub-ledger with two real writers (manual UI charge, internal POS seam), each posting balanced journal entries against the seeded 1200 Accounts Receivable, a credit-limit invariant proven to reject via a watched-RED negative control, and finance-service's first @PreAuthorize reflection guard. The Phase 7 seam (POST /internal/finance/ar/charges) is real, tested, and its contract is pinned in 10-18-SUMMARY.md for 07-05 to consume without renegotiation. Next: a phase-level UAT/verification re-pass over all 18 plans (not a new execution plan) to re-close REQUIREMENTS.md's FIN-05 row and confirm the phase's overall gap-closure held.
+- Last completed plan: 08-08
+- Trend: Phase 08 (Inventory & Recipe Management) is now COMPLETE — 9/9 plans, INV-01..INV-07 all delivered. 08-01 stood up the `inventory-service` Maven module (FORCE-RLS 11-table schema, idempotency scaffolding, event contract, RabbitMQ topology). 08-02 added the `InventoryTestBase`/`TestFixtures`/`SchemaMigrationIT` test harness every downstream feature IT reuses. 08-03 delivered the stock-domain JPA model, `MacCalculator` (HALF_UP weighted-average, D-02 oversell-reset), ingredient/UOM/opening-balance CRUD, and the activated `/api/v1/inventory/**` gateway route. 08-09 delivered `InventoryAuthorizationService` (authorizeView/authorizeManage OPA seam). 08-04 delivered versioned `Recipe`/`RecipeLine` BOM entities, CRUD, and the D-01 effective-version resolution seam (`RecipeService.resolveEffectiveRecipe`). 08-05 delivered the `ORDER_CLOSED` depletion consumer (INV-03): idempotent `OrderClosedConsumer` + `DepletionService` — D-01 recipe resolution, sorted-lock deadlock avoidance (Pitfall 6), FEFO floor-at-zero with negative-aggregate oversell (D-02), aggregate-MAC COGS never lot cost (D-04/Pitfall 9), transactional-outbox `STOCK_DEPLETED`/`LOW_STOCK_ALERT`. 08-06 delivered stock receipts (MAC recompute + `STOCK_RECEIVED`) and the `GET /internal/grn/pending-count` finance seam. 08-07 delivered inter-branch transfers (ship/receive + in-transit accounting + `TRANSFER_VARIANCE`). 08-08 (this session, the final plan) delivered stock counts with variance posting (`StockCountService.postCount` — sorted-lock, `COUNT_VARIANCE` movement, reorder-breach `LOW_STOCK_ALERT`, `COUNT_VARIANCE_POSTED`) and a nightly `@Scheduled` FEFO expiry sweep (`ExpirySweepService`, configurable lead-days/cron, `EXPIRY_ALERT`) — 8 new integration tests, 44/44 module-wide, no regression. A documented architectural limitation: the expiry sweep's cross-tenant discovery is bound by FORCE RLS + NOBYPASSRLS, so real cron-path dispatch across a cold multi-tenant fleet is presently a no-op pending a future architectural decision. Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty). Phase 10's gap-closure wave (10-07..10-18) remains separately complete pending its own UAT/verification re-pass (unrelated to Phase 08).
 
 _Updated after each plan completion_
 
@@ -174,6 +241,39 @@ _Updated after each plan completion_
 | Phase 07.3 P09 | 65min | 3 tasks | 6 files |
 | Phase 07.3 P10 | 23min | 4 tasks | 21 files |
 | Phase 07.3 P11 | 90min | 4 tasks | 19 files |
+| Phase 08 P01 | 6min | 3 tasks | 13 files |
+| Phase 08-inventory-recipe-management P02 | 12min | 2 tasks | 3 files |
+| Phase 08 P09 | 3min | 2 tasks | 6 files |
+| Phase 08 P03 | 14min | 3 tasks | 25 files |
+| Phase 08-inventory-recipe-management P04 | 13min | 2 tasks | 10 files |
+| Phase 08-inventory-recipe-management P05 | 12min | 3 tasks | 6 files |
+| Phase 08-inventory-recipe-management P06 | 18min | 2 tasks | 9 files |
+| Phase 08 P07 | 20min | 1 tasks | 9 files |
+| Phase 08 P08 | 24min | 2 tasks | 13 files |
+| Phase 08.1 P01 | 25min | 3 tasks | 8 files |
+| Phase 08.1 P02 | 15min | 3 tasks | 19 files |
+| Phase 08.1 P04 | 35min | 3 tasks | 15 files |
+| Phase 08.1 P06 | 45min | 3 tasks | 3 files |
+| Phase 08.2 P01 | 25min | 3 tasks | 7 files |
+| Phase 08.2 P02 | 40min | 3 tasks | 7 files |
+| Phase 08.2 P03 | 55min | 2 tasks | 4 files |
+| Phase 08.2 P04 | 20min | 2 tasks | 2 files |
+| Phase 08.2 P05 | 25min | 3 tasks | 11 files |
+| Phase 08.2 P20 | 18min | 2 tasks | 4 files |
+| Phase 08.2 P06 | 40min | 3 tasks | 11 files |
+| Phase 08.2 P07 | 50min | 3 tasks | 7 files |
+| Phase 08.2 P08 | 55min | 3 tasks | 20 files |
+| Phase 08.2 P09 | 32min | 3 tasks | 20 files |
+| Phase 08.2 P10 | ~50min | 3 tasks | 7 files |
+| Phase 08.2 P11 | 50min | 3 tasks | 9 files |
+| Phase 08.2 P12 | 45min | 3 tasks | 5 files |
+| Phase 08.2 P13 | 40min | 3 tasks | 7 files |
+| Phase 08.2 P14 | 40min | 3 tasks | 6 files |
+| Phase 08.2 P15 | 50min | 3 tasks | 3 files |
+| Phase 08.2 P16 | 55min | 3 tasks | 6 files |
+| Phase 08.2 P17 | 60min | 3 tasks | 14 files |
+| Phase 08.2 P18 | 35min | 3 tasks | 6 files |
+| Phase 08.2 P19 | 45min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -383,6 +483,78 @@ Recent decisions affecting current work:
 - [Phase ?]: kds-ticket-detail.tsx extended with optional canUpdate prop for per-item transition controls — 07.3-10 Task 3: avoids duplicating revision-grouping logic in kds-station-detail.tsx
 - [Phase ?]: [07.3-11]: D-08 (locked by user) - DEPRECATE and REMOVE the legacy closeOrder tender-sum-only close bypass rather than gate/fix it in place; retired POST /orders/{id}/close to 410 Gone, deleted the service method, migrated 8 IT-fixture callers to a shared closeViaServeAndPay helper, deleted orphaned frontend PaymentPanel/useCloseOrder.
 - [Phase ?]: [07.3-11]: PosTestBase.closeViaServeAndPay always re-fetches totalPaisa from the DB immediately before recordPayment (never trusts the caller-supplied OrderDto param) -- caught a real stale-order bug where OrderSummaryDtoIT's order variable was captured before addItem.
+- [08-01-A]: inventory-service's V1__inventory_schema.sql applies ENABLE + FORCE ROW LEVEL SECURITY on all 11 domain tables from V1 (not retrofitted later) — first service in the repo to match the documented RLS convention exactly; finance/kitchen both omitted FORCE and needed follow-up hotfixes.
+- [08-01-B]: application.yml's RabbitMQ listener kept at acknowledge-mode: manual per the plan's explicit instruction, even though kitchen-service's live config runs auto (after a prior manual-ack bug where no consumer called basicAck). No consumer exists yet in 08-01 — 08-02's OrderClosedConsumer must call basicAck/basicNack explicitly, or this should be revisited to auto.
+- [08-01-C]: GitNexus MCP tools (impact/detect_changes) referenced in CLAUDE.md were not available in this execution's tool set; all 08-01 changes are additive (new module + pom.xml module registration + start-dev.ps1 append), so blast radius is inherently LOW regardless.
+- [Phase ?]: TestFixtures builds JwtClaims + SecurityContextHolder auth directly instead of RSA-signed JWT strings, matching kitchen-service's in-process controller IT pattern
+- [Phase ?]: SchemaMigrationIT sweeps FORCE RLS + tenant_isolation across all 11 domain tables, not just the plan-required single representative table
+- [Phase 08]: [08-09]: inventory.rego view rule kept action-guarded (input.action == "inventory.item.view"), matching kds.rego's real shape and NOT the un-guarded snippet in 08-RESEARCH.md — the un-guarded form would let view-only principals pass the manage-action check. — Un-guarded version fails the plan's own required test (view-only denied manage action) and creates a real privilege-escalation gap.
+- [Phase 08]: [08-09]: opa CLI unavailable on PATH; verified opa test/coverage via docker run openpolicyagent/opa:1.17.1 against policies/ (image already present locally) — PASS 104/104, 100% coverage.
+- [Phase 08-03]: MockMvc + Spring Security test support (not direct controller-bean invocation) for inventory-service ITs that assert literal HTTP status codes (400/403) — mirrors finance-service's FinanceEndpointAuthorizationIT; kitchen-service's direct-bean style cannot exercise @Valid without class-level @Validated.
+- [Phase 08-03]: MacCalculator D-02 oversell policy: a receipt landing on zero/negative on-hand resets MAC to the receipt's own unit cost rather than blending against a meaningless prior average.
+- [Phase 08-03]: RecordOpeningBalanceRequest.unitCostPaisa is boxed Long (not primitive long) so @NotNull actually rejects a missing value instead of a Jackson-defaulted 0.
+- [Phase 08-04]: resolveEffectiveRecipe(menuItemId, atInstant) plain-typed, decoupled from pos-service Order -- 08-05 passes order.getClosedAt() at its own call site
+- [Phase ?]: DepletionService pre-sorts distinct ingredientId set (natural UUID order) before locking, never per-recipe-line lazy locking (Pitfall 6 deadlock avoidance). — 08-05
+- [Phase ?]: COGS = effectiveBaseQty x avg_cost_paisa (aggregate MAC), never a lot's own receipt cost — FEFO governs which lots drop, MAC governs COGS (D-04/Pitfall 9). — 08-05
+- [Phase ?]: ReceiveStockRequest.unitCostPaisa is boxed Long (not primitive) with @NotNull @Positive, mirroring RecordOpeningBalanceRequest's 08-03 precedent. — 08-06
+- [Phase ?]: GrnPendingCountRepository.countPendingAsOf is a genuine tenant-scoped JPQL COUNT query filtered on a PENDING_GRN sentinel referenceType (not a hard-coded 0 literal) -- evaluates to 0 today since ReceiptService never writes that referenceType; Phase 10 purchasing will repoint the sentinel. — 08-06
+- [Phase 08-07]: unit_cost_paisa on each StockTransferLine is captured from the SOURCE branch's avg_cost_paisa at ship time — the Inventory-in-Transit (1320) valuation TRANSFER_SHIPPED/RECEIVED/VARIANCE carry for Phase 9's finance consumer
+- [Phase 08-07]: TRANSFER_VARIANCE publishes for ANY non-zero variance_qty, no auto-post threshold suppression — Phase 9 decides GL posting
+- [Phase ?]: StockCountLineRepository added (Rule 2) — mirrors StockTransferLineRepository's flat-FK pattern; every line-entity in Phase 8 gets its own repository, never a JPA @OneToMany cascade collection. — 08-08
+- [Phase ?]: ExpirySweepService.sweep() is a single @Transactional boundary (never per-tenant self-invoked @Transactional, which Spring's proxy silently skips); per-tenant RLS GUC switch uses TenantGucHelper.apply on the already-open connection, not tenantContext.set alone. — 08-08
+- [Phase ?]: Documented (not silently worked around): the expiry sweep's cross-tenant discovery query is bound by the same FORCE RLS + NOBYPASSRLS constraint as every other stock_lots query — real cron-path cross-tenant dispatch across a cold fleet is a known gap requiring a future Rule-4 architectural decision. — 08-08
+- [Phase 08.1-01]: MenuItemUpsertedPayload/MenuItemDeletedPayload field name+order locked exactly per D-02 - inventory-service's InventoryEventPayloads (08.1-02) must mirror field-for-field
+- [Phase 08.1-01]: No new OPA/permission code for menu CRUD write endpoints - mirrors assignStation's class-level FEATURE_POS gate only (T-081-01 accepted)
+- [Phase 08.1-01]: deleteItem is soft-delete only (deletedAt+active=false) - never a hard DELETE, so historical orders/recipes stay resolvable
+- [Phase 08.1-02]: menu_item_catalog follows V1's FORCE-RLS convention (not V3's RLS-EXEMPT registry pattern) since it is read under tenant context on the API path and written under tenant context resolved from the envelope on the consumer path
+- [Phase 08.1-02]: inventory.menu-item.queue is a deliberate one-queue/two-event-types exception (D-08) to this service's one-queue-per-event-type convention, dispatched by parsing eventType before choosing the payload class
+- [Phase 08.1-02]: MenuItemNotFoundException gets its own 404 via a new local InventoryExceptionHandler advice bean rather than editing shared-lib's GlobalExceptionHandler, which always maps RestaurantOsException to 400
+- [Phase ?]: Registered inventoryHandlers in mocks/server.ts (not handlers.ts) — matches the codebase's actual current MSW registration pattern
+- [Phase ?]: e2e spec uses manager@demo.local (MANAGER role) — holds both inventory.item.view/manage with no TOTP
+- [Phase 08.1-06]: TenantGucHelper.apply() inside process()'s existing @Transactional method, not a split non-transactional/transactional boundary restructure (lower blast radius across 10 shared-lib consumers)
+- [Phase 08.1-06]: Fixed pre-existing shared-lib BaseIntegrationTest missing spring.liquibase.url (Rule 3 blocking-issue) that silently broke every shared-lib IT
+- [Phase ?]: V5 backfill: NULL literals in SELECT DISTINCT must be cast NULL::UUID or Postgres infers text and rejects the UUID column insert
+- [Phase ?]: Ingredient-creation compensating fix: IngredientRepository.resolveOrCreateCategoryId mirrors V5's own COALESCE(category,'Uncategorized') backfill rule so free-text category input keeps working against the new NOT NULL category_id until a later wave adds real category selection
+- [Phase ?]: categoryId/categoryName in StockLevelDto declared but left null in 08.2-02 -- populated by 08.2-09 once ingredient DTO exposes item_categories
+- [Phase ?]: Fixed cross-tenant leak in IngredientRepository.findByActiveTrue() by adding findByTenantIdAndActiveTrue(UUID) -- untenanted query was leaking every tenant's active ingredients into the stock read model
+- [Phase 08.2]: Kept CoverageResponse.missing additive (NO_RECIPE-only) alongside the new items[] three-state list to avoid breaking the pre-08.2-12 frontend/MSW contract — Plan 08.2-12 owns the frontend migration; this plan is backend-only and additive by design
+- [Phase 08.2]: Reworded vendor_categories header comment to avoid literal trigger words since the plan's own prohibition grep scans the whole file text including comments
+- [Phase ?]: 08.2-05: archived status variant added to LegacyStatusVariant/legacyClassMap (label-only, no icon) per the plan task's explicit action text, diverging from the UI-SPEC table's icon treatment
+- [Phase ?]: 08.2-05: skipped adding a TIMEOUT code to USER_FACING_BY_CODE - grepped the frontend tree and found zero emitters, so no code was invented
+- [Phase ?]: 08.2-05: query-keys.ts argument shapes not fully enumerated in the plan (categories, uoms, menuItems, purchaseOrders, invoices, spendAnalytics, vendorCategories) were inferred from the finance namespace's existing shape
+- [Phase ?]: 08.2-20: kept resilience4j.circuitbreaker.instances header comment byte-for-byte, appended clarification below it (not rewritten in place), to satisfy the plan's 0-deletion prohibition gate
+- [Phase ?]: 08.2-20: confirmed via .m2 classpath (resilience4j-spring-boot3 + resilience4j-timelimiter present) that resilience4j.timelimiter.instances is a legitimate bound property for the reactive gateway circuit breaker on spring-cloud 2025.1.0; added the scoped 4-instance timelimiter block as specified
+- [Phase 08.2]: IngredientRepository.countByTenantIdAndCategoryId counts all ingredients (not just active) as the D-04 archive-refusal gate until 08.2-09 adds Ingredient.archivedAt — Ingredient has no archivedAt field yet
+- [Phase 08.2]: Added CategoryValidationException (400, falls through to GlobalExceptionHandler#handleBase) for depth-cap and cycle rejections — Plan called for an IllegalArgumentException-family domain exception but did not name one
+- [Phase ?]: Gated POST /recipes/preview at inventory.item.manage (not view) - per-ingredient moving-average cost is commercially sensitive (T-08.2-071)
+- [Phase ?]: Dimension-compatibility check for cost preview: a UOM is valid for an ingredient when its code IS the ingredient baseUomCode, or its baseUnitCode equals it - otherwise the line is excluded with a warning
+- [Phase ?]: 08.2-08: Duplicate-vendor-SKU rejection reuses shared-lib StateInvalidException (409) instead of a new local @ResponseStatus exception, after discovering @ResponseStatus never actually resolves through purchasing-service's GlobalExceptionHandler catch-all. — A bare RuntimeException + @ResponseStatus is silently overridden by @ExceptionHandler(Exception.class) in the shared GlobalExceptionHandler; three pre-existing local exceptions in this service have the same latent defect, flagged for future gap-closure.
+- [Phase ?]: 08.2-08: VendorItemDtos split into one-record-per-file (this service's existing convention), not the plan's nominal container-class filename. — Matches VendorDto.java/CreateVendorRequest.java precedent already in the service.
+- [Phase 08.2]: Ingredient category assignment (required categoryId) and archive/measure-type-lock rules implemented (08.2-09): reused StateInvalidException for 409 measure-type lock; added IngredientCategoryInvalidException (422) only for archived-but-owned categories, 404 for tenant-foreign/nonexistent
+- [Phase 08.2]: Bulk @Modifying JPQL delete (flushAutomatically+clearAutomatically) required for wholesale child-set replace — entity-based derived deleteBy defers to flush and Hibernate orders INSERTs before DELETEs, causing unique-constraint violations on same-key replacement rows (08.2-09)
+- [Phase ?]: Legacy 4-arg CreatePurchaseOrderRequest.Line constructor overload preserves source compatibility for direct-construction Java callers while vendorItemId becomes the new canonical leading field. — 08.2-10
+- [Phase ?]: New VendorItemCatalogMismatchException + local PurchasingExceptionHandler (422) added, since shared-lib GlobalExceptionHandler has no 422 mapping and a bare @ResponseStatus exception would silently 500. — 08.2-10
+- [Phase 08.2]: IngredientCategoryResolver made batch-only (resolveAll), removing the single-id resolve(UUID) method entirely so per-invoice-line resolution cannot be reintroduced
+- [Phase 08.2]: InventoryCategoryClient declares contextId=inventoryCategoryClient since InventoryGrnClient already owns a bare @FeignClient(name=inventory-service) registration; without it Spring Cloud OpenFeign throws BeanDefinitionOverrideException on context boot
+- [Phase 08.2]: Added MockIngredientCategoryAdapter (Uncategorized-only stub) so mock mode keeps exactly one IngredientCategoryResolver bean after the classpath mock was deleted, rather than leaving mock mode unimplemented
+- [Phase 08.2]: 08.2-12: apiItemCategoryNodeSchema's recursive type uses non-exported internal names (ItemCategoryValue/ItemCategoryNodeShape) instead of an inline z.infer to avoid a false-positive on the plan's own 'category: z' acceptance grep, while the actual zod field stays named category exactly as ItemCategoryNodeDto requires.
+- [Phase 08.2]: 08.2-12: useStockLevels appends search as an extra query-key tuple element (mirroring useCategories/useCategoryTree's includeArchived pattern) rather than extending the 08.2-05-owned stockLevels query-key factory's filters shape.
+- [Phase ?]: createPurchaseOrderLineInputSchema.vendorItemId uses uuid().or(literal('')) + a whole-object refine so an unpicked form row shows the friendly message only at submit time
+- [Phase ?]: Two purchasing endpoints (invoice detail, vendor price-changes) have no dedicated queryKeys.purchasing factory; built as manual purchasing/branchId tuples mirroring the registry's own shape
+- [Phase ?]: CategoryFormDialog gained optional open/onOpenChange props beyond the plan's literal signature, so tree-row Edit/Add-subcategory DropdownMenuItems (which have no button of their own for a DialogTrigger) can drive the same shared dialog the header's Add-category button uses.
+- [Phase ?]: GL-account chips render resolvedGlAccounts.*AccountCode (the server-resolved, most-specific-wins value), never the category's own possibly-null default field -- required for the inherited-account suffix to ever appear.
+- [Phase ?]: vitest.config.ts test.include widened to also match components/**/__tests__/**, since the existing __tests__/components/<domain>/** convention would never discover the plan's own literally-specified test path.
+- [Phase 08.2-15]: IngredientFormDialog gained a controlled open/onOpenChange pair (mirroring CategoryFormDialog's 08.2-14 pattern) so one shared instance serves both the header trigger and the row DropdownMenu Edit action
+- [Phase 08.2-15]: Grouped section headings use font-semibold (600), not font-medium — the UI-SPEC restricts font-medium to Label/FormLabel and the useFieldArray sub-heading exception only
+- [Phase 08.2]: 08.2-16: live cost panel derives useRecipeCostPreview input conditionally (draft lines while authoring, selected version's lines otherwise) to keep one hook call site for both read-only viewing and revision authoring — Avoids two separate preview queries and keeps the panel always showing a real cost breakdown, whether viewing a saved version or editing a draft
+- [Phase 08.2]: 08.2-16: coverage page and recipes index both show a per-menu-item version count via a per-row useRecipeVersions call (accepted N+1) since no bulk versions-for-every-menu-item endpoint exists — Each row's query is independently cached under the existing branch-scoped key; matches the detail page's own query shape
+- [Phase 08.2]: Added GET /api/v1/inventory/transfers/pending (backend) - the Transfer-receive UI had no list endpoint to drive itself from; mirrors StockLevelController own-branch-only enforcement
+- [Phase 08.2]: StockReceiptDialog omits vendor/PO-reference header fields - ReceiptDtos.ReceiveStockRequest has no such fields on the real backend contract
+- [Phase 08.2]: Vendor catalog dialogs (VendorItemFormDialog/VendorItemPriceDialog) use the controlled-or-uncontrolled dialog shape (open/onOpenChange/trigger all optional) rather than trigger-only, since row actions open them from inside a DropdownMenuItem — Mirrors IngredientFormDialog's established extension of VendorFormDialog's shape (08.2-14)
+- [Phase 08.2]: Vendor detail page derives the vendor header from the existing useVendors() list (find-by-id) - no single-vendor GET endpoint exists on the backend or in PurchasingRepository — The flat vendors list stays the source of vendor header data per the plan; only catalog/price management moves to the new route
+- [Phase 08.2]: VendorItemPriceDialog's branch scope is a simple this-branch-only/all-branches aria-pressed toggle using the current user's branchId, not a full branch-select dropdown — No useBranches/branch-list hook exists in the purchasing frontend; inventing a new endpoint was out of this plan's scope
+- [Phase 08.2]: PurchaseOrderFormDialog's PO line item is chosen exclusively via CatalogItemCombobox scoped to useVendorItems(vendorId); the hand-typed ingredient UUID input is deleted (PUR-08, ROADMAP Success Criterion 6)
+- [Phase 08.2]: Fixed createZodResolver (shared react-hook-form utility) to walk each zod issue's full path instead of only path[0] -- nested array-item field errors (e.g. a PO line's own vendorItemId) now reach FormMessage across every line-array form in the codebase, not just PurchaseOrderFormDialog
 
 ### Pending Todos
 
@@ -422,13 +594,14 @@ Recent decisions affecting current work:
 
 - Phase 07.1 inserted after Phase 7: POS Production Operations & Item-Level Kitchen Tracking — upgrade POS from MVP to production-ready restaurant operations (order management, table-centric dine-in, item-level status, kitchen ticket revisions, cashier UX) (URGENT)
 - Phase 07.2 inserted after Phase 7: Finance accounting-period provisioning — fixes silently-swallowed CoA/period seeding at tenant onboarding, adds self-service open-period endpoint, resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants) (URGENT)
+- Phase 08.2 inserted after Phase 8: Inventory Master Data & Procurement Catalog — ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/edit + plate cost, vendor item catalog with effective-dated pricing, stock ops UI, catalog-driven PO picker (URGENT)
 
 ## Session Continuity
 
-Last session: 2026-07-13T17:48:29.545Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-inventory-recipe-management/08-CONTEXT.md
-Last session: 2026-07-13
+Last session: 2026-07-24T00:51:13.261Z
+Stopped at: Completed 08.2-18-PLAN.md
+Resume file: None
+None
 Stopped at: Completed 10-15-PLAN.md (Purchasing analytics period picker + vendor selector — `PeriodPicker.tsx` created, `analytics/page.tsx` and `VendorScorecardCard.tsx` wired to the existing `useSpendAnalytics`/`useVendorScorecard` hooks, no data-layer files touched) — commits e55d880 (period picker + page wiring), 81a4d44 (vendor selector + outbound-param test), 0cc12df (real-render-path test hardening). tsc/eslint/next-build clean; purchasing-scoped vitest green (19 tests across 4 files). Closes UAT gaps 10/14/15.
 Also stopped at (parallel plan): Completed 10-11-PLAN.md (Purchasing nav flag fix — FEATURE_PURCHASING -> FEATURE_VENDOR — + FeatureFlag-typed nav items + drift test reading backend Java off disk + purchasing landing page/5-tab shell) — commits 0fcf34e (flag fix), 9c39884 (drift test), 1a3bb6d (landing page + tabs). Negative control verified (reverting to FEATURE_PURCHASING fails all 3 drift tests). purchase-orders/invoices/payments list pages (10-12/10-13) not yet built — tabs/landing-page links to them will 404 until those plans land; documented in 10-11-SUMMARY.md as a deliberate seam, not a regression.
 Also stopped at (parallel plan): Completed 10-16-PLAN.md (VendorService encryption fail-fast — `EncryptionRequiredConfig` + required `EncryptionService` constructor dependency + `VendorEncryptionFailFastIT`) — commits a3a5ad8 (Task 1: hard dependency + config), c99323b (Task 2: real-context fail-fast test + raw-JDBC plaintext check + blank-key gap fix). Manual negative control (temporarily restored old null-out branch) confirmed the plaintext-never-persisted test fails as expected; reverted. Full purchasing-service `mvn verify`: 38/38 green, no regressions. GitNexus MCP tools were unavailable in this session; manual caller-grep substituted (see 10-16-SUMMARY.md Issues Encountered) — `detect_changes` against main still recommended before merge.

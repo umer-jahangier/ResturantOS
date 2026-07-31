@@ -1,0 +1,219 @@
+"use client";
+
+import { useState } from "react";
+import { AlertTriangle, XCircle } from "lucide-react";
+
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
+import { useCategories, useStockLevels } from "@/lib/hooks/inventory/use-inventory";
+import { useDebouncedValue } from "@/lib/hooks/use-debounce";
+import type { StockLevel } from "@/lib/adapters/inventory.adapter";
+import { OpeningBalanceDialog } from "@/components/inventory/OpeningBalanceDialog";
+import { StockReceiptDialog } from "@/components/inventory/StockReceiptDialog";
+import { StockTransferDialog } from "@/components/inventory/StockTransferDialog";
+import { StockCountDialog } from "@/components/inventory/StockCountDialog";
+import { PermissionGuard } from "@/components/shared/permission-guard";
+import { DataTable, type ColumnDef } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { MoneyDisplay } from "@/components/ui/money-display";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+const selectClass =
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+const EMPTY_TITLE = "No stock recorded yet";
+const EMPTY_BODY = "Record an opening balance to start tracking on-hand quantities for this branch.";
+
+/**
+ * Row wash — reads the server-decided `belowReorderPoint`/`nonPositive` flags only; `qtyOnHand`
+ * is never compared against `reorderPoint` in the browser (T-08.2-173, this phase's own origin
+ * bug was exactly this class of frontend/backend divergence). Destructive wins when both flags
+ * are set, mirroring `CustomerAccountRow`'s over-limit pattern (house-accounts/page.tsx:20-24).
+ */
+function rowClassName(row: StockLevel): string | undefined {
+  return cn(row.belowReorderPoint && "bg-warning/10", row.nonPositive && "bg-destructive/10");
+}
+
+/** Colour is never the sole signal (T-08.2-175) — every washed row also gets an icon + a text
+ * label via StatusBadge (the legacy warning/error variants render label-only, so the icon is
+ * composed alongside rather than forking status-badge.tsx, which this plan does not own). */
+function RiskChip({ row }: { row: StockLevel }) {
+  if (row.nonPositive) {
+    return (
+      <span className="inline-flex items-center gap-1 text-destructive">
+        <XCircle className="size-3.5" aria-hidden="true" />
+        <StatusBadge status="error" label="Out of stock" />
+      </span>
+    );
+  }
+  if (row.belowReorderPoint) {
+    return (
+      <span className="inline-flex items-center gap-1 text-warning">
+        <AlertTriangle className="size-3.5" aria-hidden="true" />
+        <StatusBadge status="warning" label="Below reorder point" />
+      </span>
+    );
+  }
+  return <span className="text-xs text-muted-foreground">—</span>;
+}
+
+// URL: /app/inventory/stock — INV-15 item 8: on-hand stock per branch (a real read endpoint,
+// plan 08.2-02) plus entry points to the four write operations (opening balance/receipt/transfer/
+// count) that existed API-only since Phase 8. Section tabs are owned by inventory/layout.tsx
+// (08.2-14) and are not touched here.
+export default function StockPage() {
+  const { branchId } = useCurrentUser();
+  const { data: branches } = useMyBranches();
+  const { data: categories } = useCategories();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [openingBalanceOpen, setOpeningBalanceOpen] = useState(false);
+
+  const { data, isLoading, isError } = useStockLevels(debouncedSearch.trim() || undefined);
+
+  const branchName = (branches ?? []).find((b) => b.id === branchId)?.name ?? "this branch";
+  const activeCategories = (categories ?? []).filter((c) => c.archivedAt == null);
+
+  const allRows = data?.items ?? [];
+  const rows = categoryFilter ? allRows.filter((r) => r.categoryId === categoryFilter) : allRows;
+
+  const columns: ColumnDef<StockLevel, unknown>[] = [
+    {
+      accessorKey: "ingredientName",
+      header: "Ingredient",
+      cell: ({ row }) => (
+        <div>
+          <div>{row.original.ingredientName}</div>
+          {row.original.sku ? (
+            <div className="text-xs text-muted-foreground">{row.original.sku}</div>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "categoryName",
+      header: "Category",
+      cell: ({ row }) => row.original.categoryName ?? "—",
+    },
+    {
+      accessorKey: "qtyOnHand",
+      header: "On hand",
+      cell: ({ row }) => `${row.original.qtyOnHand} ${row.original.baseUomCode}`,
+    },
+    {
+      accessorKey: "reorderPoint",
+      header: "Reorder point",
+    },
+    {
+      accessorKey: "avgCostPaisa",
+      header: "Avg cost",
+      cell: ({ row }) => <MoneyDisplay paisa={row.original.avgCostPaisa} />,
+    },
+    {
+      accessorKey: "stockValuePaisa",
+      header: "Stock value",
+      cell: ({ row }) => <MoneyDisplay paisa={row.original.stockValuePaisa} />,
+    },
+    {
+      accessorKey: "lastCountedAt",
+      header: "Last counted",
+      cell: ({ row }) =>
+        row.original.lastCountedAt ? new Date(row.original.lastCountedAt).toLocaleDateString() : "Never",
+    },
+    {
+      id: "risk",
+      header: "Status",
+      cell: ({ row }) => <RiskChip row={row.original} />,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Stock</h1>
+          <p className="text-sm text-muted-foreground">On-hand quantities and value at {branchName}.</p>
+        </div>
+        <PermissionGuard require="inventory.item.manage">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpeningBalanceOpen(true)}>
+              Opening balance
+            </Button>
+            <StockReceiptDialog
+              trigger={
+                <Button type="button" variant="outline">
+                  Receipt
+                </Button>
+              }
+            />
+            <StockTransferDialog
+              trigger={
+                <Button type="button" variant="outline">
+                  Transfer
+                </Button>
+              }
+            />
+            <StockCountDialog trigger={<Button type="button">Count</Button>} />
+          </div>
+        </PermissionGuard>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-[200px] flex-1">
+          <Input
+            placeholder="Search by name or SKU…"
+            aria-label="Search stock"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <select
+          aria-label="Filter by category"
+          className={selectClass}
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        >
+          <option value="">All categories</option>
+          {activeCategories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {isError ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/15 p-4 text-sm text-destructive">
+          Inventory is temporarily unavailable. Try again in a moment.
+        </p>
+      ) : isLoading ? (
+        <DataTable columns={columns} data={[]} isLoading />
+      ) : rows.length === 0 ? (
+        <PermissionGuard
+          require="inventory.item.manage"
+          fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
+        >
+          <EmptyState
+            title={EMPTY_TITLE}
+            description={EMPTY_BODY}
+            action={{ label: "Record opening balance", onClick: () => setOpeningBalanceOpen(true) }}
+          />
+        </PermissionGuard>
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            Total stock value: <MoneyDisplay paisa={data?.totalStockValuePaisa ?? 0} />
+          </p>
+          <DataTable columns={columns} data={rows} rowClassName={rowClassName} />
+        </>
+      )}
+
+      <OpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} />
+    </div>
+  );
+}

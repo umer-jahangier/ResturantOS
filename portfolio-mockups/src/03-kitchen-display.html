@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kitchen Display — Clifton</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .kpis { grid-template-columns: repeat(5, 1fr); flex: none; }
+  .kpi { padding: 10px 13px; }
+  .kpi-v { font-size: 22px; margin-top: 3px; }
+  .kpi-d { margin-top: 4px; }
+
+  /* ---- AI bottleneck band ---- */
+  .aib { flex: none; display: flex; align-items: stretch; gap: 12px; padding: 11px 13px; }
+  .loads { display: grid; grid-template-columns: auto 78px 34px; gap: 3px 9px; align-items: center;
+           padding-left: 13px; border-left: 1px solid var(--line); flex: none; }
+  .loads span { font-size: 11px; color: var(--fg-mut); font-weight: 550; }
+  .loads b { font-size: 11px; font-variant-numeric: tabular-nums; text-align: right;
+             font-weight: 620; }
+
+  /* ---- board ---- */
+  .board { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px;
+           flex: 1; min-height: 0; }
+  .stn { display: flex; flex-direction: column; }
+  .tklist { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; padding: 10px; }
+  .tk { flex: 0 0 auto; min-height: 0; display: flex; flex-direction: column;
+        border-radius: 9px; background: var(--elev); border: 1px solid var(--line);
+        border-left: 3px solid var(--pos); overflow: hidden; }
+  .tk.amb { border-left-color: var(--warn); }
+  .tk.late { border-left-color: var(--neg); border-color: rgba(248,113,113,.24);
+             background: rgba(248,113,113,.055); }
+  .tk-h { display: flex; align-items: center; gap: 6px; padding: 7px 9px;
+          border-bottom: 1px solid var(--line); background: rgba(255,255,255,.022); }
+  .tk-n { font-size: 12.5px; font-weight: 680; letter-spacing: -.02em; }
+  .tk-w { font-size: 10.5px; color: var(--fg-dim); font-weight: 500; }
+  .tk-t { margin-left: auto; font-size: 13.5px; font-weight: 720; letter-spacing: -.03em;
+          font-variant-numeric: tabular-nums; color: var(--pos); }
+  .tk.amb .tk-t { color: var(--warn); }
+  .tk.late .tk-t { color: var(--neg); }
+  .it { display: flex; gap: 7px; padding: 6.5px 9px; align-items: center; flex: 1 1 auto; }
+  .it .q { font-size: 11.5px; font-weight: 720; color: var(--fg-dim); width: 15px; flex: none;
+           font-variant-numeric: tabular-nums; }
+  .it .n { font-size: 12.5px; font-weight: 570; letter-spacing: -.01em; line-height: 1.3; }
+  .it .mod { font-size: 10.5px; color: var(--warn); margin-top: 1px; }
+  .it .mod.plain { color: var(--fg-dim); }
+  .st { margin-left: auto; flex: none; height: 16px; padding: 0 5px; border-radius: 4px;
+        font-size: 9px; font-weight: 720; letter-spacing: .06em; display: flex;
+        align-items: center; }
+  .st.n { background: var(--hover); color: var(--fg-mut); }
+  .st.c { background: var(--warn-soft); color: var(--warn); }
+  .st.r { background: var(--pos-soft); color: var(--pos); }
+  .tk-f { margin-top: auto; display: flex; align-items: center; gap: 6px; padding: 5.5px 9px;
+          border-top: 1px solid var(--line); font-size: 10px; color: var(--fg-dim); }
+  .bump { margin-left: auto; height: 19px; padding: 0 8px; border-radius: 5px; display: flex;
+          align-items: center; font-size: 9.5px; font-weight: 720; letter-spacing: .06em;
+          background: var(--hover); border: 1px solid var(--line-2); color: var(--fg-mut); }
+  .tk.late .bump { background: var(--neg-soft); border-color: rgba(248,113,113,.3); color: var(--neg); }
+  .stn-f { padding: 7px 11px; border-top: 1px solid var(--line); font-size: 10.5px;
+           color: var(--fg-dim); display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ────────────────────────────────────────────────────────── live metrics -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-l">Tickets open</div>
+      <div class="kpi-v">7 <small>/ 13 station cards</small></div>
+      <div class="kpi-d"><span class="chip" style="height:19px;padding:0 6px;font-size:10.5px">2 fired &lt; 5 min</span>
+        <span>1 past SLA</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Avg ticket time</div>
+      <div class="kpi-v">11:42 <small>/ 14:00 SLA</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ 1:08</span>
+        <span>vs last Fri</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">On time</div>
+      <div class="kpi-v">91.4<small>%</small></div>
+      <div class="kpi-d"><span class="chip warn" style="height:19px;padding:0 6px;font-size:10.5px">▼ 2.6pp</span>
+        <span>target 94.0%</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Longest waiting</div>
+      <div class="kpi-v neg">16:42 <small>#8849 · T7</small></div>
+      <div class="kpi-d"><span class="chip neg" style="height:19px;padding:0 6px;font-size:10.5px">SLA breached</span>
+        <span>held on Grill</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Cooks on line</div>
+      <div class="kpi-v">7 <small>/ 4 stations</small></div>
+      <div class="kpi-d"><span>Grill 2 · Curry 2 · Fry 2 · Cold 1</span></div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── AI bottleneck prediction -->
+  <div class="ai-band aib">
+    <div class="ins-ico gold" style="width:30px;height:30px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+        stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+    </div>
+    <div class="ins-body">
+      <div class="ins-t">Bottleneck predicted — Grill breaches SLA in ~8 min
+        <span class="chip neg" style="height:18px;padding:0 6px;font-size:10px">Act now</span></div>
+      <div class="ins-d" style="margin-top:2px">
+        <b>6 NEW grill items</b> queued against <b>2 cooks</b> at 3.1 min/item observed throughput —
+        ticket <b>#8854 (T10)</b> would plate at <b>15:20</b>, past the 14:00 SLA, and #8856 delivery
+        would miss its rider window. Fry is running at 41% load with a free hand.</div>
+      <div class="ins-f">
+        <span class="impact neg">Rs 18,400 at risk</span>
+        <span class="dim" style="font-size:11px">· 3 tables would cross 14 min · 1 delivery SLA</span>
+        <span class="ins-why" style="margin-left:12px">Basis: 612 grill tickets / 4 weeks · live station load</span>
+        <div class="spacer"></div>
+        <span class="conf" title="confidence 4 of 5"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+        <span class="btn sm gold-o">Route Seekh + Reshmi to Fry</span>
+        <span class="btn sm ghost">Dismiss</span>
+      </div>
+    </div>
+    <div class="loads">
+      <span>Grill</span><div class="bar"><i style="width:92%"></i></div><b>92%</b>
+      <span>Curry</span><div class="bar"><i style="width:68%"></i></div><b>68%</b>
+      <span>Fry</span><div class="bar"><i style="width:41%"></i></div><b>41%</b>
+      <span>Cold</span><div class="bar"><i style="width:24%"></i></div><b>24%</b>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────── station board -->
+  <div class="board">
+
+    <!-- GRILL -->
+    <div class="card stn">
+      <div class="card-h" style="padding:9px 11px">
+        <div>
+          <div class="card-t">Grill</div>
+          <div class="card-s">2 cooks · 6 queued items</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip neg">92% load</div>
+      </div>
+      <div class="tklist">
+        <div class="tk late" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8849</span><span class="tk-w">T7 · 4 cov</span>
+            <span class="tk-t">16:42</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Chicken Malai Boti</div><div class="mod">no green chilli</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Seekh Kebab (6 pc)</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:24 · expo hold<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk amb" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8851</span><span class="tk-w">T2 · 2 cov</span>
+            <span class="tk-t">12:18</span>
+          </div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Bihari Kebab</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Tandoori Chicken ½</div><div class="mod plain">16 min prep</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="tk-f">fired 21:29<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8854</span><span class="tk-w">T10 · 5 cov</span>
+            <span class="tk-t">6:12</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Chicken Tikka Boti</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Reshmi Kebab</div><div class="mod">extra spicy</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:35<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8856</span><span class="tk-w">DL-77 · rider 21:52</span>
+            <span class="tk-t">2:28</span>
+          </div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Malai Boti Roll</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Beef Seekh Roll</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:39<span class="bump">BUMP</span></div>
+        </div>
+      </div>
+      <div class="stn-f">Bumped 26 this hour · avg 12:10</div>
+    </div>
+
+    <!-- CURRY -->
+    <div class="card stn">
+      <div class="card-h" style="padding:9px 11px">
+        <div>
+          <div class="card-t">Curry</div>
+          <div class="card-s">2 cooks · 3 queued items</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip warn">68% load</div>
+      </div>
+      <div class="tklist">
+        <div class="tk late" style="flex-grow:3">
+          <div class="tk-h">
+            <span class="tk-n mono">#8849</span><span class="tk-w">T7 · 4 cov</span>
+            <span class="tk-t">16:42</span>
+          </div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Beef Nihari</div><div class="mod plain">held 3:05 for grill</div></div>
+            <span class="st r">READY</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Mutton Karahi ½ kg</div><div class="mod">less oil</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Chicken Handi</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="tk-f">fired 21:24 · expo hold<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk amb" style="flex-grow:3">
+          <div class="tk-h">
+            <span class="tk-n mono">#8852</span><span class="tk-w">T16 · 6 cov</span>
+            <span class="tk-t">10:05</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Daal Makhani</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Chicken Karahi 1 kg</div><div class="mod">extra karak, no capsicum</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Palak Gosht</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:31<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk" style="flex-grow:3">
+          <div class="tk-h">
+            <span class="tk-n mono">#8855</span><span class="tk-w">T4 · 3 cov</span>
+            <span class="tk-t">4:03</span>
+          </div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Chicken Malai Handi</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Achari Chicken</div><div class="mod">medium spice</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Beef Nihari</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="tk-f">fired 21:37<span class="bump">BUMP</span></div>
+        </div>
+      </div>
+      <div class="stn-f">Bumped 21 this hour · avg 10:35</div>
+    </div>
+
+    <!-- FRY -->
+    <div class="card stn">
+      <div class="card-h" style="padding:9px 11px">
+        <div>
+          <div class="card-t">Fry</div>
+          <div class="card-s">2 cooks · 3 queued items</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip pos">41% load</div>
+      </div>
+      <div class="tklist">
+        <div class="tk amb" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8851</span><span class="tk-w">T2 · 2 cov</span>
+            <span class="tk-t">12:18</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Chapli Kebab</div><div class="mod">no green chilli</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Masala Fries</div></div>
+            <span class="st r">READY</span></div>
+          <div class="tk-f">fired 21:29<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk amb" style="flex-grow:3">
+          <div class="tk-h">
+            <span class="tk-n mono">#8853</span><span class="tk-w">TA-114 · pickup</span>
+            <span class="tk-t">8:40</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Zinger Burger</div><div class="mod">1 without mayo</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Loaded Fries</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Chicken Wings (8 pc)</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:33<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8856</span><span class="tk-w">DL-77 · rider 21:52</span>
+            <span class="tk-t">2:28</span>
+          </div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Zinger Burger</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Regular Fries</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="tk-f">fired 21:39<span class="bump">BUMP</span></div>
+        </div>
+      </div>
+      <div class="stn-f">Bumped 19 this hour · avg 7:05</div>
+    </div>
+
+    <!-- COLD & DESSERTS -->
+    <div class="card stn">
+      <div class="card-h" style="padding:9px 11px">
+        <div>
+          <div class="card-t">Cold &amp; Desserts</div>
+          <div class="card-s">1 cook · 6 queued items</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip pos">24% load</div>
+      </div>
+      <div class="tklist">
+        <div class="tk amb" style="flex-grow:3">
+          <div class="tk-h">
+            <span class="tk-n mono">#8852</span><span class="tk-w">T16 · 6 cov</span>
+            <span class="tk-t">10:05</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Mint Margarita</div></div>
+            <span class="st r">READY</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Kashmiri Chai</div><div class="mod plain">brew 4 min</div></div>
+            <span class="st c">COOKING</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Russian Salad</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:31<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk amb" style="flex-grow:2">
+          <div class="tk-h">
+            <span class="tk-n mono">#8853</span><span class="tk-w">TA-114 · pickup</span>
+            <span class="tk-t">8:40</span>
+          </div>
+          <div class="it"><span class="q">2×</span>
+            <div><div class="n">Cold Coffee</div><div class="mod">no sugar on 1</div></div>
+            <span class="st r">READY</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Chocolate Brownie</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:33<span class="bump">BUMP</span></div>
+        </div>
+        <div class="tk" style="flex-grow:3">
+          <div class="tk-h">
+            <span class="tk-n mono">#8855</span><span class="tk-w">T4 · 3 cov</span>
+            <span class="tk-t">4:03</span>
+          </div>
+          <div class="it"><span class="q">3×</span>
+            <div><div class="n">Fresh Lime Soda</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Mint Raita</div></div>
+            <span class="st r">READY</span></div>
+          <div class="it"><span class="q">1×</span>
+            <div><div class="n">Gulab Jamun (warm)</div></div>
+            <span class="st n">NEW</span></div>
+          <div class="tk-f">fired 21:37<span class="bump">BUMP</span></div>
+        </div>
+      </div>
+      <div class="stn-f">Bumped 33 this hour · avg 3:40</div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('kds', ['Bayleaf Group', 'Clifton, Karachi', 'Kitchen Display'],
+    `<div class="chip warn">SLA 14:00</div>
+     <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 package io.restaurantos.pos.domain.model;
 
+import io.restaurantos.pos.domain.enums.TillReviewStatus;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.shared.entity.TenantAuditableEntity;
 import jakarta.persistence.*;
@@ -53,4 +54,11 @@ public class TillSession extends TenantAuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private TillStatus status = TillStatus.OPEN;
+
+    @Column(columnDefinition = "TEXT")
+    private String note;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", nullable = false, length = 20)
+    private TillReviewStatus reviewStatus = TillReviewStatus.PENDING_REVIEW;
 }

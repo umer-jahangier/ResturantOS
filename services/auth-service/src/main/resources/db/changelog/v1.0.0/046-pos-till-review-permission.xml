@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="auth-1.0.0-046-pos-till-review-permission" author="restaurantos-agent" runOnChange="false">
+
+        <!-- Manager/owner review of a closed till session (approve / flag / add note) — the
+             POST /api/v1/pos/tills/{id}/approve|flag|note endpoints. One permission covers all
+             three actions, mirroring vendor.po.approve covering both approve and reject.
+
+             As with 044: changeset 036's wildcard grants
+                 INSERT INTO role_permissions SELECT 'OWNER', code FROM permissions;
+                 INSERT INTO role_permissions SELECT 'TENANT_ADMIN', code FROM permissions WHERE code != 'rbac.manage';
+             are runOnChange="false" and only ran ONCE at initial DB creation — they do NOT
+             retroactively pick up this new permission code on an already-migrated database.
+             OWNER and TENANT_ADMIN must therefore be granted explicitly here.
+             CASHIER is deliberately excluded: a cashier must not review their own till. -->
+
+        <insert tableName="permissions">
+            <column name="code" value="pos.till.review"/>
+            <column name="module" value="pos"/>
+            <column name="description" value="Approve, flag, or add a review note to a closed till session"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="pos.till.review"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="pos.till.review"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="pos.till.review"/>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>

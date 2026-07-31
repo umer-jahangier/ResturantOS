@@ -66,6 +66,11 @@ export FILE_DB_URL=jdbc:postgresql://127.0.0.1:5432/file_db
 export FILE_DB_USER=file_service
 export FILE_DB_PASSWORD="${FILE_DB_PASSWORD}"
 
+# purchasing-service (Flyway + runtime as purchasing_user; role created by init/02-create-roles.sql)
+export PURCHASING_DB_URL=jdbc:postgresql://127.0.0.1:5432/purchasing_db
+export PURCHASING_DB_USER=purchasing_user
+export PURCHASING_DB_PASSWORD="${PURCHASING_DB_PASSWORD}"
+
 # finance-service
 export FINANCE_DB_URL=jdbc:postgresql://127.0.0.1:5432/finance_db
 export FINANCE_DB_USER=finance_user

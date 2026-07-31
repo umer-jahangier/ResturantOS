@@ -2,6 +2,7 @@ package io.restaurantos.purchasing;
 
 import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.feign.FinanceInternalClient;
+import io.restaurantos.purchasing.feign.InventoryReorderClient;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.idempotency.IdempotencyKeyRepository;
 import io.restaurantos.shared.event.EventPublisher;
@@ -71,4 +72,12 @@ public abstract class PurchasingTestBase {
 
     @MockitoBean
     protected FeatureFlagService featureFlagService;
+
+    /**
+     * Order suggestions have NO mock port, unlike the GRN and category seams — a suggestion list
+     * built from invented shortfalls would be actively misleading, since someone would order
+     * against it. Tests that need shortfalls stub this directly.
+     */
+    @MockitoBean
+    protected InventoryReorderClient inventoryReorderClient;
 }

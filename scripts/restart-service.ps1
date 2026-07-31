@@ -17,6 +17,9 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LogDir = Join-Path $RepoRoot ".dev-logs"
 
+# Test-ModuleStale / Get-ModuleBuildArgs — jar freshness and the narrowest build that fixes it.
+. (Join-Path $PSScriptRoot "build-freshness.ps1")
+
 $Services = [ordered]@{
     "frontend"                = @{ Port = 3000; Module = $null; Type = "frontend" }
     "gateway"                 = @{ Port = 8080; Module = "gateway" }
@@ -25,7 +28,10 @@ $Services = [ordered]@{
     "authorization-service"   = @{ Port = 8083; Module = "services/authorization-service" }
     "finance-service"         = @{ Port = 8086; Module = "services/finance-service" }
     "pos-service"             = @{ Port = 8084; Module = "services/pos-service" }
+    "inventory-service"       = @{ Port = 8085; Module = "services/inventory-service" }
+    "purchasing-service"      = @{ Port = 8087; Module = "services/purchasing-service" }
     "kitchen-service"         = @{ Port = 8090; Module = "services/kitchen-service" }
+    "crm-service"             = @{ Port = 8089; Module = "services/crm-service" }
     "audit-service"           = @{ Port = 8093; Module = "services/audit-service" }
     "file-service"            = @{ Port = 8095; Module = "services/file-service" }
     "platform-admin-service"  = @{ Port = 8096; Module = "services/platform-admin-service" }
@@ -60,12 +66,26 @@ function Build-Service([string]$ServiceName, [hashtable]$Svc) {
     }
     Write-Host "==> Building $ServiceName..." -ForegroundColor Cyan
     Push-Location $RepoRoot
-    mvn -pl $Svc.Module -am -DskipTests package -q
-    if ($LASTEXITCODE -ne 0) {
+    # -am pulled in shared-lib and the parent poms on EVERY single-service restart. It is only
+    # needed when an upstream module actually changed, so ask before paying for it.
+    #
+    # Maven writes warnings to stderr (Lombok's sun.misc.Unsafe notice, for one). Under this
+    # script's $ErrorActionPreference = "Stop", PowerShell 5.1 turns each stderr line from a NATIVE
+    # command into a terminating error as soon as the caller pipes this script's output — which
+    # killed the run between "stopped" and "started" and left the service down with a healthy jar
+    # on disk. A native command's success is its exit code and nothing else.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        mvn @(Get-ModuleBuildArgs $RepoRoot $Svc.Module)
+        $mvnExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
         Pop-Location
-        Write-Error "Maven build failed for $ServiceName"
     }
-    Pop-Location
+    if ($mvnExit -ne 0) {
+        Write-Error "Maven build failed for $ServiceName (exit $mvnExit)"
+    }
     $artifact = Split-Path $Svc.Module -Leaf
     $jarPath = Join-Path $RepoRoot "$($Svc.Module)/target/$artifact-1.0.0.jar"
     if (-not (Test-BootJar $jarPath)) {
@@ -136,6 +156,16 @@ if (-not $BuildOnly) {
     Write-Host "==> Stopping $key (port $($svc.Port))..." -ForegroundColor Cyan
     Stop-PortListener $svc.Port
     Start-Sleep -Seconds 1
+}
+
+# -SkipBuild means "this module has not changed", so verify that rather than taking it on trust.
+# A jar older than its sources launches fine and then 404s on everything added since, which reads
+# as the service being down rather than out of date.
+if ($SkipBuild -and -not $BuildOnly -and $svc.Module) {
+    if (Test-ModuleStale $RepoRoot $svc.Module) {
+        Write-Host "==> $key`: $(Get-StaleReason $RepoRoot $svc.Module) - ignoring -SkipBuild" -ForegroundColor Yellow
+        $SkipBuild = $false
+    }
 }
 
 if (-not $SkipBuild -or $BuildOnly) {

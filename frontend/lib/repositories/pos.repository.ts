@@ -1,8 +1,12 @@
 import { apiClient } from "@/lib/api-client/client";
-import { get, post, patch, getPaginated, type PaginatedResult } from "@/lib/api-client/request";
+import { get, post, put, patch, getPaginated, type PaginatedResult } from "@/lib/api-client/request";
 import {
   apiMenuItemSchema,
   apiMenuCategorySchema,
+  createMenuItemInputSchema,
+  createMenuCategoryInputSchema,
+  type CreateMenuItemInput,
+  type CreateMenuCategoryInput,
   apiDiningTableSchema,
   apiOrderSchema,
   apiOrderSummarySchema,
@@ -11,6 +15,7 @@ import {
   apiAssignTableRequestSchema,
   apiTillSessionSchema,
   apiTillReconciliationSchema,
+  apiTillReviewActionSchema,
   apiOrderPaymentRecordSchema,
   apiRecordPaymentResultSchema,
 } from "@/lib/api-client/schemas/pos.schema";
@@ -23,6 +28,7 @@ import {
   adaptTableDetail,
   adaptTillSession,
   adaptTillReconciliation,
+  adaptTillReviewAction,
   adaptOrderPayment,
 } from "@/lib/adapters/pos.adapter";
 import type {
@@ -35,6 +41,9 @@ import type {
   TableDetail,
   TillSession,
   TillReconciliation,
+  TillReviewAction,
+  FlagTillPayload,
+  AddTillNotePayload,
   CreateOrderPayload,
   AddItemPayload,
   ApplyDiscountPayload,
@@ -65,6 +74,69 @@ export const PosRepository = {
   async getMenuItem(id: string): Promise<MenuItem> {
     const raw = await get<unknown>(`/api/v1/pos/menu/items/${id}`);
     return adaptMenuItem(apiMenuItemSchema.parse(raw));
+  },
+
+  /** Admin listing (Menu Items management page) — includes inactive/deactivated items, unlike
+   * {@link getMenuItems}, which backs the order-taking grid and must stay active-only. */
+  async getMenuItemsForAdmin(categoryId?: string): Promise<MenuItem[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/menu/items/admin", categoryId ? { categoryId } : undefined);
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptMenuItem(apiMenuItemSchema.parse(r)));
+  },
+
+  /** Admin listing — includes inactive categories, unlike {@link getMenuCategories}. */
+  async getMenuCategoriesForAdmin(): Promise<MenuCategory[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/menu/categories/admin");
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptMenuCategory(apiMenuCategorySchema.parse(r)));
+  },
+
+  async createMenuItem(payload: CreateMenuItemInput): Promise<MenuItem> {
+    const body = createMenuItemInputSchema.parse(payload);
+    const raw = await post<typeof body, unknown>("/api/v1/pos/menu/items", body);
+    return adaptMenuItem(apiMenuItemSchema.parse(raw));
+  },
+
+  /** Unlike create, {@code categoryId} is REQUIRED here even though the backend's
+   * UpdateMenuItemRequest treats it as optional ("omit to leave unchanged") — this repository
+   * always sends the item's current or newly-chosen category explicitly, so there is one
+   * behavior to reason about rather than two. */
+  async updateMenuItem(id: string, payload: CreateMenuItemInput): Promise<MenuItem> {
+    const body = createMenuItemInputSchema.parse(payload);
+    const raw = await put<typeof body, unknown>(`/api/v1/pos/menu/items/${id}`, body);
+    return adaptMenuItem(apiMenuItemSchema.parse(raw));
+  },
+
+  async activateMenuItem(id: string): Promise<MenuItem> {
+    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/items/${id}/activate`, undefined);
+    return adaptMenuItem(apiMenuItemSchema.parse(raw));
+  },
+
+  async deactivateMenuItem(id: string): Promise<MenuItem> {
+    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/items/${id}/deactivate`, undefined);
+    return adaptMenuItem(apiMenuItemSchema.parse(raw));
+  },
+
+  async createMenuCategory(payload: CreateMenuCategoryInput): Promise<MenuCategory> {
+    const body = createMenuCategoryInputSchema.parse(payload);
+    const raw = await post<typeof body, unknown>("/api/v1/pos/menu/categories", body);
+    return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
+  },
+
+  /** Same request shape as create (`CreateMenuCategoryInput` — no `active` field either way);
+   * activate/deactivate own their own endpoints below rather than folding state in here. */
+  async updateMenuCategory(id: string, payload: CreateMenuCategoryInput): Promise<MenuCategory> {
+    const body = createMenuCategoryInputSchema.parse(payload);
+    const raw = await put<typeof body, unknown>(`/api/v1/pos/menu/categories/${id}`, body);
+    return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
+  },
+
+  async activateMenuCategory(id: string): Promise<MenuCategory> {
+    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/categories/${id}/activate`, undefined);
+    return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
+  },
+
+  async deactivateMenuCategory(id: string): Promise<MenuCategory> {
+    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/categories/${id}/deactivate`, undefined);
+    return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
   },
 
   // ── Tables ────────────────────────────────────────────────────────────────
@@ -249,15 +321,49 @@ export const PosRepository = {
     return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
   },
 
-  /** Branch-wide till history for admin review (newest first). */
-  async listBranchTills(branchId: string): Promise<TillSession[]> {
-    const raw = await get<unknown[]>("/api/v1/pos/tills", { branchId });
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillSession(apiTillSessionSchema.parse(r)));
+  /**
+   * Branch-wide till history for manager/owner review (newest first), server-paginated —
+   * the backend returns a `PageMeta` envelope for this branch of `GET /tills` (unlike the
+   * cashier-scoped `listTills` above, which stays an unpaginated list).
+   */
+  async listBranchTills(params: {
+    branchId: string;
+    page?: number;
+    size?: number;
+  }): Promise<PaginatedResult<TillSession>> {
+    const result = await getPaginated<unknown>("/api/v1/pos/tills", params as Record<string, unknown>);
+    return {
+      data: result.data.map((r) => adaptTillSession(apiTillSessionSchema.parse(r))),
+      meta: result.meta,
+    };
   },
 
   /** A till session + every order within it + cash/non-cash collected (live expected cash). */
   async getTillReconciliation(tillId: string): Promise<TillReconciliation> {
     const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}/reconciliation`);
     return adaptTillReconciliation(apiTillReconciliationSchema.parse(resp.data.data));
+  },
+
+  // ── Till review (manager/owner) ───────────────────────────────────────────
+
+  async approveTill(tillId: string): Promise<TillSession> {
+    const raw = await post<undefined, unknown>(`/api/v1/pos/tills/${tillId}/approve`);
+    return adaptTillSession(apiTillSessionSchema.parse(raw));
+  },
+
+  async flagTill(tillId: string, payload: FlagTillPayload): Promise<TillSession> {
+    const raw = await post<FlagTillPayload, unknown>(`/api/v1/pos/tills/${tillId}/flag`, payload);
+    return adaptTillSession(apiTillSessionSchema.parse(raw));
+  },
+
+  async addTillNote(tillId: string, payload: AddTillNotePayload): Promise<TillSession> {
+    const raw = await post<AddTillNotePayload, unknown>(`/api/v1/pos/tills/${tillId}/note`, payload);
+    return adaptTillSession(apiTillSessionSchema.parse(raw));
+  },
+
+  /** Append-only review history for a till session (newest first). */
+  async listTillReviewActions(tillId: string): Promise<TillReviewAction[]> {
+    const raw = await get<unknown[]>(`/api/v1/pos/tills/${tillId}/review-actions`);
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillReviewAction(apiTillReviewActionSchema.parse(r)));
   },
 };

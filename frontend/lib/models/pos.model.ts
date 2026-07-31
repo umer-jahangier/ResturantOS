@@ -41,6 +41,7 @@ export type TableStatus = "AVAILABLE" | "OCCUPIED" | "NEEDS_BUSSING";
 export interface MenuItem {
   id: string;
   categoryId: string | null;
+  categoryName: string | null;
   name: string;
   description: string | null;
   basePricePaisa: number;
@@ -191,6 +192,11 @@ export interface UpdateInstructionsPayload {
 
 export type TillStatus = "OPEN" | "CLOSED";
 
+/** Manager/owner review state — orthogonal to the OPEN/CLOSED operational lifecycle. */
+export type TillReviewStatus = "PENDING_REVIEW" | "APPROVED" | "FLAGGED";
+
+export type TillReviewActionType = "APPROVED" | "FLAGGED" | "NOTED";
+
 export interface TillSession {
   id: string;
   branchId: string;
@@ -202,6 +208,19 @@ export interface TillSession {
   openedAt: string | null;
   closedAt: string | null;
   status: TillStatus;
+  /** Cashier's free-text note captured at close. */
+  note: string | null;
+  reviewStatus: TillReviewStatus;
+}
+
+/** One append-only manager review action on a till session. */
+export interface TillReviewAction {
+  id: string;
+  tillSessionId: string;
+  reviewerId: string;
+  action: TillReviewActionType;
+  note: string | null;
+  actedAt: string;
 }
 
 export interface TillOrderLine {
@@ -267,6 +286,15 @@ export interface OpenTillPayload {
 
 export interface CloseTillPayload {
   declaredClosingPaisa: number;
+  note?: string;
+}
+
+export interface FlagTillPayload {
+  reason: string;
+}
+
+export interface AddTillNotePayload {
+  note: string;
 }
 
 export interface CloseOrderPayload {

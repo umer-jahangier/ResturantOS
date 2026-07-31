@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ask Your Data</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .rail { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .rail > div { padding: 0 15px; border-left: 1px solid var(--line); min-width: 0; }
+  .rail > div:first-child { border-left: none; padding-left: 0; }
+  .rl { font-size: 9.5px; letter-spacing: .075em; text-transform: uppercase; color: var(--fg-dim);
+        font-weight: 650; display: flex; align-items: center; gap: 5px; }
+  .rl svg { width: 12px; height: 12px; flex: none; }
+  .rv { font-size: 13px; font-weight: 620; letter-spacing: -.02em; margin-top: 4px;
+        font-variant-numeric: tabular-nums; }
+  .rs { font-size: 10.5px; color: var(--fg-dim); margin-top: 2px; }
+
+  .body { display: grid; grid-template-columns: 1fr 446px; gap: 14px; flex: 1; min-height: 0; }
+
+  /* ---- conversation ---- */
+  .msg { display: flex; gap: 10px; }
+  .who { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; flex: none;
+         font-size: 10px; font-weight: 700; }
+  .who.u { background: var(--elev); color: var(--fg-mut); }
+  .who.a { background: var(--gold-soft); color: var(--gold); }
+  .who.a svg { width: 15px; height: 15px; }
+  .qtext { font-size: 14.5px; font-weight: 600; letter-spacing: -.015em; line-height: 1.35; }
+  .atext { font-size: 12.5px; color: var(--fg-mut); line-height: 1.55; font-weight: 450; }
+  .atext b { color: var(--fg); font-weight: 620; }
+  .nq td { padding: 8px 8px; }
+  .nq th { padding: 0 8px 6px; }
+  .nq td:first-child, .nq th:first-child { padding-left: 0; }
+  .nq td:last-child, .nq th:last-child { padding-right: 0; }
+  .meta { font-size: 10.5px; color: var(--fg-dim); display: flex; align-items: center; gap: 8px; }
+  .askbar { border: 1px solid var(--line-2); background: var(--sunken); border-radius: 9px;
+            padding: 9px 11px; display: flex; align-items: center; gap: 9px; }
+  .caret { width: 1.5px; height: 15px; background: var(--gold); display: inline-block;
+           vertical-align: -3px; margin-left: 2px; }
+
+  /* ---- validation pipeline ---- */
+  .pipe { display: flex; flex-direction: column; min-height: 0; }
+  .stg { display: flex; gap: 9px; padding: 6px 14px; border-top: 1px solid var(--line); }
+  .tick { width: 17px; height: 17px; border-radius: 50%; background: var(--pos-soft); color: var(--pos);
+          display: grid; place-items: center; flex: none; margin-top: 1px; }
+  .tick svg { width: 10px; height: 10px; }
+  .stg-t { font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+  .stg-n { font-size: 9.5px; color: var(--fg-dim); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stg-d { font-size: 10.5px; color: var(--fg-mut); line-height: 1.45; font-weight: 450; margin-top: 1px; }
+  .stg-d code { font-family: "JetBrains Mono", monospace; font-size: 9.8px; color: var(--fg); }
+  .ms { margin-left: auto; font-size: 10px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+
+  /* ---- sql ---- */
+  .sql { font-family: "JetBrains Mono", monospace; font-size: 11.5px; line-height: 15px;
+         letter-spacing: -.02em; white-space: pre; color: var(--fg-mut); }
+  .sql .kw { color: var(--s5); }
+  .sql .st { color: var(--s2); }
+  .sql .inj { background: var(--gold-soft); border-radius: 3px; color: var(--gold);
+              box-shadow: inset 0 0 0 1px var(--gold-line); padding: 1px 3px; }
+  .sql .cm { color: var(--fg-dim); }
+  .note { font-size: 10.5px; color: var(--fg-mut); line-height: 1.5; }
+  .note b { color: var(--fg); font-weight: 620; }
+  .nrow { display: flex; gap: 7px; padding: 3px 0; align-items: flex-start; }
+  .nrow i { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex: none; margin-top: 6px; }
+  .sec-l { font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+           font-weight: 650; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ─────────────────────────────────────────────────── guardrail strip -->
+  <div class="card" style="flex:none">
+    <div class="card-b rail" style="padding:13px 14px">
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Access</div>
+        <div class="rv pos">Read-only</div>
+        <div class="rs">role <span class="mono" style="font-size:10px">nlq_reader</span> · SELECT only</div>
+      </div>
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>Timeout</div>
+        <div class="rv">5.0 s</div>
+        <div class="rs">cancelled, never queued</div>
+      </div>
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M3 3v18h18M7 15v3M12 10v8M17 6v12"/></svg>Row cap</div>
+        <div class="rv">500 rows</div>
+        <div class="rs">LIMIT appended by validator</div>
+      </div>
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"/></svg>Tenant quota</div>
+        <div class="rv">1,240 <span class="dim" style="font-size:11px;font-weight:500">/ 5,000 mo</span></div>
+        <div class="bar" style="margin-top:5px"><i style="width:24.8%"></i></div>
+      </div>
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M16 20v-1.6a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20M9 10.4a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2z"/></svg>User quota</div>
+        <div class="rv">18 <span class="dim" style="font-size:11px;font-weight:500">/ 60 this hour</span></div>
+        <div class="bar" style="margin-top:5px"><i style="width:30%"></i></div>
+      </div>
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg>Result cache</div>
+        <div class="rv">TTL 15 min</div>
+        <div class="rs">38% hit rate · keyed per tenant</div>
+      </div>
+      <div>
+        <div class="rl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>Audit</div>
+        <div class="rv">Impersonation stamped</div>
+        <div class="rs">actor + on-behalf-of logged</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- ────────────────────────────────────────────────────── conversation -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Ask your data</div>
+          <div class="card-s">Plain English → validated SQL → your tenant's rows, never anyone else's</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip">Session 21:39 · 4 questions</div>
+        <div class="chip gold">Model sees schema, not rows</div>
+      </div>
+
+      <div class="card-b" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px">
+
+        <div class="msg">
+          <div class="who u">SA</div>
+          <div style="flex:1;min-width:0">
+            <div class="qtext">Which branches had food cost above 33% last month, and what drove it?</div>
+            <div class="meta" style="margin-top:4px">Saad Ahmed · Branch Manager · 21:39:42 PKT</div>
+          </div>
+        </div>
+
+        <div class="msg" style="flex:1;min-height:0">
+          <div class="who a">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="atext"><b>Three of six branches</b> breached the 33.0% ceiling in June 2026, for a
+              combined excess of <b>Rs 939,080</b>. Two of them are yield variance rather than price:
+              Gulberg and Bahria Town both over-used protein against recipe. DHA Phase 6 is vendor price
+              creep — its yield variance stayed inside tolerance.</div>
+
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;margin-top:11px">
+              <table class="nq">
+                <thead><tr>
+                  <th>Branch</th><th class="num">Net sales</th><th class="num">FC %</th>
+                  <th class="num">Excess</th><th>Driver</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="k">Gulberg, Lhr</td><td class="num mono">24,180,000</td>
+                    <td class="num neg b6">35.4%</td><td class="num k">Rs 580,320</td>
+                    <td class="dim">Yield variance</td></tr>
+                  <tr><td class="k">Bahria Town, Rwp</td><td class="num mono">18,640,000</td>
+                    <td class="num neg b6">34.1%</td><td class="num k">Rs 205,040</td>
+                    <td class="dim">Yield variance</td></tr>
+                  <tr><td class="k">DHA Phase 6, Khi</td><td class="num mono">21,960,000</td>
+                    <td class="num neg b6">33.7%</td><td class="num k">Rs 153,720</td>
+                    <td class="dim">Vendor price creep</td></tr>
+                  <tr><td class="dim">Other 3 branches</td><td class="num mono dim">62,410,000</td>
+                    <td class="num b6" style="color:var(--pos)">31.5%</td>
+                    <td class="num dim">—</td><td class="dim">within ceiling</td></tr>
+                </tbody>
+              </table>
+
+              <div class="rel">
+                <div class="flex ac jb" style="margin-bottom:2px">
+                  <span class="f11 dim">Food cost % · June 2026</span>
+                  <div class="legend" style="font-size:10px;gap:9px">
+                    <span><i style="background:var(--neg)"></i>Over</span>
+                    <span><i style="background:var(--s1)"></i>Within</span>
+                  </div>
+                </div>
+                <svg viewBox="0 0 330 186" width="330" height="186" role="img"
+                     aria-label="Food cost percent by branch against the 33 percent ceiling">
+                  <g class="gridline">
+                    <line x1="96" y1="20" x2="96" y2="152"/><line x1="167.3" y1="20" x2="167.3" y2="152"/>
+                    <line x1="238.7" y1="20" x2="238.7" y2="152"/><line x1="310" y1="20" x2="310" y2="152"/>
+                  </g>
+                  <!-- 33% ceiling -->
+                  <line x1="203" y1="20" x2="203" y2="152" stroke="var(--warn)" stroke-width="1.5"
+                        stroke-dasharray="4 3" opacity=".85"/>
+                  <text class="axis" x="203" y="12" text-anchor="middle" fill="#fbbf24"
+                        style="font-weight:620">33.0% ceiling</text>
+
+                  <g stroke="var(--line-2)" stroke-width="1.5">
+                    <line x1="203" y1="34" x2="288.6" y2="34"/>
+                    <line x1="203" y1="56" x2="242.2" y2="56"/>
+                    <line x1="203" y1="78" x2="227.9" y2="78"/>
+                    <line x1="203" y1="100" x2="170.9" y2="100"/>
+                    <line x1="203" y1="122" x2="145.9" y2="122"/>
+                    <line x1="203" y1="144" x2="128.1" y2="144"/>
+                  </g>
+                  <g stroke="var(--card)" stroke-width="2">
+                    <circle cx="288.6" cy="34" r="5" fill="var(--neg)"/>
+                    <circle cx="242.2" cy="56" r="5" fill="var(--neg)"/>
+                    <circle cx="227.9" cy="78" r="5" fill="var(--neg)"/>
+                    <circle cx="170.9" cy="100" r="5" fill="var(--s1)"/>
+                    <circle cx="145.9" cy="122" r="5" fill="var(--s1)"/>
+                    <circle cx="128.1" cy="144" r="5" fill="var(--s1)"/>
+                  </g>
+                  <g class="axis" text-anchor="end" fill="#a3aab8">
+                    <text x="88" y="37.5">Gulberg</text><text x="88" y="59.5">Bahria Town</text>
+                    <text x="88" y="81.5">DHA Phase 6</text><text x="88" y="103.5">Zamzama</text>
+                    <text x="88" y="125.5">Emporium</text><text x="88" y="147.5">Clifton</text>
+                  </g>
+                  <g class="axis" style="font-weight:650" fill="#f87171">
+                    <text x="297" y="37.5">35.4</text><text x="250.6" y="59.5">34.1</text>
+                    <text x="236.3" y="81.5">33.7</text>
+                  </g>
+                  <line class="axisline" x1="96" y1="158" x2="310" y2="158"/>
+                  <g class="axis" text-anchor="middle">
+                    <text x="96" y="171">30%</text><text x="167.3" y="171">32%</text>
+                    <text x="238.7" y="171">34%</text><text x="310" y="171">36%</text>
+                  </g>
+                </svg>
+                <div class="tip" style="left:90px;top:30px;padding:6px 9px">
+                  <div class="tip-t">Gulberg · Jun 2026</div>
+                  <div class="tip-r"><span>Food cost</span><b style="color:var(--neg)">35.4%</b></div>
+                  <div class="tip-r"><span>Excess</span><b>Rs 580,320</b></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="atext" style="margin-top:11px">Gulberg is <b>Rs 580,320</b> of the Rs 939,080 on its
+              own, and its variance concentrates on the evening grill line — the same signature Clifton
+              cleared in May. Fixing portioning there recovers about <b>Rs 412,000</b> a month.</div>
+
+            <div class="meta" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+              <span class="chip pos" style="height:19px;padding:0 6px;font-size:10px">7 / 7 checks passed</span>
+              <span><span class="mono" style="font-size:10px">v_food_cost_daily</span> ·
+                <span class="mono" style="font-size:10px">dim_branch</span></span>
+              <span>412 ms</span><span>1.24M rows scanned → 6 returned</span><span>cache miss</span>
+              <span class="spacer"></span>
+              <span class="gold b6">Show SQL ↓</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="askbar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--fg-dim)" stroke-width="1.7"
+              stroke-linecap="round" style="width:15px;height:15px;flex:none">
+              <path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z"/></svg>
+            <span style="font-size:12.5px;color:var(--fg)">Now show the same for chicken boneless only,
+              by week<span class="caret"></span></span>
+            <span class="spacer"></span>
+            <span class="chip">⏎ Run</span>
+          </div>
+          <div class="flex ac g8" style="margin-top:8px">
+            <span class="f11 dim">Try</span>
+            <span class="chip">…and compare with June 2025</span>
+            <span class="chip">…only Gulberg, by station</span>
+            <span class="chip">Explain the generated SQL</span>
+            <span class="spacer"></span>
+            <span class="f11 dim">Answers are scoped to Bayleaf Group only</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────── validation pipeline -->
+    <div class="card pipe">
+      <div class="card-h">
+        <div>
+          <div class="card-t">SQL validation pipeline</div>
+          <div class="card-s">Every generated statement, before execution</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip pos"><span class="dot" style="background:var(--pos)"></span>7 / 7 · 12 ms</div>
+      </div>
+
+      <div class="stg" style="border-top:none">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">01</span>Shape check<span class="ms">2 ms</span></div>
+          <div class="stg-d">One statement, <code>SELECT</code> only — no chaining, no trailing comments,
+            no <code>;</code> inside literals.</div>
+        </div>
+      </div>
+
+      <div class="stg">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">02</span>Parse to AST<span class="ms">3 ms</span></div>
+          <div class="stg-d">Postgres grammar. DDL/DML nodes, recursive CTEs and set-returning functions
+            are rejected outright.</div>
+        </div>
+      </div>
+
+      <div class="stg">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">03</span>Table allowlist<span class="ms">1 ms</span></div>
+          <div class="stg-d">2 relations, both inside the 41-view read model. Base tables are not
+            grantable to <code>nlq_reader</code>.</div>
+        </div>
+      </div>
+
+      <div class="stg">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">04</span>PII deny-list<span class="ms">1 ms</span></div>
+          <div class="stg-d">No <code>cnic</code>, <code>customer_phone</code>, <code>card_pan</code> or
+            <code>staff_salary</code> in the projection.</div>
+        </div>
+      </div>
+
+      <div class="stg">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">05</span>Tenant filter injected<span class="ms">2 ms</span></div>
+          <div class="stg-d"><code>tenant_id</code> taken from the signed session — never from the prompt —
+            and re-enforced by Postgres RLS.</div>
+        </div>
+      </div>
+
+      <div class="stg">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">06</span>Branch filter injected<span class="ms">2 ms</span></div>
+          <div class="stg-d">Narrowed to the 6 branches OPA policy <code>pos.branch.read</code> grants
+            this user.</div>
+        </div>
+      </div>
+
+      <div class="stg">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="stg-t"><span class="stg-n">07</span>Row limit injected<span class="ms">1 ms</span></div>
+          <div class="stg-d"><code>LIMIT 500</code> appended, <code>statement_timeout</code> 5 s, work_mem
+            capped for the session.</div>
+        </div>
+      </div>
+
+      <div class="spacer"></div>
+      <div style="padding:10px 14px;border-top:1px solid var(--line);background:rgba(52,211,153,.045)">
+        <div class="note">A failing stage stops execution — the model receives the validator error,
+          never rows. <b>3 of 412</b> questions this week were rejected, all at stage 04.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────── generated SQL -->
+  <div class="card" style="flex:none;height:218px;display:flex;flex-direction:column">
+    <div class="card-h">
+      <div>
+        <div class="card-t">Generated SQL</div>
+        <div class="card-s">What actually ran · injected predicates highlighted</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chip">plan cost 812 · seq scans 0</div>
+      <div class="chip pos">executed as nlq_reader</div>
+    </div>
+    <div class="card-b" style="flex:1;min-height:0;padding:10px 14px;display:grid;
+         grid-template-columns:minmax(0,1fr) 396px;gap:20px">
+      <div class="sql"><span class="kw">SELECT</span> b.branch_name, <span class="kw">SUM</span>(s.net_sales) <span class="kw">AS</span> net_sales,
+       <span class="kw">ROUND</span>(<span class="kw">SUM</span>(s.food_cost) / <span class="kw">SUM</span>(s.net_sales) * <span class="st">100</span>, <span class="st">1</span>) <span class="kw">AS</span> food_cost_pct
+  <span class="kw">FROM</span> v_food_cost_daily s <span class="kw">JOIN</span> dim_branch b <span class="kw">USING</span> (branch_id)
+ <span class="kw">WHERE</span> s.business_date <span class="kw">BETWEEN</span> <span class="st">'2026-06-01'</span> <span class="kw">AND</span> <span class="st">'2026-06-30'</span>
+   <span class="kw">AND</span> <span class="inj">s.tenant_id = '8f3c…9d21'</span>            <span class="cm">← injected · stage 05</span>
+   <span class="kw">AND</span> <span class="inj">s.branch_id IN (…6 permitted…)</span>       <span class="cm">← injected · stage 06</span>
+ <span class="kw">GROUP BY</span> b.branch_name
+<span class="kw">HAVING</span> <span class="kw">SUM</span>(s.food_cost) / <span class="kw">SUM</span>(s.net_sales) &gt; <span class="st">0.33</span>
+ <span class="kw">ORDER BY</span> food_cost_pct <span class="kw">DESC</span> <span class="inj">LIMIT 500</span>;      <span class="cm">← injected · stage 07</span></div>
+
+      <div style="border-left:1px solid var(--line);padding-left:20px">
+        <div class="sec-l" style="margin-bottom:6px">Why another tenant is unreachable</div>
+        <div class="nrow"><i></i><div class="note">The model writes the projection. It never writes the
+          predicates that scope you — <b>stages 05 and 06 rewrite the AST</b> after generation.</div></div>
+        <div class="nrow"><i></i><div class="note"><b>tenant_id</b> comes from the signed session claim;
+          a value typed into the prompt is ignored and logged as an attempt.</div></div>
+        <div class="nrow"><i></i><div class="note">Postgres applies <b>FORCE ROW LEVEL SECURITY</b> under
+          <span class="mono" style="font-size:10px">nlq_reader</span> as well — a forged tenant returns
+          <b>zero rows</b>, never someone else's.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('nlq', ['Bayleaf Group', 'Clifton, Karachi', 'Ask Your Data'],
+    `<div class="chip gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+       Tenant-scoped · Bayleaf Group</div>`);
+</script>
+</body>
+</html>

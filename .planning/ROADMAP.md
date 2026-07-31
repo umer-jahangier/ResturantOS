@@ -23,9 +23,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7.1: POS Production Operations & Item-Level Kitchen Tracking** *(INSERTED)* - Order management screen, table-centric dine-in, item-level status, kitchen ticket revisions, order/item instructions, cashier UX + wire payment/till/void UI (completed 2026-07-11)
 - [ ] **Phase 07.2: Finance Accounting-Period Provisioning** *(INSERTED, URGENT)* - Guarantee open period at tenant onboarding, self-service open-period endpoint, configurable auto-seed fallback — resolves parent-07 UAT blocker (423 PERIOD_LOCKED on fresh tenants)
 - [x] **Phase 07.3: POS & Kitchen Production Bug-Fixes & UX Revamp** *(INSERTED)* - Remove draft orders, real-time kitchen↔POS item-status sync, Paid-AND-Served close semantics, full-page settlement + KDS station-column redesign; production hardening from `bugs.md` testing feedback (completed 2026-07-12)
-- [ ] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts
+- [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
+- [x] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof (completed 2026-07-19)
+- [x] **Phase 08.2: Inventory Master Data & Procurement Catalog** *(INSERTED)* - Ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/revise with live plate cost, vendor item catalog with effective-dated pricing, stock-operations UI, catalog-driven PO line picker (completed 2026-07-24)
 - [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
-- [ ] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers)
+- [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
 - [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
 
@@ -315,29 +317,133 @@ Plans:
   4. Stock receipts update MAC and publish `STOCK_RECEIVED`, and transfers ship/receive with in-transit accounting and variance handling.
   5. Stock counts post variances, and low-stock and expiry alerts fire.
 
-**Plans**: 9 plans (new `inventory-service` module; 4 waves)
+**Plans**: 9/9 plans complete
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Wave 1: Module foundation, complete FORCE-RLS schema, infra tables, processed-events + event payloads (INV-01/03/07 infra)
+- [x] 08-01-PLAN.md — Wave 1: Module foundation, complete FORCE-RLS schema, infra tables, processed-events + event payloads (INV-01/03/07 infra)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 08-02-PLAN.md — Wave 2: Testcontainers harness (InventoryTestBase/TestFixtures) + schema/RLS smoke IT
-- [ ] 08-09-PLAN.md — Wave 2: OPA `inventory.rego` (view/manage on seeded permission codes, 100% covered) + `InventoryAuthorizationService` seam + `InventorySecurityConfig`/internal-secret filter (T-8-AC access-control foundation)
+- [x] 08-02-PLAN.md — Wave 2: Testcontainers harness (InventoryTestBase/TestFixtures) + schema/RLS smoke IT
+- [x] 08-09-PLAN.md — Wave 2: OPA `inventory.rego` (view/manage on seeded permission codes, 100% covered) + `InventoryAuthorizationService` seam + `InventorySecurityConfig`/internal-secret filter (T-8-AC access-control foundation)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 08-03-PLAN.md — Wave 3: Stock domain model + ingredient/UOM/reorder masters + MAC calculator + opening balance + gateway route + OPA enforcement (INV-01, INV-07)
-- [ ] 08-04-PLAN.md — Wave 3: Versioned recipes/BOM + effective-version-by-closedAt resolution (INV-02)
+- [x] 08-03-PLAN.md — Wave 3: Stock domain model + ingredient/UOM/reorder masters + MAC calculator + opening balance + gateway route + OPA enforcement (INV-01, INV-07)
+- [x] 08-04-PLAN.md — Wave 3: Versioned recipes/BOM + effective-version-by-closedAt resolution (INV-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 08-05-PLAN.md — Wave 4: `ORDER_CLOSED` depletion consumer — sorted pessimistic locks, FEFO walk, MAC COGS, idempotency, `STOCK_DEPLETED` (INV-03)
-- [ ] 08-06-PLAN.md — Wave 4: Stock receipts (MAC recompute + `STOCK_RECEIVED`) + `GET /internal/grn/pending-count` finance seam (INV-04)
-- [ ] 08-07-PLAN.md — Wave 4: Inter-branch transfers ship/receive with in-transit accounting + variance (INV-05)
-- [ ] 08-08-PLAN.md — Wave 4: Stock counts + variance posting, low-stock alerts, nightly `@Scheduled` expiry sweep (INV-06)
+- [x] 08-05-PLAN.md — Wave 4: `ORDER_CLOSED` depletion consumer — sorted pessimistic locks, FEFO walk, MAC COGS, idempotency, `STOCK_DEPLETED` (INV-03)
+- [x] 08-06-PLAN.md — Wave 4: Stock receipts (MAC recompute + `STOCK_RECEIVED`) + `GET /internal/grn/pending-count` finance seam (INV-04)
+- [x] 08-07-PLAN.md — Wave 4: Inter-branch transfers ship/receive with in-transit accounting + variance (INV-05)
+- [x] 08-08-PLAN.md — Wave 4: Stock counts + variance posting, low-stock alerts, nightly `@Scheduled` expiry sweep (INV-06)
+
+### Phase 08.1: POS-Inventory Depletion Activation (INSERTED)
+
+**Goal**: The already-wired `ORDER_CLOSED`→depletion loop (built in Phase 8) becomes functional and trustworthy — POS menu items sync to inventory so recipes attach to real `menu_item_id`s with validation, operators author recipes via a UI, recipe coverage and un-recipe'd sales are surfaced instead of silently skipped, and a live order demonstrably depletes stock with correct COGS.
+**Depends on**: Phase 08
+**Requirements**: INV-09, INV-10, INV-11, INV-12
+**Success Criteria** (what must be TRUE):
+
+  1. POS publishes `MENU_ITEM_UPSERTED`/`MENU_ITEM_DELETED` on menu-item changes (plus a backfill/republish for existing items); inventory maintains a `menu_item_catalog` read-model from those events, and recipe creation rejects a `menu_item_id` not present/active in the catalog.
+  2. An operator can author a versioned recipe (menu item → ingredient lines with quantity + UOM + `effectiveFrom`) through the `/app/inventory` recipe-builder UI, selecting from the real synced menu-item catalog.
+  3. A recipe-coverage report shows which active menu items lack an effective recipe; when a sold line has no effective recipe at `closedAt`, depletion still processes the covered lines and publishes `DEPLETION_INCOMPLETE` (no silent no-op).
+  4. A live POS order (create → add → fire → pay → serve → `ORDER_CLOSED`) depletes stock FEFO, writes a `DEPLETION` movement, and emits `STOCK_DEPLETED` with correct aggregate-MAC `totalCogsPaisa`.
+
+**Scope note**: Finance consuming `STOCK_DEPLETED` to post the COGS journal entry is **out of scope** here — that lands in Phase 9 (Order-to-Ledger Auto-Posting). This phase publishes the event; Phase 9 subscribes. Depletion trigger stays `ORDER_CLOSED` (Paid AND Served); kitchen-service stays out of the inventory loop.
+
+**Plans:** 7/7 plans complete
+
+Plans:
+
+- [x] 08.1-01-PLAN.md (wave 1) — pos-service: menu-item create/update/activate/deactivate/delete + MENU_ITEM_UPSERTED/MENU_ITEM_DELETED publish + republish backfill endpoint (D-02, D-05, INV-09)
+- [x] 08.1-02-PLAN.md (wave 2) — inventory-service: menu_item_catalog read-model + MenuItemCatalogConsumer (D-07, D-08) + GET /menu-items + RecipeService.createVersion catalog validation (404 MENU_ITEM_NOT_FOUND) (INV-09)
+- [x] 08.1-03-PLAN.md (wave 3) — inventory-service: GET /recipes/coverage + DepletionService DEPLETION_INCOMPLETE signal (removes the silent all-empty no-op, D-03) (INV-11)
+- [x] 08.1-04-PLAN.md (wave 4) — frontend: `/app/inventory` recipe-builder UI (menu-item picker, ingredient lines) + coverage dashboard, four-layer pattern (D-04, INV-10)
+- [x] 08.1-05-PLAN.md (wave 5) — live end-to-end depletion proof: real order lifecycle -> catalog sync -> validated recipe -> real consumer -> FEFO + aggregate-MAC COGS (INV-12)
+- [x] 08.1-06-PLAN.md (wave 1, gap-closure) — fix shared-lib TenantAwareMessageProcessor RLS-GUC checkout-ordering bug (consumer inserts to FORCE-RLS tables rejected 42501) + non-superuser regression IT + fleet blast-radius/sibling-loop verification (INV-09, INV-12)
+- [x] 08.1-07-PLAN.md (wave 2, gap-closure) — live dev-stack re-verification: redeploy fixed inventory-service, re-emit MENU_ITEM_UPSERTED, confirm menu_item_catalog populates (10 items) + recipe-builder UI click-through (INV-09, INV-10)
+
+### Phase 08.2: Inventory Master Data & Procurement Catalog (INSERTED)
+
+**Goal**: The inventory and procurement modules become operable by a restaurant manager without SQL — ingredients and their categories are first-class, editable master data; recipes can be viewed and revised with live plate cost; vendors carry a real item catalog with effective-dated pricing; and a purchase order line is chosen from that catalog instead of a hand-typed UUID. Phases 8/08.1/10 delivered the backend spine and proved the depletion loop; this phase closes the master-data and UI gap that leaves 11 backend endpoints with no consumer.
+**Depends on**: Phase 8, Phase 08.1, Phase 10
+**Requirements**: INV-01 (re-open — UI), INV-13, INV-14, INV-15, PUR-07, PUR-08
+**Success Criteria** (what must be TRUE):
+
+  1. A manager creates, edits, re-parents and archives ingredient categories in a tree capped at 3 levels, and every ingredient carries exactly one required primary category; archiving a category in use is refused rather than cascading.
+  2. A manager creates, searches, edits and archives ingredients entirely through `/app/inventory/ingredients` — including purchase/stock/recipe UOM with conversions, par level, reorder point, storage location and allergens — with no hard delete once stock movements exist.
+  3. An existing recipe's ingredient lines are viewable, and a revision can be authored pre-filled from the current version (never a destructive edit), with a live plate-cost panel showing batch cost, cost per portion, food-cost % and each line's share of plate cost.
+  4. The coverage report distinguishes "no recipe" from "recipe scheduled from `<date>`", so a future-dated recipe is visibly pending instead of silently uncounted.
+  5. A vendor is linked to the ingredients it supplies through a vendor item catalog (vendor SKU, pack size, purchase UOM, MOQ, lead time) with append-only effective-dated pricing, plus category tags used only to filter and suggest — never to authorize a purchase.
+  6. A purchase-order line is selected with a search-as-you-type picker showing pack size, vendor SKU and contract price, filtered to the vendor's catalog/categories; the hand-typed ingredient UUID field is gone.
+  7. Spend-by-category analytics is computed from real ingredient categories — `MockIngredientCategoryResolver` and its static `spend-category-map.yml` are deleted, not bypassed.
+  8. Stock receipts, transfers, counts and opening balances are all driveable from the UI, and on-hand stock per branch is readable through a real endpoint (`ingredient_branch_stock` has no controller today).
+
+**Scope note**: Additive Flyway migrations only — `ingredients` evolves in place so existing stock lots, inventory movements and MAC history stay intact. The `ORDER_CLOSED` depletion loop proven in 08.1 must remain green throughout. Nested prep/sub-recipes are modelled (`item_type`, `produced_by_recipe_id`) but full prep-recipe authoring may defer.
+
+**Plans:** 20/20 plans complete
+
+Plans:
+
+- [x] 08.2-01-PLAN.md
+- [x] 08.2-02-PLAN.md
+- [x] 08.2-03-PLAN.md
+- [x] 08.2-04-PLAN.md
+- [x] 08.2-05-PLAN.md
+- [x] 08.2-06-PLAN.md
+- [x] 08.2-07-PLAN.md
+- [x] 08.2-08-PLAN.md
+- [x] 08.2-09-PLAN.md
+- [x] 08.2-10-PLAN.md
+- [x] 08.2-11-PLAN.md
+- [x] 08.2-12-PLAN.md
+- [x] 08.2-13-PLAN.md
+- [x] 08.2-14-PLAN.md
+- [x] 08.2-15-PLAN.md
+- [x] 08.2-16-PLAN.md
+- [x] 08.2-17-PLAN.md
+- [x] 08.2-18-PLAN.md
+- [x] 08.2-19-PLAN.md
+- [x] 08.2-20-PLAN.md
+
+**Wave 1** *(no dependencies — migrations, read seams and shared foundations run in parallel)*
+
+- [x] 08.2-01: Flyway V5 — `item_categories` self-referencing tree hard-capped at 3 levels by DB trigger + required `ingredients.category_id` backfilled from legacy free-text column (INV-13)
+- [x] 08.2-02: First read path for `ingredient_branch_stock` — on-hand stock per branch (INV-15)
+- [x] 08.2-03: Recipe coverage distinguishes "no recipe" from "recipe scheduled from `<date>`" — closes the origin bug (INV-15)
+- [x] 08.2-04: Purchasing Flyway V5 — `vendor_items` + append-only effective-dated `vendor_item_price` (PUR-07, PUR-08)
+- [x] 08.2-05: Shared frontend foundation — new primitives, `calendarDateToInstant` extraction + local-midnight regression test, query keys (INV-13, INV-14, INV-15, PUR-07, PUR-08)
+- [x] 08.2-20: Carried-over infra defects — gateway `resilience4j` circuitbreaker instances for inventory/purchasing/pos/kitchen + `start-dev.sh`/`local-service-env.sh` parity (INV-15, PUR-08)
+
+**Wave 2** *(blocked on Wave 1 — APIs over the new schema)*
+
+- [x] 08.2-06: Category tree API — CRUD, re-parent with cycle + depth validation, archive-with-refusal (INV-13)
+- [x] 08.2-07: Non-persisting recipe cost-preview endpoint for the live plate-cost panel (INV-15)
+- [x] 08.2-08: `VendorItem` service + controller with append-only pricing (PUR-07)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [x] 08.2-09: Ingredient master data — additive V6 columns, per-item UOM conversions, three distinct yield numbers incl. `recipes.net_yield_pct` (INV-01, INV-14, PUR-08)
+- [x] 08.2-10: Purchase-order line accepts `vendorItemId` and derives ingredient / unit / price server-side (PUR-08)
+
+**Wave 4** *(blocked on Wave 3 — analytics cutover + frontend data layers)*
+
+- [x] 08.2-11: Delete `MockIngredientCategoryResolver` + `spend-category-map.yml`; spend-by-category computed from real categories (PUR-08)
+- [x] 08.2-12: Inventory frontend data layer — Zod schemas, adapters, repositories, TanStack hooks (INV-01, INV-13, INV-14, INV-15)
+- [x] 08.2-13: Purchasing frontend data layer — vendor catalog + catalog-driven PO line (PUR-07, PUR-08)
+
+**Wave 5** *(blocked on Wave 4 — user-facing screens)*
+
+- [x] 08.2-14: Ingredient-category management screen — recursive 3-level tree, create/edit, reparent, archive (INV-13)
+- [x] 08.2-15: Ingredient master-data screen — searchable/filterable grid + grouped create-or-edit dialog (INV-01, INV-14)
+- [x] 08.2-16: Recipe detail + revision-authoring page with live plate-cost panel (INV-15)
+- [x] 08.2-17: Stock screen — on-hand read view + receipts, transfers, counts, opening balances (INV-15)
+- [x] 08.2-18: Vendor detail — catalog section, price-change history, filter-only category tags (PUR-07)
+- [x] 08.2-19: Catalog picker replaces the hand-typed ingredient UUID on the PO line (PUR-08)
 
 ### Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty
 
@@ -374,7 +480,9 @@ Plans:
    and settlement posts a balanced journal entry against account 1200, and the internal seam
    POST /internal/finance/ar/charges that Phase 7's POS "charge to account" tender will call is implemented
    and integration-tested. (Scope decided 2026-07-13, 10-17-A — see FIN-05.)
+
   5. A vendor performance scorecard reports lead-time adherence, fill rate, and price variance per vendor, and spend analytics aggregate spend by vendor and category with period comparison.
+
 **Plans**: 26 plans (10-01..10-06 shipped; 10-07..10-18 = gap closure round 1; 10-19..10-26 = gap closure round 2 after the 2026-07-14 real-browser UAT)
 **Status**: REOPENED 2026-07-14 (round 2) — real-browser UAT scored ~3 pass / 10 journeys. All 12 round-1 gap-closure plans were green (unit + real-Postgres ITs + real-OPA container ITs) and the module still did not work: no PO could be approved by anyone (internal authorize call path 401s), expense create failed 100%, PO/invoice detail pages hung on Loading forever, and a cashier saw the whole Purchasing module. Backend ITs verified the callee; nothing verified the caller, the browser, or the persona. See 10-UAT-2.md.
 **Scope decisions**: 2026-07-13 (10-17-A) — FIN-05's AR clause is IN scope, not descoped. Receivables
@@ -383,6 +491,7 @@ Phase 7 owns the POS "charge to account" tender that calls it, because POS does 
 is 0/4 plans) and an AR ledger with no writer would be an always-empty sub-ledger.
 
 Plans:
+
 - [x] 10-01: Vendors (encrypted bank account) + PO lifecycle with tiered OPA approval + mock GRN foundation
 - [x] 10-02: Mock GRN → GR/IR, vendor-invoice 3-way match → AP/payment, AP aging (FIN-05 partial), MSW frontend
 - [x] 10-03: PUR-06 spend analytics (vendor/category + period comparison) + PUR-05 price-variance metric [wave 3]
@@ -391,6 +500,7 @@ Plans:
 - [x] 10-06: Requirement-doc reconciliation — re-derive PUR-01..06 + FIN-05 status from actual coverage [wave 4]
 
 Gap-closure plans (2026-07-13):
+
 - [ ] 10-07-PLAN.md — Canonical OPA action vocabulary + vendor.rego approval-limit & close_po rules + distinct-approver [wave 1]
 - [ ] 10-08-PLAN.md — Real-OPA container ITs for PO approve/close + expense approve (replace the mocked AuthorizationClient) [wave 2]
 - [ ] 10-09-PLAN.md — @PreAuthorize on all 18 purchasing endpoints + seed missing permissions + Cashier-403 IT [wave 1]
@@ -405,6 +515,7 @@ Gap-closure plans (2026-07-13):
 - [ ] 10-18-PLAN.md — AR sub-ledger: house/corporate customer accounts, charges + settlements, AR balances + AR aging, and the internal POS charge seam [wave 5]
 
 Gap-closure plans, round 2 (2026-07-14) — every plan ends in a real-browser journey assertion as a real seeded persona:
+
 - [ ] 10-19-PLAN.md — Dev-stack reproducibility: RabbitMQ zero-users root cause (load_definitions suppresses DEFAULT_USER bootstrap), repair `make dev-up`, health-gated one-command bring-up [wave 1]
 - [ ] 10-20-PLAN.md — Bug 4: Next-15 async `params` on PO + invoice detail pages, fixed as a codebase-wide class with a build-failing guard [wave 2]
 - [ ] 10-21-PLAN.md — Bug 3: frontend RBAC parity — PermissionGuard + nav `permission: vendor.view` + guard test (cashier no longer sees Purchasing) [wave 2]
@@ -474,7 +585,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
 | 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
 | 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 10/10 | Complete    | 2026-07-11 |
-| 8. Inventory & Recipe Management | 0/3 | Not started | - |
+| 8. Inventory & Recipe Management | 9/9 | Complete    | 2026-07-18 |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |

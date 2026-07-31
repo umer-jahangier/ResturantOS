@@ -2,6 +2,8 @@ package io.restaurantos.pos.repository;
 
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.TillSession;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,5 +21,5 @@ public interface TillSessionRepository extends JpaRepository<TillSession, UUID> 
     List<TillSession> findByBranchIdAndStatus(UUID branchId, TillStatus status);
 
     /** Branch-wide till history (open + closed), newest first — admin till-review list. */
-    List<TillSession> findByBranchIdOrderByOpenedAtDesc(UUID branchId);
+    Page<TillSession> findByBranchIdOrderByOpenedAtDesc(UUID branchId, Pageable pageable);
 }

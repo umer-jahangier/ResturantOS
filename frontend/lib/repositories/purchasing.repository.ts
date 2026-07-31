@@ -1,38 +1,63 @@
-import { get, post, put } from "@/lib/api-client/request";
+import { get, getPaginated, post, put, type PaginatedResult } from "@/lib/api-client/request";
 import {
+  apiOrderSuggestionsResponseSchema,
+  createDraftsFromSuggestionsInputSchema,
   apiApPaymentSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
+  apiVendorCategorySchema,
   apiVendorInvoiceSchema,
+  apiVendorItemPriceChangeSchema,
+  apiVendorItemPriceSchema,
+  apiVendorItemSchema,
   apiVendorScorecardSchema,
   apiVendorSchema,
   createApPaymentInputSchema,
   createPurchaseOrderInputSchema,
   createVendorInvoiceInputSchema,
+  createVendorItemInputSchema,
   overrideMatchInputSchema,
+  recordVendorItemPriceInputSchema,
   rejectPoInputSchema,
+  updateVendorItemInputSchema,
+  vendorCategoriesInputSchema,
   vendorInputSchema,
   type InvoiceStatus,
   type PoStatus,
 } from "@/lib/api-client/schemas/purchasing.schema";
 import {
+  adaptOrderSuggestionsResponse,
   adaptApPayment,
   adaptPurchaseOrder,
   adaptSpendAnalytics,
   adaptVendor,
+  adaptVendorCategory,
   adaptVendorInvoice,
+  adaptVendorItem,
+  adaptVendorItemPrice,
+  adaptVendorItemPriceChange,
   adaptVendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
 import type {
+  CreateDraftsFromSuggestionsInput,
+  OrderSuggestionsResponse,
   ApPayment,
   ApPaymentInput,
   PurchaseOrder,
   PurchaseOrderInput,
   SpendAnalytics,
+  UpdateVendorItemInput,
   Vendor,
+  VendorCategoriesInput,
+  VendorCategory,
   VendorInput,
   VendorInvoice,
   VendorInvoiceInput,
+  VendorItem,
+  VendorItemInput,
+  VendorItemPrice,
+  VendorItemPriceChange,
+  VendorItemPriceInput,
   VendorScorecard,
 } from "@/lib/adapters/purchasing.adapter";
 
@@ -50,6 +75,79 @@ export const PurchasingRepository = {
   async updateVendor(id: string, input: VendorInput): Promise<Vendor> {
     const raw = await put(`/api/v1/purchasing/vendors/${id}`, vendorInputSchema.parse(input));
     return adaptVendor(apiVendorSchema.parse(raw));
+  },
+
+  // ── Vendor item catalog (PUR-07) ────────────────────────────────────────────────────────
+  /** Paginated GET — mirrors VendorItemController#list (default page=0, size=20). */
+  async listVendorItems(vendorId: string, page = 0, size = 20): Promise<PaginatedResult<VendorItem>> {
+    const result = await getPaginated<unknown>(`/api/v1/purchasing/vendors/${vendorId}/items`, {
+      page,
+      size,
+    });
+    return {
+      data: result.data.map((v) => adaptVendorItem(apiVendorItemSchema.parse(v))),
+      meta: result.meta,
+    };
+  },
+
+  async createVendorItem(vendorId: string, input: VendorItemInput): Promise<VendorItem> {
+    const raw = await post(
+      `/api/v1/purchasing/vendors/${vendorId}/items`,
+      createVendorItemInputSchema.parse(input),
+    );
+    return adaptVendorItem(apiVendorItemSchema.parse(raw));
+  },
+
+  /** No ingredientId here — the catalog row's ingredient reference is immutable once set. */
+  async updateVendorItem(vendorItemId: string, input: UpdateVendorItemInput): Promise<VendorItem> {
+    const raw = await put(
+      `/api/v1/purchasing/vendor-items/${vendorItemId}`,
+      updateVendorItemInputSchema.parse(input),
+    );
+    return adaptVendorItem(apiVendorItemSchema.parse(raw));
+  },
+
+  /** Archive is a POST sub-resource — this catalog never issues an HTTP DELETE. */
+  async archiveVendorItem(vendorItemId: string): Promise<VendorItem> {
+    const raw = await post(`/api/v1/purchasing/vendor-items/${vendorItemId}/archive`);
+    return adaptVendorItem(apiVendorItemSchema.parse(raw));
+  },
+
+  async listVendorItemPrices(vendorItemId: string): Promise<VendorItemPrice[]> {
+    const raw = await get<unknown[]>(`/api/v1/purchasing/vendor-items/${vendorItemId}/prices`);
+    return (raw ?? []).map((p) => adaptVendorItemPrice(apiVendorItemPriceSchema.parse(p)));
+  },
+
+  /**
+   * The ONLY write to a vendor item's price. This repository has no method that edits a
+   * previously recorded price in place — recording a price is always a create, mirroring the
+   * backend's append-only `VendorItemPriceService.recordNewPrice` (T-08.2-131).
+   */
+  async recordVendorItemPrice(vendorItemId: string, input: VendorItemPriceInput): Promise<VendorItemPrice> {
+    const raw = await post(
+      `/api/v1/purchasing/vendor-items/${vendorItemId}/prices`,
+      recordVendorItemPriceInputSchema.parse(input),
+    );
+    return adaptVendorItemPrice(apiVendorItemPriceSchema.parse(raw));
+  },
+
+  async listVendorPriceChanges(vendorId: string, since?: string): Promise<VendorItemPriceChange[]> {
+    const raw = await get<unknown[]>(`/api/v1/purchasing/vendors/${vendorId}/price-changes`, { since });
+    return (raw ?? []).map((c) => adaptVendorItemPriceChange(apiVendorItemPriceChangeSchema.parse(c)));
+  },
+
+  async listVendorCategories(vendorId: string): Promise<VendorCategory[]> {
+    const raw = await get<unknown[]>(`/api/v1/purchasing/vendors/${vendorId}/categories`);
+    return (raw ?? []).map((c) => adaptVendorCategory(apiVendorCategorySchema.parse(c)));
+  },
+
+  /** The controller takes the replacement set directly as a JSON array body, no wrapper object. */
+  async replaceVendorCategories(vendorId: string, input: VendorCategoriesInput): Promise<VendorCategory[]> {
+    const raw = await put<unknown, unknown[]>(
+      `/api/v1/purchasing/vendors/${vendorId}/categories`,
+      vendorCategoriesInputSchema.parse(input),
+    );
+    return (raw ?? []).map((c) => adaptVendorCategory(apiVendorCategorySchema.parse(c)));
   },
 
   /** 10-10: branch-scoped PO list, optionally narrowed by status. Tenant is server-resolved. */
@@ -161,5 +259,25 @@ export const PurchasingRepository = {
   async getVendorScorecard(vendorId: string, branchId: string): Promise<VendorScorecard> {
     const raw = await get("/api/v1/purchasing/analytics/scorecard", { vendorId, branchId });
     return adaptVendorScorecard(apiVendorScorecardSchema.parse(raw));
+  },
+
+  // ── Order suggestions ────────────────────────────────────────────────────────────────────
+  /** What is below its reorder point at `branchId`, how much to buy, and from whom. */
+  async getOrderSuggestions(branchId: string): Promise<OrderSuggestionsResponse> {
+    const raw = await get("/api/v1/purchasing/order-suggestions", { branchId });
+    return adaptOrderSuggestionsResponse(apiOrderSuggestionsResponseSchema.parse(raw));
+  },
+
+  /** Turns the accepted lines into one DRAFT purchase order per vendor. */
+  async createDraftsFromSuggestions(
+    input: CreateDraftsFromSuggestionsInput,
+  ): Promise<PurchaseOrder[]> {
+    const raw = await post(
+      "/api/v1/purchasing/order-suggestions/drafts",
+      createDraftsFromSuggestionsInputSchema.parse(input),
+    );
+    return ((raw ?? []) as unknown[]).map((po) =>
+      adaptPurchaseOrder(apiPurchaseOrderSchema.parse(po)),
+    );
   },
 };

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      REPAIR: `vendor.manage` and `vendor.po.approve` are missing from already-migrated
+      databases, so POST /api/v1/purchasing/vendors and POST /purchase-orders/{id}/approve
+      return 403 PERMISSION_DENIED for EVERY role, including OWNER.
+
+      Cause is Liquibase drift, not a missing declaration. Changeset
+      `auth-1.0.0-030-create-permissions` (030-create-roles-permissions.xml:78-79, 115-116)
+      does declare both codes and grant them to MANAGER — but those lines were added to the
+      file AFTER the changeset had already executed. It is runOnChange="false", so Liquibase
+      never re-applied it. Fresh databases get the codes from 030; every database migrated
+      before that edit does not. 031-purchasing-permissions.xml:13-14 explicitly skipped
+      re-inserting them on the (then-incorrect) assumption that 030 had already landed them.
+
+      The same one-shot-wildcard problem described in 044 applies here: changeset 036's
+          INSERT INTO role_permissions SELECT 'OWNER', code FROM permissions;
+          INSERT INTO role_permissions SELECT 'TENANT_ADMIN', code FROM permissions WHERE code != 'rbac.manage';
+      ran once at DB creation and does not retroactively pick up codes added later, so OWNER
+      and TENANT_ADMIN are granted explicitly below.
+
+      Written as ON CONFLICT DO NOTHING rather than <insert> so it is a no-op on a fresh
+      database (where 030 already supplied these rows) and a repair on a drifted one.
+      Grants mirror 030's intent exactly — OWNER, TENANT_ADMIN and MANAGER only. CASHIER and
+      INVENTORY_MANAGER are deliberately excluded: they are the negative-control cases in
+      PurchasingEndpointAuthorizationIT.
+    -->
+    <changeSet id="auth-1.0.0-045-repair-vendor-manage-approve-grants" author="restaurantos-agent" runOnChange="false">
+
+        <sql>
+            INSERT INTO permissions (code, module, description) VALUES
+                ('vendor.manage',     'vendor', 'Manage vendors'),
+                ('vendor.po.approve', 'vendor', 'Approve purchase orders')
+            ON CONFLICT (code) DO NOTHING;
+        </sql>
+
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+                ('OWNER',        'vendor.manage'),
+                ('OWNER',        'vendor.po.approve'),
+                ('TENANT_ADMIN', 'vendor.manage'),
+                ('TENANT_ADMIN', 'vendor.po.approve'),
+                ('MANAGER',      'vendor.manage'),
+                ('MANAGER',      'vendor.po.approve')
+            ON CONFLICT (role_code, permission_code) DO NOTHING;
+        </sql>
+
+        <rollback>
+            DELETE FROM role_permissions
+             WHERE permission_code IN ('vendor.manage', 'vendor.po.approve');
+            DELETE FROM permissions
+             WHERE code IN ('vendor.manage', 'vendor.po.approve');
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

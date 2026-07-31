@@ -143,13 +143,20 @@
 
 ### Inventory (INV)
 
-- [ ] **INV-01**: Manager can manage ingredients, UOM, reorder points
-- [ ] **INV-02**: Recipes/BOM versioned; depletion uses the recipe version effective at order time
-- [ ] **INV-03**: `ORDER_CLOSED` consumer depletes stock with `SELECT FOR UPDATE`, MAC maintained
-- [ ] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
-- [ ] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
-- [ ] **INV-06**: Stock counts with variance posting; low-stock and expiry alerts
-- [ ] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
+- [x] **INV-01**: Manager can manage ingredients, UOM, reorder points
+- [x] **INV-02**: Recipes/BOM versioned; depletion uses the recipe version effective at order time
+- [x] **INV-03**: `ORDER_CLOSED` consumer depletes stock with `SELECT FOR UPDATE`, MAC maintained
+- [x] **INV-04**: Stock receipts update MAC; `STOCK_RECEIVED` published
+- [x] **INV-05**: Stock transfers (ship/receive) with in-transit accounting and variance handling
+- [x] **INV-06**: Stock counts with variance posting; low-stock and expiry alerts
+- [x] **INV-07**: Opening stock recorded via `OPENING_BALANCE` movement
+- [x] **INV-09**: POS menu items sync to inventory via `MENU_ITEM_UPSERTED`/`MENU_ITEM_DELETED` events into a `menu_item_catalog` read-model (with backfill); recipe authoring validates `menu_item_id` against the catalog
+- [x] **INV-10**: Operators author versioned recipes (menu item → ingredient lines with quantity + UOM + `effectiveFrom`) via the `/app/inventory` recipe-builder UI, selecting from the synced menu-item catalog
+- [x] **INV-11**: Recipe coverage is reportable (active menu items with/without an effective recipe); un-recipe'd sold lines still deplete covered lines and emit `DEPLETION_INCOMPLETE` (no silent no-op)
+- [x] **INV-12**: `ORDER_CLOSED` depletion is proven end-to-end against a live order — FEFO depletion + aggregate-MAC COGS + `STOCK_DEPLETED`
+- [x] **INV-13**: Ingredient categories are first-class master data — a self-referencing tree hard-capped at 3 levels, CRUD + re-parent + archive through the UI, carrying default GL accounts inherited most-specific-wins; every ingredient has exactly one required primary category, and a category in use cannot be archived (RESTRICT, never cascade)
+- [x] **INV-14**: Ingredients and units of measure are fully manageable through the UI — create/search/edit/archive with purchase/stock/recipe UOM + per-item conversions, AP→EP yield, par level, reorder point, storage location, shelf life and allergens; master data with transaction history is archived (`archived_at`), never hard-deleted
+- [x] **INV-15**: An existing recipe's ingredient lines are viewable and revisable (new version pre-filled from current — never a destructive edit) with a live plate-cost panel (batch cost, cost/portion, food-cost %, per-line share of plate cost); coverage distinguishes "no recipe" from "recipe scheduled from `<date>`"; stock receipts, transfers, counts and opening balances are driveable from the UI and on-hand stock per branch is readable via a real endpoint (backend read endpoint delivered 08.2-02; coverage now genuinely three-state server-side, 08.2-03; UI slices remain in later waves)
 
 ### Purchasing (PUR)
 
@@ -159,6 +166,8 @@
 - [x] **PUR-04**: Vendor-invoice 3-way match → AP; payment posts and `AP_PAYMENT_PROCESSED`
 - [x] **PUR-05**: Vendor performance scorecard — lead-time adherence (on-time delivery), fill rate, price variance per vendor
 - [x] **PUR-06**: Spend analytics by vendor and by category, with period comparison
+- [x] **PUR-07**: Vendors carry a real item catalog — `vendor_item` (vendor SKU, pack size, purchase UOM, MOQ, lead time) linked to an ingredient, with append-only effective-dated `vendor_item_price` (never an in-place price update, so price-change history, contract compliance and historical costing all hold); vendor↔category tags exist only to filter pickers and suggest vendors, never to authorize a purchase
+- [x] **PUR-08**: A purchase-order line is chosen from the vendor's catalog with a search-as-you-type picker showing pack size, vendor SKU and contract price (replacing the hand-typed ingredient UUID and free-text unit), and spend-by-category analytics is computed from real ingredient categories — `MockIngredientCategoryResolver` + `spend-category-map.yml` deleted
 
 ### Finance (FIN)
 
@@ -172,6 +181,7 @@
   the AR sub-ledger, the customer/house-account entity, AR balances + AR aging, and the internal seam
   POST /internal/finance/ar/charges; Phase 7 (07-09) wires the POS "charge to account" tender to that
   seam on order close. AP half shipped (10-02/10-05, aging report + OPA-limited expense approval).
+
 - [x] **FIN-06**: Posting to a locked period returns 423 `PERIOD_LOCKED`
 - [x] **FIN-07**: Every ACTIVE tenant is guaranteed at least one open accounting period covering the current business date — the onboarding saga aborts (marks the tenant PROVISIONING_FAILED) rather than silently continuing past a finance-seeding failure
 - [x] **FIN-08**: A permissioned self-service endpoint (POST /api/v1/finance/periods/provision, gated finance.period.open) lets an OWNER/TENANT_ADMIN/ACCOUNTANT (re-)provision CoA + accounting periods for their own tenant without platform-ops, resolving tenantId from JWT context only
@@ -342,13 +352,20 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | POS-26 | Phase 07.3 | Complete |
 | KDS-04 | Phase 07.3 | Complete |
 | KDS-05 | Phase 07.3 | Complete |
-| INV-01 | Phase 8 | Pending |
-| INV-02 | Phase 8 | Pending |
-| INV-03 | Phase 8 | Pending |
-| INV-04 | Phase 8 | Pending |
-| INV-05 | Phase 8 | Pending |
-| INV-06 | Phase 8 | Pending |
-| INV-07 | Phase 8 | Pending |
+| INV-01 | Phase 8 | Complete |
+| INV-02 | Phase 8 | Complete |
+| INV-03 | Phase 8 | Complete |
+| INV-04 | Phase 8 | Complete |
+| INV-05 | Phase 8 | Complete |
+| INV-06 | Phase 8 | Complete |
+| INV-07 | Phase 8 | Complete |
+| INV-09 | Phase 08.1 | Complete |
+| INV-10 | Phase 08.1 | Complete |
+| INV-11 | Phase 08.1 | Complete |
+| INV-12 | Phase 08.1 | Complete |
+| INV-13 | Phase 08.2 | Complete (08.2-01 category tree V5 + trigger; 08.2-06 category admin API; 08.2-14 category management UI) |
+| INV-14 | Phase 08.2 | Complete (08.2-09 ingredient master-data V6 + API; 08.2-15 ingredient grid + form UI) |
+| INV-15 | Phase 08.2 | Complete (08.2-02 stock read endpoint; 08.2-03 three-state coverage; 08.2-07 cost-preview endpoint; 08.2-16 recipe detail/revision + live plate-cost panel + coverage UI; 08.2-17 stock-operations UI + on-hand read view) |
 | FIN-03 | Phase 9 | Pending |
 | CRM-01 | Phase 9 | Pending |
 | CRM-02 | Phase 9 | Pending |
@@ -361,6 +378,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PUR-04 | Phase 10 (10-01/10-02) | Complete |
 | PUR-05 | Phase 10 (10-03) | Complete |
 | PUR-06 | Phase 10 (10-03) | Complete |
+| PUR-07 | Phase 08.2 | Complete (08.2-04 vendor-catalog V5; 08.2-08 vendor item/append-only price API; 08.2-18 vendor detail + catalog/price UI) |
+| PUR-08 | Phase 08.2 | Complete (08.2-10 catalog-driven PO line; 08.2-11 real spend-by-category analytics, mock resolver deleted; 08.2-13 purchasing data layer; 08.2-19 PO-line catalog picker) |
 | FIN-05 | Phase 10 (10-02/10-05 AP; 10-18 AR) + Phase 7 (POS charge-to-account tender) | In Progress |
 | HR-01 | Phase 11 | Pending |
 | HR-02 | Phase 11 | Pending |
@@ -377,8 +396,8 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 
 **Coverage:**
 
-- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE)
-- Mapped to phases: 112/112 (100%) — each requirement mapped to exactly one phase
+- v1 requirements: 112 across 18 categories (INFRA, XCUT, LIB, PLATFORM, AUTH, AUTHZ, GW, USER, FE, POS, KDS, INV, PUR, FIN, HR, CRM, RPT/NLQ, NOTIF/AUDIT/FILE); +4 added for Phase 08.1 (INV-09..INV-12) = 116; +5 added for Phase 08.2 (INV-13..INV-15, PUR-07..PUR-08) = 121
+- Mapped to phases: 116/116 (100%) — each requirement mapped to exactly one phase
 - Unmapped: 0
 - 2026-07-11 addition (+8): Phase 7.1 (INSERTED) POS production-hardening — POS-09 (order management screen), POS-10 (table-centric dine-in), POS-11 (item-level status + derived order status), POS-12 (order revisions / add-to-existing kitchen tickets), POS-13 (order & item instructions), POS-14 (wire payment/till/void UI + close Phase-7 UAT gaps), POS-15 (cashier experience + terminal bug fixes), KDS-03 (KDS revision & detail with item-level status)
 - 2026-07-11 addition (+4): Phase 07.2 (INSERTED, URGENT) finance accounting-period provisioning — FIN-07 (guaranteed open period at onboarding / saga fail-not-swallow), FIN-08 (self-service finance.period.open provision endpoint), FIN-09 (config-gated auto-seed-on-miss with WARN audit), FIN-10 (calendar-based frontend provisioning UI)

@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Menu Profit Engineering</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .kpis { grid-template-columns: repeat(4, 1fr); }
+  .body { display: grid; grid-template-columns: 1fr 424px; grid-template-rows: minmax(0,1fr) 330px;
+          gap: 14px; flex: 1; min-height: 0; }
+
+  /* ---- plate cost ---- */
+  .segbar { display: flex; gap: 2px; height: 24px; }
+  .segbar > div { display: grid; place-items: center; font-size: 10.5px; font-weight: 700;
+                  color: #12100b; font-variant-numeric: tabular-nums; }
+  .segbar > div:first-child { border-radius: 5px 0 0 5px; }
+  .segbar > div:last-child { border-radius: 0 5px 5px 0; }
+  .seglg { display: flex; gap: 16px; margin-top: 9px; font-size: 10.5px; color: var(--fg-mut); }
+  .seglg span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .seglg i { width: 9px; height: 9px; border-radius: 2.5px; flex: none; }
+  .seglg b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pc td { padding: 5.5px 7px; }
+  .pc th { padding: 0 7px 6px; }
+  .pc td:first-child, .pc th:first-child { padding-left: 0; }
+  .pc td:last-child, .pc th:last-child { padding-right: 0; }
+  .sw { width: 7px; height: 7px; border-radius: 2px; display: inline-block; margin-right: 7px;
+        vertical-align: 0.5px; }
+
+  /* ---- simulator ---- */
+  .simcol { display: flex; flex-direction: column; min-height: 0; }
+  .cmp { font-size: 12px; }
+  .cmp th { padding: 0 0 6px; }
+  .cmp td { padding: 2.5px 0; border-top: 1px solid var(--line); }
+  .mf tbody td { padding: 6.5px 7px; }
+  .mf th { padding: 0 7px 8px; }
+  .cmp td.a { text-align: right; font-variant-numeric: tabular-nums; color: var(--fg-mut); }
+  .cmp td.b { text-align: right; font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 620; }
+  .cmp td.ar { text-align: center; color: var(--fg-dim); width: 22px; }
+  .delta { border-radius: 8px; border: 1px solid var(--gold-line); background: var(--gold-soft);
+           padding: 9px 11px; display: flex; align-items: center; gap: 10px; }
+  .why { font-size: 10.5px; color: var(--fg-mut); line-height: 1.5; }
+  .why b { color: var(--fg); font-weight: 600; }
+  .sec-l { font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-dim);
+           font-weight: 650; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ─────────────────────────────────────────────────────────────── KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-l">Menu items analysed</div>
+      <div class="kpi-v">86 <small>items</small></div>
+      <div class="kpi-d"><span>plate cost from MAC, rebuilt hourly</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Avg food cost · revenue-weighted</div>
+      <div class="kpi-v">31.4<small>%</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ 0.5pp</span>
+        <span>ceiling 33.0%</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Items below the margin floor</div>
+      <div class="kpi-v">7</div>
+      <div class="kpi-d"><span class="chip neg" style="height:19px;padding:0 6px;font-size:10.5px">Rs 186,400 / mo</span>
+        <span>at stake</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Monthly upside identified</div>
+      <div class="kpi-v gold">Rs 412,600</div>
+      <div class="kpi-d"><span>11 priced actions · 4 awaiting approval</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- ────────────────────────────────────────── menu engineering quadrant -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Menu engineering — popularity vs contribution</div>
+          <div class="card-s">Top 22 items by revenue · last 30 days · bubble area = monthly revenue</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip">Medians 1,135 units · Rs 630 CM</div>
+        <div class="chip gold">3 repricing actions ready</div>
+      </div>
+      <div class="card-b rel" style="flex:1;min-height:0">
+        <svg viewBox="0 0 864 363" width="864" height="363" role="img"
+             aria-label="Menu engineering scatter of units sold against contribution margin per unit">
+          <!-- quadrant grounds -->
+          <rect x="339.8" y="12" width="516.2" height="185.5" fill="rgba(240,180,41,.055)"/>
+          <rect x="56" y="12" width="283.8" height="185.5" fill="rgba(255,255,255,.018)"/>
+          <rect x="339.8" y="197.5" width="516.2" height="120.5" fill="rgba(255,255,255,.018)"/>
+          <rect x="56" y="197.5" width="283.8" height="120.5" fill="rgba(248,113,113,.045)"/>
+
+          <g class="gridline">
+            <line x1="56" y1="241.5" x2="856" y2="241.5"/><line x1="56" y1="165" x2="856" y2="165"/>
+            <line x1="56" y1="88.5" x2="856" y2="88.5"/><line x1="56" y1="12" x2="856" y2="12"/>
+            <line x1="256" y1="12" x2="256" y2="318"/><line x1="456" y1="12" x2="456" y2="318"/>
+            <line x1="656" y1="12" x2="656" y2="318"/><line x1="856" y1="12" x2="856" y2="318"/>
+          </g>
+
+          <!-- median splits -->
+          <line x1="339.8" y1="12" x2="339.8" y2="318" stroke="rgba(255,255,255,.3)"
+                stroke-width="1.5" stroke-dasharray="4 4"/>
+          <line x1="56" y1="197.5" x2="856" y2="197.5" stroke="rgba(255,255,255,.3)"
+                stroke-width="1.5" stroke-dasharray="4 4"/>
+
+          <!-- quadrant labels -->
+          <g class="axis" style="font-weight:700;letter-spacing:.11em" fill="#7c8494">
+            <text x="350" y="28">STARS · 4</text>
+            <text x="64" y="28">PUZZLES · 7</text>
+            <text x="852" y="312" text-anchor="end">PLOWHORSES · 7</text>
+            <text x="64" y="312">DOGS · 4</text>
+          </g>
+
+          <!-- bubbles: one mark colour, area = revenue, quadrant is read from position -->
+          <g fill="var(--s1)" fill-opacity=".68" stroke="var(--card)" stroke-width="2">
+            <circle cx="783.5" cy="227.0" r="9.1"/>
+            <circle cx="516.0" cy="157.7" r="9.5"/>
+            <circle cx="328.5" cy="35.7" r="10.6"/>
+            <circle cx="716.0" cy="232.7" r="8.3"/>
+            <circle cx="411.0" cy="206.7" r="7.0"/>
+            <circle cx="251.0" cy="235.0" r="4.9"/>
+            <circle cx="296.0" cy="241.1" r="4.7"/>
+            <circle cx="371.0" cy="204.4" r="7.2"/>
+            <circle cx="216.0" cy="157.3" r="6.2"/>
+            <circle cx="186.0" cy="190.6" r="4.4"/>
+            <circle cx="386.0" cy="69.0" r="10.1"/>
+            <circle cx="158.5" cy="113.0" r="5.8"/>
+            <circle cx="831.0" cy="290.8" r="4.8"/>
+            <circle cx="601.0" cy="277.5" r="4.9"/>
+            <circle cx="141.0" cy="97.7" r="5.5"/>
+            <circle cx="458.5" cy="184.9" r="8.1"/>
+            <circle cx="278.5" cy="283.2" r="4.0"/>
+            <circle cx="351.0" cy="250.7" r="4.9"/>
+            <circle cx="236.0" cy="121.4" r="7.1"/>
+            <circle cx="171.0" cy="275.5" r="4.0"/>
+            <circle cx="186.0" cy="127.9" r="5.8"/>
+          </g>
+          <!-- hovered mark -->
+          <circle cx="676" cy="150.1" r="17" fill="var(--s1)" fill-opacity=".16"/>
+          <circle cx="676" cy="150.1" r="11.5" fill="var(--s1)" stroke="var(--fg)" stroke-width="1.5"/>
+
+          <!-- selective direct labels -->
+          <g class="axis" fill="#a3aab8" style="font-weight:560">
+            <text x="312" y="33" text-anchor="end">Mutton Karahi ½kg</text>
+            <text x="372" y="67" text-anchor="end">Chicken Karahi ½kg</text>
+            <text x="530" y="156">Beef Nihari</text>
+            <text x="783.5" y="210" text-anchor="middle">Chicken Biryani</text>
+            <text x="716" y="256" text-anchor="middle">Zinger Burger</text>
+            <text x="242" y="238" text-anchor="end">Chapli Kebab</text>
+          </g>
+
+          <!-- axes -->
+          <line class="axisline" x1="56" y1="318" x2="856" y2="318"/>
+          <line class="axisline" x1="56" y1="12" x2="56" y2="318"/>
+          <g class="axis" text-anchor="end">
+            <text x="46" y="322">0</text><text x="46" y="245.5">400</text>
+            <text x="46" y="169">800</text><text x="46" y="92.5">1,200</text><text x="46" y="16">1,600</text>
+          </g>
+          <g class="axis" text-anchor="middle">
+            <text x="56" y="334">0</text><text x="256" y="334">800</text><text x="456" y="334">1,600</text>
+            <text x="656" y="334">2,400</text><text x="858" y="334" text-anchor="end">3,200</text>
+          </g>
+          <text class="axis" x="456" y="354" text-anchor="middle" fill="#7c8494">Units sold · last 30 days</text>
+          <text class="axis" x="56" y="354" fill="#7c8494">Contribution margin per unit (Rs) ↑</text>
+        </svg>
+
+        <div class="tip" style="left:470px;top:16px">
+          <div class="tip-t">Chicken Malai Boti · Grill, Station 2</div>
+          <div class="tip-r"><span>Units sold</span><b>2,480</b></div>
+          <div class="tip-r"><span>Menu price</span><b>Rs 1,290</b></div>
+          <div class="tip-r"><span>Plate cost (MAC)</span><b>Rs 412</b></div>
+          <div class="tip-r"><span>Contribution / plate</span><b style="color:var(--pos)">Rs 878 · 68.1%</b></div>
+          <div class="tip-r" style="border-top:1px solid var(--line);margin-top:5px;padding-top:5px">
+            <span>Monthly contribution</span><b>Rs 2,177,440</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────── repricing simulator -->
+    <div class="ai-band simcol">
+      <div class="card-h" style="border-bottom-color:var(--gold-line)">
+        <div class="ins-ico gold" style="width:28px;height:28px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="card-t">Repricing simulator</div>
+          <div class="card-s">Chicken Malai Boti · Star · effective 1 Aug</div>
+        </div>
+        <div class="chip gold">+Rs 120</div>
+      </div>
+
+      <div style="padding:10px 14px 0">
+        <table class="cmp">
+          <thead><tr>
+            <th></th>
+            <th style="text-align:right;padding-right:0">Today</th>
+            <th></th>
+            <th style="text-align:right;padding-right:0">AI price</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="k">Menu price</td><td class="a">Rs 1,290</td><td class="ar">→</td>
+                <td class="b">Rs 1,410</td></tr>
+            <tr><td class="k">Plate cost · MAC</td><td class="a">Rs 412</td><td class="ar">→</td>
+                <td class="b">Rs 412</td></tr>
+            <tr><td class="k">Food cost %</td><td class="a">31.9%</td><td class="ar">→</td>
+                <td class="b" style="color:var(--pos)">29.2%</td></tr>
+            <tr><td class="k">Contribution / plate</td><td class="a">Rs 878</td><td class="ar">→</td>
+                <td class="b">Rs 998</td></tr>
+            <tr><td class="k">Units / month</td><td class="a">2,480</td><td class="ar">→</td>
+                <td class="b" style="color:var(--neg)">2,314</td></tr>
+            <tr><td class="k">Monthly contribution</td><td class="a">Rs 2,177,440</td><td class="ar">→</td>
+                <td class="b">Rs 2,309,372</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 14px 0">
+        <div class="delta">
+          <div>
+            <div class="sec-l">Projected monthly contribution</div>
+            <div style="font-size:18px;font-weight:700;letter-spacing:-.03em;margin-top:1px"
+                 class="gold">+Rs 131,932</div>
+          </div>
+          <div class="spacer"></div>
+          <div style="text-align:right">
+            <div class="impact pos" style="font-size:14px">+6.1%</div>
+            <div class="flex ac g6" style="margin-top:3px">
+              <span class="f11 dim">Confidence</span>
+              <span class="conf"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:9px 14px 0">
+        <div class="sec-l" style="margin-bottom:4px">Elasticity &amp; evidence</div>
+        <div class="why">Price <b>+9.3%</b> × own-price elasticity <b>−0.72</b> (±0.11) →
+          units <b>−6.7%</b>: 166 fewer plates, each keeping Rs 120 more.</div>
+        <div class="why" style="margin-top:5px">Fitted on <b>14 price points</b>, 3 branches,
+          62 weeks — no promo overlap. Competitor median <b>Rs 1,450</b> (n = 6); last change Mar 2025.</div>
+      </div>
+
+      <div class="spacer"></div>
+      <div style="padding:9px 14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px">
+        <span class="btn sm gold-o">Apply from 1 Aug</span>
+        <span class="btn sm ghost">Run holdout</span>
+        <span class="spacer"></span>
+        <span class="chip">capped +12%</span>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────── plate cost breakdown -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Plate cost — Chicken Malai Boti</div>
+          <div class="card-s">10 recipe lines valued at moving-average cost · Rs 412.00 per plate</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip">Recipe v7 · 18 Jul</div>
+        <div class="chip warn">MAC +4.1% since Mar</div>
+      </div>
+      <div class="card-b" style="flex:1;min-height:0;padding:12px 14px 0">
+        <div class="segbar">
+          <div style="flex:46.83;background:var(--s1)">46.8%</div>
+          <div style="flex:19.76;background:var(--s2)">19.8%</div>
+          <div style="flex:16.73;background:var(--s3)">16.7%</div>
+          <div style="flex:11.49;background:var(--s4)">11.5%</div>
+          <div style="flex:5.19;background:var(--s5)">5.2%</div>
+        </div>
+        <div class="seglg">
+          <span><i style="background:var(--s1)"></i>Protein <b>Rs 192.92</b></span>
+          <span><i style="background:var(--s2)"></i>Dairy <b>Rs 81.43</b></span>
+          <span><i style="background:var(--s3)"></i>Accompaniments <b>Rs 68.93</b></span>
+          <span><i style="background:var(--s4)"></i>Produce, spice &amp; oil <b>Rs 47.32</b></span>
+          <span><i style="background:var(--s5)"></i>Packaging <b>Rs 21.40</b></span>
+          <span class="spacer"></span>
+          <span class="dim">Total <b>Rs 412.00</b></span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:11px">
+          <table class="pc">
+            <thead><tr><th>Recipe line</th><th class="num">Qty</th><th class="num">MAC / unit</th>
+              <th class="num">Line cost</th><th class="num">%</th></tr></thead>
+            <tbody>
+              <tr><td class="k"><i class="sw" style="background:var(--s1)"></i>Chicken boneless (leg)</td>
+                <td class="num mono">260 g</td><td class="num mono">742.00 /kg</td>
+                <td class="num k mono">192.92</td><td class="num">46.8%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s3)"></i>Salad &amp; chutney</td>
+                <td class="num mono">1 plate</td><td class="num mono">46.20 /pl</td>
+                <td class="num k mono">46.20</td><td class="num">11.2%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s2)"></i>Fresh cream</td>
+                <td class="num mono">45 ml</td><td class="num mono">890.00 /L</td>
+                <td class="num k mono">40.05</td><td class="num">9.7%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s2)"></i>Cheddar cheese</td>
+                <td class="num mono">22 g</td><td class="num mono">1,150.00 /kg</td>
+                <td class="num k mono">25.30</td><td class="num">6.1%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s3)"></i>Naan, in-house bake</td>
+                <td class="num mono">1 pc</td><td class="num mono">22.73 /pc</td>
+                <td class="num k mono">22.73</td><td class="num">5.5%</td></tr>
+            </tbody>
+          </table>
+          <table class="pc">
+            <thead><tr><th>Recipe line</th><th class="num">Qty</th><th class="num">MAC / unit</th>
+              <th class="num">Line cost</th><th class="num">%</th></tr></thead>
+            <tbody>
+              <tr><td class="k"><i class="sw" style="background:var(--s5)"></i>Skewer, foil &amp; box</td>
+                <td class="num mono">1 set</td><td class="num mono">21.40 /set</td>
+                <td class="num k mono">21.40</td><td class="num">5.2%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s4)"></i>House spice mix</td>
+                <td class="num mono">14 g</td><td class="num mono">1,240.00 /kg</td>
+                <td class="num k mono">17.36</td><td class="num">4.2%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s2)"></i>Hung yoghurt</td>
+                <td class="num mono">60 g</td><td class="num mono">268.00 /kg</td>
+                <td class="num k mono">16.08</td><td class="num">3.9%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s4)"></i>Cooking oil</td>
+                <td class="num mono">25 ml</td><td class="num mono">615.00 /L</td>
+                <td class="num k mono">15.38</td><td class="num">3.7%</td></tr>
+              <tr><td class="k"><i class="sw" style="background:var(--s4)"></i>Ginger-garlic paste</td>
+                <td class="num mono">30 g</td><td class="num mono">486.00 /kg</td>
+                <td class="num k mono">14.58</td><td class="num">3.5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="flex ac g8" style="padding:9px 14px;border-top:1px solid var(--line);
+           font-size:11px;color:var(--fg-dim)">
+        10 lines sum to <b class="mut">Rs 412.00</b> · menu price Rs 1,290 · food cost
+        <b class="mut">31.9%</b> · contribution <b class="mut">Rs 878</b>
+        <span class="spacer"></span><span class="gold b6">Open recipe →</span>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────────── below the margin floor -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Below the margin floor</div>
+          <div class="card-s">Food cost ceiling 38.0% · 7 of 86 items</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip neg">7</div>
+      </div>
+      <div class="card-b" style="flex:1;min-height:0;padding:12px 0 0">
+        <table class="mf">
+          <thead><tr>
+            <th style="padding-left:14px">Item</th><th class="num">Price</th>
+            <th class="num">Plate</th><th class="num">FC %</th>
+            <th style="padding-right:14px;text-align:right">Recommended fix</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="k" style="padding-left:14px">Mutton Handi</td><td class="num mono">2,150</td>
+              <td class="num mono">998</td><td class="num neg b6">46.4%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">price +Rs 180</td></tr>
+            <tr><td class="k" style="padding-left:14px">Mutton Chops</td><td class="num mono">1,980</td>
+              <td class="num mono">908</td><td class="num neg b6">45.9%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">price +Rs 160</td></tr>
+            <tr><td class="k" style="padding-left:14px">Chapli Kebab</td><td class="num mono">740</td>
+              <td class="num mono">306</td><td class="num neg b6">41.4%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">re-spec −20 g</td></tr>
+            <tr><td class="k" style="padding-left:14px">Fish Tikka</td><td class="num mono">1,420</td>
+              <td class="num mono">580</td><td class="num neg b6">40.8%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">vendor −6%</td></tr>
+            <tr><td class="k" style="padding-left:14px">Mutton Karahi ½kg</td><td class="num mono">2,480</td>
+              <td class="num mono">1,004</td><td class="num neg b6">40.5%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">price +Rs 140</td></tr>
+            <tr><td class="k" style="padding-left:14px">Mutton Biryani</td><td class="num mono">980</td>
+              <td class="num mono">386</td><td class="num b6" style="color:var(--warn)">39.4%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">portion −30 g</td></tr>
+            <tr><td class="k" style="padding-left:14px">Beef Boti Handi</td><td class="num mono">1,680</td>
+              <td class="num mono">652</td><td class="num b6" style="color:var(--warn)">38.8%</td>
+              <td class="dim" style="padding-right:14px;text-align:right">vendor −4%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="flex ac g8" style="padding:9px 14px;border-top:1px solid var(--line);
+           font-size:11px;color:var(--fg-dim)">
+        Fixing all 7 adds <b class="pos">Rs 186,400 / mo</b>
+        <span class="spacer"></span><span class="gold b6">Simulate all →</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('menu', ['Bayleaf Group', 'Clifton, Karachi', 'Menu Profit'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Rolling 30 days to 22 Jul 2026</div>`);
+</script>
+</body>
+</html>

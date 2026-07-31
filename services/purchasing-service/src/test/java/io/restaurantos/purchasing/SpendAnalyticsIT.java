@@ -13,29 +13,36 @@ import io.restaurantos.purchasing.repository.PurchaseOrderLineRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
 import io.restaurantos.purchasing.repository.VendorInvoiceRepository;
 import io.restaurantos.purchasing.repository.VendorRepository;
+import io.restaurantos.purchasing.service.IngredientCategoryResolver;
 import io.restaurantos.purchasing.service.VendorAnalyticsService;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
  * PUR-06: proves spendReport() aggregates by vendor AND by category with period-over-period deltas, on
- * mock invoice/line data (F8 fixture — see 10-MOCK-FIXTURES.md). No finance-service / inventory-service
- * dependency: analytics reads purchasing_db only, and category resolution goes through the classpath
- * spend-category-map.yml via IngredientCategoryResolver.
+ * mock invoice/line data (F8 fixture — see 10-MOCK-FIXTURES.md). No finance-service dependency:
+ * analytics reads purchasing_db only. Category resolution (08.2-11, D-09) goes through
+ * {@link IngredientCategoryResolver}, stubbed here via {@code @MockitoBean} rather than the deleted
+ * classpath category-map mock — {@link SpendByRealCategoryIT} covers the real Feign-backed resolver
+ * path end to end, including batching and degradation.
  */
 class SpendAnalyticsIT extends PurchasingTestBase {
 
-    // Fixed seed ingredient UUIDs from 10-MOCK-FIXTURES.md, mapped in spend-category-map.yml.
+    // Fixed seed ingredient UUIDs from 10-MOCK-FIXTURES.md, now given known labels via the stub below.
     private static final UUID MEAT_INGREDIENT = UUID.fromString("11111111-1111-4111-8111-111111110001");
     private static final UUID PRODUCE_INGREDIENT = UUID.fromString("11111111-1111-4111-8111-111111110002");
     private static final UUID DAIRY_INGREDIENT = UUID.fromString("11111111-1111-4111-8111-111111110003");
@@ -58,6 +65,9 @@ class SpendAnalyticsIT extends PurchasingTestBase {
     @Autowired
     private TenantContext tenantContext;
 
+    @MockitoBean
+    private IngredientCategoryResolver ingredientCategoryResolver;
+
     private UUID branchId;
     private UUID vendorAId;
     private UUID vendorBId;
@@ -67,6 +77,11 @@ class SpendAnalyticsIT extends PurchasingTestBase {
         UUID tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
         tenantContext.set(tenantId, branchId, UUID.randomUUID(), null);
+
+        when(ingredientCategoryResolver.resolveAll(any())).thenReturn(Map.of(
+                MEAT_INGREDIENT, "Meat",
+                PRODUCE_INGREDIENT, "Produce",
+                DAIRY_INGREDIENT, "Dairy"));
 
         Vendor vendorA = newVendor(tenantId, "Vendor A");
         Vendor vendorB = newVendor(tenantId, "Vendor B");
