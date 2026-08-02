@@ -104,7 +104,8 @@ public class PurchaseOrderService {
                 .map(CreatePurchaseOrderRequest.Line::vendorItemId)
                 .distinct()
                 .toList();
-        Map<UUID, VendorItemPrice> currentPriceById = currentPricesByItem(tenantId, idsNeedingDerivedPrice);
+        Map<UUID, VendorItemPrice> currentPriceById =
+                currentPricesByItem(tenantId, idsNeedingDerivedPrice, po.getBranchId());
 
         for (CreatePurchaseOrderRequest.Line lineReq : req.lines()) {
             PurchaseOrderLine line = new PurchaseOrderLine();
@@ -262,18 +263,21 @@ public class PurchaseOrderService {
     }
 
     /**
-     * The tenant-wide (branchId == null) current price per vendor item, in ONE batched call —
-     * the same shape as {@code VendorItemService.currentPricesByItem}, replicated here rather
-     * than exposing a new public method on that service, since this is the DTO-enrichment /
-     * price-derivation seam local to purchase-order lines.
+     * The current price per vendor item as it applies to {@code branchId}, in ONE batched call.
+     *
+     * <p>Keyed on the PURCHASE ORDER's branch, not the caller's ambient one — a PO raised for the
+     * Gulberg branch must derive Gulberg's prices whoever is typing it. Resolution order (branch
+     * price, then tenant-wide) is {@link CurrentPriceResolver}'s, shared with the catalog list,
+     * order suggestions and the single-item price endpoint so the four can never disagree about
+     * the price of the same item.
      */
-    private Map<UUID, VendorItemPrice> currentPricesByItem(UUID tenantId, List<UUID> vendorItemIds) {
+    private Map<UUID, VendorItemPrice> currentPricesByItem(UUID tenantId, List<UUID> vendorItemIds, UUID branchId) {
         if (vendorItemIds.isEmpty()) {
             return Map.of();
         }
-        return vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()).stream()
-                .filter(p -> p.getBranchId() == null)
-                .collect(Collectors.toMap(VendorItemPrice::getVendorItemId, p -> p, (first, second) -> first));
+        return CurrentPriceResolver.byVendorItem(
+                vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()),
+                branchId);
     }
 
     PurchaseOrderDto toDto(PurchaseOrder po) {
@@ -292,7 +296,8 @@ public class PurchaseOrderService {
                 : vendorItemRepository.findAllById(vendorItemIds).stream()
                         .filter(v -> tenantId.equals(v.getTenantId()))
                         .collect(Collectors.toMap(VendorItem::getId, v -> v));
-        Map<UUID, VendorItemPrice> currentPriceById = currentPricesByItem(tenantId, vendorItemIds);
+        Map<UUID, VendorItemPrice> currentPriceById =
+                currentPricesByItem(tenantId, vendorItemIds, po.getBranchId());
 
         return new PurchaseOrderDto(
                 po.getId(), po.getVendorId(), po.getBranchId(), po.getStatus(),

@@ -105,10 +105,19 @@ class PurchasingEndpointAuthorizationIT extends PurchasingTestBase {
                 args(HttpMethod.POST, "/api/v1/purchasing/purchase-orders/" + RANDOM_ID + "/reject", "{\"reason\":\"bad\"}"),
                 args(HttpMethod.POST, "/api/v1/purchasing/purchase-orders/" + RANDOM_ID + "/send", null),
                 args(HttpMethod.POST, "/api/v1/purchasing/purchase-orders/" + RANDOM_ID + "/close", null),
-                args(HttpMethod.POST, "/api/v1/purchasing/purchase-orders/" + RANDOM_ID + "/mock-receive", "{\"lines\":[]}"),
-                args(HttpMethod.POST, "/api/v1/purchasing/invoices", "{}"),
+                // Bodies must be VALID, not merely well-formed: Spring resolves and validates
+                // @RequestBody arguments before the method-security proxy runs, so an invalid body
+                // 400s and the endpoint's authorization is never exercised at all.
+                args(HttpMethod.POST, "/api/v1/purchasing/purchase-orders/" + RANDOM_ID + "/mock-receive",
+                        "{\"lines\":[{\"poLineId\":\"" + RANDOM_ID + "\",\"receivedQty\":1}]}"),
+                args(HttpMethod.POST, "/api/v1/purchasing/invoices",
+                        "{\"purchaseOrderId\":\"" + RANDOM_ID + "\",\"invoiceNo\":\"INV-1\","
+                                + "\"invoiceDate\":\"2026-01-01\",\"inputTaxPaisa\":0,"
+                                + "\"lines\":[{\"poLineId\":\"" + RANDOM_ID + "\",\"qty\":1,\"unitPricePaisa\":100}]}"),
                 args(HttpMethod.POST, "/api/v1/purchasing/invoices/" + RANDOM_ID + "/override-match", "{\"justification\":\"x\"}"),
-                args(HttpMethod.POST, "/api/v1/purchasing/payments", "{}")
+                args(HttpMethod.POST, "/api/v1/purchasing/payments",
+                        "{\"invoiceId\":\"" + RANDOM_ID + "\",\"paymentDate\":\"2026-01-01\","
+                                + "\"amountPaisa\":100,\"bankAccountCode\":\"1100\"}")
         );
     }
 

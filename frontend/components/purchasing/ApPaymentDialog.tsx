@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateApPayment } from "@/lib/hooks/purchasing/use-purchasing";
+import { useBankAccounts, useCreateApPayment } from "@/lib/hooks/purchasing/use-purchasing";
 import type { VendorInvoice } from "@/lib/adapters/purchasing.adapter";
 import {
   Dialog,
@@ -38,6 +38,12 @@ export function ApPaymentDialog({ invoice }: { invoice: VendorInvoice }) {
   const [paymentDate, setPaymentDate] = useState(today());
   const [bankAccountCode, setBankAccountCode] = useState("1110");
   const createPayment = useCreateApPayment();
+
+  // Through purchasing's own scoped proxy, not finance's chart of accounts directly: MANAGER may
+  // pay a vendor invoice but does not hold finance.coa.view, so reading finance here would 403 for
+  // exactly the role that uses this dialog. The proxy already narrows to active leaf cash/bank
+  // accounts, so nothing is filtered again on this side.
+  const { data: cashAccounts = [] } = useBankAccounts();
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -99,8 +105,25 @@ export function ApPaymentDialog({ invoice }: { invoice: VendorInvoice }) {
             <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
           </label>
           <label className="grid gap-1 text-sm">
-            <span className="text-xs font-medium text-muted-foreground">Bank account code</span>
-            <Input value={bankAccountCode} onChange={(e) => setBankAccountCode(e.target.value)} />
+            <span className="text-xs font-medium text-muted-foreground">Pay from</span>
+            {/* Typed by hand until now, defaulting to a hard-coded "1110" — a GL account code
+                nobody outside finance knows, on the one screen that moves real money out. The
+                chart of accounts was already fetchable (useAccounts); this just asks it. */}
+            <select
+              aria-label="Pay from"
+              className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              value={bankAccountCode}
+              onChange={(e) => setBankAccountCode(e.target.value)}
+            >
+              {cashAccounts.length === 0 ? (
+                <option value={bankAccountCode}>{bankAccountCode}</option>
+              ) : null}
+              {cashAccounts.map((a) => (
+                <option key={a.code} value={a.code}>
+                  {a.code} · {a.name}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 

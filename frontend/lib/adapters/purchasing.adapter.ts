@@ -5,6 +5,7 @@ import type {
   apiOrderSuggestionsResponseSchema,
   createDraftsFromSuggestionsInputSchema,
   apiApPaymentSchema,
+  apiBankAccountSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
   apiVendorCategorySchema,
@@ -110,6 +111,8 @@ export function adaptVendorCategory(raw: VendorCategory): VendorCategory {
 export type OrderSuggestion = z.infer<typeof apiOrderSuggestionSchema>;
 export type OrderSuggestionVendorGroup = z.infer<typeof apiOrderSuggestionVendorGroupSchema>;
 export type OrderSuggestionsResponse = z.infer<typeof apiOrderSuggestionsResponseSchema>;
+/** An account a vendor payment can be paid from — see `PurchasingRepository.listBankAccounts`. */
+export type BankAccount = z.infer<typeof apiBankAccountSchema>;
 /** Write payload for `POST /api/v1/purchasing/order-suggestions/drafts`. */
 export type CreateDraftsFromSuggestionsInput = z.infer<typeof createDraftsFromSuggestionsInputSchema>;
 

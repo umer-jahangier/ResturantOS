@@ -63,7 +63,7 @@ public class VendorService {
         vendor.setPhone(req.phone());
         vendor.setEmail(req.email());
         vendor.setAddress(req.address());
-        vendor.setPaymentTerms(req.paymentTerms());
+        vendor.setPaymentTerms(normalizePaymentTerms(req.paymentTerms()));
         vendor.setNtn(req.ntn());
         vendor.setStrn(req.strn());
         vendor.setLeadTimeDays(req.leadTimeDays());
@@ -77,6 +77,28 @@ public class VendorService {
             vendor.setBankAccountLast4(digits.length() >= 4
                     ? digits.substring(digits.length() - 4) : digits);
         }
+    }
+
+    /**
+     * Folds the spellings of one payment term together: {@code net_30}, {@code NET 30} and
+     * {@code NET30} are the same agreement and must not be three values.
+     *
+     * <p>This field is free text and the live table already showed the drift — {@code NET30},
+     * {@code NET_30} and {@code CASH} across three vendors, two of which mean the same thing.
+     * Nothing computes a due date from it yet, so the damage today is only that vendors cannot be
+     * grouped or filtered by terms; the moment AP aging does compute one, dirty values become
+     * wrong invoices. Converging now costs nothing, and the form offers a fixed list so most
+     * values never need converging at all.
+     *
+     * <p>Deliberately normalizes rather than rejects. A tenant with a genuine term this list does
+     * not cover ({@code EOM}, {@code 2/10NET30}) keeps it, uppercased — refusing the save would
+     * make an unusual agreement unrecordable.
+     */
+    static String normalizePaymentTerms(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "NET30";
+        }
+        return raw.trim().toUpperCase(java.util.Locale.ROOT).replaceAll("[\\s_-]+", "");
     }
 
     private VendorDto toDto(Vendor v) {

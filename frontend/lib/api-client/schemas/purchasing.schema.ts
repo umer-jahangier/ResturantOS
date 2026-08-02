@@ -502,3 +502,14 @@ export const createDraftsFromSuggestionsInputSchema = z.object({
     .array(z.object({ vendorItemId: z.string().uuid(), qty: z.string().min(1) }))
     .min(1, "Select at least one line"),
 });
+
+/**
+ * A payable-from account, as returned by `GET /api/v1/purchasing/bank-accounts` — purchasing's
+ * scoped window onto finance's chart of accounts. Narrow on purpose: enough to label an option.
+ */
+export const apiBankAccountSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  accountType: z.string(),
+});

@@ -99,21 +99,23 @@ public class VendorItemPriceService {
     }
 
     /**
-     * The tenant-wide (branchId == null) row whose effective window covers {@code at}, if any.
+     * The row whose effective window covers {@code at} for the caller's branch — that branch's own
+     * price if one is recorded, the tenant-wide price otherwise.
      *
-     * <p>08.2 code-review WR-05: {@code findCurrentForVendorItems} returns BOTH tenant-wide and
-     * branch-specific rows ordered by {@code effectiveFrom DESC}, so a bare {@code findFirst()} could
-     * return a branch-scoped override — disagreeing with {@code VendorItemService.currentPricesByItem}
-     * and {@code PurchaseOrderService.currentPricesByItem}, which both deliberately filter
-     * {@code branchId == null} to pick the tenant-wide price. Filter here too so the single-item
-     * endpoint, the catalog list, and PO-line derivation never disagree about "the current price"
-     * for the same item in a money-bearing path.
+     * <p>08.2 code-review WR-05 correctly identified that {@code findCurrentForVendorItems} returns
+     * tenant-wide and branch rows together, so a bare {@code findFirst()} made this endpoint, the
+     * catalog list and PO-line derivation disagree about the price of one item in a money-bearing
+     * path. Its fix — filter to {@code branchId == null} in all four places — removed the
+     * disagreement by making every reader ignore branch prices entirely, so a price saved through
+     * the dialog's "This branch only" option was invisible everywhere. They now share
+     * {@link CurrentPriceResolver} instead: still one rule, and one that includes branch prices.
      */
     public Optional<VendorItemPriceDto> currentPrice(UUID vendorItemId, Instant at) {
         UUID tenantId = tenantContext.requireTenantId();
-        return vendorItemPriceRepository.findCurrentForVendorItems(tenantId, List.of(vendorItemId), at).stream()
-                .filter(p -> p.getBranchId() == null)
-                .findFirst()
+        return CurrentPriceResolver.resolve(
+                        vendorItemPriceRepository.findCurrentForVendorItems(tenantId, List.of(vendorItemId), at),
+                        vendorItemId,
+                        tenantContext.getBranchId().orElse(null))
                 .map(VendorItemPriceService::toDto);
     }
 

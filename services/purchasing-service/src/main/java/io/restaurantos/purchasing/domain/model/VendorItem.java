@@ -55,6 +55,17 @@ public class VendorItem extends TenantAuditableEntity {
     @Column(name = "pack_uom", nullable = false, length = 20)
     private String packUom;
 
+    /**
+     * How many {@link #packUom} units one {@link #orderUom} unit holds — a case of 10&nbsp;kg is 10.
+     *
+     * <p>The column name overstates it: this is <b>not</b> in the ingredient's stock UOM, it is in
+     * {@link #packUom}. Nothing here converts kg to grams, and nothing can — the unit registry lives
+     * in inventory-service, in another database. Recomputed from {@link #packQty} on every save.
+     *
+     * <p>Read by {@code GrnReceiptSimulator}, which puts it on the GRN event beside {@link #packUom}
+     * so inventory can finish the conversion into the ingredient's own stock unit. Until that seam
+     * existed, a 10&nbsp;kg case received against a gram-stocked ingredient added 10 grams.
+     */
     @Column(name = "qty_per_order_unit_in_stock_uom", precision = 18, scale = 6)
     private BigDecimal qtyPerOrderUnitInStockUom;
 

@@ -95,7 +95,7 @@ public class OrderSuggestionService {
                 .flatMap(List::stream)
                 .map(VendorItem::getId)
                 .toList();
-        Map<UUID, VendorItemPrice> priceByVendorItem = currentPrices(tenantId, vendorItemIds);
+        Map<UUID, VendorItemPrice> priceByVendorItem = currentPrices(tenantId, vendorItemIds, branchId);
         Map<UUID, Vendor> vendorsById = vendorsFor(tenantId, catalogByIngredient);
 
         List<OrderSuggestionDto> resolved = new ArrayList<>();
@@ -303,16 +303,19 @@ public class OrderSuggestionService {
         return byIngredient;
     }
 
-    private Map<UUID, VendorItemPrice> currentPrices(UUID tenantId, List<UUID> vendorItemIds) {
+    /**
+     * Resolved for the branch the suggestions are FOR, through {@link CurrentPriceResolver} — the
+     * same rule {@code PurchaseOrderService} derives a line price by, so an estimate still survives
+     * contact with the PO it becomes. It previously discarded branch prices outright, which met
+     * that goal only because the PO path discarded them too; both were wrong together.
+     */
+    private Map<UUID, VendorItemPrice> currentPrices(UUID tenantId, List<UUID> vendorItemIds, UUID branchId) {
         if (vendorItemIds.isEmpty()) {
             return Map.of();
         }
-        // Branch-specific prices are deliberately excluded, matching PurchaseOrderService's own
-        // currentPricesByItem: the tenant-wide price is the one a PO line derives, so an estimate
-        // built on a different one would not survive contact with the PO it becomes.
-        return vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()).stream()
-                .filter(price -> price.getBranchId() == null)
-                .collect(Collectors.toMap(VendorItemPrice::getVendorItemId, p -> p, (first, second) -> first));
+        return CurrentPriceResolver.byVendorItem(
+                vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()),
+                branchId);
     }
 
     private Map<UUID, Vendor> vendorsFor(UUID tenantId, Map<UUID, List<VendorItem>> catalogByIngredient) {

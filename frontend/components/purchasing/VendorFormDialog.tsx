@@ -28,6 +28,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+/**
+ * The terms a vendor can be set up on. Values match what the backend normalizes to (uppercase, no
+ * separators), so picking from this list is the same string every time — which is the whole point.
+ */
+const PAYMENT_TERMS = [
+  { value: "CASH", label: "Cash on delivery" },
+  { value: "NET7", label: "NET 7 — due in 7 days" },
+  { value: "NET15", label: "NET 15 — due in 15 days" },
+  { value: "NET30", label: "NET 30 — due in 30 days" },
+  { value: "NET45", label: "NET 45 — due in 45 days" },
+  { value: "NET60", label: "NET 60 — due in 60 days" },
+  { value: "NET90", label: "NET 90 — due in 90 days" },
+] as const;
+
 // Every field is a string here because that is what an <input> yields; the numeric and
 // optional fields are narrowed to VendorInput in toVendorInput() on submit.
 const vendorFormSchema = z.object({
@@ -70,7 +84,9 @@ function toVendorInput(values: VendorFormValues): VendorInput {
 function defaultsFor(vendor?: Vendor): VendorFormValues {
   return {
     name: vendor?.name ?? "",
-    paymentTerms: vendor?.paymentTerms ?? "",
+    // A new vendor defaults to the commonest term rather than an empty select the user must
+    // notice — the backend defaults to the same value, so the form now says what will happen.
+    paymentTerms: vendor?.paymentTerms ?? "NET30",
     contactPerson: vendor?.contactPerson ?? "",
     phone: vendor?.phone ?? "",
     email: vendor?.email ?? "",
@@ -157,15 +173,34 @@ export function VendorFormDialog({ vendor, trigger }: VendorFormDialogProps) {
             <FormField
               control={form.control}
               name="paymentTerms"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment terms</FormLabel>
-                  <FormControl>
-                    <Input placeholder="NET30" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                // Typed free-hand, this field had already drifted in live data: NET30, NET_30 and
+                // CASH across three vendors, two of them the same agreement spelled two ways.
+                // A vendor whose terms predate this list keeps them, offered as an extra option
+                // so editing anything else about that vendor can't quietly rewrite them.
+                const isCustom =
+                  field.value !== "" && !PAYMENT_TERMS.some((t) => t.value === field.value);
+                return (
+                  <FormItem>
+                    <FormLabel>Payment terms</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        aria-label="Payment terms"
+                        className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        {isCustom ? <option value={field.value}>{field.value}</option> : null}
+                        {PAYMENT_TERMS.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField

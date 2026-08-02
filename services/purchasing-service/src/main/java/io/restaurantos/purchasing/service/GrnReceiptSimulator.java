@@ -4,7 +4,7 @@ import io.restaurantos.purchasing.domain.enums.PoStatus;
 import io.restaurantos.purchasing.domain.model.MockGrnReceipt;
 import io.restaurantos.purchasing.domain.model.PurchaseOrder;
 import io.restaurantos.purchasing.domain.model.PurchaseOrderLine;
-import io.restaurantos.purchasing.domain.model.PurchaseOrderLine;
+import io.restaurantos.purchasing.domain.model.VendorItem;
 import io.restaurantos.purchasing.dto.MockReceiveRequest;
 import io.restaurantos.purchasing.dto.MockReceiveResponse;
 import io.restaurantos.purchasing.exception.InvalidPoStateException;
@@ -12,6 +12,7 @@ import io.restaurantos.purchasing.feign.FinanceInternalClient;
 import io.restaurantos.purchasing.repository.MockGrnReceiptRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderLineRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
+import io.restaurantos.purchasing.repository.VendorItemRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.event.payload.PurchasingEventContract;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -34,6 +35,7 @@ public class GrnReceiptSimulator {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderLineRepository lineRepository;
     private final MockGrnReceiptRepository mockGrnReceiptRepository;
+    private final VendorItemRepository vendorItemRepository;
     private final FinanceInternalClient financeInternalClient;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
@@ -41,12 +43,14 @@ public class GrnReceiptSimulator {
     public GrnReceiptSimulator(PurchaseOrderRepository purchaseOrderRepository,
                                PurchaseOrderLineRepository lineRepository,
                                MockGrnReceiptRepository mockGrnReceiptRepository,
+                               VendorItemRepository vendorItemRepository,
                                FinanceInternalClient financeInternalClient,
                                EventPublisher eventPublisher,
                                TenantContext tenantContext) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.lineRepository = lineRepository;
         this.mockGrnReceiptRepository = mockGrnReceiptRepository;
+        this.vendorItemRepository = vendorItemRepository;
         this.financeInternalClient = financeInternalClient;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
@@ -92,12 +96,16 @@ public class GrnReceiptSimulator {
                     .setScale(0, RoundingMode.HALF_UP)
                     .longValue();
 
+            VendorItem catalogItem = poLine.getVendorItemId() == null ? null
+                    : vendorItemRepository.findByTenantIdAndId(tenantId, poLine.getVendorItemId()).orElse(null);
             grnLines.add(new PurchasingEventContract.GrnLine(
                     poLine.getId(),
                     poLine.getIngredientId(),
                     lineReq.receivedQty(),
                     poLine.getUnitPricePaisa(),
-                    null));
+                    null,
+                    packFactor(catalogItem),
+                    packUom(catalogItem, poLine)));
         }
 
         if (inventoryAmount > 0) {
@@ -121,6 +129,30 @@ public class GrnReceiptSimulator {
         }
 
         return new MockReceiveResponse(po.getId(), po.getStatus(), List.of(batchGrnId));
+    }
+
+    /**
+     * How many pack units one ORDER unit holds — a carton of 10&nbsp;kg is 10. Purchasing owns this
+     * half of the purchase-unit conversion because it is catalog data; inventory owns the other
+     * half (pack unit → the ingredient's stock unit), because only it has the UOM registry.
+     *
+     * <p>Null when the line was hand-typed rather than priced from the catalog: the consumer reads
+     * that as one, which is what happened for every receipt before this existed.
+     */
+    private static BigDecimal packFactor(VendorItem catalogItem) {
+        return catalogItem == null ? null : catalogItem.getQtyPerOrderUnitInStockUom();
+    }
+
+    /**
+     * The unit {@link #packFactor} counts. For a catalog line that is the vendor's pack UOM — never
+     * {@code orderUom}, which is the outer unit ("CASE") the price is already quoted in, and never
+     * {@code poLine.uom}, which defaults to {@code orderUom} for exactly that reason.
+     *
+     * <p>A hand-typed line has no catalog row, so its own uom is the only unit anyone stated. It is
+     * free text and usually will not resolve; inventory falls back to a factor of one and logs it.
+     */
+    private static String packUom(VendorItem catalogItem, PurchaseOrderLine poLine) {
+        return catalogItem != null ? catalogItem.getPackUom() : poLine.getUom();
     }
 
     private void updatePoReceiveStatus(PurchaseOrder po) {

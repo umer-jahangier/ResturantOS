@@ -12,6 +12,7 @@ import { useIngredients } from "@/lib/hooks/inventory/use-inventory";
 import { useCreateVendorItem, useUpdateVendorItem } from "@/lib/hooks/purchasing/use-purchasing";
 import type { VendorItem } from "@/lib/adapters/purchasing.adapter";
 import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import { UomSelect } from "@/components/shared/uom-select";
 import {
   Dialog,
   DialogContent,
@@ -312,8 +313,18 @@ export function VendorItemFormDialog({
                 <FormItem>
                   <FormLabel>Pack unit</FormLabel>
                   <FormControl>
-                    <Input placeholder="kg" {...field} />
+                    <UomSelect
+                      name={field.name}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      aria-label="Pack unit"
+                    />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    The unit the pack quantity is in. Goods receipts are converted from this into
+                    the ingredient&apos;s stock unit, so it has to be a real unit.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -326,8 +337,17 @@ export function VendorItemFormDialog({
                 <FormItem>
                   <FormLabel>Order unit</FormLabel>
                   <FormControl>
-                    <Input placeholder="kg" {...field} />
+                    <UomSelect
+                      name={field.name}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      aria-label="Order unit"
+                    />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    What you buy by — the unit the vendor prices.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

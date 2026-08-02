@@ -3,6 +3,7 @@ import {
   apiOrderSuggestionsResponseSchema,
   createDraftsFromSuggestionsInputSchema,
   apiApPaymentSchema,
+  apiBankAccountSchema,
   apiPurchaseOrderSchema,
   apiSpendAnalyticsSchema,
   apiVendorCategorySchema,
@@ -43,6 +44,7 @@ import type {
   OrderSuggestionsResponse,
   ApPayment,
   ApPaymentInput,
+  BankAccount,
   PurchaseOrder,
   PurchaseOrderInput,
   SpendAnalytics,
@@ -249,6 +251,16 @@ export const PurchasingRepository = {
   async createApPayment(input: ApPaymentInput): Promise<ApPayment> {
     const raw = await post("/api/v1/purchasing/payments", createApPaymentInputSchema.parse(input));
     return adaptApPayment(apiApPaymentSchema.parse(raw));
+  },
+
+  /**
+   * The accounts a payment can be paid from — a scoped proxy onto finance's chart of accounts,
+   * gated on `vendor.payment.create` rather than `finance.coa.view`. Read directly from finance,
+   * a MANAGER (who may pay) gets 403 and the picker is empty, which is why this endpoint exists.
+   */
+  async listBankAccounts(): Promise<BankAccount[]> {
+    const raw = await get<unknown[]>("/api/v1/purchasing/bank-accounts");
+    return (raw ?? []).map((a) => apiBankAccountSchema.parse(a));
   },
 
   async getSpendAnalytics(branchId: string, from: string, to: string): Promise<SpendAnalytics> {

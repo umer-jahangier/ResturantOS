@@ -34,6 +34,8 @@ interface TopBarProps {
   onMobileMenuToggle?: () => void;
 }
 
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Prettify a URL path segment into a human-readable label.
 function prettifySegment(segment: string): string {
   return segment
@@ -41,14 +43,35 @@ function prettifySegment(segment: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/**
+ * The label for one segment, given the collection segment before it.
+ *
+ * <p>An id segment used to go through {@link prettifySegment} like any other, so every detail page
+ * in the app — vendors, purchase orders, invoices, ingredients, customers — put a de-hyphenated,
+ * Title-Cased UUID in the breadcrumb: "Purchasing › Vendors › 231aa42d 748f 42ed B80a 1f35c3a2498c".
+ * It reads as a rendering bug, tells the user nothing, and pushes the useful part off the line.
+ *
+ * <p>Naming the record would be better still, but that needs a fetch per route; naming its TYPE
+ * needs nothing and is already right in every case: "Vendors/{id}" is a Vendor.
+ */
+function segmentLabel(segment: string, parent: string | undefined): string {
+  if (!UUID_SEGMENT.test(segment)) {
+    return prettifySegment(segment);
+  }
+  if (!parent || UUID_SEGMENT.test(parent)) {
+    return "Details";
+  }
+  return prettifySegment(parent.replace(/ies$/, "y").replace(/s$/, ""));
+}
+
 function Breadcrumb() {
   const pathname = usePathname();
 
-  // Split and filter empty segments; keep last 3 to avoid overflow
-  const segments = pathname
-    .split("/")
-    .filter(Boolean)
-    .slice(-3);
+  const allSegments = pathname.split("/").filter(Boolean);
+  // Keep last 3 to avoid overflow — but resolve labels against the FULL path, so an id whose
+  // collection fell outside the window is still named after it rather than becoming "Details".
+  const start = Math.max(0, allSegments.length - 3);
+  const segments = allSegments.slice(start);
 
   if (segments.length === 0) return null;
 
@@ -56,6 +79,7 @@ function Breadcrumb() {
     <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1 text-sm">
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
+        const parent = allSegments[start + index - 1];
         return (
           <span key={index} className="flex items-center gap-1">
             {index > 0 && (
@@ -68,7 +92,7 @@ function Breadcrumb() {
                   : "text-muted-foreground"
               }
             >
-              {prettifySegment(segment)}
+              {segmentLabel(segment, parent)}
             </span>
           </span>
         );

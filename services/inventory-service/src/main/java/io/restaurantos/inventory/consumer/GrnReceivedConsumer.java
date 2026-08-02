@@ -2,6 +2,7 @@ package io.restaurantos.inventory.consumer;
 
 import io.restaurantos.inventory.config.InventoryRabbitConfig;
 import io.restaurantos.inventory.dto.ReceiptDtos.ReceiveStockRequest;
+import io.restaurantos.inventory.service.GrnUomResolver;
 import io.restaurantos.inventory.service.ProcessedEventService;
 import io.restaurantos.inventory.service.ReceiptService;
 import io.restaurantos.inventory.service.TenantRegistryService;
@@ -48,17 +49,20 @@ public class GrnReceivedConsumer {
     private final ReceiptService receiptService;
     private final TenantRegistryService tenantRegistryService;
     private final EventEnvelopeReader envelopeReader;
+    private final GrnUomResolver grnUomResolver;
 
     public GrnReceivedConsumer(ProcessedEventService processedEventService,
                                TenantAwareMessageProcessor tenantAwareMessageProcessor,
                                ReceiptService receiptService,
                                TenantRegistryService tenantRegistryService,
-                               EventEnvelopeReader envelopeReader) {
+                               EventEnvelopeReader envelopeReader,
+                               GrnUomResolver grnUomResolver) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.receiptService = receiptService;
         this.tenantRegistryService = tenantRegistryService;
         this.envelopeReader = envelopeReader;
+        this.grnUomResolver = grnUomResolver;
     }
 
     @RabbitListener(queues = InventoryRabbitConfig.INVENTORY_GRN_RECEIVED_QUEUE)
@@ -85,11 +89,23 @@ public class GrnReceivedConsumer {
                         payload.grnId(), line.poLineId());
                 continue;
             }
+            // The line is denominated in the vendor's ORDER unit (a carton, a sack). Purchasing has
+            // divided out how many pack units are in one order unit; converting THAT into the
+            // ingredient's stock unit needs the UOM registry, which only inventory has. Skipping
+            // this step made a 10 kg carton add 10 grams and priced one gram at the carton's cost.
+            GrnUomResolver.BaseUnitReceipt received = grnUomResolver.toBaseUnits(
+                    envelope.tenantId(),
+                    line.ingredientId(),
+                    payload.grnId(),
+                    line.qtyInPackUom(),
+                    line.unitCostPerPackUomPaisa(),
+                    line.qtyUomCode());
+
             receiptService.receive(new ReceiveStockRequest(
                     line.ingredientId(),
                     payload.branchId(),
-                    line.qtyReceived(),
-                    line.unitCostPaisa(),
+                    received.qtyInBaseUom(),
+                    received.unitCostPaisaPerBaseUom(),
                     line.expiryDate(),
                     "GRN",
                     payload.grnId()));

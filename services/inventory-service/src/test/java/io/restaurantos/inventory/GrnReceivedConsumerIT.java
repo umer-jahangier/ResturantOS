@@ -166,6 +166,153 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
                 .isEqualByComparingTo("10");
     }
 
+    /**
+     * The valuation defect, reproduced exactly: ten 1&nbsp;kg cartons received against an ingredient
+     * stocked in GRAMS.
+     *
+     * <p>Both the quantity and the cost arrive in the vendor's order unit. Nothing converted them,
+     * so {@code qty_on_hand} rose by 10 instead of 10,000 and the carton price was booked as the
+     * price of one gram — on the live stack a PKR&nbsp;6,200 receipt moved moving-average cost from
+     * 50 to 222 paisa/gram. Nothing failed: the receipt succeeded, the GR/IR entry balanced, the
+     * invoice three-way-matched. Only food cost, COGS and margin were wrong, by the ratio between
+     * the two units.
+     *
+     * <p>The assertion that matters most is the last one — whatever the units, the receipt's total
+     * VALUE must survive the conversion.
+     */
+    @Test
+    void cartonsOfAGramStockedIngredient_landInGrams_atAPerGramCost() {
+        GramIngredient chicken = seedGramStockedIngredient();
+
+        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
+                List.of(new PurchasingEventContract.GrnLine(
+                        UUID.randomUUID(), chicken.ingredientId(),
+                        new BigDecimal("10"),   // ten cartons
+                        62_000L,                // PKR 620.00 per carton
+                        null,
+                        BigDecimal.ONE,         // one carton holds 1 …
+                        "KG")))));              // … kg
+
+        IngredientBranchStock stock = stockRepository
+                .findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
+                .orElseThrow();
+        assertThat(stock.getQtyOnHand())
+                .as("10 kg of a gram-stocked ingredient is 10,000 g — not 10")
+                .isEqualByComparingTo("10000");
+        assertThat(stock.getAvgCostPaisa())
+                .as("62,000 paisa per kg is 62 paisa per gram — not 62,000")
+                .isEqualTo(62L);
+        assertThat(stock.getQtyOnHand().multiply(BigDecimal.valueOf(stock.getAvgCostPaisa())))
+                .as("the receipt was worth 10 * 62,000 paisa; conversion must not create or destroy value")
+                .isEqualByComparingTo("620000");
+    }
+
+    /** A pack of more than one: 4 cases of 5&nbsp;kg is 20&nbsp;kg, so 20,000 g. */
+    @Test
+    void packQuantityIsAppliedBeforeTheUnitConversion() {
+        GramIngredient chicken = seedGramStockedIngredient();
+
+        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
+                List.of(new PurchasingEventContract.GrnLine(
+                        UUID.randomUUID(), chicken.ingredientId(),
+                        new BigDecimal("4"),        // four cases
+                        310_000L,                   // PKR 3,100.00 per case
+                        null,
+                        new BigDecimal("5"),        // each case holds 5 …
+                        "KG")))));                  // … kg
+
+        IngredientBranchStock stock = stockRepository
+                .findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
+                .orElseThrow();
+        assertThat(stock.getQtyOnHand()).isEqualByComparingTo("20000");
+        assertThat(stock.getAvgCostPaisa()).isEqualTo(62L);
+        assertThat(stock.getQtyOnHand().multiply(BigDecimal.valueOf(stock.getAvgCostPaisa())))
+                .as("4 * 310,000 paisa")
+                .isEqualByComparingTo("1240000");
+    }
+
+    /**
+     * Pack UOMs are free text on the vendor catalog, so unresolvable codes are expected. Receiving
+     * at face value is what the code did before any conversion existed — wrong, but no worse. The
+     * alternative, throwing, would DLQ the batch after finance has already posted GR/IR, turning a
+     * valuation error into a reconciliation gap.
+     */
+    @Test
+    void unknownPackUnit_receivesAtFaceValueRatherThanFailingTheBatch() {
+        GramIngredient chicken = seedGramStockedIngredient();
+
+        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
+                List.of(new PurchasingEventContract.GrnLine(
+                        UUID.randomUUID(), chicken.ingredientId(), new BigDecimal("10"), 62_000L,
+                        null, BigDecimal.ONE, "CARTON")))));
+
+        assertThat(stockRepository.findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
+                .orElseThrow().getQtyOnHand())
+                .isEqualByComparingTo("10");
+    }
+
+    /**
+     * A litre factor must never be applied to an ingredient stocked by weight. {@code toBaseFactor}
+     * only means anything inside one unit family — the same rule
+     * {@code RecipeCostPreviewService.dimensionMatches} enforces on recipe lines.
+     */
+    @Test
+    void packUnitFromAnotherDimension_isNotConverted() {
+        GramIngredient chicken = seedGramStockedIngredient();
+        InventoryFixtures.seedUom(unitOfMeasureRepository, chicken.tenantId(), "L", "Litre",
+                "VOLUME", "ML", new BigDecimal("1000"));
+
+        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
+                List.of(new PurchasingEventContract.GrnLine(
+                        UUID.randomUUID(), chicken.ingredientId(), new BigDecimal("10"), 62_000L,
+                        null, BigDecimal.ONE, "L")))));
+
+        assertThat(stockRepository.findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
+                .orElseThrow().getQtyOnHand())
+                .as("weight ingredient, volume pack unit — converting would be worse than not")
+                .isEqualByComparingTo("10");
+    }
+
+    /**
+     * A GRN whose pack unit IS the stock unit must be untouched — as must every payload published
+     * before the contract carried these fields, which deserialize to null.
+     */
+    @Test
+    void packUnitEqualToTheStockUnit_andLegacyPayloads_areUnchanged() {
+        UUID grnId = UUID.randomUUID();
+        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                grnId, UUID.randomUUID(), branchId, UUID.randomUUID(), null,
+                List.of(new PurchasingEventContract.GrnLine(
+                        UUID.randomUUID(), ingredientId, new BigDecimal("10"), 5_000L,
+                        null, BigDecimal.ONE, "KG")))));
+
+        IngredientBranchStock stock = stockRepository.findByBranchIdAndIngredientId(branchId, ingredientId)
+                .orElseThrow();
+        assertThat(stock.getQtyOnHand()).isEqualByComparingTo("10");
+        assertThat(stock.getAvgCostPaisa()).isEqualTo(5_000L);
+    }
+
+    /** A tenant of its own, so setUp's dimension-less "KG" fixture cannot shadow the real one. */
+    private GramIngredient seedGramStockedIngredient() {
+        UUID gramTenantId = UUID.randomUUID();
+        UUID gramBranchId = UUID.randomUUID();
+        tenantContext.set(gramTenantId, gramBranchId, null, null);
+        InventoryFixtures.seedUom(unitOfMeasureRepository, gramTenantId, "G", "Gram",
+                "WEIGHT", "G", BigDecimal.ONE);
+        InventoryFixtures.seedUom(unitOfMeasureRepository, gramTenantId, "KG", "Kilogram",
+                "WEIGHT", "G", new BigDecimal("1000"));
+        UUID id = InventoryFixtures.seedIngredient(
+                ingredientRepository, gramTenantId, "Chicken", "CHK-G", "G", new BigDecimal("5")).getId();
+        this.tenantId = gramTenantId;
+        return new GramIngredient(gramTenantId, gramBranchId, id);
+    }
+
+    private record GramIngredient(UUID tenantId, UUID branchId, UUID ingredientId) {}
+
     private PurchasingEventContract.GrnReceivedPayload grnLines(UUID grnId, BigDecimal qty, long unitCostPaisa) {
         return new PurchasingEventContract.GrnReceivedPayload(
                 grnId, UUID.randomUUID(), branchId, UUID.randomUUID(), null,

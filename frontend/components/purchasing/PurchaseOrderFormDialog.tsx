@@ -12,6 +12,7 @@ import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useDebouncedValue } from "@/lib/hooks/use-debounce";
 import type { PurchaseOrderInput, VendorItem } from "@/lib/adapters/purchasing.adapter";
 import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import { UomSelect } from "@/components/shared/uom-select";
 import {
   Dialog,
   DialogContent,
@@ -348,15 +349,41 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
                   <FormField
                     control={form.control}
                     name={`lines.${idx}.uom`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Unit</FormLabel>
-                        <FormControl>
-                          <Input placeholder="kg" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Derived, not entered: with a catalog item chosen, the unit IS the one the
+                      // vendor prices in, and the pack size the goods receipt converts by is
+                      // attached to that same catalog row. A hand-typed unit that disagrees with
+                      // it changes nothing except what the document claims — so once an item is
+                      // picked, the unit is shown rather than asked for.
+                      const catalogItem = vendorItems?.find(
+                        (v) => v.id === watchedLines[idx]?.vendorItemId,
+                      );
+                      return (
+                        <FormItem>
+                          <FormLabel className="text-xs">Unit</FormLabel>
+                          <FormControl>
+                            {catalogItem ? (
+                              <div
+                                aria-label="Unit"
+                                className="flex h-9 items-center rounded-lg border border-input bg-muted/40 px-2.5 text-sm text-muted-foreground"
+                              >
+                                {catalogItem.orderUom}
+                              </div>
+                            ) : (
+                              <UomSelect
+                                name={field.name}
+                                value={field.value ?? ""}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                placeholder="Unit…"
+                                aria-label="Unit"
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -374,15 +401,34 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
                   <FormField
                     control={form.control}
                     name={`lines.${idx}.unitPriceRupees`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Unit price (PKR)</FormLabel>
-                        <FormControl>
-                          <Input inputMode="decimal" placeholder="120.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Price stays editable — a negotiated price is a real thing a buyer types.
+                      // But a silent deviation from the catalog is not: the current price is the
+                      // number the three-way match will hold this line to, so show it whenever
+                      // what has been typed is no longer it.
+                      const catalogItem = vendorItems?.find(
+                        (v) => v.id === watchedLines[idx]?.vendorItemId,
+                      );
+                      const catalogPaisa = catalogItem?.currentUnitPricePaisa ?? null;
+                      const typedPaisa =
+                        field.value?.trim() === "" ? null : Math.round(Number(field.value) * 100);
+                      const deviates =
+                        catalogPaisa != null && typedPaisa != null && typedPaisa !== catalogPaisa;
+                      return (
+                        <FormItem>
+                          <FormLabel className="text-xs">Unit price (PKR)</FormLabel>
+                          <FormControl>
+                            <Input inputMode="decimal" placeholder="120.00" {...field} />
+                          </FormControl>
+                          {deviates ? (
+                            <p className="text-xs text-amber-600 dark:text-amber-500">
+                              Catalog price is <MoneyDisplay paisa={catalogPaisa} />
+                            </p>
+                          ) : null}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   <Button
                     type="button"

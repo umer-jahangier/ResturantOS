@@ -146,6 +146,10 @@ export function useRecordVendorItemPrice(vendorId: string, vendorItemId: string)
       qc.invalidateQueries({ queryKey: queryKeys.purchasing.vendorItemPrices(branchId, vendorItemId) });
       qc.invalidateQueries({ queryKey: queryKeys.purchasing.vendorItems(branchId, vendorId) });
       qc.invalidateQueries({ queryKey: ["purchasing", branchId, "vendors", vendorId, "price-changes"] });
+      // Order suggestions price their estimated line totals off this same current price, so a
+      // price change that doesn't reach them leaves the reorder screen quoting the old one until
+      // it happens to refetch — the last place a buyer would think to doubt the number.
+      qc.invalidateQueries({ queryKey: queryKeys.purchasing.orderSuggestions(branchId) });
     },
   });
 }
@@ -344,6 +348,20 @@ export function useCreateApPayment() {
   return useMutation<ApPayment, ApiError, ApPaymentInput>({
     mutationFn: (input) => PurchasingRepository.createApPayment(input),
     onSuccess: (payment) => invalidateInvoice(qc, branchId, payment.allocations[0]?.invoiceId),
+  });
+}
+
+/**
+ * The accounts a vendor payment can be paid from. Kept on a long staleTime — the chart of accounts
+ * does not move during a payment run, and this opens with every payment dialog.
+ */
+export function useBankAccounts() {
+  const { branchId, isAuthenticated } = useCurrentUser();
+  return useQuery({
+    queryKey: ["purchasing", branchId, "bank-accounts"],
+    queryFn: () => PurchasingRepository.listBankAccounts(),
+    enabled: isAuthenticated && !!branchId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

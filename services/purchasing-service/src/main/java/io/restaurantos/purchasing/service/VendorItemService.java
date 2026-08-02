@@ -102,10 +102,10 @@ public class VendorItemService {
         item.setPackDescription(req.packDescription());
         item.setPackQty(req.packQty());
         item.setPackUom(req.packUom());
-        // A single BigDecimal multiplication, deliberately not a chained conversion: this catalog
-        // does not yet carry a separate pack-UOM-to-stock-UOM factor, so one order unit resolves
-        // to its pack quantity in stock UOM until that conversion seam is added.
-        item.setQtyPerOrderUnitInStockUom(req.packQty().multiply(BigDecimal.ONE));
+        // One order unit holds packQty pack units, by definition. The pack-unit-to-stock-unit leg
+        // is NOT applied here and never can be — inventory owns the UOM registry — so the GRN event
+        // carries this factor and packUom together and inventory finishes the conversion.
+        item.setQtyPerOrderUnitInStockUom(req.packQty());
         item.setMinOrderQty(req.minOrderQty());
         item.setOrderMultiple(req.orderMultiple());
         item.setLeadTimeDays(req.leadTimeDays());
@@ -142,7 +142,7 @@ public class VendorItemService {
         item.setPackDescription(req.packDescription());
         item.setPackQty(req.packQty());
         item.setPackUom(req.packUom());
-        item.setQtyPerOrderUnitInStockUom(req.packQty().multiply(BigDecimal.ONE));
+        item.setQtyPerOrderUnitInStockUom(req.packQty());
         item.setMinOrderQty(req.minOrderQty());
         item.setOrderMultiple(req.orderMultiple());
         item.setLeadTimeDays(req.leadTimeDays());
@@ -200,14 +200,18 @@ public class VendorItemService {
         return vendor;
     }
 
-    /** The tenant-wide (not branch-specific) current price per vendor item, in ONE batched call. */
+    /**
+     * The current price per vendor item for the CALLER'S branch, in ONE batched call — that
+     * branch's own price where one is recorded, the tenant-wide price otherwise
+     * ({@link CurrentPriceResolver}).
+     */
     private Map<UUID, VendorItemPrice> currentPricesByItem(UUID tenantId, List<UUID> vendorItemIds) {
         if (vendorItemIds.isEmpty()) {
             return Map.of();
         }
-        return vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()).stream()
-                .filter(p -> p.getBranchId() == null)
-                .collect(Collectors.toMap(VendorItemPrice::getVendorItemId, p -> p, (first, second) -> first));
+        return CurrentPriceResolver.byVendorItem(
+                vendorItemPriceRepository.findCurrentForVendorItems(tenantId, vendorItemIds, Instant.now()),
+                tenantContext.getBranchId().orElse(null));
     }
 
     private static VendorItemDto toDto(VendorItem v, VendorItemPrice currentPrice) {
