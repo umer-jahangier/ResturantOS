@@ -286,7 +286,13 @@ export const apiCloseOrderSchema = z.object({
 export const apiOrderPaymentRecordSchema = z.object({
   id: z.string().uuid(),
   method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
+  // What was APPLIED to the bill. The server caps this at the outstanding balance, so the
+  // applied amounts always sum to the order total — the invariant finance's revenue journal
+  // entry depends on. `tenderedPaisa` is what the customer handed over and `changePaisa` the
+  // difference; both are optional so a payment row written before the V10 migration still parses.
   amountPaisa: z.number().int().nonnegative(),
+  tenderedPaisa: z.number().int().nonnegative().optional(),
+  changePaisa: z.number().int().nonnegative().optional(),
   referenceNo: z.string().nullable().optional(),
   recordedAt: z.string(),
 });

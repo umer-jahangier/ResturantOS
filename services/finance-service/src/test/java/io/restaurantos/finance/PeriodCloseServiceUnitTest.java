@@ -4,7 +4,6 @@ import io.restaurantos.finance.domain.enums.PeriodStatus;
 import io.restaurantos.finance.domain.model.AccountingPeriod;
 import io.restaurantos.finance.exception.PeriodPreCheckException;
 import io.restaurantos.finance.exception.TotpRequiredException;
-import io.restaurantos.finance.feign.InventoryInternalClient;
 import io.restaurantos.finance.feign.PosInternalClient;
 import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.mapper.PeriodMapper;
@@ -39,8 +38,6 @@ class PeriodCloseServiceUnitTest {
     @Mock
     private PosInternalClient posClient;
     @Mock
-    private InventoryInternalClient inventoryClient;
-    @Mock
     private PurchasingInternalClient purchasingClient;
     @Mock
     private TenantContext tenantContext;
@@ -67,7 +64,7 @@ class PeriodCloseServiceUnitTest {
 
         service = new PeriodCloseService(
                 periodRepo, periodMapper,
-                posClient, inventoryClient, purchasingClient,
+                posClient, purchasingClient,
                 tenantContext, eventPublisher, entityManager
         );
 
@@ -84,7 +81,7 @@ class PeriodCloseServiceUnitTest {
     void close_withAllStubsReturnZero_succeeds() {
         when(periodRepo.findById(periodId)).thenReturn(Optional.of(openPeriod));
         when(posClient.getOpenOrderCount(any(), any())).thenReturn(0L);
-        when(inventoryClient.getPendingGrnCount(any())).thenReturn(0L);
+        when(purchasingClient.getPendingGrnCount(any(), any())).thenReturn(0L);
         when(purchasingClient.getUnmatchedInvoiceCount(any())).thenReturn(0L);
         when(tenantContext.getUserId()).thenReturn(Optional.empty());
         when(periodRepo.save(any())).thenReturn(openPeriod);

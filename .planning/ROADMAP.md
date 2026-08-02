@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Inventory & Recipe Management** - Versioned BOM, `ORDER_CLOSED` depletion with MAC, receipts/transfers/counts (completed 2026-07-18)
 - [x] **Phase 08.1: POS-Inventory Depletion Activation** *(INSERTED)* - Activate the already-wired `ORDER_CLOSED`→depletion loop: POS menu-item sync → inventory catalog + recipe validation, recipe-builder UI, recipe-coverage + `DEPLETION_INCOMPLETE` observability, and a live depletion proof (completed 2026-07-19)
 - [x] **Phase 08.2: Inventory Master Data & Procurement Catalog** *(INSERTED)* - Ingredient categories (3-level tree), ingredient/UOM CRUD UI, recipe view/revise with live plate cost, vendor item catalog with effective-dated pricing, stock-operations UI, catalog-driven PO line picker (completed 2026-07-24)
-- [ ] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty
+- [x] **Phase 9: Order-to-Ledger Auto-Posting & Customer Loyalty** - The core-value loop closes: balanced revenue+COGS JEs + loyalty (executed 2026-07-01; integration-repaired 2026-08-02)
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
 - [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
@@ -179,7 +179,7 @@ Plans:
   6. A dedicated kitchen-only role (`KITCHEN_STAFF`, perms `pos.kds.view`/`pos.kds.update` only) is strictly isolated: kitchen logins are blocked from POS/finance, cashier/finance logins are blocked from the KDS REST + WebSocket, and the owner sees everything — enforced fail-closed via OPA and proven in both directions.
   7. An order can be closed with a "charge to account" tender against a corporate/house account, creating an AR receivable in finance-service (FIN-05) rather than a cash/card settlement.
 
-**Plans**: 8/8 complete; 07-09 pending (charge-to-account tender, SC7)
+**Plans**: 9/9 complete (07-09 charge-to-account tender shipped 2026-08-02)
 
 Plans:
 
@@ -194,7 +194,7 @@ Gap-closure plans (UAT-diagnosed, `gap_closure: true`):
 - [x] 07-06-PLAN.md (wave 1) — pos-service: Order.cashierId/tillSessionId never set at creation (till-close open-orders gate was a no-op; void.own created_by could never match) + TillSession variance staleness fix
 - [x] 07-07-PLAN.md (wave 1) — auth-service: CASHIER granted pos.order.void.own + KITCHEN_STAFF/MANAGER demo seed users (chef@demo.local / manager@demo.local)
 - [x] 07-08-PLAN.md (wave 1) — Dockerfile module pom.xml COPY fixes (cold-start `docker compose up --build`) + pos-service/kitchen-service wired into start-dev.ps1/restart-service.ps1
-- [ ] 07-09: POS "charge to account" tender — on order close, call POST /internal/finance/ar/charges (Phase 10 / 10-18 seam) with the order's customerId + total; the receivable and its balanced JE (DR 1200 / CR revenue) are created by finance-service, not POS. Blocks FIN-05 from being fully Complete. [added 2026-07-13 by 10-17-A as 07-05; renumbered to 07-09 on the 2026-07-14 main merge, which had already shipped 07-05..07-08]
+- [x] 07-09: POS "charge to account" tender — on order close, call POST /internal/finance/ar/charges (Phase 10 / 10-18 seam) with the order's customerId + total; the receivable and its balanced JE (DR 1200 / CR revenue) are created by finance-service, not POS. Blocks FIN-05 from being fully Complete. [added 2026-07-13 by 10-17-A as 07-05; renumbered to 07-09 on the 2026-07-14 main merge, which had already shipped 07-05..07-08]
 
 ### Phase 07.2: Finance accounting-period provisioning — guarantee open period at tenant onboarding, self-service period-open endpoint + calendar-based provisioning UI, configurable auto-seed fallback (INSERTED)
 
@@ -458,12 +458,18 @@ Plans:
   4. Loyalty points accrue on `ORDER_CLOSED` and are debited back on refund.
   5. Loyalty tiers (Bronze/Silver/Gold) upgrade on configurable thresholds; a time-limited, item/tier-specific promotion applies at POS; and post-order customer feedback is captured and reportable.
 
-**Plans**: 2 plans
+**Plans**: 2/2 plans complete
+
+**Integration status (2026-08-02):** Phase 9 was authored on a branch that contained neither
+pos-service nor inventory-service — its own verification report says so — so its consumers were
+written against an assumed contract. Four seams (count variance, transfer ship/receive, wastage,
+stock receipt) consumed, acked and posted nothing until the 2026-08-02 integration repair moved the
+payload records into `shared-lib`. See the Phase 7–10 integration audit.
 
 Plans:
 
-- [ ] 09-01: Auto-posting engine — order close (revenue+COGS), refund, wastage, stock count, transfer; idempotent
-- [ ] 09-02: CRM — customers linked by `customer_id`, loyalty accrual/debit on close/refund, loyalty tiers, promotion engine, feedback collection
+- [x] 09-01: Auto-posting engine — order close (revenue+COGS), refund, wastage, stock count, transfer; idempotent
+- [x] 09-02: CRM — customers linked by `customer_id`, loyalty accrual/debit on close/refund, loyalty tiers, promotion engine, feedback collection
 
 ### Phase 10: Purchasing & Accounts Payable
 
@@ -601,10 +607,10 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 4. Frontend Shell & CI/CD | 3/3 | Complete | 2026-06-25 |
 | 5. Cross-Cutting Services (Notifications, Audit, Files) | 0/3 | Not started | - |
 | 6. Finance Core — General Ledger & Periods | 0/2 | Not started | - |
-| 7. Point of Sale & Kitchen Display | 8/8 | Complete   | 2026-07-10 |
+| 7. Point of Sale & Kitchen Display | 9/9 | Complete   | 2026-08-02 |
 | 7.1. POS Production Operations & Item-Level Kitchen Tracking *(INSERTED)* | 10/10 | Complete    | 2026-07-11 |
 | 8. Inventory & Recipe Management | 9/9 | Complete    | 2026-07-18 |
-| 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 0/2 | Not started | - |
+| 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 2/2 | Complete (integration-repaired 2026-08-02) | 2026-08-02 |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
 | 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |

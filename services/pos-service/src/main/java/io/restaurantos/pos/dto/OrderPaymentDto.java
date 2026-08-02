@@ -15,6 +15,8 @@ public record OrderPaymentDto(
         UUID id,
         String method,
         long amountPaisa,
+        long tenderedPaisa,
+        long changePaisa,
         String referenceNo,
         Instant recordedAt
 ) {
@@ -23,6 +25,8 @@ public record OrderPaymentDto(
                 payment.getId(),
                 payment.getMethod().name(),
                 payment.getAmountPaisa(),
+                payment.getTenderedPaisa(),
+                payment.getChangePaisa(),
                 payment.getReferenceNo(),
                 payment.getRecordedAt()
         );

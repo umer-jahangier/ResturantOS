@@ -5,6 +5,7 @@ import io.restaurantos.user.dto.BranchDtos;
 import io.restaurantos.user.service.UserAdminService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,6 +27,7 @@ public class UserAdminController {
     }
 
     /** Assign a branch-role to a user — delegates to auth-service. */
+    @PreAuthorize("hasAuthority('rbac.manage')")
     @PostMapping("/{userId}/branch-roles")
     public ResponseEntity<ApiResponse<Map<String, Object>>> assignBranchRole(
             @PathVariable UUID userId,
@@ -35,6 +37,7 @@ public class UserAdminController {
     }
 
     /** Revoke a branch-role from a user — delegates to auth-service. */
+    @PreAuthorize("hasAuthority('rbac.manage')")
     @DeleteMapping("/{userId}/branch-roles")
     public ResponseEntity<Void> revokeBranchRole(
             @PathVariable UUID userId,
@@ -45,6 +48,7 @@ public class UserAdminController {
     }
 
     /** Read-through: user permissions from auth-service (JWT-issuance concern). */
+    @PreAuthorize("hasAuthority('rbac.manage')")
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUserPermissions(
             @PathVariable UUID userId,

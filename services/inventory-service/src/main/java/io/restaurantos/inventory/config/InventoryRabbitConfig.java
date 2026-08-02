@@ -1,5 +1,6 @@
 package io.restaurantos.inventory.config;
 
+import io.restaurantos.shared.event.payload.PurchasingEventContract;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
@@ -27,9 +28,17 @@ public class InventoryRabbitConfig {
      */
     public static final String INVENTORY_MENU_ITEM_QUEUE = "inventory.menu-item.queue";
 
+    /**
+     * Consumed from purchasing.topic. Goods received against a purchase order become real stock
+     * here — before this queue existed, a GRN posted its GR/IR entry to finance and never touched
+     * qty_on_hand, stock_lots or moving-average cost.
+     */
+    public static final String INVENTORY_GRN_RECEIVED_QUEUE = "inventory.grn-received.queue";
+
     // Exchange names
     public static final String POS_TOPIC_EXCHANGE = "pos.topic";
     public static final String INVENTORY_TOPIC_EXCHANGE = "inventory.topic";
+    public static final String PURCHASING_TOPIC_EXCHANGE = "purchasing.topic";
     public static final String DLX = "restaurantos.dlx";
 
     @Bean
@@ -91,13 +100,36 @@ public class InventoryRabbitConfig {
      * duplicated) for INVENTORY_MENU_ITEM_QUEUE's own .dlq — one shared DLX, per D-08.
      */
     @Bean
+    public TopicExchange purchasingTopic() {
+        return ExchangeBuilder.topicExchange(PURCHASING_TOPIC_EXCHANGE).durable(true).build();
+    }
+
+    @Bean
+    public Queue inventoryGrnReceivedQueue() {
+        return QueueBuilder.durable(INVENTORY_GRN_RECEIVED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .withArgument("x-dead-letter-routing-key", INVENTORY_GRN_RECEIVED_QUEUE + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding inventoryGrnReceivedBinding(Queue inventoryGrnReceivedQueue, TopicExchange purchasingTopic) {
+        return BindingBuilder.bind(inventoryGrnReceivedQueue)
+                .to(purchasingTopic)
+                .with(PurchasingEventContract.GRN_RECEIVED_KEY);
+    }
+
+    @Bean
     public Declarables inventoryDeadLetterTopology() {
         DirectExchange dlx = ExchangeBuilder.directExchange(DLX).durable(true).build();
         Queue orderClosedDlq = QueueBuilder.durable(INVENTORY_ORDER_CLOSED_QUEUE + ".dlq").build();
         Binding orderClosedDlqBinding = BindingBuilder.bind(orderClosedDlq).to(dlx).with(INVENTORY_ORDER_CLOSED_QUEUE + ".dlq");
         Queue menuItemDlq = QueueBuilder.durable(INVENTORY_MENU_ITEM_QUEUE + ".dlq").build();
         Binding menuItemDlqBinding = BindingBuilder.bind(menuItemDlq).to(dlx).with(INVENTORY_MENU_ITEM_QUEUE + ".dlq");
-        return new Declarables(dlx, orderClosedDlq, orderClosedDlqBinding, menuItemDlq, menuItemDlqBinding);
+        Queue grnDlq = QueueBuilder.durable(INVENTORY_GRN_RECEIVED_QUEUE + ".dlq").build();
+        Binding grnDlqBinding = BindingBuilder.bind(grnDlq).to(dlx).with(INVENTORY_GRN_RECEIVED_QUEUE + ".dlq");
+        return new Declarables(dlx, orderClosedDlq, orderClosedDlqBinding,
+                menuItemDlq, menuItemDlqBinding, grnDlq, grnDlqBinding);
     }
 
     @Bean

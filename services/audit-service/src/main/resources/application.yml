@@ -35,7 +35,18 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
     listener:
       simple:
-        acknowledge-mode: manual
+        # AUTO, not MANUAL. Under MANUAL the container never acks on the application's behalf and
+        # every listener here takes only (Message) — no Channel, so basicAck is never called. Each
+        # message was therefore handled correctly and then left unacknowledged forever: the broker
+        # held it, the consumer's prefetch filled up, and at 250 unacked the consumer would stop
+        # receiving anything at all. Observed live at 56 (audit) and climbing, stable across 20s and
+        # rebuilt after every restart, because a dropped connection requeues the whole backlog and
+        # it is all reprocessed from scratch.
+        # AUTO gives these listeners exactly the semantics they are written for: ack on normal
+        # return, reject on exception — and EventEnvelopeReader already throws
+        # AmqpRejectAndDontRequeueException for poison messages, so those still reach the DLQ.
+        # Redelivery stays safe because every consumer is idempotent via processed_events.
+        acknowledge-mode: auto
 
 eureka:
   client:

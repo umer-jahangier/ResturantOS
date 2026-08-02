@@ -12,12 +12,12 @@ import io.restaurantos.inventory.dto.TransferDtos.ReceiveTransferRequest;
 import io.restaurantos.inventory.dto.TransferDtos.TransferDto;
 import io.restaurantos.inventory.dto.TransferDtos.TransferLineDto;
 import io.restaurantos.inventory.dto.TransferDtos.TransferLineRequest;
-import io.restaurantos.inventory.event.InventoryEventPayloads;
-import io.restaurantos.inventory.event.InventoryEventPayloads.TransferLine;
-import io.restaurantos.inventory.event.InventoryEventPayloads.TransferReceivedPayload;
-import io.restaurantos.inventory.event.InventoryEventPayloads.TransferShippedPayload;
-import io.restaurantos.inventory.event.InventoryEventPayloads.TransferVarianceLine;
-import io.restaurantos.inventory.event.InventoryEventPayloads.TransferVariancePayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
+import io.restaurantos.shared.event.payload.InventoryEventContract.TransferLine;
+import io.restaurantos.shared.event.payload.InventoryEventContract.TransferReceivedPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract.TransferShippedPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract.TransferVarianceLine;
+import io.restaurantos.shared.event.payload.InventoryEventContract.TransferVariancePayload;
 import io.restaurantos.inventory.repository.IngredientBranchStockRepository;
 import io.restaurantos.inventory.repository.InventoryMovementRepository;
 import io.restaurantos.inventory.repository.StockLotRepository;
@@ -158,15 +158,20 @@ public class TransferService {
             line.setVarianceQty(BigDecimal.ZERO);
             savedLines.add(transferLineRepository.save(line));
 
-            eventLines.add(new TransferLine(ingredientId, qty, unitCostPaisa));
+            // lineCostPaisa is computed HERE, by the producer, with the same HALF_UP rounding the
+            // movement row uses. finance must never re-derive money from a BigDecimal quantity:
+            // its transfer recipes used to sum a `costPaisa` field this payload never carried, so
+            // every transfer totalled zero and posted nothing at all.
+            eventLines.add(new TransferLine(ingredientId, qty, unitCostPaisa,
+                    roundCostPaisa(qty, unitCostPaisa)));
         }
 
         // Last statement: publish TRANSFER_SHIPPED through the transactional outbox — carries
         // unitCostPaisa per line, the in-transit (1320) valuation Phase 9's finance consumer needs.
         eventPublisher.publish(
                 InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                InventoryEventPayloads.TRANSFER_SHIPPED_ROUTING_KEY,
-                InventoryEventPayloads.TRANSFER_SHIPPED,
+                InventoryEventContract.TRANSFER_SHIPPED_KEY,
+                InventoryEventContract.TRANSFER_SHIPPED,
                 request.fromBranchId(),
                 new TransferShippedPayload(savedTransfer.getId(), request.fromBranchId(), request.toBranchId(), eventLines));
 
@@ -261,7 +266,8 @@ public class TransferService {
             line.setVarianceQty(varianceQty);
             transferLineRepository.save(line);
 
-            receivedEventLines.add(new TransferLine(line.getIngredientId(), qtyReceived, line.getUnitCostPaisa()));
+            receivedEventLines.add(new TransferLine(line.getIngredientId(), qtyReceived,
+                    line.getUnitCostPaisa(), roundCostPaisa(qtyReceived, line.getUnitCostPaisa())));
 
             if (varianceQty.signum() != 0) {
                 long varianceCostPaisa = varianceQty
@@ -279,8 +285,8 @@ public class TransferService {
         // Publish TRANSFER_RECEIVED — the second-to-last (or last, if no variance) statement.
         eventPublisher.publish(
                 InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                InventoryEventPayloads.TRANSFER_RECEIVED_ROUTING_KEY,
-                InventoryEventPayloads.TRANSFER_RECEIVED,
+                InventoryEventContract.TRANSFER_RECEIVED_KEY,
+                InventoryEventContract.TRANSFER_RECEIVED,
                 transfer.getToBranchId(),
                 new TransferReceivedPayload(savedTransfer.getId(), transfer.getToBranchId(), receivedEventLines));
 
@@ -289,8 +295,8 @@ public class TransferService {
         if (!varianceEventLines.isEmpty()) {
             eventPublisher.publish(
                     InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                    InventoryEventPayloads.TRANSFER_VARIANCE_ROUTING_KEY,
-                    InventoryEventPayloads.TRANSFER_VARIANCE,
+                    InventoryEventContract.TRANSFER_VARIANCE_KEY,
+                    InventoryEventContract.TRANSFER_VARIANCE,
                     transfer.getToBranchId(),
                     new TransferVariancePayload(savedTransfer.getId(), varianceEventLines));
         }

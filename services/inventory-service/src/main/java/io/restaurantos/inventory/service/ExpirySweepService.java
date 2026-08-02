@@ -2,8 +2,8 @@ package io.restaurantos.inventory.service;
 
 import io.restaurantos.inventory.config.InventoryRabbitConfig;
 import io.restaurantos.inventory.domain.model.StockLot;
-import io.restaurantos.inventory.event.InventoryEventPayloads;
-import io.restaurantos.inventory.event.InventoryEventPayloads.ExpiryAlertPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
+import io.restaurantos.shared.event.payload.InventoryEventContract.ExpiryAlertPayload;
 import io.restaurantos.inventory.repository.InventoryTenantRegistryRepository;
 import io.restaurantos.inventory.repository.StockLotRepository;
 import io.restaurantos.shared.event.EventPublisher;
@@ -122,8 +122,8 @@ public class ExpirySweepService {
             for (StockLot lot : lots) {
                 eventPublisher.publish(
                         InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                        InventoryEventPayloads.EXPIRY_ALERT_ROUTING_KEY,
-                        InventoryEventPayloads.EXPIRY_ALERT,
+                        InventoryEventContract.EXPIRY_ALERT_KEY,
+                        InventoryEventContract.EXPIRY_ALERT,
                         lot.getBranchId(),
                         new ExpiryAlertPayload(lot.getId(), lot.getIngredientId(), lot.getBranchId(),
                                 lot.getExpiryDate(), lot.getQty()));

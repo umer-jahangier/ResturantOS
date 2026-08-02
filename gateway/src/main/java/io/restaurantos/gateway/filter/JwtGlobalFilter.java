@@ -51,6 +51,10 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/refresh",
             "/api/v1/auth/reset-password",
             "/api/v1/auth/tenants",
+            // First-time TOTP enrolment. Public for the same reason /login is: the caller has no
+            // token yet and cannot obtain one until this completes. auth-service re-verifies the
+            // password on both calls and refuses once a secret exists.
+            "/api/v1/auth/2fa/bootstrap",
             "/.well-known",
             "/actuator/health",
             "/actuator/prometheus",

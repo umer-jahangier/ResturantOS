@@ -6,8 +6,8 @@ import io.restaurantos.inventory.domain.model.InventoryMovement;
 import io.restaurantos.inventory.domain.model.StockLot;
 import io.restaurantos.inventory.dto.ReceiptDtos.ReceiptResultDto;
 import io.restaurantos.inventory.dto.ReceiptDtos.ReceiveStockRequest;
-import io.restaurantos.inventory.event.InventoryEventPayloads;
-import io.restaurantos.inventory.event.InventoryEventPayloads.StockReceivedPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
+import io.restaurantos.shared.event.payload.InventoryEventContract.StockReceivedPayload;
 import io.restaurantos.inventory.repository.IngredientBranchStockRepository;
 import io.restaurantos.inventory.repository.InventoryMovementRepository;
 import io.restaurantos.inventory.repository.StockLotRepository;
@@ -96,19 +96,25 @@ public class ReceiptService {
         movement.setQty(request.qty());
         movement.setUnitCostPaisa(request.unitCostPaisa());
         movement.setTotalCostPaisa(totalCostPaisa);
-        movement.setReferenceType("RECEIPT");
-        movement.setReferenceId(savedLot.getId());
+        // A GRN-driven receipt stamps its own reference ('GRN' + grnId) so the movement — and the
+        // STOCK_RECEIVED event below — trace back to the purchase order. A manual receipt keeps
+        // the original lot-keyed reference.
+        String referenceType = request.referenceType() != null ? request.referenceType() : "RECEIPT";
+        UUID referenceId = request.referenceId() != null ? request.referenceId() : savedLot.getId();
+        movement.setReferenceType(referenceType);
+        movement.setReferenceId(referenceId);
         movementRepository.save(movement);
 
         // Last statement: publish STOCK_RECEIVED through the transactional outbox, never
         // before/outside the stock mutation (mirrors DepletionService's Step 8).
         eventPublisher.publish(
                 InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                InventoryEventPayloads.STOCK_RECEIVED_ROUTING_KEY,
-                InventoryEventPayloads.STOCK_RECEIVED,
+                InventoryEventContract.STOCK_RECEIVED_KEY,
+                InventoryEventContract.STOCK_RECEIVED,
                 request.branchId(),
                 new StockReceivedPayload(request.ingredientId(), request.branchId(), request.qty(),
-                        request.unitCostPaisa(), newAvgCostPaisa, savedLot.getId(), request.expiryDate()));
+                        request.unitCostPaisa(), totalCostPaisa, newAvgCostPaisa, savedLot.getId(),
+                        request.expiryDate(), referenceType, referenceId));
 
         return new ReceiptResultDto(savedLot.getId(), savedStock.getQtyOnHand(), newAvgCostPaisa);
     }

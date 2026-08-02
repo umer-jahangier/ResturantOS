@@ -1,13 +1,14 @@
 package io.restaurantos.inventory;
 
+import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.inventory.consumer.OrderClosedConsumer;
 import io.restaurantos.inventory.domain.model.IngredientBranchStock;
 import io.restaurantos.inventory.domain.model.InventoryMovement;
 import io.restaurantos.inventory.domain.model.Recipe;
 import io.restaurantos.inventory.domain.model.RecipeLine;
 import io.restaurantos.inventory.domain.model.StockLot;
-import io.restaurantos.inventory.event.InventoryEventPayloads.ItemEntry;
-import io.restaurantos.inventory.event.InventoryEventPayloads.OrderClosedPayload;
+import io.restaurantos.shared.event.payload.PosEventContract.ItemEntry;
+import io.restaurantos.shared.event.payload.PosEventContract.OrderClosedPayload;
 import io.restaurantos.inventory.repository.IngredientBranchStockRepository;
 import io.restaurantos.inventory.repository.IngredientRepository;
 import io.restaurantos.inventory.repository.InventoryMovementRepository;
@@ -19,6 +20,7 @@ import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.event.OutboxEntry;
 import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.time.BusinessDay;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -180,7 +182,7 @@ class DepletionConsumerIT extends InventoryTestBase {
                 orderId, "ORD-1001", "DINE_IN", null,
                 1000L, 0L, 0L, 100L, 1100L,
                 List.of(), items,
-                null, null, Instant.now());
+                null, null, Instant.now(), BusinessDay.of(Instant.now()));
     }
 
     private Message buildMessage(UUID eventId, UUID tenantId, UUID branchId, OrderClosedPayload payload) {

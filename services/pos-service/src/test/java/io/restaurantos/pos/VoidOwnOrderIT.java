@@ -159,7 +159,18 @@ class VoidOwnOrderIT extends PosTestBase {
         // through to OPA (not silently coalesced/ignored) and that a deny from OPA still
         // throws PermissionDeniedException end-to-end.
         UUID otherBranchId = UUID.randomUUID();
+        // createOrder enforces requireOwnBranch, so the order has to be created while the security
+        // context IS that branch; the mismatch under test is at VOID time, not at create time.
+        // (Before that guard existed this fixture could mint a cross-branch order directly, which
+        // is why it now fails during setUp rather than at the assertion.)
+        UUID jwtBranchBefore = branchId;
+        setSecurityContext(cashierId, otherBranchId, List.of("pos.order.void.own"), Map.of());
+        tenantContext.set(tenantId, otherBranchId, cashierId, null);
         OrderDto order = createOpenOrderInBranch(otherBranchId);
+
+        // Back to the cashier's real JWT branch — now the order is genuinely cross-branch.
+        setSecurityContext(cashierId, jwtBranchBefore, List.of("pos.order.void.own"), Map.of());
+        tenantContext.set(tenantId, jwtBranchBefore, cashierId, null);
 
         // Real pos.rego's same_branch check would deny this (see
         // policies/tests/pos_test.rego#test_void_own_cross_branch_deny) — mock reproduces

@@ -13,6 +13,7 @@ import io.restaurantos.purchasing.repository.MockGrnReceiptRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderLineRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.event.payload.PurchasingEventContract;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -68,6 +70,7 @@ public class GrnReceiptSimulator {
 
         UUID batchGrnId = UUID.randomUUID();
         long inventoryAmount = 0L;
+        List<PurchasingEventContract.GrnLine> grnLines = new ArrayList<>();
         for (MockReceiveRequest.Line lineReq : request.lines()) {
             PurchaseOrderLine poLine = lineRepository.findById(lineReq.poLineId()).orElseThrow();
             if (!lineRepository.findByPurchaseOrderId(poId).stream()
@@ -89,7 +92,12 @@ public class GrnReceiptSimulator {
                     .setScale(0, RoundingMode.HALF_UP)
                     .longValue();
 
-            publishStockReceived(po, poLine, lineReq.receivedQty(), batchGrnId);
+            grnLines.add(new PurchasingEventContract.GrnLine(
+                    poLine.getId(),
+                    poLine.getIngredientId(),
+                    lineReq.receivedQty(),
+                    poLine.getUnitPricePaisa(),
+                    null));
         }
 
         if (inventoryAmount > 0) {
@@ -105,6 +113,13 @@ public class GrnReceiptSimulator {
         }
 
         updatePoReceiveStatus(po);
+
+        // Last statement: one GRN_RECEIVED for the whole batch, through the transactional outbox.
+        // Idempotent downstream on grnId, so a retry cannot double-receive the stock.
+        if (!grnLines.isEmpty()) {
+            publishGrnReceived(po, batchGrnId, grnLines);
+        }
+
         return new MockReceiveResponse(po.getId(), po.getStatus(), List.of(batchGrnId));
     }
 
@@ -122,14 +137,29 @@ public class GrnReceiptSimulator {
         purchaseOrderRepository.save(po);
     }
 
-    private void publishStockReceived(PurchaseOrder po, PurchaseOrderLine line, BigDecimal qty, UUID grnId) {
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("poId", po.getId());
-        payload.put("poLineId", line.getId());
-        payload.put("ingredientId", line.getIngredientId());
-        payload.put("qtyReceived", qty);
-        payload.put("branchId", po.getBranchId());
-        payload.put("grnId", grnId);
-        eventPublisher.publish("inventory.topic", "inventory.stock.received", "STOCK_RECEIVED", po.getBranchId(), payload);
+    /**
+     * Tells inventory-service that goods arrived, so it can create the stock lot, move
+     * qty_on_hand and recompute moving-average cost through its OWN ReceiptService.
+     *
+     * <p>This replaces a per-line {@code STOCK_RECEIVED} message published onto
+     * {@code inventory.topic} — inventory's own exchange, event name and routing key — with a
+     * hand-built map that used {@code qtyReceived} where inventory publishes {@code qty} and
+     * carried no cost at all. Nothing consumed it: inventory has only ever had a menu-item
+     * consumer and an order-closed consumer. So a goods receipt posted its GR/IR entry to finance
+     * and then evaporated, and stock could only ever be entered by hand — which is also why
+     * moving-average cost never absorbed a real vendor price.
+     *
+     * <p>Purchasing now speaks on its own exchange about its own domain event, and inventory keeps
+     * sole ownership of the stock write, of MAC, and of STOCK_RECEIVED.
+     */
+    private void publishGrnReceived(PurchaseOrder po, UUID grnId,
+                                    List<PurchasingEventContract.GrnLine> lines) {
+        eventPublisher.publish(
+                PurchasingEventContract.EXCHANGE,
+                PurchasingEventContract.GRN_RECEIVED_KEY,
+                PurchasingEventContract.GRN_RECEIVED,
+                po.getBranchId(),
+                new PurchasingEventContract.GrnReceivedPayload(
+                        grnId, po.getId(), po.getBranchId(), po.getVendorId(), LocalDate.now(), lines));
     }
 }

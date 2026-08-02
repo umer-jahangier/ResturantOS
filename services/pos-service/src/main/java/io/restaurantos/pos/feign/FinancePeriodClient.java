@@ -17,7 +17,7 @@ import java.util.UUID;
  * Fail-closed: any exception (Finance unreachable) must bubble as PeriodLockedException.
  * Callers must wrap invocations in try/catch and convert to PeriodLockedException.
  */
-@FeignClient(name = "finance-service", configuration = FeignClientConfig.class)
+@FeignClient(name = "finance-service", contextId = "financePeriodClient", configuration = FeignClientConfig.class)
 public interface FinancePeriodClient {
 
     /**

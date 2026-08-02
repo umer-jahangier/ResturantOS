@@ -69,6 +69,21 @@ public abstract class PosTestBase {
         // restaurantos.opa.url placeholder resolves during context startup (matches
         // authorization-service's BaseIntegrationTest pattern).
         registry.add("restaurantos.opa.url", () -> "http://127.0.0.1:1");
+
+        // RabbitTemplate is mocked below, but pos-service also has @RabbitListener consumers
+        // (kitchen item-status, order-ready, the DLQ monitor) whose containers still dial the
+        // broker at startup. Pointing them at a dead port makes that a connection-refused —
+        // retried in the background, non-fatal — instead of whatever the developer's machine
+        // happens to be running.
+        //
+        // This matters: with the dev stack UP, the containers reached the REAL broker on 5672,
+        // were refused for using the default guest/guest, and Spring treats ACCESS_REFUSED as a
+        // FATAL listener-startup error. So the entire POS IT suite passed or failed depending on
+        // whether the dev stack was running at the time — green in CI, red on a developer's
+        // machine, for a reason nothing in the failure pointed at.
+        registry.add("spring.rabbitmq.host", () -> "127.0.0.1");
+        registry.add("spring.rabbitmq.port", () -> "1");
+        registry.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
     }
 
     // Mock AMQP to prevent actual broker publishing

@@ -26,6 +26,21 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
 **Current focus:** Phase 08.2 — inventory-master-data-procurement-catalog
 
+> **Integration repair (2026-08-02):** a source-level audit of the merged Phases 7–10 found that
+> the phases were individually complete and jointly disconnected — 8 blockers, 10 high, 8 medium.
+> Root cause: Phase 9 was authored on a branch containing neither pos-service nor inventory-service
+> (its own verification report states this), so its consumers parsed untyped `Map<String,Object>`
+> payloads against an assumed contract, and its ITs hand-authored those maps with the consumer's
+> own guessed field names — green tests over four dead seams.
+>
+> Repaired: canonical event payload records now live in `shared-lib`
+> (`io.restaurantos.shared.event.payload`), so a producer rename is a compile error in every
+> consumer. Also closed: the GRN→inventory gap (goods received never became stock), the
+> over-tender unbalanced-JE retry loop, the missing `crm.*` permission catalog entries, per-category
+> GL posting, the wastage producer, one business-date authority, the charge-to-account tender, and
+> a cross-tenant leak in `listOrders`. Full detail in the Phase 7–10 integration audit; the
+> reconciliation query for events acked-but-never-posted is `scripts/reconcile-unposted-events.sql`.
+>
 > **Merge note (2026-08-01):** branch `origin/Mufazzal` (Phase 12 — Reporting, Dashboards & NLQ)
 > was merged into `prod`. Its `reporting-service` and `nlq-service` modules, migrations, gateway
 > routes and frontend pages are now on this branch, and its phase artifacts are under

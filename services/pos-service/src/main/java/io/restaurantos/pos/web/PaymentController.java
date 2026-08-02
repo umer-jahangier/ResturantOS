@@ -9,6 +9,7 @@ import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,20 +30,31 @@ public class PaymentController {
         this.splitTenderCalculator = splitTenderCalculator;
     }
 
+    /**
+     * {@code amountPaisa} is what to apply to the bill; the server caps it at the outstanding
+     * balance. {@code tenderedPaisa} is optional and CASH-only in practice — omit it and the
+     * tender is taken to equal the applied amount.
+     */
     record RecordPaymentRequest(
             @NotNull PaymentMethod method,
             @NotNull Long amountPaisa,
-            String referenceNo
+            Long tenderedPaisa,
+            String referenceNo,
+            /** Required for CHARGE_TO_ACCOUNT, ignored otherwise — which house account to bill. */
+            UUID customerAccountId
     ) {}
 
+    @PreAuthorize("hasAuthority('pos.order.close')")
     @PostMapping("/{id}/payments")
     public ResponseEntity<ApiResponse<Long>> recordPayment(
             @PathVariable UUID id,
             @Valid @RequestBody RecordPaymentRequest request) {
-        long total = paymentService.recordPayment(id, request.method(), request.amountPaisa(), request.referenceNo());
+        long total = paymentService.recordPayment(id, request.method(), request.amountPaisa(),
+                request.tenderedPaisa(), request.referenceNo(), request.customerAccountId());
         return ResponseEntity.ok(ApiResponse.ok(total));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.view')")
     @GetMapping("/{id}/payments")
     public ResponseEntity<ApiResponse<List<OrderPaymentDto>>> listPayments(
             @PathVariable UUID id) {
@@ -57,6 +69,7 @@ public class PaymentController {
      * tenders via {@code POST /{id}/payments}; the order auto-closes once it is fully Paid
      * AND fully Served via the {@code maybeCloseOrder} seam.
      */
+    @PreAuthorize("hasAuthority('pos.order.close')")
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<Void>> closeOrder(@PathVariable UUID id) {
         ApiResponse<Void> body = new ApiResponse<>(null, null, List.of(new ApiResponse.ApiWarning(
@@ -75,6 +88,7 @@ public class PaymentController {
             @NotNull Integer diners
     ) {}
 
+    @PreAuthorize("hasAuthority('pos.order.split_bill')")
     @PostMapping("/{id}/split")
     public ResponseEntity<ApiResponse<List<Long>>> splitPreview(
             @PathVariable UUID id,

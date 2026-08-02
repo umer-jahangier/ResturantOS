@@ -15,6 +15,14 @@ export const queryKeys = {
   branches: {
     mine: () => ["branches", "mine"] as const,
   },
+  // CRM keys are NOT branch-scoped: a customer and their loyalty balance belong to the tenant,
+  // and follow them between branches.
+  crm: {
+    all: () => ["crm"] as const,
+    customerSearch: (q: string) => ["crm", "customers", "search", q] as const,
+    customer: (id: string) => ["crm", "customers", id] as const,
+    promotions: () => ["crm", "promotions"] as const,
+  },
   pos: {
     menuCategories: (branchId: string) => ["pos", branchId, "menu-categories"] as const,
     menuItems: (branchId: string, categoryId?: string) =>

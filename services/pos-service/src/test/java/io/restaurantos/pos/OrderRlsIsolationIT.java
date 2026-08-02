@@ -90,12 +90,26 @@ class OrderRlsIsolationIT extends PosTestBase {
                 new CreateOrderRequest(branchA, clientId, null, null, 1, null, null));
         orderService.addItem(orderA.id(), new AddOrderItemRequest(menuItemIdA, branchA, 1, null, null));
 
-        // Switch to tenant B, query by branchA — should get 0 results
+        // Switch to tenant B and ask for branch A's orders.
+        //
+        // listOrders now REFUSES a branchId that is not the caller's own, rather than returning an
+        // empty page: branchId is a client-supplied parameter, and pos_db's tables are ENABLE (not
+        // FORCE) ROW LEVEL SECURITY with the application as owner, so RLS is inert here and the
+        // check has to be in the service. Refusing beats returning 0 — it distinguishes "you may
+        // not ask that" from "there is nothing there", and it matches the guard listOrderSummaries
+        // has always had. This assertion previously expected 0 and failed, because the query was
+        // neither tenant- nor branch-scoped and really did return tenant A's order.
         tenantContext.set(tenantB, branchB, null, null);
-        Page<OrderDto> results = orderService.listOrders(
-                branchA, List.of(OrderStatus.OPEN.name()), Pageable.unpaged());
 
-        assertThat(results.getTotalElements()).isEqualTo(0L);
+        assertThatThrownBy(() -> orderService.listOrders(
+                branchA, List.of(OrderStatus.OPEN.name()), Pageable.unpaged()))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasMessageContaining("different branch");
+
+        // And a caller asking for their OWN branch sees none of tenant A's orders either.
+        Page<OrderDto> ownBranch = orderService.listOrders(
+                branchB, List.of(OrderStatus.OPEN.name()), Pageable.unpaged());
+        assertThat(ownBranch.getTotalElements()).isEqualTo(0L);
     }
 
     @Test

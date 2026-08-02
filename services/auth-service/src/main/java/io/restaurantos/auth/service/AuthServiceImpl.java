@@ -9,6 +9,7 @@ import io.restaurantos.auth.entity.RefreshSessionEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AccountLockedException;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
+import io.restaurantos.auth.exception.TotpEnrollmentRequiredException;
 import io.restaurantos.auth.exception.TotpRequiredException;
 import io.restaurantos.auth.repository.AuthTenantRepository;
 import io.restaurantos.auth.repository.UserRepository;
@@ -179,6 +180,39 @@ public class AuthServiceImpl implements AuthService {
         loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
     }
 
+    /**
+     * Verifies email/password/tenant for the unauthenticated TOTP bootstrap and returns the user,
+     * applying the same tenant resolution, RLS GUC, lockout check and failure accounting as
+     * {@link #login}. Extracted rather than reimplemented so the bootstrap can never drift into a
+     * weaker check than the login it stands in for.
+     */
+    @Override
+    @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class})
+    public UserEntity authenticateForTotpBootstrap(String tenantSlug, String email, String password, String ip) {
+        AuthTenantEntity tenant = authTenantRepository.findBySlug(tenantSlug)
+            .filter(t -> "ACTIVE".equals(t.getStatus()))
+            .orElseThrow(() -> new AuthenticationFailedException("Invalid credentials"));
+
+        UUID tenantId = tenant.getId();
+        setTenantGuc(tenantId);
+        tenantContext.set(tenantId, null, null, null);
+
+        UserEntity user = userRepository.findByEmail(email.toLowerCase()).orElse(null);
+        if (user == null) {
+            passwordEncoder.matches(password, DUMMY_HASH);
+            loginEventPublisher.publishFailed(tenantId, null, email, ip);
+            throw new AuthenticationFailedException("Invalid credentials");
+        }
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(Instant.now())) {
+            throw new AccountLockedException("Account is temporarily locked");
+        }
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            handleFailedPassword(user, tenantId, email, ip);
+            throw new AuthenticationFailedException("Invalid credentials");
+        }
+        return user;
+    }
+
     private void setTenantGuc(UUID tenantId) {
         entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
             .setParameter("tid", tenantId.toString())
@@ -190,8 +224,15 @@ public class AuthServiceImpl implements AuthService {
         if (!stepUpEnabled || !requiresTotpStepUp(permissions, user.isTotpEnabled())) {
             return;
         }
-        if (user.getTotpSecret() == null
-            || request.totpCode() == null
+        // No secret at all is a different situation from a missing or wrong code: the user cannot
+        // produce a code from anything, and answering "TOTP code required" sends them to a prompt
+        // with no way out. Point them at enrolment instead.
+        if (user.getTotpSecret() == null) {
+            loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
+            throw new TotpEnrollmentRequiredException(
+                "Two-factor authentication is required for this account but has not been set up");
+        }
+        if (request.totpCode() == null
             || request.totpCode().isBlank()
             || !totpService.verify(user.getTotpSecret(), request.totpCode())) {
             loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);

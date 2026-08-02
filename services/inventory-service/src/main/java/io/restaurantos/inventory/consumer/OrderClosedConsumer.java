@@ -1,8 +1,9 @@
 package io.restaurantos.inventory.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.inventory.config.InventoryRabbitConfig;
-import io.restaurantos.inventory.event.InventoryEventPayloads.OrderClosedPayload;
+import io.restaurantos.shared.event.payload.PosEventContract.OrderClosedPayload;
 import io.restaurantos.inventory.service.DepletionService;
 import io.restaurantos.inventory.service.ProcessedEventService;
 import io.restaurantos.shared.event.EventEnvelope;

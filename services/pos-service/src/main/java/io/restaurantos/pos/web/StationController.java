@@ -8,6 +8,7 @@ import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,11 +31,13 @@ public class StationController {
         this.stationService = stationService;
     }
 
+    @PreAuthorize("hasAnyAuthority('pos.menu.view','pos.kds.view')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<StationDto>>> listStations(@RequestParam UUID branchId) {
         return ResponseEntity.ok(ApiResponse.ok(stationService.listStations(branchId)));
     }
 
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
     @PostMapping
     public ResponseEntity<ApiResponse<StationDto>> createStation(
             @RequestParam UUID branchId,
@@ -43,6 +46,7 @@ public class StationController {
                 .body(ApiResponse.ok(stationService.createStation(branchId, request)));
     }
 
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<StationDto>> updateStation(
             @PathVariable UUID id,
@@ -51,6 +55,7 @@ public class StationController {
         return ResponseEntity.ok(ApiResponse.ok(stationService.updateStation(id, branchId, request)));
     }
 
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<StationDto>> deactivateStation(
             @PathVariable UUID id,

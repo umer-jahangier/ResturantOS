@@ -172,6 +172,10 @@ export function adaptOrderPayment(raw: ApiOrderPaymentRecord): OrderPayment {
     id: raw.id,
     method: raw.method,
     amountPaisa: raw.amountPaisa,
+    // Rows written before the V10 migration carry neither field; treat them as exact tender,
+    // which is what they were.
+    tenderedPaisa: raw.tenderedPaisa ?? raw.amountPaisa,
+    changePaisa: raw.changePaisa ?? 0,
     referenceNo: raw.referenceNo ?? null,
     recordedAt: raw.recordedAt,
   };

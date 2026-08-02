@@ -6,6 +6,7 @@ import io.restaurantos.pos.dto.TableDetailDto;
 import io.restaurantos.pos.service.TableService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +25,7 @@ public class TableController {
         this.tableService = tableService;
     }
 
+    @PreAuthorize("hasAuthority('pos.order.view')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<DiningTableDto>>> listTables(@RequestParam UUID branchId) {
         List<DiningTableDto> tables = tableService.listByBranch(branchId).stream()
@@ -32,6 +34,7 @@ public class TableController {
         return ResponseEntity.ok(ApiResponse.ok(tables));
     }
 
+    @PreAuthorize("hasAuthority('pos.tables.manage')")
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<DiningTableDto>> updateStatus(
             @PathVariable UUID id,
@@ -41,6 +44,7 @@ public class TableController {
         return ResponseEntity.ok(ApiResponse.ok(DiningTableDto.from(tableService.updateStatus(id, branchId, status))));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.view')")
     @GetMapping("/{id}/active-order")
     public ResponseEntity<ApiResponse<TableDetailDto>> getActiveOrder(
             @PathVariable UUID id,

@@ -49,6 +49,13 @@ public abstract class PurchasingTestBase {
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("spring.cloud.config.enabled", () -> "false");
         registry.add("restaurantos.inventory.integration-mode", () -> "mock");
+        // Point AMQP at a dead port so any listener/AmqpAdmin startup is a connection-refused —
+        // retried in the background, non-fatal — instead of an ACCESS_REFUSED against the REAL dev
+        // broker on 5672, which Spring treats as fatal. Without this the suite passes or fails
+        // depending on whether the developer's dev stack happens to be running.
+        registry.add("spring.rabbitmq.host", () -> "127.0.0.1");
+        registry.add("spring.rabbitmq.port", () -> "1");
+        registry.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
         registry.add("restaurantos.encryption.key", () -> "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
     }
 

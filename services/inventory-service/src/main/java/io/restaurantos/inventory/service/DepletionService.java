@@ -1,5 +1,6 @@
 package io.restaurantos.inventory.service;
 
+import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.inventory.config.InventoryRabbitConfig;
 import io.restaurantos.inventory.domain.model.Ingredient;
 import io.restaurantos.inventory.domain.model.IngredientBranchStock;
@@ -8,13 +9,13 @@ import io.restaurantos.inventory.domain.model.Recipe;
 import io.restaurantos.inventory.domain.model.RecipeLine;
 import io.restaurantos.inventory.domain.model.StockLot;
 import io.restaurantos.inventory.domain.model.UnitOfMeasure;
-import io.restaurantos.inventory.event.InventoryEventPayloads;
-import io.restaurantos.inventory.event.InventoryEventPayloads.DepletedLine;
-import io.restaurantos.inventory.event.InventoryEventPayloads.DepletionIncompletePayload;
-import io.restaurantos.inventory.event.InventoryEventPayloads.ItemEntry;
-import io.restaurantos.inventory.event.InventoryEventPayloads.LowStockAlertPayload;
-import io.restaurantos.inventory.event.InventoryEventPayloads.OrderClosedPayload;
-import io.restaurantos.inventory.event.InventoryEventPayloads.StockDepletedPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
+import io.restaurantos.shared.event.payload.InventoryEventContract.DepletedLine;
+import io.restaurantos.shared.event.payload.InventoryEventContract.DepletionIncompletePayload;
+import io.restaurantos.shared.event.payload.PosEventContract.ItemEntry;
+import io.restaurantos.shared.event.payload.InventoryEventContract.LowStockAlertPayload;
+import io.restaurantos.shared.event.payload.PosEventContract.OrderClosedPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract.StockDepletedPayload;
 import io.restaurantos.inventory.repository.IngredientBranchStockRepository;
 import io.restaurantos.inventory.repository.IngredientRepository;
 import io.restaurantos.inventory.repository.InventoryMovementRepository;
@@ -64,6 +65,7 @@ public class DepletionService {
     private final InventoryMovementRepository movementRepository;
     private final IngredientRepository ingredientRepository;
     private final EventPublisher eventPublisher;
+    private final CategoryGlAccountResolver categoryGlAccountResolver;
     private final TenantContext tenantContext;
 
     public DepletionService(RecipeService recipeService,
@@ -74,7 +76,8 @@ public class DepletionService {
                              InventoryMovementRepository movementRepository,
                              IngredientRepository ingredientRepository,
                              EventPublisher eventPublisher,
-                             TenantContext tenantContext) {
+                             CategoryGlAccountResolver categoryGlAccountResolver,
+                            TenantContext tenantContext) {
         this.recipeService = recipeService;
         this.recipeLineRepository = recipeLineRepository;
         this.unitOfMeasureRepository = unitOfMeasureRepository;
@@ -83,6 +86,7 @@ public class DepletionService {
         this.movementRepository = movementRepository;
         this.ingredientRepository = ingredientRepository;
         this.eventPublisher = eventPublisher;
+        this.categoryGlAccountResolver = categoryGlAccountResolver;
         this.tenantContext = tenantContext;
     }
 
@@ -124,6 +128,12 @@ public class DepletionService {
             // Step 3: pre-sort the DISTINCT ingredientId set (natural UUID order) before locking —
             // never lock lazily in per-recipe-line encounter order (Pitfall 6 deadlock avoidance).
             List<UUID> sortedIngredientIds = new ArrayList<>(new TreeSet<>(requiredByIngredient.keySet()));
+
+            // H9: resolve each ingredient's category GL accounts ONCE per depletion — one category
+            // walk and one batched finance lookup, never per line. Empty map when nothing is mapped
+            // or finance is unreachable; the consumer then falls back to the tenant-wide tags.
+            Map<UUID, CategoryGlAccountResolver.Accounts> glAccounts =
+                    categoryGlAccountResolver.resolveFor(tenantId, sortedIngredientIds);
 
             List<DepletedLine> depletedLines = new ArrayList<>();
             long totalCogsPaisa = 0L;
@@ -168,14 +178,17 @@ public class DepletionService {
                         && savedStock.getQtyOnHand().compareTo(ingredient.get().getReorderPoint()) <= 0) {
                     eventPublisher.publish(
                             InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                            InventoryEventPayloads.LOW_STOCK_ALERT_ROUTING_KEY,
-                            InventoryEventPayloads.LOW_STOCK_ALERT,
+                            InventoryEventContract.LOW_STOCK_ALERT_KEY,
+                            InventoryEventContract.LOW_STOCK_ALERT,
                             branchId,
                             new LowStockAlertPayload(ingredientId, branchId, savedStock.getQtyOnHand(),
                                     ingredient.get().getReorderPoint()));
                 }
 
-                depletedLines.add(new DepletedLine(ingredientId, required, cogsPaisa));
+                CategoryGlAccountResolver.Accounts accounts = glAccounts.get(ingredientId);
+                depletedLines.add(new DepletedLine(ingredientId, required, cogsPaisa,
+                        accounts != null ? accounts.cogsAccountCode() : null,
+                        accounts != null ? accounts.inventoryAccountCode() : null));
                 totalCogsPaisa += cogsPaisa;
             }
 
@@ -183,8 +196,8 @@ public class DepletionService {
             // fresh inside DomainEventPublisher.publish; never copied from the inbound envelope.
             eventPublisher.publish(
                     InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                    InventoryEventPayloads.STOCK_DEPLETED_ROUTING_KEY,
-                    InventoryEventPayloads.STOCK_DEPLETED,
+                    InventoryEventContract.STOCK_DEPLETED_KEY,
+                    InventoryEventContract.STOCK_DEPLETED,
                     branchId,
                     new StockDepletedPayload(payload.orderId(), depletedLines, totalCogsPaisa));
         }
@@ -195,8 +208,8 @@ public class DepletionService {
         if (!missingMenuItemIds.isEmpty()) {
             eventPublisher.publish(
                     InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                    InventoryEventPayloads.DEPLETION_INCOMPLETE_ROUTING_KEY,
-                    InventoryEventPayloads.DEPLETION_INCOMPLETE,
+                    InventoryEventContract.DEPLETION_INCOMPLETE_KEY,
+                    InventoryEventContract.DEPLETION_INCOMPLETE,
                     branchId,
                     new DepletionIncompletePayload(payload.orderId(), payload.closedAt(), missingMenuItemIds));
         }

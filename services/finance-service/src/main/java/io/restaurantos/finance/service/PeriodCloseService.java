@@ -6,7 +6,7 @@ import io.restaurantos.finance.exception.PeriodAlreadyLockedException;
 import io.restaurantos.finance.exception.PeriodNotFoundException;
 import io.restaurantos.finance.exception.PeriodPreCheckException;
 import io.restaurantos.finance.exception.TotpRequiredException;
-import io.restaurantos.finance.feign.InventoryInternalClient;
+import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.feign.PosInternalClient;
 import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.mapper.PeriodMapper;
@@ -32,7 +32,6 @@ public class PeriodCloseService {
     private final AccountingPeriodRepository periodRepo;
     private final PeriodMapper periodMapper;
     private final PosInternalClient posClient;
-    private final InventoryInternalClient inventoryClient;
     private final PurchasingInternalClient purchasingClient;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
@@ -41,7 +40,6 @@ public class PeriodCloseService {
     public PeriodCloseService(AccountingPeriodRepository periodRepo,
                                PeriodMapper periodMapper,
                                PosInternalClient posClient,
-                               InventoryInternalClient inventoryClient,
                                PurchasingInternalClient purchasingClient,
                                TenantContext tenantContext,
                                EventPublisher eventPublisher,
@@ -49,7 +47,6 @@ public class PeriodCloseService {
         this.periodRepo = periodRepo;
         this.periodMapper = periodMapper;
         this.posClient = posClient;
-        this.inventoryClient = inventoryClient;
         this.purchasingClient = purchasingClient;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
@@ -77,9 +74,11 @@ public class PeriodCloseService {
             throw new PeriodAlreadyLockedException(periodId);
         }
 
-        // Pre-close checks via internal Feign clients (Phase 6: fallbacks return 0)
+        // Pre-close checks via internal Feign clients. The GRN check asks purchasing-service,
+        // which owns goods receipts — inventory's version counted a sentinel nothing writes.
         long openOrders = posClient.getOpenOrderCount(period.getStartDate(), period.getEndDate());
-        long pendingGrn = inventoryClient.getPendingGrnCount(period.getEndDate());
+        long pendingGrn = purchasingClient.getPendingGrnCount(
+                tenantContext.requireTenantId(), period.getEndDate());
         long unmatchedInvoices = purchasingClient.getUnmatchedInvoiceCount(period.getEndDate());
 
         if (openOrders > 0) {

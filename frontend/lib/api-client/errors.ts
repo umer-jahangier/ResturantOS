@@ -38,6 +38,14 @@ export class ApiError extends Error {
   isTotpRequired(): boolean {
     return this.code === "TOTP_REQUIRED";
   }
+  /**
+   * 401 — the account's permissions demand a second factor and none has ever been enrolled.
+   * Distinct from {@link isTotpRequired}: there is no code to type, so prompting for one strands
+   * the user. They must enrol first, at {@code POST /api/v1/auth/2fa/bootstrap}.
+   */
+  isTotpEnrollmentRequired(): boolean {
+    return this.code === "TOTP_ENROLLMENT_REQUIRED";
+  }
   /** 403 — branch-switch denied (used by the 04-02 BranchSwitcher). */
   isBranchAccessDenied(): boolean {
     return this.code === "BRANCH_ACCESS_DENIED";

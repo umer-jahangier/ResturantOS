@@ -36,6 +36,7 @@ public class TillController {
         this.tillReviewService = tillReviewService;
     }
 
+    @PreAuthorize("hasAuthority('pos.till.open')")
     @PostMapping
     public ResponseEntity<ApiResponse<TillSessionDto>> openTill(
             @Valid @RequestBody OpenTillRequest request) {
@@ -43,6 +44,7 @@ public class TillController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(dto));
     }
 
+    @PreAuthorize("hasAuthority('pos.till.close')")
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<TillSessionDto>> closeTill(
             @PathVariable UUID id,
@@ -51,12 +53,14 @@ public class TillController {
         return ResponseEntity.ok(ApiResponse.ok(dto));
     }
 
+    @PreAuthorize("hasAuthority('pos.till.open')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TillSessionDto>> getTill(@PathVariable UUID id) {
         TillSessionDto dto = tillService.getTill(id);
         return ResponseEntity.ok(ApiResponse.ok(dto));
     }
 
+    @PreAuthorize("hasAuthority('pos.till.open')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<TillSessionDto>>> listTills(
             @RequestParam(required = false) UUID cashierId,
@@ -78,6 +82,7 @@ public class TillController {
     }
 
     /** Admin till-review: the session + every order within it + cash/non-cash collected. */
+    @PreAuthorize("hasAuthority('pos.till.open')")
     @GetMapping("/{id}/reconciliation")
     public ResponseEntity<ApiResponse<TillReconciliationDto>> getReconciliation(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(tillService.getReconciliation(id)));

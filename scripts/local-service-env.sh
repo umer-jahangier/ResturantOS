@@ -82,6 +82,18 @@ export PLATFORM_ADMIN_URI=http://127.0.0.1:8096
 export CONFIG_URI=http://127.0.0.1:8888
 export FAIL_OPEN_ON_PLATFORM_DOWN=true
 
+# crm-service (Liquibase + runtime as crm_user) — consumer of ORDER_CLOSED / ORDER_REFUNDED.
+# Parity fix: start-dev.sh has launched crm-service since the Phase 9 merge, but this file only
+# ever had the reporting/nlq blocks, so on the Linux/WSL path crm-service started with no
+# datasource at all. Mirrors the local-service-env.ps1 block exactly.
+# LIQUIBASE_CONTEXTS=seed is load-bearing: without it the loyalty tier config
+# (BRONZE/SILVER/GOLD thresholds, changeset 900-seed-loyalty-config) is never inserted and
+# LoyaltyService.ensureTierConfig has nothing to resolve a tier against.
+export CRM_DB_URL=jdbc:postgresql://127.0.0.1:5432/crm_db
+export CRM_DB_USER=crm_user
+export CRM_DB_PASSWORD="${CRM_DB_PASSWORD}"
+export LIQUIBASE_CONTEXTS=seed
+
 # pos-service (order lifecycle; publishes ORDER_CLOSED consumed by the dashboard/ETL)
 export POS_DB_URL=jdbc:postgresql://127.0.0.1:5432/pos_db
 export POS_DB_USER=pos_user

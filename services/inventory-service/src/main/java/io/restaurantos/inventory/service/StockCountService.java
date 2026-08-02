@@ -10,10 +10,10 @@ import io.restaurantos.inventory.dto.StockCountDtos.CountLineDto;
 import io.restaurantos.inventory.dto.StockCountDtos.CountLineRequest;
 import io.restaurantos.inventory.dto.StockCountDtos.CreateStockCountRequest;
 import io.restaurantos.inventory.dto.StockCountDtos.StockCountDto;
-import io.restaurantos.inventory.event.InventoryEventPayloads;
-import io.restaurantos.inventory.event.InventoryEventPayloads.CountVarianceLine;
-import io.restaurantos.inventory.event.InventoryEventPayloads.CountVariancePostedPayload;
-import io.restaurantos.inventory.event.InventoryEventPayloads.LowStockAlertPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
+import io.restaurantos.shared.event.payload.InventoryEventContract.CountVarianceLine;
+import io.restaurantos.shared.event.payload.InventoryEventContract.CountVariancePostedPayload;
+import io.restaurantos.shared.event.payload.InventoryEventContract.LowStockAlertPayload;
 import io.restaurantos.inventory.exception.CountVarianceOverCapException;
 import io.restaurantos.inventory.exception.CountVarianceOverCapException.OverCapLine;
 import io.restaurantos.inventory.repository.IngredientBranchStockRepository;
@@ -189,8 +189,8 @@ public class StockCountService {
         // before/outside the count mutation (mirrors DepletionService/TransferService's shape).
         eventPublisher.publish(
                 InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                InventoryEventPayloads.COUNT_VARIANCE_POSTED_ROUTING_KEY,
-                InventoryEventPayloads.COUNT_VARIANCE_POSTED,
+                InventoryEventContract.COUNT_VARIANCE_POSTED_KEY,
+                InventoryEventContract.COUNT_VARIANCE_POSTED,
                 request.branchId(),
                 new CountVariancePostedPayload(finalCount.getId(), request.branchId(), eventLines, totalVarianceCostPaisa));
 
@@ -208,8 +208,8 @@ public class StockCountService {
                 && stock.getQtyOnHand().compareTo(ingredient.get().getReorderPoint()) <= 0) {
             eventPublisher.publish(
                     InventoryRabbitConfig.INVENTORY_TOPIC_EXCHANGE,
-                    InventoryEventPayloads.LOW_STOCK_ALERT_ROUTING_KEY,
-                    InventoryEventPayloads.LOW_STOCK_ALERT,
+                    InventoryEventContract.LOW_STOCK_ALERT_KEY,
+                    InventoryEventContract.LOW_STOCK_ALERT,
                     branchId,
                     new LowStockAlertPayload(stock.getIngredientId(), branchId, stock.getQtyOnHand(),
                             ingredient.get().getReorderPoint()));

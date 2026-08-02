@@ -9,11 +9,13 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -68,6 +70,23 @@ public class InternalPurchasingController {
     public long unmatchedCount(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodEnd) {
         return vendorInvoiceRepository.countByStatusAndInvoiceDateBefore(InvoiceStatus.MISMATCHED, periodEnd);
+    }
+
+    /**
+     * Goods received but not yet invoice-matched as of {@code periodEnd} — finance's period-close
+     * pre-check. Lives here, not in inventory-service, because purchasing owns GRNs: inventory's
+     * version filtered on a {@code PENDING_GRN} sentinel nothing ever wrote, so it always returned
+     * 0 and the gate never once blocked a close.
+     *
+     * <p>{@code periodEnd} is inclusive of the whole day — a receipt at 23:59 on the last day of
+     * the period is in the period.
+     */
+    @GetMapping("/grn/pending-count")
+    public long pendingGrnCount(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodEnd) {
+        Instant periodEndInstant = periodEnd.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        return mockGrnReceiptRepository.countUnreconciledAsOf(tenantId, periodEndInstant);
     }
 
     public record OpenReceiptsResponse(long count, List<UUID> poIds) {}

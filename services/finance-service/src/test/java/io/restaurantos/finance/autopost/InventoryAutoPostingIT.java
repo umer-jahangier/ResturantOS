@@ -6,12 +6,14 @@ import io.restaurantos.finance.util.PakistanFiscalYear;
 import io.restaurantos.finance.autopost.consumer.CountVarianceConsumer;
 import io.restaurantos.finance.autopost.consumer.TransferReceivedConsumer;
 import io.restaurantos.finance.autopost.consumer.TransferShippedConsumer;
+import io.restaurantos.finance.autopost.consumer.StockReceivedConsumer;
 import io.restaurantos.finance.autopost.consumer.WastageConsumer;
 import io.restaurantos.finance.config.InternalTenantContextHelper;
 import io.restaurantos.finance.domain.enums.JeStatus;
 import io.restaurantos.finance.repository.JournalEntryRepository;
 import io.restaurantos.finance.service.ProvisioningService;
 import io.restaurantos.shared.event.EventEnvelope;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -21,18 +23,11 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,37 +35,10 @@ import static org.awaitility.Awaitility.await;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @SpringBootTest(classes = FinanceServiceApplication.class)
-@Testcontainers
-class InventoryAutoPostingIT {
+class InventoryAutoPostingIT extends AutoPostingITBase {
 
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"))
-                    .withDatabaseName("finance_db")
-                    .withUsername("finance_user")
-                    .withPassword("finance_pass");
 
-    @Container
-    static final RabbitMQContainer RABBIT =
-            new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.12-management"));
 
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry r) {
-        r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        r.add("spring.datasource.username", POSTGRES::getUsername);
-        r.add("spring.datasource.password", POSTGRES::getPassword);
-        r.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        r.add("spring.flyway.enabled", () -> "true");
-        r.add("spring.rabbitmq.host", RABBIT::getHost);
-        r.add("spring.rabbitmq.port", () -> String.valueOf(RABBIT.getAmqpPort()));
-        r.add("spring.rabbitmq.username", RABBIT::getAdminUsername);
-        r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
-        r.add("eureka.client.enabled", () -> "false");
-        r.add("spring.cloud.config.enabled", () -> "false");
-        // See OrderCloseAutoPostingIT: listeners for undeclared queues must not abort startup.
-        r.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
-        r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
-    }
 
     @MockitoBean
     private io.restaurantos.shared.idempotency.IdempotencyKeyRepository idempotencyKeyRepository;
@@ -100,68 +68,95 @@ class InventoryAutoPostingIT {
         } finally {
             tenantHelper.clear();
         }
-        declareTopology();
     }
 
-    private void declareTopology() {
-        amqpAdmin.declareExchange(new TopicExchange("inventory.topic", true, false));
-        bind(WastageConsumer.QUEUE_NAME, "inventory.wastage.recorded");
-        bind(CountVarianceConsumer.QUEUE_NAME, "inventory.count.variance");
-        bind(TransferShippedConsumer.QUEUE_NAME, "inventory.transfer.shipped");
-        bind(TransferReceivedConsumer.QUEUE_NAME, "inventory.transfer.received");
-    }
 
-    private void bind(String queueName, String routingKey) {
-        amqpAdmin.declareQueue(new Queue(queueName, true));
-        amqpAdmin.declareBinding(BindingBuilder.bind(new Queue(queueName))
-                .to(new TopicExchange("inventory.topic")).with(routingKey));
-    }
 
+    /**
+     * The payloads below are the PRODUCER's own records from {@code shared-lib}, serialized exactly
+     * as inventory-service serializes them — not maps hand-authored here.
+     *
+     * <p>That distinction is the whole point of this test. It used to build
+     * {@code Map.of("variancePaisa", -22500)} and {@code Map.of("costPaisa", 225000)} — field names
+     * the consumer expected and inventory-service has NEVER published. The test asserted the
+     * consumer against itself and passed, while in production count variances and transfers were
+     * consumed, acked, marked processed, and posted nothing at all. Building the payload from the
+     * shared record makes that impossible: a producer-side rename is now a compile error here.
+     */
     @Test
     void inventoryEvents_postBalancedJes() throws Exception {
         UUID wastageId = UUID.randomUUID();
-        publish("inventory.wastage.recorded", "WASTAGE_RECORDED", Map.of(
-                "wastageId", wastageId.toString(),
-                "ingredientId", UUID.randomUUID().toString(),
-                "qty", 1.0,
-                "costPaisa", 45000,
-                "reason", "SPOILAGE"));
+        publish(InventoryEventContract.WASTAGE_RECORDED_KEY, InventoryEventContract.WASTAGE_RECORDED,
+                new InventoryEventContract.WastageRecordedPayload(
+                        wastageId, UUID.randomUUID(), branchId, new BigDecimal("1.0"), 45_000L, "SPOILAGE"));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_WASTAGE, wastageId);
 
+        // A shrinkage line: varianceCostPaisa is NEGATIVE, and it is the field inventory publishes.
         UUID countId = UUID.randomUUID();
-        publish("inventory.count.variance", "COUNT_VARIANCE_POSTED", Map.of(
-                "countId", countId.toString(),
-                "lines", List.of(Map.of(
-                        "ingredientId", UUID.randomUUID().toString(),
-                        "systemQty", 10.0,
-                        "countedQty", 9.5,
-                        "varianceQty", -0.5,
-                        "variancePaisa", -22500))));
+        publish(InventoryEventContract.COUNT_VARIANCE_POSTED_KEY, InventoryEventContract.COUNT_VARIANCE_POSTED,
+                new InventoryEventContract.CountVariancePostedPayload(
+                        countId, branchId,
+                        List.of(new InventoryEventContract.CountVarianceLine(
+                                UUID.randomUUID(), new BigDecimal("-0.5"), -22_500L, false, null)),
+                        -22_500L));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_COUNT_VARIANCE, countId);
 
+        // lineCostPaisa — the extended cost — is what finance sums. The payload also carries qty and
+        // unitCostPaisa, and finance must never multiply them itself: rounding belongs to inventory.
         UUID transferId = UUID.randomUUID();
-        publish("inventory.transfer.shipped", "TRANSFER_SHIPPED", Map.of(
-                "transferId", transferId.toString(),
-                "fromBranchId", branchId.toString(),
-                "toBranchId", UUID.randomUUID().toString(),
-                "lines", List.of(Map.of(
-                        "ingredientId", UUID.randomUUID().toString(),
-                        "qty", 5.0,
-                        "costPaisa", 225000))));
+        publish(InventoryEventContract.TRANSFER_SHIPPED_KEY, InventoryEventContract.TRANSFER_SHIPPED,
+                new InventoryEventContract.TransferShippedPayload(
+                        transferId, branchId, UUID.randomUUID(),
+                        List.of(new InventoryEventContract.TransferLine(
+                                UUID.randomUUID(), new BigDecimal("5.0"), 45_000L, 225_000L))));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_TRANSFER_SHIP, transferId);
 
-        publish("inventory.transfer.received", "TRANSFER_RECEIVED", Map.of(
-                "transferId", transferId.toString(),
-                "toBranchId", branchId.toString(),
-                "lines", List.of(Map.of(
-                        "ingredientId", UUID.randomUUID().toString(),
-                        "qtyReceived", 5.0,
-                        "costPaisa", 225000))));
+        publish(InventoryEventContract.TRANSFER_RECEIVED_KEY, InventoryEventContract.TRANSFER_RECEIVED,
+                new InventoryEventContract.TransferReceivedPayload(
+                        transferId, branchId,
+                        List.of(new InventoryEventContract.TransferLine(
+                                UUID.randomUUID(), new BigDecimal("5.0"), 45_000L, 225_000L))));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_TRANSFER_RECV, transferId);
+    }
+
+    /**
+     * A count with both a shrinkage and a gain nets into ONE balanced entry, and the gain credits
+     * the dedicated count-gain account instead of 5221 "Delivery Cost".
+     */
+    @Test
+    void countVarianceWithGainAndLoss_postsBothDirections() throws Exception {
+        UUID countId = UUID.randomUUID();
+        publish(InventoryEventContract.COUNT_VARIANCE_POSTED_KEY, InventoryEventContract.COUNT_VARIANCE_POSTED,
+                new InventoryEventContract.CountVariancePostedPayload(
+                        countId, branchId,
+                        List.of(
+                                new InventoryEventContract.CountVarianceLine(
+                                        UUID.randomUUID(), new BigDecimal("-2"), -10_000L, false, null),
+                                new InventoryEventContract.CountVarianceLine(
+                                        UUID.randomUUID(), new BigDecimal("1"), 4_000L, false, null)),
+                        -6_000L));
+
+        awaitJe(AutoPostingRecipeEngine.SOURCE_COUNT_VARIANCE, countId);
+    }
+
+    /**
+     * A goods receipt is ledger-visible: DR inventory, CR GR/IR clearing. The queue and binding
+     * shipped with Phase 9; the listener did not, so every receipt piled up on a durable queue
+     * nothing drained.
+     */
+    @Test
+    void stockReceived_postsInventoryAgainstGrIr() throws Exception {
+        UUID lotId = UUID.randomUUID();
+        publish(InventoryEventContract.STOCK_RECEIVED_KEY, InventoryEventContract.STOCK_RECEIVED,
+                new InventoryEventContract.StockReceivedPayload(
+                        UUID.randomUUID(), branchId, new BigDecimal("10"), 5_000L, 50_000L, 5_000L,
+                        lotId, null, "GRN", UUID.randomUUID()));
+
+        awaitJe(AutoPostingRecipeEngine.SOURCE_STOCK_RECEIPT, lotId);
     }
 
     private void awaitJe(String sourceType, UUID sourceId) {
@@ -192,8 +187,8 @@ class InventoryAutoPostingIT {
         });
     }
 
-    private void publish(String routingKey, String eventType, Map<String, Object> payload) throws Exception {
-        EventEnvelope<Map<String, Object>> envelope = new EventEnvelope<>(
+    private void publish(String routingKey, String eventType, Object payload) throws Exception {
+        EventEnvelope<Object> envelope = new EventEnvelope<>(
                 UUID.randomUUID(),
                 eventType,
                 tenantId,

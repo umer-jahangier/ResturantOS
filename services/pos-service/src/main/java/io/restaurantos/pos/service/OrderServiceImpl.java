@@ -9,10 +9,11 @@ import io.restaurantos.pos.domain.enums.PaymentStatus;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
-import io.restaurantos.pos.event.PosClosePayloads;
+import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.pos.event.PosEventPayloads;
 import io.restaurantos.pos.event.PosVoidRefundPayloads;
 import io.restaurantos.pos.exception.PosExceptions;
+import io.restaurantos.pos.feign.CrmPromotionClient;
 import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.*;
 import io.restaurantos.shared.event.EventPublisher;
@@ -21,6 +22,7 @@ import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.time.BusinessDay;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,12 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_ITEM_SERVED_TYPE = "ORDER_ITEM_SERVED";
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
     private static final String VIEW_ALL_PERMISSION = "pos.order.view.all";
+    /**
+     * Marks an ORDER-scoped discount as machine-applied by the CRM promotion engine, so re-running
+     * the evaluation replaces it instead of stacking. {@code OrderDiscount} has no reason column;
+     * the type discriminator carries the provenance, alongside the manual FLAT/PERCENT values.
+     */
+    private static final String PROMOTION_DISCOUNT_TYPE = "PROMOTION";
 
     private final OrderRepository orderRepository;
     private final OrderSequenceRepository sequenceRepository;
@@ -63,6 +71,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderPaymentRepository orderPaymentRepository;
     private final OrderPricingCalculator pricingCalculator;
     private final OrderStateMachine stateMachine;
+    private final CrmPromotionClient crmPromotionClient;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
@@ -84,6 +93,7 @@ public class OrderServiceImpl implements OrderService {
                             OrderPaymentRepository orderPaymentRepository,
                             OrderPricingCalculator pricingCalculator,
                             OrderStateMachine stateMachine,
+                            CrmPromotionClient crmPromotionClient,
                             TenantContext tenantContext,
                             EventPublisher eventPublisher,
                             IdempotencyService idempotencyService,
@@ -104,6 +114,7 @@ public class OrderServiceImpl implements OrderService {
         this.orderPaymentRepository = orderPaymentRepository;
         this.pricingCalculator = pricingCalculator;
         this.stateMachine = stateMachine;
+        this.crmPromotionClient = crmPromotionClient;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
@@ -306,6 +317,48 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public OrderDto applyPromotions(UUID orderId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (order.getCustomerId() == null) {
+            // Walk-in: nothing to evaluate tier-based promotions against.
+            return orderMapper.toDto(order);
+        }
+
+        List<CrmPromotionClient.EvaluatePromotionRequest.OrderItemLine> lines = order.getItems().stream()
+                .filter(i -> i.getItemStatus() != OrderItemStatus.CANCELLED)
+                .map(i -> new CrmPromotionClient.EvaluatePromotionRequest.OrderItemLine(
+                        i.getMenuItemId(), i.getLineTotalPaisa()))
+                .toList();
+
+        CrmPromotionClient.EvaluatePromotionResponse result = crmPromotionClient.evaluate(
+                new CrmPromotionClient.EvaluatePromotionRequest(
+                        order.getBranchId(), order.getCustomerId(),
+                        order.getSubtotalPaisa(), Instant.now(), lines));
+
+        if (result == null || result.discountPaisa() <= 0) {
+            return orderMapper.toDto(order);
+        }
+
+        // Replace, never stack: re-running the evaluation must be idempotent in effect.
+        order.getDiscounts().removeIf(d -> PROMOTION_DISCOUNT_TYPE.equals(d.getType()));
+
+        OrderDiscount discount = new OrderDiscount();
+        discount.setTenantId(tenantId);
+        discount.setOrder(order);
+        discount.setScope("ORDER");
+        discount.setType(PROMOTION_DISCOUNT_TYPE);
+        long capped = Math.min(result.discountPaisa(), order.getSubtotalPaisa());
+        discount.setAmountPaisa(capped);
+        discount.setValue(BigDecimal.valueOf(capped));
+        order.getDiscounts().add(discount);
+
+        recomputeOrderTotals(order);
+        return orderMapper.toDto(orderRepository.save(order));
+    }
+
+    @Override
     public OrderDto applyDiscount(UUID orderId, ApplyDiscountRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
@@ -496,10 +549,25 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public Page<OrderDto> listOrders(UUID branchId, List<String> statuses, Pageable pageable) {
+        // Same guard as listOrderSummaries, and for the same reason (T-07.1d-01): branchId is a
+        // client-supplied request parameter, so without this a caller can list ANY branch's orders
+        // — including another tenant's — simply by passing its id. This method was the unguarded
+        // twin of listOrderSummaries, which was hardened while this one was not.
+        //
+        // There is no database backstop to fall back on: pos_db's tables are ENABLE (not FORCE)
+        // ROW LEVEL SECURITY and the application owns them, so RLS is inert for this connection
+        // and isolation here is service-layer only.
+        UUID jwtBranchId = tenantContext.getBranchId()
+                .orElseThrow(() -> new PermissionDeniedException("Branch context required"));
+        if (!jwtBranchId.equals(branchId)) {
+            throw new PermissionDeniedException("Cannot list orders for a different branch");
+        }
+
         List<OrderStatus> statusEnums = statuses == null || statuses.isEmpty()
                 ? List.of(OrderStatus.values())
                 : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
-        return orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
+        return orderRepository.findByTenantIdAndBranchIdAndStatusIn(
+                        tenantContext.requireTenantId(), branchId, statusEnums, pageable)
                 .map(orderMapper::toDto);
     }
 
@@ -628,8 +696,9 @@ public class OrderServiceImpl implements OrderService {
             return orderMapper.toDto(order);
         }
 
-        List<PosClosePayloads.PaymentEntry> paymentEntries = orderPaymentRepository.findByOrderId(orderId).stream()
-                .map(p -> new PosClosePayloads.PaymentEntry(p.getMethod().name(), p.getAmountPaisa(), p.getReferenceNo()))
+        List<PosEventContract.PaymentEntry> paymentEntries = orderPaymentRepository.findByOrderId(orderId).stream()
+                .map(p -> new PosEventContract.PaymentEntry(p.getMethod().name(), p.getAmountPaisa(),
+                        p.getTenderedPaisa(), p.getChangePaisa(), p.getReferenceNo()))
                 .collect(Collectors.toList());
 
         Order closed = performClose(order, paymentEntries);
@@ -643,16 +712,18 @@ public class OrderServiceImpl implements OrderService {
      * method is deleted (its HTTP endpoint now returns 410 Gone) —
      * {@code maybeCloseOrder}'s Paid-AND-Served path is the ONLY remaining caller.
      */
-    private Order performClose(Order order, List<PosClosePayloads.PaymentEntry> paymentEntries) {
+    private Order performClose(Order order, List<PosEventContract.PaymentEntry> paymentEntries) {
         UUID tenantId = order.getTenantId();
 
-        LocalDate businessDate = order.getOpenedAt() != null
-                ? order.getOpenedAt().atOffset(ZoneOffset.UTC).minusHours(4).toLocalDate()
-                : LocalDate.now();
+        // The business day is resolved from closedAt, not openedAt, and via the SHARED rule — the
+        // same date is then checked against the accounting period AND stamped on ORDER_CLOSED, so
+        // the period POS validates and the period finance posts into cannot disagree. An order
+        // opened 23:00 and closed 00:30 used to be checked against yesterday and posted to today.
+        Instant closedAt = Instant.now();
+        LocalDate businessDate = BusinessDay.of(closedAt);
         FinancePeriodClient.assertPeriodOpen(financePeriodClient, tenantId, order.getBranchId(), businessDate);
 
         stateMachine.assertTransition(order.getStatus(), OrderStatus.CLOSED);
-        Instant closedAt = Instant.now();
         order.setStatus(OrderStatus.CLOSED);
         order.setClosedAt(closedAt);
 
@@ -662,8 +733,8 @@ public class OrderServiceImpl implements OrderService {
 
         order = orderRepository.save(order);
 
-        List<PosClosePayloads.ItemEntry> itemEntries = order.getItems().stream()
-                .map(item -> new PosClosePayloads.ItemEntry(
+        List<PosEventContract.ItemEntry> itemEntries = order.getItems().stream()
+                .map(item -> new PosEventContract.ItemEntry(
                         item.getMenuItemId(),
                         item.getItemNameSnapshot(),
                         item.getQuantity(),
@@ -672,7 +743,7 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
 
         Order finalOrder = order;
-        var payload = new PosClosePayloads.OrderClosedPayload(
+        var payload = new PosEventContract.OrderClosedPayload(
                 finalOrder.getId(),
                 finalOrder.getOrderNo(),
                 finalOrder.getType().name(),
@@ -686,7 +757,8 @@ public class OrderServiceImpl implements OrderService {
                 itemEntries,
                 finalOrder.getTillSessionId(),
                 finalOrder.getCashierId(),
-                closedAt
+                closedAt,
+                businessDate
         );
 
         eventPublisher.publish(POS_EXCHANGE, ORDER_CLOSED_KEY, ORDER_CLOSED_TYPE,
