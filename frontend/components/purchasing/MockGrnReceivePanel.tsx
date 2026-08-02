@@ -49,7 +49,7 @@ export function MockGrnReceivePanel({ poId }: { poId: string }) {
   }
 
   return (
-    <div className="rounded border border-dashed border-amber-400 bg-amber-50 p-4">
+    <div className="rounded border border-dashed border-amber-400 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/40">
       <div className="flex items-center justify-between">
         <h3 className="font-medium">Mock goods receipt (dev)</h3>
         <button

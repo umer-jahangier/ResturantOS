@@ -96,8 +96,8 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
     return (
       <div className="border-b border-amber-200 dark:border-amber-900">
         {!showOpenModal ? (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50">
-            <span className="text-xs text-amber-700 font-medium">No active till</span>
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40">
+            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">No active till</span>
             <button
               data-testid="open-till-button"
               onClick={() => setShowOpenModal(true)}
@@ -165,8 +165,8 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   return (
     <div className="border-b border-emerald-200 dark:border-emerald-900">
       {!showCloseModal ? (
-        <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50">
-          <span className="text-xs font-medium text-emerald-800">Till OPEN</span>
+        <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40">
+          <span className="text-xs font-medium text-emerald-800 dark:text-emerald-300">Till OPEN</span>
           <span className="text-xs text-muted-foreground">
             Float: <MoneyDisplay paisa={activeTill.openingFloatPaisa} className="text-xs" />
           </span>

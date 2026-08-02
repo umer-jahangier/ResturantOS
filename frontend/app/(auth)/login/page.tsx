@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { resolveTenantSlug } from "@/lib/auth/tenant-slug";
+import { resolveTenantBrand } from "@/lib/server/resolve-tenant-brand";
 import { LoginForm } from "@/components/auth/login-form";
 
 // URL: /login (the (auth) route group adds no path segment).
@@ -16,6 +17,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const host = headerList.get("host");
 
   const tenantSlug = resolveTenantSlug({ host, searchParam: params.tenant });
+  const tenantBrandName = tenantSlug ? await resolveTenantBrand(tenantSlug) : null;
 
-  return <LoginForm tenantSlug={tenantSlug} reason={params.reason} />;
+  return <LoginForm tenantSlug={tenantSlug} tenantBrandName={tenantBrandName} reason={params.reason} />;
 }

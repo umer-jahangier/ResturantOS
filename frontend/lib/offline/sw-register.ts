@@ -8,12 +8,20 @@ let registration: ServiceWorkerRegistration | null = null;
  *
  * Only runs in the browser (guards against SSR), and only on HTTPS or localhost
  * (the two origins where service workers are allowed by browsers).
+ *
+ * Skipped outside production: the SW's CacheFirst strategy for /_next/static/*
+ * is only safe for content-hashed production chunks. Under `next dev` it
+ * traps whatever bundle was cached at install time, so edits to app code never
+ * reach the browser again until the SW is manually unregistered — a stale-chunk
+ * trap that once cost hours of "fixed it, still broken" debugging (see
+ * e2e/pos-settlement.spec.ts's SW-neutralizing initScript for the same issue).
  */
 export async function registerSW(): Promise<void> {
   if (
     typeof window === "undefined" ||
     !("serviceWorker" in navigator) ||
-    registration !== null
+    registration !== null ||
+    process.env.NODE_ENV !== "production"
   ) {
     return;
   }

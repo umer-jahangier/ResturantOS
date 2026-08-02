@@ -1,9 +1,6 @@
-// URL: /app/dashboard (protected). Placeholder tenant shell.
+import { TenantDashboard } from "@/components/dashboard/tenant-dashboard";
+
+// URL: /app/dashboard (protected). Branch KPIs + recent orders for admin/cashier; KDS entry for kitchen.
 export default function TenantDashboardPage() {
-  return (
-    <section className="space-y-2">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p className="text-muted-foreground">Tenant app shell placeholder.</p>
-    </section>
-  );
+  return <TenantDashboard />;
 }

@@ -1,13 +1,10 @@
--- ============================================================
--- POS Service - V7 Migration
--- order_refunds was created (V3) with only created_at, but OrderRefund extends
--- TenantAuditableEntity, which requires updated_at, created_by, updated_by and
--- deleted_at (same columns every other pos_db table already has, e.g.
--- menu_categories). Without them Hibernate schema validation fails on startup.
--- ============================================================
-
+-- Align order_refunds with TenantAuditableEntity (created_by, updated_by, deleted_at, updated_at).
+-- Restored from local work and renumbered V4 -> V8: QA's lineage already uses V4
+-- (item_status_revision) through V7 (stations). The OrderRefund JPA entity extends
+-- TenantAuditableEntity, so Hibernate schema validation requires these columns; no
+-- prior QA migration adds them, which prevents pos-service from starting on a fresh DB.
 ALTER TABLE order_refunds
-    ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    ADD COLUMN created_by UUID,
-    ADD COLUMN updated_by UUID,
-    ADD COLUMN deleted_at TIMESTAMPTZ;
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS created_by UUID,
+    ADD COLUMN IF NOT EXISTS updated_by UUID,
+    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;

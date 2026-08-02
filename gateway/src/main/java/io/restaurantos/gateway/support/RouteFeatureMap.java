@@ -41,6 +41,7 @@ public class RouteFeatureMap {
         PREFIX_TO_FEATURE.put("/api/v1/analytics/",  "FEATURE_ANALYTICS");
         PREFIX_TO_FEATURE.put("/api/v1/loyalty/",    "FEATURE_LOYALTY");
         PREFIX_TO_FEATURE.put("/api/v1/kds/",        "FEATURE_KDS");
+        PREFIX_TO_FEATURE.put("/api/v1/kitchen/",    "FEATURE_KDS");
         PREFIX_TO_FEATURE.put("/api/v1/ecommerce/",  "FEATURE_ECOMMERCE");
     }
 

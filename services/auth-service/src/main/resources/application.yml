@@ -47,6 +47,7 @@ restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   auth:
+    step-up-enabled: ${AUTH_STEP_UP_ENABLED:true}
     cookie:
       secure: ${AUTH_COOKIE_SECURE:true}
     jwt:

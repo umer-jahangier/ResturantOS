@@ -6,23 +6,25 @@ import type { VendorInvoice } from "@/lib/adapters/purchasing.adapter";
 // MISSING_GRN/PENDING, LineMatchStatus.java) and invoice-level InvoiceStatus (PENDING_MATCH/
 // MATCHED/MISMATCHED/APPROVED_FOR_PAYMENT/PAID, InvoiceStatus.java) — one badge component reused
 // for both, per the plan's explicit "do not write a third badge" instruction.
+const GREEN = "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300";
+const AMBER = "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300";
 const STATUS_COLOR: Record<string, string> = {
-  OK: "bg-green-100 text-green-800",
-  PENDING: "bg-gray-100 text-gray-800",
-  QTY_OVER: "bg-amber-100 text-amber-800",
-  QTY_UNDER: "bg-amber-100 text-amber-800",
-  PRICE_OVER: "bg-amber-100 text-amber-800",
-  PRICE_UNDER: "bg-amber-100 text-amber-800",
-  MISSING_GRN: "bg-red-100 text-red-800",
-  PENDING_MATCH: "bg-gray-100 text-gray-800",
-  MATCHED: "bg-green-100 text-green-800",
-  MISMATCHED: "bg-amber-100 text-amber-800",
-  APPROVED_FOR_PAYMENT: "bg-blue-100 text-blue-800",
-  PAID: "bg-green-100 text-green-800",
+  OK: GREEN,
+  PENDING: "bg-muted text-muted-foreground",
+  QTY_OVER: AMBER,
+  QTY_UNDER: AMBER,
+  PRICE_OVER: AMBER,
+  PRICE_UNDER: AMBER,
+  MISSING_GRN: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
+  PENDING_MATCH: "bg-muted text-muted-foreground",
+  MATCHED: GREEN,
+  MISMATCHED: AMBER,
+  APPROVED_FOR_PAYMENT: "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300",
+  PAID: GREEN,
 };
 
 export function MatchStatusBadge({ status }: { status: string }) {
-  const cls = STATUS_COLOR[status] ?? "bg-gray-100 text-gray-800";
+  const cls = STATUS_COLOR[status] ?? "bg-muted text-muted-foreground";
   return <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{status}</span>;
 }
 

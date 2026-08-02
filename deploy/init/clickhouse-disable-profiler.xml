@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+  Disable the ClickHouse sampling profiler in the default user profile.
+
+  The profiler samples a stack trace into system.trace_log once per second PER
+  THREAD. That was the single biggest contributor to the 2026-07 disk blow-up
+  (38GB / 2.6B rows). It is a production performance-diagnostic feature with no
+  value in a dev/QA/demo stack, so we turn it off entirely. Re-enable per-session
+  with SET query_profiler_real_time_period_ns=1000000000 if you ever need it.
+-->
+<clickhouse>
+    <profiles>
+        <default>
+            <query_profiler_real_time_period_ns>0</query_profiler_real_time_period_ns>
+            <query_profiler_cpu_time_period_ns>0</query_profiler_cpu_time_period_ns>
+        </default>
+    </profiles>
+</clickhouse>
