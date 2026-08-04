@@ -66,6 +66,11 @@ export FILE_DB_URL=jdbc:postgresql://127.0.0.1:5432/file_db
 export FILE_DB_USER=file_service
 export FILE_DB_PASSWORD="${FILE_DB_PASSWORD}"
 
+# purchasing-service (Flyway + runtime as purchasing_user; role created by init/02-create-roles.sql)
+export PURCHASING_DB_URL=jdbc:postgresql://127.0.0.1:5432/purchasing_db
+export PURCHASING_DB_USER=purchasing_user
+export PURCHASING_DB_PASSWORD="${PURCHASING_DB_PASSWORD}"
+
 # finance-service
 export FINANCE_DB_URL=jdbc:postgresql://127.0.0.1:5432/finance_db
 export FINANCE_DB_USER=finance_user
@@ -76,6 +81,48 @@ export JWKS_URI=http://127.0.0.1:8081/.well-known/jwks.json
 export PLATFORM_ADMIN_URI=http://127.0.0.1:8096
 export CONFIG_URI=http://127.0.0.1:8888
 export FAIL_OPEN_ON_PLATFORM_DOWN=true
+
+# crm-service (Liquibase + runtime as crm_user) — consumer of ORDER_CLOSED / ORDER_REFUNDED.
+# Parity fix: start-dev.sh has launched crm-service since the Phase 9 merge, but this file only
+# ever had the reporting/nlq blocks, so on the Linux/WSL path crm-service started with no
+# datasource at all. Mirrors the local-service-env.ps1 block exactly.
+# LIQUIBASE_CONTEXTS=seed is load-bearing: without it the loyalty tier config
+# (BRONZE/SILVER/GOLD thresholds, changeset 900-seed-loyalty-config) is never inserted and
+# LoyaltyService.ensureTierConfig has nothing to resolve a tier against.
+export CRM_DB_URL=jdbc:postgresql://127.0.0.1:5432/crm_db
+export CRM_DB_USER=crm_user
+export CRM_DB_PASSWORD="${CRM_DB_PASSWORD}"
+export LIQUIBASE_CONTEXTS=seed
+
+# pos-service (order lifecycle; publishes ORDER_CLOSED consumed by the dashboard/ETL)
+export POS_DB_URL=jdbc:postgresql://127.0.0.1:5432/pos_db
+export POS_DB_USER=pos_user
+export POS_DB_PASSWORD="${POS_DB_PASSWORD}"
+
+# kitchen-service (KDS routing + WebSocket board)
+export KITCHEN_DB_URL=jdbc:postgresql://127.0.0.1:5432/kitchen_db
+export KITCHEN_DB_USER=kitchen_user
+export KITCHEN_DB_PASSWORD="${KITCHEN_DB_PASSWORD}"
+
+# ClickHouse analytics store (host-run: docker 'clickhouse' hostname -> localhost). Shared by
+# reporting-service (default user, read path) and nlq-service (locked-down nlq_readonly user).
+export CLICKHOUSE_URL=http://127.0.0.1:8123
+export CLICKHOUSE_DB=clickhouse_analytics
+export CLICKHOUSE_USER=default
+export CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD}"
+export CLICKHOUSE_READONLY_USER="${CLICKHOUSE_READONLY_USER:-nlq_readonly}"
+export CLICKHOUSE_READONLY_PASSWORD="${CLICKHOUSE_READONLY_PASSWORD}"
+
+# reporting-service (ClickHouse-backed named reports + FBR + realtime dashboard WS) — Phase 12
+export REPORTING_DB_URL=jdbc:postgresql://127.0.0.1:5432/reporting_db
+export REPORTING_DB_USER=reporting_user
+export REPORTING_DB_PASSWORD="${REPORTING_DB_PASSWORD}"
+
+# nlq-service (NL->SQL via Claude, 7-stage AST validation) — Phase 12. ANTHROPIC_API_KEY is a
+# placeholder in deploy/.env by default; the live-Claude round-trip skips honestly without a real key.
+export NLQ_DB_URL=jdbc:postgresql://127.0.0.1:5432/nlq_db
+export NLQ_DB_USER=nlq_user
+export NLQ_DB_PASSWORD="${NLQ_DB_PASSWORD}"
 
 # Host-run mode: every service is on this machine, so register with Eureka on loopback.
 # The services default to prefer-ip-address, which advertises the LAN IP (e.g. 192.168.x.x).

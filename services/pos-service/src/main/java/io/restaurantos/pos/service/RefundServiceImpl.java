@@ -6,7 +6,7 @@ import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.OrderRefund;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.dto.RefundRequest;
-import io.restaurantos.pos.event.PosVoidRefundPayloads;
+import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
@@ -17,6 +17,8 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -106,14 +108,43 @@ public class RefundServiceImpl implements RefundService {
             refundRepository.save(refund);
         }
 
-        var payload = new PosVoidRefundPayloads.OrderRefundedPayload(
-                orderId, request.refundPaisa(), request.reason(), refundedBy);
+        // H4: carry the output-tax component of the refund. finance cannot derive it — it sees the
+        // refund event, not the original order — so without this it debited the whole amount to a
+        // revenue contra account and left account 2200 untouched, and Phase 12's FBR Tax Summary
+        // (output tax minus input tax) overstated net payable by the tax on every refund.
+        long refundTaxPaisa = apportionTax(order, request.refundPaisa(), request.isFull());
+
+        var payload = new PosEventContract.OrderRefundedPayload(
+                orderId, order.getCustomerId(), request.refundPaisa(), refundTaxPaisa,
+                request.reason(), refundedBy);
         eventPublisher.publish(POS_EXCHANGE, ORDER_REFUNDED_KEY, ORDER_REFUNDED_TYPE,
                 order.getBranchId(), payload);
 
         Order finalOrder = order;
         idempotencyService.markComplete(idempotencyKey, finalOrder.getId().toString());
         return toDto(finalOrder);
+    }
+
+    /**
+     * The output-tax share of a refund.
+     *
+     * <p>A full refund reverses exactly the tax the order charged — never a re-derived
+     * approximation, so a full refund always nets the tax liability back to zero. A partial refund
+     * apportions pro-rata on the order total, HALF_UP, matching {@code MoneyUtils}' rounding
+     * convention. A zero-total order (fully discounted) apportions nothing rather than dividing by
+     * zero.
+     */
+    private static long apportionTax(Order order, long refundPaisa, boolean isFull) {
+        if (isFull) {
+            return order.getTaxPaisa();
+        }
+        if (order.getTotalPaisa() <= 0 || order.getTaxPaisa() <= 0) {
+            return 0L;
+        }
+        return BigDecimal.valueOf(order.getTaxPaisa())
+                .multiply(BigDecimal.valueOf(refundPaisa))
+                .divide(BigDecimal.valueOf(order.getTotalPaisa()), 0, RoundingMode.HALF_UP)
+                .longValueExact();
     }
 
     private OrderDto toDto(Order order) {

@@ -7,6 +7,11 @@ import { z } from "zod";
 export const apiMenuItemSchema = z.object({
   id: z.string().uuid(),
   categoryId: z.string().uuid().nullable().optional(),
+  // Backend's MenuItemDto has always carried this (it's how the order-taking grid COULD group
+  // without a client-side join) — just never parsed here since the read-only grid groups by
+  // categoryId against its own separately-fetched category list. The Menu Items admin page
+  // wants it directly rather than re-deriving it.
+  categoryName: z.string().nullable().optional(),
   name: z.string(),
   description: z.string().nullable().optional(),
   basePricePaisa: z.number().int().nonnegative(),
@@ -26,6 +31,27 @@ export const apiMenuCategorySchema = z.object({
 });
 
 export type ApiMenuCategory = z.infer<typeof apiMenuCategorySchema>;
+
+// ── Menu admin writes (create/deactivate items + categories) ───────────────────────────────
+// Mirrors MenuItemAdminDtos.CreateMenuItemRequest / MenuCategoryAdminDtos.CreateMenuCategoryRequest
+// exactly. Price travels as `basePricePaisa` on the wire — the UI collects rupees and converts,
+// same convention as VendorItemPriceDialog's `unitPriceRupees` -> `Math.round(v * 100)`.
+export const createMenuCategoryInputSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+});
+export type CreateMenuCategoryInput = z.infer<typeof createMenuCategoryInputSchema>;
+
+export const createMenuItemInputSchema = z.object({
+  categoryId: z.string().uuid(),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  basePricePaisa: z.number().int().nonnegative(),
+  taxRatePct: z.number().optional(),
+  taxRateCode: z.string().optional(),
+});
+export type CreateMenuItemInput = z.infer<typeof createMenuItemInputSchema>;
 
 // NEEDS_BUSSING added — backend TableStatus enum now has 3 values (07.1-PATTERNS.md).
 // Widening this enum is a Rule-1 correctness fix: without it, any table returned
@@ -206,9 +232,22 @@ export const apiTillSessionSchema = z.object({
   openedAt: z.string().nullable().optional(),
   closedAt: z.string().nullable().optional(),
   status: z.enum(["OPEN", "CLOSED"]),
+  note: z.string().nullable().optional(),
+  reviewStatus: z.enum(["PENDING_REVIEW", "APPROVED", "FLAGGED"]),
 });
 
 export type ApiTillSession = z.infer<typeof apiTillSessionSchema>;
+
+export const apiTillReviewActionSchema = z.object({
+  id: z.string().uuid(),
+  tillSessionId: z.string().uuid(),
+  reviewerId: z.string().uuid(),
+  action: z.enum(["APPROVED", "FLAGGED", "NOTED"]),
+  note: z.string().nullable().optional(),
+  actedAt: z.string(),
+});
+
+export type ApiTillReviewAction = z.infer<typeof apiTillReviewActionSchema>;
 
 export const apiTillReconciliationSchema = z.object({
   session: apiTillSessionSchema,
@@ -247,7 +286,13 @@ export const apiCloseOrderSchema = z.object({
 export const apiOrderPaymentRecordSchema = z.object({
   id: z.string().uuid(),
   method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
+  // What was APPLIED to the bill. The server caps this at the outstanding balance, so the
+  // applied amounts always sum to the order total — the invariant finance's revenue journal
+  // entry depends on. `tenderedPaisa` is what the customer handed over and `changePaisa` the
+  // difference; both are optional so a payment row written before the V10 migration still parses.
   amountPaisa: z.number().int().nonnegative(),
+  tenderedPaisa: z.number().int().nonnegative().optional(),
+  changePaisa: z.number().int().nonnegative().optional(),
   referenceNo: z.string().nullable().optional(),
   recordedAt: z.string(),
 });

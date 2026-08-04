@@ -2,6 +2,7 @@ package io.restaurantos.purchasing;
 
 import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.feign.FinanceInternalClient;
+import io.restaurantos.purchasing.feign.InventoryReorderClient;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.idempotency.IdempotencyKeyRepository;
 import io.restaurantos.shared.event.EventPublisher;
@@ -48,6 +49,13 @@ public abstract class PurchasingTestBase {
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("spring.cloud.config.enabled", () -> "false");
         registry.add("restaurantos.inventory.integration-mode", () -> "mock");
+        // Point AMQP at a dead port so any listener/AmqpAdmin startup is a connection-refused —
+        // retried in the background, non-fatal — instead of an ACCESS_REFUSED against the REAL dev
+        // broker on 5672, which Spring treats as fatal. Without this the suite passes or fails
+        // depending on whether the developer's dev stack happens to be running.
+        registry.add("spring.rabbitmq.host", () -> "127.0.0.1");
+        registry.add("spring.rabbitmq.port", () -> "1");
+        registry.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
         registry.add("restaurantos.encryption.key", () -> "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
     }
 
@@ -71,4 +79,12 @@ public abstract class PurchasingTestBase {
 
     @MockitoBean
     protected FeatureFlagService featureFlagService;
+
+    /**
+     * Order suggestions have NO mock port, unlike the GRN and category seams — a suggestion list
+     * built from invented shortfalls would be actively misleading, since someone would order
+     * against it. Tests that need shortfalls stub this directly.
+     */
+    @MockitoBean
+    protected InventoryReorderClient inventoryReorderClient;
 }

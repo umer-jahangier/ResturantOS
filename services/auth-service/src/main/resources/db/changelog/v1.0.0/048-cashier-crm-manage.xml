@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Loyalty enrolment happens at the till, not in a back office. Changeset 047 gave CASHIER
+      view-only, which let them attach an EXISTING customer but not enrol a new one — so the single
+      most common loyalty flow ("can I get points for this?") still needed a manager.
+
+      Scoped deliberately: crm.customer.manage covers create/edit, not promotions. A cashier still
+      cannot create or alter a promotion.
+    -->
+    <changeSet id="auth-1.0.0-048-cashier-crm-manage" author="restaurantos-agent" runOnChange="false">
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="crm.customer.manage"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

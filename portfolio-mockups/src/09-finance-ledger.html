@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Journal Entry — Finance</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .strip { height: 96px; flex: none; display: flex; align-items: stretch; padding: 0; }
+  .strip > div { padding: 12px 16px; border-left: 1px solid var(--line); min-width: 0; }
+  .strip > div:first-child { border-left: none; }
+  .fy { width: 214px; flex: none; }
+  .per { flex: 1; }
+  .per-m { font-size: 12.5px; font-weight: 620; display: flex; align-items: center; gap: 8px;
+           white-space: nowrap; }
+  .per-c { font-size: 10.5px; color: var(--fg-dim); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .per.now { background: rgba(240, 180, 41, .05); }
+  .locknote { width: 296px; flex: none; background: var(--sunken); }
+
+  .row2 { display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 14px;
+          height: 438px; flex: none; min-height: 0; }
+  .row3 { display: grid; grid-template-columns: minmax(0, 1fr) 628px; gap: 14px;
+          flex: 1; min-height: 0; }
+
+  /* journal entry */
+  .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+          border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .meta > div { padding: 6px 11px; border-left: 1px solid var(--line); }
+  .meta > div:first-child { border-left: none; }
+  .meta .l { font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+             color: var(--fg-dim); font-weight: 620; }
+  .meta .v { font-size: 12px; font-weight: 570; margin-top: 2px; }
+
+  .bal { display: flex; margin-top: 9px; border: 1px solid var(--line); border-radius: 8px;
+         background: var(--sunken); overflow: hidden; }
+  .bal > div { flex: 1; padding: 6px 12px; border-left: 1px solid var(--line); }
+  .bal > div:first-child { border-left: none; }
+  .bal .l { font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+            color: var(--fg-dim); font-weight: 620; }
+  .bal .v { font-size: 14px; font-weight: 690; margin-top: 1px; letter-spacing: -.03em;
+            font-variant-numeric: tabular-nums; }
+
+  .je { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 5px; }
+  .je th { text-align: left; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+           color: var(--fg-dim); font-weight: 620; padding: 0 10px 4px; white-space: nowrap; }
+  .je td { padding: 4px 10px; border-top: 1px solid var(--line); color: var(--fg-mut);
+           white-space: nowrap; }
+  .je td.k { color: var(--fg); font-weight: 570; }
+  .je .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .je tr.tot td { border-top: 1px solid var(--line-2); background: var(--elev);
+                  color: var(--fg); font-weight: 650; padding-top: 6px; padding-bottom: 6px; }
+
+  /* provenance */
+  .prov { padding: 6px 14px; border-top: 1px solid var(--line); }
+  .prov:first-child { border-top: none; }
+  .prov-l { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--fg-dim); font-weight: 620; margin-bottom: 4px; }
+  .step { display: flex; gap: 9px; font-size: 11.5px; color: var(--fg-mut); margin-top: 4px;
+          line-height: 1.4; }
+  .step u { width: 16px; height: 16px; border-radius: 5px; background: var(--elev); flex: none;
+            display: grid; place-items: center; font-size: 9.5px; font-weight: 700;
+            color: var(--fg-dim); text-decoration: none; margin-top: 1px; }
+  .kv { display: flex; font-size: 11.5px; padding: 1.5px 0; }
+  .kv span { color: var(--fg-dim); width: 118px; flex: none; }
+  .kv b { font-weight: 570; color: var(--fg-mut); min-width: 0; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap; }
+
+  /* trial balance */
+  .tb { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tb th { text-align: right; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+           color: var(--fg-dim); font-weight: 620; padding: 0 14px 5px; white-space: nowrap; }
+  .tb th:first-child { text-align: left; }
+  .tb td { text-align: right; padding: 4.5px 14px; border-top: 1px solid var(--line);
+           color: var(--fg-mut); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tb td:first-child { text-align: left; color: var(--fg); font-weight: 550; }
+  .tb tr.tot td { border-top: 1px solid var(--line-2); background: var(--elev);
+                  color: var(--fg); font-weight: 680; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ────────────────────────────────────────────────────── period status -->
+  <div class="card strip">
+    <div class="fy">
+      <div class="f11 dim b6" style="letter-spacing:.08em;text-transform:uppercase">Fiscal year</div>
+      <div style="font-size:14px;font-weight:680;letter-spacing:-.025em;margin-top:3px">FY 2026–27</div>
+      <div class="per-c">Jul 2026 – Jun 2027 · Pakistan</div>
+    </div>
+    <div class="per">
+      <div class="per-m">May 2026
+        <span class="chip" style="height:18px;padding:0 6px;font-size:10px">LOCKED</span></div>
+      <div class="per-c">Period 2026-05 · 24,118 entries</div>
+      <div class="per-c">Closed 03 Jun by A. Rehman</div>
+    </div>
+    <div class="per">
+      <div class="per-m">Jun 2026
+        <span class="chip" style="height:18px;padding:0 6px;font-size:10px">LOCKED</span></div>
+      <div class="per-c">Period 2026-06 · 25,904 entries</div>
+      <div class="per-c">Closed 04 Jul by S. Ahmed</div>
+    </div>
+    <div class="per now">
+      <div class="per-m">Jul 2026
+        <span class="chip pos" style="height:18px;padding:0 6px;font-size:10px">OPEN</span></div>
+      <div class="per-c">Period 2026-07 · 18,642 entries</div>
+      <div class="per-c gold">Current · this entry posts here</div>
+    </div>
+    <div class="per">
+      <div class="per-m">Aug 2026
+        <span class="chip" style="height:18px;padding:0 6px;font-size:10px">NOT OPENED</span></div>
+      <div class="per-c">Period 2026-08 · 0 entries</div>
+      <div class="per-c">Opens 01 Aug 2026</div>
+    </div>
+    <div class="locknote">
+      <div class="flex ac g6" style="font-size:11.5px;font-weight:600;color:var(--fg)">
+        <span class="dot" style="background:var(--neg)"></span>Locked-period guard</div>
+      <div class="f11 dim" style="margin-top:5px;line-height:1.45">
+        POST or REVERSE into a locked period →
+        <span class="mono" style="color:var(--neg)">423 PERIOD_LOCKED</span>.
+        Corrections post as a reversal in the open period.</div>
+    </div>
+  </div>
+
+  <div class="row2">
+
+    <!-- ──────────────────────────────────────────────── journal entry detail -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Journal entry <span class="mono">JE-2026-07-4471</span></div>
+          <div class="card-s">Auto-posted by finance-service from a closed order · double-entry, PKR</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip pos"><span class="dot" style="background:var(--pos)"></span>POSTED</div>
+        <div class="chip">Immutable</div>
+        <span class="btn sm ghost">Reverse entry</span>
+      </div>
+      <div class="card-b" style="flex:1;padding:9px 14px 8px;display:flex;flex-direction:column">
+
+        <div class="meta">
+          <div><div class="l">Posted at</div>
+            <div class="v tnum">22 Jul 2026 · 21:38:04 PKT</div></div>
+          <div><div class="l">Period</div>
+            <div class="v">2026-07 <span class="pos" style="font-weight:600">OPEN</span></div></div>
+          <div><div class="l">Source event</div>
+            <div class="v mono" style="color:var(--s5)">ORDER_CLOSED</div></div>
+          <div><div class="l">Source document</div>
+            <div class="v mono">ORD-8842</div></div>
+        </div>
+
+        <div class="bal">
+          <div><div class="l">Total debits</div><div class="v mono">Rs 8,524.00</div></div>
+          <div><div class="l">Total credits</div><div class="v mono">Rs 8,524.00</div></div>
+          <div><div class="l">Out of balance</div>
+            <div class="v mono" style="color:var(--pos)">Rs 0.00</div></div>
+          <div><div class="l">Lines</div><div class="v tnum">7 · all in PKR</div></div>
+        </div>
+
+        <table class="je">
+          <thead><tr>
+            <th style="width:30px">#</th>
+            <th style="width:60px">Acct</th>
+            <th>Account name</th>
+            <th style="width:196px">Memo · dimension</th>
+            <th class="n" style="width:112px">Debit</th>
+            <th class="n" style="width:112px">Credit</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="n dim">1</td><td class="mono k">1120</td>
+              <td class="k">Card settlement receivable — HBL POS</td>
+              <td class="dim">tender: card · batch 4471</td>
+              <td class="n mono k">4,180.00</td><td class="n dim">—</td></tr>
+            <tr><td class="n dim">2</td><td class="mono k">1135</td>
+              <td class="k">House account receivable — Engro Corp</td>
+              <td class="dim">tender: house acct · terms 30 d</td>
+              <td class="n mono k">2,240.00</td><td class="n dim">—</td></tr>
+            <tr><td class="n dim">3</td><td class="mono k">5110</td>
+              <td class="k">Cost of goods sold — food</td>
+              <td class="dim">FEFO · moving-average cost</td>
+              <td class="n mono k">2,104.00</td><td class="n dim">—</td></tr>
+            <tr><td class="n dim">4</td><td class="mono k">4110</td>
+              <td class="k">Food revenue</td>
+              <td class="dim">9 menu lines · rev-cat FOOD</td>
+              <td class="n dim">—</td><td class="n mono k">4,742.61</td></tr>
+            <tr><td class="n dim">5</td><td class="mono k">4120</td>
+              <td class="k">Beverage revenue</td>
+              <td class="dim">2 menu lines · rev-cat BEV</td>
+              <td class="n dim">—</td><td class="n mono k">840.00</td></tr>
+            <tr><td class="n dim">6</td><td class="mono k">2310</td>
+              <td class="k">GST / SST payable — Sindh SRB</td>
+              <td class="dim">15.0% on base 5,582.61</td>
+              <td class="n dim">—</td><td class="n mono k">837.39</td></tr>
+            <tr><td class="n dim">7</td><td class="mono k">1310</td>
+              <td class="k">Inventory — raw materials</td>
+              <td class="dim">11 recipe lines depleted</td>
+              <td class="n dim">—</td><td class="n mono k">2,104.00</td></tr>
+            <tr class="tot"><td></td><td></td>
+              <td>Totals — debits equal credits</td>
+              <td class="dim" style="font-weight:480">tender 6,420.00 = net 5,582.61 + tax 837.39</td>
+              <td class="n mono">8,524.00</td><td class="n mono">8,524.00</td></tr>
+          </tbody>
+        </table>
+
+        <div class="flex ac g8" style="margin-top:auto;padding-top:6px">
+          <div class="chip pos">Balanced (DB trigger)</div>
+          <div class="chip">Immutable — reversal only</div>
+          <div class="chip">Idempotent</div>
+          <div class="chip">Tenant-scoped (RLS)</div>
+          <span class="spacer"></span>
+          <span class="f11 dim">Audit hash <span class="mono">9f3c…a041</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────────────────────────────────────── posting rule & provenance -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Posting rule &amp; provenance</div>
+          <div class="card-s">How this entry was produced, and why a replay is a no-op</div>
+        </div>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+
+        <div class="prov">
+          <div class="prov-l">Auto-posting rule</div>
+          <div class="flex ac g8">
+            <span class="mono" style="font-size:11.5px;color:var(--gold)">ORDER_CLOSED → REV_RECOGNITION_V3</span>
+            <span class="spacer"></span>
+            <span class="chip" style="height:19px;padding:0 6px;font-size:10.5px">v7</span>
+          </div>
+          <div class="step"><u>1</u><div>Split tender → debit <b class="mut">1120</b> card, <b class="mut">1135</b> house account</div></div>
+          <div class="step"><u>2</u><div>Map menu lines to revenue category — FOOD → <b class="mut">4110</b>, BEV → <b class="mut">4120</b></div></div>
+          <div class="step"><u>3</u><div>Output tax = base × jurisdiction rate (Sindh SRB 15.0%) → <b class="mut">2310</b></div></div>
+          <div class="step"><u>4</u><div>FEFO depletion at moving-average cost → <b class="mut">5110</b> / <b class="mut">1310</b></div></div>
+        </div>
+
+        <div class="prov">
+          <div class="prov-l">Idempotency</div>
+          <div class="kv"><span>Ledger table</span><b class="mono">posted_source_events</b></div>
+          <div class="kv"><span>Unique key</span><b class="mono">(tenant_id, source_event_id)</b></div>
+          <div class="kv"><span>Event id</span><b class="mono">b7f3e2a1-…-4c19</b></div>
+          <div class="kv"><span>First posted</span><b>22 Jul 2026 21:38:04.112</b></div>
+          <div class="kv"><span>Redeliveries</span>
+            <b><span class="pos" style="font-weight:650">2 seen · 0 posted</span>
+              <span class="dim" style="font-weight:450">— insert conflicts, no-op</span></b></div>
+        </div>
+
+        <div class="prov" style="margin-top:auto">
+          <div class="prov-l">Consumer &amp; migration trail</div>
+          <div class="mono" style="font-size:11.5px;color:var(--fg-mut)">finance-service · ledger.order.closed</div>
+          <div class="f11 dim" style="margin-top:3px;line-height:1.45">attempt 1/1 · acked in 112 ms · DLQ depth 0<br>Liquibase changeset <span class="mono">2026-06-28-finance-rules-v3</span></div>
+          <div class="flex ac g8" style="margin-top:9px">
+            <div class="chip info">Outbox → exactly-once</div>
+            <div class="chip">OPA: finance.post</div>
+            <span class="spacer"></span>
+            <span class="gold b6 f11">Open rule →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row3">
+
+    <!-- ──────────────────────────────────────────────────── trial balance -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Trial balance — general ledger summary</div>
+          <div class="card-s">FY 2026–27 · period 2026-07 (01–22 Jul) · Clifton, Karachi · PKR</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="chip pos">Foots to zero</div>
+      </div>
+      <div class="card-b" style="flex:1;padding:8px 0 0;display:flex;flex-direction:column">
+        <table class="tb">
+          <thead><tr><th>Account group</th><th>Debit</th><th>Credit</th></tr></thead>
+          <tbody>
+            <tr><td>1xxx · Assets</td><td>62,418,700</td><td>9,806,200</td></tr>
+            <tr><td>2xxx · Liabilities</td><td>2,118,400</td><td>14,826,100</td></tr>
+            <tr><td>3xxx · Equity</td><td class="dim">—</td><td>24,000,000</td></tr>
+            <tr><td>4xxx · Revenue</td><td>412,800</td><td>34,182,400</td></tr>
+            <tr><td>5xxx · Cost of goods sold</td><td>10,846,900</td><td>186,400</td></tr>
+            <tr><td>6xxx · Operating expenses</td><td>7,204,300</td><td class="dim">—</td></tr>
+            <tr class="tot"><td>Total</td><td>83,001,100</td><td>83,001,100</td></tr>
+          </tbody>
+        </table>
+        <div class="flex ac g12" style="margin-top:auto;padding:9px 14px;border-top:1px solid var(--line);
+             font-size:11.5px;color:var(--fg-mut)">
+          <span>Net revenue <b class="tnum" style="color:var(--fg)">Rs 33,769,600</b></span>
+          <span>Gross margin <b class="tnum" style="color:var(--fg)">Rs 23,109,100</b>
+            <span class="pos b6">68.4%</span></span>
+          <span class="spacer"></span>
+          <span>Net income PTD <b class="tnum" style="color:var(--fg)">Rs 15,904,800</b></span>
+        </div>
+        <div class="flex ac g8" style="padding:8px 14px;
+             border-top:1px solid var(--line);font-size:11px;color:var(--fg-dim)">
+          Every commit is checked by a deferred constraint trigger — an unbalanced entry
+          cannot reach the table.
+          <span class="spacer"></span><span class="gold b6">Export →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ──────────────────────────────────────────── revenue vs COGS chart -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Revenue vs cost of goods sold</div>
+          <div class="card-s">Rolling 6 months · Rs millions · one axis</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="legend">
+          <span><i style="background:var(--s1)"></i>Revenue</span>
+          <span><i style="background:var(--s3)"></i>COGS</span>
+        </div>
+      </div>
+      <div class="card-b rel" style="flex:1;padding:8px 14px 6px">
+        <svg viewBox="0 0 598 250" width="598" height="250" role="img"
+             aria-label="Monthly revenue and cost of goods sold, Rs millions">
+          <g class="gridline">
+            <line x1="38" y1="212" x2="502" y2="212"/><line x1="38" y1="173.6" x2="502" y2="173.6"/>
+            <line x1="38" y1="135.2" x2="502" y2="135.2"/><line x1="38" y1="96.8" x2="502" y2="96.8"/>
+            <line x1="38" y1="58.4" x2="502" y2="58.4"/><line x1="38" y1="20" x2="502" y2="20"/>
+          </g>
+          <g class="axis" text-anchor="end">
+            <text x="30" y="216">0</text><text x="30" y="177.6">10</text><text x="30" y="139.2">20</text>
+            <text x="30" y="100.8">30</text><text x="30" y="62.4">40</text><text x="30" y="24">50</text>
+          </g>
+          <!-- revenue -->
+          <path d="M38,53.8 L130.8,43.8 L223.6,32.9 L316.4,42.5 L409.2,35.6"
+                fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M409.2,35.6 L502,80.7" fill="none" stroke="var(--s1)" stroke-width="2"
+                stroke-dasharray="5 4" stroke-linecap="round"/>
+          <!-- cogs -->
+          <path d="M38,161.3 L130.8,158.2 L223.6,154.1 L316.4,158.2 L409.2,156.7"
+                fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          <path d="M409.2,156.7 L502,170.5" fill="none" stroke="var(--s3)" stroke-width="2"
+                stroke-dasharray="5 4" stroke-linecap="round"/>
+          <g fill="var(--s1)" stroke="var(--card)" stroke-width="2">
+            <circle cx="38" cy="53.8" r="4"/><circle cx="130.8" cy="43.8" r="4"/>
+            <circle cx="223.6" cy="32.9" r="4"/><circle cx="316.4" cy="42.5" r="4"/>
+            <circle cx="502" cy="80.7" r="4"/>
+          </g>
+          <circle cx="409.2" cy="35.6" r="7.5" fill="var(--s1)" opacity=".2"/>
+          <circle cx="409.2" cy="35.6" r="4.5" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/>
+          <g fill="var(--s3)" stroke="var(--card)" stroke-width="2">
+            <circle cx="38" cy="161.3" r="4"/><circle cx="130.8" cy="158.2" r="4"/>
+            <circle cx="223.6" cy="154.1" r="4"/><circle cx="316.4" cy="158.2" r="4"/>
+            <circle cx="502" cy="170.5" r="4"/>
+          </g>
+          <circle cx="409.2" cy="156.7" r="7.5" fill="var(--s3)" opacity=".2"/>
+          <circle cx="409.2" cy="156.7" r="4.5" fill="var(--s3)" stroke="var(--card)" stroke-width="2"/>
+          <!-- direct labels -->
+          <text class="axis" x="510" y="76" fill="#c98500" style="font-weight:650">Revenue</text>
+          <text class="axis" x="510" y="184" fill="#3987e5" style="font-weight:650">COGS</text>
+          <text class="axis" x="510" y="90" fill="#7c8494">34.2</text>
+          <text class="axis" x="510" y="198" fill="#7c8494">10.8</text>
+          <line class="axisline" x1="38" y1="212" x2="502" y2="212"/>
+          <g class="axis" text-anchor="middle">
+            <text x="38" y="228">Feb</text><text x="130.8" y="228">Mar</text>
+            <text x="223.6" y="228">Apr</text><text x="316.4" y="228">May</text>
+            <text x="409.2" y="228">Jun</text><text x="502" y="228">Jul*</text>
+          </g>
+          <text class="axis" x="38" y="245" fill="#7c8494">
+            * Jul to the 22nd — 22 of 31 days, dashed</text>
+        </svg>
+        <div class="tip" style="left:196px;top:54px">
+          <div class="tip-t">Jun 2026 · period locked</div>
+          <div class="tip-r"><i class="dot" style="background:var(--s1)"></i>Revenue <b>Rs 45.9M</b></div>
+          <div class="tip-r"><i class="dot" style="background:var(--s3)"></i>COGS <b>Rs 14.4M</b></div>
+          <div class="tip-r" style="border-top:1px solid var(--line);margin-top:5px;padding-top:5px">
+            <span>Gross margin</span><b style="color:var(--pos)">68.6%</b></div>
+        </div>
+        <div class="flex ac g8" style="font-size:10.5px;color:var(--fg-dim);margin-top:2px">
+          Gross margin —
+          <span>Feb <b class="mut">68.0</b></span><span>Mar <b class="mut">68.0</b></span>
+          <span>Apr <b class="mut">67.6</b></span><span>May <b class="mut">68.3</b></span>
+          <span>Jun <b class="mut">68.6</b></span><span>Jul <b class="mut">68.4</b></span>
+          <span class="spacer"></span><span>6-mo avg <b class="mut">68.2%</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('finance', ['Bayleaf Group', 'Clifton, Karachi', 'Finance', 'Journal Entries'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

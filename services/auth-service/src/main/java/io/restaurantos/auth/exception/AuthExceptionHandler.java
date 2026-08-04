@@ -32,6 +32,18 @@ public class AuthExceptionHandler {
             .body(ApiError.of("TOTP_REQUIRED", ex.getMessage(), traceId()));
     }
 
+    @ExceptionHandler(TotpEnrollmentRequiredException.class)
+    public ResponseEntity<ApiError> handleTotpEnrollment(TotpEnrollmentRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ApiError.of("TOTP_ENROLLMENT_REQUIRED", ex.getMessage(), traceId()));
+    }
+
+    @ExceptionHandler(TotpAlreadyEnrolledException.class)
+    public ResponseEntity<ApiError> handleTotpAlreadyEnrolled(TotpAlreadyEnrolledException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiError.of("TOTP_ALREADY_ENROLLED", ex.getMessage(), traceId()));
+    }
+
     @ExceptionHandler(BranchSwitchDeniedException.class)
     public ResponseEntity<ApiError> handleBranchSwitch(BranchSwitchDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

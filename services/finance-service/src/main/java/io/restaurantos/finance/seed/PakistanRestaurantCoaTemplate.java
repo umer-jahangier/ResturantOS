@@ -28,7 +28,10 @@ public final class PakistanRestaurantCoaTemplate {
             account(tenantId, "1210", "Receivable - Dine-In", AccountType.ASSET,    "1200", false, null),
             account(tenantId, "1220", "Receivable - Delivery",AccountType.ASSET,    "1200", false, null),
             account(tenantId, "1300", "Inventory",            AccountType.ASSET,    "1000", true,  "INVENTORY"),
-            account(tenantId, "1310", "Raw Materials",        AccountType.ASSET,    "1300", true,  "INVENTORY"),
+            // 1310 is INVENTORY_RAW, not INVENTORY: two accounts sharing one system_tag made
+            // AccountResolver's findFirst() non-deterministic (V8). 1300 stays the control
+            // account, which is also the code purchasing-service posts GR/IR against.
+            account(tenantId, "1310", "Raw Materials",        AccountType.ASSET,    "1300", true,  "INVENTORY_RAW"),
             account(tenantId, "1320", "Goods in Transit",     AccountType.ASSET,    "1300", true,  "INVENTORY_TRANSIT"),
             account(tenantId, "1330", "Packaging Materials",  AccountType.ASSET,    "1300", false, null),
             account(tenantId, "1400", "Prepaid Expenses",     AccountType.ASSET,    "1000", false, null),
@@ -52,6 +55,11 @@ public final class PakistanRestaurantCoaTemplate {
             account(tenantId, "2200", "Output Tax (Sales Tax Payable)", AccountType.LIABILITY, "2000", true, "OUTPUT_TAX"),
             account(tenantId, "2300", "Wages Payable",        AccountType.LIABILITY, "2000", true,  "WAGES_PAYABLE"),
             account(tenantId, "2400", "Accrued Liabilities",  AccountType.LIABILITY, "2000", false, null),
+            // Loyalty points and vouchers are obligations to the customer, not accruals. Before
+            // V8 the loyalty recipe debited 2400 directly and nothing ever credited it, so the
+            // liability was never recognised and the account drifted negative.
+            account(tenantId, "2410", "Loyalty Points Liability", AccountType.LIABILITY, "2400", true, "LOYALTY_LIABILITY"),
+            account(tenantId, "2420", "Customer Vouchers Outstanding", AccountType.LIABILITY, "2400", true, "VOUCHER_LIABILITY"),
             account(tenantId, "2500", "Loans Payable",        AccountType.LIABILITY, "2000", false, null),
             account(tenantId, "2600", "Customer Advances",    AccountType.LIABILITY, "2000", false, null),
 
@@ -68,16 +76,24 @@ public final class PakistanRestaurantCoaTemplate {
             account(tenantId, "4300", "Delivery Sales",       AccountType.REVENUE,  "4000", false, null),
             account(tenantId, "4400", "Catering Revenue",     AccountType.REVENUE,  "4000", false, null),
             account(tenantId, "4900", "Other Revenue",        AccountType.REVENUE,  "4000", false, null),
-            account(tenantId, "4910", "Service Charges",      AccountType.REVENUE,  "4900", false, null),
-            account(tenantId, "4920", "Discounts Given",      AccountType.REVENUE,  "4900", false, null),
+            account(tenantId, "4910", "Service Charges",      AccountType.REVENUE,  "4900", true,  "SERVICE_CHARGE"),
+            account(tenantId, "4920", "Discounts Given",      AccountType.REVENUE,  "4900", true,  "DISCOUNT"),
+            // Refunds get their own contra-revenue account. Sharing 4920 with discounts made
+            // discount analytics unrecoverable — the two numbers could never be told apart.
+            account(tenantId, "4930", "Sales Refunds",        AccountType.REVENUE,  "4900", true,  "SALES_REFUND"),
 
             // ── COGS (5000-5221) ────────────────────────────────────────────
             account(tenantId, "5000", "Cost of Goods Sold",   AccountType.COGS,     null,   false, null),
             account(tenantId, "5100", "Food Cost",            AccountType.COGS,     "5000", true,  "COGS"),
             account(tenantId, "5200", "Beverage Cost",        AccountType.COGS,     "5000", false, null),
             account(tenantId, "5210", "Packaging Cost",       AccountType.COGS,     "5000", false, null),
-            account(tenantId, "5220", "Waste & Spoilage",     AccountType.COGS,     "5000", false, null),
+            account(tenantId, "5220", "Waste & Spoilage",     AccountType.COGS,     "5000", true,  "WASTAGE"),
             account(tenantId, "5221", "Delivery Cost",        AccountType.COGS,     "5000", false, null),
+            // Count variances get their own pair. Before V8 a count gain was CREDITED to 5221
+            // "Delivery Cost" and a count loss shared 5220 with genuine spoilage, so neither
+            // shrinkage nor delivery cost could be read off the P&L.
+            account(tenantId, "5230", "Inventory Count Gain", AccountType.COGS,     "5000", true,  "COUNT_GAIN"),
+            account(tenantId, "5231", "Inventory Count Loss", AccountType.COGS,     "5000", true,  "COUNT_LOSS"),
 
             // ── EXPENSES (6000-6800) ────────────────────────────────────────
             account(tenantId, "6000", "Operating Expenses",   AccountType.EXPENSE,  null,   false, null),

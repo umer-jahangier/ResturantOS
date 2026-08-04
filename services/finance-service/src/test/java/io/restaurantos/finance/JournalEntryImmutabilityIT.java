@@ -4,7 +4,6 @@ import io.restaurantos.finance.domain.enums.JeStatus;
 import io.restaurantos.finance.dto.CreateJeLineRequest;
 import io.restaurantos.finance.dto.CreateJeRequest;
 import io.restaurantos.finance.dto.JournalEntryDto;
-import io.restaurantos.finance.feign.InventoryInternalClient;
 import io.restaurantos.finance.feign.PosInternalClient;
 import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.repository.JournalEntryRepository;
@@ -32,8 +31,6 @@ class JournalEntryImmutabilityIT extends FinanceTestBase {
     @MockitoBean
     private PosInternalClient posClient;
 
-    @MockitoBean
-    private InventoryInternalClient inventoryClient;
 
     @MockitoBean
     private PurchasingInternalClient purchasingClient;
@@ -51,12 +48,17 @@ class JournalEntryImmutabilityIT extends FinanceTestBase {
     private JournalEntryRepository jeRepo;
 
     private UUID tenantId;
+    private UUID branchId;
 
     @BeforeEach
     void setUp() {
         tenantId = UUID.randomUUID();
         provisioningService.provision(tenantId, 2026);
-        tenantContext.set(tenantId, null, null, null);
+        // A journal entry is branch-scoped: JournalEntryService.create() calls
+        // requireBranchId(). Setting a branch here is the fixture matching the domain,
+        // not a workaround — a tenant-only context is not a valid posting context.
+        branchId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, null, null);
     }
 
     private JournalEntryDto createAndPostBalancedJe() {

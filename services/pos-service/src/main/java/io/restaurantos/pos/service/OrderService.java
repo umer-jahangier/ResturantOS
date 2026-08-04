@@ -19,6 +19,15 @@ public interface OrderService {
     OrderDto addItem(UUID orderId, AddOrderItemRequest request);
     OrderDto removeItem(UUID orderId, UUID itemId);
     OrderDto applyDiscount(UUID orderId, ApplyDiscountRequest request);
+
+    /**
+     * Asks crm-service which promotions this order qualifies for and records the result as one
+     * ORDER-scoped discount (CRM-04).
+     *
+     * <p>An order with no customer, or one that qualifies for nothing, is a no-op — never an
+     * error. Applying twice replaces the promotional discount rather than stacking it.
+     */
+    OrderDto applyPromotions(UUID orderId);
     OrderDto sendToKds(UUID orderId, String clientFireId);
     OrderDto getOrder(UUID orderId, UUID branchId);
     Page<OrderDto> listOrders(UUID branchId, List<String> statuses, Pageable pageable);

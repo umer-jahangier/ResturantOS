@@ -55,6 +55,7 @@ function getTillErrorMessage(
 export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   const [openingFloat, setOpeningFloat] = useState("");
   const [declaredCash, setDeclaredCash] = useState("");
+  const [closeNote, setCloseNote] = useState("");
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
 
@@ -81,11 +82,12 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
     const idempotencyKey = generateKey();
     await closeTillMutation.mutateAsync({
       tillId: activeTill.id,
-      payload: { declaredClosingPaisa: paisa },
+      payload: { declaredClosingPaisa: paisa, note: closeNote.trim() || undefined },
       idempotencyKey,
     });
     setShowCloseModal(false);
     setDeclaredCash("");
+    setCloseNote("");
   };
 
   const variance = activeTill?.variancePaisa;
@@ -232,6 +234,19 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
               onChange={(e) => setDeclaredCash(e.target.value)}
               className="mt-1 w-full max-w-xs rounded border px-3 py-2 text-sm"
               placeholder="e.g. 12500.00"
+            />
+          </label>
+
+          <label className="text-sm">
+            Note for manager review (optional)
+            <textarea
+              data-testid="close-till-note"
+              value={closeNote}
+              onChange={(e) => setCloseNote(e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="mt-1 w-full rounded border px-3 py-2 text-sm"
+              placeholder="e.g. 200 short — customer disputed change on order #1042"
             />
           </label>
 

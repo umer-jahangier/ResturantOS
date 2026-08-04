@@ -104,6 +104,38 @@ public class PosGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
     }
 
+    @ExceptionHandler(PosExceptions.PaymentExceedsBalanceException.class)
+    public ResponseEntity<ProblemDetail> handlePaymentExceedsBalance(PosExceptions.PaymentExceedsBalanceException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("PAYMENT_EXCEEDS_BALANCE");
+        pd.setType(URI.create("urn:restaurantos:pos:payment-exceeds-balance"));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
+
+    @ExceptionHandler(PosExceptions.OrderAlreadyPaidException.class)
+    public ResponseEntity<ProblemDetail> handleOrderAlreadyPaid(PosExceptions.OrderAlreadyPaidException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("ORDER_ALREADY_PAID");
+        pd.setType(URI.create("urn:restaurantos:pos:order-already-paid"));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
+    @ExceptionHandler(PosExceptions.ChargeToAccountRefusedException.class)
+    public ResponseEntity<ProblemDetail> handleChargeRefused(PosExceptions.ChargeToAccountRefusedException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("CHARGE_TO_ACCOUNT_REFUSED");
+        pd.setType(URI.create("urn:restaurantos:pos:charge-to-account-refused"));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
+
+    @ExceptionHandler(PosExceptions.CustomerAccountRequiredException.class)
+    public ResponseEntity<ProblemDetail> handleCustomerAccountRequired(PosExceptions.CustomerAccountRequiredException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("CUSTOMER_ACCOUNT_REQUIRED");
+        pd.setType(URI.create("urn:restaurantos:pos:customer-account-required"));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
+
     // Server-side validation failures raised explicitly by service methods (e.g.
     // instruction char-limit enforcement — RESEARCH.md Security Domain V5) that bypass
     // the MVC @Valid layer when called directly (service-layer tests, offline sync).

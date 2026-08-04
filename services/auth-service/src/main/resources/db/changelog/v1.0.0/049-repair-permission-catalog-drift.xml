@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Repairs permission rows that the changelog declares and existing databases never received,
+      and adds the one code that was enforced but declared nowhere.
+
+      WHY THIS IS A REPAIR AND NOT A NEW DECLARATION.
+      Changeset 030 ran on 2026-06-26 and was edited afterwards. It now declares
+      pos.order.void.any and finance.expense.approve (with grants to MANAGER and ACCOUNTANT) that
+      no database which already ran 030 will ever see — Liquibase only applies a changeset once.
+      The changelog and the running system therefore disagree, and they disagree silently: nothing
+      fails at startup, and the missing permissions surface only as a user being refused something
+      they should be able to do.
+
+      What that cost, observed on the dev stack:
+        * OWNER and MANAGER saw ZERO orders in Order Management. OrderServiceImpl scopes the list to
+          the caller's own orders unless they hold pos.order.view.all — a code declared nowhere at
+          all — and every order belongs to the cashier who rang it up.
+        * OWNER and MANAGER both got 403 voiding a cashier's order. pos.rego allows a void on
+          pos.order.void.own or pos.order.void.any; neither role had .any, because 030's insert
+          never ran.
+        * No user on any tenant could approve an expense.
+
+      The inserts below are idempotent (ON CONFLICT DO NOTHING) precisely because the two cases must
+      converge: on a database that already ran the edited 030 they are a no-op, and on a database
+      that ran the original 030 they supply what is missing. A plain <insert> would fail on the
+      first and silently entrench the divergence on the second.
+
+      pos.order.view.all is genuinely new — it is the only code here that no changeset ever declared.
+
+      Note also that this database contains a `pos.order.void` row that NO changeset declares, held
+      by OWNER/TENANT_ADMIN/MANAGER. It is a hand-applied row: the OPA policy never reads it, so it
+      grants nothing. It is left in place rather than deleted (removing granted permissions is not a
+      migration's job) and the controller gates now name the declared .own/.any codes instead.
+    -->
+    <changeSet id="auth-1.0.0-049-repair-permission-catalog-drift" author="restaurantos-agent" runOnChange="false">
+
+        <sql>
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.order.view.all', 'pos', 'View all orders on the branch, not only your own'),
+              ('pos.order.void.any', 'pos', 'Void any POS order (manager-level)'),
+              ('pos.order.void.own', 'pos', 'Void own POS orders'),
+              ('finance.expense.approve', 'finance', 'Approve expense requests')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.order.view.all'),
+              ('OWNER',        'pos.order.void.any'),
+              ('OWNER',        'finance.expense.approve'),
+              ('TENANT_ADMIN', 'pos.order.view.all'),
+              ('TENANT_ADMIN', 'pos.order.void.any'),
+              ('TENANT_ADMIN', 'finance.expense.approve'),
+              ('MANAGER',      'pos.order.view.all'),
+              ('MANAGER',      'pos.order.void.any'),
+              ('MANAGER',      'pos.order.void.own'),
+              ('MANAGER',      'finance.expense.approve'),
+              ('ACCOUNTANT',   'finance.expense.approve')
+            ON CONFLICT (role_code, permission_code) DO NOTHING;
+        </sql>
+
+        <!--
+          CASHIER deliberately receives nothing here: it already holds pos.order.void.own from 043,
+          and .view.all / .void.any are the supervisor codes it must not have.
+        -->
+
+    </changeSet>
+
+</databaseChangeLog>

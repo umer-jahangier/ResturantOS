@@ -2,11 +2,13 @@ package io.restaurantos.shared.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.restaurantos.shared.api.GlobalExceptionHandler;
 import io.restaurantos.shared.authz.DefaultOpaClient;
 import io.restaurantos.shared.authz.OpaClient;
+import io.restaurantos.shared.event.EventEnvelopeReader;
 import io.restaurantos.shared.event.DomainEventPublisher;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.event.OutboxRelay;
@@ -73,6 +75,17 @@ public class SharedAutoConfiguration implements WebMvcConfigurer {
     @Bean
     public TenantTaskDecorator tenantTaskDecorator(TenantContext tc) {
         return new TenantTaskDecorator(tc);
+    }
+
+    /**
+     * Typed, tolerant envelope parsing for {@code @RabbitListener}s, with poison messages routed
+     * to the DLQ instead of acked-and-dropped. See {@link EventEnvelopeReader} for why this is a
+     * shared bean rather than a per-consumer try/catch.
+     */
+    @Bean
+    public EventEnvelopeReader eventEnvelopeReader(
+            @Qualifier("eventObjectMapper") ObjectMapper eventObjectMapper) {
+        return new EventEnvelopeReader(eventObjectMapper);
     }
 
     @Override

@@ -26,12 +26,41 @@ public class OrderPayment extends TenantAuditableEntity {
     @Column(name = "method", nullable = false, length = 30)
     private PaymentMethod method;
 
+    /** The amount APPLIED to the bill. Capped at the outstanding balance by PaymentServiceImpl —
+     *  this is the number ORDER_CLOSED carries and finance debits, so it must never exceed the
+     *  order total or the revenue journal entry cannot balance. */
     @Column(name = "amount_paisa", nullable = false)
     private long amountPaisa;
+
+    /** What the customer actually handed over. Equals {@link #amountPaisa} for exact tender and
+     *  for every non-cash method; larger for an over-tendered cash payment. */
+    @Column(name = "tendered_paisa", nullable = false)
+    private long tenderedPaisa;
+
+    /** {@code tenderedPaisa - amountPaisa}. Cash back to the customer; always 0 for non-cash. */
+    @Column(name = "change_paisa", nullable = false)
+    private long changePaisa;
 
     @Column(name = "reference_no", length = 100)
     private String referenceNo;
 
     @Column(name = "recorded_at")
     private Instant recordedAt;
+
+    /**
+     * Exact tender is the default. {@code PaymentServiceImpl} always sets both fields explicitly;
+     * this only covers rows built directly — test fixtures, and any future writer that does not go
+     * through the service — so a hand-constructed payment can never violate
+     * {@code ck_order_payments_tender_covers_applied} by leaving {@code tenderedPaisa} at zero.
+     *
+     * <p>Deliberately does NOT clamp {@code amountPaisa}: over-application must stay impossible to
+     * express, and the DB constraint is the backstop that says so.
+     */
+    @PrePersist
+    void defaultTenderToAppliedAmount() {
+        if (tenderedPaisa < amountPaisa) {
+            tenderedPaisa = amountPaisa;
+            changePaisa = 0L;
+        }
+    }
 }

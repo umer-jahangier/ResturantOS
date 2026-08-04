@@ -15,6 +15,9 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $LogDir = Join-Path $RepoRoot ".dev-logs"
 $PidFile = Join-Path $RepoRoot ".dev-pids.json"
 
+# Test-ModuleStale / Get-ModuleBuildArgs — jar freshness and the narrowest build that fixes it.
+. (Join-Path $PSScriptRoot "build-freshness.ps1")
+
 function Write-Step($msg) {
     Write-Host ""
     Write-Host "==> $msg" -ForegroundColor Cyan
@@ -27,7 +30,10 @@ function Stop-PortListener([int]$Port) {
 
 function Stop-DevStack {
     Write-Step "Stopping host services (ports 3000, 8080-8096)"
-    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8086, 8088, 8090, 8093, 8095, 8096) {
+    # 8087 purchasing / 8088 hr / 8089 crm / 8092 reporting / 8094 nlq: every branch merge so far has
+    # brought services this list did not know about, so the union is only correct here. A port missing
+    # from this list leaves that service running and the next start fails on a bound port.
+    foreach ($p in 3000, 8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8090, 8092, 8093, 8094, 8095, 8096) {
         Stop-PortListener $p
     }
     if (Test-Path $PidFile) { Remove-Item $PidFile -Force }
@@ -89,7 +95,13 @@ $DevMavenModules = @(
     "services/audit-service",
     "services/file-service",
     "services/finance-service",
+    "services/pos-service",
+    "services/kitchen-service",
+    "services/inventory-service",
+    "services/purchasing-service",
     "services/crm-service",
+    "services/reporting-service",
+    "services/nlq-service",
     "services/hr-service"
 )
 
@@ -168,10 +180,39 @@ function Start-ServiceWindow(
     [string]$ExtraEnvBlock = ""
 ) {
     $logFile = Join-Path $LogDir "$Name.log"
-    $artifact = Split-Path $MavenModule -Leaf
-    $jarPath = Join-Path $RepoRoot "$MavenModule/target/$artifact-1.0.0.jar"
-    if (-not (Test-BootJar $jarPath)) {
-        Write-Error "Missing executable jar at $jarPath. Run start-dev without -SkipBuild first."
+    $jarPath = Get-ModuleJarPath $RepoRoot $MavenModule
+    $isStale = Test-ModuleStale $RepoRoot $MavenModule
+    if ($SkipBuild.IsPresent -and $isStale) {
+        Write-Host "  $Name`: $(Get-StaleReason $RepoRoot $MavenModule) - rebuilding (-SkipBuild only skips UNCHANGED modules)" -ForegroundColor Yellow
+    }
+    # Build-DevServices has already packaged $DevMavenModules in one Maven run when -SkipBuild is
+    # absent, so this is deliberately NOT keyed off -SkipBuild: asking again would rebuild every
+    # module a second time. Staleness/runnability is the question that survives both modes, and it
+    # is also what covers a module that is started here but missing from $DevMavenModules.
+    $needsBuild = $isStale -or -not (Test-BootJar $jarPath)
+    if ($needsBuild) {
+        Write-Host "  Building $Name..."
+        Push-Location $RepoRoot
+        # Narrowest correct scope: -am only when shared-lib itself needs rebuilding.
+        #
+        # Maven's stderr warnings would otherwise become terminating errors under this script's
+        # "Stop" preference the moment anyone pipes its output — stopping the stack mid-launch. A
+        # native command is judged by its exit code.
+        $previousPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            mvn @(Get-ModuleBuildArgs $RepoRoot $MavenModule)
+            $mvnExit = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previousPreference
+            Pop-Location
+        }
+        if ($mvnExit -ne 0) {
+            Write-Error "Maven build failed for $Name (exit $mvnExit)"
+        }
+        if (-not (Test-BootJar $jarPath)) {
+            Write-Error "Expected executable Spring Boot jar at $jarPath (missing Main-Class). Re-run without -SkipBuild."
+        }
     }
     $cmd = @"
 Set-Location '$RepoRoot'
@@ -197,6 +238,22 @@ if (-not $SkipBuild) {
 # ── Backend services (order matters: auth before gateway) ─────────────────────
 Write-Step "Starting backend services (separate windows)"
 
+# Reported once, not per service, and never acted on automatically: rebuilding everything that
+# predates shared-lib is a full-stack build, and that should be an explicit choice.
+if ($SkipBuild.IsPresent) {
+    $allModules = @("gateway") + (Get-ChildItem (Join-Path $RepoRoot "services") -Directory |
+        ForEach-Object { "services/$($_.Name)" })
+    $behind = $allModules | Where-Object {
+        (Test-Path (Join-Path $RepoRoot "$_/pom.xml")) -and
+        -not (Test-ModuleStale $RepoRoot $_) -and
+        (Test-ModuleBehindSharedLib $RepoRoot $_)
+    } | ForEach-Object { Split-Path $_ -Leaf }
+    if ($behind) {
+        Write-Host "  Note: $($behind.Count) module(s) were packaged before the current shared-lib: $($behind -join ', ')" -ForegroundColor DarkYellow
+        Write-Host "        Their own code is current. Re-run without -SkipBuild if you need shared-lib changes picked up." -ForegroundColor DarkYellow
+    }
+}
+
 $pids = @{}
 $pids["auth-service"] = Start-ServiceWindow "auth-service" "services/auth-service"
 Start-Sleep -Seconds 15
@@ -209,7 +266,11 @@ $pids["file-service"] = Start-ServiceWindow "file-service" "services/file-servic
 $pids["finance-service"] = Start-ServiceWindow "finance-service" "services/finance-service"
 $pids["pos-service"] = Start-ServiceWindow "pos-service" "services/pos-service"
 $pids["kitchen-service"] = Start-ServiceWindow "kitchen-service" "services/kitchen-service"
+$pids["inventory-service"] = Start-ServiceWindow "inventory-service" "services/inventory-service"
+$pids["purchasing-service"] = Start-ServiceWindow "purchasing-service" "services/purchasing-service"
 $pids["crm-service"] = Start-ServiceWindow "crm-service" "services/crm-service"
+$pids["reporting-service"] = Start-ServiceWindow "reporting-service" "services/reporting-service"
+$pids["nlq-service"] = Start-ServiceWindow "nlq-service" "services/nlq-service"
 $pids["hr-service"] = Start-ServiceWindow "hr-service" "services/hr-service"
 
 Write-Step "Waiting for auth-service JWKS before gateway"
@@ -263,8 +324,9 @@ Write-Host "  Services now run hidden in the background (no extra windows)."
 Write-Host "  View a log live:   Get-Content $LogDir\gateway.log -Tail 50 -Wait"
 Write-Host "  Available logs:    auth-service, authorization-service, user-service,"
 Write-Host "                     platform-admin-service, audit-service, file-service,"
-Write-Host "                     finance-service, pos-service, kitchen-service, hr-service,"
-Write-Host "                     gateway, frontend"
+Write-Host "                     finance-service, pos-service, kitchen-service, inventory-service,"
+Write-Host "                     purchasing-service, crm-service, reporting-service, nlq-service,"
+Write-Host "                     hr-service, gateway, frontend"
 Write-Host "  Tail all at once:  Get-Content $LogDir\*.log -Tail 5"
 Write-Host "  Stop everything:   .\scripts\start-dev.ps1 -Stop"
 Write-Host ""

@@ -55,7 +55,9 @@ public class ImpersonationService {
         @SuppressWarnings("unchecked")
         Map<String, Object> response = (Map<String, Object>) authClient.impersonate(
             targetUserId,
-            Map.of("impersonatedBy", adminUserId.toString(), "expiresInSeconds", DEFAULT_TTL_SECONDS)
+            Map.of("tenantId", tenantId.toString(),
+                   "impersonatedBy", adminUserId.toString(),
+                   "expiresInSeconds", DEFAULT_TTL_SECONDS)
         );
 
         String token  = extractString(response, "token");

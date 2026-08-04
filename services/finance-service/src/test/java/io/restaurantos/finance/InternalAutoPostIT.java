@@ -61,7 +61,11 @@ class InternalAutoPostIT extends FinanceTestBase {
                         new CreateJeLineRequest("1010", "Cash", 5000L, 0L),
                         new CreateJeLineRequest("4100", "Revenue", 0L, 5000L)));
 
-        tenantHelper.activate(tenantId);
+        // autoPostInternal -> create() -> requireBranchId() reads the branch off TenantContext.
+        // The branchId-less activate(tenantId) leaves it empty, which is the whole reason these
+        // ITs failed with "Branch context required" — the same defect InternalFinanceController
+        // hit in production and fixed by threading req.branchId() through. Use the same overload.
+        tenantHelper.activate(tenantId, branchId);
         try {
             InternalJePostResponse first = jeService.autoPostInternal(req);
             InternalJePostResponse second = jeService.autoPostInternal(req);

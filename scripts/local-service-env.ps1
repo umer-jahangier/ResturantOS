@@ -57,6 +57,11 @@ $env:FILE_DB_URL = "jdbc:postgresql://127.0.0.1:5432/file_db"
 $env:FILE_DB_USER = "file_service"
 $env:FILE_DB_PASSWORD = $env:FILE_DB_PASSWORD
 
+# purchasing-service (Flyway + runtime as purchasing_user; role created by init/02-create-roles.sql)
+$env:PURCHASING_DB_URL = "jdbc:postgresql://127.0.0.1:5432/purchasing_db"
+$env:PURCHASING_DB_USER = "purchasing_user"
+$env:PURCHASING_DB_PASSWORD = $env:PURCHASING_DB_PASSWORD
+
 # finance-service (Flyway + runtime as finance_user). NOTE: finance-service reads
 # EUREKA_URI / JWKS_URI / CONFIG_URI (distinct names from EUREKA_URL above), so set
 # them to localhost for host-run mode. FINANCE_DB_PASSWORD comes from deploy/.env.
@@ -86,6 +91,28 @@ $env:POS_DB_PASSWORD = $env:POS_DB_PASSWORD
 $env:HR_DB_URL = "jdbc:postgresql://127.0.0.1:5432/hr_db"
 $env:HR_DB_USER = "hr_user"
 $env:HR_DB_PASSWORD = $env:HR_DB_PASSWORD
+
+# ClickHouse analytics store (host-run: the docker 'clickhouse' hostname becomes localhost).
+# Shared by reporting-service (default user, read path) and nlq-service (locked-down readonly user).
+# Mirrors the block in local-service-env.sh — that file got the Phase 12 additions and this one did
+# not, because only the .sh conflicted during the merge.
+$env:CLICKHOUSE_URL = "http://127.0.0.1:8123"
+$env:CLICKHOUSE_DB = "clickhouse_analytics"
+$env:CLICKHOUSE_USER = "default"
+$env:CLICKHOUSE_PASSWORD = $env:CLICKHOUSE_PASSWORD
+$env:CLICKHOUSE_READONLY_USER = if ($env:CLICKHOUSE_READONLY_USER) { $env:CLICKHOUSE_READONLY_USER } else { "nlq_readonly" }
+$env:CLICKHOUSE_READONLY_PASSWORD = $env:CLICKHOUSE_READONLY_PASSWORD
+
+# reporting-service (ClickHouse-backed named reports + FBR + realtime dashboard WS) — Phase 12
+$env:REPORTING_DB_URL = "jdbc:postgresql://127.0.0.1:5432/reporting_db"
+$env:REPORTING_DB_USER = "reporting_user"
+$env:REPORTING_DB_PASSWORD = $env:REPORTING_DB_PASSWORD
+
+# nlq-service (NL->SQL via Claude, 7-stage AST validation) — Phase 12. ANTHROPIC_API_KEY is a
+# placeholder in deploy/.env by default; the live-Claude round-trip skips honestly without a real key.
+$env:NLQ_DB_URL = "jdbc:postgresql://127.0.0.1:5432/nlq_db"
+$env:NLQ_DB_USER = "nlq_user"
+$env:NLQ_DB_PASSWORD = $env:NLQ_DB_PASSWORD
 
 # RabbitMQ credentials: services read RABBITMQ_USERNAME/RABBITMQ_PASSWORD (both come from
 # deploy/.env, loaded above). Default 'guest' only works on loopback, so be explicit.

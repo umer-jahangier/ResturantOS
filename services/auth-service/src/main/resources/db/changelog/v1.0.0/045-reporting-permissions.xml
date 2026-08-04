@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Phase 12 (12-11): seeds the reporting/dashboard permission catalogue.
+      030's blanket OWNER/TENANT_ADMIN seed (auth-1.0.0-036-seed-role-permissions)
+      already executed against the permissions table as it existed at that point
+      in time and does NOT retroactively pick up rows inserted here (decision
+      10-09-B). Every grant below is an explicit role_permissions row — no
+      SELECT-all-permissions trick. Only the four analytics-capable roles
+      (OWNER, TENANT_ADMIN, MANAGER, ACCOUNTANT) are granted; CASHIER and CHEF
+      are intentionally excluded (aligns with 12-04's empty nlq_allowed_tables
+      for those roles).
+    -->
+    <changeSet id="auth-1.0.0-045-reporting-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <insert tableName="permissions">
+            <column name="code" value="reporting.report.view"/>
+            <column name="module" value="reporting"/>
+            <column name="description" value="Run named reports"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="reporting.report.fbr"/>
+            <column name="module" value="reporting"/>
+            <column name="description" value="Run the FBR Tax Summary report"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="reporting.dashboard.view"/>
+            <column name="module" value="reporting"/>
+            <column name="description" value="Connect to the realtime reporting dashboard"/>
+        </insert>
+
+        <!-- OWNER -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="reporting.report.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="reporting.report.fbr"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="reporting.dashboard.view"/>
+        </insert>
+
+        <!-- TENANT_ADMIN -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="reporting.report.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="reporting.report.fbr"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="reporting.dashboard.view"/>
+        </insert>
+
+        <!-- MANAGER -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="reporting.report.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="reporting.report.fbr"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="reporting.dashboard.view"/>
+        </insert>
+
+        <!-- ACCOUNTANT -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="reporting.report.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="reporting.report.fbr"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="reporting.dashboard.view"/>
+        </insert>
+
+        <!-- CASHIER / CHEF: intentionally NOTHING — no analytics or tax-position access -->
+
+    </changeSet>
+
+</databaseChangeLog>

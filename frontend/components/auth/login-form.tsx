@@ -97,6 +97,19 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProp
             return;
           }
 
+          if (error.isTotpEnrollmentRequired()) {
+            // The account must use a second factor and has never enrolled one, so there is no
+            // code to ask for. Revealing the TOTP field here would strand them at a prompt they
+            // cannot satisfy — say what is actually required instead.
+            const message =
+              "This account requires two-factor authentication, which has not been set up yet. "
+              + "Ask an administrator to complete enrolment before signing in.";
+            setTotpRequired(false);
+            setFormError(message);
+            toast.error(message);
+            return;
+          }
+
           if (error.isAccountLocked()) {
             // HTTP 423 — distinct, recoverable state.
             const message = "Account temporarily locked. Try again later.";

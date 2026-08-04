@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+  Test-only twin of deploy/clickhouse/zz-access-management.xml, targeting the "test" user instead
+  of "default": Testcontainers' org.testcontainers.clickhouse.ClickHouseContainer provisions its
+  admin user as CLICKHOUSE_USER=test (confirmed via ClickHouseContainer's DEFAULT_USER constant),
+  NOT "default" — and that entrypoint-generated user ships with SQL-driven access control
+  disabled by default, exactly the same finding 12-02 made for the "default" user on the real
+  docker-compose stack. Copied into the container (via withCopyToContainer, BEFORE start(), so no
+  restart is needed) at /etc/clickhouse-server/users.d/, sorted to load after the
+  entrypoint-generated default-user.xml (last-file-wins XML merge).
+-->
+<clickhouse>
+    <users>
+        <test>
+            <access_management>1</access_management>
+        </test>
+    </users>
+</clickhouse>

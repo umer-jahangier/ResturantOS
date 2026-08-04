@@ -58,8 +58,15 @@ public class BranchInternalController {
     @GetMapping("/branches/{branchId}")
     public ResponseEntity<BranchEntity> getBranch(@PathVariable UUID branchId,
                                                    @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
-        if (tenantId != null) {
-            setTenantGuc(tenantId);
+        // Prefer the explicit X-Tenant-Id header (back-compat with provisioning-saga callers that
+        // send it), else fall back to the tenant claim already populated on this request thread by
+        // JwtAuthenticationFilter from the forwarded caller JWT. This removes the RLS GUC's
+        // dependence on a header a caller (e.g. reporting-service's internal Feign client) may omit.
+        UUID effectiveTenant = (tenantId != null)
+                ? tenantId
+                : tenantContext.getTenantId().orElse(null);
+        if (effectiveTenant != null) {
+            setTenantGuc(effectiveTenant);
         }
         BranchEntity branch = branchService.get(branchId);
         return ResponseEntity.ok(branch);

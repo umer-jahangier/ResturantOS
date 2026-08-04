@@ -52,6 +52,17 @@ public abstract class KitchenTestBase {
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("spring.cloud.config.enabled", () -> "false");
         registry.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
+        // @RabbitListener containers dial the broker at startup even though RabbitTemplate is
+        // mocked. Point them at a dead port so that is a connection-refused — retried in the
+        // background, non-fatal — instead of whatever the developer happens to be running.
+        //
+        // With the dev stack UP, they reached the REAL broker on 5672, were refused for using the
+        // default guest/guest, and Spring treats ACCESS_REFUSED as a FATAL listener-startup error.
+        // The IT suite therefore passed or failed depending on whether the dev stack was running
+        // at the time, for a reason nothing in the failure pointed at.
+        registry.add("spring.rabbitmq.host", () -> "127.0.0.1");
+        registry.add("spring.rabbitmq.port", () -> "1");
+        registry.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
         // OpaClient is @MockitoBean below — this value is never dialed, only needed so the
         // restaurantos.opa.url placeholder resolves during context startup (matches
         // authorization-service's BaseIntegrationTest pattern).

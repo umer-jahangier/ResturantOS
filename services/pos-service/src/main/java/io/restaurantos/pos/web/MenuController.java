@@ -1,12 +1,18 @@
 package io.restaurantos.pos.web;
 
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.CreateMenuCategoryRequest;
+import io.restaurantos.pos.dto.MenuCategoryAdminDtos.UpdateMenuCategoryRequest;
 import io.restaurantos.pos.dto.MenuCategoryDto;
+import io.restaurantos.pos.dto.MenuItemAdminDtos.CreateMenuItemRequest;
+import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemDto;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.feature.RequiresFeature;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,11 +30,49 @@ public class MenuController {
         this.menuService = menuService;
     }
 
+    @PreAuthorize("hasAuthority('pos.menu.view')")
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<MenuCategoryDto>>> listCategories() {
         return ResponseEntity.ok(ApiResponse.ok(menuService.listCategories()));
     }
 
+    /** Admin listing (Menu Items management page) — includes inactive categories. Gated on
+     * {@code pos.menu.manage} inside {@code MenuServiceImpl}, same as every write below: a
+     * cashier has no reason to see a deactivated category either. */
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @GetMapping("/categories/admin")
+    public ResponseEntity<ApiResponse<List<MenuCategoryDto>>> listCategoriesForAdmin() {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.listCategoriesForAdmin()));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PostMapping("/categories")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> createCategory(
+            @Valid @RequestBody CreateMenuCategoryRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.createCategory(request)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> updateCategory(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateMenuCategoryRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.updateCategory(id, request)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PatchMapping("/categories/{id}/activate")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> activateCategory(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setCategoryActive(id, true)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PatchMapping("/categories/{id}/deactivate")
+    public ResponseEntity<ApiResponse<MenuCategoryDto>> deactivateCategory(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setCategoryActive(id, false)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.view')")
     @GetMapping("/items")
     public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItems(
             @RequestParam(required = false) UUID categoryId,
@@ -38,6 +82,16 @@ public class MenuController {
         return ResponseEntity.ok(ApiResponse.ok(page.getContent()));
     }
 
+    /** Admin listing — includes inactive items. See {@code listCategoriesForAdmin}'s note on
+     * why the permission gate lives in the service, not here. */
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @GetMapping("/items/admin")
+    public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItemsForAdmin(
+            @RequestParam(required = false) UUID categoryId) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.listItemsForAdmin(categoryId)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.view')")
     @GetMapping("/items/{id}")
     public ResponseEntity<ApiResponse<MenuItemDto>> getItem(
             @PathVariable UUID id,
@@ -50,6 +104,7 @@ public class MenuController {
      * The station must belong to the caller's tenant + branch; {@code branchId} is validated
      * against the JWT branch inside the service.
      */
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
     @PutMapping("/items/{id}/station")
     public ResponseEntity<ApiResponse<MenuItemDto>> assignStation(
             @PathVariable UUID id,
@@ -60,4 +115,38 @@ public class MenuController {
     }
 
     public record AssignStationRequest(UUID stationId) {}
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PostMapping("/items")
+    public ResponseEntity<ApiResponse<MenuItemDto>> createItem(
+            @Valid @RequestBody CreateMenuItemRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.createItem(request)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PutMapping("/items/{id}")
+    public ResponseEntity<ApiResponse<MenuItemDto>> updateItem(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateMenuItemRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.updateItem(id, request)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PatchMapping("/items/{id}/activate")
+    public ResponseEntity<ApiResponse<MenuItemDto>> activateItem(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setActive(id, true)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PatchMapping("/items/{id}/deactivate")
+    public ResponseEntity<ApiResponse<MenuItemDto>> deactivateItem(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(menuService.setActive(id, false)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @DeleteMapping("/items/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteItem(@PathVariable UUID id) {
+        menuService.deleteItem(id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
 }

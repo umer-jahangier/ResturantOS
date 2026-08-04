@@ -12,6 +12,9 @@ import io.restaurantos.finance.autopost.PostedSourceEventRepository;
 import io.restaurantos.finance.autopost.ProcessedEventRepository;
 import io.restaurantos.finance.service.ProvisioningService;
 import io.restaurantos.shared.event.EventEnvelope;
+import io.restaurantos.shared.event.payload.InventoryEventContract;
+import io.restaurantos.shared.event.payload.PosEventContract;
+import io.restaurantos.shared.time.BusinessDay;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -22,18 +25,11 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.RabbitMQContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,39 +37,10 @@ import static org.awaitility.Awaitility.await;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 @SpringBootTest(classes = FinanceServiceApplication.class)
-@Testcontainers
-class OrderCloseAutoPostingIT {
+class OrderCloseAutoPostingIT extends AutoPostingITBase {
 
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"))
-                    .withDatabaseName("finance_db")
-                    .withUsername("finance_user")
-                    .withPassword("finance_pass");
 
-    @Container
-    static final RabbitMQContainer RABBIT =
-            new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.12-management"));
 
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry r) {
-        r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        r.add("spring.datasource.username", POSTGRES::getUsername);
-        r.add("spring.datasource.password", POSTGRES::getPassword);
-        r.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        r.add("spring.flyway.enabled", () -> "true");
-        r.add("spring.rabbitmq.host", RABBIT::getHost);
-        r.add("spring.rabbitmq.port", () -> String.valueOf(RABBIT.getAmqpPort()));
-        r.add("spring.rabbitmq.username", RABBIT::getAdminUsername);
-        r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
-        r.add("eureka.client.enabled", () -> "false");
-        r.add("spring.cloud.config.enabled", () -> "false");
-        // @EnableRabbit starts all 7 consumers' listeners at context startup, before the
-        // test declares its topology. Listeners for queues this test does not declare must
-        // not abort startup; they retry and attach if/when the queue appears.
-        r.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
-        r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
-    }
 
     @MockitoBean
     private io.restaurantos.shared.idempotency.IdempotencyKeyRepository idempotencyKeyRepository;
@@ -109,7 +76,6 @@ class OrderCloseAutoPostingIT {
             tenantHelper.clear();
         }
 
-        declareTopology();
     }
 
     private long[] debitsAndCredits(UUID jeId) {
@@ -121,18 +87,6 @@ class OrderCloseAutoPostingIT {
         });
     }
 
-    private void declareTopology() {
-        amqpAdmin.declareExchange(new TopicExchange("pos.topic", true, false));
-        amqpAdmin.declareExchange(new TopicExchange("inventory.topic", true, false));
-
-        amqpAdmin.declareQueue(new Queue(OrderClosedConsumer.QUEUE_NAME, true));
-        amqpAdmin.declareBinding(BindingBuilder.bind(new Queue(OrderClosedConsumer.QUEUE_NAME))
-                .to(new TopicExchange("pos.topic")).with("pos.order.closed"));
-
-        amqpAdmin.declareQueue(new Queue(StockDepletedConsumer.QUEUE_NAME, true));
-        amqpAdmin.declareBinding(BindingBuilder.bind(new Queue(StockDepletedConsumer.QUEUE_NAME))
-                .to(new TopicExchange("inventory.topic")).with("inventory.stock.depleted"));
-    }
 
     @Test
     void orderClosedAndStockDepleted_postBalancedJes_idempotent() throws Exception {
@@ -198,46 +152,47 @@ class OrderCloseAutoPostingIT {
         });
     }
 
+    /**
+     * Built from pos-service's OWN record, so the money invariant the revenue entry depends on —
+     * {@code sum(payments[].amountPaisa) == totalPaisa} and
+     * {@code totalPaisa == subtotal - discount + tax + serviceCharge} — is expressed in the same
+     * types the producer uses. Service charge is deliberately non-zero: it rides on the total, and
+     * before the recipe credited it, any service-charged order produced an unbalanceable entry.
+     */
     private void publishOrderClosed(UUID eventId) throws Exception {
-        EventEnvelope<Map<String, Object>> envelope = new EventEnvelope<>(
-                eventId,
-                "ORDER_CLOSED",
-                tenantId,
-                branchId,
-                Instant.now(),
-                UUID.randomUUID(),
-                1,
-                "pos-service",
-                Map.of(
-                        "orderId", orderId.toString(),
-                        "subtotalPaisa", 80000,
-                        "discountPaisa", 0,
-                        "taxPaisa", 5600,
-                        "totalPaisa", 85600,
-                        "payments", List.of(Map.of("method", "CASH", "amountPaisa", 85600))
-                ));
-        byte[] body = objectMapper.writeValueAsBytes(envelope);
-        rabbitTemplate.send("pos.topic", "pos.order.closed", new org.springframework.amqp.core.Message(body));
+        long subtotal = 80_000L;
+        long tax = 5_600L;
+        long serviceCharge = 4_000L;
+        long total = subtotal + tax + serviceCharge;
+
+        publish("pos.topic", PosEventContract.ORDER_CLOSED_KEY, eventId,
+                PosEventContract.ORDER_CLOSED, "pos-service",
+                new PosEventContract.OrderClosedPayload(
+                        orderId, "ORD-1", "TAKEAWAY", null,
+                        subtotal, 0L, serviceCharge, tax, total,
+                        // amountPaisa is what was APPLIED; the customer handed over 1000 paisa more
+                        // and got it back as change. Only the applied amount reaches the ledger.
+                        List.of(new PosEventContract.PaymentEntry("CASH", total, total + 1_000L, 1_000L, null)),
+                        List.of(new PosEventContract.ItemEntry(UUID.randomUUID(), "Nihari", 1, subtotal, subtotal)),
+                        null, null, Instant.now(), BusinessDay.of(Instant.now())));
     }
 
     private void publishStockDepleted(UUID eventId) throws Exception {
-        EventEnvelope<Map<String, Object>> envelope = new EventEnvelope<>(
-                eventId,
-                "STOCK_DEPLETED",
-                tenantId,
-                branchId,
-                Instant.now(),
-                UUID.randomUUID(),
-                1,
-                "inventory-service",
-                Map.of(
-                        "orderId", orderId.toString(),
-                        "totalCogsPaisa", 36000,
-                        "lines", List.of(Map.of("ingredientId", UUID.randomUUID().toString(),
-                                "qty", 0.8, "cogsPaisa", 36000))
-                ));
+        publish("inventory.topic", InventoryEventContract.STOCK_DEPLETED_KEY, eventId,
+                InventoryEventContract.STOCK_DEPLETED, "inventory-service",
+                new InventoryEventContract.StockDepletedPayload(
+                        orderId,
+                        List.of(new InventoryEventContract.DepletedLine(
+                                UUID.randomUUID(), new BigDecimal("0.8"), 36_000L)),
+                        36_000L));
+    }
+
+    private void publish(String exchange, String routingKey, UUID eventId,
+                         String eventType, String source, Object payload) throws Exception {
+        EventEnvelope<Object> envelope = new EventEnvelope<>(
+                eventId, eventType, tenantId, branchId, Instant.now(),
+                UUID.randomUUID(), 1, source, payload);
         byte[] body = objectMapper.writeValueAsBytes(envelope);
-        rabbitTemplate.send("inventory.topic", "inventory.stock.depleted",
-                new org.springframework.amqp.core.Message(body));
+        rabbitTemplate.send(exchange, routingKey, new org.springframework.amqp.core.Message(body));
     }
 }

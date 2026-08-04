@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/app/purchasing/vendors", label: "Vendors" },
+  // Sits before Purchase Orders because it is where an order now starts: the system works out
+  // what is low and by how much, and a buyer turns that into a PO rather than typing one blind.
+  { href: "/app/purchasing/order-suggestions", label: "Suggested Orders" },
   { href: "/app/purchasing/purchase-orders", label: "Purchase Orders" },
   { href: "/app/purchasing/invoices", label: "Invoices" },
   { href: "/app/purchasing/payments", label: "Payments" },

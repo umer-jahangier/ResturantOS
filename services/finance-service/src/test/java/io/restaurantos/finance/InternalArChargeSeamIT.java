@@ -5,7 +5,6 @@ import io.restaurantos.finance.config.FinanceInternalServiceFilter;
 import io.restaurantos.finance.config.InternalTenantContextHelper;
 import io.restaurantos.finance.dto.CreateCustomerAccountRequest;
 import io.restaurantos.finance.dto.CustomerAccountDto;
-import io.restaurantos.finance.feign.InventoryInternalClient;
 import io.restaurantos.finance.feign.PosInternalClient;
 import io.restaurantos.finance.feign.PurchasingInternalClient;
 import io.restaurantos.finance.repository.ArTransactionRepository;
@@ -74,8 +73,6 @@ class InternalArChargeSeamIT extends FinanceTestBase {
     @MockitoBean
     private PosInternalClient posClient;
 
-    @MockitoBean
-    private InventoryInternalClient inventoryClient;
 
     @MockitoBean
     private PurchasingInternalClient purchasingClient;
@@ -92,7 +89,7 @@ class InternalArChargeSeamIT extends FinanceTestBase {
                 .build();
 
         when(posClient.getOpenOrderCount(any(), any())).thenReturn(0L);
-        when(inventoryClient.getPendingGrnCount(any())).thenReturn(0L);
+        when(purchasingClient.getPendingGrnCount(any(), any())).thenReturn(0L);
         when(purchasingClient.getUnmatchedInvoiceCount(any())).thenReturn(0L);
 
         tenantId = UUID.randomUUID();

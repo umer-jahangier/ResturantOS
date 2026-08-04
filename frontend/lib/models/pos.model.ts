@@ -41,6 +41,7 @@ export type TableStatus = "AVAILABLE" | "OCCUPIED" | "NEEDS_BUSSING";
 export interface MenuItem {
   id: string;
   categoryId: string | null;
+  categoryName: string | null;
   name: string;
   description: string | null;
   basePricePaisa: number;
@@ -191,6 +192,11 @@ export interface UpdateInstructionsPayload {
 
 export type TillStatus = "OPEN" | "CLOSED";
 
+/** Manager/owner review state — orthogonal to the OPEN/CLOSED operational lifecycle. */
+export type TillReviewStatus = "PENDING_REVIEW" | "APPROVED" | "FLAGGED";
+
+export type TillReviewActionType = "APPROVED" | "FLAGGED" | "NOTED";
+
 export interface TillSession {
   id: string;
   branchId: string;
@@ -202,6 +208,19 @@ export interface TillSession {
   openedAt: string | null;
   closedAt: string | null;
   status: TillStatus;
+  /** Cashier's free-text note captured at close. */
+  note: string | null;
+  reviewStatus: TillReviewStatus;
+}
+
+/** One append-only manager review action on a till session. */
+export interface TillReviewAction {
+  id: string;
+  tillSessionId: string;
+  reviewerId: string;
+  action: TillReviewActionType;
+  note: string | null;
+  actedAt: string;
 }
 
 export interface TillOrderLine {
@@ -225,7 +244,14 @@ export interface TillReconciliation {
 
 // ── Payment types ─────────────────────────────────────────────────────────────
 
-export type PaymentMethod = "CASH" | "CARD" | "LOYALTY_POINTS" | "BANK_TRANSFER" | "VOUCHER";
+export type PaymentMethod =
+  | "CASH"
+  | "CARD"
+  | "LOYALTY_POINTS"
+  | "BANK_TRANSFER"
+  | "VOUCHER"
+  /** Bill a corporate/house account instead of settling now — requires `customerAccountId`. */
+  | "CHARGE_TO_ACCOUNT";
 
 export interface PaymentEntry {
   method: PaymentMethod;
@@ -267,6 +293,15 @@ export interface OpenTillPayload {
 
 export interface CloseTillPayload {
   declaredClosingPaisa: number;
+  note?: string;
+}
+
+export interface FlagTillPayload {
+  reason: string;
+}
+
+export interface AddTillNotePayload {
+  note: string;
 }
 
 export interface CloseOrderPayload {
@@ -291,8 +326,13 @@ export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "REFUNDED";
 /** A single persisted payment row (GET /orders/{id}/payments history read model). */
 export interface OrderPayment {
   id: string;
-  method: PaymentMethod;
+  /** Amount applied to the bill. Never exceeds the outstanding balance. */
   amountPaisa: number;
+  method: PaymentMethod;
+  /** What the customer handed over — equals amountPaisa for exact and non-cash tenders. */
+  tenderedPaisa: number;
+  /** tenderedPaisa - amountPaisa. Cash back to the customer; always 0 for non-cash. */
+  changePaisa: number;
   referenceNo: string | null;
   recordedAt: string;
 }
@@ -300,7 +340,16 @@ export interface OrderPayment {
 /** POST /orders/{id}/payments request body — records ONE tender at a time. */
 export interface RecordPaymentPayload {
   method: PaymentMethod;
+  /** What to apply to the bill. The server caps it at the outstanding balance. */
   amountPaisa: number;
+  /**
+   * What the customer handed over. Omit for exact tender and for every non-cash method — the
+   * server then treats it as equal to the applied amount. Over-tender is CASH-only and comes back
+   * as `changePaisa` on the payment row; a card for more than the balance is rejected (422).
+   */
+  tenderedPaisa?: number | null;
+  /** Required when `method` is CHARGE_TO_ACCOUNT — which house account to bill. */
+  customerAccountId?: string | null;
   referenceNo?: string | null;
 }
 

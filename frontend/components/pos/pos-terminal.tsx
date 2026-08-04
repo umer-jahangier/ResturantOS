@@ -7,6 +7,8 @@ import { MenuGrid } from "@/components/pos/menu-grid";
 import { OrderPanel } from "@/components/pos/order-panel";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useCreateOrder, useAddItem, useOrder } from "@/lib/hooks/pos/use-orders";
+import { CustomerPicker } from "@/components/crm/customer-picker";
+import type { Customer } from "@/lib/models/crm.model";
 import { useFireToKitchen } from "@/lib/hooks/pos/use-fire-to-kitchen";
 import { addLine, clearCart, decrementLine, incrementLine, removeLine, type CartLine } from "@/components/pos/cart-reducer";
 import type { MenuItem, OrderType } from "@/lib/models/pos.model";
@@ -48,6 +50,12 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
   // (pos-terminal.tsx history, `creatingOrderRef`). A plain ref is read/written
   // synchronously within the same event-handler invocation, unlike component state.
   const sendInFlightRef = useRef(false);
+
+  // The order's CRM customer. Order.customerId has always existed end to end — model,
+  // adapter, hook, backend, loyalty consumer — and no screen ever set it, so every order
+  // reached crm-service with a null customerId and the loyalty consumer's null-guard was
+  // the only branch ever taken. Points accrued on nothing.
+  const [customer, setCustomer] = useState<Customer | null>(null);
 
   const createOrder = useCreateOrder();
   const addItem = useAddItem();
@@ -98,6 +106,7 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
     setSelectedTableId(tableId ?? null);
     setOrderId(null);
     clientOrderIdRef.current = crypto.randomUUID();
+    setCustomer(null);
   }, [tableId]);
 
   /**
@@ -115,6 +124,7 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
       type: orderType,
       coverCount: 1,
       ...(selectedTableId ? { tableId: selectedTableId } : {}),
+      ...(customer ? { customerId: customer.id } : {}),
     });
 
     for (const line of cart) {
@@ -130,7 +140,7 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
       });
     }
     return newOrder;
-  }, [cart, createOrder, addItem, branchId, orderType, selectedTableId]);
+  }, [cart, createOrder, addItem, branchId, orderType, selectedTableId, customer]);
 
   const handleSendToKitchen = useCallback(async () => {
     if (cart.length === 0 || orderId || sendInFlightRef.current) return;
@@ -202,6 +212,13 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
 
       {/* Right: Order panel — fixed width */}
       <div className="w-80 flex-shrink-0 overflow-hidden flex flex-col">
+        <div className="border-b p-3">
+          <CustomerPicker
+            value={customer}
+            onChange={setCustomer}
+            disabled={isPersisting || sentOrder !== undefined}
+          />
+        </div>
         <OrderPanel
           cart={cart}
           orderType={orderType}

@@ -14,7 +14,22 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    include: ["__tests__/**/*.{test,spec}.{ts,tsx}"],
+    include: [
+      "__tests__/**/*.{test,spec}.{ts,tsx}",
+      // 08.2-14: colocated component tests (components/**/__tests__/**) — the project's
+      // established convention is __tests__/components/<domain>/**, but this plan's own
+      // acceptance criteria fix the test file's path under components/inventory/__tests__/,
+      // so the discovery glob is widened rather than fighting the plan's literal path.
+      "components/**/__tests__/**/*.{test,spec}.{ts,tsx}",
+    ],
+    // Visible to the whole test process BEFORE any test module is imported, so the
+    // module-level constant in lib/hooks/ws-base-url.ts captures the real gateway base
+    // rather than undefined (which would fall back to same-origin ws://localhost:3000 under
+    // jsdom — the exact regression the ws-base-url tests guard against). Mirrors
+    // scripts/start-dev.sh / deploy/.env's dev value.
+    env: {
+      NEXT_PUBLIC_WS_BASE_URL: "ws://localhost:8080",
+    },
     coverage: {
       provider: "v8",
       include: ["lib/**/*.ts"],

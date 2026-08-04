@@ -7,6 +7,7 @@ import io.restaurantos.user.service.BranchService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,7 +15,15 @@ import java.util.UUID;
 
 /**
  * Tenant Admin branch CRUD — tenant-scoped via RLS, no explicit tenant_id filter needed.
- * All mutations are authz-gated (branch.manage) via SecurityConfig / method security.
+ *
+ * <p>Mutations require {@code rbac.manage}. This class previously documented a {@code branch.manage}
+ * gate "via SecurityConfig / method security" that existed in neither place: the permission is not in
+ * the catalog and no annotation was ever written, so the security config's {@code anyRequest()
+ * .authenticated()} was the only check and any signed-in user could create or soft-delete a branch.
+ * {@code rbac.manage} is the catalog's tenant-administration permission and is held only by OWNER.
+ *
+ * <p>Reads stay open to any authenticated user — the branch switcher and every branch-scoped screen
+ * need the list, and RLS already confines it to the caller's tenant.
  */
 @RestController
 @RequestMapping("/api/v1/branches")
@@ -26,6 +35,7 @@ public class BranchController {
         this.branchService = branchService;
     }
 
+    @PreAuthorize("hasAuthority('rbac.manage')")
     @PostMapping
     public ResponseEntity<ApiResponse<BranchResponse>> create(
             @Valid @RequestBody BranchDtos.CreateBranchRequest request) {
@@ -52,6 +62,7 @@ public class BranchController {
         return ResponseEntity.ok(ApiResponse.ok(toResponse(branchService.get(id))));
     }
 
+    @PreAuthorize("hasAuthority('rbac.manage')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BranchResponse>> update(
             @PathVariable UUID id,
@@ -59,6 +70,7 @@ public class BranchController {
         return ResponseEntity.ok(ApiResponse.ok(toResponse(branchService.update(id, request))));
     }
 
+    @PreAuthorize("hasAuthority('rbac.manage')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         branchService.softDelete(id);

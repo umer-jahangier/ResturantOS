@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Phase 9 gap closure: crm-service ships @PreAuthorize on every controller
+      (CustomerController, FeedbackController, PromotionController) but no changeset
+      ever seeded the codes those annotations name. The permission catalog had zero
+      `crm.*` rows, so no role could hold them and EVERY CRM endpoint returned 403
+      PERMISSION_DENIED for every user on every tenant — including OWNER. Exactly the
+      gap 10-09 closed for purchasing.
+
+      Same explicit-grant rule as 045/046 (decision 10-09-B): every grant is listed,
+      never a SELECT-all-permissions trick.
+
+      CASHIER gets the two *.view codes and neither *.manage: the POS customer picker
+      searches and attaches an existing customer (view), while creating or editing a
+      customer record stays a manager action. KITCHEN_STAFF / FINANCE_VIEWER /
+      INVENTORY_MANAGER are granted nothing.
+    -->
+    <changeSet id="auth-1.0.0-047-crm-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <insert tableName="permissions">
+            <column name="code" value="crm.customer.view"/>
+            <column name="module" value="crm"/>
+            <column name="description" value="View customers, loyalty balances and feedback"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="crm.customer.manage"/>
+            <column name="module" value="crm"/>
+            <column name="description" value="Create, edit and archive customers; submit feedback"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="crm.promotion.view"/>
+            <column name="module" value="crm"/>
+            <column name="description" value="View active promotions"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="crm.promotion.manage"/>
+            <column name="module" value="crm"/>
+            <column name="description" value="Create and manage promotions"/>
+        </insert>
+
+        <!-- OWNER / TENANT_ADMIN / MANAGER: full CRM -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="crm.customer.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="crm.customer.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="crm.promotion.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="OWNER"/>
+            <column name="permission_code" value="crm.promotion.manage"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="crm.customer.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="crm.customer.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="crm.promotion.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="TENANT_ADMIN"/>
+            <column name="permission_code" value="crm.promotion.manage"/>
+        </insert>
+
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="crm.customer.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="crm.customer.manage"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="crm.promotion.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="MANAGER"/>
+            <column name="permission_code" value="crm.promotion.manage"/>
+        </insert>
+
+        <!-- ACCOUNTANT: read-only — house/corporate accounts are settled against customers -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="crm.customer.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="ACCOUNTANT"/>
+            <column name="permission_code" value="crm.promotion.view"/>
+        </insert>
+
+        <!-- CASHIER: search-and-attach at the till, plus see which promotions are live -->
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="crm.customer.view"/>
+        </insert>
+        <insert tableName="role_permissions">
+            <column name="role_code" value="CASHIER"/>
+            <column name="permission_code" value="crm.promotion.view"/>
+        </insert>
+
+        <!-- KITCHEN_STAFF / FINANCE_VIEWER / INVENTORY_MANAGER: intentionally NOTHING -->
+
+    </changeSet>
+
+</databaseChangeLog>

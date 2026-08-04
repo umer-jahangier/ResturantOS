@@ -12,6 +12,7 @@ import type {
   ApiTableDetail,
   ApiTillSession,
   ApiTillReconciliation,
+  ApiTillReviewAction,
 } from "@/lib/api-client/schemas/pos.schema";
 import type {
   MenuItem,
@@ -26,12 +27,14 @@ import type {
   TableDetail,
   TillSession,
   TillReconciliation,
+  TillReviewAction,
 } from "@/lib/models/pos.model";
 
 export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
   return {
     id: raw.id,
     categoryId: raw.categoryId ?? null,
+    categoryName: raw.categoryName ?? null,
     name: raw.name,
     description: raw.description ?? null,
     basePricePaisa: raw.basePricePaisa,
@@ -169,6 +172,10 @@ export function adaptOrderPayment(raw: ApiOrderPaymentRecord): OrderPayment {
     id: raw.id,
     method: raw.method,
     amountPaisa: raw.amountPaisa,
+    // Rows written before the V10 migration carry neither field; treat them as exact tender,
+    // which is what they were.
+    tenderedPaisa: raw.tenderedPaisa ?? raw.amountPaisa,
+    changePaisa: raw.changePaisa ?? 0,
     referenceNo: raw.referenceNo ?? null,
     recordedAt: raw.recordedAt,
   };
@@ -186,6 +193,19 @@ export function adaptTillSession(raw: ApiTillSession): TillSession {
     openedAt: raw.openedAt ?? null,
     closedAt: raw.closedAt ?? null,
     status: raw.status,
+    note: raw.note ?? null,
+    reviewStatus: raw.reviewStatus,
+  };
+}
+
+export function adaptTillReviewAction(raw: ApiTillReviewAction): TillReviewAction {
+  return {
+    id: raw.id,
+    tillSessionId: raw.tillSessionId,
+    reviewerId: raw.reviewerId,
+    action: raw.action,
+    note: raw.note ?? null,
+    actedAt: raw.actedAt,
   };
 }
 

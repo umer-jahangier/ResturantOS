@@ -3,8 +3,9 @@ package io.restaurantos.audit.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.audit.entity.AuditEventEntity;
-import io.restaurantos.audit.repository.AuditEventRepository;
 import io.restaurantos.shared.event.EventEnvelope;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +17,8 @@ import java.util.Set;
 /**
  * Ingests domain events into the append-only audit_events table.
  * Filters events to only auditable types; maps EventEnvelope fields to the entity.
- * Uses INSERT (saveAndFlush) — the runtime user has no UPDATE/DELETE grants.
+ * Writes with EntityManager.persist() — a plain INSERT, which is the only statement the
+ * INSERT-only runtime user (audit_writer) is granted on this append-only table.
  */
 @Service
 @Slf4j
@@ -33,7 +35,8 @@ public class AuditIngestionService {
             "TENANT_PROVISIONED",
             "RBAC_CHANGED",
             "VOID_CREATED",
-            "REFUND_CREATED"
+            "REFUND_CREATED",
+            "TILL_REVIEWED"
     );
 
     /** Topic-based auditing: ALL events from these sources are audited regardless of type. */
@@ -42,11 +45,12 @@ public class AuditIngestionService {
             "platform-admin-service"
     );
 
-    private final AuditEventRepository auditEventRepository;
     private final ObjectMapper objectMapper;
 
-    public AuditIngestionService(AuditEventRepository auditEventRepository, ObjectMapper objectMapper) {
-        this.auditEventRepository = auditEventRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public AuditIngestionService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -75,8 +79,16 @@ public class AuditIngestionService {
                 .afterState(afterStateJson)
                 .build();
 
-        // saveAndFlush ensures INSERT is flushed within transaction — catches DataIntegrityViolationException
-        auditEventRepository.saveAndFlush(entity);
+        // persist(), NOT repository.save(): audit_events has a composite @IdClass whose occurredAt
+        // half is assigned above, so Spring Data's isNew() reports false and save() routes to
+        // em.merge() — which SELECTs the row before writing it. audit_writer is deliberately
+        // INSERT-only, so that SELECT returned "permission denied for table audit_events" and every
+        // single event was rejected: the table held zero rows. persist() is an unconditional INSERT,
+        // which is also the only operation this append-only table permits.
+        // flush() keeps the write inside this transaction so a duplicate still surfaces here as a
+        // DataIntegrityViolationException rather than at commit.
+        entityManager.persist(entity);
+        entityManager.flush();
         log.debug("Audit row persisted: action={} tenantId={}", envelope.eventType(), envelope.tenantId());
     }
 

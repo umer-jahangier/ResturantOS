@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vendor Intelligence — Purchasing</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .row1 { display: grid; grid-template-columns: minmax(0, 1fr) 496px; gap: 14px;
+          height: 396px; flex: none; min-height: 0; }
+  .row2 { height: 306px; flex: none; min-height: 0; display: flex; flex-direction: column; }
+  .row3 { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+  /* AI negotiation panel */
+  .ai-h { padding: 9px 14px; border-bottom: 1px solid var(--gold-line); }
+  .nb { padding: 7px 14px; border-top: 1px solid var(--line); }
+  .nb:first-child { border-top: none; }
+  .nb-l { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+          color: var(--fg-dim); font-weight: 620; margin-bottom: 6px; }
+  .sku { display: flex; align-items: center; gap: 8px; font-size: 11.5px; padding: 1px 0;
+         color: var(--fg-mut); }
+  .sku b { color: var(--fg); font-weight: 570; }
+  .sku .p { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  /* vendor scorecard */
+  .vt { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .vt th { text-align: right; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+           color: var(--fg-dim); font-weight: 620; padding: 0 12px 7px; white-space: nowrap; }
+  .vt th:first-child, .vt th.l { text-align: left; }
+  .vt td { text-align: right; padding: 4.5px 12px; border-top: 1px solid var(--line);
+           color: var(--fg-mut); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .vt td:first-child, .vt td.l { text-align: left; }
+  .vt td.k { color: var(--fg); font-weight: 570; }
+  .mt { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .mt .bar { width: 54px; flex: none; }
+
+  /* 3-way match */
+  .match { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; height: 100%; }
+  .mbox { border: 1px solid var(--line); border-radius: 9px; padding: 5px 11px 5px;
+          display: flex; flex-direction: column; min-width: 0; }
+  .mbox.warn { border-color: rgba(251, 191, 36, .34); background: rgba(251, 191, 36, .035); }
+  .mrow { display: flex; align-items: stretch; gap: 6px; margin-top: 5px; }
+  .mnode { flex: 1; background: var(--sunken); border: 1px solid var(--line); border-radius: 7px;
+           padding: 4px 9px; min-width: 0; }
+  .mnode.flag { border-color: rgba(251, 191, 36, .4); }
+  .mnode .t { font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+              color: var(--fg-dim); font-weight: 620; }
+  .mnode .n { font-size: 11.5px; margin-top: 1px; color: var(--fg); font-weight: 570; }
+  .mnode .q { font-size: 10.5px; color: var(--fg-mut); margin-top: 2px;
+              font-variant-numeric: tabular-nums; }
+  .marr { width: 14px; flex: none; display: grid; place-items: center; color: var(--fg-dim);
+          font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <div class="row1">
+
+    <!-- ───────────────────────────────────────────── effective-dated price history -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h">
+        <div>
+          <div class="card-t">Chicken boneless — contract price by vendor</div>
+          <div class="card-s">Rs / kg · effective-dated contract rows · Feb – 22 Jul 2026</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="legend">
+          <span><i style="background:var(--s1)"></i>Al-Karam Poultry</span>
+          <span><i style="background:var(--s2)"></i>Sabzi Mandi Traders</span>
+          <span><i style="background:var(--s3)"></i>Karachi Fresh Foods</span>
+        </div>
+      </div>
+      <div class="card-b rel" style="flex:1;padding:8px 12px 4px">
+        <svg viewBox="0 0 822 300" width="822" height="300" role="img"
+             aria-label="Contract price per kilogram of boneless chicken for three vendors">
+          <g class="gridline">
+            <line x1="42" y1="258" x2="696" y2="258"/><line x1="42" y1="198.5" x2="696" y2="198.5"/>
+            <line x1="42" y1="139" x2="696" y2="139"/><line x1="42" y1="79.5" x2="696" y2="79.5"/>
+            <line x1="42" y1="20" x2="696" y2="20"/>
+          </g>
+          <g class="axis" text-anchor="end">
+            <text x="34" y="262">560</text><text x="34" y="202.5">600</text>
+            <text x="34" y="143">640</text><text x="34" y="83.5">680</text><text x="34" y="24">720</text>
+          </g>
+
+          <!-- Karachi Fresh Foods -->
+          <path d="M42,240.2 H164.4 V204.5 H302.2 V168.8 H436.1 V139 H573.8 V116.7 H665.6 V97.4 H696"
+                fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round"/>
+          <!-- Sabzi Mandi Traders -->
+          <path d="M42,197 H214.2 V186.6 H348.1 V174.7 H516.4 V162.8 H619.7 V145 H696"
+                fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round"/>
+          <!-- Al-Karam Poultry -->
+          <path d="M42,216.4 H286.9 V192.6 H470.5 V180.7 H543.2 V127.1 H642.7 V51.3 H696"
+                fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>
+
+          <!-- effective-date markers -->
+          <g stroke="var(--card)" stroke-width="2">
+            <circle cx="164.4" cy="204.5" r="3.5" fill="var(--s3)"/>
+            <circle cx="302.2" cy="168.8" r="3.5" fill="var(--s3)"/>
+            <circle cx="436.1" cy="139" r="3.5" fill="var(--s3)"/>
+            <circle cx="573.8" cy="116.7" r="3.5" fill="var(--s3)"/>
+            <circle cx="665.6" cy="97.4" r="3.5" fill="var(--s3)"/>
+            <circle cx="214.2" cy="186.6" r="3.5" fill="var(--s2)"/>
+            <circle cx="348.1" cy="174.7" r="3.5" fill="var(--s2)"/>
+            <circle cx="516.4" cy="162.8" r="3.5" fill="var(--s2)"/>
+            <circle cx="619.7" cy="145" r="3.5" fill="var(--s2)"/>
+            <circle cx="286.9" cy="192.6" r="3.5" fill="var(--s1)"/>
+            <circle cx="470.5" cy="180.7" r="3.5" fill="var(--s1)"/>
+            <circle cx="543.2" cy="127.1" r="3.5" fill="var(--s1)"/>
+          </g>
+          <circle cx="642.7" cy="51.3" r="8" fill="var(--s1)" opacity=".2"/>
+          <circle cx="642.7" cy="51.3" r="4.5" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/>
+
+          <!-- creep window -->
+          <line x1="470.5" y1="20" x2="470.5" y2="258" stroke="rgba(255,255,255,.2)"
+                stroke-width="1" stroke-dasharray="3 3"/>
+          <text class="axis" x="474" y="254" fill="#7c8494">24 May · creep window opens</text>
+
+          <!-- direct end labels -->
+          <text class="axis" x="704" y="48" fill="#c98500" style="font-weight:650">Al-Karam Poultry</text>
+          <text class="axis" x="704" y="61" fill="#7c8494">Rs 699 · eff 08 Jul</text>
+          <text class="axis" x="704" y="94" fill="#3987e5" style="font-weight:650">Karachi Fresh Foods</text>
+          <text class="axis" x="704" y="107" fill="#7c8494">Rs 668 · eff 14 Jul</text>
+          <text class="axis" x="704" y="142" fill="#199e70" style="font-weight:650">Sabzi Mandi Traders</text>
+          <text class="axis" x="704" y="155" fill="#7c8494">Rs 636 · eff 02 Jul</text>
+
+          <line class="axisline" x1="42" y1="258" x2="696" y2="258"/>
+          <g class="axis" text-anchor="middle">
+            <text x="42" y="274">Feb</text><text x="149.1" y="274">Mar</text>
+            <text x="267.7" y="274">Apr</text><text x="382.5" y="274">May</text>
+            <text x="501.1" y="274">Jun</text><text x="616" y="274">Jul</text>
+          </g>
+          <text class="axis" x="42" y="292" fill="#7c8494">
+            14 contract revisions — every step is a new effective-dated row, never an update in place
+          </text>
+        </svg>
+        <div class="tip" style="left:396px;top:30px">
+          <div class="tip-t">Al-Karam Poultry · effective 08 Jul 2026</div>
+          <div class="tip-r"><i class="dot" style="background:var(--s1)"></i>Contract <b>Rs 699 / kg</b></div>
+          <div class="tip-r"><span>vs prior Rs 648</span><b style="color:var(--neg)">+7.9%</b></div>
+        </div>
+        <div class="flex ac g8" style="font-size:10.5px;color:var(--fg-dim);margin-top:1px">
+          <span class="dot" style="background:var(--s1)"></span>
+          Al-Karam creep has lifted the plate cost of Chicken Malai Boti by <b class="mut">Rs 18</b> since 24 May
+          <span class="spacer"></span><span class="gold b6">Contract history →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────── AI negotiation panel -->
+    <div class="ai-band" style="display:flex;flex-direction:column;min-height:0">
+      <div class="ai-h flex ac g10">
+        <div class="ins-ico gold" style="width:28px;height:28px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="card-t">Negotiation opportunity</div>
+          <div class="card-s">Price creep — Al-Karam Poultry</div>
+        </div>
+        <span class="conf" title="confidence 4 of 5"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+      </div>
+
+      <div class="nb">
+        <div class="ins-d" style="margin-top:0">Contract price up <b>14.2%</b> in <b>60 days</b>
+          across 3 SKUs while the national poultry index moved <b>+3.1%</b>.</div>
+        <div style="margin-top:7px">
+          <div class="sku"><span class="dot" style="background:var(--s1)"></span>
+            <b>Chicken boneless</b><span class="dim">640 kg/mo</span>
+            <span class="p">Rs 612 → 699 <span class="neg b6">+14.2%</span></span></div>
+          <div class="sku"><span class="dot" style="background:var(--s1)"></span>
+            <b>Chicken mince</b><span class="dim">200 kg/mo</span>
+            <span class="p">Rs 428 → 478 <span class="neg b6">+11.7%</span></span></div>
+          <div class="sku"><span class="dot" style="background:var(--s1)"></span>
+            <b>Chicken whole</b><span class="dim">92 kg/mo</span>
+            <span class="p">Rs 352 → 385 <span class="neg b6">+9.4%</span></span></div>
+        </div>
+      </div>
+
+      <div class="nb">
+        <div class="nb-l">Cheaper alternative — equal or better service</div>
+        <div class="flex ac g8" style="font-size:12px">
+          <span class="dot" style="background:var(--s2)"></span>
+          <b style="font-weight:600">Sabzi Mandi Traders</b>
+          <span class="spacer"></span>
+          <span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">Grade A</span>
+        </div>
+        <div class="f11 mut" style="margin-top:5px;line-height:1.5">
+          Rs 636/kg on boneless — <b class="pos">9.0% under</b> Al-Karam.
+          Lead time <b class="mut">1.8 d</b> vs 2.1 d · fill rate <b class="mut">97.4%</b> vs 94.1% ·
+          on-time <b class="mut">97.2%</b> vs 91.4%.</div>
+      </div>
+
+      <div class="nb" style="margin-top:auto;background:rgba(240,180,41,.045)">
+        <div class="flex ac g8">
+          <div>
+            <div class="f11 dim b6" style="letter-spacing:.06em;text-transform:uppercase">Switching saves</div>
+            <div class="flex ac g8" style="margin-top:3px">
+              <span class="impact pos" style="font-size:16px">+Rs 47,300 / mo</span>
+              <span class="f12 mut">Rs 567,600 annualised</span>
+            </div>
+          </div>
+        </div>
+        <div class="f11 dim" style="margin-top:5px">
+          640 kg × Rs 63 + 200 kg × Rs 28 + 92 kg × Rs 15 at current volumes
+        </div>
+        <div class="ins-why" style="margin-top:7px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            style="width:12px;height:12px"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>
+          Evidence — 12 contract rows · 38 GRNs · 6-mo delivery history
+        </div>
+        <div class="flex ac g8" style="margin-top:9px">
+          <span class="btn sm gold-o">Request quote</span>
+          <span class="btn sm ghost">Switch vendor</span>
+          <span class="btn sm ghost">Open contract</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────────────── vendor scorecard -->
+  <div class="card row2">
+    <div class="card-h">
+      <div>
+        <div class="card-t">Vendor scorecard</div>
+        <div class="card-s">Rolling quarter to 22 Jul 2026 · Clifton, Karachi · scored from PO, GRN and invoice history</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chip">Q3 FY 2026–27</div>
+      <span class="btn sm ghost">Compare vendors</span>
+    </div>
+    <div class="card-b" style="padding:12px 0 0;flex:1;min-height:0;display:flex;flex-direction:column">
+      <table class="vt">
+        <thead><tr>
+          <th class="l" style="padding-left:14px">Vendor</th>
+          <th class="l">Category</th>
+          <th style="width:170px">On-time delivery</th>
+          <th style="width:170px">Fill rate</th>
+          <th>Price vs contract</th>
+          <th>Avg lead time</th>
+          <th>Spend this quarter</th>
+          <th style="padding-right:14px">Grade</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="k" style="padding-left:14px">Sabzi Mandi Traders</td>
+            <td class="l dim">Produce &amp; poultry</td>
+            <td><div class="mt"><div class="bar"><i style="width:97.2%;background:var(--pos)"></i></div>97.2%</div></td>
+            <td><div class="mt"><div class="bar"><i style="width:97.4%;background:var(--pos)"></i></div>97.4%</div></td>
+            <td class="pos b6">−1.2%</td><td>1.8 d</td><td class="k">Rs 3,842,000</td>
+            <td style="padding-right:14px"><span class="chip pos" style="height:19px;padding:0 7px;font-size:10.5px">A</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Karachi Fresh Foods</td>
+            <td class="l dim">Poultry</td>
+            <td><div class="mt"><div class="bar"><i style="width:94.8%;background:var(--pos)"></i></div>94.8%</div></td>
+            <td><div class="mt"><div class="bar"><i style="width:96.1%;background:var(--pos)"></i></div>96.1%</div></td>
+            <td>+0.8%</td><td>2.0 d</td><td class="k">Rs 2,914,600</td>
+            <td style="padding-right:14px"><span class="chip pos" style="height:19px;padding:0 7px;font-size:10.5px">A−</span></td>
+          </tr>
+          <tr class="hl">
+            <td class="k" style="padding-left:14px">Al-Karam Poultry</td>
+            <td class="l dim">Poultry</td>
+            <td><div class="mt"><div class="bar"><i style="width:91.4%;background:var(--warn)"></i></div>91.4%</div></td>
+            <td><div class="mt"><div class="bar"><i style="width:94.1%;background:var(--warn)"></i></div>94.1%</div></td>
+            <td class="neg b6">+14.2%</td><td>2.1 d</td><td class="k">Rs 1,842,600</td>
+            <td style="padding-right:14px"><span class="chip neg" style="height:19px;padding:0 7px;font-size:10.5px">C</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Indus Dairy &amp; Cheese</td>
+            <td class="l dim">Dairy</td>
+            <td><div class="mt"><div class="bar"><i style="width:96.1%;background:var(--pos)"></i></div>96.1%</div></td>
+            <td><div class="mt"><div class="bar"><i style="width:98.2%;background:var(--pos)"></i></div>98.2%</div></td>
+            <td>+0.4%</td><td>1.5 d</td><td class="k">Rs 1,486,300</td>
+            <td style="padding-right:14px"><span class="chip pos" style="height:19px;padding:0 7px;font-size:10.5px">A−</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Punjab Rice Mills</td>
+            <td class="l dim">Dry goods</td>
+            <td><div class="mt"><div class="bar"><i style="width:99.1%;background:var(--pos)"></i></div>99.1%</div></td>
+            <td><div class="mt"><div class="bar"><i style="width:99.6%;background:var(--pos)"></i></div>99.6%</div></td>
+            <td>0.0%</td><td>4.0 d</td><td class="k">Rs 1,214,800</td>
+            <td style="padding-right:14px"><span class="chip pos" style="height:19px;padding:0 7px;font-size:10.5px">A</span></td>
+          </tr>
+          <tr>
+            <td class="k" style="padding-left:14px">Makran Seafood Co.</td>
+            <td class="l dim">Seafood</td>
+            <td><div class="mt"><div class="bar"><i style="width:88.6%;background:var(--warn)"></i></div>88.6%</div></td>
+            <td><div class="mt"><div class="bar"><i style="width:90.4%;background:var(--warn)"></i></div>90.4%</div></td>
+            <td class="neg b6">+3.6%</td><td>3.2 d</td><td class="k">Rs 962,400</td>
+            <td style="padding-right:14px"><span class="chip warn" style="height:19px;padding:0 7px;font-size:10.5px">C+</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="flex ac g8" style="margin-top:auto;padding:9px 14px;border-top:1px solid var(--line);
+           font-size:11px;color:var(--fg-dim)">
+        6 active vendors · <b class="mut">Rs 12,262,700</b> committed this quarter ·
+        <b class="mut">2</b> flagged for review · moving-average cost recalculated on every receipt
+        <span class="spacer"></span><span class="gold b6">Scoring model →</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────── 3-way match -->
+  <div class="card row3">
+    <div class="card-h">
+      <div>
+        <div class="card-t">3-way match — PO ↔ GRN ↔ vendor invoice</div>
+        <div class="card-s">Quantities and amounts must reconcile before an invoice is released for payment ·
+          tolerance ±2% or Rs 2,000</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chip pos">18 matched today</div>
+      <div class="chip warn">1 held</div>
+    </div>
+    <div class="card-b" style="flex:1;min-height:0;padding:5px 14px 6px">
+      <div class="match">
+
+        <div class="mbox">
+          <div class="flex ac g8">
+            <span class="dot" style="background:var(--pos)"></span>
+            <b style="font-size:12px;font-weight:620">Sabzi Mandi Traders</b>
+            <span class="dim f11">Chicken boneless · 240 kg @ Rs 636</span>
+            <span class="spacer"></span>
+            <span class="chip pos" style="height:19px;padding:0 7px;font-size:10.5px">Matched — auto-approved</span>
+          </div>
+          <div class="mrow">
+            <div class="mnode"><div class="t">Purchase order</div>
+              <div class="n mono">PO-2026-1184</div>
+              <div class="q">240.0 kg · Rs 152,640</div></div>
+            <div class="marr">→</div>
+            <div class="mnode"><div class="t">Goods received note</div>
+              <div class="n mono">GRN-2026-3391</div>
+              <div class="q">240.0 kg · Rs 152,640</div></div>
+            <div class="marr">→</div>
+            <div class="mnode"><div class="t">Vendor invoice</div>
+              <div class="n mono">INV-SMT-8827</div>
+              <div class="q">240.0 kg · Rs 152,640</div></div>
+          </div>
+          <div class="f11 dim" style="margin-top:auto;padding-top:4px">
+            Quantity variance <b class="pos">0.0 kg</b> · amount variance
+            <b class="pos">Rs 0</b> — released to payables, due 21 Aug 2026.
+          </div>
+        </div>
+
+        <div class="mbox warn">
+          <div class="flex ac g8">
+            <span class="dot" style="background:var(--warn)"></span>
+            <b style="font-size:12px;font-weight:620">Al-Karam Poultry</b>
+            <span class="dim f11">Chicken boneless · 180 kg @ Rs 699</span>
+            <span class="spacer"></span>
+            <span class="chip warn" style="height:19px;padding:0 7px;font-size:10.5px">Variance — held for review</span>
+          </div>
+          <div class="mrow">
+            <div class="mnode"><div class="t">Purchase order</div>
+              <div class="n mono">PO-2026-1179</div>
+              <div class="q">180.0 kg · Rs 125,820</div></div>
+            <div class="marr">→</div>
+            <div class="mnode flag"><div class="t">Goods received note</div>
+              <div class="n mono">GRN-2026-3384</div>
+              <div class="q" style="color:var(--warn)">174.0 kg · Rs 121,626</div></div>
+            <div class="marr">→</div>
+            <div class="mnode flag"><div class="t">Vendor invoice</div>
+              <div class="n mono">INV-AKP-4402</div>
+              <div class="q" style="color:var(--warn)">180.0 kg · Rs 125,820</div></div>
+          </div>
+          <div class="f11 dim" style="margin-top:auto;padding-top:4px">
+            Short-shipped <b style="color:var(--warn)">6.0 kg</b> but invoiced in full — over-billed
+            <b style="color:var(--warn)">Rs 4,194 (3.3%)</b>, outside tolerance. Debit note drafted.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('purchasing', ['Bayleaf Group', 'Clifton, Karachi', 'Purchasing', 'Vendor Intelligence'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

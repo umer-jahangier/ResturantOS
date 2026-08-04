@@ -9,10 +9,33 @@ import java.util.UUID;
 public interface PaymentService {
 
     /**
-     * Record a single payment against an order.
-     * Returns the updated sum of all payments for the order.
+     * Record a single payment against an order, with the customer's tender.
+     *
+     * <p>{@code amountPaisa} is what the caller wants applied to the bill; it is capped at the
+     * outstanding balance. {@code tenderedPaisa} is what the customer handed over — pass
+     * {@code null} for "exactly the applied amount", which is the right answer for every
+     * card/bank/voucher tender and for exact cash.
+     *
+     * <p>Over-tender is CASH-only and becomes change. A non-cash tender above the outstanding
+     * balance is rejected ({@code PaymentExceedsBalanceException}, 422) rather than silently
+     * over-applied: ORDER_CLOSED carries the applied amounts and finance debits them, so an
+     * over-application makes the revenue journal entry unbalanceable.
+     *
+     * @return the updated sum of APPLIED payments for the order
      */
-    long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa, String referenceNo);
+    long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa, Long tenderedPaisa,
+                       String referenceNo, UUID customerAccountId);
+
+    /** Every tender except CHARGE_TO_ACCOUNT, which needs a house account to bill. */
+    default long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa,
+                               Long tenderedPaisa, String referenceNo) {
+        return recordPayment(orderId, method, amountPaisa, tenderedPaisa, referenceNo, null);
+    }
+
+    /** Exact-tender convenience — {@code tenderedPaisa == amountPaisa}. */
+    default long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa, String referenceNo) {
+        return recordPayment(orderId, method, amountPaisa, null, referenceNo);
+    }
 
     /**
      * List the persisted payment history for an order (POS-22/POS-23), tenant-scoped exactly

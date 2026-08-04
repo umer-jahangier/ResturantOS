@@ -31,7 +31,12 @@ public class TierFeatureDefaults {
         "FEATURE_WHATSAPP_NOTIFICATIONS",
         "FEATURE_CUSTOM_ROLES",
         "FEATURE_AUDIT_EXPORT",
-        "FEATURE_LOT_TRACKING"
+        "FEATURE_LOT_TRACKING",
+        // NLQ is a premium/AI feature. RouteFeatureMap gates /api/v1/nlq/ on FEATURE_NLQ and the
+        // frontend lists it, but it was never defined in any tier here — so tenant_features was
+        // never seeded with it and FeatureFlagGlobalFilter 403'd FEATURE_DISABLED on every NLQ
+        // request (identical to the FEATURE_PURCHASING phantom-flag bug, decision 10-11-A).
+        "FEATURE_NLQ"
     );
 
     // Features available from ENTERPRISE tier and above

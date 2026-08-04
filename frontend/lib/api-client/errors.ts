@@ -38,6 +38,14 @@ export class ApiError extends Error {
   isTotpRequired(): boolean {
     return this.code === "TOTP_REQUIRED";
   }
+  /**
+   * 401 — the account's permissions demand a second factor and none has ever been enrolled.
+   * Distinct from {@link isTotpRequired}: there is no code to type, so prompting for one strands
+   * the user. They must enrol first, at {@code POST /api/v1/auth/2fa/bootstrap}.
+   */
+  isTotpEnrollmentRequired(): boolean {
+    return this.code === "TOTP_ENROLLMENT_REQUIRED";
+  }
   /** 403 — branch-switch denied (used by the 04-02 BranchSwitcher). */
   isBranchAccessDenied(): boolean {
     return this.code === "BRANCH_ACCESS_DENIED";
@@ -102,6 +110,13 @@ type ProblemDetailBody = {
   properties?: Record<string, unknown> | null;
   traceId?: string | null;
   errors?: unknown;
+  /**
+   * `ProblemDetail#setProperty("code", ...)` is flattened onto the JSON root by Spring's
+   * `ProblemDetailJacksonMixin` — NOT nested under a `properties` key. `NlqGlobalExceptionHandler`
+   * uses this to carry the SPECIFIC failure code (e.g. `TENANT_FILTER_MISSING`,
+   * `QUOTA_EXCEEDED_MONTHLY`) alongside a generic `title` category (e.g. `QUERY_REJECTED`).
+   */
+  code?: string;
 };
 
 function isProblemDetailBody(value: unknown): value is ProblemDetailBody {
@@ -157,6 +172,11 @@ const USER_FACING_BY_CODE: Record<string, string> = {
   INTERNAL_ERROR: "Something went wrong. Please try again.",
   NETWORK_ERROR: "Unable to reach the server. Check your connection and try again.",
   UNKNOWN_ERROR: "Something went wrong. Please try again.",
+  // Gateway fallback (FallbackController) — module-agnostic since this map is keyed by code
+  // only; screens that know their module (e.g. inventory) override locally with the
+  // Copywriting Contract's module-specific wording. Fixes the carried-over 08.2-CONTEXT.md gap
+  // where users saw raw gateway text with no indication of which module was down.
+  SERVICE_UNAVAILABLE: "This module is temporarily unavailable. Try again in a moment.",
 };
 
 function looksLikeValidationDump(message: string): boolean {
@@ -223,7 +243,21 @@ export function parseApiError(error: unknown): ApiError {
 
     if (isProblemDetailBody(body)) {
       const title = typeof body.title === "string" ? body.title : "";
-      const code = CODE_LIKE.test(title) ? title : `HTTP_${status || body.status || 0}`;
+      // nlq-service's NlqGlobalExceptionHandler sets `title` to a generic category
+      // (e.g. "QUERY_REJECTED", "QUOTA_EXCEEDED") and the SPECIFIC code (the actual
+      // RejectionCode, e.g. "TENANT_FILTER_MISSING") on the flattened `code` property —
+      // prefer it when present so callers can branch on the granular code, not the category.
+      const propsCode =
+        typeof body.code === "string"
+          ? body.code
+          : typeof body.properties?.code === "string"
+            ? body.properties.code
+            : "";
+      const code = CODE_LIKE.test(propsCode)
+        ? propsCode
+        : CODE_LIKE.test(title)
+          ? title
+          : `HTTP_${status || body.status || 0}`;
       const message =
         (typeof body.detail === "string" && body.detail) ||
         (title && !CODE_LIKE.test(title) ? title : "") ||

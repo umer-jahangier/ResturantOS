@@ -65,7 +65,10 @@ class CrmLoyaltyIT {
         r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
         r.add("eureka.client.enabled", () -> "false");
         // Consumer listeners start with the context, before this test declares its topology.
-        r.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
+        // No missing-queues-fatal escape hatch and no hand-declared topology: CrmRabbitConfig
+        // declares both queues, their bindings and their DLQs itself, so this IT proves it does.
+        // Hand-declaring them here without the x-dead-letter-exchange argument is what produced
+        // PRECONDITION_FAILED (inequivalent arg) once the service started declaring them properly.
         r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
     }
 
@@ -91,18 +94,8 @@ class CrmLoyaltyIT {
         tenantContext.set(tenantId, null, null, null);
         loyaltyService.ensureTierConfig(tenantId);
         customerId = customerService.create(new CreateCustomerRequest("+923001234567", "Ali Khan", null, null)).id();
-        declareTopology();
     }
 
-    private void declareTopology() {
-        amqpAdmin.declareExchange(new TopicExchange("pos.topic", true, false));
-        amqpAdmin.declareQueue(new Queue(OrderClosedLoyaltyConsumer.QUEUE_NAME, true));
-        amqpAdmin.declareBinding(BindingBuilder.bind(new Queue(OrderClosedLoyaltyConsumer.QUEUE_NAME))
-                .to(new TopicExchange("pos.topic")).with("pos.order.closed"));
-        amqpAdmin.declareQueue(new Queue(OrderRefundedLoyaltyConsumer.QUEUE_NAME, true));
-        amqpAdmin.declareBinding(BindingBuilder.bind(new Queue(OrderRefundedLoyaltyConsumer.QUEUE_NAME))
-                .to(new TopicExchange("pos.topic")).with("pos.order.refunded"));
-    }
 
     @Test
     void orderClosed_accruesPoints_tierUpgrade_refundDebits_dedup() throws Exception {

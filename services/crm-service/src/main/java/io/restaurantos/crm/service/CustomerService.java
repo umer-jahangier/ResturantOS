@@ -3,6 +3,7 @@ package io.restaurantos.crm.service;
 import io.restaurantos.crm.dto.CrmDtos.CreateCustomerRequest;
 import io.restaurantos.crm.dto.CrmDtos.CustomerLookupResponse;
 import io.restaurantos.crm.dto.CrmDtos.CustomerResponse;
+import io.restaurantos.crm.dto.CrmDtos.CustomerSummaryResponse;
 import io.restaurantos.crm.dto.CrmDtos.UpdateCustomerRequest;
 import io.restaurantos.crm.entity.CustomerEntity;
 import io.restaurantos.crm.entity.LoyaltyAccountEntity;
@@ -18,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -72,11 +75,54 @@ public class CustomerService {
                 .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
     }
 
+    /**
+     * Customer grid / POS picker. A blank {@code q} lists everyone; otherwise it searches phone
+     * (prefix) and name (contains, case-insensitive).
+     *
+     * <p>Returns loyalty inline. The accounts are fetched in ONE batch query rather than per row —
+     * a 50-row page would otherwise be 51 queries, and this endpoint is on the cashier's
+     * search-as-you-type path.
+     */
+    @Transactional(readOnly = true)
+    public Page<CustomerSummaryResponse> search(String q, Pageable pageable) {
+        ensureGuc();
+        UUID tenantId = tenantContext.requireTenantId();
+        Page<CustomerEntity> page = (q == null || q.isBlank())
+                ? customerRepo.findAllByTenantId(tenantId, pageable)
+                : customerRepo.search(tenantId, q.trim(), pageable);
+
+        Map<UUID, LoyaltyAccountEntity> loyalty = page.getContent().isEmpty()
+                ? Map.of()
+                : loyaltyAccountRepo.findByCustomerIdIn(
+                        page.getContent().stream().map(CustomerEntity::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(LoyaltyAccountEntity::getCustomerId, a -> a));
+
+        return page.map(c -> toSummary(c, loyalty.get(c.getId())));
+    }
+
     @Transactional(readOnly = true)
     public Page<CustomerResponse> list(Pageable pageable) {
         ensureGuc();
         return customerRepo.findAllByTenantId(tenantContext.requireTenantId(), pageable)
                 .map(this::toResponse);
+    }
+
+    /** One customer with their loyalty standing — the CRM detail page. */
+    @Transactional(readOnly = true)
+    public CustomerSummaryResponse getDetail(UUID id) {
+        ensureGuc();
+        CustomerEntity customer = customerRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
+        return toSummary(customer, loyaltyAccountRepo.findByCustomerId(id).orElse(null));
+    }
+
+    private static CustomerSummaryResponse toSummary(CustomerEntity c, LoyaltyAccountEntity a) {
+        return new CustomerSummaryResponse(
+                c.getId(), c.getPhone(), c.getName(), c.getEmail(), c.getBirthday(),
+                a != null ? a.getTier() : null,
+                a != null ? a.getPointsBalance() : 0L,
+                a != null ? a.getLifetimeSpendPaisa() : 0L);
     }
 
     public CustomerResponse update(UUID id, UpdateCustomerRequest req) {

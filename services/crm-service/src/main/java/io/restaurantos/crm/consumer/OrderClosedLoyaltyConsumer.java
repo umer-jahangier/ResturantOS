@@ -1,79 +1,58 @@
 package io.restaurantos.crm.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restaurantos.crm.config.CrmRabbitConfig;
 import io.restaurantos.crm.service.LoyaltyService;
 import io.restaurantos.crm.service.ProcessedEventService;
 import io.restaurantos.shared.event.EventEnvelope;
+import io.restaurantos.shared.event.EventEnvelopeReader;
+import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-import java.util.UUID;
-
+/**
+ * ORDER_CLOSED -> loyalty accrual.
+ *
+ * <p>A null {@code customerId} is a walk-in and accrues nothing. That is correct — and it was also
+ * the only branch this consumer ever took in practice, because until the POS customer picker
+ * shipped there was no way to attach a customer to an order at all.
+ */
 @Component
-@Slf4j
 public class OrderClosedLoyaltyConsumer {
 
     public static final String CONSUMER_NAME = "crm.order-closed";
-    public static final String QUEUE_NAME = "crm.order-closed.queue";
+    public static final String QUEUE_NAME = CrmRabbitConfig.ORDER_CLOSED_QUEUE;
 
     private final ProcessedEventService processedEventService;
     private final TenantAwareMessageProcessor tenantAwareMessageProcessor;
     private final LoyaltyService loyaltyService;
-    private final ObjectMapper objectMapper;
+    private final EventEnvelopeReader envelopeReader;
 
     public OrderClosedLoyaltyConsumer(ProcessedEventService processedEventService,
                                       TenantAwareMessageProcessor tenantAwareMessageProcessor,
                                       LoyaltyService loyaltyService,
-                                      ObjectMapper objectMapper) {
+                                      EventEnvelopeReader envelopeReader) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
         this.loyaltyService = loyaltyService;
-        this.objectMapper = objectMapper;
+        this.envelopeReader = envelopeReader;
     }
 
     @RabbitListener(queues = QUEUE_NAME)
     public void onMessage(Message message) {
-        EventEnvelope<Map<String, Object>> envelope = deserialize(message);
-        if (envelope == null) {
-            return;
-        }
+        EventEnvelope<PosEventContract.OrderClosedPayload> envelope =
+                envelopeReader.read(message, PosEventContract.OrderClosedPayload.class);
         processedEventService.tryProcess(CONSUMER_NAME, envelope.eventId(), () ->
                 tenantAwareMessageProcessor.process(envelope, this::handle));
     }
 
-    private void handle(EventEnvelope<Map<String, Object>> envelope) {
-        Map<String, Object> payload = envelope.payload();
-        Object customerIdObj = payload.get("customerId");
-        if (customerIdObj == null) {
+    private void handle(EventEnvelope<PosEventContract.OrderClosedPayload> envelope) {
+        PosEventContract.OrderClosedPayload payload = envelope.payload();
+        if (payload.customerId() == null) {
             return;
         }
-        UUID customerId = UUID.fromString(customerIdObj.toString());
-        UUID orderId = UUID.fromString(payload.get("orderId").toString());
-        long totalPaisa = longVal(payload, "totalPaisa");
         loyaltyService.ensureTierConfig(envelope.tenantId());
-        loyaltyService.accrueForOrder(customerId, orderId, totalPaisa);
-    }
-
-    @SuppressWarnings("unchecked")
-    private EventEnvelope<Map<String, Object>> deserialize(Message message) {
-        try {
-            return objectMapper.readValue(message.getBody(),
-                    objectMapper.getTypeFactory().constructParametricType(EventEnvelope.class, Map.class));
-        } catch (Exception e) {
-            log.error("OrderClosedLoyaltyConsumer: deserialize failed: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private static long longVal(Map<String, Object> map, String key) {
-        Object v = map.get(key);
-        if (v instanceof Number n) {
-            return n.longValue();
-        }
-        return v != null ? Long.parseLong(v.toString()) : 0L;
+        loyaltyService.accrueForOrder(payload.customerId(), payload.orderId(), payload.totalPaisa());
     }
 }

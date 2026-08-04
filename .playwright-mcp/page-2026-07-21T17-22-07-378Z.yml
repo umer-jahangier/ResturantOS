@@ -1,0 +1,25 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e81]:
+    - generic [ref=f1e82]:
+      - generic [ref=f1e83]: Sign in to RestaurantOS
+      - generic [ref=f1e84]: Enter your restaurant identifier and credentials
+    - generic [ref=f1e85]:
+      - status [ref=f1e86]: Your session expired. Please sign in again.
+      - generic [ref=f1e87]:
+        - generic [ref=f1e88]:
+          - generic [ref=f1e89]: Restaurant
+          - textbox "Restaurant" [ref=f1e90]:
+            - /placeholder: your-restaurant
+        - generic [ref=f1e91]:
+          - generic [ref=f1e92]: Email
+          - textbox "Email" [ref=f1e93]:
+            - /placeholder: you@example.com
+        - generic [ref=f1e94]:
+          - generic [ref=f1e95]: Password
+          - textbox "Password" [ref=f1e96]:
+            - /placeholder: ••••••••
+        - button "Sign in" [ref=f1e97]
+  - status [ref=f1e78]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f1e103] [cursor=pointer]
+  - alert [ref=f1e107]

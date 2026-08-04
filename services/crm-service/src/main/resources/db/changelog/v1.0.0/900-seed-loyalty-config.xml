@@ -6,6 +6,14 @@
             http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
 
     <changeSet id="crm-1.0.0-900-seed-loyalty-config" author="restaurantos-agent" context="seed">
+        <!-- Checksum of this changeset BEFORE the set_config() line below was added. Any database
+             that ran the original version already holds the three tier rows this seed produces —
+             the fix changed only how the INSERT gets past RLS on a FRESH database, never what it
+             writes. Without this, every such database fails validation on startup ("was: 9:3e07b5d2
+             ... but is now: ...") and crm-service cannot boot at all. Declaring the old checksum
+             valid is the non-destructive repair; rewriting databasechangelog by hand would fix one
+             machine and leave every other one broken. -->
+        <validCheckSum>9:3e07b5d2086d4bb034a6306d2d7fa227</validCheckSum>
         <!-- loyalty_tier_config has RLS: tenant_id must equal current_setting('app.current_tenant_id').
              Liquibase runs as crm_user (NOSUPERUSER NOBYPASSRLS) with no tenant context, so the INSERT
              below is rejected by the policy's WITH CHECK unless we set the GUC first. Without this the

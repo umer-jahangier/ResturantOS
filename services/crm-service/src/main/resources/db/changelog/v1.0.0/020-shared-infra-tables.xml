@@ -11,6 +11,16 @@
          service could not start once the RLS seed fix let Liquibase complete. Mirrors the
          established sibling pattern (e.g. user-service 020). -->
     <changeSet id="crm-1.0.0-020-create-event-outbox" author="restaurantos-agent">
+        <!-- MARK_RAN, not a plain createTable: at least one crm_db was migrated from a working
+             copy where this changeset carried the id "crm-1.0.0-020a-create-event-outbox" (its
+             idempotency_keys sibling below still carries the matching "020b"). Liquibase keys
+             history by id, so on those databases the committed "020" id reads as brand new and
+             the CREATE TABLE dies with "relation event_outbox already exists" — crm-service then
+             cannot start at all. Keying the decision on the table itself rather than on which id
+             happened to create it makes this correct on a fresh database and on those. -->
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="event_outbox"/></not>
+        </preConditions>
         <createTable tableName="event_outbox">
             <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
                 <constraints primaryKey="true" nullable="false"/>

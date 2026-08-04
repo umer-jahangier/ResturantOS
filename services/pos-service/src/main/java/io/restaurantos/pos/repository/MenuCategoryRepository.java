@@ -13,4 +13,9 @@ public interface MenuCategoryRepository extends JpaRepository<MenuCategory, UUID
 
     @Query("SELECT c FROM MenuCategory c WHERE c.active = true ORDER BY c.sortOrder ASC")
     List<MenuCategory> findAllActiveOrderBySortOrder();
+
+    /** Admin listing (Menu Items management page) — includes inactive categories, unlike
+     * {@link #findAllActiveOrderBySortOrder} which backs the order-taking menu grid. */
+    @Query("SELECT c FROM MenuCategory c ORDER BY c.sortOrder ASC")
+    List<MenuCategory> findAllOrderBySortOrder();
 }

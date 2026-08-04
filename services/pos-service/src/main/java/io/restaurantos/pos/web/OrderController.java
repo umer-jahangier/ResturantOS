@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,11 +30,13 @@ public class OrderController {
         this.refundService = refundService;
     }
 
+    @PreAuthorize("hasAuthority('pos.order.create')")
     @PostMapping
     public ResponseEntity<ApiResponse<OrderDto>> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(orderService.createOrder(request)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.view')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<OrderSummaryDto>>> listOrders(
             @RequestParam UUID branchId,
@@ -48,6 +51,7 @@ public class OrderController {
                 page.getTotalElements())));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.view')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<OrderDto>> getOrder(
             @PathVariable UUID id,
@@ -55,6 +59,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.getOrder(id, branchId)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.update')")
     @PostMapping("/{id}/items")
     public ResponseEntity<ApiResponse<OrderDto>> addItem(
             @PathVariable UUID id,
@@ -62,6 +67,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.addItem(id, request)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.update')")
     @DeleteMapping("/{id}/items/{itemId}")
     public ResponseEntity<ApiResponse<OrderDto>> removeItem(
             @PathVariable UUID id,
@@ -69,6 +75,20 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.removeItem(id, itemId)));
     }
 
+    /**
+     * CRM-04: evaluate and apply the customer's qualifying promotions. Explicit rather than
+     * automatic on every price change — a discount a cashier cannot explain is worse than none.
+     *
+     * <p>Gated on {@code pos.order.discount.order}: the engine produces an ORDER-scoped discount,
+     * so it requires the same permission as applying one by hand.
+     */
+    @PostMapping("/{id}/promotions/apply")
+    @PreAuthorize("hasAuthority('pos.order.discount.order')")
+    public ResponseEntity<ApiResponse<OrderDto>> applyPromotions(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.applyPromotions(id)));
+    }
+
+    @PreAuthorize("hasAuthority('pos.order.discount.line')")
     @PostMapping("/{id}/discounts")
     public ResponseEntity<ApiResponse<OrderDto>> applyDiscount(
             @PathVariable UUID id,
@@ -76,6 +96,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.applyDiscount(id, request)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.send_to_kds')")
     @PostMapping("/{id}/send-to-kds")
     public ResponseEntity<ApiResponse<OrderDto>> sendToKds(
             @PathVariable UUID id,
@@ -83,6 +104,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.sendToKds(id, idempotencyKey)));
     }
 
+    @PreAuthorize("hasAnyAuthority('pos.order.void.own','pos.order.void.any')")
     @PostMapping("/{id}/void")
     public ResponseEntity<ApiResponse<OrderDto>> voidOrder(
             @PathVariable UUID id,
@@ -91,6 +113,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.voidOrder(id, request, idempotencyKey)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.refund')")
     @PostMapping("/{id}/refund")
     public ResponseEntity<ApiResponse<OrderDto>> refundOrder(
             @PathVariable UUID id,
@@ -99,6 +122,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(refundService.refund(id, request, idempotencyKey)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.update')")
     @PatchMapping("/{id}/instructions")
     public ResponseEntity<ApiResponse<OrderDto>> updateInstructions(
             @PathVariable UUID id,
@@ -106,6 +130,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.updateInstructions(id, request)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.update')")
     @PostMapping("/{id}/items/{itemId}/serve")
     public ResponseEntity<ApiResponse<OrderDto>> markItemServed(
             @PathVariable UUID id,
@@ -113,6 +138,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.markItemServed(id, itemId)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.update')")
     @PostMapping("/{id}/items/{itemId}/cancel")
     public ResponseEntity<ApiResponse<OrderDto>> cancelItem(
             @PathVariable UUID id,
@@ -120,6 +146,7 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.cancelItem(id, itemId)));
     }
 
+    @PreAuthorize("hasAuthority('pos.order.update')")
     @PatchMapping("/{id}/table")
     public ResponseEntity<ApiResponse<OrderDto>> assignTable(
             @PathVariable UUID id,

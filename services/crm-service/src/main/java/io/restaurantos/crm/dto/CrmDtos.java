@@ -33,6 +33,22 @@ public final class CrmDtos {
             LocalDate birthday
     ) {}
 
+    /**
+     * A customer row as the CRM grid and the POS picker need it: identity plus the loyalty numbers
+     * a cashier reads out loud. {@code tier}/{@code pointsBalance} are null/0 only if the loyalty
+     * account has not been created yet, which happens on first accrual.
+     */
+    public record CustomerSummaryResponse(
+            UUID id,
+            String phone,
+            String name,
+            String email,
+            LocalDate birthday,
+            String tier,
+            long pointsBalance,
+            long lifetimeSpendPaisa
+    ) {}
+
     public record CustomerLookupResponse(
             UUID customerId,
             String name,

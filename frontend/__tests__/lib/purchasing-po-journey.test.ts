@@ -9,7 +9,10 @@ import { useApprovePurchaseOrder } from "@/lib/hooks/purchasing/use-purchasing";
 
 const BRANCH = "b0000001-0000-4000-8000-000000000001";
 const VENDOR_ID = "c0000001-0000-4000-8000-000000000001";
-const ING_1 = "11111111-1111-4111-8111-111111110001";
+// 08.2-13: a real active catalog item on VENDOR_ID's vendor-item fixture
+// (frontend/mocks/purchasing.handlers.ts) — the mock PO-create handler now derives
+// ingredientId/uom/unitPricePaisa from vendorItemId and rejects unknown ids with 422.
+const VENDOR_ITEM_1 = "a1000001-0000-4000-8000-000000000001";
 const PO_ID = "d0000001-0000-4000-8000-000000000001";
 const LINE_ID = "e0000001-0000-4000-8000-000000000001";
 const LINE_ID_2 = "e0000001-0000-4000-8000-000000000002";
@@ -28,7 +31,7 @@ describe("PurchasingRepository PO journey (10-12 gap closure, MSW round-trip)", 
     const created = await PurchasingRepository.createPurchaseOrder({
       vendorId: VENDOR_ID,
       branchId: BRANCH,
-      lines: [{ ingredientId: ING_1, qty: "10", uom: "kg", unitPricePaisa: 1000 }],
+      lines: [{ vendorItemId: VENDOR_ITEM_1, qty: "10" }],
     });
     expect(created.status).toBe("DRAFT");
 
@@ -51,7 +54,7 @@ describe("PurchasingRepository PO journey (10-12 gap closure, MSW round-trip)", 
     const created = await PurchasingRepository.createPurchaseOrder({
       vendorId: VENDOR_ID,
       branchId: BRANCH,
-      lines: [{ ingredientId: ING_1, qty: "5", uom: "kg", unitPricePaisa: 500 }],
+      lines: [{ vendorItemId: VENDOR_ITEM_1, qty: "5" }],
     });
     await PurchasingRepository.submitPurchaseOrder(created.id);
 

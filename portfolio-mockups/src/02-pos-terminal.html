@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Point of Sale — Table 14</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  /* ---- top order strip ---- */
+  .strip { flex: none; display: flex; align-items: center; gap: 12px; padding: 0 14px;
+           height: 58px; background: var(--card); border: 1px solid var(--line);
+           border-radius: var(--radius); }
+  .seg { display: flex; background: var(--sunken); border: 1px solid var(--line);
+         border-radius: 8px; padding: 3px; gap: 3px; }
+  .seg > div { height: 30px; padding: 0 14px; display: flex; align-items: center; gap: 7px;
+               border-radius: 6px; font-size: 12.5px; font-weight: 560; color: var(--fg-mut); }
+  .seg > div.on { background: var(--elev); color: var(--fg); font-weight: 640;
+                  box-shadow: inset 0 0 0 1px var(--line-2); }
+  .seg > div.on b { color: var(--gold); font-weight: 700; }
+  .vr { width: 1px; height: 30px; background: var(--line); flex: none; }
+  .sl { font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+        color: var(--fg-dim); font-weight: 620; }
+  .sv { font-size: 12.5px; font-weight: 620; margin-top: 1px; letter-spacing: -.01em; }
+
+  /* ---- body ---- */
+  .body { display: grid; grid-template-columns: minmax(0,1fr) 376px 244px; gap: 14px;
+          flex: 1; min-height: 0; }
+
+  /* ---- menu ---- */
+  .menu-b { flex: 1; min-height: 0; display: grid; grid-template-columns: 92px minmax(0,1fr);
+            gap: 12px; padding: 12px; }
+  .cats { display: grid; grid-template-rows: repeat(10, minmax(0,1fr)); gap: 7px; min-height: 0; }
+  .cat { border-radius: 9px; background: var(--elev); border: 1px solid var(--line);
+         display: flex; flex-direction: column; align-items: center; justify-content: center;
+         gap: 1px; text-align: center; padding: 4px; min-height: 0; }
+  .cat b { font-size: 11px; font-weight: 600; line-height: 1.25; letter-spacing: -.01em; }
+  .cat span { font-size: 10px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+  .cat.on { background: var(--gold-soft); border-color: var(--gold-line); }
+  .cat.on b { color: var(--gold); }
+  .cat.on span { color: rgba(240,180,41,.7); }
+
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+          grid-template-rows: repeat(7, minmax(0,1fr)); gap: 8px; min-height: 0; }
+  .tile { position: relative; border-radius: 9px; background: var(--elev);
+          border: 1px solid var(--line-2); padding: 10px 11px; display: flex;
+          flex-direction: column; min-height: 0; overflow: hidden; }
+  .tile .nm { font-size: 12.5px; font-weight: 600; letter-spacing: -.012em; line-height: 1.3;
+              padding-right: 26px; }
+  .tile .mt { font-size: 10.5px; color: var(--fg-dim); margin-top: 2px; }
+  .prow { margin-top: auto; display: flex; align-items: flex-end; gap: 8px; }
+  .tile .pr { font-size: 15.5px; font-weight: 680; letter-spacing: -.03em; line-height: 1.1;
+              font-variant-numeric: tabular-nums; }
+  .tile .pr small { font-size: 10px; font-weight: 550; color: var(--fg-dim);
+                    letter-spacing: .02em; margin-right: 3px; }
+  .add { margin-left: auto; width: 26px; height: 26px; border-radius: 7px; flex: none;
+         background: var(--hover); border: 1px solid var(--line-2); display: grid;
+         place-items: center; color: var(--fg-mut); }
+  .add svg { width: 14px; height: 14px; }
+  .tile.sel .add { background: var(--gold); border-color: var(--gold); color: #1a1408; }
+  .tile.sel { border-color: var(--gold-line); background: rgba(240,180,41,.07); }
+  .tile.out { background: var(--card); border-color: var(--line); }
+  .tile.out .nm, .tile.out .pr { color: var(--fg-dim); }
+  .tile .flag { position: absolute; top: 9px; right: 9px; height: 17px; padding: 0 6px;
+                border-radius: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: .02em;
+                display: flex; align-items: center; }
+  .tile .qty { width: 21px; height: 21px; border-radius: 6px; background: var(--gold);
+               color: #1a1408; font-size: 11.5px; font-weight: 750; display: grid;
+               place-items: center; position: absolute; top: 8px; right: 8px; }
+
+  /* ---- cart column ---- */
+  .cartcol { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .ai-up { flex: none; padding: 11px 12px; display: flex; gap: 10px; }
+  .lines { flex: 1; min-height: 0; overflow: hidden; }
+  .li { display: flex; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); }
+  .li:first-child { border-top: none; }
+  .li .q { width: 22px; height: 22px; border-radius: 6px; background: var(--elev);
+           border: 1px solid var(--line-2); display: grid; place-items: center; flex: none;
+           font-size: 11.5px; font-weight: 680; font-variant-numeric: tabular-nums; margin-top: 1px; }
+  .li .n { font-size: 12.5px; font-weight: 570; letter-spacing: -.01em; }
+  .li .m { font-size: 10.5px; color: var(--fg-dim); margin-top: 1px; }
+  .li .m i { font-style: normal; color: var(--warn); }
+  .li .a { margin-left: auto; text-align: right; flex: none; }
+  .li .a b { font-size: 12.5px; font-weight: 620; font-variant-numeric: tabular-nums; }
+  .li .a span { display: block; font-size: 10px; color: var(--fg-dim);
+                font-variant-numeric: tabular-nums; }
+  .li.new { background: rgba(52,211,153,.045); }
+  .tot { padding: 9px 12px; border-top: 1px solid var(--line); }
+  .tr { display: flex; align-items: center; font-size: 12px; color: var(--fg-mut);
+        padding: 2.5px 0; }
+  .tr b { margin-left: auto; color: var(--fg); font-weight: 600;
+          font-variant-numeric: tabular-nums; }
+  .tr.big { font-size: 15px; font-weight: 680; color: var(--fg); letter-spacing: -.02em;
+            padding-top: 7px; margin-top: 5px; border-top: 1px solid var(--line-2); }
+  .tr.big b { font-size: 19px; font-weight: 720; letter-spacing: -.035em; }
+  .tender { display: flex; gap: 6px; padding: 0 12px 10px; }
+  .tp { flex: 1; border-radius: 8px; background: var(--sunken); border: 1px solid var(--line);
+        padding: 6px 8px; }
+  .tp .l { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase;
+           color: var(--fg-dim); font-weight: 620; }
+  .tp .v { font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 1px; }
+  .pay { display: flex; gap: 8px; padding: 0 12px 12px; }
+  .pay .btn { flex: 1; height: 40px; font-size: 13px; }
+
+  /* ---- right rail ---- */
+  .rail { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+  .tables { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 7px;
+            padding: 11px; }
+  .tb { height: 42px; border-radius: 8px; background: var(--elev); border: 1px solid var(--line);
+        display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .tb b { font-size: 11.5px; font-weight: 640; font-variant-numeric: tabular-nums; }
+  .tb span { font-size: 9px; color: var(--fg-dim); margin-top: 1px; }
+  .tb.busy { background: rgba(240,180,41,.09); border-color: rgba(240,180,41,.22); }
+  .tb.busy b { color: var(--gold); }
+  .tb.bill { background: var(--info-soft); border-color: rgba(96,165,250,.28); }
+  .tb.bill b { color: var(--info); }
+  .tb.cur { background: var(--gold); border-color: var(--gold); }
+  .tb.cur b { color: #1a1408; }
+  .tb.cur span { color: rgba(26,20,8,.65); }
+  .avl { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .av { display: flex; gap: 9px; padding: 9px 12px; border-top: 1px solid var(--line);
+        flex: 1; align-items: center; }
+  .av:first-child { border-top: none; }
+  .av .nm { font-size: 12px; font-weight: 570; }
+  .av .sub { font-size: 10.5px; color: var(--fg-dim); margin-top: 1px; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ───────────────────────────────────────────────── order context strip -->
+  <div class="strip">
+    <div class="seg">
+      <div class="on">Dine-in <b>·</b> <b>T14</b></div>
+      <div>Takeaway</div>
+      <div>Delivery</div>
+    </div>
+    <div class="vr"></div>
+    <div>
+      <div class="sl">Open ticket</div>
+      <div class="sv mono">ORD-8857 <span class="dim" style="font-weight:450">· 4 covers · 20:52</span></div>
+    </div>
+    <div class="vr"></div>
+    <div>
+      <div class="sl">Server</div>
+      <div class="sv">Ayesha Khan <span class="dim" style="font-weight:450">· Sec. B</span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="chip pos"><span class="dot" style="background:var(--pos)"></span>Offline-safe · queued 0</div>
+    <div class="vr"></div>
+    <div style="text-align:right">
+      <div class="sl">Till 2 · PM shift</div>
+      <div class="sv">Zubair Ali <span class="dim" style="font-weight:450">· 5h 41m</span></div>
+    </div>
+    <div class="chip">Drawer <b class="mono" style="margin-left:4px;color:var(--fg)">Rs 184,300</b></div>
+    <div class="btn ghost sm" style="height:30px">Hold</div>
+    <div class="btn ghost sm" style="height:30px">Recall · 3</div>
+  </div>
+
+  <div class="body">
+
+    <!-- ─────────────────────────────────────────────────────────── menu pad -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-h" style="padding:10px 12px">
+        <div>
+          <div class="card-t">BBQ &amp; Grill</div>
+          <div class="card-s">21 items live · availability from FEFO on-hand</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="input" style="width:150px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.2-4.2"/></svg>
+          <span>Item or barcode</span>
+        </div>
+        <div class="chip warn">2 items constrained</div>
+      </div>
+
+      <div class="menu-b">
+        <div class="cats">
+          <div class="cat on"><b>BBQ &amp; Grill</b><span>21</span></div>
+          <div class="cat"><b>Curry &amp; Handi</b><span>12</span></div>
+          <div class="cat"><b>Karahi</b><span>7</span></div>
+          <div class="cat"><b>Biryani &amp; Rice</b><span>9</span></div>
+          <div class="cat"><b>Starters</b><span>10</span></div>
+          <div class="cat"><b>Burgers &amp; Rolls</b><span>11</span></div>
+          <div class="cat"><b>Breads</b><span>8</span></div>
+          <div class="cat"><b>Beverages</b><span>14</span></div>
+          <div class="cat"><b>Desserts</b><span>6</span></div>
+          <div class="cat"><b>Deals</b><span>5</span></div>
+        </div>
+
+        <div class="grid">
+          <div class="tile sel">
+            <div class="qty">2</div>
+            <div class="nm">Chicken Malai Boti</div>
+            <div class="mt">8 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,180</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Chicken Tikka Boti</div>
+            <div class="mt">8 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,060</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile sel">
+            <div class="flag" style="background:var(--warn-soft);color:var(--warn)">6 LEFT</div>
+            <div class="nm">Seekh Kebab</div>
+            <div class="mt">6 pc · mince 1.8 kg</div>
+            <div class="prow"><div class="pr"><small>Rs</small>930</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Beef Boti Kebab</div>
+            <div class="mt">6 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,020</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Chapli Kebab</div>
+            <div class="mt">2 pc · station Fry</div>
+            <div class="prow"><div class="pr"><small>Rs</small>880</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile out">
+            <div class="flag" style="background:var(--neg-soft);color:var(--neg)">86'D</div>
+            <div class="nm">Grilled Fish Tikka</div>
+            <div class="mt">Rahu fillet 0.0 kg</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,450</div>
+              <div class="add" style="opacity:.4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Reshmi Kebab</div>
+            <div class="mt">6 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>960</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Mutton Champ</div>
+            <div class="mt">4 pc · 18 min prep</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,890</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Bihari Kebab</div>
+            <div class="mt">6 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,120</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Tandoori Chicken</div>
+            <div class="mt">Half · 16 min prep</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,240</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Grilled Prawns</div>
+            <div class="mt">8 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,780</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Peri Peri Chicken</div>
+            <div class="mt">Half · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,340</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="flag" style="background:var(--gold-soft);color:var(--gold)">COMBO</div>
+            <div class="nm">BBQ Platter</div>
+            <div class="mt">Serves 2 · 4 items</div>
+            <div class="prow"><div class="pr"><small>Rs</small>2,950</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Malai Boti Roll</div>
+            <div class="mt">1 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>520</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Beef Seekh Roll</div>
+            <div class="mt">1 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>560</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Chicken Tikka (leg)</div>
+            <div class="mt">1 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>640</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Mutton Boti Kebab</div>
+            <div class="mt">6 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,290</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Grilled Vegetables</div>
+            <div class="mt">Plate · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>620</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Chicken Kalmi Kebab</div>
+            <div class="mt">4 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,150</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Beef Ribs ½ kg</div>
+            <div class="mt">Slow grill · 22 min</div>
+            <div class="prow"><div class="pr"><small>Rs</small>2,180</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+          <div class="tile">
+            <div class="nm">Chicken Chaap</div>
+            <div class="mt">4 pc · station Grill</div>
+            <div class="prow"><div class="pr"><small>Rs</small>1,090</div>
+              <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────────────── cart -->
+    <div class="cartcol">
+
+      <!-- AI upsell -->
+      <div class="ai-band ai-up">
+        <div class="ins-ico gold" style="width:26px;height:26px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">
+            <path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+        </div>
+        <div class="ins-body">
+          <div class="ins-t" style="font-size:12px">AI suggests · add Mint Raita + Garlic Naan
+            <span class="chip gold" style="height:17px;padding:0 5px;font-size:9.5px">Rs 480</span></div>
+          <div class="ins-d" style="font-size:11px;margin-top:2px">
+            Attaches on <b>34%</b> of Malai Boti tables of 4 · lifts ticket by
+            <b>Rs 480</b> avg · both in stock.</div>
+          <div class="ins-f" style="margin-top:7px">
+            <span class="ins-why">Basis: 1,284 tables, 90 d</span>
+            <div class="spacer"></div>
+            <span class="conf" title="confidence 4/5"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+            <span class="btn sm gold-o">Add to order</span>
+            <span class="btn sm ghost">Skip</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- order -->
+      <div class="card" style="display:flex;flex-direction:column;min-height:0">
+        <div class="card-h" style="padding:10px 12px">
+          <div>
+            <div class="card-t">Table 14 · 4 covers</div>
+            <div class="card-s">8 lines · 3 not yet fired</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="chip">Guest 1–4</div>
+          <div class="btn ghost sm">Split ▾</div>
+        </div>
+
+        <div class="lines">
+          <div class="li">
+            <div class="q">2</div>
+            <div style="min-width:0">
+              <div class="n">Chicken Malai Boti</div>
+              <div class="m"><i>no green chilli</i> · well done</div>
+            </div>
+            <div class="a"><b>2,360</b><span>@ 1,180</span></div>
+          </div>
+          <div class="li">
+            <div class="q">1</div>
+            <div style="min-width:0">
+              <div class="n">Beef Nihari</div>
+              <div class="m">+ extra nalli <span class="mut">Rs 150</span></div>
+            </div>
+            <div class="a"><b>1,470</b><span>@ 1,320</span></div>
+          </div>
+          <div class="li">
+            <div class="q">1</div>
+            <div style="min-width:0">
+              <div class="n">Mutton Karahi ½ kg</div>
+              <div class="m"><i>less oil</i> · extra karak</div>
+            </div>
+            <div class="a"><b>2,640</b><span>@ 2,640</span></div>
+          </div>
+          <div class="li new">
+            <div class="q">1</div>
+            <div style="min-width:0">
+              <div class="n">Seekh Kebab (6 pc)</div>
+              <div class="m"><span class="pos">New</span> · fires to Grill</div>
+            </div>
+            <div class="a"><b>930</b><span>@ 930</span></div>
+          </div>
+          <div class="li new">
+            <div class="q">1</div>
+            <div style="min-width:0">
+              <div class="n">Chicken Biryani</div>
+              <div class="m"><span style="color:var(--pos)">New</span> · fires to Biryani</div>
+            </div>
+            <div class="a"><b>780</b><span>@ 780</span></div>
+          </div>
+          <div class="li new">
+            <div class="q">4</div>
+            <div style="min-width:0">
+              <div class="n">Garlic Naan</div>
+              <div class="m"><span class="pos">New</span> · fires to Tandoor</div>
+            </div>
+            <div class="a"><b>360</b><span>@ 90</span></div>
+          </div>
+          <div class="li">
+            <div class="q">3</div>
+            <div style="min-width:0">
+              <div class="n">Mint Margarita</div>
+              <div class="m">served · 21:04</div>
+            </div>
+            <div class="a"><b>960</b><span>@ 320</span></div>
+          </div>
+          <div class="li">
+            <div class="q">2</div>
+            <div style="min-width:0">
+              <div class="n">Kashmiri Chai</div>
+              <div class="m">served · 21:31</div>
+            </div>
+            <div class="a"><b>500</b><span>@ 250</span></div>
+          </div>
+        </div>
+
+        <div class="tot">
+          <div class="tr">Subtotal <span class="dim" style="margin-left:6px">8 lines</span> <b>Rs 10,000</b></div>
+          <div class="tr">SST 15% <span class="dim" style="margin-left:6px">Sindh SRB · POS-invoiced</span> <b>Rs 1,500</b></div>
+          <div class="tr big">Total due <b>Rs 11,500</b></div>
+        </div>
+
+        <div class="tender">
+          <div class="tp">
+            <div class="l">Tender 1 · Card</div>
+            <div class="v mono">Rs 8,000</div>
+          </div>
+          <div class="tp">
+            <div class="l">Tender 2 · Cash</div>
+            <div class="v mono">Rs 3,500</div>
+          </div>
+          <div class="tp" style="border-color:var(--gold-line);background:rgba(240,180,41,.06)">
+            <div class="l" style="color:var(--gold)">Balance</div>
+            <div class="v mono gold">Rs 0</div>
+          </div>
+        </div>
+
+        <div class="pay">
+          <div class="btn ghost" style="flex:none;width:44px;padding:0">Split 4</div>
+          <div class="btn">Print bill</div>
+          <div class="btn pri" style="flex:1.5">Send to kitchen · 3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────────── right rail -->
+    <div class="rail">
+
+      <div class="card" style="flex:none">
+        <div class="card-h" style="padding:10px 12px">
+          <div>
+            <div class="card-t">Main Hall</div>
+            <div class="card-s">14 of 20 seated</div>
+          </div>
+        </div>
+        <div class="tables">
+          <div class="tb busy"><b>T1</b><span>2</span></div>
+          <div class="tb busy"><b>T2</b><span>4</span></div>
+          <div class="tb"><b>T3</b><span>free</span></div>
+          <div class="tb busy"><b>T4</b><span>6</span></div>
+          <div class="tb bill"><b>T5</b><span>bill</span></div>
+          <div class="tb busy"><b>T6</b><span>2</span></div>
+          <div class="tb busy"><b>T7</b><span>4</span></div>
+          <div class="tb"><b>T8</b><span>free</span></div>
+          <div class="tb busy"><b>T9</b><span>3</span></div>
+          <div class="tb busy"><b>T10</b><span>5</span></div>
+          <div class="tb"><b>T11</b><span>free</span></div>
+          <div class="tb bill"><b>T12</b><span>bill</span></div>
+          <div class="tb busy"><b>T13</b><span>2</span></div>
+          <div class="tb cur"><b>T14</b><span>4 covers</span></div>
+          <div class="tb"><b>T15</b><span>free</span></div>
+          <div class="tb busy"><b>T16</b><span>4</span></div>
+          <div class="tb busy"><b>T17</b><span>2</span></div>
+          <div class="tb"><b>T18</b><span>free</span></div>
+          <div class="tb busy"><b>T19</b><span>6</span></div>
+          <div class="tb"><b>T20</b><span>held</span></div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div class="card-h" style="padding:10px 12px">
+          <div>
+            <div class="card-t">Live availability</div>
+            <div class="card-s">Recipe yield vs on-hand</div>
+          </div>
+        </div>
+        <div class="avl">
+          <div class="av">
+            <span class="dot" style="background:var(--neg)"></span>
+            <div style="min-width:0">
+              <div class="nm">Grilled Fish Tikka</div>
+              <div class="sub">86'd · Rahu fillet 0.0 kg</div>
+            </div>
+          </div>
+          <div class="av">
+            <span class="dot" style="background:var(--warn)"></span>
+            <div style="min-width:0">
+              <div class="nm">Seekh Kebab (6 pc)</div>
+              <div class="sub">6 portions · mince 1.8 kg</div>
+            </div>
+          </div>
+          <div class="av">
+            <span class="dot" style="background:var(--warn)"></span>
+            <div style="min-width:0">
+              <div class="nm">Mutton Karahi ½ kg</div>
+              <div class="sub">11 portions · shoulder 5.5 kg</div>
+            </div>
+          </div>
+          <div class="av">
+            <span class="dot" style="background:var(--warn)"></span>
+            <div style="min-width:0">
+              <div class="nm">Fresh Cream desserts</div>
+              <div class="sub">9 portions · cream 22 L</div>
+            </div>
+          </div>
+          <div class="av">
+            <span class="dot" style="background:var(--pos)"></span>
+            <div style="min-width:0">
+              <div class="nm">All other items</div>
+              <div class="sub">63 sellable · no constraint</div>
+            </div>
+          </div>
+        </div>
+        <div class="flex ac g6" style="padding:9px 12px;border-top:1px solid var(--line);
+             font-size:10.5px;color:var(--fg-dim)">
+          Depletes FEFO on <span class="mono" style="color:var(--s5)">ORDER_CLOSED</span>
+        </div>
+      </div>
+
+      <div class="card" style="flex:none">
+        <div class="card-h" style="padding:10px 12px">
+          <div class="card-t">Shift so far</div>
+          <div class="spacer"></div>
+          <div class="chip">17:00 →</div>
+        </div>
+        <div class="card-b" style="padding:10px 12px">
+          <div class="tr" style="font-size:11.5px">Orders closed <b>84</b></div>
+          <div class="tr" style="font-size:11.5px">Net sales <b>Rs 372,900</b></div>
+          <div class="tr" style="font-size:11.5px">Avg ticket <b>Rs 4,439</b></div>
+          <div class="tr" style="font-size:11.5px">Upsell attach <b class="gold">31%</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('pos', ['Bayleaf Group', 'Clifton, Karachi', 'Point of Sale'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

@@ -11,3 +11,5 @@ CREATE DATABASE kitchen_db;
 CREATE DATABASE notification_db;
 CREATE DATABASE audit_db;
 CREATE DATABASE file_db;
+CREATE DATABASE reporting_db;  -- Phase 12: report definitions + run log (analytics facts live in ClickHouse)
+CREATE DATABASE nlq_db;         -- Phase 12: nlq_query_log + nlq_allowed_tables

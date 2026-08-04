@@ -59,6 +59,13 @@ public abstract class FinanceTestBase {
         // now start in every context. These tests run no broker and mocking RabbitTemplate
         // does not prevent the listener registry from connecting — keep the listeners down.
         registry.add("spring.rabbitmq.listener.simple.auto-startup", () -> "false");
+        // Listeners are down, but FinanceRabbitConfig's Declarables bean still makes AmqpAdmin
+        // connect at startup to declare the topology. Point it at a dead port so that is a
+        // connection-refused (logged, retried lazily, harmless) rather than an ACCESS_REFUSED
+        // against the REAL dev broker on 5672 — which Spring treats as fatal, and which made
+        // these ITs pass or fail purely on whether the dev stack happened to be running.
+        registry.add("spring.rabbitmq.host", () -> "127.0.0.1");
+        registry.add("spring.rabbitmq.port", () -> "1");
         registry.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
     }
 

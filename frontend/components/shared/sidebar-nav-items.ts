@@ -1,4 +1,5 @@
 import {
+  Banknote,
   BarChart3,
   BookOpen,
   Boxes,
@@ -14,8 +15,10 @@ import {
   Settings,
   ShieldCheck,
   ShoppingCart,
+  Sparkles,
   Truck,
   Users,
+  UtensilsCrossed,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -99,12 +102,11 @@ export const tenantNavItems: NavItem[] = [
     roles: ["OWNER", "TENANT_ADMIN"],
   },
   {
-    // Phase 5+: CRM permissions not yet in DB catalog — admin/owner only until built.
-    label: "CRM",
+    label: "Customers",
     href: "/app/crm",
     icon: Contact,
+    permission: "crm.customer.view",
     feature: "FEATURE_CRM",
-    roles: ["OWNER", "TENANT_ADMIN"],
   },
   {
     // Phase 5+: reporting permissions not yet in DB catalog — admin/owner only until built.
@@ -113,6 +115,32 @@ export const tenantNavItems: NavItem[] = [
     icon: BarChart3,
     feature: "FEATURE_REPORTING_ADVANCED",
     roles: ["OWNER", "TENANT_ADMIN"],
+  },
+  {
+    // 12-08: named reports + FBR Tax Summary. Deliberately NO `feature` — 12-01 left
+    // `/api/v1/reporting/` out of RouteFeatureMap on purpose (basic reports are core, not
+    // FEATURE_REPORTING_ADVANCED-gated; attaching that flag here would hide the nav item for
+    // STARTER tenants fully entitled to use it). Gated on the reporting.report.view permission.
+    label: "Reports",
+    href: "/app/reports",
+    icon: BarChart3,
+    permission: "reporting.report.view",
+  },
+  {
+    // 12-08: realtime KPI dashboard (12-06's WebSocket). No `feature` for the same reason above.
+    label: "Realtime Dashboard",
+    href: "/app/dashboard/realtime",
+    icon: LineChart,
+    permission: "reporting.dashboard.view",
+  },
+  {
+    // 12-09: natural-language query. Gated on BOTH FEATURE_NLQ (GROWTH+, real per 12-01's
+    // TierFeatureDefaults fix) and the nlq.query.run permission the backend @PreAuthorizes.
+    label: "Ask (NLQ)",
+    href: "/app/nlq",
+    icon: Sparkles,
+    permission: "nlq.query.run",
+    feature: "FEATURE_NLQ",
   },
 ];
 
@@ -141,6 +169,15 @@ export const navGroups: NavGroup[] = [
         permission: "pos.kds.view",
         feature: "FEATURE_KDS",
       },
+      {
+        // Manager/owner till review — approve, flag, or annotate a cashier's closed till.
+        // Gated on the same permission the review endpoints enforce, so cashiers never see it.
+        label: "Till Review",
+        href: "/app/pos/tills",
+        icon: Banknote,
+        permission: "pos.till.review",
+        feature: "FEATURE_POS",
+      },
     ],
   },
   {
@@ -152,7 +189,16 @@ export const navGroups: NavGroup[] = [
         icon: Boxes,
         permission: "inventory.item.view",
         feature: "FEATURE_INVENTORY",
-        comingSoon: true, // /app/inventory page not built yet (Phase 8)
+      },
+      {
+        // Menu item/category self-serve creation — sits under the same "Menu" group as
+        // Inventory (where recipes are written for these items), even though pos-service owns
+        // the data. gated on pos.menu.manage: only OWNER/TENANT_ADMIN/MANAGER can edit the menu.
+        label: "Menu Items",
+        href: "/app/menu/items",
+        icon: UtensilsCrossed,
+        permission: "pos.menu.manage",
+        feature: "FEATURE_POS",
       },
     ],
   },
@@ -230,13 +276,13 @@ export const navGroups: NavGroup[] = [
         comingSoon: true, // /app/hr page not built yet (Phase 5+)
       },
       {
-        // Phase 5+: CRM permissions not yet in DB catalog — admin/owner only until built.
-        label: "CRM",
+        // Gated on the real permission now that changeset 047 seeds crm.* — the roles[] fallback
+        // existed only because the codes were missing from the catalog entirely.
+        label: "Customers",
         href: "/app/crm",
         icon: Contact,
+        permission: "crm.customer.view",
         feature: "FEATURE_CRM",
-        roles: ["OWNER", "TENANT_ADMIN"],
-        comingSoon: true, // /app/crm page not built yet (Phase 5+)
       },
     ],
   },
@@ -245,12 +291,39 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         // Phase 5+: reporting permissions not yet in DB catalog — admin/owner only until built.
-        label: "Reports",
+        // Labelled "Reporting", not "Reports": phase 12 shipped a REAL /app/reports page in this
+        // same group, and two items both reading "Reports" (one of them a dead link) is the kind
+        // of nav that gets bug-reported. This one stays comingSoon — /app/reporting still has no
+        // page, only /app/reports and /app/nlq exist.
+        label: "Reporting",
         href: "/app/reporting",
         icon: BarChart3,
         feature: "FEATURE_REPORTING_ADVANCED",
         roles: ["OWNER", "TENANT_ADMIN"],
         comingSoon: true, // /app/reporting page not built yet (Phase 5+)
+      },
+      {
+        // 12-08: named reports + FBR Tax Summary. Deliberately NO `feature` — see the flat-list
+        // entry above for why (basic reports are core, not gated at the gateway).
+        label: "Reports",
+        href: "/app/reports",
+        icon: BarChart3,
+        permission: "reporting.report.view",
+      },
+      {
+        // 12-08: realtime KPI dashboard.
+        label: "Realtime Dashboard",
+        href: "/app/dashboard/realtime",
+        icon: LineChart,
+        permission: "reporting.dashboard.view",
+      },
+      {
+        // 12-09: natural-language query (FEATURE_NLQ, GROWTH+; permission nlq.query.run).
+        label: "Ask (NLQ)",
+        href: "/app/nlq",
+        icon: Sparkles,
+        permission: "nlq.query.run",
+        feature: "FEATURE_NLQ",
       },
     ],
   },

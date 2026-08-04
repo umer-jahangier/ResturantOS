@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Control Tower</title>
+<link rel="stylesheet" href="./base.css">
+<style>
+  .kpis { grid-template-columns: repeat(5, 1fr); }
+  .body { display: grid; grid-template-columns: 1fr 428px; gap: 14px; flex: 1; min-height: 0; }
+  .lcol { display: grid; grid-template-rows: 412px minmax(0, 1fr); gap: 14px;
+          min-width: 0; min-height: 0; }
+  .lbot { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; min-height: 0; }
+  .aicol { display: flex; flex-direction: column; min-height: 0; }
+  .ai-h { padding: 12px 14px; border-bottom: 1px solid var(--gold-line); }
+  .ai-sum { display: flex; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line);
+            background: rgba(240,180,41,.035); }
+  .ai-sum div { flex: 1; }
+  .ai-sum .l { font-size: 10px; color: var(--fg-dim); font-weight: 550; letter-spacing: .03em; }
+  .ai-sum .v { font-size: 15px; font-weight: 680; letter-spacing: -.03em; margin-top: 2px;
+               font-variant-numeric: tabular-nums; }
+  .feed { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .feed .insight { flex: 1; padding-top: 10px; padding-bottom: 10px; }
+  .ai-f { padding: 10px 14px; border-top: 1px solid var(--line); display: flex; align-items: center;
+          gap: 8px; font-size: 11px; color: var(--fg-dim); }
+  .ev { display: flex; gap: 10px; padding: 7px 0; align-items: flex-start; }
+  .ev-rail { width: 15px; display: flex; flex-direction: column; align-items: center; flex: none; padding-top: 4px; }
+  .ev-rail i { width: 6px; height: 6px; border-radius: 50%; background: var(--s2); flex: none; }
+  .ev-rail u { width: 1px; flex: 1; background: var(--line-2); margin-top: 3px; min-height: 16px; }
+  .ev-svc { font-size: 11px; font-weight: 600; }
+  .ev-msg { font-size: 11px; color: var(--fg-mut); margin-top: 1px; }
+  .ev-ms { margin-left: auto; font-size: 10.5px; color: var(--fg-dim); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div id="screen">
+
+  <!-- ─────────────────────────────────────────────────────────────── KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-l">Net sales · today</div>
+      <div class="kpi-v">Rs 1,598,400</div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 12.4%</span>
+        <span>vs last Fri</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Covers</div>
+      <div class="kpi-v">412 <small>/ 486 seats</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 38</span>
+        <span>84.8% utilisation</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Average ticket</div>
+      <div class="kpi-v">Rs 4,483</div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▲ 6.1%</span>
+        <span>upsell attach 31%</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Food cost %</div>
+      <div class="kpi-v">31.8<small>%</small></div>
+      <div class="kpi-d"><span class="chip pos" style="height:19px;padding:0 6px;font-size:10.5px">▼ 1.9pp</span>
+        <span>target ≤ 33.0%</span></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">Labour %</div>
+      <div class="kpi-v">18.2<small>%</small></div>
+      <div class="kpi-d"><span class="chip warn" style="height:19px;padding:0 6px;font-size:10.5px">▲ 0.6pp</span>
+        <span>target ≤ 18.0%</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="lcol">
+
+      <!-- ──────────────────────────────────────────────── revenue vs forecast -->
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-h">
+          <div>
+            <div class="card-t">Hourly net sales vs AI forecast</div>
+            <div class="card-s">Fri 22 Jul · Clifton, Karachi · Rs thousands</div>
+          </div>
+          <div class="spacer"></div>
+          <div class="legend">
+            <span><i style="background:var(--s1)"></i>Actual</span>
+            <span><i style="background:var(--s3)"></i>Forecast</span>
+            <span><i style="background:rgba(57,135,229,.28)"></i>80% interval</span>
+          </div>
+          <div class="chip gold" style="margin-left:12px">MAPE 4.1%</div>
+        </div>
+        <div class="card-b rel" style="flex:1">
+          <svg viewBox="0 0 862 316" width="862" height="316" role="img"
+               aria-label="Hourly net sales against AI forecast, Rs thousands">
+            <!-- gridlines -->
+            <g class="gridline">
+              <line x1="44" y1="258" x2="856" y2="258"/><line x1="44" y1="196.5" x2="856" y2="196.5"/>
+              <line x1="44" y1="135" x2="856" y2="135"/><line x1="44" y1="73.5" x2="856" y2="73.5"/>
+              <line x1="44" y1="12" x2="856" y2="12"/>
+            </g>
+            <g class="axis" text-anchor="end">
+              <text x="34" y="262">0</text><text x="34" y="200.5">80</text>
+              <text x="34" y="139">160</text><text x="34" y="77.5">240</text><text x="34" y="16">320</text>
+            </g>
+            <!-- 80% forecast interval, future only -->
+            <path d="M721,42 L788,80.4 L856,219 L856,230.9 L788,118.6 Z" fill="rgba(57,135,229,.22)"/>
+            <!-- forecast line (dashed ahead of now) -->
+            <path d="M44,226.5 L112,190.3 L179,121.2 L247,100.4 L315,143.4 L382,194.9 L450,211.1
+                     L518,193.4 L585,143.4 L653,76.6 L721,42"
+                  fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" opacity=".8"/>
+            <path d="M721,42 L788,99.6 L856,224.9"
+                  fill="none" stroke="var(--s3)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>
+            <!-- actual area + line -->
+            <path d="M44,228.8 L112,187.3 L179,115 L247,93.5 L315,148.8 L382,198 L450,208.8
+                     L518,190.3 L585,138.1 L653,67.3 L721,33.5 L721,258 L44,258 Z"
+                  fill="var(--s1)" opacity=".1"/>
+            <path d="M44,228.8 L112,187.3 L179,115 L247,93.5 L315,148.8 L382,198 L450,208.8
+                     L518,190.3 L585,138.1 L653,67.3 L721,33.5"
+                  fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- now marker -->
+            <line x1="721" y1="12" x2="721" y2="258" stroke="rgba(255,255,255,.28)"
+                  stroke-width="1" stroke-dasharray="3 3"/>
+            <rect x="694" y="266" width="54" height="16" rx="4" fill="var(--elev)"/>
+            <text class="axis" x="721" y="277.5" text-anchor="middle" fill="#a3aab8"
+                  style="font-weight:600;letter-spacing:.05em">NOW 21:41</text>
+            <!-- hovered point -->
+            <circle cx="721" cy="33.5" r="7.5" fill="var(--s1)" opacity=".2"/>
+            <circle cx="721" cy="33.5" r="4" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/>
+            <circle cx="721" cy="42" r="3.5" fill="var(--s3)" stroke="var(--card)" stroke-width="2"/>
+            <!-- x labels -->
+            <g class="axis" text-anchor="middle">
+              <text x="44" y="277.5">11:00</text><text x="179" y="277.5">13:00</text>
+              <text x="315" y="277.5">15:00</text><text x="450" y="277.5">17:00</text>
+              <text x="585" y="277.5">19:00</text><text x="858" y="277.5" text-anchor="end">23:00</text>
+            </g>
+            <line class="axisline" x1="44" y1="258" x2="856" y2="258"/>
+            <!-- projected close callout -->
+            <text class="axis" x="856" y="303" text-anchor="end" fill="#7c8494">
+              Projected close Rs 1,847,200 · 80% interval Rs 1.79M – Rs 1.91M
+            </text>
+          </svg>
+          <div class="tip" style="left:500px;top:16px">
+            <div class="tip-t">21:00 – 22:00</div>
+            <div class="tip-r"><i class="dot" style="background:var(--s1)"></i>Actual <b>Rs 292,000</b></div>
+            <div class="tip-r"><i class="dot" style="background:var(--s3)"></i>Forecast <b>Rs 281,000</b></div>
+            <div class="tip-r" style="border-top:1px solid var(--line);margin-top:5px;padding-top:5px">
+              <span>Variance</span><b style="color:var(--pos)">+3.9%</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lbot">
+        <!-- ─────────────────────────────────────────── menu contribution -->
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="card-h">
+            <div>
+              <div class="card-t">Contribution leaders</div>
+              <div class="card-s">Live plate cost from moving-average cost</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="chip">Today</div>
+          </div>
+          <div class="card-b" style="padding:12px 0 0;flex:1">
+            <table>
+              <thead><tr>
+                <th style="padding-left:14px">Menu item</th><th class="num">Qty</th>
+                <th class="num">Cost</th><th class="num">GM%</th>
+                <th class="num" style="padding-right:14px">Contrib.</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="k" style="padding-left:14px">Chicken Malai Boti</td><td class="num">86</td>
+                  <td class="num mono">412</td><td class="num pos">68.2%</td>
+                  <td class="num k" style="padding-right:14px">Rs 76,200</td></tr>
+                <tr><td class="k" style="padding-left:14px">Beef Nihari</td><td class="num">64</td>
+                  <td class="num mono">528</td><td class="num pos">61.4%</td>
+                  <td class="num k" style="padding-right:14px">Rs 53,900</td></tr>
+                <tr><td class="k" style="padding-left:14px">Mutton Karahi ½kg</td><td class="num">41</td>
+                  <td class="num mono">1,180</td><td class="num">54.8%</td>
+                  <td class="num k" style="padding-right:14px">Rs 51,300</td></tr>
+                <tr><td class="k" style="padding-left:14px">Zinger Burger</td><td class="num">112</td>
+                  <td class="num mono">236</td><td class="num pos">71.5%</td>
+                  <td class="num k" style="padding-right:14px">Rs 46,800</td></tr>
+                <tr><td class="k" style="padding-left:14px">Chicken Biryani</td><td class="num">97</td>
+                  <td class="num mono">268</td><td class="num pos">64.1%</td>
+                  <td class="num k" style="padding-right:14px">Rs 41,200</td></tr>
+                <tr><td class="k" style="padding-left:14px">Seekh Kebab (6pc)</td><td class="num">58</td>
+                  <td class="num mono">344</td><td class="num">57.9%</td>
+                  <td class="num k" style="padding-right:14px">Rs 34,600</td></tr>
+              </tbody>
+            </table>
+            <div class="flex ac g8" style="padding:11px 14px;border-top:1px solid var(--line);
+                 margin-top:2px;font-size:11px;color:var(--fg-dim)">
+              Top 6 carry <b class="mut">62%</b> of today's contribution
+              <span class="spacer"></span><span class="gold b6">Full menu report →</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────── order → ledger event trace -->
+        <div class="card" style="display:flex;flex-direction:column">
+          <div class="card-h">
+            <div>
+              <div class="card-t">Order → ledger, live</div>
+              <div class="card-s">Event-driven, exactly-once</div>
+            </div>
+            <div class="spacer"></div>
+            <div class="chip pos"><span class="dot" style="background:var(--pos)"></span>Streaming</div>
+          </div>
+          <div class="card-b" style="flex:1;padding:12px 14px">
+            <div class="flex ac jb" style="padding-bottom:9px;border-bottom:1px solid var(--line)">
+              <div>
+                <div style="font-size:12px;font-weight:620">ORD-8842 <span class="dim"
+                  style="font-weight:450">· Table 14 · 4 covers</span></div>
+                <div class="f11 dim" style="margin-top:2px">Closed 21:38:04 · split tender (card + house acct)</div>
+              </div>
+              <div style="text-align:right">
+                <div class="mono" style="font-size:13px;font-weight:650">Rs 6,420</div>
+                <div class="f11 dim">incl. Rs 837 SST</div>
+              </div>
+            </div>
+            <div style="margin-top:8px">
+              <div class="ev"><div class="ev-rail"><i></i><u></u></div>
+                <div style="flex:1;min-width:0">
+                  <div class="flex ac"><span class="ev-svc">pos-service</span>
+                    <span class="ev-ms">4 ms</span></div>
+                  <div class="ev-msg"><span class="mono" style="color:var(--s5)">ORDER_CLOSED</span> published via outbox</div>
+                </div></div>
+              <div class="ev"><div class="ev-rail"><i></i><u></u></div>
+                <div style="flex:1;min-width:0">
+                  <div class="flex ac"><span class="ev-svc">inventory-service</span>
+                    <span class="ev-ms">86 ms</span></div>
+                  <div class="ev-msg">FEFO depletion · 11 recipe lines · COGS Rs 2,104</div>
+                </div></div>
+              <div class="ev"><div class="ev-rail"><i></i><u></u></div>
+                <div style="flex:1;min-width:0">
+                  <div class="flex ac"><span class="ev-svc">finance-service</span>
+                    <span class="ev-ms">112 ms</span></div>
+                  <div class="ev-msg"><span class="mono">JE-2026-07-4471</span> · revenue + COGS posted</div>
+                </div></div>
+              <div class="ev"><div class="ev-rail"><i></i></div>
+                <div style="flex:1;min-width:0">
+                  <div class="flex ac"><span class="ev-svc">crm-service</span>
+                    <span class="ev-ms">38 ms</span></div>
+                  <div class="ev-msg">142 loyalty points · Silver → <span class="gold">Gold</span> tier</div>
+                </div></div>
+            </div>
+            <div class="flex ac g8" style="margin-top:8px;padding-top:10px;border-top:1px solid var(--line)">
+              <div class="chip pos">Debits = credits</div>
+              <div class="chip">Idempotent</div>
+              <div class="chip">Tenant-scoped (RLS)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────────────────────────────────────────────── AI CONTROL TOWER -->
+    <div class="ai-band aicol">
+      <div class="ai-h flex ac g10">
+        <div class="ins-ico gold" style="width:30px;height:30px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l2.1 5.6 5.6 2.1-5.6 2.1L12 18l-2.1-5.7L4.3 10.2l5.6-2.1zM19 3v3M20.5 4.5h-3"/></svg>
+        </div>
+        <div style="flex:1">
+          <div class="card-t">AI Control Tower</div>
+          <div class="card-s">Ranked by verified rupee impact · scanned 2 min ago</div>
+        </div>
+        <div class="chip gold">6 open</div>
+      </div>
+
+      <div class="ai-sum">
+        <div><div class="l">IDENTIFIED THIS MONTH</div><div class="v gold">Rs 1,243,800</div></div>
+        <div style="border-left:1px solid var(--line);padding-left:10px">
+          <div class="l">ACTIONED</div><div class="v">Rs 519,400</div></div>
+        <div style="border-left:1px solid var(--line);padding-left:10px">
+          <div class="l">ACCEPT RATE</div><div class="v">78%</div></div>
+      </div>
+
+      <div class="feed">
+        <div class="insight">
+          <div class="ins-ico neg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          </div>
+          <div class="ins-body">
+            <div class="ins-t">Stock-out risk — Chicken boneless
+              <span class="chip neg" style="height:18px;padding:0 6px;font-size:10px">Critical</span></div>
+            <div class="ins-d">Forecast demand <b>186 kg</b> over 3 days against <b>74 kg</b> on hand,
+              at a 2-day vendor lead time. Order today or Thursday dinner breaks.</div>
+            <div class="ins-f">
+              <span class="impact neg">Rs 214,000 at risk</span>
+              <div class="spacer"></div>
+              <span class="btn sm gold-o">Approve draft PO</span>
+              <span class="btn sm ghost">Why?</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <div class="ins-ico neg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
+          </div>
+          <div class="ins-body">
+            <div class="ins-t">Yield variance — Mozzarella 6.2%</div>
+            <div class="ins-d">Actual usage <b>128.4 kg</b> vs recipe-theoretical <b>120.9 kg</b>.
+              Concentrated on the <b>evening shift, Station 2</b> — over-portioning, not spoilage.</div>
+            <div class="ins-f">
+              <span class="impact neg">−Rs 61,400 / mo</span>
+              <div class="spacer"></div>
+              <span class="conf" title="confidence"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+              <span class="btn sm ghost">Investigate</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <div class="ins-ico gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 1.4.6l6.4 6.4a2 2 0 0 1 0 2.8zM7.5 7.5h.01"/></svg>
+          </div>
+          <div class="ins-body">
+            <div class="ins-t">Reprice — Chicken Malai Boti</div>
+            <div class="ins-d">Plate cost rose <b>11.4%</b> since March while the menu price held.
+              A <b>Rs 120</b> increase keeps demand elasticity inside the safe band.</div>
+            <div class="ins-f">
+              <span class="impact pos">+Rs 128,000 / mo</span>
+              <div class="spacer"></div>
+              <span class="conf"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>
+              <span class="btn sm gold-o">Simulate</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <div class="ins-ico info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7zM7.5 19a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6zM17.5 19a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"/></svg>
+          </div>
+          <div class="ins-body">
+            <div class="ins-t">Vendor price creep — Al-Karam Poultry</div>
+            <div class="ins-d">Contract price up <b>14.2%</b> across 60 days on 3 SKUs.
+              <b>Sabzi Mandi Traders</b> quotes 9% lower at equal lead time.</div>
+            <div class="ins-f">
+              <span class="impact pos">+Rs 47,300 / mo</span>
+              <div class="spacer"></div>
+              <span class="conf"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>
+              <span class="btn sm ghost">Compare</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight">
+          <div class="ins-ico neg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="ins-body">
+            <div class="ins-t">Void anomaly — Till 3</div>
+            <div class="ins-d">Post-payment voids running <b>4.1× branch median</b>; 82% fired within
+              90 s of close, all under one operator PIN.</div>
+            <div class="ins-f">
+              <span class="impact neg">Rs 38,900 exposure</span>
+              <div class="spacer"></div>
+              <span class="conf"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span>
+              <span class="btn sm ghost">Open audit trail</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight" style="padding-top:10px;padding-bottom:10px">
+          <div class="ins-ico info" style="width:24px;height:24px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+              stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M16 20v-1.6a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20M9 10.4a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2zM22 20v-1.6a4 4 0 0 0-3-3.8"/></svg>
+          </div>
+          <div class="ins-body flex ac g8">
+            <div style="flex:1;min-width:0">
+              <div class="ins-t" style="font-size:12px">Roster gap — Fri 19:00–22:00</div>
+              <div class="ins-d" style="margin-top:1px">148 forecast covers vs a 6-person roster</div>
+            </div>
+            <span class="impact pos">+Rs 31,000</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-f">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" style="width:13px;height:13px">
+          <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+        Every recommendation traces to the rows that produced it.
+        <span class="spacer"></span>
+        <span class="gold b6">Audit log →</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./shell.js"></script>
+<script>
+  shell('dashboard', ['Bayleaf Group', 'Clifton, Karachi', 'Dashboard'],
+    `<div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+       style="width:12px;height:12px"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg>
+       Fri 22 Jul 2026 · 21:41 PKT</div>`);
+</script>
+</body>
+</html>

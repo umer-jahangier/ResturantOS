@@ -41,6 +41,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/.well-known/jwks.json").permitAll()
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/reset-password/**", "/api/v1/auth/tenants/**").permitAll()
+                // First-time TOTP enrolment cannot require a token: the step-up rule withholds the
+                // token until a code exists, and the code cannot exist until enrolment. Both
+                // endpoints verify the password themselves and refuse once a secret is present.
+                .requestMatchers("/api/v1/auth/2fa/bootstrap", "/api/v1/auth/2fa/bootstrap/verify").permitAll()
                 // /internal/auth/** is gated by InternalServiceFilter (constant-time X-Internal-Service secret check)
                 // rather than JWT auth; permitAll here so the filter chain reaches InternalServiceFilter.
                 .requestMatchers("/internal/auth/**").permitAll()

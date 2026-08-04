@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+  Enables SQL-driven access control (CREATE USER / CREATE SETTINGS PROFILE / GRANT) for the
+  `default` user on this ClickHouse instance.
+
+  WHY THIS FILE EXISTS: the stock `clickhouse/clickhouse-server:25.9` image (as provisioned by
+  deploy/docker-compose.yml, which this directory does not edit) ships with SQL-driven access
+  control DISABLED for the default user (`access_management` defaults to 0). Verified empirically
+  against the running container on first boot of this plan:
+
+    SHOW ACCESS  ->  Code: 497. DB::Exception: default: Not enough privileges. To execute this
+                      query, it's necessary to have the grant SHOW ACCESS ON *.*. (ACCESS_DENIED)
+
+  Without `access_management = 1`, `CREATE USER`, `CREATE SETTINGS PROFILE`, and `GRANT` all fail
+  the same way for the default user, and V002__nlq_readonly_user.sql cannot be applied at all.
+
+  DEPLOYMENT: apply.sh docker-cp's this file into the running container's
+  /etc/clickhouse-server/users.d/ (NOT config.d/ — the entrypoint-generated default user lives in
+  the SEPARATE users.xml/users.d merge tree, and config.d only merges into config.xml, so a
+  config.d override of <users><default><access_management> never took effect; confirmed
+  empirically: `SHOW ACCESS` still returned ACCESS_DENIED after a config.d-only attempt). The
+  entrypoint writes /etc/clickhouse-server/users.d/default-user.xml with
+  `<access_management>0</access_management>` baked in from CLICKHOUSE_USER/PASSWORD env vars, so
+  this file is named to sort AFTER it alphabetically ("zz-...") — ClickHouse's users.d XML merge
+  is last-file-wins per scalar element, so this override takes effect. Restarting the container
+  reloads both trees — this does NOT touch deploy/docker-compose.yml or deploy/init/* (both owned
+  by a concurrent sibling plan), only the running container's filesystem, which is disposable and
+  reproduced by this script every apply.
+-->
+<clickhouse>
+    <users>
+        <default>
+            <access_management>1</access_management>
+        </default>
+    </users>
+</clickhouse>

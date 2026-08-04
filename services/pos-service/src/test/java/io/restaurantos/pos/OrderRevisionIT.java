@@ -45,6 +45,20 @@ class OrderRevisionIT extends PosTestBase {
     @Autowired MenuCategoryRepository menuCategoryRepository;
     @Autowired OrderRepository orderRepository;
     @Autowired TenantContext tenantContext;
+    @Autowired org.springframework.transaction.PlatformTransactionManager txManager;
+
+    /**
+     * Reads an order with its LAZY {@code items} collection initialised, inside a transaction.
+     * Mirrors the TransactionTemplate helper the finance auto-posting ITs use for the same reason.
+     */
+    private Order readOrderWithItems(java.util.UUID orderId) {
+        return new org.springframework.transaction.support.TransactionTemplate(txManager)
+                .execute(status -> {
+                    Order o = orderRepository.findByIdAndBranchId(orderId, branchId).orElseThrow();
+                    o.getItems().size();
+                    return o;
+                });
+    }
 
     UUID tenantId;
     UUID branchId;
@@ -113,7 +127,9 @@ class OrderRevisionIT extends PosTestBase {
         assertThat(countOccurrences(rev1Payload, "orderItemId")).isEqualTo(3);
 
         // All 3 lines are now SENT with revisionNo=1.
-        Order afterRev1Entity = orderRepository.findByIdAndBranchId(order.id(), branchId).orElseThrow();
+        // Order.items is LAZY — read it inside a transaction. Touching it on the detached entity
+        // this repository call returns throws LazyInitializationException.
+        Order afterRev1Entity = readOrderWithItems(order.id());
         assertThat(afterRev1Entity.getItems()).hasSize(3);
         afterRev1Entity.getItems().forEach(item -> {
             assertThat(item.getItemStatus()).isEqualTo(OrderItemStatus.SENT);
@@ -140,7 +156,7 @@ class OrderRevisionIT extends PosTestBase {
 
         // Burger/Fries/Coke retained revisionNo=1/SENT (never re-fired); Cheesecake is
         // revisionNo=2/SENT.
-        Order finalOrderEntity = orderRepository.findByIdAndBranchId(order.id(), branchId).orElseThrow();
+        Order finalOrderEntity = readOrderWithItems(order.id());
         assertThat(finalOrderEntity.getItems()).hasSize(4);
         for (OrderItem item : finalOrderEntity.getItems()) {
             assertThat(item.getItemStatus()).isEqualTo(OrderItemStatus.SENT);

@@ -53,6 +53,21 @@ spring:
                 redis-rate-limiter.burstCapacity: ${RATE_LIMIT_API_PER_MIN:600}
                 key-resolver: "#{@ipKeyResolver}"
 
+          # Every route's CircuitBreaker filter below lists `statusCodes: [503]` only — 500 was
+          # removed from all ten. With 500 included, Spring Cloud Gateway rewrites the FIRST
+          # matching response into the generic fallback body, regardless of whether the breaker
+          # is actually open: a backend returning one well-formed 500 (its own ApiError JSON, real
+          # code and message) had that body discarded and replaced with
+          # `{"code":"SERVICE_UNAVAILABLE","message":"...temporarily unavailable..."}` — identical
+          # wording whether the backend was down or just answered one ordinary request-level error
+          # (e.g. a uniqueness conflict a service hadn't yet turned into a proper 4xx). The
+          # backend's own 500 handler already logs a traceId for genuine bugs; masking its body at
+          # the edge only cost diagnosability, on every route, for every 500, always.
+          # A 503 is different: it's a service's OWN "I am deliberately unavailable" signal, so
+          # folding it into the generic fallback is redundant, not lossy — see e.g.
+          # inventory-service's FinanceUnavailableException. An unreachable/connection-refused
+          # upstream still trips the breaker via the client exception path, not `statusCodes`, so
+          # GatewayRoutingIT#circuitBreakerFallback_deadUpstream_returns503 is unaffected.
           routes:
             # ── Auth Service ────────────────────────────────────────────────────────
             - id: auth-route
@@ -72,7 +87,6 @@ spring:
                     name: authCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── JWKS public endpoint (served by auth-service) ────────────────────
@@ -97,7 +111,6 @@ spring:
                     name: authorizationCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Platform Admin Service ───────────────────────────────────────────
@@ -111,7 +124,6 @@ spring:
                     name: platformAdminCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── User Service ─────────────────────────────────────────────────────
@@ -125,7 +137,6 @@ spring:
                     name: userCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── File Service ──────────────────────────────────────────────────────
@@ -139,7 +150,6 @@ spring:
                     name: fileCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Feature Flags (public, tenant-scoped) — served by platform-admin ──
@@ -156,7 +166,6 @@ spring:
                     name: platformAdminCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Finance Service ───────────────────────────────────────────────────
@@ -172,7 +181,6 @@ spring:
                     name: financeCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Purchasing Service ───────────────────────────────────────────────
@@ -186,7 +194,6 @@ spring:
                     name: purchasingCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── POS Service ───────────────────────────────────────────────────────
@@ -200,7 +207,6 @@ spring:
                     name: posCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
                       - 503
 
             # ── Kitchen Service ───────────────────────────────────────────────────
@@ -214,7 +220,22 @@ spring:
                     name: kitchenCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
                     statusCodes:
-                      - 500
+                      - 503
+
+            # ── Inventory Service (Phase 8) ──────────────────────────────────────
+            # Gated by FEATURE_INVENTORY (RouteFeatureMap) — FeatureFlagGlobalFilter
+            # enforces it before proxying. Ingredients/UOM/opening-balance/receipts/
+            # transfers/counts.
+            - id: inventory-route
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/v1/inventory/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: inventoryCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
                       - 503
 
             # ── CRM Service ─────────────────────────────────────────────────────
@@ -245,35 +266,48 @@ spring:
                       - 500
                       - 503
 
+            # ── Reporting Service (reports, FBR, realtime dashboard WS) ──────────
+            # No feature gate in RouteFeatureMap — reports are core for every ACTIVE tenant
+            # (same rationale as pos-route). Do NOT add /api/v1/reporting/ to RouteFeatureMap:
+            # FEATURE_REPORTING_ADVANCED is GROWTH-and-above only, so gating this path would 403
+            # every STARTER tenant out of basic reporting. Spring Cloud Gateway proxies the WS
+            # upgrade transparently over the same Path predicate (as kitchen-route does for KDS).
+            - id: reporting-route
+              uri: lb://reporting-service
+              predicates:
+                - Path=/api/v1/reporting/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: reportingCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
+            # ── NLQ Service (natural-language query → validated read-only SQL) ───
+            # Feature-gated on FEATURE_NLQ (GROWTH+) in RouteFeatureMap. The flag is now defined
+            # in TierFeatureDefaults (it was previously a phantom flag that 403'd every request).
+            - id: nlq-route
+              uri: lb://nlq-service
+              predicates:
+                - Path=/api/v1/nlq/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: nlqCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
             # ── Feature-flagged routes (later phases) — commented stubs ──────────
-            # - id: nlq-route
-            #   uri: lb://nlq-service
+            # - id: hr-route
+            #   uri: lb://hr-service
             #   predicates:
-            #     - Path=/api/v1/nlq/**
+            #     - Path=/api/v1/hr/**
             #   filters:
             #     - name: CircuitBreaker
             #       args:
-            #         name: nlqCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: inventory-route
-            #   uri: lb://inventory-service
-            #   predicates:
-            #     - Path=/api/v1/inventory/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: inventoryCircuitBreaker
-            #         fallbackUri: forward:/fallback/service-unavailable
-            #
-            # - id: finance-route
-            #   uri: lb://finance-service
-            #   predicates:
-            #     - Path=/api/v1/finance/**
-            #   filters:
-            #     - name: CircuitBreaker
-            #       args:
-            #         name: financeCircuitBreaker
+            #         name: hrCircuitBreaker
             #         fallbackUri: forward:/fallback/service-unavailable
 
     # Eureka: register with service discovery so other services can find the gateway
@@ -300,6 +334,9 @@ management:
         enabled: true
 
 # Resilience4j circuit-breaker instances (one per upstream that exists in Phase 3)
+# UPDATE: that comment is now four upstreams out of date. The rule going forward is: every
+# instance name referenced by a `CircuitBreaker` filter anywhere in the routes list (or in
+# default-filters) above MUST have a declaration here — GatewayResilienceConfigTest enforces it.
 resilience4j:
   circuitbreaker:
     instances:
@@ -343,6 +380,105 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
+      purchasingCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      posCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      kitchenCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      inventoryCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      # reporting-route and nlq-route arrived referencing these two names with NO instance
+      # declared anywhere — exactly the drift GatewayResilienceConfigTest was written to catch,
+      # and the same shape as the bug its docstring describes (route silently runs on
+      # resilience4j defaults, then 503s persistently after an upstream restart).
+      reportingCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+      nlqCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+  # Reactive Spring Cloud CircuitBreaker applies a 1s call timeout when no time limiter is
+  # configured for an instance. purchasing/pos/kitchen/inventory are the four routes this phase
+  # puts real traffic on for the first time (recursive category-tree read, batch ingredient-category
+  # lookup up to 500 ids, recipe cost preview, spend-by-category analytics) and are the most likely
+  # to exceed 1s on a cold JIT — which would otherwise count a merely-slow first call as a breaker
+  # failure. Scoped to these four only: the six pre-existing instances are deliberately left on the
+  # current default so no already-working route changes behaviour as a side effect of this plan.
+  timelimiter:
+    instances:
+      purchasingCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      posCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      kitchenCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      inventoryCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      # Reporting aggregates over ClickHouse fact tables; same class of work as the four above.
+      reportingCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      # NLQ is the one route where the 1s default is not merely tight but guaranteed to fail:
+      # a single request makes TWO Anthropic calls (SQL generation, then narrative) and then runs
+      # the generated query, which nlq-service itself caps at NLQ_TIMEOUT_SECONDS=5. 30s leaves
+      # the service's own timeout as the binding constraint rather than the gateway's.
+      nlqCircuitBreaker:
+        timeoutDuration: 30s
+        cancelRunningFuture: true
+      # The remaining six were previously left on the 1s reactive default on the reasoning that
+      # they were "already working" and should not change behaviour as a side effect. Measured
+      # against the running stack after the phase-12 merge, that premise does not hold: the FIRST
+      # authenticated call to user / file / finance / crm each returned the generic
+      # SERVICE_UNAVAILABLE fallback, and login through the gateway failed intermittently while
+      # succeeding directly against auth-service on :8081 at 0.49-1.00s — straddling the 1s budget.
+      # bcrypt is deliberately expensive and the first request additionally pays JIT plus
+      # connection-pool warm-up, so 1s was never a safe budget for a login endpoint; auth-route is
+      # also the one route whose failure blocks every other flow, since nothing else gets a token.
+      # 5s matches the six above and only widens the window: a call that used to be cut off at 1s
+      # now has room to answer, and a genuinely dead upstream still trips the breaker through the
+      # connection-refused path rather than through this timeout.
+      authCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      authorizationCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      platformAdminCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      userCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      fileCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      financeCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+      crmCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
 
 # Gateway-specific properties
 restaurantos:

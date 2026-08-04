@@ -94,6 +94,12 @@ class GatewayRoutingIT {
     static KeyPair keyPair;
     static final String TEST_KID = "routing-test-key";
     static MockWebServer liveUpstream;
+    // Dedicated to the live-500/live-503 tests, deliberately NOT shared with liveUpstream. The
+    // rate-limit tests enqueue more responses than they consume (some requests get 429 without
+    // ever reaching the upstream), leaving unconsumed 200s sitting ahead of anything enqueued
+    // later in MockWebServer's FIFO dispatch queue — a shared server would let earlier tests'
+    // leftovers answer these requests instead of the response this test just enqueued.
+    static MockWebServer live500Upstream;
     static int deadPort;
 
     @LocalServerPort
@@ -116,6 +122,9 @@ class GatewayRoutingIT {
         liveUpstream = new MockWebServer();
         liveUpstream.start();
 
+        live500Upstream = new MockWebServer();
+        live500Upstream.start();
+
         // Find a free port to act as dead upstream
         try (var socket = new java.net.ServerSocket(0)) {
             deadPort = socket.getLocalPort();
@@ -126,6 +135,9 @@ class GatewayRoutingIT {
     static void stopUpstreams() throws Exception {
         if (liveUpstream != null) {
             liveUpstream.shutdown();
+        }
+        if (live500Upstream != null) {
+            live500Upstream.shutdown();
         }
     }
 
@@ -251,6 +263,58 @@ class GatewayRoutingIT {
                 .value(body -> assertThat(body).contains("SERVICE_UNAVAILABLE"));
     }
 
+    // ── Test 4: A live upstream's own 500 survives the gateway ─────────────────────────
+    //
+    // Every production route's CircuitBreaker filter used to list `statusCodes: [500, 503]`.
+    // With 500 included, a single well-formed 500 from a HEALTHY upstream — its own real
+    // ApiError body, own code, own message — got its body discarded and replaced with the
+    // generic "service temporarily unavailable" fallback, indistinguishable from a genuine
+    // outage. First observed via inventory-service's own CATEGORY_NAME_DUPLICATE conflict
+    // reaching the gateway as an (at-the-time-unhandled) 500 and coming out the other side as
+    // SERVICE_UNAVAILABLE. Pins that a live upstream's 500 body and status now pass straight
+    // through, while circuitBreakerFallback_deadUpstream_returns503 above proves a genuinely
+    // unreachable upstream still gets the fallback (that path trips on the connection
+    // exception, not on `statusCodes`, so removing 500 from the list does not weaken it).
+
+    @Test
+    void aLive500FromAHealthyUpstreamPassesThroughUnmodified() {
+        live500Upstream.enqueue(new MockResponse()
+                .setResponseCode(500)
+                .setHeader("Content-Type", "application/json")
+                .setBody("{\"error\":{\"code\":\"CATEGORY_NAME_DUPLICATE\",\"message\":\"already exists\"}}"));
+
+        webTestClient.get()
+                .uri("/api/v1/live-500/test")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+                .expectBody(String.class)
+                .value(body -> {
+                    assertThat(body).as("the real code must survive, not get rewritten to SERVICE_UNAVAILABLE")
+                            .contains("CATEGORY_NAME_DUPLICATE");
+                    assertThat(body).doesNotContain("SERVICE_UNAVAILABLE");
+                });
+    }
+
+    @Test
+    void aLive503FromAHealthyUpstreamStillGetsTheFallback() {
+        // 503 stays in statusCodes deliberately — it's a service's own "I am unavailable"
+        // signal (e.g. FinanceUnavailableException), so folding it into the shared fallback
+        // is redundant, not lossy the way rewriting a 500 was.
+        live500Upstream.enqueue(new MockResponse()
+                .setResponseCode(503)
+                .setHeader("Content-Type", "application/json")
+                .setBody("{\"error\":{\"code\":\"SOME_SPECIFIC_CODE\",\"message\":\"unavailable\"}}"));
+
+        webTestClient.get()
+                .uri("/api/v1/live-500/test")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("SERVICE_UNAVAILABLE"));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────────────────
 
     private String buildToken(UUID tenantId) throws Exception {
@@ -315,6 +379,17 @@ class GatewayRoutingIT {
                                             .setName("deadCircuitBreaker")
                                             .setFallbackUri("forward:/fallback/service-unavailable")))
                             .uri("http://localhost:" + GatewayRoutingIT.deadPort))
+                    // Live-500 route: same statusCodes:[503]-only shape production routes now
+                    // use, pointed at its OWN dedicated MockWebServer (not liveUpstream) so a
+                    // per-test enqueued response is guaranteed to be what this "upstream" answers.
+                    .route("test-live-500", r -> r
+                            .path("/api/v1/live-500/**")
+                            .filters(f -> f
+                                    .circuitBreaker(config -> config
+                                            .setName("live500CircuitBreaker")
+                                            .setFallbackUri("forward:/fallback/service-unavailable")
+                                            .setStatusCodes(java.util.Set.of("503"))))
+                            .uri("http://localhost:" + live500Upstream.getPort()))
                     .build();
         }
     }

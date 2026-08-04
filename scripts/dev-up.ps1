@@ -12,6 +12,12 @@ try {
     $pgPass = (Select-String -Path ".env" -Pattern "^POSTGRES_SUPERUSER_PASSWORD=" | ForEach-Object { $_.Line.Split("=", 2)[1] })
     "postgres:5432:*:${pgUser}:${pgPass}" | Set-Content ".pgpass" -NoNewline
 
+    # MUST run before `docker compose up`: the rabbitmq service bind-mounts
+    # init/rabbitmq-definitions.json, which phase 12 turned into a gitignored, rendered artifact.
+    # If it is missing at container-create time Docker substitutes a directory and RabbitMQ comes
+    # up with no declarative user at all.
+    & "$PSScriptRoot\render-rabbitmq-definitions.ps1"
+
     # docker compose writes build progress to stderr; under EAP=Stop that aborts the script.
     # Run native docker calls under EAP=Continue and check $LASTEXITCODE explicitly instead.
     $prevEAP = $ErrorActionPreference

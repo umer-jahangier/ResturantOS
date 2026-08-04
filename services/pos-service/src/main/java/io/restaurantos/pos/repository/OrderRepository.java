@@ -32,6 +32,20 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             Pageable pageable);
 
     /**
+     * Explicitly tenant-scoped listing. pos_db's tables are ENABLE (not FORCE) ROW LEVEL SECURITY
+     * and the application owns them, so RLS is inert on this connection — the tenant predicate has
+     * to be in the query itself rather than relied on from the database or the ambient Hibernate
+     * filter, which is not applied on non-web call paths.
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId AND o.branchId = :branchId "
+            + "AND o.status IN :statuses ORDER BY o.createdAt DESC")
+    Page<Order> findByTenantIdAndBranchIdAndStatusIn(
+            @Param("tenantId") UUID tenantId,
+            @Param("branchId") UUID branchId,
+            @Param("statuses") Collection<OrderStatus> statuses,
+            Pageable pageable);
+
+    /**
      * Same as {@link #findByBranchIdAndStatusIn} but additionally scoped to a single
      * creator (POS-09 own-vs-all-branch visibility — a caller without the all-branch
      * permission is silently scoped to their own orders, never a client-supplied filter).

@@ -27,6 +27,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { CustomerPicker } from "@/components/crm/customer-picker";
+import type { Customer } from "@/lib/models/crm.model";
 import { Button } from "@/components/ui/button";
 
 // Credit limit is rupees in (what a human types), paisa out on submit — same
@@ -77,6 +79,21 @@ function toCreateCustomerAccountInput(
   };
 }
 
+/**
+ * Pre-fills the identity fields from a CRM customer so the same person is not typed in twice.
+ * Only fields the operator has not already edited are overwritten — picking a customer must never
+ * silently discard something they typed.
+ */
+function applyCustomer(
+  form: ReturnType<typeof useForm<CustomerAccountFormValues>>,
+  customer: Customer | null,
+) {
+  if (!customer) return;
+  if (!form.getValues("name").trim()) form.setValue("name", customer.name, { shouldValidate: true });
+  if (!form.getValues("contactName").trim()) form.setValue("contactName", customer.name);
+  if (!form.getValues("contactPhone").trim()) form.setValue("contactPhone", customer.phone);
+}
+
 interface CustomerAccountFormDialogProps {
   trigger: React.ReactNode;
 }
@@ -84,6 +101,11 @@ interface CustomerAccountFormDialogProps {
 /** FIN-05 AR half (10-18): create a corporate/house account (catering client, regular on account). */
 export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialogProps) {
   const [open, setOpen] = useState(false);
+  // The account's CRM identity. `customer_accounts.crm_customer_id` exists in the entity, the
+  // request DTO, the service, the Zod schema and the adapter — every layer but this form, so it
+  // was always null and every house account was an orphan: the same person held loyalty points
+  // under one record and an AR balance under another, with nothing joining them.
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const { branchId } = useCurrentUser();
   const createCustomerAccount = useCreateCustomerAccount();
 
@@ -94,20 +116,26 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) form.reset(defaultValues());
+    if (next) {
+      form.reset(defaultValues());
+      setCustomer(null);
+    }
   }
 
   function onSubmit(values: CustomerAccountFormValues) {
     if (!branchId) return;
-    createCustomerAccount.mutate(toCreateCustomerAccountInput(branchId, values), {
-      onSuccess: () => {
-        toast.success("House account created");
-        setOpen(false);
+    createCustomerAccount.mutate(
+      { ...toCreateCustomerAccountInput(branchId, values), ...(customer ? { crmCustomerId: customer.id } : {}) },
+      {
+        onSuccess: () => {
+          toast.success("House account created");
+          setOpen(false);
+        },
+        onError: (error) => {
+          toast.error(error.message || "Could not create the house account. Please try again.");
+        },
       },
-      onError: (error) => {
-        toast.error(error.message || "Could not create the house account. Please try again.");
-      },
-    });
+    );
   }
 
   return (
@@ -129,6 +157,21 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
             className="grid gap-4"
             noValidate
           >
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium">Customer</p>
+              <CustomerPicker
+                value={customer}
+                onChange={(c) => {
+                  setCustomer(c);
+                  applyCustomer(form, c);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Link an existing customer so their loyalty and their account balance stay on one
+                record. Leave empty for a corporate account with no customer profile.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}

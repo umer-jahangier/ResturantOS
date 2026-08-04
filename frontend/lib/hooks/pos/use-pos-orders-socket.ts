@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSessionStore } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/hooks/query-keys";
+import { wsUrl } from "@/lib/hooks/ws-base-url";
 import { apiOrderSchema } from "@/lib/api-client/schemas/pos.schema";
 import { adaptOrder } from "@/lib/adapters/pos.adapter";
 import type { Order } from "@/lib/models/pos.model";
@@ -47,9 +48,7 @@ export function usePosOrdersSocket({ branchId }: UsePosOrdersSocketOptions): Use
     function openSocket() {
       if (destroyed) return;
 
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = process.env.NEXT_PUBLIC_POS_WS_URL ?? window.location.host;
-      const url = `${protocol}//${host}/api/v1/pos/ws/orders/${branchId}?token=${accessToken}`;
+      const url = wsUrl(`/api/v1/pos/ws/orders/${branchId}?token=${accessToken}`);
 
       ws = new WebSocket(url);
 
