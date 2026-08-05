@@ -59,6 +59,8 @@ management:
 restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  encryption:
+    key: ${ENCRYPTION_KEY:}
   # Source of truth for @RequiresFeature checks — shared-lib resolves a feature-flag cache miss
   # from platform-admin (which owns tenant_features). Without it every gated endpoint 403s.
   platform-admin:
@@ -73,14 +75,6 @@ restaurantos:
     readonly-user: ${CLICKHOUSE_READONLY_USER:nlq_readonly}
     readonly-password: ${CLICKHOUSE_READONLY_PASSWORD:}
   nlq:
-    anthropic:
-      api-key: ${ANTHROPIC_API_KEY:}
-      base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
-      # Current model aliases. Docs/agent-specs/05-environment-variables.md hardcodes the stale
-      # claude-sonnet-4-20250514 / claude-haiku-4-20250514 — the latter is not a real model ID and
-      # would hard-fail the API. Do not reintroduce dated IDs here.
-      model-sql: ${ANTHROPIC_MODEL_SQL:claude-sonnet-4-6}
-      model-narrative: ${ANTHROPIC_MODEL_NARRATIVE:claude-haiku-4-5}
     monthly-quota-default: ${NLQ_MONTHLY_QUOTA_DEFAULT:500}
     user-hourly-limit: ${NLQ_USER_HOURLY_LIMIT:30}
     max-result-rows: ${NLQ_MAX_RESULT_ROWS:10000}

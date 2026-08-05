@@ -1,8 +1,9 @@
 package io.restaurantos.nlq.exception;
 
-import io.restaurantos.nlq.claude.ClaudeUnavailableException;
 import io.restaurantos.nlq.execution.NlqRowCapExceededException;
 import io.restaurantos.nlq.execution.NlqTimeoutException;
+import io.restaurantos.nlq.llm.LlmNotConfiguredException;
+import io.restaurantos.nlq.llm.LlmUnavailableException;
 import io.restaurantos.nlq.quota.QuotaExceededException;
 import io.restaurantos.nlq.quota.QuotaServiceUnavailableException;
 import io.restaurantos.nlq.validation.NlqRejectedException;
@@ -51,13 +52,32 @@ public class NlqGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
     }
 
-    @ExceptionHandler(ClaudeUnavailableException.class)
-    public ResponseEntity<ProblemDetail> handleClaudeUnavailable(ClaudeUnavailableException ex) {
+    /**
+     * The tenant has not configured an AI provider/key, or their config is disabled.
+     * HTTP 503 with code {@code AI_NOT_CONFIGURED} — the frontend shows a distinct notice with
+     * a link to Settings → AI.
+     */
+    @ExceptionHandler(LlmNotConfiguredException.class)
+    public ResponseEntity<ProblemDetail> handleLlmNotConfigured(LlmNotConfiguredException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+        pd.setTitle("AI_NOT_CONFIGURED");
+        pd.setType(URI.create("urn:restaurantos:nlq:ai-not-configured"));
+        pd.setProperty("code", "AI_NOT_CONFIGURED");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
+    }
+
+    /**
+     * The LLM provider returned a non-2xx response, timed out, or was otherwise unreachable.
+     * Replaces the old {@code ClaudeUnavailableException} handler — all three provider clients
+     * throw {@link LlmUnavailableException}.
+     */
+    @ExceptionHandler(LlmUnavailableException.class)
+    public ResponseEntity<ProblemDetail> handleLlmUnavailable(LlmUnavailableException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
                 "The NLQ SQL-generation service is temporarily unavailable");
-        pd.setTitle("CLAUDE_UNAVAILABLE");
-        pd.setType(URI.create("urn:restaurantos:nlq:claude-unavailable"));
-        pd.setProperty("code", "CLAUDE_UNAVAILABLE");
+        pd.setTitle("LLM_UNAVAILABLE");
+        pd.setType(URI.create("urn:restaurantos:nlq:llm-unavailable"));
+        pd.setProperty("code", "LLM_UNAVAILABLE");
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
     }
 

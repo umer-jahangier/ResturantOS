@@ -1,15 +1,17 @@
 package io.restaurantos.nlq.service;
 
+import io.restaurantos.nlq.aiconfig.TenantAiConfigService;
 import io.restaurantos.nlq.audit.NlqQueryLogService;
 import io.restaurantos.nlq.cache.NlqResultCache;
-import io.restaurantos.nlq.claude.ClaudeClient;
-import io.restaurantos.nlq.claude.ClaudeUnavailableException;
 import io.restaurantos.nlq.claude.SchemaPromptBuilder;
 import io.restaurantos.nlq.dto.NlqQueryResponse;
 import io.restaurantos.nlq.execution.ClickHouseReadOnlyExecutor;
 import io.restaurantos.nlq.execution.ExecutionResult;
 import io.restaurantos.nlq.execution.NlqRowCapExceededException;
 import io.restaurantos.nlq.execution.NlqTimeoutException;
+import io.restaurantos.nlq.llm.LlmClient;
+import io.restaurantos.nlq.llm.LlmNotConfiguredException;
+import io.restaurantos.nlq.llm.LlmUnavailableException;
 import io.restaurantos.nlq.quota.NlqQuotaService;
 import io.restaurantos.nlq.quota.QuotaExceededException;
 import io.restaurantos.nlq.quota.QuotaServiceUnavailableException;
@@ -32,15 +34,17 @@ import java.util.Set;
  * <pre>
  * 1. Reserve quota (monthly tenant + hourly user).       -&gt; QuotaExceededException / 429
  * 2. Cache lookup.                                        -&gt; HIT: rollback quota, return.
- * 3. Build role-scoped schema prompt; call Claude.        -&gt; ClaudeUnavailableException / 503
+ * 3. Resolve tenant's LLM client; build schema prompt;
+ *    call LLM for SQL.                                    -&gt; LlmNotConfiguredException / 503
+ *                                                            LlmUnavailableException / 503
  * 4. sqlValidationPipeline.validate(rawSql, ctx).          -&gt; NlqRejectedException / 400
  * 5. Execute via ClickHouseReadOnlyExecutor (nlq_readonly, 5s, row cap).
- * 6. Narrate via Claude Haiku — BEST EFFORT, never fails the request.
+ * 6. Narrate via LLM — BEST EFFORT, never fails the request.
  * 7. Cache the result (60s). Audit with executed_sql/row_count/duration_ms.
  * 8. Return.
  * </pre>
  *
- * <p>Every outcome — success, quota rejection, cache hit, Claude failure, validator rejection,
+ * <p>Every outcome — success, quota rejection, cache hit, LLM failure, validator rejection,
  * execution failure — writes exactly one {@code nlq_query_log} row. Nothing that fails validation
  * is EVER executed; there is no bypass, no admin override, no debug flag that skips it.
  */
@@ -52,19 +56,19 @@ public class NlqService {
     private final NlqQuotaService quotaService;
     private final NlqResultCache resultCache;
     private final SchemaPromptBuilder schemaPromptBuilder;
-    private final ClaudeClient claudeClient;
+    private final TenantAiConfigService aiConfigService;
     private final SqlValidationPipeline sqlValidationPipeline;
     private final ClickHouseReadOnlyExecutor executor;
     private final NlqQueryLogService queryLogService;
 
     public NlqService(NlqQuotaService quotaService, NlqResultCache resultCache,
-                       SchemaPromptBuilder schemaPromptBuilder, ClaudeClient claudeClient,
+                       SchemaPromptBuilder schemaPromptBuilder, TenantAiConfigService aiConfigService,
                        SqlValidationPipeline sqlValidationPipeline, ClickHouseReadOnlyExecutor executor,
                        NlqQueryLogService queryLogService) {
         this.quotaService = quotaService;
         this.resultCache = resultCache;
         this.schemaPromptBuilder = schemaPromptBuilder;
-        this.claudeClient = claudeClient;
+        this.aiConfigService = aiConfigService;
         this.sqlValidationPipeline = sqlValidationPipeline;
         this.executor = executor;
         this.queryLogService = queryLogService;
@@ -96,14 +100,20 @@ public class NlqService {
             return toResponse(question, hit.executedSql(), hit.rows(), hit.narrative(), true, 0L);
         }
 
-        // 3. Build the role-scoped schema prompt; call Claude for SQL.
+        // 3. Resolve the tenant's LLM client and call it for SQL.
+        LlmClient llmClient;
         String rawSql;
         try {
+            llmClient = aiConfigService.resolveLlmClient(ctx.tenantId());
             String schemaPrompt = schemaPromptBuilder.buildFor(ctx.roleCode());
-            rawSql = claudeClient.generateSql(question, schemaPrompt);
-        } catch (ClaudeUnavailableException ex) {
+            rawSql = llmClient.generateSql(question, schemaPrompt);
+        } catch (LlmNotConfiguredException ex) {
             quotaService.rollback(ctx.tenantId(), ctx.userId());
-            queryLogService.log(ctx, question, null, null, "CLAUDE_UNAVAILABLE", null, null, false);
+            queryLogService.log(ctx, question, null, null, "AI_NOT_CONFIGURED", null, null, false);
+            throw ex;
+        } catch (LlmUnavailableException ex) {
+            quotaService.rollback(ctx.tenantId(), ctx.userId());
+            queryLogService.log(ctx, question, null, null, "LLM_UNAVAILABLE", null, null, false);
             throw ex;
         }
 
@@ -118,7 +128,7 @@ public class NlqService {
         }
 
         // 5. Execute as nlq_readonly (5s timeout, row cap) — reachable ONLY via the validated SQL
-        //    above. Timeout/row-cap failures are NOT rolled back: Claude has already been called,
+        //    above. Timeout/row-cap failures are NOT rolled back: the LLM has already been called,
         //    so the quota unit is legitimately spent regardless of the downstream outcome.
         ExecutionResult result;
         try {
@@ -133,8 +143,8 @@ public class NlqService {
 
         // 6. Narrate — best-effort. A narration failure returns the rows with a null narrative,
         //    it never fails the overall request. An EMPTY result is not narrated at all: there is
-        //    nothing to describe, and it avoids spending a second Claude call on "no rows".
-        String narrative = result.rows().isEmpty() ? null : tryNarrate(question, result.rows());
+        //    nothing to describe, and it avoids spending a second LLM call on "no rows".
+        String narrative = result.rows().isEmpty() ? null : tryNarrate(question, result.rows(), llmClient);
 
         // 7. Cache (60s) and audit the success.
         resultCache.put(cacheKey, new NlqResultCache.CachedResult(result.rows(), safeSql, narrative));
@@ -145,9 +155,9 @@ public class NlqService {
         return toResponse(question, safeSql, result.rows(), narrative, false, result.elapsedMs());
     }
 
-    private String tryNarrate(String question, List<Map<String, Object>> rows) {
+    private String tryNarrate(String question, List<Map<String, Object>> rows, LlmClient llmClient) {
         try {
-            return claudeClient.narrate(question, rows);
+            return llmClient.narrate(question, rows);
         } catch (RuntimeException ex) {
             log.warn("[nlq-service] Narration failed — returning rows with a null narrative", ex);
             return null;

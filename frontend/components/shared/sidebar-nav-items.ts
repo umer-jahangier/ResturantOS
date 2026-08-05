@@ -321,6 +321,13 @@ export const navGroups: NavGroup[] = [
         roles: ["OWNER", "TENANT_ADMIN"],
       },
       {
+        label: "AI / NLQ",
+        href: "/app/settings/ai",
+        icon: Sparkles,
+        feature: "FEATURE_NLQ",
+        roles: ["OWNER", "TENANT_ADMIN"],
+      },
+      {
         label: "Users",
         href: "/app/settings/users",
         icon: Users,

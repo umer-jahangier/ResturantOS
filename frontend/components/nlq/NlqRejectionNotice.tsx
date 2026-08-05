@@ -60,6 +60,10 @@ const REJECTION_COPY: Record<string, { title: string; message: string }> = {
     title: "This feature is temporarily unavailable",
     message: "The question service is temporarily unavailable. Please try again.",
   },
+  AI_NOT_CONFIGURED: {
+    title: "AI is not configured for your restaurant",
+    message: "Ask your restaurant owner to set up an API key in Settings → AI.",
+  },
 };
 
 function quotaCopy(error: NlqQueryError): { title: string; message: string } {
