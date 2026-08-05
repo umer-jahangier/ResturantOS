@@ -83,7 +83,7 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
         assertThat(stock.getQtyOnHand()).isEqualByComparingTo("10");
         assertThat(stock.getAvgCostPaisa())
                 .as("moving-average cost must absorb the PO's contracted price")
-                .isEqualTo(5_000L);
+                .isEqualByComparingTo("5000");
 
         assertThat(lotRepository.findByStockIdOrderByExpiryDateAsc(stock.getId())).hasSize(1);
 
@@ -121,7 +121,7 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
         assertThat(stock.getQtyOnHand()).isEqualByComparingTo("20");
         assertThat(stock.getAvgCostPaisa())
                 .as("(10*5000 + 10*7000) / 20")
-                .isEqualTo(6_000L);
+                .isEqualByComparingTo("6000");
     }
 
     /** Purchasing may retry freely: the same eventId must not double-receive the stock. */
@@ -202,8 +202,8 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
                 .isEqualByComparingTo("10000");
         assertThat(stock.getAvgCostPaisa())
                 .as("62,000 paisa per kg is 62 paisa per gram — not 62,000")
-                .isEqualTo(62L);
-        assertThat(stock.getQtyOnHand().multiply(BigDecimal.valueOf(stock.getAvgCostPaisa())))
+                .isEqualByComparingTo("62");
+        assertThat(stock.getQtyOnHand().multiply(stock.getAvgCostPaisa()))
                 .as("the receipt was worth 10 * 62,000 paisa; conversion must not create or destroy value")
                 .isEqualByComparingTo("620000");
     }
@@ -227,8 +227,8 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
                 .findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
                 .orElseThrow();
         assertThat(stock.getQtyOnHand()).isEqualByComparingTo("20000");
-        assertThat(stock.getAvgCostPaisa()).isEqualTo(62L);
-        assertThat(stock.getQtyOnHand().multiply(BigDecimal.valueOf(stock.getAvgCostPaisa())))
+        assertThat(stock.getAvgCostPaisa()).isEqualByComparingTo("62");
+        assertThat(stock.getQtyOnHand().multiply(stock.getAvgCostPaisa()))
                 .as("4 * 310,000 paisa")
                 .isEqualByComparingTo("1240000");
     }
@@ -293,7 +293,7 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
         IngredientBranchStock stock = stockRepository.findByBranchIdAndIngredientId(branchId, ingredientId)
                 .orElseThrow();
         assertThat(stock.getQtyOnHand()).isEqualByComparingTo("10");
-        assertThat(stock.getAvgCostPaisa()).isEqualTo(5_000L);
+        assertThat(stock.getAvgCostPaisa()).isEqualByComparingTo("5000");
     }
 
     /** A tenant of its own, so setUp's dimension-less "KG" fixture cannot shadow the real one. */

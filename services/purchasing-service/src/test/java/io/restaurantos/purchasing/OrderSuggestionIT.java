@@ -114,7 +114,7 @@ class OrderSuggestionIT extends PurchasingTestBase {
         item.setPackDescription(qtyPerOrderUnit + "kg case");
         item.setPackQty(qtyPerOrderUnit);
         item.setPackUom("kg");
-        item.setQtyPerOrderUnitInStockUom(qtyPerOrderUnit);
+        item.setPackUnitsPerOrderUnit(qtyPerOrderUnit);
         item.setMinOrderQty(minOrderQty);
         item.setOrderMultiple(orderMultiple);
         item.setPreferred(preferred);
@@ -219,7 +219,7 @@ class OrderSuggestionIT extends PurchasingTestBase {
         item.setOrderUom("kg");
         item.setPackQty(BigDecimal.ONE);
         item.setPackUom("kg");
-        item.setQtyPerOrderUnitInStockUom(null);
+        item.setPackUnitsPerOrderUnit(null);
         item.setPreferred(true);
         UUID vendorItemId = vendorItemRepository.save(item).getId();
         seedPrice(vendorItemId, 1_000L);

@@ -217,6 +217,12 @@ export const apiPoLineSchema = z.object({
   vendorSku: z.string().nullable().optional(),
   packDescription: z.string().nullable().optional(),
   priceOverridden: z.boolean().nullable().optional(),
+  /**
+   * How much of the line has actually been received, across every GRN against it. Optional so a
+   * response predating the field still parses; the invoice form treats absent as "unknown" and
+   * falls back to the ordered quantity.
+   */
+  receivedQty: qtyField.nullable().optional(),
 });
 
 // Mirrors PurchaseOrderDto exactly (services/purchasing-service .../dto/PurchaseOrderDto.java).

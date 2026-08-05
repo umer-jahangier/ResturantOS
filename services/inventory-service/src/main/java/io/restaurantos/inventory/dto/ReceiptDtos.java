@@ -33,17 +33,28 @@ public final class ReceiptDtos {
             @NotNull UUID ingredientId,
             @NotNull UUID branchId,
             @NotNull @Positive BigDecimal qty,
-            @NotNull @Positive Long unitCostPaisa,
+            @NotNull @Positive BigDecimal unitCostPaisa,
             LocalDate expiryDate,
             String referenceType,
             UUID referenceId) {
 
         /** Manual-receipt convenience: the shape every existing caller and IT already uses. */
         public ReceiveStockRequest(UUID ingredientId, UUID branchId, BigDecimal qty,
-                                   Long unitCostPaisa, LocalDate expiryDate) {
+                                   BigDecimal unitCostPaisa, LocalDate expiryDate) {
             this(ingredientId, branchId, qty, unitCostPaisa, expiryDate, null, null);
+        }
+
+        /**
+         * Whole-paisa convenience kept for the manual receipt screen and the many ITs that pass a
+         * literal. A cost per stock unit is a rate (V12) and may be fractional, but a caller that
+         * only has whole paisa should not have to say so.
+         */
+        public ReceiveStockRequest(UUID ingredientId, UUID branchId, BigDecimal qty,
+                                   long unitCostPaisa, LocalDate expiryDate) {
+            this(ingredientId, branchId, qty, BigDecimal.valueOf(unitCostPaisa), expiryDate, null, null);
         }
     }
 
-    public record ReceiptResultDto(UUID lotId, BigDecimal newQtyOnHand, long newAvgCostPaisa) {}
+    /** {@code newAvgCostPaisa} is a rate per stock unit (V12), so it carries decimals. */
+    public record ReceiptResultDto(UUID lotId, BigDecimal newQtyOnHand, BigDecimal newAvgCostPaisa) {}
 }

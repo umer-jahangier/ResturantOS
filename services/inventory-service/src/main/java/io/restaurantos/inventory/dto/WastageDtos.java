@@ -44,6 +44,6 @@ public final class WastageDtos {
     public record WastageLineDto(
             UUID ingredientId,
             BigDecimal qty,
-            long unitCostPaisa,
+            BigDecimal unitCostPaisa,
             long lineCostPaisa) {}
 }

@@ -66,7 +66,7 @@ public class ReceiptService {
                 .orElseGet(() -> newStockRow(tenantId, request.branchId(), request.ingredientId()));
 
         BigDecimal oldQty = stock.getQtyOnHand();
-        long newAvgCostPaisa = MacCalculator.recomputeAvgCostPaisa(
+        BigDecimal newAvgCostPaisa = MacCalculator.recomputeAvgCostPaisa(
                 oldQty, stock.getAvgCostPaisa(), request.qty(), request.unitCostPaisa());
 
         stock.setQtyOnHand(oldQty.add(request.qty()));
@@ -83,10 +83,8 @@ public class ReceiptService {
         lot.setReceiptUnitCostPaisa(request.unitCostPaisa());
         StockLot savedLot = lotRepository.save(lot);
 
-        long totalCostPaisa = request.qty()
-                .multiply(BigDecimal.valueOf(request.unitCostPaisa()))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+        // The one place a rate becomes an amount: qty × unit cost, rounded to whole paisa once.
+        long totalCostPaisa = MacCalculator.extendedCostPaisa(request.qty(), request.unitCostPaisa());
 
         InventoryMovement movement = new InventoryMovement();
         movement.setTenantId(tenantId);
@@ -125,7 +123,7 @@ public class ReceiptService {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(BigDecimal.ZERO);
-        stock.setAvgCostPaisa(0L);
+        stock.setAvgCostPaisa(BigDecimal.ZERO);
         return stock;
     }
 }

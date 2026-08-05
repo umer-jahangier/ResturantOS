@@ -48,5 +48,5 @@ public final class TransferDtos {
             BigDecimal qtyShipped,
             BigDecimal qtyReceived,
             BigDecimal varianceQty,
-            long unitCostPaisa) {}
+            BigDecimal unitCostPaisa) {}
 }

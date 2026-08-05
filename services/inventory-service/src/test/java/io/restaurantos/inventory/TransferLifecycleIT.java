@@ -68,7 +68,7 @@ class TransferLifecycleIT extends InventoryTestBase {
         assertThat(shipped.status()).isEqualTo("SHIPPED");
         assertThat(shipped.lines()).hasSize(1);
         assertThat(shipped.lines().get(0).qtyShipped()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(shipped.lines().get(0).unitCostPaisa()).isEqualTo(400L);
+        assertThat(shipped.lines().get(0).unitCostPaisa()).isEqualByComparingTo("400");
 
         IngredientBranchStock sourceStock = stockRepository
                 .findByBranchIdAndIngredientId(fromBranchId, ingredientId).orElseThrow();
@@ -78,7 +78,7 @@ class TransferLifecycleIT extends InventoryTestBase {
         assertThat(outMovements).hasSize(1);
         assertThat(outMovements.get(0).getMovementType()).isEqualTo("TRANSFER_OUT");
         assertThat(outMovements.get(0).getQty()).isEqualByComparingTo(BigDecimal.valueOf(-20));
-        assertThat(outMovements.get(0).getUnitCostPaisa()).isEqualTo(400L);
+        assertThat(outMovements.get(0).getUnitCostPaisa()).isEqualByComparingTo("400");
 
         // Scoped by tenantId (unique per test, freshly randomized in setUp) AND eventType —
         // event_outbox has no RLS (shared infra table) and InventoryTestBase's Flyway clean()
@@ -105,11 +105,15 @@ class TransferLifecycleIT extends InventoryTestBase {
         assertThat(received.lines().get(0).qtyReceived()).isEqualByComparingTo(BigDecimal.valueOf(20));
         assertThat(received.lines().get(0).varianceQty()).isEqualByComparingTo(BigDecimal.ZERO);
 
-        // Destination MAC recompute: (10*300 + 20*400) / 30 = (3000 + 8000) / 30 = 366.67 -> 367 HALF_UP
+        // Destination MAC recompute: (10*300 + 20*400) / 30 = 11000 / 30 = 366.6667.
+        //
+        // V12 changed this number, deliberately. MAC is a RATE per stock unit, and the old BIGINT
+        // column forced it to 367 — an eighth of a paisa of error, seeded into every subsequent
+        // blend and into the COGS of everything made from this stock. The fraction is now kept.
         IngredientBranchStock destStock = stockRepository
                 .findByBranchIdAndIngredientId(toBranchId, ingredientId).orElseThrow();
         assertThat(destStock.getQtyOnHand()).isEqualByComparingTo(BigDecimal.valueOf(30)); // 10 + 20
-        assertThat(destStock.getAvgCostPaisa()).isEqualTo(367L);
+        assertThat(destStock.getAvgCostPaisa()).isEqualByComparingTo("366.6667");
 
         List<InventoryMovement> inMovements = movementRepository.findByReferenceId(shipped.transferId()).stream()
                 .filter(m -> "TRANSFER_IN".equals(m.getMovementType())).toList();

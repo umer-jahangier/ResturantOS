@@ -80,7 +80,7 @@ class RecipeCostPreviewTest {
     private static IngredientBranchStock stock(UUID ingredientId, long avgCostPaisa) {
         IngredientBranchStock stock = new IngredientBranchStock();
         stock.setIngredientId(ingredientId);
-        stock.setAvgCostPaisa(avgCostPaisa);
+        stock.setAvgCostPaisa(BigDecimal.valueOf(avgCostPaisa));
         return stock;
     }
 

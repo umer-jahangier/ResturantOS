@@ -33,9 +33,12 @@ public class StockWastageLine extends TenantAuditableEntity {
     @Column(name = "qty", nullable = false)
     private BigDecimal qty;
 
-    /** The moving-average cost at write-off time — wastage is valued at MAC, never at lot cost. */
-    @Column(name = "unit_cost_paisa", nullable = false)
-    private long unitCostPaisa;
+    /**
+     * The moving-average cost at write-off time — wastage is valued at MAC, never at lot cost.
+     * A rate per stock unit, in paisa (V12: NUMERIC(18,4)).
+     */
+    @Column(name = "unit_cost_paisa", nullable = false, precision = 18, scale = 4)
+    private BigDecimal unitCostPaisa = BigDecimal.ZERO;
 
     @Column(name = "line_cost_paisa", nullable = false)
     private long lineCostPaisa;

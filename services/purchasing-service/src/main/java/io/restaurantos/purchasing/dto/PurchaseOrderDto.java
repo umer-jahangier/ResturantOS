@@ -41,6 +41,15 @@ public record PurchaseOrderDto(
             UUID vendorItemId,
             String vendorSku,
             String packDescription,
-            boolean priceOverridden
+            boolean priceOverridden,
+            /**
+             * How much of this line has actually been received, summed across every GRN against it.
+             *
+             * <p>Exists so the invoice form can default to what ARRIVED rather than to what was
+             * ordered. Defaulting to the ordered quantity invites booking an invoice for goods that
+             * were never delivered — the three-way match would then flag it, but only after the
+             * liability had been raised, and only if someone read the flag.
+             */
+            java.math.BigDecimal receivedQty
     ) {}
 }

@@ -20,6 +20,23 @@ public interface MockGrnReceiptRepository extends JpaRepository<MockGrnReceipt, 
     @Query("SELECT COALESCE(SUM(r.receivedQty), 0) FROM MockGrnReceipt r WHERE r.poLineId = :poLineId")
     BigDecimal sumReceivedQtyByPoLineId(@Param("poLineId") UUID poLineId);
 
+    /**
+     * Received quantity per PO line for a whole purchase order, in ONE grouped query — never one
+     * {@link #sumReceivedQtyByPoLineId} call per line, which is the "no count query per node" rule
+     * the category and storage-location readers already follow.
+     *
+     * <p>Feeds {@code PurchaseOrderDto.LineDto.receivedQty}, which is what lets the invoice form
+     * default to what actually ARRIVED rather than to what was ordered. Row shape:
+     * {@code [UUID poLineId, BigDecimal receivedQty]}.
+     */
+    @Query("""
+            SELECT r.poLineId, COALESCE(SUM(r.receivedQty), 0) FROM MockGrnReceipt r
+             WHERE r.purchaseOrderId = :purchaseOrderId
+             GROUP BY r.poLineId
+            """)
+    List<Object[]> sumReceivedQtyByPurchaseOrderGroupedByLine(
+            @Param("purchaseOrderId") UUID purchaseOrderId);
+
     Optional<MockGrnReceipt> findByTenantIdAndIdempotencyKey(UUID tenantId, String idempotencyKey);
 
     List<MockGrnReceipt> findByPurchaseOrderId(UUID purchaseOrderId);

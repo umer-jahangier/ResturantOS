@@ -111,7 +111,9 @@ export default function StockPage() {
     {
       accessorKey: "avgCostPaisa",
       header: "Avg cost",
-      cell: ({ row }) => <MoneyDisplay paisa={row.original.avgCostPaisa} />,
+      // A rate per stock unit, not an amount: an ingredient held in grams costs a fraction of a
+      // paisa each, and two decimal places would round every one of them to Rs 0.00.
+      cell: ({ row }) => <MoneyDisplay paisa={row.original.avgCostPaisa} maxFractionDigits={4} />,
     },
     {
       accessorKey: "stockValuePaisa",

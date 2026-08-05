@@ -106,6 +106,7 @@ interface MockPoLine {
   vendorSku: string | null;
   packDescription: string | null;
   priceOverridden: boolean;
+  receivedQty?: string | null;
 }
 
 interface MockPo {
@@ -179,6 +180,7 @@ const purchaseOrders: MockPo[] = [
         vendorSku: null,
         packDescription: null,
         priceOverridden: false,
+        receivedQty: "0",
       },
       {
         id: LINE_ID_2,
@@ -191,6 +193,7 @@ const purchaseOrders: MockPo[] = [
         vendorSku: null,
         packDescription: null,
         priceOverridden: false,
+        receivedQty: "0",
       },
     ],
   },
@@ -209,7 +212,7 @@ interface MockVendorItem {
   packQty: string;
   packUom: string;
   /** How many STOCK units one ORDER unit holds. Absent means they are the same unit. */
-  qtyPerOrderUnitInStockUom?: string | null;
+  packUnitsPerOrderUnit?: string | null;
   minOrderQty: string | null;
   orderMultiple: string | null;
   leadTimeDays: number | null;
@@ -493,10 +496,10 @@ const reorderShortfalls = [
  * same ceiling-at-every-step rule the server applies, because rounding down would land the
  * delivery already below par. */
 function orderQtyFor(shortfall: string, item: MockVendorItem): string {
-  // qtyPerOrderUnitInStockUom, NOT packQty: a row can describe a "10kg case" while still being
+  // packUnitsPerOrderUnit, NOT packQty: a row can describe a "10kg case" while still being
   // ordered by the kilo, and dividing by the pack size there would under-order tenfold. Absent
   // means the order unit IS the stock unit, matching OrderSuggestionService.
-  const perOrderUnit = Number(item.qtyPerOrderUnitInStockUom ?? 1) || 1;
+  const perOrderUnit = Number(item.packUnitsPerOrderUnit ?? 1) || 1;
   let units = Math.ceil(Number(shortfall) / perOrderUnit);
   const multiple = Number(item.orderMultiple);
   if (multiple > 0) units = Math.ceil(units / multiple) * multiple;
@@ -635,6 +638,7 @@ export const purchasingHandlers = [
           vendorSku: item.vendorSku,
           packDescription: item.packDescription,
           priceOverridden: false,
+        receivedQty: "0",
         };
       }),
     }));
@@ -950,6 +954,7 @@ export const purchasingHandlers = [
           vendorSku: null,
           packDescription: null,
           priceOverridden: false,
+        receivedQty: "0",
         });
       }
     }

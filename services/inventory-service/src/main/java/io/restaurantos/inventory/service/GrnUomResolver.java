@@ -42,6 +42,8 @@ public class GrnUomResolver {
 
     /** {@code qty_on_hand} and {@code stock_lots.qty} are both NUMERIC(18,4). */
     private static final int QTY_SCALE = 4;
+    /** Per-unit costs are NUMERIC(18,4) as of V12 — a rate, not a whole-paisa amount. */
+    private static final int COST_SCALE = 4;
 
     private final IngredientRepository ingredientRepository;
     private final UnitOfMeasureRepository unitOfMeasureRepository;
@@ -54,10 +56,10 @@ public class GrnUomResolver {
 
     /**
      * @param qtyInBaseUom        quantity in the ingredient's own stock unit
-     * @param unitCostPaisaPerBaseUom cost of ONE stock unit, whole paisa
+     * @param unitCostPaisaPerBaseUom cost of ONE stock unit, in paisa — a rate, so fractional (V12)
      * @param converted           whether a factor other than one was applied — for logging/tests
      */
-    public record BaseUnitReceipt(BigDecimal qtyInBaseUom, long unitCostPaisaPerBaseUom,
+    public record BaseUnitReceipt(BigDecimal qtyInBaseUom, BigDecimal unitCostPaisaPerBaseUom,
                                   boolean converted) {}
 
     /**
@@ -69,7 +71,7 @@ public class GrnUomResolver {
         BigDecimal factor = resolveFactor(tenantId, ingredientId, grnId, packUomCode);
 
         BigDecimal qty = packQty.multiply(factor).setScale(QTY_SCALE, RoundingMode.HALF_UP);
-        long unitCost = unitCostPaisa(packCost, factor, ingredientId, grnId);
+        BigDecimal unitCost = unitCostPaisa(packCost, factor);
         return new BaseUnitReceipt(qty, unitCost, factor.compareTo(BigDecimal.ONE) != 0);
     }
 
@@ -121,28 +123,18 @@ public class GrnUomResolver {
     }
 
     /**
-     * Cost per stock unit. {@code avg_cost_paisa}, {@code receipt_unit_cost_paisa} and
-     * {@code inventory_movements.unit_cost_paisa} are all BIGINT, so a per-gram cost quantizes to a
-     * whole paisa — PKR&nbsp;100/kg is 10 paisa/g exactly, PKR&nbsp;62/kg rounds 6.2 to 6. That
-     * quantization predates this method and applies equally to a hand-keyed receipt; widening those
-     * columns is a separate schema change.
+     * Cost per stock unit — a rate, so it keeps its decimals (V12).
      *
-     * <p>A positive receipt cost never rounds to zero, which would read as free stock and drag MAC
-     * toward it: it clamps to one paisa and says so.
+     * <p>This used to round to a whole paisa, because that was all the columns could hold, and then
+     * clamp a sub-paisa result up to 1 so the stock was not valued at zero. Both were damage
+     * control: PKR&nbsp;62/kg is 6.2 paisa/g and was stored as 6, a 3.2% error compounded into
+     * every later moving-average blend. The columns are {@code NUMERIC(18,4)} now, so the true rate
+     * is stored and neither the rounding nor the clamp is needed.
      */
-    private long unitCostPaisa(BigDecimal packCost, BigDecimal factor, UUID ingredientId, UUID grnId) {
+    private static BigDecimal unitCostPaisa(BigDecimal packCost, BigDecimal factor) {
         if (packCost == null || packCost.signum() <= 0) {
-            return 0L;
+            return BigDecimal.ZERO;
         }
-        long unitCost = packCost.divide(factor, 6, RoundingMode.HALF_UP)
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
-        if (unitCost == 0L) {
-            log.warn("GRN {}: ingredient {} costs {} paisa per pack over a factor of {} — under half a "
-                            + "paisa per stock unit, clamped to 1 so the stock is not valued at zero.",
-                    grnId, ingredientId, packCost.toPlainString(), factor.toPlainString());
-            return 1L;
-        }
-        return unitCost;
+        return packCost.divide(factor, COST_SCALE, RoundingMode.HALF_UP);
     }
 }

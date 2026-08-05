@@ -278,10 +278,9 @@ public class StockCountService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    private static long roundCostPaisa(BigDecimal varianceQty, long avgCostPaisa) {
-        return varianceQty.multiply(BigDecimal.valueOf(avgCostPaisa))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+    /** A signed variance AMOUNT in whole paisa, from a quantity times a per-unit rate (V12). */
+    private static long roundCostPaisa(BigDecimal varianceQty, BigDecimal avgCostPaisa) {
+        return MacCalculator.extendedCostPaisa(varianceQty, avgCostPaisa);
     }
 
     private static IngredientBranchStock newStockRow(UUID tenantId, UUID branchId, UUID ingredientId) {
@@ -290,7 +289,7 @@ public class StockCountService {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(BigDecimal.ZERO);
-        stock.setAvgCostPaisa(0L);
+        stock.setAvgCostPaisa(BigDecimal.ZERO);
         return stock;
     }
 

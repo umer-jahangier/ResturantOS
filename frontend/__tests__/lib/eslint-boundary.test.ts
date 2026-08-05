@@ -13,6 +13,15 @@ function createLinter(): ESLint {
   });
 }
 
+/**
+ * Loading the real eslint.config.mjs costs whole seconds, and the cost grows with the project —
+ * these two cases sat at ~4.9s against vitest's 5s default, so adding a handful of source files
+ * was enough to time the first one out. That reads as "the layer boundary broke" when nothing
+ * about the boundary changed. These assert lint BEHAVIOUR, never lint speed; the budget is
+ * explicit and generous so it stays that way.
+ */
+const LINT_TIMEOUT_MS = 30_000;
+
 describe("ESLint layer-boundary (FE-08)", () => {
   it("flags a component importing a repository directly", async () => {
     const eslint = createLinter();
@@ -24,7 +33,7 @@ describe("ESLint layer-boundary (FE-08)", () => {
 
     const ruleIds = (result?.messages ?? []).map((message) => message.ruleId);
     expect(ruleIds).toContain("no-restricted-imports");
-  });
+  }, LINT_TIMEOUT_MS);
 
   it("allows a component importing a Layer-3 hook", async () => {
     const eslint = createLinter();
@@ -36,5 +45,5 @@ describe("ESLint layer-boundary (FE-08)", () => {
 
     const ruleIds = (result?.messages ?? []).map((message) => message.ruleId);
     expect(ruleIds).not.toContain("no-restricted-imports");
-  });
+  }, LINT_TIMEOUT_MS);
 });

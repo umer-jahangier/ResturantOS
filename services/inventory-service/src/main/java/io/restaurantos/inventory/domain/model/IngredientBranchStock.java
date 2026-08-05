@@ -34,8 +34,15 @@ public class IngredientBranchStock extends TenantAuditableEntity {
     @Column(name = "qty_on_hand", nullable = false, precision = 18, scale = 4)
     private BigDecimal qtyOnHand = BigDecimal.ZERO;
 
-    @Column(name = "avg_cost_paisa", nullable = false)
-    private long avgCostPaisa;
+    /**
+     * Moving-average cost of ONE stock unit, in paisa (V12: NUMERIC(18,4)).
+     *
+     * <p>A rate, not an amount — which is why it is not a whole paisa like a total is. An
+     * ingredient stocked in grams and bought by the kilogram has a genuinely fractional per-gram
+     * cost: PKR 62/kg is 6.2 paisa/g, and rounding that to 6 mis-valued the stock by 3.2%.
+     */
+    @Column(name = "avg_cost_paisa", nullable = false, precision = 18, scale = 4)
+    private BigDecimal avgCostPaisa = BigDecimal.ZERO;
 
     @Column(name = "last_counted_at")
     private Instant lastCountedAt;

@@ -163,7 +163,7 @@ describe("PurchaseOrderFormDialog — catalog picker (PUR-08, T-08.2-191/192/194
     expect(screen.getByText(/950\.00/)).toBeInTheDocument();
   });
 
-  it("selectingAnItemFillsUnitAndUnitPriceAndBothRemainEditable", async () => {
+  it("selectingAnItemDerivesTheUnitReadOnlyAndFillsThePriceEditably", async () => {
     seedSession();
     renderDialog();
     const { user, dialog } = await openDialog();
@@ -172,11 +172,15 @@ describe("PurchaseOrderFormDialog — catalog picker (PUR-08, T-08.2-191/192/194
     await user.click(within(dialog).getByRole("button", { name: "Select an item…" }));
     await user.click(await screen.findByText("Chicken breast, boneless"));
 
-    const unitInput = within(dialog).getByLabelText("Unit");
-    const priceInput = within(dialog).getByLabelText("Unit price (PKR)");
-    expect(unitInput).toHaveValue("kg");
-    expect(priceInput).toHaveValue("950.00");
+    // The unit is DERIVED from the chosen catalog item, not asked for: it is the unit the vendor
+    // prices in, and the pack size a goods receipt converts by hangs off that same catalog row.
+    // A hand-typed unit that disagreed with it changed nothing except what the document claimed,
+    // so it is now displayed rather than editable — hence text, not a form value.
+    expect(within(dialog).getByLabelText("Unit")).toHaveTextContent("kg");
 
+    // The price stays editable: a negotiated price is a real thing a buyer types.
+    const priceInput = within(dialog).getByLabelText("Unit price (PKR)");
+    expect(priceInput).toHaveValue("950.00");
     await user.clear(priceInput);
     await user.type(priceInput, "999.99");
     expect(priceInput).toHaveValue("999.99");
@@ -208,7 +212,7 @@ describe("PurchaseOrderFormDialog — catalog picker (PUR-08, T-08.2-191/192/194
     await user.click(within(dialog).getByRole("button", { name: "Select an item…" }));
     await user.click(await screen.findByText("Chicken breast, boneless"));
 
-    expect(within(dialog).getByLabelText("Unit")).toHaveValue("kg");
+    expect(within(dialog).getByLabelText("Unit")).toHaveTextContent("kg");
     expect(within(dialog).getByLabelText("Unit price (PKR)")).toHaveValue("950.00");
     // The trigger's visible label (its rendered text, not its static aria-label — see
     // deferred-items.md) reflects the selection.

@@ -29,7 +29,7 @@ class DepletionCogsTest {
         BigDecimal effectiveBaseQty = BigDecimal.valueOf(3);
         DepletionService.walkFefoAndFloor(lots, effectiveBaseQty);
 
-        long cogsPaisa = DepletionService.computeCogsPaisa(effectiveBaseQty, 600L);
+        long cogsPaisa = DepletionService.computeCogsPaisa(effectiveBaseQty, BigDecimal.valueOf(600L));
 
         assertThat(cogsPaisa).isEqualTo(1800L);
     }
@@ -37,7 +37,7 @@ class DepletionCogsTest {
     @Test
     void cogs_fractionalProduct_roundsHalfUp() {
         // 2.5 * 333 = 832.5 -> HALF_UP -> 833 (never floored to 832).
-        long cogsPaisa = DepletionService.computeCogsPaisa(new BigDecimal("2.5"), 333L);
+        long cogsPaisa = DepletionService.computeCogsPaisa(new BigDecimal("2.5"), BigDecimal.valueOf(333L));
 
         assertThat(cogsPaisa).isEqualTo(833L);
     }
@@ -46,7 +46,7 @@ class DepletionCogsTest {
         StockLot lot = new StockLot();
         lot.setQty(qty);
         lot.setExpiryDate(expiryDate);
-        lot.setReceiptUnitCostPaisa(receiptUnitCostPaisa);
+        lot.setReceiptUnitCostPaisa(BigDecimal.valueOf(receiptUnitCostPaisa));
         return lot;
     }
 }

@@ -129,7 +129,7 @@ public class TransferService {
                         + " at branch " + request.fromBranchId());
             }
 
-            long unitCostPaisa = stock.getAvgCostPaisa();
+            BigDecimal unitCostPaisa = stock.getAvgCostPaisa();
 
             // FEFO floor-at-zero walk over the source branch's lots (D-02), mirroring
             // DepletionService's shape; the aggregate on-hand still drops by the FULL shipped qty.
@@ -233,7 +233,7 @@ public class TransferService {
                     .orElseGet(() -> stockRepository.save(newStockRow(tenantId, transfer.getToBranchId(), line.getIngredientId())));
 
             BigDecimal oldQty = stock.getQtyOnHand();
-            long newAvgCostPaisa = MacCalculator.recomputeAvgCostPaisa(
+            BigDecimal newAvgCostPaisa = MacCalculator.recomputeAvgCostPaisa(
                     oldQty, stock.getAvgCostPaisa(), qtyReceived, line.getUnitCostPaisa());
 
             stock.setQtyOnHand(oldQty.add(qtyReceived));
@@ -270,10 +270,8 @@ public class TransferService {
                     line.getUnitCostPaisa(), roundCostPaisa(qtyReceived, line.getUnitCostPaisa())));
 
             if (varianceQty.signum() != 0) {
-                long varianceCostPaisa = varianceQty
-                        .multiply(BigDecimal.valueOf(line.getUnitCostPaisa()))
-                        .setScale(0, RoundingMode.HALF_UP)
-                        .longValueExact();
+                long varianceCostPaisa =
+                        MacCalculator.extendedCostPaisa(varianceQty, line.getUnitCostPaisa());
                 varianceEventLines.add(new TransferVarianceLine(line.getIngredientId(), varianceQty, varianceCostPaisa));
             }
         }
@@ -327,10 +325,9 @@ public class TransferService {
         lotRepository.saveAll(lots);
     }
 
-    private static long roundCostPaisa(BigDecimal qty, long unitCostPaisa) {
-        return qty.multiply(BigDecimal.valueOf(unitCostPaisa))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+    /** A quantity times a per-unit rate is an AMOUNT — whole paisa (V12). */
+    private static long roundCostPaisa(BigDecimal qty, BigDecimal unitCostPaisa) {
+        return MacCalculator.extendedCostPaisa(qty, unitCostPaisa);
     }
 
     private static IngredientBranchStock newStockRow(UUID tenantId, UUID branchId, UUID ingredientId) {
@@ -339,7 +336,7 @@ public class TransferService {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(BigDecimal.ZERO);
-        stock.setAvgCostPaisa(0L);
+        stock.setAvgCostPaisa(BigDecimal.ZERO);
         return stock;
     }
 

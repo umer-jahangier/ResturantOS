@@ -25,6 +25,17 @@ import { FieldLabel } from "@/components/shared/field-help";
 
 // Every numeric field is a string here because that is what an <input> yields; conversion to the
 // wire shape (ReceiveStockInput, one call per line) happens in onSubmit.
+/**
+ * Rupees typed in the form → paisa on the wire, keeping the fraction.
+ *
+ * <p>A cost per stock unit is a rate, and rates are not whole paisa: Rs 0.062 per gram is 6.2
+ * paisa, not 6. Rounded to 4 places to match the NUMERIC(18,4) the backend stores, so the value
+ * that arrives is the value that persists — and so a float artefact never travels.
+ */
+function unitCostPaisaOf(rupees: string): number {
+  return Math.round(Number(rupees) * 100 * 10_000) / 10_000;
+}
+
 const receiptLineFormSchema = z.object({
   ingredientId: z.string().min(1, "Ingredient is required"),
   qty: z.string().refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive quantity"),
@@ -103,7 +114,10 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
             ingredientId: line.ingredientId,
             branchId,
             qty: line.qty.trim(),
-            unitCostPaisa: Math.round(Number(line.unitCostRupees) * 100),
+            // NOT Math.round: this is a cost per stock unit, and rounding it to whole paisa here
+            // would reintroduce, at the keyboard, exactly the error V12 removed from the database.
+            // Someone receiving a gram-stocked ingredient at Rs 0.062/g means 6.2 paisa, not 6.
+            unitCostPaisa: unitCostPaisaOf(line.unitCostRupees),
           }),
         ),
       );

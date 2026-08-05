@@ -45,8 +45,9 @@ public class StockLot extends TenantAuditableEntity {
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
-    @Column(name = "receipt_unit_cost_paisa", nullable = false)
-    private long receiptUnitCostPaisa;
+    /** What one stock unit of this lot cost on receipt, in paisa (V12: NUMERIC(18,4)) — a rate. */
+    @Column(name = "receipt_unit_cost_paisa", nullable = false, precision = 18, scale = 4)
+    private BigDecimal receiptUnitCostPaisa = BigDecimal.ZERO;
 
     @Column(name = "received_at", nullable = false)
     private Instant receivedAt = Instant.now();

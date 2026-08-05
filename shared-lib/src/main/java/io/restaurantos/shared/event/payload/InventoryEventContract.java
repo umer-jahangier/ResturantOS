@@ -98,13 +98,24 @@ public final class InventoryEventContract {
      * exchange; it now publishes {@link PurchasingEventContract.GrnReceivedPayload} on its own
      * exchange and lets inventory own the stock write and this event.
      */
+    /**
+     * {@code unitCostPaisa} and {@code newAvgCostPaisa} are RATES — cost of one stock unit — and
+     * are therefore {@link BigDecimal} (V12). {@code totalCostPaisa} is an AMOUNT and stays a whole
+     * paisa {@code long}: money is integral, rates are not. An ingredient stocked in grams and
+     * bought by the kilogram has a fractional per-gram cost, and rounding it to whole paisa
+     * mis-valued the stock by up to several percent on cheap bulk goods.
+     *
+     * <p>Consumers must keep reading {@code totalCostPaisa} for anything that becomes a journal
+     * entry — see {@code AutoPostingRecipeEngine}, which already refuses to re-derive an amount
+     * from a quantity times a rate. Nothing in finance reads the two rate fields.
+     */
     public record StockReceivedPayload(
             UUID ingredientId,
             UUID branchId,
             BigDecimal qty,
-            long unitCostPaisa,
+            BigDecimal unitCostPaisa,
             long totalCostPaisa,
-            long newAvgCostPaisa,
+            BigDecimal newAvgCostPaisa,
             UUID lotId,
             LocalDate expiryDate,
             String referenceType,
@@ -165,7 +176,8 @@ public final class InventoryEventContract {
      * {@code qty} and {@code unitCostPaisa} and no total at all — so every transfer summed to zero
      * and posted nothing.
      */
-    public record TransferLine(UUID ingredientId, BigDecimal qty, long unitCostPaisa, long lineCostPaisa) {}
+    public record TransferLine(UUID ingredientId, BigDecimal qty, BigDecimal unitCostPaisa,
+                               long lineCostPaisa) {}
 
     public record TransferVariancePayload(UUID transferId, List<TransferVarianceLine> lines) {}
 
