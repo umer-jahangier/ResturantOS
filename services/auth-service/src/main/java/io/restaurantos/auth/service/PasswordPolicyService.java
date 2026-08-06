@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -279,6 +280,47 @@ public class PasswordPolicyService {
         passwordResetTokenRepository.saveAndFlush(entity);
 
         return new IssuedToken(entity.getId(), rawToken, expiresAt);
+    }
+
+    /**
+     * When this account last had a token of this purpose issued, redeemed or not.
+     *
+     * <p>The read half of the per-account cooldown (13-09, D-21). Must run inside a transaction in
+     * which the tenant GUC is already set — {@code password_reset_tokens} is
+     * {@code FORCE ROW LEVEL SECURITY}, and a caller that forgets sees no row, concludes there is
+     * no cooldown, and issues every time. That failure is SILENT and open, which is why it is
+     * stated here and measured against the live RLS-enforcing database rather than only in
+     * Testcontainers, whose Postgres user is a SUPERUSER and bypasses row security entirely.
+     */
+    public Optional<Instant> lastIssuedAt(UUID userId, TokenPurpose purpose) {
+        return passwordResetTokenRepository
+            .findTopByUserIdAndPurposeOrderByCreatedAtDesc(userId, purpose.dbValue())
+            .map(PasswordResetTokenEntity::getCreatedAt);
+    }
+
+    /**
+     * Serialises token issuance for one account, for the rest of the transaction.
+     *
+     * <p>Without it the cooldown and the single-live-token rule are both check-then-act. Two
+     * requests arriving together each read "no recent issuance", each retire the other's
+     * not-yet-inserted row (retiring nothing), and each insert — leaving TWO live tokens and two
+     * events, which is exactly what T-13-09-C and T-13-09-D exist to prevent. The window is small
+     * but an attacker choosing when to send two requests does not need it to be large.
+     *
+     * <p>A transaction-scoped ADVISORY lock rather than a row lock: there is no row to lock (the
+     * first request for an account has no token row at all), and locking the {@code users} row
+     * would let an anonymous caller block that user's logins by hammering this endpoint — turning a
+     * denial-of-service control into a denial-of-service vector. An advisory key touches no table,
+     * blocks nothing but other issuances for the same account, and is released by commit or
+     * rollback without any code having to remember to.
+     *
+     * <p>Contention is bounded by the cooldown itself: a serialised queue of requests for one
+     * account issues at most one token per cooldown window regardless of how long the queue is.
+     */
+    public void lockForIssuance(UUID userId) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtext(:key))")
+            .setParameter("key", "password-token-issuance:" + userId)
+            .getSingleResult();
     }
 
     /**

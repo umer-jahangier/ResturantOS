@@ -24,6 +24,31 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     Optional<PasswordResetTokenEntity> findByTokenHashAndPurpose(String tokenHash, String purpose);
 
     /**
+     * The most recent issuance for one account and one flow, redeemed or not.
+     *
+     * <p>Backs the per-account cooldown (13-09, D-21). Deliberately NOT filtered on
+     * {@code usedAt IS NULL}: issuing retires the outstanding token, so every previous row is
+     * "used" moments later, and a cooldown that only looked at live tokens would never fire at all.
+     * What is being rate-limited is the ACT of requesting, not the number of tokens outstanding —
+     * those are two different controls and this repository method is the first one.
+     *
+     * <p>Ordered by {@code createdAt}, which is written by Spring Data auditing on insert and is
+     * never updated afterwards; {@code updatedAt} moves when a token is claimed and would make the
+     * cooldown restart on redemption.
+     *
+     * <p>Runs under the tenant_isolation policy like every other statement here, so the caller must
+     * already have established the tenant GUC. A caller that forgets sees NO row, concludes the
+     * cooldown does not apply, and issues every time — a silent failure open. That is not
+     * hypothetical in this codebase: 13-08 found the reset-confirm lookup doing exactly this, and
+     * the whole integration suite stayed green because Testcontainers' Postgres user is a SUPERUSER
+     * and superusers bypass row security. This one is measured against the live RLS-enforcing
+     * database by scripts/e2e/phase13-reset-hardening-e2e.sh, which asserts that two rapid requests
+     * leave ONE token row — an assertion that fails if the read comes back empty.
+     */
+    Optional<PasswordResetTokenEntity> findTopByUserIdAndPurposeOrderByCreatedAtDesc(UUID userId,
+                                                                                     String purpose);
+
+    /**
      * Marks a token used, but ONLY if it is currently unused and unexpired, and reports whether it
      * did.
      *

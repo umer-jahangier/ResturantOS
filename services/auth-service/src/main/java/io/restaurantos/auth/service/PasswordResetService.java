@@ -1,5 +1,6 @@
 package io.restaurantos.auth.service;
 
+import io.restaurantos.auth.config.PasswordResetDeliveryProperties;
 import io.restaurantos.auth.entity.AuthTenantEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
@@ -11,10 +12,14 @@ import io.restaurantos.auth.service.PasswordPolicyService.TokenPurpose;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.event.payload.PasswordResetRequestedPayload;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -39,9 +44,12 @@ import java.util.UUID;
 @Service
 public class PasswordResetService {
 
+    private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
+
     private final AuthTenantRepository authTenantRepository;
     private final UserRepository userRepository;
     private final PasswordPolicyService passwordPolicyService;
+    private final PasswordResetDeliveryProperties deliveryProperties;
     private final TenantContext tenantContext;
     private final PasswordEncoder passwordEncoder;
     private final EventPublisher eventPublisher;
@@ -49,31 +57,123 @@ public class PasswordResetService {
     public PasswordResetService(AuthTenantRepository authTenantRepository,
                                 UserRepository userRepository,
                                 PasswordPolicyService passwordPolicyService,
+                                PasswordResetDeliveryProperties deliveryProperties,
                                 TenantContext tenantContext,
                                 PasswordEncoder passwordEncoder,
                                 EventPublisher eventPublisher) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
         this.passwordPolicyService = passwordPolicyService;
+        this.deliveryProperties = deliveryProperties;
         this.tenantContext = tenantContext;
         this.passwordEncoder = passwordEncoder;
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Tells the operator at boot when self-service reset cannot deliver.
+     *
+     * <p>Logged here rather than in the properties record so it fires once, from a bean that is
+     * unambiguously part of the flow it describes. Without it the first thing that reveals a
+     * disabled reset flow is a user complaining that no email arrived — which is indistinguishable
+     * from a broken mail configuration and sends the investigation somewhere else entirely.
+     */
+    @PostConstruct
+    void warnIfDeliveryDisabled() {
+        deliveryProperties.startupWarning().ifPresent(log::warn);
+    }
+
+    /**
+     * What a reset request did, insofar as the caller may be told.
+     *
+     * <p>Two values, and NEITHER of them depends on the account. That is the type doing the work:
+     * there is no {@code NO_SUCH_ACCOUNT} and no {@code COOLDOWN} to leak, so a future edit cannot
+     * accidentally return one. The distinction that IS drawn is account-independent by
+     * construction — whether this deployment can deliver anything at all — and therefore discloses
+     * nothing about whether an address exists.
+     */
+    public enum RequestOutcome {
+        /**
+         * The request was accepted. Says nothing about whether a token was issued: an unknown
+         * address, an unknown tenant, an account inside its cooldown and a successful issuance all
+         * produce this, deliberately and indistinguishably.
+         */
+        ACCEPTED,
+
+        /** This deployment cannot deliver a reset token to anybody. See D-31. */
+        DELIVERY_DISABLED
+    }
+
+    /**
+     * Requests a reset token for an address, if this deployment can deliver one and the account is
+     * outside its cooldown.
+     *
+     * <p><b>The order of the two guards is the security property.</b> The delivery-mode check runs
+     * FIRST, before any tenant is resolved and before any row is read, so the disabled response
+     * cannot depend on anything account-specific — not on the body, and not on the time taken to
+     * produce it. Moving it below the tenant lookup would make an unknown tenant measurably faster
+     * than a known one, which is the same oracle in a slower form.
+     *
+     * <p>Every other branch — unknown tenant, suspended tenant, unknown address, inside the
+     * cooldown, token issued — returns {@link RequestOutcome#ACCEPTED}, and the controller renders
+     * one body for all of them. The audit rates this endpoint's non-enumeration property as one of
+     * the few things in the password area that is well built; nothing in 13-09 trades it away, and
+     * the ITs assert it by comparing response BODIES rather than statuses.
+     */
     @Transactional
-    public void request(String email, String tenantSlug) {
+    public RequestOutcome request(String email, String tenantSlug) {
+        if (!deliveryProperties.deliveryEnabled()) {
+            return RequestOutcome.DELIVERY_DISABLED;
+        }
+
         AuthTenantEntity tenant = authTenantRepository.findBySlug(tenantSlug)
             .filter(t -> "ACTIVE".equals(t.getStatus()))
             .orElse(null);
         if (tenant == null) {
-            return;
+            return RequestOutcome.ACCEPTED;
         }
 
         UUID tenantId = tenant.getId();
+        // Before the first row-level-security-scoped read of this transaction, and therefore before
+        // the user lookup AND before the cooldown read below. Both are on FORCE ROW LEVEL SECURITY
+        // tables; a caller that sets this late sees nothing and fails silently open. This flow has
+        // already shipped broken that way once — 13-08 found reset-confirm doing it — and the
+        // integration suite stayed green throughout because Testcontainers runs as a SUPERUSER.
         passwordPolicyService.setTenantGuc(tenantId);
         tenantContext.set(tenantId, null, null, null);
 
-        userRepository.findByEmail(email.toLowerCase()).ifPresent(user -> issueResetToken(user, tenantId));
+        userRepository.findByEmail(email.toLowerCase())
+            .ifPresent(user -> issueUnlessWithinCooldown(user, tenantId));
+        return RequestOutcome.ACCEPTED;
+    }
+
+    /**
+     * Issues, unless this account has already had a reset token minted inside the cooldown window.
+     *
+     * <p><b>Refusing SILENTLY is the point.</b> A cooldown that announces itself — a 429, a
+     * "try again in 12 minutes", any observable difference at all — is an account-existence oracle
+     * with a rate limiter attached: an attacker requests twice and learns from the second answer
+     * whether the first one landed on a real account. So the refusal is a no-op and the caller is
+     * told exactly what a successful issuance tells them (threat T-13-09-B).
+     *
+     * <p>The cooldown complements, and does not replace, the gateway's per-IP budget on
+     * {@code auth-route} (replenishRate 2/s, burst 100). That one bounds how much traffic one
+     * SOURCE can generate; this one bounds how many messages one ACCOUNT can be made to receive,
+     * which is the thing a distributed caller could otherwise multiply without limit.
+     */
+    private void issueUnlessWithinCooldown(UserEntity user, UUID tenantId) {
+        passwordPolicyService.lockForIssuance(user.getId());
+
+        Instant threshold = Instant.now().minus(deliveryProperties.cooldown());
+        boolean insideCooldown = passwordPolicyService
+            .lastIssuedAt(user.getId(), TokenPurpose.RESET)
+            .filter(issuedAt -> issuedAt.isAfter(threshold))
+            .isPresent();
+        if (insideCooldown) {
+            return;
+        }
+
+        issueResetToken(user, tenantId);
     }
 
     /**

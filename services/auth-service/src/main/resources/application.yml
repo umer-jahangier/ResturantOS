@@ -54,6 +54,28 @@ restaurantos:
     # users also have no refresh path and no TOTP column yet, so the short TTL is the only bound on
     # a leaked control-plane token.
     platform-token-ttl-seconds: ${PLATFORM_TOKEN_TTL_SECONDS:900}
+    # Self-service forgot-password (13-09, D-31).
+    #
+    # DISABLED by default, and that is a decision rather than an oversight: notification-service is
+    # an active Maven module with ZERO source files, so nothing consumes PASSWORD_RESET_REQUESTED
+    # and no email is ever sent. Left enabled, this endpoint mints a live credential, writes an
+    # event nobody reads, and leaves the user waiting for a message that is not coming.
+    #
+    # In `disabled` the request endpoint issues nothing, writes nothing, and returns
+    # RESET_DELIVERY_DISABLED naming the supported route. Set it to `outbox` ONLY once something
+    # consumes that event — on its own the mode changes nothing a user can see.
+    #
+    # The supported recovery paths in this milestone are an administrator-initiated reset and, for
+    # a user who can still sign in, POST /api/v1/auth/change-password.
+    # See docs/known-gaps/notification-delivery.md.
+    password-reset:
+      delivery-mode: ${PASSWORD_RESET_DELIVERY_MODE:disabled}
+      # Minimum interval between two token issuances for ONE account, independent of the gateway's
+      # per-IP budget on auth-route. Half the reset token's own 30-minute life, so someone who
+      # genuinely lost the first message can ask again while the first token is still live.
+      # Refusals inside the window are SILENT — an announced cooldown is an account-existence
+      # oracle with a rate limiter attached.
+      cooldown: ${PASSWORD_RESET_COOLDOWN:15m}
     cookie:
       secure: ${AUTH_COOKIE_SECURE:true}
     jwt:

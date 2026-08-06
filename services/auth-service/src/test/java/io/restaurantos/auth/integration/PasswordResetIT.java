@@ -11,11 +11,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Delivery mode pinned to {@code outbox} because this class asserts that a request WRITES an event;
+ * the shipped default is {@code disabled} (13-09, D-31) and would correctly write none. The
+ * property string is repeated verbatim in {@link PasswordResetHardeningIT} rather than shared via a
+ * constant, so both classes produce the identical merged context configuration and Spring reuses
+ * one context instead of starting a second.
+ */
+@TestPropertySource(properties = "restaurantos.auth.password-reset.delivery-mode=outbox")
 class PasswordResetIT extends BaseIntegrationTest {
 
     @Autowired private PasswordHistoryRepository passwordHistoryRepository;
