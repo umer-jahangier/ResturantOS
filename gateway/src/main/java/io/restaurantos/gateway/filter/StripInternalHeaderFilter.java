@@ -19,6 +19,14 @@ import reactor.core.publisher.Mono;
  * {@code X-TOTP-Verified}, re-created by {@link JwtGlobalFilter} from the signed
  * {@code totp_verified} JWT claim.
  *
+ * <p>{@code X-Acting-User-Id} names the human on whose behalf a privilege-bearing
+ * {@code /internal/auth/**} write is made, and auth-service bounds what that write may grant by
+ * recomputing that user's own permissions (13-11's role ceiling). It is asserted by the calling
+ * SERVICE from a verified JWT. A client that could set it would be choosing which authority to be
+ * measured against, so it is removed here on the same unconditional basis as the other two — even
+ * though no gateway route maps to {@code /internal/**} today, which makes this the belt to that
+ * route table's braces. A future route added without reading this file must not silently reopen it.
+ *
  * <p>This is intentionally a {@link GlobalFilter} (not a default-filter in application.yml)
  * so it applies to ALL routes, including those registered programmatically.
  * Runs at {@code HIGHEST_PRECEDENCE + 5}, before JWT validation, because the headers
@@ -31,6 +39,7 @@ public class StripInternalHeaderFilter implements GlobalFilter, Ordered {
 
     private static final String INTERNAL_HEADER = "X-Internal-Service";
     static final String TOTP_VERIFIED_HEADER = "X-TOTP-Verified";
+    static final String ACTING_USER_HEADER = "X-Acting-User-Id";
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -38,6 +47,7 @@ public class StripInternalHeaderFilter implements GlobalFilter, Ordered {
                 .headers(headers -> {
                     headers.remove(INTERNAL_HEADER);
                     headers.remove(TOTP_VERIFIED_HEADER);
+                    headers.remove(ACTING_USER_HEADER);
                 })
                 .build();
         return chain.filter(exchange.mutate().request(request).build());

@@ -22,15 +22,18 @@ public class BranchRoleAdminService {
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
     private final RoleCatalog roleCatalog;
+    private final RoleCeiling roleCeiling;
 
     public BranchRoleAdminService(UserBranchRoleRepository userBranchRoleRepository,
                                   TenantContext tenantContext,
                                   EntityManager entityManager,
-                                  RoleCatalog roleCatalog) {
+                                  RoleCatalog roleCatalog,
+                                  RoleCeiling roleCeiling) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
         this.roleCatalog = roleCatalog;
+        this.roleCeiling = roleCeiling;
     }
 
     /**
@@ -71,9 +74,51 @@ public class BranchRoleAdminService {
     public record RoleAssignmentResult(UserBranchRoleEntity assignment, String displacedRoleCode) {}
 
     /**
+     * Assign a role on behalf of a named human, refusing anything above that human's own authority.
+     *
+     * <p><b>This is the entry point every networked caller reaches.</b> {@link #assign} below is
+     * unbounded and is reachable only in-process, from {@code ProvisioningAdminService}, which
+     * creates a tenant's FIRST admin — a genuine system context where there is no acting human yet
+     * and no prior user whose authority could bound it.
+     *
+     * <p>The rule and the reason it must be enforced HERE rather than in user-service are in
+     * {@link RoleCeiling}. In short: a check that lives only in the calling service is bypassed by
+     * anything that reaches the internal port, and auth-service is the only party that knows what
+     * the target role actually grants.
+     *
+     * <p>Ordering is load-bearing three times over. The tenant GUC comes first, because everything
+     * after it reads a FORCE ROW LEVEL SECURITY table — including the acting user's own
+     * assignments, which without it resolve to "no active branch assignments" and would silently
+     * reduce a legitimate OWNER to the empty ceiling. The ceiling check comes next, BEFORE
+     * {@link #assign}, so a refused assignment cannot have already displaced the role the target
+     * user holds. And inside the ceiling check the role code is validated before the subset test,
+     * so an unknown code is reported as a typo rather than passing vacuously.
+     *
+     * @param actingUserId the human on whose behalf this is done, asserted by the calling service
+     *                     from a verified JWT — never taken from a client-supplied header
+     * @throws io.restaurantos.auth.exception.UnknownRoleCodeException if the code is not in the catalog (400)
+     * @throws io.restaurantos.auth.exception.RoleCeilingExceededException if the role exceeds the
+     *         acting user's own permissions (403)
+     */
+    @Transactional
+    public RoleAssignmentResult assignAsActingUser(UUID tenantId, UUID actingUserId, UUID userId,
+                                                   BranchRoleAssignRequest req) {
+        setTenantGuc(tenantId);
+        roleCeiling.requireAssignable(actingUserId, req.roleCode());
+        return assign(tenantId, userId, req);
+    }
+
+    /**
      * Assign a role to a user at a branch. auth-service is the system of record for
-     * user_branch_roles — this is the ONLY write path. Called by AuthInternalController; never
-     * called from user-service directly.
+     * user_branch_roles — this is the ONLY write path.
+     *
+     * <p><b>Unbounded by design, and therefore not reachable over the wire.</b> It applies no role
+     * ceiling, so it must stay an in-process, system-context operation: the only caller is
+     * {@code ProvisioningAdminService.provisionAdmin}, which creates a tenant's first admin before
+     * any human in that tenant exists. Every networked caller goes through
+     * {@link #assignAsActingUser} instead, and {@code AuthInternalController} will not accept a
+     * request that does not name an acting user. Adding a second caller here is how the escalation
+     * 13-11 closed comes back.
      *
      * <p>A user holds at most one active role per branch, held by a partial unique index on
      * {@code (user_id, branch_id) WHERE is_active}. Assigning a second, different role is therefore

@@ -3,6 +3,7 @@ package io.restaurantos.auth.controller;
 import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
 import io.restaurantos.auth.dto.response.BranchRoleAssignWriteResponse;
 import io.restaurantos.auth.dto.response.BranchRoleAssignmentResponse;
+import io.restaurantos.auth.exception.ActingUserRequiredException;
 import io.restaurantos.auth.service.BranchAssignmentService;
 import io.restaurantos.auth.service.BranchRoleAdminService;
 import io.restaurantos.auth.service.PermissionResolver;
@@ -39,16 +40,45 @@ public class AuthInternalController {
     }
 
     /**
+     * The header naming the human on whose behalf a privilege-bearing internal write is made.
+     *
+     * <p>See {@link io.restaurantos.auth.controller.UserLifecycleInternalController#ACTING_USER_HEADER}
+     * for who is authoritative for its value and why a client cannot supply it. Declared in both
+     * places as a constant so a rename cannot leave one door reading a header nobody sends.
+     */
+    public static final String ACTING_USER_HEADER = "X-Acting-User-Id";
+
+    /**
      * Assign (upsert) a branch-role for a user. Called by user-service UserAdminService.
-     * Requires X-Tenant-Id header identifying the owning tenant.
+     *
+     * <p><b>Breaking change, deliberate (13-11).</b> {@code X-Acting-User-Id} is now REQUIRED, and a
+     * request without it is refused rather than processed without a ceiling check. Before this, a
+     * TENANT_ADMIN could POST {@code {"roleCode":"OWNER"}} here and receive 200 — measured live by
+     * {@code scripts/e2e/phase13-role-catalog-e2e.sh}, and left failing on purpose by 13-07 because
+     * closing it needs a change to this cross-service contract. The account so created holds
+     * {@code rbac.manage}, which is what 13-02's authority split exists to withhold from tenant
+     * admins, and the assigner can log in as it.
+     *
+     * <p>Declared {@code required = false} and rejected explicitly, rather than {@code required =
+     * true}: Spring's own refusal is a 400 {@code BAD_REQUEST} indistinguishable from a malformed
+     * body, and this is an authorization failure with its own code and its own reason. It is still
+     * a hard refusal — see {@link ActingUserRequiredException} for why an optional identity header
+     * is worse than none.
+     *
+     * @param tenantId which tenant's rows this touches — sets the row-level-security GUC
+     * @param actingUserId who is asking; their own permissions bound what this request may grant
      */
     @PostMapping("/users/{userId}/branch-roles")
     public ResponseEntity<BranchRoleAssignWriteResponse> assignBranchRole(
             @PathVariable UUID userId,
             @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = ACTING_USER_HEADER, required = false) UUID actingUserId,
             @Valid @RequestBody BranchRoleAssignRequest request) {
+        if (actingUserId == null) {
+            throw new ActingUserRequiredException("POST /internal/auth/users/{userId}/branch-roles");
+        }
         BranchRoleAdminService.RoleAssignmentResult result =
-            branchRoleAdminService.assign(tenantId, userId, request);
+            branchRoleAdminService.assignAsActingUser(tenantId, actingUserId, userId, request);
         return ResponseEntity.ok(
             BranchRoleAssignWriteResponse.of(result.assignment(), result.displacedRoleCode()));
     }

@@ -106,7 +106,11 @@ public class RoleCatalogService {
         int withheld = 0;
         for (Map.Entry<String, RoleEntity> entry : byCode.entrySet()) {
             List<String> granted = permissionsByRole.getOrDefault(entry.getKey(), List.of());
-            if (!ceiling.containsAll(granted)) {
+            // The predicate lives in RoleCeiling so that this list and the write path in
+            // BranchRoleAdminService cannot drift apart. Withholding a role here while the write
+            // path accepts it is not a control, it is a hint — which is exactly what this was
+            // until 13-11, measured live as a 200 on an OWNER assignment by a tenant admin.
+            if (!RoleCeiling.permits(ceiling, granted)) {
                 withheld++;
                 continue;
             }

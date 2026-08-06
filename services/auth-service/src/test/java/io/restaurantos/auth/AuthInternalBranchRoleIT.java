@@ -94,6 +94,138 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
         assertThat(count).isGreaterThanOrEqualTo(1);
     }
 
+    // ── The role ceiling on the WRITE path (13-11) ────────────────────────────
+    //
+    // 13-07 built the ceiling into GET /api/v1/roles and left the write path measured-but-open,
+    // because closing it needed an identity on a seam that carried none. Reproduced live against
+    // the running stack before this change: a caller with the shared secret and NO identity
+    // whatsoever assigned OWNER and was answered
+    //     HTTP 200  {"roleCode":"OWNER","displacedRoleCode":"WAITER", …}
+    // The account so created holds rbac.manage, which is exactly what 13-02's authority split
+    // exists to withhold from a tenant admin, and the assigner can then log in as it.
+
+    /**
+     * A caller that does not say who is asking is refused — not processed without a ceiling check.
+     *
+     * <p>The distinct code matters: {@code INTERNAL_AUTH_REQUIRED} would mean the shared secret was
+     * missing, and it was not.
+     */
+    @Test
+    void assignBranchRole_withoutAnActingUser_isRefused() {
+        Map<String, Object> body = Map.of(
+            "branchId", TestFixtures.MAIN_BRANCH_ID.toString(),
+            "roleCode", "CASHIER");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + TestFixtures.CASHIER_USER_ID + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("ACTING_USER_REQUIRED");
+        assertThat(response.getBody()).doesNotContain("INTERNAL_AUTH_REQUIRED");
+    }
+
+    /**
+     * The escalation itself: a caller who does not hold {@code rbac.manage} cannot grant a role
+     * that does.
+     *
+     * <p>The acting user is the seeded CASHIER — chosen because a cashier plainly does not hold the
+     * administration permissions OWNER carries, so the refusal cannot be an artefact of two roles
+     * that happen to be close. Nothing must be written: a refused assignment that had already
+     * displaced the target's existing role would revoke authority while refusing to grant any.
+     */
+    @Test
+    void assignBranchRole_aboveTheActingUsersOwnCeiling_isRefusedAndWritesNothing() {
+        UUID target = TestFixtures.KITCHEN_STAFF_USER_ID;
+        UUID branch = TestFixtures.MAIN_BRANCH_ID;
+        Map<String, Object> body = Map.of("branchId", branch.toString(), "roleCode", "OWNER");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + target + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.CASHIER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("ROLE_CEILING_EXCEEDED");
+        // The message names the role and a COUNT of permissions beyond the ceiling, never the codes
+        // themselves — naming them would republish exactly what the ceiling withholds.
+        assertThat(response.getBody()).contains("OWNER").doesNotContain("rbac.manage");
+
+        assertThat(activeRoleCount(target, branch, "OWNER"))
+            .as("nothing may be written by a refused assignment")
+            .isZero();
+        assertThat(activeRoleCount(target, branch, "KITCHEN_STAFF"))
+            .as("and the role the target already held must survive the refusal")
+            .isEqualTo(1L);
+    }
+
+    /**
+     * The control, without which the test above passes against a ceiling that refuses everything.
+     *
+     * <p>OWNER holds the whole permission catalogue (changeset 057), so an owner assigning OWNER is
+     * within their own ceiling and must succeed.
+     */
+    @Test
+    void assignBranchRole_withinTheActingUsersCeiling_stillSucceeds() {
+        UUID target = TestFixtures.MANAGER_USER_ID;
+        UUID branch = UUID.fromString("b0000009-0000-4000-8000-000000000009");
+        Map<String, Object> body = Map.of("branchId", branch.toString(), "roleCode", "OWNER");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + target + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(activeRoleCount(target, branch, "OWNER")).isEqualTo(1L);
+    }
+
+    /**
+     * An acting user id that resolves to nobody yields the EMPTY permission set, which permits only
+     * a role granting nothing — so it is a refusal, not a bypass. Without this, naming a random
+     * UUID would be the way around the ceiling.
+     */
+    @Test
+    void assignBranchRole_withAnUnresolvableActingUser_isRefused() {
+        Map<String, Object> body = Map.of(
+            "branchId", TestFixtures.MAIN_BRANCH_ID.toString(), "roleCode", "CASHIER");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + TestFixtures.KITCHEN_STAFF_USER_ID + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, UUID.randomUUID());
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("ROLE_CEILING_EXCEEDED");
+    }
+
+    /**
+     * An unknown code is still 400 UNKNOWN_ROLE_CODE, not 403.
+     *
+     * <p>It has no permission rows at all, so a subset test alone would pass it vacuously and
+     * report a typo as an authorization success. The ceiling validates the code first for exactly
+     * that reason, and this pins the ordering.
+     */
+    @Test
+    void assignBranchRole_withAnUnknownRoleCode_isStillReportedAsUnknownNotAsCeiling() {
+        Map<String, Object> body = Map.of(
+            "branchId", TestFixtures.MAIN_BRANCH_ID.toString(), "roleCode", "NOT_A_REAL_ROLE");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + TestFixtures.KITCHEN_STAFF_USER_ID + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.CASHIER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).contains("UNKNOWN_ROLE_CODE");
+    }
+
+    private long activeRoleCount(UUID userId, UUID branchId, String roleCode) {
+        return ((Number) entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM user_branch_roles "
+                    + "WHERE user_id = :uid AND branch_id = :bid AND role_code = :rc AND is_active")
+            .setParameter("uid", userId)
+            .setParameter("bid", branchId)
+            .setParameter("rc", roleCode)
+            .getSingleResult()).longValue();
+    }
+
     // ── Permissions endpoint ───────────────────────────────────────────────────
 
     @Test
@@ -175,7 +307,19 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /**
+     * Defaults the acting user to the tenant's OWNER, who holds the whole permission catalogue
+     * (changeset 057) and can therefore assign anything — so the pre-existing assertions in this
+     * file keep measuring what they were written to measure rather than the ceiling 13-11 added.
+     * {@link #exchangePost(String, Object, String, String, UUID)} is the overload for tests that
+     * care who is asking.
+     */
     protected ResponseEntity<String> exchangePost(String uri, Object body, String headerName, String headerValue) {
+        return exchangePost(uri, body, headerName, headerValue, TestFixtures.OWNER_USER_ID);
+    }
+
+    protected ResponseEntity<String> exchangePost(String uri, Object body, String headerName,
+                                                  String headerValue, UUID actingUserId) {
         var spec = rest.post()
             .uri(uri)
             .contentType(MediaType.APPLICATION_JSON)
@@ -185,6 +329,9 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
         }
         if (headerName != null && "X-Internal-Service".equals(headerName)) {
             spec = spec.header("X-Tenant-Id", TestFixtures.DEMO_TENANT_ID.toString());
+            if (actingUserId != null) {
+                spec = spec.header("X-Acting-User-Id", actingUserId.toString());
+            }
         }
         return spec.exchange((request, response) -> toResponseEntity(response));
     }

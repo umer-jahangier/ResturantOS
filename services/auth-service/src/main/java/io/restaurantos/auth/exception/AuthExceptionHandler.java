@@ -80,6 +80,35 @@ public class AuthExceptionHandler {
                 traceId()));
     }
 
+    /**
+     * The role ceiling (13-11).
+     *
+     * <p><b>403, not 400 and not 409.</b> The request is well formed and names a role that really
+     * exists; what is refused is the caller's authority to grant it. Without this handler it would
+     * fall through {@code GlobalExceptionHandler#handleBase} and come back as a 400
+     * {@code ROLE_CEILING_EXCEEDED} — a client would then present "fix your input" for something no
+     * input can fix.
+     */
+    @ExceptionHandler(RoleCeilingExceededException.class)
+    public ResponseEntity<ApiError> handleRoleCeiling(RoleCeilingExceededException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(ApiError.of("ROLE_CEILING_EXCEEDED", ex.getMessage(), traceId()));
+    }
+
+    /**
+     * A privilege-bearing internal write that did not say who is asking (13-11).
+     *
+     * <p>403 for the same reason as above: the request cannot be allowed, and the fix is for the
+     * CALLING SERVICE to assert an identity from its verified JWT, not for the end user to retype
+     * anything. Kept distinct from {@code INTERNAL_AUTH_REQUIRED} so an operator can tell a missing
+     * shared secret from a caller that has one and still failed to name an acting user.
+     */
+    @ExceptionHandler(ActingUserRequiredException.class)
+    public ResponseEntity<ApiError> handleActingUserRequired(ActingUserRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(ApiError.of("ACTING_USER_REQUIRED", ex.getMessage(), traceId()));
+    }
+
     @ExceptionHandler(PasswordReuseException.class)
     public ResponseEntity<ApiError> handlePasswordReuse(PasswordReuseException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

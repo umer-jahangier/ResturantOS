@@ -296,6 +296,37 @@ class JwtGlobalFilterTest {
         assertThat(upstreamRequest.getHeader("X-TOTP-Verified")).isNull();
     }
 
+    /**
+     * 13-11's role ceiling bounds a role assignment by the permissions of the user named in
+     * {@code X-Acting-User-Id}, which the CALLING SERVICE asserts from a verified JWT. A client
+     * able to set it would be choosing which authority to be measured against — so, like the other
+     * two, it is removed unconditionally and regardless of whether the request authenticates.
+     *
+     * <p>The control assertion is not decorative: without it this test would still pass against a
+     * gateway that dropped every header, or against a request that never reached the upstream at
+     * all.
+     */
+    @Test
+    void forgedActingUserHeader_isStripped() {
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        webTestClient.post()
+                .uri("/api/v1/auth/login")
+                .header("X-Acting-User-Id", UUID.randomUUID().toString())
+                .header("X-Control-Header", "survives")
+                .bodyValue("{}")
+                .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstreamRequest = takeNext();
+        assertThat(upstreamRequest.getHeader("X-Acting-User-Id")).isNull();
+        assertThat(upstreamRequest.getHeader("X-Control-Header"))
+                .as("an ordinary client header still reaches the upstream, so the assertion above "
+                    + "measures the strip rather than a request that never arrived")
+                .isEqualTo("survives");
+    }
+
     // ── Tenant-less (platform) tokens: accepted on the platform prefix, nowhere else ──────
 
     /**

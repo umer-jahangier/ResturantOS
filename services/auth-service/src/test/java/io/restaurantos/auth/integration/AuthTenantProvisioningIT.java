@@ -510,10 +510,12 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
             INTERNAL_SECRET);
         UUID userId = UUID.fromString(field(created.getBody(), "userId"));
 
+        // The acting user is the OWNER just provisioned — 13-11 requires an identity here, and an
+        // owner holds the whole catalogue, so the refusal below can only be about the role CODE.
         ResponseEntity<String> response = post(
             "/internal/auth/users/" + userId + "/branch-roles",
             Map.of("branchId", UUID.randomUUID().toString(), "roleCode", "SUPERVISOR"),
-            INTERNAL_SECRET, tenant.id());
+            INTERNAL_SECRET, tenant.id(), userId);
 
         assertThat(response.getStatusCode().value()).isEqualTo(400);
         assertThat(response.getBody()).contains("UNKNOWN_ROLE_CODE");
@@ -540,7 +542,7 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
         ResponseEntity<String> response = post(
             "/internal/auth/users/" + userId + "/branch-roles",
             Map.of("branchId", UUID.randomUUID().toString(), "roleCode", "MANAGER"),
-            INTERNAL_SECRET, tenant.id());
+            INTERNAL_SECRET, tenant.id(), userId);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(count("SELECT count(*) FROM user_branch_roles WHERE user_id = ? AND role_code = 'MANAGER'",
@@ -819,12 +821,24 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
     }
 
     private ResponseEntity<String> post(String uri, Object body, String secret, UUID tenantId) {
+        return post(uri, body, secret, tenantId, null);
+    }
+
+    /**
+     * {@code actingUserId} is 13-11's {@code X-Acting-User-Id} — required on the branch-role write
+     * path, whose own permissions bound what the request may grant.
+     */
+    private ResponseEntity<String> post(String uri, Object body, String secret, UUID tenantId,
+                                        UUID actingUserId) {
         RestClient.RequestBodySpec spec = rest.post().uri(uri).contentType(MediaType.APPLICATION_JSON);
         if (secret != null) {
             spec = spec.header(InternalServiceFilter.HEADER, secret);
         }
         if (tenantId != null) {
             spec = spec.header("X-Tenant-Id", tenantId.toString());
+        }
+        if (actingUserId != null) {
+            spec = spec.header("X-Acting-User-Id", actingUserId.toString());
         }
         return spec.body(body).exchange((request, response) -> toEntity(response));
     }
