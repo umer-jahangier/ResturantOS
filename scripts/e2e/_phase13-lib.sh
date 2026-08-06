@@ -162,6 +162,39 @@ mint_platform_token() {
   printf '%s' "$token"
 }
 
+# Log a PLATFORM (SuperAdmin) user in through the REAL gateway and print the access token.
+#   TOKEN="$(platform_login superadmin@softxlogic.com 'Test@123!')"
+#
+# This is the real credential path added by 13-05, and it is what every later plan should use.
+# mint_platform_token above bypasses the password entirely over the internal secret channel; it
+# remains available for negative tests and for driving the API when no platform account exists yet,
+# but a plan that proves itself with it has proven nothing about whether a human can log in — which
+# is the exact gap blocker B1 lived in.
+#
+# Goes through ${GATEWAY}, never platform-admin-service's own port: the path is public at the edge
+# (JwtGlobalFilter.PUBLIC_PATHS) and rate-limited by platform-auth-route, and neither of those is
+# exercised by hitting :8096 directly.
+platform_login() {
+  local email="${1:-}" password="${2:-}"
+  if [[ -z "$email" || -z "$password" ]]; then
+    echo "platform_login: email and password are required" >&2
+    return 1
+  fi
+  local body response token
+  body="$(python3 -c "
+import json, sys
+print(json.dumps({'email': sys.argv[1], 'password': sys.argv[2]}))
+" "$email" "$password")"
+  response="$(curl_retry -X POST "${GATEWAY}/api/v1/platform/auth/login" \
+    -H "Content-Type: application/json" -d "$body")"
+  token="$(printf '%s' "$response" | json_get "['data']['accessToken']" 2>/dev/null || true)"
+  if [[ -z "$token" || "$token" == "None" ]]; then
+    echo "platform_login: no accessToken for ${email}: ${response}" >&2
+    return 1
+  fi
+  printf '%s' "$token"
+}
+
 # Log a tenant user in through the REAL gateway and print the access token.
 #   TOKEN="$(tenant_login owner@demo.local 'Owner#2026' demo "$(python3 scripts/generate_totp.py owner@demo.local | grep -oE '[0-9]{6}' | head -1)")"
 # The TOTP argument is optional: only roles carrying rbac.manage are forced into step-up.
