@@ -71,6 +71,23 @@
             <version>9.40</version>
         </dependency>
 
+        <!--
+          Bean Validation API ONLY — deliberately not spring-boot-starter-validation.
+
+          shared-lib is on the compile classpath of all 20 modules, so anything added here is added
+          to every one of them. The API jar is annotations and interfaces: it carries no
+          ValidationProvider, and Spring Boot's ValidationAutoConfiguration is conditional on the
+          provider's META-INF/services entry as well as on the API class, so this changes the
+          runtime behaviour of exactly zero services. Pulling the STARTER would instead put
+          hibernate-validator on every classpath and switch method/argument validation on in the
+          services that do not have it today — a silent behaviour change to services this plan never
+          ran. The 14 services that need an implementation already declare the starter themselves.
+        -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -96,6 +113,18 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+          A Bean Validation IMPLEMENTATION, test scope only. StrongPasswordValidator's contract is
+          what a real provider does with it — which violations it raises and what message it
+          interpolates — so the test bootstraps hibernate-validator rather than calling isValid()
+          directly with a hand-rolled context. Test scope keeps it off every service's classpath;
+          see the note on jakarta.validation-api above.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
