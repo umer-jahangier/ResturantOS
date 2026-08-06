@@ -402,10 +402,12 @@ healthy).
 ## Running integration tests on colima (Testcontainers)
 
 Every service's ITs use Testcontainers. On **colima** (as opposed to Docker Desktop) they fail out
-of the box, and **two independent settings are both required**:
+of the box, and **three independent settings are all required** — the JDK pin below is not optional,
+and was the single most expensive omission on this project:
 
 ```bash
 colima start --cpu 6 --memory 12 --disk 60 --network-address   # once; gives the VM a routable IP
+export JAVA_HOME=$(/usr/libexec/java_home -v 25 2>/dev/null || echo /opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home)
 export TESTCONTAINERS_RYUK_DISABLED=true
 export TESTCONTAINERS_HOST_OVERRIDE=$(colima list | awk 'NR==2{print $NF}')   # e.g. 192.168.64.2
 mvn -pl services/hr-service verify
@@ -431,10 +433,51 @@ mvn -pl services/hr-service verify
    psql -h 192.168.64.2  -p "$port" -U t -d t -c 'select 1'   # works
    ```
 
+3. **`JAVA_HOME` pinned to JDK 25** — see "Integration tests run on Maven's JDK" below. Without it
+   the ITs run on whatever JDK Maven itself launched on, and fail intermittently in a way that looks
+   like an application or network bug and is not one.
+
 **Do not trust a single green run.** Setting only `TESTCONTAINERS_RYUK_DISABLED` produced one
-passing 18/18 run and then failed 18/18 from the identical commit — the dynamic-port forwarding is
-intermittent, so a lone success is not evidence. Verified 2026-08-06 with three consecutive green
-runs of `mvn -pl services/hr-service verify` (18/18 ITs + 10/10 unit).
+passing 18/18 run and then failed 18/18 from the identical commit — so a lone success is not
+evidence. Verified 2026-08-06 with three consecutive green runs of
+`mvn -pl services/hr-service verify` (18/18 ITs + 10/10 unit).
+
+### Integration tests run on Maven's JDK, not the one on your PATH
+
+**Symptom.** Requests from ITs fail with `HTTP/1.1 header parser received no bytes` (servlet
+services) or `PrematureCloseException: Connection prematurely closed BEFORE response` (gateway).
+The server logs **nothing** — no request, no error, not even with `org.apache.coyote` at DEBUG.
+Bodyless GETs fail while POSTs on the same client succeed. It is **intermittent**: the same commit
+gives 43/43 green on one run and a dozen errors on the next.
+
+**Root cause.** Two things compounding:
+
+1. Homebrew's `openjdk` formula moved to **26**, and Maven launched on it (`mvn -version` →
+   `Java version: 26.0.1`) while `java -version` on PATH still said 25. Surefire and failsafe fork
+   **Maven's** JVM, so every IT ran on JDK 26. Nothing warned: `<java.version>25</java.version>` only
+   sets the compiler *release*, so everything compiled and all unit tests passed.
+2. The **macOS Application Firewall** authorises incoming connections **per binary**. Only the JDK 25
+   binary was ever approved (`socketfilterfw --listapps`). The unapproved JDK 26 binary's embedded
+   Tomcat/Netty listeners were gated: connections were accepted and dropped with zero bytes written,
+   which is why nothing appears in any server log.
+
+**Proof, if you need to re-derive it.** A raw `Socket` GET from *inside the test JVM* to the test's
+own `@LocalServerPort` returns `HTTP/1.1 200` on a good run and `<EOF>` on a bad one, with no
+application code in the path. That rules out HTTP/2 negotiation, the JDK HttpClient, Spring's
+`RestClient`, Testcontainers, and the application — all of which were suspected first, and none of
+which were at fault.
+
+**Fix.** Build on the JDK the project targets. `maven-enforcer-plugin` (root `pom.xml`) now fails the
+build immediately with the corrective `export` if Maven's runtime is not Java 25, so this cannot
+recur silently. Check `mvn -version`, not `java -version` — they resolve independently.
+
+Do **not** "fix" this by approving a JDK in the firewall or turning the firewall off: that hides the
+real problem, which is building on an unintended JDK. CI is unaffected (Linux, temurin 25, no ALF).
+
+**What it cost, so the next person doesn't repeat it.** This was misattributed twice: once as an HR
+integration-test defect and once as a gateway `PrematureCloseException` needing a code fix. Both
+were closed as "fixed" on a single green run that did not reproduce. When a failure is intermittent
+and the server logs are silent, suspect the environment below the application before the code in it.
 
 Trade-off of disabling Ryuk: test containers are no longer auto-reaped, so an interrupted run can
 leave containers behind — check `docker ps` and clean up manually.

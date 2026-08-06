@@ -18,6 +18,8 @@
 
     <properties>
         <java.version>25</java.version>
+        <!-- Exclusive upper bound for the enforcer's JDK range; bump both together. -->
+        <next.java.version>26</next.java.version>
         <spring-cloud.version>2025.1.0</spring-cloud.version>
         <mapstruct.version>1.7.0.Beta1</mapstruct.version>
         <!-- Lombok ≥ 1.18.38 is REQUIRED on JDK 25/26 (older versions throw ExceptionInInitializerError under javac). -->
@@ -75,4 +77,58 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!--
+              Fail the build when Maven is not running on the JDK this project targets.
+
+              This is not hygiene: it is the fix for a real, expensive failure. `<java.version>25</java.version>`
+              only sets the compiler RELEASE, so building on a newer JDK compiles and passes unit tests
+              silently. Homebrew's `openjdk` formula moved to 26, Maven picked it up as its own runtime
+              (`mvn -version` → 26.0.1) while `java` on PATH stayed 25 — and surefire/failsafe fork the
+              MAVEN JVM, so every integration test quietly ran on a JDK nobody chose.
+
+              The symptom was not a compiler error. The macOS Application Firewall approves incoming
+              connections per BINARY, and only the 25 binary was ever approved; the unapproved 26 binary's
+              embedded Tomcat/Netty listeners were gated, so requests were accepted and dropped with zero
+              bytes and nothing logged server-side. That surfaced as `HTTP/1.1 header parser received no
+              bytes` (auth-service) and `PrematureCloseException` (gateway), INTERMITTENTLY — which is
+              what makes it costly: a green run proves nothing, and hours went into chasing HTTP/2
+              negotiation, Testcontainers, and application code that were never at fault.
+
+              Enforcing the version converts an intermittent, misattributed network failure into one
+              deterministic message at build start. Keep the range pinned to the major version in
+              `<java.version>`; CI (temurin 25) satisfies it unchanged.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-jdk-matches-target</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[${java.version},${next.java.version})</version>
+                                    <message>
+This project targets Java ${java.version} and MUST be built with it. Maven is running on a different JDK.
+
+  Check with:  mvn -version        (the "Java version:" line is what surefire/failsafe fork)
+  Fix with:    export JAVA_HOME=$(/usr/libexec/java_home -v ${java.version} 2>/dev/null || echo /opt/homebrew/opt/openjdk@${java.version}/libexec/openjdk.jdk/Contents/Home)
+
+Note that `java -version` on your PATH may already be correct while Maven's own runtime is not —
+they are resolved separately. See scripts/DEV-STACK-RUNBOOK.md, "Integration tests run on Maven's JDK".
+                                    </message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
