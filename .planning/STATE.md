@@ -620,9 +620,17 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06 — Phase 11 (HR & Payroll) execution started.
-Branch `Ammar/phase-11-hr-payroll` first brought up to date with prod (merge `3b5903a`: 272 commits, phases 08.2 + 12 + gateway resilience fixes; 6 conflicts union-resolved). Then executed 11-01 (hr-service scaffold) inline — subagent delegation is blocked this environment by a platform content-safety filter, so all Phase 11 plans run in the orchestrator thread. Completed 11-01: module + Spring Boot app + security config (`5e35b94`), FORCE-RLS `hr_db` schema — 14 tenant tables + 3 shared-infra (`2ed4dc1`), ProcessedEvent inbox + Testcontainers IT base + RLS smoke test (`98c661a`). `mvn -pl services/hr-service -am test-compile` green. HrContextLoadsIT (migration + cross-tenant RLS via NOSUPERUSER role) is written but DEFERRED — no Docker daemon in this sandbox; run `mvn -q -pl services/hr-service -am verify` in a Docker-capable CI/session. Remaining Phase 11 waves: W2 (11-04/05/10), W3 (11-06/07), W4 (11-08/09/11), W5 (11-12 frontend, checkpoint). Nothing pushed.
-Resume file: .planning/phases/11-hr-payroll/11-01-SUMMARY.md
+Last session: 2026-08-06 — Phase 11 (HR & Payroll) Waves 1+2 complete (6/12 plans).
+Branch `Ammar/phase-11-hr-payroll` first brought up to date with prod (merge `3b5903a`: 272 commits, phases 08.2 + 12 + gateway resilience fixes; 6 conflicts union-resolved). ALL Phase 11 plans run in the orchestrator thread INLINE — subagent delegation is hard-blocked this environment by a platform content-safety filter (7/8 subagent calls blocked incl. benign boilerplate; main thread unaffected). No Docker daemon in this sandbox, so every Testcontainers IT + `opa test` is WRITTEN and compile-verified but DEFERRED to a Docker-capable CI run.
+Completed:
+- **11-01** scaffold: module + app + security (`5e35b94`), FORCE-RLS hr_db 14+3 tables (`2ed4dc1`), ProcessedEvent + HrTestBase + HrContextLoadsIT (`98c661a`).
+- **11-05** payroll math (TDD, unit tests GREEN): SlabTaxCalculator + EobiCalculator (`92ef022`), tax_config entity/service + FY2025-26 seed (`d794e97`).
+- **11-04** employees: EmployeeEntity encrypted cnic/bank + events (`d203cfa`), REST + hr.rego + hr_test.rego (`fabd4e1`), EmployeeIT (`70409e7`).
+- **11-10** device registry: entity/service + resolve_device SECURITY DEFINER fn (Task 1), DeviceAuthResolver + HrSecurityConfig permit (Task 2), gateway JWT-exempt + per-device rate-limit + DeviceAuthResolverIT (Task 3).
+Everything compiles (`mvn -pl gateway,services/hr-service -am test-compile` green). Nothing pushed. 15 phase-11 commits ahead of prod (7 total ahead incl. merge... actually 15 since merge).
+REMAINING: W3 (11-06 payroll run lifecycle, 11-07 shifts/attendance/leave), W4 (11-08 GL auto-post, 11-09 labour-cost %, 11-11 ADMS/USB punch ingest), W5 (11-12 HR frontend — checkpoint plan). Then a Docker CI pass to run all deferred ITs + `opa test`, then phase verify/roadmap/requirements.
+DEPLOY-REVIEW ITEMS: (1) resolve_device() SECURITY DEFINER must be owned by a role that bypasses attendance_devices RLS in prod. (2) FIELD_ENCRYPTION_KEY must be set before employee/device PII is written. (3) hr-route has no gateway timelimiter entry.
+Resume file: .planning/phases/11-hr-payroll/11-10-SUMMARY.md
 
 Last session: 2026-07-24T00:51:13.261Z
 Stopped at: Completed 08.2-18-PLAN.md
