@@ -30,6 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
 - [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
+- [ ] **Phase 13: Platform & Tenant Access Repair** *(INSERTED, BLOCKER)* - SuperAdmin auth path, provisioning saga repair, user lifecycle CRUD, password management, WAITER role + admin rights, authoritative seed script
+- [ ] **Phase 14: Frontend Trust & Admin Surfaces** *(INSERTED)* - QueryBoundary/error-boundary contract, tenant-admin users/branches UI, password UI, SuperAdmin tenant console, POS fire-to-kitchen data-loss fix
+- [ ] **Phase 15: UI/UX Revamp — ERP Design System** *(INSERTED)* - Token scales, layout primitives, form/data primitives, per-role dashboards, responsive + a11y baseline
+- [ ] **Phase 16: Multi-POS Terminals & KDS/BDS Routing** *(INSERTED)* - POS terminal entity, order source/terminal attribution, per-branch item→station routing, station types (KITCHEN/BAR/EXPO), BDS
+- [ ] **Phase 17: ERP Reporting Completeness** *(INSERTED)* - journal/inventory fact tables + consumers, P&L, balance sheet, COGS, stock valuation, Z-report, tender mix, exports
 
 ## Phase Details
 
@@ -592,10 +597,92 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 - [ ] 12-15: GAP D — correct stale Anthropic model IDs in deploy/.env; runnable real-key round-trip recipe (live proof honestly deferred)
 - [ ] 12-16: UAT Test 3+4 — route the 3 browser WS hooks through NEXT_PUBLIC_WS_BASE_URL (gateway :8080) instead of unset NEXT_PUBLIC_*_WS_URL (localhost:3000); static guard + real-browser push proof
 
+### Phase 13: Platform & Tenant Access Repair *(INSERTED, BLOCKER)*
+
+**Goal**: Every advertised access path is actually reachable at runtime — a SuperAdmin can authenticate and manage tenants, a tenant provisioned through the real saga can log in, a tenant admin can create and manage users, and every user can manage their own password.
+**Depends on**: Phases 2, 3
+**Source**: `AUDIT-REPORT-2026-08-06.md` §0 (B1–B3), §2.1–2.3
+**Success Criteria** (what must be TRUE):
+
+  1. A SuperAdmin authenticates against `platform_users` and receives a token that satisfies the `/api/v1/platform/**` authorization checks through the real gateway, including with no `tenant_id` claim.
+  2. A tenant provisioned via `POST /api/v1/platform/tenants` can immediately log in as its admin — `auth_tenants` row created, `user_branch_roles` OWNER assignment written, HQ branch flagged `is_hq=true`, real branch id parsed (not a random UUID), and the temp password delivered to the caller.
+  3. A tenant admin creates, lists, edits, and deactivates users through a public API, assigns per-branch roles from a role catalog endpoint, and an unknown `roleCode` is rejected with 400.
+  4. A logged-in user changes their own password; an admin resets another user's password; `must_change_password` forces a change at next login; reset clears the login lockout; the raw reset token no longer appears in the `outbox` payload.
+  5. A `WAITER` role exists with order-taking but not till permissions, and `TENANT_ADMIN` can administer users and branches (multiple admins per tenant work).
+  6. One idempotent seed script produces: SuperAdmin `superadmin@softxlogic.com`, 3 tenants with differing enabled modules, and per-tenant users covering Admin/Manager/Cashier/Waiter/Kitchen/Accountant — and every seeded persona's login is verified by the script itself.
+
+**Plans**: TBD (see `/gsd-plan-phase 13`)
+
+### Phase 14: Frontend Trust & Admin Surfaces *(INSERTED)*
+
+**Goal**: The UI never lies about state, never silently loses data, and exposes the admin surfaces Phase 13 made reachable.
+**Depends on**: Phase 13
+**Source**: `AUDIT-REPORT-2026-08-06.md` §2.6 (C1–C4), §2.2, §2.3
+**Success Criteria**:
+
+  1. A failed query can no longer render as an empty state anywhere — enforced by a shared async boundary primitive plus a lint rule, verified on the POS till, KDS board, AP/AR aging, and order-suggestion surfaces.
+  2. `error.tsx`, `loading.tsx`, `not-found.tsx` and a React error boundary exist; a render-time throw no longer white-screens the app.
+  3. POS fire-to-kitchen failure surfaces an error and does not clear the cart.
+  4. Tenant-admin pages exist for users, per-branch roles, and branches; SuperAdmin pages exist for tenant list/detail/create, lifecycle, and module toggles.
+  5. Password UI exists: forgot, reset, forced-change, and change-password-in-settings.
+  6. Dead links (`/app/settings`, `/settings/profile`) are removed or built, and mobile nav + ⌘K honour the same gating as the sidebar.
+
+**Plans**: TBD
+
+### Phase 15: UI/UX Revamp — ERP Design System *(INSERTED)*
+
+**Goal**: A clean, professional, consistent ERP interface built on real design tokens and shared primitives, with per-role dashboards.
+**Depends on**: Phase 14
+**Source**: `AUDIT-REPORT-2026-08-06.md` §2.6 "Design-system debt" + "What a revamp must standardize first"
+**Success Criteria**:
+
+  1. Token scales exist for spacing, typography, elevation and z-index (not just colour and radius), and a KDS token set replaces the raw greys.
+  2. `PageHeader`, `PageShell`/`Section`, and `ModuleTabs` primitives exist and are adopted by every page — one `<h1>` scale, one page-padding owner, `aria-current` on tabs.
+  3. A `Select` primitive replaces all 45 native `<select>`; `DataTable` replaces the hand-rolled tables with accessible, keyboard-operable sort and real pagination; one `StatusBadge` and one `StatCard` replace the 7 and 4 variants.
+  4. Dark mode is complete — no raw palette literals without variants — and tenant branding reaches more than `--primary`, with per-tenant brand names.
+  5. Each role has a dashboard showing only its permitted modules, and post-login routing sends each role to the right landing page.
+  6. Responsive + a11y baseline: every page usable at mobile width; tables carry `scope="col"`; POS touch targets ≥44px.
+
+**Plans**: TBD
+
+### Phase 16: Multi-POS Terminals & KDS/BDS Routing *(INSERTED)*
+
+**Goal**: One tenant can run multiple POS terminals per branch, and the admin decides whether food and drink share one POS or split across separate ones — with orders routed to the correct kitchen or bar display.
+**Depends on**: Phase 13
+**Source**: `AUDIT-REPORT-2026-08-06.md` §2.4
+**Success Criteria**:
+
+  1. `pos_terminals` exists (tenant+branch scoped, coded, named, activatable) with admin CRUD and UI; an order records `terminal_id` and a `source` channel.
+  2. `stations.station_type` distinguishes KITCHEN / BAR / EXPO; a BDS route renders bar stations using the existing board; KDS and BDS each request only their own type.
+  3. `menu_item_station_routes` allows a tenant-scoped menu item to route to a different station per branch, with category-level fallback; a station admin UI and a menu-item→station picker exist.
+  4. Till sessions bind to a terminal, and the `uq_open_till_per_cashier` swap ships with a data-migration plan and no double-drawer regression.
+  5. The KDS WebSocket validates the branch claim (parity with the POS socket).
+  6. Configurable end to end: an admin with a combined food+drink POS and an admin with split POS/bar counters can each be configured through the UI, and orders reach the right display in both cases.
+
+**Plans**: TBD
+
+### Phase 17: ERP Reporting Completeness *(INSERTED)*
+
+**Goal**: Admins get comprehensive reports across every module, not just sales and tax.
+**Depends on**: Phases 13, 15
+**Source**: `AUDIT-REPORT-2026-08-06.md` §2.5
+**Success Criteria**:
+
+  1. `journal_facts` and inventory fact tables exist with consumers for the currently-unconsumed domain events (stock depletion/receipt/wastage/variance/transfer, journal posted, period closed, GRN, refund, void).
+  2. P&L, Balance Sheet, and a labelled Trial Balance are available for a selected period.
+  3. COGS and gross margin are real values, not NULL, on sales-by-item.
+  4. Stock valuation (as-of date), low-stock/reorder, and wastage reports are admin-reachable.
+  5. Daily cash-up / Z-report, payment-tender mix, sales-by-category, and purchase-spend-by-vendor exist.
+  6. Every report exports to CSV and PDF, and the advertised "E to export" handler works.
+
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17
+
+Phases 13–17 were inserted 2026-08-06 from a source-level production-readiness audit (`AUDIT-REPORT-2026-08-06.md`). Phase 13 is a hard blocker for all of them: it repairs three access paths that are fully coded but unreachable at runtime. Phase 16 may proceed in parallel with 14/15 once 13 lands. Phase 11 (HR & Payroll) is owned by another developer and is out of scope for this sequence.
 
 With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 10 and 11 may proceed in parallel (both depend only on already-completed phases); Phase 12 runs last as it consumes events from POS/Inventory/Finance.
 
@@ -614,3 +701,8 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 0/4 | Not started | - |
 | 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |
+| 13. Platform & Tenant Access Repair *(INSERTED, BLOCKER)* | 0/TBD | Planning | - |
+| 14. Frontend Trust & Admin Surfaces *(INSERTED)* | 0/TBD | Not started | - |
+| 15. UI/UX Revamp — ERP Design System *(INSERTED)* | 0/TBD | Not started | - |
+| 16. Multi-POS Terminals & KDS/BDS Routing *(INSERTED)* | 0/TBD | Not started | - |
+| 17. ERP Reporting Completeness *(INSERTED)* | 0/TBD | Not started | - |

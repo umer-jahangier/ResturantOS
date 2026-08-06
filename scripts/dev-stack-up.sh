@@ -54,9 +54,24 @@ step "Pre-flight checks"
 command -v python3 >/dev/null 2>&1 || die "python3 is required to compute the RabbitMQ password hash."
 command -v docker  >/dev/null 2>&1 || die "docker CLI not found on PATH."
 
+# A listener on :5432 is only OK if it is the container runtime's own port forwarder:
+# Docker Desktop (com.docker.backend / vpnkit) or colima/lima (an `ssh` mux bound to the
+# VM's socket). Anything else — a host-installed Postgres, or an ssh tunnel to some OTHER
+# database — is exactly the "you'll talk to the wrong database" hazard and must still abort.
 if lsof -nP -iTCP:5432 -sTCP:LISTEN >/dev/null 2>&1; then
-  if ! lsof -nP -iTCP:5432 -sTCP:LISTEN | grep -qi "com.docke\|docker"; then
-    lsof -nP -iTCP:5432 -sTCP:LISTEN >&2
+  bad_listeners=""
+  while read -r pid; do
+    [[ -z "$pid" ]] && continue
+    cmd="$(ps -o command= -p "$pid" 2>/dev/null)"
+    case "$cmd" in
+      *com.docker*|*vpnkit*|*qemu*|*dockerd*) continue ;;  # Docker Desktop
+      *colima*|*_lima*|*lima*)                continue ;;  # colima / lima ssh forwarder
+    esac
+    bad_listeners="${bad_listeners}"$'\n'"  pid ${pid}: ${cmd}"
+  done < <(lsof -nP -iTCP:5432 -sTCP:LISTEN -t 2>/dev/null | sort -u)
+
+  if [[ -n "$bad_listeners" ]]; then
+    echo "Listener(s) on :5432 that are not a container-runtime port forwarder:${bad_listeners}" >&2
     die "Something native is already listening on :5432 (a host-installed Postgres?). Stop it before bringing up the postgres container — the port bind will otherwise fail or you'll talk to the wrong database."
   fi
 fi
