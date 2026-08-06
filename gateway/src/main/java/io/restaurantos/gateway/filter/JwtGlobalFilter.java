@@ -66,8 +66,36 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             // device token is verified by hr-service's DeviceAuthResolver, and these paths stay
             // FEATURE_HR-gated (RouteFeatureMap) + per-device rate-limited. JWT-skip only.
             "/iclock",
-            "/internal/attendance/ingest"
+            "/internal/attendance/ingest",
+            // Platform (SuperAdmin) login — implemented by 13-05 in platform-admin-service. Public
+            // for the same reason /api/v1/auth/login is: the caller has no token and cannot get one
+            // until this succeeds. Rate-limited by platform-auth-route, which is declared BEFORE
+            // platform-admin-route in application.yml (threat T-13-01-BF).
+            "/api/v1/platform/auth/login",
+            // Forced password change — implemented by 13-08. Registered in its FULLY QUALIFIED form
+            // on purpose: isPublicPath uses startsWith, so registering the bare
+            // "/api/v1/auth/change-password" would also expose the authenticated self-service
+            // endpoint 13-04 adds at exactly that path. This one is self-authenticating (single-use
+            // change token + current password); that one must stay behind the JWT check.
+            "/api/v1/auth/change-password/forced"
     );
+
+    /**
+     * Path prefixes on which a token carrying NO {@code tenant_id} claim is acceptable.
+     *
+     * <p>Exactly one entry, and it should stay that way. A platform user lives in
+     * {@code platform_db.platform_users} and belongs to no tenant, so
+     * {@link TenantResolutionSupport#resolve} necessarily fails for its token — no claim, and no
+     * tenant subdomain in the Host either — and {@link #authorizeAndForward} turns that failure
+     * into a 401. That is the third independent cause of audit blocker B1: even a correctly signed
+     * SuperAdmin token could never reach {@code /api/v1/platform/**}.
+     *
+     * <p>The exemption is scoped HERE, at the caller, rather than by relaxing
+     * {@code TenantResolutionSupport}. The resolver's contract stays honest ("a tenant-scoped
+     * request without a resolvable tenant is an error"), and no tenant-scoped route can reach the
+     * relaxed branch by construction rather than by review (threat T-13-01-A).
+     */
+    private static final List<String> TENANT_OPTIONAL_PATHS = List.of("/api/v1/platform");
 
     /**
      * Path prefixes for WebSocket endpoints whose handshake auth MUST be allowed via a
@@ -149,23 +177,24 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
      * WS-upgrade query-param path to avoid duplicating the mutation logic.
      */
     private Mono<Void> authorizeAndForward(ServerWebExchange exchange, JwtClaims claims, GatewayFilterChain chain) {
+        // Tenant-less token on a tenant-optional path: forward WITHOUT resolving a tenant and
+        // WITHOUT an X-Tenant-Id header. Deliberately not "resolve, and fall back to no tenant on
+        // failure" — that would let any tenant-scoped route through whenever resolution merely
+        // broke (Redis down, platform-admin unreachable), converting an outage into an
+        // authorization bypass. Both conditions must hold, and TenantResolutionSupport is not
+        // consulted at all on this branch.
+        //
+        // The upstream must therefore treat an ABSENT X-Tenant-Id as "no tenant", never as a
+        // default one. No placeholder is injected here, and none may be inferred there
+        // (threat T-13-01-D).
+        if (claims.tenantId() == null && isTenantOptionalPath(exchange.getRequest().getPath().value())) {
+            return chain.filter(exchange.mutate().request(identityHeaders(exchange, claims).build()).build());
+        }
+
         return tenantResolutionSupport.resolve(exchange, claims)
                 .flatMap(tenantId -> {
-                    ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate()
-                            .header("X-Tenant-Id", tenantId.toString())
-                            .header("X-User-Id", claims.subject().toString())
-                            // Re-created from the signed claim, never forwarded from the client:
-                            // StripInternalHeaderFilter (HIGHEST_PRECEDENCE + 5) has already
-                            // deleted whatever the caller sent. Written on every authenticated
-                            // request, including the false case, so the upstream reads a value
-                            // this gateway authored rather than an absence it has to interpret.
-                            .header(StripInternalHeaderFilter.TOTP_VERIFIED_HEADER,
-                                    Boolean.toString(claims.totpVerified()));
-
-                    // Propagate impersonation claim for downstream audit logging (Pitfall 7)
-                    if (claims.impersonatedBy() != null) {
-                        requestBuilder.header("X-Impersonated-By", claims.impersonatedBy().toString());
-                    }
+                    ServerHttpRequest.Builder requestBuilder = identityHeaders(exchange, claims)
+                            .header("X-Tenant-Id", tenantId.toString());
 
                     ServerWebExchange mutated = exchange.mutate()
                             .request(requestBuilder.build())
@@ -173,6 +202,31 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
                     return chain.filter(mutated);
                 })
                 .onErrorResume(ex -> writeError(exchange, HttpStatus.UNAUTHORIZED, UNAUTHENTICATED_BODY));
+    }
+
+    /**
+     * The identity headers every authenticated request carries upstream, tenant-bearing or not.
+     *
+     * <p>Extracted so the tenant-optional branch cannot drift from the tenant-bearing one: the only
+     * difference between them must be the presence of {@code X-Tenant-Id}, and keeping the rest in
+     * one place is what makes that true rather than merely intended.
+     */
+    private ServerHttpRequest.Builder identityHeaders(ServerWebExchange exchange, JwtClaims claims) {
+        ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate()
+                .header("X-User-Id", claims.subject().toString())
+                // Re-created from the signed claim, never forwarded from the client:
+                // StripInternalHeaderFilter (HIGHEST_PRECEDENCE + 5) has already
+                // deleted whatever the caller sent. Written on every authenticated
+                // request, including the false case, so the upstream reads a value
+                // this gateway authored rather than an absence it has to interpret.
+                .header(StripInternalHeaderFilter.TOTP_VERIFIED_HEADER,
+                        Boolean.toString(claims.totpVerified()));
+
+        // Propagate impersonation claim for downstream audit logging (Pitfall 7)
+        if (claims.impersonatedBy() != null) {
+            requestBuilder.header("X-Impersonated-By", claims.impersonatedBy().toString());
+        }
+        return requestBuilder;
     }
 
     /**
@@ -250,6 +304,31 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
 
     private boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    }
+
+    /**
+     * True when {@code path} is inside a {@link #TENANT_OPTIONAL_PATHS} prefix.
+     *
+     * <p>Matches on a SEGMENT boundary, not a bare {@code startsWith}: {@code /api/v1/platform} and
+     * {@code /api/v1/platform/tenants} match, {@code /api/v1/platformish} does not. A bare prefix
+     * test would let any future route whose path merely began with those characters inherit the
+     * tenant exemption — the whole point of T-13-01-A is that this set is closed.
+     *
+     * <p>A path containing a {@code ..} segment is refused outright. WebFlux does not collapse dot
+     * segments — {@code getPath().value()} is what the client sent — so without this a request
+     * could carry the platform prefix here while an upstream that DOES normalise sees a different
+     * resource. Refusing is fail-closed: the request simply falls through to ordinary tenant
+     * resolution, which 401s a tenant-less token. No legitimate API path contains {@code ..}.
+     *
+     * <p>Package-private so {@code JwtGlobalFilterTenantOptionalPathTest} can assert the boundary
+     * directly, without a Spring context.
+     */
+    boolean isTenantOptionalPath(String path) {
+        if (path.contains("/../") || path.endsWith("/..")) {
+            return false;
+        }
+        return TENANT_OPTIONAL_PATHS.stream()
+                .anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
     }
 
     /**

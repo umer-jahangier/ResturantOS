@@ -113,6 +113,38 @@ spring:
                     statusCodes:
                       - 503
 
+            # ── Platform (SuperAdmin) login ──────────────────────────────────────
+            # MUST stay declared BEFORE platform-admin-route. Spring Cloud Gateway evaluates routes
+            # in declaration order and takes the first match, so declaration order IS the mechanism
+            # that gives this path its own rate limit — /api/v1/platform/auth/login also matches
+            # platform-admin-route's /api/v1/platform/** predicate, and whichever is declared first
+            # wins. Moving this below it silently removes the throttle.
+            #
+            # The budget matches auth-route deliberately: this is a credential endpoint, and an
+            # unthrottled one is threat T-13-01-BF. It is the control plane's credential endpoint at
+            # that — a SuperAdmin password is worth more brute-force effort than any tenant user's.
+            # The path is also in JwtGlobalFilter.PUBLIC_PATHS (no token exists yet at login), which
+            # is exactly why the rate limiter is the only thing in front of it.
+            #
+            # 404s from platform-admin-service until 13-05 lands the endpoint. Declared here because
+            # this plan owns the gateway files; a later plan editing them would serialise the waves.
+            - id: platform-auth-route
+              uri: lb://platform-admin-service
+              predicates:
+                - Path=/api/v1/platform/auth/login
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 2
+                    redis-rate-limiter.burstCapacity: ${RATE_LIMIT_AUTH_PER_MIN:100}
+                    key-resolver: "#{@ipKeyResolver}"
+                - name: CircuitBreaker
+                  args:
+                    name: platformAdminCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
             # ── Platform Admin Service ───────────────────────────────────────────
             - id: platform-admin-route
               uri: lb://platform-admin-service

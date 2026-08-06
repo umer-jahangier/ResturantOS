@@ -282,7 +282,144 @@ class JwtGlobalFilterTest {
         assertThat(upstreamRequest.getHeader("X-TOTP-Verified")).isNull();
     }
 
+    // ── Tenant-less (platform) tokens: accepted on the platform prefix, nowhere else ──────
+
+    /**
+     * Audit B1, cause 3. A platform user belongs to no tenant, so its token carries no
+     * {@code tenant_id}; {@code TenantResolutionSupport} therefore errors and
+     * {@code authorizeAndForward} used to turn that into a 401 — making the whole
+     * {@code /api/v1/platform/**} API unreachable even with a perfectly valid SuperAdmin token.
+     *
+     * <p>The request must arrive upstream with NO {@code X-Tenant-Id} at all. Not a placeholder,
+     * not an empty string: the upstream has to be able to tell "control plane" from "some tenant"
+     * (threat T-13-01-D).
+     */
+    @Test
+    void tenantLessToken_onPlatformPath_isForwardedWithoutTenantHeader() throws Exception {
+        UUID platformUserId = UUID.randomUUID();
+        String token = buildTenantLessToken(platformUserId);
+
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{\"data\":[]}"));
+
+        webTestClient.get()
+                .uri("/api/v1/platform/tenants")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstreamRequest = takeNext();
+        assertThat(upstreamRequest.getHeader("X-User-Id")).isEqualTo(platformUserId.toString());
+        assertThat(upstreamRequest.getHeader("X-Tenant-Id"))
+                .as("a control-plane request must not carry, or imply, any tenant")
+                .isNull();
+        assertThat(upstreamRequest.getHeader("X-TOTP-Verified"))
+                .as("still gateway-authored on this branch, so no upstream has to interpret absence")
+                .isEqualTo("false");
+    }
+
+    /**
+     * The T-13-01-A prohibition, on the two routes the audit called out by name. The exemption is
+     * keyed on the platform prefix; a tenant-less token is worthless everywhere else and must be
+     * rejected at the gateway, before any upstream sees it.
+     */
+    @Test
+    void tenantLessToken_onPosRoute_returns401() throws Exception {
+        String token = buildTenantLessToken(UUID.randomUUID());
+        int requestsBefore = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/pos/orders")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("UNAUTHENTICATED"));
+
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(requestsBefore);
+    }
+
+    @Test
+    void tenantLessToken_onUsersRoute_returns401() throws Exception {
+        String token = buildTenantLessToken(UUID.randomUUID());
+        int requestsBefore = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/users/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(requestsBefore);
+    }
+
+    /** The exemption is additive: a tenant-bearing token on the platform prefix is unchanged. */
+    @Test
+    void tenantBearingToken_onPlatformPath_stillCarriesItsTenantHeader() throws Exception {
+        UUID tenantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String token = buildToken(TEST_KID, userId, tenantId, false);
+
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        webTestClient.get()
+                .uri("/api/v1/platform/tenants")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstreamRequest = takeNext();
+        assertThat(upstreamRequest.getHeader("X-Tenant-Id")).isEqualTo(tenantId.toString());
+        assertThat(upstreamRequest.getHeader("X-User-Id")).isEqualTo(userId.toString());
+    }
+
+    /** The platform prefix is tenant-optional, not authentication-optional. */
+    @Test
+    void platformPath_withNoOrMalformedAuthHeader_returns401() {
+        int requestsBefore = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/platform/tenants")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        webTestClient.get()
+                .uri("/api/v1/platform/tenants")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer not.a.real.token")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        webTestClient.get()
+                .uri("/api/v1/platform/tenants")
+                .header(HttpHeaders.AUTHORIZATION, "Basic YWRtaW46YWRtaW4=")
+                .exchange()
+                .expectStatus().isUnauthorized();
+
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(requestsBefore);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────────────────
+
+    /**
+     * A platform token as {@code JwtSigningService.signPlatformToken} mints it: the tenant and
+     * branch claim keys are ABSENT, not null-valued.
+     */
+    private String buildTenantLessToken(UUID platformUserId) throws Exception {
+        Date now = new Date();
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .subject(platformUserId.toString())
+                .claim("roles", List.of("SUPER_ADMIN"))
+                .claim("permissions", List.of("SUPER_ADMIN"))
+                .claim("token_type", "platform")
+                .claim("totp_verified", false)
+                .issueTime(now)
+                .expirationTime(new Date(now.getTime() + 3_600_000))
+                .build();
+
+        SignedJWT jwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(TEST_KID).build(), claims);
+        jwt.sign(new RSASSASigner(keyPair.getPrivate()));
+        return jwt.serialize();
+    }
 
     private RecordedRequest takeNext() {
         try {
@@ -356,6 +493,12 @@ class JwtGlobalFilterTest {
                             .uri("http://localhost:" + port))
                     .route("test-auth-route", r -> r
                             .path("/api/v1/auth/**")
+                            .uri("http://localhost:" + port))
+                    .route("test-platform-route", r -> r
+                            .path("/api/v1/platform/**")
+                            .uri("http://localhost:" + port))
+                    .route("test-pos-route", r -> r
+                            .path("/api/v1/pos/**")
                             .uri("http://localhost:" + port))
                     .build();
         }
