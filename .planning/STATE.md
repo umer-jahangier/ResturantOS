@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 08.2-18-PLAN.md
-last_updated: "2026-08-06T17:53:43.829Z"
+stopped_at: Completed 13-05-PLAN.md
+last_updated: "2026-08-06T18:25:23.927Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 145
+  completed_plans: 146
   percent: 64
 ---
 
@@ -296,6 +296,7 @@ _Updated after each plan completion_
 | Phase 08.2 P17 | 60min | 3 tasks | 14 files |
 | Phase 08.2 P18 | 35min | 3 tasks | 6 files |
 | Phase 08.2 P19 | 45min | 2 tasks | 4 files |
+| Phase 13 P05 | 2h | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -577,6 +578,9 @@ Recent decisions affecting current work:
 - [Phase 08.2]: VendorItemPriceDialog's branch scope is a simple this-branch-only/all-branches aria-pressed toggle using the current user's branchId, not a full branch-select dropdown — No useBranches/branch-list hook exists in the purchasing frontend; inventing a new endpoint was out of this plan's scope
 - [Phase 08.2]: PurchaseOrderFormDialog's PO line item is chosen exclusively via CatalogItemCombobox scoped to useVendorItems(vendorId); the hand-typed ingredient UUID input is deleted (PUR-08, ROADMAP Success Criterion 6)
 - [Phase 08.2]: Fixed createZodResolver (shared react-hook-form utility) to walk each zod issue's full path instead of only path[0] -- nested array-item field errors (e.g. a PO line's own vendorItemId) now reach FormMessage across every line-array form in the codebase, not just PurchaseOrderFormDialog
+- [Phase 13]: 13-05: platform login lives in platform-admin-service (D-26) — it verifies the credential because PLATFORM-07 gives it sole access to platform_db; auth-service signs the token because it holds the RSA key
+- [Phase 13]: 13-05: SuperAdmin superadmin@softxlogic.com seeded with deterministic uuid5 eca6bbf2-ce62-5d16-8f4c-d052521d16ad; superadmin@restaurantos.io deactivated (D-03) — its password is committed in changeset 900
+- [Phase 13]: 13-05: platform accounts have no MFA (platform_users has no TOTP column) — accepted gap, compensated by Redis lockout, gateway rate limit and a 900s non-refreshable token
 
 ### Pending Todos
 
@@ -620,7 +624,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06 — Phase 13 executing. 13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 running concurrently in the same tree against auth/platform-admin/gateway.
+Last session: 2026-08-06 — Phase 13 executing. 13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 complete: blocker B1 closed — a SuperAdmin authenticates against `platform_users` at `POST /api/v1/platform/auth/login` and reaches the platform API through the real gateway with no tenant claim (SC1 script 21/21, exit 0, three consecutive runs); the repository-committed `superadmin@restaurantos.io` credential is deactivated by changeset 910.
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
