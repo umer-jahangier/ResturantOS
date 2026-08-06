@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 13-08-PLAN.md
-last_updated: "2026-08-06T21:00:00.000Z"
+stopped_at: Completed 13-09-PLAN.md
+last_updated: "2026-08-06T22:03:45.645Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 149
+  completed_plans: 151
   percent: 64
 ---
 
@@ -300,6 +300,7 @@ _Updated after each plan completion_
 | Phase 13 P06 | 4h | 3 tasks | 10 files |
 | Phase 13 P07 | 40min | 3 tasks | 13 files |
 | Phase 13 P08 | 3h | 3 tasks | 19 files |
+| Phase 13 P09 | ~1h | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -307,6 +308,7 @@ _Updated after each plan completion_
 
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
+
 - [Phase 13]: A freshly provisioned OWNER is answered TOTP_ENROLLMENT_REQUIRED, not a token — OWNER holds rbac.manage so requiresTotpStepUp fires while the new account has no factor (D-29a working as decided). Structurally this PROVES branch resolution succeeded, since enforceTotpStepUp runs after PermissionResolver.resolveDefault. 13-10 must not read it as a provisioning failure; 13-15 must enrol TOTP for tenant-admin personas.
 - [Phase 13]: The extended /internal/auth/tenants/{id}/provision-admin REQUIRES branchId and roleCode — the saga's current {email}-only call now 400s until 13-10 lands. Deliberate: accepting the old shape manufactures the unusable no-assignment admin the endpoint exists to stop producing.
 - [Phase 13]: 13-07: the role catalog is CEILING-FILTERED — GET /api/v1/roles returns only roles whose permission set is a subset of the caller's, so a TENANT_ADMIN is never offered OWNER. Derived from role_permissions, never a list in code (mutation-proved live). Withheld roles are reported as a COUNT in an ApiResponse warning (ROLES_WITHHELD_ABOVE_CEILING), never by name.
@@ -597,6 +599,10 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-05: platform login lives in platform-admin-service (D-26) — it verifies the credential because PLATFORM-07 gives it sole access to platform_db; auth-service signs the token because it holds the RSA key
 - [Phase 13]: 13-05: SuperAdmin superadmin@softxlogic.com seeded with deterministic uuid5 eca6bbf2-ce62-5d16-8f4c-d052521d16ad; superadmin@restaurantos.io deactivated (D-03) — its password is committed in changeset 900
 - [Phase 13]: 13-05: platform accounts have no MFA (platform_users has no TOTP column) — accepted gap, compensated by Redis lockout, gateway rate limit and a 900s non-refreshable token
+- [Phase 13]: 13-09 (D-31): self-service forgot-password ships DISABLED by default via restaurantos.auth.password-reset.delivery-mode. No stub notification consumer created; gap recorded in Docs/known-gaps/notification-delivery.md. Supported recovery = admin reset (13-13) + authenticated change (13-04) + forced change (13-08).
+- [Phase 13]: 13-09 (D-19): PASSWORD_RESET_REQUESTED carries PasswordResetRequestedPayload{userId, email, tokenId} — a row handle, never the raw token.
+- [Phase 13]: 13-09 (D-18): reset-confirm clears failedLoginCount, lockedUntil AND mustChangePassword, matching changeOwnPassword.
+- [Phase 13]: 13-09 (D-21): per-account reset cooldown 15m, enforced silently and serialised by pg_advisory_xact_lock.
 
 ### Pending Todos
 
@@ -640,7 +646,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-07 — Phase 13 executing. 13-08 complete: `must_change_password` is enforced at login (D-17) — a flagged account's correct password now yields 403 PASSWORD_CHANGE_REQUIRED with a single-use 10-minute change token and no session of any kind, and `POST /api/v1/auth/change-password/forced` (the only password path public at the gateway) is the only way past it, requiring that token AND the current password. auth-service unit 24/24, IT 112/112; gateway 51/51 + 15/15 with no gateway file touched; `phase13-forced-change-e2e.sh` 25 PASS / 0 FAIL exit 0 twice, and 13-06's seam script repaired to 20 PASS / 0 FAIL. Two findings beyond the plan: the forgot-password flow had never worked against an RLS-enforcing database (401 -> 200, fixed here), and the refresh/logout path depends on changeset 052's function happening to be owned by `postgres` — reprovision auth_db and it breaks the same silent way (NOT fixed; recorded).  13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 complete: blocker B1 closed — a SuperAdmin authenticates against `platform_users` at `POST /api/v1/platform/auth/login` and reaches the platform API through the real gateway with no tenant claim (SC1 script 21/21, exit 0, three consecutive runs); the repository-committed `superadmin@restaurantos.io` credential is deactivated by changeset 910.
+Last session: 2026-08-07 — Phase 13 executing. 13-08 complete: `must_change_password` is enforced at login (D-17) — a flagged account's correct password now yields 403 PASSWORD_CHANGE_REQUIRED with a single-use 10-minute change token and no session of any kind, and `POST /api/v1/auth/change-password/forced` (the only password path public at the gateway) is the only way past it, requiring that token AND the current password. auth-service unit 24/24, IT 112/112; gateway 51/51 + 15/15 with no gateway file touched; `phase13-forced-change-e2e.sh` 25 PASS / 0 FAIL exit 0 twice, and 13-06's seam script repaired to 20 PASS / 0 FAIL. Two findings beyond the plan: the forgot-password flow had never worked against an RLS-enforcing database (401 -> 200, fixed here), and the refresh/logout path depends on changeset 052's function happening to be owned by `postgres` — reprovision auth_db and it breaks the same silent way (NOT fixed; recorded).  13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 complete: blocker B1 closed — a SuperAdmin authenticates against `platform_users` at `POST /api/v1/platform/auth/login` and reaches the platform API through the real gateway with no tenant claim (SC1 script 21/21, exit 0, three consecutive runs); the repository-committed `superadmin@restaurantos.io` credential is deactivated by changeset 910.  13-09 complete: the raw reset token is out of the outbox payload (D-19) — PASSWORD_RESET_REQUESTED now carries PasswordResetRequestedPayload{userId, email, tokenId}, a row handle rather than the credential, proved by hashing every string in the persisted payload against the token_hash the same request wrote (and falsified against a deliberately reintroduced defect). A reset now clears failedLoginCount, lockedUntil AND mustChangePassword (D-18). Reset requests are bounded by a silent 15-minute per-account cooldown serialised with pg_advisory_xact_lock, and one account holds one live token (D-21). Self-service forgot-password ships DISABLED (restaurantos.auth.password-reset.delivery-mode, default disabled) with a startup WARN and a RESET_DELIVERY_DISABLED response, because notification-service still has zero source files — no stub consumer was created and the gap is Docs/known-gaps/notification-delivery.md (D-31). auth-service unit 28/28, IT 121/121; gateway 51/51 + 15/15 and shared-lib 38/38 + 11/11 unchanged; opa 139/139; phase13-reset-hardening-e2e.sh 31 PASS / 0 FAIL exit 0 three times, and forced-change 25/25, password-change 22/22, provisioning-seam 20/20, superadmin 21/21 all unchanged.
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
