@@ -3,6 +3,8 @@ package io.restaurantos.auth.service;
 import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import io.restaurantos.auth.repository.UserRepository;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
@@ -19,17 +21,20 @@ public class BranchRoleAdminService {
     private static final Logger log = LoggerFactory.getLogger(BranchRoleAdminService.class);
 
     private final UserBranchRoleRepository userBranchRoleRepository;
+    private final UserRepository userRepository;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
     private final RoleCatalog roleCatalog;
     private final RoleCeiling roleCeiling;
 
     public BranchRoleAdminService(UserBranchRoleRepository userBranchRoleRepository,
+                                  UserRepository userRepository,
                                   TenantContext tenantContext,
                                   EntityManager entityManager,
                                   RoleCatalog roleCatalog,
                                   RoleCeiling roleCeiling) {
         this.userBranchRoleRepository = userBranchRoleRepository;
+        this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
         this.roleCatalog = roleCatalog;
@@ -138,6 +143,7 @@ public class BranchRoleAdminService {
     @Transactional
     public RoleAssignmentResult assign(UUID tenantId, UUID userId, BranchRoleAssignRequest req) {
         setTenantGuc(tenantId);
+        requireUserInTenant(tenantId, userId);
         roleCatalog.requireKnown(req.roleCode());
         List<UserBranchRoleEntity> activeAtBranch =
             userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, req.branchId());
@@ -186,6 +192,32 @@ public class BranchRoleAdminService {
         }
 
         return new RoleAssignmentResult(userBranchRoleRepository.save(entity), displacedRoleCode);
+    }
+
+    /**
+     * The target user must be a live user OF THIS TENANT, or this is a 404.
+     *
+     * <p><b>Nothing in application code checked this.</b> Cross-tenant assignment was refused only
+     * by a database foreign key, which answered {@code 409 CONFLICT} with the message "This
+     * conflicts with existing data" — true of a duplicate vendor code and useless here. Measured
+     * live by {@code scripts/e2e/phase13-tenant-admin-users-e2e.sh}, which asserts all five verbs
+     * against a second genuinely provisioned tenant and found this one disagreeing with the other
+     * four. Relying on a constraint for a security boundary means the boundary disappears the day
+     * someone drops or defers the constraint, and neither event would look like a security change.
+     *
+     * <p><b>404, not 403</b>, matching every other cross-tenant answer in this service. A 403 would
+     * confirm that the id names a real account somewhere, letting a tenant admin walk ids and learn
+     * the size and shape of the rest of the platform without reading a row. And a nonexistent id
+     * now answers identically to another tenant's — verified, because two different refusals are a
+     * distinguisher whatever their status codes say.
+     *
+     * <p>{@code findByIdForTenant} carries {@code tenant_id} in the query as well as relying on the
+     * row-level-security policy, because Testcontainers runs as a SUPERUSER and the policy is inert
+     * in every integration test here. The predicate is what CI can actually assert.
+     */
+    private void requireUserInTenant(UUID tenantId, UUID userId) {
+        userRepository.findByIdForTenant(userId, tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     /**

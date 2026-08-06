@@ -216,6 +216,92 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
         assertThat(response.getBody()).contains("UNKNOWN_ROLE_CODE");
     }
 
+    /**
+     * A user id belonging to ANOTHER tenant is 404, and writes nothing.
+     *
+     * <p>Nothing in application code checked this before 13-12. The write was refused only by a
+     * database foreign key, which answered {@code 409 CONFLICT} with "This conflicts with existing
+     * data" — a message about duplicate vendor codes, arriving for an attempt to give another
+     * tenant's employee a role. A security boundary held up by a constraint disappears the day
+     * someone drops or defers the constraint, and that would not look like a security change to
+     * anyone reviewing it.
+     *
+     * <p>This test cannot prove the row-level-security POLICY: Testcontainers' Postgres user is a
+     * SUPERUSER, so the policy is inert here. What it proves is the half CI can assert — the tenant
+     * predicate in the query — and the live script
+     * {@code scripts/e2e/phase13-tenant-admin-users-e2e.sh} asserts the same thing against the
+     * enforcing database with two genuinely provisioned tenants.
+     */
+    @Test
+    void assignBranchRole_toAnotherTenantsUser_isNotFoundAndWritesNothing() {
+        UUID neighbourTenant = UUID.fromString("a0000098-0000-4000-8000-000000000098");
+        UUID neighbourUser = UUID.fromString("c0000098-0000-4000-8000-000000000098");
+        seedNeighbourUser(neighbourTenant, neighbourUser);
+
+        // The control. Without it, "the assignment was refused" is satisfied by a row that was
+        // never written, and the test would pass against a completely broken seed.
+        assertThat(neighbourUserExists(neighbourUser))
+            .as("the neighbouring tenant's user must really exist for this to mean anything")
+            .isTrue();
+
+        Map<String, Object> body = Map.of(
+            "branchId", TestFixtures.MAIN_BRANCH_ID.toString(), "roleCode", "CASHIER");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + neighbourUser + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(404);
+        assertThat(response.getBody()).contains("NOT_FOUND");
+        assertThat(activeRoleCount(neighbourUser, TestFixtures.MAIN_BRANCH_ID, "CASHIER")).isZero();
+    }
+
+    /**
+     * A user id that exists NOWHERE answers identically to another tenant's.
+     *
+     * <p>Two different refusals are a distinguisher whatever their status codes say: if one of them
+     * were a 409 and the other a 404, a tenant admin could walk ids and learn which ones name real
+     * accounts elsewhere on the platform, without ever reading a row.
+     */
+    @Test
+    void assignBranchRole_toAUserThatExistsNowhere_answersIdenticallyToAnotherTenants() {
+        Map<String, Object> body = Map.of(
+            "branchId", TestFixtures.MAIN_BRANCH_ID.toString(), "roleCode", "CASHIER");
+
+        ResponseEntity<String> response = exchangePost(
+            "/internal/auth/users/" + UUID.randomUUID() + "/branch-roles",
+            body, InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(404);
+        assertThat(response.getBody()).contains("NOT_FOUND");
+    }
+
+    /**
+     * Written with the NEIGHBOUR's GUC, so the row belongs to that tenant and not to the demo one.
+     *
+     * <p>Both statements go in ONE {@code execute}: a {@code JdbcTemplate} returns its connection to
+     * the pool between calls, so a GUC set in a separate call would be set on a connection the
+     * INSERT may never see — the shape of the five defects this phase has already found.
+     */
+    private void seedNeighbourUser(UUID tenantId, UUID userId) {
+        jdbc.execute("""
+            SELECT set_config('app.current_tenant_id', '%s', false);
+            INSERT INTO users (id, tenant_id, email, password_hash, full_name, locale,
+                               is_active, must_change_password, totp_enabled, failed_login_count,
+                               created_at, updated_at)
+            VALUES ('%s', '%s', 'neighbour@other.local', 'x',
+                    'Neighbour User', 'en', true, false, false, 0, now(), now())
+            ON CONFLICT (id) DO NOTHING;
+            SELECT set_config('app.current_tenant_id', '%s', false);
+            """.formatted(tenantId, userId, tenantId, TestFixtures.DEMO_TENANT_ID));
+    }
+
+    private boolean neighbourUserExists(UUID userId) {
+        Long count = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM users WHERE id = ?::uuid", Long.class, userId.toString());
+        return count != null && count == 1L;
+    }
+
     private long activeRoleCount(UUID userId, UUID branchId, String roleCode) {
         return ((Number) entityManager.createNativeQuery(
                 "SELECT COUNT(*) FROM user_branch_roles "
