@@ -46,22 +46,37 @@ echo "=========================================================="
 
 # ── Helpers ────────────────────────────────────────────────────────────────────────────────
 
-# POST a platform login and print "<status>\n<body>". Status and body are returned TOGETHER on
-# purpose: 13-04 hit a bug where a helper assigned the status to a global inside a command
+# POST a platform login ONCE and print "<status>\n<body>".
+#
+# Status and body come from a single request on purpose, and this is the second time this repo has
+# had to learn it: 13-04 hit a bug where a helper assigned the status to a global inside a command
 # substitution — a subshell — so the assignment died with it and four assertions confidently
-# reported the status of some earlier call. Returning both from one invocation removes the
-# opportunity entirely.
+# reported the status of an earlier call. Two curls would also mean every body assertion below was
+# made about a *different* response from the status assertion beside it, which for a lockout-aware
+# endpoint is not even the same experiment.
+#
+# A 429 here is retried rather than returned. Sections 1-6 share one per-IP token bucket with
+# section 7, which deliberately empties it; a 429 in those sections is this harness colliding with
+# its own previous work, not a property under test. Section 7 measures the limit directly and does
+# not go through this function.
 platform_login_raw() {
-  local email="$1" password="$2"
-  local body
+  local email="$1" password="$2" body out code attempt
   body="$(python3 -c "
 import json, sys
 print(json.dumps({'email': sys.argv[1], 'password': sys.argv[2]}))
 " "$email" "$password")"
-  curl -s -o /dev/null -w '%{http_code}\n' -X POST "${GATEWAY}${LOGIN_PATH}" \
-    -H "Content-Type: application/json" -d "$body"
-  curl -s -X POST "${GATEWAY}${LOGIN_PATH}" \
-    -H "Content-Type: application/json" -d "$body"
+
+  for attempt in 1 2 3 4 5 6; do
+    out="$(curl -s -w $'\n%{http_code}' -X POST "${GATEWAY}${LOGIN_PATH}" \
+      -H "Content-Type: application/json" -d "$body")"
+    code="${out##*$'\n'}"
+    [[ "$code" != "429" ]] && break
+    echo "     (rate-limit bucket empty from a previous section/run; waiting 15s)" >&2
+    sleep 15
+  done
+
+  printf '%s\n' "$code"
+  printf '%s' "${out%$'\n'*}"
 }
 
 login_status() { platform_login_raw "$1" "$2" | head -1; }
@@ -75,16 +90,6 @@ auth_status() {  # auth_status <token> <path>
 
 echo
 echo "-- 1. Platform login with the CONTEXT credentials --"
-
-# Preflight, not an assertion. Section 7 deliberately drains this IP's token bucket, and it
-# replenishes at 2/s — so a second consecutive run of this script would otherwise fail section 1
-# with a 429 and read as a broken login. Wait for the bucket rather than let the harness report a
-# defect that is really its own previous run.
-for _ in 1 2 3 4 5 6; do
-  [[ "$(login_status "$SUPER_EMAIL" "$SUPER_PASSWORD")" != "429" ]] && break
-  echo "     rate-limit bucket still draining from a previous run; waiting 15s"
-  sleep 15
-done
 
 SUPER_STATUS="$(login_status "$SUPER_EMAIL" "$SUPER_PASSWORD")"
 assert_status 200 "$SUPER_STATUS" "platform login returns 200"
