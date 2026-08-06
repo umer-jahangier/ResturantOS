@@ -130,6 +130,8 @@ public abstract class BaseIntegrationTest {
     @Autowired protected OutboxRepository outboxRepository;
     @Autowired protected UserRepository userRepository;
     @Autowired protected EntityManager entityManager;
+    @Autowired protected io.restaurantos.auth.service.PasswordPolicyService passwordPolicyService;
+    @Autowired protected org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     protected RestClient rest;
 
@@ -156,6 +158,33 @@ public abstract class BaseIntegrationTest {
 
     protected String baseUrl() {
         return "http://127.0.0.1:" + port;
+    }
+
+    /**
+     * Mints a RESET token through the production issuance path and returns its RAW value.
+     *
+     * <p><b>Why a test needs this at all.</b> Before 13-09 the reset ITs recovered the raw token by
+     * reading it out of the outbox payload — which worked only because the raw token was in the
+     * outbox payload, the exact defect 13-09 removes. Once the event carries identity plus a row
+     * handle, no observer of the event can reconstruct the credential, and neither can a test. The
+     * honest replacement is to mint one by construction, through the same
+     * {@code issueSingleUseToken} the endpoint calls, so what the test redeems is a real token and
+     * not a fixture that only resembles one.
+     *
+     * <p>Runs in its own transaction with the tenant GUC set INSIDE it. Both statements
+     * ({@code invalidateOutstanding} then the insert) are {@code @Modifying} against a
+     * {@code FORCE ROW LEVEL SECURITY} table, so they need a transaction, and the GUC must be
+     * established on that same transaction's connection — {@code setRls} sets a session-level GUC
+     * on whatever connection the caller happened to hold, which is not necessarily this one.
+     */
+    protected String mintResetToken(java.util.UUID tenantId, java.util.UUID userId) {
+        return new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+            .execute(status -> {
+                passwordPolicyService.setTenantGuc(tenantId);
+                return passwordPolicyService.issueSingleUseToken(
+                    tenantId, userId,
+                    io.restaurantos.auth.service.PasswordPolicyService.TokenPurpose.RESET).rawToken();
+            });
     }
 
     /** RestClient.retrieve() throws on 4xx/5xx; auth ITs need the status body for assertions. */
