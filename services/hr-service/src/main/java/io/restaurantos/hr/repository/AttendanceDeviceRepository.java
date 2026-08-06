@@ -17,6 +17,8 @@ public interface AttendanceDeviceRepository extends JpaRepository<AttendanceDevi
 
     boolean existsBySerialNo(String serialNo);
 
+    Optional<AttendanceDeviceEntity> findByTenantIdAndSerialNo(UUID tenantId, String serialNo);
+
     /**
      * Resolve a device by serial number BEFORE any tenant context exists (the device-auth path
      * carries no JWT / tenant header). Goes through the {@code resolve_device} SECURITY DEFINER

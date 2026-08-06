@@ -28,7 +28,7 @@ import java.util.UUID;
 @Setter
 public class AttendanceDeviceEntity {
 
-    public enum ConnectionMode { NETWORK_ADMS, USB_BRIDGE }
+    public enum ConnectionMode { NETWORK_ADMS, USB_BRIDGE, MANUAL }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
