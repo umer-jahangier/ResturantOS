@@ -324,7 +324,7 @@ if [[ -n "$TADMIN_TOKEN" ]]; then
   # header, so it answered 500 — which would have satisfied a not-403 assertion and reported a
   # confident pass over a broken path.
   assert_status 200 \
-    "$(curl_status "${GATEWAY}/api/v1/users/${WAITER_ID}?branchId=${BRANCH_ID}" \
+    "$(curl_status "${GATEWAY}/api/v1/users/${WAITER_ID}/permissions?branchId=${BRANCH_ID}" \
          -H "Authorization: Bearer ${TADMIN_TOKEN}")" \
     "tenant admin may read a user's resolved permissions"
 fi

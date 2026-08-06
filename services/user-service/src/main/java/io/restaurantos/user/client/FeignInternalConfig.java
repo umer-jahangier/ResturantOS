@@ -1,10 +1,13 @@
 package io.restaurantos.user.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.Client;
 import feign.RequestInterceptor;
 import feign.codec.ErrorDecoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+
+import java.time.Duration;
 
 /**
  * Feign configuration that attaches the X-Internal-Service shared secret to every
@@ -35,5 +38,15 @@ public class FeignInternalConfig {
     @Bean
     public ErrorDecoder upstreamErrorDecoder(ObjectMapper objectMapper) {
         return new UpstreamErrorDecoder(objectMapper);
+    }
+
+    /**
+     * Replaces Feign's default {@code HttpURLConnection} transport, which cannot send PATCH — and
+     * auth-service's profile update is a PATCH. See {@link JdkHttpFeignClient}.
+     */
+    @Bean
+    public Client jdkHttpFeignClient(
+            @Value("${restaurantos.auth-service.connect-timeout-ms:2000}") long connectTimeoutMs) {
+        return new JdkHttpFeignClient(Duration.ofMillis(connectTimeoutMs));
     }
 }

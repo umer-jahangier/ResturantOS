@@ -2,36 +2,66 @@ package io.restaurantos.user.controller;
 
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.user.dto.BranchDtos;
+import io.restaurantos.user.dto.UserAdminDtos;
 import io.restaurantos.user.service.UserAdminService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tenant Admin per-branch role assignment surface.
- * All role writes DELEGATE to auth-service (system of record for user_branch_roles).
- * user-service NEVER writes user_branch_roles directly.
+ * The public tenant-admin user surface (blocker B3, D-11) plus per-branch role assignment.
  *
- * <p><b>Gating.</b> Every method here used to require {@code rbac.manage} alone, which no
- * TENANT_ADMIN holds (changeset 030 grants that role every permission <em>except</em> that one), so
- * only OWNER could administer anything and "multiple admins per tenant" did not work. Phase 13
- * splits the authority: {@code rbac.role.manage} for granting and revoking roles,
- * {@code rbac.user.manage} for reading and administering the user record. {@code rbac.manage} is
- * kept as an accepted alternative on both so OWNER's existing authority is unchanged.
+ * <pre>
+ *   GET    /api/v1/users                       one page of THIS tenant's users
+ *   GET    /api/v1/users/{userId}              one user + their active assignments
+ *   POST   /api/v1/users                       201 + a one-time temporary password
+ *   PATCH  /api/v1/users/{userId}              name / locale / active
+ *   POST   /api/v1/users/{userId}/deactivate   flag off + sessions revoked
+ *   POST   /api/v1/users/{userId}/reactivate   flag on
+ *   GET    /api/v1/users/{userId}/permissions  computed permissions (JWT-issuance concern)
+ *   POST   /api/v1/users/{userId}/branch-roles assign a role at a branch
+ *   DELETE /api/v1/users/{userId}/branch-roles revoke one
+ * </pre>
  *
- * <p>The two writes take the <em>role</em> code and the read takes the <em>user</em> code
- * deliberately. Splitting the codes and then gating role assignment on the user-administration
- * code would defeat the split: anyone able to edit a user would be able to grant themselves OWNER.
- * Both codes are currently held by exactly the same two roles, so this changes nothing today — it
- * is what makes a narrower custom role possible later without re-auditing these endpoints.
+ * <p>All writes DELEGATE to auth-service (system of record for {@code users} and
+ * {@code user_branch_roles}). user-service writes neither table.
+ *
+ * <p><b>The tenant is never in the URL and never in a body.</b> It comes from the verified JWT, via
+ * {@code TenantContext}; see {@link UserAdminService}. A path that took a tenant id would be a path
+ * whose authorization had to be re-argued at every call site.
+ *
+ * <h2>Gating</h2>
+ *
+ * <p>Every method here used to require {@code rbac.manage} alone, which no TENANT_ADMIN holds
+ * (changeset 030 grants that role every permission <em>except</em> that one), so only OWNER could
+ * administer anything and "multiple admins per tenant" did not work. Phase 13 splits the authority:
+ * {@code rbac.role.manage} for granting and revoking roles, {@code rbac.user.manage} for reading
+ * and administering the user record. {@code rbac.manage} is kept as an accepted alternative on both
+ * so OWNER's existing authority is unchanged.
+ *
+ * <p>The role writes take the <em>role</em> code and everything else takes the <em>user</em> code
+ * deliberately. Splitting the codes and then gating role assignment on the user-administration code
+ * would defeat the split: anyone able to edit a user would be able to grant themselves OWNER. Both
+ * codes are currently held by exactly the same two roles, so this changes nothing today — it is
+ * what makes a narrower custom role possible later without re-auditing these endpoints.
+ *
+ * <p>What the gate does <b>not</b> decide is which roles the caller may grant. That ceiling lives
+ * in auth-service, where the permission sets it compares actually are.
  */
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserAdminController {
+
+    /** May administer the user record: read, create, edit, deactivate. */
+    private static final String USER_ADMIN = "hasAnyAuthority('rbac.manage', 'rbac.user.manage')";
+    /** May grant and revoke roles. Strictly the more dangerous of the two — see the class comment. */
+    private static final String ROLE_ADMIN = "hasAnyAuthority('rbac.manage', 'rbac.role.manage')";
 
     private final UserAdminService userAdminService;
 
@@ -39,8 +69,89 @@ public class UserAdminController {
         this.userAdminService = userAdminService;
     }
 
-    /** Assign a branch-role to a user — delegates to auth-service. */
-    @PreAuthorize("hasAnyAuthority('rbac.manage', 'rbac.role.manage')")
+    // ── The user lifecycle ───────────────────────────────────────────────────────────────────
+
+    /**
+     * One page of this tenant's users.
+     *
+     * <p>Pagination is not optional and the page size is capped upstream at 200; a caller asking
+     * for more gets the cap rather than an error, and {@code meta.totalCount} tells them how many
+     * there are. The sort is fixed at {@code (email, id)} upstream and is deliberately not a
+     * parameter — an unstable sort makes page 2 omit and repeat rows.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<UserAdminDtos.UserSummary>>> listUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "0") int size,
+            @RequestParam(defaultValue = "false") boolean activeOnly,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(userAdminService.listUsers(page, size, activeOnly, search));
+    }
+
+    /**
+     * One user of this tenant, with the assignments that decide what they can do.
+     *
+     * <p>Another tenant's user id is <b>404</b> — see {@link UserAdminService#getUser}.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse<UserAdminDtos.UserDetail>> getUser(@PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.getUser(userId)));
+    }
+
+    /**
+     * Create a user in this tenant. 201, because a resource was created.
+     *
+     * <p>The response carries the temporary password, which exists nowhere else — the admin must
+     * deliver it out of band and must not log it. {@code mustChangePassword} is set, and 13-08's
+     * forced-change gate makes that binding at first login.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @PostMapping
+    public ResponseEntity<ApiResponse<UserAdminDtos.CreatedUser>> createUser(
+            @Valid @RequestBody UserAdminDtos.CreateUserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.ok(userAdminService.createUser(request)));
+    }
+
+    /**
+     * Patch a user's profile. PATCH rather than PUT: every field is optional and a null field is
+     * left alone, so a client rendering three fields will not blank a fourth.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @PatchMapping("/{userId}")
+    public ResponseEntity<ApiResponse<UserAdminDtos.UserDetail>> updateUser(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserAdminDtos.UpdateUserRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.updateUser(userId, request)));
+    }
+
+    /**
+     * Deactivate a user: the flag goes off and their refresh sessions are revoked upstream. The row
+     * and its assignments survive, so audit, order and journal references stay resolvable and
+     * reactivation restores the role they held.
+     *
+     * <p>POST to a sub-resource rather than DELETE, because nothing is deleted and a DELETE that
+     * does not delete is a trap for the next person to read the route table.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @PostMapping("/{userId}/deactivate")
+    public ResponseEntity<ApiResponse<UserAdminDtos.UserDetail>> deactivateUser(@PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.deactivateUser(userId)));
+    }
+
+    /** Reactivate a user. Sessions are deliberately not restored — one login re-establishes who holds the account. */
+    @PreAuthorize(USER_ADMIN)
+    @PostMapping("/{userId}/reactivate")
+    public ResponseEntity<ApiResponse<UserAdminDtos.UserDetail>> reactivateUser(@PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.reactivateUser(userId)));
+    }
+
+    // ── Branch roles ─────────────────────────────────────────────────────────────────────────
+
+    /** Assign a branch-role to a user — delegates to auth-service, which applies the role ceiling. */
+    @PreAuthorize(ROLE_ADMIN)
     @PostMapping("/{userId}/branch-roles")
     public ResponseEntity<ApiResponse<Map<String, Object>>> assignBranchRole(
             @PathVariable UUID userId,
@@ -50,7 +161,7 @@ public class UserAdminController {
     }
 
     /** Revoke a branch-role from a user — delegates to auth-service. */
-    @PreAuthorize("hasAnyAuthority('rbac.manage', 'rbac.role.manage')")
+    @PreAuthorize(ROLE_ADMIN)
     @DeleteMapping("/{userId}/branch-roles")
     public ResponseEntity<Void> revokeBranchRole(
             @PathVariable UUID userId,
@@ -60,9 +171,19 @@ public class UserAdminController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Read-through: user permissions from auth-service (JWT-issuance concern). */
-    @PreAuthorize("hasAnyAuthority('rbac.manage', 'rbac.user.manage')")
-    @GetMapping("/{userId}")
+    /**
+     * Read-through: computed permissions from auth-service (a JWT-issuance concern).
+     *
+     * <p><b>This moved from {@code GET /{userId}} to {@code GET /{userId}/permissions}.</b> That
+     * path had to become the user resource — a public user API whose "get a user" returns a
+     * permission map instead of a user is a contract nobody can code a UI against, and there is
+     * only one obvious path for a user. The move mirrors the internal contract, where permissions
+     * have always been at {@code /internal/auth/users/{userId}/permissions}, so the public and
+     * internal shapes now agree. One caller existed and was updated in the same commit
+     * ({@code scripts/e2e/phase13-roles-e2e.sh}).
+     */
+    @PreAuthorize(USER_ADMIN)
+    @GetMapping("/{userId}/permissions")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getUserPermissions(
             @PathVariable UUID userId,
             @RequestParam(required = false) UUID branchId) {

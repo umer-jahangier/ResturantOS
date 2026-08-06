@@ -1,6 +1,8 @@
 package io.restaurantos.user.client;
 
+import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.user.dto.BranchDtos;
+import io.restaurantos.user.dto.UserAdminDtos;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -78,4 +80,77 @@ public interface AuthInternalClient {
         @RequestHeader("X-Tenant-Id") UUID tenantId,
         @RequestParam(value = "branchId", required = false) UUID branchId
     );
+
+    // ── The user lifecycle (13-11's six endpoints) ───────────────────────────────────────────
+    //
+    // Typed, not Map-shaped. STATE.md records a Phase 7-to-10 integration repair that existed
+    // because untyped payloads produced four dead seams — a field renamed on the producer side is
+    // a null on the consumer side and nothing anywhere fails — and 13-10's provisioning saga fixed
+    // a fifth of the same shape (extractBranchId parsed {"data":{"id"}} against a producer that
+    // returned {branchId}, so it silently substituted a random UUID). These records are separate
+    // from auth-service's UserDtos on purpose; see UserAdminDtos.
+    //
+    // X-Acting-User-Id is REQUIRED on every write below and on none of the reads. See
+    // assignBranchRole above for why it is an identity and never an entitlement.
+
+    /** One page of this tenant's users. Sort is fixed at (email, id) upstream; size is capped at 200. */
+    @GetMapping("/internal/auth/users")
+    ApiResponse<List<UserAdminDtos.UserSummary>> listUsers(
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestParam("page") int page,
+        @RequestParam("size") int size,
+        @RequestParam("activeOnly") boolean activeOnly,
+        @RequestParam("search") String search
+    );
+
+    /** One user of this tenant. Another tenant's id answers 404 upstream — never 403. */
+    @GetMapping("/internal/auth/users/{userId}")
+    ApiResponse<UserAdminDtos.UserDetail> getUser(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId
+    );
+
+    /** Create a user; the response carries the one-time temporary password. */
+    @PostMapping("/internal/auth/users")
+    ApiResponse<UserAdminDtos.CreatedUser> createUser(
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId,
+        @RequestBody UserAdminDtos.CreateUserRequest request
+    );
+
+    /**
+     * Patch name / locale / active.
+     *
+     * <p>The wire shape is declared here rather than reusing the public
+     * {@link UserAdminDtos.UpdateUserRequest}: that type exists to <em>reject</em> a password field
+     * a client sent, and serialising it outbound would put its {@code @JsonAnySetter} plumbing on
+     * the wire. This record names exactly the three fields the internal contract accepts, so a
+     * fourth cannot be forwarded by accident.
+     */
+    @PatchMapping("/internal/auth/users/{userId}")
+    ApiResponse<UserAdminDtos.UserDetail> updateUser(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId,
+        @RequestBody InternalUpdateUser request
+    );
+
+    /** Flag off + refresh sessions revoked. Never deletes; the row and its assignments survive. */
+    @PostMapping("/internal/auth/users/{userId}/deactivate")
+    ApiResponse<UserAdminDtos.UserDetail> deactivateUser(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId
+    );
+
+    /** Flag on. Sessions are deliberately NOT restored upstream. */
+    @PostMapping("/internal/auth/users/{userId}/reactivate")
+    ApiResponse<UserAdminDtos.UserDetail> reactivateUser(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId
+    );
+
+    /** The three fields PATCH /internal/auth/users/{userId} accepts, and no others. */
+    record InternalUpdateUser(String fullName, String locale, Boolean active) {}
 }

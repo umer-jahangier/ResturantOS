@@ -96,11 +96,27 @@ public abstract class BaseUserIT {
         r.add("spring.rabbitmq.username", RABBIT::getAdminUsername);
         r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
         r.add("eureka.client.enabled", () -> "false");
-        // JWKS: use the test constructor path; bypass real JWKS fetch with a stub URI
-        r.add("restaurantos.jwks.uri", () -> "http://localhost:9999/test-jwks-placeholder");
+        // JWKS and auth-service default to a dead port: an IT that does not stand something up on
+        // purpose must not silently reach a real one.
+        r.add("restaurantos.jwks.uri", () -> jwksUri);
         r.add("restaurantos.internal.secret", () -> "test-internal-secret");
-        r.add("restaurantos.auth-service.uri", () -> "http://localhost:9999");
+        r.add("restaurantos.auth-service.uri", () -> authServiceUri);
     }
+
+    /**
+     * The two upstream URIs a subclass may point at its own stub, by assigning in a {@code static}
+     * block before the context is built.
+     *
+     * <p>They are mutable statics rather than a second {@code @DynamicPropertySource} in the
+     * subclass because <b>the ordering of those is not something to rely on</b>: Spring collects
+     * the methods by walking the class hierarchy, and a subclass registration for the same key can
+     * be overwritten by this class's. That produced 17 failing tests reporting 401 — the token was
+     * fine and the JWKS lookup was going to the dead port. The suppliers here are evaluated lazily
+     * at context refresh, so whatever a subclass assigned is what the context sees, with no
+     * ordering question at all.
+     */
+    protected static volatile String jwksUri = "http://localhost:9999/test-jwks-placeholder";
+    protected static volatile String authServiceUri = "http://localhost:9999";
 
     @LocalServerPort protected int port;
     @Autowired protected TenantContext tenantContext;

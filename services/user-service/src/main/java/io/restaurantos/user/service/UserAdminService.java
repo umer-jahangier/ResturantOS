@@ -1,17 +1,47 @@
 package io.restaurantos.user.service;
 
+import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.user.client.AuthInternalClient;
 import io.restaurantos.user.dto.BranchDtos;
+import io.restaurantos.user.dto.UserAdminDtos;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tenant-Admin user surface (USER-02).
- * Per-branch role assignment DELEGATES to AuthInternalClient — auth-service is the SYSTEM OF RECORD
- * for user_branch_roles. This service NEVER writes that table directly.
+ * Tenant-Admin user surface (USER-01, USER-02, USER-03; blocker B3).
+ *
+ * <p>Every write DELEGATES to auth-service — it is the SYSTEM OF RECORD for {@code users} and
+ * {@code user_branch_roles}, and this service writes neither table. {@code user_db} does not even
+ * contain them, which {@code UserAdminDelegationIT} asserts so the ownership decision cannot be
+ * quietly reversed by adding an entity.
+ *
+ * <h2>Where the tenant comes from, and where it does not</h2>
+ *
+ * <p>{@link TenantContext#requireTenantId()}, always — populated by {@code JwtAuthenticationFilter}
+ * from the {@code tenant_id} claim of a signature-verified JWT, and by nothing else. <b>No method
+ * here reads a tenant id from a request body, a path variable or a request header.</b> The public
+ * request DTOs deliberately have no tenant field at all, so a body carrying one is dropped by
+ * Jackson and has no effect on scoping — asserted both in {@code UserAdminIT} and live.
+ *
+ * <p>There is exactly one accessor for it. A second way to learn the tenant is how one path comes
+ * to be scoped differently from its neighbour, and that difference is invisible until someone reads
+ * another tenant's data.
+ *
+ * <h2>Where the role ceiling is enforced, and why not here</h2>
+ *
+ * <p>It is enforced in auth-service, by {@code RoleCeiling.permits}, which is the single owner of
+ * the rule and is already shared between the role picker (13-07) and the write path (13-11). The
+ * rule compares the target role's permission set with the acting user's, and <b>only auth-service
+ * has either</b> — {@code role_permissions} and {@code user_branch_roles} are its tables. A copy
+ * here could only be a hardcoded role name, which drifts the moment a role is added and would be a
+ * second, weaker statement of a security rule that already has one owner. What this service does
+ * instead is forward the caller's identity so auth-service <em>can</em> evaluate it, and surface
+ * the refusal with its real status (see {@code UpstreamErrorDecoder}) so a role picker can say
+ * something true about it.
  */
 @Service
 public class UserAdminService {
@@ -24,6 +54,69 @@ public class UserAdminService {
         this.tenantContext = tenantContext;
     }
 
+    // ── The user lifecycle ───────────────────────────────────────────────────────────────────
+
+    /** One page of the CALLER'S OWN tenant's users. */
+    public ApiResponse<List<UserAdminDtos.UserSummary>> listUsers(
+            int page, int size, boolean activeOnly, String search) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.listUsers(tenantId, page, size, activeOnly,
+            search == null ? "" : search);
+    }
+
+    /**
+     * One user of the caller's own tenant.
+     *
+     * <p>Another tenant's user id answers <b>404, not 403</b> — deliberately, and upstream. A 403
+     * would confirm the id names a real account somewhere, which is an enumeration oracle: a tenant
+     * admin could walk ids and learn the size and shape of the rest of the platform without ever
+     * reading a row.
+     */
+    public UserAdminDtos.UserDetail getUser(UUID userId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.getUser(userId, tenantId).data();
+    }
+
+    /**
+     * Create a user in the caller's own tenant and return the one-time temporary password.
+     *
+     * <p>The password is generated upstream, stored only as a bcrypt hash, and appears in no event
+     * payload — 13-11 asserted both. It crosses back to this authorised admin exactly once, and
+     * {@code must_change_password} bounds its life at the new user's first login (13-08 made that
+     * gate binding). Nothing in this class logs the response.
+     */
+    public UserAdminDtos.CreatedUser createUser(UserAdminDtos.CreateUserRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UUID actingUserId = requireActingUser("create a user");
+        return authInternalClient.createUser(tenantId, actingUserId, request).data();
+    }
+
+    /** Patch name / locale / active on a user of the caller's own tenant. */
+    public UserAdminDtos.UserDetail updateUser(UUID userId, UserAdminDtos.UpdateUserRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UUID actingUserId = requireActingUser("update a user");
+        rejectPasswordField(request);
+        return authInternalClient.updateUser(userId, tenantId, actingUserId,
+            new AuthInternalClient.InternalUpdateUser(
+                request.fullName(), request.locale(), request.active())).data();
+    }
+
+    /** Deactivate: flag off and refresh sessions revoked upstream. Never deletes. */
+    public UserAdminDtos.UserDetail deactivateUser(UUID userId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UUID actingUserId = requireActingUser("deactivate a user");
+        return authInternalClient.deactivateUser(userId, tenantId, actingUserId).data();
+    }
+
+    /** Reactivate: flag on. Sessions are deliberately not restored upstream. */
+    public UserAdminDtos.UserDetail reactivateUser(UUID userId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UUID actingUserId = requireActingUser("reactivate a user");
+        return authInternalClient.reactivateUser(userId, tenantId, actingUserId).data();
+    }
+
+    // ── Branch roles (pre-existing) ──────────────────────────────────────────────────────────
+
     /**
      * Assign a role to a user at a branch — delegates to auth-service.
      *
@@ -32,18 +125,10 @@ public class UserAdminService {
      * anything sent here — so this header is an identity, not a claim of authority. The value is
      * the subject of the verified JWT, taken from {@link TenantContext}, which
      * {@code JwtAuthenticationFilter} populated; it is never read from the request.
-     *
-     * <p>An authenticated request always carries a subject, so the absence of one is a broken
-     * filter chain rather than an anonymous caller. It is refused HERE with a clear message rather
-     * than forwarded as a null header — auth-service would refuse it anyway
-     * ({@code 403 ACTING_USER_REQUIRED}), and a refusal that names the real cause is worth the
-     * three lines.
      */
     public Map<String, Object> assignRole(UUID userId, BranchDtos.BranchRoleRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
-        UUID actingUserId = tenantContext.getUserId().orElseThrow(() -> new IllegalStateException(
-            "No authenticated user id in the request context; a role assignment must name the "
-                + "person making it (auth-service bounds the grant by their own permissions)"));
+        UUID actingUserId = requireActingUser("assign a role");
         return authInternalClient.assignBranchRole(userId, tenantId, actingUserId, request);
     }
 
@@ -62,5 +147,38 @@ public class UserAdminService {
     public Map<String, Object> getUserPermissions(UUID userId, UUID branchId) {
         UUID tenantId = tenantContext.requireTenantId();
         return authInternalClient.getUserPermissions(userId, tenantId, branchId);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * The subject of the verified JWT, which every privilege-bearing write must name.
+     *
+     * <p>An authenticated request always carries a subject, so its absence is a broken filter chain
+     * rather than an anonymous caller. It is refused HERE rather than forwarded as a null header:
+     * auth-service would refuse it anyway with {@code 403 ACTING_USER_REQUIRED}, but that refusal
+     * describes a misconfiguration of this service and is deliberately not echoed to the client
+     * (see {@code UpstreamErrorDecoder}), so failing early with a message that names the real cause
+     * is worth the three lines.
+     */
+    private UUID requireActingUser(String operation) {
+        return tenantContext.getUserId().orElseThrow(() -> new IllegalStateException(
+            "No authenticated user id in the request context; a request to " + operation
+                + " must name the person making it (auth-service bounds it by their permissions)"));
+    }
+
+    /**
+     * A password field in a profile patch is refused, never dropped.
+     *
+     * <p>Jackson would silently discard it and this endpoint would answer 200, leaving an
+     * administrator certain they had set a password the platform has never heard of. Only the field
+     * NAME reaches the message; the value was discarded at parse time and is never logged.
+     */
+    private static void rejectPasswordField(UserAdminDtos.UpdateUserRequest request) {
+        if (request.rejectedField() != null) {
+            throw new InvalidUserRequestException(
+                "'%s' is not accepted here and was not applied. Passwords are never set through this "
+                    + "endpoint — use the password reset flow.".formatted(request.rejectedField()));
+        }
     }
 }
