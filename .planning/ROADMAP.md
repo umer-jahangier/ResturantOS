@@ -30,11 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 10: Purchasing & Accounts Payable** - Vendors, PO approval, GRN/3-way match, AP (mock-first; Phase 8 optional) — REOPENED 2026-07-13 by UAT code audit (10 gaps: 4 blockers) (completed 2026-07-19)
 - [ ] **Phase 11: HR & Payroll** - Employees (encrypted PII), Pakistan tax/EOBI payroll, payroll JE
 - [ ] **Phase 12: Reporting, Dashboards & NLQ** - ClickHouse ETL + FBR reports, realtime dashboard, validated NLQ
-- [ ] **Phase 13: Platform & Tenant Access Repair** *(INSERTED, BLOCKER)* - SuperAdmin auth path, provisioning saga repair, user lifecycle CRUD, password management, WAITER role + admin rights, authoritative seed script
-- [ ] **Phase 14: Frontend Trust & Admin Surfaces** *(INSERTED)* - QueryBoundary/error-boundary contract, tenant-admin users/branches UI, password UI, SuperAdmin tenant console, POS fire-to-kitchen data-loss fix
-- [ ] **Phase 15: UI/UX Revamp — ERP Design System** *(INSERTED)* - Token scales, layout primitives, form/data primitives, per-role dashboards, responsive + a11y baseline
-- [ ] **Phase 16: Multi-POS Terminals & KDS/BDS Routing** *(INSERTED)* - POS terminal entity, order source/terminal attribution, per-branch item→station routing, station types (KITCHEN/BAR/EXPO), BDS
-- [ ] **Phase 17: ERP Reporting Completeness** *(INSERTED)* - journal/inventory fact tables + consumers, P&L, balance sheet, COGS, stock valuation, Z-report, tender mix, exports
+- [ ] **Phase 13: Platform & Tenant Access Repair** - INSERTED, BLOCKER. SuperAdmin auth path, provisioning saga repair, user lifecycle CRUD, password management, WAITER role + admin rights, authoritative seed script
+- [ ] **Phase 14: Frontend Trust & Admin Surfaces** - INSERTED. QueryBoundary/error-boundary contract, tenant-admin users/branches UI, password UI, SuperAdmin tenant console, POS fire-to-kitchen data-loss fix
+- [ ] **Phase 15: UI/UX Revamp — ERP Design System** - INSERTED. Token scales, layout primitives, form/data primitives, per-role dashboards, responsive + a11y baseline
+- [ ] **Phase 16: Multi-POS Terminals & KDS/BDS Routing** - INSERTED. POS terminal entity, order source/terminal attribution, per-branch item→station routing, station types (KITCHEN/BAR/EXPO), BDS
+- [ ] **Phase 17: ERP Reporting Completeness** - INSERTED. journal/inventory fact tables + consumers, P&L, balance sheet, COGS, stock valuation, Z-report, tender mix, exports
 
 ## Phase Details
 
@@ -597,7 +597,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 - [ ] 12-15: GAP D — correct stale Anthropic model IDs in deploy/.env; runnable real-key round-trip recipe (live proof honestly deferred)
 - [ ] 12-16: UAT Test 3+4 — route the 3 browser WS hooks through NEXT_PUBLIC_WS_BASE_URL (gateway :8080) instead of unset NEXT_PUBLIC_*_WS_URL (localhost:3000); static guard + real-browser push proof
 
-### Phase 13: Platform & Tenant Access Repair *(INSERTED, BLOCKER)*
+### Phase 13: Platform & Tenant Access Repair
 
 **Goal**: Every advertised access path is actually reachable at runtime — a SuperAdmin can authenticate and manage tenants, a tenant provisioned through the real saga can log in, a tenant admin can create and manage users, and every user can manage their own password.
 **Depends on**: Phases 2, 3
@@ -613,7 +613,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 
 **Plans**: TBD (see `/gsd-plan-phase 13`)
 
-### Phase 14: Frontend Trust & Admin Surfaces *(INSERTED)*
+### Phase 14: Frontend Trust & Admin Surfaces
 
 **Goal**: The UI never lies about state, never silently loses data, and exposes the admin surfaces Phase 13 made reachable.
 **Depends on**: Phase 13
@@ -629,7 +629,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 
 **Plans**: TBD
 
-### Phase 15: UI/UX Revamp — ERP Design System *(INSERTED)*
+### Phase 15: UI/UX Revamp — ERP Design System
 
 **Goal**: A clean, professional, consistent ERP interface built on real design tokens and shared primitives, with per-role dashboards.
 **Depends on**: Phase 14
@@ -645,7 +645,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 
 **Plans**: TBD
 
-### Phase 16: Multi-POS Terminals & KDS/BDS Routing *(INSERTED)*
+### Phase 16: Multi-POS Terminals & KDS/BDS Routing
 
 **Goal**: One tenant can run multiple POS terminals per branch, and the admin decides whether food and drink share one POS or split across separate ones — with orders routed to the correct kitchen or bar display.
 **Depends on**: Phase 13
@@ -661,7 +661,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 
 **Plans**: TBD
 
-### Phase 17: ERP Reporting Completeness *(INSERTED)*
+### Phase 17: ERP Reporting Completeness
 
 **Goal**: Admins get comprehensive reports across every module, not just sales and tax.
 **Depends on**: Phases 13, 15
