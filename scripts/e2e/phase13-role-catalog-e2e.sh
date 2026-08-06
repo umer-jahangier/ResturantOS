@@ -90,6 +90,9 @@ cleanup() {
     DELETE FROM user_branch_roles WHERE user_id = '${TARGET_ID}';
     DELETE FROM refresh_sessions  WHERE user_id = '${TARGET_ID}';
     DELETE FROM password_history  WHERE user_id = '${TARGET_ID}';
+    -- 13-08 gave password_reset_tokens a second purpose and it has an FK to users; without this
+    -- the users DELETE aborts on fk_password_reset_tokens_user and leaves the target behind.
+    DELETE FROM password_reset_tokens WHERE user_id = '${TARGET_ID}';
     DELETE FROM users             WHERE id      = '${TARGET_ID}';
   " | auth_sql > /dev/null 2>&1 || true
   # The neighbour role lives under a different tenant, so its DELETE needs that tenant's GUC —
@@ -106,6 +109,7 @@ trap cleanup EXIT
 printf '%s\n' "
   SELECT set_config('app.current_tenant_id', '${TENANT_ID}', false);
   DELETE FROM user_branch_roles WHERE user_id = '${TARGET_ID}';
+  DELETE FROM password_reset_tokens WHERE user_id = '${TARGET_ID}';
   DELETE FROM users WHERE id = '${TARGET_ID}';
 " | auth_sql > /dev/null
 printf '%s\n' "

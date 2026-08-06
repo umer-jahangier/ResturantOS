@@ -24,16 +24,22 @@
 #   5. /internal/auth/** remains unroutable through the gateway.
 #
 # ON THE OWNER LOGIN, AND WHY IT IS NOT A STRAIGHT 200
-# A freshly provisioned OWNER is answered 401 TOTP_ENROLLMENT_REQUIRED, because OWNER holds
-# rbac.manage and AuthServiceImpl.requiresTotpStepUp fires on it while the new account has no
-# enrolled factor. That is D-29a working as decided, not a defect — and it is GOOD NEWS for B2,
-# because enforceTotpStepUp runs AFTER permissionResolver.resolveDefault, so being asked to enrol is
+# A freshly provisioned OWNER meets TWO gates before it holds a token, and since 13-08 it meets them
+# in this order:
+#
+#   1. 403 PASSWORD_CHANGE_REQUIRED — the account carries must_change_password, which 13-06 writes
+#      and 13-08 made login actually read. The refusal hands back a single-use change token.
+#   2. 401 TOTP_ENROLLMENT_REQUIRED — OWNER holds rbac.manage, AuthServiceImpl.requiresTotpStepUp
+#      fires on it, and the new account has no enrolled factor. That is D-29a working as decided.
+#
+# Neither is a defect, and BOTH are good news for blocker B2, because each sits after the step B2 is
+# about: enforceTotpStepUp runs AFTER permissionResolver.resolveDefault, so being asked to enrol is
 # itself proof that the branch assignment resolved. The script therefore treats a successful login,
-# a TOTP-enrolment demand and (once plan 13-08 lands) a forced-password-change response as all
-# satisfying "the admin can authenticate", and fails ONLY on a no-branch-assignment error or a
-# generic credential rejection. It then completes the enrolment over the real public bootstrap
-# endpoints and logs in properly, so criterion 3 is proved against an actually-issued token rather
-# than asserted about one that was never minted.
+# a forced-change response and a TOTP-enrolment demand as all satisfying "the admin can
+# authenticate", and fails ONLY on a no-branch-assignment error or a generic credential rejection.
+# It then clears both gates over the real public endpoints — forced change first, enrolment second,
+# which is the order 13-15's seed script should copy — so criterion 3 is proved against an
+# actually-issued token rather than asserted about one that was never minted.
 #
 # PRECONDITIONS
 #   - Docker infra up; gateway, auth-service and user-service running and Eureka-registered.
@@ -89,6 +95,10 @@ cleanup() {
     SELECT set_config('app.current_tenant_id', '${TENANT_ID}', false);
     DELETE FROM refresh_sessions WHERE tenant_id = '${TENANT_ID}';
     DELETE FROM user_branch_roles WHERE tenant_id = '${TENANT_ID}';
+    -- 13-08: password_reset_tokens now also holds FORCED_CHANGE tokens, and it has an FK to
+    -- users. Without this line the users DELETE below aborts on
+    -- fk_password_reset_tokens_user and (under ON_ERROR_STOP) leaves the whole tenant behind.
+    DELETE FROM password_reset_tokens WHERE tenant_id = '${TENANT_ID}';
     DELETE FROM password_history WHERE user_id IN (SELECT id FROM users WHERE tenant_id = '${TENANT_ID}');
     DELETE FROM users WHERE tenant_id = '${TENANT_ID}';
     DELETE FROM auth_tenants WHERE id = '${TENANT_ID}';
@@ -108,6 +118,7 @@ printf '%s\n' "
   SELECT set_config('app.current_tenant_id', '${TENANT_ID}', false);
   DELETE FROM refresh_sessions WHERE tenant_id = '${TENANT_ID}';
   DELETE FROM user_branch_roles WHERE tenant_id = '${TENANT_ID}';
+  DELETE FROM password_reset_tokens WHERE tenant_id = '${TENANT_ID}';
   DELETE FROM password_history WHERE user_id IN (SELECT id FROM users WHERE tenant_id = '${TENANT_ID}');
   DELETE FROM users WHERE tenant_id = '${TENANT_ID}';
   DELETE FROM auth_tenants WHERE id = '${TENANT_ID}';
@@ -267,9 +278,34 @@ else
   PHASE13_FAIL=$((PHASE13_FAIL + 1))
 fi
 
+# ── 3b. Clear the 13-08 forced-change gate ───────────────────────────────────────────────────
+#
+# Added when 13-08 made must_change_password govern login. Before it, this script went straight
+# from the refused first login to TOTP enrolment; now the provisioned admin must replace its
+# temporary credential first, and every subsequent step uses the new password.
+#
+# THE ORDER IS THE POINT, and 13-15 should copy it: forced change, THEN enrolment. Enrolling a
+# second factor while the first is still a temporary password known to whoever provisioned the
+# account would bind the factor under a credential the admin does not exclusively control.
+
+ADMIN_PASSWORD="$TEMP_PASSWORD"
+CHANGE_TOKEN="$(change_token_from "$LOGIN_RESPONSE" || true)"
+if [[ -z "$CHANGE_TOKEN" ]]; then
+  echo "FAIL: the refused first login carried no change token: ${LOGIN_RESPONSE}"
+  PHASE13_FAIL=$((PHASE13_FAIL + 1))
+else
+  FORCED_NEW_PASSWORD='Seam#Owner1x'
+  FORCED_RESULT="$(forced_change "$CHANGE_TOKEN" "$TEMP_PASSWORD" "$FORCED_NEW_PASSWORD")"
+  FORCED_STATUS="$(printf '%s' "$FORCED_RESULT" | head -1)"
+  assert_status 200 "$FORCED_STATUS" "the provisioned admin can replace its temporary credential (13-08)"
+  if [[ "$FORCED_STATUS" == "200" ]]; then
+    ADMIN_PASSWORD="$FORCED_NEW_PASSWORD"
+  fi
+fi
+
 # ── 4. Complete the D-29a enrolment and get a real token ─────────────────────────────────────
 
-BOOTSTRAP_BODY="$(json "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${TEMP_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\"}")"
+BOOTSTRAP_BODY="$(json "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\"}")"
 BOOTSTRAP_RESPONSE="$(curl_retry -X POST "${GATEWAY}/api/v1/auth/2fa/bootstrap" \
   -H "Content-Type: application/json" -d "$BOOTSTRAP_BODY")"
 OTPAUTH_URI="$(printf '%s' "$BOOTSTRAP_RESPONSE" | json_get "['data']['otpauthUri']" 2>/dev/null || true)"
@@ -283,12 +319,12 @@ else
 import sys, urllib.parse as u
 print(u.parse_qs(u.urlparse(sys.stdin.read().strip()).query)['secret'][0])
 ")"
-  VERIFY_BODY="$(json "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${TEMP_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\",\"code\":\"$(totp_now "$TOTP_SECRET")\"}")"
+  VERIFY_BODY="$(json "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\",\"code\":\"$(totp_now "$TOTP_SECRET")\"}")"
   VERIFY_STATUS="$(curl_status -X POST "${GATEWAY}/api/v1/auth/2fa/bootstrap/verify" \
     -H "Content-Type: application/json" -d "$VERIFY_BODY")"
   assert_status 200 "$VERIFY_STATUS" "the admin can enrol a second factor (D-29a first-login flow)"
 
-  STEPUP_BODY="$(json "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${TEMP_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\",\"totpCode\":\"$(totp_now "$TOTP_SECRET")\"}")"
+  STEPUP_BODY="$(json "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\",\"totpCode\":\"$(totp_now "$TOTP_SECRET")\"}")"
   STEPUP_RESPONSE="$(curl_retry -X POST "${GATEWAY}/api/v1/auth/login" \
     -H "Content-Type: application/json" -d "$STEPUP_BODY")"
   ADMIN_TOKEN="$(printf '%s' "$STEPUP_RESPONSE" | json_get "['data']['accessToken']" 2>/dev/null || true)"

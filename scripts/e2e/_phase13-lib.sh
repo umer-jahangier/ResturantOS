@@ -222,6 +222,69 @@ print(json.dumps(b))
   printf '%s' "$token"
 }
 
+# ── Forced password change (13-08, D-17) ────────────────────────────────────────────────────
+
+# Extract the single-use change token from a 403 PASSWORD_CHANGE_REQUIRED login refusal.
+#   REFUSAL="$(curl_retry -X POST "${GATEWAY}/api/v1/auth/login" ... )"
+#   CHANGE_TOKEN="$(change_token_from "$REFUSAL")"
+#
+# The token travels in the standard error envelope's `details` array as
+# {"field":"changeToken","issue":"<token>"}, so a client keeps one error parser rather than two.
+# Prints nothing and returns 1 when the response is not a forced-change refusal, so a caller can
+# test with [[ -z ]] instead of parsing a success body by accident.
+change_token_from() {
+  local response="${1:-}"
+  printf '%s' "$response" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    for detail in d['error']['details']:
+        if detail.get('field') == 'changeToken':
+            print(detail['issue'])
+            sys.exit(0)
+except Exception:
+    pass
+sys.exit(1)
+"
+}
+
+# Redeem a change token through the REAL gateway. Prints the HTTP status on the FIRST line and the
+# response body on the remaining lines:
+#   RESULT="$(forced_change "$CHANGE_TOKEN" "$TEMP_PASSWORD" "$NEW_PASSWORD")"
+#   STATUS="$(printf '%s' "$RESULT" | head -1)"
+#   BODY="$(printf '%s' "$RESULT" | tail -n +2)"
+#
+# WHY ONE REQUEST RATHER THAN TWO. 13-05 had to fix a harness that fetched the status and the body
+# with separate curls: against a single-use endpoint those are not the same experiment, because the
+# second call is redeeming an already-spent token. Every assertion pair here concerns one response.
+#
+# /api/v1/auth/change-password/forced is the ONLY password path public at the gateway, and it is
+# registered there in its fully qualified form because JwtGlobalFilter.isPublicPath matches with
+# startsWith — the bare /api/v1/auth/change-password would expose the authenticated self-service
+# endpoint too. This helper must never be pointed at the bare path.
+forced_change() {
+  local change_token="${1:-}" current_password="${2:-}" new_password="${3:-}"
+  if [[ -z "$change_token" || -z "$current_password" || -z "$new_password" ]]; then
+    echo "forced_change: changeToken, currentPassword and newPassword are all required" >&2
+    return 1
+  fi
+  # Built from ARGUMENTS, never as an inline literal: bash brace-expands -d "{\"a\":1,\"b\":2}"
+  # into two malformed fragments and runs curl twice (13-02), and re-parses escaped quotes away
+  # inside "$( … )" (13-07). Passing values as argv sidesteps both.
+  local body
+  body="$(python3 -c "
+import json, sys
+print(json.dumps({'changeToken': sys.argv[1],
+                  'currentPassword': sys.argv[2],
+                  'newPassword': sys.argv[3]}))
+" "$change_token" "$current_password" "$new_password")"
+  local response
+  response="$(curl -s -w '\n%{http_code}' -X POST "${GATEWAY}/api/v1/auth/change-password/forced" \
+    -H "Content-Type: application/json" -d "$body")"
+  # curl appended the status as the LAST line; the caller wants it first.
+  printf '%s\n%s' "$(printf '%s' "$response" | tail -1)" "$(printf '%s' "$response" | sed '$d')"
+}
+
 # ── Assertions ──────────────────────────────────────────────────────────────────────────────
 
 # assert_status <expected> <actual> <description>
