@@ -36,9 +36,12 @@ class UserAdminDelegationIT extends BaseUserIT {
 
     @BeforeAll
     static void startWireMock() {
-        wireMock = new WireMockServer(WireMockConfiguration.wireMockConfig().dynamicPort());
+        wireMock = new WireMockServer(WireMockConfiguration.wireMockConfig()
+            // Loopback bind: the wildcard socket is filtered by the macOS firewall and fails
+            // intermittently with a silent EOF. See DEV-STACK-RUNBOOK.md, "The silent EOF".
+            .bindAddress("127.0.0.1").dynamicPort());
         wireMock.start();
-        WireMock.configureFor("localhost", wireMock.port());
+        WireMock.configureFor("127.0.0.1", wireMock.port());
     }
 
     @AfterAll
@@ -48,7 +51,7 @@ class UserAdminDelegationIT extends BaseUserIT {
 
     @DynamicPropertySource
     static void overrideAuthServiceUri(DynamicPropertyRegistry r) {
-        r.add("restaurantos.auth-service.uri", () -> "http://localhost:" + wireMock.port());
+        r.add("restaurantos.auth-service.uri", () -> "http://127.0.0.1:" + wireMock.port());
     }
 
     @Test

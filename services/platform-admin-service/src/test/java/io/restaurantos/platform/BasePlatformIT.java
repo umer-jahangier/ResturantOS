@@ -58,8 +58,14 @@ public abstract class BasePlatformIT {
     static final RabbitMQContainer RABBIT =
         new RabbitMQContainer(DockerImageName.parse("rabbitmq:4.3-management"));
 
+    // bindAddress is not optional here. WireMock otherwise binds the wildcard address, and the
+    // macOS Application Firewall filters wildcard-bound sockets — it accepts the connection, writes
+    // zero bytes and closes — so stubbed calls fail intermittently with "header parser received no
+    // bytes" and nothing is logged. Same cause as server.address on the Spring test server; the
+    // stub server is a second listener and needs the same treatment. See DEV-STACK-RUNBOOK.md,
+    // "The silent EOF".
     static final WireMockServer WIREMOCK = new WireMockServer(
-        WireMockConfiguration.wireMockConfig().dynamicPort()
+        WireMockConfiguration.wireMockConfig().bindAddress("127.0.0.1").dynamicPort()
     );
 
     static {
@@ -116,10 +122,10 @@ public abstract class BasePlatformIT {
         r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
         r.add("eureka.client.enabled", () -> "false");
         r.add("restaurantos.internal.secret", () -> "test-internal-secret");
-        r.add("restaurantos.jwks.uri", () -> "http://localhost:" + WIREMOCK.port() + "/test-jwks");
-        r.add("restaurantos.auth-service.uri", () -> "http://localhost:" + WIREMOCK.port());
-        r.add("restaurantos.user-service.uri", () -> "http://localhost:" + WIREMOCK.port());
-        r.add("restaurantos.finance-service.uri", () -> "http://localhost:" + WIREMOCK.port());
+        r.add("restaurantos.jwks.uri", () -> "http://127.0.0.1:" + WIREMOCK.port() + "/test-jwks");
+        r.add("restaurantos.auth-service.uri", () -> "http://127.0.0.1:" + WIREMOCK.port());
+        r.add("restaurantos.user-service.uri", () -> "http://127.0.0.1:" + WIREMOCK.port());
+        r.add("restaurantos.finance-service.uri", () -> "http://127.0.0.1:" + WIREMOCK.port());
     }
 
     @LocalServerPort protected int port;
