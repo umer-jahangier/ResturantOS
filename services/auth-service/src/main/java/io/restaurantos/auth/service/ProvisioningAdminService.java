@@ -8,7 +8,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -114,14 +118,48 @@ public class ProvisioningAdminService {
             .getSingleResult();
     }
 
-    private String generateTempPassword() {
-        // 16-char alphanumeric random temp password
-        String chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
-        StringBuilder sb = new StringBuilder(16);
-        java.util.Random rng = new java.security.SecureRandom();
-        for (int i = 0; i < 16; i++) {
-            sb.append(chars.charAt(rng.nextInt(chars.length())));
+    // Ambiguous glyphs (I/l/1, O/0) are excluded throughout: these are read off a screen and typed
+    // by hand, often from a support call, and a temp password that cannot be transcribed reliably
+    // generates exactly the reset request it was meant to avoid.
+    private static final String UPPER = "ABCDEFGHJKMNPQRSTUVWXYZ";
+    private static final String LOWER = "abcdefghjkmnpqrstuvwxyz";
+    private static final String DIGIT = "23456789";
+    private static final String SYMBOL = "!@#$%&*?";
+    private static final String ALL = UPPER + LOWER + DIGIT + SYMBOL;
+    private static final int TEMP_PASSWORD_LENGTH = 16;
+
+    /**
+     * A temporary password that satisfies {@code @StrongPassword} by construction.
+     *
+     * <p>The previous version drew all 16 characters uniformly from one alphabet that contained
+     * just three symbols. That does not guarantee the required character classes — measured over
+     * 200k draws, roughly 42% of outputs contained no symbol at all. It did not matter while the
+     * only consumer wrote a bcrypt hash straight to the database, because no validator ever saw the
+     * value. It matters as soon as a temp password is handed to a user who must then submit it
+     * through the forced-change or reset endpoints, where the shared constraint applies: a
+     * coin-flip's worth of provisioned admins would have been issued a credential the platform's
+     * own API rejects.
+     *
+     * <p>So one character is drawn from each required class first, the remainder from the union,
+     * and the result is shuffled with the same {@link SecureRandom} — without the shuffle the class
+     * of each leading character would be fixed and the search space correspondingly smaller.
+     */
+    // Package-private and static so the policy-compliance property can be asserted over many
+    // draws without a Spring context or a database. A single sample proves nothing about a
+    // generator that used to fail roughly two times in five.
+    static String generateTempPassword() {
+        SecureRandom rng = new SecureRandom();
+        List<Character> chars = new ArrayList<>(TEMP_PASSWORD_LENGTH);
+        for (String required : List.of(UPPER, LOWER, DIGIT, SYMBOL)) {
+            chars.add(required.charAt(rng.nextInt(required.length())));
         }
+        while (chars.size() < TEMP_PASSWORD_LENGTH) {
+            chars.add(ALL.charAt(rng.nextInt(ALL.length())));
+        }
+        Collections.shuffle(chars, rng);
+
+        StringBuilder sb = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        chars.forEach(sb::append);
         return sb.toString();
     }
 
