@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Per-tenant email uniqueness that matches how login actually looks a user up.
+
+      MEASURED STATE BEFORE THIS CHANGESET (live dev auth_db, `\d users`):
+
+          "uk_users_tenant_email" UNIQUE CONSTRAINT, btree (tenant_id, email)
+
+      So email is ALREADY unique PER TENANT, and has been since changeset 020 — it is neither
+      globally unique nor unconstrained. Two facts follow, and both matter:
+
+      1. THE PRODUCT DECISION IS UNCHANGED AND IS RECORDED RATHER THAN MADE.
+         One human MAY hold an account in two tenants under one address. That is correct for a
+         multi-tenant SaaS — a consultant who works for two restaurant groups is one person with
+         one inbox — and login already requires a tenant slug alongside the address, so the pair
+         (tenant, email) is what identifies an account. Nothing here widens or narrows that; the
+         existing constraint is kept, not replaced.
+
+      2. THE CONSTRAINT IS CASE-SENSITIVE AND LOGIN IS NOT.
+         `AuthServiceImpl.login` lower-cases the submitted address before `findByEmail`, and 13-06
+         made `provisionAdmin` normalise on write for exactly that reason. The constraint therefore
+         permits `Bob@x` and `bob@x` to coexist in one tenant while the code treats them as one
+         account: whichever row is not stored lower-case is unreachable at login, and if both were
+         somehow stored lower-case-equal the lookup would be ambiguous. This changeset closes that
+         gap in the DATABASE rather than in application code, because an application-level check is
+         a check-then-act that two concurrent creates both pass.
+
+      WHY THE OLD CONSTRAINT IS KEPT.
+      For live (non-soft-deleted) rows the new index is strictly STRICTER — any pair violating
+      case-sensitive uniqueness also violates case-insensitive uniqueness — so the old constraint
+      is redundant there. It is not redundant for soft-deleted rows, which the new index excludes
+      by design (see below), and dropping a unique constraint on the users table to save one index
+      buys nothing and cannot be undone against concurrent writes. Kept deliberately.
+
+      WHY THE NEW INDEX EXCLUDES SOFT-DELETED ROWS AND *NOT* INACTIVE ONES.
+      `deleted_at IS NULL` is the predicate; `is_active` is deliberately absent. Deactivation
+      (13-11's lifecycle operation) is reversible and must stay reversible: if a deactivated user's
+      address were released for reuse, reactivating them would collide with whoever took it, and
+      the operator would discover that only at the moment they were trying to give someone their
+      job back. A deactivated user keeps their address reserved. Only a tombstoned row — which
+      nothing in the application writes, and which the repair below creates — releases it.
+    -->
+    <changeSet id="auth-1.0.0-058-repair-duplicate-tenant-emails" author="restaurantos-agent">
+        <comment>
+            Resolve any (tenant_id, lower(email)) duplicates deterministically before the unique
+            index is created, so a database with real data cannot fail the migration.
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            -- Liquibase runs as auth_user, which OWNS `users` and is NOSUPERUSER NOBYPASSRLS, and
+            -- `users` is FORCE ROW LEVEL SECURITY — FORCE binds the owner too. A repair spanning
+            -- every tenant cannot set a single tenant GUC, so with the policy in force the UPDATE
+            -- below would match ZERO rows, report success, and leave the duplicates for the index
+            -- to trip over. Measured by 13-02 on this same database for user_branch_roles: 0 of 18
+            -- rows visible without a GUC, 18 after NO FORCE. Stand the policy down for the length
+            -- of this changeset's transaction and put it back; a failure rolls both back together.
+            ALTER TABLE users NO FORCE ROW LEVEL SECURITY;
+
+            -- RETENTION RULE, stated once and applied once.
+            --
+            -- Within a (tenant_id, lower(email)) group of live rows, the SURVIVOR is the row with
+            -- the greatest (last_login_at, updated_at, id), NULL last_login_at sorting last. In
+            -- words: the account someone has actually logged into wins; if none or several have,
+            -- the most recently touched wins; ties break on the greater id so the rule is total and
+            -- gives the same answer on every replica.
+            --
+            -- "Has been used" is the first key rather than "is newest" because these duplicates are
+            -- case variants of ONE person's address: the row with login history is the one carrying
+            -- their password, their TOTP secret and their audit trail, and picking the other one
+            -- would silently lock out a working account in favour of an empty duplicate.
+            WITH ranked AS (
+                SELECT id,
+                       row_number() OVER (
+                           PARTITION BY tenant_id, lower(email)
+                           ORDER BY last_login_at DESC NULLS LAST, updated_at DESC, id DESC
+                       ) AS rn
+                  FROM users
+                 WHERE deleted_at IS NULL
+            )
+            UPDATE users u
+               SET is_active  = false,
+                   -- Tombstoned, NOT deleted. The row survives in full, so every audit entry,
+                   -- order and journal line that references this user id still resolves — which is
+                   -- the whole reason this repair does not DELETE. What deleted_at buys over
+                   -- is_active alone is that the address is released: the new index skips
+                   -- soft-deleted rows, so the survivor can hold the lower-cased address.
+                   deleted_at = now(),
+                   updated_at = now()
+              FROM ranked r
+             WHERE u.id = r.id
+               AND r.rn > 1;
+
+            -- Normalise the survivors. A row stored with any upper-case character can never be
+            -- found by login, which lower-cases before the lookup — so a mixed-case row is an
+            -- account that exists and cannot be used. The step above has already removed every
+            -- live case-collision, so this cannot collide with another LIVE row; the NOT EXISTS
+            -- guard covers the remaining case of a tombstoned row that already holds the
+            -- lower-cased address, against which the unconditional uk_users_tenant_email still
+            -- applies. A row the guard skips stays mixed-case: no worse than before, and it does
+            -- not violate the new index, which keys on lower(email) either way.
+            UPDATE users u
+               SET email      = lower(u.email),
+                   updated_at = now()
+             WHERE u.deleted_at IS NULL
+               AND u.email <> lower(u.email)
+               AND NOT EXISTS (
+                     SELECT 1 FROM users other
+                      WHERE other.tenant_id = u.tenant_id
+                        AND other.email = lower(u.email)
+                        AND other.id <> u.id);
+
+            ALTER TABLE users FORCE ROW LEVEL SECURITY;
+        ]]></sql>
+        <rollback>
+            <!--
+              Not reversible, and saying so is the honest answer. The repair records which row it
+              tombstoned only in that row's own deleted_at/updated_at, so an undo cannot tell a row
+              this changeset tombstoned from one tombstoned for any other reason, and re-activating
+              the wrong one would re-create the duplicate under a live unique index. Operators
+              undoing this restore from backup.
+            -->
+            <empty/>
+        </rollback>
+    </changeSet>
+
+    <!--
+      Runs BEFORE the index, not after. If the repair did not converge, the index creation would
+      fail with a bare "could not create unique index ... Key (tenant_id, lower(email)) is
+      duplicated" — true, and useless for working out WHY a repair that reported success left
+      duplicates behind. This says the likely reason out loud.
+    -->
+    <changeSet id="auth-1.0.0-058-verify-tenant-email-uniqueness" author="restaurantos-agent">
+        <comment>
+            Fail loudly, naming row-level security, if the repair did not converge — rather than
+            leaving an operator to deduce it from an index violation.
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                remaining bigint;
+            BEGIN
+                ALTER TABLE users NO FORCE ROW LEVEL SECURITY;
+
+                SELECT count(*) INTO remaining
+                  FROM (SELECT 1
+                          FROM users
+                         WHERE deleted_at IS NULL
+                         GROUP BY tenant_id, lower(email)
+                        HAVING count(*) > 1) dupes;
+
+                ALTER TABLE users FORCE ROW LEVEL SECURITY;
+
+                IF remaining > 0 THEN
+                    RAISE EXCEPTION
+                        'auth-1.0.0-058: % (tenant_id, lower(email)) duplicate group(s) survive the repair. If this count is 0 when you query as a superuser, the repair ran under an ACTIVE row-level-security policy and matched nothing — check that the NO FORCE / FORCE bracket in changeset auth-1.0.0-058-repair-duplicate-tenant-emails is intact.', remaining;
+                END IF;
+            END $$;
+        ]]></sql>
+        <rollback>
+            <empty/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-058-users-tenant-email-unique-ci" author="restaurantos-agent">
+        <comment>
+            Per-tenant, case-insensitive email uniqueness over live rows — enforced by the database
+            so a race cannot pass it.
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            CREATE UNIQUE INDEX IF NOT EXISTS uk_users_tenant_email_ci
+                ON users (tenant_id, lower(email))
+             WHERE deleted_at IS NULL;
+
+            -- Supporting index for the tenant user list (13-11). The list is always tenant-scoped,
+            -- optionally filtered on is_active, and always sorted by (email, id) so a page boundary
+            -- is stable. uk_users_tenant_email already serves the unfiltered sort; this one serves
+            -- the filtered sort without a re-sort, and its leading columns match the filter exactly.
+            --
+            -- No index is added for the search term. Search is a case-insensitive CONTAINS over
+            -- email and full name, which has a leading wildcard and cannot use a b-tree; the honest
+            -- alternative is a pg_trgm GIN index, and installing an extension is not something this
+            -- changeset does silently. The scan it falls back to is bounded by one tenant's user
+            -- count and by a hard page-size cap, which is the mitigation for T-13-11-H.
+            CREATE INDEX IF NOT EXISTS idx_users_tenant_active_email
+                ON users (tenant_id, is_active, email)
+             WHERE deleted_at IS NULL;
+        ]]></sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP INDEX IF EXISTS uk_users_tenant_email_ci;
+                DROP INDEX IF EXISTS idx_users_tenant_active_email;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
