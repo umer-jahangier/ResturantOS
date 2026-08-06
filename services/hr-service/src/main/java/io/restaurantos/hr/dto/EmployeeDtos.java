@@ -3,6 +3,7 @@ package io.restaurantos.hr.dto;
 import io.restaurantos.hr.entity.EmployeeEntity.EmploymentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -27,7 +28,11 @@ public final class EmployeeDtos {
             String department,
             @NotNull EmploymentType employmentType,
             @NotNull LocalDate joinDate,
-            long basicSalaryPaisa,
+            // A negative salary is not a smaller number, it is an aborted payroll cycle: it
+            // annualizes to a negative taxable income, no tax slab matches (every slab has
+            // minPaisa >= 0), and SlabTaxCalculator throws "No matching tax slab" — which kills
+            // calculate() for EVERY employee in the run, not just this one. Rejected at the edge.
+            @PositiveOrZero long basicSalaryPaisa,
             String deviceUserRef) {
     }
 
@@ -39,7 +44,9 @@ public final class EmployeeDtos {
             String designation,
             String department,
             @NotNull EmploymentType employmentType,
-            long basicSalaryPaisa,
+            // Same guard as on create — both are @Valid-bound, and without it here a PUT walks
+            // straight past the create-side constraint into the same broken payroll run.
+            @PositiveOrZero long basicSalaryPaisa,
             String deviceUserRef) {
     }
 

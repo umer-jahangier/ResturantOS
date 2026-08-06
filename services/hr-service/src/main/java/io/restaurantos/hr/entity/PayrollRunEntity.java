@@ -49,6 +49,24 @@ public class PayrollRunEntity {
     @Column(name = "total_net_paisa", nullable = false)
     private long totalNetPaisa;
 
+    // The components of (gross - net), persisted so PAYROLL_RUN_APPROVED can carry the split.
+    // finance credits each to its own statutory account instead of dumping the whole gross on
+    // Wages Payable and clearing only the net — which left the difference on 2300 forever.
+    // Invariant, established per payslip in calculate():
+    //     totalNet + totalTax + totalEobi + totalAdvances == totalGross - totalLateArrival
+
+    @Column(name = "total_tax_paisa", nullable = false)
+    private long totalTaxPaisa;
+
+    @Column(name = "total_eobi_paisa", nullable = false)
+    private long totalEobiPaisa;
+
+    @Column(name = "total_advances_paisa", nullable = false)
+    private long totalAdvancesPaisa;
+
+    @Column(name = "total_late_arrival_paisa", nullable = false)
+    private long totalLateArrivalPaisa;
+
     @Column(name = "run_by", nullable = false)
     private UUID runBy;
 

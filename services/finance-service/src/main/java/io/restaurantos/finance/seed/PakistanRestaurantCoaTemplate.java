@@ -44,6 +44,11 @@ public final class PakistanRestaurantCoaTemplate {
             account(tenantId, "1600", "Accumulated Depreciation", AccountType.ASSET,"1000", false, null),
             account(tenantId, "1700", "GR/IR Clearing",       AccountType.ASSET,    "1000", true,  "GR_IR"),
             account(tenantId, "1710", "Input Tax (Sales Tax Receivable)", AccountType.ASSET, "1000", true, "INPUT_TAX"),
+            // Salary advances are a RECEIVABLE from the employee, not a payroll cost. Recovering
+            // one out of the month's pay credits this asset down; it is neither income nor a
+            // liability. Without it the recovered amount had nowhere to go, which is half of why
+            // 2300 drifted (V9).
+            account(tenantId, "1750", "Employee Advances",     AccountType.ASSET,    "1000", true,  "EMPLOYEE_ADVANCES"),
             account(tenantId, "1800", "Other Current Assets", AccountType.ASSET,    "1000", false, null),
             account(tenantId, "1900", "Security Deposits",    AccountType.ASSET,    "1000", false, null),
 
@@ -54,6 +59,13 @@ public final class PakistanRestaurantCoaTemplate {
             account(tenantId, "2120", "Payable - Utilities",  AccountType.LIABILITY, "2100", false, null),
             account(tenantId, "2200", "Output Tax (Sales Tax Payable)", AccountType.LIABILITY, "2000", true, "OUTPUT_TAX"),
             account(tenantId, "2300", "Wages Payable",        AccountType.LIABILITY, "2000", true,  "WAGES_PAYABLE"),
+            // Statutory withholdings owed to the state, not to the employee. Before V9 the approved
+            // payroll entry credited the GROSS to 2300 while the paid entry cleared only the NET,
+            // so every cycle left the withheld difference stranded on Wages Payable — the exact
+            // silent-drift shape as the pre-V8 loyalty liability below, and just as invisible
+            // because each entry balanced on its own.
+            account(tenantId, "2310", "Income Tax Withheld Payable", AccountType.LIABILITY, "2000", true, "PAYE_PAYABLE"),
+            account(tenantId, "2320", "EOBI Payable",         AccountType.LIABILITY, "2000", true,  "EOBI_PAYABLE"),
             account(tenantId, "2400", "Accrued Liabilities",  AccountType.LIABILITY, "2000", false, null),
             // Loyalty points and vouchers are obligations to the customer, not accruals. Before
             // V8 the loyalty recipe debited 2400 directly and nothing ever credited it, so the

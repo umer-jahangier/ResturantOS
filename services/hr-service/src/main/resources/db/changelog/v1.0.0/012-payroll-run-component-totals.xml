@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- payroll_runs carried only total_gross_paisa and total_net_paisa, so the components that
+         make up the difference — income tax, the EOBI employee share, advance recovery and the
+         late-arrival deduction — existed ONLY inside each payslip's deductions_json and were never
+         published. finance-service therefore credited the GROSS to Wages Payable on approval and
+         cleared only the NET on payment: the withheld difference was stranded on account 2300,
+         which grew by that amount every single payroll cycle. Both journal entries balanced on
+         their own, so the drift never raised an error.
+
+         These four columns are what lets PAYROLL_RUN_APPROVED carry the split, which is what lets
+         finance post the withholdings to their own statutory accounts (finance V9). BIGINT paisa
+         like every other money column here — never floating point.
+
+         NOT NULL DEFAULT 0 is safe for existing rows: runs created before this changeset are
+         already APPROVED or PAID and have already emitted their events, so backfilling a component
+         split for them would invent numbers rather than recover them. Their historical drift is a
+         data-repair question, not a migration one. -->
+    <changeSet id="hr-1.0.0-012-payroll-run-component-totals" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE payroll_runs ADD COLUMN total_tax_paisa          BIGINT NOT NULL DEFAULT 0;
+            ALTER TABLE payroll_runs ADD COLUMN total_eobi_paisa         BIGINT NOT NULL DEFAULT 0;
+            ALTER TABLE payroll_runs ADD COLUMN total_advances_paisa     BIGINT NOT NULL DEFAULT 0;
+            ALTER TABLE payroll_runs ADD COLUMN total_late_arrival_paisa BIGINT NOT NULL DEFAULT 0;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                ALTER TABLE payroll_runs DROP COLUMN total_tax_paisa;
+                ALTER TABLE payroll_runs DROP COLUMN total_eobi_paisa;
+                ALTER TABLE payroll_runs DROP COLUMN total_advances_paisa;
+                ALTER TABLE payroll_runs DROP COLUMN total_late_arrival_paisa;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

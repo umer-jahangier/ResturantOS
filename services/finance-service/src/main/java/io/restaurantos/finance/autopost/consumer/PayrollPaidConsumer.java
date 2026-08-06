@@ -2,24 +2,24 @@ package io.restaurantos.finance.autopost.consumer;
 
 import io.restaurantos.finance.autopost.AutoPostingRecipeEngine;
 import io.restaurantos.finance.autopost.ProcessedEventService;
+import io.restaurantos.finance.config.FinanceRabbitConfig;
 import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.event.EventEnvelopeReader;
+import io.restaurantos.shared.event.payload.HrEventContract;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 /**
  * PAYROLL_RUN_PAID (from hr-service on hr.topic) -> the net disbursement journal entry
- * (DR 2300 / CR Bank). Queue + binding are broker-provisioned (hr.topic/hr.payroll.paid).
+ * (DR wages payable · CR bank), typed on {@link HrEventContract.PayrollPaidPayload}.
  */
 @Component
 public class PayrollPaidConsumer {
 
     public static final String CONSUMER_NAME = "finance.payroll-paid";
-    public static final String QUEUE_NAME = "finance.payroll-paid.queue";
+    public static final String QUEUE_NAME = FinanceRabbitConfig.PAYROLL_PAID_QUEUE;
 
     private final ProcessedEventService processedEventService;
     private final TenantAwareMessageProcessor tenantAwareMessageProcessor;
@@ -38,9 +38,8 @@ public class PayrollPaidConsumer {
 
     @RabbitListener(queues = QUEUE_NAME)
     public void onMessage(Message message) {
-        @SuppressWarnings("unchecked")
-        EventEnvelope<Map<String, Object>> envelope =
-                (EventEnvelope<Map<String, Object>>) (EventEnvelope<?>) envelopeReader.read(message, Map.class);
+        EventEnvelope<HrEventContract.PayrollPaidPayload> envelope =
+                envelopeReader.read(message, HrEventContract.PayrollPaidPayload.class);
         processedEventService.tryProcess(CONSUMER_NAME, envelope.eventId(), () ->
                 tenantAwareMessageProcessor.process(envelope, recipeEngine::postPayrollPaid));
     }

@@ -90,6 +90,19 @@ class PayrollRunIT extends HrTestBase {
             }
             assertThat(run.getTotalGrossPaisa()).isEqualTo(25_000_000L);
 
+            // The component totals PAYROLL_RUN_APPROVED now carries, so finance can credit each
+            // withholding to its own statutory account instead of dumping the gross on 2300 and
+            // clearing only the net (which left the difference there permanently).
+            assertThat(run.getTotalEobiPaisa()).isEqualTo(2 * 37_000L); // fixed wage base, per employee
+            assertThat(run.getTotalTaxPaisa()).isPositive();
+            assertThat(run.getTotalAdvancesPaisa()).isZero();      // advances are a placeholder today
+            assertThat(run.getTotalLateArrivalPaisa()).isZero();   // no attendance policy seeded here
+            // THE invariant the journal entry balances on. If this ever fails, finance dead-letters.
+            assertThat(run.getTotalNetPaisa() + run.getTotalTaxPaisa()
+                    + run.getTotalEobiPaisa() + run.getTotalAdvancesPaisa())
+                    .as("net + tax + eobi + advances must equal gross - lateArrival")
+                    .isEqualTo(run.getTotalGrossPaisa() - run.getTotalLateArrivalPaisa());
+
             // Approval is TOTP step-up gated.
             UUID runId = run.getId();
             assertThatThrownBy(() -> payrollRunService.approve(runId, false))
@@ -107,6 +120,21 @@ class PayrollRunIT extends HrTestBase {
                     .contains("PAYROLL_RUN_APPROVED", "PAYROLL_RUN_PAID");
             assertThat(events).extracting(OutboxEntry::getRoutingKey)
                     .contains("hr.payroll.approved", "hr.payroll.paid");
+
+            // Assert on the SERIALIZED envelope, not on a hand-written map. The 2026-08-02 audit's
+            // finding was that producer-side tests which restate the payload in the test's own words
+            // prove nothing about what goes on the wire; these are the field names finance binds to.
+            String approvedJson = events.stream()
+                    .filter(e -> "PAYROLL_RUN_APPROVED".equals(e.getEventType()))
+                    .map(OutboxEntry::getEnvelopeJson)
+                    .findFirst().orElseThrow();
+            assertThat(approvedJson)
+                    .contains("\"totalGrossPaisa\":" + expectedGross)
+                    .contains("\"totalNetPaisa\":" + expectedNet)
+                    .contains("\"totalTaxPaisa\":")
+                    .contains("\"totalEobiPaisa\":74000")
+                    .contains("\"totalAdvancesPaisa\":0")
+                    .contains("\"totalLateArrivalPaisa\":0");
             assertThat(expectedGross).isPositive();
             assertThat(expectedNet).isLessThan(expectedGross);
         } finally {

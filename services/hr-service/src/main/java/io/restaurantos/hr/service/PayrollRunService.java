@@ -13,6 +13,7 @@ import io.restaurantos.hr.repository.EmployeeRepository;
 import io.restaurantos.hr.repository.PayrollRunRepository;
 import io.restaurantos.hr.repository.PayslipRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.event.payload.HrEventContract;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +31,6 @@ import java.util.UUID;
  */
 @Service
 public class PayrollRunService {
-
-    private static final String HR_EXCHANGE = "hr.topic";
 
     private final PayrollRunRepository runRepository;
     private final PayslipRepository payslipRepository;
@@ -108,6 +107,10 @@ public class PayrollRunService {
 
         long totalGross = 0;
         long totalNet = 0;
+        long totalTax = 0;
+        long totalEobi = 0;
+        long totalAdvances = 0;
+        long totalLateArrival = 0;
         for (EmployeeEntity emp : employees) {
             long basic = emp.getBasicSalaryPaisa();
             long gross = basic; // allowances/overtime placeholder 0 for now
@@ -122,6 +125,29 @@ public class PayrollRunService {
             long lateArrival = lateArrivalDeductionService.computeMonthlyDeduction(
                     emp.getId(), run.getPeriodMonth(), run.getPeriodYear());
             long net = gross - incomeTaxMonth - eobiEmployee - advances - lateArrival;
+
+            // DECISION: reject the payslip (and with it the whole run), do NOT clamp net at 0.
+            //
+            // Clamping was the other option on the table and it is the wrong one here, because the
+            // ledger identity finance posts against is
+            //     net + tax + eobi + advances == gross - lateArrival
+            // Raising a negative net to 0 breaks that identity by exactly the shortfall, so the
+            // approved journal entry would no longer balance and the deferred balance trigger would
+            // reject it — turning a data problem in ONE employee's row into a dead-lettered message
+            // with a diagnostic pointing at finance. Clamping also quietly writes off money the
+            // employee still owes (an advance larger than the month's pay does not evaporate).
+            //
+            // Failing the run rather than skipping the employee is deliberate too: a payroll run is
+            // an all-or-nothing document, and silently omitting someone means they are not paid and
+            // nobody is told. This throws with the employee and the numbers, so the fix is obvious.
+            if (net < 0) {
+                throw new IllegalStateException(
+                        "Payslip for employee " + emp.getId() + " (" + emp.getEmployeeNo() + ") in run "
+                                + runId + " has a negative net of " + net + " paisa: gross=" + gross
+                                + ", incomeTax=" + incomeTaxMonth + ", eobi=" + eobiEmployee
+                                + ", advances=" + advances + ", lateArrival=" + lateArrival
+                                + ". Correct the salary, the advance or the attendance policy and recalculate.");
+            }
 
             PayslipEntity slip = new PayslipEntity();
             slip.setTenantId(run.getTenantId());
@@ -142,10 +168,18 @@ public class PayrollRunService {
 
             totalGross += gross;
             totalNet += net;
+            totalTax += incomeTaxMonth;
+            totalEobi += eobiEmployee;
+            totalAdvances += advances;
+            totalLateArrival += lateArrival;
         }
 
         run.setTotalGrossPaisa(totalGross);
         run.setTotalNetPaisa(totalNet);
+        run.setTotalTaxPaisa(totalTax);
+        run.setTotalEobiPaisa(totalEobi);
+        run.setTotalAdvancesPaisa(totalAdvances);
+        run.setTotalLateArrivalPaisa(totalLateArrival);
         run.setStatus(Status.CALCULATED);
         return runRepository.save(run);
     }
@@ -163,13 +197,22 @@ public class PayrollRunService {
         run.setApprovedBy(tenantContext.getUserId().orElse(null));
         run = runRepository.save(run);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("runId", run.getId());
-        payload.put("branchId", run.getBranchId());
-        payload.put("periodMonth", run.getPeriodMonth());
-        payload.put("periodYear", run.getPeriodYear());
-        payload.put("totalGrossPaisa", run.getTotalGrossPaisa());
-        eventPublisher.publish(HR_EXCHANGE, "hr.payroll.approved", "PAYROLL_RUN_APPROVED", run.getBranchId(), payload);
+        // The typed contract record, not a HashMap. The gross alone is not enough for finance to
+        // post correctly — see HrEventContract for why, and for the invariant these six numbers
+        // satisfy. A rename on either side is now a compile error rather than a silent zero.
+        HrEventContract.PayrollApprovedPayload payload = new HrEventContract.PayrollApprovedPayload(
+                run.getId(),
+                run.getBranchId(),
+                run.getPeriodMonth(),
+                run.getPeriodYear(),
+                run.getTotalGrossPaisa(),
+                run.getTotalNetPaisa(),
+                run.getTotalTaxPaisa(),
+                run.getTotalEobiPaisa(),
+                run.getTotalAdvancesPaisa(),
+                run.getTotalLateArrivalPaisa());
+        eventPublisher.publish(HrEventContract.EXCHANGE, HrEventContract.PAYROLL_RUN_APPROVED_KEY,
+                HrEventContract.PAYROLL_RUN_APPROVED, run.getBranchId(), payload);
         return run;
     }
 
@@ -183,11 +226,14 @@ public class PayrollRunService {
         run.setPaidAt(Instant.now());
         run = runRepository.save(run);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("runId", run.getId());
-        payload.put("branchId", run.getBranchId());
-        payload.put("totalNetPaisa", run.getTotalNetPaisa());
-        eventPublisher.publish(HR_EXCHANGE, "hr.payroll.paid", "PAYROLL_RUN_PAID", run.getBranchId(), payload);
+        HrEventContract.PayrollPaidPayload payload = new HrEventContract.PayrollPaidPayload(
+                run.getId(),
+                run.getBranchId(),
+                run.getPeriodMonth(),
+                run.getPeriodYear(),
+                run.getTotalNetPaisa());
+        eventPublisher.publish(HrEventContract.EXCHANGE, HrEventContract.PAYROLL_RUN_PAID_KEY,
+                HrEventContract.PAYROLL_RUN_PAID, run.getBranchId(), payload);
         return run;
     }
 

@@ -398,3 +398,46 @@ curl -s -o /dev/null -w "frontend (3000): %{http_code}\n" --max-time 5 http://lo
 ```
 All should be `200` (frontend may be `307` — that's a redirect to `/login`, which is
 healthy).
+
+## Running integration tests on colima (Testcontainers)
+
+Every service's ITs use Testcontainers, which needs a working Docker. On **colima** (as opposed
+to Docker Desktop) they fail out of the box:
+
+```
+ContainerLaunchException: Container startup failed for image testcontainers/ryuk:0.12.0
+  ... error while creating mount source path '~/.colima/default/docker.sock':
+      mkdir ...: operation not supported
+```
+
+Ryuk (Testcontainers' orphan-container reaper) bind-mounts the Docker socket into itself, and
+colima's socket path is not mountable. **The fix is one environment variable:**
+
+```bash
+export TESTCONTAINERS_RYUK_DISABLED=true
+mvn -pl services/hr-service verify
+```
+
+Verified 2026-08-06: hr-service goes from 18/18 ITs erroring in milliseconds to 18/18 passing.
+
+Do NOT reach for these — all three were tried and all three are wrong here:
+- `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock` — lets Ryuk *start*, but the host
+  then cannot reach it (`Could not connect to Ryuk at <ip>:32768`).
+- `colima start --network-address` + `TESTCONTAINERS_HOST_OVERRIDE=<vm-ip>` — the address is
+  assigned but not routable under `vmType: vz` (`NoRouteToHostException`).
+- `TESTCONTAINERS_HOST_OVERRIDE=127.0.0.1` — yields `EOFException` on the Postgres connect.
+
+Trade-off of disabling Ryuk: test containers are no longer auto-reaped, so a hard-killed run can
+leave containers behind. `docker ps` and clean up manually if a run is interrupted.
+
+CI is unaffected — it runs on Linux with a native Docker daemon where Ryuk works normally.
+
+### Why this mattered
+
+hr-service (Phase 11) shipped with **four blockers** that its own integration suite would have
+caught. It could not have caught them, because the suite never ran: a duplicate
+`@EnableJpaAuditing` on `HrServiceApplication` (SharedAutoConfiguration is authoritative — see
+the note in `PosServiceApplication`/`FinanceServiceApplication`) failed every context load with
+`BeanDefinitionOverrideException: 'jpaAuditingHandler'`, and the colima issue above hid that
+behind an unrelated error. If a service's ITs are "passing" in your terminal, confirm they are
+actually *running* — a green `mvn test` only runs surefire unit tests; ITs need `verify`.

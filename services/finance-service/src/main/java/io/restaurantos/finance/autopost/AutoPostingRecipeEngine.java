@@ -5,9 +5,12 @@ import io.restaurantos.finance.dto.InternalAutoPostJeRequest;
 import io.restaurantos.finance.dto.InternalJePostResponse;
 import io.restaurantos.finance.service.JournalEntryService;
 import io.restaurantos.shared.event.EventEnvelope;
+import io.restaurantos.shared.event.payload.HrEventContract;
 import io.restaurantos.shared.event.payload.InventoryEventContract;
 import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.shared.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +46,8 @@ import java.util.UUID;
 @Service
 @Transactional
 public class AutoPostingRecipeEngine {
+
+    private static final Logger log = LoggerFactory.getLogger(AutoPostingRecipeEngine.class);
 
     static final String SOURCE_ORDER_REVENUE = "ORDER_REVENUE";
     static final String SOURCE_ORDER_COGS = "ORDER_COGS";
@@ -366,36 +371,118 @@ public class AutoPostingRecipeEngine {
     }
 
     // ── Payroll (HR-03 consumer side) ───────────────────────────────────────
-    /** PAYROLL_RUN_APPROVED -> DR 6200 Salary expense · CR 2300 Wages payable, for the gross. */
-    public void postPayrollApproved(EventEnvelope<Map<String, Object>> envelope) {
-        Map<String, Object> p = envelope.payload();
-        UUID runId = uuid(p, "runId");
+    /**
+     * PAYROLL_RUN_APPROVED -&gt; recognise the whole payroll obligation, split by who is owed.
+     *
+     * <pre>
+     *   DR  SALARY_EXPENSE     gross - lateArrival
+     *   CR  WAGES_PAYABLE      net          (owed to the employee, cleared on payment)
+     *   CR  PAYE_PAYABLE       incomeTax    (owed to FBR)
+     *   CR  EOBI_PAYABLE       eobi         (owed to EOBI)
+     *   CR  EMPLOYEE_ADVANCES  advances     (an asset recovered, not income)
+     * </pre>
+     *
+     * <p><b>The drift this replaces.</b> This recipe used to credit the GROSS to Wages Payable
+     * while {@link #postPayrollPaid} cleared only the NET. The withheld difference — income tax,
+     * the EOBI employee share, advance recovery, the late-arrival deduction — was credited to
+     * nothing, so account 2300 grew by that amount EVERY payroll cycle and never came back down.
+     * Both entries balanced on their own, so no trigger fired, no consumer failed, and no
+     * reconciliation complained: the ledger simply drifted, silently, forever. Same shape as the
+     * pre-V8 loyalty liability, which drifted the other way for the mirror-image reason.
+     *
+     * <p><b>Why these two lines are not payables.</b> {@code lateArrival} reduces salary EXPENSE
+     * rather than crediting anything: it is a cost the employer never incurred, so booking the full
+     * gross to 6200 and a payable for the deduction would overstate both. {@code advances} credits
+     * the employee-advances ASSET: recovering an advance settles a receivable, it is not revenue.
+     *
+     * <p>The entry balances by construction because hr-service computes
+     * {@code net = gross - tax - eobi - advances - lateArrival} per payslip, hence
+     * {@code net + tax + eobi + advances == gross - lateArrival}. It is re-checked here anyway —
+     * a producer that ever breaks the identity must fail loudly, not post a plausible number.
+     */
+    public void postPayrollApproved(EventEnvelope<HrEventContract.PayrollApprovedPayload> envelope) {
+        HrEventContract.PayrollApprovedPayload p = envelope.payload();
+        UUID runId = p.runId();
         if (runId == null || alreadyPosted(SOURCE_PAYROLL_APPROVED, runId)) {
             return;
         }
-        long grossPaisa = longVal(p, "totalGrossPaisa");
-        if (grossPaisa <= 0) {
+
+        long gross = p.totalGrossPaisa();
+        long net = p.totalNetPaisa();
+        long tax = p.totalTaxPaisa();
+        long eobi = p.totalEobiPaisa();
+        long advances = p.totalAdvancesPaisa();
+        long lateArrival = p.totalLateArrivalPaisa();
+
+        // A negative component is a real defect upstream, not a small run. The old code returned
+        // silently on gross <= 0, which folded "nothing to post" and "the producer sent nonsense"
+        // into the same no-op: a run could be approved and later marked PAID with no entry on
+        // either side and nothing anywhere to say so.
+        requireNonNegative(runId, SOURCE_PAYROLL_APPROVED,
+                "totalGrossPaisa", gross, "totalNetPaisa", net, "totalTaxPaisa", tax,
+                "totalEobiPaisa", eobi, "totalAdvancesPaisa", advances,
+                "totalLateArrivalPaisa", lateArrival);
+
+        long salaryExpense = gross - lateArrival;
+        long payables = net + tax + eobi + advances;
+        if (salaryExpense != payables) {
+            // Also the tripwire for a legacy pre-V9 payload, whose absent component fields
+            // deserialize to 0: gross > 0 with everything else 0 lands here and dead-letters with
+            // the numbers in the message, rather than re-posting the drift it exists to remove.
+            throw new IllegalStateException(
+                    "PAYROLL_RUN_APPROVED for run " + runId + " does not balance: salary expense ("
+                            + gross + " gross - " + lateArrival + " lateArrival = " + salaryExpense
+                            + ") != credits (" + net + " net + " + tax + " tax + " + eobi + " eobi + "
+                            + advances + " advances = " + payables + ")");
+        }
+
+        if (salaryExpense == 0) {
+            // A run with no employees, or one whose pay exactly cancels out. Nothing to post, but
+            // it is worth a line in the log — a zero payroll run is almost always a symptom.
+            log.warn("PAYROLL_RUN_APPROVED for run {} has a zero salary expense; no journal entry posted", runId);
             return;
         }
+
         // Resolve by system tag, not by literal code — the CoA is tenant-editable, so a renumbered
         // or deactivated account would otherwise fail deep inside JE validation and dead-letter the
         // message with no usable diagnostic. tag() enforces tenant scoping + isActive and throws a
         // clean AccountNotConfiguredException. Every other recipe in this class already does this.
-        List<CreateJeLineRequest> lines = List.of(
-                line(tag("SALARY_EXPENSE"), "Salary expense", grossPaisa, 0),
-                line(tag("WAGES_PAYABLE"), "Wages payable", 0, grossPaisa));
+        List<CreateJeLineRequest> lines = new ArrayList<>();
+        lines.add(line(tag("SALARY_EXPENSE"), "Salary expense", salaryExpense, 0));
+        // Zero-valued lines are omitted rather than posted: a tenant with no advances should not
+        // carry an empty 1750 line on every payroll entry. The balance check above already
+        // guarantees the surviving lines still sum to the debit.
+        if (net > 0) {
+            lines.add(line(tag("WAGES_PAYABLE"), "Wages payable", 0, net));
+        }
+        if (tax > 0) {
+            lines.add(line(tag("PAYE_PAYABLE"), "Income tax withheld", 0, tax));
+        }
+        if (eobi > 0) {
+            lines.add(line(tag("EOBI_PAYABLE"), "EOBI employee contribution", 0, eobi));
+        }
+        if (advances > 0) {
+            lines.add(line(tag("EMPLOYEE_ADVANCES"), "Advance recovered", 0, advances));
+        }
         post(SOURCE_PAYROLL_APPROVED, runId, envelope, "Payroll approved " + runId, lines);
     }
 
-    /** PAYROLL_RUN_PAID -> DR 2300 Wages payable · CR Bank, for the net disbursed. */
-    public void postPayrollPaid(EventEnvelope<Map<String, Object>> envelope) {
-        Map<String, Object> p = envelope.payload();
-        UUID runId = uuid(p, "runId");
+    /**
+     * PAYROLL_RUN_PAID -&gt; DR WAGES_PAYABLE · CR BANK, for the net disbursed.
+     *
+     * <p>Unchanged in shape, and now correct in effect: the approved entry credits Wages Payable
+     * the NET (not the gross), so this clears account 2300 to exactly zero per run.
+     */
+    public void postPayrollPaid(EventEnvelope<HrEventContract.PayrollPaidPayload> envelope) {
+        HrEventContract.PayrollPaidPayload p = envelope.payload();
+        UUID runId = p.runId();
         if (runId == null || alreadyPosted(SOURCE_PAYROLL_PAID, runId)) {
             return;
         }
-        long netPaisa = longVal(p, "totalNetPaisa");
-        if (netPaisa <= 0) {
+        long netPaisa = p.totalNetPaisa();
+        requireNonNegative(runId, SOURCE_PAYROLL_PAID, "totalNetPaisa", netPaisa);
+        if (netPaisa == 0) {
+            log.warn("PAYROLL_RUN_PAID for run {} has a zero net; no disbursement entry posted", runId);
             return;
         }
         List<CreateJeLineRequest> lines = List.of(
@@ -404,17 +491,20 @@ public class AutoPostingRecipeEngine {
         post(SOURCE_PAYROLL_PAID, runId, envelope, "Payroll paid " + runId, lines);
     }
 
-    private static UUID uuid(Map<String, Object> payload, String key) {
-        Object v = payload.get(key);
-        return v == null ? null : UUID.fromString(v.toString());
-    }
-
-    private static long longVal(Map<String, Object> payload, String key) {
-        Object v = payload.get(key);
-        if (v instanceof Number n) {
-            return n.longValue();
+    /**
+     * Rejects a negative payroll amount loudly. Takes {@code (name, value)} pairs so the failure
+     * names the field, not just the number.
+     */
+    private static void requireNonNegative(UUID runId, String sourceType, Object... nameValuePairs) {
+        for (int i = 0; i < nameValuePairs.length; i += 2) {
+            String name = (String) nameValuePairs[i];
+            long value = (Long) nameValuePairs[i + 1];
+            if (value < 0) {
+                log.warn("{} for run {} carries a negative {} of {} paisa; refusing to post", sourceType, runId, name, value);
+                throw new IllegalStateException(
+                        sourceType + " for run " + runId + " carries a negative " + name + ": " + value + " paisa");
+            }
         }
-        return v == null ? 0L : Long.parseLong(v.toString());
     }
 
     private void post(String sourceType, UUID sourceId, EventEnvelope<?> envelope,

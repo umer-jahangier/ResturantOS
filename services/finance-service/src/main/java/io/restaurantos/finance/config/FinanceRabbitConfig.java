@@ -1,5 +1,6 @@
 package io.restaurantos.finance.config;
 
+import io.restaurantos.shared.event.payload.HrEventContract;
 import io.restaurantos.shared.event.payload.InventoryEventContract;
 import io.restaurantos.shared.event.payload.PosEventContract;
 import org.springframework.amqp.core.Declarable;
@@ -45,7 +46,7 @@ public class FinanceRabbitConfig {
     public static final String PAYROLL_APPROVED_QUEUE = "finance.payroll-approved.queue";
     public static final String PAYROLL_PAID_QUEUE = "finance.payroll-paid.queue";
     /** hr-service publishes payroll events on this topic exchange. */
-    public static final String HR_EXCHANGE = "hr.topic";
+    public static final String HR_EXCHANGE = HrEventContract.EXCHANGE;
 
     public static final String DLX = "restaurantos.dlx";
 
@@ -59,8 +60,8 @@ public class FinanceRabbitConfig {
             new Subscription(COUNT_VARIANCE_QUEUE, InventoryEventContract.EXCHANGE, InventoryEventContract.COUNT_VARIANCE_POSTED_KEY),
             new Subscription(TRANSFER_SHIPPED_QUEUE, InventoryEventContract.EXCHANGE, InventoryEventContract.TRANSFER_SHIPPED_KEY),
             new Subscription(TRANSFER_RECEIVED_QUEUE, InventoryEventContract.EXCHANGE, InventoryEventContract.TRANSFER_RECEIVED_KEY),
-            new Subscription(PAYROLL_APPROVED_QUEUE, HR_EXCHANGE, "hr.payroll.approved"),
-            new Subscription(PAYROLL_PAID_QUEUE, HR_EXCHANGE, "hr.payroll.paid"));
+            new Subscription(PAYROLL_APPROVED_QUEUE, HR_EXCHANGE, HrEventContract.PAYROLL_RUN_APPROVED_KEY),
+            new Subscription(PAYROLL_PAID_QUEUE, HR_EXCHANGE, HrEventContract.PAYROLL_RUN_PAID_KEY));
 
     /** Exposed so the topology-closure test can assert every queue here has a live listener. */
     public static List<String> consumedQueues() {
