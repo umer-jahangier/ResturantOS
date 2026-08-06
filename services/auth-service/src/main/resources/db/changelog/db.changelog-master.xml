@@ -35,6 +35,11 @@
     <include file="db/changelog/v1.0.0/050-create-refresh-sessions.xml"/>
     <include file="db/changelog/v1.0.0/052-refresh-session-lookup-function.xml"/>
     <include file="db/changelog/v1.0.0/060-create-password-reset-tokens.xml"/>
+    <!-- Phase 13: the purpose discriminator that lets one token table serve both the reset and the
+         forced-change flow, plus the SECURITY DEFINER tenant lookup both of them need because they
+         are public and therefore arrive with no tenant GUC. Immediately after 060 because it alters
+         that table and nothing between the two touches it. -->
+    <include file="db/changelog/v1.0.0/061-password-token-purpose.xml"/>
     <include file="db/changelog/v1.0.0/070-create-password-history.xml"/>
     <include file="db/changelog/v1.0.0/080-add-must-change-password.xml"/>
     <include file="db/changelog/v1.0.0/053-fix-rls-tenant-guc-policies.xml"/>

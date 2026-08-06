@@ -1,15 +1,24 @@
 package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.entity.PasswordHistoryEntity;
+import io.restaurantos.auth.entity.PasswordResetTokenEntity;
 import io.restaurantos.auth.entity.UserEntity;
+import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.exception.PasswordReuseException;
 import io.restaurantos.auth.repository.PasswordHistoryRepository;
+import io.restaurantos.auth.repository.PasswordResetTokenRepository;
 import io.restaurantos.auth.repository.RefreshSessionRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.UUID;
 
 /**
@@ -42,17 +51,92 @@ public class PasswordPolicyService {
      */
     public static final int HISTORY_DEPTH = 5;
 
+    /**
+     * Which flow a single-use password token belongs to.
+     *
+     * <p>The two purposes share one table and one row-level-security policy, and are kept apart by
+     * this discriminator plus a database check constraint. They must never be interchangeable: a
+     * reset token is obtained by proving control of an email address, a forced-change token by
+     * proving knowledge of the current password. Allowing either to be redeemed where the other is
+     * expected would let the weaker proof stand in for the stronger one (threat T-13-08-E).
+     *
+     * <p>{@link #dbValue} is the string that reaches the column, spelled out rather than derived
+     * from {@link #name()} so a Java-side rename cannot silently change what the check constraint
+     * sees.
+     */
+    public enum TokenPurpose {
+        /**
+         * Forgot-password. Thirty minutes, matching the pre-existing behaviour of that flow.
+         */
+        RESET("RESET", Duration.ofMinutes(30), "Invalid or expired reset token"),
+
+        /**
+         * Forced change at login (D-17).
+         *
+         * <p>Ten minutes, and deliberately much shorter than a reset token's thirty. A reset token
+         * travels by email and has to survive a human noticing the message; this one is handed
+         * straight back on the refused login, so its entire useful life is the seconds between the
+         * refusal and the change form being submitted. Every second beyond that is a window in
+         * which a token that grants a password change sits somewhere it could be read from.
+         *
+         * <p>Its failure message is the SAME string every other authentication failure in this
+         * service uses. That is not tidiness: the forced-change endpoint is public, so a distinct
+         * message here would tell an unauthenticated caller the difference between "no such token",
+         * "expired", "already used" and "wrong password" — and, with it, whether an account exists.
+         */
+        FORCED_CHANGE("FORCED_CHANGE", Duration.ofMinutes(10), "Invalid credentials");
+
+        private final String dbValue;
+        private final Duration ttl;
+        private final String genericFailureMessage;
+
+        TokenPurpose(String dbValue, Duration ttl, String genericFailureMessage) {
+            this.dbValue = dbValue;
+            this.ttl = ttl;
+            this.genericFailureMessage = genericFailureMessage;
+        }
+
+        public String dbValue() {
+            return dbValue;
+        }
+
+        public Duration ttl() {
+            return ttl;
+        }
+
+        public String genericFailureMessage() {
+            return genericFailureMessage;
+        }
+    }
+
+    /** The raw token — which the caller must hand out and must not store — and when it dies. */
+    public record IssuedToken(String rawToken, Instant expiresAt) {
+        @Override
+        public String toString() {
+            // A record's generated toString prints every component, so one careless log.debug of an
+            // IssuedToken would put a live credential in a log file. Overridden so it cannot.
+            return "IssuedToken[rawToken=<redacted>, expiresAt=" + expiresAt + "]";
+        }
+    }
+
+    /** Who a successfully redeemed token belonged to. Never carries the token itself. */
+    public record RedeemedToken(UUID tenantId, UUID userId) {}
+
     private final PasswordHistoryRepository passwordHistoryRepository;
     private final RefreshSessionRepository refreshSessionRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EntityManager entityManager;
     private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public PasswordPolicyService(PasswordHistoryRepository passwordHistoryRepository,
                                  RefreshSessionRepository refreshSessionRepository,
+                                 PasswordResetTokenRepository passwordResetTokenRepository,
                                  EntityManager entityManager,
                                  PasswordEncoder passwordEncoder) {
         this.passwordHistoryRepository = passwordHistoryRepository;
         this.refreshSessionRepository = refreshSessionRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.entityManager = entityManager;
         this.passwordEncoder = passwordEncoder;
     }
@@ -142,5 +226,134 @@ public class PasswordPolicyService {
         entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
             .setParameter("tid", tenantId.toString())
             .getSingleResult();
+    }
+
+    // ───────────────────────────── single-use password tokens ─────────────────────────────
+    //
+    // Both flows that mutate a password without an access token — forgot-password confirm and the
+    // forced change 13-08 adds — need the same four properties: 256 bits of entropy, only the hash
+    // at rest, one redemption ever, and a deadline. They live here rather than in either flow so
+    // there is one implementation of "how a password token is generated, hashed and spent". They
+    // used to live privately in PasswordResetService, which is why the reset flow was the only one
+    // that had them at all.
+
+    /**
+     * Mints a token for one user and one purpose, persisting only its hash.
+     *
+     * <p>Any outstanding token of the same purpose for that user is retired first, so a user holds
+     * at most one live token per flow. Must be called inside a transaction in which the tenant GUC
+     * is already set — both statements are subject to the table's row-level-security policy.
+     *
+     * @return the raw token, which the caller must hand to exactly one recipient and must never
+     *         persist, log, or place in an event payload
+     */
+    public IssuedToken issueSingleUseToken(UUID tenantId, UUID userId, TokenPurpose purpose) {
+        Instant now = Instant.now();
+        passwordResetTokenRepository.invalidateOutstanding(userId, purpose.dbValue(), now);
+
+        String rawToken = generateToken();
+        Instant expiresAt = now.plus(purpose.ttl());
+
+        PasswordResetTokenEntity entity = new PasswordResetTokenEntity();
+        entity.setTenantId(tenantId);
+        entity.setUserId(userId);
+        entity.setTokenHash(hashToken(rawToken));
+        entity.setPurpose(purpose.dbValue());
+        entity.setExpiresAt(expiresAt);
+        passwordResetTokenRepository.saveAndFlush(entity);
+
+        return new IssuedToken(rawToken, expiresAt);
+    }
+
+    /**
+     * Spends a token, or refuses.
+     *
+     * <p>Three things happen here and the order is load-bearing:
+     *
+     * <ol>
+     *   <li><b>Resolve the tenant through a SECURITY DEFINER function.</b> Both redeeming flows are
+     *       public, so no JWT has populated {@code TenantContext} and {@code TenantAwareDataSource}
+     *       has set no GUC — and {@code password_reset_tokens} is {@code FORCE ROW LEVEL SECURITY}
+     *       on that GUC, so an ordinary lookup matches nothing. This is not theoretical: measured
+     *       against the live RLS-enforcing database before this plan, the forgot-password confirm
+     *       endpoint refused a token whose row was present, unused and unexpired. Same idiom, same
+     *       reason, as changeset 052's {@code auth_lookup_refresh_tenant} for refresh sessions.</li>
+     *   <li><b>Set the GUC</b>, transaction-local, so everything after this runs under the policy
+     *       rather than around it. The function is used to find out WHICH tenant, never to read a
+     *       token's contents.</li>
+     *   <li><b>Claim the token with a conditional UPDATE</b> — see
+     *       {@link PasswordResetTokenRepository#claimIfRedeemable}. Validity is not read and then
+     *       acted on; it is decided by the write itself, so two concurrent redemptions of the same
+     *       token cannot both succeed.</li>
+     * </ol>
+     *
+     * <p><b>Every failure is the same failure.</b> Absent, wrong purpose, expired, already spent,
+     * and pointing at a row that no longer exists all raise the identical exception with the
+     * purpose's constant message. A caller cannot learn which, and therefore cannot learn whether
+     * an account exists.
+     *
+     * <p>The claim is deliberately NOT rolled back when the caller subsequently fails to
+     * authenticate — see {@code PasswordChangeService.changeForcedPassword} for why that is a
+     * property rather than an accident.
+     *
+     * @throws AuthenticationFailedException on any defect whatsoever
+     */
+    public RedeemedToken redeemSingleUseToken(String rawToken, TokenPurpose purpose) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new AuthenticationFailedException(purpose.genericFailureMessage());
+        }
+        String tokenHash = hashToken(rawToken);
+
+        Object tenantId = entityManager
+            .createNativeQuery("SELECT auth_lookup_password_token_tenant(:hash, :purpose)")
+            .setParameter("hash", tokenHash)
+            .setParameter("purpose", purpose.dbValue())
+            .getSingleResult();
+        if (tenantId == null) {
+            throw new AuthenticationFailedException(purpose.genericFailureMessage());
+        }
+        setTenantGuc(UUID.fromString(tenantId.toString()));
+
+        if (passwordResetTokenRepository.claimIfRedeemable(tokenHash, purpose.dbValue(), Instant.now()) != 1) {
+            throw new AuthenticationFailedException(purpose.genericFailureMessage());
+        }
+
+        PasswordResetTokenEntity token = passwordResetTokenRepository
+            .findByTokenHashAndPurpose(tokenHash, purpose.dbValue())
+            .orElseThrow(() -> new AuthenticationFailedException(purpose.genericFailureMessage()));
+
+        return new RedeemedToken(token.getTenantId(), token.getUserId());
+    }
+
+    /**
+     * 256 bits from {@link SecureRandom}, base64url without padding.
+     *
+     * <p>Entropy is what stands between a public endpoint and an offline guessing attack, and 256
+     * bits is not negotiable down: the token is the only thing an attacker who already knows a
+     * password does not have. Matches the refresh-session and reset generators exactly, so the
+     * three cannot drift.
+     */
+    private String generateToken() {
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /**
+     * SHA-256, lowercase hex — the only form of a token that is ever written down.
+     *
+     * <p>Unsalted and uniterated on purpose: this is not a password. The input is 256 random bits,
+     * so there is no dictionary to run and no work factor worth paying. What it buys is that a
+     * database leak (or a backup, or a replica, or a support query) yields hashes rather than usable
+     * tokens.
+     */
+    public static String hashToken(String rawToken) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                .digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (Exception e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 }
