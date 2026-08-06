@@ -47,6 +47,22 @@ public class ImpersonationService {
     @Transactional
     public ImpersonateResult impersonate(UUID tenantId, UUID targetUserId,
                                           UUID adminUserId, String reason) {
+        // D-34 made structural. Both callers used to pass the TARGET in the acting position, so
+        // every audit row and every issued token claimed a user had impersonated themselves. The
+        // parameters here were always named correctly, which is precisely why nothing looked wrong.
+        // These two checks make the defect impossible to reintroduce without a test going red:
+        // there is no acting id to guess, and the acting id is never the target.
+        if (adminUserId == null) {
+            throw new IllegalArgumentException(
+                "The acting platform administrator is required — an impersonation record that "
+                    + "cannot name who performed it is not an audit trail");
+        }
+        if (adminUserId.equals(targetUserId)) {
+            throw new IllegalArgumentException(
+                "The acting administrator and the impersonation target are the same id ("
+                    + targetUserId + ") — this is the D-34 caller defect, not a legitimate request");
+        }
+
         // Validate tenant exists and is accessible
         tenantRepository.findById(tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
@@ -63,9 +79,16 @@ public class ImpersonationService {
         String token  = extractString(response, "token");
         int expiresIn = extractInt(response, "expiresIn", DEFAULT_TTL_SECONDS);
 
-        // Immutable audit record
+        // Immutable audit record.
+        //
+        // The id is NOT set here. It is @GeneratedValue(UUID), and assigning one makes Spring Data
+        // see a non-new entity and call merge() instead of persist() — Hibernate then issues an
+        // UPDATE for a row that does not exist, which surfaces as an OptimisticLockingFailure and a
+        // 409 to the caller. In other words the audit row could never be written at all: every
+        // impersonation through this service failed at the point of recording itself. Same trap
+        // ProvisioningService documents on TenantEntity; found by the first test that exercised
+        // this path over HTTP.
         ImpersonationLogEntity entry = new ImpersonationLogEntity();
-        entry.setId(UUID.randomUUID());
         entry.setAdminUserId(adminUserId);
         entry.setTargetUserId(targetUserId);
         entry.setTenantId(tenantId);

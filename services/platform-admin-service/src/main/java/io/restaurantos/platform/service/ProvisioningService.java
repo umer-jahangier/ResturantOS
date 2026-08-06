@@ -4,6 +4,7 @@ import io.restaurantos.platform.client.AuthInternalClient;
 import io.restaurantos.platform.client.FinanceInternalClient;
 import io.restaurantos.platform.client.UserInternalClient;
 import io.restaurantos.platform.config.TierFeatureDefaults;
+import io.restaurantos.platform.config.TierLimits;
 import io.restaurantos.platform.entity.TenantEntity;
 import io.restaurantos.platform.entity.TenantEntity.TenantStatus;
 import io.restaurantos.platform.entity.TenantEntity.TierType;
@@ -11,6 +12,8 @@ import io.restaurantos.platform.entity.TenantFeatureEntity;
 import io.restaurantos.platform.repository.TenantFeatureRepository;
 import io.restaurantos.platform.repository.TenantRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
+import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.slf4j.Logger;
@@ -105,6 +108,7 @@ public class ProvisioningService {
     private final TenantRepository tenantRepository;
     private final TenantFeatureRepository featureRepository;
     private final TierFeatureDefaults tierFeatureDefaults;
+    private final TierLimits tierLimits;
     private final AuthInternalClient authClient;
     private final UserInternalClient userClient;
     private final FinanceInternalClient financeClient;
@@ -129,6 +133,7 @@ public class ProvisioningService {
             TenantRepository tenantRepository,
             TenantFeatureRepository featureRepository,
             TierFeatureDefaults tierFeatureDefaults,
+            TierLimits tierLimits,
             AuthInternalClient authClient,
             UserInternalClient userClient,
             FinanceInternalClient financeClient,
@@ -139,6 +144,7 @@ public class ProvisioningService {
         this.tenantRepository = tenantRepository;
         this.featureRepository = featureRepository;
         this.tierFeatureDefaults = tierFeatureDefaults;
+        this.tierLimits = tierLimits;
         this.authClient = authClient;
         this.userClient = userClient;
         this.financeClient = financeClient;
@@ -174,16 +180,31 @@ public class ProvisioningService {
         tenant.setBrandName(brandName);
         tenant.setStatus(TenantStatus.PENDING_SETUP);
         tenant.setTier(TierType.valueOf(tier.toUpperCase()));
-        applyTierLimits(tenant);
+        tierLimits.applyTo(tenant);
         tenantRepository.save(tenant);
 
+        return executeSaga(idempotencyKey, tenant, adminEmail);
+    }
+
+    /**
+     * Steps 2 through 7, against a tenant row that already exists.
+     *
+     * <p>Split out of {@link #provision} by 13-14 so {@link #retry} can drive the SAME row. Before
+     * that split, retry called {@code provision()} — which unconditionally constructs a new
+     * {@code TenantEntity} — so every retry produced a SECOND tenant with a {@code -1}-suffixed
+     * slug and left the failed one behind. 13-10 recorded that defect and declined to fix it on the
+     * grounds that retry had no endpoint; this plan gives it one, so it is fixed here first.
+     */
+    private ProvisionResult executeSaga(String idempotencyKey, TenantEntity tenant, String adminEmail) {
         UUID tenantId = tenant.getId();
         String slug = tenant.getSlug();
+        String brandName = tenant.getBrandName();
+        String tier = tenant.getTier().name();
         List<CompensationStep> compensation = new ArrayList<>();
 
         try {
             // Step 2: seed feature flags
-            Map<String, Boolean> defaults = tierFeatureDefaults.defaultsFor(tier.toUpperCase());
+            Map<String, Boolean> defaults = tierFeatureDefaults.defaultsFor(tier);
             List<TenantFeatureEntity> features = new ArrayList<>();
             for (Map.Entry<String, Boolean> entry : defaults.entrySet()) {
                 TenantFeatureEntity f = new TenantFeatureEntity();
@@ -309,51 +330,67 @@ public class ProvisioningService {
     // --- Retry: re-run a PROVISIONING_FAILED tenant ---
 
     /**
-     * Re-run a PROVISIONING_FAILED tenant. Requires the admin email, because the saga now creates a
-     * real account from it.
+     * Re-run a PROVISIONING_FAILED tenant, on the SAME tenant row (13-14).
      *
-     * <p><b>This method has no caller and no endpoint</b> — it is reachable only from a future
-     * controller. It is left in place, but its previous form passed the literal string
-     * {@code "(retry)"} as the admin email, which the pre-13-06 provision-admin (which validated
-     * nothing beyond non-blankness) would have happily turned into an account named {@code (retry)}
-     * that nobody could ever log in as. Requiring the caller to supply the address turns that into
-     * a compile error rather than a silently-broken tenant.
+     * <p>Exposed at {@code POST /api/v1/platform/tenants/{id}/retry-provisioning} by
+     * {@code PlatformAdminController}. Two defects had to die before it could be:
      *
-     * <p>A second, unfixed defect is recorded rather than papered over: {@link #provision} always
-     * constructs a NEW {@code TenantEntity}, so this method produces a second tenant row (with a
-     * {@code -1}-suffixed slug) instead of re-driving the existing one. Whoever exposes retry must
-     * fix that first; it is outside plan 13-10's scope and there is nothing to regress in the
-     * meantime.
+     * <ol>
+     *   <li>It passed the literal string {@code "(retry)"} as the admin email, which pre-13-06's
+     *       provision-admin would have turned into an account named {@code (retry)} that nobody
+     *       could log in as. Fixed by 13-10: the caller supplies the address.</li>
+     *   <li>It called {@link #provision}, which always constructs a NEW {@code TenantEntity} — so a
+     *       retry produced a SECOND tenant with a {@code -1}-suffixed slug and abandoned the failed
+     *       one. 13-10 recorded this and left it, because there was no endpoint and therefore
+     *       nothing to regress. Fixed here, by re-driving {@link #executeSaga} against the row that
+     *       already exists: the tenant keeps its id and its slug, which is the entire point of a
+     *       retry.</li>
+     * </ol>
+     *
+     * <p>Refuses any status other than PROVISIONING_FAILED with a 409. Retrying an ACTIVE tenant
+     * would re-run the saga against live infrastructure — a second HQ branch, a second
+     * provision-admin — so "not in the failed state" is a refusal, not a no-op.
+     *
+     * <p><b>Known limitation, stated rather than discovered.</b> If the original attempt failed
+     * AFTER the admin user was created, compensation revoked that user's branch-role but no
+     * internal endpoint exists to deactivate the account itself (13-10 named this gap; auth-service
+     * was off-limits then and is again now, with 13-09 working in it). A retry will then fail again
+     * at provision-admin on the duplicate email, which is reported as a 409 rather than silently
+     * producing a half-tenant.
      */
-    @Transactional
+    @Transactional(noRollbackFor = ProvisioningException.class)
     public ProvisionResult retry(UUID tenantId, String adminEmail) {
         TenantEntity tenant = tenantRepository.findById(tenantId)
-            .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
         if (tenant.getStatus() != TenantStatus.PROVISIONING_FAILED) {
-            throw new IllegalStateException("Tenant is not in PROVISIONING_FAILED state: " + tenant.getStatus());
+            throw new StateInvalidException(
+                "Tenant " + tenantId + " is not in PROVISIONING_FAILED state (it is "
+                    + tenant.getStatus() + "); only a failed provisioning may be retried");
         }
         if (adminEmail == null || adminEmail.isBlank()) {
             throw new IllegalArgumentException("An admin email is required to retry provisioning " + tenantId);
         }
-        // Reset to PENDING_SETUP and retry — delete existing feature records first to avoid duplicates
+
+        // Delete the feature rows before re-seeding; step 2 inserts and would otherwise collide on
+        // the (tenant_id, feature_code) primary key. Overrides are lost with them, which is correct:
+        // this tenant never finished provisioning, so no administrator has made a decision about it.
         featureRepository.deleteAllByTenantId(tenantId);
         tenant.setStatus(TenantStatus.PENDING_SETUP);
+        tierLimits.applyTo(tenant);
         tenantRepository.save(tenant);
-        // Re-execute saga with a fresh idempotency key
-        return provision("retry:" + tenantId + ":" + System.currentTimeMillis(),
-            tenant.getBrandName(), adminEmail, tenant.getTier().name());
+
+        // A fresh idempotency key per attempt: the point of a retry is precisely NOT to replay the
+        // stored result of the attempt that failed.
+        String key = "retry:" + tenantId + ":" + System.currentTimeMillis();
+        idempotencyService.checkAndLock(key,
+            hash(tenant.getBrandName() + adminEmail + tenant.getTier().name()),
+            (int) IDEMPOTENCY_TTL_SECONDS);
+        log.info("[saga][retry] re-driving tenant={} slug={} tier={}",
+            tenantId, tenant.getSlug(), tenant.getTier());
+        return executeSaga(key, tenant, adminEmail);
     }
 
     // --- Helpers ---
-
-    private void applyTierLimits(TenantEntity t) {
-        switch (t.getTier()) {
-            case STARTER    -> { t.setMaxBranches(1);  t.setMaxUsers(10); t.setStorageGb(5);   t.setNlqQuota(1000); }
-            case GROWTH     -> { t.setMaxBranches(5);  t.setMaxUsers(50); t.setStorageGb(20);  t.setNlqQuota(5000); }
-            case ENTERPRISE -> { t.setMaxBranches(50); t.setMaxUsers(500); t.setStorageGb(100); t.setNlqQuota(50000); }
-            case CUSTOM     -> { t.setMaxBranches(999); t.setMaxUsers(9999); t.setStorageGb(999); t.setNlqQuota(999999); }
-        }
-    }
 
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]+");
 

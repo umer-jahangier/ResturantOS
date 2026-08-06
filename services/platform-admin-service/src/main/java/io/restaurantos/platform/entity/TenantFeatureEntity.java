@@ -31,6 +31,23 @@ public class TenantFeatureEntity {
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled;
 
+    /**
+     * TRUE when a SuperAdmin set this row deliberately; FALSE when it was seeded from the tier
+     * matrix (13-14, changeset 030-001).
+     *
+     * <p>This is the whole of PLATFORM-10's "a SuperAdmin override is authoritative over tier
+     * defaults" as data. A tier change reconciles rows against the new tier's defaults, and it MUST
+     * skip the rows marked here — otherwise reconciliation revokes a feature an administrator
+     * granted on purpose. Without the marker there is nothing to distinguish the two, and the only
+     * two available implementations (reconcile everything / reconcile nothing) are both wrong.
+     *
+     * <p>Written by {@code FeatureFlagAdminService.setFeature} (the SuperAdmin path) and read by
+     * {@code FeatureFlagAdminService.reconcileToTierDefaults}. Provisioning's seeding loop leaves
+     * it at its {@code false} default.
+     */
+    @Column(name = "is_override", nullable = false)
+    private boolean override;
+
     @Column(name = "config_json", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
     private String configJson;

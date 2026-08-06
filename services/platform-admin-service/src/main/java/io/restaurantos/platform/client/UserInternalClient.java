@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -45,10 +46,30 @@ public interface UserInternalClient {
     void deactivateBranch(@PathVariable UUID branchId,
                           @RequestHeader("X-Tenant-Id") UUID tenantId);
 
+    /**
+     * Every LIVE branch for a tenant — the only authoritative branch count platform-admin-service
+     * can obtain, and what {@code TenantSubscriptionService} compares a downgraded tier's branch
+     * cap against (13-14).
+     *
+     * <p>{@code branches} is FORCE ROW LEVEL SECURITY on {@code app.current_tenant_id}, and the
+     * producer sets the GUC itself from the path variable before querying — so this call needs no
+     * {@code X-Tenant-Id} header, unlike the delete above which addresses a branch by its own id.
+     *
+     * <p>Typed to a record carrying only the id: the producer returns raw {@code BranchEntity}
+     * JSON, and binding the whole of another service's entity here would make any field it adds a
+     * deserialisation liability for a call that only needs a count.
+     */
+    @GetMapping("/internal/users/tenants/{tenantId}/branches")
+    List<BranchSummary> listBranches(@PathVariable UUID tenantId);
+
     /** Mirrors {@code BranchDtos.InternalCreateBranchRequest} field for field. */
     record CreateBranchRequest(UUID tenantId, String name, boolean isHq) {}
 
     /** Mirrors {@code BranchDtos.InternalCreateBranchResponse} — returned UNWRAPPED. */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record CreateBranchResponse(UUID branchId) {}
+
+    /** Just enough of a branch row to count it. */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record BranchSummary(UUID id, String name) {}
 }

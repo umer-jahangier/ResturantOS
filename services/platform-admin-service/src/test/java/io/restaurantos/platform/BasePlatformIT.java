@@ -25,7 +25,20 @@ import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -159,12 +172,103 @@ public abstract class BasePlatformIT {
         tenantContext.clear();
     }
 
+    /**
+     * Serves a REAL JWKS containing {@link #TEST_KID}'s public key.
+     *
+     * <p>It used to serve {@code {"keys":[]}}, which is fine for a suite that never presents a token
+     * but makes it impossible to test an authorization gate at all: {@code JwksKeyProvider} cannot
+     * resolve any kid, so every request with an {@code Authorization} header is a 401 and a 403 that
+     * should be produced by {@code @PreAuthorize("hasAuthority('SUPER_ADMIN')")} is
+     * indistinguishable from one produced by "the signature did not verify". 13-14 needs the
+     * distinction, because "a tenant OWNER is refused the tier endpoint" is only meaningful if the
+     * OWNER's token was genuinely valid.
+     *
+     * <p>Harmless to the classes that present no token: they never trigger a JWKS fetch.
+     */
     protected void wireMockStubJwks() {
         WIREMOCK.stubFor(WireMock.get(WireMock.urlPathEqualTo("/test-jwks"))
             .willReturn(WireMock.aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
-                .withBody("{\"keys\":[]}")));
+                .withBody(JWKS_JSON)));
+    }
+
+    // --- Real RS256 tokens, so authorization can be tested rather than assumed ---
+
+    protected static final String TEST_KID = "platform-it-key";
+    private static final KeyPair TEST_KEYS;
+    private static final String JWKS_JSON;
+
+    static {
+        try {
+            KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+            gen.initialize(2048);
+            TEST_KEYS = gen.generateKeyPair();
+            JWKS_JSON = new JWKSet(new RSAKey.Builder((RSAPublicKey) TEST_KEYS.getPublic())
+                .keyID(TEST_KID)
+                .build()).toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("could not build the test signing key", e);
+        }
+    }
+
+    /**
+     * A tenant-less control-plane token, exactly the shape
+     * {@code JwtSigningService.signPlatformToken} mints: the platform user's id as the subject and
+     * the role in BOTH the {@code roles} and {@code permissions} claims.
+     */
+    protected String platformToken(UUID platformUserId, String platformRole) {
+        return signToken(platformUserId, null, List.of(platformRole), List.of(platformRole));
+    }
+
+    /** A tenant user's token — a real, valid credential that simply is not a platform one. */
+    protected String tenantToken(UUID userId, UUID tenantId, String role, List<String> permissions) {
+        return signToken(userId, tenantId, List.of(role), permissions);
+    }
+
+    protected String signToken(UUID subject, UUID tenantId, List<String> roles, List<String> permissions) {
+        try {
+            Date now = new Date();
+            var claims = new JWTClaimsSet.Builder()
+                .subject(subject.toString())
+                .claim("roles", roles)
+                .claim("permissions", permissions)
+                .issueTime(now)
+                .expirationTime(new Date(now.getTime() + 3_600_000));
+            if (tenantId != null) {
+                claims.claim("tenant_id", tenantId.toString());
+            }
+            SignedJWT jwt = new SignedJWT(
+                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(TEST_KID).build(), claims.build());
+            jwt.sign(new RSASSASigner(TEST_KEYS.getPrivate()));
+            return jwt.serialize();
+        } catch (Exception e) {
+            throw new IllegalStateException("could not sign a test token", e);
+        }
+    }
+
+    // --- Authenticated HTTP helpers ---
+
+    protected ResponseEntity<String> httpGetAs(String token, String uri) {
+        return rest.get().uri(uri)
+            .header("Authorization", "Bearer " + token)
+            .exchange((req, res) -> toEntity(res), false);
+    }
+
+    protected ResponseEntity<String> httpPostAs(String token, String uri, Object body) {
+        return rest.post().uri(uri)
+            .header("Authorization", "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
+            .exchange((req, res) -> toEntity(res), false);
+    }
+
+    protected ResponseEntity<String> httpPatchAs(String token, String uri, Object body) {
+        return rest.patch().uri(uri)
+            .header("Authorization", "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
+            .exchange((req, res) -> toEntity(res), false);
     }
 
     // --- HTTP helpers (prefixed 'http' to avoid clash with WireMock static methods) ---

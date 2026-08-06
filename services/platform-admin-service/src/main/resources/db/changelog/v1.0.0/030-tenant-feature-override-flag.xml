@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Plan 13-14. Two things a tier change needs and platform_db did not have.
+
+        NO RLS is added here, deliberately: platform_db is the SuperAdmin control plane and is not
+        tenant-scoped (SC4/PLATFORM-07). See the banner in 010-create-platform-tables.xml.
+    -->
+
+    <!--
+        030-001 — the marker that makes tier reconciliation possible at all.
+
+        PLATFORM-10 states that a SuperAdmin override is AUTHORITATIVE over the tier defaults. Until
+        now nothing in tenant_features recorded which of the two wrote a row, so a tier change had
+        exactly two possible implementations and both were wrong: reconcile every row to the new
+        tier's defaults (which silently revokes a feature an administrator deliberately granted), or
+        reconcile nothing (which means a downgrade never actually takes anything away, so the tier is
+        cosmetic). The column is the third option.
+
+        Backfilled FALSE — "tier-seeded" — on purpose. Every existing row was written either by
+        ProvisioningService's seeding loop or by the demo/dev seed changesets, both of which are tier
+        defaults. Rows written through FeatureFlagAdminService.setFeature since the beginning of time
+        are indistinguishable from seeded ones in the data, so backfilling TRUE would freeze every
+        tenant's current feature set against every future tier change — the more damaging of the two
+        errors, and the harder one to notice. A SuperAdmin who has an override they care about
+        re-asserts it with one PATCH, which marks it.
+    -->
+    <changeSet id="030-001" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="tenant_features" columnName="is_override"/></not>
+        </preConditions>
+        <addColumn tableName="tenant_features">
+            <column name="is_override" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="tenant_features" columnName="is_override"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+        030-002 — the renewal date.
+
+        13-14-PLAN describes billing_ref, trial_ends_at AND the renewal date as "columns that exist
+        today and are never read or written". The first two do exist (010-001). The renewal date does
+        NOT — 010-001 declares no such column and TenantEntity has no such field. It is added here
+        rather than dropped from the plan, because a subscription record with a trial end and no
+        renewal date cannot express the state every paying tenant is actually in.
+
+        Nullable with no default: a tenant on a trial, or one that has never been billed, genuinely
+        has no renewal date, and NOW() would be a fabricated one.
+    -->
+    <changeSet id="030-002" author="platform-admin">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="tenants" columnName="renews_at"/></not>
+        </preConditions>
+        <addColumn tableName="tenants">
+            <column name="renews_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="tenants" columnName="renews_at"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

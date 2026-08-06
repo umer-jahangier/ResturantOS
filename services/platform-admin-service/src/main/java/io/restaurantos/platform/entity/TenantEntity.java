@@ -52,6 +52,16 @@ public class TenantEntity {
     @Column(name = "trial_ends_at")
     private Instant trialEndsAt;
 
+    /**
+     * When the current subscription period ends and the tenant is next billed. Added by 13-14
+     * (changeset 030-002) — unlike {@code billing_ref} and {@code trial_ends_at} it did not exist,
+     * and a subscription record that can express a trial end but not a renewal cannot describe the
+     * state a paying tenant is actually in. Null means "no renewal scheduled" (trial, or never
+     * billed), which is a real state and not a missing value.
+     */
+    @Column(name = "renews_at")
+    private Instant renewsAt;
+
     @Column(name = "custom_domain")
     private String customDomain;
 
