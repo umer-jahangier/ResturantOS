@@ -118,6 +118,8 @@ public class AuthServiceImpl implements AuthService {
                 throw new AuthenticationFailedException("Invalid credentials");
             }
 
+            refuseDeactivatedAccount(user, tenantId, request.email(), ip);
+
             user.setFailedLoginCount(0);
             user.setLockedUntil(null);
             user.setLastLoginAt(Instant.now());
@@ -190,6 +192,41 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * A deactivated (or tombstoned) account does not get a token — 13-11, and it was a live defect.
+     *
+     * <p>{@code users.is_active} has existed since changeset 020 and <b>login never read it</b>.
+     * Deactivating a user therefore did nothing to their ability to log in; only revoking their
+     * refresh sessions did, and that merely shortened the window to the next successful password
+     * login. 13-11 makes deactivation the way a tenant removes someone's access, so the flag has to
+     * mean something. Found by reading this method while writing the deactivate operation, not by a
+     * test — no test asserted it, because until now nothing set the flag.
+     *
+     * <h2>Why it runs AFTER the password comparison</h2>
+     *
+     * <p>Placed before it, a deactivated account would be refused without a bcrypt hash ever being
+     * computed, and the several-hundred-millisecond difference is a reliable oracle for
+     * "this address had an account here and it was switched off" — usable by anyone, with no
+     * credential at all. This method is only reached once the password has been verified, so the
+     * work done is identical either way. The message is the same {@code "Invalid credentials"}
+     * every other refusal uses, for the same reason.
+     *
+     * <p>The failure IS published, with the user id, because unlike a wrong password this one names
+     * a real account whose correct password someone just supplied — which is exactly the event an
+     * operator wants to see after removing an employee.
+     *
+     * <p>{@code deleted_at} is checked alongside {@code is_active}: changeset 058's duplicate repair
+     * tombstones rows without deactivating anything else about them, and a tombstone must not be an
+     * account.
+     */
+    private void refuseDeactivatedAccount(UserEntity user, UUID tenantId, String email, String ip) {
+        if (user.isActive() && !user.isDeleted()) {
+            return;
+        }
+        loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
+        throw new AuthenticationFailedException("Invalid credentials");
+    }
+
     private void handleFailedPassword(UserEntity user, UUID tenantId, String email, String ip) {
         int failures = user.getFailedLoginCount() + 1;
         user.setFailedLoginCount(failures);
@@ -231,6 +268,10 @@ public class AuthServiceImpl implements AuthService {
             handleFailedPassword(user, tenantId, email, ip);
             throw new AuthenticationFailedException("Invalid credentials");
         }
+        // Same refusal as login, in the same position, for the reason this method's javadoc gives:
+        // a bootstrap that accepted a deactivated account would let a removed employee enrol a
+        // second factor on it, which is a stronger foothold than the login it stands in for.
+        refuseDeactivatedAccount(user, tenantId, email, ip);
         return user;
     }
 
