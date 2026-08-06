@@ -56,10 +56,19 @@ The decision to leave this unimplemented is recorded in
 record "Resolved: the notification-service question (D-31)") and indexed as D-31
 in `13-DECISION-MAP.md`.
 
-That plan also specifies a user-facing gap document at
-**`docs/known-gaps/notification-delivery.md`**. As of this commit that file does
-**not** yet exist — plan 13-09 has not been executed. When it lands, it is the
-canonical reference for this gap and should be linked from here.
+The canonical reference for this gap is
+**[`Docs/known-gaps/notification-delivery.md`](../../Docs/known-gaps/notification-delivery.md)**,
+written by plan 13-09. Read it before writing anything in this module: it records
+what the reset event now carries, what a consumer must do to obtain the token
+over an internal channel, and why the token must never be put back into the
+event. (The plan named the path in lower case; the repository's documentation
+directory is `Docs`, and the file is there.)
+
+Since 13-09, auth-service ships with self-service reset **disabled by default**
+(`restaurantos.auth.password-reset.delivery-mode`) and logs a `WARN` at startup
+saying so, rather than minting a live credential for a message this module will
+never send. Turning it to `outbox` is the first step of implementing this
+consumer, and it should not be turned on before one exists.
 
 Supported password-recovery paths in the meantime (per D-31):
 

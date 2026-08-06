@@ -38,8 +38,16 @@ import java.util.UUID;
  * against the live database on a token that was demonstrably present, unused and unexpired. It
  * passed in CI because Testcontainers' Postgres user is a SUPERUSER and superusers bypass row
  * security. Redemption now goes through {@link PasswordPolicyService#redeemSingleUseToken}, which
- * resolves the tenant through a SECURITY DEFINER function first — the same thing
- * {@code RefreshSessionService} has always done for refresh tokens.
+ * resolves the tenant from the token's own routing prefix before setting the GUC.
+ *
+ * <p>(This sentence used to say "through a SECURITY DEFINER function, the same thing
+ * {@code RefreshSessionService} has always done". That was written, applied and then WITHDRAWN
+ * within 13-08 and the javadoc was not updated with it. Corrected here because a comment that
+ * describes a design the code does not have is worse than none: the function returned NULL for a
+ * row that was demonstrably present, since SECURITY DEFINER runs as the OWNER and
+ * {@code FORCE ROW LEVEL SECURITY} subjects even the owner to the policy — 052's precedent works
+ * only because some earlier migration run created it as a superuser. See
+ * {@link PasswordPolicyService} for the full account.)
  */
 @Service
 public class PasswordResetService {
@@ -227,7 +235,7 @@ public class PasswordResetService {
      * <p>What goes out instead is the identity a delivery consumer needs to address a message, plus
      * {@code tokenId} — the handle of the row holding the hash. A consumer that needs the token
      * fetches it over an internal channel keyed on that handle; it is never pushed one. See
-     * {@code docs/known-gaps/notification-delivery.md} for what such a consumer must do, and why
+     * {@code Docs/known-gaps/notification-delivery.md} for what such a consumer must do, and why
      * this milestone deliberately ships without one rather than with a stub that accepts a message
      * and discards it.
      */

@@ -21,7 +21,7 @@ import java.util.Optional;
  * blockers need. A fake one — accept a message, log it, drop it — is strictly WORSE than the status
  * quo, because it makes a dead flow look alive to everyone who reads the code afterwards. So the
  * flow is switched off by default and the endpoint says which recovery route does work.
- * {@code docs/known-gaps/notification-delivery.md} records this as a named gap rather than burying
+ * {@code Docs/known-gaps/notification-delivery.md} records this as a named gap rather than burying
  * it in a commit message, so the next phase can pick it up deliberately.
  *
  * <p><b>{@code OUTBOX} mode must still be correct.</b> It is not dead code kept warm: plan 13-13's
@@ -96,6 +96,6 @@ public record PasswordResetDeliveryProperties(Mode deliveryMode, Duration cooldo
             + "only once something consumes PASSWORD_RESET_REQUESTED. Until then the supported "
             + "recovery paths are an administrator-initiated reset and, for a user who can still "
             + "log in, POST /api/v1/auth/change-password. See "
-            + "docs/known-gaps/notification-delivery.md.");
+            + "Docs/known-gaps/notification-delivery.md.");
     }
 }

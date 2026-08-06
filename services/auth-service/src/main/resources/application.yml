@@ -67,7 +67,7 @@ restaurantos:
     #
     # The supported recovery paths in this milestone are an administrator-initiated reset and, for
     # a user who can still sign in, POST /api/v1/auth/change-password.
-    # See docs/known-gaps/notification-delivery.md.
+    # See Docs/known-gaps/notification-delivery.md.
     password-reset:
       delivery-mode: ${PASSWORD_RESET_DELIVERY_MODE:disabled}
       # Minimum interval between two token issuances for ONE account, independent of the gateway's

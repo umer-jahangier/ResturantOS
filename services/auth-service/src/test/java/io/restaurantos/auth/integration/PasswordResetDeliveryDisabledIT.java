@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * path in this platform is dead. 13-09 resolved the question CONTEXT.md left open by declaring
  * email delivery out of scope for this milestone rather than building a consumer that logs a
  * message and drops it — a fake one is strictly worse than none, because it makes a dead flow look
- * alive. See {@code docs/known-gaps/notification-delivery.md}.
+ * alive. See {@code Docs/known-gaps/notification-delivery.md}.
  *
  * <p>This class carries NO {@code @TestPropertySource}, deliberately. It runs against
  * {@code application.yml} exactly as shipped, so what it measures is the default an operator gets —

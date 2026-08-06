@@ -27,7 +27,7 @@ import java.util.UUID;
  * cross-service payload onto shared records because untyped maps plus consumer-side ITs that
  * hand-authored their own guessed key names produced "green tests over four dead seams". This event
  * has no consumer at all today — {@code notification-service} is an active Maven module with zero
- * source files (D-31; see {@code docs/known-gaps/notification-delivery.md}) — which makes the type
+ * source files (D-31; see {@code Docs/known-gaps/notification-delivery.md}) — which makes the type
  * more important rather than less: the seam is dead, so nothing would fail if a producer-side rename
  * silently changed the shape. With this record, the day someone writes that consumer, a rename is a
  * compile error rather than a field that quietly reads null.
