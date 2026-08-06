@@ -73,6 +73,30 @@ public class BranchInternalController {
     }
 
     /**
+     * Compensating action for a failed provisioning saga (13-10): soft-deactivate a branch the saga
+     * created before it failed. Without this, platform-admin-service's "compensation" for a branch
+     * was a {@code log.warn} saying manual cleanup was needed, which named nothing and cleaned up
+     * nothing.
+     *
+     * <p><b>Always 204, whether or not the branch was still live.</b> A compensating action is
+     * retried; a second call must not report a failure for work already done. The response
+     * therefore carries no "was it there" signal on purpose — a caller that branched on it would be
+     * building a race into its error handling.
+     *
+     * <p>{@code X-Tenant-Id} is required and is not decoration: {@code branches} is FORCE ROW LEVEL
+     * SECURITY on {@code app.current_tenant_id} and there is no JWT on {@code /internal/**}, so
+     * without it the update matches zero rows and reports success — the exact green-but-broken
+     * shape this phase has already found on five separate paths.
+     */
+    @DeleteMapping("/branches/{branchId}")
+    public ResponseEntity<Void> deactivateBranch(@PathVariable UUID branchId,
+                                                 @RequestHeader("X-Tenant-Id") UUID tenantId) {
+        setTenantGuc(tenantId);
+        branchService.deactivateInternal(branchId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Return all live branches for a tenant (provisioning and permission-computation use cases).
      */
     @GetMapping("/tenants/{tenantId}/branches")

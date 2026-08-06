@@ -160,6 +160,34 @@ public class BranchService {
         }
     }
 
+    /**
+     * Compensating deactivation for a failed provisioning saga (13-10).
+     *
+     * <p><b>Soft, not hard.</b> A branch that a saga created may already be referenced — by an
+     * outbox event, by a branch-role row in auth-service — and a hard delete of a row with live
+     * referents is its own hazard, one taken during error handling when the system is already in a
+     * bad state. Marking it deleted and inactive removes it from every live query, which is what
+     * compensation actually needs.
+     *
+     * <p><b>Idempotent by contract.</b> Returns {@code false} rather than throwing when the branch
+     * is already gone, because a compensating action is retried and a second run must not turn a
+     * completed cleanup into a fresh failure. This is why it does not delegate to {@link #get}.
+     *
+     * <p>The caller must have put the tenant on the connection first — {@code branches} is
+     * RLS-scoped, and without the GUC this method silently matches nothing and reports success.
+     */
+    @Transactional
+    public boolean deactivateInternal(UUID branchId) {
+        return branchRepository.findByIdAndDeletedAtIsNull(branchId)
+            .map(branch -> {
+                branch.setDeletedAt(Instant.now());
+                branch.setActive(false);
+                branchRepository.save(branch);
+                return true;
+            })
+            .orElse(false);
+    }
+
     @Transactional(readOnly = true)
     public List<BranchEntity> listByTenantId(UUID tenantId) {
         return branchRepository.findAllByTenantIdAndDeletedAtIsNull(tenantId);
