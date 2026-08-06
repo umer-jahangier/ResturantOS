@@ -620,7 +620,17 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06 — Phase 11 (HR & Payroll) Waves 1+2+3 complete (8/12 plans).
+Last session: 2026-08-06 — Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
+Every Phase 11 plan (11-01..11-12) is written, committed (41 commits since prod merge `3b5903a`), and compile/typecheck-verified. Executed entirely INLINE in the orchestrator — subagent delegation is hard-blocked in this environment by a platform content-safety filter. NO Docker daemon in this sandbox, so EVERY backend IT + `opa test policies/` is written but DEFERRED to a Docker-capable CI pass, and 11-12's frontend has a BLOCKING human-UAT checkpoint outstanding.
+Wave 4 added: 11-08 (finance GL auto-post — recipes + consumers + FinanceRabbitConfig payroll queues + PayrollAutoPostingIT), 11-09 (late-arrival deduction into payroll + labour-cost % + PosRevenueClient RestClient seam), 11-11 (ADMS/iClock adapter + Mode B ingest + PunchIngestService ON CONFLICT + quarantine/durable-mapping + AdmsIngestIT + usb-bridge contract doc). Wave 5: 11-12 (HR four-layer frontend + employees/payroll/attendance/schedule pages + native-drag shift calendar; tsc clean).
+**REMAINING TO CLOSE PHASE 11 (all require a real environment):**
+1. Docker CI: `mvn -pl services/hr-service,services/finance-service -am verify` (runs HrContextLoadsIT, EmployeeIT, PayrollRunIT, AttendanceLeaveIT, LabourCostIT, DeviceAuthResolverIT, AdmsIngestIT, PayrollAutoPostingIT) + `opa test policies/` (hr_test.rego).
+2. 11-12 blocking UAT (start-dev.ps1 + browser, OWNER/MANAGER): the full HR click-through per 11-12 plan.
+3. Deploy-review items: resolve_device() SECURITY DEFINER ownership vs RLS; FIELD_ENCRYPTION_KEY set; 6200/2300 CoA seed for payroll JE; @Scheduled cross-tenant leave accrual; hr-route gateway timelimiter; add GET /leave/requests list endpoint.
+Only after (1)+(2) pass should Phase 11 requirements (HR-01..HR-08) be marked Complete and the phase verified. Nothing pushed.
+
+--- earlier ---
+Phase 11 Waves 1+2+3 (8/12 plans).
 Since the Waves-1+2 note below, also completed inline: **11-06** payroll run lifecycle (entities/repos/dtos, PayrollRunService create/calculate/approve[TOTP via X-TOTP-Verified]/pay + compute from tax_config, PayrollRunController with Idempotency-Key, PayrollRunIT) and **11-07** scheduling+attendance+leave (shifts+assignments+weekGrid, manual clock-in/out into attendance_punches via synthetic MANUAL device + late/early derivation, leave types/accrual/request/approve/balances, AttendanceLeaveIT). All compile (`mvn -pl services/hr-service -am test-compile` green). REMAINING: W4 (11-08 finance GL auto-post consuming PAYROLL_RUN_APPROVED/PAID, 11-09 labour-cost % + late_arrival deduction, 11-11 ADMS/iClock + USB punch ingest — novel protocol), W5 (11-12 HR frontend — checkpoint/UAT plan). NEW deploy-review items: @Scheduled cross-tenant leave accrual not wired (per-tenant iteration needed); several JSONB/int[]/numeric mappings + all ITs still need the Docker CI pass to runtime-verify.
 
 --- earlier this session ---
