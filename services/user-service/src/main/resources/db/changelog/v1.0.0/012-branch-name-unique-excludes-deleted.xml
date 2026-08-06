@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        A DELETED branch must not reserve its name forever (13-14).
+
+        uk_branches_tenant_name (010-001) is a plain UNIQUE (tenant_id, name), and deletion in this
+        service is SOFT — deactivateInternal sets deleted_at and is_active=false, deliberately,
+        because a branch may already be referenced by an outbox event or an auth-service branch-role
+        row. The two together mean a name is consumed permanently: delete a branch and no branch of
+        that name can ever exist for that tenant again.
+
+        Found by the provisioning RETRY endpoint 13-14 exposes. A failed saga compensates by
+        soft-deleting the HQ branch it created; the retry then tries to create "<Brand> HQ" again and
+        is refused 409 by this constraint — so retry could only ever succeed for a failure that
+        happened BEFORE the branch step, which is none of the realistic ones. The retry endpoint was
+        unusable in practice and the constraint is the reason.
+
+        A partial unique index is the same instrument 13-CONTEXT already prescribes for
+        user_branch_roles, and it is strictly weaker than what it replaces: two LIVE branches of the
+        same name are still refused, which is the rule anyone actually wanted.
+    -->
+    <changeSet id="012-001" author="user-service">
+        <preConditions onFail="MARK_RAN">
+            <not><indexExists indexName="uk_branches_tenant_name_live"/></not>
+        </preConditions>
+        <dropUniqueConstraint tableName="branches" constraintName="uk_branches_tenant_name"/>
+        <sql>
+            CREATE UNIQUE INDEX uk_branches_tenant_name_live
+                ON branches (tenant_id, name)
+                WHERE deleted_at IS NULL
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uk_branches_tenant_name_live</sql>
+            <addUniqueConstraint tableName="branches"
+                                 columnNames="tenant_id, name"
+                                 constraintName="uk_branches_tenant_name"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
