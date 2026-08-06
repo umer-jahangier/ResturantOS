@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Rotate the platform SuperAdmin credential (audit blocker B1 / D-03).
+
+        WHAT IS WRONG WITH 900. Changeset 900-001 seeds superadmin@restaurantos.io and states its
+        plaintext password in a comment three lines above the hash. Anyone who has ever cloned this
+        repository — or read it on a mirror, a CI log or a fork — holds the credential for the
+        highest-privilege account in the system. Until plan 13-05 that account could not actually
+        log in anywhere, which is the only reason this was not already an incident; the moment a
+        platform login exists, it is one.
+
+        WHY THE NEW ROW RECORDS NO PLAINTEXT, NOT EVEN IN A COMMENT. The practice being retired here
+        is exactly "the hash is in the changeset and the password is in the comment next to it". The
+        credential for this project's SuperAdmin is documented in
+        .planning/phases/13-platform-tenant-access-repair/13-CONTEXT.md and in the phase seed script,
+        and BOTH of those — along with this hash — must be rotated before any production deployment.
+        A deployment that ships this file unrotated ships a known password.
+
+        WHY THE OLD ROW IS DEACTIVATED AND NOT DELETED.
+          * impersonation_log.admin_user_id references platform_users(id); deleting the row would
+            either fail on the constraint or orphan the audit trail of everything that account did.
+          * A deactivated row is visible evidence that the rotation happened. A missing row is
+            indistinguishable from a database that never had the seed applied.
+        PlatformAuthService refuses an inactive user through the same generic 401 as an unknown
+        email, so is_active = false is a real revocation, not a cosmetic flag — and 13-05's live
+        script asserts that the retired credential now returns 401 through the real gateway.
+
+        WHY THE ID IS DETERMINISTIC. uuid5 over the namespace scripts/onboarding.py uses
+        (6ba7b810-9dad-11d1-80b4-00c04fd430c8) with the name
+        "restaurantos/platform/user/superadmin@softxlogic.com", giving
+        eca6bbf2-ce62-5d16-8f4c-d052521d16ad. Plan 13-15's seed script can then reference the
+        account without a lookup, and re-provisioning a database reproduces the same id — so an
+        impersonation_log row written against one environment still resolves in another.
+
+        Both changesets are guarded by their own sqlCheck precondition with onFail="MARK_RAN",
+        matching the idiom in 900, so a second run is a no-op rather than a unique-violation.
+        Context: seed — same as 900/901, so a production changelog run without the seed context
+        applies neither the old seed nor this rotation.
+    -->
+
+    <changeSet id="platform-910-001-seed-project-super-admin" author="restaurantos-agent" context="seed">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM platform_users WHERE email = 'superadmin@softxlogic.com'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="platform_users">
+            <column name="id" value="eca6bbf2-ce62-5d16-8f4c-d052521d16ad"/>
+            <column name="email" value="superadmin@softxlogic.com"/>
+            <!-- BCrypt cost 12. The plaintext is deliberately not recorded here; see the header. -->
+            <column name="password_hash" value="$2b$12$4aU1pMaZTR4stNbyBZEHr.Yj8W1m694L2QyYfLF841JLTO9vNVWwW"/>
+            <column name="role" value="SUPER_ADMIN"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <rollback>
+            <delete tableName="platform_users">
+                <where>email = 'superadmin@softxlogic.com'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="platform-910-002-deactivate-seeded-super-admin" author="restaurantos-agent" context="seed">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM platform_users
+                WHERE email = 'superadmin@restaurantos.io' AND is_active = true
+            </sqlCheck>
+        </preConditions>
+        <update tableName="platform_users">
+            <column name="is_active" valueBoolean="false"/>
+            <where>email = 'superadmin@restaurantos.io'</where>
+        </update>
+        <rollback>
+            <update tableName="platform_users">
+                <column name="is_active" valueBoolean="true"/>
+                <where>email = 'superadmin@restaurantos.io'</where>
+            </update>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

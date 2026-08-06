@@ -9,5 +9,8 @@
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-platform-users.xml"/>
     <include file="db/changelog/v1.0.0/901-seed-demo-tenant.xml"/>
+    <!-- 910 rotates the SuperAdmin credential (D-03). MUST stay after 900: it deactivates the row
+         900 inserts, and Liquibase applies includes in declaration order. -->
+    <include file="db/changelog/v1.0.0/910-rotate-platform-superadmin.xml"/>
 
 </databaseChangeLog>

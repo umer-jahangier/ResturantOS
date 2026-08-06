@@ -1,8 +1,10 @@
 package io.restaurantos.platform;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
+import liquibase.integration.spring.SpringLiquibase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -40,13 +42,31 @@ class PlatformAuthIT extends BasePlatformIT {
     /** Must match PlatformAuthService's Redis key shape; asserted rather than assumed by the lockout test. */
     private static final String FAIL_KEY_PREFIX = "platform:auth:fail:";
 
+    // --- Changeset 910: the credential rotation (D-03) ---------------------------------------
+
+    /** The credential 13-CONTEXT specifies for this project's SuperAdmin. */
+    private static final String PROJECT_SUPER_EMAIL    = "superadmin@softxlogic.com";
+    private static final String PROJECT_SUPER_PASSWORD = "Test@123!";
+
+    /** Deterministic uuid5, namespace 6ba7b810-…, name restaurantos/platform/user/{email}. */
+    private static final UUID PROJECT_SUPER_ID =
+        UUID.fromString("eca6bbf2-ce62-5d16-8f4c-d052521d16ad");
+
+    /** The account seeded by changeset 900 whose password is committed in the repository. */
+    private static final String RETIRED_SUPER_EMAIL    = "superadmin@restaurantos.io";
+    private static final String RETIRED_SUPER_PASSWORD = "SuperAdmin@restaurantos#2024";
+
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+
+    @Autowired SpringLiquibase springLiquibase;
 
     private UUID superAdminId;
 
     @BeforeEach
     void seedPlatformUsers() {
         jdbc.update("DELETE FROM platform_users WHERE email LIKE 'it-%@platform.test'");
+        redis.delete(FAIL_KEY_PREFIX + PROJECT_SUPER_EMAIL);
+        redis.delete(FAIL_KEY_PREFIX + RETIRED_SUPER_EMAIL);
 
         superAdminId = insertUser(SUPER_EMAIL, GOOD_PASSWORD, "SUPER_ADMIN", true);
         insertUser(INACTIVE_EMAIL, GOOD_PASSWORD, "SUPER_ADMIN", false);
@@ -210,5 +230,67 @@ class PlatformAuthIT extends BasePlatformIT {
         // credential refusal) would mean the endpoint never ran. Distinguish them: a *valid*
         // credential must produce a 200 with no Authorization header present at all.
         assertThat(login(SUPER_EMAIL, GOOD_PASSWORD).getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    // --- Changeset 910: the rotation, proved through the endpoint ------------------------------
+
+    @Test
+    void rotation_projectSuperAdmin_isSeededActive_withTheDeterministicId() {
+        Map<String, Object> row = jdbc.queryForMap(
+            "SELECT id, role, is_active FROM platform_users WHERE email = ?", PROJECT_SUPER_EMAIL);
+
+        assertThat(row.get("id")).hasToString(PROJECT_SUPER_ID.toString());
+        assertThat(row.get("role")).isEqualTo("SUPER_ADMIN");
+        assertThat(row.get("is_active")).isEqualTo(true);
+    }
+
+    @Test
+    void rotation_projectSuperAdmin_canLogInWithTheContextCredential() {
+        ResponseEntity<String> res = login(PROJECT_SUPER_EMAIL, PROJECT_SUPER_PASSWORD);
+
+        assertThat(res.getStatusCode())
+            .as("the credential 13-CONTEXT specifies must actually work against the seeded hash")
+            .isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).contains(PROJECT_SUPER_ID.toString());
+    }
+
+    @Test
+    void rotation_previouslySeededSuperAdmin_isDeactivated_notDeleted() {
+        Map<String, Object> row = jdbc.queryForMap(
+            "SELECT is_active FROM platform_users WHERE email = ?", RETIRED_SUPER_EMAIL);
+        assertThat(row.get("is_active"))
+            .as("the row must survive so impersonation_log foreign keys and the audit trail do")
+            .isEqualTo(false);
+    }
+
+    @Test
+    void rotation_theCredentialCommittedInThisRepository_noLongerAuthenticates() {
+        String unknown = login(UNKNOWN_EMAIL, GOOD_PASSWORD).getBody();
+        ResponseEntity<String> res = login(RETIRED_SUPER_EMAIL, RETIRED_SUPER_PASSWORD);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(res.getBody())
+            .as("a revoked account must not be distinguishable from one that never existed")
+            .isEqualTo(unknown);
+    }
+
+    @Test
+    void rotation_changesetsAreIdempotent_whenReapplied() throws Exception {
+        // Liquibase would skip 910 on a second run purely because DATABASECHANGELOG says it ran, so
+        // deleting those rows first is what actually exercises the sqlCheck preconditions — the part
+        // that can be wrong. This is the real-world case too: a database where the seed script (or a
+        // prior environment) already created the account.
+        jdbc.update("DELETE FROM databasechangelog WHERE id LIKE 'platform-910-%'");
+
+        springLiquibase.afterPropertiesSet();
+
+        assertThat(jdbc.queryForObject(
+            "SELECT COUNT(*) FROM platform_users WHERE email = ?", Integer.class, PROJECT_SUPER_EMAIL))
+            .as("a re-run must not insert a second row")
+            .isEqualTo(1);
+        assertThat(jdbc.queryForObject(
+            "SELECT is_active FROM platform_users WHERE email = ?", Boolean.class, RETIRED_SUPER_EMAIL))
+            .as("a re-run must not reactivate the retired account")
+            .isFalse();
     }
 }
