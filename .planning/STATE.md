@@ -6,15 +6,15 @@ current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
 stopped_at: Completed 08.2-18-PLAN.md
-last_updated: "2026-07-24T21:30:44.710Z"
+last_updated: "2026-08-06T17:53:43.829Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
-  total_phases: 17
-  completed_phases: 11
-  total_plans: 122
-  completed_plans: 110
-  percent: 65
+  total_phases: 22
+  completed_phases: 14
+  total_plans: 168
+  completed_plans: 145
+  percent: 64
 ---
 
 # Project State
@@ -620,13 +620,18 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06 — Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
+Last session: 2026-08-06 — Phase 13 executing. 13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 running concurrently in the same tree against auth/platform-admin/gateway.
+
+--- Phase 11 (unchanged, still open) ---
+Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
 Every Phase 11 plan (11-01..11-12) is written, committed (41 commits since prod merge `3b5903a`), and compile/typecheck-verified. Executed entirely INLINE in the orchestrator — subagent delegation is hard-blocked in this environment by a platform content-safety filter. NO Docker daemon in this sandbox, so EVERY backend IT + `opa test policies/` is written but DEFERRED to a Docker-capable CI pass, and 11-12's frontend has a BLOCKING human-UAT checkpoint outstanding.
 Wave 4 added: 11-08 (finance GL auto-post — recipes + consumers + FinanceRabbitConfig payroll queues + PayrollAutoPostingIT), 11-09 (late-arrival deduction into payroll + labour-cost % + PosRevenueClient RestClient seam), 11-11 (ADMS/iClock adapter + Mode B ingest + PunchIngestService ON CONFLICT + quarantine/durable-mapping + AdmsIngestIT + usb-bridge contract doc). Wave 5: 11-12 (HR four-layer frontend + employees/payroll/attendance/schedule pages + native-drag shift calendar; tsc clean).
 **REMAINING TO CLOSE PHASE 11 (all require a real environment):**
+
 1. Docker CI: `mvn -pl services/hr-service,services/finance-service -am verify` (runs HrContextLoadsIT, EmployeeIT, PayrollRunIT, AttendanceLeaveIT, LabourCostIT, DeviceAuthResolverIT, AdmsIngestIT, PayrollAutoPostingIT) + `opa test policies/` (hr_test.rego).
 2. 11-12 blocking UAT (start-dev.ps1 + browser, OWNER/MANAGER): the full HR click-through per 11-12 plan.
 3. Deploy-review items: resolve_device() SECURITY DEFINER ownership vs RLS; FIELD_ENCRYPTION_KEY set; 6200/2300 CoA seed for payroll JE; @Scheduled cross-tenant leave accrual; hr-route gateway timelimiter; add GET /leave/requests list endpoint.
+
 Only after (1)+(2) pass should Phase 11 requirements (HR-01..HR-08) be marked Complete and the phase verified. Nothing pushed.
 
 --- earlier ---
@@ -637,10 +642,12 @@ Since the Waves-1+2 note below, also completed inline: **11-06** payroll run lif
 Phase 11 (HR & Payroll) Waves 1+2 complete (6/12 plans).
 Branch `Ammar/phase-11-hr-payroll` first brought up to date with prod (merge `3b5903a`: 272 commits, phases 08.2 + 12 + gateway resilience fixes; 6 conflicts union-resolved). ALL Phase 11 plans run in the orchestrator thread INLINE — subagent delegation is hard-blocked this environment by a platform content-safety filter (7/8 subagent calls blocked incl. benign boilerplate; main thread unaffected). No Docker daemon in this sandbox, so every Testcontainers IT + `opa test` is WRITTEN and compile-verified but DEFERRED to a Docker-capable CI run.
 Completed:
+
 - **11-01** scaffold: module + app + security (`5e35b94`), FORCE-RLS hr_db 14+3 tables (`2ed4dc1`), ProcessedEvent + HrTestBase + HrContextLoadsIT (`98c661a`).
 - **11-05** payroll math (TDD, unit tests GREEN): SlabTaxCalculator + EobiCalculator (`92ef022`), tax_config entity/service + FY2025-26 seed (`d794e97`).
 - **11-04** employees: EmployeeEntity encrypted cnic/bank + events (`d203cfa`), REST + hr.rego + hr_test.rego (`fabd4e1`), EmployeeIT (`70409e7`).
 - **11-10** device registry: entity/service + resolve_device SECURITY DEFINER fn (Task 1), DeviceAuthResolver + HrSecurityConfig permit (Task 2), gateway JWT-exempt + per-device rate-limit + DeviceAuthResolverIT (Task 3).
+
 Everything compiles (`mvn -pl gateway,services/hr-service -am test-compile` green). Nothing pushed. 15 phase-11 commits ahead of prod (7 total ahead incl. merge... actually 15 since merge).
 REMAINING: W3 (11-06 payroll run lifecycle, 11-07 shifts/attendance/leave), W4 (11-08 GL auto-post, 11-09 labour-cost %, 11-11 ADMS/USB punch ingest), W5 (11-12 HR frontend — checkpoint plan). Then a Docker CI pass to run all deferred ITs + `opa test`, then phase verify/roadmap/requirements.
 DEPLOY-REVIEW ITEMS: (1) resolve_device() SECURITY DEFINER must be owned by a role that bypasses attendance_devices RLS in prod. (2) FIELD_ENCRYPTION_KEY must be set before employee/device PII is written. (3) hr-route has no gateway timelimiter entry.
