@@ -151,6 +151,41 @@ public interface AuthInternalClient {
         @RequestHeader("X-Acting-User-Id") UUID actingUserId
     );
 
+    /**
+     * Reset a user's password on an administrator's behalf (13-13, D-16).
+     *
+     * <p><b>This is the only working way to set a user's password in this milestone.</b> 13-09
+     * (D-31) resolved that self-service forgot-password ships disabled, because
+     * {@code notification-service} has no source files and nothing consumes
+     * {@code PASSWORD_RESET_REQUESTED} — so there is no channel that could deliver a token to a
+     * user who has forgotten theirs.
+     *
+     * <p>{@code actorTier} is sent as the constant {@code "TENANT"} by this service, always.
+     * auth-service reads it to decide whether the role ceiling applies, and it is not a value any
+     * caller of the public API can influence: it is not in the public request DTO and there is no
+     * code path here that derives it from a request.
+     *
+     * <p>The response's {@code tempPassword} is one-time credential material. It crosses back to
+     * the authorised administrator once and must exist nowhere else — no log, no persisted record,
+     * and in particular no idempotency payload.
+     */
+    @PostMapping("/internal/auth/users/{userId}/password-reset")
+    ApiResponse<UserAdminDtos.AdminResetResult> resetPassword(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId,
+        @RequestBody InternalAdminReset request
+    );
+
     /** The three fields PATCH /internal/auth/users/{userId} accepts, and no others. */
     record InternalUpdateUser(String fullName, String locale, Boolean active) {}
+
+    /**
+     * What the internal reset endpoint accepts.
+     *
+     * <p>There is no acting-administrator field here and there is none on the public DTO either:
+     * the actor travels in a header taken from the verified JWT, because the whole value of a
+     * repudiation control is that the subject of the record cannot choose what it says (T-13-13-G).
+     */
+    record InternalAdminReset(String actorTier, String reason) {}
 }

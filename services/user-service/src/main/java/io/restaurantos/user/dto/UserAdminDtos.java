@@ -83,7 +83,53 @@ public final class UserAdminDtos {
         }
     }
 
+    /**
+     * The result of an administrator resetting somebody else's password (13-13, D-16).
+     *
+     * <p><b>{@code tempPassword} crosses back exactly once and exists nowhere else</b> — not in a
+     * log, not in the database (only its bcrypt hash), not in the audit event that records the
+     * reset. Because self-service reset ships disabled in this milestone (13-09, D-31 —
+     * {@code notification-service} has no source files, so no email can be sent), the administrator
+     * who receives this is the ONLY channel by which the user can learn their new credential, and
+     * they must hand it over out of band.
+     *
+     * <p>{@code mustChangePassword} is always true: 13-08's gate makes it binding at the target's
+     * next login, which is what stops a credential a third party has read out loud from becoming
+     * that account's permanent one.
+     *
+     * <p>{@link #toString()} is overridden for the reason {@link CreatedUser}'s is — a record's
+     * generated one prints every component.
+     */
+    public record AdminResetResult(
+        UUID userId,
+        String email,
+        String tempPassword,
+        boolean mustChangePassword
+    ) {
+        @Override
+        public String toString() {
+            return "AdminResetResult[userId=" + userId + ", email=" + email
+                + ", tempPassword=<redacted>, mustChangePassword=" + mustChangePassword + "]";
+        }
+    }
+
     // ── Requests ─────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Reset a user's password, as their administrator.
+     *
+     * <p><b>There is no acting-administrator field, and the absence is the enforcement</b>
+     * (T-13-13-G). The actor is the subject of the verified JWT and is read from
+     * {@code TenantContext}; a body field naming who did it is a field a caller can fill in with
+     * somebody else's name, which is exactly what a repudiation control must not permit. There is
+     * no tenant field either, for the reason {@link CreateUserRequest} states, and no password
+     * field — only a generated temporary one is ever set.
+     *
+     * <p>{@code reason} is required. A reset used to lock a rival out of their own account is
+     * indistinguishable from a legitimate one without it (T-13-13-E), and it is the field the audit
+     * event carries.
+     */
+    public record AdminResetRequest(@NotBlank @Size(max = 500) String reason) {}
 
     /**
      * Create one user in the CALLER'S OWN tenant.

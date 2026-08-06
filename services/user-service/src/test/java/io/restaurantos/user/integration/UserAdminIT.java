@@ -290,6 +290,99 @@ class UserAdminIT extends BaseUserIT {
         verify(0, WireMock.patchRequestedFor(urlMatching("/internal/auth/users/.*")));
     }
 
+    // ── 5b. Administrator-initiated password reset (13-13, D-16) ─────────────────────────────
+    //
+    // The reset ITSELF — the lockout clear, the forced-change flag, the history append, the audit
+    // event — is auth-service's and is pinned by AdminPasswordResetIT (7 tests) and live. What is
+    // asserted here is the half user-service is responsible for and the only half it CAN be: which
+    // tenant it sends, which identity it sends, whose word it takes for that identity, and what a
+    // caller is told when the upstream refuses.
+
+    @Test
+    @DisplayName("a reset sends the caller's own tenant and the caller's own id, and returns the temp password")
+    void resetPassword_sendsTheVerifiedTenantAndActor_andReturnsTheTemporaryPassword() {
+        WIRE_MOCK.stubFor(WireMock.post(urlPathEqualTo("/internal/auth/users/" + TARGET_ID + "/password-reset"))
+            .withHeader("X-Tenant-Id", equalTo(TENANT_A.toString()))
+            .withHeader("X-Acting-User-Id", equalTo(ADMIN_ID.toString()))
+            .willReturn(json(200, adminResetResult())));
+
+        ResponseEntity<String> res = postAs(adminToken(),
+            "/api/v1/users/" + TARGET_ID + "/reset-password",
+            "{\"reason\":\"forgot it\"}");
+
+        assertThat(res.getStatusCode().value()).isEqualTo(200);
+        assertThat(res.getBody()).contains("\"tempPassword\":\"zEHaY&6?CzqWe8p2\"");
+        assertThat(res.getBody())
+            .as("the forced-change flag bounds the temporary credential's life (13-08)")
+            .contains("\"mustChangePassword\":true");
+        // The TIER is a constant this service asserts, never anything derived from a request — it
+        // is what decides upstream whether the role ceiling applies, so a caller who could set it
+        // could switch the ceiling off.
+        verify(postRequestedFor(urlPathEqualTo("/internal/auth/users/" + TARGET_ID + "/password-reset"))
+            .withRequestBody(matching("(?s).*\"actorTier\":\"TENANT\".*"))
+            .withRequestBody(matching("(?s).*\"reason\":\"forgot it\".*")));
+    }
+
+    @Test
+    @DisplayName("the acting administrator comes from the token, never from the request body")
+    void resetPassword_ignoresAnActorNamedInTheBody() {
+        UUID impostor = UUID.fromString("cc000001-0000-4000-8000-0000000000ff");
+        WIRE_MOCK.stubFor(WireMock.post(urlMatching("/internal/auth/users/.*/password-reset"))
+            .willReturn(json(200, adminResetResult())));
+
+        // The body names somebody else as the actor, and a tenant that is not the caller's.
+        postAs(adminToken(), "/api/v1/users/" + TARGET_ID + "/reset-password",
+            "{\"reason\":\"spoof\",\"actingUserId\":\"" + impostor + "\",\"actorTier\":\"PLATFORM\","
+                + "\"tenantId\":\"" + TENANT_B + "\"}");
+
+        verify(postRequestedFor(urlMatching("/internal/auth/users/.*/password-reset"))
+            .withHeader("X-Acting-User-Id", equalTo(ADMIN_ID.toString()))
+            .withHeader("X-Tenant-Id", equalTo(TENANT_A.toString()))
+            .withRequestBody(matching("(?s).*\"actorTier\":\"TENANT\".*")));
+        // Neither spoofed value reaches auth-service in any position at all.
+        verify(0, anyRequestedFor(urlMatching(".*"))
+            .withRequestBody(matching("(?s).*" + impostor + ".*")));
+        verify(0, anyRequestedFor(urlMatching(".*"))
+            .withRequestBody(matching("(?s).*" + TENANT_B + ".*")));
+    }
+
+    @Test
+    @DisplayName("a reset with no reason is 400 and nothing is delegated")
+    void resetPassword_withoutAReason_is400() {
+        WIRE_MOCK.stubFor(WireMock.post(urlMatching("/internal/auth/users/.*/password-reset"))
+            .willReturn(json(200, adminResetResult())));
+
+        assertThat(postAs(adminToken(), "/api/v1/users/" + TARGET_ID + "/reset-password", "{}")
+            .getStatusCode().value())
+            .as("every reset is audited by actor, target and reason (T-13-13-E)")
+            .isEqualTo(400);
+        verify(0, postRequestedFor(urlMatching("/internal/auth/users/.*/password-reset")));
+    }
+
+    @Test
+    @DisplayName("another tenant's user is 404, and the ceiling refusal is 403 — neither is a 500")
+    void resetPassword_upstreamRefusalsKeepTheirMeaning() {
+        WIRE_MOCK.stubFor(WireMock.post(urlPathEqualTo("/internal/auth/users/" + FOREIGN_ID + "/password-reset"))
+            .willReturn(json(404, error("NOT_FOUND", "User not found: " + FOREIGN_ID))));
+        WIRE_MOCK.stubFor(WireMock.post(urlPathEqualTo("/internal/auth/users/" + TARGET_ID + "/password-reset"))
+            .willReturn(json(403, error("ROLE_CEILING_EXCEEDED",
+                "You cannot administer a user holding the role OWNER: it grants 1 permission(s) you do not hold yourself"))));
+
+        ResponseEntity<String> foreign = postAs(adminToken(),
+            "/api/v1/users/" + FOREIGN_ID + "/reset-password", "{\"reason\":\"x\"}");
+        assertThat(foreign.getStatusCode().value())
+            .as("404, never 403 — a 403 would confirm the id names a real account somewhere")
+            .isEqualTo(404);
+
+        ResponseEntity<String> ceiling = postAs(adminToken(),
+            "/api/v1/users/" + TARGET_ID + "/reset-password", "{\"reason\":\"x\"}");
+        assertThat(ceiling.getStatusCode().value()).isEqualTo(403);
+        assertThat(ceiling.getBody()).contains("ROLE_CEILING_EXCEEDED");
+        assertThat(ceiling.getBody())
+            .as("the refusal names the role and a count, never the permission codes it withholds")
+            .doesNotContain("rbac.manage");
+    }
+
     // ── 6. Authorization: 403 without the authority, 401 anonymous ───────────────────────────
 
     @Test
@@ -307,6 +400,10 @@ class UserAdminIT extends BaseUserIT {
             .getStatusCode().value()).isEqualTo(403);
         assertThat(postAs(cashier, "/api/v1/users/" + TARGET_ID + "/reactivate", "")
             .getStatusCode().value()).isEqualTo(403);
+        assertThat(postAs(cashier, "/api/v1/users/" + TARGET_ID + "/reset-password", "{\"reason\":\"x\"}")
+            .getStatusCode().value())
+            .as("taking somebody's account is at least as gated as editing their profile")
+            .isEqualTo(403);
 
         // The control: a denial must be a denial, not a request that reached auth-service and was
         // answered there. Nothing was delegated.
@@ -320,6 +417,8 @@ class UserAdminIT extends BaseUserIT {
         assertThat(get("/api/v1/users/" + TARGET_ID).getStatusCode().value()).isEqualTo(401);
         assertThat(post("/api/v1/users", Map.of("email", "x@a.local")).getStatusCode().value()).isEqualTo(401);
         assertThat(post("/api/v1/users/" + TARGET_ID + "/deactivate", Map.of()).getStatusCode().value()).isEqualTo(401);
+        assertThat(post("/api/v1/users/" + TARGET_ID + "/reset-password", Map.of("reason", "x"))
+            .getStatusCode().value()).isEqualTo(401);
 
         verify(0, anyRequestedFor(urlMatching("/internal/auth/.*")));
     }
@@ -504,6 +603,12 @@ class UserAdminIT extends BaseUserIT {
     private static String emptyPage() {
         return """
             {"data":[],"meta":{"page":{"cursor":"0","nextCursor":null,"limit":50},"totalCount":0},"warnings":[]}""";
+    }
+
+    private static String adminResetResult() {
+        return """
+            {"data":{"userId":"%s","email":"target@a.local","tempPassword":"zEHaY&6?CzqWe8p2",
+                     "mustChangePassword":true},"meta":null,"warnings":[]}""".formatted(TARGET_ID);
     }
 
     private static String createdUser() {

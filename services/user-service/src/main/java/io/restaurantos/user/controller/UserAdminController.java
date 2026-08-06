@@ -148,6 +148,38 @@ public class UserAdminController {
         return ResponseEntity.ok(ApiResponse.ok(userAdminService.reactivateUser(userId)));
     }
 
+    /**
+     * Reset a user's password and return the one-time temporary one (13-13, D-16, D-18).
+     *
+     * <p><b>This endpoint is the platform's only working password-recovery path.</b> 13-09 (D-31)
+     * resolved that self-service forgot-password ships disabled because no delivery consumer
+     * exists, so a user who forgets their password reaches their administrator, not an inbox. The
+     * response carries the temporary password, which must be delivered out of band and must not be
+     * logged.
+     *
+     * <p>The reset clears the target's login lockout and revokes their sessions, and sets the
+     * forced-change flag so the credential the administrator has just read out cannot become
+     * permanent. Upstream refuses a target in another tenant with 404 and a target holding a role
+     * above the caller's own with 403 {@code ROLE_CEILING_EXCEEDED} — resetting somebody's password
+     * is taking their account, which is strictly stronger than editing their profile, so the same
+     * ceiling that bounds deactivation bounds this.
+     *
+     * <p>Gated on the USER-administration authority rather than the role one: it does not change
+     * what anybody may do, so gating it on {@code rbac.role.manage} would force a role-granting
+     * authority on every administrator who needs to help somebody log back in.
+     *
+     * <p>POST to a sub-resource rather than PATCH on the user, because nothing about the user
+     * RESOURCE changes — a credential is replaced — and PATCH on this API is deliberately the verb
+     * that never touches a password.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @PostMapping("/{userId}/reset-password")
+    public ResponseEntity<ApiResponse<UserAdminDtos.AdminResetResult>> resetPassword(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserAdminDtos.AdminResetRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.resetPassword(userId, request)));
+    }
+
     // ── Branch roles ─────────────────────────────────────────────────────────────────────────
 
     /** Assign a branch-role to a user — delegates to auth-service, which applies the role ceiling. */

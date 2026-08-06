@@ -115,6 +115,39 @@ public class UserAdminService {
         return authInternalClient.reactivateUser(userId, tenantId, actingUserId).data();
     }
 
+    /**
+     * Reset a user's password on the calling administrator's behalf (13-13, D-16, D-18).
+     *
+     * <p><b>This is the recovery path that replaces self-service forgot-password.</b> 13-09 (D-31)
+     * resolved that the self-service flow ships disabled — {@code notification-service} contains a
+     * {@code pom.xml} and a {@code README.md} and nothing else, so nothing consumes
+     * {@code PASSWORD_RESET_REQUESTED} and no message can be delivered. Without this endpoint a
+     * user who forgets their password has no route back into the product at all.
+     *
+     * <p>Three things travel, and only one of them comes from the request: the TENANT and the
+     * ACTING ADMINISTRATOR both come from the verified JWT via {@link TenantContext}, and only the
+     * reason is the caller's. An acting-administrator id in the body is not merely ignored — the
+     * public DTO declares no such field, so there is nothing for Jackson to bind and no branch of
+     * code that could honour one (T-13-13-G).
+     *
+     * <p>Upstream enforces what this service cannot: the tenant boundary (another tenant's user is
+     * 404, never 403) and the role ceiling (a caller may not reset a user holding a role above
+     * their own — a privilege inversion). Both need {@code user_branch_roles} and
+     * {@code role_permissions}, which only auth-service holds; {@code RoleCeiling} is the single
+     * owner of that rule and is deliberately not forked here, for the reason §3 of 13-12's summary
+     * gives.
+     *
+     * <p>The returned temporary password is logged nowhere in this service and is handed to the
+     * administrator to deliver out of band.
+     */
+    public UserAdminDtos.AdminResetResult resetPassword(UUID userId,
+                                                        UserAdminDtos.AdminResetRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UUID actingUserId = requireActingUser("reset a user's password");
+        return authInternalClient.resetPassword(userId, tenantId, actingUserId,
+            new AuthInternalClient.InternalAdminReset("TENANT", request.reason())).data();
+    }
+
     // ── Branch roles (pre-existing) ──────────────────────────────────────────────────────────
 
     /**

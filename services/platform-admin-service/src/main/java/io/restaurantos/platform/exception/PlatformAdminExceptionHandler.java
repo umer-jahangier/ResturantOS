@@ -1,5 +1,6 @@
 package io.restaurantos.platform.exception;
 
+import feign.FeignException;
 import io.restaurantos.platform.service.ProvisioningService.ProvisioningException;
 import io.restaurantos.shared.api.ApiError;
 import org.slf4j.Logger;
@@ -79,6 +80,81 @@ public class PlatformAdminExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiError.of("BAD_REQUEST", ex.getMessage(), traceId()));
     }
+
+    /**
+     * An upstream refusal keeps its meaning; an upstream fault, and our own misconfiguration, do
+     * not become the caller's problem.
+     *
+     * <p>Without this a {@code FeignException} is an ordinary {@code RuntimeException} as far as
+     * shared-lib's catch-all is concerned, so every refusal from auth-service arrives at the
+     * SuperAdmin as <b>500 INTERNAL_ERROR</b> — which makes "that user does not exist in that
+     * tenant" indistinguishable from "the platform is broken", to the caller and on a dashboard
+     * alike. 13-12 measured and closed exactly this in user-service; platform-admin-service grew a
+     * delegating write for the first time in 13-13 and inherits the same hole.
+     *
+     * <p>Three rules, the same three {@code UpstreamErrorDecoder} applies:
+     *
+     * <ol>
+     *   <li><b>A 4xx keeps its status</b> and the upstream's own {@code error.code} — 400
+     *       {@code VALIDATION_FAILED}, 403 {@code ROLE_CEILING_EXCEEDED}, 404 {@code NOT_FOUND},
+     *       409 {@code STATE_INVALID}.</li>
+     *   <li><b>A 5xx never becomes a 4xx.</b> Downgrading a server fault tells the caller to
+     *       rewrite a correct request forever and removes a real outage from every 5xx alert.</li>
+     *   <li><b>Nothing internal leaks.</b> {@code FeignException.getMessage()} names the internal
+     *       scheme, host, port and path; it is logged, never returned. Only the upstream's
+     *       structured {@code error.message} crosses, and an undecodable body yields a fixed one.</li>
+     * </ol>
+     *
+     * <p>And three 4xx are deliberately NOT passed through: {@code 401}, {@code 403
+     * INTERNAL_AUTH_REQUIRED} and {@code 403 ACTING_USER_REQUIRED} all describe THIS service being
+     * misconfigured, not anything the SuperAdmin did or can fix. Echoing them would ask an
+     * authenticated operator to log in again over a fault they cannot see. They read as 502.
+     */
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ApiError> handleUpstream(FeignException ex) {
+        int status = ex.status();
+        String upstreamCode = fieldOfErrorBody(ex, "code");
+
+        // status() is 0 when the call never produced a response at all — connect refused, read
+        // timeout, a RetryableException after the last attempt. That is an outage, not a refusal.
+        boolean ourOwnMisconfiguration = status == 401
+            || "INTERNAL_AUTH_REQUIRED".equals(upstreamCode)
+            || "ACTING_USER_REQUIRED".equals(upstreamCode);
+        if (status < 400 || status >= 500 || ourOwnMisconfiguration) {
+            log.error("[platform-admin] upstream call failed (status={}, code={}): {}",
+                status, upstreamCode, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ApiError.of("UPSTREAM_ERROR",
+                    "An upstream service could not complete this request", traceId()));
+        }
+
+        String message = fieldOfErrorBody(ex, "message");
+        log.warn("[platform-admin] upstream refused (status={}, code={})", status, upstreamCode);
+        return ResponseEntity.status(status)
+            .body(ApiError.of(
+                upstreamCode != null ? upstreamCode : "UPSTREAM_REJECTED",
+                message != null ? message : "The upstream service refused this request",
+                traceId()));
+    }
+
+    /**
+     * One field of the upstream's {@code {"error":{...}}} envelope, or null.
+     *
+     * <p>Returns null rather than throwing on an undecodable body — an HTML proxy page, a truncated
+     * response, an empty one. A decoder that throws while decoding an error turns a handled refusal
+     * into an unhandled crash, which is the failure it exists to prevent.
+     */
+    private static String fieldOfErrorBody(FeignException ex, String field) {
+        try {
+            String value = MAPPER.readTree(ex.contentUTF8()).path("error").path(field).asText(null);
+            return (value == null || value.isBlank()) ? null : value;
+        } catch (Exception undecodable) {
+            return null;
+        }
+    }
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER =
+        new com.fasterxml.jackson.databind.ObjectMapper();
 
     private static String traceId() {
         String traceId = org.slf4j.MDC.get("traceId");

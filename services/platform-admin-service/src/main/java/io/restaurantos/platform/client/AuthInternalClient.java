@@ -90,6 +90,30 @@ public interface AuthInternalClient {
     Map<String, Object> impersonate(@PathVariable UUID userId,
                                     @RequestBody Map<String, Object> request);
 
+    /**
+     * Reset a tenant user's password as a platform operator (13-13, D-16).
+     *
+     * <p>{@code X-Acting-User-Id} carries the {@code platform_users.id} taken from the {@code sub}
+     * of the verified control-plane token. It is an IDENTITY and never an entitlement — auth-service
+     * does not resolve it against {@code users} at all, it records it in the audit event alongside
+     * the tier that says which id space it belongs to. The gateway strips this header from every
+     * inbound request, so no client can supply one.
+     *
+     * <p>{@code actorTier} is the constant {@code "PLATFORM"}, asserted by this service. It is what
+     * exempts the call from the role ceiling: a platform id holds no {@code user_branch_roles}, so
+     * the ceiling would resolve the empty permission set and refuse every reset — and the platform
+     * tier legitimately needs to reset the highest tenant role, which is the one case a tenant
+     * cannot resolve for itself.
+     *
+     * <p>The response's {@code tempPassword} is one-time credential material: returned to the
+     * SuperAdmin once, never logged and never persisted.
+     */
+    @PostMapping("/internal/auth/users/{userId}/password-reset")
+    AdminResetResponse resetUserPassword(@PathVariable UUID userId,
+                                         @RequestHeader("X-Tenant-Id") UUID tenantId,
+                                         @RequestHeader("X-Acting-User-Id") UUID actingUserId,
+                                         @RequestBody AdminResetRequest request);
+
     // --- Typed contracts (13-06's shapes, coded against by 13-10) ---
 
     record RegisterTenantRequest(UUID tenantId, String slug, String name) {}
@@ -102,6 +126,30 @@ public interface AuthInternalClient {
      * would be indistinguishable from one the admin chose.
      */
     record ProvisionAdminRequest(String email, UUID branchId, String roleCode, String fullName) {}
+
+    /**
+     * The reset request body. No acting-administrator field and no tenant field: both travel in
+     * headers taken from verified sources, because a repudiation control whose subject can choose
+     * what it says is not one (T-13-13-G).
+     */
+    record AdminResetRequest(String actorTier, String reason) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AdminResetResponse(AdminResetData data) {}
+
+    /**
+     * {@code tempPassword} crosses back exactly once. {@code toString()} is overridden for the same
+     * reason {@link ProvisionAdminData}'s is: a record prints every component by default, and this
+     * one is a live credential.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record AdminResetData(UUID userId, String email, String tempPassword, Boolean mustChangePassword) {
+        @Override
+        public String toString() {
+            return "AdminResetData[userId=" + userId + ", email=" + email
+                + ", tempPassword=<redacted>, mustChangePassword=" + mustChangePassword + "]";
+        }
+    }
 
     /** These two are the ApiResponse envelope auth-service wraps its internal bodies in. */
     @JsonIgnoreProperties(ignoreUnknown = true)
