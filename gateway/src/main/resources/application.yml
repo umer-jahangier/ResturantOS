@@ -100,6 +100,49 @@ spring:
                     name: authCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
 
+            # ── Role & permission catalog (served by auth-service) ───────────────
+            # D-14. Two authenticated reads a role picker cannot exist without; auth-service owns
+            # the roles/permissions/role_permissions tables, so it serves them.
+            #
+            # A DEDICATED route rather than an extra prefix on auth-route, which is the escape
+            # hatch 13-07-PLAN names. auth-route carries a deliberately tight per-IP budget
+            # (replenishRate 2/s, burst RATE_LIMIT_AUTH_PER_MIN=100) because it fronts a credential
+            # endpoint. That bucket is keyed on IP, and a restaurant's back office is one NAT'd IP,
+            # so putting an admin page's catalog reads in it means catalog traffic spends LOGIN's
+            # tokens. The failure that produces is not a slow picker — it is nobody in the building
+            # being able to log in. These endpoints therefore take the general default-filters
+            # budget (RATE_LIMIT_API_PER_MIN=600), which is still a limit, just not the credential
+            # one.
+            #
+            # Same authCircuitBreaker as auth-route and jwks-route: the upstream IS auth-service and
+            # its health is one fact, not three. Its 5s time limiter already covers a cold-JIT first
+            # call.
+            #
+            # Declaration position is cosmetic here — neither predicate overlaps any other route, so
+            # unlike platform-auth-route this one does not depend on being declared first.
+            #
+            # NOT in JwtGlobalFilter.PUBLIC_PATHS and NOT in TENANT_OPTIONAL_PATHS: both endpoints
+            # require a tenant-bearing token. Asserted by RoleCatalogRouteTest.
+            #
+            # NOT in RouteFeatureMap either, deliberately. Role discovery is how a tenant administers
+            # its own users; gating it on a module entitlement would mean a tier change could make
+            # user administration unreachable (T-13-07-E). Same rationale as reporting-route.
+            - id: role-catalog-route
+              uri: ${AUTH_SERVICE_URI:lb://auth-service}
+              # Both the bare path and the /** form are listed. PathPattern does treat `/foo/**`
+              # as matching `/foo`, but these two endpoints ARE the bare paths — a routing rule
+              # whose correctness rests on a subtlety of the matcher, for the only requests it will
+              # ever serve, is not worth the two extra entries it costs to remove the question.
+              predicates:
+                - Path=/api/v1/roles, /api/v1/roles/**, /api/v1/permissions, /api/v1/permissions/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: authCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
             # ── Authorization Service ────────────────────────────────────────────
             - id: authorization-route
               uri: lb://authorization-service

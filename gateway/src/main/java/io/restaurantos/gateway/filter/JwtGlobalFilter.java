@@ -302,7 +302,16 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
         }
     }
 
-    private boolean isPublicPath(String path) {
+    /**
+     * True when {@code path} needs no token at all.
+     *
+     * <p>Package-private for the same reason {@link #isTenantOptionalPath} is: this list is a
+     * security boundary, and "path X is NOT public" is a property that should be assertable
+     * directly rather than inferred from an integration test happening to 401. A path added here by
+     * mistake fails open silently — no error, no log, just an endpoint that stops asking for a
+     * token — which is the shape of defect that has to be caught by a test naming the path.
+     */
+    boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
 
