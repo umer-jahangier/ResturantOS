@@ -620,6 +620,10 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
+Last session: 2026-08-06 — Phase 11 (HR & Payroll) execution started.
+Branch `Ammar/phase-11-hr-payroll` first brought up to date with prod (merge `3b5903a`: 272 commits, phases 08.2 + 12 + gateway resilience fixes; 6 conflicts union-resolved). Then executed 11-01 (hr-service scaffold) inline — subagent delegation is blocked this environment by a platform content-safety filter, so all Phase 11 plans run in the orchestrator thread. Completed 11-01: module + Spring Boot app + security config (`5e35b94`), FORCE-RLS `hr_db` schema — 14 tenant tables + 3 shared-infra (`2ed4dc1`), ProcessedEvent inbox + Testcontainers IT base + RLS smoke test (`98c661a`). `mvn -pl services/hr-service -am test-compile` green. HrContextLoadsIT (migration + cross-tenant RLS via NOSUPERUSER role) is written but DEFERRED — no Docker daemon in this sandbox; run `mvn -q -pl services/hr-service -am verify` in a Docker-capable CI/session. Remaining Phase 11 waves: W2 (11-04/05/10), W3 (11-06/07), W4 (11-08/09/11), W5 (11-12 frontend, checkpoint). Nothing pushed.
+Resume file: .planning/phases/11-hr-payroll/11-01-SUMMARY.md
+
 Last session: 2026-07-24T00:51:13.261Z
 Stopped at: Completed 08.2-18-PLAN.md
 Resume file: None
