@@ -1,19 +1,14 @@
 package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.entity.AuthTenantEntity;
-import io.restaurantos.auth.entity.PasswordHistoryEntity;
 import io.restaurantos.auth.entity.PasswordResetTokenEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
-import io.restaurantos.auth.exception.PasswordReuseException;
 import io.restaurantos.auth.repository.AuthTenantRepository;
-import io.restaurantos.auth.repository.PasswordHistoryRepository;
 import io.restaurantos.auth.repository.PasswordResetTokenRepository;
-import io.restaurantos.auth.repository.RefreshSessionRepository;
 import io.restaurantos.auth.repository.UserRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.tenant.TenantContext;
-import jakarta.persistence.EntityManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +22,14 @@ import java.util.HexFormat;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Forgot-password: issue a single-use token, then redeem it for a new password.
+ *
+ * <p>The reuse rule, the history append, the session revocation and the tenant GUC used to live
+ * here as private methods, which made this the only flow in the platform that obeyed any of them.
+ * They now live in {@link PasswordPolicyService} and this class holds no copy — see that class for
+ * why that matters. What remains here is what is genuinely reset-specific: the token's lifecycle.
+ */
 @Service
 public class PasswordResetService {
 
@@ -36,9 +39,7 @@ public class PasswordResetService {
     private final AuthTenantRepository authTenantRepository;
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final PasswordHistoryRepository passwordHistoryRepository;
-    private final RefreshSessionRepository refreshSessionRepository;
-    private final EntityManager entityManager;
+    private final PasswordPolicyService passwordPolicyService;
     private final TenantContext tenantContext;
     private final PasswordEncoder passwordEncoder;
     private final EventPublisher eventPublisher;
@@ -47,18 +48,14 @@ public class PasswordResetService {
     public PasswordResetService(AuthTenantRepository authTenantRepository,
                                 UserRepository userRepository,
                                 PasswordResetTokenRepository passwordResetTokenRepository,
-                                PasswordHistoryRepository passwordHistoryRepository,
-                                RefreshSessionRepository refreshSessionRepository,
-                                EntityManager entityManager,
+                                PasswordPolicyService passwordPolicyService,
                                 TenantContext tenantContext,
                                 PasswordEncoder passwordEncoder,
                                 EventPublisher eventPublisher) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.passwordHistoryRepository = passwordHistoryRepository;
-        this.refreshSessionRepository = refreshSessionRepository;
-        this.entityManager = entityManager;
+        this.passwordPolicyService = passwordPolicyService;
         this.tenantContext = tenantContext;
         this.passwordEncoder = passwordEncoder;
         this.eventPublisher = eventPublisher;
@@ -74,7 +71,7 @@ public class PasswordResetService {
         }
 
         UUID tenantId = tenant.getId();
-        setTenantGuc(tenantId);
+        passwordPolicyService.setTenantGuc(tenantId);
         tenantContext.set(tenantId, null, null, null);
 
         userRepository.findByEmail(email.toLowerCase()).ifPresent(user -> issueResetToken(user, tenantId));
@@ -88,19 +85,14 @@ public class PasswordResetService {
             .filter(t -> t.getExpiresAt().isAfter(Instant.now()))
             .orElseThrow(() -> new AuthenticationFailedException("Invalid or expired reset token"));
 
-        setTenantGuc(resetToken.getTenantId());
+        passwordPolicyService.setTenantGuc(resetToken.getTenantId());
         tenantContext.set(resetToken.getTenantId(), null, resetToken.getUserId(), null);
 
         UserEntity user = userRepository.findById(resetToken.getUserId())
             .orElseThrow(() -> new AuthenticationFailedException("Invalid or expired reset token"));
 
-        rejectIfPasswordReused(user, newPassword);
-
-        PasswordHistoryEntity history = new PasswordHistoryEntity();
-        history.setTenantId(user.getTenantId());
-        history.setUserId(user.getId());
-        history.setPasswordHash(user.getPasswordHash());
-        passwordHistoryRepository.save(history);
+        passwordPolicyService.rejectIfPasswordReused(user, newPassword);
+        passwordPolicyService.appendCurrentPasswordToHistory(user);
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -108,7 +100,7 @@ public class PasswordResetService {
         resetToken.setUsedAt(Instant.now());
         passwordResetTokenRepository.save(resetToken);
 
-        revokeActiveRefreshSessions(user.getId());
+        passwordPolicyService.revokeActiveRefreshSessions(user.getId());
     }
 
     private void issueResetToken(UserEntity user, UUID tenantId) {
@@ -126,30 +118,6 @@ public class PasswordResetService {
             "PASSWORD_RESET_REQUESTED",
             null,
             Map.of("userId", user.getId(), "email", user.getEmail(), "token", rawToken));
-    }
-
-    private void rejectIfPasswordReused(UserEntity user, String newPassword) {
-        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
-            throw new PasswordReuseException("Cannot reuse a recent password");
-        }
-        for (PasswordHistoryEntity history : passwordHistoryRepository.findTop5ByUserIdOrderByCreatedAtDesc(user.getId())) {
-            if (passwordEncoder.matches(newPassword, history.getPasswordHash())) {
-                throw new PasswordReuseException("Cannot reuse a recent password");
-            }
-        }
-    }
-
-    private void revokeActiveRefreshSessions(UUID userId) {
-        refreshSessionRepository.findByUserIdAndRevokedAtIsNull(userId).forEach(session -> {
-            session.setRevokedAt(Instant.now());
-            refreshSessionRepository.save(session);
-        });
-    }
-
-    private void setTenantGuc(UUID tenantId) {
-        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
-            .setParameter("tid", tenantId.toString())
-            .getSingleResult();
     }
 
     private String generateToken() {

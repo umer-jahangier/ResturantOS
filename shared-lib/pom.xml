@@ -75,13 +75,18 @@
           Bean Validation API ONLY — deliberately not spring-boot-starter-validation.
 
           shared-lib is on the compile classpath of all 20 modules, so anything added here is added
-          to every one of them. The API jar is annotations and interfaces: it carries no
-          ValidationProvider, and Spring Boot's ValidationAutoConfiguration is conditional on the
-          provider's META-INF/services entry as well as on the API class, so this changes the
-          runtime behaviour of exactly zero services. Pulling the STARTER would instead put
-          hibernate-validator on every classpath and switch method/argument validation on in the
-          services that do not have it today — a silent behaviour change to services this plan never
-          ran. The 14 services that need an implementation already declare the starter themselves.
+          to every one of them. The API jar is annotations and interfaces and carries no
+          ValidationProvider. Verified rather than assumed: ValidationAutoConfiguration does not
+          ship in spring-boot-autoconfigure — it lives in `spring-boot-validation`, which only
+          `spring-boot-starter-validation` pulls in. So in a module that does not declare the
+          starter the auto-configuration class is not on the classpath at all, and nothing about
+          that module's runtime behaviour changes.
+
+          Pulling the STARTER here would instead put hibernate-validator on every classpath and
+          switch method/argument validation on in the services that do not have it today — a silent
+          behaviour change to services this plan never ran. Every service that needs an
+          implementation already declares the starter itself; `audit-service` is the only module
+          that gains this jar without one, and it gains annotations it does not use.
         -->
         <dependency>
             <groupId>jakarta.validation</groupId>

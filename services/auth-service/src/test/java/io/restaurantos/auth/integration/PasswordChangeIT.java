@@ -181,6 +181,12 @@ class PasswordChangeIT extends BaseIntegrationTest {
     @Test
     void aSuccessfulChange_appendsHistory_revokesSessions_andClearsForcedChangeAndLockout()
             throws Exception {
+        // Two logins, so "revokes EVERY session" is distinguishable from "revokes the one used".
+        // They happen BEFORE the lockout is planted: login refuses a locked account outright, so
+        // the other order tests nothing and fails at the fixture.
+        String firstToken = login(TestFixtures.MANAGER_PASSWORD);
+        login(TestFixtures.MANAGER_PASSWORD);
+
         setRls(TestFixtures.demoTenantId());
         UserEntity before = userRepository.findByEmail(TestFixtures.MANAGER_EMAIL).orElseThrow();
         before.setMustChangePassword(true);
@@ -189,10 +195,6 @@ class PasswordChangeIT extends BaseIntegrationTest {
         userRepository.save(before);
         String hashBeforeChange = before.getPasswordHash();
 
-        // Two logins, so "revokes EVERY session" is distinguishable from "revokes the one used".
-        String firstToken = login(TestFixtures.MANAGER_PASSWORD);
-        login(TestFixtures.MANAGER_PASSWORD);
-        setRls(TestFixtures.demoTenantId());
         assertThat(refreshSessionRepository.findByUserIdAndRevokedAtIsNull(before.getId()))
             .as("precondition: two live sessions").hasSizeGreaterThanOrEqualTo(2);
 
