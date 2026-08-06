@@ -401,43 +401,57 @@ healthy).
 
 ## Running integration tests on colima (Testcontainers)
 
-Every service's ITs use Testcontainers, which needs a working Docker. On **colima** (as opposed
-to Docker Desktop) they fail out of the box:
-
-```
-ContainerLaunchException: Container startup failed for image testcontainers/ryuk:0.12.0
-  ... error while creating mount source path '~/.colima/default/docker.sock':
-      mkdir ...: operation not supported
-```
-
-Ryuk (Testcontainers' orphan-container reaper) bind-mounts the Docker socket into itself, and
-colima's socket path is not mountable. **The fix is one environment variable:**
+Every service's ITs use Testcontainers. On **colima** (as opposed to Docker Desktop) they fail out
+of the box, and **two independent settings are both required**:
 
 ```bash
+colima start --cpu 6 --memory 12 --disk 60 --network-address   # once; gives the VM a routable IP
 export TESTCONTAINERS_RYUK_DISABLED=true
+export TESTCONTAINERS_HOST_OVERRIDE=$(colima list | awk 'NR==2{print $NF}')   # e.g. 192.168.64.2
 mvn -pl services/hr-service verify
 ```
 
-Verified 2026-08-06: hr-service goes from 18/18 ITs erroring in milliseconds to 18/18 passing.
+**Why each is needed — these are two different failures, and fixing one just reveals the other:**
 
-Do NOT reach for these — all three were tried and all three are wrong here:
-- `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock` — lets Ryuk *start*, but the host
-  then cannot reach it (`Could not connect to Ryuk at <ip>:32768`).
-- `colima start --network-address` + `TESTCONTAINERS_HOST_OVERRIDE=<vm-ip>` — the address is
-  assigned but not routable under `vmType: vz` (`NoRouteToHostException`).
-- `TESTCONTAINERS_HOST_OVERRIDE=127.0.0.1` — yields `EOFException` on the Postgres connect.
+1. `TESTCONTAINERS_RYUK_DISABLED=true`. Ryuk (the orphan-container reaper) bind-mounts the Docker
+   socket into itself; colima's socket path cannot be mounted:
+   `error while creating mount source path '~/.colima/default/docker.sock': operation not supported`.
 
-Trade-off of disabling Ryuk: test containers are no longer auto-reaped, so a hard-killed run can
-leave containers behind. `docker ps` and clean up manually if a run is interrupted.
+2. `TESTCONTAINERS_HOST_OVERRIDE=<vm-ip>`. colima forwards **fixed** published ports (everything in
+   `docker-compose.yml`) to `127.0.0.1` correctly, but does **not** reliably forward the **dynamic**
+   high ports Testcontainers allocates with `-P`. Connecting to those on loopback yields
+   `EOFException` / "server closed the connection unexpectedly" — the forwarder accepts the socket
+   and then fails to proxy it. Reachable directly on the VM's own IP, hence the override.
 
-CI is unaffected — it runs on Linux with a native Docker daemon where Ryuk works normally.
+   Reproduce the bare failure without Maven or Testcontainers in the loop:
+   ```bash
+   cid=$(docker run -d -e POSTGRES_PASSWORD=t -e POSTGRES_USER=t -e POSTGRES_DB=t -P postgres:16)
+   port=$(docker port "$cid" 5432/tcp | sed 's/.*://')
+   psql -h 127.0.0.1     -p "$port" -U t -d t -c 'select 1'   # fails: EOFException
+   psql -h 192.168.64.2  -p "$port" -U t -d t -c 'select 1'   # works
+   ```
+
+**Do not trust a single green run.** Setting only `TESTCONTAINERS_RYUK_DISABLED` produced one
+passing 18/18 run and then failed 18/18 from the identical commit — the dynamic-port forwarding is
+intermittent, so a lone success is not evidence. Verified 2026-08-06 with three consecutive green
+runs of `mvn -pl services/hr-service verify` (18/18 ITs + 10/10 unit).
+
+Trade-off of disabling Ryuk: test containers are no longer auto-reaped, so an interrupted run can
+leave containers behind — check `docker ps` and clean up manually.
+
+CI is unaffected: it runs on Linux with a native Docker daemon, where both problems are absent.
 
 ### Why this mattered
 
-hr-service (Phase 11) shipped with **four blockers** that its own integration suite would have
-caught. It could not have caught them, because the suite never ran: a duplicate
-`@EnableJpaAuditing` on `HrServiceApplication` (SharedAutoConfiguration is authoritative — see
-the note in `PosServiceApplication`/`FinanceServiceApplication`) failed every context load with
-`BeanDefinitionOverrideException: 'jpaAuditingHandler'`, and the colima issue above hid that
-behind an unrelated error. If a service's ITs are "passing" in your terminal, confirm they are
-actually *running* — a green `mvn test` only runs surefire unit tests; ITs need `verify`.
+hr-service (Phase 11) shipped with **four blockers** its own integration suite would have caught.
+It could not have caught them, because the suite never ran. Two causes stacked:
+
+- A duplicate `@EnableJpaAuditing` on `HrServiceApplication` — `SharedAutoConfiguration` is
+  authoritative, and `PosServiceApplication`/`FinanceServiceApplication` both carry an explicit
+  note saying so. The duplicate failed every context load with
+  `BeanDefinitionOverrideException: 'jpaAuditingHandler'`.
+- The colima issues above, which masked the first behind unrelated errors.
+
+If a service's ITs look green in your terminal, confirm they are actually *running*: `mvn test`
+only runs surefire unit tests, ITs need `verify`, and a suite that errors during context load still
+reports `Tests run: N` — with `Errors: N` beside it.
