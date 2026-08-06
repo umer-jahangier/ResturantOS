@@ -273,7 +273,6 @@ export const navGroups: NavGroup[] = [
         icon: Users,
         feature: "FEATURE_HR",
         roles: ["OWNER", "TENANT_ADMIN"],
-        comingSoon: true, // /app/hr page not built yet (Phase 5+)
       },
       {
         // Gated on the real permission now that changeset 047 seeds crm.* — the roles[] fallback
