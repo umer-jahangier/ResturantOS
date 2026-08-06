@@ -49,6 +49,10 @@ public class HrSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
                         .requestMatchers("/internal/hr/**").permitAll()
+                        // Device-authenticated ingest: no user JWT. DeviceAuthResolver verifies the
+                        // device token and derives tenant/branch from the registry; these paths are
+                        // NOT authenticated by Spring Security (but stay FEATURE_HR-gated at the gateway).
+                        .requestMatchers("/iclock/**", "/internal/attendance/ingest").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, HrInternalServiceFilter.class)
