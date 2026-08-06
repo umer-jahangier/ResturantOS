@@ -65,19 +65,11 @@ function JournalEntryTable({ filters }: JournalEntryTableProps) {
               onClick={() => router.push(`/app/finance/journal-entries/${je.id}`)}
               className="cursor-pointer border-b transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
             >
-              <td className="py-2 pr-4 font-mono tabular-nums">
-                {je.entryNo ?? "—"}
-              </td>
+              <td className="py-2 pr-4 font-mono tabular-nums">{je.entryNo ?? "—"}</td>
               <td className="py-2 pr-4">{je.entryDate}</td>
               <td className="py-2 pr-4">{je.description}</td>
               <td className="py-2 pr-4">
-                <span
-                  className={
-                    je.status === "POSTED"
-                      ? "text-emerald-700"
-                      : "text-amber-700"
-                  }
-                >
+                <span className={je.status === "POSTED" ? "text-emerald-700" : "text-amber-700"}>
                   {je.status}
                 </span>
               </td>

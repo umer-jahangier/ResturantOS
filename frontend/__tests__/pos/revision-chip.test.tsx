@@ -49,9 +49,7 @@ describe("RevisionCountChip", () => {
   });
 
   it('uses singular "1 revision" for a single entry', () => {
-    render(
-      <RevisionCountChip revisions={[{ revisionNo: 1, firedAt: null, itemCount: 3 }]} />,
-    );
+    render(<RevisionCountChip revisions={[{ revisionNo: 1, firedAt: null, itemCount: 3 }]} />);
     expect(screen.getByText("1 revision")).toBeInTheDocument();
   });
 

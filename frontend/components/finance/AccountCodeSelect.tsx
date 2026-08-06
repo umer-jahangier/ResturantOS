@@ -13,21 +13,24 @@ interface AccountCodeSelectProps {
   required?: boolean;
 }
 
-function AccountCodeSelect({
-  value,
-  selectedName,
-  onChange,
-  required,
-}: AccountCodeSelectProps) {
+function AccountCodeSelect({ value, selectedName, onChange, required }: AccountCodeSelectProps) {
   const listId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  // The box shows what the user has typed, but must snap back to `value` whenever the
+  // parent changes the committed account code from the outside. Rather than mirroring
+  // the prop into state from an effect (a cascading extra render, and a frame where the
+  // box shows the stale code), track the last prop we reconciled against and adjust
+  // during render — React's documented way to reset state when a prop changes. A `key`
+  // reset is not usable here: the parent renders these in a list, and remounting the
+  // input would drop focus mid-edit.
   const [query, setQuery] = useState(value);
+  const [reconciledValue, setReconciledValue] = useState(value);
   const [open, setOpen] = useState(false);
-  const { data: results, isFetching } = useAccountSearch(query);
-
-  useEffect(() => {
+  if (value !== reconciledValue) {
+    setReconciledValue(value);
     setQuery(value);
-  }, [value]);
+  }
+  const { data: results, isFetching } = useAccountSearch(query);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -75,9 +78,7 @@ function AccountCodeSelect({
                 <div className="px-2 py-2 text-xs text-muted-foreground">Searching…</div>
               )}
               {!isFetching && results?.length === 0 && (
-                <div className="px-2 py-2 text-xs text-muted-foreground">
-                  No matching accounts
-                </div>
+                <div className="px-2 py-2 text-xs text-muted-foreground">No matching accounts</div>
               )}
               {results?.map((account) => (
                 <Command.Item

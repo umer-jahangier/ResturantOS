@@ -10,7 +10,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const HOOK_FILES = [
   "lib/hooks/reporting/use-dashboard-socket.ts",
@@ -63,10 +63,13 @@ describe("ws-base-url", () => {
       expect(source).not.toMatch(/NEXT_PUBLIC_\w*_WS_URL/);
     });
 
-    it.each(HOOK_FILES)("%s never builds its socket URL directly from window.location.host", (relPath) => {
-      const source = readFileSync(path.join(repoRoot, relPath), "utf-8");
-      expect(source).not.toMatch(/window\.location\.host/);
-    });
+    it.each(HOOK_FILES)(
+      "%s never builds its socket URL directly from window.location.host",
+      (relPath) => {
+        const source = readFileSync(path.join(repoRoot, relPath), "utf-8");
+        expect(source).not.toMatch(/window\.location\.host/);
+      },
+    );
 
     it.each(HOOK_FILES)("%s builds its socket URL via wsUrl(", (relPath) => {
       const source = readFileSync(path.join(repoRoot, relPath), "utf-8");

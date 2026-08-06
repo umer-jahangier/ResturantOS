@@ -42,10 +42,16 @@ export function ThreeWayMatchTable({ invoice }: { invoice: VendorInvoice }) {
       <tbody>
         {invoice.lines.map((line) => (
           <tr key={line.id} className="border-b">
-            <td className="py-2">{line.poQty ?? "—"} @ {line.poUnitPricePaisa ?? "—"}</td>
+            <td className="py-2">
+              {line.poQty ?? "—"} @ {line.poUnitPricePaisa ?? "—"}
+            </td>
             <td className="py-2">{line.grnQty ?? "0"}</td>
-            <td className="py-2">{line.qty} @ {line.unitPricePaisa}</td>
-            <td className="py-2"><MatchStatusBadge status={line.matchStatus} /></td>
+            <td className="py-2">
+              {line.qty} @ {line.unitPricePaisa}
+            </td>
+            <td className="py-2">
+              <MatchStatusBadge status={line.matchStatus} />
+            </td>
           </tr>
         ))}
       </tbody>

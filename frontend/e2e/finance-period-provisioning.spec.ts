@@ -103,7 +103,11 @@ test.describe("Calendar-based fiscal-year period provisioning flow (07.2-07)", (
         .then(() => true)
         .catch(() => false);
       if (signInFailed) {
-        const detail = (await page.getByText(/temporarily unavailable|try again/i).textContent().catch(() => null)) ?? "";
+        const detail =
+          (await page
+            .getByText(/temporarily unavailable|try again/i)
+            .textContent()
+            .catch(() => null)) ?? "";
         throw new Blocked(
           `login for ${email} failed with a "Sign-in failed" banner (backend/gateway unavailable in this session): "${detail.trim()}"`,
         );
@@ -115,9 +119,7 @@ test.describe("Calendar-based fiscal-year period provisioning flow (07.2-07)", (
       // that, the revealed totpCode field is an environment precondition,
       // not a frontend defect.
       const totpField = page.locator('input[name="totpCode"]');
-      const totpRevealed = await totpField
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
+      const totpRevealed = await totpField.isVisible({ timeout: 5000 }).catch(() => false);
       if (totpRevealed) {
         throw new Blocked(
           `login for ${email} requires TOTP step-up (finance.period.close/rbac.manage) and no enrolled dev TOTP secret is wired into this spec — see scripts/generate_totp.py`,
@@ -232,7 +234,9 @@ test.describe("Calendar-based fiscal-year period provisioning flow (07.2-07)", (
       // S4 — confirm provisioning; assert success banner + table reflects 12 OPEN periods
       // ══════════════════════════════════════════════════════════════════
       await stage("S4", async () => {
-        const confirmButton = page.getByRole("button", { name: `Provision FY ${targetFiscalYear}` });
+        const confirmButton = page.getByRole("button", {
+          name: `Provision FY ${targetFiscalYear}`,
+        });
         if (!(await confirmButton.isVisible({ timeout: 5000 }).catch(() => false))) {
           throw new Blocked("confirm 'Provision FY ...' button not visible (depends on S3)");
         }
@@ -270,7 +274,9 @@ test.describe("Calendar-based fiscal-year period provisioning flow (07.2-07)", (
         const openChips = page.getByText("OPEN", { exact: true });
         const openCount = await openChips.count();
         if (openCount !== 12) {
-          throw new Error(`expected 12 OPEN period rows for FY ${targetFiscalYear}, found ${openCount}`);
+          throw new Error(
+            `expected 12 OPEN period rows for FY ${targetFiscalYear}, found ${openCount}`,
+          );
         }
         return `provisioning confirmed via HTTP ${resp.status()}; inline success banner shown; table reflects 12 OPEN periods for FY ${targetFiscalYear} with no manual reload`;
       });
@@ -330,6 +336,9 @@ test.describe("Calendar-based fiscal-year period provisioning flow (07.2-07)", (
     });
 
     const hardFailures = results.filter((r) => r.status === "FAIL");
-    expect(hardFailures, `Real frontend bug(s) found: ${JSON.stringify(hardFailures, null, 2)}`).toHaveLength(0);
+    expect(
+      hardFailures,
+      `Real frontend bug(s) found: ${JSON.stringify(hardFailures, null, 2)}`,
+    ).toHaveLength(0);
   });
 });

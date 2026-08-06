@@ -8,7 +8,10 @@ import { toast } from "sonner";
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useIngredients, useReceiveStock } from "@/lib/hooks/inventory/use-inventory";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
@@ -67,7 +70,11 @@ interface StockReceiptDialogProps {
  * therefore has no header vendor/PO inputs (a field with nowhere to persist would be dead UI —
  * see 08.2-17-SUMMARY.md's Deviations) and issues one POST per line on submit.
  */
-export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: StockReceiptDialogProps) {
+export function StockReceiptDialog({
+  trigger,
+  open: openProp,
+  onOpenChange,
+}: StockReceiptDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : internalOpen;
@@ -153,7 +160,12 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">Receipt lines</h3>
-                <Button type="button" variant="outline" size="sm" onClick={() => append(EMPTY_LINE)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append(EMPTY_LINE)}
+                >
                   Add line
                 </Button>
               </div>
@@ -168,7 +180,9 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     name={`lines.${idx}.ingredientId`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="The item that arrived.">Ingredient</FieldLabel>
+                        <FieldLabel className="text-xs" help="The item that arrived.">
+                          Ingredient
+                        </FieldLabel>
                         <FormControl>
                           <CatalogItemCombobox
                             options={ingredientOptions}
@@ -188,7 +202,12 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     name={`lines.${idx}.qty`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="How much arrived, in the unit selected beside it.">Qty</FieldLabel>
+                        <FieldLabel
+                          className="text-xs"
+                          help="How much arrived, in the unit selected beside it."
+                        >
+                          Qty
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="10" {...field} />
                         </FormControl>
@@ -197,7 +216,12 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     )}
                   />
                   <FormItem>
-                    <FieldLabel className="text-xs" help="The unit the delivery was measured in. It’s converted to the item’s stock unit.">Unit</FieldLabel>
+                    <FieldLabel
+                      className="text-xs"
+                      help="The unit the delivery was measured in. It’s converted to the item’s stock unit."
+                    >
+                      Unit
+                    </FieldLabel>
                     <FormControl>
                       <Input
                         value={unitFor(watchedLines[idx]?.ingredientId ?? "")}
@@ -212,7 +236,12 @@ export function StockReceiptDialog({ trigger, open: openProp, onOpenChange }: St
                     name={`lines.${idx}.unitCostRupees`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="What you paid per unit on this delivery. This updates the item’s running average cost.">Unit cost (PKR)</FieldLabel>
+                        <FieldLabel
+                          className="text-xs"
+                          help="What you paid per unit on this delivery. This updates the item’s running average cost."
+                        >
+                          Unit cost (PKR)
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="120.00" {...field} />
                         </FormControl>

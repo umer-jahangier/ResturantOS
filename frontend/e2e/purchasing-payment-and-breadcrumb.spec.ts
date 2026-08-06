@@ -72,6 +72,9 @@ test.describe("purchasing: paying an invoice, and knowing where you are", () => 
     expect(text, `breadcrumb was: "${text}"`).not.toMatch(/[0-9a-f]{8}\s[0-9a-f]{4}\s/i);
     expect(text).toContain("Vendor");
 
-    await page.screenshot({ path: "e2e/__screenshots__/breadcrumb-detail-page.png", fullPage: true });
+    await page.screenshot({
+      path: "e2e/__screenshots__/breadcrumb-detail-page.png",
+      fullPage: true,
+    });
   });
 });

@@ -23,7 +23,11 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         <MatchStatusBadge status={invoice.status} />
       </div>
       <p className="text-sm text-muted-foreground">
-        Total <MoneyDisplay paisa={invoice.totalPaisa + invoice.inputTaxPaisa} className="text-foreground" />
+        Total{" "}
+        <MoneyDisplay
+          paisa={invoice.totalPaisa + invoice.inputTaxPaisa}
+          className="text-foreground"
+        />
         {" · PO "}
         <Link
           href={`/app/purchasing/purchase-orders/${invoice.purchaseOrderId}`}
@@ -44,7 +48,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       {(invoice.status === "MATCHED" || invoice.status === "APPROVED_FOR_PAYMENT") && (
         <p className="text-sm text-muted-foreground">
           This invoice is payable — pay it from{" "}
-          <Link href="/app/purchasing/payments" className="text-primary underline-offset-2 hover:underline">
+          <Link
+            href="/app/purchasing/payments"
+            className="text-primary underline-offset-2 hover:underline"
+          >
             Payments
           </Link>
           .

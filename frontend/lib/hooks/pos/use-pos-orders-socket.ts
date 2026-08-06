@@ -32,7 +32,9 @@ const MAX_BACKOFF_MS = 30_000;
  * All socket state lives inside the effect via closure locals (same structure as
  * use-kds-socket) to avoid self-referential useCallback / ref-during-render pitfalls.
  */
-export function usePosOrdersSocket({ branchId }: UsePosOrdersSocketOptions): UsePosOrdersSocketResult {
+export function usePosOrdersSocket({
+  branchId,
+}: UsePosOrdersSocketOptions): UsePosOrdersSocketResult {
   const [isConnected, setIsConnected] = useState(false);
   const queryClient = useQueryClient();
   const accessToken = useSessionStore((s) => s.session?.accessToken);

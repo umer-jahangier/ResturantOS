@@ -16,13 +16,27 @@ const REPORT_DEFINITIONS = [
     code: "sales-by-day",
     title: "Sales by Day",
     category: "sales",
-    columns: ["business_date", "order_count", "subtotal_paisa", "discount_paisa", "tax_paisa", "total_paisa"],
+    columns: [
+      "business_date",
+      "order_count",
+      "subtotal_paisa",
+      "discount_paisa",
+      "tax_paisa",
+      "total_paisa",
+    ],
   },
   {
     code: "sales-by-item",
     title: "Sales by Item",
     category: "sales",
-    columns: ["menu_item_id", "item_name", "qty", "gross_revenue_paisa", "cogs_paisa", "gross_margin_paisa"],
+    columns: [
+      "menu_item_id",
+      "item_name",
+      "qty",
+      "gross_revenue_paisa",
+      "cogs_paisa",
+      "gross_margin_paisa",
+    ],
   },
   {
     code: "sales-by-hour",
@@ -60,7 +74,13 @@ const REPORT_DEFINITIONS = [
     code: "purchases-by-po",
     title: "Purchases by Purchase Order",
     category: "purchasing",
-    columns: ["purchase_order_id", "business_date", "invoice_count", "spend_paisa", "input_tax_paisa"],
+    columns: [
+      "purchase_order_id",
+      "business_date",
+      "invoice_count",
+      "spend_paisa",
+      "input_tax_paisa",
+    ],
   },
 ] as const;
 
@@ -117,7 +137,14 @@ export const reportingHandlers = [
     const def = REPORT_DEFINITIONS.find((r) => r.code === code);
     if (!def) {
       return HttpResponse.json(
-        { error: { code: "NOT_FOUND", message: "Unknown report code", details: [], traceId: "mock-trace-id" } },
+        {
+          error: {
+            code: "NOT_FOUND",
+            message: "Unknown report code",
+            details: [],
+            traceId: "mock-trace-id",
+          },
+        },
         { status: 404 },
       );
     }

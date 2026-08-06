@@ -60,7 +60,9 @@ export function MockGrnReceivePanel({ poId }: { poId: string }) {
           Receive all in full
         </button>
       </div>
-      <p className="text-sm text-muted-foreground">Simulates Phase 8 GRN while integration-mode=mock.</p>
+      <p className="text-sm text-muted-foreground">
+        Simulates Phase 8 GRN while integration-mode=mock.
+      </p>
 
       <table className="mt-3 w-full text-sm">
         <thead>
@@ -76,7 +78,9 @@ export function MockGrnReceivePanel({ poId }: { poId: string }) {
             const invalid = Number(value) < 0 || Number(value) > Number(line.qty);
             return (
               <tr key={line.id} className="border-b last:border-0">
-                <td className="py-1">{line.ingredientId.slice(0, 8)}… ({line.uom})</td>
+                <td className="py-1">
+                  {line.ingredientId.slice(0, 8)}… ({line.uom})
+                </td>
                 <td className="py-1">{line.qty}</td>
                 <td className="py-1">
                   <input

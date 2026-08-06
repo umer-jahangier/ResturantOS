@@ -10,9 +10,7 @@ function relativeLuminance(color: Color): number {
   const srgb = color.to("srgb");
   const channels = [srgb.r ?? 0, srgb.g ?? 0, srgb.b ?? 0].map((c) => {
     const clamped = Math.max(0, Math.min(1, c));
-    return clamped <= 0.04045
-      ? clamped / 12.92
-      : Math.pow((clamped + 0.055) / 1.055, 2.4);
+    return clamped <= 0.04045 ? clamped / 12.92 : Math.pow((clamped + 0.055) / 1.055, 2.4);
   });
   return 0.2126 * channels[0]! + 0.7152 * channels[1]! + 0.0722 * channels[2]!;
 }
@@ -45,10 +43,7 @@ export function wcagContrastCheck(fg: string, bg: string): ContrastResult {
  * Returns `true` when the primary/foreground pair meets WCAG AA for normal text (≥4.5:1).
  * Used by Settings → Appearance (plan 04-08) to reject failing colour combos.
  */
-export function validateTenantColours(
-  primaryHex: string,
-  fgHex: string,
-): boolean {
+export function validateTenantColours(primaryHex: string, fgHex: string): boolean {
   try {
     const result = wcagContrastCheck(primaryHex, fgHex);
     return result.passAA;

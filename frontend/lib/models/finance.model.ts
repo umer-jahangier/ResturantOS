@@ -1,12 +1,7 @@
 // Layer-2 domain models for the Finance module (camelCase). These are the ONLY
 // finance shapes that Layer-3 hooks and Layer-4 components are allowed to see.
 
-export type AccountType =
-  | "ASSET"
-  | "LIABILITY"
-  | "EQUITY"
-  | "REVENUE"
-  | "EXPENSE";
+export type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
 
 export interface Account {
   id: string;

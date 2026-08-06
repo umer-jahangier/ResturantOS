@@ -23,7 +23,10 @@ export default function PurchaseOrdersPage() {
   const { branchId } = useCurrentUser();
   const [statusFilter, setStatusFilter] = useState<"" | PoStatus>("");
 
-  const { data, isLoading } = usePurchaseOrders(branchId, statusFilter ? [statusFilter] : undefined);
+  const { data, isLoading } = usePurchaseOrders(
+    branchId,
+    statusFilter ? [statusFilter] : undefined,
+  );
   const purchaseOrders = data ?? [];
 
   return (

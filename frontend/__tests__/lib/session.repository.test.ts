@@ -32,9 +32,7 @@ describe("SessionRepository (Zod parse-before-adapt contract)", () => {
   });
 
   it("switchBranch() returns a Session for the new branch", async () => {
-    const session = await SessionRepository.switchBranch(
-      "44444444-4444-4444-8444-444444444444",
-    );
+    const session = await SessionRepository.switchBranch("44444444-4444-4444-8444-444444444444");
 
     expect(typeof session.accessToken).toBe("string");
     expect(session.branchId).toMatch(/^[0-9a-f-]{36}$/);

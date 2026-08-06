@@ -14,8 +14,9 @@ export function DataTableSkeleton({ columns = 5, rows = 8 }: DataTableSkeletonPr
       ? colWidths
       : [
           ...colWidths,
-          ...Array.from({ length: columns - columnWidths.length }, (_, i) =>
-            columnWidths[i % columnWidths.length],
+          ...Array.from(
+            { length: columns - columnWidths.length },
+            (_, i) => columnWidths[i % columnWidths.length],
           ),
         ];
 

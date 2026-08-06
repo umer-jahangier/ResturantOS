@@ -8,13 +8,7 @@ import { toast } from "sonner";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useLogin } from "@/lib/hooks/auth/use-login";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -102,8 +96,8 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProp
             // code to ask for. Revealing the TOTP field here would strand them at a prompt they
             // cannot satisfy — say what is actually required instead.
             const message =
-              "This account requires two-factor authentication, which has not been set up yet. "
-              + "Ask an administrator to complete enrolment before signing in.";
+              "This account requires two-factor authentication, which has not been set up yet. " +
+              "Ask an administrator to complete enrolment before signing in.";
             setTotpRequired(false);
             setFormError(message);
             toast.error(message);
@@ -136,7 +130,9 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProp
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{restaurantLabel ? `Sign in to ${restaurantLabel}` : "Sign in to RestaurantOS"}</CardTitle>
+        <CardTitle>
+          {restaurantLabel ? `Sign in to ${restaurantLabel}` : "Sign in to RestaurantOS"}
+        </CardTitle>
         <CardDescription>
           {tenantSlug
             ? "Enter your email and password to continue"
@@ -167,11 +163,7 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProp
                   <FormItem>
                     <FormLabel>Restaurant</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="your-restaurant"
-                        autoComplete="organization"
-                        {...field}
-                      />
+                      <Input placeholder="your-restaurant" autoComplete="organization" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

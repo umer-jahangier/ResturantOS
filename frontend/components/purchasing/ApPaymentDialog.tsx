@@ -59,7 +59,12 @@ export function ApPaymentDialog({ invoice }: { invoice: VendorInvoice }) {
 
   function handleSubmit() {
     createPayment.mutate(
-      { invoiceId: invoice.id, paymentDate, amountPaisa, bankAccountCode: bankAccountCode.trim() || undefined },
+      {
+        invoiceId: invoice.id,
+        paymentDate,
+        amountPaisa,
+        bankAccountCode: bankAccountCode.trim() || undefined,
+      },
       {
         onSuccess: () => {
           toast.success(`Invoice ${invoice.invoiceNo} paid`);
@@ -102,7 +107,11 @@ export function ApPaymentDialog({ invoice }: { invoice: VendorInvoice }) {
           </label>
           <label className="grid gap-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">Payment date</span>
-            <Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} />
+            <Input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+            />
           </label>
           <label className="grid gap-1 text-sm">
             <span className="text-xs font-medium text-muted-foreground">Pay from</span>
@@ -131,7 +140,11 @@ export function ApPaymentDialog({ invoice }: { invoice: VendorInvoice }) {
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button type="button" disabled={createPayment.isPending || invalid} onClick={handleSubmit}>
+          <Button
+            type="button"
+            disabled={createPayment.isPending || invalid}
+            onClick={handleSubmit}
+          >
             {createPayment.isPending ? "Paying…" : "Pay invoice"}
           </Button>
         </DialogFooter>

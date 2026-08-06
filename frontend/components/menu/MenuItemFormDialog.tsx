@@ -37,7 +37,10 @@ const itemFormSchema = z.object({
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
 
-function defaultsFor(item: MenuItem | undefined, defaultCategoryId: string | undefined): ItemFormValues {
+function defaultsFor(
+  item: MenuItem | undefined,
+  defaultCategoryId: string | undefined,
+): ItemFormValues {
   if (!item) {
     return { categoryId: defaultCategoryId ?? "", name: "", description: "", priceRupees: "" };
   }
@@ -133,13 +136,20 @@ export function MenuItemFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form id="menu-item-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+          <form
+            id="menu-item-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="grid gap-4"
+            noValidate
+          >
             <FormField
               control={form.control}
               name="categoryId"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Which section of the menu this appears under.">Category</FieldLabel>
+                  <FieldLabel help="Which section of the menu this appears under.">
+                    Category
+                  </FieldLabel>
                   <FormControl>
                     <select {...field} aria-label="Category" className={selectClass}>
                       <option value="">Select a category…</option>
@@ -160,7 +170,9 @@ export function MenuItemFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="What shows on the menu and on the order screen.">Name</FieldLabel>
+                  <FieldLabel help="What shows on the menu and on the order screen.">
+                    Name
+                  </FieldLabel>
                   <FormControl>
                     <Input placeholder="Chicken Karahi" {...field} />
                   </FormControl>

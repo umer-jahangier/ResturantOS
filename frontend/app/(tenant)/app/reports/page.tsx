@@ -57,7 +57,9 @@ function ReportsBrowser() {
                     className="flex items-center justify-between px-4 py-3 hover:bg-muted/40"
                   >
                     <span className="font-medium">{report.title}</span>
-                    <span className="text-xs text-muted-foreground">{report.columns.length} columns</span>
+                    <span className="text-xs text-muted-foreground">
+                      {report.columns.length} columns
+                    </span>
                   </Link>
                 </li>
               ))}

@@ -153,19 +153,25 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
       }
       const noPermission = page.getByText("You do not have permission to access the POS terminal.");
       if (await noPermission.isVisible({ timeout: 500 }).catch(() => false)) {
-        throw new Blocked("cashier@demo.local lacks pos.order.update permission (seed-data/RBAC gap)");
+        throw new Blocked(
+          "cashier@demo.local lacks pos.order.update permission (seed-data/RBAC gap)",
+        );
       }
 
       const badPattern = /activeTill/i;
       const bad = [...consoleErrors, ...pageErrors].filter((e) => badPattern.test(e));
       if (bad.length > 0) {
-        throw new Error(`activeTill console/page error present on /app/pos: ${JSON.stringify(bad)}`);
+        throw new Error(
+          `activeTill console/page error present on /app/pos: ${JSON.stringify(bad)}`,
+        );
       }
 
       await expect(page.getByText(/No active till|Till OPEN/)).toBeVisible({ timeout: 10_000 });
       await expect(page.getByRole("button", { name: "POS Terminal", exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: "Floor View", exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Order Management", exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Order Management", exact: true }),
+      ).toBeVisible();
 
       const otherErrors = [...consoleErrors, ...pageErrors].filter((e) => !badPattern.test(e));
       return (
@@ -196,7 +202,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
         const successLocator = page.getByText("Till OPEN");
         const errorLocator = page.getByTestId("open-till-error");
         const outcome = await Promise.race([
-          successLocator.waitFor({ state: "visible", timeout: 15_000 }).then(() => "success" as const),
+          successLocator
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "success" as const),
           errorLocator.waitFor({ state: "visible", timeout: 15_000 }).then(() => "error" as const),
         ]).catch(() => "timeout" as const);
 
@@ -204,7 +212,8 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
           return "till opened with a 5000 PKR starting float";
         }
 
-        const errorText = outcome === "error" ? ((await errorLocator.textContent())?.trim() ?? "") : "";
+        const errorText =
+          outcome === "error" ? ((await errorLocator.textContent())?.trim() ?? "") : "";
         // Always dismiss the modal so a failure here can't block later, independent stages.
         await page
           .getByRole("button", { name: "Cancel" })
@@ -212,13 +221,20 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
           .catch(() => {});
 
         if (outcome === "error") {
-          throw new Blocked(`open-till mutation failed; error correctly surfaced in the UI: "${errorText}"`);
+          throw new Blocked(
+            `open-till mutation failed; error correctly surfaced in the UI: "${errorText}"`,
+          );
         }
         throw new Error(
           "open-till: neither 'Till OPEN' nor the open-till-error banner appeared within 15s (mutation may be hanging with no feedback)",
         );
       }
-      if (await page.getByText("Till OPEN").isVisible({ timeout: 2000 }).catch(() => false)) {
+      if (
+        await page
+          .getByText("Till OPEN")
+          .isVisible({ timeout: 2000 })
+          .catch(() => false)
+      ) {
         return "a till was already OPEN for this cashier (pre-existing session) - open-till action satisfied trivially";
       }
       throw new Blocked("TillSessionBar showed neither 'No active till' nor 'Till OPEN'");
@@ -231,11 +247,15 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
       await page.getByRole("button", { name: "POS Terminal", exact: true }).click();
       const firstItem = page.getByTestId("menu-item-first");
       if (!(await firstItem.isVisible({ timeout: 15_000 }).catch(() => false))) {
-        throw new Blocked("no menu items rendered (menu-item-first never appeared) - demo branch may have no active menu items");
+        throw new Blocked(
+          "no menu items rendered (menu-item-first never appeared) - demo branch may have no active menu items",
+        );
       }
       const itemLabel = (await firstItem.textContent())?.trim() || "item";
       await firstItem.click();
-      await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({ timeout: 15_000 });
+      await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({
+        timeout: 15_000,
+      });
       return `order created and "${itemLabel}" added (Send to Kitchen enabled)`;
     });
 
@@ -260,10 +280,14 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
       ]).catch(() => "timeout" as const);
 
       if (outcome === "timeout") {
-        throw new Error("Send to Kitchen: neither a success nor a failure toast appeared within 10s of clicking");
+        throw new Error(
+          "Send to Kitchen: neither a success nor a failure toast appeared within 10s of clicking",
+        );
       }
       if (outcome === "error") {
-        throw new Error(`Send to Kitchen: the fire action itself failed (toast: "${await errorToast.textContent()}")`);
+        throw new Error(
+          `Send to Kitchen: the fire action itself failed (toast: "${await errorToast.textContent()}")`,
+        );
       }
 
       const toastText = (await successToast.textContent()) ?? "";
@@ -286,7 +310,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
       const items = page.locator('[data-testid="menu-grid"] button');
       const count = await items.count();
       if (count < 2) {
-        throw new Blocked(`menu-grid has only ${count} item(s); need >= 2 to fire a second revision`);
+        throw new Blocked(
+          `menu-grid has only ${count} item(s); need >= 2 to fire a second revision`,
+        );
       }
       await items.nth(1).click();
 
@@ -304,23 +330,33 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
     await stage("S5", async () => {
       const chargeNow = page.getByTestId("charge-now-button");
       if (!(await chargeNow.isEnabled({ timeout: 5000 }).catch(() => false))) {
-        throw new Blocked("charge-now-button not present/enabled (no open order with an outstanding balance - depends on S3/S4)");
+        throw new Blocked(
+          "charge-now-button not present/enabled (no open order with an outstanding balance - depends on S3/S4)",
+        );
       }
       await chargeNow.click();
 
       // (1) Full-page route, not a dialog (POS-22/25).
       await page.waitForURL(/\/app\/pos\/orders\/.+\/charge$/, { timeout: 15_000 }).catch(() => {});
-      const urlMatch = page.url().match(/\/app\/pos\/orders\/([^/]+)\/charge$/);
-      if (!urlMatch) {
+      // Guard on the captured group rather than on the match object: under
+      // `noUncheckedIndexedAccess` a successful match still types group 1 as possibly
+      // undefined, and the two checks collapse into one anyway.
+      const matchedOrderId = page.url().match(/\/app\/pos\/orders\/([^/]+)\/charge$/)?.[1];
+      if (!matchedOrderId) {
         throw new Error(
           `CHARGE NOW did not navigate to the full-page charge route (POS-22/25); landed at "${page.url()}"`,
         );
       }
-      currentOrderId = urlMatch[1];
+      currentOrderId = matchedOrderId;
 
-      const dialogVisible = await page.getByRole("dialog").isVisible({ timeout: 500 }).catch(() => false);
+      const dialogVisible = await page
+        .getByRole("dialog")
+        .isVisible({ timeout: 500 })
+        .catch(() => false);
       if (dialogVisible) {
-        throw new Error("a [role=dialog] is visible on the charge route - CHARGE NOW must open a page, not a modal");
+        throw new Error(
+          "a [role=dialog] is visible on the charge route - CHARGE NOW must open a page, not a modal",
+        );
       }
 
       // Read the remaining balance directly (machine-parseable data-paisa attribute —
@@ -330,7 +366,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
       const remainingStr = await remainingEl.getAttribute("data-paisa");
       const remainingPaisa = parseInt(remainingStr ?? "", 10);
       if (!Number.isFinite(remainingPaisa) || remainingPaisa <= 0) {
-        throw new Blocked(`could not read a positive remaining balance from the charge page (got "${remainingStr}")`);
+        throw new Blocked(
+          `could not read a positive remaining balance from the charge page (got "${remainingStr}")`,
+        );
       }
 
       await page.getByTestId("fill-full-amount-button").click();
@@ -339,7 +377,10 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
 
       const [resp] = await Promise.all([
         page
-          .waitForResponse((r) => r.url().includes("/payments") && r.request().method() === "POST", { timeout: 15_000 })
+          .waitForResponse(
+            (r) => r.url().includes("/payments") && r.request().method() === "POST",
+            { timeout: 15_000 },
+          )
           .catch(() => null),
         recordBtn.click(),
       ]);
@@ -348,8 +389,8 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
         // Fresh-tenant finance-period-lock precondition (Phase 07.2) - not a code
         // defect; the charge page correctly surfaces a "period locked" message.
         throw new Blocked(
-          'recordPayment returned HTTP 423 PERIOD_LOCKED (finance accounting period not open on this dev tenant); ' +
-            'frontend correctly surfaced the period-locked message instead of crashing',
+          "recordPayment returned HTTP 423 PERIOD_LOCKED (finance accounting period not open on this dev tenant); " +
+            "frontend correctly surfaced the period-locked message instead of crashing",
         );
       }
       if (resp && resp.status() === 503) {
@@ -380,7 +421,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
 
       // (2) Paid, but NOT Closed while the order is still unserved (POS-23/D-08).
       try {
-        await expect(page.getByTestId("payment-status-badge")).toContainText("Paid", { timeout: 15_000 });
+        await expect(page.getByTestId("payment-status-badge")).toContainText("Paid", {
+          timeout: 15_000,
+        });
       } catch (err) {
         if (paymentsGet503) {
           throw new Blocked(
@@ -435,7 +478,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
 
         const [resp] = await Promise.all([
           page
-            .waitForResponse((r) => r.url().includes("/serve") && r.request().method() === "POST", { timeout: 15_000 })
+            .waitForResponse((r) => r.url().includes("/serve") && r.request().method() === "POST", {
+              timeout: 15_000,
+            })
             .catch(() => null),
           markServedBtn.click(),
         ]);
@@ -475,14 +520,20 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
 
       const firstItem = page.getByTestId("menu-item-first");
       if (!(await firstItem.isVisible({ timeout: 15_000 }).catch(() => false))) {
-        throw new Blocked("no menu items rendered after reload - cannot create the fresh order this stage needs");
+        throw new Blocked(
+          "no menu items rendered after reload - cannot create the fresh order this stage needs",
+        );
       }
       await firstItem.click();
-      await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({ timeout: 15_000 });
+      await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({
+        timeout: 15_000,
+      });
 
       const voidTrigger = page.getByRole("button", { name: "Void order" });
       if (!(await voidTrigger.isVisible({ timeout: 3000 }).catch(() => false))) {
-        throw new Blocked("Void action not rendered - cashier may lack pos.order.void.own/pos.order.void.any (seed-data/RBAC)");
+        throw new Blocked(
+          "Void action not rendered - cashier may lack pos.order.void.own/pos.order.void.any (seed-data/RBAC)",
+        );
       }
 
       const attemptVoid = async (reason: string) => {
@@ -491,7 +542,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
         const confirmBtn = page.getByRole("button", { name: "Confirm Void" });
         const [resp] = await Promise.all([
           page
-            .waitForResponse((r) => r.url().includes("/void") && r.request().method() === "POST", { timeout: 15_000 })
+            .waitForResponse((r) => r.url().includes("/void") && r.request().method() === "POST", {
+              timeout: 15_000,
+            })
             .catch(() => null),
           confirmBtn.click(),
         ]);
@@ -510,14 +563,18 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
         await gotoRobust("/app/pos");
         await expect(page.getByTestId("menu-item-first")).toBeVisible({ timeout: 15_000 });
         await page.getByTestId("menu-item-first").click();
-        await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({ timeout: 15_000 });
+        await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({
+          timeout: 15_000,
+        });
         resp = await attemptVoid("E2E automated void verification (retry after re-login)");
       }
 
       if (!resp) {
         const banner = page.getByText(/permission to void|failed to void/i);
         if (await banner.isVisible({ timeout: 5000 }).catch(() => false)) {
-          throw new Error(`void request never observed on the network, but an error banner is showing: "${await banner.textContent()}"`);
+          throw new Error(
+            `void request never observed on the network, but an error banner is showing: "${await banner.textContent()}"`,
+          );
         }
         throw new Blocked("no POST .../void network response observed within timeout");
       }
@@ -526,7 +583,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
         const bannerVisible = await banner.isVisible({ timeout: 3000 }).catch(() => false);
         throw new Error(
           `void still 403s even after re-login for a fresh JWT (${
-            bannerVisible ? "inline permission-denied banner correctly shown" : "NO inline banner shown - generic/silent failure"
+            bannerVisible
+              ? "inline permission-denied banner correctly shown"
+              : "NO inline banner shown - generic/silent failure"
           })`,
         );
       }
@@ -559,7 +618,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
 
         const firstItem = page.getByTestId("menu-item-first");
         if (!(await firstItem.isVisible({ timeout: 5000 }).catch(() => false))) {
-          throw new Blocked("menu-item-first not available offline (menu-cache/IndexedDB not warmed)");
+          throw new Blocked(
+            "menu-item-first not available offline (menu-cache/IndexedDB not warmed)",
+          );
         }
         await firstItem.click();
 
@@ -568,7 +629,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
         const badgeText = (await badge.textContent()) ?? "";
         const queuedCount = Number(badgeText.match(/\d+/)?.[0] ?? "0");
         if (queuedCount <= 0) {
-          throw new Error(`sync-badge is visible but shows no positive queued count immediately on enqueue (text: "${badgeText}")`);
+          throw new Error(
+            `sync-badge is visible but shows no positive queued count immediately on enqueue (text: "${badgeText}")`,
+          );
         }
 
         await context.setOffline(false);
@@ -589,6 +652,9 @@ test.describe("POS settlement/till/void/sync flow (07.1-06)", () => {
     });
 
     const hardFailures = results.filter((r) => r.status === "FAIL");
-    expect(hardFailures, `Real frontend bug(s) found: ${JSON.stringify(hardFailures, null, 2)}`).toHaveLength(0);
+    expect(
+      hardFailures,
+      `Real frontend bug(s) found: ${JSON.stringify(hardFailures, null, 2)}`,
+    ).toHaveLength(0);
   });
 });

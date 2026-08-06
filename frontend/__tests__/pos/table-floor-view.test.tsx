@@ -164,7 +164,9 @@ describe("TableFloorView", () => {
     await user.click(screen.getByTestId("table-table-1"));
 
     expect(onTableSelect).toHaveBeenCalledTimes(1);
-    expect(onTableSelect).toHaveBeenCalledWith(expect.objectContaining({ id: TABLE_AVAILABLE, status: "AVAILABLE" }));
+    expect(onTableSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: TABLE_AVAILABLE, status: "AVAILABLE" }),
+    );
   });
 
   it("tapping an OCCUPIED table opens the shared Order/Table Detail drawer (not onTableSelect)", async () => {
@@ -183,7 +185,9 @@ describe("TableFloorView", () => {
 
   it("shows the empty state when no tables are configured", async () => {
     server.use(
-      http.get("*/api/v1/pos/tables", () => HttpResponse.json({ data: [], meta: null, warnings: [] })),
+      http.get("*/api/v1/pos/tables", () =>
+        HttpResponse.json({ data: [], meta: null, warnings: [] }),
+      ),
     );
     seedSession({ branchId: BRANCH_ID, permissions: ["pos.order.close"] });
     const Wrapper = createQueryWrapper();

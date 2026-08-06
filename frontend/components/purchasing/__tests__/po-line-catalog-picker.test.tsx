@@ -42,7 +42,11 @@ async function openDialog() {
   return { user, dialog };
 }
 
-async function selectVendor(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement, vendorId: string) {
+async function selectVendor(
+  user: ReturnType<typeof userEvent.setup>,
+  dialog: HTMLElement,
+  vendorId: string,
+) {
   await user.selectOptions(within(dialog).getByRole("combobox", { name: "Vendor" }), vendorId);
   await waitFor(() => {
     expect(within(dialog).getByRole("button", { name: "Select an item…" })).toBeEnabled();
@@ -195,11 +199,15 @@ describe("PurchaseOrderFormDialog — catalog picker (PUR-08, T-08.2-191/192/194
     await user.type(within(dialog).getByLabelText("Qty"), "10");
     await user.type(within(dialog).getByLabelText("Unit price (PKR)"), "120.00");
 
-    expect(screen.queryByText("Select a catalog item before adding this line")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Select a catalog item before adding this line"),
+    ).not.toBeInTheDocument();
 
     await user.click(within(dialog).getByRole("button", { name: "Create purchase order" }));
 
-    expect(await screen.findByText("Select a catalog item before adding this line")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Select a catalog item before adding this line"),
+    ).toBeInTheDocument();
   });
 
   it("changingTheVendorClearsExistingLines", async () => {

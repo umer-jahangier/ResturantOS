@@ -25,10 +25,7 @@ function ApAgingTable({ aging }: ApAgingTableProps) {
             // "Over 90" is the whole point of an aging report — make overdue money obvious (04-04-B).
             const isOverdue = bucket.label.toLowerCase().includes("over");
             return (
-              <tr
-                key={bucket.label}
-                className={cn("border-b", isOverdue && "bg-destructive/10")}
-              >
+              <tr key={bucket.label} className={cn("border-b", isOverdue && "bg-destructive/10")}>
                 <td className={cn("py-2 pr-4 font-medium", isOverdue && "text-destructive")}>
                   {bucket.label}
                 </td>

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  generatePalette,
-  type PaletteScale,
-} from "@/lib/theme/palette-generator";
+import { generatePalette, type PaletteScale } from "@/lib/theme/palette-generator";
 
 const SCALE_KEYS: Array<keyof PaletteScale> = [
   50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950,
@@ -40,20 +37,14 @@ describe("generatePalette", () => {
     it("50 stop is lighter than 500", () => {
       const { primary } = generatePalette("#3b82f6");
       const l50 = parseFloat(primary[50].split(" ")[0]!.replace("oklch(", ""));
-      const l500 = parseFloat(
-        primary[500].split(" ")[0]!.replace("oklch(", ""),
-      );
+      const l500 = parseFloat(primary[500].split(" ")[0]!.replace("oklch(", ""));
       expect(l50).toBeGreaterThan(l500);
     });
 
     it("950 stop is darker than 500", () => {
       const { primary } = generatePalette("#3b82f6");
-      const l500 = parseFloat(
-        primary[500].split(" ")[0]!.replace("oklch(", ""),
-      );
-      const l950 = parseFloat(
-        primary[950].split(" ")[0]!.replace("oklch(", ""),
-      );
+      const l500 = parseFloat(primary[500].split(" ")[0]!.replace("oklch(", ""));
+      const l950 = parseFloat(primary[950].split(" ")[0]!.replace("oklch(", ""));
       expect(l950).toBeLessThan(l500);
     });
 
@@ -100,9 +91,7 @@ describe("generatePalette", () => {
 
     it("950 stop lightness is ≥ 0 (clamp enforced)", () => {
       const { primary } = generatePalette("#1a1a1a");
-      const l950 = parseFloat(
-        primary[950].split(" ")[0]!.replace("oklch(", ""),
-      );
+      const l950 = parseFloat(primary[950].split(" ")[0]!.replace("oklch(", ""));
       expect(l950).toBeGreaterThanOrEqual(0);
     });
   });
@@ -111,9 +100,7 @@ describe("generatePalette", () => {
     it("scale still spans a usable lightness range (50 lighter than 950)", () => {
       const { primary } = generatePalette("#f8f8f8");
       const l50 = parseFloat(primary[50].split(" ")[0]!.replace("oklch(", ""));
-      const l950 = parseFloat(
-        primary[950].split(" ")[0]!.replace("oklch(", ""),
-      );
+      const l950 = parseFloat(primary[950].split(" ")[0]!.replace("oklch(", ""));
       expect(l50).toBeGreaterThanOrEqual(l950);
     });
 

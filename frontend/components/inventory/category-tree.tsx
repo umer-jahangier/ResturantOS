@@ -147,7 +147,11 @@ function CategoryTreeRow({
           {/* The chip shows the RESOLVED code (resolvedGlAccounts), never the category's own
               possibly-null default field — Poultry has no defaultInventoryAccountCode of its own
               but must still show the inherited "1310" it resolves to from Meat & Poultry. */}
-          <GlChip label="Inventory" code={gl.inventoryAccountCode} inherited={gl.inventoryInherited} />
+          <GlChip
+            label="Inventory"
+            code={gl.inventoryAccountCode}
+            inherited={gl.inventoryInherited}
+          />
           <GlChip label="Cost" code={gl.costAccountCode} inherited={gl.costInherited} />
           <GlChip label="Waste" code={gl.wasteAccountCode} inherited={gl.wasteInherited} />
         </div>
@@ -169,7 +173,9 @@ function CategoryTreeRow({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => onEdit(category)}>Edit</DropdownMenuItem>
             {!isLevel3 && !isArchived ? (
-              <DropdownMenuItem onSelect={() => onAddChild(category)}>Add subcategory</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onAddChild(category)}>
+                Add subcategory
+              </DropdownMenuItem>
             ) : null}
             {!isArchived ? (
               <DropdownMenuSub>
@@ -180,9 +186,14 @@ function CategoryTreeRow({
                       Make top-level
                     </DropdownMenuItem>
                   ) : null}
-                  {category.parentId != null && moveTargets.length > 0 ? <DropdownMenuSeparator /> : null}
+                  {category.parentId != null && moveTargets.length > 0 ? (
+                    <DropdownMenuSeparator />
+                  ) : null}
                   {moveTargets.map((target) => (
-                    <DropdownMenuItem key={target.id} onSelect={() => onMove(category.id, target.id)}>
+                    <DropdownMenuItem
+                      key={target.id}
+                      onSelect={() => onMove(category.id, target.id)}
+                    >
                       {target.name}
                     </DropdownMenuItem>
                   ))}

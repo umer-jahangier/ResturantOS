@@ -110,7 +110,9 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
       <div className="dark bg-gray-950 min-h-screen p-4 flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700">
           <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-white font-bold text-lg tracking-wide truncate">{station?.name ?? stationCode}</h1>
+            <h1 className="text-white font-bold text-lg tracking-wide truncate">
+              {station?.name ?? stationCode}
+            </h1>
             {/* Station switcher (#7) — "reflect"/switch which station this terminal shows. */}
             <StationSwitcher
               stations={activeStations}

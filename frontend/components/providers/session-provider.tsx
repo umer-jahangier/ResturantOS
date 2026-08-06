@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSessionStore, refreshSession } from "@/lib/auth/session";
 
@@ -32,7 +32,13 @@ export function useBootstrapping(): BootstrapContextValue {
  * Must be mounted inside QueryProvider (refreshSession uses axios which needs the client).
  */
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const [isBootstrapping, setIsBootstrapping] = useState(false);
+  // Read from the session store rather than local state. The bootstrap is an external
+  // async operation (the auth-service refresh call); publishing its progress through the
+  // store means the effect below never has to setState synchronously in its own body,
+  // which is what React's cascading-render rule objects to. Zustand's subscription is a
+  // `useSyncExternalStore` read, so the render sequence is unchanged: `false` on the
+  // server and first paint, flipping to `true` when the effect kicks the refresh off.
+  const isBootstrapping = useSessionStore((state) => state.isBootstrapping);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -51,18 +57,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     // has_session present but no in-memory token → page was reloaded (or cookie was forged).
     // Attempt to exchange the HttpOnly refresh token for a new access token.
     let cancelled = false;
-    setIsBootstrapping(true);
+    useSessionStore.getState().setBootstrapping(true);
 
     void refreshSession().then((succeeded) => {
       if (cancelled) return;
-      setIsBootstrapping(false);
+      useSessionStore.getState().setBootstrapping(false);
 
       if (!succeeded) {
         // The refresh token is expired, revoked, or the cookie was forged.
         // Clear the stale UX marker and send the user to login.
         // Guard against a redirect loop when already on a public auth route.
-        const isPublicRoute =
-          pathname.startsWith("/login") || pathname.startsWith("/auth");
+        const isPublicRoute = pathname.startsWith("/login") || pathname.startsWith("/auth");
         if (!isPublicRoute) {
           router.replace("/login?reason=session_expired");
         }
@@ -71,13 +76,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       cancelled = true;
+      // The flag now outlives this component, so unmounting mid-flight must clear it —
+      // otherwise a remount would find the store still claiming a bootstrap in progress
+      // and the layout would sit on its loading gate forever.
+      useSessionStore.getState().setBootstrapping(false);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally mount-once — bootstrap runs once per page load
 
   return (
-    <BootstrapContext.Provider value={{ isBootstrapping }}>
-      {children}
-    </BootstrapContext.Provider>
+    <BootstrapContext.Provider value={{ isBootstrapping }}>{children}</BootstrapContext.Provider>
   );
 }

@@ -73,34 +73,32 @@ async function openDialog() {
 describe("IngredientFormDialog (INV-01/INV-14)", () => {
   afterEach(() => clearSession());
 
-  it(
-    "submitIsBlockedWithoutAPrimaryCategory",
-    async () => {
-      seedSession();
-      renderDialog();
-      const { user, dialog } = await openDialog();
+  it("submitIsBlockedWithoutAPrimaryCategory", async () => {
+    seedSession();
+    renderDialog();
+    const { user, dialog } = await openDialog();
 
-      await user.type(within(dialog).getByLabelText("Name"), "Unassigned Item");
+    await user.type(within(dialog).getByLabelText("Name"), "Unassigned Item");
 
-      // The form opens on COUNT, so reaching a weight unit means switching measure type first —
-      // the unit selects are scoped to the selected dimension.
-      await user.selectOptions(within(dialog).getByLabelText("Measure type"), "WEIGHT");
+    // The form opens on COUNT, so reaching a weight unit means switching measure type first —
+    // the unit selects are scoped to the selected dimension.
+    await user.selectOptions(within(dialog).getByLabelText("Measure type"), "WEIGHT");
 
-      const stockUnitSelect = within(dialog).getByLabelText("Stock unit");
-      await waitFor(() => {
-        expect(within(stockUnitSelect).getByRole("option", { name: "kg · Kilogram" })).toBeInTheDocument();
-      });
-      await user.selectOptions(stockUnitSelect, "kg");
+    const stockUnitSelect = within(dialog).getByLabelText("Stock unit");
+    await waitFor(() => {
+      expect(
+        within(stockUnitSelect).getByRole("option", { name: "kg · Kilogram" }),
+      ).toBeInTheDocument();
+    });
+    await user.selectOptions(stockUnitSelect, "kg");
 
-      // Primary category is left unselected.
-      await user.click(within(dialog).getByRole("button", { name: "Add ingredient" }));
+    // Primary category is left unselected.
+    await user.click(within(dialog).getByRole("button", { name: "Add ingredient" }));
 
-      expect(await within(dialog).findByText("A category is required")).toBeInTheDocument();
-      // No successful create happened — the dialog is still open (never closed by onSuccess).
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-    },
-    15000,
-  );
+    expect(await within(dialog).findByText("A category is required")).toBeInTheDocument();
+    // No successful create happened — the dialog is still open (never closed by onSuccess).
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  }, 15000);
 
   it("measureTypeIsDisabledWhenTheServerReportsItLocked", async () => {
     seedSession();
@@ -151,14 +149,18 @@ describe("IngredientFormDialog (INV-01/INV-14)", () => {
     // Opens on COUNT: only the COUNT unit is offered, never the weight units. This is the pairing
     // the form used to allow — every unit in the tenant showed regardless of measure type.
     await waitFor(() => {
-      expect(within(stockUnitSelect).getByRole("option", { name: "each · Each" })).toBeInTheDocument();
+      expect(
+        within(stockUnitSelect).getByRole("option", { name: "each · Each" }),
+      ).toBeInTheDocument();
     });
     expect(within(stockUnitSelect).queryByRole("option", { name: "kg · Kilogram" })).toBeNull();
     expect(within(stockUnitSelect).queryByRole("option", { name: "g · Gram" })).toBeNull();
 
     await user.selectOptions(within(dialog).getByLabelText("Measure type"), "WEIGHT");
 
-    expect(within(stockUnitSelect).getByRole("option", { name: "kg · Kilogram" })).toBeInTheDocument();
+    expect(
+      within(stockUnitSelect).getByRole("option", { name: "kg · Kilogram" }),
+    ).toBeInTheDocument();
     expect(within(stockUnitSelect).getByRole("option", { name: "g · Gram" })).toBeInTheDocument();
     expect(within(stockUnitSelect).queryByRole("option", { name: "each · Each" })).toBeNull();
   });
@@ -171,7 +173,9 @@ describe("IngredientFormDialog (INV-01/INV-14)", () => {
     await user.selectOptions(within(dialog).getByLabelText("Measure type"), "WEIGHT");
     const stockUnitSelect = within(dialog).getByLabelText("Stock unit");
     await waitFor(() => {
-      expect(within(stockUnitSelect).getByRole("option", { name: "kg · Kilogram" })).toBeInTheDocument();
+      expect(
+        within(stockUnitSelect).getByRole("option", { name: "kg · Kilogram" }),
+      ).toBeInTheDocument();
     });
     await user.selectOptions(stockUnitSelect, "kg");
     expect(stockUnitSelect).toHaveValue("kg");
@@ -208,28 +212,26 @@ describe("IngredientFormDialog (INV-01/INV-14)", () => {
     expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
   });
 
-  it(
-    "editModePrefillsEveryGroupedSection",
-    async () => {
-      seedSession();
-      const ingredient = makeIngredient();
-      renderDialog(ingredient);
-      const { dialog } = await openDialog();
+  it("editModePrefillsEveryGroupedSection", async () => {
+    seedSession();
+    const ingredient = makeIngredient();
+    renderDialog(ingredient);
+    const { dialog } = await openDialog();
 
-      expect(within(dialog).getByLabelText("Name")).toHaveValue(ingredient.name);
-      await waitFor(() => {
-        expect(within(dialog).getByLabelText("Primary category *")).toHaveValue(ingredient.categoryId);
-      });
-      expect(within(dialog).getByLabelText("Par level")).toHaveValue(ingredient.parLevel);
-      // A select now, not a text input (V10) — it holds the location's ID and renders its name.
-      await waitFor(() => {
-        expect(within(dialog).getByLabelText("Storage location")).toHaveValue(LOC_WALK_IN);
-      });
-      expect(within(dialog).getByRole("button", { name: "Gluten" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
+    expect(within(dialog).getByLabelText("Name")).toHaveValue(ingredient.name);
+    await waitFor(() => {
+      expect(within(dialog).getByLabelText("Primary category *")).toHaveValue(
+        ingredient.categoryId,
       );
-    },
-    15000,
-  );
+    });
+    expect(within(dialog).getByLabelText("Par level")).toHaveValue(ingredient.parLevel);
+    // A select now, not a text input (V10) — it holds the location's ID and renders its name.
+    await waitFor(() => {
+      expect(within(dialog).getByLabelText("Storage location")).toHaveValue(LOC_WALK_IN);
+    });
+    expect(within(dialog).getByRole("button", { name: "Gluten" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  }, 15000);
 });

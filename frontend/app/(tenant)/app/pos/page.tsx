@@ -88,7 +88,9 @@ export default function PosPage() {
               }`}
               title={isConnected ? "Live — kitchen updates in real time" : "Polling — reconnecting"}
             >
-              <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-amber-500"}`} />
+              <span
+                className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-amber-500"}`}
+              />
               {isConnected ? "Live" : "Polling"}
             </span>
           </div>
@@ -103,8 +105,8 @@ export default function PosPage() {
                 >
                   <p className="text-base font-medium text-foreground">Your till is closed</p>
                   <p className="max-w-sm text-sm text-muted-foreground">
-                    Open your till from the bar above — recording the counted starting float — before
-                    taking any orders. Orders can&apos;t be created without an open drawer.
+                    Open your till from the bar above — recording the counted starting float —
+                    before taking any orders. Orders can&apos;t be created without an open drawer.
                   </p>
                 </div>
               ) : (

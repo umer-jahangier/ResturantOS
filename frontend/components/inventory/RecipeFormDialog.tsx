@@ -25,11 +25,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 
 // How long to poll inventory-service's copy of the catalog for a menu item just created in
 // pos-service before giving up and saying so. MENU_ITEM_UPSERTED normally lands in well under a
@@ -56,7 +66,9 @@ const lineFormSchema = z.object({
 
 const recipeFormSchema = z.object({
   menuItemId: z.string().min(1, "Menu item is required"),
-  yieldServings: z.string().refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive yield"),
+  yieldServings: z
+    .string()
+    .refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive yield"),
   effectiveFrom: z.string().optional(),
   name: z.string().optional(),
   lines: z.array(lineFormSchema).min(1, "Add at least one ingredient line"),
@@ -435,7 +447,9 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                 name="yieldServings"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="How many portions one batch of this recipe produces. Plate cost is the batch cost divided by this.">Yield (servings)</FieldLabel>
+                    <FieldLabel help="How many portions one batch of this recipe produces. Plate cost is the batch cost divided by this.">
+                      Yield (servings)
+                    </FieldLabel>
                     <FormControl>
                       <Input inputMode="decimal" placeholder="1" {...field} />
                     </FormControl>
@@ -449,7 +463,9 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                 name="effectiveFrom"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="When this version takes over. Orders placed before it keep using the older version.">Effective from</FieldLabel>
+                    <FieldLabel help="When this version takes over. Orders placed before it keep using the older version.">
+                      Effective from
+                    </FieldLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -467,7 +483,9 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="An optional label for this version — “Summer menu”, “Reduced salt”.">Recipe name</FieldLabel>
+                    <FieldLabel help="An optional label for this version — “Summer menu”, “Reduced salt”.">
+                      Recipe name
+                    </FieldLabel>
                     <FormControl>
                       <Input placeholder="Optional" {...field} />
                     </FormControl>
@@ -480,19 +498,32 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">Ingredient lines</h3>
-                <Button type="button" variant="outline" size="sm" onClick={() => append(EMPTY_LINE)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append(EMPTY_LINE)}
+                >
                   Add line
                 </Button>
               </div>
 
               {fields.map((f, idx) => (
-                <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-end gap-2 rounded border p-2">
+                <div
+                  key={f.id}
+                  className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-end gap-2 rounded border p-2"
+                >
                   <FormField
                     control={form.control}
                     name={`lines.${idx}.ingredientId`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="The item this line uses. Picking one fills in its usual unit and yield.">Ingredient</FieldLabel>
+                        <FieldLabel
+                          className="text-xs"
+                          help="The item this line uses. Picking one fills in its usual unit and yield."
+                        >
+                          Ingredient
+                        </FieldLabel>
                         <FormControl>
                           <select
                             {...field}
@@ -520,7 +551,12 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                     name={`lines.${idx}.qty`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="How much of the ingredient one batch needs.">Qty</FieldLabel>
+                        <FieldLabel
+                          className="text-xs"
+                          help="How much of the ingredient one batch needs."
+                        >
+                          Qty
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="0.2" {...field} />
                         </FormControl>
@@ -533,7 +569,12 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                     name={`lines.${idx}.uomCode`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="The unit this quantity is in. Only units matching the ingredient are offered.">Unit</FieldLabel>
+                        <FieldLabel
+                          className="text-xs"
+                          help="The unit this quantity is in. Only units matching the ingredient are offered."
+                        >
+                          Unit
+                        </FieldLabel>
                         <FormControl>
                           <select {...field} aria-label="Unit" className={selectClass}>
                             <option value="">Select…</option>
@@ -553,7 +594,12 @@ export function RecipeFormDialog({ trigger, defaultMenuItemId }: RecipeFormDialo
                     name={`lines.${idx}.yieldPct`}
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel className="text-xs" help="How much survives prep for THIS line. Starts from the ingredient’s own figure — change it only if this dish differs.">Yield %</FieldLabel>
+                        <FieldLabel
+                          className="text-xs"
+                          help="How much survives prep for THIS line. Starts from the ingredient’s own figure — change it only if this dish differs."
+                        >
+                          Yield %
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="Optional" {...field} />
                         </FormControl>

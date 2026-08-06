@@ -98,7 +98,9 @@ describe("useDashboardSocket", () => {
       FakeWebSocket.last!.onmessage?.({ data: JSON.stringify(wireTiles) });
     });
 
-    const cached = client.getQueryData<DashboardTile[]>(queryKeys.reporting.dashboardTiles(BRANCH_ID));
+    const cached = client.getQueryData<DashboardTile[]>(
+      queryKeys.reporting.dashboardTiles(BRANCH_ID),
+    );
     expect(cached).toBeDefined();
     expect(cached![0]?.tileId).toBe("revenue-today");
     expect(result.current.tiles?.[0]?.tileId).toBe("revenue-today");

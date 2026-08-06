@@ -2,10 +2,18 @@
 
 import { useState } from "react";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { useSpendAnalytics, useVendorScorecard, useVendors } from "@/lib/hooks/purchasing/use-purchasing";
+import {
+  useSpendAnalytics,
+  useVendorScorecard,
+  useVendors,
+} from "@/lib/hooks/purchasing/use-purchasing";
 import { SpendAnalyticsTable } from "@/components/purchasing/SpendAnalyticsTable";
 import { VendorScorecardCard } from "@/components/purchasing/VendorScorecardCard";
-import { PeriodPicker, thisMonthRange, type PeriodRange } from "@/components/purchasing/PeriodPicker";
+import {
+  PeriodPicker,
+  thisMonthRange,
+  type PeriodRange,
+} from "@/components/purchasing/PeriodPicker";
 import type { SpendAnalytics, VendorScorecard } from "@/lib/adapters/purchasing.adapter";
 
 /**
@@ -28,7 +36,11 @@ export default function PurchasingAnalyticsPage() {
   const [period, setPeriod] = useState<PeriodRange>(() => thisMonthRange());
   const [vendorId, setVendorId] = useState<string>("");
 
-  const { data: spendData, isLoading: spendLoading } = useSpendAnalytics(branchId, period.from, period.to);
+  const { data: spendData, isLoading: spendLoading } = useSpendAnalytics(
+    branchId,
+    period.from,
+    period.to,
+  );
   const spend = useKeepPreviousData<SpendAnalytics>(spendData);
 
   // Default to the first vendor once vendors load, so the page isn't empty on first render,
@@ -68,7 +80,11 @@ export default function PurchasingAnalyticsPage() {
         </label>
       </div>
 
-      <VendorScorecardCard vendorId={selectedVendorId} scorecard={scorecard} isLoading={scorecardLoading} />
+      <VendorScorecardCard
+        vendorId={selectedVendorId}
+        scorecard={scorecard}
+        isLoading={scorecardLoading}
+      />
 
       {spendLoading && !spend ? (
         <p>Loading spend analytics…</p>

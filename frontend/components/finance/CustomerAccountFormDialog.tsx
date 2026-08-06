@@ -42,7 +42,10 @@ const customerAccountFormSchema = z.object({
   creditLimitRupees: z
     .string()
     .min(1, "Credit limit is required")
-    .refine((v) => Number.isFinite(Number(v)) && Number(v) >= 0, "Enter a credit limit of 0 or more"),
+    .refine(
+      (v) => Number.isFinite(Number(v)) && Number(v) >= 0,
+      "Enter a credit limit of 0 or more",
+    ),
   paymentTermsDays: z
     .string()
     .min(1, "Payment terms are required")
@@ -89,7 +92,8 @@ function applyCustomer(
   customer: Customer | null,
 ) {
   if (!customer) return;
-  if (!form.getValues("name").trim()) form.setValue("name", customer.name, { shouldValidate: true });
+  if (!form.getValues("name").trim())
+    form.setValue("name", customer.name, { shouldValidate: true });
   if (!form.getValues("contactName").trim()) form.setValue("contactName", customer.name);
   if (!form.getValues("contactPhone").trim()) form.setValue("contactPhone", customer.phone);
 }
@@ -125,7 +129,10 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
   function onSubmit(values: CustomerAccountFormValues) {
     if (!branchId) return;
     createCustomerAccount.mutate(
-      { ...toCreateCustomerAccountInput(branchId, values), ...(customer ? { crmCustomerId: customer.id } : {}) },
+      {
+        ...toCreateCustomerAccountInput(branchId, values),
+        ...(customer ? { crmCustomerId: customer.id } : {}),
+      },
       {
         onSuccess: () => {
           toast.success("House account created");
@@ -279,7 +286,11 @@ export function CustomerAccountFormDialog({ trigger }: CustomerAccountFormDialog
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button type="submit" form="customer-account-form" disabled={createCustomerAccount.isPending}>
+          <Button
+            type="submit"
+            form="customer-account-form"
+            disabled={createCustomerAccount.isPending}
+          >
             {createCustomerAccount.isPending ? "Creating…" : "Create house account"}
           </Button>
         </DialogFooter>

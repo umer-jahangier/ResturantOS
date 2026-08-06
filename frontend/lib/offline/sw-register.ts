@@ -36,10 +36,7 @@ export async function registerSW(): Promise<void> {
       const installing = registration?.installing;
       if (!installing) return;
       installing.addEventListener("statechange", () => {
-        if (
-          installing.state === "installed" &&
-          navigator.serviceWorker.controller
-        ) {
+        if (installing.state === "installed" && navigator.serviceWorker.controller) {
           // New SW is installed and waiting — signal skip-waiting.
           installing.postMessage({ type: "SKIP_WAITING" });
         }

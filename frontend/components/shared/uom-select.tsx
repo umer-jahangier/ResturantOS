@@ -63,9 +63,7 @@ export function UomSelect({
       onBlur={onBlur}
     >
       <option value="">{isLoading ? "Loading units…" : placeholder}</option>
-      {hasLegacyValue ? (
-        <option value={value}>{value} — not a unit in your list</option>
-      ) : null}
+      {hasLegacyValue ? <option value={value}>{value} — not a unit in your list</option> : null}
       {available.map((u) => (
         <option key={u.id} value={u.code}>
           {u.code} · {u.name}

@@ -90,9 +90,7 @@ export async function retryDead(): Promise<void> {
   const db = await getDb();
   const dead = await db.getAllFromIndex("outbox", "by-status", "DEAD");
   const tx = db.transaction("outbox", "readwrite");
-  await Promise.all(
-    dead.map((op) => tx.store.put({ ...op, status: "PENDING", attempts: 0 })),
-  );
+  await Promise.all(dead.map((op) => tx.store.put({ ...op, status: "PENDING", attempts: 0 })));
   await tx.done;
 }
 
@@ -156,7 +154,10 @@ export async function requeueRetriable(): Promise<void> {
  * silently losing the item (confirmed via 07.1-06 E2E: outbox drained to a
  * permanently-FAILED op, order stayed at Rs 0.00 after reconnect).
  */
-export async function repointQueuedOps(oldClientOrderId: string, realOrderId: string): Promise<void> {
+export async function repointQueuedOps(
+  oldClientOrderId: string,
+  realOrderId: string,
+): Promise<void> {
   if (oldClientOrderId === realOrderId) return;
   const db = await getDb();
   const all = await db.getAll("outbox");
@@ -165,9 +166,7 @@ export async function repointQueuedOps(oldClientOrderId: string, realOrderId: st
   );
   if (toRepoint.length === 0) return;
   const tx = db.transaction("outbox", "readwrite");
-  await Promise.all(
-    toRepoint.map((op) => tx.store.put({ ...op, clientOrderId: realOrderId })),
-  );
+  await Promise.all(toRepoint.map((op) => tx.store.put({ ...op, clientOrderId: realOrderId })));
   await tx.done;
 }
 

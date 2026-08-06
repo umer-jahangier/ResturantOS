@@ -9,7 +9,12 @@ function DeltaPct({ deltaPct }: { deltaPct: number | null }) {
   }
   const cls = deltaPct >= 0 ? "text-green-700" : "text-red-700";
   const sign = deltaPct >= 0 ? "+" : "";
-  return <span className={cls}>{sign}{deltaPct.toFixed(1)}%</span>;
+  return (
+    <span className={cls}>
+      {sign}
+      {deltaPct.toFixed(1)}%
+    </span>
+  );
 }
 
 export function SpendAnalyticsTable({
@@ -34,15 +39,23 @@ export function SpendAnalyticsTable({
         <tbody>
           {buckets.length === 0 ? (
             <tr>
-              <td colSpan={4} className="py-3 text-muted-foreground">No spend in this period.</td>
+              <td colSpan={4} className="py-3 text-muted-foreground">
+                No spend in this period.
+              </td>
             </tr>
           ) : (
             buckets.map((bucket) => (
               <tr key={bucket.id ?? bucket.label} className="border-b">
                 <td className="py-2 font-medium">{bucket.label}</td>
-                <td className="py-2"><MoneyDisplay paisa={bucket.spendPaisa} /></td>
-                <td className="py-2"><MoneyDisplay paisa={bucket.priorSpendPaisa} /></td>
-                <td className="py-2"><DeltaPct deltaPct={bucket.deltaPct} /></td>
+                <td className="py-2">
+                  <MoneyDisplay paisa={bucket.spendPaisa} />
+                </td>
+                <td className="py-2">
+                  <MoneyDisplay paisa={bucket.priorSpendPaisa} />
+                </td>
+                <td className="py-2">
+                  <DeltaPct deltaPct={bucket.deltaPct} />
+                </td>
               </tr>
             ))
           )}

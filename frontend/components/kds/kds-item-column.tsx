@@ -138,7 +138,9 @@ export function KdsItemColumn({
             >
               <button
                 type="button"
-                onClick={() => router.push(`/app/kitchen/${ticket.stationCode}/orders/${ticket.id}`)}
+                onClick={() =>
+                  router.push(`/app/kitchen/${ticket.stationCode}/orders/${ticket.id}`)
+                }
                 className="w-full text-left"
                 aria-label={`Open ticket detail for ${ticket.orderNo ?? ticket.id.slice(0, 8)}`}
               >

@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Purchasing landing page — a real entry point (not a redirect). Sub-pages
 // own their own data fetching; this is a static Server Component.

@@ -27,7 +27,8 @@ export const queryKeys = {
     menuCategories: (branchId: string) => ["pos", branchId, "menu-categories"] as const,
     menuItems: (branchId: string, categoryId?: string) =>
       ["pos", branchId, "menu-items", categoryId] as const,
-    menuCategoriesAdmin: (branchId: string) => ["pos", branchId, "menu-categories", "admin"] as const,
+    menuCategoriesAdmin: (branchId: string) =>
+      ["pos", branchId, "menu-categories", "admin"] as const,
     menuItemsAdmin: (branchId: string, categoryId?: string) =>
       ["pos", branchId, "menu-items", "admin", categoryId] as const,
     tables: (branchId: string) => ["pos", branchId, "tables"] as const,
@@ -52,32 +53,55 @@ export const queryKeys = {
   finance: {
     accounts: (branchId: string, filters?: AccountFilters) =>
       ["finance", branchId, "accounts", filters] as const,
-    account: (branchId: string, code: string) =>
-      ["finance", branchId, "accounts", code] as const,
+    account: (branchId: string, code: string) => ["finance", branchId, "accounts", code] as const,
     periods: (branchId: string, fiscalYear?: number) =>
       ["finance", branchId, "periods", fiscalYear] as const,
     journalEntries: (branchId: string, filters?: JeFilters) =>
       ["finance", branchId, "journal-entries", filters] as const,
     journalEntry: (branchId: string, id: string) =>
       ["finance", branchId, "journal-entries", id] as const,
-    gl: (branchId: string, periodId: string) =>
-      ["finance", branchId, "gl", periodId] as const,
+    gl: (branchId: string, periodId: string) => ["finance", branchId, "gl", periodId] as const,
     accountSearch: (branchId: string, query: string) =>
       ["finance", branchId, "accounts", "search", query] as const,
-    openPeriods: (branchId: string) =>
-      ["finance", branchId, "periods", "open"] as const,
-    setupStatus: (branchId: string) =>
-      ["finance", branchId, "setup", "status"] as const,
+    openPeriods: (branchId: string) => ["finance", branchId, "periods", "open"] as const,
+    setupStatus: (branchId: string) => ["finance", branchId, "setup", "status"] as const,
     expenses: (branchId: string, status?: ExpenseStatus[]) =>
       ["finance", branchId, "expenses", status] as const,
-    apAging: (branchId: string, asOf?: string) =>
-      ["finance", branchId, "ap-aging", asOf] as const,
+    apAging: (branchId: string, asOf?: string) => ["finance", branchId, "ap-aging", asOf] as const,
     customerAccounts: (branchId: string, page?: number) =>
       ["finance", branchId, "customer-accounts", page] as const,
     customerAccountStatement: (branchId: string, id: string) =>
       ["finance", branchId, "customer-accounts", id, "statement"] as const,
-    arAging: (branchId: string, asOf?: string) =>
-      ["finance", branchId, "ar-aging", asOf] as const,
+    arAging: (branchId: string, asOf?: string) => ["finance", branchId, "ar-aging", asOf] as const,
+  },
+  // HR-01..05. Branch-scoped like finance/inventory: the HR endpoints take no branch in
+  // the path (the gateway adds the header) but every list they return is the ACTIVE
+  // branch's, so a branch switch must not serve the previous branch's roster from cache.
+  // `labourCost` additionally carries the branch being reported on, which is the payroll
+  // run's branch and not necessarily the viewer's.
+  hr: {
+    employees: (branchId: string) => ["hr", branchId, "employees"] as const,
+    payrollRuns: (branchId: string) => ["hr", branchId, "payroll-runs"] as const,
+    payrollRun: (branchId: string, id: string) => ["hr", branchId, "payroll-runs", id] as const,
+    /** Nested under the run so approving/paying a run invalidates its payslips too. */
+    payslips: (branchId: string, runId: string) =>
+      ["hr", branchId, "payroll-runs", runId, "payslips"] as const,
+    labourCost: (branchId: string, targetBranchId: string, month: number, year: number) =>
+      ["hr", branchId, "labour-cost", targetBranchId, month, year] as const,
+    weekGrid: (branchId: string, weekStart: string) =>
+      ["hr", branchId, "shifts", "week", weekStart] as const,
+    /** Prefix for every week — an assign/move/create invalidates all cached weeks. */
+    shifts: (branchId: string) => ["hr", branchId, "shifts"] as const,
+    attendancePunches: (branchId: string, employeeId: string, date: string) =>
+      ["hr", branchId, "attendance", employeeId, "punches", date] as const,
+    attendanceSummary: (branchId: string, employeeId: string, date: string) =>
+      ["hr", branchId, "attendance", employeeId, "summary", date] as const,
+    attendance: (branchId: string) => ["hr", branchId, "attendance"] as const,
+    quarantine: (branchId: string) => ["hr", branchId, "attendance", "quarantine"] as const,
+    leaveTypes: (branchId: string) => ["hr", branchId, "leave", "types"] as const,
+    leaveBalances: (branchId: string, employeeId: string) =>
+      ["hr", branchId, "leave", "balances", employeeId] as const,
+    leave: (branchId: string) => ["hr", branchId, "leave"] as const,
   },
   kds: {
     tickets: (branchId: string, stationCode?: string, status?: string) =>
@@ -90,9 +114,12 @@ export const queryKeys = {
   // every hook in plans 08.2-12/13 must use; the local `const X_KEY` arrays in
   // use-inventory.ts stay in place until those plans migrate onto this registry.
   inventory: {
-    ingredients: (branchId: string, filters?: { search?: string; categoryId?: string; status?: string }) =>
-      ["inventory", branchId, "ingredients", filters] as const,
-    ingredient: (branchId: string, id: string) => ["inventory", branchId, "ingredients", id] as const,
+    ingredients: (
+      branchId: string,
+      filters?: { search?: string; categoryId?: string; status?: string },
+    ) => ["inventory", branchId, "ingredients", filters] as const,
+    ingredient: (branchId: string, id: string) =>
+      ["inventory", branchId, "ingredients", id] as const,
     categories: (branchId: string) => ["inventory", branchId, "categories"] as const,
     categoryTree: (branchId: string) => ["inventory", branchId, "categories", "tree"] as const,
     uoms: (branchId: string) => ["inventory", branchId, "uoms"] as const,
@@ -119,15 +146,16 @@ export const queryKeys = {
     vendor: (branchId: string, id: string) => ["purchasing", branchId, "vendors", id] as const,
     vendorItems: (branchId: string, vendorId: string) =>
       ["purchasing", branchId, "vendors", vendorId, "items"] as const,
-    vendorItem: (branchId: string, id: string) => ["purchasing", branchId, "vendor-items", id] as const,
+    vendorItem: (branchId: string, id: string) =>
+      ["purchasing", branchId, "vendor-items", id] as const,
     vendorItemPrices: (branchId: string, vendorItemId: string) =>
       ["purchasing", branchId, "vendor-items", vendorItemId, "prices"] as const,
     vendorCategories: (branchId: string) => ["purchasing", branchId, "vendor-categories"] as const,
-    orderSuggestions: (branchId: string) =>
-      ["purchasing", branchId, "order-suggestions"] as const,
+    orderSuggestions: (branchId: string) => ["purchasing", branchId, "order-suggestions"] as const,
     purchaseOrders: (branchId: string, filters?: { status?: string[] }) =>
       ["purchasing", branchId, "purchase-orders", filters] as const,
-    purchaseOrder: (branchId: string, id: string) => ["purchasing", branchId, "purchase-orders", id] as const,
+    purchaseOrder: (branchId: string, id: string) =>
+      ["purchasing", branchId, "purchase-orders", id] as const,
     invoices: (branchId: string, filters?: { status?: string[] }) =>
       ["purchasing", branchId, "invoices", filters] as const,
     spendAnalytics: (branchId: string, from?: string, to?: string) =>

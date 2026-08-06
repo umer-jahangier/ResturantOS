@@ -56,7 +56,11 @@ function fieldControl(group: HTMLElement) {
 }
 
 /** Opens the picker sitting under `label` and returns its listbox popover. */
-async function openPicker(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement, label: string) {
+async function openPicker(
+  user: ReturnType<typeof userEvent.setup>,
+  dialog: HTMLElement,
+  label: string,
+) {
   const group = within(dialog).getByText(label).closest("[data-slot='form-item']") as HTMLElement;
   await user.click(fieldControl(group ?? dialog));
   return { group };
@@ -73,95 +77,81 @@ describe("Category form — GL account pickers", () => {
     // The regression that matters: if any of these ever renders as a textbox again, a manager can
     // type an account that does not exist and the form will happily submit it.
     for (const label of ["Inventory GL account", "Cost GL account", "Waste GL account"]) {
-      const group = within(dialog).getByText(label).closest("[data-slot='form-item']") as HTMLElement;
+      const group = within(dialog)
+        .getByText(label)
+        .closest("[data-slot='form-item']") as HTMLElement;
       expect(group).not.toBeNull();
       expect(within(group).queryByRole("textbox")).toBeNull();
       expect(fieldControl(group)).toBeInTheDocument();
     }
   });
 
-  it(
-    "theInventorySlotOffersOnlyAssetAccounts",
-    async () => {
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("theInventorySlotOffersOnlyAssetAccounts", async () => {
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Inventory GL account");
+    await openPicker(user, dialog, "Inventory GL account");
 
-      // Narrowing happens server-side off `usage`, so an asset slot never even receives the COGS
-      // accounts — the browser is not trusted to filter the chart of accounts.
-      await waitFor(() => {
-        expect(screen.getByText("1400 · Food Inventory")).toBeInTheDocument();
-      });
-      expect(screen.getByText("1410 · Beverage Inventory")).toBeInTheDocument();
-      expect(screen.queryByText("5010 · Food Cost")).toBeNull();
-      expect(screen.queryByText("6100 · Wastage & Spoilage")).toBeNull();
-    },
-    15000,
-  );
+    // Narrowing happens server-side off `usage`, so an asset slot never even receives the COGS
+    // accounts — the browser is not trusted to filter the chart of accounts.
+    await waitFor(() => {
+      expect(screen.getByText("1400 · Food Inventory")).toBeInTheDocument();
+    });
+    expect(screen.getByText("1410 · Beverage Inventory")).toBeInTheDocument();
+    expect(screen.queryByText("5010 · Food Cost")).toBeNull();
+    expect(screen.queryByText("6100 · Wastage & Spoilage")).toBeNull();
+  }, 15000);
 
-  it(
-    "theCostSlotOffersCogsAndExpenseAccountsButNoAssets",
-    async () => {
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("theCostSlotOffersCogsAndExpenseAccountsButNoAssets", async () => {
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Cost GL account");
+    await openPicker(user, dialog, "Cost GL account");
 
-      await waitFor(() => {
-        expect(screen.getByText("5010 · Food Cost")).toBeInTheDocument();
-      });
-      expect(screen.getByText("6100 · Wastage & Spoilage")).toBeInTheDocument();
-      expect(screen.queryByText("1400 · Food Inventory")).toBeNull();
-    },
-    15000,
-  );
+    await waitFor(() => {
+      expect(screen.getByText("5010 · Food Cost")).toBeInTheDocument();
+    });
+    expect(screen.getByText("6100 · Wastage & Spoilage")).toBeInTheDocument();
+    expect(screen.queryByText("1400 · Food Inventory")).toBeNull();
+  }, 15000);
 
-  it(
-    "selectingAnAccountShowsItsCodeAndNameAndIsAnnouncedToScreenReaders",
-    async () => {
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("selectingAnAccountShowsItsCodeAndNameAndIsAnnouncedToScreenReaders", async () => {
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      const { group } = await openPicker(user, dialog, "Inventory GL account");
-      await waitFor(() => {
-        expect(screen.getByText("1400 · Food Inventory")).toBeInTheDocument();
-      });
-      await user.click(screen.getByText("1400 · Food Inventory"));
+    const { group } = await openPicker(user, dialog, "Inventory GL account");
+    await waitFor(() => {
+      expect(screen.getByText("1400 · Food Inventory")).toBeInTheDocument();
+    });
+    await user.click(screen.getByText("1400 · Food Inventory"));
 
-      // Visible label...
-      await waitFor(() => {
-        expect(within(group).getByText("1400 · Food Inventory")).toBeInTheDocument();
-      });
-      // ...and the ACCESSIBLE name, which used to stay stuck on the placeholder forever
-      // (08.2 deferred-items.md) — a screen-reader user could never tell what was selected.
-      expect(
-        within(group).getByRole("button", { name: "1400 · Food Inventory" }),
-      ).toBeInTheDocument();
-    },
-    15000,
-  );
+    // Visible label...
+    await waitFor(() => {
+      expect(within(group).getByText("1400 · Food Inventory")).toBeInTheDocument();
+    });
+    // ...and the ACCESSIBLE name, which used to stay stuck on the placeholder forever
+    // (08.2 deferred-items.md) — a screen-reader user could never tell what was selected.
+    expect(
+      within(group).getByRole("button", { name: "1400 · Food Inventory" }),
+    ).toBeInTheDocument();
+  }, 15000);
 
-  it(
-    "aSubcategoryShowsTheAccountItWouldInheritRatherThanLookingEmpty",
-    async () => {
-      seedSession();
-      // Creating a child of Poultry, which itself inherits 1310/5010/5910 from Meat & Poultry.
-      renderCreateDialog(CAT_POULTRY);
-      const { dialog } = await openDialog();
+  it("aSubcategoryShowsTheAccountItWouldInheritRatherThanLookingEmpty", async () => {
+    seedSession();
+    // Creating a child of Poultry, which itself inherits 1310/5010/5910 from Meat & Poultry.
+    renderCreateDialog(CAT_POULTRY);
+    const { dialog } = await openDialog();
 
-      // An untouched field is not "blank" — the category has an effective account, and the
-      // placeholder says which and where it came from, so nobody sets a redundant override.
-      await waitFor(() => {
-        expect(within(dialog).getByText(/Inherited from Meat & Poultry — 1310/)).toBeInTheDocument();
-      });
-      expect(within(dialog).getByText(/Inherited from Meat & Poultry — 5010/)).toBeInTheDocument();
-    },
-    15000,
-  );
+    // An untouched field is not "blank" — the category has an effective account, and the
+    // placeholder says which and where it came from, so nobody sets a redundant override.
+    await waitFor(() => {
+      expect(within(dialog).getByText(/Inherited from Meat & Poultry — 1310/)).toBeInTheDocument();
+    });
+    expect(within(dialog).getByText(/Inherited from Meat & Poultry — 5010/)).toBeInTheDocument();
+  }, 15000);
 });
 
 // ── When the lookup fails ────────────────────────────────────────────────────────────────────
@@ -183,129 +173,111 @@ function failLookupWith(code: string, message: string, status: number) {
 describe("Category form — when the accounts lookup fails", () => {
   afterEach(() => clearSession());
 
-  it(
-    "a503FromTheFinanceSeamIsTheOneCaseThatNamesTheAccountingService",
-    async () => {
-      failLookupWith("FINANCE_UNAVAILABLE", "finance-service unavailable", 503);
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("a503FromTheFinanceSeamIsTheOneCaseThatNamesTheAccountingService", async () => {
+    failLookupWith("FINANCE_UNAVAILABLE", "finance-service unavailable", 503);
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Inventory GL account");
+    await openPicker(user, dialog, "Inventory GL account");
 
-      // GlAccountLookupService turns anything that reaches finance into this code, never into an
-      // empty list — so it is the only signal that finance itself is genuinely the problem.
-      expect(await screen.findByText(/accounting service isn't responding/)).toBeInTheDocument();
-    },
-    15000,
-  );
+    // GlAccountLookupService turns anything that reaches finance into this code, never into an
+    // empty list — so it is the only signal that finance itself is genuinely the problem.
+    expect(await screen.findByText(/accounting service isn't responding/)).toBeInTheDocument();
+  }, 15000);
 
-  it(
-    "anyOtherFailureDoesNotBlameTheAccountingService",
-    async () => {
-      // The exact shape of the original sighting: inventory-service running a build that predated
-      // its own gl-accounts route, so the request never got anywhere near finance.
-      failLookupWith("NOT_FOUND", "No static resource api/v1/inventory/gl-accounts", 404);
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("anyOtherFailureDoesNotBlameTheAccountingService", async () => {
+    // The exact shape of the original sighting: inventory-service running a build that predated
+    // its own gl-accounts route, so the request never got anywhere near finance.
+    failLookupWith("NOT_FOUND", "No static resource api/v1/inventory/gl-accounts", 404);
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Inventory GL account");
+    await openPicker(user, dialog, "Inventory GL account");
 
-      expect(await screen.findByText(/Something went wrong loading the accounts list/)).toBeInTheDocument();
-      expect(screen.queryByText(/accounting service/)).toBeNull();
-    },
-    15000,
-  );
+    expect(
+      await screen.findByText(/Something went wrong loading the accounts list/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/accounting service/)).toBeNull();
+  }, 15000);
 
-  it(
-    "aTransientFailureCanBeRetriedWithoutLosingTheHalfFilledForm",
-    async () => {
-      // Counted per USAGE, not per request: the form mounts three pickers at once, so a plain
-      // "fail the first call" would land on whichever of them happened to race first.
-      let inventoryCalls = 0;
-      server.use(
-        http.get("*/api/v1/inventory/gl-accounts", ({ request }) => {
-          const usage = new URL(request.url).searchParams.get("usage");
-          if (usage !== "INVENTORY") {
-            return HttpResponse.json({ data: [], meta: null, warnings: [] });
-          }
-          inventoryCalls += 1;
-          if (inventoryCalls === 1) {
-            return HttpResponse.json(
-              { error: { code: "FINANCE_UNAVAILABLE", message: "down", details: [], traceId: "t" } },
-              { status: 503 },
-            );
-          }
-          return HttpResponse.json({
-            data: [
-              {
-                // A real UUID: the response schema requires one, and a placeholder here would
-                // fail the parse and leave this test asserting the error path it means to escape.
-                id: "a1111111-1111-4111-8111-111111110001",
-                code: "1400",
-                name: "Food Inventory",
-                accountType: "ASSET",
-              },
-            ],
-            meta: null,
-            warnings: [],
-          });
-        }),
-      );
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("aTransientFailureCanBeRetriedWithoutLosingTheHalfFilledForm", async () => {
+    // Counted per USAGE, not per request: the form mounts three pickers at once, so a plain
+    // "fail the first call" would land on whichever of them happened to race first.
+    let inventoryCalls = 0;
+    server.use(
+      http.get("*/api/v1/inventory/gl-accounts", ({ request }) => {
+        const usage = new URL(request.url).searchParams.get("usage");
+        if (usage !== "INVENTORY") {
+          return HttpResponse.json({ data: [], meta: null, warnings: [] });
+        }
+        inventoryCalls += 1;
+        if (inventoryCalls === 1) {
+          return HttpResponse.json(
+            { error: { code: "FINANCE_UNAVAILABLE", message: "down", details: [], traceId: "t" } },
+            { status: 503 },
+          );
+        }
+        return HttpResponse.json({
+          data: [
+            {
+              // A real UUID: the response schema requires one, and a placeholder here would
+              // fail the parse and leave this test asserting the error path it means to escape.
+              id: "a1111111-1111-4111-8111-111111110001",
+              code: "1400",
+              name: "Food Inventory",
+              accountType: "ASSET",
+            },
+          ],
+          meta: null,
+          warnings: [],
+        });
+      }),
+    );
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Inventory GL account");
-      await user.click(await screen.findByRole("button", { name: "Try again" }));
+    await openPicker(user, dialog, "Inventory GL account");
+    await user.click(await screen.findByRole("button", { name: "Try again" }));
 
-      // Closing the dialog to shake off a blip that lasted two seconds would throw away
-      // everything already typed into the other fields.
-      expect(await screen.findByText("1400 · Food Inventory")).toBeInTheDocument();
-    },
-    20000,
-  );
+    // Closing the dialog to shake off a blip that lasted two seconds would throw away
+    // everything already typed into the other fields.
+    expect(await screen.findByText("1400 · Food Inventory")).toBeInTheDocument();
+  }, 20000);
 
-  it(
-    "anEmptyChartOfAccountsSaysSoRatherThanBlamingTheSearch",
-    async () => {
-      // Not a failure — a 200 with nothing in it. This is what a tenant whose finance module was
-      // never provisioned actually sees, and it looked identical to a typo in the search box.
-      server.use(
-        http.get("*/api/v1/inventory/gl-accounts", () =>
-          HttpResponse.json({ data: [], meta: null, warnings: [] }),
-        ),
-      );
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("anEmptyChartOfAccountsSaysSoRatherThanBlamingTheSearch", async () => {
+    // Not a failure — a 200 with nothing in it. This is what a tenant whose finance module was
+    // never provisioned actually sees, and it looked identical to a typo in the search box.
+    server.use(
+      http.get("*/api/v1/inventory/gl-accounts", () =>
+        HttpResponse.json({ data: [], meta: null, warnings: [] }),
+      ),
+    );
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Inventory GL account");
+    await openPicker(user, dialog, "Inventory GL account");
 
-      expect(await screen.findByText("No accounts set up yet")).toBeInTheDocument();
-      expect(screen.getByText(/no asset accounts yet/)).toBeInTheDocument();
-      // The old copy pointed at the search term, which the manager cannot fix by retyping.
-      expect(screen.queryByText("No matching accounts")).toBeNull();
-    },
-    15000,
-  );
+    expect(await screen.findByText("No accounts set up yet")).toBeInTheDocument();
+    expect(screen.getByText(/no asset accounts yet/)).toBeInTheDocument();
+    // The old copy pointed at the search term, which the manager cannot fix by retyping.
+    expect(screen.queryByText("No matching accounts")).toBeNull();
+  }, 15000);
 
-  it(
-    "aPermissionRefusalOffersNoRetryBecauseRetryingCannotHelp",
-    async () => {
-      failLookupWith("PERMISSION_DENIED", "forbidden", 403);
-      seedSession();
-      renderCreateDialog();
-      const { user, dialog } = await openDialog();
+  it("aPermissionRefusalOffersNoRetryBecauseRetryingCannotHelp", async () => {
+    failLookupWith("PERMISSION_DENIED", "forbidden", 403);
+    seedSession();
+    renderCreateDialog();
+    const { user, dialog } = await openDialog();
 
-      await openPicker(user, dialog, "Inventory GL account");
+    await openPicker(user, dialog, "Inventory GL account");
 
-      // A button that cannot possibly work is worse than no button: it invites the reader to keep
-      // pressing it instead of asking an administrator.
-      expect(await screen.findByText(/Your role doesn't include browsing/)).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
-    },
-    15000,
-  );
+    // A button that cannot possibly work is worse than no button: it invites the reader to keep
+    // pressing it instead of asking an administrator.
+    expect(await screen.findByText(/Your role doesn't include browsing/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  }, 15000);
 });

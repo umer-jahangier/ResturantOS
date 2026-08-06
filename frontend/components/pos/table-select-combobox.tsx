@@ -121,15 +121,25 @@ export function TableSelectCombobox({
                 onClick={() => select(null)}
                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
               >
-                <Check className={cn("size-3.5", value === null ? "opacity-100" : "opacity-0")} aria-hidden="true" />
+                <Check
+                  className={cn("size-3.5", value === null ? "opacity-100" : "opacity-0")}
+                  aria-hidden="true"
+                />
                 No table (optional)
               </button>
             </li>
             {filtered.length === 0 ? (
-              <li className="px-2 py-3 text-center text-xs text-muted-foreground">No tables match</li>
+              <li className="px-2 py-3 text-center text-xs text-muted-foreground">
+                No tables match
+              </li>
             ) : (
               filtered.map((table) => (
-                <TableOption key={table.id} table={table} selected={value === table.id} onSelect={() => select(table.id)} />
+                <TableOption
+                  key={table.id}
+                  table={table}
+                  selected={value === table.id}
+                  onSelect={() => select(table.id)}
+                />
               ))
             )}
           </ul>
@@ -148,7 +158,12 @@ interface TableOptionProps {
 function TableOption({ table, selected, onSelect }: TableOptionProps) {
   const isOccupied = table.status === "OCCUPIED";
   return (
-    <li role="option" aria-selected={selected} aria-disabled={isOccupied} data-testid={`table-option-${table.tableName}`}>
+    <li
+      role="option"
+      aria-selected={selected}
+      aria-disabled={isOccupied}
+      data-testid={`table-option-${table.tableName}`}
+    >
       <button
         type="button"
         disabled={isOccupied}
@@ -156,7 +171,10 @@ function TableOption({ table, selected, onSelect }: TableOptionProps) {
         className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
       >
         <span className="flex items-center gap-2 truncate">
-          <Check className={cn("size-3.5 shrink-0", selected ? "opacity-100" : "opacity-0")} aria-hidden="true" />
+          <Check
+            className={cn("size-3.5 shrink-0", selected ? "opacity-100" : "opacity-0")}
+            aria-hidden="true"
+          />
           {table.tableName}
         </span>
         <span

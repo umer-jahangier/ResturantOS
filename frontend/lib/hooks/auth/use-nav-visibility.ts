@@ -34,10 +34,7 @@ function hasFeature(
 // Role gate for nav items that have no permission in the DB catalog yet (HR/CRM/
 // Reporting placeholders): without this they are feature-only and therefore visible
 // to every role. An item with `roles` is shown only if the user holds one of them.
-function hasRole(
-  userRoles: string[],
-  required: string[] | undefined,
-): boolean {
+function hasRole(userRoles: string[], required: string[] | undefined): boolean {
   if (!required || required.length === 0) return true;
   return required.some((role) => userRoles.includes(role));
 }

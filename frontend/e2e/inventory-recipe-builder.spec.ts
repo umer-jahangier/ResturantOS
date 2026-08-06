@@ -77,7 +77,9 @@ test.describe("D-04/INV-10: /app/inventory recipe-builder + coverage dashboard s
       try {
         await expect(inventoryLink).toBeVisible({ timeout: 8000 });
       } catch {
-        throw new Blocked("no sidebar Inventory link visible — inventory.item.view/FEATURE_INVENTORY may be missing for this account");
+        throw new Blocked(
+          "no sidebar Inventory link visible — inventory.item.view/FEATURE_INVENTORY may be missing for this account",
+        );
       }
       await inventoryLink.click();
       await page.waitForURL(/\/app\/inventory/, { timeout: 15_000 });
@@ -88,7 +90,9 @@ test.describe("D-04/INV-10: /app/inventory recipe-builder + coverage dashboard s
       }
       const noPermission = page.getByText("You do not have permission to access", { exact: false });
       if (await noPermission.isVisible({ timeout: 500 }).catch(() => false)) {
-        throw new Blocked("manager@demo.local lacks inventory.item.view permission (seed-data/RBAC gap)");
+        throw new Blocked(
+          "manager@demo.local lacks inventory.item.view permission (seed-data/RBAC gap)",
+        );
       }
       await expect(page.getByText("404", { exact: false })).toHaveCount(0);
       await shot("inventory-landing");
@@ -100,7 +104,9 @@ test.describe("D-04/INV-10: /app/inventory recipe-builder + coverage dashboard s
       await expect(menuItemSelect).toBeVisible({ timeout: 10_000 });
       const optionCount = await menuItemSelect.locator("option").count();
       if (optionCount <= 1) {
-        throw new Blocked("menu-item select has no real options beyond the placeholder — catalog sync (08.1-01/02) may not have run for this tenant");
+        throw new Blocked(
+          "menu-item select has no real options beyond the placeholder — catalog sync (08.1-01/02) may not have run for this tenant",
+        );
       }
       await shot("inventory-recipe-builder");
 
@@ -114,7 +120,10 @@ test.describe("D-04/INV-10: /app/inventory recipe-builder + coverage dashboard s
     } catch (err) {
       if (err instanceof Blocked) {
         console.log(`[BLOCKED] inventory-recipe-builder: ${err.message}`);
-        test.skip(true, `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`);
+        test.skip(
+          true,
+          `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`,
+        );
         return;
       }
       throw err;

@@ -39,7 +39,10 @@ function getTillErrorMessage(
   error: { status?: number; message?: string; code?: string } | null | undefined,
   action: "open" | "close",
 ): string {
-  const fallback = action === "open" ? "Failed to open till. Please try again." : "Failed to close till. Please try again.";
+  const fallback =
+    action === "open"
+      ? "Failed to open till. Please try again."
+      : "Failed to close till. Please try again.";
   if (!error) return fallback;
   // Known server error codes get specific, actionable guidance.
   const known = error.code ? TILL_ERROR_COPY[error.code] : undefined;
@@ -99,7 +102,9 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
       <div className="border-b border-amber-200 dark:border-amber-900">
         {!showOpenModal ? (
           <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40">
-            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">No active till</span>
+            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+              No active till
+            </span>
             <button
               data-testid="open-till-button"
               onClick={() => setShowOpenModal(true)}
@@ -122,8 +127,8 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
           >
             <h2 className="font-semibold">Open Till Session</h2>
             <p className="text-xs text-muted-foreground">
-              Starting a new cashier till session. Record the counted starting float before
-              taking any orders.
+              Starting a new cashier till session. Record the counted starting float before taking
+              any orders.
             </p>
             <label className="text-sm">
               Opening Float (PKR)
@@ -168,7 +173,9 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
     <div className="border-b border-emerald-200 dark:border-emerald-900">
       {!showCloseModal ? (
         <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40">
-          <span className="text-xs font-medium text-emerald-800 dark:text-emerald-300">Till OPEN</span>
+          <span className="text-xs font-medium text-emerald-800 dark:text-emerald-300">
+            Till OPEN
+          </span>
           <span className="text-xs text-muted-foreground">
             Float: <MoneyDisplay paisa={activeTill.openingFloatPaisa} className="text-xs" />
           </span>
@@ -186,9 +193,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
             <span
               className={cn(
                 "text-xs font-medium",
-                Math.abs(variance) > varianceThreshold
-                  ? "text-red-600"
-                  : "text-emerald-700"
+                Math.abs(variance) > varianceThreshold ? "text-red-600" : "text-emerald-700",
               )}
             >
               Var: <MoneyDisplay paisa={Math.abs(variance)} className="text-xs" />
@@ -216,12 +221,13 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
               <span className="text-muted-foreground">Opening float:</span>
               <MoneyDisplay paisa={activeTill.openingFloatPaisa} />
             </div>
-            {activeTill.expectedClosingPaisa !== null && activeTill.expectedClosingPaisa !== undefined && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Expected cash:</span>
-                <MoneyDisplay paisa={activeTill.expectedClosingPaisa} />
-              </div>
-            )}
+            {activeTill.expectedClosingPaisa !== null &&
+              activeTill.expectedClosingPaisa !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Expected cash:</span>
+                  <MoneyDisplay paisa={activeTill.expectedClosingPaisa} />
+                </div>
+              )}
           </div>
 
           <label className="text-sm">
@@ -259,16 +265,16 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
                   "font-medium",
                   Math.abs(
                     Math.round(parseFloat(declaredCash) * 100) -
-                      (activeTill.expectedClosingPaisa ?? 0)
+                      (activeTill.expectedClosingPaisa ?? 0),
                   ) > varianceThreshold
                     ? "text-red-600"
-                    : "text-emerald-600"
+                    : "text-emerald-600",
                 )}
               >
                 <MoneyDisplay
                   paisa={Math.abs(
                     Math.round(parseFloat(declaredCash) * 100) -
-                      (activeTill.expectedClosingPaisa ?? 0)
+                      (activeTill.expectedClosingPaisa ?? 0),
                   )}
                 />
               </span>

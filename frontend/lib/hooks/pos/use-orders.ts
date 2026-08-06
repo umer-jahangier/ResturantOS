@@ -187,8 +187,7 @@ export function useApplyDiscount(orderId: string) {
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation({
-    mutationFn: (payload: ApplyDiscountPayload) =>
-      PosRepository.applyDiscount(orderId, payload),
+    mutationFn: (payload: ApplyDiscountPayload) => PosRepository.applyDiscount(orderId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
     },

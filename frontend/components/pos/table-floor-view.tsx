@@ -23,9 +23,19 @@ const STATE_CONFIG: Record<
   TableStatus,
   { border: string; bg: string; icon: typeof CheckCircle2; label: string }
 > = {
-  AVAILABLE: { border: "border-success", bg: "bg-success/10", icon: CheckCircle2, label: "Available" },
+  AVAILABLE: {
+    border: "border-success",
+    bg: "bg-success/10",
+    icon: CheckCircle2,
+    label: "Available",
+  },
   OCCUPIED: { border: "border-info", bg: "bg-info/10", icon: Utensils, label: "Occupied" },
-  NEEDS_BUSSING: { border: "border-warning", bg: "bg-warning/10", icon: Sparkles, label: "Needs Bussing" },
+  NEEDS_BUSSING: {
+    border: "border-warning",
+    bg: "bg-warning/10",
+    icon: Sparkles,
+    label: "Needs Bussing",
+  },
 };
 
 export function TableFloorView({ onTableSelect }: TableFloorViewProps) {
@@ -95,7 +105,8 @@ function TableTile({ table, onTap }: TableTileProps) {
   // empty tableId for non-OCCUPIED tiles, same pattern as the shared drawer's own
   // useTableDetail(isTableMode ? tableId : "") call.
   const detailQuery = useTableDetail(table.status === "OCCUPIED" ? table.id : "");
-  const derivedStatus = table.status === "OCCUPIED" ? (detailQuery.data?.derivedStatus ?? null) : null;
+  const derivedStatus =
+    table.status === "OCCUPIED" ? (detailQuery.data?.derivedStatus ?? null) : null;
 
   return (
     <button

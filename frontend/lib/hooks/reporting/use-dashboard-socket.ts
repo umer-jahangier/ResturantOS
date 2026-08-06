@@ -36,7 +36,9 @@ const MAX_BACKOFF_MS = 30_000;
  * the self-referential useCallback lint issue and the "cannot set state during effect" rule
  * (react-hooks/set-state-in-effect — 04-04-A).
  */
-export function useDashboardSocket({ branchId }: UseDashboardSocketOptions): UseDashboardSocketResult {
+export function useDashboardSocket({
+  branchId,
+}: UseDashboardSocketOptions): UseDashboardSocketResult {
   const [isConnected, setIsConnected] = useState(false);
   const [tiles, setTiles] = useState<DashboardTile[] | undefined>(undefined);
   const queryClient = useQueryClient();
@@ -71,7 +73,10 @@ export function useDashboardSocket({ branchId }: UseDashboardSocketOptions): Use
           );
           // The WS push and the REST snapshot (useDashboardTiles) share ONE cache key — writing
           // here keeps every consumer of that key live, not just this hook's own return value.
-          queryClient.setQueryData<DashboardTile[]>(queryKeys.reporting.dashboardTiles(branchId), parsed);
+          queryClient.setQueryData<DashboardTile[]>(
+            queryKeys.reporting.dashboardTiles(branchId),
+            parsed,
+          );
           setTiles(parsed);
         } catch {
           // Ignore malformed frames

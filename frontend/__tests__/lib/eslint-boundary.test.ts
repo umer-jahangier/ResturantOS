@@ -23,27 +23,35 @@ function createLinter(): ESLint {
 const LINT_TIMEOUT_MS = 30_000;
 
 describe("ESLint layer-boundary (FE-08)", () => {
-  it("flags a component importing a repository directly", async () => {
-    const eslint = createLinter();
-    const [result] = await eslint.lintText(
-      `import { SessionRepository } from "@/lib/repositories/session.repository";\n` +
-        `export function Widget() {\n  void SessionRepository;\n  return null;\n}\n`,
-      { filePath: path.join(rootDir, "components", "widget.tsx") },
-    );
+  it(
+    "flags a component importing a repository directly",
+    async () => {
+      const eslint = createLinter();
+      const [result] = await eslint.lintText(
+        `import { SessionRepository } from "@/lib/repositories/session.repository";\n` +
+          `export function Widget() {\n  void SessionRepository;\n  return null;\n}\n`,
+        { filePath: path.join(rootDir, "components", "widget.tsx") },
+      );
 
-    const ruleIds = (result?.messages ?? []).map((message) => message.ruleId);
-    expect(ruleIds).toContain("no-restricted-imports");
-  }, LINT_TIMEOUT_MS);
+      const ruleIds = (result?.messages ?? []).map((message) => message.ruleId);
+      expect(ruleIds).toContain("no-restricted-imports");
+    },
+    LINT_TIMEOUT_MS,
+  );
 
-  it("allows a component importing a Layer-3 hook", async () => {
-    const eslint = createLinter();
-    const [result] = await eslint.lintText(
-      `import { useLogin } from "@/lib/hooks/auth/use-login";\n` +
-        `export function Widget() {\n  void useLogin;\n  return null;\n}\n`,
-      { filePath: path.join(rootDir, "components", "ok-widget.tsx") },
-    );
+  it(
+    "allows a component importing a Layer-3 hook",
+    async () => {
+      const eslint = createLinter();
+      const [result] = await eslint.lintText(
+        `import { useLogin } from "@/lib/hooks/auth/use-login";\n` +
+          `export function Widget() {\n  void useLogin;\n  return null;\n}\n`,
+        { filePath: path.join(rootDir, "components", "ok-widget.tsx") },
+      );
 
-    const ruleIds = (result?.messages ?? []).map((message) => message.ruleId);
-    expect(ruleIds).not.toContain("no-restricted-imports");
-  }, LINT_TIMEOUT_MS);
+      const ruleIds = (result?.messages ?? []).map((message) => message.ruleId);
+      expect(ruleIds).not.toContain("no-restricted-imports");
+    },
+    LINT_TIMEOUT_MS,
+  );
 });

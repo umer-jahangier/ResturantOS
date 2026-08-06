@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   type ColumnDef,
   flexRender,
@@ -9,19 +9,19 @@ import {
   getSortedRowModel,
   type SortingState,
   useReactTable,
-} from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { DataTableSkeleton } from "@/components/skeletons/data-table-skeleton"
-import { EmptyState } from "@/components/ui/empty-state"
+} from "@tanstack/react-table";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { DataTableSkeleton } from "@/components/skeletons/data-table-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface DataTableProps<TData> {
-  columns: ColumnDef<TData, unknown>[]
-  data: TData[]
-  isLoading?: boolean
-  emptyMessage?: string
-  pageSize?: number
+  columns: ColumnDef<TData, unknown>[];
+  data: TData[];
+  isLoading?: boolean;
+  emptyMessage?: string;
+  pageSize?: number;
   /**
    * Optional per-row className (e.g. an opacity/transition pair for a fade-out exit
    * animation). Additive, backward-compatible — existing callers that don't pass this
@@ -29,7 +29,7 @@ interface DataTableProps<TData> {
    * never disappears abruptly — fade-out on close" requirement); no other DataTable
    * consumer exists yet in the codebase, so this is a zero-risk extension.
    */
-  rowClassName?: (row: TData) => string | undefined
+  rowClassName?: (row: TData) => string | undefined;
 }
 
 function DataTable<TData>({
@@ -40,7 +40,7 @@ function DataTable<TData>({
   pageSize = 10,
   rowClassName,
 }: DataTableProps<TData>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const table = useReactTable({
     data,
@@ -51,20 +51,20 @@ function DataTable<TData>({
     onSortingChange: setSorting,
     initialState: { pagination: { pageSize } },
     state: { sorting },
-  })
+  });
 
   if (isLoading) {
-    return <DataTableSkeleton columns={columns.length} />
+    return <DataTableSkeleton columns={columns.length} />;
   }
 
   if (data.length === 0) {
-    return <EmptyState title={emptyMessage ?? "No data"} />
+    return <EmptyState title={emptyMessage ?? "No data"} />;
   }
 
-  const { pageIndex, pageSize: currentPageSize } = table.getState().pagination
-  const totalRows = table.getFilteredRowModel().rows.length
-  const from = pageIndex * currentPageSize + 1
-  const to = Math.min(from + currentPageSize - 1, totalRows)
+  const { pageIndex, pageSize: currentPageSize } = table.getState().pagination;
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const from = pageIndex * currentPageSize + 1;
+  const to = Math.min(from + currentPageSize - 1, totalRows);
 
   return (
     <div className="flex flex-col gap-2">
@@ -74,25 +74,22 @@ function DataTable<TData>({
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
-                  const canSort = header.column.getCanSort()
-                  const sorted = header.column.getIsSorted()
+                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted();
 
                   return (
                     <th
                       key={header.id}
                       className={cn(
                         "h-10 px-4 text-left align-middle font-medium text-muted-foreground whitespace-nowrap",
-                        canSort && "cursor-pointer select-none"
+                        canSort && "cursor-pointer select-none",
                       )}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                     >
                       <div className="flex items-center gap-1">
                         {header.isPlaceholder
                           ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                          : flexRender(header.column.columnDef.header, header.getContext())}
                         {canSort && (
                           <span className="text-muted-foreground">
                             {sorted === "asc" ? (
@@ -106,7 +103,7 @@ function DataTable<TData>({
                         )}
                       </div>
                     </th>
-                  )
+                  );
                 })}
               </tr>
             ))}
@@ -117,7 +114,7 @@ function DataTable<TData>({
                 key={row.id}
                 className={cn(
                   "border-b transition-colors hover:bg-muted/30 last:border-b-0",
-                  rowClassName?.(row.original)
+                  rowClassName?.(row.original),
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -133,9 +130,7 @@ function DataTable<TData>({
 
       <div className="flex items-center justify-between px-1">
         <p className="text-sm text-muted-foreground">
-          {totalRows > 0
-            ? `Showing ${from}–${to} of ${totalRows}`
-            : "No results"}
+          {totalRows > 0 ? `Showing ${from}–${to} of ${totalRows}` : "No results"}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -157,8 +152,8 @@ function DataTable<TData>({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export { DataTable }
-export type { ColumnDef }
+export { DataTable };
+export type { ColumnDef };

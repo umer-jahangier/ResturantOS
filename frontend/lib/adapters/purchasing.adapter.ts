@@ -114,8 +114,12 @@ export type OrderSuggestionsResponse = z.infer<typeof apiOrderSuggestionsRespons
 /** An account a vendor payment can be paid from — see `PurchasingRepository.listBankAccounts`. */
 export type BankAccount = z.infer<typeof apiBankAccountSchema>;
 /** Write payload for `POST /api/v1/purchasing/order-suggestions/drafts`. */
-export type CreateDraftsFromSuggestionsInput = z.infer<typeof createDraftsFromSuggestionsInputSchema>;
+export type CreateDraftsFromSuggestionsInput = z.infer<
+  typeof createDraftsFromSuggestionsInputSchema
+>;
 
-export function adaptOrderSuggestionsResponse(raw: OrderSuggestionsResponse): OrderSuggestionsResponse {
+export function adaptOrderSuggestionsResponse(
+  raw: OrderSuggestionsResponse,
+): OrderSuggestionsResponse {
   return raw;
 }

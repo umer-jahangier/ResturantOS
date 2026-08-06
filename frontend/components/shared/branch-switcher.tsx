@@ -20,11 +20,7 @@ import { BranchSwitchOverlay } from "./branch-switch-overlay";
 
 function BranchSwitcherSkeleton() {
   return (
-    <div
-      className="flex w-full flex-col gap-1"
-      aria-busy="true"
-      aria-label="Loading branches"
-    >
+    <div className="flex w-full flex-col gap-1" aria-busy="true" aria-label="Loading branches">
       <Skeleton className="h-8 w-full" />
     </div>
   );
@@ -76,10 +72,7 @@ export function BranchSwitcher() {
 
   return (
     <>
-      <BranchSwitchOverlay
-        isVisible={switchBranch.isPending}
-        branchName={pendingBranchName}
-      />
+      <BranchSwitchOverlay isVisible={switchBranch.isPending} branchName={pendingBranchName} />
       <div className="flex w-full flex-col gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -98,7 +91,10 @@ export function BranchSwitcher() {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+          <DropdownMenuContent
+            align="start"
+            className="w-[var(--radix-dropdown-menu-trigger-width)]"
+          >
             <DropdownMenuLabel>Branches</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {branches.map((branch) => {

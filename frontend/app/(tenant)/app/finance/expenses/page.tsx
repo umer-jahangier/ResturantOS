@@ -29,7 +29,10 @@ const STATUS_FILTER_OPTIONS: { value: "" | ExpenseStatus; label: string }[] = [
   { value: "", label: "All statuses" },
 ];
 
-const STATUS_TO_BADGE: Record<ExpenseStatus, { status: "pending" | "success" | "error"; label: string }> = {
+const STATUS_TO_BADGE: Record<
+  ExpenseStatus,
+  { status: "pending" | "success" | "error"; label: string }
+> = {
   PENDING_APPROVAL: { status: "pending", label: "Pending approval" },
   APPROVED: { status: "success", label: "Approved" },
   REJECTED: { status: "error", label: "Rejected" },
@@ -69,7 +72,9 @@ function RejectDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Reject expense</DialogTitle>
-          <DialogDescription>A reason is required and is recorded on the expense.</DialogDescription>
+          <DialogDescription>
+            A reason is required and is recorded on the expense.
+          </DialogDescription>
         </DialogHeader>
         <Input
           aria-label="Rejection reason"
@@ -130,7 +135,9 @@ function ExpenseRow({ expense }: { expense: Expense }) {
       <td className="py-2 pr-4">
         <StatusBadge status={badge.status} label={badge.label} />
       </td>
-      <td className="py-2 pr-4 text-xs text-muted-foreground">{expense.requestedBy.slice(0, 8)}…</td>
+      <td className="py-2 pr-4 text-xs text-muted-foreground">
+        {expense.requestedBy.slice(0, 8)}…
+      </td>
       <td className="py-2 pr-4">
         {expense.status === "PENDING_APPROVAL" && (
           <div className="flex gap-2">

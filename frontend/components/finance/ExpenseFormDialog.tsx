@@ -39,7 +39,10 @@ const expenseFormSchema = z.object({
   amountRupees: z
     .string()
     .min(1, "Amount is required")
-    .refine((v) => Number.isFinite(Number(v)) && Number(v) > 0, "Enter an amount greater than zero"),
+    .refine(
+      (v) => Number.isFinite(Number(v)) && Number(v) > 0,
+      "Enter an amount greater than zero",
+    ),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>;

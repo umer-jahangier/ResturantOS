@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  DollarSign,
-  LayoutDashboard,
-  Settings,
-  ShoppingCart,
-  UtensilsCrossed,
-} from "lucide-react";
+import { DollarSign, LayoutDashboard, Settings, ShoppingCart, UtensilsCrossed } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { PermissionGuard } from "./permission-guard";
@@ -91,8 +85,7 @@ export function MobileBottomNav() {
       aria-label="Mobile navigation"
     >
       {BOTTOM_NAV_ITEMS.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const link = <BottomNavLink key={item.href} item={item} active={active} />;
 
         const withFeature = item.feature ? (

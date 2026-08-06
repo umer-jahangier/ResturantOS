@@ -33,11 +33,7 @@ export default function PeriodsPage() {
         <div className="flex items-center gap-3">
           <FiscalYearNav fiscalYear={fiscalYear} onChange={setFiscalYear} />
           <PermissionGuard require="finance.period.open">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setProvisionOpen(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setProvisionOpen(true)}>
               Provision Periods
             </Button>
           </PermissionGuard>
@@ -79,15 +75,9 @@ export default function PeriodsPage() {
             <tbody>
               {periods.map((period) => (
                 <tr key={period.id} className="border-b">
-                  <td className="py-3 pr-4 font-medium">
-                    Period {period.periodNo}
-                  </td>
-                  <td className="py-3 pr-4 font-mono tabular-nums text-sm">
-                    {period.startDate}
-                  </td>
-                  <td className="py-3 pr-4 font-mono tabular-nums text-sm">
-                    {period.endDate}
-                  </td>
+                  <td className="py-3 pr-4 font-medium">Period {period.periodNo}</td>
+                  <td className="py-3 pr-4 font-mono tabular-nums text-sm">{period.startDate}</td>
+                  <td className="py-3 pr-4 font-mono tabular-nums text-sm">{period.endDate}</td>
                   <td className="py-3 pr-4">
                     <PeriodStatusChip status={period.status} />
                   </td>
@@ -96,11 +86,7 @@ export default function PeriodsPage() {
                   </td>
                   <td className="py-3 text-right">
                     {period.status === "OPEN" && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setClosingPeriod(period)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setClosingPeriod(period)}>
                         Close Period
                       </Button>
                     )}

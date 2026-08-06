@@ -75,10 +75,16 @@ export function VendorDetailPageContent({ vendorId }: { vendorId: string }) {
   const [priceTarget, setPriceTarget] = useState<VendorItem | null>(null);
   const [archiving, setArchiving] = useState<VendorItem | null>(null);
 
-  const { data: vendorItems, isLoading: isLoadingItems, isError: isCatalogError } =
-    useVendorItems(vendorId);
-  const { data: priceChanges, isLoading: isLoadingPriceChanges, isError: isPriceChangesError } =
-    useVendorPriceChanges(vendorId);
+  const {
+    data: vendorItems,
+    isLoading: isLoadingItems,
+    isError: isCatalogError,
+  } = useVendorItems(vendorId);
+  const {
+    data: priceChanges,
+    isLoading: isLoadingPriceChanges,
+    isError: isPriceChangesError,
+  } = useVendorPriceChanges(vendorId);
   const archiveVendorItem = useArchiveVendorItem(vendorId);
 
   function openCreateCatalogItem() {
@@ -188,10 +194,7 @@ export function VendorDetailPageContent({ vendorId }: { vendorId: string }) {
               <DropdownMenuItem onSelect={() => setPriceTarget(row.original)}>
                 Record new price
               </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() => setArchiving(row.original)}
-              >
+              <DropdownMenuItem variant="destructive" onSelect={() => setArchiving(row.original)}>
                 Archive
               </DropdownMenuItem>
             </DropdownMenuContent>

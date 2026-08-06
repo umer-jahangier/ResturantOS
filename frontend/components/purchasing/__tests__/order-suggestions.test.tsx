@@ -22,7 +22,11 @@ const BRANCH_ID = "b0000001-0000-4000-8000-000000000001";
 function renderPage() {
   seedSession({ branchId: BRANCH_ID, permissions: ["vendor.view", "vendor.po.create"] });
   const Wrapper = createQueryWrapper();
-  return render(<Wrapper><OrderSuggestionsPage /></Wrapper>);
+  return render(
+    <Wrapper>
+      <OrderSuggestionsPage />
+    </Wrapper>,
+  );
 }
 
 describe("Suggested orders", () => {
@@ -80,9 +84,10 @@ describe("Suggested orders", () => {
     // Intl renders PKR as "Rs" and separates it with a non-breaking space, so normalise both
     // rather than hard-coding a formatting detail this test is not about.
     const amount = (value: string) =>
-      within(row).getByText((_text, element) =>
-        element?.tagName === "SPAN"
-        && (element.textContent ?? "").replace(/ /g, " ").trim() === `Rs ${value}`,
+      within(row).getByText(
+        (_text, element) =>
+          element?.tagName === "SPAN" &&
+          (element.textContent ?? "").replace(/ /g, " ").trim() === `Rs ${value}`,
       );
 
     // 30 kg at Rs 950.00 each.
@@ -100,7 +105,9 @@ describe("Suggested orders", () => {
     const posted: Array<{ lines: Array<{ vendorItemId: string; qty: string }> }> = [];
     server.use(
       http.post("*/api/v1/purchasing/order-suggestions/drafts", async ({ request }) => {
-        posted.push((await request.json()) as { lines: Array<{ vendorItemId: string; qty: string }> });
+        posted.push(
+          (await request.json()) as { lines: Array<{ vendorItemId: string; qty: string }> },
+        );
         return HttpResponse.json({ data: [], meta: null, warnings: [] });
       }),
     );
@@ -183,7 +190,8 @@ describe("Suggested orders", () => {
                 unitPricePaisa: null,
                 lineTotalPaisa: null,
                 leadTimeDays: null,
-                blockedReason: "No supplier set up for this item. Add it to a vendor's catalogue first.",
+                blockedReason:
+                  "No supplier set up for this item. Add it to a vendor's catalogue first.",
               },
             ],
             blockedCount: 1,

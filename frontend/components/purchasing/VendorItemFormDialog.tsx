@@ -11,7 +11,10 @@ import { calendarDateToInstant } from "@/lib/forms/calendar-date";
 import { useIngredients } from "@/lib/hooks/inventory/use-inventory";
 import { useCreateVendorItem, useUpdateVendorItem } from "@/lib/hooks/purchasing/use-purchasing";
 import type { VendorItem } from "@/lib/adapters/purchasing.adapter";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import { UomSelect } from "@/components/shared/uom-select";
 import {
   Dialog,
@@ -41,12 +44,16 @@ const vendorItemFormSchema = z.object({
   vendorSku: z.string(),
   vendorDescription: z.string(),
   packDescription: z.string(),
-  packQty: z.string().refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive pack quantity"),
+  packQty: z
+    .string()
+    .refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive pack quantity"),
   packUom: z.string().min(1, "Pack unit is required"),
   orderUom: z.string().min(1, "Order unit is required"),
   minOrderQty: z.string(),
   orderMultiple: z.string(),
-  leadTimeDays: z.string().refine((v) => v === "" || /^\d+$/.test(v), "Enter a whole number of days"),
+  leadTimeDays: z
+    .string()
+    .refine((v) => v === "" || /^\d+$/.test(v), "Enter a whole number of days"),
   preferred: z.boolean(),
   catchWeight: z.boolean(),
   // Create-mode-only fields — ignored entirely when editing.
@@ -152,7 +159,8 @@ export function VendorItemFormDialog({
             packUom: values.packUom.trim(),
             minOrderQty: trimmed(values.minOrderQty),
             orderMultiple: trimmed(values.orderMultiple),
-            leadTimeDays: values.leadTimeDays.trim() === "" ? undefined : Number(values.leadTimeDays),
+            leadTimeDays:
+              values.leadTimeDays.trim() === "" ? undefined : Number(values.leadTimeDays),
             preferred: values.preferred,
             catchWeight: values.catchWeight,
           },
@@ -189,7 +197,9 @@ export function VendorItemFormDialog({
           initialPriceRupees === "" ? undefined : Math.round(Number(initialPriceRupees) * 100),
         initialPriceUom: initialPriceRupees === "" ? undefined : values.orderUom.trim(),
         initialPriceEffectiveFrom:
-          initialPriceRupees === "" ? undefined : calendarDateToInstant(values.initialPriceEffectiveFrom),
+          initialPriceRupees === ""
+            ? undefined
+            : calendarDateToInstant(values.initialPriceEffectiveFrom),
       },
       {
         onSuccess: () => {
@@ -472,9 +482,7 @@ export function VendorItemFormDialog({
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        Leave blank to start now.
-                      </p>
+                      <p className="text-xs text-muted-foreground">Leave blank to start now.</p>
                       <FormMessage />
                     </FormItem>
                   )}

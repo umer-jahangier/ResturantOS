@@ -10,7 +10,14 @@ import { useCreateOrder, useAddItem, useOrder } from "@/lib/hooks/pos/use-orders
 import { CustomerPicker } from "@/components/crm/customer-picker";
 import type { Customer } from "@/lib/models/crm.model";
 import { useFireToKitchen } from "@/lib/hooks/pos/use-fire-to-kitchen";
-import { addLine, clearCart, decrementLine, incrementLine, removeLine, type CartLine } from "@/components/pos/cart-reducer";
+import {
+  addLine,
+  clearCart,
+  decrementLine,
+  incrementLine,
+  removeLine,
+  type CartLine,
+} from "@/components/pos/cart-reducer";
 import type { MenuItem, OrderType } from "@/lib/models/pos.model";
 
 interface PosTerminalProps {
@@ -190,7 +197,9 @@ export function PosTerminal({ tableId }: PosTerminalProps) {
       setSelectedTableId(tableId ?? null);
       setOrderId(null);
       clientOrderIdRef.current = crypto.randomUUID();
-      toast.success(`Saved as draft${newOrder.orderNo ? ` — ${newOrder.orderNo}` : ""}. Find it in Order Management.`);
+      toast.success(
+        `Saved as draft${newOrder.orderNo ? ` — ${newOrder.orderNo}` : ""}. Find it in Order Management.`,
+      );
     } catch {
       toast.error("Failed to save draft. Please try again.");
     } finally {

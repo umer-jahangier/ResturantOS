@@ -9,13 +9,16 @@ interface PageTransitionProps {
   className?: string;
 }
 
+// Same SSR-safe "have we hydrated yet?" read as components/ui/theme-toggle.tsx: the
+// server snapshot is false and the client snapshot is true, so React reports false
+// through hydration and true immediately after — without a setState inside an effect.
+const noop = () => () => {};
+const getTrue = () => true;
+const getFalse = () => false;
+
 export function PageTransition({ children, className }: PageTransitionProps) {
   const prefersReducedMotion = useReducedMotion();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = React.useSyncExternalStore(noop, getTrue, getFalse);
 
   // On the server and the first client paint, render a plain, stable wrapper so
   // the hydrated tree matches the server exactly. framer-motion applies its
@@ -26,7 +29,5 @@ export function PageTransition({ children, className }: PageTransitionProps) {
     return <div className={className}>{children}</div>;
   }
 
-  return (
-    <PageTransitionMotion className={className}>{children}</PageTransitionMotion>
-  );
+  return <PageTransitionMotion className={className}>{children}</PageTransitionMotion>;
 }

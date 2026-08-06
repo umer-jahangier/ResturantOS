@@ -19,5 +19,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const tenantSlug = resolveTenantSlug({ host, searchParam: params.tenant });
   const tenantBrandName = tenantSlug ? await resolveTenantBrand(tenantSlug) : null;
 
-  return <LoginForm tenantSlug={tenantSlug} tenantBrandName={tenantBrandName} reason={params.reason} />;
+  return (
+    <LoginForm tenantSlug={tenantSlug} tenantBrandName={tenantBrandName} reason={params.reason} />
+  );
 }

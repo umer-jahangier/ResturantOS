@@ -31,7 +31,9 @@ async function login(page: Page): Promise<void> {
 test.describe("inventory: a fractional unit cost renders instead of crashing", () => {
   test.setTimeout(180_000);
 
-  test("Stock Levels survives a NUMERIC(18,4) average cost and shows it as money", async ({ page }) => {
+  test("Stock Levels survives a NUMERIC(18,4) average cost and shows it as money", async ({
+    page,
+  }) => {
     const crashes: string[] = [];
     page.on("pageerror", (e) => crashes.push(String(e).slice(0, 200)));
 
@@ -50,6 +52,9 @@ test.describe("inventory: a fractional unit cost renders instead of crashing", (
     const body = (await table.textContent()) ?? "";
     expect(body).toMatch(/Rs|PKR|₨/);
 
-    await page.screenshot({ path: "e2e/__screenshots__/inventory-fractional-unit-cost.png", fullPage: true });
+    await page.screenshot({
+      path: "e2e/__screenshots__/inventory-fractional-unit-cost.png",
+      fullPage: true,
+    });
   });
 });

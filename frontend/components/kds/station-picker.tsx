@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { ChefHat, Clock, Layers, Timer } from "lucide-react";
 
 import { useKdsStations, useKdsTickets } from "@/lib/hooks/kds/use-kds-tickets";
-import { mapItemStatusToColumn, KDS_COLUMN_LABELS, type KdsColumnKey } from "@/components/kds/kds-item-column";
+import { useKdsClock } from "@/lib/hooks/kds/use-kds-clock";
+import {
+  mapItemStatusToColumn,
+  KDS_COLUMN_LABELS,
+  type KdsColumnKey,
+} from "@/components/kds/kds-item-column";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { KdsStation, KdsTicket } from "@/lib/models/kds.model";
 
@@ -44,8 +49,12 @@ function computeStationStats(tickets: KdsTicket[], now: number): Map<string, Sta
   const byStation = new Map<string, StationStats>();
   for (const ticket of tickets) {
     if (!isActive(ticket)) continue;
-    const prev = byStation.get(ticket.stationCode)
-      ?? { queueDepth: 0, itemCount: 0, oldestAgeMs: null, columnCounts: emptyColumnCounts() };
+    const prev = byStation.get(ticket.stationCode) ?? {
+      queueDepth: 0,
+      itemCount: 0,
+      oldestAgeMs: null,
+      columnCounts: emptyColumnCounts(),
+    };
     const ageMs = now - ticket.receivedAt.getTime();
     // Tally items into board columns (New/Started/Preparing/Ready); skip cancelled/unmapped.
     let liveItems = 0;
@@ -98,8 +107,11 @@ export function StationPicker({ branchId }: StationPickerProps) {
 
   const activeStations = useMemo(() => stations.filter((s) => s.active), [stations]);
   const singleStation = activeStations.length === 1 ? activeStations[0] : null;
-  // Recomputed each render; useKdsTickets' 10s poll re-renders and freshens the age.
-  const stats = useMemo(() => computeStationStats(tickets, Date.now()), [tickets]);
+  // `now` comes from the shared KDS clock (one 10s tick for every KDS surface) rather
+  // than a `Date.now()` read during render — the latter is impure, and it made the
+  // oldest-ticket age depend on whatever else happened to trigger a re-render.
+  const now = useKdsClock();
+  const stats = useMemo(() => computeStationStats(tickets, now), [tickets, now]);
 
   useEffect(() => {
     if (singleStation) {
@@ -118,7 +130,11 @@ export function StationPicker({ branchId }: StationPickerProps) {
   if (activeStations.length === 0) {
     return (
       <div className="dark bg-gray-950 min-h-screen flex items-center justify-center">
-        <EmptyState icon={ChefHat} title="No active stations configured" className="text-gray-100" />
+        <EmptyState
+          icon={ChefHat}
+          title="No active stations configured"
+          className="text-gray-100"
+        />
       </div>
     );
   }
@@ -159,7 +175,9 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
       onClick={onOpen}
       data-testid={`station-tile-${station.code}`}
       className={`rounded-xl border p-5 text-left transition-colors ${
-        busy ? "border-gray-600 bg-gray-900 hover:border-gray-400" : "border-gray-800 bg-gray-900/60 hover:border-gray-600"
+        busy
+          ? "border-gray-600 bg-gray-900 hover:border-gray-400"
+          : "border-gray-800 bg-gray-900/60 hover:border-gray-600"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -216,8 +234,14 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
               className="rounded-md bg-gray-800/70 px-1.5 py-1 text-center"
               data-testid={`station-${station.code}-col-${col}`}
             >
-              <div className={`text-base font-bold tabular-nums ${n > 0 ? "text-white" : "text-gray-600"}`}>{n}</div>
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">{KDS_COLUMN_LABELS[col]}</div>
+              <div
+                className={`text-base font-bold tabular-nums ${n > 0 ? "text-white" : "text-gray-600"}`}
+              >
+                {n}
+              </div>
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                {KDS_COLUMN_LABELS[col]}
+              </div>
             </div>
           );
         })}

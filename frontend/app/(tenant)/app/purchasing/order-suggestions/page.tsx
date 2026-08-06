@@ -53,7 +53,9 @@ export default function OrderSuggestionsPage() {
   const [deselected, setDeselected] = useState<Set<string>>(new Set());
   const [overrides, setOverrides] = useState<Overrides>({});
 
-  const groups = data?.vendorGroups ?? [];
+  // Memoised because the `?? []` fallback allocates a fresh array on every render while the
+  // query is still loading, which would make the `selectedLines` memo below recompute forever.
+  const groups = useMemo(() => data?.vendorGroups ?? [], [data]);
   const unassigned = data?.unassigned ?? [];
 
   const selectedLines = useMemo(
@@ -285,7 +287,11 @@ function VendorGroupTable({
                     </div>
                   </td>
                   <td className={cellClass}>
-                    {line.unitPricePaisa != null ? <MoneyDisplay paisa={line.unitPricePaisa} /> : "—"}
+                    {line.unitPricePaisa != null ? (
+                      <MoneyDisplay paisa={line.unitPricePaisa} />
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className={cellClass}>
                     <MoneyDisplay paisa={lineTotalPaisa(line, overrides)} />
@@ -310,9 +316,7 @@ function UnassignedTable({ lines }: { lines: OrderSuggestion[] }) {
     <section className="space-y-2">
       <div className="flex items-center gap-2">
         <AlertTriangle className="size-4 text-warning" aria-hidden="true" />
-        <h2 className="text-lg font-semibold">
-          Low, but needs setting up first ({lines.length})
-        </h2>
+        <h2 className="text-lg font-semibold">Low, but needs setting up first ({lines.length})</h2>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">

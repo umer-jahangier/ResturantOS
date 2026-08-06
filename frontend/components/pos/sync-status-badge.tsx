@@ -45,8 +45,7 @@ export function SyncStatusBadge() {
   useEffect(() => {
     const unsubscribe = onProgress((pending, lastError, dead = 0) => {
       // "Drained" only when nothing is queued AND nothing dead-lettered is waiting.
-      const justDrained =
-        prevPendingRef.current > 0 && pending === 0 && dead === 0 && !lastError;
+      const justDrained = prevPendingRef.current > 0 && pending === 0 && dead === 0 && !lastError;
       prevPendingRef.current = pending;
 
       if (justDrained) {
@@ -61,8 +60,7 @@ export function SyncStatusBadge() {
         pending,
         dead,
         lastError,
-        showSynced:
-          justDrained || (prev.showSynced && pending === 0 && dead === 0 && !lastError),
+        showSynced: justDrained || (prev.showSynced && pending === 0 && dead === 0 && !lastError),
       }));
     });
     return () => {
@@ -124,10 +122,7 @@ export function SyncStatusBadge() {
       <span>{label}</span>
 
       {state.lastError && (state.pending > 0 || hasFailed) && (
-        <span
-          className="max-w-[12rem] truncate text-destructive"
-          title={state.lastError}
-        >
+        <span className="max-w-[12rem] truncate text-destructive" title={state.lastError}>
           — {state.lastError}
         </span>
       )}

@@ -35,7 +35,9 @@ import { Button } from "@/components/ui/button";
 // Every field is a string/boolean here because that is what an <input>/toggle-button yields —
 // conversion to RecordVendorItemPriceInput happens on submit.
 const priceFormSchema = z.object({
-  unitPriceRupees: z.string().refine((v) => v.trim() !== "" && Number(v) >= 0, "Enter a unit price"),
+  unitPriceRupees: z
+    .string()
+    .refine((v) => v.trim() !== "" && Number(v) >= 0, "Enter a unit price"),
   priceUom: z.string().min(1, "Price unit is required"),
   effectiveFrom: z.string(),
   scopeToBranch: z.boolean(),
@@ -181,9 +183,7 @@ export function VendorItemPriceDialog({
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to take effect now.
-                  </p>
+                  <p className="text-xs text-muted-foreground">Leave blank to take effect now.</p>
                   <FormMessage />
                 </FormItem>
               )}

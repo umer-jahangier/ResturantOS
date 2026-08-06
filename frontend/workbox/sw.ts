@@ -34,10 +34,7 @@ const NETWORK_ONLY_PATTERNS: RegExp[] = [
 ];
 
 // GET requests for reference data use StaleWhileRevalidate.
-const SWR_PATTERNS: RegExp[] = [
-  /\/api\/v1\/pos\/menu/,
-  /\/api\/v1\/pos\/tables/,
-];
+const SWR_PATTERNS: RegExp[] = [/\/api\/v1\/pos\/menu/, /\/api\/v1\/pos\/tables/];
 
 // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -57,9 +54,7 @@ self.addEventListener("activate", (event: ExtendableEvent) => {
       .then((names) =>
         Promise.all(
           names
-            .filter(
-              (n) => n !== SHELL_CACHE && n !== STATIC_CACHE && n !== API_CACHE,
-            )
+            .filter((n) => n !== SHELL_CACHE && n !== STATIC_CACHE && n !== API_CACHE)
             .map((n) => caches.delete(n)),
         ),
       )
@@ -76,10 +71,7 @@ self.addEventListener("fetch", (event: FetchEvent) => {
   if (url.origin !== self.location.origin) return;
 
   // NetworkOnly for mutations or money-sensitive routes.
-  if (
-    request.method !== "GET" ||
-    NETWORK_ONLY_PATTERNS.some((p) => p.test(url.pathname))
-  ) {
+  if (request.method !== "GET" || NETWORK_ONLY_PATTERNS.some((p) => p.test(url.pathname))) {
     event.respondWith(fetch(request));
     return;
   }
@@ -100,9 +92,7 @@ self.addEventListener("fetch", (event: FetchEvent) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(
-        () =>
-          caches.match("/app/pos") ??
-          new Response("Offline", { status: 503 }),
+        () => caches.match("/app/pos") ?? new Response("Offline", { status: 503 }),
       ),
     );
     return;
@@ -111,10 +101,7 @@ self.addEventListener("fetch", (event: FetchEvent) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function staleWhileRevalidate(
-  request: Request,
-  cacheName: string,
-): Promise<Response> {
+async function staleWhileRevalidate(request: Request, cacheName: string): Promise<Response> {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   const networkFetch = fetch(request).then((response) => {
@@ -124,10 +111,7 @@ async function staleWhileRevalidate(
   return cached ?? networkFetch;
 }
 
-async function cacheFirst(
-  request: Request,
-  cacheName: string,
-): Promise<Response> {
+async function cacheFirst(request: Request, cacheName: string): Promise<Response> {
   const cached = await caches.match(request);
   if (cached) return cached;
   const response = await fetch(request);

@@ -67,7 +67,9 @@ export function adaptDiningTable(raw: ApiDiningTable): DiningTable {
   };
 }
 
-export function adaptOrderItemModifier(raw: ApiOrder["items"][number]["modifiers"][number]): OrderItemModifier {
+export function adaptOrderItemModifier(
+  raw: ApiOrder["items"][number]["modifiers"][number],
+): OrderItemModifier {
   return {
     id: raw.id,
     modifierId: raw.modifierId ?? null,

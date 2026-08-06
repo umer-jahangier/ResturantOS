@@ -297,7 +297,10 @@ export default function InventorySetupPage() {
           </DialogHeader>
 
           {archiveError ? (
-            <div role="alert" className="rounded-lg border bg-card px-2.5 py-2 text-sm text-destructive">
+            <div
+              role="alert"
+              className="rounded-lg border bg-card px-2.5 py-2 text-sm text-destructive"
+            >
               {archiveError}
             </div>
           ) : null}

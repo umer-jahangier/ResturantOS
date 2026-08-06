@@ -32,7 +32,11 @@ export function RecipeVersionStrip({
     sorted.find((version) => new Date(version.effectiveFrom).getTime() <= nowMs)?.id ?? null;
 
   return (
-    <div className={cn("flex flex-wrap gap-2", className)} role="group" aria-label="Recipe versions">
+    <div
+      className={cn("flex flex-wrap gap-2", className)}
+      role="group"
+      aria-label="Recipe versions"
+    >
       {sorted.map((version) => {
         const isSelected = version.id === selectedId;
         const isScheduled = new Date(version.effectiveFrom).getTime() > nowMs;

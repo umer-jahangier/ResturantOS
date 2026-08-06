@@ -37,9 +37,7 @@ describe("enqueue", () => {
       payload: { tableId: "t1" },
     });
 
-    expect(op.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-    );
+    expect(op.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     expect(op.status).toBe("PENDING");
     expect(op.attempts).toBe(0);
     expect(op.createdAt).toBeGreaterThan(0);

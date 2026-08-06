@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 interface Section {
-  id: string
-  label: string
+  id: string;
+  label: string;
 }
 
 interface SectionSwitcherProps {
-  sections: Section[]
-  activeId: string
-  onChange: (id: string) => void
-  ariaLabel: string
-  className?: string
+  sections: Section[];
+  activeId: string;
+  onChange: (id: string) => void;
+  ariaLabel: string;
+  className?: string;
 }
 
 /**
@@ -21,7 +21,13 @@ interface SectionSwitcherProps {
  * Catalog/Price Changes sections (UI-SPEC Screen 6) and any future screen needing lightweight
  * sections without a full Tabs dependency.
  */
-export function SectionSwitcher({ sections, activeId, onChange, ariaLabel, className }: SectionSwitcherProps) {
+export function SectionSwitcher({
+  sections,
+  activeId,
+  onChange,
+  ariaLabel,
+  className,
+}: SectionSwitcherProps) {
   return (
     <div
       role="tablist"
@@ -29,7 +35,7 @@ export function SectionSwitcher({ sections, activeId, onChange, ariaLabel, class
       className={cn("inline-flex items-center gap-1 rounded-lg border bg-muted p-1", className)}
     >
       {sections.map((section) => {
-        const active = section.id === activeId
+        const active = section.id === activeId;
         return (
           <button
             key={section.id}
@@ -42,13 +48,13 @@ export function SectionSwitcher({ sections, activeId, onChange, ariaLabel, class
               "rounded-md px-3 py-1.5 text-sm transition-colors",
               active
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {section.label}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

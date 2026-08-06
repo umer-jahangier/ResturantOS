@@ -1,7 +1,4 @@
-import type {
-  ApiCustomerSummary,
-  ApiPromotion,
-} from "@/lib/api-client/schemas/crm.schema";
+import type { ApiCustomerSummary, ApiPromotion } from "@/lib/api-client/schemas/crm.schema";
 import type { Customer, LoyaltyTier, Promotion } from "@/lib/models/crm.model";
 
 export function adaptCustomer(raw: ApiCustomerSummary): Customer {

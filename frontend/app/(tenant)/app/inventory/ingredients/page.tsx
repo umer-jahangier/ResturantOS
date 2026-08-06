@@ -73,7 +73,8 @@ export default function IngredientsPage() {
   // argument); the allergen multi-select has no server-side filter param, so it's applied here —
   // a row matches if it carries ANY of the selected allergen codes (multi-select-as-OR).
   const rows = (ingredients ?? []).filter(
-    (i) => allergenFilter.length === 0 || allergenFilter.some((code) => i.allergenCodes.includes(code)),
+    (i) =>
+      allergenFilter.length === 0 || allergenFilter.some((code) => i.allergenCodes.includes(code)),
   );
 
   function openCreate() {
@@ -187,11 +188,16 @@ export default function IngredientsPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => openEdit(row.original)}>Edit</DropdownMenuItem>
             {row.original.active ? (
-              <DropdownMenuItem variant="destructive" onSelect={() => handleArchiveRequest(row.original)}>
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => handleArchiveRequest(row.original)}
+              >
                 Archive
               </DropdownMenuItem>
             ) : (
-              <DropdownMenuItem onSelect={() => handleRestore(row.original)}>Restore</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => handleRestore(row.original)}>
+                Restore
+              </DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -253,7 +259,11 @@ export default function IngredientsPage() {
 
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">Allergens</span>
-          <AllergenPillToggle value={allergenFilter} onChange={setAllergenFilter} className="max-w-md" />
+          <AllergenPillToggle
+            value={allergenFilter}
+            onChange={setAllergenFilter}
+            className="max-w-md"
+          />
         </div>
       </div>
 
@@ -278,7 +288,9 @@ export default function IngredientsPage() {
           by every row's Edit action (which has no button of its own to compose a DialogTrigger
           from), mirroring CategoryFormDialog's controlled-dialog extension (08.2-14). */}
       <IngredientFormDialog
-        key={formTarget?.mode === "edit" ? `edit-${formTarget.ingredient.id}` : "ingredient-form-idle"}
+        key={
+          formTarget?.mode === "edit" ? `edit-${formTarget.ingredient.id}` : "ingredient-form-idle"
+        }
         ingredient={formTarget?.mode === "edit" ? formTarget.ingredient : undefined}
         open={formTarget !== null}
         onOpenChange={(next) => {

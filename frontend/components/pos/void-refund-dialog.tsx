@@ -72,9 +72,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
   const handleRefund = async () => {
     if (!refundReason.trim()) return;
     const refundPaisa =
-      refundScope === "FULL"
-        ? order.totalPaisa
-        : Math.round(parseFloat(refundAmount || "0") * 100);
+      refundScope === "FULL" ? order.totalPaisa : Math.round(parseFloat(refundAmount || "0") * 100);
     if (refundPaisa <= 0) return;
     const idempotencyKey = generateKey();
     await refundMutation.mutateAsync({
@@ -99,7 +97,10 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
         <div className="flex flex-wrap items-start justify-between gap-2 border-b pb-3">
           <div className="flex flex-col gap-0.5">
             <h2
-              className={cn("font-heading text-base font-semibold", mode === "void" && "text-destructive")}
+              className={cn(
+                "font-heading text-base font-semibold",
+                mode === "void" && "text-destructive",
+              )}
             >
               {mode === "void" ? "Void Order" : "Refund Order"}
             </h2>
@@ -116,8 +117,8 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
         {mode === "void" ? (
           <>
             <p className="text-sm text-muted-foreground">
-              This will cancel order <strong>#{order.orderNo ?? order.id.slice(0, 8)}</strong>.
-              This action cannot be undone.
+              This will cancel order <strong>#{order.orderNo ?? order.id.slice(0, 8)}</strong>. This
+              action cannot be undone.
             </p>
             <label className="text-sm">
               Reason <span className="text-destructive">*</span>
@@ -214,7 +215,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
                 disabled={!refundReason.trim() || refundMutation.isPending}
                 className={cn(
                   "text-sm px-4 py-2 rounded font-medium disabled:opacity-50",
-                  "bg-warning text-warning-foreground hover:bg-warning/90"
+                  "bg-warning text-warning-foreground hover:bg-warning/90",
                 )}
               >
                 {refundMutation.isPending ? "Processing…" : "Confirm Refund"}
@@ -234,7 +235,10 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
       <PermissionGuard require={["pos.order.void.own", "pos.order.void.any"]} mode="any">
         {canVoidOwn && (
           <button
-            onClick={() => { setMode("void"); setOpen(true); }}
+            onClick={() => {
+              setMode("void");
+              setOpen(true);
+            }}
             aria-label="Void order"
             className="text-xs px-3 py-1 rounded border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition"
           >
@@ -246,7 +250,10 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
       <PermissionGuard require="pos.order.refund">
         {canRefund && (
           <button
-            onClick={() => { setMode("refund"); setOpen(true); }}
+            onClick={() => {
+              setMode("refund");
+              setOpen(true);
+            }}
             aria-label="Refund order"
             className="text-xs px-3 py-1 rounded border border-warning text-warning hover:bg-warning/10 transition"
           >

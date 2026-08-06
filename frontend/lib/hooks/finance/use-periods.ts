@@ -46,8 +46,7 @@ export function useProvisionPeriods() {
   const { branchId } = useCurrentUser();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (req: { fiscalYear: number }) =>
-      FinanceRepository.provisionPeriods(req.fiscalYear),
+    mutationFn: (req: { fiscalYear: number }) => FinanceRepository.provisionPeriods(req.fiscalYear),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["finance", branchId, "periods"],

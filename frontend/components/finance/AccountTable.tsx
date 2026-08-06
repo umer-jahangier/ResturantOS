@@ -11,9 +11,7 @@ interface AccountTableProps {
 
 function AccountTable({ typeFilter }: AccountTableProps) {
   const router = useRouter();
-  const { data, isLoading, isError } = useAccounts(
-    typeFilter ? { type: typeFilter } : undefined,
-  );
+  const { data, isLoading, isError } = useAccounts(typeFilter ? { type: typeFilter } : undefined);
 
   if (isLoading) {
     return (
@@ -59,13 +57,9 @@ function AccountTable({ typeFilter }: AccountTableProps) {
                 }
               }}
             >
-              <td className="py-2 pr-4 font-mono tabular-nums text-sm">
-                {account.code}
-              </td>
+              <td className="py-2 pr-4 font-mono tabular-nums text-sm">{account.code}</td>
               <td className="py-2 pr-4">{account.name}</td>
-              <td className="py-2 pr-4 text-xs text-muted-foreground">
-                {account.accountType}
-              </td>
+              <td className="py-2 pr-4 text-xs text-muted-foreground">{account.accountType}</td>
               <td className="py-2 pr-4">
                 <StatusBadge
                   status={account.active ? "active" : "inactive"}

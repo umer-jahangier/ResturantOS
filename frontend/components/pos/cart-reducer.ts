@@ -30,7 +30,11 @@ export interface AddLineInput {
  * mods=[b,a]. Differing modifiers/notes (including "" vs null-equivalent empty
  * string) produce a distinct key and therefore a separate cart line.
  */
-export function cartLineKey(menuItemId: string, modifierIds: string[], notes: string | null): string {
+export function cartLineKey(
+  menuItemId: string,
+  modifierIds: string[],
+  notes: string | null,
+): string {
   const sortedMods = [...modifierIds].sort().join(",");
   return `${menuItemId}::${sortedMods}::${notes ?? ""}`;
 }
@@ -66,12 +70,16 @@ export function addLine(cart: CartLine[], input: AddLineInput): CartLine[] {
     ];
   }
 
-  return cart.map((line, i) => (i === idx ? { ...line, quantity: line.quantity + quantity } : line));
+  return cart.map((line, i) =>
+    i === idx ? { ...line, quantity: line.quantity + quantity } : line,
+  );
 }
 
 /** Increments the line matching `key` by 1 (the order panel's "+" stepper). */
 export function incrementLine(cart: CartLine[], key: string): CartLine[] {
-  return cart.map((line) => (keyOf(line) === key ? { ...line, quantity: line.quantity + 1 } : line));
+  return cart.map((line) =>
+    keyOf(line) === key ? { ...line, quantity: line.quantity + 1 } : line,
+  );
 }
 
 /**

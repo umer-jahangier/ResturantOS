@@ -31,10 +31,7 @@ function ArAgingTable({ aging }: ArAgingTableProps) {
           {aging.buckets.map((bucket) => {
             const isOverdue = bucket.label.toLowerCase().includes("over");
             return (
-              <tr
-                key={bucket.label}
-                className={cn("border-b", isOverdue && "bg-destructive/10")}
-              >
+              <tr key={bucket.label} className={cn("border-b", isOverdue && "bg-destructive/10")}>
                 <td className={cn("py-2 pr-4 font-medium", isOverdue && "text-destructive")}>
                   {bucket.label}
                 </td>

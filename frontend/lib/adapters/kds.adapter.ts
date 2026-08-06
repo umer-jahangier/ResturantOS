@@ -1,7 +1,11 @@
 // Layer-2 adapters: raw API shapes → domain models.
 // The adapter layer is the only code that touches field name mapping between wire format and domain.
 
-import type { ApiKdsTicket, ApiKdsTicketItem, ApiKdsStation } from "@/lib/api-client/schemas/kds.schema";
+import type {
+  ApiKdsTicket,
+  ApiKdsTicketItem,
+  ApiKdsStation,
+} from "@/lib/api-client/schemas/kds.schema";
 import type { KdsTicket, KdsTicketItem, KdsStation } from "@/lib/models/kds.model";
 
 export function adaptKdsTicketItem(raw: ApiKdsTicketItem): KdsTicketItem {

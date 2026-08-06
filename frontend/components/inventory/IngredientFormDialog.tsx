@@ -138,7 +138,9 @@ function defaultsFor(ingredient?: Ingredient): IngredientFormValues {
 function toIngredientInput(values: IngredientFormValues): Omit<IngredientInput, "sku"> {
   const trimmed = (v: string) => (v.trim() === "" ? undefined : v.trim());
   const conversions = values.conversions
-    .filter((c) => c.fromUomCode.trim() !== "" && c.toUomCode.trim() !== "" && c.factor.trim() !== "")
+    .filter(
+      (c) => c.fromUomCode.trim() !== "" && c.toUomCode.trim() !== "" && c.factor.trim() !== "",
+    )
     .map((c) => ({
       fromUomCode: c.fromUomCode.trim(),
       toUomCode: c.toUomCode.trim(),
@@ -156,10 +158,13 @@ function toIngredientInput(values: IngredientFormValues): Omit<IngredientInput, 
     // Only a prepared item may name a producing recipe — the server rejects the pair outright
     // rather than silently dropping it, so a stale id left behind by switching the type back to
     // Purchased must not be sent.
-    producedByRecipeId: isPrepared(values.itemType) ? trimmed(values.producedByRecipeId) : undefined,
+    producedByRecipeId: isPrepared(values.itemType)
+      ? trimmed(values.producedByRecipeId)
+      : undefined,
     measureType: trimmed(values.measureType),
     recipeUomCode: trimmed(values.recipeUomCode),
-    defaultYieldPct: values.defaultYieldPct.trim() === "" ? undefined : values.defaultYieldPct.trim(),
+    defaultYieldPct:
+      values.defaultYieldPct.trim() === "" ? undefined : values.defaultYieldPct.trim(),
     storageLocationId: trimmed(values.storageLocationId),
     shelfLifeDays: values.shelfLifeDays.trim() === "" ? undefined : Number(values.shelfLifeDays),
     perishable: values.perishable,
@@ -325,7 +330,9 @@ export function IngredientFormDialog({
                     name="shortName"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="A shorter label for tight spaces — count sheets, kitchen tickets, narrow reports.">Short name</FieldLabel>
+                        <FieldLabel help="A shorter label for tight spaces — count sheets, kitchen tickets, narrow reports.">
+                          Short name
+                        </FieldLabel>
                         <FormControl>
                           <Input placeholder="Optional" {...field} />
                         </FormControl>
@@ -339,7 +346,9 @@ export function IngredientFormDialog({
                     name="sku"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="Your own code for this item. Used to search for it and to line it up with supplier catalogues. It can’t be changed later.">SKU</FieldLabel>
+                        <FieldLabel help="Your own code for this item. Used to search for it and to line it up with supplier catalogues. It can’t be changed later.">
+                          SKU
+                        </FieldLabel>
                         <FormControl>
                           <Input placeholder="ING-CHK" disabled={isEdit} {...field} />
                         </FormControl>
@@ -358,9 +367,15 @@ export function IngredientFormDialog({
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="Decides which GL accounts this item posts to, and how it’s grouped in cost reports. Every item needs exactly one.">Primary category *</FieldLabel>
+                        <FieldLabel help="Decides which GL accounts this item posts to, and how it’s grouped in cost reports. Every item needs exactly one.">
+                          Primary category *
+                        </FieldLabel>
                         <FormControl>
-                          <select {...field} aria-label="Primary category *" className={selectClass}>
+                          <select
+                            {...field}
+                            aria-label="Primary category *"
+                            className={selectClass}
+                          >
                             <option value="">Select a category…</option>
                             {activeCategories.map((c) => (
                               <option key={c.id} value={c.id}>
@@ -379,7 +394,9 @@ export function IngredientFormDialog({
                     name="itemType"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="Purchased = you buy it in. Prepared = your kitchen makes it. Both = you do either, depending on the day.">Item type</FieldLabel>
+                        <FieldLabel help="Purchased = you buy it in. Prepared = your kitchen makes it. Both = you do either, depending on the day.">
+                          Item type
+                        </FieldLabel>
                         <FormControl>
                           <select
                             {...field}
@@ -413,7 +430,9 @@ export function IngredientFormDialog({
                       name="producedByRecipeId"
                       render={({ field }) => (
                         <FormItem className="sm:col-span-2">
-                          <FieldLabel help="The recipe your kitchen follows to make this item.">Produced by recipe</FieldLabel>
+                          <FieldLabel help="The recipe your kitchen follows to make this item.">
+                            Produced by recipe
+                          </FieldLabel>
                           <FormControl>
                             <select
                               {...field}
@@ -464,7 +483,9 @@ export function IngredientFormDialog({
                     name="measureType"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="Whether you track this by weight, by volume, or by counting units. It locks once stock has moved.">Measure type</FieldLabel>
+                        <FieldLabel help="Whether you track this by weight, by volume, or by counting units. It locks once stock has moved.">
+                          Measure type
+                        </FieldLabel>
                         <FormControl>
                           {locked ? (
                             <Tooltip>
@@ -516,7 +537,9 @@ export function IngredientFormDialog({
                     name="baseUomCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="The unit you hold and count stock in. Everything else converts to this.">Stock unit</FieldLabel>
+                        <FieldLabel help="The unit you hold and count stock in. Everything else converts to this.">
+                          Stock unit
+                        </FieldLabel>
                         <FormControl>
                           {locked ? (
                             <Tooltip>
@@ -553,7 +576,9 @@ export function IngredientFormDialog({
                     name="recipeUomCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="The unit recipes usually call for, when that differs from how you stock it — stocked in kg, cooked in g.">Recipe unit</FieldLabel>
+                        <FieldLabel help="The unit recipes usually call for, when that differs from how you stock it — stocked in kg, cooked in g.">
+                          Recipe unit
+                        </FieldLabel>
                         <FormControl>
                           <select {...field} aria-label="Recipe unit" className={selectClass}>
                             <option value="">Same as stock unit</option>
@@ -570,7 +595,9 @@ export function IngredientFormDialog({
                     name="defaultYieldPct"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="How much is left after trimming, peeling or boning. 100% means no loss; chicken at 95% means 1 kg buys you 950 g usable.">Default yield %</FieldLabel>
+                        <FieldLabel help="How much is left after trimming, peeling or boning. 100% means no loss; chicken at 95% means 1 kg buys you 950 g usable.">
+                          Default yield %
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="100" {...field} />
                         </FormControl>
@@ -687,7 +714,9 @@ export function IngredientFormDialog({
                     name="parLevel"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="How much you want on the shelf when fully stocked. Ordering suggestions top you back up to this number.">Par level</FieldLabel>
+                        <FieldLabel help="How much you want on the shelf when fully stocked. Ordering suggestions top you back up to this number.">
+                          Par level
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="Optional" {...field} />
                         </FormControl>
@@ -701,7 +730,9 @@ export function IngredientFormDialog({
                     name="reorderPoint"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="The level that triggers a low-stock warning. Set it high enough to cover how long your supplier takes to deliver.">Reorder point</FieldLabel>
+                        <FieldLabel help="The level that triggers a low-stock warning. Set it high enough to cover how long your supplier takes to deliver.">
+                          Reorder point
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="decimal" placeholder="10" {...field} />
                         </FormControl>
@@ -718,7 +749,9 @@ export function IngredientFormDialog({
                     name="storageLocationId"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="Where this physically lives, so a count sheet can follow the room instead of jumping around.">Storage location</FieldLabel>
+                        <FieldLabel help="Where this physically lives, so a count sheet can follow the room instead of jumping around.">
+                          Storage location
+                        </FieldLabel>
                         <FormControl>
                           <select {...field} aria-label="Storage location" className={selectClass}>
                             <option value="">Not specified</option>
@@ -744,7 +777,9 @@ export function IngredientFormDialog({
                     name="shelfLifeDays"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="How long it stays good after delivery. Used to warn you before stock expires.">Shelf life (days)</FieldLabel>
+                        <FieldLabel help="How long it stays good after delivery. Used to warn you before stock expires.">
+                          Shelf life (days)
+                        </FieldLabel>
                         <FormControl>
                           <Input inputMode="numeric" placeholder="Optional" {...field} />
                         </FormControl>
@@ -758,7 +793,9 @@ export function IngredientFormDialog({
                     name="perishable"
                     render={({ field }) => (
                       <FormItem>
-                        <FieldLabel help="Mark items that spoil. These are tracked by expiry date and always used oldest-first.">Perishable</FieldLabel>
+                        <FieldLabel help="Mark items that spoil. These are tracked by expiry date and always used oldest-first.">
+                          Perishable
+                        </FieldLabel>
                         <FormControl>
                           <button
                             type="button"
@@ -789,7 +826,9 @@ export function IngredientFormDialog({
                   name="allergenCodes"
                   render={({ field }) => (
                     <FormItem>
-                      <FieldLabel help="Carries through to every recipe using this item, and onto menus and kitchen tickets.">Allergens</FieldLabel>
+                      <FieldLabel help="Carries through to every recipe using this item, and onto menus and kitchen tickets.">
+                        Allergens
+                      </FieldLabel>
                       <FormControl>
                         <AllergenPillToggle value={field.value} onChange={field.onChange} />
                       </FormControl>

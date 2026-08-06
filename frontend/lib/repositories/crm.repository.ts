@@ -29,7 +29,11 @@ export const CrmRepository = {
     const raw = await post<unknown, unknown>("/api/v1/crm/customers", body);
     // POST returns the bare customer (no loyalty account exists yet on create).
     return adaptCustomer(
-      apiCustomerSummarySchema.parse({ pointsBalance: 0, lifetimeSpendPaisa: 0, ...(raw as object) }),
+      apiCustomerSummarySchema.parse({
+        pointsBalance: 0,
+        lifetimeSpendPaisa: 0,
+        ...(raw as object),
+      }),
     );
   },
 

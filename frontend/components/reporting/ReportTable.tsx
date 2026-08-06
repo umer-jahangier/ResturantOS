@@ -48,7 +48,10 @@ export function ReportTable({ result, isLoading }: ReportTableProps) {
           ))}
         </div>
         {Array.from({ length: 6 }).map((_, rowIndex) => (
-          <div key={rowIndex} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0">
+          <div
+            key={rowIndex}
+            className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0"
+          >
             {Array.from({ length: 5 }).map((_, colIndex) => (
               <Skeleton key={colIndex} className="h-4 w-24" />
             ))}

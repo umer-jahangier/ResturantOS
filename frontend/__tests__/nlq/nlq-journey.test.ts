@@ -29,7 +29,9 @@ describe("NlqRepository journey (12-09, MSW round-trip)", () => {
   it("runQuery_missingTenantFilter: rejected as TENANT_FILTER_MISSING, not a crash", async () => {
     await expect(
       NlqRepository.runQuery("__reject_tenant_filter show all revenue"),
-    ).rejects.toSatisfy((e: unknown) => e instanceof ApiError && e.code === "TENANT_FILTER_MISSING");
+    ).rejects.toSatisfy(
+      (e: unknown) => e instanceof ApiError && e.code === "TENANT_FILTER_MISSING",
+    );
   });
 
   it("runQuery_piiColumn: rejected as PII_COLUMN_DENIED", async () => {
@@ -39,15 +41,13 @@ describe("NlqRepository journey (12-09, MSW round-trip)", () => {
   });
 
   it("runQuery_writeAttempt: a non-read query is rejected as SHAPE_INVALID", async () => {
-    await expect(
-      NlqRepository.runQuery("__reject_shape delete all orders"),
-    ).rejects.toSatisfy((e: unknown) => e instanceof ApiError && e.code === "SHAPE_INVALID");
+    await expect(NlqRepository.runQuery("__reject_shape delete all orders")).rejects.toSatisfy(
+      (e: unknown) => e instanceof ApiError && e.code === "SHAPE_INVALID",
+    );
   });
 
   it("runQuery_overQuota: surfaces the 429 quota rejection as a typed code", async () => {
-    await expect(
-      NlqRepository.runQuery("__reject_quota one more question"),
-    ).rejects.toSatisfy(
+    await expect(NlqRepository.runQuery("__reject_quota one more question")).rejects.toSatisfy(
       (e: unknown) => e instanceof ApiError && e.code === "QUOTA_EXCEEDED_HOURLY",
     );
   });

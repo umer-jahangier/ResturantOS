@@ -5,7 +5,10 @@ import { PosRepository } from "@/lib/repositories/pos.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { MenuCategory, MenuItem } from "@/lib/models/pos.model";
-import type { CreateMenuCategoryInput, CreateMenuItemInput } from "@/lib/api-client/schemas/pos.schema";
+import type {
+  CreateMenuCategoryInput,
+  CreateMenuItemInput,
+} from "@/lib/api-client/schemas/pos.schema";
 // Type-only import — permitted from a lib/hooks/** file (the ESLint layer-boundary rule only
 // blocks components/**); mirrors use-inventory.ts's exact justification for this import.
 import type { ApiError } from "@/lib/api-client/errors";

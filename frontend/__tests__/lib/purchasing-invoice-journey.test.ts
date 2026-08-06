@@ -65,7 +65,9 @@ describe("PurchasingRepository invoice + payment journey (10-13 gap closure, MSW
       "Vendor price increase approved by manager verbally",
     );
     expect(overridden.status).toBe("APPROVED_FOR_PAYMENT");
-    expect(overridden.matchOverrideReason).toBe("Vendor price increase approved by manager verbally");
+    expect(overridden.matchOverrideReason).toBe(
+      "Vendor price increase approved by manager verbally",
+    );
   });
 
   it("createApPayment -> PAID, and the request body carries amountPaisa as a paisa integer (not a float rupee value)", async () => {
@@ -83,7 +85,13 @@ describe("PurchasingRepository invoice + payment journey (10-13 gap closure, MSW
     // The classic money bug this codebase deliberately avoids: the write-payload schema requires
     // amountPaisa to be a whole-paisa INTEGER, not `1500.00` (a float rupee value smuggled into
     // the paisa field) -- `.int()` rejects it before the request is ever sent.
-    expect(() => createApPaymentInputSchema.parse({ invoiceId: invoice.id, paymentDate: "2026-07-13", amountPaisa: 1500.5 })).toThrow();
+    expect(() =>
+      createApPaymentInputSchema.parse({
+        invoiceId: invoice.id,
+        paymentDate: "2026-07-13",
+        amountPaisa: 1500.5,
+      }),
+    ).toThrow();
     const parsed = createApPaymentInputSchema.parse({
       invoiceId: invoice.id,
       paymentDate: "2026-07-13",

@@ -65,7 +65,12 @@ function renderVendorItemFormDialog(vendorItem?: VendorItem) {
   const Wrapper = createQueryWrapper();
   return render(
     <Wrapper>
-      <VendorItemFormDialog vendorId={VENDOR_ID} vendorItem={vendorItem} open onOpenChange={() => {}} />
+      <VendorItemFormDialog
+        vendorId={VENDOR_ID}
+        vendorItem={vendorItem}
+        open
+        onOpenChange={() => {}}
+      />
     </Wrapper>,
   );
 }
@@ -98,7 +103,9 @@ describe("Vendor catalog — append-only pricing and no in-place edit (PUR-07, T
     const initialDataRowCount = screen.getAllByRole("row").length - 1;
 
     await user.click(screen.getByRole("tab", { name: "Catalog" }));
-    await user.click(await screen.findByRole("button", { name: `Actions for ${VENDOR_ITEM_1_SKU}` }));
+    await user.click(
+      await screen.findByRole("button", { name: `Actions for ${VENDOR_ITEM_1_SKU}` }),
+    );
     await user.click(await screen.findByRole("menuitem", { name: "Record new price" }));
 
     const dialog = await screen.findByRole("dialog");
@@ -137,7 +144,9 @@ describe("Vendor catalog — append-only pricing and no in-place edit (PUR-07, T
     renderVendorDetailPage(VENDOR_ID);
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: `Actions for ${VENDOR_ITEM_1_SKU}` }));
+    await user.click(
+      await screen.findByRole("button", { name: `Actions for ${VENDOR_ITEM_1_SKU}` }),
+    );
 
     // The only price action creates a new price; no control implies overwriting an existing one.
     expect(await screen.findByRole("menuitem", { name: "Record new price" })).toBeInTheDocument();

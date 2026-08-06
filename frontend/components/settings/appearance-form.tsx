@@ -5,10 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
-import {
-  generatePalette,
-  type ThemePalette,
-} from "@/lib/theme/palette-generator";
+import { generatePalette, type ThemePalette } from "@/lib/theme/palette-generator";
 
 const PRESET_COLOURS = [
   { label: "Ocean Blue", hex: "#3b82f6" },
@@ -24,16 +21,12 @@ const PRESET_COLOURS = [
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
 
 const appearanceSchema = z.object({
-  brandColor: z
+  brandColor: z.string().regex(HEX_REGEX, "Must be a valid 6-digit hex colour (e.g. #3b82f6)"),
+  logoUrl: z
     .string()
-    .regex(HEX_REGEX, "Must be a valid 6-digit hex colour (e.g. #3b82f6)"),
-  logoUrl: z.string().refine(
-    (val) =>
-      val === "" ||
-      val.startsWith("http://") ||
-      val.startsWith("https://"),
-    { message: "Must be a valid URL starting with http:// or https://" },
-  ),
+    .refine((val) => val === "" || val.startsWith("http://") || val.startsWith("https://"), {
+      message: "Must be a valid URL starting with http:// or https://",
+    }),
 });
 
 type AppearanceFormValues = z.infer<typeof appearanceSchema>;
@@ -72,22 +65,16 @@ function PaletteSwatch({
         className="flex items-center justify-center rounded-md px-4 py-3 text-sm font-medium"
         style={{ background: scale[500], color: foreground }}
       >
-        Sample Text — AA{" "}
-        {foreground === "#ffffff" ? "white-on-dark" : "black-on-light"}
+        Sample Text — AA {foreground === "#ffffff" ? "white-on-dark" : "black-on-light"}
       </div>
     </div>
   );
 }
 
-export function AppearanceForm({
-  initialColor = "#3b82f6",
-  onSave,
-}: AppearanceFormProps) {
+export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceFormProps) {
   const [brandColor, setBrandColor] = useState(initialColor);
   const [hexInput, setHexInput] = useState(initialColor.replace(/^#/, ""));
-  const [palette, setPalette] = useState<ThemePalette>(() =>
-    generatePalette(initialColor),
-  );
+  const [palette, setPalette] = useState<ThemePalette>(() => generatePalette(initialColor));
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const {
@@ -142,16 +129,10 @@ export function AppearanceForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-8"
-      aria-label="Appearance settings"
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" aria-label="Appearance settings">
       {/* Preset colour swatches */}
       <fieldset className="space-y-3">
-        <legend className="text-sm font-medium text-foreground">
-          Brand colour presets
-        </legend>
+        <legend className="text-sm font-medium text-foreground">Brand colour presets</legend>
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
           {PRESET_COLOURS.map(({ label, hex }) => (
             <button
@@ -166,8 +147,7 @@ export function AppearanceForm({
                 className="h-10 w-10 rounded-full border-2 transition-all"
                 style={{
                   background: hex,
-                  borderColor:
-                    brandColor === hex ? "var(--foreground)" : "transparent",
+                  borderColor: brandColor === hex ? "var(--foreground)" : "transparent",
                   boxShadow:
                     brandColor === hex
                       ? "0 0 0 2px var(--background), 0 0 0 4px var(--foreground)"
@@ -182,10 +162,7 @@ export function AppearanceForm({
 
       {/* Custom hex input — fully controlled, no useEffect needed */}
       <div className="flex flex-col gap-1">
-        <label
-          className="text-sm font-medium text-foreground"
-          htmlFor="brand-hex"
-        >
+        <label className="text-sm font-medium text-foreground" htmlFor="brand-hex">
           Custom hex colour
         </label>
         <div className="flex items-center gap-2">
@@ -200,9 +177,7 @@ export function AppearanceForm({
             placeholder="3b82f6"
             className="w-32 rounded-md border border-input bg-background px-3 py-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Custom brand colour — 6 hex digits without #"
-            aria-describedby={
-              errors.brandColor ? "hex-error" : undefined
-            }
+            aria-describedby={errors.brandColor ? "hex-error" : undefined}
           />
           {hexInput.length === 6 && (
             <div
@@ -213,11 +188,7 @@ export function AppearanceForm({
           )}
         </div>
         {errors.brandColor && (
-          <p
-            id="hex-error"
-            role="alert"
-            className="mt-0.5 text-xs text-destructive"
-          >
+          <p id="hex-error" role="alert" className="mt-0.5 text-xs text-destructive">
             {errors.brandColor.message}
           </p>
         )}
@@ -233,8 +204,8 @@ export function AppearanceForm({
           className="flex items-center gap-2 rounded-md border border-warning bg-warning/15 px-4 py-3 text-sm text-warning-foreground"
         >
           <span aria-hidden="true">⚠</span>
-          This colour does not meet WCAG AA contrast (4.5:1). Save is disabled
-          until a valid colour is selected.
+          This colour does not meet WCAG AA contrast (4.5:1). Save is disabled until a valid colour
+          is selected.
         </div>
       )}
 
@@ -246,10 +217,7 @@ export function AppearanceForm({
 
       {/* Logo URL input */}
       <div className="flex flex-col gap-1">
-        <label
-          htmlFor="logo-url"
-          className="text-sm font-medium text-foreground"
-        >
+        <label htmlFor="logo-url" className="text-sm font-medium text-foreground">
           Logo URL
         </label>
         <input
@@ -261,8 +229,8 @@ export function AppearanceForm({
           aria-describedby="logo-url-hint"
         />
         <p id="logo-url-hint" className="text-xs text-muted-foreground">
-          File upload will be available in a future release. Provide a publicly
-          accessible URL for now.
+          File upload will be available in a future release. Provide a publicly accessible URL for
+          now.
         </p>
         {errors.logoUrl && (
           <p role="alert" className="mt-0.5 text-xs text-destructive">

@@ -37,9 +37,7 @@ function MenuItemRecipeRow({
           {menuItem.name}
         </Link>
       </td>
-      <td className="py-2 pr-4">
-        {coverageState ? <StatusBadge status={coverageState} /> : "—"}
-      </td>
+      <td className="py-2 pr-4">{coverageState ? <StatusBadge status={coverageState} /> : "—"}</td>
       <td className="py-2 pr-4">{versions?.length ?? "—"}</td>
     </tr>
   );

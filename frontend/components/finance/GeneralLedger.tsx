@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGlBalances } from "@/lib/hooks/finance/use-gl";
 import { usePeriods } from "@/lib/hooks/finance/use-periods";
@@ -16,17 +16,12 @@ function GeneralLedger() {
   const { data: setupStatus } = useFinanceSetupStatus();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
 
+  // `selectedPeriodId` holds the user's explicit choice only; until they make one the
+  // active period is DERIVED from the loaded list. The effect that used to copy this
+  // derived value back into state was pure redundancy — every read below already goes
+  // through `activePeriodId`, so the copy changed nothing except costing an extra render.
   const activePeriodId =
-    selectedPeriodId ||
-    periods?.find((p) => p.status === "OPEN")?.id ||
-    periods?.[0]?.id ||
-    "";
-
-  useEffect(() => {
-    if (!selectedPeriodId && activePeriodId) {
-      setSelectedPeriodId(activePeriodId);
-    }
-  }, [activePeriodId, selectedPeriodId]);
+    selectedPeriodId || periods?.find((p) => p.status === "OPEN")?.id || periods?.[0]?.id || "";
 
   const { data: balances, isLoading, isError } = useGlBalances(activePeriodId);
 
@@ -110,9 +105,7 @@ function GeneralLedger() {
                     }
                   }}
                 >
-                  <td className="py-2 pr-4 font-mono tabular-nums text-sm">
-                    {row.accountCode}
-                  </td>
+                  <td className="py-2 pr-4 font-mono tabular-nums text-sm">{row.accountCode}</td>
                   <td className="py-2 pr-4">{row.accountName}</td>
                   <td className="w-32 py-2 text-right font-mono tabular-nums">
                     <MoneyDisplay paisa={row.debitTotal} />

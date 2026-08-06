@@ -41,9 +41,7 @@ describe("replay — basic sync", () => {
 
     expect(result).toEqual({ synced: 1, failed: 0 });
     expect(mockCreateOrder).toHaveBeenCalledOnce();
-    expect(mockCreateOrder).toHaveBeenCalledWith(
-      expect.objectContaining({ clientOrderId }),
-    );
+    expect(mockCreateOrder).toHaveBeenCalledWith(expect.objectContaining({ clientOrderId }));
 
     // Outbox should be empty after sync.
     const remaining = await all();
@@ -121,10 +119,7 @@ describe("replay — single-flight guard", () => {
     // Slow server response so the first replay is still in progress when the
     // second is triggered.
     mockCreateOrder.mockImplementation(
-      () =>
-        new Promise((resolve) =>
-          setTimeout(() => resolve({ id: "s", clientOrderId }), 30),
-        ),
+      () => new Promise((resolve) => setTimeout(() => resolve({ id: "s", clientOrderId }), 30)),
     );
     await enqueue({ clientOrderId, type: "CREATE_ORDER", payload: {} });
 

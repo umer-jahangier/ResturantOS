@@ -74,7 +74,10 @@ export const HrRepository = {
     const raw = await post<typeof body, unknown>("/api/v1/hr/employees", body);
     return adaptEmployee(apiEmployeeSchema.parse(raw));
   },
-  async updateEmployee(id: string, input: Omit<CreateEmployeeInput, "employeeNo" | "joinDate">): Promise<Employee> {
+  async updateEmployee(
+    id: string,
+    input: Omit<CreateEmployeeInput, "employeeNo" | "joinDate">,
+  ): Promise<Employee> {
     const raw = await put<typeof input, unknown>(`/api/v1/hr/employees/${id}`, input);
     return adaptEmployee(apiEmployeeSchema.parse(raw));
   },
@@ -100,20 +103,16 @@ export const HrRepository = {
     return adaptPayrollRun(apiPayrollRunSchema.parse(raw));
   },
   async calculateRun(id: string): Promise<PayrollRun> {
-    const raw = await postWithHeaders(
-      `/api/v1/hr/payroll-runs/${id}/calculate`,
-      null,
-      { "Idempotency-Key": crypto.randomUUID() },
-    );
+    const raw = await postWithHeaders(`/api/v1/hr/payroll-runs/${id}/calculate`, null, {
+      "Idempotency-Key": crypto.randomUUID(),
+    });
     return adaptPayrollRun(apiPayrollRunSchema.parse(raw));
   },
   async approveRun(id: string, totpCode: string): Promise<PayrollRun> {
     void totpCode; // TOTP verified upstream; the gate is the X-TOTP-Verified header (finance parity)
-    const raw = await postWithHeaders(
-      `/api/v1/hr/payroll-runs/${id}/approve`,
-      null,
-      { "X-TOTP-Verified": "true" },
-    );
+    const raw = await postWithHeaders(`/api/v1/hr/payroll-runs/${id}/approve`, null, {
+      "X-TOTP-Verified": "true",
+    });
     return adaptPayrollRun(apiPayrollRunSchema.parse(raw));
   },
   async payRun(id: string): Promise<PayrollRun> {
@@ -144,11 +143,15 @@ export const HrRepository = {
     );
     return adaptAssignment(apiAssignmentSchema.parse(raw));
   },
-  async moveAssignment(assignmentId: string, newShiftId: string, newWorkDate: string): Promise<ShiftAssignment> {
-    const raw = await post<{ assignmentId: string; newShiftId: string; newWorkDate: string }, unknown>(
-      "/api/v1/hr/shifts/assignments/move",
-      { assignmentId, newShiftId, newWorkDate },
-    );
+  async moveAssignment(
+    assignmentId: string,
+    newShiftId: string,
+    newWorkDate: string,
+  ): Promise<ShiftAssignment> {
+    const raw = await post<
+      { assignmentId: string; newShiftId: string; newWorkDate: string },
+      unknown
+    >("/api/v1/hr/shifts/assignments/move", { assignmentId, newShiftId, newWorkDate });
     return adaptAssignment(apiAssignmentSchema.parse(raw));
   },
   async unassign(assignmentId: string): Promise<void> {
@@ -211,11 +214,17 @@ export const HrRepository = {
     return (raw ?? []).map((r) => adaptQuarantine(apiQuarantineSchema.parse(r)));
   },
   async resolveQuarantine(id: string, employeeId: string): Promise<void> {
-    await post<undefined, unknown>(`/api/v1/hr/attendance/quarantine/${id}/resolve?employeeId=${employeeId}`);
+    await post<undefined, unknown>(
+      `/api/v1/hr/attendance/quarantine/${id}/resolve?employeeId=${employeeId}`,
+    );
   },
 
   // ── Labour cost ────────────────────────────────────────────────────────────
-  async labourCostByBranch(branchId: string, month: number, year: number): Promise<LabourCostByBranch> {
+  async labourCostByBranch(
+    branchId: string,
+    month: number,
+    year: number,
+  ): Promise<LabourCostByBranch> {
     const raw = await get<unknown>(`/api/v1/hr/labour-cost/branch/${branchId}`, { month, year });
     return adaptLabourCostByBranch(apiLabourCostByBranchSchema.parse(raw));
   },

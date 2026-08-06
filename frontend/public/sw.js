@@ -25,10 +25,7 @@ const NETWORK_ONLY_PATTERNS = [
   /\/api\/v1\/pos\/tills/,
 ];
 
-const SWR_PATTERNS = [
-  /\/api\/v1\/pos\/menu/,
-  /\/api\/v1\/pos\/tables/,
-];
+const SWR_PATTERNS = [/\/api\/v1\/pos\/menu/, /\/api\/v1\/pos\/tables/];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -60,10 +57,7 @@ self.addEventListener("fetch", (event) => {
 
   if (url.origin !== self.location.origin) return;
 
-  if (
-    request.method !== "GET" ||
-    NETWORK_ONLY_PATTERNS.some((p) => p.test(url.pathname))
-  ) {
+  if (request.method !== "GET" || NETWORK_ONLY_PATTERNS.some((p) => p.test(url.pathname))) {
     event.respondWith(fetch(request));
     return;
   }
@@ -80,8 +74,8 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(
-        () => caches.match("/app/pos").then((r) => r ?? new Response("Offline", { status: 503 })),
+      fetch(request).catch(() =>
+        caches.match("/app/pos").then((r) => r ?? new Response("Offline", { status: 503 })),
       ),
     );
     return;

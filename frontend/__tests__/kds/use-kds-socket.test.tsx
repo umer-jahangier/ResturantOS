@@ -110,9 +110,12 @@ describe("useKdsSocket", () => {
   it("merges a pushed ticket into the kds tickets cache", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-    const { result } = renderHook(() => useKdsSocket({ branchId: BRANCH_ID, stationCode: STATION }), {
-      wrapper: makeWrapper(client),
-    });
+    const { result } = renderHook(
+      () => useKdsSocket({ branchId: BRANCH_ID, stationCode: STATION }),
+      {
+        wrapper: makeWrapper(client),
+      },
+    );
 
     act(() => {
       FakeWebSocket.last!.onopen?.();

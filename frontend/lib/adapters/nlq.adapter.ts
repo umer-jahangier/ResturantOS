@@ -1,7 +1,10 @@
 // Layer-2 adapter: raw API shape -> domain model.
 
 import type { z } from "zod";
-import type { apiNlqQueryResponseSchema, apiNlqRowSchema } from "@/lib/api-client/schemas/nlq.schema";
+import type {
+  apiNlqQueryResponseSchema,
+  apiNlqRowSchema,
+} from "@/lib/api-client/schemas/nlq.schema";
 import type { NlqResult, NlqRow } from "@/lib/models/nlq.model";
 
 export type ApiNlqRow = z.infer<typeof apiNlqRowSchema>;

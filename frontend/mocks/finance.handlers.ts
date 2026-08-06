@@ -255,7 +255,10 @@ export const financeHandlers = [
   http.get("*/api/v1/finance/ar/customer-accounts", () => {
     return HttpResponse.json({
       data: customerAccounts,
-      meta: { page: { cursor: "0", nextCursor: null, limit: 50 }, totalCount: customerAccounts.length },
+      meta: {
+        page: { cursor: "0", nextCursor: null, limit: 50 },
+        totalCount: customerAccounts.length,
+      },
       warnings: [],
     });
   }),

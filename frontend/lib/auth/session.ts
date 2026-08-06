@@ -22,12 +22,28 @@ function clearSessionMarker(): void {
 
 interface SessionState {
   session: Session | null;
+  /**
+   * True while the mount-time refresh-token exchange is in flight (driven by
+   * SessionProvider, consumed by the tenant layout's loading gate).
+   *
+   * It lives on the store rather than in SessionProvider's own `useState` because it
+   * describes the SESSION, not a component: the provider's effect starts an external
+   * async operation, and this is that operation's progress being published back — the
+   * "subscribe to an external system" shape React actually wants, instead of a
+   * synchronous setState inside an effect body (react-hooks/set-state-in-effect).
+   *
+   * Always `false` on the server and on the first client paint, so the layout hydrates
+   * to the same markup either way.
+   */
+  isBootstrapping: boolean;
   setSession: (session: Session) => void;
   clearSession: () => void;
+  setBootstrapping: (value: boolean) => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
   session: null,
+  isBootstrapping: false,
   setSession: (session) => {
     writeSessionMarker();
     set({ session });
@@ -36,6 +52,7 @@ export const useSessionStore = create<SessionState>((set) => ({
     clearSessionMarker();
     set({ session: null });
   },
+  setBootstrapping: (value) => set({ isBootstrapping: value }),
 }));
 
 /** Synchronous read of the current session (used by the axios request interceptor). */

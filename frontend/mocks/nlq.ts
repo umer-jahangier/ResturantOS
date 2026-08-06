@@ -150,7 +150,11 @@ export const nlqHandlers = [
       sql: "SELECT menu_item_id, item_name, sum(qty) AS qty_sold FROM fact_sales_by_item WHERE tenant_id = ? AND branch_id = ? GROUP BY menu_item_id, item_name ORDER BY qty_sold DESC LIMIT 1000",
       rows: [
         { menu_item_id: MENU_ITEM_ID, item_name: "Chicken Karahi", qty_sold: 30 },
-        { menu_item_id: "22222222-2222-4222-8222-222222220002", item_name: "Seekh Kebab", qty_sold: 18 },
+        {
+          menu_item_id: "22222222-2222-4222-8222-222222220002",
+          item_name: "Seekh Kebab",
+          qty_sold: 18,
+        },
       ],
       columns: ["menu_item_id", "item_name", "qty_sold"],
       rowCount: 2,

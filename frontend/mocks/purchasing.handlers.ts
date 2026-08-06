@@ -3,7 +3,6 @@ import { http, HttpResponse } from "msw";
 // NOTE: ids below must be well-formed UUIDs (hex only) — apiVendorSchema/apiPurchaseOrderSchema/
 // apiPoLineSchema/apiSpendBucketSchema/apiVendorScorecardSchema all validate id-ish fields with
 // z.string().uuid(), and PurchasingRepository always .parse()s before adapting (FE-08).
-const TENANT = "a0000001-0000-4000-8000-000000000001";
 const BRANCH = "b0000001-0000-4000-8000-000000000001";
 const VENDOR_ID = "c0000001-0000-4000-8000-000000000001";
 const VENDOR_B_ID = "f0000002-0000-4000-8000-000000000002";
@@ -83,7 +82,12 @@ const apPayments: MockApPayment[] = [];
  * (`qtyOverPct=0`, `qtyUnderPct=0.05`, `priceOverPct=0.02`, `priceUnderPct=0.10`) exactly, so the
  * mock does not teach the invoice-journey test a tolerance the real backend does not enforce.
  */
-function matchLineStatus(receivedQty: number, invQty: number, poPrice: number, invPrice: number): string {
+function matchLineStatus(
+  receivedQty: number,
+  invQty: number,
+  poPrice: number,
+  invPrice: number,
+): string {
   if (receivedQty <= 0) return "MISSING_GRN";
   if (invQty > receivedQty * 1.0) return "QTY_OVER";
   if (invQty < receivedQty * 0.95) return "QTY_UNDER";
@@ -513,23 +517,35 @@ function buildOrderSuggestions(branchId: string) {
   const unassigned: ReturnType<typeof buildLine>[] = [];
 
   for (const shortfall of reorderShortfalls) {
-    const catalog = vendorItems.filter((v) => v.ingredientId === shortfall.ingredientId && !v.archivedAt);
+    const catalog = vendorItems.filter(
+      (v) => v.ingredientId === shortfall.ingredientId && !v.archivedAt,
+    );
     const preferred = catalog.filter((v) => v.preferred);
     const chosen = preferred[0] ?? (catalog.length === 1 ? catalog[0] : undefined);
 
     if (!chosen) {
       unassigned.push(
-        buildLine(shortfall, undefined, undefined,
+        buildLine(
+          shortfall,
+          undefined,
+          undefined,
           catalog.length === 0
             ? "No supplier set up for this item. Add it to a vendor's catalogue first."
-            : "Several suppliers sell this and none is marked preferred. Mark one to order it automatically."),
+            : "Several suppliers sell this and none is marked preferred. Mark one to order it automatically.",
+        ),
       );
       continue;
     }
     const price = currentPriceFor(chosen.id);
     if (!price) {
-      unassigned.push(buildLine(shortfall, chosen, undefined,
-        "This supplier has no current price for the item, so the order value can't be worked out."));
+      unassigned.push(
+        buildLine(
+          shortfall,
+          chosen,
+          undefined,
+          "This supplier has no current price for the item, so the order value can't be worked out.",
+        ),
+      );
       continue;
     }
     const line = buildLine(shortfall, chosen, price, null);
@@ -579,7 +595,9 @@ function buildLine(
     orderQty: blockedReason ? null : orderQty,
     unitPricePaisa: price?.unitPricePaisa ?? null,
     lineTotalPaisa:
-      price && orderQty && !blockedReason ? Math.round(Number(orderQty) * price.unitPricePaisa) : null,
+      price && orderQty && !blockedReason
+        ? Math.round(Number(orderQty) * price.unitPricePaisa)
+        : null,
     leadTimeDays: item?.leadTimeDays ?? null,
     blockedReason,
   };
@@ -638,7 +656,7 @@ export const purchasingHandlers = [
           vendorSku: item.vendorSku,
           packDescription: item.packDescription,
           priceOverridden: false,
-        receivedQty: "0",
+          receivedQty: "0",
         };
       }),
     }));
@@ -694,7 +712,9 @@ export const purchasingHandlers = [
     const url = new URL(request.url);
     const page = Number(url.searchParams.get("page") ?? "0");
     const size = Number(url.searchParams.get("size") ?? "20");
-    const rows = vendorItems.filter((v) => v.vendorId === params.vendorId && !v.archivedAt).map(toVendorItemDto);
+    const rows = vendorItems
+      .filter((v) => v.vendorId === params.vendorId && !v.archivedAt)
+      .map(toVendorItemDto);
     const start = page * size;
     const pageRows = rows.slice(start, start + size);
     return HttpResponse.json({
@@ -780,7 +800,12 @@ export const purchasingHandlers = [
     const idx = vendorItems.findIndex((v) => v.id === params.id);
     if (idx === -1) return apiError("NOT_FOUND", "Vendor item not found", 404);
     const body = (await request.json()) as Partial<MockVendorItem>;
-    vendorItems[idx] = { ...vendorItems[idx]!, ...body, id: vendorItems[idx]!.id, vendorId: vendorItems[idx]!.vendorId };
+    vendorItems[idx] = {
+      ...vendorItems[idx]!,
+      ...body,
+      id: vendorItems[idx]!.id,
+      vendorId: vendorItems[idx]!.vendorId,
+    };
     return ok(toVendorItemDto(vendorItems[idx]!));
   }),
 
@@ -819,7 +844,9 @@ export const purchasingHandlers = [
       return apiError("VALIDATION_ERROR", "unitPricePaisa and priceUom are required", 400);
     }
     const effectiveFrom = body.effectiveFrom ?? new Date().toISOString();
-    const openRow = vendorItemPrices.find((p) => p.vendorItemId === vendorItemId && p.effectiveTo === null);
+    const openRow = vendorItemPrices.find(
+      (p) => p.vendorItemId === vendorItemId && p.effectiveTo === null,
+    );
     if (openRow) openRow.effectiveTo = effectiveFrom;
     const seq = String(vendorItemPrices.length + 1).padStart(12, "0");
     const created: MockVendorItemPrice = {
@@ -839,7 +866,9 @@ export const purchasingHandlers = [
 
   // PUR-05/PUR-07: chronological price-change report with HALF_UP-style percentage deltas.
   http.get("*/api/v1/purchasing/vendors/:vendorId/price-changes", ({ params }) => {
-    const itemIds = new Set(vendorItems.filter((v) => v.vendorId === params.vendorId).map((v) => v.id));
+    const itemIds = new Set(
+      vendorItems.filter((v) => v.vendorId === params.vendorId).map((v) => v.id),
+    );
     const rows = vendorItemPrices
       .filter((p) => itemIds.has(p.vendorItemId))
       .sort((a, b) => new Date(a.effectiveFrom).getTime() - new Date(b.effectiveFrom).getTime());
@@ -850,7 +879,12 @@ export const purchasingHandlers = [
         .reverse()
         .find((r) => r.vendorItemId === row.vendorItemId);
       const deltaPct = previous
-        ? Number((((row.unitPricePaisa - previous.unitPricePaisa) / previous.unitPricePaisa) * 100).toFixed(2))
+        ? Number(
+            (
+              ((row.unitPricePaisa - previous.unitPricePaisa) / previous.unitPricePaisa) *
+              100
+            ).toFixed(2),
+          )
         : null;
       return {
         vendorItemId: row.vendorItemId,
@@ -883,7 +917,9 @@ export const purchasingHandlers = [
   http.get("*/api/v1/purchasing/purchase-orders", ({ request }) => {
     const url = new URL(request.url);
     const statuses = url.searchParams.getAll("status");
-    const rows = purchaseOrders.map((p) => (p.id === PO_ID ? { ...p, status: poStatus, closedAt, closeReason } : p));
+    const rows = purchaseOrders.map((p) =>
+      p.id === PO_ID ? { ...p, status: poStatus, closedAt, closeReason } : p,
+    );
     const filtered = statuses.length > 0 ? rows.filter((p) => statuses.includes(p.status)) : rows;
     return ok(filtered);
   }),
@@ -900,7 +936,11 @@ export const purchasingHandlers = [
   http.post("*/api/v1/purchasing/purchase-orders", async ({ request }) => {
     const body = (await request.json()) as CreatePoBody;
     if (!body.vendorId || !body.branchId || !body.lines?.length) {
-      return apiError("VALIDATION_ERROR", "vendorId, branchId and at least one line are required", 400);
+      return apiError(
+        "VALIDATION_ERROR",
+        "vendorId, branchId and at least one line are required",
+        400,
+      );
     }
 
     const lines: MockPoLine[] = [];
@@ -954,7 +994,7 @@ export const purchasingHandlers = [
           vendorSku: null,
           packDescription: null,
           priceOverridden: false,
-        receivedQty: "0",
+          receivedQty: "0",
         });
       }
     }
@@ -1081,27 +1121,38 @@ export const purchasingHandlers = [
   // plan fixes — the OLD handler read only `body.lines[0]` and broadcast it to every line; this
   // one honours each `{poLineId, receivedQty}` pair independently, so line 1 can be received in
   // full while line 2 is only partially received (-> PARTIALLY_RECEIVED, not FULLY_RECEIVED).
-  http.post("*/api/v1/purchasing/purchase-orders/:poId/mock-receive", async ({ params, request }) => {
-    const body = (await request.json()) as { lines: { poLineId: string; receivedQty: string }[] };
-    const orderedQty: Record<string, string> = { [LINE_ID]: "100", [LINE_ID_2]: "50" };
-    for (const line of body.lines) {
-      receivedByLine[line.poLineId] = line.receivedQty;
-    }
-    grnQty = body.lines[0]?.receivedQty ?? "0";
-    const allFull = Object.entries(orderedQty).every(
-      ([lineId, ordered]) => Number(receivedByLine[lineId] ?? "0") >= Number(ordered),
-    );
-    const anyReceived = Object.values(receivedByLine).some((q) => Number(q) > 0);
-    poStatus = allFull ? "FULLY_RECEIVED" : anyReceived ? "PARTIALLY_RECEIVED" : poStatus;
-    return ok({ poId: params.poId, status: poStatus, grnIds: ["g0000001-0000-4000-8000-000000000001"] });
-  }),
+  http.post(
+    "*/api/v1/purchasing/purchase-orders/:poId/mock-receive",
+    async ({ params, request }) => {
+      const body = (await request.json()) as { lines: { poLineId: string; receivedQty: string }[] };
+      const orderedQty: Record<string, string> = { [LINE_ID]: "100", [LINE_ID_2]: "50" };
+      for (const line of body.lines) {
+        receivedByLine[line.poLineId] = line.receivedQty;
+      }
+      grnQty = body.lines[0]?.receivedQty ?? "0";
+      const allFull = Object.entries(orderedQty).every(
+        ([lineId, ordered]) => Number(receivedByLine[lineId] ?? "0") >= Number(ordered),
+      );
+      const anyReceived = Object.values(receivedByLine).some((q) => Number(q) > 0);
+      poStatus = allFull ? "FULLY_RECEIVED" : anyReceived ? "PARTIALLY_RECEIVED" : poStatus;
+      return ok({
+        poId: params.poId,
+        status: poStatus,
+        grnIds: ["g0000001-0000-4000-8000-000000000001"],
+      });
+    },
+  ),
 
   // PUR-02 gap closure: close a FULLY_RECEIVED PO, or short-close a PARTIALLY_RECEIVED PO with a
   // mandatory reason — mirrors PurchaseOrderService.close() state guard.
   http.post("*/api/v1/purchasing/purchase-orders/:poId/close", async ({ params, request }) => {
     const body = (await request.json().catch(() => ({}))) as { reason?: string | null };
     if (poStatus !== "FULLY_RECEIVED" && poStatus !== "PARTIALLY_RECEIVED") {
-      return apiError("INVALID_PO_STATE", "Only FULLY_RECEIVED or PARTIALLY_RECEIVED PO can be closed", 409);
+      return apiError(
+        "INVALID_PO_STATE",
+        "Only FULLY_RECEIVED or PARTIALLY_RECEIVED PO can be closed",
+        409,
+      );
     }
     if (poStatus === "PARTIALLY_RECEIVED" && (!body.reason || !body.reason.trim())) {
       return apiError("INVALID_PO_STATE", "Short-close requires a reason", 409);
@@ -1149,7 +1200,8 @@ export const purchasingHandlers = [
   http.get("*/api/v1/purchasing/invoices", ({ request }) => {
     const url = new URL(request.url);
     const statuses = url.searchParams.getAll("status");
-    const rows = statuses.length > 0 ? invoices.filter((i) => statuses.includes(i.status)) : invoices;
+    const rows =
+      statuses.length > 0 ? invoices.filter((i) => statuses.includes(i.status)) : invoices;
     return ok(rows);
   }),
 
@@ -1168,7 +1220,11 @@ export const purchasingHandlers = [
     };
     const po = findPo(body.purchaseOrderId);
     if (!po) return apiError("NOT_FOUND", "Purchase order not found", 404);
-    if (!["SENT", "PARTIALLY_RECEIVED", "FULLY_RECEIVED"].includes(po.id === PO_ID ? poStatus : po.status)) {
+    if (
+      !["SENT", "PARTIALLY_RECEIVED", "FULLY_RECEIVED"].includes(
+        po.id === PO_ID ? poStatus : po.status,
+      )
+    ) {
       return apiError("INVALID_PO_STATE", "PO must be sent before invoicing", 409);
     }
 

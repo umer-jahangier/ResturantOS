@@ -11,9 +11,7 @@ import { useEffect, useRef, useState } from "react";
  * lint rule).
  */
 export function OfflineIndicator() {
-  const [isOnline, setIsOnline] = useState(
-    typeof window === "undefined" ? true : navigator.onLine,
-  );
+  const [isOnline, setIsOnline] = useState(typeof window === "undefined" ? true : navigator.onLine);
   const [showReconnected, setShowReconnected] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasOfflineRef = useRef(!navigator.onLine);

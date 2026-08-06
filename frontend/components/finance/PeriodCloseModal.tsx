@@ -5,7 +5,7 @@ import { useClosePeriod } from "@/lib/hooks/finance/use-periods";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatUserFacingError } from "@/lib/api-client/errors";
+import { formatUserFacingError } from "@/lib/errors";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 interface PeriodCloseModalProps {
@@ -47,8 +47,8 @@ function PeriodCloseModal({ period, onClose, onSuccess }: PeriodCloseModalProps)
         </p>
 
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-          <strong>Warning:</strong> Closing a period locks it permanently. No
-          new journal entries can be posted to a locked period.
+          <strong>Warning:</strong> Closing a period locks it permanently. No new journal entries
+          can be posted to a locked period.
         </div>
 
         {isSuccess ? (

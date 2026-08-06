@@ -12,12 +12,7 @@ import { BranchSwitcher } from "./branch-switcher";
 import { navGroups, type NavItem, type NavGroup } from "./sidebar-nav-items";
 import { useNavGroupVisibility } from "@/lib/hooks/auth/use-nav-visibility";
 import { useTenantBrand } from "@/lib/hooks/use-tenant-brand";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Permission/feature-conditioned grouped sidebar (DS-05 upgrade). Each item is
 // wrapped in FeatureGuard → PermissionGuard to show only if permission is held
@@ -137,12 +132,7 @@ function NavGroupSection({ group, collapsed, pathname }: NavGroupSectionProps) {
       <div className="flex flex-col gap-0.5">
         {group.items.map((item) =>
           isItemVisible(item) ? (
-            <GuardedNavItem
-              key={item.href}
-              item={item}
-              collapsed={collapsed}
-              pathname={pathname}
-            />
+            <GuardedNavItem key={item.href} item={item} collapsed={collapsed} pathname={pathname} />
           ) : null,
         )}
       </div>
@@ -177,9 +167,7 @@ export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps
           )}
         >
           <ChefHat className="size-6 shrink-0 text-primary" />
-          {!collapsed && (
-            <span className="truncate text-base font-semibold">{brandName}</span>
-          )}
+          {!collapsed && <span className="truncate text-base font-semibold">{brandName}</span>}
         </div>
 
         {/* Branch switcher — US-1.3: only when user has >1 assigned branch */}
@@ -190,10 +178,7 @@ export function Sidebar({ groups = navGroups, mobileOpen = false }: SidebarProps
         )}
 
         {/* Grouped navigation */}
-        <nav
-          className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-3"
-          aria-label="Primary"
-        >
+        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-3" aria-label="Primary">
           {groups.map((group) => (
             <NavGroupSection
               key={group.label}

@@ -105,7 +105,8 @@ export function useUpdateVendorItem(vendorId: string) {
   const qc = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation<VendorItem, ApiError, { vendorItemId: string; input: UpdateVendorItemInput }>({
-    mutationFn: ({ vendorItemId, input }) => PurchasingRepository.updateVendorItem(vendorItemId, input),
+    mutationFn: ({ vendorItemId, input }) =>
+      PurchasingRepository.updateVendorItem(vendorItemId, input),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: queryKeys.purchasing.vendorItems(branchId, vendorId) }),
   });
@@ -143,9 +144,13 @@ export function useRecordVendorItemPrice(vendorId: string, vendorItemId: string)
   return useMutation<VendorItemPrice, ApiError, VendorItemPriceInput>({
     mutationFn: (input) => PurchasingRepository.recordVendorItemPrice(vendorItemId, input),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.purchasing.vendorItemPrices(branchId, vendorItemId) });
+      qc.invalidateQueries({
+        queryKey: queryKeys.purchasing.vendorItemPrices(branchId, vendorItemId),
+      });
       qc.invalidateQueries({ queryKey: queryKeys.purchasing.vendorItems(branchId, vendorId) });
-      qc.invalidateQueries({ queryKey: ["purchasing", branchId, "vendors", vendorId, "price-changes"] });
+      qc.invalidateQueries({
+        queryKey: ["purchasing", branchId, "vendors", vendorId, "price-changes"],
+      });
       // Order suggestions price their estimated line totals off this same current price, so a
       // price change that doesn't reach them leaves the reorder screen quoting the old one until
       // it happens to refetch — the last place a buyer would think to doubt the number.
@@ -189,7 +194,9 @@ export function useReplaceVendorCategories(vendorId: string) {
   return useMutation<VendorCategory[], ApiError, VendorCategoriesInput>({
     mutationFn: (input) => PurchasingRepository.replaceVendorCategories(vendorId, input),
     onSuccess: () =>
-      qc.invalidateQueries({ queryKey: [...queryKeys.purchasing.vendorCategories(branchId), vendorId] }),
+      qc.invalidateQueries({
+        queryKey: [...queryKeys.purchasing.vendorCategories(branchId), vendorId],
+      }),
   });
 }
 
@@ -219,7 +226,8 @@ export function useCreatePurchaseOrder() {
   const { branchId } = useCurrentUser();
   return useMutation({
     mutationFn: (input: PurchaseOrderInput) => PurchasingRepository.createPurchaseOrder(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.purchasing.purchaseOrders(branchId) }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.purchasing.purchaseOrders(branchId) }),
   });
 }
 

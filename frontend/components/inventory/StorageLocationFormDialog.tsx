@@ -19,7 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
@@ -140,7 +147,9 @@ export function StorageLocationFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Optional detail — the temperature it runs at, or which door it’s behind.">Description</FieldLabel>
+                  <FieldLabel help="Optional detail — the temperature it runs at, or which door it’s behind.">
+                    Description
+                  </FieldLabel>
                   <FormControl>
                     <Input placeholder="Optional — e.g. Chilled, 2–4°C" {...field} />
                   </FormControl>

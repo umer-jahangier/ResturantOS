@@ -58,7 +58,10 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
     const map = new Map<string, { key: string; quantity: number }>();
     for (const line of cart) {
       if (line.modifierIds.length > 0 || line.notes) continue;
-      map.set(line.menuItemId, { key: cartLineKey(line.menuItemId, [], null), quantity: line.quantity });
+      map.set(line.menuItemId, {
+        key: cartLineKey(line.menuItemId, [], null),
+        quantity: line.quantity,
+      });
     }
     return map;
   }, [cart]);
@@ -100,7 +103,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
               "px-4 py-2 rounded-full text-sm font-medium transition-colors",
               !activeCategoryId
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                : "bg-muted text-muted-foreground hover:bg-muted/80",
             )}
           >
             All
@@ -116,7 +119,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                   "px-4 py-2 rounded-full text-sm font-medium transition-colors",
                   activeCategoryId === cat.id
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80",
                 )}
               >
                 {cat.name}
@@ -148,11 +151,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setClearDialogOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setClearDialogOpen(false)}>
               Keep Items
             </Button>
             <Button
@@ -183,7 +182,10 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
             {trimmedQuery ? "No items match your search" : "No items available"}
           </div>
         ) : (
-          <div data-testid="menu-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
+          <div
+            data-testid="menu-grid"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1"
+          >
             {filteredItems.map((item, idx) => {
               const selected = quantityByMenuItemId.get(item.id);
               return (

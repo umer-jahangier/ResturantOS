@@ -75,9 +75,7 @@ describe("useSwitchBranch", () => {
 
     expect(toastErrorMock).toHaveBeenCalled();
     expect(useSessionStore.getState().session?.branchId).toBe(MAIN_BRANCH);
-    expect(queryClient.getQueryData(queryKeys.features.all(MAIN_BRANCH))).toEqual([
-      "FEATURE_POS",
-    ]);
+    expect(queryClient.getQueryData(queryKeys.features.all(MAIN_BRANCH))).toEqual(["FEATURE_POS"]);
   });
 });
 

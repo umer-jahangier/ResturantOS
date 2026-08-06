@@ -18,10 +18,9 @@ export const KdsRepository = {
   ): Promise<KdsTicket[]> {
     const params: Record<string, string> = { branchId, status };
     if (stationCode) params.stationCode = stationCode;
-    const response = await apiClient.get<{ content: unknown[] }>(
-      "/api/v1/kitchen/kds/tickets",
-      { params },
-    );
+    const response = await apiClient.get<{ content: unknown[] }>("/api/v1/kitchen/kds/tickets", {
+      params,
+    });
     const rawList = response.data.content ?? [];
     return rawList.map((item) => adaptKdsTicket(apiKdsTicketSchema.parse(item)));
   },
@@ -81,10 +80,9 @@ export const KdsRepository = {
   // ── Stations ───────────────────────────────────────────────────────────────
 
   async getStations(branchId: string): Promise<KdsStation[]> {
-    const response = await apiClient.get<unknown[]>(
-      "/api/v1/kitchen/kds/stations",
-      { params: { branchId } },
-    );
+    const response = await apiClient.get<unknown[]>("/api/v1/kitchen/kds/stations", {
+      params: { branchId },
+    });
     const rawList = Array.isArray(response.data) ? response.data : [];
     return rawList.map((item) => adaptKdsStation(apiKdsStationSchema.parse(item)));
   },

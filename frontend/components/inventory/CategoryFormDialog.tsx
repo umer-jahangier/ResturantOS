@@ -7,7 +7,11 @@ import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { createZodResolver } from "@/lib/forms/zod-resolver";
-import { useCategories, useCreateCategory, useUpdateCategory } from "@/lib/hooks/inventory/use-inventory";
+import {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+} from "@/lib/hooks/inventory/use-inventory";
 import type {
   CreateItemCategoryInput,
   ItemCategory,
@@ -229,7 +233,7 @@ export function CategoryFormDialog({
   // to fall back to, and the category's own resolution still reports the value being removed.
   // Tracks the parent select live, so switching parent updates the placeholders.
   const watchedParentId = form.watch("parentId");
-  const effectiveParentId = isEdit ? (category?.parentId ?? null) : (watchedParentId || null);
+  const effectiveParentId = isEdit ? (category?.parentId ?? null) : watchedParentId || null;
   const parentCategory = (categories ?? []).find((c) => c.id === effectiveParentId) ?? null;
   const inherited = inheritedAccounts(parentCategory);
 
@@ -272,7 +276,9 @@ export function CategoryFormDialog({
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="An optional short code for this category, handy when exporting to another system.">Code</FieldLabel>
+                  <FieldLabel help="An optional short code for this category, handy when exporting to another system.">
+                    Code
+                  </FieldLabel>
                   <FormControl>
                     <Input placeholder="Optional" {...field} />
                   </FormControl>
@@ -286,7 +292,9 @@ export function CategoryFormDialog({
               name="parentId"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Sits this category under another one. Children inherit the parent’s GL accounts and variance cap unless they set their own.">Parent category</FieldLabel>
+                  <FieldLabel help="Sits this category under another one. Children inherit the parent’s GL accounts and variance cap unless they set their own.">
+                    Parent category
+                  </FieldLabel>
                   <FormControl>
                     <select
                       {...field}
@@ -317,7 +325,9 @@ export function CategoryFormDialog({
               name="sortOrder"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Controls where this appears in lists. Lower numbers come first.">Sort order</FieldLabel>
+                  <FieldLabel help="Controls where this appears in lists. Lower numbers come first.">
+                    Sort order
+                  </FieldLabel>
                   <FormControl>
                     <Input inputMode="numeric" placeholder="0" {...field} />
                   </FormControl>
@@ -337,7 +347,9 @@ export function CategoryFormDialog({
               name="defaultInventoryAccountCode"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="The asset account holding the value of this stock while you own it.">Inventory GL account</FieldLabel>
+                  <FieldLabel help="The asset account holding the value of this stock while you own it.">
+                    Inventory GL account
+                  </FieldLabel>
                   <FormControl>
                     <GlAccountCombobox
                       usage="INVENTORY"
@@ -359,7 +371,9 @@ export function CategoryFormDialog({
               name="defaultCostAccountCode"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Where the cost lands when this stock is consumed by a sale.">Cost GL account</FieldLabel>
+                  <FieldLabel help="Where the cost lands when this stock is consumed by a sale.">
+                    Cost GL account
+                  </FieldLabel>
                   <FormControl>
                     <GlAccountCombobox
                       usage="COST"
@@ -381,7 +395,9 @@ export function CategoryFormDialog({
               name="defaultWasteAccountCode"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Where the cost lands when this stock is thrown away or written off.">Waste GL account</FieldLabel>
+                  <FieldLabel help="Where the cost lands when this stock is thrown away or written off.">
+                    Waste GL account
+                  </FieldLabel>
                   <FormControl>
                     <GlAccountCombobox
                       usage="WASTE"
@@ -403,7 +419,9 @@ export function CategoryFormDialog({
               name="varianceCapPct"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="How far a stock count may differ from the system before someone has to explain why. Leave blank for no limit.">Variance cap %</FieldLabel>
+                  <FieldLabel help="How far a stock count may differ from the system before someone has to explain why. Leave blank for no limit.">
+                    Variance cap %
+                  </FieldLabel>
                   <FormControl>
                     <Input inputMode="decimal" placeholder="Optional" {...field} />
                   </FormControl>
@@ -417,7 +435,9 @@ export function CategoryFormDialog({
               name="excludeFromPoSuggestions"
               render={({ field }) => (
                 <FormItem className="sm:col-span-2">
-                  <FieldLabel help="Turn off to keep this category off automatic ordering suggestions — for stock you order on a standing contract.">Purchase-order suggestions</FieldLabel>
+                  <FieldLabel help="Turn off to keep this category off automatic ordering suggestions — for stock you order on a standing contract.">
+                    Purchase-order suggestions
+                  </FieldLabel>
                   <FormControl>
                     <button
                       type="button"

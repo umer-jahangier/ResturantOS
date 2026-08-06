@@ -53,7 +53,9 @@ const vendorFormSchema = z.object({
   address: z.string(),
   ntn: z.string(),
   strn: z.string(),
-  leadTimeDays: z.string().refine((v) => v === "" || /^\d+$/.test(v), "Enter a whole number of days"),
+  leadTimeDays: z
+    .string()
+    .refine((v) => v === "" || /^\d+$/.test(v), "Enter a whole number of days"),
   bankAccountNo: z.string(),
   notes: z.string(),
 });

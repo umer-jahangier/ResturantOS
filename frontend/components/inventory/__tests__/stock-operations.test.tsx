@@ -38,7 +38,11 @@ describe("Stock count — variance cap requires an attributed override", () => {
       permissions: ["inventory.item.view", "inventory.item.manage"],
     });
     const Wrapper = createQueryWrapper();
-    render(<Wrapper><StockCountDialog trigger={<button type="button">Open count</button>} /></Wrapper>);
+    render(
+      <Wrapper>
+        <StockCountDialog trigger={<button type="button">Open count</button>} />
+      </Wrapper>,
+    );
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Open count" }));
     const dialog = await screen.findByRole("dialog");
@@ -53,9 +57,7 @@ describe("Stock count — variance cap requires an attributed override", () => {
 
     // Counted exactly what was expected — no variance, so no cap warning and no reason field.
     expect(within(dialog).queryByText(/variance cap/i)).toBeNull();
-    expect(
-      within(dialog).queryByLabelText("Reason for over-cap variance on Chicken"),
-    ).toBeNull();
+    expect(within(dialog).queryByLabelText("Reason for over-cap variance on Chicken")).toBeNull();
   });
 
   it("anOverCapVarianceSurfacesTheCapAndAsksWhy", async () => {
@@ -80,7 +82,13 @@ describe("Stock count — variance cap requires an attributed override", () => {
       http.post("*/api/v1/inventory/counts", async ({ request }) => {
         posted.push(await request.json());
         return HttpResponse.json({
-          data: { countId: "9c111111-1111-4111-8111-111111110001", branchId: "b", status: "POSTED", lines: [], totalVarianceCostPaisa: 0 },
+          data: {
+            countId: "9c111111-1111-4111-8111-111111110001",
+            branchId: "b",
+            status: "POSTED",
+            lines: [],
+            totalVarianceCostPaisa: 0,
+          },
         });
       }),
     );
@@ -170,7 +178,9 @@ describe("Stock page — row emphasis reads server flags only (INV-15, T-08.2-17
 
     expect(await screen.findByText("No stock recorded yet")).toBeInTheDocument();
     expect(
-      screen.getByText("Record an opening balance to start tracking on-hand quantities for this branch."),
+      screen.getByText(
+        "Record an opening balance to start tracking on-hand quantities for this branch.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record opening balance" })).toBeInTheDocument();
   });

@@ -33,7 +33,10 @@ const chargeFormSchema = z.object({
   amountRupees: z
     .string()
     .min(1, "Amount is required")
-    .refine((v) => Number.isFinite(Number(v)) && Number(v) > 0, "Enter an amount greater than zero"),
+    .refine(
+      (v) => Number.isFinite(Number(v)) && Number(v) > 0,
+      "Enter an amount greater than zero",
+    ),
   txnDate: z.string().min(1, "Date is required"),
   reference: z.string(),
 });
@@ -113,8 +116,7 @@ export function ArChargeDialog({ account, trigger }: ArChargeDialogProps) {
         <DialogHeader>
           <DialogTitle>Charge {account.name}</DialogTitle>
           <DialogDescription>
-            Posts DR Accounts Receivable / CR revenue. Rejected if it would exceed the credit
-            limit.
+            Posts DR Accounts Receivable / CR revenue. Rejected if it would exceed the credit limit.
           </DialogDescription>
         </DialogHeader>
 

@@ -6,10 +6,6 @@ interface SkeletonProps {
 
 export function Skeleton({ className }: SkeletonProps) {
   return (
-    <div
-      aria-hidden="true"
-      role="presentation"
-      className={cn("skeleton rounded-md", className)}
-    />
+    <div aria-hidden="true" role="presentation" className={cn("skeleton rounded-md", className)} />
   );
 }

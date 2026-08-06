@@ -11,9 +11,7 @@ export async function putMenu(
 }
 
 /** Retrieve the last cached menu for the given branch, or undefined. */
-export async function getMenu(
-  branchId: string,
-): Promise<CachedMenu | undefined> {
+export async function getMenu(branchId: string): Promise<CachedMenu | undefined> {
   const db = await getDb();
   return db.get("menu_cache", branchId);
 }

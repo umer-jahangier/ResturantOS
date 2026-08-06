@@ -34,7 +34,8 @@ const ORDER_STATUSES: Array<{
   { status: "REFUNDED", label: "Refunded", tokenClass: "text-warning" },
 ];
 
-const RAW_PALETTE_PATTERN = /\b(bg|text|border)-(red|green|blue|amber|orange|emerald|slate)-\d{2,3}\b/;
+const RAW_PALETTE_PATTERN =
+  /\b(bg|text|border)-(red|green|blue|amber|orange|emerald|slate)-\d{2,3}\b/;
 
 describe("StatusBadge — POS/KDS Status System (UI-SPEC)", () => {
   describe.each(LINE_ITEM_STATUSES)("line-item status $status", ({ status, label, tokenClass }) => {

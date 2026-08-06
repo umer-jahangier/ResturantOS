@@ -134,7 +134,8 @@ export default function CategoriesPage() {
         <div>
           <h1 className="text-2xl font-semibold">Categories</h1>
           <p className="text-sm text-muted-foreground">
-            Organize ingredients into up to three levels — categories drive default GL account codes.
+            Organize ingredients into up to three levels — categories drive default GL account
+            codes.
           </p>
         </div>
         <PermissionGuard require="inventory.item.manage">
@@ -228,7 +229,10 @@ export default function CategoriesPage() {
           </DialogHeader>
 
           {archiveError ? (
-            <div role="alert" className="rounded-lg border bg-card px-2.5 py-2 text-sm text-destructive">
+            <div
+              role="alert"
+              className="rounded-lg border bg-card px-2.5 py-2 text-sm text-destructive"
+            >
               {archiveError}
             </div>
           ) : null}

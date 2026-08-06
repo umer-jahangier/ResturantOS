@@ -81,10 +81,17 @@ test.describe("POS-20: kitchen item-status change syncs live to POS order view",
         await cashierPage.getByPlaceholder("e.g. 5000.00").fill("5000");
         await cashierPage.getByTestId("open-till-confirm-button").click();
         const outcome = await Promise.race([
-          cashierPage.getByText("Till OPEN").waitFor({ state: "visible", timeout: 15_000 }).then(() => "ok" as const),
-          cashierPage.getByTestId("open-till-error").waitFor({ state: "visible", timeout: 15_000 }).then(() => "err" as const),
+          cashierPage
+            .getByText("Till OPEN")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "ok" as const),
+          cashierPage
+            .getByTestId("open-till-error")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "err" as const),
         ]).catch(() => "timeout" as const);
-        if (outcome !== "ok") throw new Blocked(`could not open a till for the cashier (${outcome})`);
+        if (outcome !== "ok")
+          throw new Blocked(`could not open a till for the cashier (${outcome})`);
       }
 
       await cashierPage.getByRole("button", { name: "POS Terminal", exact: true }).click();
@@ -95,7 +102,9 @@ test.describe("POS-20: kitchen item-status change syncs live to POS order view",
         throw new Blocked("no menu items rendered (menu-item-first never appeared)");
       }
       await firstItem.click();
-      await expect(cashierPage.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({ timeout: 15_000 });
+      await expect(cashierPage.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({
+        timeout: 15_000,
+      });
       await cashierPage.getByRole("button", { name: /^Send to Kitchen$/ }).click();
 
       // Sonner toasts auto-dismiss (~4s) and can vanish before an assertion gets to
@@ -111,9 +120,13 @@ test.describe("POS-20: kitchen item-status change syncs live to POS order view",
         throw new Blocked(`initial send-to-kitchen did not succeed (${fireOutcome})`);
       }
       const orderNoLocator = cashierPage.locator("span.font-semibold.text-sm").first();
-      const orderNo = (await orderNoLocator.textContent({ timeout: 5000 }).catch(() => null))?.trim();
+      const orderNo = (
+        await orderNoLocator.textContent({ timeout: 5000 }).catch(() => null)
+      )?.trim();
       if (!orderNo || orderNo === "New Order") {
-        throw new Blocked(`could not read a real order number from the terminal header (got "${orderNo}")`);
+        throw new Blocked(
+          `could not read a real order number from the terminal header (got "${orderNo}")`,
+        );
       }
       await shot(cashierPage, "pos-kitchen-live-sync-cashier-before-bump");
 
@@ -183,7 +196,9 @@ test.describe("POS-20: kitchen item-status change syncs live to POS order view",
           .then(() => true)
           .catch(() => false);
         if (!startBtnVisible) {
-          throw new Blocked(`ticket card for "${orderNo}" found but no PENDING item START button is visible`);
+          throw new Blocked(
+            `ticket card for "${orderNo}" found but no PENDING item START button is visible`,
+          );
         }
         await shot(chefPage, "pos-kitchen-live-sync-chef-before-bump");
         await startBtn.click();
@@ -202,7 +217,10 @@ test.describe("POS-20: kitchen item-status change syncs live to POS order view",
     } catch (err) {
       if (err instanceof Blocked) {
         console.log(`[BLOCKED] pos-kitchen-live-sync: ${err.message}`);
-        test.skip(true, `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`);
+        test.skip(
+          true,
+          `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`,
+        );
         return;
       }
       throw err;

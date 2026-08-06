@@ -65,7 +65,10 @@ export default function MenuItemsPage() {
   function handleToggleCategory(category: MenuCategory) {
     const mutation = category.active ? deactivateCategory : activateCategory;
     mutation.mutate(category.id, {
-      onSuccess: () => toast.success(category.active ? `Deactivated ${category.name}` : `Reactivated ${category.name}`),
+      onSuccess: () =>
+        toast.success(
+          category.active ? `Deactivated ${category.name}` : `Reactivated ${category.name}`,
+        ),
       onError: (error) =>
         toast.error(error.message || "Could not update the category. Please try again."),
     });
@@ -74,8 +77,10 @@ export default function MenuItemsPage() {
   function handleToggleItem(item: MenuItem) {
     const mutation = item.active ? deactivateItem : activateItem;
     mutation.mutate(item.id, {
-      onSuccess: () => toast.success(item.active ? `Deactivated ${item.name}` : `Reactivated ${item.name}`),
-      onError: (error) => toast.error(error.message || "Could not update the item. Please try again."),
+      onSuccess: () =>
+        toast.success(item.active ? `Deactivated ${item.name}` : `Reactivated ${item.name}`),
+      onError: (error) =>
+        toast.error(error.message || "Could not update the item. Please try again."),
     });
   }
 
@@ -85,20 +90,27 @@ export default function MenuItemsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Menu Items</h1>
           <p className="text-sm text-muted-foreground">
-            What's sellable, organized into categories — write a recipe for an item under Inventory ›
-            Recipes once it's here.
+            What&apos;s sellable, organized into categories — write a recipe for an item under
+            Inventory › Recipes once it&apos;s here.
           </p>
         </div>
         <PermissionGuard require="pos.menu.manage">
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => setCategoryTarget({ mode: "create" })}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCategoryTarget({ mode: "create" })}
+            >
               Add category
             </Button>
             <Button
               type="button"
               disabled={allCategories.filter((c) => c.active).length === 0}
               onClick={() =>
-                setItemTarget({ mode: "create", categoryId: allCategories.find((c) => c.active)?.id ?? "" })
+                setItemTarget({
+                  mode: "create",
+                  categoryId: allCategories.find((c) => c.active)?.id ?? "",
+                })
               }
             >
               Add item
@@ -142,7 +154,12 @@ export default function MenuItemsPage() {
           {visibleCategories.map((category) => {
             const rows = itemsFor(category.id);
             return (
-              <div key={category.id} role="group" aria-label={`${category.name} category`} className="rounded-lg border">
+              <div
+                key={category.id}
+                role="group"
+                aria-label={`${category.name} category`}
+                className="rounded-lg border"
+              >
                 <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{category.name}</span>
@@ -171,7 +188,9 @@ export default function MenuItemsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => setCategoryTarget({ mode: "edit", category })}>
+                          <DropdownMenuItem
+                            onSelect={() => setCategoryTarget({ mode: "edit", category })}
+                          >
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => handleToggleCategory(category)}>
@@ -184,7 +203,9 @@ export default function MenuItemsPage() {
                 </div>
 
                 {rows.length === 0 ? (
-                  <p className="px-3 py-4 text-sm text-muted-foreground">No items in this category yet.</p>
+                  <p className="px-3 py-4 text-sm text-muted-foreground">
+                    No items in this category yet.
+                  </p>
                 ) : (
                   <div className="divide-y">
                     {rows.map((item) => (
@@ -205,7 +226,9 @@ export default function MenuItemsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => setItemTarget({ mode: "edit", item })}>
+                              <DropdownMenuItem
+                                onSelect={() => setItemTarget({ mode: "edit", item })}
+                              >
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => handleToggleItem(item)}>
@@ -240,7 +263,13 @@ export default function MenuItemsPage() {
       />
 
       <MenuItemFormDialog
-        key={itemTarget ? (itemTarget.mode === "edit" ? `edit-${itemTarget.item.id}` : `create-${itemTarget.categoryId}`) : "item-form-idle"}
+        key={
+          itemTarget
+            ? itemTarget.mode === "edit"
+              ? `edit-${itemTarget.item.id}`
+              : `create-${itemTarget.categoryId}`
+            : "item-form-idle"
+        }
         item={itemTarget?.mode === "edit" ? itemTarget.item : undefined}
         defaultCategoryId={itemTarget?.mode === "create" ? itemTarget.categoryId : undefined}
         open={itemTarget !== null}

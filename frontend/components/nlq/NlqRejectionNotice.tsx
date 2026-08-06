@@ -46,7 +46,8 @@ const REJECTION_COPY: Record<string, { title: string; message: string }> = {
   },
   ROW_CAP_EXCEEDED: {
     title: "That question asked for too much data",
-    message: "That query returned too many rows. Try narrowing the date range or being more specific.",
+    message:
+      "That query returned too many rows. Try narrowing the date range or being more specific.",
   },
   QUERY_TIMEOUT: {
     title: "That question took too long",

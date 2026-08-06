@@ -1,10 +1,5 @@
 import { apiClient } from "@/lib/api-client/client";
-import {
-  get,
-  getPaginated,
-  post,
-  type PaginatedResult,
-} from "@/lib/api-client/request";
+import { get, getPaginated, post, type PaginatedResult } from "@/lib/api-client/request";
 import type { ApiResponse } from "@/lib/api-client/types";
 import {
   apiAccountSchema,
@@ -167,10 +162,9 @@ export const FinanceRepository = {
   },
 
   async provisionPeriods(fiscalYear: number): Promise<ProvisioningResult> {
-    const raw = await post<{ fiscalYear: number }, unknown>(
-      "/api/v1/finance/periods/provision",
-      { fiscalYear },
-    );
+    const raw = await post<{ fiscalYear: number }, unknown>("/api/v1/finance/periods/provision", {
+      fiscalYear,
+    });
     return adaptProvisioningResult(apiProvisioningResultSchema.parse(raw));
   },
 

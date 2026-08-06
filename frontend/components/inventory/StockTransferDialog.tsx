@@ -16,7 +16,10 @@ import {
   useShipTransfer,
 } from "@/lib/hooks/inventory/use-inventory";
 import type { Transfer } from "@/lib/adapters/inventory.adapter";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import { SectionSwitcher } from "@/components/shared/section-switcher";
 import {
   Dialog,
@@ -27,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
@@ -79,13 +82,19 @@ interface StockTransferDialogProps {
  * addition this plan makes; no list endpoint existed before, only ship/receive writes) and opens
  * a confirm-and-adjust form per transfer whose per-line variance (received − shipped) is live.
  */
-export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: StockTransferDialogProps) {
+export function StockTransferDialog({
+  trigger,
+  open: openProp,
+  onOpenChange,
+}: StockTransferDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : internalOpen;
   const [section, setSection] = useState<"ship" | "receive">("ship");
   const [receivingTransfer, setReceivingTransfer] = useState<Transfer | null>(null);
-  const [receivedQtyByIngredient, setReceivedQtyByIngredient] = useState<Record<string, string>>({});
+  const [receivedQtyByIngredient, setReceivedQtyByIngredient] = useState<Record<string, string>>(
+    {},
+  );
   // Tracks the dialog's previous open state — see StockCountDialog.tsx's identical comment for
   // why this is a render-time reset rather than `useEffect` + `setState`.
   const [lastOpen, setLastOpen] = useState(open);
@@ -214,7 +223,9 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                 name="toBranchId"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="Where the stock is going. It leaves here now and arrives when they confirm it.">Destination branch</FieldLabel>
+                    <FieldLabel help="Where the stock is going. It leaves here now and arrives when they confirm it.">
+                      Destination branch
+                    </FieldLabel>
                     <FormControl>
                       <select {...field} aria-label="Destination branch" className={selectClass}>
                         <option value="">Select a branch…</option>
@@ -233,19 +244,29 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Lines</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={() => append(EMPTY_SHIP_LINE)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => append(EMPTY_SHIP_LINE)}
+                  >
                     Add line
                   </Button>
                 </div>
 
                 {fields.map((f, idx) => (
-                  <div key={f.id} className="grid grid-cols-[2fr_1fr_auto] items-end gap-2 rounded border p-2">
+                  <div
+                    key={f.id}
+                    className="grid grid-cols-[2fr_1fr_auto] items-end gap-2 rounded border p-2"
+                  >
                     <FormField
                       control={form.control}
                       name={`lines.${idx}.ingredientId`}
                       render={({ field }) => (
                         <FormItem>
-                          <FieldLabel className="text-xs" help="The item being sent.">Ingredient</FieldLabel>
+                          <FieldLabel className="text-xs" help="The item being sent.">
+                            Ingredient
+                          </FieldLabel>
                           <FormControl>
                             <CatalogItemCombobox
                               options={ingredientOptions}
@@ -265,7 +286,12 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                       name={`lines.${idx}.qty`}
                       render={({ field }) => (
                         <FormItem>
-                          <FieldLabel className="text-xs" help="How much is being sent, in the item’s stock unit.">Qty</FieldLabel>
+                          <FieldLabel
+                            className="text-xs"
+                            help="How much is being sent, in the item’s stock unit."
+                          >
+                            Qty
+                          </FieldLabel>
                           <FormControl>
                             <Input inputMode="decimal" placeholder="10" {...field} />
                           </FormControl>
@@ -312,7 +338,10 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                     return (
                       <tr
                         key={line.ingredientId}
-                        className={cn("border-b last:border-b-0", varianceRowClassName(variance, received))}
+                        className={cn(
+                          "border-b last:border-b-0",
+                          varianceRowClassName(variance, received),
+                        )}
                       >
                         <td className="p-2">{ingredientName(line.ingredientId)}</td>
                         <td className="p-2 text-muted-foreground">{line.qtyShipped}</td>
@@ -330,7 +359,9 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
                             className="h-8 w-24"
                           />
                         </td>
-                        <td className="p-2 tabular-nums">{variance > 0 ? `+${variance}` : variance}</td>
+                        <td className="p-2 tabular-nums">
+                          {variance > 0 ? `+${variance}` : variance}
+                        </td>
                       </tr>
                     );
                   })}
@@ -348,7 +379,10 @@ export function StockTransferDialog({ trigger, open: openProp, onOpenChange }: S
         ) : (
           <div className="grid max-h-[55vh] gap-2 overflow-y-auto">
             {(pendingTransfers ?? []).map((t) => (
-              <div key={t.transferId} className="flex items-center justify-between rounded border p-2 text-sm">
+              <div
+                key={t.transferId}
+                className="flex items-center justify-between rounded border p-2 text-sm"
+              >
                 <div>
                   <div className="font-medium">Transfer {t.transferId.slice(0, 8)}</div>
                   <div className="text-xs text-muted-foreground">{t.lines.length} line(s)</div>

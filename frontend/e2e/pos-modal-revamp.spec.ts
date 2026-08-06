@@ -40,7 +40,8 @@ test.describe("POS-25: converted operational surfaces are panels, not dialogs", 
       netLog.push(`REQFAIL ${r.method()} ${r.url()} -> ${r.failure()?.errorText}`);
     });
     page.on("response", (r) => {
-      if (r.url().includes("/api/")) netLog.push(`RES ${r.request().method()} ${r.url()} -> ${r.status()}`);
+      if (r.url().includes("/api/"))
+        netLog.push(`RES ${r.request().method()} ${r.url()} -> ${r.status()}`);
     });
     const consoleErrors: string[] = [];
     page.on("console", (msg) => {
@@ -56,7 +57,9 @@ test.describe("POS-25: converted operational surfaces are panels, not dialogs", 
         .isVisible({ timeout: 500 })
         .catch(() => false);
       if (dialogVisible) {
-        throw new Error(`a [role=dialog] is visible for ${context} — must be a dedicated panel, not a popup`);
+        throw new Error(
+          `a [role=dialog] is visible for ${context} — must be a dedicated panel, not a popup`,
+        );
       }
     }
 
@@ -114,10 +117,17 @@ test.describe("POS-25: converted operational surfaces are panels, not dialogs", 
         await page.getByPlaceholder("e.g. 5000.00").fill("5000");
         await page.getByTestId("open-till-confirm-button").click();
         const outcome = await Promise.race([
-          page.getByText("Till OPEN").waitFor({ state: "visible", timeout: 15_000 }).then(() => "ok" as const),
-          page.getByTestId("open-till-error").waitFor({ state: "visible", timeout: 15_000 }).then(() => "err" as const),
+          page
+            .getByText("Till OPEN")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "ok" as const),
+          page
+            .getByTestId("open-till-error")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "err" as const),
         ]).catch(() => "timeout" as const);
-        if (outcome !== "ok") throw new Blocked(`could not open a till for the cashier (${outcome})`);
+        if (outcome !== "ok")
+          throw new Blocked(`could not open a till for the cashier (${outcome})`);
       } else if (tillState === "open") {
         await page.getByTestId("close-till-button").click();
         const closePanel = page.getByTestId("close-till-panel");
@@ -168,7 +178,10 @@ test.describe("POS-25: converted operational surfaces are panels, not dialogs", 
     } catch (err) {
       if (err instanceof Blocked) {
         console.log(`[BLOCKED] pos-modal-revamp: ${err.message}`);
-        test.skip(true, `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`);
+        test.skip(
+          true,
+          `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`,
+        );
         return;
       }
       throw err;

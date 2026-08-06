@@ -22,9 +22,9 @@ describe("PurchasingRepository PO journey (10-12 gap closure, MSW round-trip)", 
     const list = await PurchasingRepository.listPurchaseOrders(BRANCH);
     expect(list.length).toBeGreaterThan(0);
     expect(list.some((po) => po.id === PO_ID)).toBe(true);
-    expect(list.every((po) => typeof po.status === "string" && typeof po.totalPaisa === "number")).toBe(
-      true,
-    );
+    expect(
+      list.every((po) => typeof po.status === "string" && typeof po.totalPaisa === "number"),
+    ).toBe(true);
   });
 
   it("drives DRAFT -> PENDING_APPROVAL -> APPROVED -> SENT through the repository fns", async () => {
@@ -105,7 +105,14 @@ describe("PurchasingRepository PO journey (10-12 gap closure, MSW round-trip)", 
     server.use(
       http.post("*/api/v1/purchasing/purchase-orders/:id/approve", () =>
         HttpResponse.json(
-          { error: { code: "APPROVAL_LIMIT_EXCEEDED", message: "over limit", details: [], traceId: "t" } },
+          {
+            error: {
+              code: "APPROVAL_LIMIT_EXCEEDED",
+              message: "over limit",
+              details: [],
+              traceId: "t",
+            },
+          },
           { status: 403 },
         ),
       ),

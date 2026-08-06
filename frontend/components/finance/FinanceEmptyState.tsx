@@ -17,14 +17,7 @@ function FinanceEmptyState({
   icon = FileText,
   action,
 }: FinanceEmptyStateProps) {
-  return (
-    <EmptyState
-      icon={icon}
-      title={title}
-      description={description}
-      action={action}
-    />
-  );
+  return <EmptyState icon={icon} title={title} description={description} action={action} />;
 }
 
 export { FinanceEmptyState };

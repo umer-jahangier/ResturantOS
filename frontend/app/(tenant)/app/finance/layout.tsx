@@ -41,7 +41,9 @@ function FinanceTabs() {
             href={tab.href}
             className={cn(
               "border-b-2 px-1 pb-2 text-sm font-medium",
-              active ? "border-primary text-foreground" : "border-transparent text-muted-foreground",
+              active
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground",
             )}
           >
             {tab.label}

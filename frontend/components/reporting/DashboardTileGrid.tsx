@@ -56,7 +56,11 @@ export function DashboardTileGrid({ tiles, isLoading }: DashboardTileGridProps) 
   }
 
   if (!tiles || tiles.length === 0) {
-    return <p className="text-sm text-muted-foreground">No tiles yet — waiting for today&apos;s first order.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        No tiles yet — waiting for today&apos;s first order.
+      </p>
+    );
   }
 
   return (

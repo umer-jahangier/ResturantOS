@@ -35,7 +35,13 @@ function approveErrorMessage(code: string, fallback: string): string {
   return fallback;
 }
 
-function RejectDialog({ onConfirm, isPending }: { onConfirm: (reason: string) => void; isPending: boolean }) {
+function RejectDialog({
+  onConfirm,
+  isPending,
+}: {
+  onConfirm: (reason: string) => void;
+  isPending: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
 
@@ -202,8 +208,8 @@ export default function PurchaseOrderDetailPage({ params }: { params: Promise<{ 
           {isShortClose && (
             <>
               <p className="text-sm text-muted-foreground">
-                This PO was only partially received. Short-closing requires a reason and is subject to
-                approval.
+                This PO was only partially received. Short-closing requires a reason and is subject
+                to approval.
               </p>
               <input
                 className="mt-2 w-full rounded border px-2 py-1 text-sm"

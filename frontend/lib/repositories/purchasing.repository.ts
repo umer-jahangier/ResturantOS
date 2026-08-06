@@ -81,7 +81,11 @@ export const PurchasingRepository = {
 
   // ── Vendor item catalog (PUR-07) ────────────────────────────────────────────────────────
   /** Paginated GET — mirrors VendorItemController#list (default page=0, size=20). */
-  async listVendorItems(vendorId: string, page = 0, size = 20): Promise<PaginatedResult<VendorItem>> {
+  async listVendorItems(
+    vendorId: string,
+    page = 0,
+    size = 20,
+  ): Promise<PaginatedResult<VendorItem>> {
     const result = await getPaginated<unknown>(`/api/v1/purchasing/vendors/${vendorId}/items`, {
       page,
       size,
@@ -125,7 +129,10 @@ export const PurchasingRepository = {
    * previously recorded price in place — recording a price is always a create, mirroring the
    * backend's append-only `VendorItemPriceService.recordNewPrice` (T-08.2-131).
    */
-  async recordVendorItemPrice(vendorItemId: string, input: VendorItemPriceInput): Promise<VendorItemPrice> {
+  async recordVendorItemPrice(
+    vendorItemId: string,
+    input: VendorItemPriceInput,
+  ): Promise<VendorItemPrice> {
     const raw = await post(
       `/api/v1/purchasing/vendor-items/${vendorItemId}/prices`,
       recordVendorItemPriceInputSchema.parse(input),
@@ -134,8 +141,12 @@ export const PurchasingRepository = {
   },
 
   async listVendorPriceChanges(vendorId: string, since?: string): Promise<VendorItemPriceChange[]> {
-    const raw = await get<unknown[]>(`/api/v1/purchasing/vendors/${vendorId}/price-changes`, { since });
-    return (raw ?? []).map((c) => adaptVendorItemPriceChange(apiVendorItemPriceChangeSchema.parse(c)));
+    const raw = await get<unknown[]>(`/api/v1/purchasing/vendors/${vendorId}/price-changes`, {
+      since,
+    });
+    return (raw ?? []).map((c) =>
+      adaptVendorItemPriceChange(apiVendorItemPriceChangeSchema.parse(c)),
+    );
   },
 
   async listVendorCategories(vendorId: string): Promise<VendorCategory[]> {
@@ -144,7 +155,10 @@ export const PurchasingRepository = {
   },
 
   /** The controller takes the replacement set directly as a JSON array body, no wrapper object. */
-  async replaceVendorCategories(vendorId: string, input: VendorCategoriesInput): Promise<VendorCategory[]> {
+  async replaceVendorCategories(
+    vendorId: string,
+    input: VendorCategoriesInput,
+  ): Promise<VendorCategory[]> {
     const raw = await put<unknown, unknown[]>(
       `/api/v1/purchasing/vendors/${vendorId}/categories`,
       vendorCategoriesInputSchema.parse(input),
@@ -201,12 +215,17 @@ export const PurchasingRepository = {
     return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
   },
 
-  async mockReceive(poId: string, lines: { poLineId: string; receivedQty: string }[]): Promise<void> {
+  async mockReceive(
+    poId: string,
+    lines: { poLineId: string; receivedQty: string }[],
+  ): Promise<void> {
     await post(`/api/v1/purchasing/purchase-orders/${poId}/mock-receive`, { lines });
   },
 
   async closePurchaseOrder(poId: string, reason?: string): Promise<PurchaseOrder> {
-    const raw = await post(`/api/v1/purchasing/purchase-orders/${poId}/close`, { reason: reason ?? null });
+    const raw = await post(`/api/v1/purchasing/purchase-orders/${poId}/close`, {
+      reason: reason ?? null,
+    });
     return adaptPurchaseOrder(apiPurchaseOrderSchema.parse(raw));
   },
 
@@ -224,7 +243,10 @@ export const PurchasingRepository = {
    * caller is `useCreateVendorInvoice`.
    */
   async createInvoice(input: VendorInvoiceInput): Promise<VendorInvoice> {
-    const raw = await post("/api/v1/purchasing/invoices", createVendorInvoiceInputSchema.parse(input));
+    const raw = await post(
+      "/api/v1/purchasing/invoices",
+      createVendorInvoiceInputSchema.parse(input),
+    );
     return adaptVendorInvoice(apiVendorInvoiceSchema.parse(raw));
   },
 

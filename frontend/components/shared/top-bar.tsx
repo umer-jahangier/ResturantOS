@@ -3,12 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  ChevronRight,
-  Menu,
-  Search,
-} from "lucide-react";
+import { Bell, ChevronRight, Menu, Search } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,9 +33,7 @@ const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 // Prettify a URL path segment into a human-readable label.
 function prettifySegment(segment: string): string {
-  return segment
-    .replace(/-/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
@@ -82,16 +75,8 @@ function Breadcrumb() {
         const parent = allSegments[start + index - 1];
         return (
           <span key={index} className="flex items-center gap-1">
-            {index > 0 && (
-              <ChevronRight className="size-3 text-muted-foreground" />
-            )}
-            <span
-              className={
-                isLast
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground"
-              }
-            >
+            {index > 0 && <ChevronRight className="size-3 text-muted-foreground" />}
+            <span className={isLast ? "font-medium text-foreground" : "text-muted-foreground"}>
               {segmentLabel(segment, parent)}
             </span>
           </span>
@@ -116,9 +101,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   // User initial for avatar circle — fallback to "U"
   const userInitial = userId ? userId.slice(0, 1).toUpperCase() : "U";
   const branchName =
-    branchId != null
-      ? (myBranches.find((branch) => branch.id === branchId)?.name ?? null)
-      : null;
+    branchId != null ? (myBranches.find((branch) => branch.id === branchId)?.name ?? null) : null;
 
   function handleLogout() {
     logout.mutate();
@@ -246,9 +229,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Theme">
-          <CommandItem onSelect={() => setCmdOpen(false)}>
-            Toggle theme
-          </CommandItem>
+          <CommandItem onSelect={() => setCmdOpen(false)}>Toggle theme</CommandItem>
         </CommandGroup>
       </CommandPalette>
     </>

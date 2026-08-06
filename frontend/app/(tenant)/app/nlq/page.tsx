@@ -16,8 +16,8 @@ function NlqAskPage() {
       <div>
         <h1 className="text-xl font-semibold">Ask a question</h1>
         <p className="text-sm text-muted-foreground">
-          Ask about your restaurant&apos;s data in plain English — see the answer, and the exact
-          SQL that ran to produce it.
+          Ask about your restaurant&apos;s data in plain English — see the answer, and the exact SQL
+          that ran to produce it.
         </p>
       </div>
 

@@ -179,20 +179,23 @@ describe("Menu Items page", () => {
   it("editingACategoryPutsTheRenamedFieldsAndConfirms", async () => {
     let putBody: unknown = null;
     server.use(
-      http.put("*/api/v1/pos/menu/categories/c1000001-0000-4000-8000-000000000001", async ({ request }) => {
-        putBody = await request.json();
-        return HttpResponse.json({
-          data: {
-            id: CAT_MAINS,
-            name: "Main Courses",
-            description: "renamed",
-            sortOrder: 1,
-            active: true,
-          },
-          meta: null,
-          warnings: [],
-        });
-      }),
+      http.put(
+        "*/api/v1/pos/menu/categories/c1000001-0000-4000-8000-000000000001",
+        async ({ request }) => {
+          putBody = await request.json();
+          return HttpResponse.json({
+            data: {
+              id: CAT_MAINS,
+              name: "Main Courses",
+              description: "renamed",
+              sortOrder: 1,
+              active: true,
+            },
+            meta: null,
+            warnings: [],
+          });
+        },
+      ),
     );
     renderPage();
     const user = userEvent.setup();

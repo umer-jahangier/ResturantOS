@@ -1,69 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { HrErrorNotice } from "@/components/hr/hr-error-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { HrRepository } from "@/lib/repositories/hr.repository";
-import type { LabourCostByBranch, PayrollRun, Payslip } from "@/lib/models/hr.model";
+import {
+  useApprovePayrollRun,
+  useCalculatePayrollRun,
+  useCreatePayrollRun,
+  useLabourCost,
+  usePayPayrollRun,
+  usePayrollRuns,
+  usePayslips,
+} from "@/lib/hooks/hr/use-payroll";
+import type { PayrollRun } from "@/lib/models/hr.model";
 
 function rupees(paisa: number): string {
   return `₨ ${(paisa / 100).toLocaleString()}`;
 }
 
 export default function PayrollPage() {
-  const [runs, setRuns] = useState<PayrollRun[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: runs, isLoading, isError, error, refetch } = usePayrollRuns();
+  const createRun = useCreatePayrollRun();
+  const calculateRun = useCalculatePayrollRun();
+  const approveRun = useApprovePayrollRun();
+  const payRun = usePayPayrollRun();
+
   const now = new Date();
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year, setYear] = useState(String(now.getFullYear()));
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [payslips, setPayslips] = useState<Payslip[]>([]);
-  const [labour, setLabour] = useState<LabourCostByBranch | null>(null);
+  // Only the id is stored; the run itself is looked up from the freshly-fetched list so an
+  // expanded row can never go on showing a pre-mutation status.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  async function load() {
-    setLoading(true);
-    try {
-      setRuns(await HrRepository.listRuns());
-    } catch {
-      toast.error("Failed to load payroll runs");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const rows = runs ?? [];
+  const expanded: PayrollRun | null = rows.find((r) => r.id === expandedId) ?? null;
 
-  useEffect(() => {
-    void load();
-  }, []);
+  // Both keyed off the expanded run; TanStack keeps them disabled until one is open, so
+  // collapsing simply stops the fetches instead of leaving stale rows behind.
+  const payslipsQuery = usePayslips(expanded?.id ?? null);
+  const labourQuery = useLabourCost(
+    expanded?.branchId ?? null,
+    expanded?.periodMonth ?? null,
+    expanded?.periodYear ?? null,
+  );
 
-  async function act(fn: () => Promise<unknown>, ok: string) {
-    try {
-      await fn();
-      toast.success(ok);
-      await load();
-    } catch {
-      toast.error("Action failed");
-    }
-  }
-
-  async function openRun(run: PayrollRun) {
-    if (expanded === run.id) {
-      setExpanded(null);
-      return;
-    }
-    setExpanded(run.id);
-    try {
-      setPayslips(await HrRepository.listPayslips(run.id));
-      if (run.branchId) {
-        setLabour(await HrRepository.labourCostByBranch(run.branchId, run.periodMonth, run.periodYear));
-      } else {
-        setLabour(null);
-      }
-    } catch {
-      toast.error("Failed to load payslips");
-    }
+  function toastResult(successMessage: string) {
+    return {
+      onSuccess: () => toast.success(successMessage),
+      onError: () => toast.error("Action failed"),
+    };
   }
 
   return (
@@ -72,87 +61,161 @@ export default function PayrollPage() {
         <h1 className="text-lg font-semibold">Payroll runs</h1>
         <PermissionGuard require="hr.payroll.run" fallback={null}>
           <div className="flex gap-2">
-            <Input type="number" className="w-20" value={month} onChange={(e) => setMonth(e.target.value)} />
-            <Input type="number" className="w-24" value={year} onChange={(e) => setYear(e.target.value)} />
-            <Button onClick={() => act(() => HrRepository.createRun(Number(month), Number(year)), "Run created")}>
+            <Input
+              type="number"
+              className="w-20"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+            />
+            <Input
+              type="number"
+              className="w-24"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+            />
+            <Button
+              disabled={createRun.isPending}
+              onClick={() =>
+                createRun.mutate(
+                  { month: Number(month), year: Number(year) },
+                  toastResult("Run created"),
+                )
+              }
+            >
               New run
             </Button>
           </div>
         </PermissionGuard>
       </div>
 
-      {loading ? (
+      {/* Payroll is money: a failed list rendering as "No payroll runs yet." could send
+          someone to create a duplicate run for a period that already has one. */}
+      {isError ? (
+        <HrErrorNotice what="payroll runs" error={error} onRetry={() => void refetch()} />
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         <div className="space-y-2">
-          {runs.map((run) => (
+          {rows.map((run) => (
             <div key={run.id} className="rounded border p-3">
               <div className="flex items-center justify-between">
-                <button className="text-left" onClick={() => openRun(run)}>
-                  <span className="font-medium">{run.periodMonth}/{run.periodYear}</span>{" "}
-                  <span className="text-muted-foreground">· {run.status} · gross {rupees(run.totalGrossPaisa)} · net {rupees(run.totalNetPaisa)}</span>
+                <button
+                  className="text-left"
+                  onClick={() => setExpandedId((prev) => (prev === run.id ? null : run.id))}
+                >
+                  <span className="font-medium">
+                    {run.periodMonth}/{run.periodYear}
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    · {run.status} · gross {rupees(run.totalGrossPaisa)} · net{" "}
+                    {rupees(run.totalNetPaisa)}
+                  </span>
                 </button>
                 <div className="flex gap-2">
                   {(run.status === "DRAFT" || run.status === "CALCULATED") && (
                     <PermissionGuard require="hr.payroll.run" fallback={null}>
-                      <Button size="sm" variant="outline" onClick={() => act(() => HrRepository.calculateRun(run.id), "Calculated")}>Calculate</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={calculateRun.isPending}
+                        onClick={() => calculateRun.mutate(run.id, toastResult("Calculated"))}
+                      >
+                        Calculate
+                      </Button>
                     </PermissionGuard>
                   )}
                   {run.status === "CALCULATED" && (
                     <PermissionGuard require="hr.payroll.approve" fallback={null}>
-                      <Button size="sm" onClick={() => {
-                        const code = window.prompt("Enter TOTP code to approve") ?? "";
-                        if (code) void act(() => HrRepository.approveRun(run.id, code), "Approved");
-                      }}>Approve (TOTP)</Button>
+                      <Button
+                        size="sm"
+                        disabled={approveRun.isPending}
+                        onClick={() => {
+                          const code = window.prompt("Enter TOTP code to approve") ?? "";
+                          if (code) {
+                            approveRun.mutate(
+                              { id: run.id, totpCode: code },
+                              toastResult("Approved"),
+                            );
+                          }
+                        }}
+                      >
+                        Approve (TOTP)
+                      </Button>
                     </PermissionGuard>
                   )}
                   {run.status === "APPROVED" && (
                     <PermissionGuard require="hr.payroll.approve" fallback={null}>
-                      <Button size="sm" onClick={() => act(() => HrRepository.payRun(run.id), "Paid")}>Mark paid</Button>
+                      <Button
+                        size="sm"
+                        disabled={payRun.isPending}
+                        onClick={() => payRun.mutate(run.id, toastResult("Paid"))}
+                      >
+                        Mark paid
+                      </Button>
                     </PermissionGuard>
                   )}
                 </div>
               </div>
 
-              {expanded === run.id && (
+              {expanded?.id === run.id && (
                 <div className="mt-3 space-y-2 border-t pt-2">
-                  {labour && (
-                    <p className="text-sm">
-                      Labour cost: {rupees(labour.labourCostPaisa)}
-                      {labour.labourCostPct != null ? ` · ${labour.labourCostPct.toFixed(1)}% of revenue` : " · revenue unavailable"}
+                  {labourQuery.isError && (
+                    <p className="text-sm text-destructive" role="alert">
+                      Labour cost unavailable for this run.
                     </p>
                   )}
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b text-left text-muted-foreground">
-                        <th className="py-1">Employee</th>
-                        <th>Basic</th>
-                        <th>Gross</th>
-                        <th>Income tax</th>
-                        <th>EOBI</th>
-                        <th>Late</th>
-                        <th>Net</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payslips.map((p) => (
-                        <tr key={p.id} className="border-b">
-                          <td className="py-1">{p.employeeId.slice(0, 8)}</td>
-                          <td>{rupees(p.basicPaisa)}</td>
-                          <td>{rupees(p.grossPaisa)}</td>
-                          <td>{rupees(p.deductions.income_tax_paisa ?? 0)}</td>
-                          <td>{rupees(p.deductions.eobi_employee_paisa ?? 0)}</td>
-                          <td>{rupees(p.deductions.late_arrival_paisa ?? 0)}</td>
-                          <td>{rupees(p.netPaisa)}</td>
+                  {labourQuery.data && (
+                    <p className="text-sm">
+                      Labour cost: {rupees(labourQuery.data.labourCostPaisa)}
+                      {labourQuery.data.labourCostPct != null
+                        ? ` · ${labourQuery.data.labourCostPct.toFixed(1)}% of revenue`
+                        : " · revenue unavailable"}
+                    </p>
+                  )}
+
+                  {payslipsQuery.isError ? (
+                    <HrErrorNotice
+                      what="the payslips for this run"
+                      error={payslipsQuery.error}
+                      onRetry={() => void payslipsQuery.refetch()}
+                    />
+                  ) : payslipsQuery.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading payslips…</p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left text-muted-foreground">
+                          <th className="py-1">Employee</th>
+                          <th>Basic</th>
+                          <th>Gross</th>
+                          <th>Income tax</th>
+                          <th>EOBI</th>
+                          <th>Late</th>
+                          <th>Net</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {(payslipsQuery.data ?? []).map((p) => (
+                          <tr key={p.id} className="border-b">
+                            <td className="py-1">{p.employeeId.slice(0, 8)}</td>
+                            <td>{rupees(p.basicPaisa)}</td>
+                            <td>{rupees(p.grossPaisa)}</td>
+                            <td>{rupees(p.deductions.income_tax_paisa ?? 0)}</td>
+                            <td>{rupees(p.deductions.eobi_employee_paisa ?? 0)}</td>
+                            <td>{rupees(p.deductions.late_arrival_paisa ?? 0)}</td>
+                            <td>{rupees(p.netPaisa)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
             </div>
           ))}
-          {runs.length === 0 && <p className="text-sm text-muted-foreground">No payroll runs yet.</p>}
+          {rows.length === 0 && (
+            <p className="text-sm text-muted-foreground">No payroll runs yet.</p>
+          )}
         </div>
       )}
     </div>

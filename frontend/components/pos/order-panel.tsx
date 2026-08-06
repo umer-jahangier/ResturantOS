@@ -6,11 +6,20 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { RevisionBadge, RevisionCountChip, type RevisionLogEntry } from "@/components/pos/revision-chip";
+import {
+  RevisionBadge,
+  RevisionCountChip,
+  type RevisionLogEntry,
+} from "@/components/pos/revision-chip";
 import { SettlementActions } from "@/components/pos/settlement-actions";
 import { OrderTypeToggle } from "@/components/pos/order-type-toggle";
 import { TableSelectCombobox } from "@/components/pos/table-select-combobox";
-import { cartLineKey, cartTotalPaisa, cartTaxPaisa, type CartLine } from "@/components/pos/cart-reducer";
+import {
+  cartLineKey,
+  cartTotalPaisa,
+  cartTaxPaisa,
+  type CartLine,
+} from "@/components/pos/cart-reducer";
 import {
   useRemoveItem,
   useCancelItem,
@@ -265,7 +274,9 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
         >
           <Minus className="size-3.5" aria-hidden="true" />
         </button>
-        <span className="text-sm font-mono tabular-nums min-w-[24px] text-center">{line.quantity}</span>
+        <span className="text-sm font-mono tabular-nums min-w-[24px] text-center">
+          {line.quantity}
+        </span>
         <button
           type="button"
           onClick={() => onIncrement(lineKey)}
@@ -276,7 +287,10 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
         </button>
       </div>
 
-      <MoneyDisplay paisa={line.unitPricePaisa * line.quantity} className="text-sm font-mono w-20 text-right" />
+      <MoneyDisplay
+        paisa={line.unitPricePaisa * line.quantity}
+        className="text-sm font-mono w-20 text-right"
+      />
 
       {/* Remove line outright — faster than decrementing quantity down to 0 */}
       <button
@@ -353,7 +367,13 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
           </div>
         ) : (
           order.items.map((item) => (
-            <OrderLineItem key={item.id} item={item} orderId={order.id} orderStatus={order.status} isSettled={isSettled} />
+            <OrderLineItem
+              key={item.id}
+              item={item}
+              orderId={order.id}
+              orderStatus={order.status}
+              isSettled={isSettled}
+            />
           ))
         )}
       </div>
@@ -522,7 +542,10 @@ function OrderLineItem({ item, orderId, orderStatus, isSettled }: OrderLineItemP
   const [noteDraft, setNoteDraft] = useState(item.notes ?? "");
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
-  const isActive = item.itemStatus !== "PENDING" && item.itemStatus !== "CANCELLED" && item.itemStatus !== "SERVED";
+  const isActive =
+    item.itemStatus !== "PENDING" &&
+    item.itemStatus !== "CANCELLED" &&
+    item.itemStatus !== "SERVED";
   const isCancelled = item.itemStatus === "CANCELLED";
   // Not-yet-fired line on an OPEN order → Remove; on a fired order remove is server-blocked, so
   // it becomes cancellable instead (fixes the "PENDING-on-fired line is stuck" dead-end).
@@ -621,8 +644,8 @@ function OrderLineItem({ item, orderId, orderStatus, isSettled }: OrderLineItemP
         <div className="rounded border border-destructive/30 bg-destructive/5 p-2 text-xs space-y-1.5">
           <p className="font-medium text-destructive">Cancel Item</p>
           <p className="text-muted-foreground">
-            Remove {item.itemNameSnapshot} from this order? If it was already sent to the
-            kitchen, staff will see it marked cancelled.
+            Remove {item.itemNameSnapshot} from this order? If it was already sent to the kitchen,
+            staff will see it marked cancelled.
           </p>
           <div className="flex justify-end gap-2">
             <button

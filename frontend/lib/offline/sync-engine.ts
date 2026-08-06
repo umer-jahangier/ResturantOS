@@ -13,7 +13,11 @@
  */
 
 import { PosRepository } from "@/lib/repositories/pos.repository";
-import type { CreateOrderPayload, AddItemPayload, UpdateInstructionsPayload } from "@/lib/models/pos.model";
+import type {
+  CreateOrderPayload,
+  AddItemPayload,
+  UpdateInstructionsPayload,
+} from "@/lib/models/pos.model";
 import {
   count,
   markFailed,
@@ -80,10 +84,7 @@ export async function replay(): Promise<ReplayResult> {
           // (item added to an already-synced order) — targetOrderId only differs when
           // this op was queued against an order that was ALSO created offline in the
           // same session (see idRemap/repointQueuedOps above).
-          await PosRepository.addItem(
-            targetOrderId,
-            op.payload as AddItemPayload,
-          );
+          await PosRepository.addItem(targetOrderId, op.payload as AddItemPayload);
         } else if (op.type === "UPDATE_INSTRUCTIONS") {
           // Same targetOrderId reasoning as APPEND_ITEMS above (POS-13 is
           // offline-safe per this plan's must_haves).
@@ -133,10 +134,7 @@ export function onProgress(cb: ProgressCallback): () => void {
 
 /** Recompute pending count and notify all progress subscribers. */
 export async function emitProgress(): Promise<void> {
-  const pending =
-    (await count("PENDING")) +
-    (await count("IN_FLIGHT")) +
-    (await count("FAILED"));
+  const pending = (await count("PENDING")) + (await count("IN_FLIGHT")) + (await count("FAILED"));
   const dead = await count("DEAD");
 
   const lastError = await getLastError();
@@ -149,8 +147,6 @@ async function getLastError(): Promise<string | undefined> {
   // Prefer a DEAD op's error (terminal, needs attention) over a still-retrying FAILED one.
   const dead = ops.filter((o) => o.status === "DEAD" && o.lastError).at(-1);
   if (dead) return dead.lastError;
-  const failedOp = ops
-    .filter((o) => o.status === "FAILED" && o.lastError)
-    .at(-1);
+  const failedOp = ops.filter((o) => o.status === "FAILED" && o.lastError).at(-1);
   return failedOp?.lastError;
 }

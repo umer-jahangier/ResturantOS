@@ -74,9 +74,7 @@ describe("PosRepository — Zod parse + adapter contract", () => {
     });
 
     it("rejects a menu item with a negative price", () => {
-      expect(() =>
-        apiMenuItemSchema.parse({ ...rawMenuItem, basePricePaisa: -1 })
-      ).toThrow();
+      expect(() => apiMenuItemSchema.parse({ ...rawMenuItem, basePricePaisa: -1 })).toThrow();
     });
 
     it("rejects a menu item missing the 'name' field", () => {
@@ -96,9 +94,7 @@ describe("PosRepository — Zod parse + adapter contract", () => {
     });
 
     it("rejects an order with an invalid status", () => {
-      expect(() =>
-        apiOrderSchema.parse({ ...rawOrder, status: "INVALID_STATUS" })
-      ).toThrow();
+      expect(() => apiOrderSchema.parse({ ...rawOrder, status: "INVALID_STATUS" })).toThrow();
     });
   });
 
@@ -132,7 +128,7 @@ describe("PosRepository — Zod parse + adapter contract", () => {
         http.post("*/api/v1/pos/orders", async ({ request }) => {
           capturedIdempotencyKey = request.headers.get("Idempotency-Key");
           return HttpResponse.json({ data: rawOrder });
-        })
+        }),
       );
 
       await PosRepository.createOrder({

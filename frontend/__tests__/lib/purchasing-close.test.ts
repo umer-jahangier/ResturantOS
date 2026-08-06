@@ -19,7 +19,10 @@ describe("PurchasingRepository.closePurchaseOrder (PUR-02 gap closure, MSW round
   });
 
   it("short-closes a PARTIALLY_RECEIVED PO with a reason", async () => {
-    const closed = await PurchasingRepository.closePurchaseOrder(PO_ID, "Vendor cannot fulfil remainder");
+    const closed = await PurchasingRepository.closePurchaseOrder(
+      PO_ID,
+      "Vendor cannot fulfil remainder",
+    );
     expect(closed.status).toBe("CLOSED");
     expect(closed.closeReason).toBe("Vendor cannot fulfil remainder");
     expect(closed.closedAt).not.toBeNull();

@@ -23,10 +23,7 @@ vi.mock("sonner", () => ({
 }));
 
 function authError(code: string, message: string, status: number) {
-  return HttpResponse.json(
-    { error: { code, message, details: [], traceId: "t" } },
-    { status },
-  );
+  return HttpResponse.json({ error: { code, message, details: [], traceId: "t" } }, { status });
 }
 
 function renderLoginForm(tenantSlug: string | null = "acme") {
@@ -40,9 +37,7 @@ function renderLoginForm(tenantSlug: string | null = "acme") {
 
 describe("resolveTenantSlug", () => {
   it("prefers the ?tenant= search param", () => {
-    expect(
-      resolveTenantSlug({ host: "acme.restaurantos.com", searchParam: "beta" }),
-    ).toBe("beta");
+    expect(resolveTenantSlug({ host: "acme.restaurantos.com", searchParam: "beta" })).toBe("beta");
   });
 
   it("falls back to the leftmost subdomain label", () => {
@@ -115,9 +110,7 @@ describe("LoginForm", () => {
 
   it("maps ACCOUNT_LOCKED(423) to a 'temporarily locked' message", async () => {
     server.use(
-      http.post("*/api/v1/auth/login", () =>
-        authError("ACCOUNT_LOCKED", "Account locked", 423),
-      ),
+      http.post("*/api/v1/auth/login", () => authError("ACCOUNT_LOCKED", "Account locked", 423)),
     );
     const user = userEvent.setup();
     renderLoginForm();

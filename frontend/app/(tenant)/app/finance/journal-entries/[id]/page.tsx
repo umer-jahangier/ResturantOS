@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import { formatUserFacingError } from "@/lib/api-client/errors";
+import { formatUserFacingError } from "@/lib/errors";
 import { useJournalEntry, usePostJe, useReverseJe } from "@/lib/hooks/finance/use-journal-entries";
 import { DrCrCell } from "@/components/finance/DrCrCell";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
@@ -42,19 +42,14 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">
-            {je.entryNo ?? "Draft Entry"}
-          </h1>
+          <h1 className="text-2xl font-semibold">{je.entryNo ?? "Draft Entry"}</h1>
           <p className="text-sm text-muted-foreground">
             {je.entryDate} · {je.description}
           </p>
         </div>
         <div className="flex gap-2">
           {je.status === "DRAFT" && (
-            <Button
-              onClick={() => postJe(id)}
-              disabled={isPosting}
-            >
+            <Button onClick={() => postJe(id)} disabled={isPosting}>
               {isPosting ? "Posting…" : "Post"}
             </Button>
           )}
@@ -120,9 +115,7 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
           <tbody>
             {je.lines.map((line) => (
               <tr key={line.id} className="border-b">
-                <td className="py-2 pr-4 font-mono tabular-nums">
-                  {line.accountCode}
-                </td>
+                <td className="py-2 pr-4 font-mono tabular-nums">{line.accountCode}</td>
                 <td className="py-2 pr-4">{line.description}</td>
                 <DrCrCell paisa={line.debitPaisa} type="debit" />
                 <DrCrCell paisa={line.creditPaisa} type="credit" />

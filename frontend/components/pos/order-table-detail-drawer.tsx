@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { Input } from "@/components/ui/input";
-import { RevisionBadge, RevisionCountChip, deriveRevisionLog } from "@/components/pos/revision-chip";
+import {
+  RevisionBadge,
+  RevisionCountChip,
+  deriveRevisionLog,
+} from "@/components/pos/revision-chip";
 import { SettlementActions } from "@/components/pos/settlement-actions";
 import {
   useOrder,
@@ -70,11 +74,15 @@ export function OrderTableDetailDrawer({
   const orderQuery = useOrder(orderId ?? "");
   const tableQuery = useTableDetail(isTableMode ? (tableId ?? "") : "");
 
-  const order: Order | null = isTableMode ? (tableQuery.data?.activeOrder ?? null) : (orderQuery.data ?? null);
+  const order: Order | null = isTableMode
+    ? (tableQuery.data?.activeOrder ?? null)
+    : (orderQuery.data ?? null);
   const isLoading = isTableMode ? tableQuery.isLoading : orderQuery.isLoading;
   const isRefetching = isTableMode ? tableQuery.isFetching : orderQuery.isFetching;
   const resolvedTableId = order?.tableId ?? tableId ?? null;
-  const resolvedTableName = isTableMode ? (tableQuery.data?.tableName ?? tableName ?? null) : (tableName ?? null);
+  const resolvedTableName = isTableMode
+    ? (tableQuery.data?.tableName ?? tableName ?? null)
+    : (tableName ?? null);
 
   const handleRefresh = () => {
     void (isTableMode ? tableQuery.refetch() : orderQuery.refetch());
@@ -106,9 +114,7 @@ export function OrderTableDetailDrawer({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className="fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
-        />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         {/*
          * Large in-place panel (POS-25/D-10) — occupies the primary content area (nearly
          * full viewport, responsive, no horizontal body overflow) rather than a centered
@@ -238,7 +244,9 @@ function DrawerLineItem({ item, orderId, orderStatus, isSettled }: DrawerLineIte
 
   const isCancelled = item.itemStatus === "CANCELLED";
   const isActive =
-    item.itemStatus !== "PENDING" && item.itemStatus !== "CANCELLED" && item.itemStatus !== "SERVED";
+    item.itemStatus !== "PENDING" &&
+    item.itemStatus !== "CANCELLED" &&
+    item.itemStatus !== "SERVED";
   // A not-yet-fired line on an OPEN order can be REMOVED outright; on a fired order it can't
   // (server blocks remove unless OPEN), so it's cancelled instead. Everything active is
   // cancellable except an already-served/cancelled line.
@@ -260,9 +268,7 @@ function DrawerLineItem({ item, orderId, orderStatus, isSettled }: DrawerLineIte
             </p>
             <RevisionBadge revisionNo={item.revisionNo} />
           </div>
-          {item.notes && (
-            <p className="text-xs italic text-muted-foreground">Note: {item.notes}</p>
-          )}
+          {item.notes && <p className="text-xs italic text-muted-foreground">Note: {item.notes}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span className="font-mono text-xs tabular-nums">×{item.quantity}</span>
@@ -363,7 +369,11 @@ function InstructionsField({ orderId, notes, disabled }: InstructionsFieldProps)
           className="flex w-full items-start gap-1.5 text-left text-xs text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           <MessageSquare className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          {notes ? <span className="italic">{notes}</span> : <span className="text-primary underline">+ Add note</span>}
+          {notes ? (
+            <span className="italic">{notes}</span>
+          ) : (
+            <span className="text-primary underline">+ Add note</span>
+          )}
         </button>
       </div>
     );
@@ -387,7 +397,11 @@ function InstructionsField({ orderId, notes, disabled }: InstructionsFieldProps)
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground">{draft.length}/240</span>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setEditing(false)} className="rounded border px-2 py-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="rounded border px-2 py-1 text-xs"
+          >
             Cancel
           </button>
           <button
@@ -425,7 +439,10 @@ function QuickAddSearch({ orderId, branchId, tableId, onFullMenu }: QuickAddSear
 
   const handleAdd = async (item: MenuItem) => {
     try {
-      await addItem.mutateAsync({ orderId, payload: { menuItemId: item.id, branchId, quantity: 1 } });
+      await addItem.mutateAsync({
+        orderId,
+        payload: { menuItemId: item.id, branchId, quantity: 1 },
+      });
       toast.success(`${item.name} added`);
       setQuery("");
     } catch {
@@ -462,7 +479,10 @@ function QuickAddSearch({ orderId, branchId, tableId, onFullMenu }: QuickAddSear
             <li key={item.id} className="flex items-center justify-between px-2 py-1.5 text-sm">
               <span className="truncate">{item.name}</span>
               <div className="flex shrink-0 items-center gap-2">
-                <MoneyDisplay paisa={item.basePricePaisa} className="text-xs text-muted-foreground" />
+                <MoneyDisplay
+                  paisa={item.basePricePaisa}
+                  className="text-xs text-muted-foreground"
+                />
                 <button
                   type="button"
                   onClick={() => void handleAdd(item)}

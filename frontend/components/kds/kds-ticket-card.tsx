@@ -120,10 +120,7 @@ export function KdsTicketCard({
         <span className="text-gray-200 text-sm font-bold uppercase tracking-wide">
           {ticket.orderNo ?? ticket.id.slice(0, 8)}
         </span>
-        <span
-          className={`rounded px-1.5 py-0.5 text-xs ${chipClass}`}
-          data-testid="kds-ticket-age"
-        >
+        <span className={`rounded px-1.5 py-0.5 text-xs ${chipClass}`} data-testid="kds-ticket-age">
           {formatAge(ageMs)}
         </span>
       </div>
@@ -144,7 +141,13 @@ export function KdsTicketCard({
             aria-label="Has notes"
             data-testid="kds-ticket-note-indicator"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-3.5">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="size-3.5"
+            >
               <path d="M4 5h16M4 12h16M4 19h10" strokeLinecap="round" />
             </svg>
             Note

@@ -33,7 +33,10 @@ const settlementFormSchema = z.object({
   amountRupees: z
     .string()
     .min(1, "Amount is required")
-    .refine((v) => Number.isFinite(Number(v)) && Number(v) > 0, "Enter an amount greater than zero"),
+    .refine(
+      (v) => Number.isFinite(Number(v)) && Number(v) > 0,
+      "Enter an amount greater than zero",
+    ),
   txnDate: z.string().min(1, "Date is required"),
   reference: z.string(),
 });

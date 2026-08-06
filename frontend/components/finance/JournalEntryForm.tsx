@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCreateJe } from "@/lib/hooks/finance/use-journal-entries";
 import { useOpenPeriods } from "@/lib/hooks/finance/use-periods";
@@ -10,7 +10,7 @@ import { OpenPeriodDatePicker } from "@/components/finance/OpenPeriodDatePicker"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatUserFacingError } from "@/lib/api-client/errors";
+import { formatUserFacingError } from "@/lib/errors";
 import type { CreateJeLineRequest } from "@/lib/models/finance.model";
 
 interface JeLineState {
@@ -45,31 +45,22 @@ function JournalEntryForm() {
     return first.startDate;
   }, [openPeriods]);
 
-  const [entryDate, setEntryDate] = useState("");
+  // Only the user's explicit pick is stored; the effective date falls back to
+  // `defaultDate`, which is empty until the open-periods query resolves. Storing the
+  // fallback in state as well (via an effect) meant the same value lived in two places
+  // and cost an extra render every time the query settled.
+  const [pickedDate, setPickedDate] = useState("");
+  const entryDate = pickedDate || defaultDate;
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<JeLineState[]>([emptyLine(), emptyLine()]);
 
-  useEffect(() => {
-    if (defaultDate && !entryDate) {
-      setEntryDate(defaultDate);
-    }
-  }, [defaultDate, entryDate]);
-
-  const totalDebit = lines.reduce(
-    (sum, l) => sum + (parseInt(l.debitPaisa || "0", 10) || 0),
-    0,
-  );
-  const totalCredit = lines.reduce(
-    (sum, l) => sum + (parseInt(l.creditPaisa || "0", 10) || 0),
-    0,
-  );
+  const totalDebit = lines.reduce((sum, l) => sum + (parseInt(l.debitPaisa || "0", 10) || 0), 0);
+  const totalCredit = lines.reduce((sum, l) => sum + (parseInt(l.creditPaisa || "0", 10) || 0), 0);
   const isBalanced = totalDebit === totalCredit && totalDebit > 0;
   const hasValidAccounts = lines.every((line) => line.accountCode.length > 0);
 
   function updateLine(index: number, field: keyof JeLineState, value: string) {
-    setLines((prev) =>
-      prev.map((line, i) => (i === index ? { ...line, [field]: value } : line)),
-    );
+    setLines((prev) => prev.map((line, i) => (i === index ? { ...line, [field]: value } : line)));
   }
 
   function addLine() {
@@ -107,7 +98,7 @@ function JournalEntryForm() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Entry Date (open periods only)</Label>
-          <OpenPeriodDatePicker value={entryDate} onChange={setEntryDate} />
+          <OpenPeriodDatePicker value={entryDate} onChange={setPickedDate} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="description">Description</Label>
@@ -131,10 +122,7 @@ function JournalEntryForm() {
         </div>
 
         {lines.map((line, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-[1fr_1fr_7rem_7rem_2rem] gap-2"
-          >
+          <div key={i} className="grid grid-cols-[1fr_1fr_7rem_7rem_2rem] gap-2">
             <AccountCodeSelect
               value={line.accountCode}
               selectedName={line.accountName}
@@ -207,11 +195,7 @@ function JournalEntryForm() {
           </span>
         </div>
         <span
-          className={
-            isBalanced
-              ? "text-emerald-700 font-medium"
-              : "text-destructive font-medium"
-          }
+          className={isBalanced ? "text-emerald-700 font-medium" : "text-destructive font-medium"}
         >
           {isBalanced ? "Balanced ✓" : "Not balanced"}
         </span>

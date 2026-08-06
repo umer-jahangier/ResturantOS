@@ -4,7 +4,11 @@ import { MessageSquare } from "lucide-react";
 import { useKdsTicketDetail, useUpdateItemStatus } from "@/lib/hooks/kds/use-kds-tickets";
 import { StatusBadge, type LineItemStatusVariant } from "@/components/ui/status-badge";
 import { RevisionBadge } from "@/components/pos/revision-chip";
-import { getNextItemStatus, mapItemStatusToColumn, KDS_COLUMN_LABELS } from "@/components/kds/kds-item-column";
+import {
+  getNextItemStatus,
+  mapItemStatusToColumn,
+  KDS_COLUMN_LABELS,
+} from "@/components/kds/kds-item-column";
 import type { KdsItemStatus, KdsTicketItem } from "@/lib/models/kds.model";
 
 interface KdsTicketDetailProps {
@@ -130,7 +134,11 @@ export function KdsTicketDetail({ ticketId, branchId, canUpdate = false }: KdsTi
                           type="button"
                           data-testid={`detail-move-${item.id}`}
                           onClick={() =>
-                            updateItemStatus.mutate({ ticketId, itemId: item.id, status: nextStatus })
+                            updateItemStatus.mutate({
+                              ticketId,
+                              itemId: item.id,
+                              status: nextStatus,
+                            })
                           }
                           className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
                         >

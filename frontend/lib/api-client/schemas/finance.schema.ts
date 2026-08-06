@@ -37,12 +37,9 @@ const apiJournalEntryBaseSchema = z.object({
 /** Totals may be omitted by older API responses — derive from lines when missing. */
 export const apiJournalEntrySchema = apiJournalEntryBaseSchema.transform((raw) => ({
   ...raw,
-  totalDebitPaisa:
-    raw.totalDebitPaisa ??
-    raw.lines.reduce((sum, line) => sum + line.debitPaisa, 0),
+  totalDebitPaisa: raw.totalDebitPaisa ?? raw.lines.reduce((sum, line) => sum + line.debitPaisa, 0),
   totalCreditPaisa:
-    raw.totalCreditPaisa ??
-    raw.lines.reduce((sum, line) => sum + line.creditPaisa, 0),
+    raw.totalCreditPaisa ?? raw.lines.reduce((sum, line) => sum + line.creditPaisa, 0),
 }));
 
 export const apiAccountingPeriodSchema = z.object({
@@ -98,11 +95,7 @@ export const apiCreateJeSchema = z.object({
 // List endpoint (`GET /api/v1/finance/expenses`) returns a plain
 // `ApiResponse<List<ExpenseDto>>` per the 10-10 contract: NO PageMeta/pagination.
 
-export const EXPENSE_STATUSES = [
-  "PENDING_APPROVAL",
-  "APPROVED",
-  "REJECTED",
-] as const;
+export const EXPENSE_STATUSES = ["PENDING_APPROVAL", "APPROVED", "REJECTED"] as const;
 
 export const apiExpenseSchema = z.object({
   id: z.string().uuid(),

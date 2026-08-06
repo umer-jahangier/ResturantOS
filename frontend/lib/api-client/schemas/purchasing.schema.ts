@@ -259,7 +259,10 @@ export const apiPurchaseOrderSchema = z.object({
  */
 export const createPurchaseOrderLineInputSchema = z
   .object({
-    vendorItemId: z.string().uuid({ message: "Select a catalog item before adding this line" }).or(z.literal("")),
+    vendorItemId: z
+      .string()
+      .uuid({ message: "Select a catalog item before adding this line" })
+      .or(z.literal("")),
     qty: z.string().min(1, "Quantity is required"),
     uom: z.string().optional(),
     unitPricePaisa: z.number().int().nonnegative().optional(),

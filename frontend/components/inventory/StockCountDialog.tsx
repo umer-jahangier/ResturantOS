@@ -6,8 +6,15 @@ import { AlertTriangle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { useIngredients, usePostStockCount, useStockLevels } from "@/lib/hooks/inventory/use-inventory";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  useIngredients,
+  usePostStockCount,
+  useStockLevels,
+} from "@/lib/hooks/inventory/use-inventory";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +45,11 @@ const UNGROUPED_LABEL = "Ungrouped";
  * value (impossible to submit — `StockCountDtos.CountLineRequest` is `@PositiveOrZero` — but
  * visible while the user is still typing) takes the destructive wash immediately. Same rule
  * StockTransferDialog.tsx's receive-adjust table uses, per UI-SPEC Screen 7's shared contract. */
-function varianceRowClassName(variance: number, counted: number, overCap: boolean): string | undefined {
+function varianceRowClassName(
+  variance: number,
+  counted: number,
+  overCap: boolean,
+): string | undefined {
   if (counted < 0) return "bg-destructive/10";
   // An over-cap variance is materially different from a routine one — it will be refused without a
   // reason — so it gets the destructive wash rather than the same amber every variance carries.
@@ -123,7 +134,12 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
 
   const addableOptions: CatalogItemOption[] = (ingredients ?? [])
     .filter((i) => !lines.some((l) => l.ingredientId === i.id))
-    .map((i) => ({ id: i.id, name: i.name, secondary: i.categoryName ?? undefined, sku: i.sku ?? undefined }));
+    .map((i) => ({
+      id: i.id,
+      name: i.name,
+      secondary: i.categoryName ?? undefined,
+      sku: i.sku ?? undefined,
+    }));
 
   function addLine(option: CatalogItemOption) {
     setLines((prev) => [
@@ -143,7 +159,9 @@ export function StockCountDialog({ trigger, open: openProp, onOpenChange }: Stoc
   }
 
   function updateCounted(ingredientId: string, value: string) {
-    setLines((prev) => prev.map((l) => (l.ingredientId === ingredientId ? { ...l, countedQty: value } : l)));
+    setLines((prev) =>
+      prev.map((l) => (l.ingredientId === ingredientId ? { ...l, countedQty: value } : l)),
+    );
   }
 
   function updateOverrideReason(ingredientId: string, value: string) {

@@ -20,8 +20,7 @@ interface ProvisionPeriodDialogProps {
   initialFiscalYear: number;
 }
 
-const DEFAULT_PROVISION_ERROR_MESSAGE =
-  "Failed to provision periods. Please try again.";
+const DEFAULT_PROVISION_ERROR_MESSAGE = "Failed to provision periods. Please try again.";
 
 /**
  * Local, layer-boundary-safe error formatter (components/** may not import
@@ -77,8 +76,7 @@ function ProvisionPeriodDialog({
         <DialogHeader>
           <DialogTitle>Provision Accounting Periods</DialogTitle>
           <DialogDescription>
-            Preview the 12 monthly periods this fiscal year will produce, then
-            confirm to open them.
+            Preview the 12 monthly periods this fiscal year will produce, then confirm to open them.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,9 +89,7 @@ function ProvisionPeriodDialog({
               <div
                 key={period.periodNo}
                 className={`rounded-md border p-2 text-center text-xs ${
-                  alreadyOpen
-                    ? "border-muted bg-muted text-muted-foreground"
-                    : "border-border"
+                  alreadyOpen ? "border-muted bg-muted text-muted-foreground" : "border-border"
                 }`}
               >
                 <div className="font-medium">P{period.periodNo}</div>
@@ -109,9 +105,7 @@ function ProvisionPeriodDialog({
             {result.periodsSeeded === 0
               ? `FY ${fiscalYear} is already fully provisioned.`
               : `Provisioned ${result.periodsSeeded} period(s)${
-                  result.accountsSeeded > 0
-                    ? ` and ${result.accountsSeeded} account(s)`
-                    : ""
+                  result.accountsSeeded > 0 ? ` and ${result.accountsSeeded} account(s)` : ""
                 }.`}
           </div>
         )}
@@ -123,11 +117,7 @@ function ProvisionPeriodDialog({
         )}
 
         <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {isSuccess ? "Close" : "Cancel"}
           </Button>
           {!isSuccess && (

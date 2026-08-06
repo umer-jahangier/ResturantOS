@@ -85,7 +85,10 @@ describe("FinanceRepository expense journey (FIN-05, 10-14 gap closure, MSW roun
       amountPaisa: 100_000,
     });
 
-    const rejected = await FinanceRepository.rejectExpense(created.id, "Not a valid business expense");
+    const rejected = await FinanceRepository.rejectExpense(
+      created.id,
+      "Not a valid business expense",
+    );
     expect(rejected.status).toBe("REJECTED");
     expect(rejected.rejectReason).toBe("Not a valid business expense");
   });

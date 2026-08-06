@@ -66,7 +66,10 @@ export function TillReview() {
   if (!isLoading && tills.length === 0 && page === 0) {
     return (
       <div className="p-6">
-        <EmptyState title="No till sessions yet" description="Opened and closed tills appear here for review." />
+        <EmptyState
+          title="No till sessions yet"
+          description="Opened and closed tills appear here for review."
+        />
       </div>
     );
   }
@@ -163,30 +166,54 @@ function TillRow({
       <tr className="hover:bg-muted/30">
         <td className="px-3 py-2">{fmtTime(till.openedAt)}</td>
         <td className="px-3 py-2">{fmtTime(till.closedAt)}</td>
-        <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{till.cashierId.slice(0, 8)}</td>
+        <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+          {till.cashierId.slice(0, 8)}
+        </td>
         <td className="px-3 py-2">
           <span
             className={cn(
               "rounded px-1.5 py-0.5 text-xs font-medium",
-              till.status === "OPEN" ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground",
+              till.status === "OPEN"
+                ? "bg-emerald-500/15 text-emerald-600"
+                : "bg-muted text-muted-foreground",
             )}
           >
             {till.status}
           </span>
         </td>
         <td className="px-3 py-2">
-          <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", REVIEW_BADGE[till.reviewStatus])}>
+          <span
+            className={cn(
+              "rounded px-1.5 py-0.5 text-xs font-medium",
+              REVIEW_BADGE[till.reviewStatus],
+            )}
+          >
             {till.reviewStatus.replace("_", " ")}
           </span>
         </td>
-        <td className="px-3 py-2 text-right"><MoneyDisplay paisa={till.openingFloatPaisa} className="text-xs" /></td>
         <td className="px-3 py-2 text-right">
-          {till.expectedClosingPaisa !== null ? <MoneyDisplay paisa={till.expectedClosingPaisa} className="text-xs" /> : "—"}
+          <MoneyDisplay paisa={till.openingFloatPaisa} className="text-xs" />
         </td>
         <td className="px-3 py-2 text-right">
-          {till.declaredClosingPaisa !== null ? <MoneyDisplay paisa={till.declaredClosingPaisa} className="text-xs" /> : "—"}
+          {till.expectedClosingPaisa !== null ? (
+            <MoneyDisplay paisa={till.expectedClosingPaisa} className="text-xs" />
+          ) : (
+            "—"
+          )}
         </td>
-        <td className={cn("px-3 py-2 text-right text-xs", variance !== null && variance < 0 && "text-red-600")}>
+        <td className="px-3 py-2 text-right">
+          {till.declaredClosingPaisa !== null ? (
+            <MoneyDisplay paisa={till.declaredClosingPaisa} className="text-xs" />
+          ) : (
+            "—"
+          )}
+        </td>
+        <td
+          className={cn(
+            "px-3 py-2 text-right text-xs",
+            variance !== null && variance < 0 && "text-red-600",
+          )}
+        >
           {variance !== null ? <MoneyDisplay paisa={variance} className="text-xs" /> : "—"}
         </td>
         <td className="px-3 py-2 text-right">
@@ -197,7 +224,11 @@ function TillRow({
           )}
         </td>
         <td className="px-3 py-2 text-right">
-          <button type="button" onClick={onToggle} className="text-xs font-medium text-primary underline">
+          <button
+            type="button"
+            onClick={onToggle}
+            className="text-xs font-medium text-primary underline"
+          >
             {expanded ? "Hide" : "Details"}
           </button>
         </td>
@@ -303,10 +334,14 @@ function TillReviewActions({ till, branchId }: { till: TillSession; branchId: st
                 <DropdownMenuItem onSelect={doApprove}>Approve</DropdownMenuItem>
               )}
               {till.reviewStatus !== "FLAGGED" && (
-                <DropdownMenuItem onSelect={() => openDialogFromMenu("FLAG")}>Flag</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openDialogFromMenu("FLAG")}>
+                  Flag
+                </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => openDialogFromMenu("NOTE")}>Add note</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => openDialogFromMenu("NOTE")}>
+                Add note
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -424,10 +459,19 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-4 text-xs">
-        <span>Orders: <span className="font-medium">{recon.orderCount}</span></span>
-        <span>Cash: <MoneyDisplay paisa={recon.cashCollectedPaisa} className="text-xs" /></span>
-        <span>Non-cash: <MoneyDisplay paisa={recon.nonCashCollectedPaisa} className="text-xs" /></span>
-        <span>Expected cash: <MoneyDisplay paisa={recon.liveExpectedCashPaisa} className="text-xs font-medium" /></span>
+        <span>
+          Orders: <span className="font-medium">{recon.orderCount}</span>
+        </span>
+        <span>
+          Cash: <MoneyDisplay paisa={recon.cashCollectedPaisa} className="text-xs" />
+        </span>
+        <span>
+          Non-cash: <MoneyDisplay paisa={recon.nonCashCollectedPaisa} className="text-xs" />
+        </span>
+        <span>
+          Expected cash:{" "}
+          <MoneyDisplay paisa={recon.liveExpectedCashPaisa} className="text-xs font-medium" />
+        </span>
       </div>
       {recon.orders.length === 0 ? (
         <p className="text-xs text-muted-foreground">No orders in this till session.</p>
@@ -446,8 +490,12 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
               <tr key={o.orderId} className="border-t border-border/50">
                 <td className="py-1">{o.orderNo ?? o.orderId.slice(0, 8)}</td>
                 <td className="py-1">{o.status}</td>
-                <td className="py-1 text-right"><MoneyDisplay paisa={o.totalPaisa} className="text-xs" /></td>
-                <td className="py-1 text-right"><MoneyDisplay paisa={o.paidPaisa} className="text-xs" /></td>
+                <td className="py-1 text-right">
+                  <MoneyDisplay paisa={o.totalPaisa} className="text-xs" />
+                </td>
+                <td className="py-1 text-right">
+                  <MoneyDisplay paisa={o.paidPaisa} className="text-xs" />
+                </td>
               </tr>
             ))}
           </tbody>

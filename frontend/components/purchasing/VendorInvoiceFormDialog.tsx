@@ -20,7 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -31,7 +38,9 @@ const lineFormSchema = z.object({
   poLineId: z.string().uuid(),
   ingredientId: z.string(),
   qty: z.string().refine((v) => v.trim() !== "" && Number(v) > 0, "Enter a positive quantity"),
-  unitPriceRupees: z.string().refine((v) => v.trim() !== "" && Number(v) >= 0, "Enter a unit price"),
+  unitPriceRupees: z
+    .string()
+    .refine((v) => v.trim() !== "" && Number(v) >= 0, "Enter a unit price"),
 });
 
 const invoiceFormSchema = z.object({
@@ -218,9 +227,14 @@ export function VendorInvoiceFormDialog({ trigger }: VendorInvoiceFormDialogProp
 
             {fields.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-medium">Lines (edit qty/price to drive match outcome)</h3>
+                <h3 className="text-sm font-medium">
+                  Lines (edit qty/price to drive match outcome)
+                </h3>
                 {fields.map((f, idx) => (
-                  <div key={f.id} className="grid grid-cols-[1fr_1fr] items-end gap-2 rounded border p-2">
+                  <div
+                    key={f.id}
+                    className="grid grid-cols-[1fr_1fr] items-end gap-2 rounded border p-2"
+                  >
                     <FormField
                       control={form.control}
                       name={`lines.${idx}.qty`}

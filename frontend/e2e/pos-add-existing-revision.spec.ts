@@ -81,25 +81,37 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
         await page.getByPlaceholder("e.g. 5000.00").fill("5000");
         await page.getByTestId("open-till-confirm-button").click();
         const outcome = await Promise.race([
-          page.getByText("Till OPEN").waitFor({ state: "visible", timeout: 15_000 }).then(() => "ok" as const),
-          page.getByTestId("open-till-error").waitFor({ state: "visible", timeout: 15_000 }).then(() => "err" as const),
+          page
+            .getByText("Till OPEN")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "ok" as const),
+          page
+            .getByTestId("open-till-error")
+            .waitFor({ state: "visible", timeout: 15_000 })
+            .then(() => "err" as const),
         ]).catch(() => "timeout" as const);
-        if (outcome !== "ok") throw new Blocked(`could not open a till for the cashier (${outcome})`);
+        if (outcome !== "ok")
+          throw new Blocked(`could not open a till for the cashier (${outcome})`);
       }
 
       await page.getByRole("button", { name: "POS Terminal", exact: true }).click();
       const menuItems = page.locator('[data-testid="menu-grid"] button');
       const menuCount = await menuItems.count();
       if (menuCount < 2) {
-        throw new Blocked(`menu-grid has only ${menuCount} item(s); need >= 2 (one to fire, one to add later)`);
+        throw new Blocked(
+          `menu-grid has only ${menuCount} item(s); need >= 2 (one to fire, one to add later)`,
+        );
       }
       // .locator("span").first() (not the button's own textContent) — the button
       // concatenates the item-name span AND the MoneyDisplay price span with no
       // separator, so a raw textContent() read would corrupt the name used below to
       // identify this line in the send-to-kds response.
-      const firstItemLabel = (await menuItems.nth(0).locator("span").first().textContent())?.trim() || "item 1";
+      const firstItemLabel =
+        (await menuItems.nth(0).locator("span").first().textContent())?.trim() || "item 1";
       await menuItems.nth(0).click();
-      await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({ timeout: 15_000 });
+      await expect(page.getByRole("button", { name: /^Send to Kitchen$/ })).toBeEnabled({
+        timeout: 15_000,
+      });
       await page.getByRole("button", { name: /^Send to Kitchen$/ }).click();
 
       // Sonner toasts auto-dismiss — the fired item's "Sent" badge is the stable signal.
@@ -110,13 +122,19 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
         errorToast.waitFor({ state: "visible", timeout: 15_000 }).then(() => "error" as const),
       ]).catch(() => "timeout" as const);
       if (fireOutcome !== "success") {
-        throw new Blocked(`initial send-to-kitchen (rev 1, "${firstItemLabel}") did not succeed (${fireOutcome})`);
+        throw new Blocked(
+          `initial send-to-kitchen (rev 1, "${firstItemLabel}") did not succeed (${fireOutcome})`,
+        );
       }
 
       const orderNoLocator = page.locator("span.font-semibold.text-sm").first();
-      const orderNo = (await orderNoLocator.textContent({ timeout: 5000 }).catch(() => null))?.trim();
+      const orderNo = (
+        await orderNoLocator.textContent({ timeout: 5000 }).catch(() => null)
+      )?.trim();
       if (!orderNo || orderNo === "New Order") {
-        throw new Blocked(`could not read a real order number from the terminal header (got "${orderNo}")`);
+        throw new Blocked(
+          `could not read a real order number from the terminal header (got "${orderNo}")`,
+        );
       }
       await shot("pos-add-existing-revision-rev1-fired");
 
@@ -130,8 +148,13 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
         await expect(openBtn).toBeVisible({ timeout: 15_000 });
       } catch {
         await shot("DEBUG-order-management");
-        const errDetail = pageErrors.length > 0 ? ` — console/page errors: ${JSON.stringify(pageErrors.slice(0, 5))}` : "";
-        throw new Blocked(`order "${orderNo}" row (with its "Open" action) never appeared in Order Management${errDetail}`);
+        const errDetail =
+          pageErrors.length > 0
+            ? ` — console/page errors: ${JSON.stringify(pageErrors.slice(0, 5))}`
+            : "";
+        throw new Blocked(
+          `order "${orderNo}" row (with its "Open" action) never appeared in Order Management${errDetail}`,
+        );
       }
       await openBtn.click();
 
@@ -140,7 +163,9 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
       // POS-25: no centered/narrow dialog class on the panelized surface.
       const drawerClass = (await drawer.getAttribute("class")) ?? "";
       if (drawerClass.includes("sm:max-w-md")) {
-        throw new Error(`order-table-detail-drawer still carries a centered "sm:max-w-md" dialog class`);
+        throw new Error(
+          `order-table-detail-drawer still carries a centered "sm:max-w-md" dialog class`,
+        );
       }
 
       // Before adding anything, the CTA must be absent (0 PENDING lines — everything on
@@ -158,9 +183,13 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
       try {
         await expect(results).toBeVisible({ timeout: 8000 });
       } catch {
-        throw new Blocked('Quick Add search for "e" returned no results — demo menu item-name assumption invalid');
+        throw new Blocked(
+          'Quick Add search for "e" returned no results — demo menu item-name assumption invalid',
+        );
       }
-      const addedItemName = (await results.locator("li").first().locator("span").first().textContent())?.trim();
+      const addedItemName = (
+        await results.locator("li").first().locator("span").first().textContent()
+      )?.trim();
       await results.getByRole("button", { name: "Add" }).first().click();
 
       // ── "Send New Items (1)" appears with N = 1 new PENDING line ──
@@ -182,15 +211,19 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
         throw new Error('"Send New Items" click never produced a POST .../send-to-kds response');
       }
       if (!sendResp.ok()) {
-        throw new Error(`Send New Items fire failed: HTTP ${sendResp.status()} ${sendResp.statusText()}`);
+        throw new Error(
+          `Send New Items fire failed: HTTP ${sendResp.status()} ${sendResp.statusText()}`,
+        );
       }
 
-      const body = (await sendResp.json().catch(() => null)) as
-        | { data?: { items?: { itemNameSnapshot: string; revisionNo: number }[] } }
-        | null;
+      const body = (await sendResp.json().catch(() => null)) as {
+        data?: { items?: { itemNameSnapshot: string; revisionNo: number }[] };
+      } | null;
       const items = body?.data?.items ?? [];
       if (items.length === 0) {
-        throw new Blocked("send-to-kds response had no parseable items[] to verify per-line revisionNo against");
+        throw new Blocked(
+          "send-to-kds response had no parseable items[] to verify per-line revisionNo against",
+        );
       }
 
       // Partition by revisionNo rather than by item name — the fired item and the
@@ -219,7 +252,10 @@ test.describe("POS-21: add-existing item on a fired order shows/fires 'Send New 
     } catch (err) {
       if (err instanceof Blocked) {
         console.log(`[BLOCKED] pos-add-existing-revision: ${err.message}`);
-        test.skip(true, `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`);
+        test.skip(
+          true,
+          `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`,
+        );
         return;
       }
       throw err;

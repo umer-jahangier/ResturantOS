@@ -111,14 +111,22 @@ describe("mapItemStatusToColumn / groupTicketsByColumn — status->column mappin
     // the Preparing, Started, and Ready columns respectively (never merged/lost).
     const ticket = makeTicket({
       items: [
-        makeItem({ id: "burger-id-0000-4000-8000-000000000001", name: "Burger", status: "PREPARING" }),
+        makeItem({
+          id: "burger-id-0000-4000-8000-000000000001",
+          name: "Burger",
+          status: "PREPARING",
+        }),
         makeItem({ id: "fries-id-0000-4000-8000-000000000002", name: "Fries", status: "ACCEPTED" }),
         makeItem({ id: "coke-id-00000-4000-8000-000000000003", name: "Coke", status: "READY" }),
       ],
     });
 
-    expect(groupTicketsByColumn([ticket], "PREPARING")[0]?.items.map((i) => i.name)).toEqual(["Burger"]);
-    expect(groupTicketsByColumn([ticket], "STARTED")[0]?.items.map((i) => i.name)).toEqual(["Fries"]);
+    expect(groupTicketsByColumn([ticket], "PREPARING")[0]?.items.map((i) => i.name)).toEqual([
+      "Burger",
+    ]);
+    expect(groupTicketsByColumn([ticket], "STARTED")[0]?.items.map((i) => i.name)).toEqual([
+      "Fries",
+    ]);
     expect(groupTicketsByColumn([ticket], "READY")[0]?.items.map((i) => i.name)).toEqual(["Coke"]);
     expect(groupTicketsByColumn([ticket], "NEW")).toEqual([]);
   });
@@ -149,7 +157,9 @@ describe("KdsItemColumn — column rendering + slim card content (KDS-04)", () =
     const ticket = makeTicket({
       orderNo: "ORD-042",
       tableNumber: "7",
-      items: [makeItem({ id: "57000001-0000-4000-8000-000000000001", name: "Naan", status: "PENDING" })],
+      items: [
+        makeItem({ id: "57000001-0000-4000-8000-000000000001", name: "Naan", status: "PENDING" }),
+      ],
     });
 
     renderColumn("NEW", [ticket]);

@@ -148,9 +148,7 @@ export const tenantNavItems: NavItem[] = [
 export const navGroups: NavGroup[] = [
   {
     label: "Overview",
-    items: [
-      { label: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard },
-    ],
+    items: [{ label: "Dashboard", href: "/app/dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Orders",

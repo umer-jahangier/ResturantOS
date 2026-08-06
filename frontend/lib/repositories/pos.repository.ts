@@ -1,5 +1,12 @@
 import { apiClient } from "@/lib/api-client/client";
-import { get, post, put, patch, getPaginated, type PaginatedResult } from "@/lib/api-client/request";
+import {
+  get,
+  post,
+  put,
+  patch,
+  getPaginated,
+  type PaginatedResult,
+} from "@/lib/api-client/request";
 import {
   apiMenuItemSchema,
   apiMenuCategorySchema,
@@ -63,7 +70,9 @@ export const PosRepository = {
 
   async getMenuCategories(): Promise<MenuCategory[]> {
     const raw = await get<unknown[]>("/api/v1/pos/menu/categories");
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptMenuCategory(apiMenuCategorySchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptMenuCategory(apiMenuCategorySchema.parse(r)),
+    );
   },
 
   async getMenuItems(params: { categoryId?: string; branchId?: string }): Promise<MenuItem[]> {
@@ -79,14 +88,19 @@ export const PosRepository = {
   /** Admin listing (Menu Items management page) — includes inactive/deactivated items, unlike
    * {@link getMenuItems}, which backs the order-taking grid and must stay active-only. */
   async getMenuItemsForAdmin(categoryId?: string): Promise<MenuItem[]> {
-    const raw = await get<unknown[]>("/api/v1/pos/menu/items/admin", categoryId ? { categoryId } : undefined);
+    const raw = await get<unknown[]>(
+      "/api/v1/pos/menu/items/admin",
+      categoryId ? { categoryId } : undefined,
+    );
     return (Array.isArray(raw) ? raw : []).map((r) => adaptMenuItem(apiMenuItemSchema.parse(r)));
   },
 
   /** Admin listing — includes inactive categories, unlike {@link getMenuCategories}. */
   async getMenuCategoriesForAdmin(): Promise<MenuCategory[]> {
     const raw = await get<unknown[]>("/api/v1/pos/menu/categories/admin");
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptMenuCategory(apiMenuCategorySchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptMenuCategory(apiMenuCategorySchema.parse(r)),
+    );
   },
 
   async createMenuItem(payload: CreateMenuItemInput): Promise<MenuItem> {
@@ -111,7 +125,10 @@ export const PosRepository = {
   },
 
   async deactivateMenuItem(id: string): Promise<MenuItem> {
-    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/items/${id}/deactivate`, undefined);
+    const raw = await patch<undefined, unknown>(
+      `/api/v1/pos/menu/items/${id}/deactivate`,
+      undefined,
+    );
     return adaptMenuItem(apiMenuItemSchema.parse(raw));
   },
 
@@ -130,12 +147,18 @@ export const PosRepository = {
   },
 
   async activateMenuCategory(id: string): Promise<MenuCategory> {
-    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/categories/${id}/activate`, undefined);
+    const raw = await patch<undefined, unknown>(
+      `/api/v1/pos/menu/categories/${id}/activate`,
+      undefined,
+    );
     return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
   },
 
   async deactivateMenuCategory(id: string): Promise<MenuCategory> {
-    const raw = await patch<undefined, unknown>(`/api/v1/pos/menu/categories/${id}/deactivate`, undefined);
+    const raw = await patch<undefined, unknown>(
+      `/api/v1/pos/menu/categories/${id}/deactivate`,
+      undefined,
+    );
     return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
   },
 
@@ -143,10 +166,15 @@ export const PosRepository = {
 
   async getTables(branchId: string): Promise<DiningTable[]> {
     const raw = await get<unknown[]>("/api/v1/pos/tables", { branchId });
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptDiningTable(apiDiningTableSchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptDiningTable(apiDiningTableSchema.parse(r)),
+    );
   },
 
-  async updateTableStatus(id: string, status: "AVAILABLE" | "OCCUPIED" | "NEEDS_BUSSING"): Promise<DiningTable> {
+  async updateTableStatus(
+    id: string,
+    status: "AVAILABLE" | "OCCUPIED" | "NEEDS_BUSSING",
+  ): Promise<DiningTable> {
     const raw = await patch<{ status: string }, unknown>(`/api/v1/pos/tables/${id}`, { status });
     return adaptDiningTable(apiDiningTableSchema.parse(raw));
   },
@@ -164,7 +192,7 @@ export const PosRepository = {
     const raw = await apiClient.post<{ data: unknown }>(
       "/api/v1/pos/orders",
       { ...payload, clientOrderId },
-      { headers: { "Idempotency-Key": clientOrderId } }
+      { headers: { "Idempotency-Key": clientOrderId } },
     );
     return adaptOrder(apiOrderSchema.parse(raw.data.data));
   },
@@ -180,8 +208,14 @@ export const PosRepository = {
    * deliberate breaking wire-contract change). Defaults to ALL non-terminal statuses
    * server-side when `status` is omitted — a non-closed order never disappears.
    */
-  async listOrderSummaries(params: { branchId: string; status?: string[] }): Promise<PaginatedResult<OrderSummary>> {
-    const result = await getPaginated<unknown>("/api/v1/pos/orders", params as Record<string, unknown>);
+  async listOrderSummaries(params: {
+    branchId: string;
+    status?: string[];
+  }): Promise<PaginatedResult<OrderSummary>> {
+    const result = await getPaginated<unknown>(
+      "/api/v1/pos/orders",
+      params as Record<string, unknown>,
+    );
     return {
       data: result.data.map((r) => adaptOrderSummary(apiOrderSummarySchema.parse(r))),
       meta: result.meta,
@@ -194,12 +228,17 @@ export const PosRepository = {
   },
 
   async removeItem(orderId: string, itemId: string): Promise<Order> {
-    const response = await apiClient.delete<{ data: unknown }>(`/api/v1/pos/orders/${orderId}/items/${itemId}`);
+    const response = await apiClient.delete<{ data: unknown }>(
+      `/api/v1/pos/orders/${orderId}/items/${itemId}`,
+    );
     return adaptOrder(apiOrderSchema.parse(response.data.data));
   },
 
   async applyDiscount(orderId: string, payload: ApplyDiscountPayload): Promise<Order> {
-    const raw = await post<ApplyDiscountPayload, unknown>(`/api/v1/pos/orders/${orderId}/discounts`, payload);
+    const raw = await post<ApplyDiscountPayload, unknown>(
+      `/api/v1/pos/orders/${orderId}/discounts`,
+      payload,
+    );
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
@@ -212,7 +251,7 @@ export const PosRepository = {
     const resp = await apiClient.post<{ data: unknown }>(
       `/api/v1/pos/orders/${orderId}/send-to-kds`,
       undefined,
-      { headers: { "Idempotency-Key": clientFireId } }
+      { headers: { "Idempotency-Key": clientFireId } },
     );
     return adaptOrder(apiOrderSchema.parse(resp.data.data));
   },
@@ -220,7 +259,10 @@ export const PosRepository = {
   /** Order-level + per-item instructions edit (POS-13). Offline-safe at the hook layer. */
   async updateInstructions(orderId: string, payload: UpdateInstructionsPayload): Promise<Order> {
     const body = apiUpdateInstructionsSchema.parse(payload);
-    const raw = await patch<typeof body, unknown>(`/api/v1/pos/orders/${orderId}/instructions`, body);
+    const raw = await patch<typeof body, unknown>(
+      `/api/v1/pos/orders/${orderId}/instructions`,
+      body,
+    );
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
@@ -239,7 +281,9 @@ export const PosRepository = {
 
   /** Marks a single line SERVED — cashier/server-side only action, never from KDS. */
   async markItemServed(orderId: string, itemId: string): Promise<Order> {
-    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/items/${itemId}/serve`);
+    const raw = await post<undefined, unknown>(
+      `/api/v1/pos/orders/${orderId}/items/${itemId}/serve`,
+    );
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
@@ -250,7 +294,9 @@ export const PosRepository = {
    * removing it, per the UI-SPEC "Status System" line-item table.
    */
   async cancelItem(orderId: string, itemId: string): Promise<Order> {
-    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/items/${itemId}/cancel`);
+    const raw = await post<undefined, unknown>(
+      `/api/v1/pos/orders/${orderId}/items/${itemId}/cancel`,
+    );
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
@@ -261,7 +307,9 @@ export const PosRepository = {
    */
   async getPayments(orderId: string): Promise<OrderPayment[]> {
     const raw = await get<unknown[]>(`/api/v1/pos/orders/${orderId}/payments`);
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptOrderPayment(apiOrderPaymentRecordSchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptOrderPayment(apiOrderPaymentRecordSchema.parse(r)),
+    );
   },
 
   /**
@@ -272,24 +320,35 @@ export const PosRepository = {
    * separately via `useOrder`/`useOrderPayments` invalidation to see any status change).
    */
   async recordPayment(orderId: string, payload: RecordPaymentPayload): Promise<number> {
-    const raw = await post<RecordPaymentPayload, unknown>(`/api/v1/pos/orders/${orderId}/payments`, payload);
+    const raw = await post<RecordPaymentPayload, unknown>(
+      `/api/v1/pos/orders/${orderId}/payments`,
+      payload,
+    );
     return apiRecordPaymentResultSchema.parse(raw);
   },
 
-  async voidOrder(orderId: string, payload: VoidOrderPayload, idempotencyKey: string): Promise<Order> {
+  async voidOrder(
+    orderId: string,
+    payload: VoidOrderPayload,
+    idempotencyKey: string,
+  ): Promise<Order> {
     const resp = await apiClient.post<{ data: unknown }>(
       `/api/v1/pos/orders/${orderId}/void`,
       payload,
-      { headers: { "Idempotency-Key": idempotencyKey } }
+      { headers: { "Idempotency-Key": idempotencyKey } },
     );
     return adaptOrder(apiOrderSchema.parse(resp.data.data));
   },
 
-  async refundOrder(orderId: string, payload: RefundOrderPayload, idempotencyKey: string): Promise<Order> {
+  async refundOrder(
+    orderId: string,
+    payload: RefundOrderPayload,
+    idempotencyKey: string,
+  ): Promise<Order> {
     const resp = await apiClient.post<{ data: unknown }>(
       `/api/v1/pos/orders/${orderId}/refund`,
       payload,
-      { headers: { "Idempotency-Key": idempotencyKey } }
+      { headers: { "Idempotency-Key": idempotencyKey } },
     );
     return adaptOrder(apiOrderSchema.parse(resp.data.data));
   },
@@ -299,7 +358,9 @@ export const PosRepository = {
   /** Lists till sessions, optionally filtered by cashier/status (used to find the current cashier's active till — POS-14 page-level TillSessionBar). */
   async listTills(params: { cashierId?: string; status?: string }): Promise<TillSession[]> {
     const raw = await get<unknown[]>("/api/v1/pos/tills", params as Record<string, unknown>);
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillSession(apiTillSessionSchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptTillSession(apiTillSessionSchema.parse(r)),
+    );
   },
 
   async openTill(payload: OpenTillPayload): Promise<TillSession> {
@@ -307,11 +368,15 @@ export const PosRepository = {
     return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
   },
 
-  async closeTill(tillId: string, payload: CloseTillPayload, idempotencyKey: string): Promise<TillSession> {
+  async closeTill(
+    tillId: string,
+    payload: CloseTillPayload,
+    idempotencyKey: string,
+  ): Promise<TillSession> {
     const resp = await apiClient.post<{ data: unknown }>(
       `/api/v1/pos/tills/${tillId}/close`,
       payload,
-      { headers: { "Idempotency-Key": idempotencyKey } }
+      { headers: { "Idempotency-Key": idempotencyKey } },
     );
     return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
   },
@@ -331,7 +396,10 @@ export const PosRepository = {
     page?: number;
     size?: number;
   }): Promise<PaginatedResult<TillSession>> {
-    const result = await getPaginated<unknown>("/api/v1/pos/tills", params as Record<string, unknown>);
+    const result = await getPaginated<unknown>(
+      "/api/v1/pos/tills",
+      params as Record<string, unknown>,
+    );
     return {
       data: result.data.map((r) => adaptTillSession(apiTillSessionSchema.parse(r))),
       meta: result.meta,
@@ -340,7 +408,9 @@ export const PosRepository = {
 
   /** A till session + every order within it + cash/non-cash collected (live expected cash). */
   async getTillReconciliation(tillId: string): Promise<TillReconciliation> {
-    const resp = await apiClient.get<{ data: unknown }>(`/api/v1/pos/tills/${tillId}/reconciliation`);
+    const resp = await apiClient.get<{ data: unknown }>(
+      `/api/v1/pos/tills/${tillId}/reconciliation`,
+    );
     return adaptTillReconciliation(apiTillReconciliationSchema.parse(resp.data.data));
   },
 
@@ -357,13 +427,18 @@ export const PosRepository = {
   },
 
   async addTillNote(tillId: string, payload: AddTillNotePayload): Promise<TillSession> {
-    const raw = await post<AddTillNotePayload, unknown>(`/api/v1/pos/tills/${tillId}/note`, payload);
+    const raw = await post<AddTillNotePayload, unknown>(
+      `/api/v1/pos/tills/${tillId}/note`,
+      payload,
+    );
     return adaptTillSession(apiTillSessionSchema.parse(raw));
   },
 
   /** Append-only review history for a till session (newest first). */
   async listTillReviewActions(tillId: string): Promise<TillReviewAction[]> {
     const raw = await get<unknown[]>(`/api/v1/pos/tills/${tillId}/review-actions`);
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptTillReviewAction(apiTillReviewActionSchema.parse(r)));
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptTillReviewAction(apiTillReviewActionSchema.parse(r)),
+    );
   },
 };

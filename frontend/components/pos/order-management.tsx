@@ -34,7 +34,11 @@ const ALL_BRANCH_PERMISSION = "pos.order.view.all";
 // status — VOIDED/REFUNDED are distinct settlement outcomes with their own visual
 // treatment (StatusBadge) and are not what a cashier means by "closed orders" here.
 const CLOSED_FILTER_STATUSES: readonly OrderStatus[] = ["CLOSED"];
-const TERMINAL_SETTLEMENT_STATUSES: ReadonlySet<OrderStatus> = new Set(["CLOSED", "VOIDED", "REFUNDED"]);
+const TERMINAL_SETTLEMENT_STATUSES: ReadonlySet<OrderStatus> = new Set([
+  "CLOSED",
+  "VOIDED",
+  "REFUNDED",
+]);
 
 type StatusFilter = "ALL" | DerivedOrderStatus | "CLOSED" | "PAID";
 
@@ -124,7 +128,9 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [viewAll, setViewAll] = useState(true);
   const [search, setSearch] = useState("");
-  const [openOrder, setOpenOrder] = useState<{ orderId: string; tableName: string | null } | null>(null);
+  const [openOrder, setOpenOrder] = useState<{ orderId: string; tableName: string | null } | null>(
+    null,
+  );
 
   const isClosedFilter = statusFilter === "CLOSED";
 
@@ -243,9 +249,10 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
           const isDraft = row.original.derivedStatus === "DRAFT";
           return (
             <div className="flex items-center justify-end gap-2">
-              {!row.original.tableId && !TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus) && (
-                <AssignTableAction orderId={row.original.orderId} />
-              )}
+              {!row.original.tableId &&
+                !TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus) && (
+                  <AssignTableAction orderId={row.original.orderId} />
+                )}
               {isDraft && <CancelDraftAction orderId={row.original.orderId} />}
               <button
                 type="button"
@@ -343,7 +350,10 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             aria-label="Refresh orders"
             className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+            <RefreshCw
+              className={cn("size-3.5", isFetching && "animate-spin")}
+              aria-hidden="true"
+            />
             Refresh
           </button>
         </div>

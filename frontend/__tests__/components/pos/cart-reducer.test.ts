@@ -45,8 +45,18 @@ describe("cart-reducer", () => {
 
   it("differing notes create a separate line", () => {
     let cart: CartLine[] = [];
-    cart = addLine(cart, { menuItemId: BURGER_ID, name: "Burger", unitPricePaisa: 45000, notes: "rare" });
-    cart = addLine(cart, { menuItemId: BURGER_ID, name: "Burger", unitPricePaisa: 45000, notes: "" });
+    cart = addLine(cart, {
+      menuItemId: BURGER_ID,
+      name: "Burger",
+      unitPricePaisa: 45000,
+      notes: "rare",
+    });
+    cart = addLine(cart, {
+      menuItemId: BURGER_ID,
+      name: "Burger",
+      unitPricePaisa: 45000,
+      notes: "",
+    });
 
     expect(cart).toHaveLength(2);
   });

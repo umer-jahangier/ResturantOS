@@ -29,8 +29,8 @@ export default function AppearancePage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Appearance</h1>
         <p className="text-sm text-muted-foreground">
-          Customize your restaurant&apos;s branding. Changes are saved locally
-          and will be applied when you reload.
+          Customize your restaurant&apos;s branding. Changes are saved locally and will be applied
+          when you reload.
         </p>
       </div>
 

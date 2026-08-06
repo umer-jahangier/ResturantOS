@@ -1,5 +1,18 @@
 # Finance components — ESLint backlog
 
+> **RESOLVED — 2026-08-06.** All 5 issues below are fixed; `pnpm exec eslint components/finance`
+> reports zero problems. Kept as a record of what was done and why, not as outstanding work.
+>
+> - **Issue 1** — `formatUserFacingError` (and the `ApiError` class) moved out of `lib/api-client/`
+>   into the transport-agnostic `@/lib/errors` barrel, which any layer may import.
+>   `lib/api-client/errors.ts` re-exports both, so existing Layer-1/2/3 imports still resolve.
+> - **Issue 2a** — `AccountCodeSelect` reconciles the prop during render (the documented
+>   "adjust state when a prop changes" pattern) instead of mirroring it from an effect.
+> - **Issue 2b** — `GeneralLedger`'s effect was pure redundancy; `activePeriodId` was already
+>   derived. Effect deleted.
+> - **Issue 2c** — `JournalEntryForm` stores only the user's explicit pick and falls back to
+>   `defaultDate` during render.
+
 Reference for lint issues in `frontend/components/finance/`. Documented after running:
 
 ```bash
@@ -16,14 +29,14 @@ These are **not critical runtime bugs** — finance flows can work correctly whi
 
 ## Clean files (no action needed)
 
-| File | Status |
-|------|--------|
-| `components/finance/DrCrCell.tsx` | Pass |
-| `components/finance/AccountTable.tsx` | Pass |
-| `components/finance/FinanceEmptyState.tsx` | Pass |
-| `components/finance/JournalEntryTable.tsx` | Pass |
-| `components/finance/OpenPeriodDatePicker.tsx` | Pass |
-| `components/finance/PeriodStatusChip.tsx` | Pass |
+| File                                          | Status |
+| --------------------------------------------- | ------ |
+| `components/finance/DrCrCell.tsx`             | Pass   |
+| `components/finance/AccountTable.tsx`         | Pass   |
+| `components/finance/FinanceEmptyState.tsx`    | Pass   |
+| `components/finance/JournalEntryTable.tsx`    | Pass   |
+| `components/finance/OpenPeriodDatePicker.tsx` | Pass   |
+| `components/finance/PeriodStatusChip.tsx`     | Pass   |
 
 ---
 
@@ -33,20 +46,22 @@ These are **not critical runtime bugs** — finance flows can work correctly whi
 **Config:** `frontend/eslint.config.mjs` (FE-08 layer boundary)  
 **Message:** Components must not import `@/lib/api-client/**` or `@/lib/repositories/**`. Use Layer-3 hooks from `@/lib/hooks/**` instead.
 
-| File | Line | Import |
-|------|------|--------|
-| `components/finance/JournalEntryForm.tsx` | 13 | `formatUserFacingError` from `@/lib/api-client/errors` |
-| `components/finance/PeriodCloseModal.tsx` | 8 | `formatUserFacingError` from `@/lib/api-client/errors` |
+| File                                      | Line | Import                                                 |
+| ----------------------------------------- | ---- | ------------------------------------------------------ |
+| `components/finance/JournalEntryForm.tsx` | 13   | `formatUserFacingError` from `@/lib/api-client/errors` |
+| `components/finance/PeriodCloseModal.tsx` | 8    | `formatUserFacingError` from `@/lib/api-client/errors` |
 
 **What it does today:** Formats mutation errors from `useCreateJe` and `useClosePeriod` for display in the UI.
 
 **Severity:** Low (architecture / lint gate). No direct API calls; runtime behavior is fine.
 
 **Fix direction (later):**
+
 - Move `formatUserFacingError` to a neutral module (e.g. `@/lib/utils/errors`), or
 - Have hooks expose a user-facing error string so components never touch `api-client`.
 
 **Related (same pattern, outside this folder):**
+
 - `app/(tenant)/app/finance/journal-entries/[id]/page.tsx` line 5 — same import.
 
 ---
@@ -110,11 +125,11 @@ useEffect(() => {
 
 ## Summary table
 
-| Priority | Count | Category | Blocks runtime? | Blocks CI if lint required? |
-|----------|-------|----------|-------------------|----------------------------|
-| P2 | 2 | Layer boundary imports | No | Yes |
-| P3 | 3 | `setState` in effect | No | Yes |
-| — | **5 total** | | | |
+| Priority | Count       | Category               | Blocks runtime? | Blocks CI if lint required? |
+| -------- | ----------- | ---------------------- | --------------- | --------------------------- |
+| P2       | 2           | Layer boundary imports | No              | Yes                         |
+| P3       | 3           | `setState` in effect   | No              | Yes                         |
+| —        | **5 total** |                        |                 |                             |
 
 ---
 

@@ -33,7 +33,9 @@ describe("UomFormDialog — Measured in follows Measure type", () => {
     const dialog = await screen.findByRole("dialog");
 
     const measureType = within(dialog).getByRole("combobox", { name: "Measure type" });
-    const measuredIn = within(dialog).getByRole("combobox", { name: "Measured in" }) as HTMLSelectElement;
+    const measuredIn = within(dialog).getByRole("combobox", {
+      name: "Measured in",
+    }) as HTMLSelectElement;
 
     // Defaults to Weight — the MSW fixture's only WEIGHT base row is "kg", so that (and only
     // that) must be offered.

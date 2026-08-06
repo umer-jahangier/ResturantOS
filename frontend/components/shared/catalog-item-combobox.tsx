@@ -1,47 +1,47 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Command } from "cmdk"
-import { ChevronsUpDown } from "lucide-react"
+import * as React from "react";
+import { Command } from "cmdk";
+import { ChevronsUpDown } from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { MoneyDisplay } from "@/components/ui/money-display"
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MoneyDisplay } from "@/components/ui/money-display";
 
 export interface CatalogItemOption {
-  id: string
-  name: string
-  secondary?: string
-  sku?: string
-  pricePaisa?: number | null
+  id: string;
+  name: string;
+  secondary?: string;
+  sku?: string;
+  pricePaisa?: number | null;
 }
 
 interface CatalogItemComboboxProps {
-  options: CatalogItemOption[]
-  value: string | null
-  onSelect: (option: CatalogItemOption) => void
-  disabled?: boolean
-  disabledPlaceholder?: string
-  placeholder?: string
-  emptyHeading?: string
+  options: CatalogItemOption[];
+  value: string | null;
+  onSelect: (option: CatalogItemOption) => void;
+  disabled?: boolean;
+  disabledPlaceholder?: string;
+  placeholder?: string;
+  emptyHeading?: string;
   /**
    * Usually a sentence. Accepts a node so a caller whose options come from another service can
    * offer a way OUT of the empty state — a retry, a link — rather than only describing it.
    */
-  emptyBody?: React.ReactNode
-  isLoading?: boolean
-  onSearchChange?: (query: string) => void
-  className?: string
+  emptyBody?: React.ReactNode;
+  isLoading?: boolean;
+  onSearchChange?: (query: string) => void;
+  className?: string;
 }
 
 function matchesQuery(option: CatalogItemOption, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
   return (
     option.name.toLowerCase().includes(q) ||
     (option.secondary?.toLowerCase().includes(q) ?? false) ||
     (option.sku?.toLowerCase().includes(q) ?? false)
-  )
+  );
 }
 
 /**
@@ -68,30 +68,30 @@ export function CatalogItemCombobox({
   onSearchChange,
   className,
 }: CatalogItemComboboxProps) {
-  const [open, setOpen] = React.useState(false)
-  const [query, setQuery] = React.useState("")
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
 
-  const selected = options.find((o) => o.id === value) ?? null
+  const selected = options.find((o) => o.id === value) ?? null;
   const filtered = React.useMemo(
     () => options.filter((o) => matchesQuery(o, query)),
-    [options, query]
-  )
+    [options, query],
+  );
 
   function handleOpenChange(next: boolean) {
-    if (disabled) return
-    setOpen(next)
-    if (!next) setQuery("")
+    if (disabled) return;
+    setOpen(next);
+    if (!next) setQuery("");
   }
 
   function handleQueryChange(next: string) {
-    setQuery(next)
-    onSearchChange?.(next)
+    setQuery(next);
+    onSearchChange?.(next);
   }
 
   function handleSelect(option: CatalogItemOption) {
-    onSelect(option)
-    setOpen(false)
-    setQuery("")
+    onSelect(option);
+    setOpen(false);
+    setQuery("");
   }
 
   return (
@@ -109,7 +109,7 @@ export function CatalogItemCombobox({
           aria-label={disabled ? disabledPlaceholder : (selected?.name ?? placeholder)}
           className={cn(
             "flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
-            className
+            className,
           )}
         >
           <span className={cn("truncate text-left", !selected && "text-muted-foreground")}>
@@ -162,5 +162,5 @@ export function CatalogItemCombobox({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

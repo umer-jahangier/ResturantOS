@@ -90,10 +90,7 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
            * While bootstrapping (reload before refresh completes), show a spinner
            * rather than an empty-state caused by branchId being "".
            */}
-          <main
-            key={branchId}
-            className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 md:pb-6"
-          >
+          <main key={branchId} className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 md:pb-6">
             {isBootstrapping ? (
               <div className="flex h-full items-center justify-center">
                 <div

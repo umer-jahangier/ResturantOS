@@ -17,8 +17,7 @@ import { Button } from "@/components/ui/button";
 // call site (editable or read-only, empty or populated) must show this exact text so the D-01
 // "filter/suggest only, never authorizes" invariant reaches the user, not just the data model
 // (T-08.2-183). Never re-derive this string per call site.
-const FILTER_ONLY_CAPTION =
-  "Used to filter and suggest — does not restrict what can be ordered.";
+const FILTER_ONLY_CAPTION = "Used to filter and suggest — does not restrict what can be ordered.";
 
 interface VendorCategoryTagsProps {
   vendorId: string;
@@ -47,7 +46,11 @@ export function VendorCategoryTags({ vendorId, editable, className }: VendorCate
 
   function persist(next: VendorCategory[]) {
     replaceCategories.mutate(
-      next.map((t) => ({ categoryId: t.categoryId, categoryName: t.categoryName, preferred: t.preferred })),
+      next.map((t) => ({
+        categoryId: t.categoryId,
+        categoryName: t.categoryName,
+        preferred: t.preferred,
+      })),
       {
         onError: (error) => {
           toast.error(error.message || "Could not update category tags. Please try again.");
@@ -69,9 +72,10 @@ export function VendorCategoryTags({ vendorId, editable, className }: VendorCate
     }
     // Client-generated id — a bare filter/suggestion tag, not a real category-master reference;
     // the server is the source of truth for whatever id it assigns/echoes back on the next fetch.
-    const id = typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     persist([...tags, { categoryId: id, categoryName: name, preferred: false }]);
     setNewTagName("");
   }
@@ -82,7 +86,11 @@ export function VendorCategoryTags({ vendorId, editable, className }: VendorCate
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div role="group" aria-label="Vendor category tags" className="flex flex-wrap items-center gap-1.5">
+      <div
+        role="group"
+        aria-label="Vendor category tags"
+        className="flex flex-wrap items-center gap-1.5"
+      >
         {tags.length === 0 && !editable ? (
           <span className="text-sm text-muted-foreground">No category tags yet.</span>
         ) : (

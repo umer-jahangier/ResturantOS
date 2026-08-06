@@ -70,7 +70,12 @@ function renderGrid() {
   const onClearCart = vi.fn();
   render(
     <Wrapper>
-      <MenuGrid onItemSelect={onItemSelect} cart={[]} onRemove={onRemove} onClearCart={onClearCart} />
+      <MenuGrid
+        onItemSelect={onItemSelect}
+        cart={[]}
+        onRemove={onRemove}
+        onClearCart={onClearCart}
+      />
     </Wrapper>,
   );
   return { onItemSelect, onRemove, onClearCart };
@@ -139,11 +144,18 @@ describe("MenuGrid search", () => {
 function StatefulMenuGrid() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const handleItemSelect = (item: MenuItem) =>
-    setCart((prev) => addLine(prev, { menuItemId: item.id, name: item.name, unitPricePaisa: item.basePricePaisa }));
+    setCart((prev) =>
+      addLine(prev, { menuItemId: item.id, name: item.name, unitPricePaisa: item.basePricePaisa }),
+    );
   const handleRemove = (key: string) => setCart((prev) => removeLine(prev, key));
   const handleClearCart = () => setCart([]);
   return (
-    <MenuGrid onItemSelect={handleItemSelect} cart={cart} onRemove={handleRemove} onClearCart={handleClearCart} />
+    <MenuGrid
+      onItemSelect={handleItemSelect}
+      cart={cart}
+      onRemove={handleRemove}
+      onClearCart={handleClearCart}
+    />
   );
 }
 
@@ -171,10 +183,14 @@ describe("MenuGrid selection highlighting", () => {
 
     await user.click(card);
     expect(card).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("1");
+    expect(
+      screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).toHaveTextContent("1");
 
     await user.click(card);
-    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("2");
+    expect(
+      screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).toHaveTextContent("2");
   });
 
   it("persists selection highlighting across a category switch", async () => {
@@ -183,13 +199,17 @@ describe("MenuGrid selection highlighting", () => {
 
     await screen.findByText("Cheeseburger");
     await user.click(screen.getByText("Cheeseburger").closest("button")!);
-    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("1");
+    expect(
+      screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).toHaveTextContent("1");
 
     await user.click(screen.getByText("Mains"));
     await user.click(screen.getByText("All"));
 
     await screen.findByText("Cheeseburger");
-    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toHaveTextContent("1");
+    expect(
+      screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).toHaveTextContent("1");
   });
 
   it("removes the item and clears the highlight via the remove button", async () => {
@@ -226,7 +246,9 @@ describe("MenuGrid selection highlighting", () => {
     await waitFor(() => {
       expect(screen.queryByText("Clear all items?")).not.toBeInTheDocument();
     });
-    expect(screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("menu-item-qty-a1000001-0000-4000-8000-000000000001"),
+    ).toBeInTheDocument();
 
     // Confirming the modal clears every line.
     await user.click(screen.getByTestId("clear-all-button"));

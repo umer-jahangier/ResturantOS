@@ -40,7 +40,11 @@ test("debug: what does the vendor detail page actually do", async ({ page }) => 
     await links.first().click();
     await page.waitForTimeout(6000);
     console.log("AFTER CLICK URL ->", page.url());
-    const h1 = await page.locator("h1").first().textContent().catch(() => null);
+    const h1 = await page
+      .locator("h1")
+      .first()
+      .textContent()
+      .catch(() => null);
     console.log("H1 ->", JSON.stringify(h1));
     const btns = await page.getByRole("button").allTextContents();
     console.log("BUTTONS ->", JSON.stringify(btns.slice(0, 15)));

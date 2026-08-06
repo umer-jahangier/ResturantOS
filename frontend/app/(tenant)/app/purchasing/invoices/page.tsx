@@ -27,7 +27,10 @@ export default function VendorInvoicesPage() {
   const { branchId } = useCurrentUser();
   const [statusFilter, setStatusFilter] = useState<"" | InvoiceStatus>("");
 
-  const { data, isLoading } = useVendorInvoices(branchId, statusFilter ? [statusFilter] : undefined);
+  const { data, isLoading } = useVendorInvoices(
+    branchId,
+    statusFilter ? [statusFilter] : undefined,
+  );
   const invoices = data ?? [];
 
   return (

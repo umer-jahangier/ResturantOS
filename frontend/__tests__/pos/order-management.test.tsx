@@ -195,7 +195,11 @@ describe("OrderManagement", () => {
         }),
       ),
     );
-    seedSession({ sub: CASHIER_ME, branchId: BRANCH_ID, permissions: ["pos.order.view", "pos.order.close"] });
+    seedSession({
+      sub: CASHIER_ME,
+      branchId: BRANCH_ID,
+      permissions: ["pos.order.view", "pos.order.close"],
+    });
     const { Wrapper } = createControlledWrapper();
     const user = userEvent.setup();
 
@@ -243,10 +247,9 @@ describe("OrderManagement", () => {
     expect(screen.getByText("ORD-A")).toBeInTheDocument();
 
     // …but fades out within the 200ms window.
-    await waitFor(
-      () => expect(screen.queryByText("ORD-A")).not.toBeInTheDocument(),
-      { timeout: 2000 },
-    );
+    await waitFor(() => expect(screen.queryByText("ORD-A")).not.toBeInTheDocument(), {
+      timeout: 2000,
+    });
     expect(screen.getByText("ORD-B")).toBeInTheDocument();
   });
 });

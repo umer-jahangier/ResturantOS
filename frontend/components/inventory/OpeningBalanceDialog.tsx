@@ -9,7 +9,10 @@ import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useMyBranches } from "@/lib/hooks/auth/use-my-branches";
 import { useIngredients, useRecordOpeningBalance } from "@/lib/hooks/inventory/use-inventory";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
@@ -127,8 +130,8 @@ export function OpeningBalanceDialog({
         <DialogHeader>
           <DialogTitle>Record opening balance</DialogTitle>
           <DialogDescription>
-            Recorded once per ingredient per branch — the starting on-hand quantity before
-            receipts, transfers or counts take over.
+            Recorded once per ingredient per branch — the starting on-hand quantity before receipts,
+            transfers or counts take over.
           </DialogDescription>
         </DialogHeader>
 
@@ -144,7 +147,9 @@ export function OpeningBalanceDialog({
               name="ingredientId"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="The item you’re recording a starting quantity for.">Ingredient</FieldLabel>
+                  <FieldLabel help="The item you’re recording a starting quantity for.">
+                    Ingredient
+                  </FieldLabel>
                   <FormControl>
                     <CatalogItemCombobox
                       options={ingredientOptions}
@@ -172,7 +177,9 @@ export function OpeningBalanceDialog({
               name="qty"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="How much is physically on hand right now, in this item’s stock unit.">Quantity</FieldLabel>
+                  <FieldLabel help="How much is physically on hand right now, in this item’s stock unit.">
+                    Quantity
+                  </FieldLabel>
                   <FormControl>
                     <Input inputMode="decimal" placeholder="10" {...field} />
                   </FormControl>
@@ -186,7 +193,9 @@ export function OpeningBalanceDialog({
               name="unitCostRupees"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="What one unit cost you. This seeds the running average cost used to value the stock.">Unit cost (PKR)</FieldLabel>
+                  <FieldLabel help="What one unit cost you. This seeds the running average cost used to value the stock.">
+                    Unit cost (PKR)
+                  </FieldLabel>
                   <FormControl>
                     <Input inputMode="decimal" placeholder="120.00" {...field} />
                   </FormControl>
@@ -200,7 +209,9 @@ export function OpeningBalanceDialog({
               name="expiryDate"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Optional. If set, this batch is used before later ones and warns you as it nears.">Expiry date</FieldLabel>
+                  <FieldLabel help="Optional. If set, this batch is used before later ones and warns you as it nears.">
+                    Expiry date
+                  </FieldLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -218,7 +229,11 @@ export function OpeningBalanceDialog({
           <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" form="opening-balance-form" disabled={recordOpeningBalance.isPending}>
+          <Button
+            type="submit"
+            form="opening-balance-form"
+            disabled={recordOpeningBalance.isPending}
+          >
             {recordOpeningBalance.isPending ? "Recording…" : "Record opening balance"}
           </Button>
         </DialogFooter>

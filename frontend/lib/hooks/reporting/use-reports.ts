@@ -14,11 +14,16 @@ export function useReports() {
 }
 
 /** RPT-01: run a named report over a date range, optionally scoped to a branch. */
-export function useRunReport(code: string, params: ReportRunParams, options?: { enabled?: boolean }) {
+export function useRunReport(
+  code: string,
+  params: ReportRunParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: queryKeys.reporting.reportRun(params.branchId, code, params.from, params.to),
     queryFn: () => ReportingRepository.runReport(code, params),
-    enabled: (options?.enabled ?? true) && Boolean(code) && Boolean(params.from) && Boolean(params.to),
+    enabled:
+      (options?.enabled ?? true) && Boolean(code) && Boolean(params.from) && Boolean(params.to),
   });
 }
 

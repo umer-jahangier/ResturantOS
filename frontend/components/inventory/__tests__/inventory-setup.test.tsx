@@ -22,7 +22,11 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 function renderPage() {
   seedSession({ permissions: ["inventory.item.view", "inventory.item.manage"] });
   const Wrapper = createQueryWrapper();
-  return render(<Wrapper><InventorySetupPage /></Wrapper>);
+  return render(
+    <Wrapper>
+      <InventorySetupPage />
+    </Wrapper>,
+  );
 }
 
 describe("Inventory setup — units of measure", () => {
@@ -79,7 +83,9 @@ describe("Inventory setup — units of measure", () => {
     expect(factor).toBeDisabled();
     expect(factor).toHaveValue("1");
     expect(
-      within(dialog).getByText("A base unit is what its family is measured in, so this is always 1."),
+      within(dialog).getByText(
+        "A base unit is what its family is measured in, so this is always 1.",
+      ),
     ).toBeInTheDocument();
   });
 

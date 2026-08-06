@@ -70,7 +70,9 @@ function orderTypeLabel(type: string): string {
  * period-lock check inside the backend's `maybeCloseOrder` seam (07.3-01) —
  * this page must render that as a user-facing message, never crash (T-07.3-22).
  */
-function getRecordPaymentErrorMessage(error: { status?: number; message?: string } | null | undefined): string {
+function getRecordPaymentErrorMessage(
+  error: { status?: number; message?: string } | null | undefined,
+): string {
   if (!error) return "Failed to record payment. Please try again.";
   if (error.status === 423) {
     return "This branch's accounting period is locked. Contact your manager.";
@@ -123,7 +125,11 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const tenderTotalPaisa = rows.reduce((acc, r) => acc + r.amountPaisa, 0);
   const hasValidTenders = rows.some((r) => r.amountPaisa > 0);
   const canRecord =
-    !blocksNewTenders && !isClosed && hasValidTenders && remainingPaisa > 0 && tenderTotalPaisa <= remainingPaisa;
+    !blocksNewTenders &&
+    !isClosed &&
+    hasValidTenders &&
+    remainingPaisa > 0 &&
+    tenderTotalPaisa <= remainingPaisa;
 
   const tableName = order?.tableId
     ? (tables.find((t) => t.id === order.tableId)?.tableName ?? null)
@@ -225,7 +231,8 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
               {tableName ? `Table ${tableName}` : orderTypeLabel(order.type)}
               {" · "}Customer: {shortId(order.customerId)}
               {" · "}Cashier: {shortId(order.cashierId)}
-              {" · "}{formatOrderTime(order.openedAt)}
+              {" · "}
+              {formatOrderTime(order.openedAt)}
             </p>
           </div>
         </div>
@@ -300,7 +307,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           {paymentsLoading ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Loading payments…</p>
           ) : payments.length === 0 ? (
-            <p data-testid="no-payments-empty-state" className="py-4 text-center text-sm text-muted-foreground">
+            <p
+              data-testid="no-payments-empty-state"
+              className="py-4 text-center text-sm text-muted-foreground"
+            >
               No payments yet
             </p>
           ) : (
@@ -327,8 +337,8 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
 
           {blocksNewTenders ? (
             <p data-testid="payment-blocked-message" className="text-sm text-muted-foreground">
-              This order is {paymentStatus === "REFUNDED" ? "refunded" : "fully paid"} — no further tenders
-              can be recorded.
+              This order is {paymentStatus === "REFUNDED" ? "refunded" : "fully paid"} — no further
+              tenders can be recorded.
             </p>
           ) : isClosed ? (
             <p className="text-sm text-muted-foreground">This order is closed.</p>
@@ -339,7 +349,9 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                   <div key={row.id} className="flex flex-wrap items-center gap-2">
                     <select
                       value={row.method}
-                      onChange={(e) => updateRow(row.id, { method: e.target.value as PaymentMethod })}
+                      onChange={(e) =>
+                        updateRow(row.id, { method: e.target.value as PaymentMethod })
+                      }
                       aria-label="Payment method"
                       className="w-36 flex-none rounded border bg-background px-2 py-1.5 text-sm"
                     >
@@ -425,7 +437,11 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
               </button>
 
               {recordError && (
-                <p data-testid="record-payment-error" className="text-xs text-destructive" role="alert">
+                <p
+                  data-testid="record-payment-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
                   {recordError}
                 </p>
               )}
@@ -452,11 +468,16 @@ interface MoneyRowProps {
 function MoneyRow({ label, paisa, bold, valueClassName, testId }: MoneyRowProps) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className={cn("text-muted-foreground", bold && "font-semibold text-foreground")}>{label}</span>
+      <span className={cn("text-muted-foreground", bold && "font-semibold text-foreground")}>
+        {label}
+      </span>
       {/* Outer span carries the E2E hook (testid + raw paisa) — MoneyDisplay itself
           only ever renders the formatted currency string, not a machine-parseable one. */}
       <span data-testid={testId} data-paisa={Math.abs(paisa)}>
-        <MoneyDisplay paisa={Math.abs(paisa)} className={cn(bold && "font-semibold", valueClassName)} />
+        <MoneyDisplay
+          paisa={Math.abs(paisa)}
+          className={cn(bold && "font-semibold", valueClassName)}
+        />
       </span>
     </div>
   );

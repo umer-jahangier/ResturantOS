@@ -53,7 +53,11 @@ interface MenuCategoryFormDialogProps {
  * (mirrors the backend's `UpdateMenuCategoryRequest`, which has no `active` field) — use the
  * row's own Deactivate/Reactivate action for that, so a rename can never accidentally flip it.
  */
-export function MenuCategoryFormDialog({ category, open, onOpenChange }: MenuCategoryFormDialogProps) {
+export function MenuCategoryFormDialog({
+  category,
+  open,
+  onOpenChange,
+}: MenuCategoryFormDialogProps) {
   const createCategory = useCreateMenuCategory();
   const updateCategory = useUpdateMenuCategory();
   const isEdit = category !== undefined;
@@ -116,7 +120,12 @@ export function MenuCategoryFormDialog({ category, open, onOpenChange }: MenuCat
         </DialogHeader>
 
         <Form {...form}>
-          <form id="menu-category-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+          <form
+            id="menu-category-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="grid gap-4"
+            noValidate
+          >
             <FormField
               control={form.control}
               name="name"
@@ -138,7 +147,9 @@ export function MenuCategoryFormDialog({ category, open, onOpenChange }: MenuCat
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FieldLabel help="Optional internal note — not shown to customers.">Description</FieldLabel>
+                  <FieldLabel help="Optional internal note — not shown to customers.">
+                    Description
+                  </FieldLabel>
                   <FormControl>
                     <Input placeholder="Optional" {...field} />
                   </FormControl>

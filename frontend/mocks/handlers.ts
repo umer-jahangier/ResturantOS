@@ -32,13 +32,21 @@ const DEMO_USERS: Record<string, DemoUser> = {
     roles: ["OWNER"],
     // OWNER: all permissions — but requires TOTP step-up at login
     permissions: [
-      "pos.order.create", "pos.order.close", "pos.order.view",
-      "pos.order.void.own", "pos.order.void.any",
-      "inventory.item.view", "inventory.item.manage",
-      "finance.journal.view", "finance.journal.post", "finance.period.close",
+      "pos.order.create",
+      "pos.order.close",
+      "pos.order.view",
+      "pos.order.void.own",
+      "pos.order.void.any",
+      "inventory.item.view",
+      "inventory.item.manage",
+      "finance.journal.view",
+      "finance.journal.post",
+      "finance.period.close",
       "finance.expense.approve",
-      "vendor.manage", "vendor.po.approve",
-      "rbac.manage", "pos.menu.manage",
+      "vendor.manage",
+      "vendor.po.approve",
+      "rbac.manage",
+      "pos.menu.manage",
     ],
     approvalLimit: 100_000_000,
   },
@@ -47,7 +55,9 @@ const DEMO_USERS: Record<string, DemoUser> = {
     roles: ["ACCOUNTANT"],
     // ACCOUNTANT: finance + pos.order.view — but requires TOTP (has finance.period.close)
     permissions: [
-      "finance.journal.view", "finance.journal.post", "finance.period.close",
+      "finance.journal.view",
+      "finance.journal.post",
+      "finance.period.close",
       "pos.order.view",
     ],
     approvalLimit: 50_000_000,
@@ -69,7 +79,6 @@ type DemoUser = {
 };
 
 // Fallback for any unknown email (test usage)
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const DEFAULT_USER: DemoUser = DEMO_USERS["cashier@demo.local"]!;
 
 interface LoginRequestBody {
@@ -81,14 +90,12 @@ interface LoginRequestBody {
 
 function base64Url(input: string): string {
   const base64 =
-    typeof btoa === "function"
-      ? btoa(input)
-      : Buffer.from(input, "utf-8").toString("base64");
+    typeof btoa === "function" ? btoa(input) : Buffer.from(input, "utf-8").toString("base64");
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function lookupUser(email?: string): DemoUser {
-  return (email ? (DEMO_USERS[email.toLowerCase()] ?? DEFAULT_USER) : DEFAULT_USER);
+  return email ? (DEMO_USERS[email.toLowerCase()] ?? DEFAULT_USER) : DEFAULT_USER;
 }
 
 // An unsigned, real-shaped JWT whose payload the `decodeJwt` util can read

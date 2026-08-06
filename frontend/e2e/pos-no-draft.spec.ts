@@ -106,7 +106,9 @@ test.describe("POS no-draft client cart (07.3-03, POS-16)", () => {
       const text = (await footer.textContent()) ?? "";
       const match = text.match(/of (\d+)/);
       if (!match) {
-        throw new Error(`could not parse total row count from Order Management footer text: "${text}"`);
+        throw new Error(
+          `could not parse total row count from Order Management footer text: "${text}"`,
+        );
       }
       return Number(match[1]);
     }

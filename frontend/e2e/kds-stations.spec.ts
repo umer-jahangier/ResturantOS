@@ -75,7 +75,9 @@ test.describe("KDS-04/KDS-05: station board, item columns, detail page, aging su
       if (await notEnabled.isVisible({ timeout: 500 }).catch(() => false)) {
         throw new Blocked("FEATURE_KDS is not enabled for the demo tenant");
       }
-      const noPermission = page.getByText("You do not have permission to access the Kitchen Display.");
+      const noPermission = page.getByText(
+        "You do not have permission to access the Kitchen Display.",
+      );
       if (await noPermission.isVisible({ timeout: 500 }).catch(() => false)) {
         throw new Blocked("chef@demo.local lacks pos.kds.view permission (seed-data/RBAC gap)");
       }
@@ -120,14 +122,19 @@ test.describe("KDS-04/KDS-05: station board, item columns, detail page, aging su
       const allCards = page.getByTestId("kds-ticket-card");
       const cardCount = await allCards.count();
       if (cardCount === 0) {
-        throw new Blocked("no ticket cards rendered on the board — cannot exercise the aging-subtlety check");
+        throw new Blocked(
+          "no ticket cards rendered on the board — cannot exercise the aging-subtlety check",
+        );
       }
       for (let i = 0; i < cardCount; i++) {
         const cardClass = (await allCards.nth(i).getAttribute("class")) ?? "";
-        expect(cardClass, `card #${i} must not use the old aggressive bounce animation`).not.toContain(
-          "animate-bounce",
+        expect(
+          cardClass,
+          `card #${i} must not use the old aggressive bounce animation`,
+        ).not.toContain("animate-bounce");
+        expect(cardClass, `card #${i} must not use the old full-red background`).not.toContain(
+          "bg-red-950",
         );
-        expect(cardClass, `card #${i} must not use the old full-red background`).not.toContain("bg-red-950");
       }
 
       // Best-effort: locate the OLDEST visible card (by its "{n}m" age chip) and
@@ -147,8 +154,14 @@ test.describe("KDS-04/KDS-05: station board, item columns, detail page, aging su
         }
       }
       if (oldestIndex >= 0) {
-        await allCards.nth(oldestIndex).scrollIntoViewIfNeeded().catch(() => {});
-        await allCards.nth(oldestIndex).screenshot({ path: `${SHOT_DIR}/kds05-aged-ticket.png` }).catch(() => {});
+        await allCards
+          .nth(oldestIndex)
+          .scrollIntoViewIfNeeded()
+          .catch(() => {});
+        await allCards
+          .nth(oldestIndex)
+          .screenshot({ path: `${SHOT_DIR}/kds05-aged-ticket.png` })
+          .catch(() => {});
         if (oldestMinutes >= 15) {
           // Old enough to have crossed the default 900s/15min escalation threshold
           // — its border should carry the red aging-treatment class specifically.
@@ -167,11 +180,15 @@ test.describe("KDS-04/KDS-05: station board, item columns, detail page, aging su
         .getByRole("button")
         .first();
       if (!(await firstFragmentButton.isVisible({ timeout: 5000 }).catch(() => false))) {
-        throw new Blocked("no clickable ticket fragment found on the board to open the detail page");
+        throw new Blocked(
+          "no clickable ticket fragment found on the board to open the detail page",
+        );
       }
       await firstFragmentButton.click();
 
-      await page.waitForURL(/\/app\/kitchen\/[^/]+\/orders\/[^/]+$/, { timeout: 15_000 }).catch(() => {});
+      await page
+        .waitForURL(/\/app\/kitchen\/[^/]+\/orders\/[^/]+$/, { timeout: 15_000 })
+        .catch(() => {});
       const onDetailRoute = /\/app\/kitchen\/[^/]+\/orders\/[^/]+$/.test(page.url());
       if (!onDetailRoute) {
         throw new Error(
@@ -179,16 +196,25 @@ test.describe("KDS-04/KDS-05: station board, item columns, detail page, aging su
         );
       }
 
-      const dialogVisible = await page.getByRole("dialog").first().isVisible({ timeout: 500 }).catch(() => false);
+      const dialogVisible = await page
+        .getByRole("dialog")
+        .first()
+        .isVisible({ timeout: 500 })
+        .catch(() => false);
       if (dialogVisible) {
-        throw new Error("a [role=dialog] is visible on the ticket detail route — must be a dedicated page, not a popup");
+        throw new Error(
+          "a [role=dialog] is visible on the ticket detail route — must be a dedicated page, not a popup",
+        );
       }
       await expect(page.getByTestId("kds-station-detail")).toBeVisible({ timeout: 10_000 });
       await shot("kds-stations-detail-page");
     } catch (err) {
       if (err instanceof Blocked) {
         console.log(`[BLOCKED] kds-stations: ${err.message}`);
-        test.skip(true, `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`);
+        test.skip(
+          true,
+          `BLOCKED (environment/seed precondition, not a frontend defect): ${err.message}`,
+        );
         return;
       }
       throw err;

@@ -51,7 +51,8 @@ export function createZodResolver<TValues extends FieldValues>(
     for (const issue of result.error.issues) {
       if (issue.path.length === 0) continue;
       const path = issue.path.filter(
-        (segment): segment is string | number => typeof segment === "string" || typeof segment === "number",
+        (segment): segment is string | number =>
+          typeof segment === "string" || typeof segment === "number",
       );
       if (path.length === 0) continue;
       setNestedError(errors as Record<string, unknown>, path, {

@@ -59,7 +59,10 @@ export function NlqResultPanel({ result }: NlqResultPanelProps) {
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 {result.columns.map((column) => (
-                  <th key={column} className="px-4 py-3 text-left font-medium text-muted-foreground">
+                  <th
+                    key={column}
+                    className="px-4 py-3 text-left font-medium text-muted-foreground"
+                  >
                     {formatLabel(column)}
                   </th>
                 ))}

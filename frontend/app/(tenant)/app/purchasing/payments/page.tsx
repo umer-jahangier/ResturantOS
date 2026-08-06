@@ -31,7 +31,9 @@ export default function ApPaymentsPage() {
     "PAID",
   ]);
   const invoices = data ?? [];
-  const payable = invoices.filter((i) => i.status === "MATCHED" || i.status === "APPROVED_FOR_PAYMENT");
+  const payable = invoices.filter(
+    (i) => i.status === "MATCHED" || i.status === "APPROVED_FOR_PAYMENT",
+  );
   const paid = invoices.filter((i) => i.status === "PAID");
 
   if (isLoading) {

@@ -12,13 +12,7 @@ import {
 
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
 import { StatusBadge, type StatusVariant } from "@/components/ui/status-badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useMenuItems } from "@/lib/hooks/pos/use-menu";
@@ -74,7 +68,8 @@ function StatCard({
 
 function orderStatusVariant(status: OrderStatus): StatusVariant {
   if (status === "CLOSED") return "success";
-  if (status === "SENT_TO_KDS" || status === "PARTIAL_READY" || status === "READY") return "pending";
+  if (status === "SENT_TO_KDS" || status === "PARTIAL_READY" || status === "READY")
+    return "pending";
   if (status === "OPEN" || status === "SERVED") return "warning";
   if (status === "VOIDED" || status === "REFUNDED") return "error";
   return "inactive";

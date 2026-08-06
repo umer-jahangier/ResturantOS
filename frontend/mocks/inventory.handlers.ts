@@ -45,9 +45,27 @@ interface MockMenuItemCatalogEntry {
 
 /** 08.1-02: the synced menu-item catalog — 3 active entries seed the recipe-builder picker. */
 const menuItems: MockMenuItemCatalogEntry[] = [
-  { menuItemId: MENU_ITEM_BURGER, name: "Zinger Burger", categoryName: "Burgers", active: true, basePricePaisa: 65_000 },
-  { menuItemId: MENU_ITEM_BIRYANI, name: "Chicken Biryani", categoryName: "Rice", active: true, basePricePaisa: 85_000 },
-  { menuItemId: MENU_ITEM_CAKE, name: "Chocolate Cake", categoryName: "Desserts", active: true, basePricePaisa: 45_000 },
+  {
+    menuItemId: MENU_ITEM_BURGER,
+    name: "Zinger Burger",
+    categoryName: "Burgers",
+    active: true,
+    basePricePaisa: 65_000,
+  },
+  {
+    menuItemId: MENU_ITEM_BIRYANI,
+    name: "Chicken Biryani",
+    categoryName: "Rice",
+    active: true,
+    basePricePaisa: 85_000,
+  },
+  {
+    menuItemId: MENU_ITEM_CAKE,
+    name: "Chocolate Cake",
+    categoryName: "Desserts",
+    active: true,
+    basePricePaisa: 45_000,
+  },
 ];
 
 // ── Item categories (INV-13) ───────────────────────────────────────────────────────────────
@@ -149,7 +167,9 @@ const categories: MockItemCategory[] = [
 let categorySeq = categories.length;
 
 function resolveGlAccounts(category: MockItemCategory): MockResolvedGlAccounts {
-  function resolve(field: "defaultInventoryAccountCode" | "defaultCostAccountCode" | "defaultWasteAccountCode") {
+  function resolve(
+    field: "defaultInventoryAccountCode" | "defaultCostAccountCode" | "defaultWasteAccountCode",
+  ) {
     let current: MockItemCategory | undefined = category;
     let inherited = false;
     while (current) {
@@ -194,11 +214,36 @@ interface MockGlAccount {
 }
 
 const glAccounts: MockGlAccount[] = [
-  { id: "51111111-1111-4111-8111-111111110001", code: "1400", name: "Food Inventory", accountType: "ASSET" },
-  { id: "51111111-1111-4111-8111-111111110002", code: "1410", name: "Beverage Inventory", accountType: "ASSET" },
-  { id: "51111111-1111-4111-8111-111111110003", code: "5010", name: "Food Cost", accountType: "COGS" },
-  { id: "51111111-1111-4111-8111-111111110004", code: "5020", name: "Beverage Cost", accountType: "COGS" },
-  { id: "51111111-1111-4111-8111-111111110005", code: "6100", name: "Wastage & Spoilage", accountType: "EXPENSE" },
+  {
+    id: "51111111-1111-4111-8111-111111110001",
+    code: "1400",
+    name: "Food Inventory",
+    accountType: "ASSET",
+  },
+  {
+    id: "51111111-1111-4111-8111-111111110002",
+    code: "1410",
+    name: "Beverage Inventory",
+    accountType: "ASSET",
+  },
+  {
+    id: "51111111-1111-4111-8111-111111110003",
+    code: "5010",
+    name: "Food Cost",
+    accountType: "COGS",
+  },
+  {
+    id: "51111111-1111-4111-8111-111111110004",
+    code: "5020",
+    name: "Beverage Cost",
+    accountType: "COGS",
+  },
+  {
+    id: "51111111-1111-4111-8111-111111110005",
+    code: "6100",
+    name: "Wastage & Spoilage",
+    accountType: "EXPENSE",
+  },
 ];
 
 const GL_USAGE_TYPES: Record<string, string[]> = {
@@ -425,8 +470,22 @@ const uoms: MockUom[] = [
   // baseUnitCode null means "this IS the family's base unit" — the same invariant the real
   // UnitOfMeasure rows carry, and what RecipeCostPreviewService.dimensionMatches reads. This
   // fixture previously pointed kg at itself, which no real row ever does.
-  { id: UOM_KG, code: "kg", name: "Kilogram", measureType: "WEIGHT", baseUnitCode: null, toBaseFactor: "1" },
-  { id: UOM_G, code: "g", name: "Gram", measureType: "WEIGHT", baseUnitCode: "kg", toBaseFactor: "0.001" },
+  {
+    id: UOM_KG,
+    code: "kg",
+    name: "Kilogram",
+    measureType: "WEIGHT",
+    baseUnitCode: null,
+    toBaseFactor: "1",
+  },
+  {
+    id: UOM_G,
+    code: "g",
+    name: "Gram",
+    measureType: "WEIGHT",
+    baseUnitCode: "kg",
+    toBaseFactor: "0.001",
+  },
   {
     id: UOM_EACH,
     code: "each",
@@ -453,7 +512,13 @@ interface MockStorageLocation {
 }
 
 const storageLocations: MockStorageLocation[] = [
-  { id: LOC_WALK_IN, name: "Walk-in Cooler", description: "Chilled, 2–4°C", sortOrder: 1, archivedAt: null },
+  {
+    id: LOC_WALK_IN,
+    name: "Walk-in Cooler",
+    description: "Chilled, 2–4°C",
+    sortOrder: 1,
+    archivedAt: null,
+  },
   { id: LOC_DRY_STORE, name: "Dry Store", description: null, sortOrder: 2, archivedAt: null },
 ];
 
@@ -466,7 +531,8 @@ function storageLocationName(id: string | null | undefined): string | null {
 }
 
 function liveIngredientsIn(locationId: string): number {
-  return ingredients.filter((i) => i.storageLocationId === locationId && i.archivedAt == null).length;
+  return ingredients.filter((i) => i.storageLocationId === locationId && i.archivedAt == null)
+    .length;
 }
 
 function storageLocationDto(location: MockStorageLocation) {
@@ -485,10 +551,30 @@ interface MockStockRow {
 }
 
 const stockRows: MockStockRow[] = [
-  { ingredientId: ING_CHICKEN, qtyOnHand: "4", avgCostPaisa: 85_000, lastCountedAt: "2026-07-20T08:00:00Z" },
-  { ingredientId: ING_FLOUR, qtyOnHand: "35", avgCostPaisa: 12_000, lastCountedAt: "2026-07-18T08:00:00Z" },
-  { ingredientId: ING_SUGAR, qtyOnHand: "-2", avgCostPaisa: 9_000, lastCountedAt: "2026-07-15T08:00:00Z" },
-  { ingredientId: ING_MILK, qtyOnHand: "-3", avgCostPaisa: 5_000, lastCountedAt: "2026-07-10T08:00:00Z" },
+  {
+    ingredientId: ING_CHICKEN,
+    qtyOnHand: "4",
+    avgCostPaisa: 85_000,
+    lastCountedAt: "2026-07-20T08:00:00Z",
+  },
+  {
+    ingredientId: ING_FLOUR,
+    qtyOnHand: "35",
+    avgCostPaisa: 12_000,
+    lastCountedAt: "2026-07-18T08:00:00Z",
+  },
+  {
+    ingredientId: ING_SUGAR,
+    qtyOnHand: "-2",
+    avgCostPaisa: 9_000,
+    lastCountedAt: "2026-07-15T08:00:00Z",
+  },
+  {
+    ingredientId: ING_MILK,
+    qtyOnHand: "-3",
+    avgCostPaisa: 5_000,
+    lastCountedAt: "2026-07-10T08:00:00Z",
+  },
 ];
 
 // Fixed per-base-unit cost table backing the recipe cost-preview handler.
@@ -541,8 +627,20 @@ const recipes: MockRecipe[] = [
     yieldServings: "1",
     name: "Zinger Burger v1",
     lines: [
-      { id: "61111111-1111-4111-8111-111111110001", ingredientId: ING_CHICKEN, uomCode: "kg", qty: "0.2", yieldPct: "95" },
-      { id: "61111111-1111-4111-8111-111111110002", ingredientId: ING_FLOUR, uomCode: "kg", qty: "0.1", yieldPct: null },
+      {
+        id: "61111111-1111-4111-8111-111111110001",
+        ingredientId: ING_CHICKEN,
+        uomCode: "kg",
+        qty: "0.2",
+        yieldPct: "95",
+      },
+      {
+        id: "61111111-1111-4111-8111-111111110002",
+        ingredientId: ING_FLOUR,
+        uomCode: "kg",
+        qty: "0.1",
+        yieldPct: null,
+      },
     ],
   },
   {
@@ -554,7 +652,13 @@ const recipes: MockRecipe[] = [
     yieldServings: "1",
     name: "Chicken Biryani v1 (future)",
     lines: [
-      { id: "61111111-1111-4111-8111-111111110003", ingredientId: ING_CHICKEN, uomCode: "kg", qty: "0.3", yieldPct: "95" },
+      {
+        id: "61111111-1111-4111-8111-111111110003",
+        ingredientId: ING_CHICKEN,
+        uomCode: "kg",
+        qty: "0.3",
+        yieldPct: "95",
+      },
     ],
   },
 ];
@@ -598,7 +702,12 @@ interface CreateRecipeBody {
 function computeCoverage() {
   const now = new Date();
   const activeMenuItems = menuItems.filter((mi) => mi.active);
-  const items: { menuItemId: string; name: string; state: "COVERED" | "SCHEDULED" | "NO_RECIPE"; scheduledFrom: string | null }[] = [];
+  const items: {
+    menuItemId: string;
+    name: string;
+    state: "COVERED" | "SCHEDULED" | "NO_RECIPE";
+    scheduledFrom: string | null;
+  }[] = [];
   const missing: { menuItemId: string; name: string }[] = [];
   let covered = 0;
   let scheduled = 0;
@@ -615,13 +724,28 @@ function computeCoverage() {
 
     if (hasEffective) {
       covered += 1;
-      items.push({ menuItemId: item.menuItemId, name: item.name, state: "COVERED", scheduledFrom: null });
+      items.push({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        state: "COVERED",
+        scheduledFrom: null,
+      });
     } else if (earliestFuture) {
       scheduled += 1;
-      items.push({ menuItemId: item.menuItemId, name: item.name, state: "SCHEDULED", scheduledFrom: earliestFuture });
+      items.push({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        state: "SCHEDULED",
+        scheduledFrom: earliestFuture,
+      });
     } else {
       noRecipe += 1;
-      items.push({ menuItemId: item.menuItemId, name: item.name, state: "NO_RECIPE", scheduledFrom: null });
+      items.push({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        state: "NO_RECIPE",
+        scheduledFrom: null,
+      });
       missing.push({ menuItemId: item.menuItemId, name: item.name });
     }
   }
@@ -761,7 +885,9 @@ function applyReceipt(ingredientId: string, qty: number, unitCostPaisa: number) 
   const oldQty = Number(row.qtyOnHand);
   const newQty = oldQty + qty;
   row.avgCostPaisa =
-    newQty > 0 ? Math.round((oldQty * row.avgCostPaisa + qty * unitCostPaisa) / newQty) : unitCostPaisa;
+    newQty > 0
+      ? Math.round((oldQty * row.avgCostPaisa + qty * unitCostPaisa) / newQty)
+      : unitCostPaisa;
   row.qtyOnHand = String(newQty);
   return { newQtyOnHand: row.qtyOnHand, newAvgCostPaisa: row.avgCostPaisa };
 }
@@ -1013,7 +1139,11 @@ export const inventoryHandlers = [
       );
     }
     if (categoryHasNonArchivedChildren(category.id)) {
-      return apiError("CATEGORY_IN_USE", "Can't archive — this category still has subcategories.", 409);
+      return apiError(
+        "CATEGORY_IN_USE",
+        "Can't archive — this category still has subcategories.",
+        409,
+      );
     }
     category.archivedAt = new Date().toISOString();
     return ok(toItemCategoryDto(category));
@@ -1044,7 +1174,10 @@ export const inventoryHandlers = [
       rows = rows.filter((i) => i.active === wantActive);
     }
     if (categoryId) rows = rows.filter((i) => i.categoryId === categoryId);
-    if (search) rows = rows.filter((i) => i.name.toLowerCase().includes(search) || i.sku?.toLowerCase().includes(search));
+    if (search)
+      rows = rows.filter(
+        (i) => i.name.toLowerCase().includes(search) || i.sku?.toLowerCase().includes(search),
+      );
     return ok(rows);
   }),
 
@@ -1163,9 +1296,15 @@ export const inventoryHandlers = [
     }
     let baseUnitCode: string | null = null;
     if (body.baseUnitCode?.trim()) {
-      const base = uoms.find((u) => u.code.toLowerCase() === body.baseUnitCode!.trim().toLowerCase());
+      const base = uoms.find(
+        (u) => u.code.toLowerCase() === body.baseUnitCode!.trim().toLowerCase(),
+      );
       if (!base) {
-        return apiError("UOM_NOT_FOUND", `Unknown unit of measure "${body.baseUnitCode}" for the base unit.`, 422);
+        return apiError(
+          "UOM_NOT_FOUND",
+          `Unknown unit of measure "${body.baseUnitCode}" for the base unit.`,
+          422,
+        );
       }
       if (base.measureType !== body.measureType) {
         return apiError(
@@ -1206,7 +1345,11 @@ export const inventoryHandlers = [
   }),
 
   http.post("*/api/v1/inventory/storage-locations", async ({ request }) => {
-    const body = (await request.json()) as { name: string; description?: string; sortOrder?: number };
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      sortOrder?: number;
+    };
     const name = body.name?.trim() ?? "";
     const clash = storageLocations.find((l) => l.name.toLowerCase() === name.toLowerCase());
     if (clash) {
@@ -1231,7 +1374,11 @@ export const inventoryHandlers = [
   http.put("*/api/v1/inventory/storage-locations/:id", async ({ params, request }) => {
     const location = storageLocations.find((l) => l.id === params.id);
     if (!location) return apiError("STORAGE_LOCATION_NOT_FOUND", "Storage location not found", 404);
-    const body = (await request.json()) as { name: string; description?: string; sortOrder?: number };
+    const body = (await request.json()) as {
+      name: string;
+      description?: string;
+      sortOrder?: number;
+    };
     const name = body.name?.trim() ?? "";
     const clash = storageLocations.find(
       (l) => l.id !== location.id && l.name.toLowerCase() === name.toLowerCase(),
@@ -1328,7 +1475,8 @@ export const inventoryHandlers = [
     });
     if (search) {
       rows = rows.filter(
-        (r) => r.ingredientName.toLowerCase().includes(search) || r.sku?.toLowerCase().includes(search),
+        (r) =>
+          r.ingredientName.toLowerCase().includes(search) || r.sku?.toLowerCase().includes(search),
       );
     }
     return ok({
@@ -1432,7 +1580,9 @@ export const inventoryHandlers = [
     }
     const yieldServings = Number(body.yieldServings) || 1;
     const portionCostPaisa = Math.round(batchCostPaisa / yieldServings);
-    const menuItem = body.menuItemId ? menuItems.find((mi) => mi.menuItemId === body.menuItemId) : undefined;
+    const menuItem = body.menuItemId
+      ? menuItems.find((mi) => mi.menuItemId === body.menuItemId)
+      : undefined;
     const menuItemPricePaisa = menuItem?.basePricePaisa ?? null;
     const foodCostPct =
       menuItemPricePaisa && menuItemPricePaisa > 0

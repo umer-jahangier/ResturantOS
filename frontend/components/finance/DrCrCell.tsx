@@ -7,11 +7,7 @@ interface DrCrCellProps {
 
 function DrCrCell({ paisa, type }: DrCrCellProps) {
   if (paisa === 0) {
-    return (
-      <td className="w-32 text-right font-mono tabular-nums text-muted-foreground">
-        —
-      </td>
-    );
+    return <td className="w-32 text-right font-mono tabular-nums text-muted-foreground">—</td>;
   }
   return (
     <td

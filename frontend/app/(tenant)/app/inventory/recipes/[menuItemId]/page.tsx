@@ -104,11 +104,7 @@ function toRecipeInput(values: RevisionFormValues, menuItemId: string): RecipeIn
 // on this page and no update hook is imported (D-05, T-08.2-161). The right column is a sticky
 // live plate-cost panel driven by a single cost-preview query regardless of whether the left
 // column is showing a read-only version or an in-progress draft.
-export default function RecipeDetailPage({
-  params,
-}: {
-  params: Promise<{ menuItemId: string }>;
-}) {
+export default function RecipeDetailPage({ params }: { params: Promise<{ menuItemId: string }> }) {
   const { menuItemId } = use(params);
   const { branchId } = useCurrentUser();
   const { data: menuItems } = useMenuItemCatalog();
@@ -371,7 +367,11 @@ export default function RecipeDetailPage({
                               <FormItem>
                                 <FormLabel className="text-xs">Ingredient</FormLabel>
                                 <FormControl>
-                                  <select {...field} aria-label="Ingredient" className={selectClass}>
+                                  <select
+                                    {...field}
+                                    aria-label="Ingredient"
+                                    className={selectClass}
+                                  >
                                     <option value="">Select…</option>
                                     {(ingredients ?? []).map((i) => (
                                       <option key={i.id} value={i.id}>

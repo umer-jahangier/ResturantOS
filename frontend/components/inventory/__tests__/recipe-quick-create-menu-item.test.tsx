@@ -81,80 +81,91 @@ describe("Recipe form — inline quick-create for a menu item that doesn't exist
 
     await user.click(within(dialog).getByRole("button", { name: "Cancel new item" }));
 
-    expect(within(dialog).getByRole("button", { name: "+ Create new menu item" })).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "+ Create new menu item" }),
+    ).toBeInTheDocument();
     expect(posted).toBe(false);
   });
 
-  it(
-    "afterCreatingTheSubmitButtonStaysDisabledUntilInventorysCopyCatchesUpThenAutoSelects",
-    async () => {
-      let syncedYet = false;
-      const NEW_ITEM_ID = "a1000001-0000-4000-8000-000000000099";
+  it("afterCreatingTheSubmitButtonStaysDisabledUntilInventorysCopyCatchesUpThenAutoSelects", async () => {
+    let syncedYet = false;
+    const NEW_ITEM_ID = "a1000001-0000-4000-8000-000000000099";
 
-      server.use(
-        http.post("*/api/v1/pos/menu/items", async ({ request }) => {
-          const body = (await request.json()) as { name: string; basePricePaisa: number; categoryId: string };
-          expect(body).toEqual({ categoryId: CAT_MAINS, name: "Nihari", basePricePaisa: 55000 });
-          // The create response itself is NOT what the picker trusts — it starts polling
-          // inventory-service's own copy instead. Flip the flag AFTER a short delay so the
-          // dialog genuinely has to wait rather than happening to already be synced.
-          setTimeout(() => {
-            syncedYet = true;
-          }, 50);
-          return HttpResponse.json({
-            data: {
-              id: NEW_ITEM_ID,
-              categoryId: CAT_MAINS,
-              categoryName: "Mains",
-              name: "Nihari",
-              description: null,
-              basePricePaisa: 55000,
-              taxRatePct: "0",
-              kdsStation: null,
-              active: true,
-            },
-            meta: null,
-            warnings: [],
-          });
+    server.use(
+      http.post("*/api/v1/pos/menu/items", async ({ request }) => {
+        const body = (await request.json()) as {
+          name: string;
+          basePricePaisa: number;
+          categoryId: string;
+        };
+        expect(body).toEqual({ categoryId: CAT_MAINS, name: "Nihari", basePricePaisa: 55000 });
+        // The create response itself is NOT what the picker trusts — it starts polling
+        // inventory-service's own copy instead. Flip the flag AFTER a short delay so the
+        // dialog genuinely has to wait rather than happening to already be synced.
+        setTimeout(() => {
+          syncedYet = true;
+        }, 50);
+        return HttpResponse.json({
+          data: {
+            id: NEW_ITEM_ID,
+            categoryId: CAT_MAINS,
+            categoryName: "Mains",
+            name: "Nihari",
+            description: null,
+            basePricePaisa: 55000,
+            taxRatePct: "0",
+            kdsStation: null,
+            active: true,
+          },
+          meta: null,
+          warnings: [],
+        });
+      }),
+      http.get("*/api/v1/inventory/menu-items", () =>
+        HttpResponse.json({
+          data: syncedYet
+            ? [
+                {
+                  menuItemId: NEW_ITEM_ID,
+                  name: "Nihari",
+                  categoryName: "Mains",
+                  active: true,
+                  basePricePaisa: 55000,
+                },
+              ]
+            : [],
+          meta: null,
+          warnings: [],
         }),
-        http.get("*/api/v1/inventory/menu-items", () =>
-          HttpResponse.json({
-            data: syncedYet
-              ? [{ menuItemId: NEW_ITEM_ID, name: "Nihari", categoryName: "Mains", active: true, basePricePaisa: 55000 }]
-              : [],
-            meta: null,
-            warnings: [],
-          }),
-        ),
-      );
+      ),
+    );
 
-      const user = renderRecipeForm();
-      const dialog = await openMenuItemQuickCreate(user);
+    const user = renderRecipeForm();
+    const dialog = await openMenuItemQuickCreate(user);
 
-      await user.type(within(dialog).getByRole("textbox", { name: "Name" }), "Nihari");
-      await user.selectOptions(within(dialog).getByLabelText("Menu item category"), CAT_MAINS);
-      await user.type(within(dialog).getByRole("textbox", { name: "Price (Rs)" }), "550");
-      await user.click(within(dialog).getByRole("button", { name: "Add item" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Name" }), "Nihari");
+    await user.selectOptions(within(dialog).getByLabelText("Menu item category"), CAT_MAINS);
+    await user.type(within(dialog).getByRole("textbox", { name: "Price (Rs)" }), "550");
+    await user.click(within(dialog).getByRole("button", { name: "Add item" }));
 
-      // Setting-up banner replaces the picker; the recipe cannot be submitted while it's showing
-      // — submitting now would 404 against inventory's not-yet-updated copy.
-      expect(await within(dialog).findByText(/Setting up "Nihari"/)).toBeInTheDocument();
-      expect(within(dialog).getByRole("button", { name: "Create recipe version" })).toBeDisabled();
-      await waitFor(() => expect(toast.success).toHaveBeenCalledWith(
-        expect.stringContaining("Added Nihari"),
-      ));
+    // Setting-up banner replaces the picker; the recipe cannot be submitted while it's showing
+    // — submitting now would 404 against inventory's not-yet-updated copy.
+    expect(await within(dialog).findByText(/Setting up "Nihari"/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Create recipe version" })).toBeDisabled();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("Added Nihari")),
+    );
 
-      // Once inventory's copy catches up (syncedYet flips), the banner clears, the item is
-      // selected, and the form is submittable again — all without the user doing anything.
-      await waitFor(
-        () => expect(within(dialog).queryByText(/Setting up "Nihari"/)).toBeNull(),
-        { timeout: 10000 },
-      );
-      expect(within(dialog).getByRole("button", { name: "Create recipe version" })).not.toBeDisabled();
-      expect(within(dialog).getByRole("button", { name: "Nihari" })).toBeInTheDocument();
-    },
-    15000,
-  );
+    // Once inventory's copy catches up (syncedYet flips), the banner clears, the item is
+    // selected, and the form is submittable again — all without the user doing anything.
+    await waitFor(() => expect(within(dialog).queryByText(/Setting up "Nihari"/)).toBeNull(), {
+      timeout: 10000,
+    });
+    expect(
+      within(dialog).getByRole("button", { name: "Create recipe version" }),
+    ).not.toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Nihari" })).toBeInTheDocument();
+  }, 15000);
 
   it("withNoMenuCategoriesYetThePointsAtTheMenuItemsPageInsteadOfOfferingADeadEndForm", async () => {
     server.use(
@@ -162,7 +173,9 @@ describe("Recipe form — inline quick-create for a menu item that doesn't exist
         HttpResponse.json({ data: [], meta: null, warnings: [] }),
       ),
     );
-    seedSession({ permissions: ["inventory.item.view", "inventory.item.manage", "pos.menu.manage"] });
+    seedSession({
+      permissions: ["inventory.item.view", "inventory.item.manage", "pos.menu.manage"],
+    });
     const Wrapper = createQueryWrapper();
     render(
       <Wrapper>
@@ -173,7 +186,9 @@ describe("Recipe form — inline quick-create for a menu item that doesn't exist
     const dialog = await openMenuItemQuickCreate(user);
 
     expect(
-      await within(dialog).findByText(/No menu categories yet — add one on the Menu Items page first/),
+      await within(dialog).findByText(
+        /No menu categories yet — add one on the Menu Items page first/,
+      ),
     ).toBeInTheDocument();
     expect(within(dialog).queryByRole("textbox", { name: "Name" })).toBeNull();
     expect(within(dialog).queryByRole("button", { name: "Add item" })).toBeNull();

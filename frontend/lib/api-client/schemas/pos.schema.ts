@@ -115,7 +115,17 @@ export const apiOrderSchema = z.object({
   branchId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
   type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY", "PICKUP"]),
-  status: z.enum(["DRAFT", "OPEN", "SENT_TO_KDS", "PARTIAL_READY", "READY", "SERVED", "CLOSED", "VOIDED", "REFUNDED"]),
+  status: z.enum([
+    "DRAFT",
+    "OPEN",
+    "SENT_TO_KDS",
+    "PARTIAL_READY",
+    "READY",
+    "SERVED",
+    "CLOSED",
+    "VOIDED",
+    "REFUNDED",
+  ]),
   // `.optional()`: the live pos-service response for POST /orders and GET /orders/{id}
   // currently omits this field entirely (verified via 07.1-06 E2E — a backend
   // DTO-population gap, not a frontend concern; OrderController.java is mid-edit
@@ -216,7 +226,9 @@ export type ApiTableDetail = z.infer<typeof apiTableDetailSchema>;
 // response envelope.
 export const apiUpdateInstructionsSchema = z.object({
   notes: z.string().max(240, "Order notes must not exceed 240 characters").nullable().optional(),
-  itemNotes: z.record(z.string().uuid(), z.string().max(140, "Item notes must not exceed 140 characters")).optional(),
+  itemNotes: z
+    .record(z.string().uuid(), z.string().max(140, "Item notes must not exceed 140 characters"))
+    .optional(),
 });
 
 export type ApiUpdateInstructions = z.infer<typeof apiUpdateInstructionsSchema>;

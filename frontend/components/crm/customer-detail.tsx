@@ -39,9 +39,7 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">{customer.name}</h2>
         <p className="text-sm tabular-nums text-muted-foreground">{customer.phone}</p>
-        {customer.email ? (
-          <p className="text-sm text-muted-foreground">{customer.email}</p>
-        ) : null}
+        {customer.email ? <p className="text-sm text-muted-foreground">{customer.email}</p> : null}
       </div>
 
       <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
@@ -50,7 +48,13 @@ export function CustomerDetail({ customerId }: { customerId: string | null }) {
           <dd className="mt-1">
             {customer.tier ? (
               <StatusBadge
-                status={customer.tier === "GOLD" ? "warning" : customer.tier === "SILVER" ? "active" : "inactive"}
+                status={
+                  customer.tier === "GOLD"
+                    ? "warning"
+                    : customer.tier === "SILVER"
+                      ? "active"
+                      : "inactive"
+                }
                 label={customer.tier}
               />
             ) : (

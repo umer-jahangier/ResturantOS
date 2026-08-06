@@ -53,7 +53,10 @@ test.describe("purchasing: lookups instead of free text, and prices that show up
     await login(page);
     await openFirstVendor(page);
 
-    await page.getByRole("button", { name: /add catalog item/i }).first().click();
+    await page
+      .getByRole("button", { name: /add catalog item/i })
+      .first()
+      .click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
@@ -69,14 +72,20 @@ test.describe("purchasing: lookups instead of free text, and prices that show up
     expect(packOptions.length, `pack unit options: ${packOptions.join(", ")}`).toBeGreaterThan(1);
     expect(packOptions.join(" ")).toMatch(/KG|G\b|L\b|EA|PCS/i);
 
-    await page.screenshot({ path: "e2e/__screenshots__/purchasing-unit-selects.png", fullPage: true });
+    await page.screenshot({
+      path: "e2e/__screenshots__/purchasing-unit-selects.png",
+      fullPage: true,
+    });
   });
 
   test("payment terms are chosen from a fixed list", async ({ page }) => {
     await login(page);
     await page.goto("/app/purchasing/vendors", { waitUntil: "networkidle", timeout: 45_000 });
 
-    await page.getByRole("button", { name: /add vendor|new vendor/i }).first().click();
+    await page
+      .getByRole("button", { name: /add vendor|new vendor/i })
+      .first()
+      .click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 15_000 });
 
@@ -100,14 +109,21 @@ test.describe("purchasing: lookups instead of free text, and prices that show up
     const priced = page.locator("tbody tr").filter({ hasText: /Rs\s?[\d,]/ });
     await expect(priced.first()).toBeVisible({ timeout: 30_000 });
 
-    await page.screenshot({ path: "e2e/__screenshots__/vendor-catalog-current-price.png", fullPage: true });
+    await page.screenshot({
+      path: "e2e/__screenshots__/vendor-catalog-current-price.png",
+      fullPage: true,
+    });
   });
 
   test("a PO line's unit is derived from the catalog item, not retyped", async ({ page }) => {
     await login(page);
-    await page.goto("/app/purchasing/purchase-orders", { waitUntil: "networkidle", timeout: 45_000 });
+    await page.goto("/app/purchasing/purchase-orders", {
+      waitUntil: "networkidle",
+      timeout: 45_000,
+    });
 
-    await page.getByRole("button", { name: /new purchase order|create purchase order|add purchase order/i })
+    await page
+      .getByRole("button", { name: /new purchase order|create purchase order|add purchase order/i })
       .first()
       .click();
     const dialog = page.getByRole("dialog");

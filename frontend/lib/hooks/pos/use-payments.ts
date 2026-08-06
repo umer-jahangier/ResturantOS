@@ -112,7 +112,13 @@ export function useRefundOrder(orderId: string) {
   return useMutation({
     // See the module-level networkMode comment above — same fix, same reason.
     networkMode: "always",
-    mutationFn: ({ payload, idempotencyKey }: { payload: RefundOrderPayload; idempotencyKey: string }) => {
+    mutationFn: ({
+      payload,
+      idempotencyKey,
+    }: {
+      payload: RefundOrderPayload;
+      idempotencyKey: string;
+    }) => {
       if (!isOnline) throw new Error(OFFLINE_ERROR);
       return PosRepository.refundOrder(orderId, payload, idempotencyKey);
     },

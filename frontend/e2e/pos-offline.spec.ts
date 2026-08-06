@@ -24,10 +24,7 @@ test.describe("POS offline sync", () => {
     await page.context().setOffline(false);
   });
 
-  test("offline create syncs to exactly one order on reconnect", async ({
-    page,
-    context,
-  }) => {
+  test("offline create syncs to exactly one order on reconnect", async ({ page, context }) => {
     // ── Step 1: Load POS while online (warms SW cache) ─────────────────────────
     await page.goto("/app/pos");
     // Wait for the menu grid to confirm data loaded from the server.
@@ -80,12 +77,12 @@ test.describe("POS offline sync", () => {
     if (await chargeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await chargeBtn.click();
       // The offline-only guard should surface the OFFLINE_ERROR.
-      await expect(
-        page.locator('[data-testid="online-required-message"]'),
-      ).toBeVisible({ timeout: 5_000 });
-      await expect(
-        page.locator('[data-testid="online-required-message"]'),
-      ).toContainText("connection");
+      await expect(page.locator('[data-testid="online-required-message"]')).toBeVisible({
+        timeout: 5_000,
+      });
+      await expect(page.locator('[data-testid="online-required-message"]')).toContainText(
+        "connection",
+      );
     }
 
     // Clean up.

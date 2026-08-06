@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import CountUp from "react-countup"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import CountUp from "react-countup";
+import { cn } from "@/lib/utils";
 
 interface AnimatedNumberProps {
-  value: number
-  prefix?: string
-  suffix?: string
-  decimals?: number
-  duration?: number
-  className?: string
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+  duration?: number;
+  className?: string;
 }
 
 function AnimatedNumber({
@@ -34,7 +34,7 @@ function AnimatedNumber({
         scrollSpyOnce
       />
     </span>
-  )
+  );
 }
 
-export { AnimatedNumber }
+export { AnimatedNumber };

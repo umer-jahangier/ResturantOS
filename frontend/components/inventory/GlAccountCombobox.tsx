@@ -6,8 +6,11 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGlAccountSearch } from "@/lib/hooks/inventory/use-inventory";
 import type { GlAccountUsage } from "@/lib/adapters/inventory.adapter";
-import { ApiError } from "@/lib/api-client/errors";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import { ApiError } from "@/lib/errors";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import { Button } from "@/components/ui/button";
 
 interface GlAccountComboboxProps {
@@ -100,7 +103,14 @@ export function GlAccountCombobox({
   ariaLabel,
 }: GlAccountComboboxProps) {
   const [query, setQuery] = useState("");
-  const { data: accounts, isLoading, isError, isFetching, error, refetch } = useGlAccountSearch(usage, query);
+  const {
+    data: accounts,
+    isLoading,
+    isError,
+    isFetching,
+    error,
+    refetch,
+  } = useGlAccountSearch(usage, query);
   const failure = isError ? describeFailure(error) : null;
 
   // Keyed by CODE, not id: the category API speaks in account codes, and the code is what a
@@ -140,7 +150,11 @@ export function GlAccountCombobox({
           isLoading={isLoading}
           placeholder={placeholder}
           emptyHeading={
-            failure ? failure.heading : chartIsEmpty ? "No accounts set up yet" : "No matching accounts"
+            failure
+              ? failure.heading
+              : chartIsEmpty
+                ? "No accounts set up yet"
+                : "No matching accounts"
           }
           emptyBody={
             chartIsEmpty && !failure ? (

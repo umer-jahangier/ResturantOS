@@ -53,7 +53,9 @@ export function CustomerPicker({
         </span>
         {value.tier ? (
           <StatusBadge
-            status={value.tier === "GOLD" ? "warning" : value.tier === "SILVER" ? "active" : "inactive"}
+            status={
+              value.tier === "GOLD" ? "warning" : value.tier === "SILVER" ? "active" : "inactive"
+            }
             label={value.tier}
           />
         ) : null}

@@ -74,9 +74,7 @@ function OpenPeriodDatePicker({ value, onChange }: OpenPeriodDatePickerProps) {
           size="icon"
           aria-label="Previous month"
           onClick={() =>
-            setViewMonth(
-              (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
-            )
+            setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
           }
         >
           <ChevronLeft className="h-4 w-4" />
@@ -88,9 +86,7 @@ function OpenPeriodDatePicker({ value, onChange }: OpenPeriodDatePickerProps) {
           size="icon"
           aria-label="Next month"
           onClick={() =>
-            setViewMonth(
-              (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
-            )
+            setViewMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
           }
         >
           <ChevronRight className="h-4 w-4" />

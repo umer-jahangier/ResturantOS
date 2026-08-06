@@ -25,7 +25,8 @@ const selectClass =
   "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const EMPTY_TITLE = "No stock recorded yet";
-const EMPTY_BODY = "Record an opening balance to start tracking on-hand quantities for this branch.";
+const EMPTY_BODY =
+  "Record an opening balance to start tracking on-hand quantities for this branch.";
 
 /**
  * Row wash — reads the server-decided `belowReorderPoint`/`nonPositive` flags only; `qtyOnHand`
@@ -124,7 +125,9 @@ export default function StockPage() {
       accessorKey: "lastCountedAt",
       header: "Last counted",
       cell: ({ row }) =>
-        row.original.lastCountedAt ? new Date(row.original.lastCountedAt).toLocaleDateString() : "Never",
+        row.original.lastCountedAt
+          ? new Date(row.original.lastCountedAt).toLocaleDateString()
+          : "Never",
     },
     {
       id: "risk",
@@ -138,7 +141,9 @@ export default function StockPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Stock</h1>
-          <p className="text-sm text-muted-foreground">On-hand quantities and value at {branchName}.</p>
+          <p className="text-sm text-muted-foreground">
+            On-hand quantities and value at {branchName}.
+          </p>
         </div>
         <PermissionGuard require="inventory.item.manage">
           <div className="flex flex-wrap gap-2">

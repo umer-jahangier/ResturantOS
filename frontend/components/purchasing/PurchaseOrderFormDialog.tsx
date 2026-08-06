@@ -6,12 +6,19 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
-import { useCreatePurchaseOrder, useVendorItems, useVendors } from "@/lib/hooks/purchasing/use-purchasing";
+import {
+  useCreatePurchaseOrder,
+  useVendorItems,
+  useVendors,
+} from "@/lib/hooks/purchasing/use-purchasing";
 import { useIngredients } from "@/lib/hooks/inventory/use-inventory";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useDebouncedValue } from "@/lib/hooks/use-debounce";
 import type { PurchaseOrderInput, VendorItem } from "@/lib/adapters/purchasing.adapter";
-import { CatalogItemCombobox, type CatalogItemOption } from "@/components/shared/catalog-item-combobox";
+import {
+  CatalogItemCombobox,
+  type CatalogItemOption,
+} from "@/components/shared/catalog-item-combobox";
 import { UomSelect } from "@/components/shared/uom-select";
 import {
   Dialog,
@@ -22,7 +29,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -85,7 +99,8 @@ function toPurchaseOrderInput(
   return {
     vendorId: values.vendorId,
     branchId,
-    expectedDeliveryDate: values.expectedDeliveryDate.trim() === "" ? undefined : values.expectedDeliveryDate,
+    expectedDeliveryDate:
+      values.expectedDeliveryDate.trim() === "" ? undefined : values.expectedDeliveryDate,
     notes: values.notes.trim() === "" ? undefined : values.notes.trim(),
     lines: values.lines.map((l) => {
       const catalogItem = vendorItems?.find((v) => v.id === l.vendorItemId);
@@ -95,7 +110,8 @@ function toPurchaseOrderInput(
         catalogItem?.currentUnitPricePaisa != null
           ? (catalogItem.currentUnitPricePaisa / 100).toFixed(2)
           : undefined;
-      const priceUnchanged = catalogPriceRupees != null && l.unitPriceRupees.trim() === catalogPriceRupees;
+      const priceUnchanged =
+        catalogPriceRupees != null && l.unitPriceRupees.trim() === catalogPriceRupees;
       return {
         vendorItemId: l.vendorItemId,
         qty: l.qty.trim(),
@@ -130,7 +146,13 @@ interface PoLineItemPickerProps {
  * the debounced "zero matches" heading derived from it) stays isolated per row instead of one
  * shared piece of state leaking between line rows.
  */
-function PoLineItemPicker({ options, value, disabled, isLoading, onSelect }: PoLineItemPickerProps) {
+function PoLineItemPicker({
+  options,
+  value,
+  disabled,
+  isLoading,
+  onSelect,
+}: PoLineItemPickerProps) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 200);
 
@@ -185,8 +207,14 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
         id: item.id,
         // VendorItemDto carries no ingredient name of its own — resolve it from the branch's
         // ingredient list, falling back to the vendor's own description when unavailable.
-        name: ingredientNameById.get(item.ingredientId) ?? item.vendorDescription ?? "Unnamed catalog item",
-        secondary: [item.packDescription ?? `${item.packQty} ${item.packUom}`, `Order in ${item.orderUom}`]
+        name:
+          ingredientNameById.get(item.ingredientId) ??
+          item.vendorDescription ??
+          "Unnamed catalog item",
+        secondary: [
+          item.packDescription ?? `${item.packQty} ${item.packUom}`,
+          `Order in ${item.orderUom}`,
+        ]
           .filter(Boolean)
           .join(" · "),
         sku: item.vendorSku ?? undefined,
@@ -209,7 +237,9 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
         form.setValue(`lines.${idx}.uom`, "");
         form.setValue(`lines.${idx}.unitPriceRupees`, "");
       });
-      toast.info("Lines were cleared because the vendor changed — the previous catalog no longer applies.");
+      toast.info(
+        "Lines were cleared because the vendor changed — the previous catalog no longer applies.",
+      );
     }
     prevVendorIdRef.current = vendorId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,7 +257,8 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
     const catalogItem = vendorItems?.find((v) => v.id === option.id);
     form.setValue(`lines.${idx}.vendorItemId`, option.id, { shouldValidate: true });
     form.setValue(`lines.${idx}.uom`, catalogItem?.orderUom ?? "", { shouldValidate: true });
-    const priceRupees = typeof option.pricePaisa === "number" ? (option.pricePaisa / 100).toFixed(2) : "";
+    const priceRupees =
+      typeof option.pricePaisa === "number" ? (option.pricePaisa / 100).toFixed(2) : "";
     form.setValue(`lines.${idx}.unitPriceRupees`, priceRupees, { shouldValidate: true });
   }
 
@@ -249,7 +280,9 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>New purchase order</DialogTitle>
-          <DialogDescription>Created as DRAFT — submit it for approval afterward.</DialogDescription>
+          <DialogDescription>
+            Created as DRAFT — submit it for approval afterward.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -317,7 +350,12 @@ export function PurchaseOrderFormDialog({ trigger }: PurchaseOrderFormDialogProp
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium">Lines</h3>
-                <Button type="button" variant="outline" size="sm" onClick={() => append(EMPTY_LINE)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append(EMPTY_LINE)}
+                >
                   Add line
                 </Button>
               </div>

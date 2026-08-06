@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
@@ -121,14 +121,21 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form id="uom-form" onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+          <form
+            id="uom-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="grid gap-4"
+            noValidate
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="code"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="The short code you’ll see in dropdowns — CASE, BUNCH, TRAY.">Code</FieldLabel>
+                    <FieldLabel help="The short code you’ll see in dropdowns — CASE, BUNCH, TRAY.">
+                      Code
+                    </FieldLabel>
                     <FormControl>
                       <Input placeholder="CASE" {...field} />
                     </FormControl>
@@ -142,7 +149,9 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="The full name, spelled out for anyone who doesn’t know the code.">Name</FieldLabel>
+                    <FieldLabel help="The full name, spelled out for anyone who doesn’t know the code.">
+                      Name
+                    </FieldLabel>
                     <FormControl>
                       <Input placeholder="Case" {...field} />
                     </FormControl>
@@ -156,7 +165,9 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
                 name="measureType"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="Whether this unit measures weight, volume, or a count of things.">Measure type</FieldLabel>
+                    <FieldLabel help="Whether this unit measures weight, volume, or a count of things.">
+                      Measure type
+                    </FieldLabel>
                     <FormControl>
                       <select
                         {...field}
@@ -185,7 +196,9 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
                 name="baseUnitCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FieldLabel help="The base unit this converts to. Leave blank if this IS the base everything else converts to.">Measured in</FieldLabel>
+                    <FieldLabel help="The base unit this converts to. Leave blank if this IS the base everything else converts to.">
+                      Measured in
+                    </FieldLabel>
                     <FormControl>
                       <select {...field} aria-label="Measured in" className={selectClass}>
                         <option value="">Nothing — this is a base unit</option>
@@ -206,7 +219,9 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
                 name="toBaseFactor"
                 render={({ field }) => (
                   <FormItem className="sm:col-span-2">
-                    <FieldLabel help="How many of the base unit fit in one of these. A case of 24 tins is 24.">How many, per unit</FieldLabel>
+                    <FieldLabel help="How many of the base unit fit in one of these. A case of 24 tins is 24.">
+                      How many, per unit
+                    </FieldLabel>
                     <FormControl>
                       <Input
                         inputMode="decimal"
