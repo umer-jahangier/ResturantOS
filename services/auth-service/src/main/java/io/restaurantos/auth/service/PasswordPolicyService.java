@@ -52,6 +52,12 @@ public class PasswordPolicyService {
     public static final int HISTORY_DEPTH = 5;
 
     /**
+     * Separates a token's tenant routing prefix from its secret half. A dot, because base64url's
+     * alphabet does not contain one, so the split is unambiguous however the secret comes out.
+     */
+    private static final String TENANT_PREFIX_SEPARATOR = ".";
+
+    /**
      * Which flow a single-use password token belongs to.
      *
      * <p>The two purposes share one table and one row-level-security policy, and are kept apart by
@@ -251,7 +257,7 @@ public class PasswordPolicyService {
         Instant now = Instant.now();
         passwordResetTokenRepository.invalidateOutstanding(userId, purpose.dbValue(), now);
 
-        String rawToken = generateToken();
+        String rawToken = generateToken(tenantId);
         Instant expiresAt = now.plus(purpose.ttl());
 
         PasswordResetTokenEntity entity = new PasswordResetTokenEntity();
@@ -271,26 +277,27 @@ public class PasswordPolicyService {
      * <p>Three things happen here and the order is load-bearing:
      *
      * <ol>
-     *   <li><b>Resolve the tenant through a SECURITY DEFINER function.</b> Both redeeming flows are
-     *       public, so no JWT has populated {@code TenantContext} and {@code TenantAwareDataSource}
-     *       has set no GUC — and {@code password_reset_tokens} is {@code FORCE ROW LEVEL SECURITY}
-     *       on that GUC, so an ordinary lookup matches nothing. This is not theoretical: measured
-     *       against the live RLS-enforcing database before this plan, the forgot-password confirm
-     *       endpoint refused a token whose row was present, unused and unexpired. Same idiom, same
-     *       reason, as changeset 052's {@code auth_lookup_refresh_tenant} for refresh sessions.</li>
+     *   <li><b>Read the tenant out of the token's own routing prefix</b> — see
+     *       {@link #generateToken}. Both redeeming flows are public, so no JWT has populated
+     *       {@code TenantContext} and {@code TenantAwareDataSource} has set no GUC; and
+     *       {@code password_reset_tokens} is {@code FORCE ROW LEVEL SECURITY} on that GUC, so
+     *       without a tenant nothing is visible and the lookup that must find the row matches
+     *       nothing. This is not theoretical: measured against the live RLS-enforcing database
+     *       before this plan, the forgot-password confirm endpoint refused a token whose row was
+     *       demonstrably present, unused and unexpired.</li>
      *   <li><b>Set the GUC</b>, transaction-local, so everything after this runs under the policy
-     *       rather than around it. The function is used to find out WHICH tenant, never to read a
-     *       token's contents.</li>
+     *       rather than around it. The prefix decides WHICH tenant to look in and nothing else —
+     *       it grants no visibility, it narrows it.</li>
      *   <li><b>Claim the token with a conditional UPDATE</b> — see
      *       {@link PasswordResetTokenRepository#claimIfRedeemable}. Validity is not read and then
      *       acted on; it is decided by the write itself, so two concurrent redemptions of the same
      *       token cannot both succeed.</li>
      * </ol>
      *
-     * <p><b>Every failure is the same failure.</b> Absent, wrong purpose, expired, already spent,
-     * and pointing at a row that no longer exists all raise the identical exception with the
-     * purpose's constant message. A caller cannot learn which, and therefore cannot learn whether
-     * an account exists.
+     * <p><b>Every failure is the same failure.</b> Malformed, wrong tenant, absent, wrong purpose,
+     * expired, already spent, and pointing at a row that no longer exists all raise the identical
+     * exception with the purpose's constant message. A caller cannot learn which, and therefore
+     * cannot learn whether an account exists.
      *
      * <p>The claim is deliberately NOT rolled back when the caller subsequently fails to
      * authenticate — see {@code PasswordChangeService.changeForcedPassword} for why that is a
@@ -299,21 +306,10 @@ public class PasswordPolicyService {
      * @throws AuthenticationFailedException on any defect whatsoever
      */
     public RedeemedToken redeemSingleUseToken(String rawToken, TokenPurpose purpose) {
-        if (rawToken == null || rawToken.isBlank()) {
-            throw new AuthenticationFailedException(purpose.genericFailureMessage());
-        }
+        UUID tenantId = tenantOf(rawToken, purpose);
+        setTenantGuc(tenantId);
+
         String tokenHash = hashToken(rawToken);
-
-        Object tenantId = entityManager
-            .createNativeQuery("SELECT auth_lookup_password_token_tenant(:hash, :purpose)")
-            .setParameter("hash", tokenHash)
-            .setParameter("purpose", purpose.dbValue())
-            .getSingleResult();
-        if (tenantId == null) {
-            throw new AuthenticationFailedException(purpose.genericFailureMessage());
-        }
-        setTenantGuc(UUID.fromString(tenantId.toString()));
-
         if (passwordResetTokenRepository.claimIfRedeemable(tokenHash, purpose.dbValue(), Instant.now()) != 1) {
             throw new AuthenticationFailedException(purpose.genericFailureMessage());
         }
@@ -325,18 +321,59 @@ public class PasswordPolicyService {
         return new RedeemedToken(token.getTenantId(), token.getUserId());
     }
 
+    private UUID tenantOf(String rawToken, TokenPurpose purpose) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new AuthenticationFailedException(purpose.genericFailureMessage());
+        }
+        int separator = rawToken.indexOf(TENANT_PREFIX_SEPARATOR);
+        if (separator <= 0) {
+            throw new AuthenticationFailedException(purpose.genericFailureMessage());
+        }
+        try {
+            return UUID.fromString(rawToken.substring(0, separator));
+        } catch (IllegalArgumentException malformed) {
+            // Never rethrow the parse failure: its message quotes the submitted value, which would
+            // put a credential in an error body and distinguish "malformed" from "unknown".
+            throw new AuthenticationFailedException(purpose.genericFailureMessage());
+        }
+    }
+
     /**
-     * 256 bits from {@link SecureRandom}, base64url without padding.
+     * {@code <tenantId>.<256 random bits, base64url>}.
      *
-     * <p>Entropy is what stands between a public endpoint and an offline guessing attack, and 256
-     * bits is not negotiable down: the token is the only thing an attacker who already knows a
-     * password does not have. Matches the refresh-session and reset generators exactly, so the
-     * three cannot drift.
+     * <p><b>Why the token carries a routing prefix instead of a database lookup resolving it.</b>
+     * The row cannot be found without the tenant GUC, and the GUC cannot be set without knowing the
+     * tenant, so something has to break the circle. The obvious move — a {@code SECURITY DEFINER}
+     * function, as changeset 052 does for refresh sessions — was implemented, applied and then
+     * withdrawn, because measurement showed it does not work and the precedent it copies only
+     * works by accident:
+     *
+     * <pre>
+     *   auth_lookup_refresh_tenant        owner = postgres    (rolbypassrls = true)
+     *   auth_lookup_password_token_tenant owner = auth_user   (rolbypassrls = false)
+     * </pre>
+     *
+     * SECURITY DEFINER runs a function as its OWNER, and {@code FORCE ROW LEVEL SECURITY} subjects
+     * even the table's owner to the policy. 052's function bypasses RLS solely because some earlier
+     * migration run created it as a superuser; Liquibase today runs as {@code auth_user}, so the
+     * identical DDL produced a function that returned NULL for a row that was right there. Building
+     * on that would have made this flow depend on which operating system account happened to run a
+     * migration years ago — and it means the refresh path is one clean re-provision away from
+     * breaking the same way, which is recorded in the plan summary rather than fixed here.
+     *
+     * <p><b>The prefix costs no security.</b> The tenant id is not a secret — the caller typed the
+     * tenant's slug to get here. It grants nothing: the GUC only ever narrows what the policy makes
+     * visible, and the stored hash is of the WHOLE token, so an attacker who edits the prefix
+     * changes the hash and matches nothing, in their own tenant or anyone else's. Cross-tenant
+     * redemption is therefore impossible by construction rather than by a check, and the secret
+     * half is still a full 256 bits from {@link SecureRandom} — the only thing an attacker who
+     * already knows a password does not have.
      */
-    private String generateToken() {
+    private String generateToken(UUID tenantId) {
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return tenantId + TENANT_PREFIX_SEPARATOR
+            + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     /**
