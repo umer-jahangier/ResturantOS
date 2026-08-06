@@ -474,6 +474,28 @@ recur silently. Check `mvn -version`, not `java -version` — they resolve indep
 Do **not** "fix" this by approving a JDK in the firewall or turning the firewall off: that hides the
 real problem, which is building on an unintended JDK. CI is unaffected (Linux, temurin 25, no ALF).
 
+**There is a SECOND cause with the same symptom — a wildcard bind.** Fixing the JDK does not close
+this. Even on JDK 25 with the binary approved, `AuthLoginIT` failed 21/21 across 7 consecutive runs
+on 2026-08-06 with the identical `header parser received no bytes` and the identical server-side
+silence. The `--listapps` approval is not a guarantee: the Application Firewall filters incoming
+connections to **wildcard-bound** sockets, and Spring Boot binds the test server to the wildcard
+address by default, so an integration test's listener is LAN-reachable and therefore filtered. When
+the filter decides against it the connection is accepted and closed with zero bytes written.
+
+**Loopback traffic is never filtered.** Setting
+
+```java
+r.add("server.address", () -> "127.0.0.1");   // in the IT base class @DynamicPropertySource
+```
+
+removes the firewall from the path instead of asking it for permission. Same commit, alternating:
+7 runs wildcard-bound → 21/21 errors; 4 runs loopback-bound → 0 network errors. This is applied in
+`services/auth-service/.../integration/BaseIntegrationTest.java`; **every other service's IT base
+class still binds to the wildcard** and will hit this. Apply the same line when you meet it.
+
+Note this also explains why the earlier diagnosis appeared complete: a JDK downgrade changes which
+binary the firewall evaluates, so it can flip the outcome without the wildcard bind being addressed.
+
 **What it cost, so the next person doesn't repeat it.** This was misattributed twice: once as an HR
 integration-test defect and once as a gateway `PrematureCloseException` needing a code fix. Both
 were closed as "fixed" on a single green run that did not reproduce. When a failure is intermittent

@@ -99,6 +99,24 @@ public abstract class BaseIntegrationTest {
         r.add("spring.rabbitmq.username", RABBIT::getAdminUsername);
         r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
         r.add("eureka.client.enabled", () -> "false");
+        // Bind the test server to LOOPBACK ONLY. This is not tidiness — it is the fix for the
+        // `HTTP/1.1 header parser received no bytes` failures that DEV-STACK-RUNBOOK.md records,
+        // and it is a SECOND cause distinct from the JDK-version one already documented there.
+        //
+        // Spring Boot binds to the wildcard address by default, so the listener is reachable from
+        // the LAN. macOS's Application Firewall filters incoming connections to wildcard-bound
+        // sockets per binary, and when it decides against one it accepts the connection and closes
+        // it having written zero bytes — which is exactly the symptom: an EOFException from the
+        // client and complete silence in the server log, even with org.apache.coyote at DEBUG.
+        // Loopback traffic is not filtered at all, so binding here removes the firewall from the
+        // path rather than asking it for permission (the runbook is explicit that approving a JDK
+        // binary is not an acceptable fix).
+        //
+        // Measured on this machine, same commit, JDK 25, alternating: 7 consecutive runs of
+        // AuthLoginIT wildcard-bound → 21/21 errors; 4 runs loopback-bound → 0 network errors.
+        // CI is unaffected (Linux has no ALF), and an integration test has no business being
+        // reachable off-box in the first place.
+        r.add("server.address", () -> "127.0.0.1");
         r.add("restaurantos.auth.jwt.private-key-base64", TestFixtures::privateKeyBase64);
         r.add("restaurantos.auth.jwt.public-key-base64", TestFixtures::publicKeyBase64);
         r.add("restaurantos.auth.jwt.public-key-id", () -> "test-key-1");
