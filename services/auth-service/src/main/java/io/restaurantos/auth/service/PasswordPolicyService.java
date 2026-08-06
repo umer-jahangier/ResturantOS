@@ -283,6 +283,36 @@ public class PasswordPolicyService {
     }
 
     /**
+     * Retires every outstanding single-use token this account holds, of BOTH purposes.
+     *
+     * <p>Called when a password is set by somebody other than its owner — 13-13's administrative
+     * reset. An account being reset by an administrator is frequently an account somebody has lost
+     * control of, and a {@code RESET} token minted before that call would let whoever holds it
+     * choose a new password and, because reset-confirm clears {@code must_change_password} (13-09),
+     * walk straight past the forced-change gate the reset just raised. The takeover would survive
+     * the undoing.
+     *
+     * <p>Both purposes, unlike {@link #issueSingleUseToken}'s narrower retirement: that one is
+     * scoped by purpose so issuing a forced-change token does not cancel a reset the same person is
+     * halfway through in another tab. Here the point is the opposite — every outstanding proof
+     * about this credential predates a credential that no longer exists.
+     *
+     * <p>Must be called inside a transaction whose tenant GUC is already set;
+     * {@code password_reset_tokens} is {@code FORCE ROW LEVEL SECURITY} and a caller that forgets
+     * retires nothing and is told so by a zero it is not obliged to read.
+     *
+     * @return how many tokens were retired
+     */
+    public int invalidateOutstandingTokens(UUID userId) {
+        Instant now = Instant.now();
+        int retired = 0;
+        for (TokenPurpose purpose : TokenPurpose.values()) {
+            retired += passwordResetTokenRepository.invalidateOutstanding(userId, purpose.dbValue(), now);
+        }
+        return retired;
+    }
+
+    /**
      * When this account last had a token of this purpose issued, redeemed or not.
      *
      * <p>The read half of the per-account cooldown (13-09, D-21). Must run inside a transaction in
