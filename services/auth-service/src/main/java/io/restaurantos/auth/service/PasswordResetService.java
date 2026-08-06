@@ -9,12 +9,12 @@ import io.restaurantos.auth.service.PasswordPolicyService.IssuedToken;
 import io.restaurantos.auth.service.PasswordPolicyService.RedeemedToken;
 import io.restaurantos.auth.service.PasswordPolicyService.TokenPurpose;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.event.payload.PasswordResetRequestedPayload;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -38,8 +38,6 @@ import java.util.UUID;
  */
 @Service
 public class PasswordResetService {
-
-    private static final String EXCHANGE = "auth.topic";
 
     private final AuthTenantRepository authTenantRepository;
     private final UserRepository userRepository;
@@ -95,27 +93,53 @@ public class PasswordResetService {
         passwordPolicyService.appendCurrentPasswordToHistory(user);
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        // D-18. Without this a user who resets is STILL locked out, having already done the only
+        // thing the error told them to do — and the reset appears to have silently failed. The
+        // clearing is delegated to the shared routine 13-04 extracted rather than reimplemented
+        // here: "reset clears the lockout but change does not" (or the reverse) is exactly the
+        // two-paths-that-drift shape this phase's audit is about.
+        passwordPolicyService.clearLockout(user);
+        // Same reasoning applied to the forced-change flag (13-08, D-17). The flag exists to stop a
+        // temporary credential from becoming a permanent one; a password the user has just chosen
+        // themselves, on the strength of a token delivered to their own address, is not a temporary
+        // credential. Leaving it set would refuse the very next login with PASSWORD_CHANGE_REQUIRED
+        // and demand a SECOND change of a password chosen seconds earlier — which reads as a broken
+        // reset, and is the same divergence PasswordChangeService.changeOwnPassword already avoids
+        // by clearing it. The gate is not weakened: nothing here bypasses it for a password the
+        // user did not choose.
+        user.setMustChangePassword(false);
         userRepository.save(user);
 
         passwordPolicyService.revokeActiveRefreshSessions(user.getId());
     }
 
+    /**
+     * Mints a token and announces that one was minted — without announcing the token.
+     *
+     * <p><b>The defect this replaces (D-19, ROADMAP SC4).</b> The published payload used to be
+     * {@code {userId, email, token}} with {@code token} the RAW value, written into
+     * {@code event_outbox} beside auth-service's own SHA-256 of the same string. That made the
+     * hashing decorative: the credential was durable, replicated to every consumer of
+     * {@code auth.topic}, and present in every backup, so read access to any of those was account
+     * takeover for anyone who had ever requested a reset — without touching
+     * {@code password_reset_tokens} at all.
+     *
+     * <p>What goes out instead is the identity a delivery consumer needs to address a message, plus
+     * {@code tokenId} — the handle of the row holding the hash. A consumer that needs the token
+     * fetches it over an internal channel keyed on that handle; it is never pushed one. See
+     * {@code docs/known-gaps/notification-delivery.md} for what such a consumer must do, and why
+     * this milestone deliberately ships without one rather than with a stub that accepts a message
+     * and discards it.
+     */
     private void issueResetToken(UserEntity user, UUID tenantId) {
         IssuedToken issued =
             passwordPolicyService.issueSingleUseToken(tenantId, user.getId(), TokenPurpose.RESET);
 
-        // KNOWN DEFECT, NOT INTRODUCED HERE AND NOT THIS PLAN'S TO FIX: the raw token goes into the
-        // outbox payload in plaintext, alongside nothing that needs it (notification-service has no
-        // source files, so nothing consumes this event at all today). The audit flags it and
-        // 13-CONTEXT assigns the remedy — emit {userId, email} plus a short-lived handle, or have
-        // the consumer fetch over an internal channel — to the reset hardening in 13-09. Left
-        // exactly as it was rather than half-changed, so 13-09 finds the defect it was told about.
-        // The FORCED_CHANGE purpose deliberately emits no event carrying its token.
         eventPublisher.publish(
-            EXCHANGE,
-            "auth.user.password_reset_requested",
-            "PASSWORD_RESET_REQUESTED",
+            PasswordResetRequestedPayload.EXCHANGE,
+            PasswordResetRequestedPayload.ROUTING_KEY,
+            PasswordResetRequestedPayload.EVENT_TYPE,
             null,
-            Map.of("userId", user.getId(), "email", user.getEmail(), "token", issued.rawToken()));
+            new PasswordResetRequestedPayload(user.getId(), user.getEmail(), issued.tokenId()));
     }
 }

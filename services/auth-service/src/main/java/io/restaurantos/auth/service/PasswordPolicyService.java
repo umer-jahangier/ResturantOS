@@ -115,13 +115,23 @@ public class PasswordPolicyService {
         }
     }
 
-    /** The raw token — which the caller must hand out and must not store — and when it dies. */
-    public record IssuedToken(String rawToken, Instant expiresAt) {
+    /**
+     * The raw token — which the caller must hand out and must not store — when it dies, and the id
+     * of the row holding its hash.
+     *
+     * <p>{@code tokenId} exists so a caller can REFER to an issued token without carrying it.
+     * 13-09's reset event publishes the handle in place of the credential it used to publish: the
+     * handle is useless without database access to auth_db, which is already the trust level
+     * required to read the hash. Nothing may ever be derived from {@code rawToken} and put beside
+     * it.
+     */
+    public record IssuedToken(UUID tokenId, String rawToken, Instant expiresAt) {
         @Override
         public String toString() {
             // A record's generated toString prints every component, so one careless log.debug of an
             // IssuedToken would put a live credential in a log file. Overridden so it cannot.
-            return "IssuedToken[rawToken=<redacted>, expiresAt=" + expiresAt + "]";
+            return "IssuedToken[tokenId=" + tokenId + ", rawToken=<redacted>, expiresAt="
+                + expiresAt + "]";
         }
     }
 
@@ -268,7 +278,7 @@ public class PasswordPolicyService {
         entity.setExpiresAt(expiresAt);
         passwordResetTokenRepository.saveAndFlush(entity);
 
-        return new IssuedToken(rawToken, expiresAt);
+        return new IssuedToken(entity.getId(), rawToken, expiresAt);
     }
 
     /**

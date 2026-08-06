@@ -19,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -532,12 +531,20 @@ class ForcedPasswordChangeIT extends BaseIntegrationTest {
         return error.toString();
     }
 
-    private String latestResetToken() throws Exception {
-        OutboxEntry entry = outboxRepository.findTop200ByStatusOrderByCreatedAtAsc("PENDING").stream()
-            .filter(e -> "PASSWORD_RESET_REQUESTED".equals(e.getEventType()))
-            .max(Comparator.comparing(OutboxEntry::getCreatedAt))
-            .orElseThrow();
-        return objectMapper.readTree(entry.getEnvelopeJson()).path("payload").path("token").asText();
+    /**
+     * A RESET token for chef whose raw value this test knows.
+     *
+     * <p>This read {@code payload.token} out of the newest {@code PASSWORD_RESET_REQUESTED} outbox
+     * row until 13-09 removed the raw token from that payload (D-19). The failure mode when it was
+     * not updated is worth recording, because it was a FALSE GREEN waiting to happen: the missing
+     * field made {@code asText()} return the empty string, the empty string failed bean validation
+     * at the controller, and the cross-purpose assertion "a reset token is refused at the forced
+     * endpoint" went from 401 to 400 — still a refusal, still arguably "the token was rejected",
+     * and it would have kept passing had the assertion been on a status CLASS rather than a code.
+     * Minting through the production issuance path is what makes this test about purposes again.
+     */
+    private String latestResetToken() {
+        return mintResetToken(TestFixtures.demoTenantId(), TestFixtures.KITCHEN_STAFF_USER_ID);
     }
 
     private List<String> outboxEnvelopes() {

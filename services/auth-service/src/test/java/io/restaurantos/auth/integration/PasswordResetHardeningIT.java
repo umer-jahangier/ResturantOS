@@ -9,6 +9,7 @@ import io.restaurantos.auth.repository.PasswordResetTokenRepository;
 import io.restaurantos.auth.repository.RefreshSessionRepository;
 import io.restaurantos.auth.service.PasswordPolicyService;
 import io.restaurantos.shared.event.OutboxEntry;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,6 +61,7 @@ class PasswordResetHardeningIT extends BaseIntegrationTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
+    @AfterEach
     void restoreCashier() {
         setRls(TestFixtures.demoTenantId());
         UserEntity user = userRepository.findByEmail(TestFixtures.CASHIER_EMAIL).orElseThrow();
@@ -82,17 +84,13 @@ class PasswordResetHardeningIT extends BaseIntegrationTest {
         JsonNode payload = latestResetPayload();
         PasswordResetTokenEntity row = latestResetTokenRow();
 
-        // The shape is closed, not merely checked for the absence of one bad key name.
-        Set<String> keys = new java.util.HashSet<>();
-        payload.fieldNames().forEachRemaining(keys::add);
-        assertThat(keys).containsExactlyInAnyOrder("userId", "email", "tokenId");
-
-        assertThat(payload.path("userId").asText()).isEqualTo(TestFixtures.CASHIER_USER_ID.toString());
-        assertThat(payload.path("email").asText()).isEqualTo(TestFixtures.CASHIER_EMAIL);
-        assertThat(payload.path("tokenId").asText()).isEqualTo(row.getId().toString());
-
-        // THE decisive assertion. If any string anywhere in the payload were the raw token, its
-        // SHA-256 would equal the hash the same request persisted.
+        // THE decisive assertion, and it runs FIRST on purpose. If any string anywhere in the
+        // payload were the raw token, its SHA-256 would equal the hash the same request persisted —
+        // whatever key it happened to be filed under. Ordered ahead of the shape assertions below
+        // because those pin each field to an expected value, and after they have passed this loop
+        // can no longer fail: it would be a green that proves nothing about itself. Measured in
+        // this position against a payload republishing the raw token under the key `tokenId` — it
+        // fails, naming the offending value.
         for (String value : everyStringIn(payload)) {
             assertThat(PasswordPolicyService.hashToken(value))
                 .as("payload value '%s' hashes to the stored token hash — it IS the raw token", value)
@@ -103,6 +101,15 @@ class PasswordResetHardeningIT extends BaseIntegrationTest {
         // let a consumer redeem nothing, but it would let anyone with the event correlate and, with
         // read access to the table, confirm a guess offline.
         assertThat(payload.toString()).doesNotContain(row.getTokenHash());
+
+        // The shape is closed, not merely checked for the absence of one bad key name.
+        Set<String> keys = new java.util.HashSet<>();
+        payload.fieldNames().forEachRemaining(keys::add);
+        assertThat(keys).containsExactlyInAnyOrder("userId", "email", "tokenId");
+
+        assertThat(payload.path("userId").asText()).isEqualTo(TestFixtures.CASHIER_USER_ID.toString());
+        assertThat(payload.path("email").asText()).isEqualTo(TestFixtures.CASHIER_EMAIL);
+        assertThat(payload.path("tokenId").asText()).isEqualTo(row.getId().toString());
 
         // Nothing else auth-service emitted around this request may carry it either. The list is
         // asserted non-empty first: an empty loop would pass against a service that wrote no events
