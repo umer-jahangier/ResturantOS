@@ -38,6 +38,12 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
 
     private static final String INTERNAL_SECRET = "dev-internal-secret";
     private static final String TENANTS = "/internal/auth/tenants";
+    /**
+     * What a provisioned admin sets its temporary password to, in the tests that need to get past
+     * 13-08's forced-change gate. Satisfies the shared {@code @StrongPassword} policy: at least 8
+     * characters with all four character classes.
+     */
+    private static final String POST_CHANGE_PASSWORD = "Provisioned#1a";
 
     @Autowired JdbcTemplate jdbc;
     @Autowired PasswordEncoder passwordEncoder;
@@ -372,9 +378,17 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
     /**
      * Behaviour 2: the temp password is a working credential, not merely a returned string.
      *
-     * <p>Provisioned as CASHIER rather than OWNER on purpose, so the login completes with a token
-     * and the assertion is unambiguous. OWNER cannot reach 200 here and that is not this plan's
-     * defect — see {@link #provisionAdmin_asOwner_getsPastBranchResolutionAndIsAskedToEnrolTotp()}.
+     * <p><b>Updated by 13-08, and the update makes it stronger rather than weaker.</b> This
+     * provisioned admin carries {@code must_change_password}, which until 13-08 was written here
+     * and read nowhere. Now it governs login, so the first attempt is answered
+     * {@code 403 PASSWORD_CHANGE_REQUIRED} instead of a token — which is the plan's decision record
+     * arriving on this path: "every caller that provisions a user must expect its first login to be
+     * refused". The temp password is still what proves the credential works; it now has to prove it
+     * twice, once to earn the change token and once to spend it.
+     *
+     * <p>Provisioned as CASHIER rather than OWNER on purpose, so that after the change the login
+     * completes with a token and the assertion is unambiguous. OWNER meets a second gate — see
+     * {@link #provisionAdmin_asOwner_getsPastBranchResolutionAndIsAskedToEnrolTotp()}.
      */
     @Test
     void provisionAdmin_theReturnedTempPasswordActuallyAuthenticates() {
@@ -385,28 +399,49 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
             provisionBody(email, UUID.randomUUID(), "CASHIER", "Temp Login"), INTERNAL_SECRET);
         String tempPassword = field(created.getBody(), "tempPassword");
 
-        ResponseEntity<String> login = login(email, tempPassword, tenant.slug());
+        ResponseEntity<String> firstLogin = login(email, tempPassword, tenant.slug());
 
-        assertThat(login.getStatusCode().value())
+        assertThat(firstLogin.getStatusCode().value())
+            .as("the temp password is accepted, and the account is told to change it (13-08, D-17)")
+            .isEqualTo(403);
+        assertThat(firstLogin.getBody())
+            .contains("PASSWORD_CHANGE_REQUIRED")
+            .doesNotContain("accessToken");
+
+        assertThat(forcedChange(changeToken(firstLogin.getBody()), tempPassword, POST_CHANGE_PASSWORD)
+            .getStatusCode().value()).isEqualTo(200);
+
+        ResponseEntity<String> secondLogin = login(email, POST_CHANGE_PASSWORD, tenant.slug());
+        assertThat(secondLogin.getStatusCode().value())
             .as("a provisioned admin who cannot log in is the entire content of blocker B2")
             .isEqualTo(200);
-        assertThat(login.getBody()).contains("accessToken");
+        assertThat(secondLogin.getBody()).contains("accessToken");
     }
 
     /**
-     * The OWNER case, asserted for what it actually does rather than for what would be convenient.
+     * The OWNER case — the account that needs BOTH gates, asserted in the order it meets them.
      *
-     * <p>A provisioned OWNER is met with {@code 401 TOTP_ENROLLMENT_REQUIRED}, because OWNER holds
-     * {@code rbac.manage} and {@code AuthServiceImpl.requiresTotpStepUp} fires on it while the fresh
-     * account has no enrolled secret. That is D-29a arriving on this path — the ruling that a
-     * tenant admin SHOULD carry a second factor and that enrolment becomes part of admin creation —
-     * so it is the correct behaviour, not a regression, and this plan does not suppress it.
+     * <p>A freshly provisioned OWNER carries two independent obligations, and after 13-08 it
+     * satisfies them one at a time:
      *
-     * <p>What matters for blocker B2 is that the refusal is the ENROLMENT one and not
-     * {@code "has no active branch assignments"}. That distinction is load-bearing rather than
-     * cosmetic: {@code enforceTotpStepUp} runs AFTER {@code permissionResolver.resolveDefault}, so
-     * reaching TOTP_ENROLLMENT_REQUIRED is itself proof that the branch assignment this plan adds
-     * resolved successfully. Before this plan the same request died earlier, at resolution.
+     * <ol>
+     *   <li><b>{@code 403 PASSWORD_CHANGE_REQUIRED}</b> first, because the account holds a
+     *       temporary password (D-17). The forced-change branch sits before permission resolution,
+     *       so it is reached whatever the role.</li>
+     *   <li><b>{@code 401 TOTP_ENROLLMENT_REQUIRED}</b> on the very next login, because OWNER holds
+     *       {@code rbac.manage} and {@code requiresTotpStepUp} fires on it while the fresh account
+     *       has no enrolled secret. That is D-29a, and neither plan suppresses it.</li>
+     * </ol>
+     *
+     * <p><b>That order is the right one</b>, not merely the one that fell out. Enrolling a second
+     * factor while the first is still a temporary password known to whoever provisioned the account
+     * would bind the factor under a credential the user does not exclusively control.
+     *
+     * <p>What matters for blocker B2 is unchanged and still asserted: neither refusal is
+     * {@code "has no active branch assignments"} or a credential failure. Reaching
+     * TOTP_ENROLLMENT_REQUIRED at all is proof that the branch assignment resolved, because
+     * {@code enforceTotpStepUp} runs AFTER {@code permissionResolver.resolveDefault}. Before 13-06
+     * this request died earlier, at resolution.
      */
     @Test
     void provisionAdmin_asOwner_getsPastBranchResolutionAndIsAskedToEnrolTotp() {
@@ -415,18 +450,26 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
 
         ResponseEntity<String> created = post(provisionPath(tenant.id()),
             provisionBody(email, UUID.randomUUID(), "OWNER", "Owner Login"), INTERNAL_SECRET);
+        String tempPassword = field(created.getBody(), "tempPassword");
 
-        ResponseEntity<String> login =
-            login(email, field(created.getBody(), "tempPassword"), tenant.slug());
+        ResponseEntity<String> firstLogin = login(email, tempPassword, tenant.slug());
+        assertThat(firstLogin.getStatusCode().value())
+            .as("gate one: the temporary credential must be replaced before anything else (D-17)")
+            .isEqualTo(403);
+        assertThat(firstLogin.getBody()).contains("PASSWORD_CHANGE_REQUIRED");
 
-        assertThat(login.getBody())
-            .as("the credential and the branch assignment both resolved; only the second factor is "
-                + "missing (D-29a)")
+        assertThat(forcedChange(changeToken(firstLogin.getBody()), tempPassword, POST_CHANGE_PASSWORD)
+            .getStatusCode().value()).isEqualTo(200);
+
+        ResponseEntity<String> secondLogin = login(email, POST_CHANGE_PASSWORD, tenant.slug());
+        assertThat(secondLogin.getBody())
+            .as("gate two: the credential and the branch assignment both resolved; only the second "
+                + "factor is missing (D-29a)")
             .contains("TOTP_ENROLLMENT_REQUIRED");
-        assertThat(login.getBody())
+        assertThat(secondLogin.getBody())
             .as("this is the failure blocker B2 is about, and it must be gone")
             .doesNotContain("no active branch assignments");
-        assertThat(login.getBody())
+        assertThat(secondLogin.getBody())
             .as("nor is it a credential failure")
             .doesNotContain("Invalid credentials");
     }
@@ -574,9 +617,13 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
 
         assertThat(jdbc.queryForMap("SELECT * FROM users WHERE id = ?", userId).get("email"))
             .isEqualTo(mixedCase.toLowerCase());
+        // 403 PASSWORD_CHANGE_REQUIRED, not 200, since 13-08 — and it proves the same thing more
+        // sharply than the 200 did. That branch is only reached after the address resolved to a row
+        // AND the password matched; an address that resolves to nothing yields the generic 401.
         assertThat(login(mixedCase, field(created.getBody(), "tempPassword"), tenant.slug())
-            .getStatusCode().value())
-            .isEqualTo(200);
+            .getBody())
+            .as("the mixed-case address found the account and the password matched")
+            .contains("PASSWORD_CHANGE_REQUIRED");
 
         ResponseEntity<String> duplicate = post(provisionPath(tenant.id()),
             provisionBody(mixedCase.toUpperCase(), UUID.randomUUID(), "CASHIER", "Shouty"),
@@ -687,6 +734,36 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
         body.put("roleCode", roleCode);
         body.put("fullName", fullName);
         return body;
+    }
+
+    /**
+     * Pull the single-use change token out of a {@code 403 PASSWORD_CHANGE_REQUIRED} refusal.
+     *
+     * <p>It travels in the standard error envelope's {@code details} array as
+     * {@code {"field":"changeToken","issue":"<token>"}}, so the whole pair is matched rather than
+     * the first {@code "issue"} in the document — the array also carries {@code expiresAt}, and a
+     * looser match would silently start returning the wrong one if the order ever changed.
+     */
+    private static String changeToken(String json) {
+        String marker = "\"field\":\"changeToken\",\"issue\":\"";
+        int start = json.indexOf(marker);
+        assertThat(start).as("a changeToken detail in %s", json).isNotNegative();
+        start += marker.length();
+        return json.substring(start, json.indexOf('"', start));
+    }
+
+    /**
+     * Drive {@code POST /api/v1/auth/change-password/forced}. Public at both layers, so no token
+     * and no internal secret — the change token plus the current password are the whole of the
+     * authorization.
+     */
+    private ResponseEntity<String> forcedChange(String changeToken, String currentPassword,
+                                                String newPassword) {
+        return post("/api/v1/auth/change-password/forced",
+            Map.of("changeToken", changeToken,
+                "currentPassword", currentPassword,
+                "newPassword", newPassword),
+            null);
     }
 
     /** Pull a top-level string out of the ApiResponse envelope's data object. */
