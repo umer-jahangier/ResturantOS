@@ -35,6 +35,10 @@ public class RouteFeatureMap {
         PREFIX_TO_FEATURE.put("/api/v1/finance/",    "FEATURE_FINANCE");
         PREFIX_TO_FEATURE.put("/api/v1/purchasing/", "FEATURE_VENDOR");
         PREFIX_TO_FEATURE.put("/api/v1/hr/",         "FEATURE_HR");
+        // Device-authenticated attendance ingest (no user JWT) — still gated on the tenant's HR
+        // module so pushes to an HR-disabled tenant are rejected at the edge.
+        PREFIX_TO_FEATURE.put("/iclock/",            "FEATURE_HR");
+        PREFIX_TO_FEATURE.put("/internal/attendance/", "FEATURE_HR");
         PREFIX_TO_FEATURE.put("/api/v1/crm/",        "FEATURE_CRM");
         PREFIX_TO_FEATURE.put("/api/v1/nlq/",        "FEATURE_NLQ");
         PREFIX_TO_FEATURE.put("/api/v1/payroll/",    "FEATURE_PAYROLL");

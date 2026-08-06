@@ -550,14 +550,22 @@ Gap-closure plans, round 2 (2026-07-14) — every plan ends in a real-browser jo
   5. Labour cost as a % of revenue is reported by shift and by branch.
   6. A registered biometric device — a network terminal pushing ADMS/iClock over HTTPS or a USB reader via the local bridge agent — ingests a punch through the device-authenticated path (no user JWT; tenant/branch resolved from `attendance_devices`); the punch is idempotent on replay, survives device offline buffering, stores device + server timestamps, quarantines unmapped users, persists to `attendance_punches`, publishes `ATTENDANCE_PUNCHED`, and feeds attendance/payroll. Matching is at the edge; no raw biometrics are stored centrally.
 
-**Plans**: 4 plans
+**Plans**: 12 plans (5 waves)
 
 Plans:
 
-- [ ] 11-01: Employees with field-encrypted `cnic`/`bank_account_no`
-- [ ] 11-02: Payroll run (tax slabs + EOBI from `tax_config`), approval/payment, `PAYROLL_RUN_PAID` + JE
-- [ ] 11-03: Shift scheduling (drag-drop), time & attendance (clock-in/out), leave/absence workflow, labour-cost % vs revenue
-- [ ] 11-04: Biometric attendance — device registry, ADMS/iClock push adapter (Mode A) + USB bridge-agent ingest contract (Mode B), device-authenticated ingest, idempotent/offline-safe punches, quarantine, `ATTENDANCE_PUNCHED` (HR-07/08)
+- [x] 11-01-PLAN.md — hr-service scaffold: module + FORCE-RLS hr_db schema + shared-infra tables + Testcontainers IT base (wave 1)
+- [x] 11-02-PLAN.md — Infra registration: gateway hr-route/circuit-breaker + dev/restart PowerShell scripts (wave 1)
+- [x] 11-03-PLAN.md — auth-service HR permission seed (9 `hr.*` perms + role grants) (wave 1)
+- [x] 11-04-PLAN.md — Employees with field-encrypted `cnic`/`bank_account_no` + `EMPLOYEE_JOINED/LEFT` + OPA `hr.rego` (HR-01) (wave 2)
+- [x] 11-05-PLAN.md — [TDD] `tax_config` + `SlabTaxCalculator` + `EobiCalculator` + FY2025-26 seed (HR-02 math) (wave 2)
+- [x] 11-10-PLAN.md — Device registry + gateway JWT-exempt device-auth path class + `DeviceAuthResolver` (HR-07) (wave 2)
+- [x] 11-06-PLAN.md — Payroll run lifecycle + compute + Idempotency-Key + TOTP approval + `PAYROLL_RUN_APPROVED/PAID` (HR-02/03) (wave 3)
+- [x] 11-07-PLAN.md — Shift scheduling backend + time & attendance (clock-in/out) + leave workflow (HR-04 backend/HR-05) (wave 3)
+- [x] 11-08-PLAN.md — finance-service payroll auto-post recipe + consumers + payroll-paid queue (HR-03) (wave 4)
+- [x] 11-09-PLAN.md — Late-arrival deduction feed + labour-cost % by shift/branch (HR-05/HR-06) (wave 4)
+- [x] 11-11-PLAN.md — ADMS/iClock adapter (Mode A) + USB bridge ingest (Mode B) + idempotent punches + quarantine + `ATTENDANCE_PUNCHED` (HR-07/08) (wave 4)
+- [x] 11-12-PLAN.md — HR frontend: employee/payroll/attendance pages + drag-drop shift calendar via four-layer API (HR-04 UI) (wave 5)
 
 ### Phase 12: Reporting, Dashboards & NLQ
 
@@ -699,7 +707,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 8. Inventory & Recipe Management | 9/9 | Complete    | 2026-07-18 |
 | 9. Order-to-Ledger Auto-Posting & Customer Loyalty | 2/2 | Complete (integration-repaired 2026-08-02) | 2026-08-02 |
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
-| 11. HR & Payroll | 0/4 | Not started | - |
+| 11. HR & Payroll | 12/12 executed | **Executed — runtime verification pending** (all ITs + `opa test` deferred to a Docker CI pass; 11-12 blocking UAT outstanding) | 2026-08-06 |
 | 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |
 | 13. Platform & Tenant Access Repair *(INSERTED, BLOCKER)* | 0/TBD | Planning | - |
 | 14. Frontend Trust & Admin Surfaces *(INSERTED)* | 0/TBD | Not started | - |

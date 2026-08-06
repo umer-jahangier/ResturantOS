@@ -87,6 +87,11 @@ $env:POS_DB_URL = "jdbc:postgresql://127.0.0.1:5432/pos_db"
 $env:POS_DB_USER = "pos_user"
 $env:POS_DB_PASSWORD = $env:POS_DB_PASSWORD
 
+# hr-service (Liquibase + runtime as hr_user)
+$env:HR_DB_URL = "jdbc:postgresql://127.0.0.1:5432/hr_db"
+$env:HR_DB_USER = "hr_user"
+$env:HR_DB_PASSWORD = $env:HR_DB_PASSWORD
+
 # ClickHouse analytics store (host-run: the docker 'clickhouse' hostname becomes localhost).
 # Shared by reporting-service (default user, read path) and nlq-service (locked-down readonly user).
 # Mirrors the block in local-service-env.sh — that file got the Phase 12 additions and this one did

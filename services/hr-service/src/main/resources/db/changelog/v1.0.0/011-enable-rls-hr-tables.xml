@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="hr-1.0.0-011-enable-rls" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE employees FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON employees
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE tax_config ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE tax_config FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON tax_config
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE payroll_runs ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE payroll_runs FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON payroll_runs
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE payslips ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE payslips FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON payslips
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE shifts FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON shifts
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE shift_assignments ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE shift_assignments FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON shift_assignments
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE leave_types ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE leave_types FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON leave_types
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE leave_requests FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON leave_requests
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE leave_balances ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE leave_balances FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON leave_balances
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE attendance_policies ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE attendance_policies FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON attendance_policies
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE attendance_devices ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE attendance_devices FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON attendance_devices
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE attendance_punches ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE attendance_punches FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON attendance_punches
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE attendance_quarantine ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE attendance_quarantine FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON attendance_quarantine
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE biometric_templates ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE biometric_templates FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON biometric_templates
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

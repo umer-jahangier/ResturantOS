@@ -37,4 +37,18 @@ public class RateLimitConfig {
             return Mono.just(ip);
         };
     }
+
+    /**
+     * Per-device rate limiter for the biometric ingest path, keyed on the {@code SN} (serial
+     * number) query parameter the ADMS/iClock protocol carries on every call. Referenced by
+     * {@code #{@deviceKeyResolver}} on the /iclock and /internal/attendance routes. A single
+     * misbehaving device cannot exhaust the shared per-IP budget for a whole branch's traffic.
+     */
+    @Bean
+    public KeyResolver deviceKeyResolver() {
+        return exchange -> {
+            String sn = exchange.getRequest().getQueryParams().getFirst("SN");
+            return Mono.just(sn != null && !sn.isBlank() ? sn : "unknown");
+        };
+    }
 }
