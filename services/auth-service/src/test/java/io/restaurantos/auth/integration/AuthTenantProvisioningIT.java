@@ -1,12 +1,14 @@
 package io.restaurantos.auth.integration;
 
 import io.restaurantos.auth.config.InternalServiceFilter;
+import io.restaurantos.auth.service.BranchRoleAdminService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
@@ -15,6 +17,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 
 /**
  * The auth-service half of blocker B2: the {@code auth_tenants} row that login resolves by slug,
@@ -37,6 +41,9 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
 
     @Autowired JdbcTemplate jdbc;
     @Autowired PasswordEncoder passwordEncoder;
+
+    /** Real in every test but the rollback one; Spring resets the stubbing between methods. */
+    @MockitoSpyBean BranchRoleAdminService branchRoleAdminService;
 
     // ── Behaviour 5: the internal secret is the whole of the authorization ────────────────────
 
@@ -295,6 +302,337 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
         assertThat(response.getStatusCode().value()).isEqualTo(404);
     }
 
+    // ══ Task 2: provisioning an admin who can actually log in (D-05, D-12, D-13) ═════════════
+
+    /**
+     * Behaviour 1 + 2, and the whole point of blocker B2: before this plan, {@code provisionAdmin}
+     * created the user row and stopped. A user with no active branch assignment cannot log in at
+     * all — {@code PermissionResolver.selectDefaultBranch} throws "has no active branch
+     * assignments" before a token is ever minted — so the tenant admin the platform API reported
+     * creating was, in every case, an account nobody could ever use.
+     */
+    @Test
+    void provisionAdmin_createsTheUserAndItsOwnerAssignmentTogether() {
+        Tenant tenant = registeredTenant("provision");
+        UUID branchId = UUID.randomUUID();
+
+        ResponseEntity<String> response = post(provisionPath(tenant.id()),
+            provisionBody("owner@" + tenant.slug() + ".local", branchId, "OWNER", "Ada Owner"),
+            INTERNAL_SECRET);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        UUID userId = UUID.fromString(field(response.getBody(), "userId"));
+
+        Map<String, Object> user = jdbc.queryForMap("SELECT * FROM users WHERE id = ?", userId);
+        assertThat(user.get("email")).isEqualTo("owner@" + tenant.slug() + ".local");
+        assertThat(user.get("full_name")).isEqualTo("Ada Owner");
+        assertThat(user.get("must_change_password"))
+            .as("a temporary credential must be changed on first use")
+            .isEqualTo(true);
+        assertThat(user.get("is_active")).isEqualTo(true);
+
+        Map<String, Object> assignment = jdbc.queryForMap(
+            "SELECT * FROM user_branch_roles WHERE user_id = ? AND is_active", userId);
+        assertThat(assignment.get("role_code")).isEqualTo("OWNER");
+        assertThat(assignment.get("branch_id")).isEqualTo(branchId);
+        assertThat(assignment.get("tenant_id")).isEqualTo(tenant.id());
+        // Primary is what makes default-branch selection deterministic after 13-02 replaced the
+        // hardcoded HQ uuid. Without it the admin's landing branch is whichever id sorts lowest.
+        assertThat(assignment.get("is_primary")).isEqualTo(true);
+
+        assertThat(field(response.getBody(), "tempPassword"))
+            .as("returned exactly once, in the response")
+            .isNotBlank();
+    }
+
+    /**
+     * The acceptance criterion that matters: not "a row exists" but "the thing that reads the row
+     * at login succeeds and yields OWNER's authority". A row can be present and still resolve to
+     * nothing.
+     */
+    @Test
+    void provisionAdmin_theNewAdminResolvesTheOwnerPermissionSet() {
+        Tenant tenant = registeredTenant("resolve");
+        UUID branchId = UUID.randomUUID();
+
+        ResponseEntity<String> created = post(provisionPath(tenant.id()),
+            provisionBody("resolve@" + tenant.slug() + ".local", branchId, "OWNER", "Res Olve"),
+            INTERNAL_SECRET);
+        UUID userId = UUID.fromString(field(created.getBody(), "userId"));
+
+        ResponseEntity<String> permissions = get(
+            "/internal/auth/users/" + userId + "/permissions", tenant.id());
+
+        assertThat(permissions.getStatusCode().value()).isEqualTo(200);
+        assertThat(permissions.getBody()).contains("OWNER");
+        assertThat(permissions.getBody()).contains("rbac.manage");
+        assertThat(permissions.getBody()).contains("\"branchId\":\"" + branchId + "\"");
+    }
+
+    /**
+     * Behaviour 2: the temp password is a working credential, not merely a returned string.
+     *
+     * <p>Provisioned as CASHIER rather than OWNER on purpose, so the login completes with a token
+     * and the assertion is unambiguous. OWNER cannot reach 200 here and that is not this plan's
+     * defect — see {@link #provisionAdmin_asOwner_getsPastBranchResolutionAndIsAskedToEnrolTotp()}.
+     */
+    @Test
+    void provisionAdmin_theReturnedTempPasswordActuallyAuthenticates() {
+        Tenant tenant = registeredTenant("templogin");
+        String email = "templogin@" + tenant.slug() + ".local";
+
+        ResponseEntity<String> created = post(provisionPath(tenant.id()),
+            provisionBody(email, UUID.randomUUID(), "CASHIER", "Temp Login"), INTERNAL_SECRET);
+        String tempPassword = field(created.getBody(), "tempPassword");
+
+        ResponseEntity<String> login = login(email, tempPassword, tenant.slug());
+
+        assertThat(login.getStatusCode().value())
+            .as("a provisioned admin who cannot log in is the entire content of blocker B2")
+            .isEqualTo(200);
+        assertThat(login.getBody()).contains("accessToken");
+    }
+
+    /**
+     * The OWNER case, asserted for what it actually does rather than for what would be convenient.
+     *
+     * <p>A provisioned OWNER is met with {@code 401 TOTP_ENROLLMENT_REQUIRED}, because OWNER holds
+     * {@code rbac.manage} and {@code AuthServiceImpl.requiresTotpStepUp} fires on it while the fresh
+     * account has no enrolled secret. That is D-29a arriving on this path — the ruling that a
+     * tenant admin SHOULD carry a second factor and that enrolment becomes part of admin creation —
+     * so it is the correct behaviour, not a regression, and this plan does not suppress it.
+     *
+     * <p>What matters for blocker B2 is that the refusal is the ENROLMENT one and not
+     * {@code "has no active branch assignments"}. That distinction is load-bearing rather than
+     * cosmetic: {@code enforceTotpStepUp} runs AFTER {@code permissionResolver.resolveDefault}, so
+     * reaching TOTP_ENROLLMENT_REQUIRED is itself proof that the branch assignment this plan adds
+     * resolved successfully. Before this plan the same request died earlier, at resolution.
+     */
+    @Test
+    void provisionAdmin_asOwner_getsPastBranchResolutionAndIsAskedToEnrolTotp() {
+        Tenant tenant = registeredTenant("ownerlogin");
+        String email = "ownerlogin@" + tenant.slug() + ".local";
+
+        ResponseEntity<String> created = post(provisionPath(tenant.id()),
+            provisionBody(email, UUID.randomUUID(), "OWNER", "Owner Login"), INTERNAL_SECRET);
+
+        ResponseEntity<String> login =
+            login(email, field(created.getBody(), "tempPassword"), tenant.slug());
+
+        assertThat(login.getBody())
+            .as("the credential and the branch assignment both resolved; only the second factor is "
+                + "missing (D-29a)")
+            .contains("TOTP_ENROLLMENT_REQUIRED");
+        assertThat(login.getBody())
+            .as("this is the failure blocker B2 is about, and it must be gone")
+            .doesNotContain("no active branch assignments");
+        assertThat(login.getBody())
+            .as("nor is it a credential failure")
+            .doesNotContain("Invalid credentials");
+    }
+
+    // ── Behaviour 3: D-13, an unvalidated role code is a permissionless login ─────────────────
+
+    /**
+     * Today an arbitrary string persists. The user then logs in successfully and holds NO
+     * permissions at all, because {@code role_permissions} has no rows for a code that is not in
+     * the catalog — which presents to the user as a working login into an empty product, and to an
+     * administrator as a role that was assigned. That is why this is validated rather than trusted.
+     */
+    @Test
+    void provisionAdmin_withAnUnknownRoleCode_returns400AndWritesNothing() {
+        Tenant tenant = registeredTenant("badrole");
+        String email = "badrole@" + tenant.slug() + ".local";
+
+        ResponseEntity<String> response = post(provisionPath(tenant.id()),
+            provisionBody(email, UUID.randomUUID(), "OWNERR", "Typo Squatter"), INTERNAL_SECRET);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).contains("UNKNOWN_ROLE_CODE");
+        assertThat(response.getBody())
+            .as("naming the rejected code is what makes this actionable")
+            .contains("OWNERR");
+        assertThat(count("SELECT count(*) FROM users WHERE email = ?", email))
+            .as("rejected before anything was written")
+            .isZero();
+    }
+
+    /** The same validation must hold on the other door — the internal branch-role assign path. */
+    @Test
+    void assignBranchRole_withAnUnknownRoleCode_returns400AndWritesNothing() {
+        Tenant tenant = registeredTenant("assignbadrole");
+        UUID branchId = UUID.randomUUID();
+        ResponseEntity<String> created = post(provisionPath(tenant.id()),
+            provisionBody("assign@" + tenant.slug() + ".local", branchId, "OWNER", "As Sign"),
+            INTERNAL_SECRET);
+        UUID userId = UUID.fromString(field(created.getBody(), "userId"));
+
+        ResponseEntity<String> response = post(
+            "/internal/auth/users/" + userId + "/branch-roles",
+            Map.of("branchId", UUID.randomUUID().toString(), "roleCode", "SUPERVISOR"),
+            INTERNAL_SECRET, tenant.id());
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).contains("UNKNOWN_ROLE_CODE");
+        assertThat(response.getBody()).contains("SUPERVISOR");
+        assertThat(count("SELECT count(*) FROM user_branch_roles WHERE role_code = ?", "SUPERVISOR"))
+            .isZero();
+        assertThat(count("SELECT count(*) FROM user_branch_roles WHERE user_id = ?", userId))
+            .as("and must not have displaced the assignment the user already held")
+            .isEqualTo(1);
+    }
+
+    /**
+     * A known code is accepted, which is what stops the test above from passing against a
+     * validator that rejects everything.
+     */
+    @Test
+    void assignBranchRole_withAKnownRoleCode_stillSucceeds() {
+        Tenant tenant = registeredTenant("assigngoodrole");
+        ResponseEntity<String> created = post(provisionPath(tenant.id()),
+            provisionBody("good@" + tenant.slug() + ".local", UUID.randomUUID(), "OWNER", "Good Role"),
+            INTERNAL_SECRET);
+        UUID userId = UUID.fromString(field(created.getBody(), "userId"));
+
+        ResponseEntity<String> response = post(
+            "/internal/auth/users/" + userId + "/branch-roles",
+            Map.of("branchId", UUID.randomUUID().toString(), "roleCode", "MANAGER"),
+            INTERNAL_SECRET, tenant.id());
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(count("SELECT count(*) FROM user_branch_roles WHERE user_id = ? AND role_code = 'MANAGER'",
+            userId)).isEqualTo(1);
+    }
+
+    // ── Behaviour 4: no admin may be created without an assignment ────────────────────────────
+
+    @Test
+    void provisionAdmin_withoutABranchId_isRejectedRatherThanCreatingAStrandedUser() {
+        Tenant tenant = registeredTenant("nobranch");
+        String email = "nobranch@" + tenant.slug() + ".local";
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("email", email);
+        body.put("roleCode", "OWNER");
+
+        ResponseEntity<String> response = post(provisionPath(tenant.id()), body, INTERNAL_SECRET);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(count("SELECT count(*) FROM users WHERE email = ?", email))
+            .as("a user with no assignment cannot log in, so a partial success is worse than a "
+                + "clean failure")
+            .isZero();
+    }
+
+    @Test
+    void provisionAdmin_withoutARoleCode_isRejected() {
+        Tenant tenant = registeredTenant("norole");
+        String email = "norole@" + tenant.slug() + ".local";
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("email", email);
+        body.put("branchId", UUID.randomUUID().toString());
+
+        ResponseEntity<String> response = post(provisionPath(tenant.id()), body, INTERNAL_SECRET);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(count("SELECT count(*) FROM users WHERE email = ?", email)).isZero();
+    }
+
+    // ── Behaviour 6: no duplicate admin for a tenant ──────────────────────────────────────────
+
+    @Test
+    void provisionAdmin_forAnEmailAlreadyInTheTenant_isRejected() {
+        Tenant tenant = registeredTenant("duplicate");
+        String email = "dupe@" + tenant.slug() + ".local";
+        post(provisionPath(tenant.id()), provisionBody(email, UUID.randomUUID(), "OWNER", "First"),
+            INTERNAL_SECRET);
+
+        ResponseEntity<String> second = post(provisionPath(tenant.id()),
+            provisionBody(email, UUID.randomUUID(), "OWNER", "Second"), INTERNAL_SECRET);
+
+        assertThat(second.getStatusCode().value()).isEqualTo(409);
+        assertThat(second.getBody()).contains("STATE_INVALID");
+        assertThat(count("SELECT count(*) FROM users WHERE email = ?", email))
+            .as("rejected before a second temp password was even generated")
+            .isEqualTo(1);
+    }
+
+    /**
+     * Casing is not a second identity. Login lower-cases the address before looking it up, so an
+     * admin provisioned as {@code Owner@x} was previously stored verbatim and could never be found
+     * at login — a provisioned account that silently does not work, which is this blocker's exact
+     * shape.
+     */
+    @Test
+    void provisionAdmin_normalisesTheEmailSoTheAdminCanBeFoundAtLogin() {
+        Tenant tenant = registeredTenant("casing");
+        String mixedCase = "MixedCase@" + tenant.slug() + ".local";
+
+        // CASHIER, so the login below completes rather than stopping at TOTP enrolment.
+        ResponseEntity<String> created = post(provisionPath(tenant.id()),
+            provisionBody(mixedCase, UUID.randomUUID(), "CASHIER", "Mixed Case"), INTERNAL_SECRET);
+        UUID userId = UUID.fromString(field(created.getBody(), "userId"));
+
+        assertThat(jdbc.queryForMap("SELECT * FROM users WHERE id = ?", userId).get("email"))
+            .isEqualTo(mixedCase.toLowerCase());
+        assertThat(login(mixedCase, field(created.getBody(), "tempPassword"), tenant.slug())
+            .getStatusCode().value())
+            .isEqualTo(200);
+
+        ResponseEntity<String> duplicate = post(provisionPath(tenant.id()),
+            provisionBody(mixedCase.toUpperCase(), UUID.randomUUID(), "CASHIER", "Shouty"),
+            INTERNAL_SECRET);
+        assertThat(duplicate.getStatusCode().value())
+            .as("and the duplicate check must see through casing too")
+            .isEqualTo(409);
+    }
+
+    // ── Behaviour 5: the two writes share one transaction ─────────────────────────────────────
+
+    /**
+     * The rollback assertion the plan asks for, and it is not decorative. {@code provisionAdmin}
+     * saves the user and then calls {@code BranchRoleAdminService.assign}; both must live or both
+     * must die. Two ways to get this wrong are entirely plausible and neither is visible by reading
+     * the happy path: {@code assign} could be reached with {@code REQUIRES_NEW} propagation, or
+     * {@code provisionAdmin} could catch the failure and return the user anyway "so provisioning
+     * makes progress". Either would leave a user with no assignment — an account that authenticates
+     * against nothing and cannot log in, which is precisely the state blocker B2 describes.
+     *
+     * <p>Forcing the second write to fail needs a stub: there is no input that passes role
+     * validation and then fails at the database, which is itself a good property. The spy delegates
+     * to the real bean in every other test in this class, and Spring resets it between methods.
+     */
+    @Test
+    void provisionAdmin_whenTheBranchRoleWriteFails_theUserDoesNotSurvive() {
+        Tenant tenant = registeredTenant("rollback");
+        String email = "rollback@" + tenant.slug() + ".local";
+        doThrow(new IllegalStateException("branch-role write failed"))
+            .when(branchRoleAdminService).assign(any(), any(), any());
+
+        ResponseEntity<String> response = post(provisionPath(tenant.id()),
+            provisionBody(email, UUID.randomUUID(), "OWNER", "Roll Back"), INTERNAL_SECRET);
+
+        assertThat(response.getStatusCode().value())
+            .as("the failure must surface, not be absorbed")
+            .isEqualTo(500);
+        assertThat(count("SELECT count(*) FROM users WHERE email = ?", email))
+            .as("the user row must not have survived its assignment failing")
+            .isZero();
+        assertThat(count("SELECT count(*) FROM user_branch_roles WHERE tenant_id = ?", tenant.id()))
+            .isZero();
+    }
+
+    // ── The gate, on the extended operation ──────────────────────────────────────────────────
+
+    @Test
+    void provisionAdmin_withoutInternalSecret_returns403() {
+        ResponseEntity<String> response = post(provisionPath(UUID.randomUUID()),
+            provisionBody("nobody@nowhere.local", UUID.randomUUID(), "OWNER", "No Body"), null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("INTERNAL_AUTH_REQUIRED");
+        assertThat(response.getBody()).doesNotContain("tempPassword");
+    }
+
     // ── The premise the whole service rests on ───────────────────────────────────────────────
 
     /**
@@ -321,6 +659,43 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
     /** Unique per test method AND per run, so no assertion depends on another test's leftovers. */
     private static String slug(String label) {
         return "t13-06-" + label + "-" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private record Tenant(UUID id, String slug) {}
+
+    /** A registered auth tenant, created the way the saga will: through the real endpoint. */
+    private Tenant registeredTenant(String label) {
+        UUID tenantId = UUID.randomUUID();
+        String slug = slug(label);
+        ResponseEntity<String> response =
+            post(TENANTS, registerBody(tenantId, slug, "Tenant " + label), INTERNAL_SECRET);
+        assertThat(response.getStatusCode().value())
+            .as("test setup: registering tenant %s", slug)
+            .isEqualTo(200);
+        return new Tenant(tenantId, slug);
+    }
+
+    private static String provisionPath(UUID tenantId) {
+        return TENANTS + "/" + tenantId + "/provision-admin";
+    }
+
+    private static Map<String, Object> provisionBody(String email, UUID branchId, String roleCode,
+                                                     String fullName) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("email", email);
+        body.put("branchId", branchId.toString());
+        body.put("roleCode", roleCode);
+        body.put("fullName", fullName);
+        return body;
+    }
+
+    /** Pull a top-level string out of the ApiResponse envelope's data object. */
+    private static String field(String json, String name) {
+        String marker = "\"" + name + "\":\"";
+        int start = json.indexOf(marker);
+        assertThat(start).as("field '%s' present in %s", name, json).isNotNegative();
+        start += marker.length();
+        return json.substring(start, json.indexOf('"', start));
     }
 
     private static Map<String, Object> registerBody(UUID tenantId, String slug, String name) {
@@ -363,11 +738,26 @@ class AuthTenantProvisioningIT extends BaseIntegrationTest {
     }
 
     private ResponseEntity<String> post(String uri, Object body, String secret) {
+        return post(uri, body, secret, null);
+    }
+
+    private ResponseEntity<String> post(String uri, Object body, String secret, UUID tenantId) {
         RestClient.RequestBodySpec spec = rest.post().uri(uri).contentType(MediaType.APPLICATION_JSON);
         if (secret != null) {
             spec = spec.header(InternalServiceFilter.HEADER, secret);
         }
+        if (tenantId != null) {
+            spec = spec.header("X-Tenant-Id", tenantId.toString());
+        }
         return spec.body(body).exchange((request, response) -> toEntity(response));
+    }
+
+    private ResponseEntity<String> get(String uri, UUID tenantId) {
+        var spec = rest.get().uri(uri).header(InternalServiceFilter.HEADER, INTERNAL_SECRET);
+        if (tenantId != null) {
+            spec = spec.header("X-Tenant-Id", tenantId.toString());
+        }
+        return spec.exchange((request, response) -> toEntity(response));
     }
 
     private ResponseEntity<String> patch(String uri, Object body, String secret) {

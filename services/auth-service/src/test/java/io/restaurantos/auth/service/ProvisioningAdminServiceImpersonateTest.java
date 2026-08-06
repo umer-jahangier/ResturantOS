@@ -96,8 +96,11 @@ class ProvisioningAdminServiceImpersonateTest {
                 eq(java.time.Duration.ofSeconds(ttlSeconds))))
             .thenReturn(signedToken);
 
+        // The two trailing collaborators belong to provisionAdmin (13-06) and are unused by
+        // impersonate; nulls keep this test about the ordering it was written to pin.
         ProvisioningAdminService service = new ProvisioningAdminService(
-            userRepository, passwordEncoder, permissionResolver, jwtSigningService, entityManager);
+            userRepository, passwordEncoder, permissionResolver, jwtSigningService, entityManager,
+            null, null);
 
         ProvisioningAdminService.ImpersonateResult result =
             service.impersonate(tenantId, targetUserId, impersonatedBy, ttlSeconds);

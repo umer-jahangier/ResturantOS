@@ -21,13 +21,16 @@ public class BranchRoleAdminService {
     private final UserBranchRoleRepository userBranchRoleRepository;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
+    private final RoleCatalog roleCatalog;
 
     public BranchRoleAdminService(UserBranchRoleRepository userBranchRoleRepository,
                                   TenantContext tenantContext,
-                                  EntityManager entityManager) {
+                                  EntityManager entityManager,
+                                  RoleCatalog roleCatalog) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
+        this.roleCatalog = roleCatalog;
     }
 
     /**
@@ -78,10 +81,19 @@ public class BranchRoleAdminService {
      * transaction. Permission unions across roles are deliberately not supported — the JWT's
      * {@code roles} claim is singular and every downstream consumer of it assumes so, and a tenant
      * needing a blend of two roles needs a role that carries the blend.
+     *
+     * <p>The role code is validated against the catalog before anything is touched (D-13). It used
+     * to be trusted, and an arbitrary string persisted happily: {@code role_permissions} then has no
+     * rows for it, so the holder logs in successfully with an empty permission set — a working login
+     * into a product with every screen missing, reported to nobody as an error. Validation happens
+     * AFTER the GUC is set, because a tenant's own custom role is invisible without it and would
+     * otherwise be rejected as unknown; and BEFORE the displacement loop, because a rejected
+     * assignment must not revoke the role the user already holds.
      */
     @Transactional
     public RoleAssignmentResult assign(UUID tenantId, UUID userId, BranchRoleAssignRequest req) {
         setTenantGuc(tenantId);
+        roleCatalog.requireKnown(req.roleCode());
         List<UserBranchRoleEntity> activeAtBranch =
             userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, req.branchId());
         boolean hadNoActiveAssignmentAnywhere =

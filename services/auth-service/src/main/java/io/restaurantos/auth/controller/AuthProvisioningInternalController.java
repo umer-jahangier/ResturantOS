@@ -80,19 +80,29 @@ public class AuthProvisioningInternalController {
     }
 
     /**
-     * Creates the first Tenant Admin user in auth_db for the given tenant (FD-1 step 3).
-     * Returns userId + tempPassword (one-time; caller must present to tenant admin out-of-band).
+     * Creates the first Tenant Admin for a tenant — the user AND the branch-role assignment that
+     * makes the account usable (FD-1 step 3, extended by 13-06 for D-05/D-13).
+     *
+     * <p>The response keys {@code userId} and {@code tempPassword} are unchanged and still sit
+     * directly under the ApiResponse {@code data} object, because the saga's existing extraction
+     * already reads them in that shape; {@code branchId} and {@code roleCode} are additive.
+     *
+     * <p>{@code tempPassword} is one-time and exists nowhere else — not in a log, not in the
+     * database (only its bcrypt hash), not in any event payload. The caller must deliver it to the
+     * tenant admin out of band.
      */
     @PostMapping("/tenants/{tenantId}/provision-admin")
     public ResponseEntity<ApiResponse<Map<String, Object>>> provisionAdmin(
             @PathVariable UUID tenantId,
-            @RequestBody ProvisionAdminRequest request) {
-        ProvisioningAdminService.ProvisionAdminResult result =
-            provisioningAdminService.provisionAdmin(tenantId, request.email());
-        Map<String, Object> body = Map.of(
-            "userId", result.userId().toString(),
-            "tempPassword", result.tempPassword()
-        );
+            @Valid @RequestBody ProvisionAdminRequest request) {
+        ProvisioningAdminService.ProvisionAdminResult result = provisioningAdminService.provisionAdmin(
+            tenantId, request.email(), request.branchId(), request.roleCode(), request.fullName());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("userId", result.userId().toString());
+        body.put("tempPassword", result.tempPassword());
+        body.put("branchId", result.branchId().toString());
+        body.put("roleCode", result.roleCode());
+        body.put("mustChangePassword", true);
         return ResponseEntity.status(201).body(ApiResponse.ok(body));
     }
 
@@ -129,7 +139,15 @@ public class AuthProvisioningInternalController {
 
     record RegisterTenantRequest(@NotNull UUID tenantId, @NotBlank String slug, String name) {}
     record TenantStatusRequest(@NotBlank String status) {}
-    record ProvisionAdminRequest(String email) {}
+    /**
+     * {@code branchId} and {@code roleCode} are required: an admin created without an assignment
+     * cannot log in, so accepting the request without them would manufacture exactly the broken
+     * account this endpoint exists to stop producing. {@code fullName} is optional.
+     */
+    record ProvisionAdminRequest(@NotBlank String email,
+                                 @NotNull UUID branchId,
+                                 @NotBlank String roleCode,
+                                 String fullName) {}
     record ServiceTokenRequest(String service) {}
     record ImpersonateRequest(UUID tenantId, UUID impersonatedBy, int expiresInSeconds) {}
 }
