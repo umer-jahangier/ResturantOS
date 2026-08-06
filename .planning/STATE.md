@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 13-05-PLAN.md
-last_updated: "2026-08-06T18:25:23.927Z"
+stopped_at: Completed 13-06-PLAN.md
+last_updated: "2026-08-06T19:15:00.000Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 146
+  completed_plans: 147
   percent: 64
 ---
 
@@ -297,6 +297,7 @@ _Updated after each plan completion_
 | Phase 08.2 P18 | 35min | 3 tasks | 6 files |
 | Phase 08.2 P19 | 45min | 2 tasks | 4 files |
 | Phase 13 P05 | 2h | 3 tasks | 12 files |
+| Phase 13 P06 | 4h | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -304,6 +305,8 @@ _Updated after each plan completion_
 
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
+- [Phase 13]: A freshly provisioned OWNER is answered TOTP_ENROLLMENT_REQUIRED, not a token — OWNER holds rbac.manage so requiresTotpStepUp fires while the new account has no factor (D-29a working as decided). Structurally this PROVES branch resolution succeeded, since enforceTotpStepUp runs after PermissionResolver.resolveDefault. 13-10 must not read it as a provisioning failure; 13-15 must enrol TOTP for tenant-admin personas.
+- [Phase 13]: The extended /internal/auth/tenants/{id}/provision-admin REQUIRES branchId and roleCode — the saga's current {email}-only call now 400s until 13-10 lands. Deliberate: accepting the old shape manufactures the unusable no-assignment admin the endpoint exists to stop producing.
 
 - [02-01]: NON-RLS `auth_tenants` slug lookup before tenant GUC (Phase 2/3 seam).
 - [02-01]: Login `@Transactional(noRollbackFor auth failures)` so lockout counts persist.

@@ -622,7 +622,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 **Requirements**: AUTH-01, AUTH-02, AUTH-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, PLATFORM-10, USER-01, USER-02, USER-03, GW-02, GW-03
 **Decisions**: see `.planning/phases/13-platform-tenant-access-repair/13-DECISION-MAP.md` (D-01..D-35)
 
-**Plans**: 16 plans, 6 waves — 6/16 executed
+**Plans**: 16 plans, 6 waves — 7/16 executed
 
 Plans:
 
@@ -631,7 +631,7 @@ Plans:
 - [x] 13-03-PLAN.md (wave 1) — feature-code closure test + FEATURE_PAYROLL backfill, fail-closed tenant status (regression guards)
 - [x] 13-04-PLAN.md (wave 1) — shared password-strength constraint, extracted password policy, self-service change-password (SC4)
 - [x] 13-05-PLAN.md (wave 2) — platform login endpoint reading `platform_users`, SuperAdmin credential rotation (SC1, B1 closed)
-- [ ] 13-06-PLAN.md (wave 2) — auth-service provisioning seam: `auth_tenants` upsert, OWNER branch-role on provision-admin, roleCode validation (SC2)
+- [x] 13-06-PLAN.md (wave 2) — auth-service provisioning seam: `auth_tenants` upsert, OWNER branch-role on provision-admin, roleCode validation (SC2)
 - [ ] 13-07-PLAN.md (wave 2) — role catalog + permission catalog endpoints, gateway reachability (SC3)
 - [ ] 13-08-PLAN.md (wave 2) — `must_change_password` enforced at login, single-use hashed change tokens, public forced-change endpoint (SC4)
 - [ ] 13-09-PLAN.md (wave 2) — reset hardening: outbox token redaction, lockout clear, per-account cooldown, single live token, honest delivery mode (SC4)
@@ -731,7 +731,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 12/12 executed | **Executed — runtime verification pending** (all ITs + `opa test` deferred to a Docker CI pass; 11-12 blocking UAT outstanding) | 2026-08-06 |
 | 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |
-| 13. Platform & Tenant Access Repair *(INSERTED, BLOCKER)* | 6/16 | Executing (13-01..13-05, 13-16 complete — B1 closed) | - |
+| 13. Platform & Tenant Access Repair *(INSERTED, BLOCKER)* | 7/16 | Executing (13-01..13-06, 13-16 complete — B1 closed; B2 auth-service half done, saga half is 13-10) | - |
 | 14. Frontend Trust & Admin Surfaces *(INSERTED)* | 0/TBD | Not started | - |
 | 15. UI/UX Revamp — ERP Design System *(INSERTED)* | 0/TBD | Not started | - |
 | 16. Multi-POS Terminals & KDS/BDS Routing *(INSERTED)* | 0/TBD | Not started | - |
