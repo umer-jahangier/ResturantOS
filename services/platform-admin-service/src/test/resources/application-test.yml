@@ -3,12 +3,16 @@ restaurantos:
     secret: test-internal-secret
   jwks:
     uri: http://localhost:${wiremock.server.port:9999}/test-jwks
+  # 13-10 / D-09: this key lives under the `restaurantos.` prefix, which is the prefix the service
+  # actually binds and the one application.yml has always declared. It was previously set here
+  # unprefixed, matching a @Value that bound nothing — so the property appeared to work in tests
+  # and was inert in production, where the default of `true` always won.
+  provisioning:
+    seed-coa:
+      enabled: false
 spring:
   jpa:
     hibernate:
       ddl-auto: none
   liquibase:
     contexts: seed
-provisioning:
-  seed-coa:
-    enabled: false

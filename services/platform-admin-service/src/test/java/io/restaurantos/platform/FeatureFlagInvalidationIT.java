@@ -69,11 +69,7 @@ class FeatureFlagInvalidationIT extends BasePlatformIT {
     private UUID provisionTenantDirect(String brandName, String tier) {
         WIREMOCK.resetAll();
         wireMockStubJwks();
-        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathMatching("/internal/auth/tenants/.*/provision-admin"))
-            .willReturn(WireMock.aResponse().withStatus(201)
-                .withHeader("Content-Type", "application/json")
-                .withBody("{\"data\":{\"userId\":\"" + UUID.randomUUID() + "\",\"tempPassword\":\"T#123\"}}")));
-        stubUserCreateBranch(UUID.randomUUID());
+        stubProvisioningSagaHappyPath(UUID.randomUUID(), UUID.randomUUID(), "T#123");
         return provisioningService.provision("ff-" + UUID.randomUUID(), brandName, "admin@ff.local", tier).tenantId();
     }
 }

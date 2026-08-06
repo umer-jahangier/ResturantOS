@@ -57,7 +57,13 @@ public class PlatformAdminController {
             @Valid @RequestBody CreateTenantRequest req) {
         String key = idempotencyKey != null ? idempotencyKey : "auto:" + UUID.randomUUID();
         var result = provisioningService.provision(key, req.brandName(), req.adminEmail(), req.tier());
-        var dto = new ProvisionResult(result.tenantId(), result.slug(),
+        // The temporary password is returned, not discarded. This line previously substituted the
+        // login url for it, which made every provisioned tenant unreachable: the saga generated a
+        // credential, the controller dropped it on the floor, and no other channel carried it
+        // (notification-service has no source files, so no email was ever sent either). The
+        // SuperAdmin now receives it once, over TLS, and delivers it out of band.
+        var dto = new ProvisionResult(result.tenantId(), result.slug(), result.adminEmail(),
+            result.tempPassword(),
             "https://app.restaurantos.io/login?tenant=" + result.slug());
         return ResponseEntity
             .created(URI.create("/api/v1/platform/tenants/" + result.tenantId()))

@@ -219,12 +219,21 @@ public abstract class BasePlatformIT {
                 .withBody("{\"data\":{\"userId\":\"" + userId + "\",\"tempPassword\":\"" + tempPassword + "\"}}")));
     }
 
+    /**
+     * The REAL shape of {@code POST /internal/users/branches}: a bare {@code {"branchId": …}},
+     * NOT an ApiResponse envelope — {@code BranchInternalController.createBranch} returns its
+     * response record directly. This stub previously produced {@code {"data":{"id": …}}}, which is
+     * what the saga's old {@code extractBranchId} looked for, so the test suite and the defect
+     * agreed with each other and disagreed with production: every provisioned tenant got a
+     * {@code UUID.randomUUID()} branch id (audit B2). A stub that mirrors the producer is the only
+     * thing that makes this class capable of catching that.
+     */
     protected void stubUserCreateBranch(UUID branchId) {
         WIREMOCK.stubFor(WireMock.post(WireMock.urlPathEqualTo("/internal/users/branches"))
             .willReturn(WireMock.aResponse()
                 .withStatus(201)
                 .withHeader("Content-Type", "application/json")
-                .withBody("{\"data\":{\"id\":\"" + branchId + "\",\"name\":\"HQ\"}}")));
+                .withBody("{\"branchId\":\"" + branchId + "\"}")));
     }
 
     protected void stubUserCreateBranchFail() {
@@ -232,9 +241,104 @@ public abstract class BasePlatformIT {
             .willReturn(WireMock.aResponse().withStatus(500).withBody("{\"error\":\"simulated\"}")));
     }
 
+    /**
+     * A 201 carrying no readable branch id — deliberately the OLD enveloped shape, so this stub is
+     * simultaneously "a response the saga cannot parse" and "the exact response the deleted
+     * fallback used to swallow". The saga must abort here, not invent an id.
+     */
+    protected void stubUserCreateBranchUnparseable() {
+        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathEqualTo("/internal/users/branches"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(201)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"data\":{\"id\":\"" + UUID.randomUUID() + "\",\"name\":\"HQ\"}}")));
+    }
+
+    /** Compensation target: DELETE /internal/users/branches/{id} (13-10). */
+    protected void stubUserDeactivateBranch() {
+        WIREMOCK.stubFor(WireMock.delete(WireMock.urlPathMatching("/internal/users/branches/.*"))
+            .willReturn(WireMock.aResponse().withStatus(204)));
+    }
+
+    protected void stubUserDeactivateBranchFail() {
+        WIREMOCK.stubFor(WireMock.delete(WireMock.urlPathMatching("/internal/users/branches/.*"))
+            .willReturn(WireMock.aResponse().withStatus(500).withBody("{\"error\":\"simulated\"}")));
+    }
+
+    /** {@code POST /internal/auth/tenants} — 13-06's idempotent upsert; 200 on create AND replay. */
+    protected void stubAuthRegisterTenant() {
+        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathEqualTo("/internal/auth/tenants"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"data\":{\"tenantId\":\"" + UUID.randomUUID() + "\",\"slug\":\"stub\","
+                    + "\"name\":\"Stub\",\"status\":\"ACTIVE\",\"created\":true}}")));
+    }
+
+    /** 13-06 raises 409 STATE_INVALID when the slug is held by a DIFFERENT tenant. */
+    protected void stubAuthRegisterTenantSlugConflict() {
+        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathEqualTo("/internal/auth/tenants"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(409)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"error\":{\"code\":\"STATE_INVALID\",\"message\":\"slug already held\"}}")));
+    }
+
+    protected void stubAuthSetTenantStatus() {
+        WIREMOCK.stubFor(WireMock.patch(WireMock.urlPathMatching("/internal/auth/tenants/.*/status"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"data\":{\"tenantId\":\"" + UUID.randomUUID() + "\",\"slug\":\"stub\","
+                    + "\"status\":\"PROVISIONING_FAILED\",\"loginAllowed\":false}}")));
+    }
+
+    protected void stubAuthRevokeBranchRole() {
+        WIREMOCK.stubFor(WireMock.delete(WireMock.urlPathMatching("/internal/auth/users/.*/branch-roles"))
+            .willReturn(WireMock.aResponse().withStatus(204)));
+    }
+
+    /**
+     * {@code POST /internal/auth/tenants/{id}/provision-admin} as 13-06 extended it: the response
+     * echoes the branchId and roleCode the caller sent, alongside userId and tempPassword.
+     */
+    protected void stubAuthProvisionAdminAnyTenant(UUID userId, String tempPassword, UUID branchId) {
+        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathMatching("/internal/auth/tenants/.*/provision-admin"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(201)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"data\":{\"userId\":\"" + userId + "\",\"tempPassword\":\"" + tempPassword
+                    + "\",\"branchId\":\"" + branchId + "\",\"roleCode\":\"OWNER\","
+                    + "\"mustChangePassword\":true}}")));
+    }
+
     protected void stubFinanceSeedCoa(UUID tenantId) {
         WIREMOCK.stubFor(WireMock.post(WireMock.urlPathEqualTo(
                 "/internal/finance/tenants/" + tenantId + "/seed-coa"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"data\":{}}")));
+    }
+
+    /**
+     * Every external call the provisioning saga makes, all succeeding — in ONE place, so a future
+     * saga step is added to one helper rather than silently missed by whichever test classes happen
+     * to drive {@code provision()} for their own setup. Adding the 13-10 auth-tenant registration
+     * step broke {@code TenantLifecycleIT} and {@code FeatureFlagInvalidationIT} precisely because
+     * each had hand-rolled its own partial stub set.
+     */
+    protected void stubProvisioningSagaHappyPath(UUID adminUserId, UUID branchId, String tempPassword) {
+        stubUserCreateBranch(branchId);
+        stubUserDeactivateBranch();
+        stubAuthRegisterTenant();
+        stubAuthSetTenantStatus();
+        stubAuthRevokeBranchRole();
+        stubAuthProvisionAdminAnyTenant(adminUserId, tempPassword, branchId);
+    }
+
+    protected void stubFinanceSeedCoaAnyTenant() {
+        WIREMOCK.stubFor(WireMock.post(WireMock.urlPathMatching("/internal/finance/tenants/.*/seed-coa"))
             .willReturn(WireMock.aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")

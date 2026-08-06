@@ -97,7 +97,25 @@ public final class PlatformDtos {
         }
     }
 
-    public record ProvisionResult(UUID tenantId, String slug, String loginUrl) {}
+    /**
+     * The result of provisioning a tenant, as the calling SuperAdmin receives it.
+     *
+     * <p><b>{@code tempPassword} is one-time credential material and this response is the only
+     * place it will ever appear.</b> It is not logged, not persisted in plaintext by
+     * platform-admin-service, and not carried in the TENANT_PROVISIONED event payload. The
+     * SuperAdmin must transmit it to the new tenant admin <b>out of band</b>; the admin is then
+     * refused a normal login until they replace it (13-08's forced change).
+     *
+     * <p>It can be null on one path only: an idempotent replay made after the credential's one-hour
+     * retention window has elapsed. The tenant is still returned; the credential is simply gone.
+     *
+     * <p>Before plan 13-10 this record carried a {@code loginUrl} <i>in place of</i> the password —
+     * the saga generated a credential and the controller threw it away, so nobody could ever log in
+     * as a provisioned admin (audit B2 / D-08). The url is still here, but beside the password
+     * rather than instead of it.
+     */
+    public record ProvisionResult(UUID tenantId, String slug, String adminEmail,
+                                  String tempPassword, String loginUrl) {}
 
     public record FeaturesResponse(Map<String, Boolean> features) {}
 
