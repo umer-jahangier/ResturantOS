@@ -10,8 +10,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -61,6 +64,21 @@ public class PlatformSecurityConfig {
         return new PlatformInternalServiceFilter(secret);
     }
 
+    /**
+     * Cost 12, matching auth-service's {@code SecurityConfig#passwordEncoder} exactly.
+     *
+     * <p>The cost is not a free parameter: it has to equal the cost the seeds and {@code
+     * scripts/onboarding.py} hash with, or {@code platform_users.password_hash} values written by
+     * one and verified by the other would still match (bcrypt encodes its cost in the hash) but the
+     * dummy-hash comparison in {@link io.restaurantos.platform.service.PlatformAuthService} would
+     * take a different amount of time from a real one — reintroducing the account-enumeration timing
+     * channel the dummy exists to close.
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -73,6 +91,18 @@ public class PlatformSecurityConfig {
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
                 // /internal/platform/** gated by PlatformInternalServiceFilter (secret check), not JWT
                 .requestMatchers("/internal/platform/**").permitAll()
+                // The SuperAdmin login (13-05). Public for the same reason /api/v1/auth/login is:
+                // the caller has no token and cannot obtain one until this succeeds.
+                //
+                // Registered in its FULLY QUALIFIED form and pinned to POST. The prefix
+                // /api/v1/platform/auth/** would be a standing invitation for a later plan to add a
+                // platform password-reset or token-exchange endpoint under it and have it silently
+                // inherit permitAll — which is exactly the mistake 13-01 avoided at the gateway by
+                // registering /api/v1/auth/change-password/forced rather than the bare path.
+                //
+                // MUST stay above anyRequest(): authorizeHttpRequests matchers are evaluated in
+                // declaration order and the catch-all would otherwise claim this path first.
+                .requestMatchers(HttpMethod.POST, "/api/v1/platform/auth/login").permitAll()
                 // Public API requires a valid JWT; SUPER_ADMIN role enforced at method-security level
                 .anyRequest().authenticated())
             .addFilterBefore(platformInternalServiceFilter, UsernamePasswordAuthenticationFilter.class)
