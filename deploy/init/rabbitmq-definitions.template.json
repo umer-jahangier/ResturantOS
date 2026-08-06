@@ -285,6 +285,23 @@
       "arguments": {}
     },
     {
+      "name": "finance.payroll-paid.queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-dead-letter-exchange": "restaurantos.dlx",
+        "x-dead-letter-routing-key": "finance.payroll-paid.queue.dlq"
+      }
+    },
+    {
+      "name": "finance.payroll-paid.queue.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
       "name": "audit.all-events.queue",
       "vhost": "/",
       "durable": true,
@@ -519,6 +536,14 @@
       "arguments": {}
     },
     {
+      "source": "hr.topic",
+      "vhost": "/",
+      "destination": "finance.payroll-paid.queue",
+      "destination_type": "queue",
+      "routing_key": "hr.payroll.paid",
+      "arguments": {}
+    },
+    {
       "source": "inventory.topic",
       "vhost": "/",
       "destination": "finance.stock-depleted.queue",
@@ -732,6 +757,14 @@
       "destination": "finance.payroll-approved.queue.dlq",
       "destination_type": "queue",
       "routing_key": "finance.payroll-approved.queue.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "restaurantos.dlx",
+      "vhost": "/",
+      "destination": "finance.payroll-paid.queue.dlq",
+      "destination_type": "queue",
+      "routing_key": "finance.payroll-paid.queue.dlq",
       "arguments": {}
     },
     {
