@@ -40,7 +40,7 @@ class StrongPasswordValidatorTest {
     private static Validator validator;
 
     /** Meets every rule: 12 chars, lower + upper + digit + symbol. */
-    private static final String COMPLIANT = "Xq7#zv2$Lm5&";
+    private static final String COMPLIANT = "Xq7#zv2$";
 
     @BeforeAll
     static void startProvider() {
@@ -56,10 +56,10 @@ class StrongPasswordValidatorTest {
     // ---------------------------------------------------------------- behaviour 1: too short
 
     @ParameterizedTest
-    @ValueSource(strings = {"Xq7#zv2$Lm5", "Xq7#z", "X"})
+    @ValueSource(strings = {"Xq7#zv2", "Xq7#z", "X"})
     void shorterThanTheMinimum_isRejected(String value) {
         assertThat(messagesFor(value)).singleElement(org.assertj.core.api.InstanceOfAssertFactories.STRING)
-            .contains("at least 12 characters");
+            .contains("at least 8 characters");
     }
 
     @Test
@@ -68,11 +68,22 @@ class StrongPasswordValidatorTest {
         assertThat(messagesFor(COMPLIANT)).isEmpty();
     }
 
+    /**
+     * The project's specified demo and test credential must be settable through the API, not merely
+     * seedable as a hash. If this fails, the change-password and reset screens now reject the
+     * password the product hands the user — raise the credential and the floor together, or not at
+     * all. This is a requirement, not a preference; see {@link StrongPassword#DEFAULT_MIN_LENGTH}.
+     */
+    @Test
+    void theSpecifiedProjectCredential_isAccepted() {
+        assertThat(messagesFor("Test@123!")).isEmpty();
+    }
+
     // ---------------------------------------------------------------- behaviour 2: too long
 
     @Test
     void longerThanTheMaximum_isRejected() {
-        String tooLong = COMPLIANT.repeat(11).substring(0, StrongPassword.MAX_LENGTH + 1);
+        String tooLong = longEnough().substring(0, StrongPassword.MAX_LENGTH + 1);
         assertThat(tooLong).hasSize(StrongPassword.MAX_LENGTH + 1);
 
         assertThat(messagesFor(tooLong)).singleElement(org.assertj.core.api.InstanceOfAssertFactories.STRING)
@@ -81,7 +92,7 @@ class StrongPasswordValidatorTest {
 
     @Test
     void exactlyTheMaximum_isAccepted() {
-        String atLimit = COMPLIANT.repeat(11).substring(0, StrongPassword.MAX_LENGTH);
+        String atLimit = longEnough().substring(0, StrongPassword.MAX_LENGTH);
         assertThat(messagesFor(atLimit)).isEmpty();
     }
 
@@ -114,7 +125,7 @@ class StrongPasswordValidatorTest {
     @Test
     void aShortValueMissingClasses_reportsBothTheLengthAndTheClasses() {
         assertThat(messagesFor("qqq")).singleElement(org.assertj.core.api.InstanceOfAssertFactories.STRING)
-            .contains("at least 12 characters")
+            .contains("at least 8 characters")
             .contains("must contain an uppercase letter");
     }
 
@@ -185,29 +196,34 @@ class StrongPasswordValidatorTest {
 
     @Test
     void theMessageDoesNotDiscloseTheLengthOfTheSubmittedValue() {
-        assertThat(onlyMessageFor("qqq")).isEqualTo(onlyMessageFor("qqqqqqqqq"));
+        assertThat(onlyMessageFor("qqq")).isEqualTo(onlyMessageFor("qqqqqqq"));
     }
 
     // ------------------------------------------------------------------ the overridable minimum
 
     @Test
-    void aUseSiteMayLowerTheMinimum() {
-        assertThat(validator.validate(new LooserMinimum("Xq7#zv2$"))).isEmpty();
-        assertThat(validator.validate(new LooserMinimum("Xq7#zv"))).isNotEmpty();
+    void aUseSiteMayRaiseTheMinimum() {
+        assertThat(validator.validate(new StricterMinimum("Xq7#zv2$Lm5&Kp9!"))).isEmpty();   // 16
+        assertThat(validator.validate(new StricterMinimum("Xq7#zv2$"))).isNotEmpty();       // 8, fine by default
     }
 
     @Test
-    void aUseSiteLoweringTheMinimum_stillEnforcesEveryCharacterClass() {
-        assertThat(messagesOf(validator.validate(new LooserMinimum("qqqqqqqq"))))
+    void aUseSiteRaisingTheMinimum_stillEnforcesEveryCharacterClass() {
+        assertThat(messagesOf(validator.validate(new StricterMinimum("qqqqqqqqqqqqqqqq"))))
             .singleElement(org.assertj.core.api.InstanceOfAssertFactories.STRING)
             .contains("must contain an uppercase letter");
     }
 
     @Test
-    void aUseSiteLoweringTheMinimum_reportsItsOwnMinimumNotTheDefault() {
-        assertThat(onlyMessageOf(validator.validate(new LooserMinimum("Xq7#zv"))))
-            .contains("at least 8 characters")
-            .doesNotContain("12");
+    void aUseSiteRaisingTheMinimum_reportsItsOwnMinimumNotTheDefault() {
+        assertThat(onlyMessageOf(validator.validate(new StricterMinimum("Xq7#zv"))))
+            .contains("at least 16 characters")
+            .doesNotContain("8");
+    }
+
+    /** COMPLIANT repeated past {@link StrongPassword#MAX_LENGTH}, however long COMPLIANT is. */
+    private static String longEnough() {
+        return COMPLIANT.repeat(StrongPassword.MAX_LENGTH / COMPLIANT.length() + 2);
     }
 
     // ---------------------------------------------------------------------------------- helpers
@@ -234,5 +250,5 @@ class StrongPasswordValidatorTest {
 
     private record NotBlankAndStrong(@NotBlank @StrongPassword String newPassword) {}
 
-    private record LooserMinimum(@StrongPassword(min = 8) String newPassword) {}
+    private record StricterMinimum(@StrongPassword(min = 16) String newPassword) {}
 }

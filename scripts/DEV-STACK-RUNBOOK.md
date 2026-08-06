@@ -433,7 +433,7 @@ mvn -pl services/hr-service verify
    psql -h 192.168.64.2  -p "$port" -U t -d t -c 'select 1'   # works
    ```
 
-3. **`JAVA_HOME` pinned to JDK 25** — see "Integration tests run on Maven's JDK" below. Without it
+3. **`JAVA_HOME` pinned to JDK 25** — see "The silent EOF: bind IT servers to loopback" below. Without it
    the ITs run on whatever JDK Maven itself launched on, and fail intermittently in a way that looks
    like an application or network bug and is not one.
 
@@ -442,24 +442,43 @@ passing 18/18 run and then failed 18/18 from the identical commit — so a lone 
 evidence. Verified 2026-08-06 with three consecutive green runs of
 `mvn -pl services/hr-service verify` (18/18 ITs + 10/10 unit).
 
-### Integration tests run on Maven's JDK, not the one on your PATH
+### The silent EOF: bind IT servers to loopback
 
 **Symptom.** Requests from ITs fail with `HTTP/1.1 header parser received no bytes` (servlet
 services) or `PrematureCloseException: Connection prematurely closed BEFORE response` (gateway).
 The server logs **nothing** — no request, no error, not even with `org.apache.coyote` at DEBUG.
-Bodyless GETs fail while POSTs on the same client succeed. It is **intermittent**: the same commit
-gives 43/43 green on one run and a dozen errors on the next.
+It is **intermittent**: the same commit gives 43/43 green on one run and a dozen errors on the next.
 
-**Root cause.** Two things compounding:
+**Root cause: a wildcard bind.** Spring Boot binds the test server to the wildcard address
+(`0.0.0.0`). The macOS Application Firewall filters incoming connections to **wildcard-bound**
+sockets — it accepts the connection, writes zero bytes and closes — which is why nothing ever
+reaches the application and nothing is logged. Loopback-bound sockets are not filtered.
 
-1. Homebrew's `openjdk` formula moved to **26**, and Maven launched on it (`mvn -version` →
-   `Java version: 26.0.1`) while `java -version` on PATH still said 25. Surefire and failsafe fork
-   **Maven's** JVM, so every IT ran on JDK 26. Nothing warned: `<java.version>25</java.version>` only
-   sets the compiler *release*, so everything compiled and all unit tests passed.
-2. The **macOS Application Firewall** authorises incoming connections **per binary**. Only the JDK 25
-   binary was ever approved (`socketfilterfw --listapps`). The unapproved JDK 26 binary's embedded
-   Tomcat/Netty listeners were gated: connections were accepted and dropped with zero bytes written,
-   which is why nothing appears in any server log.
+**Fix.** One line in the IT base class's `@DynamicPropertySource`:
+
+```java
+r.add("server.address", () -> "127.0.0.1");
+```
+
+Measured on `AuthLoginIT`: 7 runs wildcard-bound → 21/21 errors; 4 runs loopback-bound → 0 network
+errors. This is also the gateway `PrematureCloseException` that was previously believed to be a
+pre-existing application defect. It was not; the five gateway cases that could never execute now run
+and pass.
+
+**Correction — the JDK was NOT the cause, though it looked like it.** This was first diagnosed as
+Homebrew's `openjdk` moving to 26 while only the JDK 25 binary was firewall-approved (ALF authorises
+**per binary**), because switching to JDK 25 did make suites go green. That was a coincidence of
+which binary happened to be approved, not the mechanism: with `server.address=127.0.0.1` in place,
+`mvn -pl services/auth-service verify` passes **on JDK 26**, and the approved JDK 25 binary still
+failed 21/21 across 7 wildcard-bound runs. Changing the JDK changes which binary the firewall
+evaluates, so it can flip the outcome without touching the actual cause. Beware: that makes it very
+easy to "confirm" the wrong explanation with a few green runs.
+
+**Keep the JDK pin anyway.** `maven-enforcer-plugin` (root `pom.xml`) still fails the build if
+Maven's runtime is not Java 25 — that is correct on its own merits, because surefire/failsafe fork
+**Maven's** JVM and `<java.version>25</java.version>` only sets the compiler *release*, so a
+mismatched JDK otherwise goes unnoticed. Check `mvn -version`, not `java -version`; they resolve
+independently. Just do not expect it to prevent the EOF.
 
 **Proof, if you need to re-derive it.** A raw `Socket` GET from *inside the test JVM* to the test's
 own `@LocalServerPort` returns `HTTP/1.1 200` on a good run and `<EOF>` on a bad one, with no
@@ -467,12 +486,8 @@ application code in the path. That rules out HTTP/2 negotiation, the JDK HttpCli
 `RestClient`, Testcontainers, and the application — all of which were suspected first, and none of
 which were at fault.
 
-**Fix.** Build on the JDK the project targets. `maven-enforcer-plugin` (root `pom.xml`) now fails the
-build immediately with the corrective `export` if Maven's runtime is not Java 25, so this cannot
-recur silently. Check `mvn -version`, not `java -version` — they resolve independently.
-
-Do **not** "fix" this by approving a JDK in the firewall or turning the firewall off: that hides the
-real problem, which is building on an unintended JDK. CI is unaffected (Linux, temurin 25, no ALF).
+Do **not** "fix" this by approving binaries in the firewall or turning the firewall off — the bind
+address is the actual problem, and CI is unaffected either way (Linux, no ALF).
 
 **There is a SECOND cause with the same symptom — a wildcard bind.** Fixing the JDK does not close
 this. Even on JDK 25 with the binary approved, `AuthLoginIT` failed 21/21 across 7 consecutive runs

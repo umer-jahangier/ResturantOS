@@ -58,8 +58,22 @@ import static java.lang.annotation.ElementType.TYPE_USE;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface StrongPassword {
 
-    /** Minimum length applied unless a use site overrides {@link #min()}. */
-    int DEFAULT_MIN_LENGTH = 12;
+    /**
+     * Minimum length applied unless a use site overrides {@link #min()}.
+     *
+     * <p><b>8, not 12, and the reason is a requirement rather than a preference.</b> The project's
+     * specified demo and test credential is {@code Test@123!} — nine characters, and it carries all
+     * four character classes. At a minimum of 12 that credential could be seeded (seeds write
+     * bcrypt hashes directly, which no validator sees) but could never be *set* through
+     * {@code POST /api/v1/auth/change-password} or the reset flow. A password the product documents
+     * but its own API refuses is worse than a shorter minimum: it makes the change-password screen
+     * reject the credential the user was just handed.
+     *
+     * <p>All four character classes are still required, so this is a complexity floor of 8 rather
+     * than a bare length of 8. If the length floor is raised later, the specified credential has to
+     * change with it — the two are one decision, not two.
+     */
+    int DEFAULT_MIN_LENGTH = 8;
 
     /** Maximum length, in {@code char}s. A resource bound; see the type javadoc. */
     int MAX_LENGTH = 128;

@@ -225,6 +225,12 @@ class ReportServiceIT {
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
+        // Bind the test server to loopback. Spring Boot otherwise binds the wildcard address,
+        // and the macOS Application Firewall filters wildcard-bound sockets: it accepts the
+        // connection, writes zero bytes and closes, so requests fail with "header parser received
+        // no bytes" / PrematureCloseException and NOTHING is logged server-side. Intermittent, and
+        // it looks exactly like an application or network bug. See DEV-STACK-RUNBOOK.md.
+        r.add("server.address", () -> "127.0.0.1");
         r.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         r.add("spring.datasource.username", POSTGRES::getUsername);
         r.add("spring.datasource.password", POSTGRES::getPassword);
