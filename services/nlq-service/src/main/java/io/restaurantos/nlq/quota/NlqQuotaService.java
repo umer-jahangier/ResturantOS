@@ -59,6 +59,49 @@ public class NlqQuotaService {
         return KEY_PREFIX + tenantId + ":monthly_count";
     }
 
+    /**
+     * Where the TENANT'S OWN monthly allowance lives, written by
+     * {@code TenantSubscriptionService.QUOTA_KEY_PREFIX} on a tier change and by the gateway's
+     * {@code FeatureFlagGlobalFilter} on a cache miss. Another verbatim key contract — the same
+     * kind, and for the same reason, as {@link #monthlyKey}.
+     */
+    public String tenantLimitKey(UUID tenantId) {
+        return "tenant:nlq_quota:" + tenantId;
+    }
+
+    /**
+     * The limit to enforce for this tenant: its own allowance where one is known, otherwise the
+     * configured default.
+     *
+     * <p><b>Why this exists (13-14).</b> Both enforcement points compared against a compiled-in
+     * number — the gateway's 5,000 and this service's {@code restaurantos.nlq.monthly-quota-default}
+     * of 500 — while every tenant row carried an {@code nlq_quota} column that nothing read. The net
+     * effect was that the LOWER of the two constants governed, so every tenant on the platform was
+     * capped at 500 regardless of tier and regardless of what {@code tenants.nlq_quota} said. Fixing
+     * only the gateway would have left this cap in place and made the fix invisible.
+     *
+     * <p><b>The fallback is conservative, not permissive.</b> An absent key means the gateway has not
+     * resolved this tenant yet, which in practice cannot happen for a request that arrived through
+     * the gateway (its quota check runs first, on the same Redis, and writes the key). If it does,
+     * the configured default applies — a number smaller than every tier's allowance, so the failure
+     * mode is "throttled early", never "unmetered". A Redis failure is not handled here at all: it
+     * propagates into {@link #reserve}'s catch, which fails closed.
+     */
+    long effectiveMonthlyLimit(UUID tenantId) {
+        String raw = redis.opsForValue().get(tenantLimitKey(tenantId));
+        if (raw == null || raw.isBlank()) {
+            return monthlyLimit;
+        }
+        try {
+            long limit = Long.parseLong(raw.trim());
+            return limit > 0 ? limit : monthlyLimit;
+        } catch (NumberFormatException e) {
+            log.warn("[nlq-quota] tenant={} allowance '{}' is not a number — falling back to the "
+                + "configured default of {}", tenantId, raw, monthlyLimit);
+            return monthlyLimit;
+        }
+    }
+
     public String hourlyKey(UUID tenantId, UUID userId) {
         return KEY_PREFIX + tenantId + ":" + userId + ":hourly_count";
     }
@@ -76,10 +119,12 @@ public class NlqQuotaService {
      */
     public void reserve(UUID tenantId, UUID userId) {
         try {
+            long effectiveMonthlyLimit = effectiveMonthlyLimit(tenantId);
             long monthlyCount = incrementWithFirstTtl(monthlyKey(tenantId), secondsUntilEndOfUtcMonth());
-            if (monthlyCount > monthlyLimit) {
+            if (monthlyCount > effectiveMonthlyLimit) {
                 redis.opsForValue().decrement(monthlyKey(tenantId));
-                throw new QuotaExceededException(QuotaExceededException.Quota.MONTHLY_TENANT, monthlyLimit);
+                throw new QuotaExceededException(
+                    QuotaExceededException.Quota.MONTHLY_TENANT, effectiveMonthlyLimit);
             }
 
             long hourlyCount;

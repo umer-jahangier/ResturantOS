@@ -40,7 +40,9 @@ import java.util.UUID;
  *       miss → platform-admin → cache 5-min.
  *       Disabled → 403 FEATURE_DISABLED + X-Upgrade-CTA-URL header.</li>
  *   <li>For quota-bearing routes (NLQ): read {@code nlq_quota:{tenantId}:monthly_count}
- *       against tenant limit. Over → 429 QUOTA_EXCEEDED.
+ *       against THE TENANT'S OWN limit, resolved from platform-admin and cached at
+ *       {@code tenant:nlq_quota:{tenantId}}. Over → 429 QUOTA_EXCEEDED. An allowance or a counter
+ *       that cannot be determined → 503 NLQ_QUOTA_UNAVAILABLE, never a silent grant.
  *       (Counter increments are owned by NLQ service; gateway reads-only here.)</li>
  * </ol>
  *
@@ -48,15 +50,34 @@ import java.util.UUID;
  * <pre>
  *   tenant:status:{tenantId}              → "ACTIVE" | "SUSPENDED" | "CANCELLED"
  *   tenant_features:{tenantId}:{code}     → "true" | "false"
- *   nlq_quota:{tenantId}:monthly_count    → integer string (e.g. "4250")
+ *   tenant:nlq_quota:{tenantId}           → integer string, the tenant's monthly allowance
+ *   nlq_quota:{tenantId}:monthly_count    → integer string, usage so far (e.g. "4250")
  * </pre>
  */
 @Component
 public class FeatureFlagGlobalFilter implements GlobalFilter, Ordered {
 
     private static final Duration CACHE_TTL = Duration.ofMinutes(5);
-    private static final long NLQ_DEFAULT_MONTHLY_LIMIT = 5000L;
     private static final String CTA_BASE_URL = "https://app.restaurantos.io/billing?feature=";
+
+    /**
+     * The per-tenant NLQ allowance, cached from platform-admin's status response and written
+     * directly by {@code TenantSubscriptionService.changeTier} so a tier change takes effect at
+     * once.
+     *
+     * <p><b>This key shape is a contract with two other components</b> —
+     * {@code TenantSubscriptionService.QUOTA_KEY_PREFIX} writes it and nlq-service's
+     * {@code NlqQuotaService} reads it. Changing it in one place silently returns the others to a
+     * compiled-in constant, which is the exact defect 13-14 removed.
+     */
+    private static final String QUOTA_KEY = "tenant:nlq_quota:";
+
+    /**
+     * "We could not determine this tenant's allowance." Not a limit, and never compared against a
+     * counter — see {@code quotaUndeterminable}. It replaced a compiled-in 5,000 that was applied
+     * to every tenant regardless of what they had bought.
+     */
+    private static final long UNDETERMINED_QUOTA = -1L;
 
     private static final List<String> PUBLIC_PREFIXES = List.of(
             "/api/v1/auth/",
@@ -168,29 +189,129 @@ public class FeatureFlagGlobalFilter implements GlobalFilter, Ordered {
                 });
     }
 
+    /**
+     * Enforces the tenant's OWN monthly NLQ allowance against the counter nlq-service maintains.
+     *
+     * <p><b>What changed in 13-14.</b> This compared the counter against a compiled-in
+     * {@code NLQ_DEFAULT_MONTHLY_LIMIT = 5000} while every tenant row carried an
+     * {@code nlq_quota} column that nothing ever read — so an ENTERPRISE tenant paying for 50,000
+     * queries was cut off at 5,000, and a STARTER tenant entitled to 1,000 was given five times what
+     * it bought. The limit now comes from {@link #resolveQuotaLimit}.
+     *
+     * <p><b>Both unknowns fail closed, and they are different unknowns.</b>
+     * <ul>
+     *   <li>The LIMIT cannot be determined (platform-admin down, no number for this tenant) → 503
+     *       {@code NLQ_QUOTA_UNAVAILABLE}. Serving the request would be granting an unmetered
+     *       Claude-backed endpoint, which is a billing incident rather than a degraded feature —
+     *       the same judgement {@code NlqQuotaService} already makes on its own Redis outage.</li>
+     *   <li>The COUNTER cannot be read, or reads as something that is not a number → 503 as well.
+     *       Note that an ABSENT counter is NOT an unknown: it legitimately means zero usage at the
+     *       start of a month, and {@code defaultIfEmpty("0")} is the correct reading of it. A failed
+     *       READ is what previously escaped the filter entirely and surfaced as 401 UNAUTHENTICATED
+     *       via {@code JwtGlobalFilter}'s blanket handler (13-03 "left open" #3).</li>
+     * </ul>
+     * Both honour the single {@code failOpen} lever, for the reason on the field: two levers that
+     * can disagree give an operator a configuration nobody has tested.
+     */
     private Mono<Void> checkQuota(ServerWebExchange exchange, GatewayFilterChain chain,
                                    UUID tenantId, String path) {
         if (!routeFeatureMap.isQuotaBearing(path)) {
             return chain.filter(exchange);
         }
 
-        String quotaKey = "nlq_quota:" + tenantId + ":monthly_count";
-        return redis.opsForValue().get(quotaKey)
-                .defaultIfEmpty("0")
-                .flatMap(countStr -> {
-                    long count;
+        return resolveQuotaLimit(tenantId).flatMap(limit -> {
+            if (limit < 0) {
+                return quotaUndeterminable(exchange, chain, tenantId, "limit");
+            }
+            String quotaKey = "nlq_quota:" + tenantId + ":monthly_count";
+            return redis.opsForValue().get(quotaKey)
+                    // An absent counter is a real answer: nothing has been spent this month.
+                    .defaultIfEmpty("0")
+                    .flatMap(countStr -> {
+                        long count;
+                        try {
+                            count = Long.parseLong(countStr.trim());
+                        } catch (NumberFormatException e) {
+                            // A counter that is not a number is a corrupt counter, not a zero one.
+                            // Reading it as zero granted a full month's quota to anything that could
+                            // write a junk value into that key.
+                            log.warn("[nlq-quota] counter for tenant={} is not a number ({}) — "
+                                    + "refusing rather than reading it as zero", tenantId, countStr);
+                            return quotaUndeterminable(exchange, chain, tenantId, "counter");
+                        }
+                        if (count >= limit) {
+                            return writeError(exchange, HttpStatus.TOO_MANY_REQUESTS,
+                                    "{\"error\":{\"code\":\"QUOTA_EXCEEDED\"," +
+                                    "\"message\":\"Monthly NLQ quota exceeded. Upgrade for more.\"}}",
+                                    "X-Upgrade-CTA-URL", CTA_BASE_URL + "FEATURE_NLQ");
+                        }
+                        return chain.filter(exchange);
+                    })
+                    .onErrorResume(ex -> {
+                        log.warn("[nlq-quota] counter read failed for tenant={} — quota "
+                                + "undetermined; failOpen={}", tenantId, failOpen, ex);
+                        return quotaUndeterminable(exchange, chain, tenantId, "counter");
+                    });
+        });
+    }
+
+    private Mono<Void> quotaUndeterminable(ServerWebExchange exchange, GatewayFilterChain chain,
+                                            UUID tenantId, String what) {
+        if (failOpen) {
+            log.warn("[nlq-quota] proceeding for tenant={} on an UNDETERMINED {} because "
+                    + "restaurantos.fail-open-on-platform-down is enabled", tenantId, what);
+            return chain.filter(exchange);
+        }
+        return writeError(exchange, HttpStatus.SERVICE_UNAVAILABLE,
+                "{\"error\":{\"code\":\"NLQ_QUOTA_UNAVAILABLE\"," +
+                "\"message\":\"Unable to verify your query allowance. Please retry shortly.\"}}",
+                null, null);
+    }
+
+    /**
+     * The tenant's monthly NLQ allowance, or a negative number meaning "could not be determined".
+     *
+     * <p>Cached under {@link #QUOTA_KEY} with the same 5-minute TTL as the status, and — like the
+     * status — an unknown is NEVER written to the cache. {@code TenantSubscriptionService.changeTier}
+     * writes this key directly on a tier change, so a tenant that upgrades is enforced at its new
+     * allowance on the very next request rather than up to five minutes later.
+     *
+     * <p>A negative sentinel rather than an {@code Optional}/empty Mono because {@code Mono.empty()}
+     * inside a {@code flatMap} silently drops the request — a filter that completes without either
+     * calling the chain or writing a response hangs the caller. A value that must be inspected
+     * cannot be forgotten.
+     */
+    private Mono<Long> resolveQuotaLimit(UUID tenantId) {
+        String key = QUOTA_KEY + tenantId;
+        return redis.opsForValue().get(key)
+                .map(raw -> {
                     try {
-                        count = Long.parseLong(countStr);
+                        return Long.parseLong(raw.trim());
                     } catch (NumberFormatException e) {
-                        count = 0;
+                        return UNDETERMINED_QUOTA;
                     }
-                    if (count >= NLQ_DEFAULT_MONTHLY_LIMIT) {
-                        return writeError(exchange, HttpStatus.TOO_MANY_REQUESTS,
-                                "{\"error\":{\"code\":\"QUOTA_EXCEEDED\"," +
-                                "\"message\":\"Monthly NLQ quota exceeded. Upgrade for more.\"}}",
-                                "X-Upgrade-CTA-URL", CTA_BASE_URL + "FEATURE_NLQ");
-                    }
-                    return chain.filter(exchange);
+                })
+                .switchIfEmpty(Mono.defer(() -> platformAdminClient.getTenantStatus(tenantId)
+                        .flatMap(status -> {
+                            if (status.nlqQuota() == null) {
+                                log.warn("[nlq-quota] platform-admin returned no quota for tenant={} "
+                                        + "— not caching; failOpen={}", tenantId, failOpen);
+                                return Mono.just(UNDETERMINED_QUOTA);
+                            }
+                            long limit = status.nlqQuota();
+                            return redis.opsForValue().set(key, String.valueOf(limit), CACHE_TTL)
+                                    .thenReturn(limit);
+                        })
+                        .switchIfEmpty(Mono.just(UNDETERMINED_QUOTA))
+                        .onErrorResume(ex -> {
+                            log.warn("[nlq-quota] limit lookup failed for tenant={} — not caching; "
+                                    + "failOpen={}", tenantId, failOpen, ex);
+                            return Mono.just(UNDETERMINED_QUOTA);
+                        })))
+                .onErrorResume(ex -> {
+                    log.warn("[nlq-quota] limit cache read failed for tenant={} — undetermined; "
+                            + "failOpen={}", tenantId, failOpen, ex);
+                    return Mono.just(UNDETERMINED_QUOTA);
                 });
     }
 

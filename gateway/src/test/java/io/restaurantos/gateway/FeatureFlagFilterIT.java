@@ -9,6 +9,7 @@ import io.restaurantos.gateway.filter.FeatureFlagGlobalFilter;
 import io.restaurantos.shared.security.JwksKeyProvider;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.QueueDispatcher;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -179,6 +180,15 @@ class FeatureFlagFilterIT {
                 .baseUrl("http://localhost:" + port)
                 .build();
 
+        // MockWebServer's default QueueDispatcher BLOCKS when its queue is empty, so a request
+        // nobody stubbed hangs until the client's 5s timeout — and the stalled exchange then
+        // completes later and eats a response a subsequent test enqueued, so one missing stub
+        // cascades into a run where unrelated tests time out and the real cause is invisible.
+        // Fail fast instead: an unstubbed call answers 404 immediately and fails the test that
+        // made it, in the test that made it.
+        ((QueueDispatcher) mockUpstream.getDispatcher()).setFailFast(true);
+        ((QueueDispatcher) platformAdmin().getDispatcher()).setFailFast(true);
+
         tenantId = UUID.randomUUID();
         validToken = buildToken(tenantId);
 
@@ -187,6 +197,7 @@ class FeatureFlagFilterIT {
         redisTemplate.delete("tenant_features:" + tenantId + ":FEATURE_HR");
         redisTemplate.delete("tenant_features:" + tenantId + ":FEATURE_NLQ");
         redisTemplate.delete("nlq_quota:" + tenantId + ":monthly_count");
+        redisTemplate.delete("tenant:nlq_quota:" + tenantId);
     }
 
     @AfterEach
@@ -259,6 +270,11 @@ class FeatureFlagFilterIT {
         redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
         redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_HR", "true");
         mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{\"employees\":[]}"));
+        // A DELTA, not an absolute count. getRequestCount() is cumulative across the class, so
+        // `isEqualTo(1)` silently depended on this being the first test to reach the upstream —
+        // it broke the moment any forwarding test was added ahead of it, which says nothing about
+        // the filter. Every other case in this class was already written as a delta.
+        int before = mockUpstream.getRequestCount();
 
         webTestClient.get()
                 .uri("/api/v1/hr/employees")
@@ -266,7 +282,7 @@ class FeatureFlagFilterIT {
                 .exchange()
                 .expectStatus().isOk();
 
-        assertThat(mockUpstream.getRequestCount()).isEqualTo(1);
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(before + 1);
     }
 
     // ── Test 4: NLQ quota exceeded → 429 QUOTA_EXCEEDED ─────────────────────────────────
@@ -275,7 +291,8 @@ class FeatureFlagFilterIT {
     void nlqQuotaExceeded_returns429() {
         redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
         redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
-        // Set count above the 5000 default limit
+        // The tenant's OWN allowance, which used to be a compiled-in 5000 here.
+        redisTemplate.opsForValue().set("tenant:nlq_quota:" + tenantId, "5000");
         redisTemplate.opsForValue().set("nlq_quota:" + tenantId + ":monthly_count", "5001");
         int before = mockUpstream.getRequestCount();
 
@@ -291,6 +308,181 @@ class FeatureFlagFilterIT {
                 .value(body -> assertThat(body).contains("QUOTA_EXCEEDED"));
 
         assertThat(mockUpstream.getRequestCount()).isEqualTo(before);
+    }
+
+    // ── Per-tenant NLQ quota (13-14) ────────────────────────────────────────────────────
+    //
+    // The filter compared the counter against a compiled-in NLQ_DEFAULT_MONTHLY_LIMIT = 5000 while
+    // every tenant row carried its own tenants.nlq_quota that nothing ever read. An ENTERPRISE
+    // tenant paying for 50,000 queries was cut off at 5,000; a STARTER tenant entitled to 1,000 was
+    // handed five times what it bought. Three behaviours fence that shut, and the third is the one
+    // that matters most: removing a throttle by accident is the inverse of the fail-open D-33 fixed,
+    // and deserves the same posture.
+
+    /** Above the old constant, below the tenant's own allowance → served. */
+    @Test
+    void nlqQuota_anEnterpriseTenantIsNotThrottledAtTheOldCompiledInConstant() {
+        redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+        redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+        redisTemplate.opsForValue().set("tenant:nlq_quota:" + tenantId, "50000");
+        redisTemplate.opsForValue().set("nlq_quota:" + tenantId + ":monthly_count", "6000");
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{\"rows\":[]}"));
+        int before = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/nlq/query")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isOk();
+
+        assertThat(mockUpstream.getRequestCount())
+                .as("6000 is over the old hard-coded 5000 and well under this tenant's 50000")
+                .isEqualTo(before + 1);
+    }
+
+    /** Below the old constant but above the tenant's own allowance → refused. */
+    @Test
+    void nlqQuota_aStarterTenantIsThrottledAtItsOwnSmallerAllowance() {
+        redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+        redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+        redisTemplate.opsForValue().set("tenant:nlq_quota:" + tenantId, "1000");
+        redisTemplate.opsForValue().set("nlq_quota:" + tenantId + ":monthly_count", "1200");
+        int before = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/nlq/query")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.TOO_MANY_REQUESTS)
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("QUOTA_EXCEEDED"));
+
+        assertThat(mockUpstream.getRequestCount())
+                .as("1200 is under the old hard-coded 5000, so this request used to be served")
+                .isEqualTo(before);
+    }
+
+    /** The allowance is resolved from platform-admin on a cold cache, and cached. */
+    @Test
+    void nlqQuota_theAllowanceIsResolvedFromPlatformAdminAndCached() {
+        redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+        redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+        redisTemplate.opsForValue().set("nlq_quota:" + tenantId + ":monthly_count", "1500");
+        enqueueStatusWithQuota("ACTIVE", "1000");
+        int before = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/nlq/query")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.TOO_MANY_REQUESTS)
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("QUOTA_EXCEEDED"));
+
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(before);
+        assertThat(redisTemplate.opsForValue().get("tenant:nlq_quota:" + tenantId))
+                .as("a real answer is cached, so the allowance costs one round trip per 5 minutes")
+                .isEqualTo("1000");
+    }
+
+    /**
+     * An allowance nobody could determine must NOT be read as unlimited.
+     *
+     * <p>This is the inverse of the failure 13-03 fixed for tenant status. There, an unknown was
+     * read as "in good standing" and served a suspended tenant. Here, an unknown read as "no limit"
+     * would hand an unmetered Claude-backed endpoint to anyone whose quota lookup happened to fail —
+     * a billing incident rather than a degraded feature, which is the same judgement nlq-service's
+     * own {@code NlqQuotaService} already makes about its Redis.
+     */
+    @Test
+    void nlqQuota_anUndeterminableAllowanceRefusesRatherThanGrants() {
+        redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+        redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+        platformAdmin().enqueue(new MockResponse().setResponseCode(500).setBody("{\"error\":\"boom\"}"));
+        int before = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/nlq/query")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("NLQ_QUOTA_UNAVAILABLE"));
+
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(before);
+        assertThat(redisTemplate.hasKey("tenant:nlq_quota:" + tenantId))
+                .as("an unknown allowance is not a determination and is never cached")
+                .isFalse();
+    }
+
+    /**
+     * platform-admin answering with a null quota is the same non-answer as not answering at all —
+     * the tenant row simply has no number, which is not the same as "no limit".
+     */
+    @Test
+    void nlqQuota_aNullAllowanceFromPlatformAdminIsAlsoUndeterminable() {
+        redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+        redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+        enqueueStatusWithQuota("ACTIVE", null);
+
+        webTestClient.get()
+                .uri("/api/v1/nlq/query")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("NLQ_QUOTA_UNAVAILABLE"));
+
+        assertThat(redisTemplate.hasKey("tenant:nlq_quota:" + tenantId)).isFalse();
+    }
+
+    /**
+     * A counter that is not a number is a corrupt counter, not a zero one. Reading it as zero — as
+     * the old {@code catch (NumberFormatException) { count = 0; }} did — granted a full month's
+     * allowance to anything able to write junk into that key.
+     */
+    @Test
+    void nlqQuota_anUnreadableCounterRefusesRatherThanCountingAsZero() {
+        redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+        redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+        redisTemplate.opsForValue().set("tenant:nlq_quota:" + tenantId, "1000");
+        redisTemplate.opsForValue().set("nlq_quota:" + tenantId + ":monthly_count", "not-a-number");
+        int before = mockUpstream.getRequestCount();
+
+        webTestClient.get()
+                .uri("/api/v1/nlq/query")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+                .expectBody(String.class)
+                .value(body -> assertThat(body).contains("NLQ_QUOTA_UNAVAILABLE"));
+
+        assertThat(mockUpstream.getRequestCount()).isEqualTo(before);
+    }
+
+    /** The break-glass lever governs the quota path too — one lever, as the filter's field says. */
+    @Test
+    void nlqQuota_failOpenLetsAnUndeterminableAllowanceThrough() {
+        Object original = ReflectionTestUtils.getField(featureFlagGlobalFilter, "failOpen");
+        ReflectionTestUtils.setField(featureFlagGlobalFilter, "failOpen", true);
+        try {
+            redisTemplate.opsForValue().set("tenant:status:" + tenantId, "ACTIVE");
+            redisTemplate.opsForValue().set("tenant_features:" + tenantId + ":FEATURE_NLQ", "true");
+            platformAdmin().enqueue(new MockResponse().setResponseCode(500).setBody("{\"error\":\"boom\"}"));
+            mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{\"rows\":[]}"));
+            int before = mockUpstream.getRequestCount();
+
+            webTestClient.get()
+                    .uri("/api/v1/nlq/query")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                    .exchange()
+                    .expectStatus().isOk();
+
+            assertThat(mockUpstream.getRequestCount()).isEqualTo(before + 1);
+            assertThat(redisTemplate.hasKey("tenant:nlq_quota:" + tenantId)).isFalse();
+        } finally {
+            ReflectionTestUtils.setField(featureFlagGlobalFilter, "failOpen", original);
+        }
     }
 
     // ── Tenant-status resolution (D-33) ─────────────────────────────────────────────────
@@ -447,10 +639,16 @@ class FeatureFlagFilterIT {
 
     /** platform-admin wraps every response in the shared ApiResponse envelope. */
     private static void enqueueStatus(String status) {
+        enqueueStatusWithQuota(status, "5000");
+    }
+
+    /** @param nlqQuota null models a tenant row whose quota column is null. */
+    private static void enqueueStatusWithQuota(String status, String nlqQuota) {
         platformAdmin().enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setHeader("Content-Type", "application/json")
-                .setBody("{\"data\":{\"status\":\"" + status + "\",\"tier\":\"GROWTH\"},"
+                .setBody("{\"data\":{\"status\":\"" + status + "\",\"tier\":\"GROWTH\",\"nlqQuota\":"
+                        + (nlqQuota == null ? "null" : nlqQuota) + "},"
                         + "\"meta\":null,\"warnings\":[]}"));
     }
 

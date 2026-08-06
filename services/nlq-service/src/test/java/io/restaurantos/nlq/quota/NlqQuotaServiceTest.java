@@ -94,6 +94,61 @@ class NlqQuotaServiceTest {
                 .isEqualTo("nlq_quota:" + tenantId + ":" + userId + ":hourly_count");
     }
 
+    /**
+     * The tenant's OWN allowance governs, not the configured default (13-14).
+     *
+     * <p>Both enforcement points compared against a compiled-in number — the gateway's 5,000 and
+     * this service's {@code monthly-quota-default} of 500 — while {@code tenants.nlq_quota} went
+     * unread. The LOWER constant therefore won, so every tenant on the platform was capped at 500
+     * regardless of tier. Fixing only the gateway would have left this cap in place and made the fix
+     * invisible in production, which is why this test exists in this module and not only in that one.
+     */
+    @Test
+    void theTenantsOwnAllowanceGovernsWhenTheGatewayHasPublishedOne() {
+        NlqQuotaService service = newService();
+        UUID tenantId = UUID.randomUUID();
+
+        // The verbatim key the gateway and TenantSubscriptionService write.
+        assertThat(service.tenantLimitKey(tenantId)).isEqualTo("tenant:nlq_quota:" + tenantId);
+        redisTemplate().opsForValue().set(service.tenantLimitKey(tenantId), "5");
+        assertThat(service.effectiveMonthlyLimit(tenantId))
+                .as("MONTHLY_LIMIT is 3; the tenant bought 5")
+                .isEqualTo(5);
+
+        // Five reservations succeed where the configured default would have refused the fourth.
+        for (int i = 0; i < 5; i++) {
+            service.reserve(tenantId, UUID.randomUUID());
+        }
+        assertThatThrownBy(() -> service.reserve(tenantId, UUID.randomUUID()))
+                .isInstanceOf(QuotaExceededException.class);
+    }
+
+    @Test
+    void anAbsentOrUnreadableAllowanceFallsBackToTheConfiguredDefault() {
+        NlqQuotaService service = newService();
+        UUID absent = UUID.randomUUID();
+        UUID junk = UUID.randomUUID();
+        UUID zero = UUID.randomUUID();
+        redisTemplate().opsForValue().set(service.tenantLimitKey(junk), "not-a-number");
+        redisTemplate().opsForValue().set(service.tenantLimitKey(zero), "0");
+
+        // The fallback is CONSERVATIVE: the configured default is smaller than every tier's
+        // allowance, so the failure mode is "throttled early", never "unmetered".
+        assertThat(service.effectiveMonthlyLimit(absent)).isEqualTo(MONTHLY_LIMIT);
+        assertThat(service.effectiveMonthlyLimit(junk)).isEqualTo(MONTHLY_LIMIT);
+        assertThat(service.effectiveMonthlyLimit(zero)).isEqualTo(MONTHLY_LIMIT);
+    }
+
+    private StringRedisTemplate redisTemplate() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(
+                REDIS.getHost(), REDIS.getMappedPort(6379));
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(config);
+        factory.afterPropertiesSet();
+        StringRedisTemplate template = new StringRedisTemplate(factory);
+        template.afterPropertiesSet();
+        return template;
+    }
+
     @Test
     void atMonthlyLimit_throwsAndRollsBackToExactlyTheLimit() {
         NlqQuotaService service = newService();

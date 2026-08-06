@@ -75,12 +75,35 @@ public class PlatformAdminClient {
      * @return Mono emitting "ACTIVE", "SUSPENDED", or "CANCELLED"
      */
     public Mono<String> getStatus(UUID tenantId) {
+        return getTenantStatus(tenantId).map(TenantStatus::status);
+    }
+
+    /**
+     * The whole status payload: lifecycle status, tier, and the tenant's own NLQ quota.
+     *
+     * <p>Added by 13-14 alongside {@link #getStatus}, which stays because the status path is the
+     * hot one and reads better without a projection. Both go through the same request; the quota
+     * is a field platform-admin now returns beside the tier it already did, so a per-tenant quota
+     * costs no extra round trip.
+     *
+     * <p>Errors are NOT swallowed, for the reason {@link #getStatus} documents at length: only
+     * {@code FeatureFlagGlobalFilter} may decide what an unanswerable question means.
+     */
+    public Mono<TenantStatus> getTenantStatus(UUID tenantId) {
         return webClient.get()
                 .uri(STATUS_PATH, tenantId)
                 .retrieve()
                 .bodyToMono(StatusEnvelope.class)
-                .map(env -> env.data().status());
+                .map(env -> new TenantStatus(env.data().status(), env.data().tier(),
+                        env.data().nlqQuota()));
     }
+
+    /**
+     * @param nlqQuota the tenant's monthly NLQ allowance. Null when platform-admin has no number
+     *                 for this tenant (the column is null) — which the filter must treat as
+     *                 undeterminable and refuse, NOT as unlimited.
+     */
+    public record TenantStatus(String status, String tier, Integer nlqQuota) {}
 
     /**
      * Fetches the enabled feature codes for a tenant from platform-admin.
@@ -137,7 +160,7 @@ public class PlatformAdminClient {
     record StatusEnvelope(StatusData data) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record StatusData(String status, String tier) {}
+    record StatusData(String status, String tier, Integer nlqQuota) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record FeaturesEnvelope(FeaturesData data) {}
