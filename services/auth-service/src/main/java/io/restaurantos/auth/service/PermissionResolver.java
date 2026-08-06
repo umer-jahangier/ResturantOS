@@ -3,9 +3,11 @@ package io.restaurantos.auth.service;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,11 +22,14 @@ public class PermissionResolver {
 
     private final UserBranchRoleRepository userBranchRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final EntityManager entityManager;
 
     public PermissionResolver(UserBranchRoleRepository userBranchRoleRepository,
-                              RolePermissionRepository rolePermissionRepository) {
+                              RolePermissionRepository rolePermissionRepository,
+                              EntityManager entityManager) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.entityManager = entityManager;
     }
 
     public ResolvedBranchAuth resolve(UUID userId, UUID branchId) {
@@ -36,6 +41,25 @@ public class PermissionResolver {
 
     public ResolvedBranchAuth resolveDefault(UUID userId) {
         return buildForAssignment(selectDefaultBranch(userId));
+    }
+
+    /**
+     * Resolve for a caller that arrives over {@code /internal/auth/**} rather than with a JWT.
+     *
+     * <p>{@link #resolve} and {@link #resolveDefault} rely on the tenant GUC already being on the
+     * connection, which is true on the login path because {@code AuthServiceImpl.login} sets it.
+     * It is NOT true for the internal endpoint: there is no JWT there, so nothing populates
+     * {@code TenantContext} and {@code TenantAwareDataSource} sets no GUC. Every RLS-protected read
+     * then matches zero rows, and "this user has no active branch assignments" — a message that
+     * means the user is locked out — is returned for a user whose assignments are sitting right
+     * there. The header the endpoint already documented as required is now actually read, and used.
+     */
+    @Transactional(readOnly = true)
+    public ResolvedBranchAuth resolveForTenant(UUID tenantId, UUID userId, UUID branchId) {
+        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+            .setParameter("tid", tenantId.toString())
+            .getSingleResult();
+        return resolve(userId, branchId);
     }
 
     /**

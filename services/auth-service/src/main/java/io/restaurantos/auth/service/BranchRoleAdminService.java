@@ -4,6 +4,7 @@ import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,11 +20,40 @@ public class BranchRoleAdminService {
 
     private final UserBranchRoleRepository userBranchRoleRepository;
     private final TenantContext tenantContext;
+    private final EntityManager entityManager;
 
     public BranchRoleAdminService(UserBranchRoleRepository userBranchRoleRepository,
-                                  TenantContext tenantContext) {
+                                  TenantContext tenantContext,
+                                  EntityManager entityManager) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.tenantContext = tenantContext;
+        this.entityManager = entityManager;
+    }
+
+    /**
+     * Sets the RLS tenant GUC inside the active transaction.
+     *
+     * <p>Neither {@code assign} nor {@code revoke} did this, and both are reached over
+     * {@code /internal/auth/**}, where there is no JWT — so {@code JwtAuthenticationFilter} never
+     * populates {@link TenantContext}, {@code TenantAwareDataSource} sees an empty context, and no
+     * GUC reaches the connection. {@code user_branch_roles} is FORCE ROW LEVEL SECURITY on that
+     * GUC, so the INSERT was rejected outright: <em>"new row violates row-level security policy
+     * for table user_branch_roles"</em>.
+     *
+     * <p>That means the only write path for {@code user_branch_roles} — the door user-service
+     * delegates every role assignment through — has never worked against a database that actually
+     * enforces RLS. It passed every test because Testcontainers' Postgres user is a superuser and
+     * superusers bypass row security entirely, so the whole suite was green against a database that
+     * could not reproduce the failure. It was found by driving the real endpoint against the real
+     * dev stack.
+     *
+     * <p>{@code BranchAssignmentService.listActive} and {@code BranchSwitchService.switchBranch}
+     * already do exactly this, for exactly this reason; these two methods were simply missed.
+     */
+    private void setTenantGuc(UUID tenantId) {
+        entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+            .setParameter("tid", tenantId.toString())
+            .getSingleResult();
     }
 
     /**
@@ -51,6 +81,7 @@ public class BranchRoleAdminService {
      */
     @Transactional
     public RoleAssignmentResult assign(UUID tenantId, UUID userId, BranchRoleAssignRequest req) {
+        setTenantGuc(tenantId);
         List<UserBranchRoleEntity> activeAtBranch =
             userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, req.branchId());
         boolean hadNoActiveAssignmentAnywhere =
@@ -106,6 +137,7 @@ public class BranchRoleAdminService {
      */
     @Transactional
     public void revoke(UUID tenantId, UUID userId, UUID branchId, String roleCode) {
+        setTenantGuc(tenantId);
         userBranchRoleRepository
             .findByUserIdAndBranchIdAndRoleCode(userId, branchId, roleCode)
             .ifPresent(e -> {

@@ -55,10 +55,15 @@ public interface AuthInternalClient {
     /**
      * Compute permissions for a user at a branch (optional branchId).
      * Corresponds to GET /internal/auth/users/{userId}/permissions.
+     *
+     * <p>X-Tenant-Id is required in practice even though auth-service accepts its absence: it is
+     * what puts the RLS GUC on auth-service's connection. Omitting it made every read match zero
+     * rows and answer "user has no active branch assignments" for a user who had them.
      */
     @GetMapping("/internal/auth/users/{userId}/permissions")
     Map<String, Object> getUserPermissions(
         @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
         @RequestParam(value = "branchId", required = false) UUID branchId
     );
 }

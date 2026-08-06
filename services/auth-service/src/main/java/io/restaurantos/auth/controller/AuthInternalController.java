@@ -76,13 +76,27 @@ public class AuthInternalController {
 
     /**
      * Compute permissions for a user at a specific branch.
-     * Caller (user-service via Feign) must supply X-Tenant-Id so TenantFilterInterceptor
-     * sets the Postgres GUC. In tests, GUC is already set by @BeforeEach setRls().
+     *
+     * <p>X-Tenant-Id is what puts the RLS GUC on the connection. This method's contract has always
+     * said so, but it never declared the header and nothing else read it: there is no JWT on
+     * {@code /internal/**}, so {@code TenantFilterInterceptor} has no TenantContext to act on and
+     * {@code TenantAwareDataSource} sets no GUC. Every RLS-protected read then matched zero rows
+     * and the caller got "user has no active branch assignments" — the message for a locked-out
+     * user — about a user whose assignments were present the whole time. Tests could not see it,
+     * because Testcontainers' Postgres user is a superuser and superusers bypass row security.
+     *
+     * <p>The header stays optional so the pre-existing callers that omit it keep their current
+     * behaviour rather than starting to 400: inside auth-service's own login transaction the GUC is
+     * already set, and that path calls the resolver directly, not through here.
      */
     @GetMapping("/users/{userId}/permissions")
     public ResponseEntity<ResolvedBranchAuth> getUserPermissions(
             @PathVariable UUID userId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId,
             @RequestParam(required = false) UUID branchId) {
+        if (tenantId != null) {
+            return ResponseEntity.ok(permissionResolver.resolveForTenant(tenantId, userId, branchId));
+        }
         ResolvedBranchAuth resolved = branchId != null
             ? permissionResolver.resolve(userId, branchId)
             : permissionResolver.resolveDefault(userId);

@@ -3,6 +3,7 @@ package io.restaurantos.auth.service;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +41,7 @@ class PermissionResolverTest {
         assignments = mock(UserBranchRoleRepository.class);
         RolePermissionRepository permissions = mock(RolePermissionRepository.class);
         when(permissions.findPermissionCodesByRoleCodes(anyList())).thenReturn(List.of("pos.order.create"));
-        resolver = new PermissionResolver(assignments, permissions);
+        resolver = new PermissionResolver(assignments, permissions, mock(EntityManager.class));
     }
 
     // ── Resolving at a named branch ───────────────────────────────────────────

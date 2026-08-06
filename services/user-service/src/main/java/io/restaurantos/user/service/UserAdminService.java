@@ -45,6 +45,7 @@ public class UserAdminService {
      * Used for JWT-feeding lookups; auth-service is authoritative.
      */
     public Map<String, Object> getUserPermissions(UUID userId, UUID branchId) {
-        return authInternalClient.getUserPermissions(userId, branchId);
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.getUserPermissions(userId, tenantId, branchId);
     }
 }
