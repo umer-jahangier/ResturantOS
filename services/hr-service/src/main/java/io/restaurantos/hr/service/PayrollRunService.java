@@ -41,11 +41,13 @@ public class PayrollRunService {
     private final EobiCalculator eobiCalculator;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
+    private final LateArrivalDeductionService lateArrivalDeductionService;
 
     public PayrollRunService(PayrollRunRepository runRepository, PayslipRepository payslipRepository,
                              EmployeeRepository employeeRepository, TaxConfigService taxConfigService,
                              SlabTaxCalculator slabTaxCalculator, EobiCalculator eobiCalculator,
-                             EventPublisher eventPublisher, TenantContext tenantContext) {
+                             EventPublisher eventPublisher, TenantContext tenantContext,
+                             LateArrivalDeductionService lateArrivalDeductionService) {
         this.runRepository = runRepository;
         this.payslipRepository = payslipRepository;
         this.employeeRepository = employeeRepository;
@@ -54,6 +56,7 @@ public class PayrollRunService {
         this.eobiCalculator = eobiCalculator;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+        this.lateArrivalDeductionService = lateArrivalDeductionService;
     }
 
     @Transactional
@@ -105,7 +108,8 @@ public class PayrollRunService {
             long incomeTaxMonth = (annualTax + surcharge) / 12;
 
             long advances = 0;
-            long lateArrival = 0; // wired from attendance in 11-09
+            long lateArrival = lateArrivalDeductionService.computeMonthlyDeduction(
+                    emp.getId(), run.getPeriodMonth(), run.getPeriodYear());
             long net = gross - incomeTaxMonth - eobiEmployee - advances - lateArrival;
 
             PayslipEntity slip = new PayslipEntity();
