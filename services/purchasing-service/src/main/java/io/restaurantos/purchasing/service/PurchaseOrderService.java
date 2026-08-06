@@ -13,6 +13,7 @@ import io.restaurantos.purchasing.exception.VendorItemCatalogMismatchException;
 import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
 import io.restaurantos.purchasing.repository.VendorItemPriceRepository;
+import io.restaurantos.purchasing.repository.MockGrnReceiptRepository;
 import io.restaurantos.purchasing.repository.VendorItemRepository;
 import io.restaurantos.purchasing.repository.VendorRepository;
 import io.restaurantos.shared.api.ApiResponse;
@@ -47,6 +48,7 @@ public class PurchaseOrderService {
     private final VendorItemRepository vendorItemRepository;
     private final VendorItemPriceRepository vendorItemPriceRepository;
     private final VendorRepository vendorRepository;
+    private final MockGrnReceiptRepository mockGrnReceiptRepository;
 
     public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
                                 TenantContext tenantContext,
@@ -55,7 +57,8 @@ public class PurchaseOrderService {
                                 EventPublisher eventPublisher,
                                 VendorItemRepository vendorItemRepository,
                                 VendorItemPriceRepository vendorItemPriceRepository,
-                                VendorRepository vendorRepository) {
+                                VendorRepository vendorRepository,
+                                MockGrnReceiptRepository mockGrnReceiptRepository) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.tenantContext = tenantContext;
         this.tenantSetupService = tenantSetupService;
@@ -64,6 +67,7 @@ public class PurchaseOrderService {
         this.vendorItemRepository = vendorItemRepository;
         this.vendorItemPriceRepository = vendorItemPriceRepository;
         this.vendorRepository = vendorRepository;
+        this.mockGrnReceiptRepository = mockGrnReceiptRepository;
     }
 
     @Transactional
@@ -298,6 +302,11 @@ public class PurchaseOrderService {
                         .collect(Collectors.toMap(VendorItem::getId, v -> v));
         Map<UUID, VendorItemPrice> currentPriceById =
                 currentPricesByItem(tenantId, vendorItemIds, po.getBranchId());
+        // ONE grouped query for the whole PO, never one per line.
+        Map<UUID, BigDecimal> receivedByLine = new java.util.HashMap<>();
+        for (Object[] row : mockGrnReceiptRepository.sumReceivedQtyByPurchaseOrderGroupedByLine(po.getId())) {
+            receivedByLine.put((UUID) row[0], (BigDecimal) row[1]);
+        }
 
         return new PurchaseOrderDto(
                 po.getId(), po.getVendorId(), po.getBranchId(), po.getStatus(),
@@ -321,7 +330,8 @@ public class PurchaseOrderService {
                             l.getVendorItemId(),
                             catalogItem != null ? catalogItem.getVendorSku() : null,
                             catalogItem != null ? catalogItem.getPackDescription() : null,
-                            overridden);
+                            overridden,
+                            receivedByLine.getOrDefault(l.getId(), BigDecimal.ZERO));
                 }).toList());
     }
 }

@@ -128,7 +128,7 @@ class GrnReceiptSimulatorIT extends PurchasingTestBase {
         catalogItem.setOrderUom("CASE");
         catalogItem.setPackQty(new BigDecimal("5"));
         catalogItem.setPackUom("KG");
-        catalogItem.setQtyPerOrderUnitInStockUom(new BigDecimal("5"));
+        catalogItem.setPackUnitsPerOrderUnit(new BigDecimal("5"));
         catalogItem = vendorItemRepository.save(catalogItem);
 
         PurchaseOrderLine line = lineRepository.findById(lineId).orElseThrow();

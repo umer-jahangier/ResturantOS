@@ -110,7 +110,7 @@ class InventoryAutoPostingIT extends AutoPostingITBase {
                 new InventoryEventContract.TransferShippedPayload(
                         transferId, branchId, UUID.randomUUID(),
                         List.of(new InventoryEventContract.TransferLine(
-                                UUID.randomUUID(), new BigDecimal("5.0"), 45_000L, 225_000L))));
+                                UUID.randomUUID(), new BigDecimal("5.0"), new BigDecimal("45000"), 225_000L))));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_TRANSFER_SHIP, transferId);
 
@@ -118,7 +118,7 @@ class InventoryAutoPostingIT extends AutoPostingITBase {
                 new InventoryEventContract.TransferReceivedPayload(
                         transferId, branchId,
                         List.of(new InventoryEventContract.TransferLine(
-                                UUID.randomUUID(), new BigDecimal("5.0"), 45_000L, 225_000L))));
+                                UUID.randomUUID(), new BigDecimal("5.0"), new BigDecimal("45000"), 225_000L))));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_TRANSFER_RECV, transferId);
     }
@@ -153,7 +153,8 @@ class InventoryAutoPostingIT extends AutoPostingITBase {
         UUID lotId = UUID.randomUUID();
         publish(InventoryEventContract.STOCK_RECEIVED_KEY, InventoryEventContract.STOCK_RECEIVED,
                 new InventoryEventContract.StockReceivedPayload(
-                        UUID.randomUUID(), branchId, new BigDecimal("10"), 5_000L, 50_000L, 5_000L,
+                        UUID.randomUUID(), branchId, new BigDecimal("10"),
+                        new BigDecimal("5000"), 50_000L, new BigDecimal("5000"),
                         lotId, null, "GRN", UUID.randomUUID()));
 
         awaitJe(AutoPostingRecipeEngine.SOURCE_STOCK_RECEIPT, lotId);

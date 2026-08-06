@@ -249,10 +249,13 @@ public class DepletionService {
      *
      * <p>Exposed {@code public static} so {@code DepletionCogsTest} can drive it directly.
      */
-    public static long computeCogsPaisa(BigDecimal effectiveBaseQty, long avgCostPaisa) {
-        return effectiveBaseQty.multiply(BigDecimal.valueOf(avgCostPaisa))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+    /**
+     * COGS is an AMOUNT — whole paisa — derived from a quantity times a rate. Since V12 the rate
+     * carries decimals, so the rounding happens here, once, at the rate→amount boundary rather
+     * than being baked into the stored average.
+     */
+    public static long computeCogsPaisa(BigDecimal effectiveBaseQty, BigDecimal avgCostPaisa) {
+        return MacCalculator.extendedCostPaisa(effectiveBaseQty, avgCostPaisa);
     }
 
     private static IngredientBranchStock newStockRow(UUID tenantId, UUID branchId, UUID ingredientId) {
@@ -261,7 +264,7 @@ public class DepletionService {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(BigDecimal.ZERO);
-        stock.setAvgCostPaisa(0L);
+        stock.setAvgCostPaisa(BigDecimal.ZERO);
         return stock;
     }
 }

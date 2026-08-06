@@ -61,13 +61,13 @@ class MacRecomputeIT extends InventoryTestBase {
                 new ReceiveStockRequest(ingredientId, branchId, BigDecimal.TEN, 700L, null));
 
         assertThat(result.newQtyOnHand()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(result.newAvgCostPaisa()).isEqualTo(600L);
+        assertThat(result.newAvgCostPaisa()).isEqualByComparingTo("600");
 
         Optional<IngredientBranchStock> stock =
                 stockRepository.findByBranchIdAndIngredientId(branchId, ingredientId);
         assertThat(stock).isPresent();
         assertThat(stock.get().getQtyOnHand()).isEqualByComparingTo(BigDecimal.valueOf(20));
-        assertThat(stock.get().getAvgCostPaisa()).isEqualTo(600L);
+        assertThat(stock.get().getAvgCostPaisa()).isEqualByComparingTo("600");
     }
 
     @Test
@@ -75,7 +75,7 @@ class MacRecomputeIT extends InventoryTestBase {
         ReceiptResultDto result = receiptService.receive(
                 new ReceiveStockRequest(ingredientId, branchId, BigDecimal.TEN, 700L, null));
 
-        assertThat(result.newAvgCostPaisa()).isEqualTo(700L);
+        assertThat(result.newAvgCostPaisa()).isEqualByComparingTo("700");
         assertThat(result.newQtyOnHand()).isEqualByComparingTo(BigDecimal.TEN);
     }
 
@@ -92,7 +92,7 @@ class MacRecomputeIT extends InventoryTestBase {
         assertThat(lots).hasSize(1);
         assertThat(lots.get(0).getId()).isEqualTo(result.lotId());
         assertThat(lots.get(0).getExpiryDate()).isEqualTo(expiry);
-        assertThat(lots.get(0).getReceiptUnitCostPaisa()).isEqualTo(300L);
+        assertThat(lots.get(0).getReceiptUnitCostPaisa()).isEqualByComparingTo("300");
 
         List<InventoryMovement> movements = movementRepository.findAll().stream()
                 .filter(m -> m.getIngredientId().equals(ingredientId) && "RECEIPT".equals(m.getMovementType()))

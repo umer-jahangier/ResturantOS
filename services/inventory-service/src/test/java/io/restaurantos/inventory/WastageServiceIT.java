@@ -68,7 +68,7 @@ class WastageServiceIT extends InventoryTestBase {
         // thrown away and a kilo sold hit the P&L at the same number.
         assertThat(result.totalCostPaisa()).isEqualTo(50_000L);
         assertThat(result.lines()).singleElement()
-                .satisfies(l -> assertThat(l.unitCostPaisa()).isEqualTo(5_000L));
+                .satisfies(l -> assertThat(l.unitCostPaisa()).isEqualByComparingTo("5000"));
 
         assertThat(stockRepository.findByBranchIdAndIngredientId(branchId, ingredientId)
                 .orElseThrow().getQtyOnHand())

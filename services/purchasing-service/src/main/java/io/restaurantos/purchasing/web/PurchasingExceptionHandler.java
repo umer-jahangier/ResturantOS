@@ -5,6 +5,7 @@ import io.restaurantos.purchasing.exception.DuplicateApproverException;
 import io.restaurantos.purchasing.exception.IngredientNotInTenantException;
 import io.restaurantos.purchasing.exception.InvalidPoStateException;
 import io.restaurantos.purchasing.exception.InventoryUnavailableException;
+import io.restaurantos.purchasing.exception.PackUomInvalidException;
 import io.restaurantos.purchasing.exception.VendorItemCatalogMismatchException;
 import io.restaurantos.shared.api.ApiError;
 import org.slf4j.MDC;
@@ -37,6 +38,18 @@ public class PurchasingExceptionHandler {
 
     @ExceptionHandler(IngredientNotInTenantException.class)
     public ResponseEntity<ApiError> handleIngredientNotInTenant(IngredientNotInTenantException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
+    }
+
+    /**
+     * 422, like its sibling above: the request is well-formed, it just cannot be processed against
+     * this tenant's unit registry. Without an explicit handler this would resolve through
+     * shared-lib's {@code RestaurantOsException} catch-all to a bare 400 with no distinction from
+     * a malformed body.
+     */
+    @ExceptionHandler(PackUomInvalidException.class)
+    public ResponseEntity<ApiError> handlePackUomInvalid(PackUomInvalidException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
     }

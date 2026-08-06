@@ -98,7 +98,7 @@ public class WastageService {
                     .orElseGet(() -> stockRepository.save(
                             newStockRow(tenantId, request.branchId(), line.ingredientId())));
 
-            long unitCostPaisa = stock.getAvgCostPaisa();
+            BigDecimal unitCostPaisa = stock.getAvgCostPaisa();
             long lineCostPaisa = roundCostPaisa(line.qty(), unitCostPaisa);
 
             // Aggregate qty may go negative on an over-write-off, exactly as depletion allows on
@@ -192,13 +192,12 @@ public class WastageService {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(BigDecimal.ZERO);
-        stock.setAvgCostPaisa(0L);
+        stock.setAvgCostPaisa(BigDecimal.ZERO);
         return stock;
     }
 
-    private static long roundCostPaisa(BigDecimal qty, long unitCostPaisa) {
-        return qty.multiply(BigDecimal.valueOf(unitCostPaisa))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+    /** A quantity times a per-unit rate is an AMOUNT — whole paisa (V12). */
+    private static long roundCostPaisa(BigDecimal qty, BigDecimal unitCostPaisa) {
+        return MacCalculator.extendedCostPaisa(qty, unitCostPaisa);
     }
 }

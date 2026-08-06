@@ -52,7 +52,7 @@ class GrnPendingCountIT extends InventoryTestBase {
         movement.setIngredientId(UUID.randomUUID());
         movement.setMovementType("RECEIPT");
         movement.setQty(BigDecimal.TEN);
-        movement.setUnitCostPaisa(100L);
+        movement.setUnitCostPaisa(BigDecimal.valueOf(100L));
         movement.setTotalCostPaisa(1000L);
         movement.setReferenceType("PENDING_GRN");
         movement.setMovementAt(Instant.now());

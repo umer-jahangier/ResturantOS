@@ -56,7 +56,7 @@ public class OpeningBalanceService {
                 .orElseGet(() -> newStockRow(tenantId, request.branchId(), request.ingredientId()));
 
         BigDecimal existingQty = stock.getQtyOnHand();
-        long newAvgCostPaisa = MacCalculator.recomputeAvgCostPaisa(
+        BigDecimal newAvgCostPaisa = MacCalculator.recomputeAvgCostPaisa(
                 existingQty, stock.getAvgCostPaisa(), request.qty(), request.unitCostPaisa());
 
         stock.setQtyOnHand(existingQty.add(request.qty()));
@@ -73,10 +73,7 @@ public class OpeningBalanceService {
         lot.setReceiptUnitCostPaisa(request.unitCostPaisa());
         lotRepository.save(lot);
 
-        long totalCostPaisa = request.qty()
-                .multiply(BigDecimal.valueOf(request.unitCostPaisa()))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+        long totalCostPaisa = MacCalculator.extendedCostPaisa(request.qty(), request.unitCostPaisa());
 
         InventoryMovement movement = new InventoryMovement();
         movement.setTenantId(tenantId);
@@ -96,7 +93,7 @@ public class OpeningBalanceService {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(BigDecimal.ZERO);
-        stock.setAvgCostPaisa(0L);
+        stock.setAvgCostPaisa(BigDecimal.ZERO);
         return stock;
     }
 }

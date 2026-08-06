@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <!--
+        Retires `pos.order.void`, a permission row that exists in this database and is declared by
+        no changeset anywhere.
+
+        It was applied by hand. Nothing enforces it: POS voids authorize on
+        hasAnyAuthority('pos.order.void.own','pos.order.void.any'), and the Rego policies read the
+        same two codes. The bare code is therefore a permission that grants nothing while looking
+        like it grants everything about voiding — the worst shape a stale grant can take, because a
+        reviewer reading role_permissions concludes MANAGER can void and cannot tell from which row.
+
+        It also spreads. Changesets 030/041/042 grant OWNER and TENANT_ADMIN *every* row in
+        `permissions` via INSERT ... SELECT code FROM permissions, so an orphan row is picked up by
+        those blanket grants on any database where it exists — which is why the drift showed up
+        against three roles rather than the one it was inserted for.
+
+        Scope note: an earlier pass reported ~46 undeclared grants. That count was a measurement
+        error — it parsed only literal VALUES tuples and so missed the SELECT-based blanket grants
+        above, which ARE declared. Re-measured properly, the drift is this single permission code
+        and the three role rows it produced. A fresh deployment matches this database once it is
+        gone.
+
+        Deletes rather than declares: adding it to the catalog would bless a code no authorization
+        path consults. Idempotent and safe on a clean database, where it deletes nothing.
+    -->
+    <changeSet id="auth-1.0.0-054-retire-orphan-pos-order-void" author="restaurantos">
+        <comment>Remove the hand-applied pos.order.void permission; .own/.any are what enforce</comment>
+
+        <sql>
+            DELETE FROM role_permissions WHERE permission_code = 'pos.order.void';
+        </sql>
+        <sql>
+            DELETE FROM permissions WHERE code = 'pos.order.void';
+        </sql>
+
+        <rollback>
+            <!--
+                Restoring the orphan means restoring a row no changeset declares, so the rollback
+                recreates exactly what was removed and nothing more: the catalog row plus the three
+                role grants observed on 2026-08-02 (MANAGER directly; OWNER and TENANT_ADMIN via
+                the blanket grants).
+            -->
+            <sql>
+                INSERT INTO permissions (code, name, description)
+                VALUES ('pos.order.void', 'Void order', 'Superseded by pos.order.void.own/.any')
+                ON CONFLICT (code) DO NOTHING;
+            </sql>
+            <sql>
+                INSERT INTO role_permissions (role_code, permission_code) VALUES
+                    ('MANAGER', 'pos.order.void'),
+                    ('OWNER', 'pos.order.void'),
+                    ('TENANT_ADMIN', 'pos.order.void')
+                ON CONFLICT DO NOTHING;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -77,7 +77,8 @@ public final class InventoryFixtures {
         stock.setBranchId(branchId);
         stock.setIngredientId(ingredientId);
         stock.setQtyOnHand(qtyOnHand);
-        stock.setAvgCostPaisa(avgCostPaisa);
+        // Fixtures keep taking whole paisa; the column is a fractional RATE since V12.
+        stock.setAvgCostPaisa(BigDecimal.valueOf(avgCostPaisa));
         return repository.save(stock);
     }
 
@@ -91,7 +92,7 @@ public final class InventoryFixtures {
         lot.setStockId(stockId);
         lot.setQty(qty);
         lot.setExpiryDate(expiryDate);
-        lot.setReceiptUnitCostPaisa(receiptUnitCostPaisa);
+        lot.setReceiptUnitCostPaisa(BigDecimal.valueOf(receiptUnitCostPaisa));
         return repository.save(lot);
     }
 }

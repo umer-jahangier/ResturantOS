@@ -140,7 +140,7 @@ public class GrnReceiptSimulator {
      * that as one, which is what happened for every receipt before this existed.
      */
     private static BigDecimal packFactor(VendorItem catalogItem) {
-        return catalogItem == null ? null : catalogItem.getQtyPerOrderUnitInStockUom();
+        return catalogItem == null ? null : catalogItem.getPackUnitsPerOrderUnit();
     }
 
     /**

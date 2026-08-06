@@ -38,6 +38,9 @@
     <include file="db/changelog/v1.0.0/070-create-password-history.xml"/>
     <include file="db/changelog/v1.0.0/080-add-must-change-password.xml"/>
     <include file="db/changelog/v1.0.0/053-fix-rls-tenant-guc-policies.xml"/>
+    <!-- After 041/042's blanket OWNER/TENANT_ADMIN grants, so the orphan they propagate is
+         removed rather than re-granted on the next run. -->
+    <include file="db/changelog/v1.0.0/054-retire-orphan-pos-order-void.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-auth-dev-data.xml"/>
     <include file="db/changelog/v1.0.0/902-seed-purchasing-demo-users.xml"/>
 

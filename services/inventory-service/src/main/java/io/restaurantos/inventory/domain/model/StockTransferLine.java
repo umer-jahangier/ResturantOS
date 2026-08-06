@@ -45,6 +45,7 @@ public class StockTransferLine extends TenantAuditableEntity {
     @Column(name = "variance_qty", nullable = false, precision = 18, scale = 4)
     private BigDecimal varianceQty = BigDecimal.ZERO;
 
-    @Column(name = "unit_cost_paisa", nullable = false)
-    private long unitCostPaisa;
+    /** The shipping branch's MAC per stock unit, in paisa (V12: NUMERIC(18,4)) — a rate. */
+    @Column(name = "unit_cost_paisa", nullable = false, precision = 18, scale = 4)
+    private BigDecimal unitCostPaisa = BigDecimal.ZERO;
 }

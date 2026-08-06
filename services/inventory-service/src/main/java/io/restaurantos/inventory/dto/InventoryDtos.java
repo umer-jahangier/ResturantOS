@@ -145,6 +145,14 @@ public final class InventoryDtos {
             @NotNull UUID ingredientId,
             @NotNull UUID branchId,
             @NotNull @Positive BigDecimal qty,
-            @NotNull @PositiveOrZero Long unitCostPaisa,
-            LocalDate expiryDate) {}
+            /** Cost of one stock unit, in paisa — a rate, so fractional is legitimate (V12). */
+            @NotNull @PositiveOrZero BigDecimal unitCostPaisa,
+            LocalDate expiryDate) {
+
+        /** Whole-paisa convenience for callers and tests that only have an integer cost. */
+        public RecordOpeningBalanceRequest(UUID ingredientId, UUID branchId, BigDecimal qty,
+                                            long unitCostPaisa, LocalDate expiryDate) {
+            this(ingredientId, branchId, qty, BigDecimal.valueOf(unitCostPaisa), expiryDate);
+        }
+    }
 }

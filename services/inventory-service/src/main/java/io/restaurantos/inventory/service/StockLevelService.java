@@ -111,12 +111,12 @@ public class StockLevelService {
     private static StockLevelDto toDto(Ingredient ingredient, IngredientBranchStock stock,
                                         ItemCategoryService.CategoryDefaults category) {
         BigDecimal qtyOnHand = stock != null ? stock.getQtyOnHand() : BigDecimal.ZERO;
-        long avgCostPaisa = stock != null ? stock.getAvgCostPaisa() : 0L;
+        BigDecimal avgCostPaisa = stock != null ? stock.getAvgCostPaisa() : BigDecimal.ZERO;
         var lastCountedAt = stock != null ? stock.getLastCountedAt() : null;
         BigDecimal reorderPoint = ingredient.getReorderPoint();
 
         long stockValuePaisa = qtyOnHand
-                .multiply(BigDecimal.valueOf(avgCostPaisa))
+                .multiply(avgCostPaisa)
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValueExact();
 

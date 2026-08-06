@@ -33,7 +33,7 @@ public final class StockLevelDtos {
             String categoryName,
             BigDecimal qtyOnHand,
             BigDecimal reorderPoint,
-            long avgCostPaisa,
+            BigDecimal avgCostPaisa,
             long stockValuePaisa,
             Instant lastCountedAt,
             boolean belowReorderPoint,

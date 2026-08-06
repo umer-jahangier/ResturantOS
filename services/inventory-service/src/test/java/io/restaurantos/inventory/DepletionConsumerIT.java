@@ -131,7 +131,7 @@ class DepletionConsumerIT extends InventoryTestBase {
         InventoryMovement movement = movementsAfterFirst.get(0);
         assertThat(movement.getMovementType()).isEqualTo("DEPLETION");
         assertThat(movement.getQty()).isEqualByComparingTo(BigDecimal.valueOf(-6));
-        assertThat(movement.getUnitCostPaisa()).isEqualTo(600L); // aggregate MAC, not the lot's 900
+        assertThat(movement.getUnitCostPaisa()).isEqualByComparingTo("600"); // aggregate MAC, not the lot's 900
         assertThat(movement.getTotalCostPaisa()).isEqualTo(3600L); // 6 * 600
         assertThat(movement.getReferenceType()).isEqualTo("ORDER_CLOSED");
 

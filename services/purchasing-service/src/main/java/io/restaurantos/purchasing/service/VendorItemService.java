@@ -46,6 +46,7 @@ public class VendorItemService {
     private final TenantContext tenantContext;
     private final VendorItemPriceService vendorItemPriceService;
     private final IngredientReferenceValidator ingredientReferenceValidator;
+    private final PackUomValidator packUomValidator;
 
     public VendorItemService(VendorItemRepository vendorItemRepository,
                               VendorItemPriceRepository vendorItemPriceRepository,
@@ -53,7 +54,8 @@ public class VendorItemService {
                               VendorRepository vendorRepository,
                               TenantContext tenantContext,
                               VendorItemPriceService vendorItemPriceService,
-                              IngredientReferenceValidator ingredientReferenceValidator) {
+                              IngredientReferenceValidator ingredientReferenceValidator,
+                              PackUomValidator packUomValidator) {
         this.vendorItemRepository = vendorItemRepository;
         this.vendorItemPriceRepository = vendorItemPriceRepository;
         this.vendorCategoryRepository = vendorCategoryRepository;
@@ -61,6 +63,7 @@ public class VendorItemService {
         this.tenantContext = tenantContext;
         this.vendorItemPriceService = vendorItemPriceService;
         this.ingredientReferenceValidator = ingredientReferenceValidator;
+        this.packUomValidator = packUomValidator;
     }
 
     public Page<VendorItemDto> list(UUID vendorId, Pageable pageable) {
@@ -86,6 +89,9 @@ public class VendorItemService {
         // catalog row that would otherwise carry a dangling/foreign reference onto PO lines and
         // spend analytics. Authoritative under integration-mode=feign; a permissive no-op in mock.
         ingredientReferenceValidator.requireIngredientInTenant(req.ingredientId());
+        // The pack unit is what inventory converts a goods receipt BY. An unresolvable one
+        // is not a cosmetic problem: the receipt lands at face value, silently wrong.
+        packUomValidator.requireKnownPackUom(req.packUom());
 
         if (vendorItemRepository.existsByTenantIdAndVendorIdAndVendorSku(tenantId, vendorId, req.vendorSku())) {
             throw new StateInvalidException("Duplicate vendor SKU for this vendor: " + req.vendorSku());
@@ -105,7 +111,7 @@ public class VendorItemService {
         // One order unit holds packQty pack units, by definition. The pack-unit-to-stock-unit leg
         // is NOT applied here and never can be — inventory owns the UOM registry — so the GRN event
         // carries this factor and packUom together and inventory finishes the conversion.
-        item.setQtyPerOrderUnitInStockUom(req.packQty());
+        item.setPackUnitsPerOrderUnit(req.packQty());
         item.setMinOrderQty(req.minOrderQty());
         item.setOrderMultiple(req.orderMultiple());
         item.setLeadTimeDays(req.leadTimeDays());
@@ -135,6 +141,10 @@ public class VendorItemService {
         VendorItem item = vendorItemRepository.findByTenantIdAndId(tenantId, id)
                 .orElseThrow(() -> new ResourceNotFoundException("VendorItem", id));
 
+        // Checked on update too: an edit can introduce an unresolvable pack unit just as easily as
+        // a create, and the row is what every future receipt against this item converts by.
+        packUomValidator.requireKnownPackUom(req.packUom());
+
         item.setVendorSku(req.vendorSku());
         item.setVendorDescription(req.vendorDescription());
         item.setGtin(req.gtin());
@@ -142,7 +152,7 @@ public class VendorItemService {
         item.setPackDescription(req.packDescription());
         item.setPackQty(req.packQty());
         item.setPackUom(req.packUom());
-        item.setQtyPerOrderUnitInStockUom(req.packQty());
+        item.setPackUnitsPerOrderUnit(req.packQty());
         item.setMinOrderQty(req.minOrderQty());
         item.setOrderMultiple(req.orderMultiple());
         item.setLeadTimeDays(req.leadTimeDays());

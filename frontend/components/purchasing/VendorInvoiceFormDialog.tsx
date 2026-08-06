@@ -7,6 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
+import { receivedOrOrderedQty } from "@/lib/models/purchasing.model";
 import { useCreateVendorInvoice, usePurchaseOrders } from "@/lib/hooks/purchasing/use-purchasing";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { VendorInvoiceInput } from "@/lib/adapters/purchasing.adapter";
@@ -114,7 +115,11 @@ export function VendorInvoiceFormDialog({ trigger }: VendorInvoiceFormDialogProp
       po.lines.map((l) => ({
         poLineId: l.id,
         ingredientId: l.ingredientId,
-        qty: l.qty,
+        // What ARRIVED, not what was ordered. A partial delivery defaulted to the full ordered
+        // quantity invites booking a liability for goods that were never delivered — the three-way
+        // match would flag it, but only after the invoice existed and only if someone read the
+        // flag. Falls back to the ordered qty when the backend did not report a received figure.
+        qty: receivedOrOrderedQty(l),
         unitPriceRupees: (l.unitPricePaisa / 100).toFixed(2),
       })),
     );

@@ -41,8 +41,9 @@ public class InventoryMovement extends TenantAuditableEntity {
     @Column(name = "qty", nullable = false, precision = 18, scale = 4)
     private BigDecimal qty;
 
-    @Column(name = "unit_cost_paisa", nullable = false)
-    private long unitCostPaisa;
+    /** Cost of one stock unit at movement time, in paisa (V12: NUMERIC(18,4)) — a rate. */
+    @Column(name = "unit_cost_paisa", nullable = false, precision = 18, scale = 4)
+    private BigDecimal unitCostPaisa = BigDecimal.ZERO;
 
     @Column(name = "total_cost_paisa", nullable = false)
     private long totalCostPaisa;

@@ -67,7 +67,7 @@ class FefoLotWalkTest {
         StockLot lot = new StockLot();
         lot.setQty(qty);
         lot.setExpiryDate(expiryDate);
-        lot.setReceiptUnitCostPaisa(999L); // deliberately distinct from any avg_cost_paisa used in
+        lot.setReceiptUnitCostPaisa(BigDecimal.valueOf(999L)); // deliberately distinct from any avg_cost_paisa used in
                                             // DepletionCogsTest — proves the FEFO walk never reads it.
         return lot;
     }

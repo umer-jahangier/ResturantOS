@@ -250,7 +250,7 @@ public class OrderSuggestionService {
      * is a floor on the final number, not an input to the arithmetic.
      */
     private static BigDecimal orderQty(BigDecimal shortfallInStockUom, VendorItem item) {
-        BigDecimal perOrderUnit = item.getQtyPerOrderUnitInStockUom();
+        BigDecimal perOrderUnit = item.getPackUnitsPerOrderUnit();
         // Null means the catalog never recorded a conversion — treat the order unit as the stock
         // unit rather than skipping the row, so "order 15 kg" still beats "we can't tell you".
         if (perOrderUnit == null || perOrderUnit.signum() <= 0) {

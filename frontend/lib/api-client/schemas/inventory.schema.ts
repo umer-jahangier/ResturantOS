@@ -256,6 +256,14 @@ export const updateStorageLocationInputSchema = createStorageLocationInputSchema
 // categoryId/categoryName/qtyOnHand/reorderPoint/avgCostPaisa/stockValuePaisa/lastCountedAt, plus
 // two server-derived warning flags) — the flags are computed backend-side so the stock screen's
 // warning/destructive row washes can never drift from backend semantics.
+/**
+ * A cost PER STOCK UNIT, in paisa. Deliberately not `.int()`: since V12 the backend stores these
+ * as NUMERIC(18,4) because a rate is not an amount — an ingredient stocked in grams and bought by
+ * the kilogram has a fractional per-gram cost, and rounding it mis-values the stock. Totals
+ * (`stockValuePaisa`, `totalCostPaisa`, ...) stay whole-paisa integers.
+ */
+const unitCostRateField = z.number();
+
 export const apiStockLevelSchema = z.object({
   ingredientId: z.string().uuid(),
   ingredientName: z.string(),
@@ -265,7 +273,7 @@ export const apiStockLevelSchema = z.object({
   categoryName: z.string().nullable().optional(),
   qtyOnHand: qtyField,
   reorderPoint: qtyField,
-  avgCostPaisa: z.number().int(),
+  avgCostPaisa: unitCostRateField,
   stockValuePaisa: z.number().int(),
   lastCountedAt: z.string().nullable().optional(),
   belowReorderPoint: z.boolean(),
@@ -426,7 +434,7 @@ export const recordOpeningBalanceInputSchema = z.object({
   ingredientId: z.string().uuid(),
   branchId: z.string().uuid(),
   qty: qtyInputField,
-  unitCostPaisa: z.number().int().nonnegative(),
+  unitCostPaisa: unitCostRateField.nonnegative(),
   expiryDate: z.string().nullable().optional(),
 });
 
@@ -437,7 +445,7 @@ export const receiveStockInputSchema = z.object({
   ingredientId: z.string().uuid(),
   branchId: z.string().uuid(),
   qty: qtyInputField,
-  unitCostPaisa: z.number().int().positive(),
+  unitCostPaisa: unitCostRateField.positive(),
   expiryDate: z.string().nullable().optional(),
 });
 
@@ -445,7 +453,7 @@ export const receiveStockInputSchema = z.object({
 export const apiReceiptResultSchema = z.object({
   lotId: z.string().uuid(),
   newQtyOnHand: qtyField,
-  newAvgCostPaisa: z.number().int(),
+  newAvgCostPaisa: unitCostRateField,
 });
 
 // Mirrors TransferDtos.TransferLineRequest exactly (ingredientId/qty).
@@ -481,7 +489,7 @@ export const apiTransferLineSchema = z.object({
   qtyShipped: qtyField,
   qtyReceived: qtyField.nullable().optional(),
   varianceQty: qtyField.nullable().optional(),
-  unitCostPaisa: z.number().int(),
+  unitCostPaisa: unitCostRateField,
 });
 
 // Mirrors TransferDtos.TransferDto exactly (transferId/fromBranchId/toBranchId/status/lines) —

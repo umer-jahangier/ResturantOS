@@ -146,7 +146,7 @@ class LiveDepletionProofIT extends InventoryTestBase {
         assertThat(lotAfter.getQty())
                 .isEqualByComparingTo(SEEDED_QTY_ON_HAND.subtract(expectedBaseQty));
 
-        long expectedCogsPaisa = DepletionService.computeCogsPaisa(expectedBaseQty, SEEDED_AVG_COST_PAISA);
+        long expectedCogsPaisa = DepletionService.computeCogsPaisa(expectedBaseQty, BigDecimal.valueOf(SEEDED_AVG_COST_PAISA));
 
         List<InventoryMovement> movements = movementRepository.findByReferenceId(orderId);
         assertThat(movements).hasSize(1);
@@ -155,7 +155,8 @@ class LiveDepletionProofIT extends InventoryTestBase {
         assertThat(movement.getReferenceType()).isEqualTo("ORDER_CLOSED");
         assertThat(movement.getReferenceId()).isEqualTo(orderId);
         assertThat(movement.getQty()).isEqualByComparingTo(expectedBaseQty.negate());
-        assertThat(movement.getUnitCostPaisa()).isEqualTo(SEEDED_AVG_COST_PAISA);
+        assertThat(movement.getUnitCostPaisa()).isEqualByComparingTo(
+                BigDecimal.valueOf(SEEDED_AVG_COST_PAISA));
         assertThat(movement.getTotalCostPaisa()).isEqualTo(expectedCogsPaisa);
 
         // Query ALL outbox rows (not filtered by status="PENDING") — the live OutboxRelay may have

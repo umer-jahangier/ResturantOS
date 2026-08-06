@@ -84,7 +84,7 @@ public class RecipeCostPreviewService {
         Map<String, UnitOfMeasure> uomsByCode = new HashMap<>();
         unitOfMeasureRepository.findByCodeIn(uomCodes).forEach(u -> uomsByCode.put(u.getCode(), u));
 
-        Map<UUID, Long> avgCostByIngredientId = new HashMap<>();
+        Map<UUID, BigDecimal> avgCostByIngredientId = new HashMap<>();
         stockRepository
                 .findByTenantIdAndBranchIdAndIngredientIdIn(tenantId, request.branchId(), ingredientIds)
                 .forEach(s -> avgCostByIngredientId.put(s.getIngredientId(), s.getAvgCostPaisa()));
@@ -158,7 +158,7 @@ public class RecipeCostPreviewService {
 
     private PricedLine priceLine(RecipeLineRequest lineRequest, Ingredient ingredient,
                                   Map<String, UnitOfMeasure> uomsByCode,
-                                  Map<UUID, Long> avgCostByIngredientId,
+                                  Map<UUID, BigDecimal> avgCostByIngredientId,
                                   BigDecimal recipeYieldServings, String ingredientName) {
         if (ingredient == null) {
             return PricedLine.warned(lineRequest.ingredientId(), null,
@@ -171,8 +171,8 @@ public class RecipeCostPreviewService {
                     String.format(WARNING_TEMPLATE, ingredientName));
         }
 
-        Long avgCostPaisa = avgCostByIngredientId.get(ingredient.getId());
-        if (avgCostPaisa == null || avgCostPaisa == 0L) {
+        BigDecimal avgCostPaisa = avgCostByIngredientId.get(ingredient.getId());
+        if (avgCostPaisa == null || avgCostPaisa.signum() == 0) {
             return PricedLine.warned(ingredient.getId(), ingredientName,
                     String.format(WARNING_TEMPLATE, ingredientName));
         }
@@ -185,9 +185,7 @@ public class RecipeCostPreviewService {
 
         BigDecimal effectiveBaseQty =
                 UomConverter.effectiveBaseQty(line, 1, recipeYieldServings, uom.getToBaseFactor());
-        long lineCostPaisa = effectiveBaseQty.multiply(BigDecimal.valueOf(avgCostPaisa))
-                .setScale(0, RoundingMode.HALF_UP)
-                .longValueExact();
+        long lineCostPaisa = MacCalculator.extendedCostPaisa(effectiveBaseQty, avgCostPaisa);
 
         return PricedLine.priced(ingredient.getId(), ingredientName, effectiveBaseQty, lineCostPaisa);
     }

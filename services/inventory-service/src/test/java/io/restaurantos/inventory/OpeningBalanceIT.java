@@ -111,7 +111,7 @@ class OpeningBalanceIT extends InventoryTestBase {
                 stockRepository.findByBranchIdAndIngredientId(branchId, ingredientId);
         assertThat(stock).isPresent();
         assertThat(stock.get().getQtyOnHand()).isEqualByComparingTo(BigDecimal.valueOf(25));
-        assertThat(stock.get().getAvgCostPaisa()).isEqualTo(450L);
+        assertThat(stock.get().getAvgCostPaisa()).isEqualByComparingTo("450");
 
         List<InventoryMovement> movements = movementRepository.findAll().stream()
                 .filter(m -> m.getIngredientId().equals(ingredientId)
@@ -123,7 +123,7 @@ class OpeningBalanceIT extends InventoryTestBase {
         List<StockLot> lots = lotRepository.findByStockIdOrderByExpiryDateAsc(stock.get().getId());
         assertThat(lots).hasSize(1);
         assertThat(lots.get(0).getExpiryDate()).isEqualTo(LocalDate.of(2026, 12, 31));
-        assertThat(lots.get(0).getReceiptUnitCostPaisa()).isEqualTo(450L);
+        assertThat(lots.get(0).getReceiptUnitCostPaisa()).isEqualByComparingTo("450");
     }
 
     @Test

@@ -103,7 +103,9 @@ export function OpeningBalanceDialog({
         ingredientId: values.ingredientId,
         branchId,
         qty: values.qty.trim(),
-        unitCostPaisa: Math.round(Number(values.unitCostRupees) * 100),
+        // A rate per stock unit, so the fraction is kept — Rs 0.062/g is 6.2 paisa, not 6.
+        // Scale 4 matches the NUMERIC(18,4) the backend stores (see StockReceiptDialog).
+        unitCostPaisa: Math.round(Number(values.unitCostRupees) * 100 * 10_000) / 10_000,
         expiryDate: values.expiryDate.trim() === "" ? undefined : values.expiryDate.trim(),
       },
       {

@@ -58,16 +58,17 @@ public class VendorItem extends TenantAuditableEntity {
     /**
      * How many {@link #packUom} units one {@link #orderUom} unit holds — a case of 10&nbsp;kg is 10.
      *
-     * <p>The column name overstates it: this is <b>not</b> in the ingredient's stock UOM, it is in
-     * {@link #packUom}. Nothing here converts kg to grams, and nothing can — the unit registry lives
-     * in inventory-service, in another database. Recomputed from {@link #packQty} on every save.
+     * <p>Renamed in V6 from {@code qty_per_order_unit_in_stock_uom}, which claimed a conversion
+     * that had never been applied: this is denominated in {@link #packUom}, <b>not</b> in the
+     * ingredient's stock unit, and nothing in this service could convert it even in principle — the
+     * unit registry lives in inventory-service's database. That misnaming is precisely why a
+     * 10&nbsp;kg case received against a gram-stocked ingredient once added 10 grams.
      *
-     * <p>Read by {@code GrnReceiptSimulator}, which puts it on the GRN event beside {@link #packUom}
-     * so inventory can finish the conversion into the ingredient's own stock unit. Until that seam
-     * existed, a 10&nbsp;kg case received against a gram-stocked ingredient added 10 grams.
+     * <p>Recomputed from {@link #packQty} on every save, and read by {@code GrnReceiptSimulator},
+     * which puts it on the GRN event beside {@link #packUom} so inventory can finish the conversion.
      */
-    @Column(name = "qty_per_order_unit_in_stock_uom", precision = 18, scale = 6)
-    private BigDecimal qtyPerOrderUnitInStockUom;
+    @Column(name = "pack_units_per_order_unit", precision = 18, scale = 6)
+    private BigDecimal packUnitsPerOrderUnit;
 
     @Column(name = "min_order_qty", precision = 18, scale = 4)
     private BigDecimal minOrderQty;

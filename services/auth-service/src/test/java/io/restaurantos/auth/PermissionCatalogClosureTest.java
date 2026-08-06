@@ -105,10 +105,24 @@ class PermissionCatalogClosureTest {
         Pattern grant = Pattern.compile(
                 "<insert\\s+tableName=\"role_permissions\">.*?name=\"permission_code\"\\s+value=\"([^\"]+)\"",
                 Pattern.DOTALL);
+        // Raw-SQL grants too: several changesets write INSERT INTO role_permissions ... VALUES
+        // ('ROLE','some.code') instead of the attribute form, and a scan that sees only one of the
+        // two silently under-reports. That is not hypothetical — measuring this repo's grant drift
+        // with an attribute-only parser reported ~46 undeclared grants when the real number was
+        // one, because it could not see the blanket SELECT-based grants in 030/041/042.
+        Pattern sqlGrant = Pattern.compile(
+                "\\(\\s*'[A-Z_]+'\\s*,\\s*'([a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_*]*)+)'\\s*\\)");
         for (Path changeset : changesets()) {
-            Matcher m = grant.matcher(Files.readString(changeset, StandardCharsets.UTF_8));
+            String xml = withoutRollbacks(Files.readString(changeset, StandardCharsets.UTF_8));
+            Matcher m = grant.matcher(xml);
             while (m.find()) {
                 granted.add(m.group(1));
+            }
+            for (String block : sqlInsertBlocks(xml, "role_permissions")) {
+                Matcher sm = sqlGrant.matcher(block);
+                while (sm.find()) {
+                    granted.add(sm.group(1));
+                }
             }
         }
         assertThat(granted).as("grants parsed from the changelog").isNotEmpty();
@@ -120,15 +134,54 @@ class PermissionCatalogClosureTest {
                 .isEmpty();
     }
 
+    /** Every {@code INSERT INTO <table> …;} statement in a changeset, raw-SQL form. */
+    private static List<String> sqlInsertBlocks(String xml, String table) {
+        Pattern block = Pattern.compile("INSERT\\s+INTO\\s+" + table + "[^;]*;",
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        List<String> blocks = new java.util.ArrayList<>();
+        Matcher m = block.matcher(xml);
+        while (m.find()) {
+            blocks.add(m.group());
+        }
+        return blocks;
+    }
+
+    /**
+     * Every permission code the changelog DECLARES, in either form.
+     *
+     * <p>Both forms have to be read. The attribute form ({@code <insert tableName="permissions">})
+     * was all this parsed originally, so the four codes changeset 049 declares in raw SQL looked
+     * undeclared — and the same blind spot, applied to grants, is what once made a one-row drift
+     * measure as forty-six.
+     */
     private static Set<String> catalogCodes() throws IOException {
+        Pattern sqlCatalog = Pattern.compile("\\(\\s*'([a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+)'\\s*,");
         Set<String> codes = new LinkedHashSet<>();
         for (Path changeset : changesets()) {
-            Matcher m = CATALOG_INSERT.matcher(Files.readString(changeset, StandardCharsets.UTF_8));
+            String xml = withoutRollbacks(Files.readString(changeset, StandardCharsets.UTF_8));
+            Matcher m = CATALOG_INSERT.matcher(xml);
             while (m.find()) {
                 codes.add(m.group(1));
             }
+            for (String block : sqlInsertBlocks(xml, "permissions")) {
+                Matcher sm = sqlCatalog.matcher(block);
+                while (sm.find()) {
+                    codes.add(sm.group(1));
+                }
+            }
         }
         return codes;
+    }
+
+    /**
+     * Strips {@code <rollback>} bodies before scanning.
+     *
+     * <p>A rollback deliberately re-creates what its forward path removed — changeset 054 restores
+     * the retired {@code pos.order.void} row — so counting rollback statements as declarations or
+     * grants reports the very thing the changeset exists to delete.
+     */
+    private static String withoutRollbacks(String xml) {
+        return xml.replaceAll("(?s)<rollback>.*?</rollback>", "");
     }
 
     private static List<Path> changesets() throws IOException {
