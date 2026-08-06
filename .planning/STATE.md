@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 13-11-PLAN.md
-last_updated: "2026-08-06T22:50:03.000Z"
+stopped_at: Completed 13-14-PLAN.md
+last_updated: "2026-08-06T22:55:08.270Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
@@ -310,6 +310,11 @@ _Updated after each plan completion_
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Phase 13]: 13-14: a downgrade below current BRANCH usage is refused 409 TIER_LIMIT_EXCEEDED naming the limit AND the usage, unless force=true; an unobtainable branch count also refuses (13-03's posture: an undeterminable answer is not a permissive one). The USER cap is NOT enforced — auth-service exposes no tenant user count on any internal channel and was off-limits (13-09/13-11 concurrent). One internal endpoint closes it; usageViolations is already shaped for a second violation.
+- [Phase 13]: 13-14 (D-34): the impersonation actor now comes from the VERIFIED platform principal, never the body and never the target. Two defects underneath it: ImpersonationService assigned an id to a @GeneratedValue entity so Spring Data called merge() and the audit row could NEVER be written (409 to every caller); and IllegalArgumentException was unmapped so a rejected argument came back 500. The internal endpoint now REQUIRES actingAdminUserId and refuses 400 without it.
+- [Phase 13]: 13-14: the NLQ quota is per-tenant. Redis key `tenant:nlq_quota:{tenantId}` is a THREE-WAY CONTRACT — written by TenantSubscriptionService.changeTier and by the gateway on a cache miss, read by the gateway and by nlq-service. Both enforcement points had their own compiled-in constant (gateway 5000, nlq-service 500) so the LOWER one governed and EVERY tenant was capped at 500 regardless of tier. Limit-undeterminable, quota-null and counter-unreadable now all 503 NLQ_QUOTA_UNAVAILABLE; an ABSENT counter is still legitimately zero.
+- [Phase 13]: 13-14: provisioning RETRY is reachable (POST /api/v1/platform/tenants/{id}/retry-provisioning) and re-drives the SAME tenant row — 13-10's recorded duplicate-tenant defect is fixed. It was ALSO unusable for a second reason: user_db's uk_branches_tenant_name ignored soft deletes, so the compensated HQ branch reserved its name forever. Changeset 012-001 replaces it with a partial unique index WHERE deleted_at IS NULL. A retry after the ADMIN was created still fails (no internal user-deactivation endpoint — 13-10's gap, unchanged).
+- [Phase 13]: 13-14 (DEPLOYMENT): platform_db's tables are owned by `platform_admin` while the service connects as `platform_user` (local-service-env.sh overrides application.yml's own default). Changeset 030 is the first to ALTER an existing table and FAILED TO START the service until `GRANT platform_admin TO platform_user`. `platform_admin` is not in deploy/init/02-create-roles.sql at all. Every FUTURE platform-admin migration hits this. Needs a decision: stop overriding the user, or create+grant the role in init.
 - [Phase 13]: 13-11: the /internal/auth/** seam now carries CALLER IDENTITY — X-Acting-User-Id, REQUIRED on every privilege-bearing write, asserted by the calling service from a VERIFIED JWT and stripped at the gateway by StripInternalHeaderFilter alongside X-Internal-Service and X-TOTP-Verified. It is an identity, never an entitlement: auth-service recomputes the caller's permissions from user_branch_roles/role_permissions on every call. Absence is 403 ACTING_USER_REQUIRED (an optional security header fails open). Breaking change: user-service forwards it; 13-12 must too.
 - [Phase 13]: 13-11: the ROLE CEILING is now enforced on the WRITE path in auth-service, not only in 13-07's picker — RoleCeiling.permits is shared by both so they cannot drift. A TENANT_ADMIN assigning OWNER was 200 before this and is 403 ROLE_CEILING_EXCEEDED after (measured live at both doors). It also applies to CREATE-with-role and to UPDATE/DEACTIVATE of a user holding a higher role, so a lesser role can neither mint an OWNER nor lock one out.
 - [Phase 13]: 13-11 (D-11/D-12): six internal user-lifecycle endpoints under /internal/auth/users (list/get/create/update/deactivate/reactivate). Create returns a one-time tempPassword + mustChangePassword; update REJECTS a password field rather than ignoring it; deactivation revokes refresh sessions and never deletes. Page size capped at 200, sort fixed at (email,id), PageMeta cursor carries the page NUMBER. 13-12/13-13/13-15 code against 13-11-SUMMARY.
@@ -609,6 +614,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-09 (D-19): PASSWORD_RESET_REQUESTED carries PasswordResetRequestedPayload{userId, email, tokenId} — a row handle, never the raw token.
 - [Phase 13]: 13-09 (D-18): reset-confirm clears failedLoginCount, lockedUntil AND mustChangePassword, matching changeOwnPassword.
 - [Phase 13]: 13-09 (D-21): per-account reset cooldown 15m, enforced silently and serialised by pg_advisory_xact_lock.
+- [Phase 13]: 13-14 (D-35): tier is no longer write-once. POST /api/v1/platform/tenants/{id}/tier re-applies TierLimits AND reconciles tenant_features. PLATFORM-10 is enforced by a NEW MARKER COLUMN tenant_features.is_override (changeset 030-001, backfilled FALSE): a SuperAdmin toggle marks the row and reconciliation skips it in BOTH directions. Without the marker the only two possible implementations are 'wipe deliberate overrides' and 'never disable anything'. A downgrade DELETES NOTHING — it lowers four ceilings and gates modules; asserted live that both branches survive a forced downgrade.
 
 ### Pending Todos
 
