@@ -19,13 +19,17 @@ import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.exception.StateInvalidException;
+import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,6 +68,12 @@ class StationAdminIT extends PosTestBase {
         foreignBranch = UUID.randomUUID();
         cashierId = UUID.randomUUID();
         tenantContext.set(tenantId, ownBranch, cashierId, null);
+        // MenuService.assignStation gates on pos.menu.manage at the SERVICE layer
+        // (posAuthorizationService.requireMenuManage), which reads the Spring SecurityContext —
+        // not TenantContext. This class only ever set TenantContext, so the three tests that go
+        // through assignStation failed with "Requires pos.menu.manage" regardless of the behaviour
+        // they were asserting. Mirrors MenuAdminIT.authenticateAs.
+        authenticateAs(List.of("pos.menu.manage"));
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -192,5 +202,14 @@ class StationAdminIT extends PosTestBase {
                 .findFirst().orElseThrow().getEnvelopeJson();
         assertThat(json).contains("DEFAULT");
         assertThat(json).contains("\"stationId\":null");
+    }
+
+    /** Mirrors MenuAdminIT.authenticateAs — service-layer permission gates read the Spring
+     *  SecurityContext, which TenantContext does not populate. */
+    private void authenticateAs(List<String> permissions) {
+        JwtClaims claims = new JwtClaims(
+                cashierId, tenantId, ownBranch, List.of("OWNER"), permissions, Map.of(), null);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(claims, null, List.of()));
     }
 }
