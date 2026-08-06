@@ -43,6 +43,7 @@ class SettlementSemanticsIT extends PosTestBase {
 
     UUID tenantId;
     UUID branchId;
+    UUID cashierId;
     UUID menuItemId;
     static final long ITEM_PRICE_PAISA = 20000L;
 
@@ -51,7 +52,13 @@ class SettlementSemanticsIT extends PosTestBase {
         outboxRepository.deleteAll();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
-        tenantContext.set(tenantId, branchId, null, null);
+        // 13-16 (D-30): this fixture used to run with a null userId, which was how it dodged the
+        // old create-time till guard. That guard is gone, but CASH settlement now requires the
+        // PAYING user to hold an OPEN till — and every test here settles in cash. A real cash
+        // settlement always has an authenticated cashier with an open drawer, so modelling one is
+        // the faithful fixture, not a workaround.
+        cashierId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, cashierId, null);
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -73,6 +80,8 @@ class SettlementSemanticsIT extends PosTestBase {
                 .thenReturn(new ApiResponse<>(
                         new FinancePeriodClient.PeriodStatusDto(UUID.randomUUID(), "OPEN", 2026, 6),
                         null, List.of()));
+
+        openTillForCashier(branchId);
     }
 
     private OrderDto createSentOrder() {

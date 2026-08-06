@@ -138,12 +138,24 @@ class TillReconciliationIT extends PosTestBase {
     }
 
     @Test
-    void createOrder_withNoOpenTill_isRejected() {
-        // FINANCIAL INTEGRITY: the cashier context is set (setUp) but no till has been opened,
-        // so an order must NOT be creatable — the counterpart to closeTill's open-orders guard.
-        assertThatThrownBy(() -> orderService.createOrder(
-                new CreateOrderRequest(branchId, UUID.randomUUID(), OrderType.DINE_IN, null, 2, null, null)))
-                .isInstanceOf(PosExceptions.NoOpenTillException.class);
+    void createOrder_withNoOpenTill_isAllowed_andLeavesTillUnbound() {
+        // INVERTED BY 13-16 (D-30). This used to assert that an order was NOT creatable without an
+        // open till. That guard made the WAITER role unusable — a waiter holds no till by design,
+        // so 13-02's correctly-granted waiter was refused here — while not actually establishing
+        // the invariant it claimed, since it only fired when a userId was present and every path
+        // without one already produced a null till.
+        //
+        // The requirement moved to where the cash physically moves: PaymentServiceImpl refuses a
+        // CASH tender without an OPEN till for the paying user. That is STRICTER than what this
+        // test protected, because a cash payment against a null-till order used to be accepted
+        // outright — see CashPaymentRequiresTillIT. What must hold here is only that creation
+        // leaves the till unbound rather than binding something arbitrary.
+        OrderDto created = orderService.createOrder(
+                new CreateOrderRequest(branchId, UUID.randomUUID(), OrderType.DINE_IN, null, 2, null, null));
+
+        Order persisted = orderRepository.findById(created.id()).orElseThrow();
+        assertThat(persisted.getTillSessionId()).isNull();
+        assertThat(persisted.getCashierId()).isEqualTo(cashierId);
     }
 
     @Test

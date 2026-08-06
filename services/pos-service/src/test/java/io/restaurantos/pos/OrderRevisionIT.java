@@ -62,6 +62,7 @@ class OrderRevisionIT extends PosTestBase {
 
     UUID tenantId;
     UUID branchId;
+    UUID cashierId;
     UUID burgerId;
     UUID friesId;
     UUID cokeId;
@@ -72,7 +73,11 @@ class OrderRevisionIT extends PosTestBase {
         outboxRepository.deleteAll();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
-        tenantContext.set(tenantId, branchId, null, null);
+        // 13-16 (D-30): addItem_rejectedOn_closedOrder drives an order to CLOSED through
+        // closeViaServeAndPay, which settles in CASH — and CASH now requires the paying user's
+        // OPEN till. The revision assertions themselves are untouched by the drawer.
+        cashierId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, cashierId, null);
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -89,6 +94,8 @@ class OrderRevisionIT extends PosTestBase {
                 .thenReturn(new ApiResponse<>(
                         new FinancePeriodClient.PeriodStatusDto(UUID.randomUUID(), "OPEN", 2026, 6),
                         null, List.of()));
+
+        openTillForCashier(branchId);
     }
 
     private UUID seedMenuItem(MenuCategory cat, String name, long pricePaisa) {

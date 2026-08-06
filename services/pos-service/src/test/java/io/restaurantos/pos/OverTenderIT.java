@@ -59,6 +59,7 @@ class OverTenderIT extends PosTestBase {
 
     UUID tenantId;
     UUID branchId;
+    UUID cashierId;
     UUID menuItemId;
     static final long ITEM_PRICE_PAISA = 20_000L;
 
@@ -67,7 +68,11 @@ class OverTenderIT extends PosTestBase {
         outboxRepository.deleteAll();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
-        tenantContext.set(tenantId, branchId, null, null);
+        // 13-16 (D-30): over-tender IS a cash-drawer fact, so the fixture now has a drawer. CASH
+        // settlement requires the paying user to hold an OPEN till; nothing about the capping,
+        // change or applied-amount behaviour asserted below changes.
+        cashierId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, cashierId, null);
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -88,6 +93,8 @@ class OverTenderIT extends PosTestBase {
                 .thenReturn(new ApiResponse<>(
                         new FinancePeriodClient.PeriodStatusDto(UUID.randomUUID(), "OPEN", 2026, 6),
                         null, List.of()));
+
+        openTillForCashier(branchId);
     }
 
     private OrderDto createServedOrder() {

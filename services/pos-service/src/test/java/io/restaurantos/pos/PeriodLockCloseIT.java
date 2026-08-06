@@ -37,6 +37,7 @@ class PeriodLockCloseIT extends PosTestBase {
 
     UUID tenantId;
     UUID branchId;
+    UUID cashierId;
     UUID menuItemId;
 
     @BeforeEach
@@ -44,7 +45,11 @@ class PeriodLockCloseIT extends PosTestBase {
         outboxRepository.deleteAll();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
-        tenantContext.set(tenantId, branchId, null, null);
+        // 13-16 (D-30): both tests here settle in CASH to reach the period check, and CASH now
+        // requires the paying user's OPEN till. Without a drawer the till refusal would preempt
+        // the period refusal and these tests would assert the wrong exception.
+        cashierId = UUID.randomUUID();
+        tenantContext.set(tenantId, branchId, cashierId, null);
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -60,6 +65,8 @@ class PeriodLockCloseIT extends PosTestBase {
         item.setTaxRatePct(new BigDecimal("0.00"));
         item = menuItemRepository.save(item);
         menuItemId = item.getId();
+
+        openTillForCashier(branchId);
     }
 
     private OrderDto createOpenOrder() {

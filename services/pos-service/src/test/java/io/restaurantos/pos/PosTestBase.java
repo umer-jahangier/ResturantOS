@@ -106,12 +106,17 @@ public abstract class PosTestBase {
     protected TillService tillService;
 
     /**
-     * Opens an OPEN till for the cashier currently in {@code TenantContext}, satisfying
-     * {@code OrderServiceImpl.createOrder}'s financial-integrity guard ("no order without an
-     * open till"). IT fixtures that model a cashier taking orders call this once, after setting
-     * their tenant/security context. {@code branchId} must equal the caller's context branch
-     * (openTill enforces the same branch-isolation guard as createOrder). Callers that ALSO
-     * assert till-opening behaviour must open their own till per-test instead of using this.
+     * Opens an OPEN till for the cashier currently in {@code TenantContext}. IT fixtures that
+     * model a cashier taking and SETTLING orders call this once, after setting their
+     * tenant/security context. {@code branchId} must equal the caller's context branch (openTill
+     * enforces the same branch-isolation guard as createOrder). Callers that ALSO assert
+     * till-opening behaviour must open their own till per-test instead of using this.
+     *
+     * <p>As of 13-16 (D-30) this is no longer needed merely to CREATE an order — createOrder binds
+     * a till opportunistically and a waiter with none is fine ({@link WaiterOrderNoTillIT}). It is
+     * required to settle in CASH: {@code PaymentServiceImpl.recordPayment} refuses a cash tender
+     * unless the paying user holds an OPEN till ({@link CashPaymentRequiresTillIT}). Note
+     * {@link #closeViaServeAndPay} settles in cash, so every caller of that needs this.
      */
     protected TillSessionDto openTillForCashier(UUID branchId) {
         return tillService.openTill(new OpenTillRequest(branchId, 0L));
