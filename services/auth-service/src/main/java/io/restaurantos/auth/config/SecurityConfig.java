@@ -3,6 +3,7 @@ package io.restaurantos.auth.config;
 import io.restaurantos.shared.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -45,6 +46,19 @@ public class SecurityConfig {
                 // token until a code exists, and the code cannot exist until enrolment. Both
                 // endpoints verify the password themselves and refuse once a secret is present.
                 .requestMatchers("/api/v1/auth/2fa/bootstrap", "/api/v1/auth/2fa/bootstrap/verify").permitAll()
+                // Forced password change (13-08, D-17). Public for the same reason /login is: the
+                // account is refused a token until its password changes, so the caller cannot have
+                // one. It authenticates itself twice over — a single-use change token plus the
+                // current password — and resolves the account from the token, never the body.
+                //
+                // Registered FULLY QUALIFIED and pinned to POST, not as the prefix
+                // "/api/v1/auth/change-password/**" and emphatically not as the bare
+                // "/api/v1/auth/change-password". This list matches by exact path while the
+                // gateway's PUBLIC_PATHS matches by startsWith, so the bare path would expose the
+                // AUTHENTICATED self-service endpoint at the edge; both files must agree on which
+                // of the two is public, and both say the same thing at the site. Same reasoning
+                // 13-05 recorded for the platform login matcher.
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/change-password/forced").permitAll()
                 // /internal/auth/** is gated by InternalServiceFilter (constant-time X-Internal-Service secret check)
                 // rather than JWT auth; permitAll here so the filter chain reaches InternalServiceFilter.
                 .requestMatchers("/internal/auth/**").permitAll()

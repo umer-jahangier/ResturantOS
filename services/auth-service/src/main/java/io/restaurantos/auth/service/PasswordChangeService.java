@@ -123,4 +123,48 @@ public class PasswordChangeService {
         payload.put("tenantId", tenantId);
         eventPublisher.publish(EXCHANGE, ROUTING_KEY, EVENT_TYPE, null, payload);
     }
+
+    /**
+     * Changes a password for a caller who has no usable access token, on the strength of a
+     * single-use change token plus the current password (D-17).
+     *
+     * <p><b>It delegates to {@link #changeOwnPassword} rather than reimplementing it.</b> One change
+     * routine, two ways in. The audit's recurring finding is two paths that agree on day one and
+     * drift afterwards; a forced-change flow that grew its own copy of the reuse check, the history
+     * append, the lockout clear and the session revocation would be the same defect again, on the
+     * path taken by every newly provisioned account in the platform.
+     *
+     * <p><b>Where the user id comes from.</b> The redeemed token, and only the redeemed token. Not
+     * from the request — there is no field for it — and not from an email lookup. A public endpoint
+     * that takes an account identifier is an account-enumeration surface at best; this one has no
+     * way to be pointed at an account other than the one the token was minted for.
+     *
+     * <p><b>The transaction semantics are the security property, so read them.</b> The token is
+     * claimed first, and {@code noRollbackFor} lists exactly {@link AuthenticationFailedException}:
+     *
+     * <ul>
+     *   <li>a <b>wrong current password</b> throws that exception, the transaction still commits,
+     *       and the token stays spent. An attacker holding a stolen change token therefore gets one
+     *       guess, not ten minutes of guesses. It costs a legitimate fumbler nothing they cannot
+     *       fix — they log in again, which they can do by definition, since a change token is only
+     *       ever issued to someone who just supplied the correct password;</li>
+     *   <li>a <b>reused or too-weak new password</b> throws something else, the transaction rolls
+     *       back, and the claim is undone with it, so the token is still good. That is the
+     *       difference that matters: failing the password <i>policy</i> is a fumble and must be
+     *       recoverable; failing <i>authentication</i> is an attack signal and must cost something.
+     *       A weak new password never even reaches here — bean validation refuses it at the
+     *       controller — but reuse is judged inside the routine, and this is what keeps that case
+     *       recoverable.</li>
+     * </ul>
+     *
+     * <p>No lockout accounting is applied here either, for the reason recorded on
+     * {@link #changeOwnPassword}: the single-use token already bounds the attempts.
+     */
+    @Transactional(noRollbackFor = AuthenticationFailedException.class)
+    public void changeForcedPassword(String changeToken, String currentPassword, String newPassword) {
+        PasswordPolicyService.RedeemedToken redeemed = passwordPolicyService.redeemSingleUseToken(
+            changeToken, PasswordPolicyService.TokenPurpose.FORCED_CHANGE);
+
+        changeOwnPassword(redeemed.tenantId(), redeemed.userId(), currentPassword, newPassword);
+    }
 }

@@ -9,6 +9,7 @@ import io.restaurantos.auth.entity.RefreshSessionEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AccountLockedException;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
+import io.restaurantos.auth.exception.PasswordChangeRequiredException;
 import io.restaurantos.auth.exception.TotpEnrollmentRequiredException;
 import io.restaurantos.auth.exception.TotpRequiredException;
 import io.restaurantos.auth.repository.AuthTenantRepository;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final LoginEventPublisher loginEventPublisher;
     private final AuthJwtProperties jwtProperties;
     private final TotpService totpService;
+    private final PasswordPolicyService passwordPolicyService;
     private final boolean stepUpEnabled;
 
     public AuthServiceImpl(AuthTenantRepository authTenantRepository,
@@ -56,6 +58,7 @@ public class AuthServiceImpl implements AuthService {
                            LoginEventPublisher loginEventPublisher,
                            AuthJwtProperties jwtProperties,
                            TotpService totpService,
+                           PasswordPolicyService passwordPolicyService,
                            @Value("${restaurantos.auth.step-up-enabled:true}") boolean stepUpEnabled) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
@@ -68,11 +71,20 @@ public class AuthServiceImpl implements AuthService {
         this.loginEventPublisher = loginEventPublisher;
         this.jwtProperties = jwtProperties;
         this.totpService = totpService;
+        this.passwordPolicyService = passwordPolicyService;
         this.stepUpEnabled = stepUpEnabled;
     }
 
+    /**
+     * {@code PasswordChangeRequiredException} is in {@code noRollbackFor} and it has to be. The
+     * forced-change branch throws AFTER it has minted and persisted a change token and AFTER the
+     * failed-login counter has been reset. Without it listed here, Spring would roll both writes
+     * back on the way out, and the caller would receive a token that does not exist in the database
+     * — a refusal that can never be satisfied, on every login, for every provisioned account.
+     */
     @Override
-    @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class, TotpRequiredException.class})
+    @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class,
+        TotpRequiredException.class, PasswordChangeRequiredException.class})
     public LoginResult login(LoginRequest request, String userAgent, String ip) {
         try {
             AuthTenantEntity tenant = authTenantRepository.findBySlug(request.tenantSlug())
@@ -110,6 +122,8 @@ public class AuthServiceImpl implements AuthService {
             user.setLockedUntil(null);
             user.setLastLoginAt(Instant.now());
             userRepository.save(user);
+
+            enforceForcedPasswordChange(user, tenantId, request.email(), ip);
 
             ResolvedBranchAuth resolved = permissionResolver.resolveDefault(user.getId());
             boolean totpVerified =
@@ -224,6 +238,58 @@ public class AuthServiceImpl implements AuthService {
         entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
             .setParameter("tid", tenantId.toString())
             .getSingleResult();
+    }
+
+    /**
+     * The forced-change gate (D-17).
+     *
+     * <p>Before this plan {@code must_change_password} was written at provisioning and read
+     * nowhere, so every temporary credential the platform issued was a permanent one. 13-06 sets
+     * the flag on every provisioned admin and 13-11 sets it on every created user, which without
+     * this method would make it universally set and universally inert.
+     *
+     * <p><b>Where this sits in the sequence is the whole design, so it is spelled out.</b>
+     *
+     * <ul>
+     *   <li><b>After the password comparison</b>, and after the failed-count reset. This is what
+     *       stops the flag being an account-existence oracle: an attacker who guesses wrong gets
+     *       the ordinary generic 401 whether the account is flagged, unflagged or absent. Only
+     *       someone who already knows the password learns that a change is due, and they could have
+     *       logged in anyway.</li>
+     *   <li><b>Before {@code permissionResolver.resolveDefault}</b>. A freshly provisioned user
+     *       whose branch assignment somehow did not land would otherwise die with "user has no
+     *       active branch assignments" — and 13-CONTEXT's entire complaint is that a bad password,
+     *       a missing assignment and a stale temporary credential were previously indistinguishable
+     *       to an operator. Refusing here means the forced-change answer is never masked by an
+     *       unrelated failure, and (because a missing assignment still surfaces on the NEXT login)
+     *       nothing is hidden either.</li>
+     *   <li><b>Before the TOTP step-up gate</b>, which necessarily runs after permission
+     *       resolution. An account can genuinely need both — a provisioned OWNER holds
+     *       {@code rbac.manage} with no enrolled factor (D-29a) and also carries the change flag.
+     *       It meets them one at a time and in this order: {@code 403 PASSWORD_CHANGE_REQUIRED}
+     *       first, then, once the password is its own, {@code 401 TOTP_ENROLLMENT_REQUIRED} on the
+     *       next attempt. That order is the right one — enrolling a second factor while the first
+     *       is still a temporary password known to whoever provisioned the account binds the factor
+     *       under a credential the user does not exclusively control.</li>
+     * </ul>
+     *
+     * <p>The login-succeeded event still fires, because the credential really was correct. Treating
+     * a forced change as a failed login would inflate the lockout counter this method has just
+     * reset — locking users out for doing exactly what they were told — and would put a lie in the
+     * audit trail.
+     *
+     * @throws PasswordChangeRequiredException carrying a fresh single-use change token; no access
+     *         token, no refresh session and no cookie are produced, because the method that would
+     *         create them is never reached
+     */
+    private void enforceForcedPasswordChange(UserEntity user, UUID tenantId, String email, String ip) {
+        if (!user.isMustChangePassword()) {
+            return;
+        }
+        PasswordPolicyService.IssuedToken changeToken = passwordPolicyService.issueSingleUseToken(
+            tenantId, user.getId(), PasswordPolicyService.TokenPurpose.FORCED_CHANGE);
+        loginEventPublisher.publishSucceeded(tenantId, null, user.getId(), email, ip);
+        throw new PasswordChangeRequiredException(changeToken.rawToken(), changeToken.expiresAt());
     }
 
     /**

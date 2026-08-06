@@ -1,6 +1,7 @@
 package io.restaurantos.auth.controller;
 
 import io.restaurantos.auth.dto.request.ChangePasswordRequest;
+import io.restaurantos.auth.dto.request.ForcedPasswordChangeRequest;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.service.PasswordChangeService;
 import io.restaurantos.shared.api.ApiResponse;
@@ -42,6 +43,29 @@ public class PasswordChangeController {
         JwtClaims claims = currentClaims();
         passwordChangeService.changeOwnPassword(
             claims.tenantId(), claims.subject(), request.currentPassword(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    /**
+     * {@code POST /api/v1/auth/change-password/forced} — the way past the forced-change gate, for a
+     * caller who by definition has no token (D-17).
+     *
+     * <p><b>Public, at both layers, and deliberately so.</b> It is in this service's
+     * {@code permitAll} list as an exact path pinned to POST, and it is the ONLY password path in
+     * the gateway's {@code PUBLIC_PATHS} — registered there by 13-01 in its fully qualified form
+     * because {@code isPublicPath} matches with {@code startsWith}, so the bare
+     * {@code /api/v1/auth/change-password} would have swept the authenticated sibling above in with
+     * it. Neither list may ever be shortened to the bare path.
+     *
+     * <p>Being public, its own proof has to be at least as strong as the login it replaces, which is
+     * why it takes a single-use change token AND the current password — see
+     * {@link ForcedPasswordChangeRequest}. It reads no principal, because there is none to read.
+     */
+    @PostMapping("/change-password/forced")
+    public ResponseEntity<ApiResponse<Void>> forcedChangePassword(
+            @Valid @RequestBody ForcedPasswordChangeRequest request) {
+        passwordChangeService.changeForcedPassword(
+            request.changeToken(), request.currentPassword(), request.newPassword());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
