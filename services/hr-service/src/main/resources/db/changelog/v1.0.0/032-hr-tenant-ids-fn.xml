@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Tenant enumeration for the monthly leave-accrual scheduler, which runs with NO tenant
+         context and so cannot see any employees under FORCE RLS. hr_tenant_ids() is a narrowly-scoped
+         SECURITY DEFINER function returning only the DISTINCT tenant_ids present in employees — enough
+         to drive per-tenant accrual, nothing more. Same deploy caveat as resolve_device (031): SECURITY
+         DEFINER bypasses RLS only if the function owner is a superuser / BYPASSRLS role — verify at deploy. -->
+    <changeSet id="hr-1.0.0-032-hr-tenant-ids-fn" author="restaurantos-agent">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION hr_tenant_ids()
+            RETURNS TABLE(tenant_id UUID)
+            LANGUAGE sql
+            STABLE
+            SECURITY DEFINER
+            SET search_path = public
+            AS $func$
+                SELECT DISTINCT tenant_id FROM employees;
+            $func$;
+        ]]></sql>
+        <sql>GRANT EXECUTE ON FUNCTION hr_tenant_ids() TO hr_user;</sql>
+        <rollback>
+            <sql>DROP FUNCTION IF EXISTS hr_tenant_ids();</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

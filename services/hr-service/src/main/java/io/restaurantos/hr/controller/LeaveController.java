@@ -32,6 +32,12 @@ public class LeaveController {
         this.leaveService = leaveService;
     }
 
+    @GetMapping("/requests")
+    @PreAuthorize("hasAuthority('hr.leave.view')")
+    public ApiResponse<List<LeaveRequestResponse>> listRequests(@RequestParam(required = false) UUID employeeId) {
+        return ApiResponse.ok(leaveService.listRequests(employeeId));
+    }
+
     @PostMapping("/requests")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('hr.leave.view')")

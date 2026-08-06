@@ -10,6 +10,8 @@ import io.restaurantos.hr.repository.LeaveBalanceRepository;
 import io.restaurantos.hr.repository.LeaveRequestRepository;
 import io.restaurantos.hr.repository.LeaveTypeRepository;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,9 @@ public class LeaveService {
     private final LeaveBalanceRepository balanceRepository;
     private final EmployeeRepository employeeRepository;
     private final TenantContext tenantContext;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public LeaveService(LeaveTypeRepository typeRepository, LeaveRequestRepository requestRepository,
                         LeaveBalanceRepository balanceRepository, EmployeeRepository employeeRepository,
@@ -140,6 +145,15 @@ public class LeaveService {
     }
 
     @Transactional(readOnly = true)
+    public List<LeaveRequestResponse> listRequests(UUID employeeId) {
+        UUID tenantId = requireTenant();
+        List<LeaveRequestEntity> rows = employeeId != null
+                ? requestRepository.findAllByEmployeeId(employeeId)
+                : requestRepository.findAllByTenantId(tenantId);
+        return rows.stream().map(LeaveService::toRequest).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<BalanceResponse> balances(UUID employeeId) {
         return balanceRepository.findAllByEmployeeId(employeeId).stream()
                 .map(b -> new BalanceResponse(b.getLeaveTypeId(), b.getPeriodYear(), b.getBalanceDays())).toList();
@@ -164,6 +178,14 @@ public class LeaveService {
                 balanceRepository.save(balance);
             }
         }
+    }
+
+    /** Distinct tenant_ids with employees, via the SECURITY DEFINER function — for the scheduler,
+     *  which has no tenant context and would otherwise see nothing under FORCE RLS. */
+    @Transactional(readOnly = true)
+    public List<UUID> listTenantIdsForAccrual() {
+        List<?> rows = entityManager.createNativeQuery("SELECT tenant_id FROM hr_tenant_ids()").getResultList();
+        return rows.stream().map(o -> UUID.fromString(o.toString())).toList();
     }
 
     private LeaveBalanceEntity getOrCreateBalance(UUID tenantId, UUID employeeId, UUID leaveTypeId, int year) {

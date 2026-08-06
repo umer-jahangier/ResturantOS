@@ -516,6 +516,12 @@ resilience4j:
       crmCircuitBreaker:
         timeoutDuration: 5s
         cancelRunningFuture: true
+      # hr-route + the two device-ingest routes all run on hrCircuitBreaker; give it the same 5s
+      # budget as the others so a cold-JIT first call (payroll compute, device handshake) isn't
+      # cut off at the 1s reactive default.
+      hrCircuitBreaker:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
 
 # Gateway-specific properties
 restaurantos:
