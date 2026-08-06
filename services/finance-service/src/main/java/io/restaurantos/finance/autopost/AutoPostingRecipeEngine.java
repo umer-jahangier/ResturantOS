@@ -377,9 +377,13 @@ public class AutoPostingRecipeEngine {
         if (grossPaisa <= 0) {
             return;
         }
+        // Resolve by system tag, not by literal code — the CoA is tenant-editable, so a renumbered
+        // or deactivated account would otherwise fail deep inside JE validation and dead-letter the
+        // message with no usable diagnostic. tag() enforces tenant scoping + isActive and throws a
+        // clean AccountNotConfiguredException. Every other recipe in this class already does this.
         List<CreateJeLineRequest> lines = List.of(
-                line("6200", "Salary expense", grossPaisa, 0),
-                line("2300", "Wages payable", 0, grossPaisa));
+                line(tag("SALARY_EXPENSE"), "Salary expense", grossPaisa, 0),
+                line(tag("WAGES_PAYABLE"), "Wages payable", 0, grossPaisa));
         post(SOURCE_PAYROLL_APPROVED, runId, envelope, "Payroll approved " + runId, lines);
     }
 
@@ -395,7 +399,7 @@ public class AutoPostingRecipeEngine {
             return;
         }
         List<CreateJeLineRequest> lines = List.of(
-                line("2300", "Wages payable", netPaisa, 0),
+                line(tag("WAGES_PAYABLE"), "Wages payable", netPaisa, 0),
                 line(tag("BANK"), "Payroll disbursement", 0, netPaisa));
         post(SOURCE_PAYROLL_PAID, runId, envelope, "Payroll paid " + runId, lines);
     }

@@ -79,8 +79,18 @@ public class EmployeeService {
         EmployeeEntity e = load(id);
         e.setFullName(req.fullName());
         e.setUserId(req.userId());
-        e.setCnic(req.cnic());
-        e.setBankAccountNo(req.bankAccountNo());
+        // Encrypted PII is write-only from the client's point of view: reads return only masked
+        // values (cnicMasked / bankAccountMasked), so a UI round-trip cannot echo the real value
+        // back. Assigning unconditionally therefore DESTROYED the stored CNIC and bank account on
+        // any partial update — or wrote the mask itself back over the ciphertext. Null/blank now
+        // means "leave unchanged"; send a new value to actually change one.
+        // Same rule purchasing already applies to vendor bank accounts.
+        if (hasText(req.cnic())) {
+            e.setCnic(req.cnic());
+        }
+        if (hasText(req.bankAccountNo())) {
+            e.setBankAccountNo(req.bankAccountNo());
+        }
         e.setDesignation(req.designation());
         e.setDepartment(req.department());
         e.setEmploymentType(req.employmentType());
@@ -130,6 +140,11 @@ public class EmployeeService {
                 e.getDesignation(), e.getDepartment(), e.getEmploymentType(),
                 e.getJoinDate(), e.getExitDate(), e.getBasicSalaryPaisa(),
                 e.getDeviceUserRef(), e.isActive());
+    }
+
+    /** True when the caller actually supplied a value (used to leave encrypted PII unchanged). */
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     /** Never returns raw PII: masks all but the last 4 characters. */

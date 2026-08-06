@@ -39,8 +39,11 @@ public class AttendanceIngestController {
 
     @PostMapping("/ingest")
     public Map<String, String> ingest(@RequestBody IngestRequest req) {
-        AttendanceDeviceEntity device = deviceAuthResolver.resolve(req.serial(), req.token());
+        // resolve() binds TenantContext before it persists the device's last-seen timestamp, so it
+        // must be INSIDE the try — otherwise a failure in that save leaves the tenant bound to this
+        // pooled request thread and the next request inherits it.
         try {
+            AttendanceDeviceEntity device = deviceAuthResolver.resolve(req.serial(), req.token());
             PunchType type;
             try {
                 type = req.punchType() == null ? PunchType.UNKNOWN : PunchType.valueOf(req.punchType());

@@ -69,7 +69,12 @@ public class PayrollRunService {
                 });
         PayrollRunEntity run = new PayrollRunEntity();
         run.setTenantId(tenantId);
-        run.setBranchId(tenantContext.getBranchId().orElse(null));
+        // Must be required, not optional (EmployeeService.requireBranch() already does this). A run
+        // created from a token with no branch claim used to persist branchId=null, which then made
+        // calculate() call findAllByBranchId(null) -> zero payslips, totals 0, and approve() publish
+        // branchId=null -> AutoPostingRecipeEngine throws "branchId required" and dead-letters the
+        // message. The whole cycle failed silently, downstream of the real cause.
+        run.setBranchId(requireBranch());
         run.setPeriodMonth(periodMonth);
         run.setPeriodYear(periodYear);
         run.setStatus(Status.DRAFT);
@@ -85,6 +90,12 @@ public class PayrollRunService {
         PayrollRunEntity run = load(runId);
         if (run.getStatus() != Status.DRAFT && run.getStatus() != Status.CALCULATED) {
             throw new IllegalStateException("Only a DRAFT/CALCULATED run can be calculated; is " + run.getStatus());
+        }
+        // Guard rows created before create() required a branch: findAllByBranchId(null) matches no
+        // employees, which would otherwise produce a zero-total run that looks successful.
+        if (run.getBranchId() == null) {
+            throw new IllegalStateException(
+                    "Payroll run " + runId + " has no branch and cannot be calculated");
         }
         int fiscalYear = run.getPeriodMonth() >= 7 ? run.getPeriodYear() + 1 : run.getPeriodYear();
         ActiveTaxConfig cfg = taxConfigService.getActiveConfig(fiscalYear);
@@ -203,5 +214,11 @@ public class PayrollRunService {
 
     private UUID requireTenant() {
         return tenantContext.getTenantId().orElseThrow(() -> new IllegalStateException("No tenant context"));
+    }
+
+    private UUID requireBranch() {
+        return tenantContext.getBranchId()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No branch context — a payroll run must be scoped to a branch"));
     }
 }

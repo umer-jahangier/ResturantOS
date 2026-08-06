@@ -118,6 +118,13 @@ export REPORTING_DB_URL=jdbc:postgresql://127.0.0.1:5432/reporting_db
 export REPORTING_DB_USER=reporting_user
 export REPORTING_DB_PASSWORD="${REPORTING_DB_PASSWORD}"
 
+# hr-service (employees w/ encrypted PII, payroll, attendance, leave) — Phase 11.
+# Without this block the service falls back to application.yml's literal `hr_pass`, which is NOT the
+# generated HR_DB_PASSWORD, and the connection is refused at startup.
+export HR_DB_URL=jdbc:postgresql://127.0.0.1:5432/hr_db
+export HR_DB_USER=hr_user
+export HR_DB_PASSWORD="${HR_DB_PASSWORD}"
+
 # nlq-service (NL->SQL via Claude, 7-stage AST validation) — Phase 12. ANTHROPIC_API_KEY is a
 # placeholder in deploy/.env by default; the live-Claude round-trip skips honestly without a real key.
 export NLQ_DB_URL=jdbc:postgresql://127.0.0.1:5432/nlq_db

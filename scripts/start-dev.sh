@@ -190,7 +190,7 @@ fi
 
 if [[ "$SKIP_BUILD" != true ]]; then
   step "Building backend JARs (skip next time with --skip-build)"
-  mvn -pl services/auth-service,services/authorization-service,services/user-service,services/platform-admin-service,services/audit-service,services/file-service,services/finance-service,services/pos-service,services/kitchen-service,services/inventory-service,services/purchasing-service,services/crm-service,services/reporting-service,services/nlq-service,gateway \
+  mvn -pl services/auth-service,services/authorization-service,services/user-service,services/platform-admin-service,services/audit-service,services/file-service,services/finance-service,services/pos-service,services/kitchen-service,services/inventory-service,services/purchasing-service,services/crm-service,services/reporting-service,services/nlq-service,services/hr-service,gateway \
     -am -DskipTests package -q
 fi
 
@@ -211,6 +211,7 @@ PURCHASING_PID=$(start_service purchasing-service services/purchasing-service)
 CRM_PID=$(start_service crm-service services/crm-service)
 REPORTING_PID=$(start_service reporting-service services/reporting-service)
 NLQ_PID=$(start_service nlq-service services/nlq-service)
+HR_PID=$(start_service hr-service services/hr-service)
 
 step "Waiting for auth-service JWKS before gateway"
 if ! wait_http_ok "http://localhost:8081/.well-known/jwks.json" 180; then
@@ -254,6 +255,7 @@ cat >"$PID_FILE" <<EOF
   "crm-service": ${CRM_PID},
   "reporting-service": ${REPORTING_PID},
   "nlq-service": ${NLQ_PID},
+  "hr-service": ${HR_PID},
   "gateway": ${GATEWAY_PID},
   "frontend": ${FRONTEND_PID}
 }

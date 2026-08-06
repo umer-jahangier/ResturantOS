@@ -17,6 +17,17 @@ public class HrInternalServiceFilter extends OncePerRequestFilter {
 
     public static final String HEADER = "X-Internal-Service";
 
+    /**
+     * Mode B device ingest carries its own device-token authentication (see
+     * {@code AttendanceIngestController}) and is deliberately NOT protected by the internal-service
+     * secret: the gateway's {@code StripInternalHeaderFilter} removes {@code X-Internal-Service} from
+     * every inbound request unconditionally, so requiring it here made this endpoint return 403
+     * {@code INTERNAL_AUTH_REQUIRED} 100% of the time through the gateway — the USB-bridge path could
+     * never work. Excluded here; authentication is enforced by
+     * {@code DeviceAuthResolver.resolve(serial, token)} inside the controller.
+     */
+    static final String DEVICE_INGEST_PATH = "/internal/attendance/ingest";
+
     private final byte[] secretBytes;
 
     public HrInternalServiceFilter(
@@ -26,7 +37,8 @@ public class HrInternalServiceFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith("/internal/");
+        String uri = request.getRequestURI();
+        return !uri.startsWith("/internal/") || DEVICE_INGEST_PATH.equals(uri);
     }
 
     @Override

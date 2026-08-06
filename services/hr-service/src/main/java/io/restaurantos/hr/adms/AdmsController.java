@@ -62,8 +62,11 @@ public class AdmsController {
                               @RequestParam(value = "token", required = false) String token,
                               @RequestParam(value = "table", required = false) String table,
                               @RequestBody(required = false) String body) {
-        AttendanceDeviceEntity device = deviceAuthResolver.resolve(sn, token);
+        // Inside the try, matching the other three handlers: resolve() binds TenantContext before it
+        // saves the device's last-seen timestamp, so a failure in that save would otherwise leak the
+        // tenant onto this pooled request thread for the next caller to inherit.
         try {
+            AttendanceDeviceEntity device = deviceAuthResolver.resolve(sn, token);
             if ("ATTLOG".equalsIgnoreCase(table) && body != null) {
                 for (String line : body.split("\\r?\\n")) {
                     parser.parse(line).ifPresent(p -> punchIngestService.ingest(

@@ -36,6 +36,11 @@ run_psql postgres -f init/03-grant-schema-privileges.sql
 echo "==> Ensuring auth refresh lookup function owner (RLS bypass)..."
 run_psql auth_db -f init/04-auth-refresh-lookup-owner.sql
 
+# Must run AFTER hr-service Liquibase has created the functions — the file no-ops with a NOTICE
+# when they are absent, so re-run this script (or `make dev-fix-infra`) once hr-service has booted.
+echo "==> Ensuring HR SECURITY DEFINER function owners (RLS bypass + REVOKE FROM PUBLIC)..."
+run_psql hr_db -f init/05-hr-fn-owner.sql
+
 echo "==> RabbitMQ topology + user are declarative (deploy/init/rabbitmq-definitions.template.json,"
 echo "    rendered by scripts/dev-stack-up.sh) and loaded at broker boot via load_definitions —"
 echo "    no rabbitmqctl step needed here anymore. Re-importing for belt-and-braces on volumes"
