@@ -65,6 +65,20 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "restaurantos.fail-open-on-platform-down=true",
                 "restaurantos.platform-admin.uri=http://localhost:9999",
                 "restaurantos.jwks.uri=http://localhost:9999/.well-known/jwks.json",
+                // Bind Netty to LOOPBACK ONLY. This is the fix for the
+                // `PrematureCloseException: Connection prematurely closed BEFORE response` that
+                // plan 13-01 investigated, time-boxed and left explicitly unresolved, and it is a
+                // SECOND cause distinct from the JDK-version one in DEV-STACK-RUNBOOK.md.
+                //
+                // Spring Boot binds the test server to the wildcard address, so the listener is
+                // LAN-reachable; macOS's Application Firewall filters incoming connections to
+                // wildcard-bound sockets per binary and, when it decides against one, accepts and
+                // closes it having written zero bytes. Hence a client-side EOF and complete silence
+                // server-side. Loopback traffic is never filtered, so this removes the firewall
+                // from the path rather than asking it for permission — the runbook is explicit that
+                // approving a JDK binary is not an acceptable fix. Measured: 18/18 errors before,
+                // 0 after, same commit. CI (Linux) is unaffected.
+                "server.address=127.0.0.1",
                 "eureka.client.enabled=false",
                 "spring.cloud.discovery.enabled=false",
                 "spring.main.allow-bean-definition-overriding=true"

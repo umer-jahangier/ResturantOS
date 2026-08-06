@@ -489,9 +489,17 @@ r.add("server.address", () -> "127.0.0.1");   // in the IT base class @DynamicPr
 ```
 
 removes the firewall from the path instead of asking it for permission. Same commit, alternating:
-7 runs wildcard-bound → 21/21 errors; 4 runs loopback-bound → 0 network errors. This is applied in
-`services/auth-service/.../integration/BaseIntegrationTest.java`; **every other service's IT base
-class still binds to the wildcard** and will hit this. Apply the same line when you meet it.
+7 runs wildcard-bound → 21/21 errors; 4 runs loopback-bound → 0 network errors.
+
+**It is the gateway's `PrematureCloseException` too**, which plan 13-01 investigated, time-boxed and
+left unresolved. `JwtGlobalFilterTest` + `JwtGlobalFilterWsUpgradeTest` went 18/18 errors → 43/43
+green three runs in a row from the same commit with `server.address=127.0.0.1` added to the
+`@SpringBootTest` properties. Reactive or servlet, the cause and the fix are the same.
+
+Applied in `services/auth-service/.../integration/BaseIntegrationTest.java`,
+`gateway/.../JwtGlobalFilterTest.java` and `gateway/.../JwtGlobalFilterWsUpgradeTest.java`.
+**Every other service's IT base class still binds to the wildcard** and will hit this. Apply the
+same line when you meet it.
 
 Note this also explains why the earlier diagnosis appeared complete: a JDK downgrade changes which
 binary the firewall evaluates, so it can flip the outcome without the wildcard bind being addressed.
