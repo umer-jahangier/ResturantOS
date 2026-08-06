@@ -91,6 +91,11 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "spring.main.web-application-type=reactive",
                 "spring.cloud.gateway.server.webflux.trusted-proxies=.*",
                 "restaurantos.jwks.uri=http://localhost:9999/.well-known/jwks.json",
+                // Bind Netty to LOOPBACK ONLY — the wildcard bind is what the macOS Application
+                // Firewall filters, producing `PrematureCloseException` with zero bytes written and
+                // total silence server-side. See JwtGlobalFilterTest for the full note and
+                // DEV-STACK-RUNBOOK.md for the measurements.
+                "server.address=127.0.0.1",
                 "eureka.client.enabled=false",
                 "spring.cloud.discovery.enabled=false",
                 "spring.main.allow-bean-definition-overriding=true"
