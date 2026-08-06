@@ -48,6 +48,12 @@ restaurantos:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   auth:
     step-up-enabled: ${AUTH_STEP_UP_ENABLED:true}
+    # Control-plane token lifetime (PlatformTokenService). Deliberately NOT jwt.access-ttl-seconds:
+    # that is 3600 for tenant users, and a SuperAdmin token — which can provision tenants, toggle
+    # features and start impersonation sessions — should not live as long as a cashier's. Platform
+    # users also have no refresh path and no TOTP column yet, so the short TTL is the only bound on
+    # a leaked control-plane token.
+    platform-token-ttl-seconds: ${PLATFORM_TOKEN_TTL_SECONDS:900}
     cookie:
       secure: ${AUTH_COOKIE_SECURE:true}
     jwt:

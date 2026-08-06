@@ -15,6 +15,9 @@ import java.util.UUID;
 @Service
 public class JwtSigningService {
 
+    /** Value of the {@code token_type} claim on a control-plane (tenant-less) token. */
+    public static final String PLATFORM_TOKEN_TYPE = "platform";
+
     private final RSAPrivateKey privateKey;
     private final AuthJwtProperties jwtProperties;
 
@@ -59,6 +62,54 @@ public class JwtSigningService {
             .id(UUID.randomUUID().toString())
             .subject(service)
             .claim("roles", List.of("INTERNAL_SERVICE"))
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(expiry))
+            .signWith(privateKey, Jwts.SIG.RS256)
+            .compact();
+    }
+
+    /**
+     * Mints a platform (control-plane) access token: an identity with NO tenant (PLATFORM-01).
+     *
+     * <p>Why this cannot reuse {@link #signAccessToken}: that method dereferences
+     * {@code claims.tenantId()} and {@code claims.branchId()} unguarded, and a platform user is by
+     * definition tenant-less — it lives in {@code platform_db.platform_users}, not in any tenant's
+     * {@code users} table. Attempting to mint a SuperAdmin token through the tenant signer NPEs.
+     * That is one of the three independent causes of audit blocker B1.
+     *
+     * <p>The tenant and branch claims are OMITTED rather than emitted as nulls. Both readers of
+     * those keys ({@code JwtGlobalFilter.parseUuid}, {@code JwtAuthenticationFilter}) treat an
+     * absent key as "no tenant"; a null-valued key would be a second state meaning the same thing,
+     * which every future reader would have to keep getting right.
+     *
+     * <p>{@code roles} and {@code permissions} both carry the role. The roles claim is the correct
+     * home for it and — since the authority union landed in {@code JwtAuthenticationFilter} —
+     * sufficient on its own to satisfy {@code hasAuthority('SUPER_ADMIN')}. It is repeated in
+     * permissions so a platform token also works against any service still running an older
+     * shared-lib, and because no dotted permission code may be invented here: PermissionCatalogClosureTest
+     * scans {@code @PreAuthorize} expressions and would demand a tenant-RBAC catalog row for one.
+     *
+     * @param platformUserId {@code platform_users.id} — the subject
+     * @param platformRole   one of SUPER_ADMIN / SUPPORT / BILLING; validated by the caller
+     *                       ({@link PlatformTokenService}), never here
+     */
+    public String signPlatformToken(UUID platformUserId, String platformRole, Duration ttl) {
+        Instant now = Instant.now();
+        Instant expiry = now.plus(ttl);
+        return Jwts.builder()
+            .header().keyId(jwtProperties.getPublicKeyId()).and()
+            .id(UUID.randomUUID().toString())
+            .subject(platformUserId.toString())
+            .claim("roles", List.of(platformRole))
+            .claim("permissions", List.of(platformRole))
+            // Marks the token's audience as the control plane rather than a tenant. Consumers may
+            // use it to refuse a platform token on a tenant-scoped surface; nothing may use it to
+            // GRANT anything, which is what roles/permissions are for.
+            .claim("token_type", PLATFORM_TOKEN_TYPE)
+            // Explicit and false: platform_users has no TOTP column yet (a known gap recorded in
+            // 13-CONTEXT), so no platform login can have stepped up. Stated rather than omitted so
+            // the fail-closed default is a decision on the record, not an accident of absence.
+            .claim("totp_verified", false)
             .issuedAt(Date.from(now))
             .expiration(Date.from(expiry))
             .signWith(privateKey, Jwts.SIG.RS256)
