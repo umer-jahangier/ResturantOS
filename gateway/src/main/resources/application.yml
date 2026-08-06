@@ -266,6 +266,43 @@ spring:
                       - 500
                       - 503
 
+            # ── HR device-authenticated attendance ingest (JWT-exempt, FEATURE_HR-gated) ──
+            # No user JWT: hr-service's DeviceAuthResolver verifies the device token and derives
+            # tenant/branch from the registry. Rate-limited per DEVICE (SN query param) so one
+            # device cannot exhaust a branch's shared per-IP budget.
+            - id: hr-iclock-route
+              uri: lb://hr-service
+              predicates:
+                - Path=/iclock/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: ${RATE_LIMIT_DEVICE_PER_MIN:120}
+                    key-resolver: "#{@deviceKeyResolver}"
+                - name: CircuitBreaker
+                  args:
+                    name: hrCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+            - id: hr-attendance-ingest-route
+              uri: lb://hr-service
+              predicates:
+                - Path=/internal/attendance/ingest
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: ${RATE_LIMIT_DEVICE_PER_MIN:120}
+                    key-resolver: "#{@deviceKeyResolver}"
+                - name: CircuitBreaker
+                  args:
+                    name: hrCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
             # ── Reporting Service (reports, FBR, realtime dashboard WS) ──────────
             # No feature gate in RouteFeatureMap — reports are core for every ACTIVE tenant
             # (same rationale as pos-route). Do NOT add /api/v1/reporting/ to RouteFeatureMap:

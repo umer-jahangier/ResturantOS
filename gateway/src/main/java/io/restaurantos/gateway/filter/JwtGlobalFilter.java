@@ -58,7 +58,12 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             "/.well-known",
             "/actuator/health",
             "/actuator/prometheus",
-            "/fallback"
+            "/fallback",
+            // Device-authenticated attendance ingest: no user JWT (the device has no login). The
+            // device token is verified by hr-service's DeviceAuthResolver, and these paths stay
+            // FEATURE_HR-gated (RouteFeatureMap) + per-device rate-limited. JWT-skip only.
+            "/iclock",
+            "/internal/attendance/ingest"
     );
 
     /**
