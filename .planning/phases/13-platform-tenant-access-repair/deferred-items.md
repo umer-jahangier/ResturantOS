@@ -110,3 +110,31 @@ temporary password can complete the forced change themselves and own the account
 Worth a deliberate decision by whoever owns **13-13** (admin-initiated reset), which creates the
 same window on purpose. If the answer is "enrolment must follow the change", the gate belongs in
 `AuthServiceImpl.authenticateForTotpBootstrap`, and both e2e scripts that enrol need reordering.
+
+### 7. `refresh` does not re-check `is_active` (13-11)
+
+13-11 made `AuthServiceImpl.login` refuse a deactivated or tombstoned account (it never read the
+flag before), and applied the same refusal to `authenticateForTotpBootstrap`. **`refresh` does
+not.** It validates the refresh session, resolves permissions and mints a new access token without
+loading the user row at all.
+
+It is closed in practice, not by luck: `UserLifecycleService.setActive(…, false)` revokes every
+unrevoked refresh session in the same transaction, so there is no session left to present —
+asserted live (1 → 0) and in `UserLifecycleIT`. The residual window is a session created *between*
+the flag flip and the revoke, which one transaction makes very small and does not make impossible.
+
+Not fixed here because `refresh` is on the hottest path in the service and adding a `users` read to
+it is a performance decision, not a bug fix. Whoever owns it should decide between (a) one indexed
+read of `is_active` per refresh, or (b) leaving it and documenting the revoke as the control. If
+(a), it belongs beside `refreshSessionService.validate` and after the tenant GUC is set.
+
+### 8. `user-service` has no Feign `ErrorDecoder` (13-07 finding #2, still open after 13-11)
+
+Reported by 13-07 for `400 UNKNOWN_ROLE_CODE`; 13-11 added a second case,
+`403 ROLE_CEILING_EXCEEDED`. Both are correct on `/internal/auth/**` and both reach a client as
+`500 INTERNAL_ERROR`, because `FeignException` falls through user-service's generic handler. The
+refusals are fail-closed — nothing is written — so this is a status-mapping defect, not a security
+one, but a role picker cannot tell "you may not assign that" from "the platform broke".
+
+Owned by **13-12**, which owns `UserAdminController`/`UserAdminService`. One `ErrorDecoder`, or an
+`@ExceptionHandler(FeignException.class)` that re-emits 4xx with the upstream body, closes both.
