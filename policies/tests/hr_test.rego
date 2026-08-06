@@ -113,6 +113,134 @@ test_payroll_approve_cross_tenant_deny if {
     }
 }
 
+# ── attendance_view / attendance_manage ─────────────────────────────────────
+
+test_attendance_view_allow if {
+    hr.allow with input as {
+        "action": "attendance_view",
+        "user": base_user(["hr.attendance.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_attendance_view_missing_permission_deny if {
+    not hr.allow with input as {
+        "action": "attendance_view",
+        "user": base_user(["hr.employee.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_attendance_view_cross_tenant_deny if {
+    not hr.allow with input as {
+        "action": "attendance_view",
+        "user": base_user(["hr.attendance.view"]),
+        "resource": base_resource({"tenant_id": other_tenant}),
+    }
+}
+
+test_attendance_manage_allow if {
+    hr.allow with input as {
+        "action": "attendance_manage",
+        "user": base_user(["hr.attendance.manage"]),
+        "resource": base_resource({}),
+    }
+}
+
+# View must NOT imply manage — the punch-edit path is a fraud surface.
+test_attendance_manage_with_only_view_deny if {
+    not hr.allow with input as {
+        "action": "attendance_manage",
+        "user": base_user(["hr.attendance.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_attendance_manage_cross_branch_deny if {
+    not hr.allow with input as {
+        "action": "attendance_manage",
+        "user": base_user(["hr.attendance.manage"]),
+        "resource": base_resource({"branch_id": other_branch}),
+    }
+}
+
+# ── leave_view ───────────────────────────────────────────────────────────────
+
+test_leave_view_allow if {
+    hr.allow with input as {
+        "action": "leave_view",
+        "user": base_user(["hr.leave.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_leave_view_missing_permission_deny if {
+    not hr.allow with input as {
+        "action": "leave_view",
+        "user": base_user(["hr.employee.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_leave_view_cross_tenant_deny if {
+    not hr.allow with input as {
+        "action": "leave_view",
+        "user": base_user(["hr.leave.view"]),
+        "resource": base_resource({"tenant_id": other_tenant}),
+    }
+}
+
+# ── payroll_view / payroll_run ───────────────────────────────────────────────
+
+test_payroll_view_allow if {
+    hr.allow with input as {
+        "action": "payroll_view",
+        "user": base_user(["hr.payroll.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_payroll_view_missing_permission_deny if {
+    not hr.allow with input as {
+        "action": "payroll_view",
+        "user": base_user(["hr.employee.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_payroll_view_cross_tenant_deny if {
+    not hr.allow with input as {
+        "action": "payroll_view",
+        "user": base_user(["hr.payroll.view"]),
+        "resource": base_resource({"tenant_id": other_tenant}),
+    }
+}
+
+test_payroll_run_allow if {
+    hr.allow with input as {
+        "action": "payroll_run",
+        "user": base_user(["hr.payroll.run"]),
+        "resource": base_resource({}),
+    }
+}
+
+# Read-only payroll access must not be able to execute a run.
+test_payroll_run_with_only_view_deny if {
+    not hr.allow with input as {
+        "action": "payroll_run",
+        "user": base_user(["hr.payroll.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_payroll_run_cross_branch_deny if {
+    not hr.allow with input as {
+        "action": "payroll_run",
+        "user": base_user(["hr.payroll.run"]),
+        "resource": base_resource({"branch_id": other_branch}),
+    }
+}
+
 # ── fail-closed on unknown action ───────────────────────────────────────────
 
 test_unknown_action_deny if {
@@ -120,5 +248,21 @@ test_unknown_action_deny if {
         "action": "employee_delete_everything",
         "user": base_user(["hr.employee.manage"]),
         "resource": base_resource({}),
+    }
+}
+
+# An empty permission set must never satisfy any HR rule.
+test_no_permissions_deny_all if {
+    every action in [
+        "employee_view", "employee_manage",
+        "attendance_view", "attendance_manage",
+        "leave_view", "leave_approve",
+        "payroll_view", "payroll_run", "payroll_approve",
+    ] {
+        not hr.allow with input as {
+            "action": action,
+            "user": base_user([]),
+            "resource": base_resource({}),
+        }
     }
 }
