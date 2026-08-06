@@ -72,6 +72,36 @@ One idempotent, cross-platform script that produces:
 - Exact seed-script language (existing seeders are Python + psycopg2; `scripts/onboarding.py` is the closest working analog and uses deterministic uuid5 ids — reuse that idempotency mechanism).
 - Whether the seed script drives the repaired provisioning API or writes directly. **Preference: drive the real API wherever it now works** — that is what proves the repair. Direct DB writes only where no API exists, and each such case must be listed.
 - Migration tooling per service (auth/user/platform = Liquibase; pos/finance/inventory/etc = Flyway). Follow the owning service's existing tool.
+
+### Decisions taken DURING execution (supersede any earlier plan text that conflicts)
+
+**D-29a — TENANT_ADMIN keeps its money-moving permissions and is TOTP-enrolled at creation.**
+13-02 split user/branch administration off the umbrella `rbac.manage` permission as planned, and
+verified the tenant-admin token no longer carries it. But `requiresTotpStepUp` also fires on
+`finance.period.close` and `hr.payroll.approve`, which TENANT_ADMIN legitimately holds — so a tenant
+admin is still prompted for step-up. That makes 13-02's must_have truth #2 unachievable as written.
+
+Resolved by treating the truth as wrong, not the behaviour: **step-up on accounting-period close and
+payroll approval is correct and stays.** Revoking those two codes would leave tenant admins unable to
+run payroll or close a period at all, breaking the HR and finance modules for every tenant. Instead,
+TOTP enrolment becomes part of tenant-admin creation, so the admin has a factor before they first
+need it.
+
+Consequences for later plans: **13-05** (platform login) and **13-08** (forced change) must account
+for a first-login flow that can require TOTP enrolment; **13-15**'s seed script must enrol TOTP for
+every tenant-admin persona it creates, or its own login verification will fail on exactly the persona
+that matters most. Reversible: if the user prefers, revoke `finance.period.close` and
+`hr.payroll.approve` from TENANT_ADMIN and grant them to a separate finance role instead.
+
+**D-30 — The POS till binds at cash settlement, not at order creation.** See `13-16-PLAN.md`.
+13-02's WAITER role is correctly granted `pos.order.create` with no till permission, but
+`OrderServiceImpl.createOrder` requires the *creating* user to hold an OPEN till, so a waiter is
+authorized to take an order and then refused with `409 NO_OPEN_TILL`. Order creation now binds a till
+opportunistically; `PaymentMethod.CASH` settlement requires one. Net effect is stricter than today,
+because a cash payment against a null-till order is currently accepted. Per-POS-profile configuration
+of this rule is Phase 16 work, not Phase 13.
+
+**13-16 must land before 13-15**, or the seed script's waiter persona cannot complete an order.
 </decisions>
 
 <canonical_refs>
