@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useClosePeriod } from "@/lib/hooks/finance/use-periods";
+import { StepUpRequiredNotice } from "@/components/auth/step-up-required-notice";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { formatUserFacingError } from "@/lib/errors";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
@@ -15,20 +13,20 @@ interface PeriodCloseModalProps {
 }
 
 function PeriodCloseModal({ period, onClose, onSuccess }: PeriodCloseModalProps) {
-  const [totpCode, setTotpCode] = useState("");
   const { mutate: closePeriod, isPending, error, isSuccess } = useClosePeriod();
+
+  // The step-up gate is satisfied by the access token's `totp_verified` claim, not by anything
+  // this dialog can send — so it asks for confirmation, not for a code. When the claim has aged
+  // out, the server says so and the notice below routes the user to re-authenticate.
+  const stepUpRequired = error?.isTotpRequired() ?? false;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (totpCode.length !== 6) return;
-    closePeriod(
-      { id: period.id, totpCode },
-      {
-        onSuccess: () => {
-          onSuccess();
-        },
+    closePeriod(period.id, {
+      onSuccess: () => {
+        onSuccess();
       },
-    );
+    });
   }
 
   return (
@@ -57,22 +55,9 @@ function PeriodCloseModal({ period, onClose, onSuccess }: PeriodCloseModalProps)
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="totp">6-digit TOTP code</Label>
-              <Input
-                id="totp"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-                maxLength={6}
-                pattern="[0-9]{6}"
-                className="font-mono tabular-nums tracking-widest text-center text-lg"
-                autoComplete="one-time-code"
-                required
-              />
-            </div>
+            {stepUpRequired && <StepUpRequiredNotice action="close this period" />}
 
-            {error && (
+            {error && !stepUpRequired && (
               <p className="text-sm text-destructive" role="alert">
                 {formatUserFacingError(error)}
               </p>
@@ -81,7 +66,7 @@ function PeriodCloseModal({ period, onClose, onSuccess }: PeriodCloseModalProps)
             <div className="flex gap-3">
               <Button
                 type="submit"
-                disabled={totpCode.length !== 6 || isPending}
+                disabled={isPending || stepUpRequired}
                 className="bg-amber-600 hover:bg-amber-700"
               >
                 {isPending ? "Closing…" : "Close Period"}

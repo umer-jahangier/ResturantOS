@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { HrErrorNotice } from "@/components/hr/hr-error-notice";
+import { StepUpRequiredNotice } from "@/components/auth/step-up-required-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,6 +17,7 @@ import {
   usePayrollRuns,
   usePayslips,
 } from "@/lib/hooks/hr/use-payroll";
+import type { ApiError } from "@/lib/errors";
 import type { PayrollRun } from "@/lib/models/hr.model";
 
 function rupees(paisa: number): string {
@@ -35,6 +37,7 @@ export default function PayrollPage() {
   // Only the id is stored; the run itself is looked up from the freshly-fetched list so an
   // expanded row can never go on showing a pre-mutation status.
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [stepUpRequired, setStepUpRequired] = useState(false);
 
   const rows = runs ?? [];
   const expanded: PayrollRun | null = rows.find((r) => r.id === expandedId) ?? null;
@@ -52,6 +55,27 @@ export default function PayrollPage() {
     return {
       onSuccess: () => toast.success(successMessage),
       onError: () => toast.error("Action failed"),
+    };
+  }
+
+  // Approval alone is step-up gated, and its one expected failure is not a failure: the
+  // `totp_verified` claim is not carried across token refresh, so roughly an hour after signing
+  // in the server starts answering TOTP_REQUIRED. A toast reading "Action failed" would send an
+  // approver hunting a payroll problem that does not exist, so that case gets a persistent notice
+  // with the one action that resolves it instead.
+  function approveResult() {
+    return {
+      onSuccess: () => {
+        setStepUpRequired(false);
+        toast.success("Approved");
+      },
+      onError: (error: ApiError) => {
+        if (error.isTotpRequired()) {
+          setStepUpRequired(true);
+          return;
+        }
+        toast.error("Action failed");
+      },
     };
   }
 
@@ -87,6 +111,8 @@ export default function PayrollPage() {
           </div>
         </PermissionGuard>
       </div>
+
+      {stepUpRequired && <StepUpRequiredNotice action="approve this payroll run" />}
 
       {/* Payroll is money: a failed list rendering as "No payroll runs yet." could send
           someone to create a duplicate run for a period that already has one. */}
@@ -129,17 +155,9 @@ export default function PayrollPage() {
                       <Button
                         size="sm"
                         disabled={approveRun.isPending}
-                        onClick={() => {
-                          const code = window.prompt("Enter TOTP code to approve") ?? "";
-                          if (code) {
-                            approveRun.mutate(
-                              { id: run.id, totpCode: code },
-                              toastResult("Approved"),
-                            );
-                          }
-                        }}
+                        onClick={() => approveRun.mutate(run.id, approveResult())}
                       >
-                        Approve (TOTP)
+                        Approve
                       </Button>
                     </PermissionGuard>
                   )}

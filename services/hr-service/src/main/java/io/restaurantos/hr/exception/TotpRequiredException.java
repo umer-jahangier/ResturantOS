@@ -1,10 +1,12 @@
 package io.restaurantos.hr.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
-
-/** Raised when a step-up-gated operation (payroll approval) is attempted without TOTP verification. */
-@ResponseStatus(HttpStatus.UNAUTHORIZED)
+/**
+ * Raised when a step-up-gated operation (payroll approval) is attempted without TOTP verification.
+ *
+ * <p>The HTTP mapping lives in {@link HrExceptionHandler}, not in a {@code @ResponseStatus} here:
+ * the shared catch-all advice resolves before {@code ResponseStatusExceptionResolver}, so an
+ * annotation on this class is silently ignored.
+ */
 public class TotpRequiredException extends RuntimeException {
 
     public TotpRequiredException() {

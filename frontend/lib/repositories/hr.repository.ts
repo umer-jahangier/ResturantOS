@@ -52,7 +52,8 @@ import type {
 
 // Layer-2 HR repository. All calls go to /api/v1/hr/** through the shared api-client
 // (auth + tenant/branch headers added by the gateway). Idempotency-Key on payroll
-// create/calculate; X-TOTP-Verified on approve (same trust model as finance period-close).
+// create/calculate. Payroll approval is step-up gated, but the client sends nothing for it:
+// the gate reads a signed JWT claim the gateway translates into a header — see approveRun.
 
 async function postWithHeaders(
   url: string,
@@ -108,11 +109,14 @@ export const HrRepository = {
     });
     return adaptPayrollRun(apiPayrollRunSchema.parse(raw));
   },
-  async approveRun(id: string, totpCode: string): Promise<PayrollRun> {
-    void totpCode; // TOTP verified upstream; the gate is the X-TOTP-Verified header (finance parity)
-    const raw = await postWithHeaders(`/api/v1/hr/payroll-runs/${id}/approve`, null, {
-      "X-TOTP-Verified": "true",
-    });
+  /**
+   * Step-up gated, and nothing in the request satisfies the gate: hr-service reads
+   * `X-TOTP-Verified`, which the gateway writes from the signed `totp_verified` access-token
+   * claim after deleting any inbound copy. Only a login that verified a TOTP code sets it.
+   * A caller lacking the claim gets 403 `TOTP_REQUIRED` (finance period-close parity).
+   */
+  async approveRun(id: string): Promise<PayrollRun> {
+    const raw = await post<undefined, unknown>(`/api/v1/hr/payroll-runs/${id}/approve`);
     return adaptPayrollRun(apiPayrollRunSchema.parse(raw));
   },
   async payRun(id: string): Promise<PayrollRun> {

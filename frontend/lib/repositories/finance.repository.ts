@@ -1,6 +1,4 @@
-import { apiClient } from "@/lib/api-client/client";
 import { get, getPaginated, post, type PaginatedResult } from "@/lib/api-client/request";
-import type { ApiResponse } from "@/lib/api-client/types";
 import {
   apiAccountSchema,
   apiJournalEntrySchema,
@@ -150,15 +148,15 @@ export const FinanceRepository = {
     return (raw ?? []).map((item) => adaptAccountingPeriod(apiAccountingPeriodSchema.parse(item)));
   },
 
-  async closePeriod(id: string, totpCode: string): Promise<AccountingPeriod> {
-    void totpCode; // Phase 6: stub — TOTP code forwarded as header only
-    // Pass X-TOTP-Verified header directly via apiClient (TOTP gate, Phase 6 stub).
-    const response = await apiClient.post<ApiResponse<unknown>>(
-      `/api/v1/finance/periods/${id}/close`,
-      null,
-      { headers: { "X-TOTP-Verified": "true" } },
-    );
-    return adaptAccountingPeriod(apiAccountingPeriodSchema.parse(response.data.data));
+  /**
+   * The step-up gate is server-side and carries no request payload: finance-service reads
+   * `X-TOTP-Verified`, which the gateway writes from the signed `totp_verified` access-token
+   * claim after deleting any inbound copy. There is nothing a caller can send to satisfy it —
+   * only a login that verified a TOTP code. A caller lacking the claim gets 403 `TOTP_REQUIRED`.
+   */
+  async closePeriod(id: string): Promise<AccountingPeriod> {
+    const raw = await post<undefined, unknown>(`/api/v1/finance/periods/${id}/close`);
+    return adaptAccountingPeriod(apiAccountingPeriodSchema.parse(raw));
   },
 
   async provisionPeriods(fiscalYear: number): Promise<ProvisioningResult> {

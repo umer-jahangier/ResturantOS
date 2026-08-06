@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { resolveTenantSlug } from "@/lib/auth/tenant-slug";
+import { sanitizeReturnPath } from "@/lib/auth/step-up";
 import { resolveTenantBrand } from "@/lib/server/resolve-tenant-brand";
 import { LoginForm } from "@/components/auth/login-form";
 
@@ -8,7 +9,7 @@ import { LoginForm } from "@/components/auth/login-form";
 // Server component: resolves the tenant slug from the subdomain / `?tenant=`
 // (awaiting `searchParams` + `headers()` per Next 16) and hands it to the form.
 interface LoginPageProps {
-  searchParams: Promise<{ tenant?: string; reason?: string }>;
+  searchParams: Promise<{ tenant?: string; reason?: string; next?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -20,6 +21,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const tenantBrandName = tenantSlug ? await resolveTenantBrand(tenantSlug) : null;
 
   return (
-    <LoginForm tenantSlug={tenantSlug} tenantBrandName={tenantBrandName} reason={params.reason} />
+    <LoginForm
+      tenantSlug={tenantSlug}
+      tenantBrandName={tenantBrandName}
+      reason={params.reason}
+      // Sanitised here rather than at the redirect: `next` is whatever the URL said, so an
+      // off-site value must never reach the router. See sanitizeReturnPath.
+      returnPath={sanitizeReturnPath(params.next)}
+    />
   );
 }

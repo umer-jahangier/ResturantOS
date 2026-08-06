@@ -83,9 +83,7 @@ export function useCalculatePayrollRun() {
 }
 
 export function useApprovePayrollRun() {
-  return usePayrollRunMutation(({ id, totpCode }: { id: string; totpCode: string }) =>
-    HrRepository.approveRun(id, totpCode),
-  );
+  return usePayrollRunMutation((id: string) => HrRepository.approveRun(id));
 }
 
 export function usePayPayrollRun() {

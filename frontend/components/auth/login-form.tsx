@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useLogin } from "@/lib/hooks/auth/use-login";
+import { STEP_UP_LOGIN_REASON, sanitizeReturnPath } from "@/lib/auth/step-up";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -37,11 +38,17 @@ interface LoginFormProps {
   tenantSlug: string | null;
   /** Display name from auth-service (e.g. Lume); falls back to slug. */
   tenantBrandName?: string | null;
-  /** `?reason=` hint (e.g. `session_expired`) surfaced as a one-line notice. */
+  /** `?reason=` hint (e.g. `session_expired`, `step_up_required`) surfaced as a one-line notice. */
   reason?: string;
+  /**
+   * Where to land after a successful sign-in, when the user was sent here mid-task — a
+   * step-up-gated action that needs a fresh `totp_verified` claim. Already sanitised to a
+   * same-origin path by the page; null means the default dashboard.
+   */
+  returnPath?: string | null;
 }
 
-export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProps) {
+export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: LoginFormProps) {
   const router = useRouter();
   const login = useLogin();
 
@@ -78,7 +85,9 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProp
       },
       {
         onSuccess: () => {
-          router.push("/app/dashboard");
+          // Re-sanitised at the point of use: the prop is the only thing standing between a
+          // URL-supplied `?next=` and a post-login redirect, and this is the redirect.
+          router.push(sanitizeReturnPath(returnPath) ?? "/app/dashboard");
         },
         // `error` is typed as the live `ApiError` via the useLogin mutation —
         // we never import the api-client class directly (FE-08 boundary).
@@ -143,6 +152,15 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason }: LoginFormProp
         {reason === "session_expired" ? (
           <p className="mb-4 text-sm text-muted-foreground" role="status">
             Your session expired. Please sign in again.
+          </p>
+        ) : null}
+
+        {/* Distinct from session_expired on purpose: nothing expired that the user did wrong,
+            and telling them their session ended when it did not invites a support call. */}
+        {reason === STEP_UP_LOGIN_REASON ? (
+          <p className="mb-4 text-sm text-muted-foreground" role="status">
+            That action needs a fresh authenticator code. Sign in again to continue — you&apos;ll
+            be asked for your code, then taken back to where you were.
           </p>
         ) : null}
 

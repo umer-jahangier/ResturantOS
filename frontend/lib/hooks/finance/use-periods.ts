@@ -5,6 +5,8 @@ import { FinanceRepository } from "@/lib/repositories/finance.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { currentPakistanFiscalYear } from "@/lib/utils/pakistan-fiscal-year";
+import type { ApiError } from "@/lib/errors";
+import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 export function usePeriods(fiscalYear?: number) {
   const { branchId, isAuthenticated } = useCurrentUser();
@@ -28,9 +30,10 @@ export function useOpenPeriods() {
 export function useClosePeriod() {
   const { branchId } = useCurrentUser();
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, totpCode }: { id: string; totpCode: string }) =>
-      FinanceRepository.closePeriod(id, totpCode),
+  // Typed error, because the caller branches on it: a period close that comes back
+  // TOTP_REQUIRED is a step-up prompt, not a failure.
+  return useMutation<AccountingPeriod, ApiError, string>({
+    mutationFn: (id: string) => FinanceRepository.closePeriod(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["finance", branchId, "periods"],
