@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 13-06-PLAN.md
-last_updated: "2026-08-06T19:15:00.000Z"
+stopped_at: Completed 13-07-PLAN.md
+last_updated: "2026-08-06T20:00:00.000Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 147
+  completed_plans: 148
   percent: 64
 ---
 
@@ -298,6 +298,7 @@ _Updated after each plan completion_
 | Phase 08.2 P19 | 45min | 2 tasks | 4 files |
 | Phase 13 P05 | 2h | 3 tasks | 12 files |
 | Phase 13 P06 | 4h | 3 tasks | 10 files |
+| Phase 13 P07 | 40min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -307,6 +308,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 - [Phase 13]: A freshly provisioned OWNER is answered TOTP_ENROLLMENT_REQUIRED, not a token — OWNER holds rbac.manage so requiresTotpStepUp fires while the new account has no factor (D-29a working as decided). Structurally this PROVES branch resolution succeeded, since enforceTotpStepUp runs after PermissionResolver.resolveDefault. 13-10 must not read it as a provisioning failure; 13-15 must enrol TOTP for tenant-admin personas.
 - [Phase 13]: The extended /internal/auth/tenants/{id}/provision-admin REQUIRES branchId and roleCode — the saga's current {email}-only call now 400s until 13-10 lands. Deliberate: accepting the old shape manufactures the unusable no-assignment admin the endpoint exists to stop producing.
+- [Phase 13]: 13-07: the role catalog is CEILING-FILTERED — GET /api/v1/roles returns only roles whose permission set is a subset of the caller's, so a TENANT_ADMIN is never offered OWNER. Derived from role_permissions, never a list in code (mutation-proved live). Withheld roles are reported as a COUNT in an ApiResponse warning (ROLES_WITHHELD_ABOVE_CEILING), never by name.
+- [Phase 13]: 13-07: **the WRITE path has no ceiling check and this is OPEN** — a TENANT_ADMIN assigned OWNER through POST /api/v1/users/{id}/branch-roles and got 200 (measured live). Closing it needs caller identity across the /internal/auth/** seam 13-06 published for 13-10, i.e. a breaking cross-service contract change. 13-12 owns it; enforce in BranchRoleAdminService with a REQUIRED acting-user id, not an optional header.
+- [Phase 13]: 13-07: 13-06's 400 UNKNOWN_ROLE_CODE reaches a client as 500 — user-service's AuthInternalClient has no Feign ErrorDecoder, so FeignException.BadRequest hits the generic handler. Also 13-12's.
+- [Phase 13]: 13-07: `roles` IS row-level-security scoped (relrowsecurity/relforcerowsecurity both true, measured live); `permissions` and `role_permissions` are not. Tenant isolation on the catalog is enforced in the QUERY as well, because Testcontainers runs as a SUPERUSER and the policy is inert in every IT in this repo.
+- [Phase 13]: 13-07: changeset 057 restores OWNER to the whole permission catalogue and TENANT_ADMIN to all-but-rbac.manage. Databases that ran the ORIGINAL changeset 034 never gave either role pos.order.void.own (it arrives via 049, which grants only MANAGER/CASHIER), so under the ceiling rule OWNER could not assign CASHIER or MANAGER. Fresh databases were unaffected — no test could see it.
+- [Phase 13]: 13-07: the catalog is routed by its OWN gateway route (role-catalog-route, general 600/min budget), NOT folded into auth-route — that route's 2/s credential budget is per-IP and a back office is one NAT'd IP, so catalog reads would spend login's tokens.
 
 - [02-01]: NON-RLS `auth_tenants` slug lookup before tenant GUC (Phase 2/3 seam).
 - [02-01]: Login `@Transactional(noRollbackFor auth failures)` so lockout counts persist.
