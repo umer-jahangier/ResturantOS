@@ -38,7 +38,7 @@
             CREATE TABLE tax_config (
               id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               tenant_id                 UUID NOT NULL,
-              fiscal_year               TEXT NOT NULL,
+              fiscal_year               INTEGER NOT NULL,
               effective_from            DATE NOT NULL,
               effective_to              DATE,
               income_tax_slabs          JSONB NOT NULL DEFAULT '[]',
