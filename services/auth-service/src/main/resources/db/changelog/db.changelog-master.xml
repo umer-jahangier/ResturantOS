@@ -54,5 +54,11 @@
          database that has already run the seeds, position here is immaterial — Liquibase applies a
          changeset once. -->
     <include file="db/changelog/v1.0.0/056-one-active-role-per-branch.xml"/>
+    <!-- Phase 13: OWNER and TENANT_ADMIN back to holding the whole catalogue. Must run AFTER every
+         changeset that declares a permission (049 and 055 among them), because it grants by
+         SELECTing from `permissions` and can only grant what is already there — which is exactly
+         the mistake it exists to repair. Last include, so any future permission changeset added
+         above it is picked up automatically. -->
+    <include file="db/changelog/v1.0.0/057-repair-administration-role-grant-drift.xml"/>
 
 </databaseChangeLog>

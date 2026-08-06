@@ -308,6 +308,54 @@ class RoleCatalogIT extends BaseIntegrationTest {
                 .isEmpty();
     }
 
+    /**
+     * The premise the ceiling rule rests on, asserted against the database rather than assumed.
+     *
+     * <p>Changeset 036 defines OWNER as holding every permission and TENANT_ADMIN as holding every
+     * permission except {@code rbac.manage}. It implements that by SELECTing from
+     * {@code permissions} at the moment it runs, so any code that enters the catalogue afterwards
+     * without an explicit grant is missing from both roles forever — which is precisely what
+     * happened to {@code pos.order.void.own} on every database that ran the original changeset 034
+     * (it arrived later, via 049's repair, which grants it to CASHIER and MANAGER only).
+     *
+     * <p>Under the ceiling rule that one absent row made CASHIER and MANAGER unassignable BY OWNER:
+     * a cashier could void their own order and the owner of the restaurant could not, so CASHIER
+     * was "above" OWNER. Measured live before changeset 057: a tenant admin was offered five roles
+     * instead of seven. Fail-closed, and the rule correctly reporting bad data.
+     *
+     * <p>This test fails on the branch that adds a permission without back-granting it, at which
+     * point the role picker would otherwise start quietly withholding roles.
+     */
+    @Test
+    void theAdministrationRolesHoldTheWholeCatalogue() {
+        assertThat(jdbc.queryForList("""
+                SELECT p.code FROM permissions p
+                 WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp
+                                    WHERE rp.role_code = 'OWNER' AND rp.permission_code = p.code)
+                 ORDER BY p.code
+                """, String.class))
+                .as("OWNER is defined as holding every permission (changeset 036, repaired by 057). "
+                        + "A code here is one no role can be assigned by OWNER while holding it.")
+                .isEmpty();
+
+        assertThat(jdbc.queryForList("""
+                SELECT p.code FROM permissions p
+                 WHERE p.code <> 'rbac.manage'
+                   AND NOT EXISTS (SELECT 1 FROM role_permissions rp
+                                    WHERE rp.role_code = 'TENANT_ADMIN' AND rp.permission_code = p.code)
+                 ORDER BY p.code
+                """, String.class))
+                .as("TENANT_ADMIN is defined as holding every permission EXCEPT rbac.manage")
+                .isEmpty();
+
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM role_permissions
+                 WHERE role_code = 'TENANT_ADMIN' AND permission_code = 'rbac.manage'
+                """, Long.class))
+                .as("and the 13-02 authority split must survive a blanket grant repair")
+                .isZero();
+    }
+
     // ── Guardrail: never another tenant's data ────────────────────────────────────────────────
 
     /**

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Restores the two administration roles to what changeset 036 says they are:
+      OWNER holds every permission; TENANT_ADMIN holds every permission except rbac.manage.
+
+      WHY IT DRIFTED, AND WHY ONLY ON SOME DATABASES.
+      036 grants both roles by SELECTing from `permissions`, which captures the catalog AS IT
+      STANDS THE MOMENT 036 RUNS. Changeset 034 was edited after it had already run on existing
+      databases — it now declares pos.order.void.own, which 049 also inserts as a repair — so:
+
+        * a FRESH database declares that code in 034, and 036's SELECT picks it up for both roles;
+        * a database that ran the ORIGINAL 034 receives the code from 049 instead, long after 036,
+          and 049 grants it to MANAGER and CASHIER only. Neither administration role ever gets it.
+
+      Measured on the live dev auth_db before this changeset (65 permissions in the catalog):
+        OWNER 64, TENANT_ADMIN 63, and the single code missing from BOTH is pos.order.void.own.
+
+      WHY IT MATTERED ENOUGH TO REPAIR RATHER THAN NOTE.
+      Nothing about voiding actually broke: pos.rego and the controllers allow a void on
+      pos.order.void.own OR pos.order.void.any, and both roles hold .any. The damage is to
+      anything that REASONS over the grant lattice. 13-07's role catalog will only offer a caller
+      a role whose permissions are a subset of their own — the rule that stops a tenant admin
+      granting OWNER to an account it controls — and under that rule this one missing row made
+      CASHIER and MANAGER unassignable BY OWNER, on the grounds that a cashier can void their own
+      order and the owner of the restaurant cannot. Measured live: a TENANT_ADMIN was offered five
+      roles instead of seven.
+
+      That is the fail-closed direction, and it is the rule correctly reporting bad data rather
+      than the data being fine. Repairing the data is the fix; weakening the rule would not be.
+
+      SHAPE. INSERT ... SELECT ... ON CONFLICT DO NOTHING, exactly as 049: a no-op on a fresh
+      database where 036 already did this, and a repair on one where it could not. It re-asserts an
+      existing intent and grants nothing new — on the dev database it adds precisely two rows, both
+      for a code both roles could already exercise through .any.
+
+      rbac.manage stays off TENANT_ADMIN. That exclusion is 13-02's authority split (D-23) and the
+      reason a tenant admin is not handed the umbrella permission; re-granting it here would undo
+      the split silently, from a changeset nobody would think to look in.
+    -->
+    <changeSet id="auth-1.0.0-057-repair-administration-role-grant-drift" author="restaurantos-agent">
+        <comment>OWNER = every permission; TENANT_ADMIN = every permission except rbac.manage</comment>
+
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'OWNER', code FROM permissions
+            ON CONFLICT (role_code, permission_code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT 'TENANT_ADMIN', code FROM permissions WHERE code &lt;&gt; 'rbac.manage'
+            ON CONFLICT (role_code, permission_code) DO NOTHING;
+        </sql>
+
+        <!--
+          Say so if it did not work, rather than letting a role picker quietly come up short three
+          weeks later. Same reasoning as 056's RAISE: an operator should be told what happened, not
+          left to deduce it from a missing row.
+        -->
+        <sql splitStatements="false">
+            DO $$
+            DECLARE missing_owner INT; missing_admin INT;
+            BEGIN
+                SELECT count(*) INTO missing_owner FROM permissions p
+                 WHERE NOT EXISTS (SELECT 1 FROM role_permissions rp
+                                    WHERE rp.role_code = 'OWNER' AND rp.permission_code = p.code);
+                SELECT count(*) INTO missing_admin FROM permissions p
+                 WHERE p.code &lt;&gt; 'rbac.manage'
+                   AND NOT EXISTS (SELECT 1 FROM role_permissions rp
+                                    WHERE rp.role_code = 'TENANT_ADMIN' AND rp.permission_code = p.code);
+                IF missing_owner &gt; 0 OR missing_admin &gt; 0 THEN
+                    RAISE EXCEPTION
+                      'Administration grant repair did not converge: OWNER is still missing % permission(s) and TENANT_ADMIN % (excluding rbac.manage). Both roles are defined as holding the whole catalogue; anything reasoning over the grant lattice - the 13-07 role catalogue ceiling in particular - will withhold roles because of it.',
+                      missing_owner, missing_admin;
+                END IF;
+            END $$;
+        </sql>
+
+        <!--
+          No rollback. Reversing this means revoking permissions the changelog says these roles
+          hold, and on a fresh database it would revoke rows 036 wrote rather than rows this
+          changeset added — there is no record of which is which. Removing granted permissions is
+          not a migration's job (054 makes the same call in the opposite direction).
+        -->
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>
