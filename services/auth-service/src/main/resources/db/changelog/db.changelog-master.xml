@@ -41,6 +41,9 @@
     <!-- After 041/042's blanket OWNER/TENANT_ADMIN grants, so the orphan they propagate is
          removed rather than re-granted on the next run. -->
     <include file="db/changelog/v1.0.0/054-retire-orphan-pos-order-void.xml"/>
+    <!-- Phase 13: WAITER role + the tenant-administration authority split. Before the seeds, so a
+         seed changeset may reference WAITER. -->
+    <include file="db/changelog/v1.0.0/055-waiter-role-and-tenant-admin-authority.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-auth-dev-data.xml"/>
     <include file="db/changelog/v1.0.0/902-seed-purchasing-demo-users.xml"/>
 

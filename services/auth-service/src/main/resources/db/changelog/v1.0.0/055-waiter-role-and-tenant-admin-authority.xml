@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Phase 13 / audit §2.3. Two independent repairs to the role catalogue.
+
+      ── 1. TENANT_ADMIN gets real administrative authority, WITHOUT acquiring TOTP step-up ──
+
+      rbac.manage is the sole gate on every user-administration and branch-administration endpoint
+      in user-service, and changeset 030 grants TENANT_ADMIN every permission EXCEPT rbac.manage.
+      A tenant admin can therefore administer nothing, and "multiple admins per tenant" does not
+      work at all.
+
+      The obvious fix — grant TENANT_ADMIN rbac.manage — is the wrong one, and quietly so.
+      AuthServiceImpl.requiresTotpStepUp returns true when the resolved permission list contains
+      rbac.manage. Granting it would force mandatory TOTP on every tenant admin as an invisible
+      side effect of an authorisation change, and a tenant admin with no enrolled secret would meet
+      TotpEnrollmentRequiredException at login — the fix would re-break login for the exact persona
+      it exists to enable.
+
+      So the authority is SPLIT into three fine-grained codes. rbac.manage stays in the catalogue,
+      stays granted to OWNER, and stays excluded from TENANT_ADMIN, so OWNER keeps step-up (which
+      is the intended behaviour for the highest-privilege tenant role) and TENANT_ADMIN does not
+      acquire it. The three new codes are deliberately NOT prefixes or suffixes of rbac.manage as a
+      string: requiresTotpStepUp does an exact List.contains, and 'rbac.user.manage' is not
+      'rbac.manage', so no step-up is triggered.
+
+      These are point-in-time inserts on purpose. The blanket grants in 030/041/042/045/046 are
+      also point-in-time: they enumerate the permissions that existed on the day they ran and never
+      retro-grant anything added later. That is why OWNER is granted the three codes EXPLICITLY
+      here rather than being assumed to inherit them.
+
+      ── 2. The WAITER role ──
+
+      There is no waiter persona. Table staff today must be given CASHIER, which carries
+      pos.till.open / pos.till.close and pos.order.void.own — i.e. every waiter in the building can
+      open and close the till and void their own orders. WAITER takes orders and nothing else.
+
+      Every code below was read out of 030/041/042 rather than invented. An invented code produces
+      a silently permissionless login and is the highest-recurrence defect class in this
+      repository — see PermissionCatalogClosureTest for the five outages that had exactly that
+      shape. WaiterRoleGrantsTest pins the grant set from the other direction: it fails if any
+      future changeset grants WAITER anything from the till, void, refund, payment or discount
+      families.
+    -->
+
+    <changeSet id="auth-1.0.0-055-tenant-admin-authority-split" author="restaurantos-agent" runOnChange="false">
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('rbac.user.manage', 'rbac',   'Administer tenant users (list, invite, update, deactivate, reset password)'),
+              ('rbac.role.manage', 'rbac',   'Assign and revoke per-branch roles for tenant users'),
+              ('branch.manage',    'branch', 'Create, update and deactivate branches')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'rbac.user.manage'),
+              ('OWNER',        'rbac.role.manage'),
+              ('OWNER',        'branch.manage'),
+              ('TENANT_ADMIN', 'rbac.user.manage'),
+              ('TENANT_ADMIN', 'rbac.role.manage'),
+              ('TENANT_ADMIN', 'branch.manage')
+            ON CONFLICT (role_code, permission_code) DO NOTHING;
+        </sql>
+        <!--
+          TENANT_ADMIN is deliberately NOT granted rbac.manage here. That is the whole point of the
+          split; granting it would silently force TOTP enrolment on every tenant admin.
+        -->
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions
+                 WHERE permission_code IN ('rbac.user.manage', 'rbac.role.manage', 'branch.manage');
+                DELETE FROM permissions
+                 WHERE code IN ('rbac.user.manage', 'rbac.role.manage', 'branch.manage');
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-055-seed-waiter-role" author="restaurantos-agent" runOnChange="false">
+        <!--
+          uk_roles_tenant_code spans (tenant_id, code) and tenant_id is NULL for system roles.
+          Postgres treats NULLs in a unique constraint as distinct, so ('NULL', 'WAITER') does NOT
+          conflict with itself and ON CONFLICT cannot be used here — a re-run would insert a second
+          WAITER row. WHERE NOT EXISTS is the guard that actually holds.
+        -->
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO roles (tenant_id, code, name, is_system)
+            SELECT NULL, 'WAITER', 'Waiter', true
+            WHERE NOT EXISTS (
+                SELECT 1 FROM roles WHERE code = 'WAITER' AND tenant_id IS NULL
+            );
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('WAITER', 'pos.order.create'),
+              ('WAITER', 'pos.order.update'),
+              ('WAITER', 'pos.order.view'),
+              ('WAITER', 'pos.order.send_to_kds'),
+              ('WAITER', 'pos.menu.view'),
+              ('WAITER', 'pos.tables.manage'),
+              ('WAITER', 'pos.kds.view')
+            ON CONFLICT (role_code, permission_code) DO NOTHING;
+        </sql>
+        <!--
+          WHY THESE SEVEN, AND WHY NOT MORE.
+
+          The four the phase brief names outright: pos.order.create, pos.order.update,
+          pos.order.view, pos.order.send_to_kds. On their own they do not add up to a working
+          waiter, so three more are granted, each because a gate that already exists would
+          otherwise 403 an ordinary part of taking an order:
+            * pos.menu.view      — MenuController gates every read on it. Without it a waiter
+                                   cannot see the menu they are ordering from.
+            * pos.tables.manage  — TableController gates assign/release on it. Without it a waiter
+                                   cannot seat a table or attach an order to one. CASHIER holds it.
+            * pos.kds.view       — read-only kitchen ticket state, so a waiter knows when to run
+                                   food. Not pos.kds.update: bumping tickets is kitchen work.
+
+          DELIBERATELY EXCLUDED, and asserted excluded by WaiterRoleGrantsTest:
+            * pos.till.open / pos.till.close / pos.till.reconcile.override / pos.till.review
+              — the till is the cashier's. This is the entire reason WAITER exists.
+            * pos.order.void.own / pos.order.void.any  — a void is a supervisor action.
+            * pos.order.refund                         — money leaving the drawer.
+            * pos.order.close                          — PaymentController gates taking payment on
+                                                         it; a waiter does not settle bills.
+            * pos.order.discount.*  / pos.order.split_bill / pos.menu.manage / pos.order.view.all
+        -->
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE role_code = 'WAITER';
+                DELETE FROM roles WHERE code = 'WAITER' AND tenant_id IS NULL;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

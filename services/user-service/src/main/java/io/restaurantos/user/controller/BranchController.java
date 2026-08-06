@@ -16,11 +16,20 @@ import java.util.UUID;
 /**
  * Tenant Admin branch CRUD — tenant-scoped via RLS, no explicit tenant_id filter needed.
  *
- * <p>Mutations require {@code rbac.manage}. This class previously documented a {@code branch.manage}
- * gate "via SecurityConfig / method security" that existed in neither place: the permission is not in
- * the catalog and no annotation was ever written, so the security config's {@code anyRequest()
- * .authenticated()} was the only check and any signed-in user could create or soft-delete a branch.
- * {@code rbac.manage} is the catalog's tenant-administration permission and is held only by OWNER.
+ * <p>Mutations require {@code branch.manage} or {@code rbac.manage}. This class previously
+ * documented a {@code branch.manage} gate "via SecurityConfig / method security" that existed in
+ * neither place: the permission was not in the catalog and no annotation was ever written, so the
+ * security config's {@code anyRequest().authenticated()} was the only check and any signed-in user
+ * could create or soft-delete a branch. That was repaired by pointing the gates at
+ * {@code rbac.manage} — the only tenant-administration code that then existed, and one held by
+ * OWNER alone.
+ *
+ * <p>Phase 13 makes {@code branch.manage} real. It is now in the catalog and granted to OWNER and
+ * TENANT_ADMIN, which is what lets a tenant admin administer branches at all. {@code rbac.manage}
+ * is kept as an accepted alternative so OWNER's authority is unchanged, and TENANT_ADMIN is
+ * deliberately still not granted {@code rbac.manage}: that code is the TOTP step-up trigger in
+ * {@code AuthServiceImpl.requiresTotpStepUp}, and granting it would force TOTP enrolment on every
+ * tenant admin as a side effect of an authorisation change.
  *
  * <p>Reads stay open to any authenticated user — the branch switcher and every branch-scoped screen
  * need the list, and RLS already confines it to the caller's tenant.
@@ -35,7 +44,7 @@ public class BranchController {
         this.branchService = branchService;
     }
 
-    @PreAuthorize("hasAuthority('rbac.manage')")
+    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage')")
     @PostMapping
     public ResponseEntity<ApiResponse<BranchResponse>> create(
             @Valid @RequestBody BranchDtos.CreateBranchRequest request) {
@@ -62,7 +71,7 @@ public class BranchController {
         return ResponseEntity.ok(ApiResponse.ok(toResponse(branchService.get(id))));
     }
 
-    @PreAuthorize("hasAuthority('rbac.manage')")
+    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BranchResponse>> update(
             @PathVariable UUID id,
@@ -70,7 +79,7 @@ public class BranchController {
         return ResponseEntity.ok(ApiResponse.ok(toResponse(branchService.update(id, request))));
     }
 
-    @PreAuthorize("hasAuthority('rbac.manage')")
+    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         branchService.softDelete(id);
