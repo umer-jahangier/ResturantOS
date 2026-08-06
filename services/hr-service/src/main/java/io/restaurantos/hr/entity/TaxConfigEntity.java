@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -47,14 +48,23 @@ public class TaxConfigEntity {
     @Column(name = "surcharge_threshold_paisa", nullable = false)
     private long surchargeThresholdPaisa;
 
+    // BigDecimal, not double. These three columns are NUMERIC(6,3) (010-create-hr-tables.xml), and
+    // Hibernate runs with ddl-auto: validate — a double maps to float8, so schema validation failed
+    // and hr-service could not start at all against a real migrated database. Every integration
+    // test passed regardless because HrTestBase overrides ddl-auto to "none", which switches off
+    // the one check that would have caught this.
+    //
+    // The type is also the correct one on its own merits: these are statutory tax and contribution
+    // rates, and binary floating point cannot represent values like 0.001 exactly. Keeping them
+    // decimal end-to-end means the rate that was configured is the rate that is applied.
     @Column(name = "surcharge_rate_pct", nullable = false)
-    private double surchargeRatePct;
+    private BigDecimal surchargeRatePct;
 
     @Column(name = "eobi_employer_rate_pct", nullable = false)
-    private double eobiEmployerRatePct;
+    private BigDecimal eobiEmployerRatePct;
 
     @Column(name = "eobi_employee_rate_pct", nullable = false)
-    private double eobiEmployeeRatePct;
+    private BigDecimal eobiEmployeeRatePct;
 
     @Column(name = "eobi_wage_base_paisa", nullable = false)
     private long eobiWageBasePaisa;
@@ -96,15 +106,15 @@ public class TaxConfigEntity {
         return surchargeThresholdPaisa;
     }
 
-    public double getSurchargeRatePct() {
+    public BigDecimal getSurchargeRatePct() {
         return surchargeRatePct;
     }
 
-    public double getEobiEmployerRatePct() {
+    public BigDecimal getEobiEmployerRatePct() {
         return eobiEmployerRatePct;
     }
 
-    public double getEobiEmployeeRatePct() {
+    public BigDecimal getEobiEmployeeRatePct() {
         return eobiEmployeeRatePct;
     }
 

@@ -1,5 +1,7 @@
 package io.restaurantos.hr.payroll;
 
+import java.math.BigDecimal;
+
 import io.restaurantos.hr.payroll.tax.SlabTaxCalculator;
 import io.restaurantos.hr.payroll.tax.TaxSlab;
 import org.junit.jupiter.api.Test;
@@ -55,14 +57,14 @@ class SlabTaxCalculatorTest {
     void surcharge_appliesToTax_onlyOverThreshold() {
         long income = 1200000000L; // 12,000,000 PKR, above the 10,000,000 threshold
         long tax = calc.computeAnnualTax(income, FY2025_26);
-        long surcharge = calc.computeSurcharge(tax, income, 1000000000L, 9.0);
+        long surcharge = calc.computeSurcharge(tax, income, 1000000000L, new BigDecimal("9.000"));
         assertThat(surcharge).isEqualTo(Math.round(tax * 9.0 / 100.0));
         assertThat(tax + surcharge).isEqualTo(tax + surcharge); // total = tax + 9% of tax
     }
 
     @Test
     void surcharge_isZero_belowThreshold() {
-        assertThat(calc.computeSurcharge(1000000L, 50000000L, 1000000000L, 9.0)).isZero();
+        assertThat(calc.computeSurcharge(1000000L, 50000000L, 1000000000L, new BigDecimal("9.000"))).isZero();
     }
 
     @Test

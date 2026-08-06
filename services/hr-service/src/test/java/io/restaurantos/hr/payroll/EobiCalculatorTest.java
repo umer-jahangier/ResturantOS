@@ -1,5 +1,7 @@
 package io.restaurantos.hr.payroll;
 
+import java.math.BigDecimal;
+
 import io.restaurantos.hr.payroll.tax.EobiCalculator;
 import org.junit.jupiter.api.Test;
 
@@ -16,19 +18,19 @@ class EobiCalculatorTest {
 
     @Test
     void employeeContribution_isOnePercentOfWageBase() {
-        assertThat(calc.employeeContribution(WAGE_BASE_PAISA, 1.0)).isEqualTo(37000L); // Rs 370
+        assertThat(calc.employeeContribution(WAGE_BASE_PAISA, new BigDecimal("1.000"))).isEqualTo(37000L); // Rs 370
     }
 
     @Test
     void employerContribution_isFivePercentOfWageBase() {
-        assertThat(calc.employerContribution(WAGE_BASE_PAISA, 5.0)).isEqualTo(185000L); // Rs 1,850
+        assertThat(calc.employerContribution(WAGE_BASE_PAISA, new BigDecimal("5.000"))).isEqualTo(185000L); // Rs 1,850
     }
 
     @Test
     void eobi_isSalaryIndependent_byDesign() {
         // There is no salary parameter in either signature — EOBI cannot vary with pay. This test
         // documents that a Rs 200,000/month employee and a Rs 40,000/month employee owe identical EOBI.
-        assertThat(calc.employeeContribution(WAGE_BASE_PAISA, 1.0)).isEqualTo(37000L);
-        assertThat(calc.employerContribution(WAGE_BASE_PAISA, 5.0)).isEqualTo(185000L);
+        assertThat(calc.employeeContribution(WAGE_BASE_PAISA, new BigDecimal("1.000"))).isEqualTo(37000L);
+        assertThat(calc.employerContribution(WAGE_BASE_PAISA, new BigDecimal("5.000"))).isEqualTo(185000L);
     }
 }

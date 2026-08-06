@@ -5,6 +5,7 @@ import io.restaurantos.hr.repository.TaxConfigRepository;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,9 +44,9 @@ public class TaxConfigService {
     public record ActiveTaxConfig(
             List<TaxSlab> slabs,
             long surchargeThresholdPaisa,
-            double surchargeRatePct,
-            double eobiEmployerRatePct,
-            double eobiEmployeeRatePct,
+            BigDecimal surchargeRatePct,
+            BigDecimal eobiEmployerRatePct,
+            BigDecimal eobiEmployeeRatePct,
             long eobiWageBasePaisa) {
     }
 }

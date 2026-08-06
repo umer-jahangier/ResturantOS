@@ -2,6 +2,7 @@ package io.restaurantos.hr.payroll.tax;
 
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -31,10 +32,10 @@ public class SlabTaxCalculator {
      * {@code surchargeThresholdPaisa}. Returns the surcharge amount (0 below the threshold).
      */
     public long computeSurcharge(long taxPaisa, long annualTaxableIncomePaisa,
-                                 long surchargeThresholdPaisa, double surchargeRatePct) {
+                                 long surchargeThresholdPaisa, BigDecimal surchargeRatePct) {
         if (annualTaxableIncomePaisa <= surchargeThresholdPaisa) {
             return 0L;
         }
-        return Math.round(taxPaisa * surchargeRatePct / 100.0);
+        return PercentOfPaisa.apply(taxPaisa, surchargeRatePct);
     }
 }

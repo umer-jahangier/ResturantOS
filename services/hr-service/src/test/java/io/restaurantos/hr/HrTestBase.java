@@ -41,7 +41,20 @@ public abstract class HrTestBase {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
+        // "validate", not "none" — deliberately matching the deployed configuration
+        // (services/hr-service/src/main/resources/application.yml sets ddl-auto: validate).
+        //
+        // This used to be "none", which switched off the only check that compares the JPA mappings
+        // to the schema Liquibase just built. The cost of that was concrete: tax_config's three
+        // rate columns are NUMERIC(6,3) while TaxConfigEntity mapped them as `double` (float8), so
+        // hr-service could not start against any real migrated database — and all 18 integration
+        // tests passed anyway, because this line meant no test ever booted the service the way
+        // production boots it. A green suite reported a service that could not start.
+        //
+        // Keeping this at "validate" means entity/schema drift fails here, in seconds, instead of
+        // at deployment. If a future changelog and entity disagree, that is the bug — do not switch
+        // this back to "none" to make the suite green.
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         // Spring Liquibase runs the master changelog against the container; contexts="" skips seed.
         registry.add("spring.liquibase.contexts", () -> "");
         registry.add("eureka.client.enabled", () -> "false");
