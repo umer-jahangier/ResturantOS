@@ -21,15 +21,17 @@ import java.util.stream.Collectors;
  *   <li>{@code GET /internal/platform/tenants/slug/{slug}} — resolve slug → tenantId</li>
  * </ul>
  *
- * <h3>Fail-open / fail-closed seam (documented for 03-02):</h3>
- * <p>When {@code restaurantos.fail-open-on-platform-down=true} (dev profile only):
- * connection failures are swallowed and the request proceeds as if the tenant is ACTIVE
- * with no feature restrictions. In production ({@code false}), connection failures
- * propagate and result in 403.
+ * <h3>Fail-open / fail-closed seam:</h3>
+ * <p>This client reports what platform-admin said, or fails. It does not decide what a failure means
+ * — {@code restaurantos.fail-open-on-platform-down} is read and acted on in exactly one place,
+ * {@link io.restaurantos.gateway.filter.FeatureFlagGlobalFilter}, which turns an unreachable
+ * platform-admin into 503 TENANT_STATUS_UNAVAILABLE (default) or lets the request through (only when
+ * the lever is explicitly pulled).
  *
- * <p>platform-admin-service is built in plan 03-02; until then these calls will fail.
- * The {@code onErrorResume} wrappers in {@link io.restaurantos.gateway.filter.FeatureFlagGlobalFilter}
- * handle that gracefully per the fail-open/closed setting.
+ * <p>Substituting a plausible answer here instead — which {@link #getStatus} used to do, returning
+ * {@code "ACTIVE"} on any error under fail-open — hides the failure from the only component able to
+ * act on it, and hands it a value indistinguishable from a real determination, which it will then
+ * cache. See the note on {@link #getStatus}.
  */
 @Component
 public class PlatformAdminClient {
@@ -57,6 +59,19 @@ public class PlatformAdminClient {
     /**
      * Fetches the tenant lifecycle status from platform-admin.
      *
+     * <p>Errors are NOT swallowed here, for the same reason {@link #getEnabledFeatures} does not
+     * swallow them: the caller must be able to tell "platform-admin says this tenant is ACTIVE" apart
+     * from "we could not reach platform-admin". This method used to answer {@code "ACTIVE"} on any
+     * error when fail-open was enabled, and that was wrong in two compounding ways. It applied the
+     * fail-open lever in a second place — so the filter, which also applies it, could not see that a
+     * decision had already been made on its behalf. And because the fabricated {@code "ACTIVE"} was
+     * indistinguishable from a real answer, the filter cached it: one blip, and a suspended tenant is
+     * served from Redis for the next five minutes, including after fail-open is turned back off.
+     *
+     * <p>The lever now lives in exactly one place, {@code FeatureFlagGlobalFilter}, which is the only
+     * component that both knows an answer is missing and is in a position to decide what to do about
+     * it.
+     *
      * @return Mono emitting "ACTIVE", "SUSPENDED", or "CANCELLED"
      */
     public Mono<String> getStatus(UUID tenantId) {
@@ -64,13 +79,7 @@ public class PlatformAdminClient {
                 .uri(STATUS_PATH, tenantId)
                 .retrieve()
                 .bodyToMono(StatusEnvelope.class)
-                .map(env -> env.data().status())
-                .onErrorResume(ex -> {
-                    if (failOpen) {
-                        return Mono.just("ACTIVE");
-                    }
-                    return Mono.error(ex);
-                });
+                .map(env -> env.data().status());
     }
 
     /**
