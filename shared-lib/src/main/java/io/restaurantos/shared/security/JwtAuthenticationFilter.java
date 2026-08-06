@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.security.PublicKey;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,8 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // has not stepped up.
             boolean totpVerified = Boolean.TRUE.equals(c.get("totp_verified", Boolean.class));
 
-            var authorities = permissions == null ? List.<SimpleGrantedAuthority>of()
-                : permissions.stream().map(SimpleGrantedAuthority::new).toList();
+            var authorities = toAuthorities(permissions, roles);
             var authentication = new UsernamePasswordAuthenticationToken(
                 new JwtClaims(userId, tenantId, branchId, roles, permissions, attributes,
                     impersonatedBy, totpVerified),
@@ -90,5 +90,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             tenantContext.clear();
             MDC.clear();
         }
+    }
+
+    /**
+     * Builds the Spring authority set as the union of the {@code permissions} and {@code roles}
+     * claims.
+     *
+     * <p><b>Why the union exists.</b> This used to read {@code permissions} alone. That silently
+     * made every role-shaped gate inert: {@code @PreAuthorize("hasAuthority('SUPER_ADMIN')")} —
+     * the class-level gate on {@code PlatformAdminController} — could not be satisfied by any
+     * token this platform mints, because SUPER_ADMIN is a role and appears in no permission
+     * catalog. The whole {@code /api/v1/platform/**} API was unreachable for that one reason
+     * (audit 2026-08-06, blocker B1, cause 2). Nothing failed; the gate just never opened.
+     *
+     * <p><b>Why it is safe.</b> Strictly additive. It grants authorities that were previously
+     * unreachable and revokes none, so no existing permission-based gate changes behaviour. Both
+     * claims are attacker-irrelevant: they are read only after the RS256 signature has been
+     * verified against JWKS, and only auth-service's signers ever populate them.
+     *
+     * <p><b>Invariant.</b> This method is the ONE place authorities are derived. Any future
+     * authority source is added here, never per-service — a service-local variant is how a gate
+     * comes to be enforced in one process and inert in another, which is the defect class above.
+     */
+    private static List<SimpleGrantedAuthority> toAuthorities(List<String> permissions, List<String> roles) {
+        // LinkedHashSet: deduplicates (the platform token carries its role in BOTH claims) while
+        // keeping permissions-then-roles order stable, so assertions stay deterministic.
+        var names = new LinkedHashSet<String>();
+        if (permissions != null) names.addAll(permissions);
+        if (roles != null) names.addAll(roles);
+        return names.stream().map(SimpleGrantedAuthority::new).toList();
     }
 }
