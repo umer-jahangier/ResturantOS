@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Phase 13 / audit §2.3. Makes "at most one active role per user per branch" a database
+      invariant, and removes the hardcoded dev HQ UUID from the login path.
+
+      ── Why the repair comes first ──
+
+      Creating the unique index on a database that already carries duplicates fails, and a
+      migration that fails on real data is worse than no migration: it blocks every subsequent
+      changeset for everyone. So the duplicates are resolved first, deterministically, and only
+      then is the index created. The index doubles as the assertion that the repair worked — if any
+      duplicate survives, this changeset rolls back in one piece rather than half-applying, because
+      Postgres DDL is transactional and Liquibase runs a changeset in one transaction.
+
+      Retention rule, stated so the outcome is reproducible across environments rather than
+      whatever the planner happened to scan first: for each (user_id, branch_id) holding more than
+      one active row, keep the one with the greatest (updated_at, id) — i.e. the most recently
+      touched assignment, ties broken by the greater id. The rest are SOFT-deactivated, never
+      deleted; the row and its audit columns survive, and updated_at records when the repair
+      touched it. auth_db has no audit table reachable from here, so the updated_at change is the
+      only record of the repair, which is why nothing is hard-deleted.
+
+      ── Why RLS is stood down for the duration ──
+
+      user_branch_roles is FORCE ROW LEVEL SECURITY with
+      USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid).
+      Liquibase runs on the application datasource (auth_user, NOSUPERUSER NOBYPASSRLS — see
+      deploy/init/02-create-roles.sql), and FORCE means even the table owner is subject to the
+      policy. With no tenant GUC set, that predicate is NULL for every row, so a repair UPDATE
+      written naively would match nothing, report success, and leave the duplicates in place — and
+      then the index creation would fail with a constraint violation nobody could explain. Setting
+      a GUC is not an option either: the repair has to span every tenant.
+
+      So RLS is dropped to NO FORCE for the owner, the repair runs, and FORCE is restored. It is
+      narrower than DISABLE (the policy stays active for every non-owner role throughout) and it is
+      inside the changeset's transaction, so a failure anywhere below leaves FORCE exactly as it
+      was. If auth_user is not the table owner in some environment, the ALTER fails loudly here,
+      which is the correct outcome — far better than a silent no-op repair.
+    -->
+
+    <changeSet id="auth-1.0.0-056-repair-duplicate-active-branch-roles" author="restaurantos-agent" runOnChange="false">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE user_branch_roles NO FORCE ROW LEVEL SECURITY;
+
+            UPDATE user_branch_roles t
+               SET is_active = false,
+                   updated_at = NOW()
+             WHERE t.is_active
+               AND EXISTS (
+                   SELECT 1 FROM user_branch_roles keeper
+                    WHERE keeper.is_active
+                      AND keeper.user_id = t.user_id
+                      AND keeper.branch_id = t.branch_id
+                      AND (keeper.updated_at, keeper.id) &gt; (t.updated_at, t.id)
+               );
+
+            ALTER TABLE user_branch_roles FORCE ROW LEVEL SECURITY;
+        </sql>
+
+        <!--
+          Fail with a sentence rather than with a constraint-violation stack trace. If the repair
+          matched nothing it is almost certainly because it could not see the rows, and the operator
+          needs to be told that, not left to infer it from index creation failing on the next line.
+        -->
+        <sql splitStatements="false">
+            DO $$
+            DECLARE remaining BIGINT;
+            BEGIN
+                SELECT COUNT(*) INTO remaining FROM (
+                    SELECT user_id, branch_id FROM user_branch_roles
+                     WHERE is_active
+                     GROUP BY user_id, branch_id
+                    HAVING COUNT(*) > 1
+                ) d;
+                IF remaining > 0 THEN
+                    RAISE EXCEPTION
+                        'Duplicate-active-role repair left % (user_id, branch_id) pair(s) with more than one active row. The UPDATE above saw no rows to fix, which usually means row-level security hid them: this migration must run as the owner of user_branch_roles. Do NOT create the unique index until this is resolved.', remaining;
+                END IF;
+            END $$;
+        </sql>
+
+        <rollback>
+            <!--
+              Intentionally empty. The forward path deactivated rows; re-activating them would
+              recreate exactly the duplicates the next run has to repair again, and there is no
+              record of which rows were deactivated by this changeset rather than by an
+              administrator. Rolling back the index (next changeset) is enough to restore the
+              schema; the data repair is deliberately one-way.
+            -->
+            <sql>SELECT 1;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-056-one-active-role-per-branch-index" author="restaurantos-agent" runOnChange="false">
+        <!--
+          A PARTIAL unique index, not addUniqueConstraint: deactivated history rows must remain, so
+          the constraint has to be restricted to is_active, and Liquibase's addUniqueConstraint
+          cannot express a WHERE clause. Hence raw SQL with an explicit rollback.
+
+          tenant_id is deliberately not part of the key. user_id is a UUID and globally unique, so
+          (user_id, branch_id) already identifies the pair; including tenant_id would only widen the
+          key and weaken the invariant if a row were ever written under the wrong tenant.
+        -->
+        <sql>
+            CREATE UNIQUE INDEX uk_user_branch_roles_one_active
+                ON user_branch_roles (user_id, branch_id)
+             WHERE is_active;
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uk_user_branch_roles_one_active;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-056-add-is-primary" author="restaurantos-agent" runOnChange="false">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="user_branch_roles" columnName="is_primary"/></not>
+        </preConditions>
+        <!--
+          Replaces PermissionResolver.HQ_BRANCH_ID, a hardcoded dev branch UUID that decided which
+          branch every user in every tenant landed on at login. It is right for exactly one tenant
+          on one developer's database and silently arbitrary everywhere else — and the provisioning
+          saga does not even mark the first branch as HQ, so the constant matches nothing on a
+          freshly provisioned tenant.
+        -->
+        <addColumn tableName="user_branch_roles">
+            <column name="is_primary" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="user_branch_roles" columnName="is_primary"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-056-backfill-is-primary" author="restaurantos-agent" runOnChange="false">
+        <!--
+          One primary per user, chosen deterministically: the earliest-created active assignment,
+          ties broken by the lower id. Same NO FORCE reasoning as the repair above — without it this
+          UPDATE matches nothing and every existing user silently falls through to the "no primary"
+          branch of selectDefaultBranch.
+        -->
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE user_branch_roles NO FORCE ROW LEVEL SECURITY;
+
+            UPDATE user_branch_roles
+               SET is_primary = true
+             WHERE id IN (
+                 SELECT DISTINCT ON (user_id) id
+                   FROM user_branch_roles
+                  WHERE is_active
+                  ORDER BY user_id, created_at, id
+             );
+
+            ALTER TABLE user_branch_roles FORCE ROW LEVEL SECURITY;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                ALTER TABLE user_branch_roles NO FORCE ROW LEVEL SECURITY;
+                UPDATE user_branch_roles SET is_primary = false;
+                ALTER TABLE user_branch_roles FORCE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-056-one-primary-per-user-index" author="restaurantos-agent" runOnChange="false">
+        <!--
+          At most one active primary per user. Without this the flag is advisory and
+          selectDefaultBranch's "prefer the primary" degenerates to "prefer whichever primary the
+          query happened to return first" — a non-deterministic default branch at login, which is
+          the class of bug this whole changeset exists to remove.
+        -->
+        <sql>
+            CREATE UNIQUE INDEX uk_user_branch_roles_one_primary
+                ON user_branch_roles (user_id)
+             WHERE is_active AND is_primary;
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uk_user_branch_roles_one_primary;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

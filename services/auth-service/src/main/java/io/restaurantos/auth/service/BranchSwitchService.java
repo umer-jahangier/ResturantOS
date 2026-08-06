@@ -45,8 +45,12 @@ public class BranchSwitchService {
         UUID tenantId = claims.tenantId();
         setTenantGuc(tenantId);
 
-        userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, targetBranchId)
-            .orElseThrow(() -> new BranchSwitchDeniedException("Branch not assigned to user"));
+        // A list, not an Optional: the Optional form threw IncorrectResultSizeDataAccessException
+        // on a duplicated row, which turned "you have two roles here" into a 500 on a path whose
+        // only two honest answers are a token or a 403.
+        if (userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, targetBranchId).isEmpty()) {
+            throw new BranchSwitchDeniedException("Branch not assigned to user");
+        }
 
         ResolvedBranchAuth resolved = permissionResolver.resolve(userId, targetBranchId);
         // Step-up carries across a branch switch. Unlike refresh, the caller is proving possession

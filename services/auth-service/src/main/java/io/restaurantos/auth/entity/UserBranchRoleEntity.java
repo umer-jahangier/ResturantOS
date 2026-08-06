@@ -33,4 +33,15 @@ public class UserBranchRoleEntity extends TenantAuditableEntity {
 
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
+
+    /**
+     * The branch this user lands on at login when no branch is requested.
+     *
+     * <p>Replaces {@code PermissionResolver.HQ_BRANCH_ID}, a hardcoded dev-branch UUID that decided
+     * the default branch for every user in every tenant. Constrained by a partial unique index to
+     * at most one active primary per user, so "prefer the primary" is a single deterministic row
+     * rather than whichever primary a query happened to return first.
+     */
+    @Column(name = "is_primary", nullable = false)
+    private boolean primary = false;
 }

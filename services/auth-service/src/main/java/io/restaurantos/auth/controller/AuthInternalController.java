@@ -1,8 +1,8 @@
 package io.restaurantos.auth.controller;
 
 import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
+import io.restaurantos.auth.dto.response.BranchRoleAssignWriteResponse;
 import io.restaurantos.auth.dto.response.BranchRoleAssignmentResponse;
-import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.service.BranchAssignmentService;
 import io.restaurantos.auth.service.BranchRoleAdminService;
 import io.restaurantos.auth.service.PermissionResolver;
@@ -43,12 +43,14 @@ public class AuthInternalController {
      * Requires X-Tenant-Id header identifying the owning tenant.
      */
     @PostMapping("/users/{userId}/branch-roles")
-    public ResponseEntity<UserBranchRoleEntity> assignBranchRole(
+    public ResponseEntity<BranchRoleAssignWriteResponse> assignBranchRole(
             @PathVariable UUID userId,
             @RequestHeader("X-Tenant-Id") UUID tenantId,
             @Valid @RequestBody BranchRoleAssignRequest request) {
-        UserBranchRoleEntity assignment = branchRoleAdminService.assign(tenantId, userId, request);
-        return ResponseEntity.ok(assignment);
+        BranchRoleAdminService.RoleAssignmentResult result =
+            branchRoleAdminService.assign(tenantId, userId, request);
+        return ResponseEntity.ok(
+            BranchRoleAssignWriteResponse.of(result.assignment(), result.displacedRoleCode()));
     }
 
     /**

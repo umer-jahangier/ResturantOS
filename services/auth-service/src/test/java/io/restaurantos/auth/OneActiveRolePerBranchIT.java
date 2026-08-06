@@ -107,7 +107,62 @@ class OneActiveRolePerBranchIT extends BaseIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
+    // ── What the caller is told ───────────────────────────────────────────────
+
+    @Test
+    void anAssignmentReportsTheRoleItDisplaced() {
+        UUID branch = UUID.fromString("b0000035-0000-4000-8000-000000000035");
+
+        var first = branchRoleAdminService.assign(TENANT, USER, assignment(branch, "CASHIER"));
+        assertThat(first.displacedRoleCode())
+                .as("a first assignment displaces nothing")
+                .isNull();
+
+        var second = branchRoleAdminService.assign(TENANT, USER, assignment(branch, "WAITER"));
+        assertThat(second.displacedRoleCode())
+                .as("assigning a second role at a branch the user already has one at REVOKES the "
+                        + "old role. An administrator who is told nothing gets a 200 identical to "
+                        + "the one a first assignment produces, and finds out they removed "
+                        + "someone's access when that person cannot do their job")
+                .isEqualTo("CASHIER");
+
+        var again = branchRoleAdminService.assign(TENANT, USER, assignment(branch, "WAITER"));
+        assertThat(again.displacedRoleCode())
+                .as("re-assigning the role already held displaces nothing")
+                .isNull();
+    }
+
+    // ── The default branch at login ───────────────────────────────────────────
+
+    @Test
+    void theDefaultBranchFollowsThePrimaryFlagNotTheHardcodedHqUuid() {
+        UUID user = seedUser(UUID.fromString("c0000091-0000-4000-8000-000000000091"),
+                "primary-probe@demo.local");
+        UUID hq = TestFixtures.MAIN_BRANCH_ID;
+        UUID elsewhere = UUID.fromString("b0000036-0000-4000-8000-000000000036");
+
+        // First assignment is at the NON-HQ branch, so that is this user's primary.
+        branchRoleAdminService.assign(TENANT, user, assignment(elsewhere, "WAITER"));
+        branchRoleAdminService.assign(TENANT, user, assignment(hq, "CASHIER"));
+
+        assertThat(permissionResolver.resolveDefault(user).branchId())
+                .as("selectDefaultBranch used to prefer a hardcoded HQ_BRANCH_ID constant — one dev "
+                        + "tenant's branch UUID, right on one database and silently arbitrary on "
+                        + "every other. b0000001 is both that constant AND the lower branch id "
+                        + "here, so the old code and the fallback both pick it; only the primary "
+                        + "flag picks b0000036")
+                .isEqualTo(elsewhere);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private UUID seedUser(UUID id, String email) {
+        jdbc.update(
+                "INSERT INTO users (id, tenant_id, email, password_hash, full_name, locale, totp_enabled) "
+                        + "VALUES (?, ?, ?, 'x', 'Primary Probe', 'en', false) ON CONFLICT (id) DO NOTHING",
+                id, TENANT, email);
+        return id;
+    }
 
     private static BranchRoleAssignRequest assignment(UUID branchId, String roleCode) {
         return new BranchRoleAssignRequest(branchId, roleCode, null);

@@ -46,5 +46,13 @@
     <include file="db/changelog/v1.0.0/055-waiter-role-and-tenant-admin-authority.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-auth-dev-data.xml"/>
     <include file="db/changelog/v1.0.0/902-seed-purchasing-demo-users.xml"/>
+    <!-- Phase 13: duplicate repair, the one-active-role-per-branch index, and is_primary.
+         Deliberately AFTER the seeds despite the number. The is_primary backfill has to observe
+         every user_branch_roles row the changelog itself writes; run before 900/902 it would leave
+         every seeded persona with no primary on a fresh database, which is not what "backfill"
+         means and would make the fresh-install and upgrade paths behave differently. On any
+         database that has already run the seeds, position here is immaterial — Liquibase applies a
+         changeset once. -->
+    <include file="db/changelog/v1.0.0/056-one-active-role-per-branch.xml"/>
 
 </databaseChangeLog>
