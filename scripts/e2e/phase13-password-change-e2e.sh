@@ -110,6 +110,14 @@ reset_persona() {
   " | auth_sql > /dev/null
 }
 
+# 13-11 made X-Acting-User-Id REQUIRED on the branch-role write path: auth-service bounds what a
+# request may grant by the ACTING user's own permissions, so it has to know who is asking. Before
+# that, a caller with the shared secret and no identity at all could assign OWNER and be answered
+# 200 — the escalation 13-07 measured and left open. This script's seeding is system work, and the
+# honest way to express that under the new contract is to act as the tenant's OWNER, who holds the
+# whole catalogue and can therefore legitimately grant any of these roles.
+SEED_ACTING_USER_ID="c0000002-0000-4000-8000-000000000002"
+
 # CASHIER, not a role holding rbac.manage / finance.period.close / hr.payroll.approve: any of those
 # forces TOTP step-up at login (13-02's finding), and this script is not about step-up. The role is
 # needed at all because PermissionResolver refuses a user with no active branch assignment.
@@ -118,6 +126,7 @@ assign_role() {
     -H "Content-Type: application/json" \
     -H "X-Internal-Service: ${INTERNAL_SECRET}" \
     -H "X-Tenant-Id: ${TENANT_ID}" \
+    -H "X-Acting-User-Id: ${SEED_ACTING_USER_ID}" \
     -d "{\"branchId\":\"${BRANCH_ID}\",\"roleCode\":\"CASHIER\"}" > /dev/null
 }
 

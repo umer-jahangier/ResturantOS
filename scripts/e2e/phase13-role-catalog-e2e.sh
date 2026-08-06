@@ -182,6 +182,13 @@ clear_factor() {
   " | auth_sql > /dev/null
 }
 
+# 13-11 made X-Acting-User-Id REQUIRED on this path: auth-service bounds what a request may grant
+# by the ACTING user's own permissions, which is how the escalation THIS SCRIPT measured — a
+# TENANT_ADMIN assigning OWNER and getting 200 — is now closed at the door rather than only in the
+# picker. The seeding below is system work, so it acts as the tenant's OWNER, who holds the whole
+# catalogue and can legitimately grant any of these roles.
+SEED_ACTING_USER_ID="c0000002-0000-4000-8000-000000000002"
+
 # Assign through auth-service's internal endpoint — the system of record, and the door 13-02 uses.
 assign_internal() {
   local user_id="$1" role_code="$2" body
@@ -190,6 +197,7 @@ assign_internal() {
     -H "Content-Type: application/json" \
     -H "X-Internal-Service: ${INTERNAL_SECRET}" \
     -H "X-Tenant-Id: ${TENANT_ID}" \
+    -H "X-Acting-User-Id: ${SEED_ACTING_USER_ID}" \
     -d "$body"
 }
 
@@ -200,6 +208,7 @@ assign_internal_status() {
     -H "Content-Type: application/json" \
     -H "X-Internal-Service: ${INTERNAL_SECRET}" \
     -H "X-Tenant-Id: ${TENANT_ID}" \
+    -H "X-Acting-User-Id: ${SEED_ACTING_USER_ID}" \
     -d "$body"
 }
 

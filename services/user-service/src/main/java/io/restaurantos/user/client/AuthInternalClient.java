@@ -23,11 +23,23 @@ public interface AuthInternalClient {
     /**
      * Assign (upsert) a branch-role for a user in auth-service (system of record).
      * Corresponds to POST /internal/auth/users/{userId}/branch-roles.
+     *
+     * <p><b>{@code X-Acting-User-Id} is REQUIRED (13-11).</b> auth-service bounds what this request
+     * may grant by the ACTING user's own permissions — the assigner may only grant a role whose
+     * permission set is a subset of their own. Before that seam existed, {@code /internal/auth/**}
+     * carried no identity, auth-service could not answer "may THIS person grant THAT role", and a
+     * TENANT_ADMIN assigning OWNER was answered 200.
+     *
+     * <p>The value must come from the VERIFIED JWT — {@code TenantContext.getUserId()}, populated
+     * by {@code JwtAuthenticationFilter} from the token's subject — and never from a request body
+     * or a client-supplied header. The gateway's {@code StripInternalHeaderFilter} deletes this
+     * header from every inbound request for exactly that reason.
      */
     @PostMapping("/internal/auth/users/{userId}/branch-roles")
     Map<String, Object> assignBranchRole(
         @PathVariable("userId") UUID userId,
         @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId,
         @RequestBody BranchDtos.BranchRoleRequest request
     );
 
