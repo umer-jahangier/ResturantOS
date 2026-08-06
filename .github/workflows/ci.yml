@@ -47,6 +47,36 @@ jobs:
       - name: Java static analysis (compile + any wired analysis)
         run: mvn -B -ntp -DskipTests verify
 
+      # Guard against the defect class that silently broke every multi-stage image:
+      # each self-building Dockerfile COPYs the reactor's module POMs one line at a
+      # time, and Maven validates EVERY <module> declared in the parent pom even under
+      # -pl/-am. Adding a module to pom.xml without adding the matching COPY line makes
+      # the image fail with "Child module ... does not exist" — but only at image-build
+      # time, long after the PR that caused it merged. Fail fast in lint instead.
+      - name: Dockerfile reactor-POM lists must cover every module
+        run: |
+          python3 - <<'PY'
+          import glob, re, sys, xml.etree.ElementTree as ET
+          NS = "{http://maven.apache.org/POM/4.0.0}"
+          modules = [m.text.strip() for m in ET.parse("pom.xml").getroot().find(NS + "modules")]
+          copy_re = re.compile(r"^COPY (\S+)/pom\.xml \1/pom\.xml$", re.M)
+          failures = []
+          for df in sorted(glob.glob("*/Dockerfile") + glob.glob("services/*/Dockerfile")):
+              body = open(df).read()
+              have = set(copy_re.findall(body))
+              if not have:
+                  print(f"[skip] {df}: slim runtime image (no reactor POM list)")
+                  continue
+              missing = [m for m in modules if m not in have]
+              print(f"[{'FAIL' if missing else 'OK'}] {df}: {len(have)}/{len(modules)} module POMs")
+              if missing:
+                  failures.append(f"{df} is missing COPY lines for: {', '.join(missing)}")
+          if failures:
+              print("\nStale Dockerfile reactor POM lists:\n  " + "\n  ".join(failures))
+              print("Add the missing 'COPY <module>/pom.xml <module>/pom.xml' lines.")
+              sys.exit(1)
+          PY
+
       - name: Enable Corepack (pnpm)
         run: corepack enable
 
@@ -221,6 +251,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # EVERY deployable in the reactor must appear here. Two Dockerfile styles are
+        # in play and the `context` differs per style — do not "normalise" it:
+        #   * context "."            -> self-building multi-stage Dockerfile; Maven runs
+        #                               INSIDE the image, so the repo root must be the context.
+        #   * context services/<svc> -> slim runtime Dockerfile that COPYs target/<svc>-*.jar;
+        #                               the jar is produced by the "Pre-build jars" step below.
+        # notification-service is deliberately ABSENT: it has zero source files and
+        # produces no artifact by design — see services/notification-service/README.md.
         image:
           - { name: eureka-server, context: ".", dockerfile: eureka-server/Dockerfile }
           - { name: config-server, context: ".", dockerfile: config-server/Dockerfile }
@@ -229,6 +267,17 @@ jobs:
           - { name: gateway, context: ".", dockerfile: gateway/Dockerfile }
           - { name: user-service, context: ".", dockerfile: services/user-service/Dockerfile }
           - { name: platform-admin-service, context: ".", dockerfile: services/platform-admin-service/Dockerfile }
+          - { name: audit-service, context: ".", dockerfile: services/audit-service/Dockerfile }
+          - { name: file-service, context: ".", dockerfile: services/file-service/Dockerfile }
+          - { name: finance-service, context: ".", dockerfile: services/finance-service/Dockerfile }
+          - { name: purchasing-service, context: ".", dockerfile: services/purchasing-service/Dockerfile }
+          - { name: pos-service, context: ".", dockerfile: services/pos-service/Dockerfile }
+          - { name: kitchen-service, context: ".", dockerfile: services/kitchen-service/Dockerfile }
+          - { name: crm-service, context: services/crm-service, dockerfile: services/crm-service/Dockerfile }
+          - { name: hr-service, context: services/hr-service, dockerfile: services/hr-service/Dockerfile }
+          - { name: inventory-service, context: services/inventory-service, dockerfile: services/inventory-service/Dockerfile }
+          - { name: nlq-service, context: services/nlq-service, dockerfile: services/nlq-service/Dockerfile }
+          - { name: reporting-service, context: services/reporting-service, dockerfile: services/reporting-service/Dockerfile }
           - { name: frontend, context: frontend, dockerfile: frontend/Dockerfile }
     env:
       IMAGE: ghcr.io/${{ github.repository_owner }}/restaurantos-${{ matrix.image.name }}
@@ -236,6 +285,23 @@ jobs:
       PUSH: ${{ github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@v4
+
+      # Slim-runtime images (context services/<svc>) COPY a pre-built target/<svc>-*.jar
+      # instead of running Maven inside the image. Build that jar here — natively, once —
+      # rather than under QEMU twice. Multi-stage images (context ".") skip this step.
+      - name: Set up JDK ${{ env.JAVA_VERSION }} (Temurin) + Maven cache
+        if: startsWith(matrix.image.context, 'services/')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Pre-build jar for slim runtime image
+        if: startsWith(matrix.image.context, 'services/')
+        run: |
+          mvn -B -ntp -DskipTests -pl "${{ matrix.image.context }}" -am package
+          ls -l "${{ matrix.image.context }}/target/"*.jar
 
       - name: Set up QEMU (multi-arch emulation)
         uses: docker/setup-qemu-action@v3

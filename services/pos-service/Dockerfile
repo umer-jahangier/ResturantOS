@@ -14,8 +14,14 @@ COPY services/notification-service/pom.xml services/notification-service/pom.xml
 COPY services/audit-service/pom.xml services/audit-service/pom.xml
 COPY services/file-service/pom.xml services/file-service/pom.xml
 COPY services/finance-service/pom.xml services/finance-service/pom.xml
+COPY services/purchasing-service/pom.xml services/purchasing-service/pom.xml
 COPY services/pos-service/pom.xml services/pos-service/pom.xml
 COPY services/kitchen-service/pom.xml services/kitchen-service/pom.xml
+COPY services/inventory-service/pom.xml services/inventory-service/pom.xml
+COPY services/crm-service/pom.xml services/crm-service/pom.xml
+COPY services/reporting-service/pom.xml services/reporting-service/pom.xml
+COPY services/nlq-service/pom.xml services/nlq-service/pom.xml
+COPY services/hr-service/pom.xml services/hr-service/pom.xml
 
 RUN mvn -pl services/pos-service -am -q dependency:go-offline -DskipTests || true
 
@@ -31,4 +37,4 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=build /build/services/pos-service/target/pos-service-*.jar app.jar
 EXPOSE 8084
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

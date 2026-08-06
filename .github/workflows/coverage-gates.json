@@ -1,5 +1,5 @@
 {
-  "_comment": "Data-driven per-area coverage gates (Pitfall 9). LATER phases raise thresholds here WITHOUT editing ci.yml. Values are minimum LINE coverage percentages. OPA must be exactly 100. finance/inventory modules do NOT exist yet (Phases 6/8) — their entries are FORWARD-DECLARED so the gate is ready the moment those modules land.",
+  "_comment": "Data-driven per-area coverage gates (Pitfall 9). LATER phases raise thresholds here WITHOUT editing ci.yml. Values are minimum LINE coverage percentages. OPA must be exactly 100. All five overridden modules now EXIST and are wired: a threshold here is only enforced if the module declares the JaCoCo plugin in a <coverage> profile, because the gate script globs for jacoco.csv and a module that emits no report is skipped (i.e. passes vacuously). When adding a module, add BOTH the entry here AND the coverage profile in its pom.xml.",
   "java": {
     "default": 60,
     "services/finance-service": 75,

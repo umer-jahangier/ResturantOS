@@ -12,9 +12,9 @@ COPY pom.xml .
 COPY shared-lib/pom.xml shared-lib/pom.xml
 COPY eureka-server/pom.xml eureka-server/pom.xml
 COPY config-server/pom.xml config-server/pom.xml
-COPY gateway/pom.xml gateway/pom.xml
 COPY services/auth-service/pom.xml services/auth-service/pom.xml
 COPY services/authorization-service/pom.xml services/authorization-service/pom.xml
+COPY gateway/pom.xml gateway/pom.xml
 COPY services/user-service/pom.xml services/user-service/pom.xml
 COPY services/platform-admin-service/pom.xml services/platform-admin-service/pom.xml
 COPY services/notification-service/pom.xml services/notification-service/pom.xml
@@ -28,6 +28,7 @@ COPY services/inventory-service/pom.xml services/inventory-service/pom.xml
 COPY services/crm-service/pom.xml services/crm-service/pom.xml
 COPY services/reporting-service/pom.xml services/reporting-service/pom.xml
 COPY services/nlq-service/pom.xml services/nlq-service/pom.xml
+COPY services/hr-service/pom.xml services/hr-service/pom.xml
 
 # Pre-download dependencies (runs before sources are copied)
 RUN mvn -pl config-server -am -q dependency:go-offline -DskipTests || true

@@ -12,11 +12,22 @@
     </parent>
 
     <artifactId>notification-service</artifactId>
-    <packaging>jar</packaging>
 
-    <properties>
-        <argLine/>
-    </properties>
+    <!-- INTENTIONAL PLACEHOLDER — see README.md in this directory.
+         This module has zero source files: email/notification delivery is declared
+         OUT OF SCOPE (Phase 13, decision D-31). It stays in the reactor so the
+         module slot, name and coordinates are reserved and every Dockerfile that
+         COPYs the reactor POM list keeps resolving.
+
+         packaging is `pom`, NOT `jar`, on purpose. With `jar` packaging Maven ran
+         maven-jar-plugin over an empty classes directory on every build, emitting
+         "JAR will be empty - no content was marked for inclusion!" and installing a
+         meaningless ~1.5 KB artifact that looked like a real, deployable service.
+         `pom` packaging is Maven's idiom for a module that deliberately produces no
+         artifact: no empty jar, no warning, no false signal. When the consumer is
+         actually implemented, flip this back to `jar` and restore the <argLine/>
+         property below alongside surefire/failsafe wiring. -->
+    <packaging>pom</packaging>
 
     <dependencies>
     </dependencies>
