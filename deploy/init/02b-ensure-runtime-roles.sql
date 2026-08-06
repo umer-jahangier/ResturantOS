@@ -67,3 +67,24 @@ WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'nlq_user')
 SELECT 'GRANT ALL PRIVILEGES ON DATABASE nlq_db TO nlq_user'
 WHERE EXISTS (SELECT FROM pg_roles WHERE rolname = 'nlq_user')
 \gexec
+
+-- platform_db ownership reconciliation.
+--
+-- application.yml used to default PLATFORM_DB_USER to 'platform_admin', a role that
+-- deploy/init/02-create-roles.sql has never created. On machines where someone created it by hand,
+-- Liquibase ran as platform_admin and the tables are owned by it — while the service now connects
+-- as platform_user. Every migration that ALTERs an existing table then fails and the service will
+-- not start (first hit by platform-admin changeset 030-001).
+--
+-- Granting the owning role to the connecting role restores the ALTER privilege without rewriting
+-- ownership of a live database. Guarded on platform_admin existing, so it is a no-op on any clean
+-- machine, where platform_user owns the tables outright and nothing is needed.
+SELECT 'GRANT platform_admin TO platform_user'
+WHERE EXISTS (SELECT FROM pg_roles WHERE rolname = 'platform_admin')
+  AND EXISTS (SELECT FROM pg_roles WHERE rolname = 'platform_user')
+  AND NOT EXISTS (
+    SELECT FROM pg_auth_members m
+      JOIN pg_roles owner  ON owner.oid  = m.roleid
+      JOIN pg_roles member ON member.oid = m.member
+     WHERE owner.rolname = 'platform_admin' AND member.rolname = 'platform_user')
+\gexec

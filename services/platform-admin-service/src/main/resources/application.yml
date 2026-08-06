@@ -6,7 +6,16 @@ spring:
     name: platform-admin-service
   datasource:
     url: ${PLATFORM_DB_URL:jdbc:postgresql://localhost:5432/platform_db}
-    username: ${PLATFORM_DB_USER:platform_admin}
+    # platform_user, NOT platform_admin. deploy/init/02-create-roles.sql creates platform_user and
+    # nothing in deploy/ has ever created platform_admin — so any deployment that does not set
+    # PLATFORM_DB_USER explicitly (docker-compose does not) connected as a role that does not
+    # exist. It survived only on machines where platform_admin had been created by hand at some
+    # point, and there it caused the opposite failure: tables owned by platform_admin, service
+    # connecting as platform_user, and the first migration to ALTER an existing table refusing to
+    # start the service (found by 13-14's changeset 030-001).
+    #
+    # One identity end to end. scripts/local-service-env.sh already exports platform_user.
+    username: ${PLATFORM_DB_USER:platform_user}
     password: ${PLATFORM_DB_PASSWORD:platform_admin_password}
     driver-class-name: org.postgresql.Driver
   jpa:
