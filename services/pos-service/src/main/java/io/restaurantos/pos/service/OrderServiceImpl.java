@@ -163,25 +163,41 @@ public class OrderServiceImpl implements OrderService {
             order.setTableId(request.tableId());
         }
 
-        // FINANCIAL INTEGRITY: a cashier must have an OPEN till session before any order can
-        // be created under their name — otherwise cash and settlement can never be reconciled
-        // to a drawer (the "till was closed but I still took an order" gap). This is the missing
-        // counterpart to TillServiceImpl.closeTill's guard (which already blocks CLOSING a till
-        // that still has open orders). Fail-closed: no open till -> reject, never silently
-        // persist an untracked order with tillSessionId = null.
+        // TILL BINDING IS OPPORTUNISTIC HERE — THE REQUIREMENT LIVES AT CASH SETTLEMENT (D-30).
+        // If the creating user already has an OPEN till, bind it now: a cashier who opens the
+        // drawer before taking orders gets exactly the behaviour they had before, and the
+        // reconciliation link exists from the first moment it can. If they have none, the order
+        // is persisted with tillSessionId = null and it is PaymentServiceImpl.recordPayment that
+        // refuses to take CASH against it — see that method for the enforcement.
         //
-        // Scoped to a present userId: the guard targets authenticated cashiers (the only path
-        // that carries a userId). System/internal contexts with no userId (e.g. service-to-
-        // service flows, service-layer tests) set no cashier and are unaffected — consistent
-        // with the prior best-effort association this replaces.
+        // This method used to hard-require the creator's OPEN till, on a financial-integrity
+        // rationale that did not survive contact with two facts:
+        //   1. It made the WAITER role unusable. In table service the waiter takes the order and
+        //      a cashier settles it, so a waiter cannot hold a till by design — yet 13-02's
+        //      correctly-granted waiter was refused here with 409 NO_OPEN_TILL.
+        //   2. It never established the invariant it claimed. The guard only fired when a userId
+        //      was present, so every path without one already created orders with a null till.
+        // Moving the rule to the point where cash actually changes hands makes it stronger, not
+        // weaker: a CASH tender with no open till is accepted TODAY and leaves the order unlinked
+        // (invisible to TillServiceImpl.closeTill's expected-closing sum), and after this change
+        // it is not. Pinned by WaiterOrderNoTillIT and CashPaymentRequiresTillIT.
+        //
+        // Making this a per-POS-profile setting (a combined counter vs. a separate food POS and
+        // bar) is Phase 16 work; this is the default those profiles will vary from.
+        //
+        // Only the creating user's own till is ever considered — an order must never be silently
+        // attributed to a drawer belonging to someone else.
         Optional<UUID> cashierId = tenantContext.getUserId();
         if (cashierId.isPresent()) {
             UUID uid = cashierId.get();
             order.setCashierId(uid);
-            TillSession openTill = tillSessionRepository
-                    .findByCashierIdAndStatus(uid, TillStatus.OPEN)
-                    .orElseThrow(() -> new PosExceptions.NoOpenTillException(uid.toString()));
-            order.setTillSessionId(openTill.getId());
+            // Not .ifPresent(order::setTillSessionId): `order` is reassigned by the save() below,
+            // so it is not effectively final and cannot be captured by a lambda here.
+            Optional<TillSession> openTill = tillSessionRepository
+                    .findByCashierIdAndStatus(uid, TillStatus.OPEN);
+            if (openTill.isPresent()) {
+                order.setTillSessionId(openTill.get().getId());
+            }
         }
 
         order = orderRepository.save(order);

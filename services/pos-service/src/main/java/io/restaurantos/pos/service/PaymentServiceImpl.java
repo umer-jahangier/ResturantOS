@@ -5,6 +5,7 @@ import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.OrderPayment;
+import io.restaurantos.pos.domain.model.TillSession;
 import io.restaurantos.pos.dto.OrderPaymentDto;
 import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.feign.FinanceArClient;
@@ -69,12 +70,41 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Payment amount must be positive: " + amountPaisa);
         }
 
-        // Guarantee the order is linked to the paying cashier's OPEN till (POS-till reconcil).
-        // tillSessionId is otherwise only set at create-time, and only if the cashier already
-        // had an open till THEN — so an order created before opening the till (or by another
-        // path) stayed unlinked and its CASH payment was invisible to the till's expected
-        // closing (the "charged but till shows 0" bug). Backfill it here, at settlement time.
-        if (order.getTillSessionId() == null) {
+        // NO CASH WITHOUT AN OPEN DRAWER (D-30). This is the single point where the POS till
+        // requirement is enforced; OrderServiceImpl.createOrder now only binds a till when the
+        // creating user happens to have one, so that a waiter (no till by role design) can take
+        // an order at all.
+        //
+        // Enforced BEFORE any amount is applied, and only for CASH. Physical cash has to end up
+        // in a drawer that someone counts at close, and TillServiceImpl.closeTill computes the
+        // expected closing by summing CASH payments on orders bound to that till — a cash payment
+        // with no till is money the reconciliation can never see. Until now that was merely a
+        // best-effort backfill (.ifPresent), so such a payment was accepted and silently left the
+        // order unlinked: the "charged but the till shows 0" gap. It is now a refusal.
+        //
+        // Card, wallet and bank tenders are deliberately out of scope: they never pass through
+        // the drawer and never reach closeTill's sum, so requiring a till for them would refuse
+        // legitimate counter-less service for no reconciliation benefit.
+        //
+        // The status filter matters as much as the lookup. findByCashierIdAndStatus(.., OPEN) is
+        // reused rather than a new query precisely so a CLOSED session — a drawer already counted
+        // and signed off — can never satisfy this.
+        if (method == PaymentMethod.CASH) {
+            UUID payingUserId = tenantContext.getUserId()
+                    .orElseThrow(() -> new PosExceptions.NoOpenTillException("<unauthenticated>"));
+            TillSession openTill = tillSessionRepository
+                    .findByCashierIdAndStatus(payingUserId, TillStatus.OPEN)
+                    .orElseThrow(() -> new PosExceptions.NoOpenTillException(payingUserId.toString()));
+            // Bind only if the order has none. An order already bound at creation stays with the
+            // till that took it; re-pointing it at the settling user's drawer would move cash
+            // that a second cashier never physically received.
+            if (order.getTillSessionId() == null) {
+                order.setTillSessionId(openTill.getId());
+                orderRepository.save(order);
+            }
+        } else if (order.getTillSessionId() == null) {
+            // Non-cash: keep the pre-existing best-effort association. It costs nothing and keeps
+            // a card-settled order visible on the cashier's session, but it is never required.
             tenantContext.getUserId()
                     .flatMap(userId -> tillSessionRepository.findByCashierIdAndStatus(userId, TillStatus.OPEN))
                     .ifPresent(till -> order.setTillSessionId(till.getId()));

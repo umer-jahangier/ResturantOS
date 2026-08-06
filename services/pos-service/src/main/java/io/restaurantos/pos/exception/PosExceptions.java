@@ -32,13 +32,19 @@ public class PosExceptions {
     }
 
     /**
-     * Raised when a cashier attempts to create an order without an OPEN till session.
-     * Enforces the financial-integrity invariant "no order without an open drawer" — the
+     * Raised when a user attempts to settle an order in CASH without an OPEN till session
+     * (D-30). Enforces the financial-integrity invariant "no cash without an open drawer" — the
      * counterpart to {@link TillHasOpenOrdersException} (can't CLOSE a till with open orders).
+     *
+     * <p>Until plan 13-16 this was raised at ORDER CREATION instead, which made the WAITER role
+     * unusable (a waiter holds no till by design) while not actually establishing the invariant,
+     * since any path without a userId already created orders with a null till. The message is
+     * worded for the settlement call site — the one that now raises it — so the 409 detail tells
+     * the operator to open the drawer, not to abandon the order.
      */
     public static class NoOpenTillException extends RuntimeException {
         public NoOpenTillException(String cashierId) {
-            super("Cashier has no open till session; open a till before taking orders: " + cashierId);
+            super("No open till session; open a till before taking cash: " + cashierId);
         }
     }
 
