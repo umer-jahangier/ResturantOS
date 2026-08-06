@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
-stopped_at: Completed 13-07-PLAN.md
-last_updated: "2026-08-06T20:00:00.000Z"
+stopped_at: Completed 13-08-PLAN.md
+last_updated: "2026-08-06T21:00:00.000Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 148
+  completed_plans: 149
   percent: 64
 ---
 
@@ -299,6 +299,7 @@ _Updated after each plan completion_
 | Phase 13 P05 | 2h | 3 tasks | 12 files |
 | Phase 13 P06 | 4h | 3 tasks | 10 files |
 | Phase 13 P07 | 40min | 3 tasks | 13 files |
+| Phase 13 P08 | 3h | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -314,6 +315,11 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-07: `roles` IS row-level-security scoped (relrowsecurity/relforcerowsecurity both true, measured live); `permissions` and `role_permissions` are not. Tenant isolation on the catalog is enforced in the QUERY as well, because Testcontainers runs as a SUPERUSER and the policy is inert in every IT in this repo.
 - [Phase 13]: 13-07: changeset 057 restores OWNER to the whole permission catalogue and TENANT_ADMIN to all-but-rbac.manage. Databases that ran the ORIGINAL changeset 034 never gave either role pos.order.void.own (it arrives via 049, which grants only MANAGER/CASHIER), so under the ceiling rule OWNER could not assign CASHIER or MANAGER. Fresh databases were unaffected — no test could see it.
 - [Phase 13]: 13-07: the catalog is routed by its OWN gateway route (role-catalog-route, general 600/min budget), NOT folded into auth-route — that route's 2/s credential budget is per-IP and a back office is one NAT'd IP, so catalog reads would spend login's tokens.
+- [Phase 13]: 13-08 (D-17): `must_change_password` now GOVERNS login. A flagged account with the correct password gets **403 PASSWORD_CHANGE_REQUIRED** — no access token, no permissions, no refresh cookie — plus a single-use change token (10-min TTL) in `error.details[].field=changeToken`. The only way past is `POST /api/v1/auth/change-password/forced` with that token AND the current password. **Every caller that provisions a user must expect its first login to be refused** (13-10's saga must read 403 as provisioning SUCCESS; 13-11 and 13-15 likewise).
+- [Phase 13]: 13-08: an account can need BOTH gates and meets them one at a time — 403 PASSWORD_CHANGE_REQUIRED first, then 401 TOTP_ENROLLMENT_REQUIRED (D-29a) on the next login, then a token. That order is deliberate: enrolling a factor while the password is still one the provisioner knows binds it under a credential the admin does not exclusively control. 13-15 must copy it; the working recipe is in `phase13-auth-provisioning-seam-e2e.sh`.
+- [Phase 13]: 13-08 **found and fixed a defect nobody could have seen in CI: the forgot-password flow had NEVER worked against a database that enforces RLS.** `reset-password/confirm` looked its token up before setting the tenant GUC, and `password_reset_tokens` is FORCE ROW LEVEL SECURITY. Live, before: 401 on a token that was present, unused and unexpired. After: 200. Testcontainers runs as a SUPERUSER, so the whole IT suite passed either way — the third instance of that blind spot in this phase (13-02, 13-06, now this).
+- [Phase 13]: 13-08 **LANDMINE for deployment, NOT fixed:** changeset 052's `auth_lookup_refresh_tenant` bypasses RLS only because some old migration run created it owned by `postgres` (BYPASSRLS). Liquibase today runs as `auth_user`, and SECURITY DEFINER + FORCE ROW LEVEL SECURITY means an identical function created now is powerless (measured: returned NULL for a row that was there). **Reprovision auth_db and `/api/v1/auth/refresh` + `/logout` break silently with a generic 401, suite still green.** Not broken today. 13-08's own tokens avoid this entirely by carrying a `<tenantId>.<secret>` routing prefix — copy that, not 052.
+- [Phase 13]: 13-08: failing the password POLICY at the forced endpoint (weak / reused) is recoverable — the token survives; failing AUTHENTICATION (wrong current password) SPENDS it, so a stolen token buys one guess, not ten minutes of them. `noRollbackFor = AuthenticationFailedException` is what implements that split; do not "tidy" it.
 
 - [02-01]: NON-RLS `auth_tenants` slug lookup before tenant GUC (Phase 2/3 seam).
 - [02-01]: Login `@Transactional(noRollbackFor auth failures)` so lockout counts persist.
@@ -634,7 +640,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06 — Phase 13 executing. 13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 complete: blocker B1 closed — a SuperAdmin authenticates against `platform_users` at `POST /api/v1/platform/auth/login` and reaches the platform API through the real gateway with no tenant claim (SC1 script 21/21, exit 0, three consecutive runs); the repository-committed `superadmin@restaurantos.io` credential is deactivated by changeset 910.
+Last session: 2026-08-07 — Phase 13 executing. 13-08 complete: `must_change_password` is enforced at login (D-17) — a flagged account's correct password now yields 403 PASSWORD_CHANGE_REQUIRED with a single-use 10-minute change token and no session of any kind, and `POST /api/v1/auth/change-password/forced` (the only password path public at the gateway) is the only way past it, requiring that token AND the current password. auth-service unit 24/24, IT 112/112; gateway 51/51 + 15/15 with no gateway file touched; `phase13-forced-change-e2e.sh` 25 PASS / 0 FAIL exit 0 twice, and 13-06's seam script repaired to 20 PASS / 0 FAIL. Two findings beyond the plan: the forgot-password flow had never worked against an RLS-enforcing database (401 -> 200, fixed here), and the refresh/logout path depends on changeset 052's function happening to be owned by `postgres` — reprovision auth_db and it breaks the same silent way (NOT fixed; recorded).  13-16 complete: the POS till requirement moved from order creation to CASH settlement (D-30), unblocking 13-02's WAITER role; `mvn -pl services/pos-service verify` green (60 unit + 117 IT). 13-05 complete: blocker B1 closed — a SuperAdmin authenticates against `platform_users` at `POST /api/v1/platform/auth/login` and reaches the platform API through the real gateway with no tenant claim (SC1 script 21/21, exit 0, three consecutive runs); the repository-committed `superadmin@restaurantos.io` credential is deactivated by changeset 910.
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.

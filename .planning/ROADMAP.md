@@ -622,7 +622,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 **Requirements**: AUTH-01, AUTH-02, AUTH-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, PLATFORM-10, USER-01, USER-02, USER-03, GW-02, GW-03
 **Decisions**: see `.planning/phases/13-platform-tenant-access-repair/13-DECISION-MAP.md` (D-01..D-35)
 
-**Plans**: 16 plans, 6 waves — 8/16 executed
+**Plans**: 16 plans, 6 waves — 9/16 executed
 
 Plans:
 
@@ -633,7 +633,7 @@ Plans:
 - [x] 13-05-PLAN.md (wave 2) — platform login endpoint reading `platform_users`, SuperAdmin credential rotation (SC1, B1 closed)
 - [x] 13-06-PLAN.md (wave 2) — auth-service provisioning seam: `auth_tenants` upsert, OWNER branch-role on provision-admin, roleCode validation (SC2)
 - [x] 13-07-PLAN.md (wave 2) — role catalog + permission catalog endpoints, gateway reachability (SC3)
-- [ ] 13-08-PLAN.md (wave 2) — `must_change_password` enforced at login, single-use hashed change tokens, public forced-change endpoint (SC4)
+- [x] 13-08-PLAN.md (wave 2) — `must_change_password` enforced at login, single-use hashed change tokens, public forced-change endpoint (SC4)
 - [ ] 13-09-PLAN.md (wave 2) — reset hardening: outbox token redaction, lockout clear, per-account cooldown, single live token, honest delivery mode (SC4)
 - [ ] 13-10-PLAN.md (wave 3) — provisioning saga repair: real branch id, isHq, COA key, auth tenant + OWNER, temp password surfaced, real compensation (SC2, B2 closed)
 - [ ] 13-11-PLAN.md (wave 3) — auth-service user lifecycle API + per-tenant email uniqueness (SC3)

@@ -63,3 +63,50 @@ not already set.
 dummy credential that is also a live credential is a confusing thing to leave in a security-relevant
 constant, and it would become a real problem if the constant were ever reused for anything else.
 Cosmetic; noted while reading the login path.
+
+## From plan 13-08
+
+### 5. `auth_lookup_refresh_tenant` (changeset 052) bypasses RLS only by an ownership accident
+
+**Status:** NOT broken in the current dev environment (verified: `/api/v1/auth/refresh` answers
+200). A latent deployment landmine, and the highest-value item on this page.
+
+`refresh_sessions` is `FORCE ROW LEVEL SECURITY`. Refresh and logout resolve a session by token hash
+*before* any tenant GUC can exist, so they rely on 052's `SECURITY DEFINER` function to see the row.
+`SECURITY DEFINER` runs a function as its **owner**, and `FORCE ROW LEVEL SECURITY` subjects even
+the table's owner to the policy — so the function works only if its owner has `BYPASSRLS`.
+
+Measured on the live `auth_db`:
+
+```
+auth_lookup_refresh_tenant         owner = postgres    rolbypassrls = true    -> works
+auth_lookup_password_token_tenant  owner = auth_user   rolbypassrls = false   -> returns NULL
+```
+
+The second is 13-08's own attempt at the same idiom, created by Liquibase **as it runs today**. It
+was withdrawn for this reason. **The implication is that 052 works because some earlier migration
+run happened to execute as a superuser.** Reprovision `auth_db` so Liquibase creates it as
+`auth_user`, and refresh and logout start failing with a generic 401 — silently, and with the whole
+integration suite still green, because Testcontainers' Postgres user is a SUPERUSER.
+
+Two possible remedies, both outside 13-08's file list:
+
+1. **Deployment:** ensure `auth_lookup_refresh_tenant` is owned by a `BYPASSRLS` role, and pin that
+   with a check (a startup assertion, or a changeset that `ALTER FUNCTION … OWNER TO` an explicit
+   role) so it cannot silently regress.
+2. **Code:** give refresh tokens the same `<tenantId>.<secret>` routing prefix 13-08 gave password
+   tokens, and delete the function. No privileged database object, nothing that depends on who ran a
+   migration. Costs no isolation — the stored hash covers the whole token, so editing the prefix
+   matches nothing anywhere. This is a breaking change to the refresh-token format (every live
+   session is invalidated once), which is why it was not done opportunistically.
+
+### 6. TOTP bootstrap accepts a temporary password
+
+`/api/v1/auth/2fa/bootstrap` verifies the password and does not consult `must_change_password`, so
+a flagged account can enrol a second factor before it changes its password. 13-08 deliberately left
+this open: gating it would break 13-06's seam script, and it closes nothing real — whoever holds the
+temporary password can complete the forced change themselves and own the account either way.
+
+Worth a deliberate decision by whoever owns **13-13** (admin-initiated reset), which creates the
+same window on purpose. If the answer is "enrolment must follow the change", the gate belongs in
+`AuthServiceImpl.authenticateForTotpBootstrap`, and both e2e scripts that enrol need reordering.
