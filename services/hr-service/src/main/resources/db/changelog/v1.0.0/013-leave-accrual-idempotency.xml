@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Makes monthly leave accrual idempotent AND safe across replicas.
+
+      LeaveAccrualScheduler's javadoc claimed "the cron IS the idempotency — one accrual per
+      period". It is not, in three separate ways:
+        1. @Scheduled with no distributed lock fires on EVERY replica, so N replicas granted N x
+           the leave.
+        2. LeaveService.accrue blindly did balance += accrualDaysPerMonth with no per-period
+           marker, so any manual re-trigger or retry double-accrued.
+        3. It took only a year, never a month — so it had no concept of "this period" to be
+           idempotent about in the first place.
+
+      The unique constraint below IS the distributed lock: the accruing transaction inserts its
+      marker first, and a second replica racing on the same period loses the insert and skips the
+      increment. No Redis lock, no ShedLock dependency, and it survives a replica dying
+      mid-accrual because the marker and the balance update commit in one transaction.
+    -->
+    <changeSet id="hr-1.0.0-013-leave-accrual-log" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            CREATE TABLE leave_accrual_log (
+                id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id      UUID NOT NULL,
+                employee_id    UUID NOT NULL,
+                leave_type_id  UUID NOT NULL,
+                period_year    INT  NOT NULL,
+                period_month   INT  NOT NULL CHECK (period_month BETWEEN 1 AND 12),
+                accrued_days   NUMERIC(6,2) NOT NULL,
+                created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+                CONSTRAINT uq_leave_accrual_period
+                    UNIQUE (tenant_id, employee_id, leave_type_id, period_year, period_month)
+            );
+
+            CREATE INDEX idx_leave_accrual_log_tenant_period
+                ON leave_accrual_log (tenant_id, period_year, period_month);
+
+            ALTER TABLE leave_accrual_log ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE leave_accrual_log FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON leave_accrual_log
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            GRANT SELECT, INSERT ON leave_accrual_log TO hr_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP TABLE IF EXISTS leave_accrual_log;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

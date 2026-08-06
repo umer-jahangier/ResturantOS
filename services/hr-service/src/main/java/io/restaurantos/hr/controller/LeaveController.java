@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Leave workflow. Requests/reads gated hr.leave.view; approve/reject hr.leave.approve; type + accrual admin hr.attendance.manage. */
@@ -83,10 +84,15 @@ public class LeaveController {
         return ApiResponse.ok(leaveService.listTypes());
     }
 
+    /**
+     * Manually accrue a specific period. Safe to call repeatedly — accrual is keyed on
+     * (employee, leave type, year, month), so a re-run returns {@code accrued: 0} rather than
+     * granting the days a second time. {@code month} is required: without it there is no period to
+     * be idempotent about, which is how the original version double-accrued.
+     */
     @PostMapping("/accrue")
     @PreAuthorize("hasAuthority('hr.attendance.manage')")
-    public ApiResponse<Void> accrue(@RequestParam int year) {
-        leaveService.accrue(year);
-        return ApiResponse.ok(null);
+    public ApiResponse<Map<String, Integer>> accrue(@RequestParam int year, @RequestParam int month) {
+        return ApiResponse.ok(Map.of("accrued", leaveService.accrue(year, month)));
     }
 }

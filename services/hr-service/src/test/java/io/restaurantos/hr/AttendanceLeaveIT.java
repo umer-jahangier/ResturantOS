@@ -103,9 +103,21 @@ class AttendanceLeaveIT extends HrTestBase {
             TypeResponse annual = leaveService.listTypes().stream()
                     .filter(t -> t.name().equals("Annual")).findFirst().orElseThrow();
 
-            leaveService.accrue(year); // Annual accrues 1.5 days/month
+            assertThat(leaveService.accrue(year, 1)).isPositive(); // Annual accrues 1.5 days/month
             assertThat(leaveService.balances(empId))
                     .anySatisfy(b -> assertThat(b.balanceDays()).isEqualByComparingTo(new BigDecimal("1.5")));
+
+            // Re-running the SAME period must be a no-op. Before leave_accrual_log existed this
+            // silently granted the days again — and because @Scheduled fires on every replica, an
+            // N-replica deployment did exactly this N times every month.
+            assertThat(leaveService.accrue(year, 1)).isZero();
+            assertThat(leaveService.balances(empId))
+                    .anySatisfy(b -> assertThat(b.balanceDays()).isEqualByComparingTo(new BigDecimal("1.5")));
+
+            // A DIFFERENT period still accrues normally.
+            assertThat(leaveService.accrue(year, 2)).isPositive();
+            assertThat(leaveService.balances(empId))
+                    .anySatisfy(b -> assertThat(b.balanceDays()).isEqualByComparingTo(new BigDecimal("3.0")));
 
             LocalDate day = LocalDate.of(year, 6, 2);
             LeaveRequestResponse req = leaveService.request(new LeaveService.RequestLeave(
@@ -115,9 +127,10 @@ class AttendanceLeaveIT extends HrTestBase {
             LeaveRequestResponse approved = leaveService.approve(req.id());
             assertThat(approved.status()).isEqualTo(Status.APPROVED);
 
-            // 1.5 accrued − 1 day taken = 0.5 remaining.
+            // 3.0 accrued (Jan + Feb at 1.5/month; the duplicate Jan run added nothing) − 1 day
+            // taken = 2.0 remaining.
             assertThat(leaveService.balances(empId))
-                    .anySatisfy(b -> assertThat(b.balanceDays()).isEqualByComparingTo(new BigDecimal("0.5")));
+                    .anySatisfy(b -> assertThat(b.balanceDays()).isEqualByComparingTo(new BigDecimal("2.0")));
         } finally {
             tenantContext.clear();
         }

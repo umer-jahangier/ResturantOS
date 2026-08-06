@@ -1,11 +1,13 @@
 package io.restaurantos.hr.service;
 
 import io.restaurantos.hr.entity.EmployeeEntity;
+import io.restaurantos.hr.entity.LeaveAccrualLogEntity;
 import io.restaurantos.hr.entity.LeaveBalanceEntity;
 import io.restaurantos.hr.entity.LeaveRequestEntity;
 import io.restaurantos.hr.entity.LeaveRequestEntity.Status;
 import io.restaurantos.hr.entity.LeaveTypeEntity;
 import io.restaurantos.hr.repository.EmployeeRepository;
+import io.restaurantos.hr.repository.LeaveAccrualLogRepository;
 import io.restaurantos.hr.repository.LeaveBalanceRepository;
 import io.restaurantos.hr.repository.LeaveRequestRepository;
 import io.restaurantos.hr.repository.LeaveTypeRepository;
@@ -33,6 +35,7 @@ public class LeaveService {
     private final LeaveRequestRepository requestRepository;
     private final LeaveBalanceRepository balanceRepository;
     private final EmployeeRepository employeeRepository;
+    private final LeaveAccrualLogRepository accrualLogRepository;
     private final TenantContext tenantContext;
 
     @PersistenceContext
@@ -40,11 +43,13 @@ public class LeaveService {
 
     public LeaveService(LeaveTypeRepository typeRepository, LeaveRequestRepository requestRepository,
                         LeaveBalanceRepository balanceRepository, EmployeeRepository employeeRepository,
+                        LeaveAccrualLogRepository accrualLogRepository,
                         TenantContext tenantContext) {
         this.typeRepository = typeRepository;
         this.requestRepository = requestRepository;
         this.balanceRepository = balanceRepository;
         this.employeeRepository = employeeRepository;
+        this.accrualLogRepository = accrualLogRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -160,24 +165,60 @@ public class LeaveService {
     }
 
     /**
-     * Accrue one month's worth of each paid leave type onto every active employee's balance for the
-     * given year. Called for the current tenant. NOTE: the cross-tenant @Scheduled trigger below is
-     * a deploy concern (needs per-tenant iteration under RLS, like the outbox relay) — deferred.
+     * Accrue one month's leave for every active employee, exactly once per period.
+     *
+     * <p>Idempotent and replica-safe. Each (employee, leave type, year, month) writes a marker row
+     * into {@code leave_accrual_log} in the SAME transaction as the balance increment, and that
+     * table's unique constraint is the distributed lock — a second replica racing on the same
+     * period loses the insert and skips the increment.
+     *
+     * <p>This replaces a version that took only a year and did a bare
+     * {@code balance += accrualDaysPerMonth}, whose javadoc claimed "the cron IS the idempotency".
+     * It was not: {@code @Scheduled} fires on every replica, so N replicas granted N x the leave,
+     * and any manual re-trigger or retry double-accrued with no way to detect it after the fact.
+     *
+     * @return the number of (employee, leave type) pairs actually accrued — 0 means this period was
+     *         already done, which is a normal outcome and not an error.
      */
+    // Load-bearing: the marker insert and the balance increment MUST commit together, or a crash
+    // between them either grants days that can never be re-granted or blocks a period that never
+    // accrued. The method previously carried no transaction at all.
     @Transactional
-    public void accrue(int year) {
+    public int accrue(int year, int month) {
+        if (month < 1 || month > 12) {
+            throw new IllegalArgumentException("month must be 1-12, was " + month);
+        }
         UUID tenantId = requireTenant();
         List<LeaveTypeEntity> paidTypes = typeRepository.findAllByTenantId(tenantId).stream()
                 .filter(t -> t.isPaid() && t.getAccrualDaysPerMonth().signum() > 0).toList();
         List<EmployeeEntity> employees = employeeRepository.findAll().stream()
                 .filter(EmployeeEntity::isActive).toList();
+        int accrued = 0;
         for (LeaveTypeEntity type : paidTypes) {
             for (EmployeeEntity emp : employees) {
+                if (accrualLogRepository
+                        .existsByTenantIdAndEmployeeIdAndLeaveTypeIdAndPeriodYearAndPeriodMonth(
+                                tenantId, emp.getId(), type.getId(), year, month)) {
+                    continue;
+                }
+                LeaveAccrualLogEntity marker = new LeaveAccrualLogEntity();
+                marker.setTenantId(tenantId);
+                marker.setEmployeeId(emp.getId());
+                marker.setLeaveTypeId(type.getId());
+                marker.setPeriodYear(year);
+                marker.setPeriodMonth(month);
+                marker.setAccruedDays(type.getAccrualDaysPerMonth());
+                // Flush now so a concurrent replica's duplicate insert fails HERE, before we touch
+                // the balance — the exists() check above only narrows the race, it cannot close it.
+                accrualLogRepository.saveAndFlush(marker);
+
                 LeaveBalanceEntity balance = getOrCreateBalance(tenantId, emp.getId(), type.getId(), year);
                 balance.setBalanceDays(balance.getBalanceDays().add(type.getAccrualDaysPerMonth()));
                 balanceRepository.save(balance);
+                accrued++;
             }
         }
+        return accrued;
     }
 
     /** Distinct tenant_ids with employees, via the SECURITY DEFINER function — for the scheduler,
