@@ -619,7 +619,28 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
   5. A `WAITER` role exists with order-taking but not till permissions, and `TENANT_ADMIN` can administer users and branches (multiple admins per tenant work).
   6. One idempotent seed script produces: SuperAdmin `superadmin@softxlogic.com`, 3 tenants with differing enabled modules, and per-tenant users covering Admin/Manager/Cashier/Waiter/Kitchen/Accountant — and every seeded persona's login is verified by the script itself.
 
-**Plans**: TBD (see `/gsd-plan-phase 13`)
+**Requirements**: AUTH-01, AUTH-02, AUTH-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, PLATFORM-10, USER-01, USER-02, USER-03, GW-02, GW-03
+**Decisions**: see `.planning/phases/13-platform-tenant-access-repair/13-DECISION-MAP.md` (D-01..D-35)
+
+**Plans**: 15 plans, 6 waves
+
+Plans:
+
+- [ ] 13-01-PLAN.md (wave 1) — JWT authorities from roles, tenant-less platform token minting, gateway platform-prefix exemption + live-HTTP harness (SC1, B1)
+- [ ] 13-02-PLAN.md (wave 1) — WAITER role, TENANT_ADMIN authority split, one-active-role-per-branch DB invariant, hardcoded HQ UUID removed (SC5)
+- [ ] 13-03-PLAN.md (wave 1) — feature-code closure test + FEATURE_PAYROLL backfill, fail-closed tenant status (regression guards)
+- [ ] 13-04-PLAN.md (wave 1) — shared password-strength constraint, extracted password policy, self-service change-password (SC4)
+- [ ] 13-05-PLAN.md (wave 2) — platform login endpoint reading `platform_users`, SuperAdmin credential rotation (SC1, B1 closed)
+- [ ] 13-06-PLAN.md (wave 2) — auth-service provisioning seam: `auth_tenants` upsert, OWNER branch-role on provision-admin, roleCode validation (SC2)
+- [ ] 13-07-PLAN.md (wave 2) — role catalog + permission catalog endpoints, gateway reachability (SC3)
+- [ ] 13-08-PLAN.md (wave 2) — `must_change_password` enforced at login, single-use hashed change tokens, public forced-change endpoint (SC4)
+- [ ] 13-09-PLAN.md (wave 2) — reset hardening: outbox token redaction, lockout clear, per-account cooldown, single live token, honest delivery mode (SC4)
+- [ ] 13-10-PLAN.md (wave 3) — provisioning saga repair: real branch id, isHq, COA key, auth tenant + OWNER, temp password surfaced, real compensation (SC2, B2 closed)
+- [ ] 13-11-PLAN.md (wave 3) — auth-service user lifecycle API + per-tenant email uniqueness (SC3)
+- [ ] 13-12-PLAN.md (wave 4) — public `/api/v1/users` tenant-admin surface with role ceiling and tenant isolation (SC3, B3 closed)
+- [ ] 13-14-PLAN.md (wave 4) — subscription/tier management, provisioning retry, impersonation actor fix, per-tenant NLQ quota
+- [ ] 13-13-PLAN.md (wave 5) — admin-initiated password reset at both tiers with correct audit actor (SC4)
+- [ ] 13-15-PLAN.md (wave 6) — authoritative self-verifying seed script + phase acceptance runner + E2E evidence (SC6)
 
 ### Phase 14: Frontend Trust & Admin Surfaces
 
