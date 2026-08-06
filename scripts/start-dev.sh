@@ -218,15 +218,27 @@ if ! wait_http_ok "http://localhost:8081/.well-known/jwks.json" 180; then
   warn "Auth JWKS not ready — gateway may fail. Check .dev-logs/auth-service.log"
 fi
 
-step "Applying auth refresh-lookup owner (post-migration)"
-if docker exec -i restaurantos-postgres psql -U "$POSTGRES_SUPERUSER" -d auth_db -q \
-  <"$DEPLOY_DIR/init/04-auth-refresh-lookup-owner.sql" 2>/dev/null; then
+GATEWAY_PID=$(start_service gateway gateway)
+
+# SECURITY DEFINER ownership, AFTER migrations — see deploy/scripts/verify-security-definer-owners.sh
+# for the full explanation. Briefly: these functions must run as postgres to bypass FORCE RLS, but
+# Liquibase creates them as the service role, and deploy/init/04-*.sql and 05-*.sql are invoked
+# from ensure-dev-infra.sh BEFORE the services exist, where they silently no-op. Left unrepaired,
+# refresh/logout and device auth return nothing for every user, with no error anywhere.
+#
+# This replaces an earlier block that applied 04-*.sql only (missing hr_db entirely) and merely
+# warned on failure without ever checking that the function actually works. hr_db's two functions
+# were found genuinely owned by hr_user, i.e. broken, the first time this ran.
+step "Verifying SECURITY DEFINER ownership (post-migration)"
+if ! wait_http_ok "http://localhost:8088/actuator/health" 120; then
+  warn "hr-service not ready — its functions will be reported as SKIP; re-run the verifier after it starts"
+fi
+if bash "$REPO_ROOT/deploy/scripts/verify-security-definer-owners.sh"; then
   :
 else
-  warn "Could not apply deploy/init/04-auth-refresh-lookup-owner.sql"
+  warn "SECURITY DEFINER verification FAILED — refresh/logout or device auth will fail silently."
+  warn "Re-run: bash deploy/scripts/verify-security-definer-owners.sh"
 fi
-
-GATEWAY_PID=$(start_service gateway gateway)
 
 step "Starting frontend (Next.js)"
 frontend_log="$LOG_DIR/frontend.log"
