@@ -622,7 +622,7 @@ Gap-closure plans (from 12-10 real-stack E2E findings — run with `/gsd-execute
 **Requirements**: AUTH-01, AUTH-02, AUTH-06, PLATFORM-01, PLATFORM-02, PLATFORM-03, PLATFORM-04, PLATFORM-05, PLATFORM-06, PLATFORM-07, PLATFORM-10, USER-01, USER-02, USER-03, GW-02, GW-03
 **Decisions**: see `.planning/phases/13-platform-tenant-access-repair/13-DECISION-MAP.md` (D-01..D-35)
 
-**Plans**: 13/16 plans executed
+**Plans**: 14/16 plans executed
 
 Plans:
 
@@ -637,7 +637,7 @@ Plans:
 - [x] 13-09-PLAN.md (wave 2) — reset hardening: outbox token redaction, lockout clear, per-account cooldown, single live token, honest delivery mode (SC4)
 - [x] 13-10-PLAN.md (wave 3) — provisioning saga repair: real branch id, isHq, COA key, auth tenant + OWNER, temp password surfaced, real compensation (SC2, B2 closed)
 - [x] 13-11-PLAN.md (wave 3) — auth-service user lifecycle API + per-tenant email uniqueness (SC3)
-- [ ] 13-12-PLAN.md (wave 4) — public `/api/v1/users` tenant-admin surface with role ceiling and tenant isolation (SC3, B3 closed)
+- [x] 13-12-PLAN.md (wave 4) — public `/api/v1/users` tenant-admin surface with role ceiling and tenant isolation (SC3, B3 closed)
 - [x] 13-14-PLAN.md (wave 4) — subscription/tier management, provisioning retry, impersonation actor fix, per-tenant NLQ quota
 - [ ] 13-13-PLAN.md (wave 5) — admin-initiated password reset at both tiers with correct audit actor (SC4)
 - [x] 13-16-PLAN.md (wave 5) — POS till binds at cash settlement, not at order creation; unblocks 13-02's WAITER role (SC5, D-30) — **must land before 13-15**
@@ -731,7 +731,7 @@ With `parallelization: true`, after Phase 9 closes the core-value loop, Phases 1
 | 10. Purchasing & Accounts Payable | 6/6 | **Reopened — UAT gaps** | - |
 | 11. HR & Payroll | 12/12 executed | **Executed — runtime verification pending** (all ITs + `opa test` deferred to a Docker CI pass; 11-12 blocking UAT outstanding) | 2026-08-06 |
 | 12. Reporting, Dashboards & NLQ | 11/11 (+5 gap plans 12-12..12-16 pending) | **Executed — 5 gap-closure plans queued (RPT-02 gateway WS, FBR RLS, impersonation RLS, NLQ model, browser WS-target)** | 2026-07-21 |
-| 13. Platform & Tenant Access Repair *(INSERTED, BLOCKER)* | 13/16 | In Progress|  |
+| 13. Platform & Tenant Access Repair *(INSERTED, BLOCKER)* | 14/16 | In Progress|  |
 | 14. Frontend Trust & Admin Surfaces *(INSERTED)* | 0/TBD | Not started | - |
 | 15. UI/UX Revamp — ERP Design System *(INSERTED)* | 0/TBD | Not started | - |
 | 16. Multi-POS Terminals & KDS/BDS Routing *(INSERTED)* | 0/TBD | Not started | - |

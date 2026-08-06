@@ -6,14 +6,14 @@ current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
 stopped_at: Completed 13-14-PLAN.md
-last_updated: "2026-08-06T22:55:08.270Z"
+last_updated: "2026-08-06T23:31:23.079Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 153
+  completed_plans: 154
   percent: 64
 ---
 
@@ -302,6 +302,7 @@ _Updated after each plan completion_
 | Phase 13 P08 | 3h | 3 tasks | 19 files |
 | Phase 13 P09 | ~1h | 3 tasks | 16 files |
 | Phase 13 P11 | ~4h | 3 tasks | 29 files |
+| Phase 13 P12 | ~3h | 2 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -615,6 +616,9 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-09 (D-18): reset-confirm clears failedLoginCount, lockedUntil AND mustChangePassword, matching changeOwnPassword.
 - [Phase 13]: 13-09 (D-21): per-account reset cooldown 15m, enforced silently and serialised by pg_advisory_xact_lock.
 - [Phase 13]: 13-14 (D-35): tier is no longer write-once. POST /api/v1/platform/tenants/{id}/tier re-applies TierLimits AND reconciles tenant_features. PLATFORM-10 is enforced by a NEW MARKER COLUMN tenant_features.is_override (changeset 030-001, backfilled FALSE): a SuperAdmin toggle marks the row and reconciliation skips it in BOTH directions. Without the marker the only two possible implementations are 'wipe deliberate overrides' and 'never disable anything'. A downgrade DELETES NOTHING — it lowers four ceilings and gates modules; asserted live that both branches survive a forced downgrade.
+- [Phase ?]: 13-12: the role ceiling is NOT duplicated in user-service — RoleCeiling.permits stays the single owner in auth-service; user-service forwards the caller identity and surfaces the refusal with its real status
+- [Phase ?]: 13-12: GET /api/v1/users/{id} now returns the user; computed permissions moved to /api/v1/users/{id}/permissions (breaking; the one caller was updated in the same commit)
+- [Phase ?]: 13-12: a PATCH-capable Feign transport was written on java.net.http.HttpClient rather than adding feign-hc5 — T-13-12-SC forbids a new package without a blocking human checkpoint, and Feign's default client cannot send PATCH at all
 
 ### Pending Todos
 
@@ -658,7 +662,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06T22:49:20.876Z
+Last session: 2026-08-06T23:31:06.479Z
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
