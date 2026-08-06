@@ -60,6 +60,19 @@ class PasswordResetHardeningIT extends BaseIntegrationTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Restored on BOTH sides, and the account's RESET tokens are purged with it.
+     *
+     * <p>The password restore is order hygiene: a class that leaves the shared demo cashier holding
+     * a password of its own choosing hands every later IT class a 401 on a credential the fixture
+     * says is correct, and failsafe's default run order is the filesystem's, so which class pays
+     * changes when a file is added. This one did exactly that to StepUpLoginIT and RoleCatalogIT.
+     *
+     * <p>The token purge is not hygiene, it is a precondition. Issuance is now cooldown-limited per
+     * account, so a token minted by an earlier test in this class would silently suppress the
+     * issuance a later one is asserting on — and the assertion would fail for a reason that has
+     * nothing to do with the behaviour under test.
+     */
     @BeforeEach
     @AfterEach
     void restoreCashier() {
@@ -70,6 +83,15 @@ class PasswordResetHardeningIT extends BaseIntegrationTest {
         user.setLockedUntil(null);
         user.setMustChangePassword(false);
         userRepository.save(user);
+
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+            .executeWithoutResult(status -> {
+                passwordPolicyService.setTenantGuc(TestFixtures.demoTenantId());
+                entityManager.createNativeQuery(
+                        "DELETE FROM password_reset_tokens WHERE user_id = CAST(:uid AS uuid) AND purpose = 'RESET'")
+                    .setParameter("uid", TestFixtures.CASHIER_USER_ID.toString())
+                    .executeUpdate();
+            });
     }
 
     // ───────────────────────────── T-13-09-A: the token is not in the event ─────────────────────
@@ -193,7 +215,109 @@ class PasswordResetHardeningIT extends BaseIntegrationTest {
             .hasSizeGreaterThan((int) Math.min(historyBefore, 4L));
     }
 
+    // ───────────── T-13-09-B / C / D: one live token, a cooldown, and no oracle ─────────────────
+
+    @Test
+    @DisplayName("a second request inside the cooldown issues nothing, and says exactly what the first said")
+    void resetRequest_insideTheCooldown_issuesNothingAndIsIndistinguishable() {
+        var first = requestReset(TestFixtures.CASHIER_EMAIL);
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.OK);
+        long afterFirst = resetTokenCount();
+        assertThat(afterFirst).isPositive();
+
+        var second = requestReset(TestFixtures.CASHIER_EMAIL);
+
+        assertThat(second.getStatusCode()).isEqualTo(first.getStatusCode());
+        assertThat(second.getBody())
+            .as("a cooldown refusal that looks different from an ordinary request IS the oracle")
+            .isEqualTo(first.getBody());
+        assertThat(resetTokenCount())
+            .as("the cooldown is enforced server-side, not by the caller")
+            .isEqualTo(afterFirst);
+    }
+
+    @Test
+    @DisplayName("a request after the cooldown issues, and retires the token the previous one left live")
+    void resetRequest_afterTheCooldown_issuesAndRetiresTheOutstandingToken() {
+        assertThat(requestReset(TestFixtures.CASHIER_EMAIL).getStatusCode()).isEqualTo(HttpStatus.OK);
+        PasswordResetTokenEntity first = latestResetTokenRow();
+        assertThat(first.getUsedAt()).isNull();
+
+        // Age the issuance past the window instead of sleeping through it. The predicate under test
+        // is "created_at older than the cooldown", and this exercises that predicate rather than a
+        // shortened property that would leave the shipped 15-minute default untested.
+        ageResetIssuance(java.time.Duration.ofMinutes(20));
+
+        assertThat(requestReset(TestFixtures.CASHIER_EMAIL).getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        setRls(TestFixtures.demoTenantId());
+        PasswordResetTokenEntity second = latestResetTokenRow();
+        assertThat(second.getId()).isNotEqualTo(first.getId());
+        assertThat(second.getUsedAt()).as("the new token is live").isNull();
+        assertThat(passwordResetTokenRepository.findById(first.getId()).orElseThrow().getUsedAt())
+            .as("and the previous one is not — two concurrently valid reset tokens is T-13-09-D")
+            .isNotNull();
+
+        assertThat(liveResetTokenCount())
+            .as("exactly one live reset token per account, always")
+            .isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("an unknown address gets the same bytes as a known one, and writes nothing")
+    void resetRequest_unknownEmail_isIndistinguishableAndInert() {
+        long tokensBefore = resetTokenCount();
+        long eventsBefore = outboxOfType("PASSWORD_RESET_REQUESTED").size();
+
+        var unknown = requestReset("nobody-" + java.util.UUID.randomUUID() + "@demo.local");
+        assertThat(unknown.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resetTokenCount()).isEqualTo(tokensBefore);
+        assertThat(outboxOfType("PASSWORD_RESET_REQUESTED")).hasSize((int) eventsBefore);
+
+        var known = requestReset(TestFixtures.CASHIER_EMAIL);
+        assertThat(known.getBody()).isEqualTo(unknown.getBody());
+        assertThat(known.getStatusCode()).isEqualTo(unknown.getStatusCode());
+
+        // The control. Without it the equality above would also hold against an endpoint that
+        // silently does nothing for everybody, which is a different bug wearing this test's green.
+        assertThat(resetTokenCount())
+            .as("the KNOWN address really did issue — otherwise this test proves nothing")
+            .isEqualTo(tokensBefore + 1);
+    }
+
     // ───────────────────────────── helpers ──────────────────────────────────────────────────────
+
+    private long resetTokenCount() {
+        setRls(TestFixtures.demoTenantId());
+        return passwordResetTokenRepository.findAll().stream()
+            .filter(t -> "RESET".equals(t.getPurpose()))
+            .filter(t -> TestFixtures.CASHIER_USER_ID.equals(t.getUserId()))
+            .count();
+    }
+
+    private long liveResetTokenCount() {
+        setRls(TestFixtures.demoTenantId());
+        return passwordResetTokenRepository.findAll().stream()
+            .filter(t -> "RESET".equals(t.getPurpose()))
+            .filter(t -> TestFixtures.CASHIER_USER_ID.equals(t.getUserId()))
+            .filter(t -> t.getUsedAt() == null)
+            .count();
+    }
+
+    private void ageResetIssuance(java.time.Duration by) {
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+            .executeWithoutResult(status -> {
+                passwordPolicyService.setTenantGuc(TestFixtures.demoTenantId());
+                entityManager.createNativeQuery("""
+                        UPDATE password_reset_tokens
+                           SET created_at = created_at - CAST(:shift AS interval)
+                         WHERE user_id = CAST(:uid AS uuid) AND purpose = 'RESET'
+                        """)
+                    .setParameter("shift", by.toMinutes() + " minutes")
+                    .setParameter("uid", TestFixtures.CASHIER_USER_ID.toString())
+                    .executeUpdate();
+            });
+    }
 
     private org.springframework.http.ResponseEntity<String> requestReset(String email) {
         return exchangePost("/api/v1/auth/reset-password/request",
