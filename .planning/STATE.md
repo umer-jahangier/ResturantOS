@@ -620,7 +620,11 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06 — Phase 11 (HR & Payroll) Waves 1+2 complete (6/12 plans).
+Last session: 2026-08-06 — Phase 11 (HR & Payroll) Waves 1+2+3 complete (8/12 plans).
+Since the Waves-1+2 note below, also completed inline: **11-06** payroll run lifecycle (entities/repos/dtos, PayrollRunService create/calculate/approve[TOTP via X-TOTP-Verified]/pay + compute from tax_config, PayrollRunController with Idempotency-Key, PayrollRunIT) and **11-07** scheduling+attendance+leave (shifts+assignments+weekGrid, manual clock-in/out into attendance_punches via synthetic MANUAL device + late/early derivation, leave types/accrual/request/approve/balances, AttendanceLeaveIT). All compile (`mvn -pl services/hr-service -am test-compile` green). REMAINING: W4 (11-08 finance GL auto-post consuming PAYROLL_RUN_APPROVED/PAID, 11-09 labour-cost % + late_arrival deduction, 11-11 ADMS/iClock + USB punch ingest — novel protocol), W5 (11-12 HR frontend — checkpoint/UAT plan). NEW deploy-review items: @Scheduled cross-tenant leave accrual not wired (per-tenant iteration needed); several JSONB/int[]/numeric mappings + all ITs still need the Docker CI pass to runtime-verify.
+
+--- earlier this session ---
+Phase 11 (HR & Payroll) Waves 1+2 complete (6/12 plans).
 Branch `Ammar/phase-11-hr-payroll` first brought up to date with prod (merge `3b5903a`: 272 commits, phases 08.2 + 12 + gateway resilience fixes; 6 conflicts union-resolved). ALL Phase 11 plans run in the orchestrator thread INLINE — subagent delegation is hard-blocked this environment by a platform content-safety filter (7/8 subagent calls blocked incl. benign boilerplate; main thread unaffected). No Docker daemon in this sandbox, so every Testcontainers IT + `opa test` is WRITTEN and compile-verified but DEFERRED to a Docker-capable CI run.
 Completed:
 - **11-01** scaffold: module + app + security (`5e35b94`), FORCE-RLS hr_db 14+3 tables (`2ed4dc1`), ProcessedEvent + HrTestBase + HrContextLoadsIT (`98c661a`).
