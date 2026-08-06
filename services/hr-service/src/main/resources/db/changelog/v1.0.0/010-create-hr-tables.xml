@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- HR core: employee master (identity + bank fields held AES-256-GCM encrypted as BYTEA,
+         never plaintext), tax configuration, payroll runs/payslips, shifts, leave. Every table
+         carries tenant_id UUID NOT NULL and receives FORCE RLS in changelog 011. Money is *_paisa BIGINT. -->
+    <changeSet id="hr-1.0.0-010a-core" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            CREATE TABLE employees (
+              id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id          UUID NOT NULL,
+              branch_id          UUID NOT NULL,
+              user_id            UUID,
+              employee_no        TEXT NOT NULL,
+              full_name          TEXT NOT NULL,
+              cnic               BYTEA,
+              designation        TEXT,
+              department         TEXT,
+              employment_type    TEXT NOT NULL,
+              join_date          DATE NOT NULL,
+              exit_date          DATE,
+              basic_salary_paisa BIGINT NOT NULL DEFAULT 0,
+              bank_account_no    BYTEA,
+              device_user_ref    TEXT,
+              is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+              created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+              CONSTRAINT uk_employees_tenant_no UNIQUE (tenant_id, employee_no),
+              CONSTRAINT uk_employees_tenant_device_ref UNIQUE (tenant_id, device_user_ref)
+            );
+            CREATE INDEX idx_employees_tenant_id ON employees (tenant_id);
+            CREATE INDEX idx_employees_tenant_device_ref ON employees (tenant_id, device_user_ref);
+
+            CREATE TABLE tax_config (
+              id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id                 UUID NOT NULL,
+              fiscal_year               TEXT NOT NULL,
+              effective_from            DATE NOT NULL,
+              effective_to              DATE,
+              income_tax_slabs          JSONB NOT NULL DEFAULT '[]',
+              surcharge_threshold_paisa BIGINT NOT NULL DEFAULT 0,
+              surcharge_rate_pct        NUMERIC(6,3) NOT NULL DEFAULT 0,
+              eobi_employer_rate_pct    NUMERIC(6,3) NOT NULL DEFAULT 0,
+              eobi_employee_rate_pct    NUMERIC(6,3) NOT NULL DEFAULT 0,
+              eobi_wage_base_paisa      BIGINT NOT NULL DEFAULT 0,
+              proration_method          TEXT NOT NULL DEFAULT 'CALENDAR_DAYS',
+              is_active                 BOOLEAN NOT NULL DEFAULT TRUE,
+              CONSTRAINT uk_tax_config_tenant_fy UNIQUE (tenant_id, fiscal_year)
+            );
+
+            CREATE TABLE payroll_runs (
+              id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id         UUID NOT NULL,
+              branch_id         UUID,
+              period_month      INTEGER NOT NULL,
+              period_year       INTEGER NOT NULL,
+              status            TEXT NOT NULL DEFAULT 'DRAFT',
+              total_gross_paisa BIGINT NOT NULL DEFAULT 0,
+              total_net_paisa   BIGINT NOT NULL DEFAULT 0,
+              run_by            UUID NOT NULL,
+              approved_by       UUID,
+              paid_at           TIMESTAMPTZ,
+              created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+              CONSTRAINT uk_payroll_runs_period UNIQUE (tenant_id, period_month, period_year)
+            );
+
+            CREATE TABLE payslips (
+              id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id       UUID NOT NULL,
+              run_id          UUID NOT NULL REFERENCES payroll_runs(id),
+              employee_id     UUID NOT NULL REFERENCES employees(id),
+              basic_paisa     BIGINT NOT NULL,
+              allowances_json JSONB NOT NULL DEFAULT '{}',
+              gross_paisa     BIGINT NOT NULL,
+              deductions_json JSONB NOT NULL DEFAULT '{}',
+              net_paisa       BIGINT NOT NULL,
+              payslip_file_id UUID
+            );
+
+            CREATE TABLE shifts (
+              id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id        UUID NOT NULL,
+              branch_id        UUID NOT NULL,
+              name             TEXT NOT NULL,
+              role_designation TEXT,
+              start_time       TIME NOT NULL,
+              end_time         TIME NOT NULL,
+              days_of_week     INT[] NOT NULL DEFAULT '{}'
+            );
+
+            CREATE TABLE shift_assignments (
+              id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id   UUID NOT NULL,
+              shift_id    UUID NOT NULL REFERENCES shifts(id),
+              employee_id UUID NOT NULL REFERENCES employees(id),
+              work_date   DATE NOT NULL,
+              CONSTRAINT uk_shift_assign UNIQUE (tenant_id, shift_id, employee_id, work_date)
+            );
+
+            CREATE TABLE leave_types (
+              id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id              UUID NOT NULL,
+              name                   TEXT NOT NULL,
+              is_paid                BOOLEAN NOT NULL DEFAULT TRUE,
+              accrual_days_per_month NUMERIC(6,3) NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE leave_requests (
+              id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id     UUID NOT NULL,
+              employee_id   UUID NOT NULL REFERENCES employees(id),
+              leave_type_id UUID NOT NULL REFERENCES leave_types(id),
+              start_date    DATE NOT NULL,
+              end_date      DATE NOT NULL,
+              status        TEXT NOT NULL DEFAULT 'PENDING',
+              approved_by   UUID,
+              reason        TEXT,
+              created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+
+            CREATE TABLE leave_balances (
+              id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id     UUID NOT NULL,
+              employee_id   UUID NOT NULL REFERENCES employees(id),
+              leave_type_id UUID NOT NULL REFERENCES leave_types(id),
+              period_year   INTEGER NOT NULL,
+              balance_days  NUMERIC(7,3) NOT NULL DEFAULT 0,
+              CONSTRAINT uk_leave_balance UNIQUE (tenant_id, employee_id, leave_type_id, period_year)
+            );
+
+            GRANT SELECT, INSERT, UPDATE, DELETE ON employees, tax_config, payroll_runs, payslips, shifts, shift_assignments, leave_types, leave_requests, leave_balances TO hr_user;
+        </sql>
+        <rollback>
+            DROP TABLE IF EXISTS leave_balances, leave_requests, leave_types, shift_assignments, shifts, payslips, payroll_runs, tax_config, employees CASCADE;
+        </rollback>
+    </changeSet>
+
+    <!-- Attendance + biometric. Per spec M8.4 the platform stores NO central biometric templates by
+         default: matching happens at the edge (on-device for network readers, in the local bridge
+         agent for USB) and only employee_id + device_id + punched_at are persisted. biometric_templates
+         stays empty unless a tenant explicitly opts in, in which case each row is AES-256-GCM encrypted
+         (BYTEA) with a retention_expires_at and restricted RLS access — the same field-encryption
+         discipline as cnic. -->
+    <changeSet id="hr-1.0.0-010b-attendance" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            CREATE TABLE attendance_policies (
+              id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id            UUID NOT NULL,
+              branch_id            UUID,
+              late_grace_minutes   INTEGER NOT NULL DEFAULT 0,
+              deduction_mode       TEXT NOT NULL DEFAULT 'PER_MINUTE',
+              deduction_rate_paisa BIGINT NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE attendance_devices (
+              id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id       UUID NOT NULL,
+              branch_id       UUID NOT NULL,
+              serial_no       TEXT NOT NULL,
+              model           TEXT,
+              connection_mode TEXT NOT NULL,
+              device_token    BYTEA NOT NULL,
+              last_seen_at    TIMESTAMPTZ,
+              is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+              CONSTRAINT uk_attendance_devices_serial UNIQUE (serial_no)
+            );
+
+            CREATE TABLE attendance_punches (
+              id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id          UUID NOT NULL,
+              branch_id          UUID NOT NULL,
+              device_id          UUID NOT NULL REFERENCES attendance_devices(id),
+              employee_id        UUID REFERENCES employees(id),
+              device_user_ref    TEXT NOT NULL,
+              punch_type         TEXT NOT NULL,
+              device_reported_at TIMESTAMPTZ NOT NULL,
+              server_received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+              source_record_id   TEXT,
+              CONSTRAINT uk_attendance_punch UNIQUE (device_id, device_user_ref, device_reported_at)
+            );
+
+            CREATE TABLE attendance_quarantine (
+              id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id            UUID NOT NULL,
+              device_id            UUID NOT NULL REFERENCES attendance_devices(id),
+              device_user_ref      TEXT NOT NULL,
+              punch_type           TEXT,
+              device_reported_at   TIMESTAMPTZ NOT NULL,
+              raw_line             TEXT,
+              status               TEXT NOT NULL DEFAULT 'PENDING',
+              resolved_employee_id UUID REFERENCES employees(id),
+              created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+
+            CREATE TABLE biometric_templates (
+              id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id            UUID NOT NULL,
+              employee_id          UUID NOT NULL REFERENCES employees(id),
+              device_id            UUID NOT NULL REFERENCES attendance_devices(id),
+              template_encrypted   BYTEA NOT NULL,
+              retention_expires_at TIMESTAMPTZ,
+              created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+
+            CREATE INDEX idx_attendance_punches_tenant ON attendance_punches (tenant_id, device_reported_at);
+            CREATE INDEX idx_attendance_quarantine_status ON attendance_quarantine (tenant_id, status);
+
+            GRANT SELECT, INSERT, UPDATE, DELETE ON attendance_policies, attendance_devices, attendance_punches, attendance_quarantine, biometric_templates TO hr_user;
+        </sql>
+        <rollback>
+            DROP TABLE IF EXISTS biometric_templates, attendance_quarantine, attendance_punches, attendance_devices, attendance_policies CASCADE;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
