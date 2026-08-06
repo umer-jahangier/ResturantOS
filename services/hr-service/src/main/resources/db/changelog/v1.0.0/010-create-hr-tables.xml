@@ -29,6 +29,9 @@
               is_active          BOOLEAN NOT NULL DEFAULT TRUE,
               created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
               updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+              created_by         UUID,
+              updated_by         UUID,
+              deleted_at         TIMESTAMPTZ,
               CONSTRAINT uk_employees_tenant_no UNIQUE (tenant_id, employee_no),
               CONSTRAINT uk_employees_tenant_device_ref UNIQUE (tenant_id, device_user_ref)
             );
