@@ -62,11 +62,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             List<String> roles = c.get("roles", List.class);
             List<String> permissions = c.get("permissions", List.class);
             Map<String, Object> attributes = c.get("attributes", Map.class);
+            // Step-up signal, minted by auth-service only when a TOTP code was actually verified
+            // during login. Absent/non-boolean reads as false — a token that predates the claim
+            // has not stepped up.
+            boolean totpVerified = Boolean.TRUE.equals(c.get("totp_verified", Boolean.class));
 
             var authorities = permissions == null ? List.<SimpleGrantedAuthority>of()
                 : permissions.stream().map(SimpleGrantedAuthority::new).toList();
             var authentication = new UsernamePasswordAuthenticationToken(
-                new JwtClaims(userId, tenantId, branchId, roles, permissions, attributes, impersonatedBy),
+                new JwtClaims(userId, tenantId, branchId, roles, permissions, attributes,
+                    impersonatedBy, totpVerified),
                 null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
 

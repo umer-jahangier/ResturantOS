@@ -29,6 +29,12 @@ import java.util.function.Supplier;
  * Payroll run REST API. create + calculate require an {@code Idempotency-Key} and
  * {@code hr.payroll.run}; approve/pay require {@code hr.payroll.approve} (approve is TOTP step-up
  * gated via {@code X-TOTP-Verified}, same trust model as finance period-close).
+ *
+ * <p>{@code X-TOTP-Verified} is written by the gateway from the signed {@code totp_verified} JWT
+ * claim, which auth-service sets only when a TOTP code was verified at login. The gateway deletes
+ * any inbound copy before authentication runs, so a client cannot assert it. Anything that reaches
+ * this service without passing the gateway is untrusted for the same reason
+ * {@code X-Internal-Service} is.
  */
 @RestController
 @RequestMapping("/api/v1/hr/payroll-runs")

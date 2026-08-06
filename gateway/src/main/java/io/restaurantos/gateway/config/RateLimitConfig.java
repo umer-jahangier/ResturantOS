@@ -3,6 +3,7 @@ package io.restaurantos.gateway.config;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import reactor.core.publisher.Mono;
 
 /**
@@ -22,7 +23,21 @@ import reactor.core.publisher.Mono;
 @Configuration
 public class RateLimitConfig {
 
+    /**
+     * The default key resolver for every route that does not name another one.
+     *
+     * <p>{@code @Primary} is load-bearing, not decoration. Spring Cloud Gateway's
+     * {@code RequestRateLimiterGatewayFilterFactory} takes a single {@link KeyResolver} by type at
+     * construction time, so the moment {@link #deviceKeyResolver()} was added as a second bean of
+     * that type the factory could no longer be built — and because
+     * {@code routeDefinitionRouteLocator} depends on it, the whole gateway context failed to
+     * refresh. Not a degraded route: no gateway at all, and every Spring-context test in this
+     * module erroring on {@code NoUniqueBeanDefinitionException}. The per-route SpEL
+     * ({@code #{@ipKeyResolver}} / {@code #{@deviceKeyResolver}}) chooses the resolver that
+     * actually runs; this annotation only says which one the factory may hold as its default.
+     */
     @Bean
+    @Primary
     public KeyResolver ipKeyResolver() {
         return exchange -> {
             String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");

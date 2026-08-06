@@ -54,6 +54,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   <li>Public path {@code /api/v1/auth/login} with no JWT → forwarded.</li>
  *   <li>Valid JWT → forwarded with X-Tenant-Id and X-User-Id; inbound X-Internal-Service stripped.</li>
  *   <li>Expired/garbage JWT → 401.</li>
+ *   <li>Inbound X-TOTP-Verified is destroyed and rewritten from the signed {@code totp_verified}
+ *       claim — on authenticated routes and on public paths alike.</li>
  * </ul>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -210,23 +212,117 @@ class JwtGlobalFilterTest {
                 .expectStatus().isUnauthorized();
     }
 
+    // ── Test 6: forged X-TOTP-Verified is destroyed and rewritten from the claim ──────────
+
+    /**
+     * The audit HIGH-6 bypass, at the layer that has to stop it.
+     *
+     * <p>hr-service's payroll approval and finance-service's period close both read
+     * {@code X-TOTP-Verified} and trust it absolutely. Nothing used to set, validate or strip it,
+     * so a caller who held {@code hr.payroll.approve} simply sent {@code true} and disbursed money
+     * with no second factor. Holding the permission is NOT the question here — this token holds
+     * none — the question is whether the client's own word about its second factor can reach an
+     * upstream at all. It must arrive as {@code false}: not merely absent (which would leave the
+     * upstream's {@code defaultValue="false"} doing the work) but overwritten by the gateway.
+     */
+    @Test
+    void forgedTotpVerifiedHeader_isReplacedWithFalse() throws Exception {
+        String token = buildToken(TEST_KID, UUID.randomUUID(), UUID.randomUUID(), false, null);
+
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        webTestClient.post()
+                .uri("/api/v1/users/payroll-runs/x/approve")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .header("X-TOTP-Verified", "true")
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstreamRequest = mockUpstream.takeRequest();
+        assertThat(upstreamRequest.getHeaders().values("X-TOTP-Verified"))
+                .as("exactly one gateway-authored value; the client's must not survive alongside it")
+                .containsExactly("false");
+    }
+
+    /** The claim the token really carries is the one the upstream sees. */
+    @Test
+    void genuineTotpVerifiedClaim_isInjectedAsTrue() throws Exception {
+        String token = buildToken(TEST_KID, UUID.randomUUID(), UUID.randomUUID(), false, true);
+
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        webTestClient.post()
+                .uri("/api/v1/users/payroll-runs/x/approve")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstreamRequest = mockUpstream.takeRequest();
+        assertThat(upstreamRequest.getHeader("X-TOTP-Verified")).isEqualTo("true");
+    }
+
+    /**
+     * The strip must not depend on authentication succeeding. A public path never reaches
+     * JwtGlobalFilter's injection step, so if stripping lived there instead of in the
+     * earlier-ordered StripInternalHeaderFilter, a forged header would ride straight through.
+     */
+    @Test
+    void forgedTotpVerifiedHeader_onPublicPath_isStripped() {
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        webTestClient.post()
+                .uri("/api/v1/auth/login")
+                .header("X-TOTP-Verified", "true")
+                .bodyValue("{}")
+                .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstreamRequest = takeNext();
+        assertThat(upstreamRequest.getHeader("X-TOTP-Verified")).isNull();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────────────────
 
+    private RecordedRequest takeNext() {
+        try {
+            RecordedRequest request = mockUpstream.takeRequest(5, TimeUnit.SECONDS);
+            assertThat(request).as("upstream should have received a request").isNotNull();
+            return request;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
     private String buildToken(String kid, UUID userId, UUID tenantId, boolean expired) throws Exception {
+        return buildToken(kid, userId, tenantId, expired, null);
+    }
+
+    /**
+     * @param totpVerified value of the {@code totp_verified} claim, or {@code null} to omit it
+     *                     entirely — which is what every token minted before the claim existed
+     *                     looks like, and must read as "no step-up".
+     */
+    private String buildToken(String kid, UUID userId, UUID tenantId, boolean expired,
+                              Boolean totpVerified) throws Exception {
         Date now = new Date();
         Date exp = expired
                 ? new Date(now.getTime() - 60_000)
                 : new Date(now.getTime() + 3_600_000);
 
-        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+        JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
                 .subject(userId.toString())
                 .claim("tenant_id", tenantId.toString())
                 .claim("roles", List.of("TENANT_ADMIN"))
                 .claim("permissions", List.of())
                 .claim("attributes", Map.of())
                 .issueTime(now)
-                .expirationTime(exp)
-                .build();
+                .expirationTime(exp);
+        if (totpVerified != null) {
+            builder.claim("totp_verified", totpVerified);
+        }
+        JWTClaimsSet claims = builder.build();
 
         SignedJWT jwt = new SignedJWT(
                 new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(kid).build(),

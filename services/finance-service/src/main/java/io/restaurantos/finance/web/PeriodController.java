@@ -71,6 +71,11 @@ public class PeriodController {
         return ResponseEntity.ok(ApiResponse.ok(periodService.getById(id)));
     }
 
+    /**
+     * {@code X-TOTP-Verified} is written by the gateway from the signed {@code totp_verified} JWT
+     * claim, which auth-service sets only when a TOTP code was verified at login. The gateway
+     * deletes any inbound copy before authentication runs, so a client cannot assert it.
+     */
     @PostMapping("/api/v1/finance/periods/{id}/close")
     @PreAuthorize("hasAuthority('finance.period.close')")
     public ResponseEntity<ApiResponse<AccountingPeriodDto>> closePeriod(

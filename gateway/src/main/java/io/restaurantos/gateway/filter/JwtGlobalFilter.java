@@ -37,7 +37,10 @@ import java.util.UUID;
  *   <li>Parse {@link JwtClaims} from the JWT payload.</li>
  *   <li>Resolve {@code tenant_id} via {@link TenantResolutionSupport}.</li>
  *   <li>Mutate the upstream request by injecting {@code X-Tenant-Id}, {@code X-User-Id},
- *       and optionally {@code X-Impersonated-By} (Pitfall 7 — propagate for audit).</li>
+ *       {@code X-TOTP-Verified} (from the signed {@code totp_verified} claim — see
+ *       {@link StripInternalHeaderFilter}, which deleted the client's version at
+ *       {@code HIGHEST_PRECEDENCE + 5}), and optionally {@code X-Impersonated-By}
+ *       (Pitfall 7 — propagate for audit).</li>
  * </ol>
  *
  * <p>Any failure in steps 2–5 results in a 401 UNAUTHENTICATED response; the upstream
@@ -150,7 +153,14 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
                 .flatMap(tenantId -> {
                     ServerHttpRequest.Builder requestBuilder = exchange.getRequest().mutate()
                             .header("X-Tenant-Id", tenantId.toString())
-                            .header("X-User-Id", claims.subject().toString());
+                            .header("X-User-Id", claims.subject().toString())
+                            // Re-created from the signed claim, never forwarded from the client:
+                            // StripInternalHeaderFilter (HIGHEST_PRECEDENCE + 5) has already
+                            // deleted whatever the caller sent. Written on every authenticated
+                            // request, including the false case, so the upstream reads a value
+                            // this gateway authored rather than an absence it has to interpret.
+                            .header(StripInternalHeaderFilter.TOTP_VERIFIED_HEADER,
+                                    Boolean.toString(claims.totpVerified()));
 
                     // Propagate impersonation claim for downstream audit logging (Pitfall 7)
                     if (claims.impersonatedBy() != null) {
@@ -220,8 +230,12 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
         @SuppressWarnings("unchecked")
         Map<String, Object> attributes = claims.get("attributes") instanceof Map<?, ?> a
                 ? (Map<String, Object>) a : Map.of();
+        // Anything that is not a JSON true — absent, null, the string "true", a number — is not a
+        // verified step-up. Tokens minted before this claim existed therefore read as false.
+        boolean totpVerified = claims.get("totp_verified") instanceof Boolean b && b;
 
-        return new JwtClaims(subject, tenantId, branchId, roles, permissions, attributes, impersonatedBy);
+        return new JwtClaims(subject, tenantId, branchId, roles, permissions, attributes,
+                impersonatedBy, totpVerified);
     }
 
     private UUID parseUuid(Map<String, Object> claims, String key) {

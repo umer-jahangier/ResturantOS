@@ -49,9 +49,15 @@ public class BranchSwitchService {
             .orElseThrow(() -> new BranchSwitchDeniedException("Branch not assigned to user"));
 
         ResolvedBranchAuth resolved = permissionResolver.resolve(userId, targetBranchId);
+        // Step-up carries across a branch switch. Unlike refresh, the caller is proving possession
+        // of a live, signature-verified access token that already carries the marker — and anyone
+        // holding that token can call the gated endpoint directly on the current branch anyway, so
+        // dropping it here would buy no security and would break the ordinary "log in with a code,
+        // switch to the branch whose payroll you are approving, approve" path.
         JwtClaims newClaims = new JwtClaims(
             userId, tenantId, resolved.branchId(),
-            resolved.roles(), resolved.permissions(), resolved.attributes(), null);
+            resolved.roles(), resolved.permissions(), resolved.attributes(), null,
+            claims.totpVerified());
         String accessToken = jwtSigningService.signAccessToken(newClaims);
         return new TokenResponse(accessToken, jwtProperties.getAccessTtlSeconds());
     }

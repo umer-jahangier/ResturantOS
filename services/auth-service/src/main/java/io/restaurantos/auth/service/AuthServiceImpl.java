@@ -112,11 +112,12 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
 
             ResolvedBranchAuth resolved = permissionResolver.resolveDefault(user.getId());
-            enforceTotpStepUp(user, request, resolved.permissions(), tenantId, request.email(), ip);
+            boolean totpVerified =
+                enforceTotpStepUp(user, request, resolved.permissions(), tenantId, request.email(), ip);
 
             JwtClaims claims = new JwtClaims(
                 user.getId(), tenantId, resolved.branchId(),
-                resolved.roles(), resolved.permissions(), resolved.attributes(), null);
+                resolved.roles(), resolved.permissions(), resolved.attributes(), null, totpVerified);
             String accessToken = jwtSigningService.signAccessToken(claims);
             tenantContext.set(tenantId, resolved.branchId(), user.getId(), null);
 
@@ -142,6 +143,12 @@ public class AuthServiceImpl implements AuthService {
             tenantContext.set(session.getTenantId(), session.getBranchId(), session.getUserId(), null);
 
             ResolvedBranchAuth resolved = permissionResolver.resolve(session.getUserId(), session.getBranchId());
+            // totp_verified is deliberately NOT carried across refresh (the 7-arg constructor mints
+            // it false). A refresh token lives 30 days; an access token lives 1 hour. Re-minting the
+            // step-up marker here would bind an hour-grade proof of possession to a month-long
+            // bearer credential, so a stolen refresh token would silently regain the payroll-approval
+            // capability this gate exists to withhold. A step-up-gated action after the access token
+            // has rotated costs one re-login with a code — which is what step-up means.
             JwtClaims claims = new JwtClaims(
                 session.getUserId(), session.getTenantId(), resolved.branchId(),
                 resolved.roles(), resolved.permissions(), resolved.attributes(), null);
@@ -219,10 +226,16 @@ public class AuthServiceImpl implements AuthService {
             .getSingleResult();
     }
 
-    private void enforceTotpStepUp(UserEntity user, LoginRequest request, List<String> permissions,
-                                   UUID tenantId, String email, String ip) {
+    /**
+     * @return true only when a TOTP code was actually presented and verified during this login.
+     *         That boolean is the sole source of the {@code totp_verified} access-token claim, so
+     *         "step-up was not required" and "step-up was disabled" both correctly yield false —
+     *         a token may only claim a second factor that really happened.
+     */
+    private boolean enforceTotpStepUp(UserEntity user, LoginRequest request, List<String> permissions,
+                                      UUID tenantId, String email, String ip) {
         if (!stepUpEnabled || !requiresTotpStepUp(permissions, user.isTotpEnabled())) {
-            return;
+            return false;
         }
         // No secret at all is a different situation from a missing or wrong code: the user cannot
         // produce a code from anything, and answering "TOTP code required" sends them to a prompt
@@ -238,11 +251,33 @@ public class AuthServiceImpl implements AuthService {
             loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
             throw new TotpRequiredException("TOTP code required");
         }
+        return true;
     }
 
+    /**
+     * Which logins must present a second factor.
+     *
+     * <p>Every code listed here is one that some downstream service refuses to honour without a
+     * verified step-up, so the two lists have to agree: a permission gated downstream but missing
+     * here produces a holder who is challenged for nothing and can therefore never perform the
+     * action, and a permission listed here but gated nowhere is pure friction.
+     *
+     * <p>{@code hr.payroll.approve} joins the list because hr-service refuses payroll approval
+     * without step-up. It is granted to OWNER and TENANT_ADMIN only, and both already hold
+     * {@code finance.period.close} (030 grants TENANT_ADMIN every permission except
+     * {@code rbac.manage}), so no user is newly forced into TOTP by this line — it changes the
+     * reason existing step-up users are challenged, not who is challenged.
+     *
+     * <p>Deliberately NOT added: {@code finance.expense.approve}, {@code vendor.po.approve} and
+     * {@code pos.order.refund}. They are money-adjacent, but MANAGER and CASHIER hold them, no
+     * service gates them on step-up, and those personas are seeded with no TOTP secret — listing
+     * them would throw {@link TotpEnrollmentRequiredException} at every manager and cashier login
+     * for a gate that does not exist downstream. Gate them downstream first, then add them here.
+     */
     private static boolean requiresTotpStepUp(List<String> permissions, boolean totpEnabled) {
         return totpEnabled
             || permissions.contains("rbac.manage")
-            || permissions.contains("finance.period.close");
+            || permissions.contains("finance.period.close")
+            || permissions.contains("hr.payroll.approve");
     }
 }

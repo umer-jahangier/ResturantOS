@@ -35,6 +35,11 @@ public class JwtSigningService {
             .claim("roles", claims.roles())
             .claim("permissions", claims.permissions())
             .claim("attributes", claims.attributes())
+            // Step-up marker. True ONLY when this login verified a TOTP code
+            // (AuthServiceImpl.enforceTotpStepUp). Downstream money-moving endpoints — payroll
+            // approval, accounting-period close — read this via the gateway-injected
+            // X-TOTP-Verified header, so it must never be settable by the caller.
+            .claim("totp_verified", claims.totpVerified())
             .issuedAt(Date.from(now))
             .expiration(Date.from(expiry))
             .signWith(privateKey, Jwts.SIG.RS256)
@@ -77,6 +82,10 @@ public class JwtSigningService {
             .claim("roles", targetClaims.roles())
             .claim("permissions", targetClaims.permissions())
             .claim("attributes", targetClaims.attributes())
+            // Never inherited from the impersonated user: the SuperAdmin driving this session did
+            // not present the target's second factor, so an impersonation token can carry every
+            // permission the target has and still not approve payroll or close a period.
+            .claim("totp_verified", false)
             .claim("impersonated_by", impersonatedBy.toString())
             .issuedAt(Date.from(now))
             .expiration(Date.from(expiry))
