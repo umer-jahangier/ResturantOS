@@ -8,6 +8,7 @@
     <include file="db/changelog/v1.0.0/010-create-hr-tables.xml"/>
     <include file="db/changelog/v1.0.0/011-enable-rls-hr-tables.xml"/>
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
+    <include file="db/changelog/v1.0.0/031-device-resolve-fn.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-tax-config.xml"/>
 
 </databaseChangeLog>
