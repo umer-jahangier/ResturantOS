@@ -52,6 +52,8 @@ public class AutoPostingRecipeEngine {
     static final String SOURCE_TRANSFER_SHIP = "TRANSFER_SHIP";
     static final String SOURCE_TRANSFER_RECV = "TRANSFER_RECV";
     static final String SOURCE_STOCK_RECEIPT = "STOCK_RECEIPT";
+    static final String SOURCE_PAYROLL_APPROVED = "PAYROLL_APPROVED";
+    static final String SOURCE_PAYROLL_PAID = "PAYROLL_PAID";
 
     private final AccountResolver accountResolver;
     private final JournalEntryService jeService;
@@ -361,6 +363,54 @@ public class AutoPostingRecipeEngine {
         // re-derive it from qty * unitCostPaisa here: the rounding rule belongs to the domain that
         // owns the quantity.
         return lines.stream().mapToLong(InventoryEventContract.TransferLine::lineCostPaisa).sum();
+    }
+
+    // ── Payroll (HR-03 consumer side) ───────────────────────────────────────
+    /** PAYROLL_RUN_APPROVED -> DR 6200 Salary expense · CR 2300 Wages payable, for the gross. */
+    public void postPayrollApproved(EventEnvelope<Map<String, Object>> envelope) {
+        Map<String, Object> p = envelope.payload();
+        UUID runId = uuid(p, "runId");
+        if (runId == null || alreadyPosted(SOURCE_PAYROLL_APPROVED, runId)) {
+            return;
+        }
+        long grossPaisa = longVal(p, "totalGrossPaisa");
+        if (grossPaisa <= 0) {
+            return;
+        }
+        List<CreateJeLineRequest> lines = List.of(
+                line("6200", "Salary expense", grossPaisa, 0),
+                line("2300", "Wages payable", 0, grossPaisa));
+        post(SOURCE_PAYROLL_APPROVED, runId, envelope, "Payroll approved " + runId, lines);
+    }
+
+    /** PAYROLL_RUN_PAID -> DR 2300 Wages payable · CR Bank, for the net disbursed. */
+    public void postPayrollPaid(EventEnvelope<Map<String, Object>> envelope) {
+        Map<String, Object> p = envelope.payload();
+        UUID runId = uuid(p, "runId");
+        if (runId == null || alreadyPosted(SOURCE_PAYROLL_PAID, runId)) {
+            return;
+        }
+        long netPaisa = longVal(p, "totalNetPaisa");
+        if (netPaisa <= 0) {
+            return;
+        }
+        List<CreateJeLineRequest> lines = List.of(
+                line("2300", "Wages payable", netPaisa, 0),
+                line(tag("BANK"), "Payroll disbursement", 0, netPaisa));
+        post(SOURCE_PAYROLL_PAID, runId, envelope, "Payroll paid " + runId, lines);
+    }
+
+    private static UUID uuid(Map<String, Object> payload, String key) {
+        Object v = payload.get(key);
+        return v == null ? null : UUID.fromString(v.toString());
+    }
+
+    private static long longVal(Map<String, Object> payload, String key) {
+        Object v = payload.get(key);
+        if (v instanceof Number n) {
+            return n.longValue();
+        }
+        return v == null ? 0L : Long.parseLong(v.toString());
     }
 
     private void post(String sourceType, UUID sourceId, EventEnvelope<?> envelope,
