@@ -1,6 +1,8 @@
 package io.restaurantos.user.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.RequestInterceptor;
+import feign.codec.ErrorDecoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 
@@ -11,6 +13,12 @@ import org.springframework.context.annotation.Bean;
  *
  * NOTE: This config is a user-service local copy of what should eventually be extracted
  * to shared-lib as a reusable FeignSharedConfig (tracked as future shared-lib extraction).
+ *
+ * <p>This class is a Feign {@code configuration} class, not a {@code @Configuration} class — the
+ * beans below live in the per-client child context and are NOT visible to the application context.
+ * That is why the {@link ErrorDecoder} is declared here rather than as an ordinary bean: declared
+ * globally it would also replace the decoder of any other Feign client added later, which is a
+ * decision that belongs to that client.
  */
 public class FeignInternalConfig {
 
@@ -18,5 +26,14 @@ public class FeignInternalConfig {
     public RequestInterceptor internalSecretInterceptor(
             @Value("${restaurantos.internal.secret:dev-internal-secret}") String secret) {
         return requestTemplate -> requestTemplate.header("X-Internal-Service", secret);
+    }
+
+    /**
+     * Replaces Feign's default decoder, which raises an undifferentiated {@code FeignException} and
+     * so turned every upstream refusal into a 500 at the public door. See {@link UpstreamErrorDecoder}.
+     */
+    @Bean
+    public ErrorDecoder upstreamErrorDecoder(ObjectMapper objectMapper) {
+        return new UpstreamErrorDecoder(objectMapper);
     }
 }

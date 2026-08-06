@@ -159,8 +159,8 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
             and telling them their session ended when it did not invites a support call. */}
         {reason === STEP_UP_LOGIN_REASON ? (
           <p className="mb-4 text-sm text-muted-foreground" role="status">
-            That action needs a fresh authenticator code. Sign in again to continue — you&apos;ll
-            be asked for your code, then taken back to where you were.
+            That action needs a fresh authenticator code. Sign in again to continue — you&apos;ll be
+            asked for your code, then taken back to where you were.
           </p>
         ) : null}
 
