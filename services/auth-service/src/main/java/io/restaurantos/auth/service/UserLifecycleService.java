@@ -22,9 +22,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -78,6 +80,7 @@ public class UserLifecycleService {
     private final RoleCeiling roleCeiling;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
+    private final UserLifecycleEventPublisher events;
 
     public UserLifecycleService(UserRepository userRepository,
                                 UserBranchRoleRepository userBranchRoleRepository,
@@ -85,7 +88,8 @@ public class UserLifecycleService {
                                 PasswordPolicyService passwordPolicyService,
                                 RoleCeiling roleCeiling,
                                 PasswordEncoder passwordEncoder,
-                                EntityManager entityManager) {
+                                EntityManager entityManager,
+                                UserLifecycleEventPublisher events) {
         this.userRepository = userRepository;
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.branchRoleAdminService = branchRoleAdminService;
@@ -93,6 +97,7 @@ public class UserLifecycleService {
         this.roleCeiling = roleCeiling;
         this.passwordEncoder = passwordEncoder;
         this.entityManager = entityManager;
+        this.events = events;
     }
 
     /**
@@ -209,6 +214,12 @@ public class UserLifecycleService {
                 .getRoleCode();
         }
 
+        // Inside this transaction, so the account and the record that it was created commit
+        // together. The temporary password above is deliberately not passed: the payload record
+        // has no field for it and must never gain one.
+        events.userCreated(tenantId, actingUserId, user.getId(), email,
+            assignedRole, request.branchId());
+
         return new CreatedUser(user.getId(), email, tempPassword, true,
             request.branchId(), assignedRole, assignedRole != null);
     }
@@ -237,16 +248,37 @@ public class UserLifecycleService {
         UserEntity user = requireUser(tenantId, userId);
         roleCeiling.requireMayAdminister(actingUserId, activeRoleCodesOf(userId));
 
+        // Which fields actually changed, compared before the setters run. The audit event records
+        // the field NAMES and never their values — see UserUpdatedPayload for why an append-only
+        // table is the wrong place for arbitrary user-supplied strings.
+        List<String> changedFields = new ArrayList<>();
         if (request.fullName() != null) {
-            user.setFullName(blankToNull(request.fullName()));
+            String next = blankToNull(request.fullName());
+            if (!Objects.equals(next, user.getFullName())) {
+                changedFields.add("fullName");
+            }
+            user.setFullName(next);
         }
         if (request.locale() != null) {
-            user.setLocale(blankToNull(request.locale()));
+            String next = blankToNull(request.locale());
+            if (!Objects.equals(next, user.getLocale())) {
+                changedFields.add("locale");
+            }
+            user.setLocale(next);
         }
         if (request.active() != null && request.active() != user.isActive()) {
+            // Delegates, and setActive publishes USER_DEACTIVATED / USER_REACTIVATED itself. Any
+            // name or locale edits in the same request are still recorded first, so a patch that
+            // renames and deactivates in one call produces both facts rather than only the louder
+            // one.
+            if (!changedFields.isEmpty()) {
+                events.userUpdated(tenantId, actingUserId, userId, user.getEmail(), changedFields);
+            }
             return setActive(tenantId, actingUserId, userId, request.active());
         }
-        return detailOf(userRepository.save(user));
+        UserDetail detail = detailOf(userRepository.save(user));
+        events.userUpdated(tenantId, actingUserId, userId, user.getEmail(), changedFields);
+        return detail;
     }
 
     /**
@@ -278,9 +310,14 @@ public class UserLifecycleService {
 
         user.setActive(active);
         UserEntity saved = userRepository.saveAndFlush(user);
+        int sessionsRevoked = 0;
         if (!active) {
-            passwordPolicyService.revokeActiveRefreshSessions(userId);
+            sessionsRevoked = passwordPolicyService.revokeActiveRefreshSessions(userId);
         }
+        // Inside this transaction: the flag flip, the session revocations and the record that it
+        // happened are one atomic fact.
+        events.activationChanged(tenantId, actingUserId, userId, saved.getEmail(),
+            active, sessionsRevoked);
         return detailOf(saved);
     }
 

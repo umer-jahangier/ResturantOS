@@ -64,3 +64,7 @@ management:
 restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  # Needed since 15-01: /api/v1/audit/** is the first user-facing endpoint this service has,
+  # so it now verifies JWTs against auth-service's published key set like every other service.
+  jwks:
+    uri: ${JWKS_URI:http://localhost:8081/.well-known/jwks.json}

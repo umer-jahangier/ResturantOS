@@ -26,19 +26,22 @@ public class BranchRoleAdminService {
     private final EntityManager entityManager;
     private final RoleCatalog roleCatalog;
     private final RoleCeiling roleCeiling;
+    private final UserLifecycleEventPublisher events;
 
     public BranchRoleAdminService(UserBranchRoleRepository userBranchRoleRepository,
                                   UserRepository userRepository,
                                   TenantContext tenantContext,
                                   EntityManager entityManager,
                                   RoleCatalog roleCatalog,
-                                  RoleCeiling roleCeiling) {
+                                  RoleCeiling roleCeiling,
+                                  UserLifecycleEventPublisher events) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
         this.roleCatalog = roleCatalog;
         this.roleCeiling = roleCeiling;
+        this.events = events;
     }
 
     /**
@@ -191,7 +194,22 @@ public class BranchRoleAdminService {
             entity.setPrimary(true);
         }
 
-        return new RoleAssignmentResult(userBranchRoleRepository.save(entity), displacedRoleCode);
+        UserBranchRoleEntity saved = userBranchRoleRepository.save(entity);
+
+        // A privilege change, recorded in the same transaction that makes it. displacedRoleCode
+        // matters as much as the new role: one active role per branch means a grant is usually
+        // also a revocation, and a trail that names only what the person can do now cannot answer
+        // what they could do yesterday.
+        //
+        // The actor is TenantContext's user rather than a parameter, because this method is also
+        // reached from the unbounded system-context path (ProvisioningAdminService) where there is
+        // no acting human — and a null actor recorded honestly beats attributing a system-created
+        // OWNER to whoever happened to be nearby.
+        events.roleGranted(tenantId, tenantContext.getUserId().orElse(null), userId,
+            req.branchId(), req.roleCode(), displacedRoleCode,
+            saved.getApprovalLimitPaisa(), saved.isPrimary());
+
+        return new RoleAssignmentResult(saved, displacedRoleCode);
     }
 
     /**
@@ -230,10 +248,23 @@ public class BranchRoleAdminService {
         userBranchRoleRepository
             .findByUserIdAndBranchIdAndRoleCode(userId, branchId, roleCode)
             .ifPresent(e -> {
+                boolean wasActive = e.isActive();
                 e.setActive(false);
                 // Same reasoning as the displacement path: the flag belongs to an active row.
                 e.setPrimary(false);
                 userBranchRoleRepository.save(e);
+                // Only a revocation that actually removed live authority is an audit event.
+                // Re-revoking an already-inactive assignment changes nothing and recording it
+                // would put rows in the trail that describe no change in what anyone can do.
+                if (wasActive) {
+                    // The acting user is whatever the verified context holds, and is frequently
+                    // null on this path: AuthInternalClient.revokeBranchRole sends no
+                    // X-Acting-User-Id, unlike every other write. Recorded honestly as null
+                    // rather than substituted with the target's own id — see RoleRevokedPayload
+                    // and follow-up W-15-02.
+                    events.roleRevoked(tenantId, tenantContext.getUserId().orElse(null),
+                        userId, branchId, roleCode);
+                }
             });
     }
 }

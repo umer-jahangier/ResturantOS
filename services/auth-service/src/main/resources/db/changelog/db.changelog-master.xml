@@ -71,5 +71,9 @@
          it before the seeds would make the fresh-install and upgrade paths converge differently.
          Numbered 058 because 13-07 had already taken 057. -->
     <include file="db/changelog/v1.0.0/058-users-tenant-email-uniqueness.xml"/>
+    <!-- 15-01: audit.log.view, the gate on the tenant-facing audit read API. Grants OWNER and
+         TENANT_ADMIN explicitly rather than relying on 057 above, which is point-in-time like
+         every other blanket grant in this changelog and retro-grants nothing added after it. -->
+    <include file="db/changelog/v1.0.0/059-audit-log-view-permission.xml"/>
 
 </databaseChangeLog>

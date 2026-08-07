@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      15-01. The permission that gates reading the tenant's audit log.
+
+      audit-service had no user-facing endpoint and no gateway route, so the audit trail was
+      unreachable from outside the cluster: `grep -c audit gateway/.../application.yml` returned 0.
+      GET /api/v1/audit/events is that route's destination and this is its gate.
+
+      ── Why a new code rather than reusing rbac.manage or a reporting permission ──
+
+      The audit log is not implied by any capability that already exists. It shows every login,
+      every failed login, every void and refund, every role grant and every password reset in the
+      tenant — including those of the person reading it. That makes it both the surface a
+      compromised administrator account would most want and the record that would expose the
+      compromise, which is an argument for gating it on its own code that can be granted and
+      revoked without dragging an unrelated capability along.
+
+      ── Who holds it ──
+
+      OWNER and TENANT_ADMIN. Not MANAGER, and that exclusion is the point: MANAGER holds
+      pos.order.void.any and finance.expense.approve, so a manager is a subject of this log. A
+      manager who could also read it could see whether anyone had looked, which is the one property
+      an audit trail must not have. ACCOUNTANT is likewise excluded — a financial reviewer needs
+      the ledger, not the security log; if that turns out to be wrong it is one grant to add, and
+      adding a grant later is recoverable in a way that un-disclosing a log is not.
+
+      Granted EXPLICITLY to both roles rather than relying on 057's catalogue-wide repair. Every
+      blanket grant in this changelog (030/041/042/045/046/057) is point-in-time: it enumerates
+      what existed on the day it ran and retro-grants nothing added afterwards. 055 documents that
+      property and grants explicitly for the same reason. A permission nobody holds produces a
+      clean, confident 403 for every user including OWNER, which is the exact defect class
+      PermissionCatalogClosureTest exists to catch.
+    -->
+
+    <changeSet id="auth-1.0.0-059-audit-log-view" author="restaurantos-agent" runOnChange="false">
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('audit.log.view', 'audit', 'Read the tenant''s audit trail (logins, voids, refunds, role changes, password resets)')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'audit.log.view'),
+              ('TENANT_ADMIN', 'audit.log.view')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'audit.log.view';
+                DELETE FROM permissions WHERE code = 'audit.log.view';
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

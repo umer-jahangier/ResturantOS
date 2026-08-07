@@ -214,6 +214,38 @@ spring:
                     statusCodes:
                       - 503
 
+            # ── Audit Service (the tenant's audit trail) ─────────────────────────
+            # 15-01. Before this route `grep -c audit` on this file returned 0: audit-service
+            # exposed only /internal/audit/**, which is gated on a shared secret and proxied by
+            # nothing, so the audit log was unreachable from outside the cluster. "Everything
+            # logged for audits" had no reader.
+            #
+            # Deliberately NOT in PUBLIC_PATHS and NOT in TENANT_OPTIONAL_PATHS. This is the most
+            # sensitive read in the product — every login, void, refund, role change and password
+            # reset in the tenant — so it takes the standard authenticated, tenant-bearing path
+            # like any other business route. audit-service then enforces `audit.log.view` per
+            # method (OWNER and TENANT_ADMIN only) and scopes every query to the tenant claim of
+            # the verified token; the endpoint has no tenant parameter to influence.
+            #
+            # Only /api/v1/audit/** is routed. /internal/audit/** stays unreachable from the edge,
+            # which is what its shared-secret gate assumes: that endpoint takes a tenantId as a
+            # query parameter, and exposing it would make the secret a cross-tenant read of every
+            # audit log on the platform.
+            #
+            # No feature gate in RouteFeatureMap — an audit trail is not a tier upsell, and gating
+            # it would 403 STARTER tenants out of their own compliance record.
+            - id: audit-route
+              uri: lb://audit-service
+              predicates:
+                - Path=/api/v1/audit/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: auditCircuitBreaker
+                    fallbackUri: forward:/fallback/service-unavailable
+                    statusCodes:
+                      - 503
+
             # ── File Service ──────────────────────────────────────────────────────
             - id: file-route
               uri: lb://file-service

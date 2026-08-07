@@ -207,11 +207,21 @@ public class PasswordPolicyService {
      * They are stateless by design and there is no revocation list; the residual window is the
      * access-token TTL and is asserted explicitly by the live script rather than assumed away.
      */
-    public void revokeActiveRefreshSessions(UUID userId) {
-        refreshSessionRepository.findByUserIdAndRevokedAtIsNull(userId).forEach(session -> {
+    /**
+     * @return how many sessions were revoked. Returned rather than discarded (15-01) so that the
+     *         deactivation audit event can record how much live access was actually withdrawn — the
+     *         difference between removing a departing employee who was logged in on four devices
+     *         and one who was logged in on none is exactly what an auditor is reading this row for.
+     *         Every existing caller ignores it, which is why widening {@code void} to {@code int}
+     *         was safe here.
+     */
+    public int revokeActiveRefreshSessions(UUID userId) {
+        var active = refreshSessionRepository.findByUserIdAndRevokedAtIsNull(userId);
+        active.forEach(session -> {
             session.setRevokedAt(Instant.now());
             refreshSessionRepository.save(session);
         });
+        return active.size();
     }
 
     /**

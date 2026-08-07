@@ -45,8 +45,20 @@ public class AuditEventEntity {
     @Column(name = "branch_id")
     private UUID branchId;
 
+    /** The account the action was performed AS. Under impersonation this is the tenant user. */
     @Column(name = "user_id")
     private UUID userId;
+
+    /**
+     * The REAL platform administrator behind an impersonated session, or null for ordinary actions.
+     *
+     * <p>Separate from {@link #userId} rather than replacing it: an auditor needs to know both which
+     * account the system saw and which human was driving it. Collapsing them either loses the
+     * impersonator or misattributes the action to them — and misattribution is the D-34 defect that
+     * recorded every user in {@code impersonation_logs} as their own impersonator.
+     */
+    @Column(name = "impersonated_by")
+    private UUID impersonatedBy;
 
     @Column(name = "action", nullable = false, length = 255)
     private String action;

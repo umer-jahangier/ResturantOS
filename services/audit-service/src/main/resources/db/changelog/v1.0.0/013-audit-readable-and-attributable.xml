@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      15-01. Two independent repairs to a table that could be written and not read, and that
+      could not say who did anything.
+
+      1. audit_writer gains SELECT.
+
+         It held INSERT and nothing else, on the parent and on all 13 partitions. Verified
+         live on 2026-08-07:
+
+             $ psql -U audit_writer -d audit_db -c "SELECT count(*) FROM audit_events;"
+             ERROR:  permission denied for table audit_events
+
+         AuditInternalController — the ONLY way to read the audit log — runs on that same
+         datasource, so the read API was broken by construction from the day it was written.
+         AuditImmutabilityIT could not see it: Testcontainers' Postgres user is a SUPERUSER,
+         superusers bypass privilege checks entirely, and the test asserted only the negative
+         privileges (UPDATE/DELETE false) and never the positive one.
+
+         Granting SELECT does not weaken immutability. Append-only means no UPDATE and no
+         DELETE, and both remain revoked here and blocked independently by the
+         prevent_audit_mutation trigger. Reading is not a mutation — it is the entire purpose
+         of an audit log. A log that cannot be read is not a stricter audit log; it is an
+         expensive way to write to /dev/null.
+
+      2. audit_events gains impersonated_by.
+
+         The gateway propagates X-Impersonated-By and, before this phase, no service read it
+         and no table had anywhere to put it. An action taken while a platform administrator
+         impersonated a tenant user was recorded against the tenant user alone, so the trail
+         attributed it to someone who had not done it. user_id stays the account that was acted
+         AS; impersonated_by is the real human. Both are needed and neither substitutes for the
+         other.
+    -->
+    <changeSet id="audit-1.0.0-013a-impersonated-by" author="restaurantos-agent">
+        <sql>ALTER TABLE audit_events ADD COLUMN IF NOT EXISTS impersonated_by UUID;</sql>
+        <!-- Every impersonated action, newest first: the query a platform-abuse review runs. -->
+        <sql>
+            CREATE INDEX IF NOT EXISTS idx_audit_events_impersonated
+                ON audit_events (impersonated_by, occurred_at DESC)
+                WHERE impersonated_by IS NOT NULL;
+        </sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS idx_audit_events_impersonated;</sql>
+            <sql>ALTER TABLE audit_events DROP COLUMN IF EXISTS impersonated_by;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="audit-1.0.0-013b-grant-select" author="restaurantos-agent">
+        <!-- The parent. In PostgreSQL a SELECT through a partitioned parent also requires the
+             privilege on each partition actually scanned, so both levels are granted. -->
+        <sql>GRANT SELECT ON audit_events TO audit_writer;</sql>
+
+        <!-- Every existing partition, found rather than listed: 010b enumerated 13 partition
+             names by hand, and create_audit_partition() has been adding more since. A hardcoded
+             list would silently stop covering the newest partition, which is the one every
+             recent-events query reads. -->
+        <sql splitStatements="false">
+            DO $$
+            DECLARE
+                part RECORD;
+            BEGIN
+                FOR part IN
+                    SELECT c.relname
+                    FROM pg_inherits i
+                    JOIN pg_class c ON c.oid = i.inhrelid
+                    JOIN pg_class p ON p.oid = i.inhparent
+                    WHERE p.relname = 'audit_events'
+                LOOP
+                    EXECUTE format('GRANT SELECT ON %I TO audit_writer', part.relname);
+                END LOOP;
+            END $$;
+        </sql>
+
+        <!-- Immutability is unchanged and is re-asserted here so that this changeset cannot be
+             read as loosening it. -->
+        <sql>REVOKE UPDATE, DELETE ON audit_events FROM audit_writer;</sql>
+
+        <rollback>
+            <sql>REVOKE SELECT ON audit_events FROM audit_writer;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="audit-1.0.0-013c-future-partitions-readable" author="restaurantos-agent">
+        <!-- Future partitions too. Without this, the grant above fixes reads until the next
+             month rolls over and create_audit_partition() produces an INSERT-only partition —
+             at which point recent-events queries start failing again, in production, on a date
+             nobody is watching. The failure would look exactly like the original defect and
+             would be found the same way: by a compliance query returning "permission denied". -->
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION create_audit_partition(month_start DATE) RETURNS VOID AS $$
+            DECLARE
+                partition_name TEXT;
+                month_end      DATE;
+            BEGIN
+                partition_name := 'audit_events_' || to_char(month_start, 'YYYY_MM');
+                month_end      := month_start + INTERVAL '1 month';
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE c.relname = partition_name
+                      AND n.nspname = 'public'
+                ) THEN
+                    EXECUTE format(
+                        'CREATE TABLE %I PARTITION OF audit_events FOR VALUES FROM (%L) TO (%L)',
+                        partition_name, month_start, month_end
+                    );
+                    -- INSERT and SELECT, and deliberately not UPDATE or DELETE.
+                    EXECUTE format('GRANT INSERT, SELECT ON %I TO audit_writer', partition_name);
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <rollback>
+            <sql>SELECT 1;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -4,6 +4,8 @@ import io.restaurantos.platform.client.AuthInternalClient;
 import io.restaurantos.platform.entity.ImpersonationLogEntity;
 import io.restaurantos.platform.repository.ImpersonationLogRepository;
 import io.restaurantos.platform.repository.TenantRepository;
+import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,13 +29,19 @@ public class ImpersonationService {
     private final AuthInternalClient authClient;
     private final ImpersonationLogRepository logRepository;
     private final TenantRepository tenantRepository;
+    private final EventPublisher eventPublisher;
+    private final TenantContext tenantContext;
 
     public ImpersonationService(AuthInternalClient authClient,
                                  ImpersonationLogRepository logRepository,
-                                 TenantRepository tenantRepository) {
+                                 TenantRepository tenantRepository,
+                                 EventPublisher eventPublisher,
+                                 TenantContext tenantContext) {
         this.authClient = authClient;
         this.logRepository = logRepository;
         this.tenantRepository = tenantRepository;
+        this.eventPublisher = eventPublisher;
+        this.tenantContext = tenantContext;
     }
 
     /**
@@ -96,6 +104,27 @@ public class ImpersonationService {
         entry.setStartedAt(Instant.now());
         entry.setExpiresAt(Instant.now().plusSeconds(expiresIn));
         logRepository.save(entry);
+
+        // IMPERSONATION_STARTED (15-01). audit-service allow-listed this event type from the day it
+        // was written and NOTHING published it — one of four dead entries in an eight-entry list.
+        // The only record was the platform_db row above, which is a service-local table an auditor
+        // reading the tenant's trail never sees: a platform administrator could assume any tenant
+        // user's identity and the tenant's own audit log showed nothing at all.
+        //
+        // Published inside this @Transactional method, so the outbox row and the impersonation_logs
+        // row commit together and the central trail cannot disagree with the local one.
+        //
+        // The event is scoped to the TARGET's tenant, not the platform, because that is the tenant
+        // whose data is about to be touched and whose audit log has to show it. The token itself is
+        // never in the payload — it is a live credential and event_outbox is plain text.
+        tenantContext.set(tenantId, null, adminUserId, adminUserId);
+        eventPublisher.publish("platform.topic", "platform.impersonation.started",
+            "IMPERSONATION_STARTED", null,
+            Map.of("targetUserId", targetUserId.toString(),
+                   "adminUserId", adminUserId.toString(),
+                   "tenantId", tenantId.toString(),
+                   "reason", reason == null ? "" : reason,
+                   "expiresAt", entry.getExpiresAt().toString()));
 
         log.info("[impersonation] admin={} impersonating user={} tenant={}", adminUserId, targetUserId, tenantId);
         return new ImpersonateResult(token, expiresIn);
