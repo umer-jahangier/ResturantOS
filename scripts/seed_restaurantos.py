@@ -22,9 +22,10 @@ WHAT IT PRODUCES
 
   * the project SuperAdmin, VERIFIED BY LOGIN (it is created by 13-05's migration; a seeder
     that silently re-creates what a migration owns is how two sources of truth appear)
-  * three tenants on three different tiers with DELIBERATELY DIVERGENT enabled module sets,
+  * Floating Terrace (the working tenant, ENTERPRISE, richly seeded) plus one small
+    isolation-control tenant, with DELIBERATELY DIVERGENT enabled module sets,
     asserted to differ rather than assumed to
-  * six personas per tenant — owner, manager, cashier, waiter, kitchen, accountant — each
+  * eight personas per tenant — one for every role in the catalog — each
     created through the real user API, each activated through the real forced-change flow,
     each ending with its documented working password and NO outstanding temporary credential
   * TOTP enrolment for every persona the platform challenges for step-up (D-29a)
@@ -136,36 +137,43 @@ SUPERADMIN_MIGRATION = (
 
 TENANTS: list[dict[str, Any]] = [
     {
-        "key": "saffron",
-        "brand": "Saffron Grill",
-        "tier": "STARTER",
-        # An ABOVE-TIER feature switched ON. FEATURE_NLQ is GROWTH+ by TierFeatureDefaults.
-        "overrides": [("FEATURE_NLQ", True)],
-        "extra_branches": [],
-        "orders": 3,
-        "menu_items": 4,
-        "invoices": 1,
-    },
-    {
-        "key": "zaitoon",
-        "brand": "Zaitoon Kitchen",
-        "tier": "GROWTH",
-        # A PRIMARY module switched OFF. FEATURE_CRM is ON in every tier by default.
-        "overrides": [("FEATURE_CRM", False)],
-        "extra_branches": ["Zaitoon Kitchen Clifton"],
-        "orders": 5,
-        "menu_items": 5,
-        "invoices": 2,
-    },
-    {
-        "key": "marina",
-        "brand": "Marina Bay Dining",
+        # THE working tenant. This is a real restaurant the user is building for, so it gets
+        # the top tier, every module, a second branch, and enough transactional data that the
+        # dashboards and reports have something to show.
+        "key": "terrace",
+        "brand": "Floating Terrace",
         "tier": "ENTERPRISE",
         "overrides": [],
+        "extra_branches": ["Floating Terrace — Rooftop"],
+        "orders": 24,
+        "menu_items": 18,
+        "invoices": 6,
+    },
+    {
+        # An isolation CONTROL, kept deliberately small.
+        #
+        # The user asked for the other tenants to be dropped. One is retained on purpose: with a
+        # single tenant, no test can distinguish "tenant scoping works" from "there is only one
+        # tenant's data to return". Cross-tenant leakage is the highest-severity defect class in
+        # a multi-tenant system and it is unobservable without a second tenant — plan 13-12
+        # proved tenant isolation precisely by provisioning two and asserting all five verbs 404
+        # across the boundary.
+        #
+        # It also keeps feature-gating honest: its module set is deliberately different from
+        # Floating Terrace's, so a disabled module is exercised rather than assumed.
+        #
+        # Delete this entry if it is genuinely unwanted — the seed will still run, but the
+        # isolation and feature-gating assertions lose their control.
+        "key": "control",
+        "brand": "Control Bistro (isolation test tenant)",
+        "tier": "STARTER",
+        # A PRIMARY module switched OFF: FEATURE_CRM is ON in every tier by default, so this is
+        # a genuine divergence rather than a tier artefact.
+        "overrides": [("FEATURE_CRM", False)],
         "extra_branches": [],
-        "orders": 7,
-        "menu_items": 6,
-        "invoices": 3,
+        "orders": 2,
+        "menu_items": 3,
+        "invoices": 1,
     },
 ]
 
@@ -198,6 +206,15 @@ PERSONAS: list[dict[str, Any]] = [
      "provisioned": False, "verify_path": "/api/v1/pos/stations?branchId={branch}"},
     {"local": "accountant", "role": "ACCOUNTANT", "label": "Accountant",
      "provisioned": False, "verify_path": "/api/v1/finance/accounts"},
+    # Added so every role in the catalog has a live persona. `SELECT code FROM roles` returns
+    # exactly these eight; seeding six left TENANT_ADMIN and INVENTORY_MANAGER with no account,
+    # which meant nothing exercised them — and TENANT_ADMIN is the role the whole 13-11/13-12
+    # privilege-ceiling work exists to constrain, so leaving it unseeded left the most
+    # security-relevant role untested end to end.
+    {"local": "admin", "role": "TENANT_ADMIN", "label": "Tenant admin (user + branch admin)",
+     "provisioned": False, "verify_path": "/api/v1/users?page=0&size=1"},
+    {"local": "storekeeper", "role": "INVENTORY_MANAGER", "label": "Store keeper / inventory",
+     "provisioned": False, "verify_path": "/api/v1/inventory/ingredients"},
 ]
 
 
@@ -751,7 +768,7 @@ def phase_platform() -> list[Tenant]:
                     f"Feature gating would be assumed rather than exercised, which is the "
                     f"prohibition this phase exists to close."
                 )
-    ok("all three enabled module sets are pairwise DIFFERENT — asserted, not assumed")
+    ok(f"all {len(TENANTS)} enabled module sets are pairwise DIFFERENT — asserted, not assumed")
     for i in range(len(keys)):
         for j in range(i + 1, len(keys)):
             a, b = keys[i], keys[j]
