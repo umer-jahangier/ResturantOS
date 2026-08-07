@@ -36,6 +36,62 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 16: Multi-POS Terminals & KDS/BDS Routing** - INSERTED. POS terminal entity, order source/terminal attribution, per-branch item→station routing, station types (KITCHEN/BAR/EXPO), BDS
 - [ ] **Phase 17: ERP Reporting Completeness** - INSERTED. journal/inventory fact tables + consumers, P&L, balance sheet, COGS, stock valuation, Z-report, tender mix, exports
 
+### RENUMBERED 2026-08-07 — ERP Completion Program
+
+Two 11-agent research swarms plus an authorization audit produced 22 documents
+(`.planning/research/`) and a consolidated 16-phase plan
+(`.planning/research/erp-completion/BUILD-PLAN.md`). The old 14–17 above are **superseded**
+and absorbed: old 14 → new 19+21, old 15 → new 20+21, old 16 → new 28, old 17 → new 24.
+
+The renumbering exists because research found defects that must be fixed BEFORE the
+feature work that was previously queued — most importantly that no discounted order has
+ever posted to the ledger, and that the audit log is empty.
+
+**Spine (strictly serial — everything else depends on these):**
+- [x] **Phase 14: Money-Path & Event-Bus Repair** — 5d. Discounted orders never posted revenue (debits exceed credits by the discount, `JE_UNBALANCED` rejects, and four services requeue the rejection forever). GR/IR double-post. *(executing)*
+- [ ] **Phase 15: Verification Spine** — 8d. Non-superuser RLS harness, `ddl-auto=validate` everywhere, Feign contract tests, policy-reachability test. The countermeasure to seven "green tests over broken reality" defects.
+- [x] **Phase 15b: Audit Trail Repair** — `audit_events` had 0 rows: hard-coded event source, allow-list/publisher name mismatch hiding voids and refunds, `audit_writer` unable to SELECT, user-service publishing nothing. *(executing)*
+
+**Track B — backend reachability and configurability (parallel):**
+- [ ] **Phase 16: API Reachability Repair** — 10d. Nine live API surfaces have zero frontend callers; five built domains have no controller (loyalty accrues points that can never be redeemed); audit-service has no gateway route.
+- [ ] **Phase 17: Tenant Configuration Spine** — 16d. The load-bearing decision: where tenant settings live across 16 separate databases. Service model, tax profile, branding, printers, FBR credentials, quotas.
+- [ ] **Phase 22: Real Goods Receipt** — 8d · needs 14, 15
+- [ ] **Phase 23: Notifications & Alerting** — 8d · needs 16. Unblocks self-service password reset, which ships disabled today.
+- [ ] **Phase 24: Financial Statements, COGS & Exports** — 15d · needs 14, 22
+
+**Track C — UI/UX revamp (parallel with B):**
+- [x] **Phase 20: Design System Foundation** — 14d. OKLCH ramps, five CVD-verified chart colours, both themes, component inventory. Brand colour delegated by the user (D-UI-01). *(UI-SPEC in progress)*
+- [ ] **Phase 21: Screen Rebuilds** — 16d · needs 20. POS order screen (target: an order in under 10s), KDS/BDS board, role dashboards, the dense-table pattern serving 30+ screens.
+- [ ] **Phase 19: Admin & Missing-UI Surfaces** — 15d · needs 16, 17
+
+**Track D — security depth (parallel):**
+- [ ] **Phase 18: RLS Harness Rollout** — 13d · needs 15. All 101 `FORCE ROW LEVEL SECURITY` statements across 57 tables are vacuous in every test today.
+- [ ] **Phase 18b: ABAC Enforcement** — 6 of 22 OPA rules are reachable at runtime. `hr.rego` is a dead letter, so a manager at one branch can read and modify salaries at another.
+
+**Adaptivity — the "works for any business" requirement:**
+- [ ] **Phase 30: Business-Model Adaptivity** — order-first, bill-first, self-checkout, QR-at-table; the order lifecycle differs per model.
+- [ ] **Phase 31: Tenant Onboarding** — guided, resumable setup driving the real Phase 13 APIs.
+- [ ] **Phase 32: Subscription Metering** — per-feature usage counters, soft/hard quotas, trial→past-due→suspended.
+- [ ] **Phase 33: NLQ Insights & Waste Control** — theoretical-vs-actual variance, the highest-value inventory feature for a restaurant.
+
+**Hardware and tax integrations (need user-supplied credentials/hardware):**
+- [ ] **Phase 25: Biometric Attendance Repair** — 4d. ADMS/iClock ingest already largely exists. Needs **U5** (a terminal) for sign-off.
+- [ ] **Phase 26: Receipt & Kitchen Printing** — 18d · needs **U3** (an 80mm ESC/POS printer)
+- [ ] **Phase 27: FBR Digital Invoicing** — 20d · needs **U1/U2** (NTN + PRAL sandbox credentials, static egress IPs)
+- [ ] **Phase 28: Multi-POS Terminals & KDS/BDS Routing** — 10d · needs 21
+
+**Close-out:**
+- [ ] **Phase 29: Production Hardening** — 10d · needs all. Includes root-causing the wedged-service defect: four services entered a state where `/actuator/health` returns 200 while every other path hangs, so a liveness probe would never restart them.
+
+**Effort: ~190 dev-days raw, ~1.3× with review and rework.** Roughly 11 months solo,
+6.5 with two engineers, ~5 with three — the serial spine caps further parallel gain.
+A defensible real-life-testing milestone is 14+15+16+20+21+25 at ~57 days, shipping
+without printing, FBR, real GRN, notifications or financial statements.
+
+**Blocked on the user:** U1/U2 FBR NTN + PRAL sandbox credentials · U3 an 80mm ESC/POS
+printer · U5 a ZKTeco terminal · U6 an SMTP/SMS provider for production notifications.
+U7 (brand colour) is RESOLVED — delegated to the designer, see D-UI-01.
+
 ## Phase Details
 
 ### Phase 1: Infrastructure Foundation & Shared Library
