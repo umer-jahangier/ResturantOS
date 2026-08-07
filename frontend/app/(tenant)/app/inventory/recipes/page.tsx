@@ -13,6 +13,7 @@ import { RecipeFormDialog } from "@/components/inventory/RecipeFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 function MenuItemRecipeRow({
@@ -48,15 +49,18 @@ function MenuItemRecipeRow({
 // recipes/{menuItemId} (INV-15). Revision authoring itself no longer happens here — it moved to
 // the routed detail page's two-column live-cost view (UI-SPEC's Modal-vs-Full-Page decision).
 export default function RecipesIndexPage() {
-  const { data: menuItems } = useMenuItemCatalog();
-  const { data: coverage } = useCoverage();
+  // GA-001: neither query's error was read. A failed catalog read rendered "No menu items yet —
+  // sync a menu item from POS", which is a false instruction: the items are already synced, the
+  // request failed. Both queries feed this screen, so both are passed to the boundary.
+  const menuItemsQuery = useMenuItemCatalog();
+  const coverageQuery = useCoverage();
   const [selectedMenuItemId, setSelectedMenuItemId] = useState("");
 
   const coverageByMenuItemId = new Map(
-    (coverage?.items ?? []).map((item) => [item.menuItemId, item.state] as const),
+    (coverageQuery.data?.items ?? []).map((item) => [item.menuItemId, item.state] as const),
   );
 
-  const activeMenuItems = (menuItems ?? []).filter((mi) => mi.active);
+  const activeMenuItems = (menuItemsQuery.data ?? []).filter((mi) => mi.active);
 
   return (
     <div className="space-y-6">
@@ -97,12 +101,17 @@ export default function RecipesIndexPage() {
         view its version history and author a new revision.
       </p>
 
-      {activeMenuItems.length === 0 ? (
-        <EmptyState
-          title="No menu items yet"
-          description="Sync a menu item from POS before you can build its recipe."
-        />
-      ) : (
+      <QueryBoundary
+        query={[menuItemsQuery, coverageQuery]}
+        what="the recipe catalog"
+        isEmpty={activeMenuItems.length === 0}
+        empty={
+          <EmptyState
+            title="No menu items yet"
+            description="Sync a menu item from POS before you can build its recipe."
+          />
+        }
+      >
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
@@ -121,7 +130,7 @@ export default function RecipesIndexPage() {
             ))}
           </tbody>
         </table>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

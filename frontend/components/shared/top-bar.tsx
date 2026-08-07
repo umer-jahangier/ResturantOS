@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChevronRight, Menu, Search } from "lucide-react";
+import { ChevronRight, Menu, Search } from "lucide-react";
+import { useTheme } from "@teispace/next-themes";
 
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemeToggle, nextThemeInCycle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CommandPalette,
@@ -31,8 +32,42 @@ interface TopBarProps {
 
 const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Words the breadcrumb must not Title-Case, keyed by their URL form.
+ *
+ * <p>GA-095: `replace(/\b\w/g, c => c.toUpperCase())` capitalises the first letter of every word
+ * and lowercases nothing, which is right for "purchase-orders" and wrong for every acronym in a
+ * finance app. Live: `/app/finance/ar-aging` rendered "App Finance **Ar Aging**" and
+ * `/app/finance/gl` rendered "**Gl**" — while the sidebar and the tab bar, three centimetres
+ * away, both said "AR Aging" and "General Ledger" correctly. The user is left deciding whether
+ * "Ar" and "AR" are the same screen.
+ *
+ * <p>An allow-list rather than a heuristic: "is this two letters?" would also shout at a genuine
+ * two-letter word, and there is no rule that distinguishes an acronym from a short noun. These
+ * are the segments the product actually routes on, and a new one is a one-line addition.
+ */
+const SEGMENT_OVERRIDES: Record<string, string> = {
+  gl: "General Ledger",
+  "ar-aging": "AR Aging",
+  "ap-aging": "AP Aging",
+  ar: "AR",
+  ap: "AP",
+  hr: "HR",
+  kds: "KDS",
+  pos: "POS",
+  nlq: "Ask (NLQ)",
+  fbr: "FBR",
+  crm: "Customers",
+  uom: "UoM",
+  po: "PO",
+};
+
 // Prettify a URL path segment into a human-readable label.
 function prettifySegment(segment: string): string {
+  const override = SEGMENT_OVERRIDES[segment.toLowerCase()];
+  if (override) {
+    return override;
+  }
   return segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
@@ -99,6 +134,7 @@ const NAV_COMMANDS = [
 
 export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const { userId, branchId, roles } = useCurrentUser();
   const canSeeAppearance = roles.includes("OWNER") || roles.includes("TENANT_ADMIN");
   const navCommands = NAV_COMMANDS.filter(
@@ -169,21 +205,20 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             <Search className="size-4" />
           </button>
 
-          {/* Notifications bell */}
-          <div className="relative">
-            <button
-              type="button"
-              className="touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              aria-label="Notifications (3 unread)"
-            >
-              <Bell className="size-4" />
-            </button>
-            {/* Hardcoded stub count — real notification system in later phase */}
-            <span
-              className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-destructive"
-              aria-hidden="true"
-            />
-          </div>
+          {/* GA-059: the notifications bell is gone, not quietened.
+
+              It was a `<button>` with NO `onClick` (measured: `bellHasHandler=false`; clicking it
+              left `body.innerHTML.length` unchanged at 54310 and opened zero popovers), carrying
+              a permanent destructive red dot and the literal `aria-label="Notifications (3
+              unread)"`. Every user, on every page, was told there were three unread items —
+              screen-reader users were told it in those exact words — and no interaction could
+              ever reveal them, because there is no notification reader anywhere in the product.
+
+              A control that cannot act, advertising a count that is not real, is not a
+              placeholder: it is the shell manufacturing anxiety it has no way to resolve.
+              Removing it costs nothing (nothing was reachable through it) and removes a standing
+              lie. Phase 25 owns the real notification centre and brings the bell back with a
+              count that comes from the server. */}
 
           {/* Theme toggle (DS-07) */}
           <ThemeToggle />
@@ -244,7 +279,19 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Theme">
-          <CommandItem onSelect={() => setCmdOpen(false)}>Toggle theme</CommandItem>
+          {/* GA-092: this was `onSelect={() => setCmdOpen(false)}` — it closed the palette and
+              did nothing else. Measured `document.documentElement.className` before and after:
+              `changed=false`. One third of the palette's entire contents was a no-op, while a
+              working ThemeToggle sat in the same header. It now calls the same `next-themes`
+              setter that toggle does, so the two agree. */}
+          <CommandItem
+            onSelect={() => {
+              setCmdOpen(false);
+              setTheme(nextThemeInCycle(theme));
+            }}
+          >
+            Toggle theme
+          </CommandItem>
         </CommandGroup>
       </CommandPalette>
     </>

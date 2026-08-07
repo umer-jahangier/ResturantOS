@@ -1,7 +1,6 @@
 "use client";
 
-import { formatUserFacingError } from "@/lib/errors";
-import { Button } from "@/components/ui/button";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 
 interface HrErrorNoticeProps {
   /** What failed to load, in the reader's words — "the employee roster", "payroll runs". */
@@ -18,22 +17,12 @@ interface HrErrorNoticeProps {
  * answered. That reads as data loss, and the one action it invites — re-entering everyone —
  * is exactly the wrong one. Every HR surface routes `isError` here instead.
  *
- * <p>Styling matches the inventory stock screen's failure banner so the two read as one system.
+ * <p><b>14b:</b> HR reached this conclusion first, on its own, before the rest of the product did.
+ * The audit then found the same defect on eleven other list screens (GA-001), so the markup moved
+ * to the shared {@link QueryErrorNotice} and this became a thin alias. It is kept rather than
+ * deleted because ten HR call sites name it, and because the name carries the module's own record
+ * of having got this right early — the generalisation is HR's pattern, not a replacement for it.
  */
 export function HrErrorNotice({ what, error, onRetry }: HrErrorNoticeProps) {
-  return (
-    <div
-      role="alert"
-      className="space-y-2 rounded-md border border-destructive/30 bg-destructive/15 p-4 text-sm text-destructive"
-    >
-      <p>
-        Couldn&apos;t load {what}. {formatUserFacingError(error)}
-      </p>
-      {onRetry && (
-        <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-          Try again
-        </Button>
-      )}
-    </div>
-  );
+  return <QueryErrorNotice what={what} error={error} onRetry={onRetry} />;
 }

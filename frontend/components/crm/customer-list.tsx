@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCustomerSearch } from "@/lib/hooks/crm/use-customers";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
@@ -30,7 +31,11 @@ export function CustomerList({
 }) {
   const [term, setTerm] = useState("");
   const debounced = useDebouncedValue(term, 250);
-  const { data: customers, isLoading } = useCustomerSearch(debounced);
+  // GA-001: `isError` was never read, so a crm-service outage rendered "No customers found" —
+  // and, worse, the search-scoped copy "Nothing matches …", which blames the user's query for a
+  // server failure and invites them to keep retyping.
+  const search = useCustomerSearch(debounced);
+  const customers = search.data ?? [];
 
   return (
     <div className="space-y-3">
@@ -41,22 +46,28 @@ export function CustomerList({
         aria-label="Search customers"
       />
 
-      {isLoading ? (
-        <div className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-14 w-full" />
-          ))}
-        </div>
-      ) : !customers?.length ? (
-        <EmptyState
-          title="No customers found"
-          description={
-            debounced
-              ? `Nothing matches "${debounced}". Try a different phone or name.`
-              : "Add your first customer to start tracking loyalty."
-          }
-        />
-      ) : (
+      <QueryBoundary
+        query={search}
+        what="customers"
+        isEmpty={customers.length === 0}
+        loading={
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </div>
+        }
+        empty={
+          <EmptyState
+            title="No customers found"
+            description={
+              debounced
+                ? `Nothing matches "${debounced}". Try a different phone or name.`
+                : "Add your first customer to start tracking loyalty."
+            }
+          />
+        }
+      >
         <ul className="divide-y rounded-md border">
           {customers.map((c) => (
             <li key={c.id}>
@@ -87,7 +98,7 @@ export function CustomerList({
             </li>
           ))}
         </ul>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

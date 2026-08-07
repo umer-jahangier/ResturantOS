@@ -108,6 +108,24 @@ function KitchenDashboard() {
 function OperationsDashboard() {
   const { roles } = useCurrentUser();
   const { data: ordersResult, isLoading: ordersLoading } = useOrderSummaries();
+  /**
+   * GA-023 — why "Closed sales" needs its own query.
+   *
+   * `useOrderSummaries()` with no argument omits `status`, and `PosRepository.
+   * listOrderSummaries` documents what the server then does: it defaults to **all non-terminal
+   * statuses**, so that "a non-closed order never disappears". CLOSED is terminal. The list
+   * therefore cannot contain a closed order, and the `status === "CLOSED"` filter below it was
+   * structurally guaranteed to match nothing.
+   *
+   * The tile was not "sometimes wrong" — it read **Rs 0.00 · 0 completed orders** always, and
+   * did so live while `pos_db` held 25 CLOSED orders worth 3,705,040 paisa and the realtime
+   * tiles endpoint correctly reported `todays-revenue: 3705040`. An owner opening the dashboard
+   * after a full service saw a day's takings of zero.
+   *
+   * Asking for CLOSED explicitly is the fix: the filter is now applied server-side, where the
+   * data is, instead of client-side over a list the server was never asked to include it in.
+   */
+  const { data: closedResult, isLoading: closedLoading } = useOrderSummaries(["CLOSED"]);
   const { data: menuItems = [], isLoading: menuLoading } = useMenuItems();
   const { data: tables = [], isLoading: tablesLoading } = useTables();
 
@@ -121,8 +139,15 @@ function OperationsDashboard() {
     openedAt: o.openedAt,
   }));
 
+  const closedOrders = (closedResult?.data ?? []).map((o) => ({
+    id: o.orderId,
+    orderNo: o.orderNo,
+    status: o.settlementStatus,
+    totalPaisa: o.totalPaisa,
+    openedAt: o.openedAt,
+  }));
+
   const stats = useMemo(() => {
-    const closedOrders = orders.filter((o) => o.status === "CLOSED");
     const activeOrders = orders.filter((o) => ACTIVE_STATUSES.includes(o.status));
     const revenuePaisa = closedOrders.reduce((sum, o) => sum + o.totalPaisa, 0);
     const occupiedTables = tables.filter((t) => t.status === "OCCUPIED").length;
@@ -136,7 +161,7 @@ function OperationsDashboard() {
       occupiedTables,
       availableTables: tables.length - occupiedTables,
     };
-  }, [orders, menuItems, tables]);
+  }, [orders, closedOrders, menuItems, tables]);
 
   const recentOrders = useMemo(
     () =>
@@ -150,7 +175,7 @@ function OperationsDashboard() {
     [orders],
   );
 
-  if (ordersLoading || menuLoading || tablesLoading) {
+  if (ordersLoading || closedLoading || menuLoading || tablesLoading) {
     return <DashboardSkeleton />;
   }
 

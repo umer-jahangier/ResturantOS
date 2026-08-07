@@ -7,6 +7,7 @@ import { useVendorInvoices } from "@/lib/hooks/purchasing/use-purchasing";
 import { MatchStatusBadge } from "@/components/purchasing/ThreeWayMatchTable";
 import { ApPaymentDialog } from "@/components/purchasing/ApPaymentDialog";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyDisplay } from "@/components/ui/money-display";
 
@@ -25,26 +26,15 @@ function daysOutstanding(invoiceDate: string): number {
  */
 export default function ApPaymentsPage() {
   const { branchId } = useCurrentUser();
-  const { data, isLoading } = useVendorInvoices(branchId, [
-    "MATCHED",
-    "APPROVED_FOR_PAYMENT",
-    "PAID",
-  ]);
-  const invoices = data ?? [];
+  // GA-001: `data ?? []` fanned out into BOTH sections, so one failed read produced "Nothing to
+  // pay right now" and "No payments recorded yet." simultaneously — two confident all-clears from
+  // a single 500, on the screen that decides whether suppliers get paid.
+  const invoicesQuery = useVendorInvoices(branchId, ["MATCHED", "APPROVED_FOR_PAYMENT", "PAID"]);
+  const invoices = invoicesQuery.data ?? [];
   const payable = invoices.filter(
     (i) => i.status === "MATCHED" || i.status === "APPROVED_FOR_PAYMENT",
   );
   const paid = invoices.filter((i) => i.status === "PAID");
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-2">
-        <Skeleton className="h-16" />
-        <Skeleton className="h-16" />
-        <Skeleton className="h-16" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -55,92 +45,106 @@ export default function ApPaymentsPage() {
         </p>
       </div>
 
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Payable</h2>
-        {payable.length === 0 ? (
-          <EmptyState
-            title="Nothing to pay right now"
-            description="Book and match a vendor invoice to see it here."
-          />
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 font-medium">Invoice #</th>
-                <th className="py-2 font-medium">Vendor</th>
-                <th className="py-2 font-medium">Amount</th>
-                <th className="py-2 font-medium">Days outstanding</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {payable.map((invoice) => (
-                <tr key={invoice.id} className="border-b hover:bg-muted/50">
-                  <td className="py-2">
-                    <Link
-                      href={`/app/purchasing/invoices/${invoice.id}`}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {invoice.invoiceNo}
-                    </Link>
-                  </td>
-                  <td className="py-2">{invoice.vendorId.slice(0, 8)}…</td>
-                  <td className="py-2">
-                    <MoneyDisplay paisa={invoice.totalPaisa + invoice.inputTaxPaisa} />
-                  </td>
-                  <td className="py-2">{daysOutstanding(invoice.invoiceDate)}</td>
-                  <td className="py-2">
-                    <MatchStatusBadge status={invoice.status} />
-                  </td>
-                  <td className="py-2">
-                    <ApPaymentDialog invoice={invoice} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      <QueryBoundary
+        query={invoicesQuery}
+        what="vendor invoices"
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        }
+      >
+        <div className="space-y-8">
+          <section>
+            <h2 className="mb-2 text-sm font-medium text-muted-foreground">Payable</h2>
+            {payable.length === 0 ? (
+              <EmptyState
+                title="Nothing to pay right now"
+                description="Book and match a vendor invoice to see it here."
+              />
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 font-medium">Invoice #</th>
+                    <th className="py-2 font-medium">Vendor</th>
+                    <th className="py-2 font-medium">Amount</th>
+                    <th className="py-2 font-medium">Days outstanding</th>
+                    <th className="py-2 font-medium">Status</th>
+                    <th className="py-2 font-medium" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {payable.map((invoice) => (
+                    <tr key={invoice.id} className="border-b hover:bg-muted/50">
+                      <td className="py-2">
+                        <Link
+                          href={`/app/purchasing/invoices/${invoice.id}`}
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          {invoice.invoiceNo}
+                        </Link>
+                      </td>
+                      <td className="py-2">{invoice.vendorId.slice(0, 8)}…</td>
+                      <td className="py-2">
+                        <MoneyDisplay paisa={invoice.totalPaisa + invoice.inputTaxPaisa} />
+                      </td>
+                      <td className="py-2">{daysOutstanding(invoice.invoiceDate)}</td>
+                      <td className="py-2">
+                        <MatchStatusBadge status={invoice.status} />
+                      </td>
+                      <td className="py-2">
+                        <ApPaymentDialog invoice={invoice} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
 
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-muted-foreground">Recently paid</h2>
-        {paid.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 font-medium">Invoice #</th>
-                <th className="py-2 font-medium">Vendor</th>
-                <th className="py-2 font-medium">Amount</th>
-                <th className="py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paid.map((invoice) => (
-                <tr key={invoice.id} className="border-b">
-                  <td className="py-2">
-                    <Link
-                      href={`/app/purchasing/invoices/${invoice.id}`}
-                      className="font-medium text-primary underline-offset-2 hover:underline"
-                    >
-                      {invoice.invoiceNo}
-                    </Link>
-                  </td>
-                  <td className="py-2">{invoice.vendorId.slice(0, 8)}…</td>
-                  <td className="py-2">
-                    <MoneyDisplay paisa={invoice.totalPaisa + invoice.inputTaxPaisa} />
-                  </td>
-                  <td className="py-2">
-                    <MatchStatusBadge status={invoice.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+          <section>
+            <h2 className="mb-2 text-sm font-medium text-muted-foreground">Recently paid</h2>
+            {paid.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="py-2 font-medium">Invoice #</th>
+                    <th className="py-2 font-medium">Vendor</th>
+                    <th className="py-2 font-medium">Amount</th>
+                    <th className="py-2 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paid.map((invoice) => (
+                    <tr key={invoice.id} className="border-b">
+                      <td className="py-2">
+                        <Link
+                          href={`/app/purchasing/invoices/${invoice.id}`}
+                          className="font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          {invoice.invoiceNo}
+                        </Link>
+                      </td>
+                      <td className="py-2">{invoice.vendorId.slice(0, 8)}…</td>
+                      <td className="py-2">
+                        <MoneyDisplay paisa={invoice.totalPaisa + invoice.inputTaxPaisa} />
+                      </td>
+                      <td className="py-2">
+                        <MatchStatusBadge status={invoice.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        </div>
+      </QueryBoundary>
     </div>
   );
 }

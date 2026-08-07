@@ -5,11 +5,13 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { AccessDenied } from "@/components/shared/access-denied";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { useReports } from "@/lib/hooks/reporting/use-reports";
 
 function ReportsBrowser() {
-  const { data, isLoading } = useReports();
-  const reports = data ?? [];
+  // GA-001: `data ?? []` made a reporting-service outage read as "The report catalog is empty."
+  const reportsQuery = useReports();
+  const reports = reportsQuery.data ?? [];
 
   const byCategory = new Map<string, typeof reports>();
   for (const report of reports) {
@@ -35,16 +37,22 @@ function ReportsBrowser() {
         </Link>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-        </div>
-      ) : reports.length === 0 ? (
-        <EmptyState title="No reports available" description="The report catalog is empty." />
-      ) : (
-        Array.from(byCategory.entries()).map(([category, items]) => (
+      <QueryBoundary
+        query={reportsQuery}
+        what="the report catalog"
+        isEmpty={reports.length === 0}
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        }
+        empty={
+          <EmptyState title="No reports available" description="The report catalog is empty." />
+        }
+      >
+        {Array.from(byCategory.entries()).map(([category, items]) => (
           <div key={category} className="space-y-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {category}
@@ -65,8 +73,8 @@ function ReportsBrowser() {
               ))}
             </ul>
           </div>
-        ))
-      )}
+        ))}
+      </QueryBoundary>
     </div>
   );
 }

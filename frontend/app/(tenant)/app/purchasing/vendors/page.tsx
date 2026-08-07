@@ -6,11 +6,15 @@ import { useVendors } from "@/lib/hooks/purchasing/use-purchasing";
 import { VendorFormDialog } from "@/components/purchasing/VendorFormDialog";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function VendorsPage() {
-  const { data, isLoading } = useVendors();
-  const vendors = data ?? [];
+  // GA-001: `isError` is destructured. It was not, and `data ?? []` two lines down turned every
+  // failed request into "No vendors yet" — the product telling an owner their suppliers do not
+  // exist because purchasing-service returned a 500.
+  const vendors = useVendors();
+  const rows = vendors.data ?? [];
 
   return (
     <div>
@@ -19,20 +23,27 @@ export default function VendorsPage() {
         <VendorFormDialog trigger={<Button>Add vendor</Button>} />
       </div>
 
-      {isLoading ? (
-        <div className="mt-4 grid gap-2">
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-        </div>
-      ) : vendors.length === 0 ? (
-        <EmptyState
-          className="mt-4"
-          title="No vendors yet"
-          description="Use “Add vendor” to create your first vendor and start raising purchase orders."
-        />
-      ) : (
+      <QueryBoundary
+        className="mt-4"
+        query={vendors}
+        what="vendors"
+        isEmpty={rows.length === 0}
+        loading={
+          <div className="mt-4 grid gap-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        }
+        empty={
+          <EmptyState
+            className="mt-4"
+            title="No vendors yet"
+            description="Use “Add vendor” to create your first vendor and start raising purchase orders."
+          />
+        }
+      >
         <ul className="mt-4 divide-y rounded border">
-          {vendors.map((v) => (
+          {rows.map((v) => (
             <li key={v.id} className="flex items-center justify-between gap-4 px-4 py-3">
               <div className="min-w-0">
                 <div className="font-medium">{v.name}</div>
@@ -62,7 +73,7 @@ export default function VendorsPage() {
             </li>
           ))}
         </ul>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

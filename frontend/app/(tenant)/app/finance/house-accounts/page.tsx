@@ -9,6 +9,7 @@ import { ArSettlementDialog } from "@/components/finance/ArSettlementDialog";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { cn } from "@/lib/utils";
@@ -71,8 +72,10 @@ function CustomerAccountRow({ account }: { account: CustomerAccount }) {
 // the real AR writer a human can drive today (decision 10-17-A).
 export default function HouseAccountsPage() {
   const [page] = useState(0);
-  const { data, isLoading } = useCustomerAccounts(page);
-  const accounts = data?.data ?? [];
+  // GA-001: `isError` was never destructured. A failed read rendered "No house accounts yet" on
+  // the tenant's AR ledger — an invitation to re-create accounts that already exist.
+  const accountsQuery = useCustomerAccounts(page);
+  const accounts = accountsQuery.data?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -87,18 +90,24 @@ export default function HouseAccountsPage() {
         <CustomerAccountFormDialog trigger={<Button>New house account</Button>} />
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-        </div>
-      ) : accounts.length === 0 ? (
-        <FinanceEmptyState
-          title="No house accounts yet"
-          description="Create one to bill a corporate client on account."
-        />
-      ) : (
+      <QueryBoundary
+        query={accountsQuery}
+        what="house accounts"
+        isEmpty={accounts.length === 0}
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        }
+        empty={
+          <FinanceEmptyState
+            title="No house accounts yet"
+            description="Create one to bill a corporate client on account."
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -119,7 +128,7 @@ export default function HouseAccountsPage() {
             </tbody>
           </table>
         </div>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

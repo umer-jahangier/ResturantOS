@@ -20,13 +20,32 @@ interface ChargeSummaryProps {
   orderId: string;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = [
-  "CASH",
-  "CARD",
-  "LOYALTY_POINTS",
-  "BANK_TRANSFER",
-  "VOUCHER",
-];
+/**
+ * The tenders a cashier may actually select.
+ *
+ * <h3>GA-006 — why `LOYALTY_POINTS` is not in this list</h3>
+ *
+ * It was, and selecting it gave the food away for free while corrupting the general ledger.
+ * Nothing anywhere validated a points balance: `PaymentServiceImpl`'s only Feign client is
+ * `FinanceArClient` — it has **no CRM dependency at all** — and its validation checks the ORDER
+ * balance only, never the customer's points. `GET /api/v1/crm/loyalty` returns 404 and
+ * `LoyaltyService` has no `redeem` method. Meanwhile `AutoPostingRecipeEngine:598` books the
+ * tender to `LOYALTY_LIABILITY`, so every use also posted a liability with no points movement
+ * behind it. A cashier could settle any order, of any size, with points the customer does not
+ * have — and the books would balance to a lie.
+ *
+ * Implementing redemption is 4 days and belongs to Phase 17, which owns `LoyaltyService.redeem`.
+ * Removing the button is one line. **Shipping a tender that cannot be paid for is worse than not
+ * offering it**, so the button goes now and comes back the day the endpoint exists.
+ *
+ * <h3>What was deliberately NOT done</h3>
+ *
+ * `LOYALTY_POINTS` remains a member of the `PaymentMethod` union and of both Zod payment schemas.
+ * Orders already settled with it exist in `pos_db`, and narrowing the type would make those rows
+ * fail to parse — turning a UI defect into a data-display outage on historical orders. This list
+ * governs what a cashier may CHOOSE; every read path still renders the value correctly.
+ */
+const PAYMENT_METHODS: PaymentMethod[] = ["CASH", "CARD", "BANK_TRANSFER", "VOUCHER"];
 
 interface TenderRow {
   id: string;

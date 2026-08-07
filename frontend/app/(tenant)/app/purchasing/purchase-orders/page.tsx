@@ -10,6 +10,7 @@ import { PurchaseOrderFormDialog } from "@/components/purchasing/PurchaseOrderFo
 import { PoStatusBadge } from "@/components/purchasing/PoStatusBadge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyDisplay } from "@/components/ui/money-display";
 
@@ -23,11 +24,10 @@ export default function PurchaseOrdersPage() {
   const { branchId } = useCurrentUser();
   const [statusFilter, setStatusFilter] = useState<"" | PoStatus>("");
 
-  const { data, isLoading } = usePurchaseOrders(
-    branchId,
-    statusFilter ? [statusFilter] : undefined,
-  );
-  const purchaseOrders = data ?? [];
+  // GA-001: `data ?? []` turned a failed read into "No purchase orders yet" — on the screen a
+  // buyer uses to check what is already on order before raising another one.
+  const poQuery = usePurchaseOrders(branchId, statusFilter ? [statusFilter] : undefined);
+  const purchaseOrders = poQuery.data ?? [];
 
   return (
     <div>
@@ -50,19 +50,26 @@ export default function PurchaseOrdersPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="mt-4 grid gap-2">
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-        </div>
-      ) : purchaseOrders.length === 0 ? (
-        <EmptyState
-          className="mt-4"
-          title="No purchase orders yet"
-          description='Use "New Purchase Order" to raise your first order for a vendor.'
-        />
-      ) : (
+      <QueryBoundary
+        className="mt-4"
+        query={poQuery}
+        what="purchase orders"
+        isEmpty={purchaseOrders.length === 0}
+        loading={
+          <div className="mt-4 grid gap-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        }
+        empty={
+          <EmptyState
+            className="mt-4"
+            title="No purchase orders yet"
+            description='Use "New Purchase Order" to raise your first order for a vendor.'
+          />
+        }
+      >
         <table className="mt-4 w-full text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
@@ -94,7 +101,7 @@ export default function PurchaseOrdersPage() {
             ))}
           </tbody>
         </table>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

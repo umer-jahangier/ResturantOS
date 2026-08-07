@@ -5,6 +5,7 @@ import { useCoverage } from "@/lib/hooks/inventory/use-inventory";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 
@@ -14,8 +15,22 @@ import { Button } from "@/components/ui/button";
 // frontend/backend definition mismatch (the MSW mock once keyed off the recipe's `current`
 // boolean while the backend used `effective_from <= now()`) is this phase's own origin bug.
 export default function CoveragePage() {
-  const { data: coverage, isLoading } = useCoverage();
+  const coverageQuery = useCoverage();
+  const { data: coverage, isLoading } = coverageQuery;
   const [showAll, setShowAll] = useState(false);
+
+  // GA-001, the "eternal spinner" variant: `isLoading || !coverage` also matched the ERROR case,
+  // because a failed query has no data. The screen then said "Loading coverage…" forever — a
+  // failure disguised as patience, which is the same lie in a different tense.
+  if (coverageQuery.isError) {
+    return (
+      <QueryErrorNotice
+        what="recipe coverage"
+        error={coverageQuery.error}
+        onRetry={() => void coverageQuery.refetch()}
+      />
+    );
+  }
 
   if (isLoading || !coverage) {
     return <p className="text-sm text-muted-foreground">Loading coverage…</p>;

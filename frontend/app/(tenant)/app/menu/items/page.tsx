@@ -21,6 +21,7 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,8 +42,13 @@ type CategoryFormTarget = { mode: "create" } | { mode: "edit"; category: MenuCat
 // naturally allows.
 export default function MenuItemsPage() {
   const [showInactive, setShowInactive] = useState(false);
-  const { data: categories, isLoading: categoriesLoading } = useMenuCategoriesAdmin();
-  const { data: items, isLoading: itemsLoading } = useMenuItemsAdmin();
+  // GA-001: neither query's error was read, so a pos-service failure rendered the "no menu yet"
+  // empty state with an "Add category" action — on the one screen where a duplicate taxonomy is
+  // most expensive, because menu categories are what every order line hangs off.
+  const categoriesQuery = useMenuCategoriesAdmin();
+  const itemsQuery = useMenuItemsAdmin();
+  const categories = categoriesQuery.data;
+  const items = itemsQuery.data;
 
   const activateCategory = useActivateMenuCategory();
   const deactivateCategory = useDeactivateMenuCategory();
@@ -52,7 +58,6 @@ export default function MenuItemsPage() {
   const [categoryTarget, setCategoryTarget] = useState<CategoryFormTarget | null>(null);
   const [itemTarget, setItemTarget] = useState<ItemFormTarget | null>(null);
 
-  const isLoading = categoriesLoading || itemsLoading;
   const allCategories = categories ?? [];
   const visibleCategories = showInactive ? allCategories : allCategories.filter((c) => c.active);
   const allItems = items ?? [];
@@ -132,24 +137,33 @@ export default function MenuItemsPage() {
         Show inactive
       </label>
 
-      {isLoading ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-        </div>
-      ) : visibleCategories.length === 0 ? (
-        <PermissionGuard
-          require="pos.menu.manage"
-          fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
-        >
-          <EmptyState
-            title={EMPTY_TITLE}
-            description={EMPTY_BODY}
-            action={{ label: "Add category", onClick: () => setCategoryTarget({ mode: "create" }) }}
-          />
-        </PermissionGuard>
-      ) : (
+      <QueryBoundary
+        query={[categoriesQuery, itemsQuery]}
+        what="the menu"
+        isEmpty={visibleCategories.length === 0}
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        }
+        empty={
+          <PermissionGuard
+            require="pos.menu.manage"
+            fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
+          >
+            <EmptyState
+              title={EMPTY_TITLE}
+              description={EMPTY_BODY}
+              action={{
+                label: "Add category",
+                onClick: () => setCategoryTarget({ mode: "create" }),
+              }}
+            />
+          </PermissionGuard>
+        }
+      >
         <div className="space-y-6">
           {visibleCategories.map((category) => {
             const rows = itemsFor(category.id);
@@ -245,7 +259,7 @@ export default function MenuItemsPage() {
             );
           })}
         </div>
-      )}
+      </QueryBoundary>
 
       <MenuCategoryFormDialog
         key={

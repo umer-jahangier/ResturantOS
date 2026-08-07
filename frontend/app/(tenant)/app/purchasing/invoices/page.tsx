@@ -10,6 +10,7 @@ import { VendorInvoiceFormDialog } from "@/components/purchasing/VendorInvoiceFo
 import { MatchStatusBadge } from "@/components/purchasing/ThreeWayMatchTable";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MoneyDisplay } from "@/components/ui/money-display";
 
@@ -27,11 +28,10 @@ export default function VendorInvoicesPage() {
   const { branchId } = useCurrentUser();
   const [statusFilter, setStatusFilter] = useState<"" | InvoiceStatus>("");
 
-  const { data, isLoading } = useVendorInvoices(
-    branchId,
-    statusFilter ? [statusFilter] : undefined,
-  );
-  const invoices = data ?? [];
+  // GA-001: `data ?? []` collapsed failure into "No vendor invoices yet" — telling accounts
+  // payable there is nothing to pay.
+  const invoicesQuery = useVendorInvoices(branchId, statusFilter ? [statusFilter] : undefined);
+  const invoices = invoicesQuery.data ?? [];
 
   return (
     <div>
@@ -54,19 +54,26 @@ export default function VendorInvoicesPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="mt-4 grid gap-2">
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
-        </div>
-      ) : invoices.length === 0 ? (
-        <EmptyState
-          className="mt-4"
-          title="No vendor invoices yet"
-          description='Use "Book Invoice" to invoice a sent purchase order and run the 3-way match.'
-        />
-      ) : (
+      <QueryBoundary
+        className="mt-4"
+        query={invoicesQuery}
+        what="vendor invoices"
+        isEmpty={invoices.length === 0}
+        loading={
+          <div className="mt-4 grid gap-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        }
+        empty={
+          <EmptyState
+            className="mt-4"
+            title="No vendor invoices yet"
+            description='Use "Book Invoice" to invoice a sent purchase order and run the 3-way match.'
+          />
+        }
+      >
         <table className="mt-4 w-full text-sm">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
@@ -109,7 +116,7 @@ export default function VendorInvoicesPage() {
             ))}
           </tbody>
         </table>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

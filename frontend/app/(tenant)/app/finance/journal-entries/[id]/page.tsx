@@ -7,6 +7,8 @@ import { useJournalEntry, usePostJe, useReverseJe } from "@/lib/hooks/finance/us
 import { DrCrCell } from "@/components/finance/DrCrCell";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
 import { Button } from "@/components/ui/button";
+import { MoneyDisplay } from "@/components/ui/money-display";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 
 interface JeDetailPageProps {
   params: Promise<{ id: string }>;
@@ -16,7 +18,8 @@ interface JeDetailPageProps {
 export default function JeDetailPage({ params }: JeDetailPageProps) {
   const { id } = use(params);
   const router = useRouter();
-  const { data: je, isLoading, isError } = useJournalEntry(id);
+  const jeQuery = useJournalEntry(id);
+  const { data: je, isLoading } = jeQuery;
   const { mutate: postJe, isPending: isPosting, error: postError } = usePostJe();
   const { mutate: reverseJe, isPending: isReversing, error: reverseError } = useReverseJe();
 
@@ -29,7 +32,20 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
     );
   }
 
-  if (isError || !je) {
+  // GA-001: `isError || !je` reported "Journal entry not found — this entry may have been
+  // deleted", which is an alarming and false thing to tell an accountant about a posted entry
+  // when the truth is that finance-service returned a 503.
+  if (jeQuery.isError) {
+    return (
+      <QueryErrorNotice
+        what="this journal entry"
+        error={jeQuery.error}
+        onRetry={() => void jeQuery.refetch()}
+      />
+    );
+  }
+
+  if (!je) {
     return (
       <FinanceEmptyState
         title="Journal entry not found"
@@ -87,16 +103,22 @@ export default function JeDetailPage({ params }: JeDetailPageProps) {
               {je.status}
             </p>
           </div>
+          {/* GA-007: these two rendered `paisa.toLocaleString()` — the RAW integer, with no
+              conversion and no currency. An entry of Rs 3,886.00 displayed as "388,600" in its own
+              header while its own line rows, which already went through DrCrCell → MoneyDisplay,
+              showed the correct figures directly underneath. Every total on this page was 100×
+              too large. `lib/adapters/shared.ts:1-2` states the rule this broke: money is integer
+              paisa on the wire and must NEVER be formatted anywhere but the display layer. */}
           <div>
             <p className="text-xs uppercase text-muted-foreground">Total Debit</p>
             <p className="mt-0.5 font-mono tabular-nums font-medium">
-              {je.totalDebitPaisa.toLocaleString()}
+              <MoneyDisplay paisa={je.totalDebitPaisa} />
             </p>
           </div>
           <div>
             <p className="text-xs uppercase text-muted-foreground">Total Credit</p>
             <p className="mt-0.5 font-mono tabular-nums font-medium">
-              {je.totalCreditPaisa.toLocaleString()}
+              <MoneyDisplay paisa={je.totalCreditPaisa} />
             </p>
           </div>
         </div>

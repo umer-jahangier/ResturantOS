@@ -18,6 +18,45 @@ function hasPermission(
     : list.every((code) => permissions.includes(code));
 }
 
+/**
+ * Whether a nav item's feature gate lets it be DRAWN.
+ *
+ * <h3>GA-002 — the line that deleted most of the product</h3>
+ *
+ * This function used to open with `if (isPending) return false;`. One `503` on
+ * `/api/v1/feature-flags` therefore removed **8 of 11 navigation items**, with no banner, no
+ * toast and no explanation: a MANAGER's sidebar collapsed to Dashboard / Reports / Realtime while
+ * POS, Kitchen, Till Review, Inventory, Menu, Purchasing and Customers vanished. Re-logging in
+ * once the endpoint answered `200` restored all eight. To the user this is not an outage — it is
+ * a product that shrank overnight, which is precisely the "the app is empty" verdict this phase
+ * exists to answer.
+ *
+ * The bug is that PENDING was treated as DENIED. It is not: pending means *the answer is not
+ * available yet*, which is the same epistemic state as `isError`, and the code already handled
+ * `isError` correctly by failing open. A 503 with TanStack's retry policy keeps the query
+ * **pending** through its whole backoff, so in practice the broken branch was the one that ran
+ * and the correct branch was never reached.
+ *
+ * <h3>Why navigation fails OPEN while entitlement fails CLOSED (D-14b-1)</h3>
+ *
+ * Plan 13-03 decided that ENTITLEMENT checks fail closed, and that decision is untouched here.
+ * These are different questions:
+ *
+ * <ul>
+ *   <li><b>Entitlement</b> asks "may this request proceed?", is answered at the gateway and in
+ *       each service, and a wrong YES is unauthorised access. Fail closed.</li>
+ *   <li><b>Navigation</b> asks "should this link be drawn?", is answered in the DOM, and a wrong
+ *       YES is a link that 403s. Fail open.</li>
+ * </ul>
+ *
+ * Failing open here grants nothing. The sidebar is not an authorization boundary and never was —
+ * `JwtGlobalFilter` and each service's `@PreAuthorize` are, and neither consults the DOM. The
+ * worst case of a wrong YES is one refused round trip; the worst case of a wrong NO is a
+ * restaurant that cannot find its own point of sale.
+ *
+ * Permission and role gates are deliberately NOT changed: they read the signed JWT, which is
+ * present synchronously and cannot 503, so they have no "not known yet" state to mishandle.
+ */
 function hasFeature(
   feature: string | undefined,
   features: string[] | undefined,
@@ -26,8 +65,9 @@ function hasFeature(
   failOpenOnError: boolean,
 ): boolean {
   if (!feature) return true;
-  if (isPending) return false;
-  if (isError || !features) return failOpenOnError;
+  // "Not yet known" and "could not be known" are the same fact to a menu. Both defer to the
+  // caller's posture, which defaults to open.
+  if (isPending || isError || !features) return failOpenOnError;
   return features.includes(feature);
 }
 

@@ -6,6 +6,7 @@ import io.restaurantos.auth.dto.request.LoginRequest;
 import io.restaurantos.auth.dto.response.LoginResponse;
 import io.restaurantos.auth.dto.response.TenantBrandingResponse;
 import io.restaurantos.auth.dto.response.TokenResponse;
+import io.restaurantos.auth.entity.AuthTenantEntity;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.repository.AuthTenantRepository;
 import io.restaurantos.auth.service.AuthService;
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -44,13 +48,56 @@ public class AuthController {
         this.authTenantRepository = authTenantRepository;
     }
 
-    @GetMapping("/tenants/{slug}")
-    public ResponseEntity<ApiResponse<TenantBrandingResponse>> tenantBranding(@PathVariable String slug) {
-        return authTenantRepository.findBySlug(slug.trim())
+    /**
+     * Public branding lookup: slug → {slug, name}, and (14b/GA-032) tenant id → the same pair.
+     *
+     * <h3>Why the id form was added</h3>
+     *
+     * <p>The app shell had no way to name the tenant a user is signed into. The access token
+     * carries {@code tenant_id} but no name or slug, {@code LoginResponse} carries neither, and
+     * {@code /api/v1/branches/mine} returns branch names only. So {@code use-tenant-brand.ts}
+     * resolved the brand from {@code NEXT_PUBLIC_DEFAULT_TENANT_SLUG} — a BUILD-TIME environment
+     * variable — and every signed-in user of every tenant saw whichever brand that variable
+     * happened to name. Live, {@code owner@terrace.local} read "Lume" in the sidebar while the
+     * branch chip beside it correctly read "Floating Terrace HQ".
+     *
+     * <p>An id lookup is the smallest thing that makes the shell read from the SESSION. The
+     * alternative — a {@code tenant_name} JWT claim — puts a mutable display string into a signed
+     * credential, where a rebrand cannot take effect until every token expires.
+     *
+     * <h3>Disclosure</h3>
+     *
+     * <p>No new class of information: this endpoint already returns {@code {slug, name}} of an
+     * ACTIVE tenant to an unauthenticated caller, and it is registered in the gateway's
+     * {@code PUBLIC_PATHS} so the login page can brand itself before anyone has a token. The id
+     * form is strictly HARDER to enumerate than the slug form it joins — {@code floating-terrace}
+     * is guessable, a v4 UUID is not. Suspended and pending tenants stay invisible through both.
+     */
+    @GetMapping("/tenants/{slugOrId}")
+    public ResponseEntity<ApiResponse<TenantBrandingResponse>> tenantBranding(@PathVariable String slugOrId) {
+        String key = slugOrId.trim();
+        return resolveTenant(key)
             .filter(t -> "ACTIVE".equals(t.getStatus()))
             .map(t -> ResponseEntity.ok(ApiResponse.ok(
                 new TenantBrandingResponse(t.getSlug(), t.getName()))))
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Slug first, then id. A slug can never parse as a UUID (slugs are lowercase-hyphen and are
+     * minted from a brand name), so the two namespaces cannot collide and the order is a matter of
+     * cost, not correctness — the overwhelmingly common caller is the login page, with a slug.
+     */
+    private Optional<AuthTenantEntity> resolveTenant(String key) {
+        Optional<AuthTenantEntity> bySlug = authTenantRepository.findBySlug(key);
+        if (bySlug.isPresent()) {
+            return bySlug;
+        }
+        try {
+            return authTenantRepository.findById(UUID.fromString(key));
+        } catch (IllegalArgumentException notAUuid) {
+            return Optional.empty();
+        }
     }
 
     @PostMapping("/login")

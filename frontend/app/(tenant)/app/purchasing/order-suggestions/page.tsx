@@ -18,6 +18,7 @@ import { FieldHelp } from "@/components/shared/field-help";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Input } from "@/components/ui/input";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,7 +46,8 @@ function lineTotalPaisa(line: OrderSuggestion, overrides: Overrides): number {
 // reader at all until now.
 export default function OrderSuggestionsPage() {
   const { branchId } = useCurrentUser();
-  const { data, isLoading } = useOrderSuggestions();
+  const suggestionsQuery = useOrderSuggestions();
+  const { data, isLoading } = suggestionsQuery;
   const createDrafts = useCreateDraftsFromSuggestions();
 
   // Everything orderable starts selected: the point of a suggestion list is that the common case
@@ -106,6 +108,19 @@ export default function OrderSuggestionsPage() {
           toast.error(error.message || "Could not create the drafts. Please try again.");
         },
       },
+    );
+  }
+
+  // GA-001: with no `isError` read, a failed suggestion run rendered "Nothing needs ordering —
+  // every item is above its reorder point." That is a purchasing all-clear issued by an outage,
+  // and acting on it is how a kitchen runs out of stock mid-service.
+  if (suggestionsQuery.isError) {
+    return (
+      <QueryErrorNotice
+        what="order suggestions"
+        error={suggestionsQuery.error}
+        onRetry={() => void suggestionsQuery.refetch()}
+      />
     );
   }
 

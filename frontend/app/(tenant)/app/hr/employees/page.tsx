@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { HrErrorNotice } from "@/components/hr/hr-error-notice";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,9 +17,14 @@ import type { EmploymentType } from "@/lib/models/hr.model";
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ["PERMANENT", "PART_TIME", "DAILY_WAGE", "CONTRACT"];
 
-function rupees(paisa: number): string {
-  return `₨ ${(paisa / 100).toLocaleString()}`;
-}
+// GA-078: HR formatted money itself — `₨ ${(paisa / 100).toLocaleString()}` — instead of going
+// through `MoneyDisplay`. Two consequences, both visible in a payroll column: the symbol was `₨`
+// where the rest of the product uses `Rs`, and `toLocaleString()` drops trailing zeros, so
+// 250000 paisa rendered "₨ 2,500" and 250050 rendered "₨ 2,500.5". Decimal points stopped
+// aligning down a salary column — the one place in a product where a misread digit costs money.
+// `lib/adapters/shared.ts:1-2` states the rule: money is integer paisa and is NEVER divided by
+// 100 in a component. Every HR amount now renders through the shared component, which fixes the
+// symbol, pins two decimals, and brings `tabular-nums` with it.
 
 export default function EmployeesPage() {
   const { data: employees, isLoading, isError, error, refetch } = useEmployees();
@@ -169,7 +175,9 @@ export default function EmployeesPage() {
                 <td>{e.designation ?? "—"}</td>
                 <td>{e.cnicMasked ?? "—"}</td>
                 <td>{e.bankAccountMasked ?? "—"}</td>
-                <td>{rupees(e.basicSalaryPaisa)}</td>
+                <td>
+                  <MoneyDisplay paisa={e.basicSalaryPaisa} />
+                </td>
                 <td>{e.active ? "Active" : "Inactive"}</td>
                 <td className="text-right">
                   {e.active && (

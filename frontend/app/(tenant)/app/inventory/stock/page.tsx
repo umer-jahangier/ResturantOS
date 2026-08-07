@@ -17,6 +17,7 @@ import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -74,7 +75,8 @@ export default function StockPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [openingBalanceOpen, setOpeningBalanceOpen] = useState(false);
 
-  const { data, isLoading, isError } = useStockLevels(debouncedSearch.trim() || undefined);
+  const stockQuery = useStockLevels(debouncedSearch.trim() || undefined);
+  const { data, isLoading, isError } = stockQuery;
 
   const branchName = (branches ?? []).find((b) => b.id === branchId)?.name ?? "this branch";
   const activeCategories = (categories ?? []).filter((c) => c.archivedAt == null);
@@ -194,10 +196,16 @@ export default function StockPage() {
         </select>
       </div>
 
+      {/* 14b: this screen already refused to fake an empty state on failure — it was one of the
+          four of fifteen that got GA-001 right. What it lacked was `role="alert"` (so a screen
+          reader was never told) and a retry (so the only way out was a reload). Routed through the
+          shared notice for both. */}
       {isError ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/15 p-4 text-sm text-destructive">
-          Inventory is temporarily unavailable. Try again in a moment.
-        </p>
+        <QueryErrorNotice
+          what="stock levels"
+          error={stockQuery.error}
+          onRetry={() => void stockQuery.refetch()}
+        />
       ) : isLoading ? (
         <DataTable columns={columns} data={[]} isLoading />
       ) : rows.length === 0 ? (

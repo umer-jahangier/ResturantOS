@@ -5,6 +5,7 @@ import { ChevronDown, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary, QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,23 +57,13 @@ function fmtTime(iso: string | null): string {
 export function TillReview() {
   const { branchId } = useCurrentUser();
   const [page, setPage] = useState(0);
-  const { data, isLoading, isFetching, refetch } = useBranchTills(branchId, page, PAGE_SIZE);
+  const tillsQuery = useBranchTills(branchId, page, PAGE_SIZE);
+  const { data, isFetching, refetch } = tillsQuery;
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const tills = data?.data ?? [];
   const totalCount = data?.meta?.totalCount ?? 0;
   const hasNext = Boolean(data?.meta?.page?.nextCursor);
-
-  if (!isLoading && tills.length === 0 && page === 0) {
-    return (
-      <div className="p-6">
-        <EmptyState
-          title="No till sessions yet"
-          description="Opened and closed tills appear here for review."
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full flex-col gap-3 p-4">
@@ -89,62 +80,78 @@ export function TillReview() {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 text-left">Opened</th>
-              <th className="px-3 py-2 text-left">Closed</th>
-              <th className="px-3 py-2 text-left">Cashier</th>
-              <th className="px-3 py-2 text-left">Status</th>
-              <th className="px-3 py-2 text-left">Review</th>
-              <th className="px-3 py-2 text-right">Float</th>
-              <th className="px-3 py-2 text-right">Expected</th>
-              <th className="px-3 py-2 text-right">Declared</th>
-              <th className="px-3 py-2 text-right">Variance</th>
-              <th className="px-3 py-2 text-right">Actions</th>
-              <th className="px-3 py-2" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {tills.map((till) => (
-              <TillRow
-                key={till.id}
-                till={till}
-                branchId={branchId}
-                expanded={selectedId === till.id}
-                onToggle={() => setSelectedId(selectedId === till.id ? null : till.id)}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span data-testid="till-review-page-info">
-          Page {page + 1} · {totalCount} session{totalCount === 1 ? "" : "s"} total
-        </span>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            data-testid="till-review-prev"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0 || isFetching}
-            className="rounded-full border px-3 py-2 font-medium hover:bg-muted disabled:opacity-60"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            data-testid="till-review-next"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!hasNext || isFetching}
-            className="rounded-full border px-3 py-2 font-medium hover:bg-muted disabled:opacity-60"
-          >
-            Next
-          </button>
+      {/* GA-001: "No till sessions yet" was the early return for BOTH an empty branch and a
+          pos-service failure. On a cash-reconciliation screen that is the worst possible
+          conflation — a manager looking for a variance is told there is nothing to reconcile.
+          The header stays mounted in every state so Refresh is always reachable. */}
+      <QueryBoundary
+        query={tillsQuery}
+        what="till sessions"
+        isEmpty={tills.length === 0 && page === 0}
+        empty={
+          <EmptyState
+            title="No till sessions yet"
+            description="Opened and closed tills appear here for review."
+          />
+        }
+      >
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left">Opened</th>
+                <th className="px-3 py-2 text-left">Closed</th>
+                <th className="px-3 py-2 text-left">Cashier</th>
+                <th className="px-3 py-2 text-left">Status</th>
+                <th className="px-3 py-2 text-left">Review</th>
+                <th className="px-3 py-2 text-right">Float</th>
+                <th className="px-3 py-2 text-right">Expected</th>
+                <th className="px-3 py-2 text-right">Declared</th>
+                <th className="px-3 py-2 text-right">Variance</th>
+                <th className="px-3 py-2 text-right">Actions</th>
+                <th className="px-3 py-2" />
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {tills.map((till) => (
+                <TillRow
+                  key={till.id}
+                  till={till}
+                  branchId={branchId}
+                  expanded={selectedId === till.id}
+                  onToggle={() => setSelectedId(selectedId === till.id ? null : till.id)}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span data-testid="till-review-page-info">
+            Page {page + 1} · {totalCount} session{totalCount === 1 ? "" : "s"} total
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              data-testid="till-review-prev"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0 || isFetching}
+              className="rounded-full border px-3 py-2 font-medium hover:bg-muted disabled:opacity-60"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              data-testid="till-review-next"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!hasNext || isFetching}
+              className="rounded-full border px-3 py-2 font-medium hover:bg-muted disabled:opacity-60"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </QueryBoundary>
     </div>
   );
 }
@@ -451,9 +458,21 @@ function ReviewTextDialog({
 }
 
 function TillReconciliationDetail({ tillId }: { tillId: string }) {
-  const { data: recon, isLoading } = useTillReconciliation(tillId);
+  const { data: recon, isLoading, isError, error, refetch } = useTillReconciliation(tillId);
 
   if (isLoading) return <p className="text-xs text-muted-foreground">Loading orders…</p>;
+  // GA-001, same defect one level down: "No data." was also what a failed reconciliation fetch
+  // rendered. On a cash count, "there were no orders" and "we could not read the orders" are
+  // opposite conclusions.
+  if (isError) {
+    return (
+      <QueryErrorNotice
+        what="this session's reconciliation"
+        error={error}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
   if (!recon) return <p className="text-xs text-muted-foreground">No data.</p>;
 
   return (
@@ -507,9 +526,22 @@ function TillReconciliationDetail({ tillId }: { tillId: string }) {
 }
 
 function TillReviewHistory({ tillId }: { tillId: string }) {
-  const { data: actions, isLoading } = useTillReviewActions(tillId);
+  const { data: actions, isLoading, isError, error, refetch } = useTillReviewActions(tillId);
 
   if (isLoading) return <p className="text-xs text-muted-foreground">Loading review history…</p>;
+  // An append-only audit trail that renders "No review actions yet" on a read failure is telling
+  // the reader nobody has approved or flagged this till. That is the one claim this table exists
+  // to make, and it must never be made from a failed request.
+  if (isError) {
+    return (
+      <QueryErrorNotice
+        what="the review history"
+        error={error}
+        onRetry={() => void refetch()}
+        className="text-xs"
+      />
+    );
+  }
   if (!actions || actions.length === 0) {
     return <p className="text-xs text-muted-foreground">No review actions yet.</p>;
   }

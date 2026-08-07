@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { HrErrorNotice } from "@/components/hr/hr-error-notice";
+import { MoneyDisplay } from "@/components/ui/money-display";
 import { StepUpRequiredNotice } from "@/components/auth/step-up-required-notice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,14 @@ import {
 import type { ApiError } from "@/lib/errors";
 import type { PayrollRun } from "@/lib/models/hr.model";
 
-function rupees(paisa: number): string {
-  return `₨ ${(paisa / 100).toLocaleString()}`;
-}
+// GA-078: HR formatted money itself — `₨ ${(paisa / 100).toLocaleString()}` — instead of going
+// through `MoneyDisplay`. Two consequences, both visible in a payroll column: the symbol was `₨`
+// where the rest of the product uses `Rs`, and `toLocaleString()` drops trailing zeros, so
+// 250000 paisa rendered "₨ 2,500" and 250050 rendered "₨ 2,500.5". Decimal points stopped
+// aligning down a salary column — the one place in a product where a misread digit costs money.
+// `lib/adapters/shared.ts:1-2` states the rule: money is integer paisa and is NEVER divided by
+// 100 in a component. Every HR amount now renders through the shared component, which fixes the
+// symbol, pins two decimals, and brings `tabular-nums` with it.
 
 export default function PayrollPage() {
   const { data: runs, isLoading, isError, error, refetch } = usePayrollRuns();
@@ -133,8 +139,8 @@ export default function PayrollPage() {
                     {run.periodMonth}/{run.periodYear}
                   </span>{" "}
                   <span className="text-muted-foreground">
-                    · {run.status} · gross {rupees(run.totalGrossPaisa)} · net{" "}
-                    {rupees(run.totalNetPaisa)}
+                    · {run.status} · gross <MoneyDisplay paisa={run.totalGrossPaisa} /> · net{" "}
+                    <MoneyDisplay paisa={run.totalNetPaisa} />
                   </span>
                 </button>
                 <div className="flex gap-2">
@@ -184,7 +190,7 @@ export default function PayrollPage() {
                   )}
                   {labourQuery.data && (
                     <p className="text-sm">
-                      Labour cost: {rupees(labourQuery.data.labourCostPaisa)}
+                      Labour cost: <MoneyDisplay paisa={labourQuery.data.labourCostPaisa} />
                       {labourQuery.data.labourCostPct != null
                         ? ` · ${labourQuery.data.labourCostPct.toFixed(1)}% of revenue`
                         : " · revenue unavailable"}
@@ -216,12 +222,24 @@ export default function PayrollPage() {
                         {(payslipsQuery.data ?? []).map((p) => (
                           <tr key={p.id} className="border-b">
                             <td className="py-1">{p.employeeId.slice(0, 8)}</td>
-                            <td>{rupees(p.basicPaisa)}</td>
-                            <td>{rupees(p.grossPaisa)}</td>
-                            <td>{rupees(p.deductions.income_tax_paisa ?? 0)}</td>
-                            <td>{rupees(p.deductions.eobi_employee_paisa ?? 0)}</td>
-                            <td>{rupees(p.deductions.late_arrival_paisa ?? 0)}</td>
-                            <td>{rupees(p.netPaisa)}</td>
+                            <td>
+                              <MoneyDisplay paisa={p.basicPaisa} />
+                            </td>
+                            <td>
+                              <MoneyDisplay paisa={p.grossPaisa} />
+                            </td>
+                            <td>
+                              <MoneyDisplay paisa={p.deductions.income_tax_paisa ?? 0} />
+                            </td>
+                            <td>
+                              <MoneyDisplay paisa={p.deductions.eobi_employee_paisa ?? 0} />
+                            </td>
+                            <td>
+                              <MoneyDisplay paisa={p.deductions.late_arrival_paisa ?? 0} />
+                            </td>
+                            <td>
+                              <MoneyDisplay paisa={p.netPaisa} />
+                            </td>
                           </tr>
                         ))}
                       </tbody>

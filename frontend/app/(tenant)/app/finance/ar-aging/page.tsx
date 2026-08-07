@@ -3,11 +3,15 @@
 import { useArAging } from "@/lib/hooks/finance/use-finance";
 import { ArAgingTable } from "@/components/finance/ArAgingTable";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // URL: /app/finance/ar-aging — first frontend consumer of GET /api/v1/finance/ar/aging.
 export default function ArAgingPage() {
-  const { data: aging, isLoading, isError } = useArAging();
+  // GA-001: an outage rendered "No outstanding receivables" — i.e. nobody owes you money. This is
+  // a collections screen; a false all-clear here is money left uncollected.
+  const arAging = useArAging();
+  const aging = arAging.data;
 
   return (
     <div className="space-y-6">
@@ -18,21 +22,27 @@ export default function ArAgingPage() {
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-        </div>
-      ) : isError || !aging || aging.buckets.every((b) => b.amountPaisa === 0) ? (
-        <FinanceEmptyState
-          title="No outstanding receivables"
-          description="AR aging buckets will appear here once a house account is charged."
-        />
-      ) : (
-        <ArAgingTable aging={aging} />
-      )}
+      <QueryBoundary
+        query={arAging}
+        what="AR aging"
+        isEmpty={!aging || aging.buckets.every((b) => b.amountPaisa === 0)}
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        }
+        empty={
+          <FinanceEmptyState
+            title="No outstanding receivables"
+            description="AR aging buckets will appear here once a house account is charged."
+          />
+        }
+      >
+        {aging && <ArAgingTable aging={aging} />}
+      </QueryBoundary>
     </div>
   );
 }

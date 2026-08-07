@@ -110,11 +110,18 @@ export const tenantNavItems: NavItem[] = [
   },
   {
     // Phase 5+: reporting permissions not yet in DB catalog — admin/owner only until built.
+    //
+    // GA-091: `/app/reporting` 404s, and this — the FLAT list — declared it without
+    // `comingSoon`, while the grouped list at `:300` (the one the sidebar actually renders)
+    // marks it correctly. The same route, guarded in one list and unguarded in the other, is
+    // exactly the drift that made GA-053 live; whichever list gets wired next inherits the bug.
+    // The two are now consistent.
     label: "Reporting",
     href: "/app/reporting",
     icon: BarChart3,
     feature: "FEATURE_REPORTING_ADVANCED",
     roles: ["OWNER", "TENANT_ADMIN"],
+    comingSoon: true, // /app/reporting page not built yet — mirrors navGroups (GA-091)
   },
   {
     // 12-08: named reports + FBR Tax Summary. Deliberately NO `feature` — 12-01 left
@@ -353,10 +360,19 @@ export const navGroups: NavGroup[] = [
 
 export const platformNavItems: NavItem[] = [
   {
+    // GA-053: this was the product's only UNGUARDED dead link — `/platform/tenants` has no
+    // `page.tsx` and returns a bare "404: This page could not be found." Five of the nine audits
+    // reported it independently. Every other unbuilt route in this file is correctly marked
+    // (`:300`, `:334`, `:348`); this one was simply missed, and the miss is what made it live.
+    //
+    // The entry is kept rather than deleted because Phase 21 builds this screen and the ordering
+    // here is the console's intended shape. `comingSoon` is the honest state until then: not
+    // "this does not exist", but "this is not built yet, so do not offer it".
     label: "Tenants",
     href: "/platform/tenants",
     icon: Building2,
     permission: "platform:tenant:read",
+    comingSoon: true, // /platform/tenants page not built yet (Phase 21)
   },
   {
     label: "Platform Admin",

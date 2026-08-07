@@ -4,6 +4,7 @@ import { use } from "react";
 import { useAccount } from "@/lib/hooks/finance/use-accounts";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 
 interface AccountDetailPageProps {
   params: Promise<{ code: string }>;
@@ -12,7 +13,8 @@ interface AccountDetailPageProps {
 // URL: /app/finance/accounts/[code]
 export default function AccountDetailPage({ params }: AccountDetailPageProps) {
   const { code } = use(params);
-  const { data: account, isLoading, isError } = useAccount(code);
+  const accountQuery = useAccount(code);
+  const { data: account, isLoading } = accountQuery;
 
   if (isLoading) {
     return (
@@ -23,7 +25,19 @@ export default function AccountDetailPage({ params }: AccountDetailPageProps) {
     );
   }
 
-  if (isError || !account) {
+  // GA-001: `isError || !account` said "Account not found" for a 500 as readily as for a 404 —
+  // and "this account does not exist" is a claim about the ledger, not about the network.
+  if (accountQuery.isError) {
+    return (
+      <QueryErrorNotice
+        what={`account ${code}`}
+        error={accountQuery.error}
+        onRetry={() => void accountQuery.refetch()}
+      />
+    );
+  }
+
+  if (!account) {
     return (
       <FinanceEmptyState
         title="Account not found"

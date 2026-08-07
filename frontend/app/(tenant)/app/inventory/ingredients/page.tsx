@@ -18,6 +18,7 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { DataTable, type ColumnDef } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,11 +57,12 @@ export default function IngredientsPage() {
   const [allergenFilter, setAllergenFilter] = useState<string[]>([]);
 
   const { data: categories } = useCategories();
-  const { data: ingredients, isLoading } = useIngredients({
+  const ingredientsQuery = useIngredients({
     search: debouncedSearch.trim() || undefined,
     categoryId: categoryFilter || undefined,
     status: statusFilter,
   });
+  const ingredients = ingredientsQuery.data;
   const archiveIngredient = useArchiveIngredient();
   const restoreIngredient = useRestoreIngredient();
 
@@ -267,22 +269,29 @@ export default function IngredientsPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <DataTable columns={columns} data={[]} isLoading />
-      ) : rows.length === 0 ? (
-        <PermissionGuard
-          require="inventory.item.manage"
-          fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
-        >
-          <EmptyState
-            title={EMPTY_TITLE}
-            description={EMPTY_BODY}
-            action={{ label: "Add ingredient", onClick: openCreate }}
-          />
-        </PermissionGuard>
-      ) : (
+      {/* GA-001: `isError` was never destructured, so an inventory-service failure rendered the
+          "no ingredients yet" empty state — complete with an "Add ingredient" call to action
+          inviting the user to re-key a store cupboard that already exists. */}
+      <QueryBoundary
+        query={ingredientsQuery}
+        what="ingredients"
+        isEmpty={rows.length === 0}
+        loading={<DataTable columns={columns} data={[]} isLoading />}
+        empty={
+          <PermissionGuard
+            require="inventory.item.manage"
+            fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
+          >
+            <EmptyState
+              title={EMPTY_TITLE}
+              description={EMPTY_BODY}
+              action={{ label: "Add ingredient", onClick: openCreate }}
+            />
+          </PermissionGuard>
+        }
+      >
         <DataTable columns={columns} data={rows} />
-      )}
+      </QueryBoundary>
 
       {/* Single shared create-or-edit dialog, fully controlled — driven by the header button and
           by every row's Edit action (which has no button of its own to compose a DialogTrigger

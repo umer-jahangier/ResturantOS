@@ -10,13 +10,18 @@ import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
 import { FiscalYearNav } from "@/components/finance/FiscalYearNav";
 import { ProvisionPeriodDialog } from "@/components/finance/ProvisionPeriodDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 // URL: /app/finance/periods
 export default function PeriodsPage() {
   const [fiscalYear, setFiscalYear] = useState(() => currentPakistanFiscalYear());
-  const { data: periods, isLoading } = usePeriods(fiscalYear);
+  // GA-001: `!isLoading && !periods?.length` rendered "No periods found" for a failed read, and
+  // the copy then advised provisioning periods that may well already exist. Double-provisioning a
+  // fiscal year is not a harmless retry.
+  const periodsQuery = usePeriods(fiscalYear);
+  const periods = periodsQuery.data;
   const { data: setupStatus } = useFinanceSetupStatus();
   const [closingPeriod, setClosingPeriod] = useState<AccountingPeriod | null>(null);
   const [provisionOpen, setProvisionOpen] = useState(false);
@@ -40,26 +45,28 @@ export default function PeriodsPage() {
         </div>
       </div>
 
-      {isLoading && (
-        <div className="animate-pulse space-y-2">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="h-12 rounded bg-muted" />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && !periods?.length && (
-        <FinanceEmptyState
-          title="No periods found"
-          description={
-            setupStatus?.provisioned
-              ? `No periods provisioned for FY ${fiscalYear} yet. Use "Provision Periods" above to open it.`
-              : 'No chart of accounts or periods yet for this tenant. An Owner, Tenant Admin, or Accountant can provision them using "Provision Periods" above.'
-          }
-        />
-      )}
-
-      {periods && periods.length > 0 && (
+      <QueryBoundary
+        query={periodsQuery}
+        what={`periods for FY ${fiscalYear}`}
+        isEmpty={!periods?.length}
+        loading={
+          <div className="animate-pulse space-y-2">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="h-12 rounded bg-muted" />
+            ))}
+          </div>
+        }
+        empty={
+          <FinanceEmptyState
+            title="No periods found"
+            description={
+              setupStatus?.provisioned
+                ? `No periods provisioned for FY ${fiscalYear} yet. Use "Provision Periods" above to open it.`
+                : 'No chart of accounts or periods yet for this tenant. An Owner, Tenant Admin, or Accountant can provision them using "Provision Periods" above.'
+            }
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -73,7 +80,7 @@ export default function PeriodsPage() {
               </tr>
             </thead>
             <tbody>
-              {periods.map((period) => (
+              {(periods ?? []).map((period) => (
                 <tr key={period.id} className="border-b">
                   <td className="py-3 pr-4 font-medium">Period {period.periodNo}</td>
                   <td className="py-3 pr-4 font-mono tabular-nums text-sm">{period.startDate}</td>
@@ -96,7 +103,7 @@ export default function PeriodsPage() {
             </tbody>
           </table>
         </div>
-      )}
+      </QueryBoundary>
 
       {closingPeriod && (
         <PeriodCloseModal

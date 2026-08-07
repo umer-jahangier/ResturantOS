@@ -241,20 +241,41 @@ export default function AttendancePage() {
           </div>
         </PermissionGuard>
         {/* Only offered once the list is known to be genuinely empty — offering it after a
-            failed load would invite seeding types that may already exist. */}
+            failed load would invite seeding types that may already exist.
+
+            GA-096 asked for this control to be DELETED as a developer button that shipped by
+            accident. It is not one, and deleting it would have been a regression: it calls
+            `POST /api/v1/hr/leave/types/defaults`, a real endpoint gated on
+            `hr.attendance.manage` and idempotent by design, and it is the ONLY way to create a
+            leave type from inside the product — `POST /api/v1/hr/leave/types` has no frontend
+            caller anywhere. Remove it and a new tenant can never request leave at all, because
+            the request form's type dropdown would stay permanently empty.
+
+            What was actually wrong is the LANGUAGE. "Seed" is developer vocabulary, and a bare
+            ghost button carrying it, with no explanation, is exactly why a button inventory read
+            it as leftover tooling. It now says what it does, in the words of the person who has
+            to press it, and says why it is being offered. See 14b-01-SUMMARY.md §Corrections. */}
         {leaveTypesQuery.isSuccess && leaveTypes.length === 0 && (
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={ensureLeaveDefaults.isPending}
-            onClick={() =>
-              ensureLeaveDefaults.mutate(undefined, {
-                onError: () => toast.error("Failed to seed leave types"),
-              })
-            }
-          >
-            Seed default leave types
-          </Button>
+          <PermissionGuard require="hr.attendance.manage">
+            <div className="space-y-1 rounded border border-dashed p-3">
+              <p className="text-sm text-muted-foreground">
+                No leave types exist yet, so nobody can request leave. Add the standard set (annual,
+                sick, casual) to get started — you can change them later.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={ensureLeaveDefaults.isPending}
+                onClick={() =>
+                  ensureLeaveDefaults.mutate(undefined, {
+                    onError: () => toast.error("Couldn't add the standard leave types."),
+                  })
+                }
+              >
+                {ensureLeaveDefaults.isPending ? "Adding…" : "Add standard leave types"}
+              </Button>
+            </div>
+          </PermissionGuard>
         )}
       </section>
 

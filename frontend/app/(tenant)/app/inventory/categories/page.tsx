@@ -16,6 +16,7 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +59,10 @@ function countIngredientsInSubtree(node: ItemCategoryNode): number {
 // 3-level ingredient-category tree (UI-SPEC Screen 1).
 export default function CategoriesPage() {
   const [showArchived, setShowArchived] = useState(false);
-  const { data: tree, isLoading } = useCategoryTree(showArchived);
+  // GA-001: a failed tree read rendered the "no categories yet" empty state with a "Create
+  // category" action — the shortest path to a duplicate taxonomy.
+  const treeQuery = useCategoryTree(showArchived);
+  const tree = treeQuery.data;
   const moveCategory = useMoveCategory();
   const archiveCategory = useArchiveCategory();
   const restoreCategory = useRestoreCategory();
@@ -159,24 +163,30 @@ export default function CategoriesPage() {
         Show archived
       </label>
 
-      {isLoading ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-        </div>
-      ) : nodes.length === 0 ? (
-        <PermissionGuard
-          require="inventory.item.manage"
-          fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
-        >
-          <EmptyState
-            title={EMPTY_TITLE}
-            description={EMPTY_BODY}
-            action={{ label: "Create category", onClick: () => openCreate(null) }}
-          />
-        </PermissionGuard>
-      ) : (
+      <QueryBoundary
+        query={treeQuery}
+        what="ingredient categories"
+        isEmpty={nodes.length === 0}
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        }
+        empty={
+          <PermissionGuard
+            require="inventory.item.manage"
+            fallback={<EmptyState title={EMPTY_TITLE} description={EMPTY_BODY} />}
+          >
+            <EmptyState
+              title={EMPTY_TITLE}
+              description={EMPTY_BODY}
+              action={{ label: "Create category", onClick: () => openCreate(null) }}
+            />
+          </PermissionGuard>
+        }
+      >
         <CategoryTree
           nodes={nodes}
           onEdit={openEdit}
@@ -186,7 +196,7 @@ export default function CategoriesPage() {
           onRestore={handleRestore}
           selectedId={formTarget?.mode === "edit" ? formTarget.category.id : null}
         />
-      )}
+      </QueryBoundary>
 
       {/* Single shared create-or-edit dialog, fully controlled — driven by the header button and
           by every row's Edit / Add-subcategory action (neither of which has its own trigger

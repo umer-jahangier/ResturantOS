@@ -8,6 +8,7 @@ import { ExpenseFormDialog } from "@/components/finance/ExpenseFormDialog";
 import { FinanceEmptyState } from "@/components/finance/FinanceEmptyState";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import {
@@ -163,7 +164,10 @@ function ExpenseRow({ expense }: { expense: Expense }) {
 // URL: /app/finance/expenses — an approver's inbox (default filter: PENDING_APPROVAL).
 export default function ExpensesPage() {
   const [statusFilter, setStatusFilter] = useState<"" | ExpenseStatus>("PENDING_APPROVAL");
-  const { data: expenses, isLoading } = useExpenses(statusFilter ? [statusFilter] : undefined);
+  // GA-001: `isError` was never destructured, so a finance-service failure rendered "No expenses"
+  // on an APPROVER'S INBOX — an approver who is told there is nothing pending stops looking.
+  const expensesQuery = useExpenses(statusFilter ? [statusFilter] : undefined);
+  const expenses = expensesQuery.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -191,18 +195,24 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="grid gap-2">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-        </div>
-      ) : !expenses || expenses.length === 0 ? (
-        <FinanceEmptyState
-          title="No expenses"
-          description='Use "New expense" to submit the first expense for approval.'
-        />
-      ) : (
+      <QueryBoundary
+        query={expensesQuery}
+        what="expenses"
+        isEmpty={expenses.length === 0}
+        loading={
+          <div className="grid gap-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
+        }
+        empty={
+          <FinanceEmptyState
+            title="No expenses"
+            description='Use "New expense" to submit the first expense for approval.'
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -223,7 +233,7 @@ export default function ExpensesPage() {
             </tbody>
           </table>
         </div>
-      )}
+      </QueryBoundary>
     </div>
   );
 }

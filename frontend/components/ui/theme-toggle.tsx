@@ -4,9 +4,23 @@ import { useSyncExternalStore } from "react";
 import { useTheme } from "@teispace/next-themes";
 import { Monitor, Moon, Sun } from "lucide-react";
 
-type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | "system";
 
 const CYCLE: Theme[] = ["light", "dark", "system"];
+
+/**
+ * The next theme in the light → dark → system cycle.
+ *
+ * <p>Exported because the command palette offers "Toggle theme" too, and GA-092 found that entry
+ * doing nothing at all. Two controls with the same name must move the theme the same way, so they
+ * share this function rather than each carrying their own idea of what "toggle" means — a binary
+ * flip in the palette would have skipped `system` and silently disagreed with the header button
+ * sitting three pixels away.
+ */
+export function nextThemeInCycle(current: string | undefined): Theme {
+  const idx = CYCLE.indexOf((current as Theme) ?? "system");
+  return CYCLE[(idx + 1) % CYCLE.length] ?? "system";
+}
 
 const ICONS: Record<Theme, React.ReactNode> = {
   light: <Sun className="size-4" />,
@@ -45,11 +59,9 @@ export function ThemeToggle() {
   }
 
   const current = (theme as Theme) ?? "system";
-  const currentIdx = CYCLE.indexOf(current);
-  const nextTheme = CYCLE[(currentIdx + 1) % CYCLE.length];
 
   function handleClick() {
-    setTheme(nextTheme ?? "system");
+    setTheme(nextThemeInCycle(theme));
   }
 
   return (

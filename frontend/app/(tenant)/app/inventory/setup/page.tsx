@@ -16,6 +16,7 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryBoundary } from "@/components/ui/query-boundary";
 import {
   Dialog,
   DialogContent,
@@ -47,8 +48,13 @@ function conversionSummary(uom: Uom): string {
 // units of measure (the POST endpoint existed since 08.2-01 with no caller) and storage locations
 // (free text on the ingredient form until V10).
 export default function InventorySetupPage() {
-  const { data: uoms, isLoading: uomsLoading } = useUoms();
-  const { data: locations, isLoading: locationsLoading } = useStorageLocations(true);
+  // GA-001: neither query's error was read. The units section then rendered as a silently empty
+  // page body (every measure-type group returns null when its rows are empty) and the locations
+  // section as "No storage locations yet" — two different disguises for the same 500.
+  const uomsQuery = useUoms();
+  const locationsQuery = useStorageLocations(true);
+  const uoms = uomsQuery.data;
+  const locations = locationsQuery.data;
   const archiveLocation = useArchiveStorageLocation();
   const restoreLocation = useRestoreStorageLocation();
 
@@ -108,12 +114,16 @@ export default function InventorySetupPage() {
           </PermissionGuard>
         </div>
 
-        {uomsLoading ? (
-          <div className="grid gap-2">
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
-          </div>
-        ) : (
+        <QueryBoundary
+          query={uomsQuery}
+          what="units of measure"
+          loading={
+            <div className="grid gap-2">
+              <Skeleton className="h-10" />
+              <Skeleton className="h-10" />
+            </div>
+          }
+        >
           <div className="space-y-6">
             {MEASURE_TYPES.map((type) => {
               const rows = (uoms ?? []).filter((u) => u.measureType === type.key);
@@ -147,7 +157,7 @@ export default function InventorySetupPage() {
               );
             })}
           </div>
-        )}
+        </QueryBoundary>
       </section>
 
       {/* ── Storage locations ────────────────────────────────────────────────────────────── */}
@@ -167,28 +177,34 @@ export default function InventorySetupPage() {
           </PermissionGuard>
         </div>
 
-        {locationsLoading ? (
-          <div className="grid gap-2">
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
-          </div>
-        ) : allLocations.length === 0 ? (
-          <PermissionGuard
-            require="inventory.item.manage"
-            fallback={
+        <QueryBoundary
+          query={locationsQuery}
+          what="storage locations"
+          isEmpty={allLocations.length === 0}
+          loading={
+            <div className="grid gap-2">
+              <Skeleton className="h-10" />
+              <Skeleton className="h-10" />
+            </div>
+          }
+          empty={
+            <PermissionGuard
+              require="inventory.item.manage"
+              fallback={
+                <EmptyState
+                  title="No storage locations yet"
+                  description="Storage locations let you group stock by where it physically sits."
+                />
+              }
+            >
               <EmptyState
                 title="No storage locations yet"
                 description="Storage locations let you group stock by where it physically sits."
+                action={{ label: "Add location", onClick: () => setCreating(true) }}
               />
-            }
-          >
-            <EmptyState
-              title="No storage locations yet"
-              description="Storage locations let you group stock by where it physically sits."
-              action={{ label: "Add location", onClick: () => setCreating(true) }}
-            />
-          </PermissionGuard>
-        ) : (
+            </PermissionGuard>
+          }
+        >
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full min-w-[40rem]">
               <thead className="border-b bg-muted/40">
@@ -260,7 +276,7 @@ export default function InventorySetupPage() {
               </tbody>
             </table>
           </div>
-        )}
+        </QueryBoundary>
       </section>
 
       <StorageLocationFormDialog
