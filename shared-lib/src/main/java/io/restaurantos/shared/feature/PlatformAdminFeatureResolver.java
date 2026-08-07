@@ -1,7 +1,10 @@
 package io.restaurantos.shared.feature;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 import java.util.Map;
 import java.util.Set;
@@ -23,8 +26,41 @@ public class PlatformAdminFeatureResolver implements TenantFeatureResolver {
 
     private final RestClient restClient;
 
+    /**
+     * Connect timeout. A platform-admin that is unreachable must fail this call in seconds, not
+     * hold the caller's request thread indefinitely.
+     */
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
+
+    /**
+     * Read timeout. This is a single indexed lookup returning a small map; anything approaching
+     * this bound means platform-admin is in trouble, and waiting longer only spreads that trouble
+     * to the caller.
+     */
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(3);
+
+    /**
+     * @param platformAdminUri base URI of platform-admin-service
+     * @param internalSecret   the shared secret for {@code /internal/**}
+     *
+     * <p><b>The timeouts are not optional.</b> This client had none, and
+     * {@link #enabledFeatures} is called on the request path of every feature-gated route in
+     * every service. When platform-admin-service was restarted, a thread dump showed 39 Tomcat
+     * workers parked here on an exhausted connection pool, permanently wedging pos-service and
+     * inventory-service — while {@code /actuator/health}, which makes no such call, stayed green,
+     * so nothing restarted them.
+     *
+     * <p>This is the second instance of the same defect: {@code JwksKeyProvider} held a monitor
+     * across an equally unbounded call and took four services down the same way. A shared HTTP
+     * client with no timeout is not a slow dependency, it is a distributed deadlock waiting for a
+     * restart of the service it depends on.
+     */
     public PlatformAdminFeatureResolver(String platformAdminUri, String internalSecret) {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(CONNECT_TIMEOUT);
+        factory.setReadTimeout(READ_TIMEOUT);
         this.restClient = RestClient.builder()
+                .requestFactory(factory)
                 .baseUrl(platformAdminUri)
                 .defaultHeader("X-Internal-Service", internalSecret)
                 .build();
