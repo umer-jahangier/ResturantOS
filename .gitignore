@@ -40,3 +40,7 @@ dist/
 
 #logs
 .dev-logs/
+
+# scripts/seed_restaurantos.py — server-minted TOTP secrets for seeded dev personas.
+# Not derivable, and not committable: these are live second-factor secrets.
+.seed-state/
