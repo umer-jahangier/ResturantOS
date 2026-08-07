@@ -60,9 +60,32 @@ so the response cannot differ by address, by tenant, or in the time it takes to 
 
 ### Supported password recovery in this milestone
 
-1. **Administrator-initiated reset** (plan 13-13) — a tenant admin resets a tenant user; a
-   SuperAdmin resets a tenant admin. Sets a temporary password, sets `must_change_password`, revokes
-   sessions, emits an audit event.
+1. **Administrator-initiated reset** (plan 13-13) — **built, and proved live.** A tenant admin
+   resets a tenant user; a SuperAdmin resets any tenant user, which is what rescues a tenant that
+   has locked itself out of its own highest role.
+
+   ```
+   POST /api/v1/users/{userId}/reset-password                              {"reason":"…"}
+   POST /api/v1/platform/tenants/{tenantId}/users/{userId}/reset-password  {"reason":"…"}
+   → 200 {"data":{"userId","email","tempPassword","mustChangePassword":true}}
+   ```
+
+   Sets a temporary password, sets `must_change_password`, clears the login lockout, retires any
+   outstanding single-use token, revokes the target's refresh sessions, and emits
+   `ADMIN_PASSWORD_RESET` naming the acting administrator, the target, the tier and a required
+   reason. `reason` is mandatory at both tiers.
+
+   **The temporary password crosses back to the calling administrator in the response, and that is
+   the delivery channel** — there is no other, which is the whole point of this document. It appears
+   in no log, no event payload, no idempotency record and nowhere in the database but as a bcrypt
+   hash. The administrator hands it over out of band.
+
+   **The evidence is `scripts/e2e/phase13-admin-reset-e2e.sh`** — 48 assertions through the real
+   gateway against the RLS-enforcing database, including the one that matters here: a genuinely
+   locked-out user is reset and their next login is the forced-change refusal rather than the
+   lockout. The same run asserts the self-service endpoint answering `RESET_DELIVERY_DISABLED` and
+   minting no token, so both halves of this document are measured together rather than separately
+   assumed.
 2. **Authenticated self-service change** (plan 13-04) — `POST /api/v1/auth/change-password`, for a
    user who can still sign in.
 3. **Forced change at login** (plan 13-08) — `POST /api/v1/auth/change-password/forced`, for a user

@@ -6,14 +6,14 @@ current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
 stopped_at: Completed 13-14-PLAN.md
-last_updated: "2026-08-06T23:31:23.079Z"
+last_updated: "2026-08-07T00:14:15.028Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
   completed_phases: 14
   total_plans: 168
-  completed_plans: 154
+  completed_plans: 155
   percent: 64
 ---
 
@@ -303,6 +303,7 @@ _Updated after each plan completion_
 | Phase 13 P09 | ~1h | 3 tasks | 16 files |
 | Phase 13 P11 | ~4h | 3 tasks | 29 files |
 | Phase 13 P12 | ~3h | 2 tasks | 20 files |
+| Phase 13 P13 | ~2h | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -619,6 +620,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 13-12: the role ceiling is NOT duplicated in user-service — RoleCeiling.permits stays the single owner in auth-service; user-service forwards the caller identity and surfaces the refusal with its real status
 - [Phase ?]: 13-12: GET /api/v1/users/{id} now returns the user; computed permissions moved to /api/v1/users/{id}/permissions (breaking; the one caller was updated in the same commit)
 - [Phase ?]: 13-12: a PATCH-capable Feign transport was written on java.net.http.HttpClient rather than adding feign-hc5 — T-13-12-SC forbids a new package without a blocking human checkpoint, and Feign's default client cannot send PATCH at all
+- [Phase ?]: [Phase 13-13]: admin reset is the ONLY working way to set a password this milestone (self-service ships disabled, D-31); the temp password returns to the calling admin and exists nowhere else
+- [Phase ?]: [Phase 13-13]: an admin reset is NOT subject to 13-09's per-account cooldown — it issues no token at all; bounded instead by the tier authority, the role ceiling, the gateway budget and the audit row
+- [Phase ?]: [Phase 13-13]: the platform tier may reset any tenant user (T-13-13-F accepted) — the only way to rescue a tenant that has lost its OWNER, since the ceiling correctly refuses every remaining insider
 
 ### Pending Todos
 
@@ -662,7 +666,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-06T23:31:06.479Z
+Last session: 2026-08-07T00:14:06.511Z
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
