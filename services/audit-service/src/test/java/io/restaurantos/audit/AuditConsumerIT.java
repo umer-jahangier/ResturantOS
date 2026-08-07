@@ -5,6 +5,7 @@ import io.restaurantos.audit.entity.AuditEventEntity;
 import io.restaurantos.audit.repository.AuditEventRepository;
 import io.restaurantos.audit.repository.ProcessedEventRepository;
 import io.restaurantos.shared.event.EventEnvelope;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -60,6 +61,33 @@ class AuditConsumerIT {
     static final RabbitMQContainer RABBIT =
             new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.12-management"));
 
+    /**
+     * Creates the {@code audit_writer} role before Liquibase runs.
+     *
+     * <p>Without it this whole class fails at context startup: changeset 010 has issued
+     * {@code GRANT INSERT ON audit_events TO audit_writer} since 05-02, and a GRANT to a role that
+     * does not exist is an error, not a no-op. Liquibase aborts, the Spring context never starts,
+     * and all three tests error out — which is the state this class was in before 15-01, so the
+     * only integration coverage of the audit consumer had not run in a long time. That is worth
+     * noting next to the rest of this phase: the pipeline was unverified at every layer at once.
+     *
+     * <p>{@code AuditImmutabilityIT} has always done this; it was simply missing here.
+     */
+    @BeforeAll
+    static void createAuditWriterRole() throws Exception {
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+             var stmt = conn.createStatement()) {
+            stmt.execute("""
+                DO $$ BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'audit_writer') THEN
+                    CREATE ROLE audit_writer LOGIN PASSWORD 'audit_writer_pass';
+                  END IF;
+                END $$
+                """);
+        }
+    }
+
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
         // Bind the test server to loopback. Spring Boot otherwise binds the wildcard address,
@@ -80,6 +108,19 @@ class AuditConsumerIT {
         r.add("spring.rabbitmq.username", RABBIT::getAdminUsername);
         r.add("spring.rabbitmq.password", RABBIT::getAdminPassword);
         r.add("eureka.client.enabled", () -> "false");
+
+        // The listener starts with the context; this class declares the queue in @BeforeEach, which
+        // runs afterwards. So the container found no queue, treated it as fatal and aborted startup
+        // — "no queue 'audit.all-events.queue' in vhost '/'" — and the context never came up. The
+        // second reason this class has not run in a long time (the first being the missing
+        // audit_writer role above).
+        //
+        // Non-fatal + retry rather than declaring the queue earlier, because that is what
+        // production does: the queue and its bindings to all nine topic exchanges are owned by
+        // rabbitmq-definitions.json, not by the consumer, and a consumer that refuses to start
+        // before the broker is provisioned is a startup-ordering dependency nobody wants.
+        r.add("spring.rabbitmq.listener.simple.missing-queues-fatal", () -> "false");
+
         r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
     }
 

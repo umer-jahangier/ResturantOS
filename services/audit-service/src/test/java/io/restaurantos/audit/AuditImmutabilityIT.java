@@ -151,6 +151,32 @@ class AuditImmutabilityIT {
         assertThat(hasInsert).isTrue();
     }
 
+    /**
+     * The POSITIVE privilege this class never asserted, which is why the broken read path shipped.
+     *
+     * <p>Every other assertion here is a negative — UPDATE false, DELETE false — and a role holding
+     * <em>no</em> privileges at all satisfies all of them. {@code audit_writer} was exactly that
+     * role minus INSERT: it could write and could not read, so the only audit read API in the
+     * product answered "permission denied for table audit_events" for every call ever made, and
+     * this suite stayed green throughout.
+     *
+     * <p>Note that this test still runs as the Testcontainers SUPERUSER, so it verifies the GRANT
+     * and not the experience of using it. {@code AuditReadPathIT} is the one that connects as a real
+     * non-superuser {@code audit_writer} and actually reads rows; this assertion exists so that the
+     * gap is closed from both directions.
+     */
+    @Test
+    void auditWriter_hasSelectPrivilege() {
+        Boolean hasSelect = jdbcTemplate.queryForObject(
+                "SELECT has_table_privilege('audit_writer', 'audit_events', 'SELECT')",
+                Boolean.class);
+        assertThat(hasSelect)
+                .as("An audit log that cannot be read is not a stricter audit log — it is an "
+                        + "expensive way to write to /dev/null. Append-only means no UPDATE and no "
+                        + "DELETE, both of which are still asserted below.")
+                .isTrue();
+    }
+
     @Test
     void auditWriter_hasNoUpdatePrivilege() {
         Boolean hasUpdate = jdbcTemplate.queryForObject(
