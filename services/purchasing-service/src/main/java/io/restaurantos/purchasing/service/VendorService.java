@@ -3,7 +3,10 @@ package io.restaurantos.purchasing.service;
 import io.restaurantos.purchasing.domain.model.Vendor;
 import io.restaurantos.purchasing.dto.CreateVendorRequest;
 import io.restaurantos.purchasing.dto.VendorDto;
+import io.restaurantos.purchasing.feign.AuthorizationClient;
 import io.restaurantos.purchasing.repository.VendorRepository;
+import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.security.EncryptionService;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.data.domain.Page;
@@ -17,19 +20,53 @@ import java.util.Base64;
 @Service
 public class VendorService {
 
+    /**
+     * vendor.rego's {@code manage} rule. It was the module's one dead letter: {@code approve_po}
+     * and {@code close_po} were both wired, while vendor creation and editing — which owns the
+     * encrypted bank details POs are eventually paid into — was gated by {@code @PreAuthorize}
+     * alone across seven endpoints, with no tenant/branch test from the policy.
+     */
+    private static final String OPA_MODULE_VENDOR = "vendor";
+    private static final String OPA_ACTION_MANAGE = "manage";
+
     private final VendorRepository vendorRepository;
     private final TenantContext tenantContext;
     private final EncryptionService encryptionService;
     private final TenantSetupService tenantSetupService;
+    private final AuthorizationClient authorizationClient;
 
     public VendorService(VendorRepository vendorRepository,
                          TenantContext tenantContext,
                          EncryptionService encryptionService,
-                         TenantSetupService tenantSetupService) {
+                         TenantSetupService tenantSetupService,
+                         AuthorizationClient authorizationClient) {
         this.vendorRepository = vendorRepository;
         this.tenantContext = tenantContext;
         this.encryptionService = encryptionService;
         this.tenantSetupService = tenantSetupService;
+        this.authorizationClient = authorizationClient;
+    }
+
+    /**
+     * Fail-closed: a denied decision, an empty body, or an unreachable authorization-service all
+     * refuse. The Feign exception is translated rather than propagated so an unreachable policy
+     * engine answers 403 instead of reporting a server fault for an authorization outcome.
+     */
+    private void assertOpaAllowsManage(UUID vendorId) {
+        ApiResponse<AuthorizationClient.AuthorizeResult> response;
+        try {
+            response = authorizationClient.authorize(new AuthorizationClient.AuthorizePayload(
+                    OPA_MODULE_VENDOR,
+                    OPA_ACTION_MANAGE,
+                    new AuthorizationClient.Resource(
+                            "vendor", vendorId, tenantContext.requireTenantId(),
+                            tenantContext.getBranchId().orElse(null), null, null, null)));
+        } catch (RuntimeException e) {
+            throw new PermissionDeniedException("Authorization service unavailable");
+        }
+        if (response == null || response.data() == null || !response.data().allow()) {
+            throw new PermissionDeniedException("Not permitted: vendor.manage");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -42,6 +79,7 @@ public class VendorService {
 
     @Transactional
     public VendorDto create(CreateVendorRequest req) {
+        assertOpaAllowsManage(null);
         tenantSetupService.ensureDefaultTiers();
         UUID tenantId = tenantContext.requireTenantId();
         Vendor vendor = new Vendor();
@@ -52,6 +90,7 @@ public class VendorService {
 
     @Transactional
     public VendorDto update(UUID id, CreateVendorRequest req) {
+        assertOpaAllowsManage(id);
         Vendor vendor = vendorRepository.findById(id).orElseThrow();
         apply(vendor, req);
         return toDto(vendorRepository.save(vendor));

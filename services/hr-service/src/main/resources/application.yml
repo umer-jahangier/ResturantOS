@@ -48,6 +48,12 @@ restaurantos:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   jwks:
     uri: ${JWKS_URI:http://127.0.0.1:8081/.well-known/jwks.json}
+  # Deliberately has no default. hr.rego is the ONLY thing enforcing branch isolation on employee,
+  # attendance, leave and payroll records — SharedAutoConfiguration registers the OpaClient and
+  # AuthorizationService beans only when this is set, so an hr-service deployed without OPA_URL
+  # fails to start rather than coming up silently unenforced. Same shape as pos/inventory/kitchen.
+  opa:
+    url: ${OPA_URL}
   # Field-level encryption key for HR PII columns (employee identity + bank + device token).
   # EncryptionAutoConfiguration is @ConditionalOnProperty(restaurantos.encryption.key), so this
   # property must be present for @Convert(EncryptedStringConverter) fields to activate.

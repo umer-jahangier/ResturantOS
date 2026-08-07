@@ -17,23 +17,32 @@ default allow := false
 #     call and checks it against the permissions catalog. A code that only ever appears as an
 #     element of a Rego array is invisible to that scan, which is how an enforced-but-undeclared
 #     permission gets into the tree — the exact defect class that test exists to catch.
+#
+# Every rule guards on input.action == "manage". Without that guard these four matched ANY action
+# routed to module rbac, so the day a second rbac action is introduced its authorisation would be
+# decided by whichever of the four codes the caller happened to hold, rather than by a rule written
+# for it. PolicyReachabilityTest fails the build on an unguarded rule.
 
 allow if {
+    input.action == "manage"
     common.has_permission(input, "rbac.manage")
     common.same_tenant_and_branch(input)
 }
 
 allow if {
+    input.action == "manage"
     common.has_permission(input, "rbac.user.manage")
     common.same_tenant_and_branch(input)
 }
 
 allow if {
+    input.action == "manage"
     common.has_permission(input, "rbac.role.manage")
     common.same_tenant_and_branch(input)
 }
 
 allow if {
+    input.action == "manage"
     common.has_permission(input, "branch.manage")
     common.same_tenant_and_branch(input)
 }

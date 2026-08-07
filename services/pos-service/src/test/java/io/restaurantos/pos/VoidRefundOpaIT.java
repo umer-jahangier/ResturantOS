@@ -33,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -109,6 +110,69 @@ class VoidRefundOpaIT extends PosTestBase {
         OrderDto order = createOpenOrder();
         when(opaClient.evaluate(any(), any())).thenReturn(new OpaDecision(true));
         return closeViaServeAndPay(orderService, paymentService, order, branchId);
+    }
+
+    // ── Discount override / split bill (phase 18b) ────────────────────────────
+
+    /**
+     * {@code pos.rego}'s {@code pos.order.discount.override} rule, a dead letter until phase 18b.
+     *
+     * <p>Bound to ORDER-scope discounts only. {@code pos.order.discount.override} is held by the
+     * same roles as {@code pos.order.discount.order} (OWNER, MANAGER, TENANT_ADMIN) and NOT by
+     * CASHIER, who holds {@code pos.order.discount.line} — so gating every discount on it would have
+     * withdrawn a working capability from cashiers. {@link #lineScopeDiscount_doesNotConsultThePolicy}
+     * is the guard on that boundary.
+     */
+    @Test
+    void orderScopeDiscount_deniedByOpa_isRefused() {
+        OrderDto order = createOpenOrder();
+        setSecurityContext(cashierId, List.of("pos.order.discount.override"), Map.of());
+        when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(false));
+
+        assertThatThrownBy(() -> orderService.applyDiscount(order.id(),
+                new ApplyDiscountRequest("ORDER", null, "FLAT", BigDecimal.TEN)))
+                .isInstanceOf(PermissionDeniedException.class);
+
+        ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
+        verify(opaClient).evaluate(eq("pos"), captor.capture());
+        assertThat(captor.getValue().action())
+                .as("must evaluate the discount-override rule, not some other pos action")
+                .isEqualTo("pos.order.discount.override");
+        assertThat(captor.getValue().resource().branchId())
+                .as("the ORDER's branch, not the caller's — passing the caller's own branch would "
+                        + "compare it against itself and enforce nothing")
+                .isEqualTo(branchId);
+    }
+
+    @Test
+    void orderScopeDiscount_allowedByOpa_isApplied() {
+        OrderDto order = createOpenOrder();
+        setSecurityContext(cashierId, List.of("pos.order.discount.override"), Map.of());
+        when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(true));
+
+        assertThat(orderService.applyDiscount(order.id(),
+                new ApplyDiscountRequest("ORDER", null, "FLAT", BigDecimal.TEN)))
+                .isNotNull();
+    }
+
+    /**
+     * The behaviour-preservation guard. A cashier applying a LINE discount must not be sent to the
+     * override rule — if this starts failing, the gate has been widened past the roles that hold
+     * {@code pos.order.discount.override} and cashiers have silently lost line discounts.
+     */
+    @Test
+    void lineScopeDiscount_doesNotConsultThePolicy() {
+        OrderDto order = createOpenOrder();
+        OrderDto withItem = orderService.getOrder(order.id(), branchId);
+        UUID lineId = withItem.items().get(0).id();
+        setSecurityContext(cashierId, List.of("pos.order.discount.line"), Map.of());
+        when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(false));
+
+        assertThat(orderService.applyDiscount(order.id(),
+                new ApplyDiscountRequest("LINE", lineId, "FLAT", BigDecimal.ONE)))
+                .isNotNull();
+
+        verify(opaClient, never()).evaluate(eq("pos"), any());
     }
 
     // ── Void tests ────────────────────────────────────────────────────────────

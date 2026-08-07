@@ -68,8 +68,10 @@ class ExpenseOpaPolicyIT extends FinanceTestBase {
     @Autowired
     private TestPrincipal testPrincipal;
 
-    @MockitoBean
-    private AuthorizationClient authorizationClient;
+    // AuthorizationClient is inherited from FinanceTestBase, which @MockitoBeans it and defaults the
+    // six LEDGER actions to allow. Redeclaring it here would register a second bean override for
+    // the same type. This class stubs the "approve" action itself, which the base deliberately
+    // leaves alone.
 
     private OpaBackedAuthorizationClient realOpaClient;
 
@@ -94,7 +96,7 @@ class ExpenseOpaPolicyIT extends FinanceTestBase {
         realOpaClient = new OpaBackedAuthorizationClient(RealOpaTestConfig.opaBaseUrl(), testPrincipal);
         when(authorizationClient.authorize(any())).thenAnswer(inv -> realOpaClient.authorize(inv.getArgument(0)));
 
-        setPrincipal(tenantId, branchId, List.of("finance.expense.approve"),
+        setPrincipal(tenantId, branchId, List.of("finance.expense.approve", "finance.journal.view"),
                 Map.of("approval_limit_paisa", 1_000_000L));
     }
 
@@ -121,7 +123,7 @@ class ExpenseOpaPolicyIT extends FinanceTestBase {
         // Principal has finance.expense.approve and approval_limit_paisa (1,000,000) above the
         // expense amount (500,000). Sent action is "approve" (ExpenseService's
         // OPA_ACTION_APPROVE constant). MUST FAIL if that constant is reverted to the dotted
-        // permission code "finance.expense.approve" — finance.rego's approve rule only matches
+        // permission code "finance.expense.approve", "finance.journal.view" — finance.rego's approve rule only matches
         // the short verb "approve", so a reverted action string hits `default allow := false`
         // and this assertion turns red. (Verified manually — see 10-08-SUMMARY.md negative
         // control.)
@@ -147,7 +149,7 @@ class ExpenseOpaPolicyIT extends FinanceTestBase {
 
     @Test
     void approve_deniedByRealPolicy_whenOverLimit() {
-        setPrincipal(tenantId, branchId, List.of("finance.expense.approve"),
+        setPrincipal(tenantId, branchId, List.of("finance.expense.approve", "finance.journal.view"),
                 Map.of("approval_limit_paisa", 1L));
 
         ExpenseDto created = createExpense(500_000L);
@@ -195,7 +197,7 @@ class ExpenseOpaPolicyIT extends FinanceTestBase {
         ExpenseDto created = createExpense(500_000L);
 
         // Resource (the expense) belongs to `branchId`; principal claims a different branch.
-        setPrincipal(tenantId, UUID.randomUUID(), List.of("finance.expense.approve"),
+        setPrincipal(tenantId, UUID.randomUUID(), List.of("finance.expense.approve", "finance.journal.view"),
                 Map.of("approval_limit_paisa", 1_000_000L));
 
         tenantContext.set(tenantId, branchId, userId, null);

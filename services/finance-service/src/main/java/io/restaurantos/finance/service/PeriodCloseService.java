@@ -1,5 +1,6 @@
 package io.restaurantos.finance.service;
 
+import io.restaurantos.finance.authz.FinanceAuthorizationService;
 import io.restaurantos.finance.domain.enums.PeriodStatus;
 import io.restaurantos.finance.dto.AccountingPeriodDto;
 import io.restaurantos.finance.exception.PeriodAlreadyLockedException;
@@ -36,6 +37,7 @@ public class PeriodCloseService {
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
     private final EntityManager entityManager;
+    private final FinanceAuthorizationService authorization;
 
     public PeriodCloseService(AccountingPeriodRepository periodRepo,
                                PeriodMapper periodMapper,
@@ -43,7 +45,8 @@ public class PeriodCloseService {
                                PurchasingInternalClient purchasingClient,
                                TenantContext tenantContext,
                                EventPublisher eventPublisher,
-                               EntityManager entityManager) {
+                               EntityManager entityManager,
+                               FinanceAuthorizationService authorization) {
         this.periodRepo = periodRepo;
         this.periodMapper = periodMapper;
         this.posClient = posClient;
@@ -51,6 +54,7 @@ public class PeriodCloseService {
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
         this.entityManager = entityManager;
+        this.authorization = authorization;
     }
 
     private void ensureTenantGuc() {
@@ -69,6 +73,12 @@ public class PeriodCloseService {
 
         var period = periodRepo.findById(periodId)
                 .orElseThrow(() -> new PeriodNotFoundException(periodId));
+
+        // finance.rego's close_period rule. Until phase 18b it was a dead letter: period close —
+        // the control that freezes a month's ledger — was bounded by a permission code and the TOTP
+        // claim alone, with the written policy never consulted.
+        authorization.authorizeClosePeriod(period.getId(), period.getTenantId(),
+                tenantContext.getBranchId().orElse(null));
 
         if (period.getStatus() != PeriodStatus.OPEN) {
             throw new PeriodAlreadyLockedException(periodId);

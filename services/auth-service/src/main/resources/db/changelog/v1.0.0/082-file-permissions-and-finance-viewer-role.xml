@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      18b. Two unrelated repairs from the authorization audit, kept in one changeset because both
+      are catalogue corrections and neither is large enough to justify its own file.
+
+      ══ 1. file.* — the permissions file-service never had ══
+
+      file-service shipped five endpoints (upload, list, download, delete, quota) behind
+      `.authenticated()` and NOTHING else: zero @PreAuthorize, zero OPA, and no file.* code
+      anywhere in the 65-permission catalogue. Any authenticated token in the tenant could delete
+      any file in it — a KITCHEN_STAFF token holding exactly two KDS permissions could DELETE
+      /api/v1/files/{id} and succeed. That is not a gap in a gate, it is the absence of one.
+
+      ── Granularity ──
+
+      Three codes, not one. `file.view` and `file.upload` separate reading from writing, because
+      the roles that need to attach a document to a purchase order are not the roles that should
+      be able to enumerate every document in the tenant. `file.manage` is deletion, kept apart from
+      upload deliberately: delete is the only irreversible operation of the five, and bundling it
+      into `file.upload` would have handed it to every role that attaches an invoice scan.
+
+      ── Who holds them ──
+
+      OWNER and TENANT_ADMIN hold all three. MANAGER holds view + upload + manage — a branch
+      manager already approves expenses and POs, and the documents backing them are the same
+      documents. ACCOUNTANT and INVENTORY_MANAGER hold view + upload: both attach supporting
+      documents (invoices, GRN photos) and neither has any reason to delete one. CASHIER, WAITER
+      and KITCHEN_STAFF hold none — none of the three has a file workflow, and the previous state
+      where all of them could delete anything is precisely what this repairs.
+
+      Granted EXPLICITLY, never through a catalogue-wide SELECT. Every blanket grant in this
+      changelog (030/041/042/045/046/057) is point-in-time — it enumerates what existed the day it
+      ran and retro-grants nothing added later. 055 and 059 both say this and both grant explicitly
+      for the same reason. A permission no role holds produces a clean, confident 403 for every
+      user including OWNER, which is the defect class PermissionCatalogClosureTest exists to catch.
+
+      ══ 2. FINANCE_VIEWER — a role_code with grants and no role ══
+
+      `role_permissions` carried two FINANCE_VIEWER rows (finance.coa.view from 037, hr.payroll.view
+      from 045) while `roles` had no FINANCE_VIEWER row at all. Verified live before this changeset:
+
+        auth_db=# SELECT code FROM roles;
+         OWNER, TENANT_ADMIN, MANAGER, ACCOUNTANT, INVENTORY_MANAGER, CASHIER, KITCHEN_STAFF, WAITER
+        auth_db=# SELECT permission_code FROM role_permissions WHERE role_code='FINANCE_VIEWER';
+         finance.coa.view
+         hr.payroll.view
+
+      ── How it drifted ──
+
+      NOT a context problem — 035 carries context="seed" and that context demonstrably ran here.
+      Verified in databasechangelog:
+
+        auth_db=# SELECT id, contexts, dateexecuted FROM databasechangelog WHERE id LIKE '%035%';
+         auth-1.0.0-035-seed-system-roles | seed | 2026-06-24 00:34:12
+
+      035 ran on 2026-06-24 with the six roles it declared THEN. The FINANCE_VIEWER row was added to
+      it on 2026-06-27, in commit b63074a. runOnChange="false" means that edit never re-applied, so
+      every already-migrated database keeps the original six forever, while 037 and 045 — running
+      later — grant to the seventh regardless.
+
+      This is exactly the mechanism 057 documents one table over, and its consequence is the same:
+      a fresh database and an existing one disagree permanently, and nothing complains. The role is
+      unassignable (RoleCatalog.requireKnown rejects any code with no `roles` row) and no user holds
+      it, so nothing is broken for a user today; what is broken is that the grant table describes a
+      role the role table does not have, and anything reasoning over the grant lattice reads two
+      permissions belonging to nobody.
+
+      No repository-reading test can catch this, because the repository is correct — 030/035 declare
+      FINANCE_VIEWER properly. Only the deployed rows are wrong, which is why the repair has to be a
+      migration, and why it verifies itself below rather than trusting the DELETE.
+
+      ── Delete rather than create ──
+
+      035's own comment calls FINANCE_VIEWER "Dev-only". It exists to hold view+post journal
+      entries without triggering the TOTP step-up, i.e. as a convenience for local testing, and
+      ACCOUNTANT covers the real capability. Creating the role in every production database to
+      satisfy a foreign-key-shaped invariant would ship a dev affordance to customers; deleting the
+      orphan grants states the truth, which is that the role is seed-only. The `roles` row still
+      appears on seeded dev databases via 035, and this changeset deliberately does NOT remove it
+      there.
+
+      RoleCatalogClosureTest (added with this changeset) covers the OTHER half of this defect
+      class: a grant naming a role the changelog never declares at all. It cannot see the case
+      repaired here — see above — and its javadoc says so rather than implying coverage it does not
+      have. PermissionCatalogClosureTest could never have seen either: the codes granted are both
+      real; it is the ROLE that does not exist.
+    -->
+
+    <changeSet id="auth-1.0.0-082-file-permissions" author="restaurantos-agent" runOnChange="false">
+        <comment>file.view / file.upload / file.manage — file-service had no permission at all</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('file.view',   'file', 'List file metadata and download file content for the tenant'),
+              ('file.upload', 'file', 'Upload a file to the tenant''s storage'),
+              ('file.manage', 'file', 'Delete a tenant file (soft-delete; irreversible from the API)')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',             'file.view'),
+              ('OWNER',             'file.upload'),
+              ('OWNER',             'file.manage'),
+              ('TENANT_ADMIN',      'file.view'),
+              ('TENANT_ADMIN',      'file.upload'),
+              ('TENANT_ADMIN',      'file.manage'),
+              ('MANAGER',           'file.view'),
+              ('MANAGER',           'file.upload'),
+              ('MANAGER',           'file.manage'),
+              ('ACCOUNTANT',        'file.view'),
+              ('ACCOUNTANT',        'file.upload'),
+              ('INVENTORY_MANAGER', 'file.view'),
+              ('INVENTORY_MANAGER', 'file.upload')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code IN ('file.view', 'file.upload', 'file.manage');
+                DELETE FROM permissions WHERE code IN ('file.view', 'file.upload', 'file.manage');
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-082-drop-orphan-finance-viewer-grants" author="restaurantos-agent" runOnChange="false">
+        <comment>Remove role_permissions rows for FINANCE_VIEWER where the role itself does not exist</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            DELETE FROM role_permissions rp
+             WHERE rp.role_code = 'FINANCE_VIEWER'
+               AND NOT EXISTS (SELECT 1 FROM roles r WHERE r.code = rp.role_code);
+        </sql>
+
+        <!--
+          Say so if it did not converge, rather than leaving a grant lattice that quietly disagrees
+          with itself. Same reasoning as 056's and 057's RAISE: an operator should be told, not left
+          to deduce it from a role picker coming up short three weeks later.
+
+          Checks EVERY role_code, not just FINANCE_VIEWER — the point of a repair changeset is to
+          leave the invariant true, and a second orphan introduced by some other route should stop
+          the migration rather than ride along behind the one this changeset was written for.
+        -->
+        <sql splitStatements="false">
+            DO $$
+            DECLARE orphan_roles TEXT;
+            BEGIN
+                SELECT string_agg(DISTINCT rp.role_code, ', ') INTO orphan_roles
+                  FROM role_permissions rp
+                 WHERE NOT EXISTS (SELECT 1 FROM roles r WHERE r.code = rp.role_code);
+                IF orphan_roles IS NOT NULL THEN
+                    RAISE EXCEPTION
+                      'role_permissions still grants to role(s) that do not exist in roles: %. A grant to a non-existent role is invisible at runtime - nobody holds the role, so nobody is refused anything - but every consumer that reasons over the grant lattice (the 13-07 role-catalogue ceiling in particular) reads permissions belonging to nobody. Either add the roles row or delete the grants.',
+                      orphan_roles;
+                END IF;
+            END $$;
+        </sql>
+
+        <!--
+          Guarded by NOT EXISTS so this is a no-op on a seeded dev database where 035 did create the
+          role: there the grants are legitimate and must stay. It only removes rows describing a
+          role that is genuinely absent.
+        -->
+        <rollback>
+            <!--
+              No rollback. Reversing this means re-inserting grants for a role that does not exist,
+              which is the defect. 054 and 057 make the same call: a migration's job is not to
+              restore broken data. If FINANCE_VIEWER is later wanted in production, add the `roles`
+              row in a new changeset without the seed context and re-grant deliberately.
+            -->
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

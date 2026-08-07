@@ -24,6 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
 class PurchaseOrderApprovalIT extends PurchasingTestBase {
@@ -73,7 +74,11 @@ class PurchaseOrderApprovalIT extends PurchasingTestBase {
 
     @Test
     void approve_deniedByOpa() {
-        when(authorizationClient.authorize(any())).thenReturn(
+        // Denies approve_po ONLY. A blanket any() deny also refuses the vendor.manage check
+        // VendorService now makes, so the test would fail while creating its own fixture and never
+        // reach the assertion it exists for.
+        when(authorizationClient.authorize(argThat(
+                payload -> payload != null && "approve_po".equals(payload.action())))).thenReturn(
                 ApiResponse.ok(new AuthorizationClient.AuthorizeResult(false, "limit")));
 
         VendorDto vendor = vendorService.create(new CreateVendorRequest(

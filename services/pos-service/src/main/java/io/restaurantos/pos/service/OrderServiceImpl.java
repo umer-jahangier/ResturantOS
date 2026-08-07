@@ -141,13 +141,17 @@ public class OrderServiceImpl implements OrderService {
         // rejected outright rather than replaying an existing order.
         requireOwnBranch(request.branchId());
 
-        // Idempotent on clientOrderId
-        Optional<Order> existing = orderRepository.findByClientOrderId(request.clientOrderId());
+        // Resolved before the idempotency lookup because that lookup is tenant-scoped.
+        UUID tenantId = tenantContext.requireTenantId();
+
+        // Idempotent on (tenant, clientOrderId) — NOT on clientOrderId alone. The client
+        // supplies clientOrderId, so a tenant-blind lookup here let a caller replay another
+        // tenant's order back to itself. See OrderRepository#findByTenantIdAndClientOrderId.
+        Optional<Order> existing =
+                orderRepository.findByTenantIdAndClientOrderId(tenantId, request.clientOrderId());
         if (existing.isPresent()) {
             return orderMapper.toDto(existing.get());
         }
-
-        UUID tenantId = tenantContext.requireTenantId();
 
         Order order = new Order();
         order.setTenantId(tenantId);
@@ -218,7 +222,12 @@ public class OrderServiceImpl implements OrderService {
                     "Cannot add items to order in status: " + order.getStatus());
         }
 
-        MenuItem menuItem = menuItemRepository.findById(request.menuItemId())
+        // SECURITY (tenant isolation): menuItemId is client-supplied, so it is resolved with an
+        // explicitly tenant-scoped lookup. The inherited findById used here previously carried no
+        // tenant predicate, and pos_db's RLS was inert against the owning role — so another
+        // tenant's item could be added to this order and priced at that tenant's price. FORCE RLS
+        // (V11) now blocks this at the database; the predicate below is the second line.
+        MenuItem menuItem = menuItemRepository.findByIdAndTenantId(request.menuItemId(), tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + request.menuItemId()));
 
         // SECURITY (branch isolation): resolve branch-override pricing from the ORDER's own
@@ -382,6 +391,15 @@ public class OrderServiceImpl implements OrderService {
         if (order.getStatus() != OrderStatus.OPEN) {
             throw new io.restaurantos.shared.exception.StateInvalidException(
                     "Cannot apply discount to order in status: " + order.getStatus());
+        }
+
+        // pos.rego's pos.order.discount.override rule. Scoped to whole-order discounts — see
+        // PosAuthorizationService.authorizeDiscountOverride for why a line discount is not gated
+        // by it (doing so would refuse cashiers a discount they can legitimately apply today).
+        if ("ORDER".equals(request.scope())) {
+            posAuthorizationService.authorizeDiscountOverride(
+                    orderId, tenantId, order.getBranchId(),
+                    order.getCashierId(), order.getStatus().name());
         }
 
         long amountPaisa = computeDiscountAmount(request, order);

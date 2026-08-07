@@ -6,6 +6,7 @@ import io.restaurantos.finance.exception.PeriodPreCheckException;
 import io.restaurantos.finance.exception.TotpRequiredException;
 import io.restaurantos.finance.feign.PosInternalClient;
 import io.restaurantos.finance.feign.PurchasingInternalClient;
+import io.restaurantos.finance.authz.FinanceAuthorizationService;
 import io.restaurantos.finance.mapper.PeriodMapper;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
 import io.restaurantos.finance.service.PeriodCloseService;
@@ -48,6 +49,15 @@ class PeriodCloseServiceUnitTest {
     @Mock
     private Query nativeQuery;
 
+    /**
+     * A permissive stand-in for the OPA gate. These are UNIT tests of ledger mechanics — period
+     * state transitions, JE balancing, reversal — and the policy decision is exercised for real
+     * against the rego bundle elsewhere. A Mockito mock's void methods do nothing, so the default
+     * here is "allowed", which keeps every assertion below about the behaviour it was written for.
+     */
+    @Mock
+    private FinanceAuthorizationService authorization;
+
     private PeriodCloseService service;
 
     private AccountingPeriod openPeriod;
@@ -65,7 +75,7 @@ class PeriodCloseServiceUnitTest {
         service = new PeriodCloseService(
                 periodRepo, periodMapper,
                 posClient, purchasingClient,
-                tenantContext, eventPublisher, entityManager
+                tenantContext, eventPublisher, entityManager, authorization
         );
 
         periodId = UUID.randomUUID();

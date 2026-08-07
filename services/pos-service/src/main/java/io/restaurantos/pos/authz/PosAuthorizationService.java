@@ -57,6 +57,36 @@ public class PosAuthorizationService {
     }
 
     /**
+     * Authorize an ORDER-scope discount — {@code pos.rego}'s {@code pos.order.discount.override}
+     * rule, a dead letter until phase 18b.
+     *
+     * <p>Bound to ORDER scope, not to every discount. {@code pos.order.discount.override} is held
+     * by OWNER, MANAGER and TENANT_ADMIN — exactly the roles that already hold
+     * {@code pos.order.discount.order}, and NOT by CASHIER, who holds
+     * {@code pos.order.discount.line}. Calling this on every discount would therefore have stopped
+     * cashiers applying line discounts, which is a working feature; binding it to the whole-order
+     * discount adds the policy's tenant/branch and resource test to the manager-level action
+     * without withdrawing anything anyone can do today.
+     */
+    public void authorizeDiscountOverride(UUID orderId, UUID tenantId, UUID branchId,
+                                          UUID createdBy, String status) {
+        OpaInput.Resource resource = new OpaInput.Resource(
+                "order", orderId, tenantId, branchId, createdBy, status, null);
+        authorizationService.authorize("pos", "pos.order.discount.override", resource);
+    }
+
+    /**
+     * Authorize a bill split — {@code pos.rego}'s {@code pos.order.split_bill} rule, also a dead
+     * letter until phase 18b (the endpoint was {@code @PreAuthorize}-gated only).
+     */
+    public void authorizeSplitBill(UUID orderId, UUID tenantId, UUID branchId,
+                                   UUID createdBy, String status) {
+        OpaInput.Resource resource = new OpaInput.Resource(
+                "order", orderId, tenantId, branchId, createdBy, status, null);
+        authorizationService.authorize("pos", "pos.order.split_bill", resource);
+    }
+
+    /**
      * Local (non-OPA) check of the current JWT's {@code permissions} claim — used to gate
      * own-vs-all-branch VIEW scoping (POS-09/POS-10), which is a fast read-path decision, not
      * an OPA-evaluated action (pos.rego has no "view" rule; void/refund/discount/split-bill

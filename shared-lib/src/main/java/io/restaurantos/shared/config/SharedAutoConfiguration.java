@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.restaurantos.shared.api.GlobalExceptionHandler;
+import io.restaurantos.shared.authz.AuthorizationService;
 import io.restaurantos.shared.authz.DefaultOpaClient;
 import io.restaurantos.shared.authz.OpaClient;
 import io.restaurantos.shared.event.EventEnvelopeReader;
@@ -24,14 +25,18 @@ import io.restaurantos.shared.idempotency.IdempotencyKeyRepository;
 import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.*;
 import jakarta.persistence.EntityManager;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -159,11 +164,56 @@ public class SharedAutoConfiguration implements WebMvcConfigurer {
 
     // ── OPA (optional in dev — disabled when OPA_URL unset) ──────────────────
 
+    /**
+     * The 2-second connect and read budget for every OPA call in the platform.
+     *
+     * <p>It lives here rather than in a per-service {@code @Configuration} because the alternative
+     * was measured and found wanting: authorization-service set this budget in its own
+     * {@code OpaConfig}, and pos, inventory and kitchen — which resolve the bean below — had
+     * <b>no timeouts at all</b>. {@link DefaultOpaClient} is fail-closed on any exception, so those
+     * three denied correctly when OPA <em>refused</em> a connection; a hung OPA is the case with no
+     * exception to catch, and an unbounded {@code RestClient} waits for it forever, holding a
+     * Tomcat worker per request until the pool is exhausted.
+     *
+     * <p>Fail-closed therefore has two halves, and only one of them was implemented: deny on error,
+     * and <em>bound the time before that error occurs</em>. A policy engine that never answers must
+     * be treated as a policy engine that answered "no".
+     */
+    private static final Duration OPA_TIMEOUT = Duration.ofSeconds(2);
+
     @Bean
     @ConditionalOnProperty(name = "restaurantos.opa.url", matchIfMissing = false)
     public OpaClient opaClient(@Value("${restaurantos.opa.url}") String opaUrl) {
-        RestClient restClient = RestClient.builder().baseUrl(opaUrl).build();
-        return new DefaultOpaClient(restClient);
+        return new DefaultOpaClient(opaRestClient(opaUrl));
+    }
+
+    /**
+     * The {@link AuthorizationService} every direct-OPA service needs, wired once.
+     *
+     * <p>Each service used to declare this itself, in its own {@code SecurityConfig} — four
+     * hand-copied definitions of a two-line bean. That is the mechanism by which enforcement comes
+     * to differ between processes: a copy is only identical on the day it is made.
+     * {@code @ConditionalOnMissingBean} keeps any service that still declares its own working
+     * unchanged, so this is additive.
+     */
+    @Bean
+    @ConditionalOnProperty(name = "restaurantos.opa.url", matchIfMissing = false)
+    @ConditionalOnMissingBean(AuthorizationService.class)
+    public AuthorizationService authorizationService(OpaClient opaClient) {
+        return new AuthorizationService(opaClient);
+    }
+
+    /** A {@link RestClient} that cannot be built without the timeout budget applied. */
+    private static RestClient opaRestClient(String opaUrl) {
+        HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(OPA_TIMEOUT)
+            .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(OPA_TIMEOUT);
+        return RestClient.builder()
+            .baseUrl(opaUrl)
+            .requestFactory(factory)
+            .build();
     }
 
     // ── Idempotency ──────────────────────────────────────────────────────────

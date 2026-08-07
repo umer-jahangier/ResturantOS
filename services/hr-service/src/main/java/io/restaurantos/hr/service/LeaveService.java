@@ -2,6 +2,7 @@ package io.restaurantos.hr.service;
 
 import io.restaurantos.hr.entity.EmployeeEntity;
 import io.restaurantos.hr.entity.LeaveAccrualLogEntity;
+import io.restaurantos.hr.authz.HrAuthorizationService;
 import io.restaurantos.hr.entity.LeaveBalanceEntity;
 import io.restaurantos.hr.entity.LeaveRequestEntity;
 import io.restaurantos.hr.entity.LeaveRequestEntity.Status;
@@ -37,6 +38,7 @@ public class LeaveService {
     private final EmployeeRepository employeeRepository;
     private final LeaveAccrualLogRepository accrualLogRepository;
     private final TenantContext tenantContext;
+    private final HrAuthorizationService authorization;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -44,13 +46,14 @@ public class LeaveService {
     public LeaveService(LeaveTypeRepository typeRepository, LeaveRequestRepository requestRepository,
                         LeaveBalanceRepository balanceRepository, EmployeeRepository employeeRepository,
                         LeaveAccrualLogRepository accrualLogRepository,
-                        TenantContext tenantContext) {
+                        TenantContext tenantContext, HrAuthorizationService authorization) {
         this.typeRepository = typeRepository;
         this.requestRepository = requestRepository;
         this.balanceRepository = balanceRepository;
         this.employeeRepository = employeeRepository;
         this.accrualLogRepository = accrualLogRepository;
         this.tenantContext = tenantContext;
+        this.authorization = authorization;
     }
 
     public record CreateTypeRequest(String name, boolean paid, BigDecimal accrualDaysPerMonth) {
@@ -123,6 +126,7 @@ public class LeaveService {
     public LeaveRequestResponse approve(UUID requestId) {
         UUID tenantId = requireTenant();
         LeaveRequestEntity r = loadRequest(requestId, tenantId);
+        authorization.authorizeLeaveApprove(r.getId(), tenantId, branchOfEmployee(tenantId, r.getEmployeeId()));
         if (r.getStatus() != Status.PENDING) {
             throw new IllegalStateException("Only a PENDING request can be approved; is " + r.getStatus());
         }
@@ -140,7 +144,9 @@ public class LeaveService {
 
     @Transactional
     public LeaveRequestResponse reject(UUID requestId) {
-        LeaveRequestEntity r = loadRequest(requestId, requireTenant());
+        UUID tenantId = requireTenant();
+        LeaveRequestEntity r = loadRequest(requestId, tenantId);
+        authorization.authorizeLeaveApprove(r.getId(), tenantId, branchOfEmployee(tenantId, r.getEmployeeId()));
         if (r.getStatus() != Status.PENDING) {
             throw new IllegalStateException("Only a PENDING request can be rejected; is " + r.getStatus());
         }
@@ -152,6 +158,9 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public List<LeaveRequestResponse> listRequests(UUID employeeId) {
         UUID tenantId = requireTenant();
+        authorization.authorizeLeaveView(tenantId, employeeId != null
+                ? branchOfEmployee(tenantId, employeeId)
+                : requireBranch());
         List<LeaveRequestEntity> rows = employeeId != null
                 ? requestRepository.findAllByEmployeeId(employeeId)
                 : requestRepository.findAllByTenantId(tenantId);
@@ -160,6 +169,8 @@ public class LeaveService {
 
     @Transactional(readOnly = true)
     public List<BalanceResponse> balances(UUID employeeId) {
+        UUID tenantId = requireTenant();
+        authorization.authorizeLeaveView(tenantId, branchOfEmployee(tenantId, employeeId));
         return balanceRepository.findAllByEmployeeId(employeeId).stream()
                 .map(b -> new BalanceResponse(b.getLeaveTypeId(), b.getPeriodYear(), b.getBalanceDays())).toList();
     }
@@ -255,6 +266,21 @@ public class LeaveService {
     private LeaveRequestEntity loadRequest(UUID id, UUID tenantId) {
         return requestRepository.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Leave request not found: " + id));
+    }
+
+    /**
+     * A leave request carries no branch of its own — it inherits the employee's. Resolving it here
+     * is what lets hr.rego apply same_tenant_and_branch to leave at all.
+     */
+    private UUID branchOfEmployee(UUID tenantId, UUID employeeId) {
+        return employeeRepository.findByIdAndTenantId(employeeId, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId))
+                .getBranchId();
+    }
+
+    private UUID requireBranch() {
+        return tenantContext.getBranchId()
+                .orElseThrow(() -> new IllegalStateException("No branch context"));
     }
 
     private UUID requireTenant() {

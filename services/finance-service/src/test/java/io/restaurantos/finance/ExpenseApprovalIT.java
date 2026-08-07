@@ -60,8 +60,10 @@ class ExpenseApprovalIT extends FinanceTestBase {
     @Autowired
     private TenantContext tenantContext;
 
-    @MockitoBean
-    private AuthorizationClient authorizationClient;
+    // AuthorizationClient is inherited from FinanceTestBase, which @MockitoBeans it and defaults the
+    // six LEDGER actions to allow. Redeclaring it here would register a second bean override for
+    // the same type. This class stubs the "approve" action itself, which the base deliberately
+    // leaves alone.
 
     private UUID tenantId;
     private UUID branchId;

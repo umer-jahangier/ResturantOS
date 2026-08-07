@@ -75,5 +75,10 @@
          TENANT_ADMIN explicitly rather than relying on 057 above, which is point-in-time like
          every other blanket grant in this changelog and retro-grants nothing added after it. -->
     <include file="db/changelog/v1.0.0/059-audit-log-view-permission.xml"/>
+    <!-- 18b-01: file.view/upload/manage — file-service enforced NOTHING beyond authenticated(), so
+         any token in the tenant could delete any file — plus removal of the FINANCE_VIEWER grants
+         that name a role no non-seed database has. Grants explicitly, like 055 and 059, because
+         057's catalogue-wide repair is point-in-time and retro-grants nothing added after it. -->
+    <include file="db/changelog/v1.0.0/082-file-permissions-and-finance-viewer-role.xml"/>
 
 </databaseChangeLog>

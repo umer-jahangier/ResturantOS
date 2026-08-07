@@ -1,5 +1,6 @@
 package io.restaurantos.finance.service;
 
+import io.restaurantos.finance.authz.FinanceAuthorizationService;
 import io.restaurantos.finance.domain.enums.JeStatus;
 import io.restaurantos.finance.domain.enums.PeriodStatus;
 import io.restaurantos.finance.domain.model.AccountingPeriod;
@@ -55,6 +56,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
     private final EntityManager entityManager;
+    private final FinanceAuthorizationService authorization;
 
     public JournalEntryServiceImpl(JournalEntryRepository jeRepo,
                                     AccountingPeriodRepository periodRepo,
@@ -63,7 +65,8 @@ public class JournalEntryServiceImpl implements JournalEntryService {
                                     JournalEntryMapper mapper,
                                     TenantContext tenantContext,
                                     EventPublisher eventPublisher,
-                                    EntityManager entityManager) {
+                                    EntityManager entityManager,
+                                    FinanceAuthorizationService authorization) {
         this.jeRepo = jeRepo;
         this.periodRepo = periodRepo;
         this.coaRepo = coaRepo;
@@ -72,6 +75,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
         this.entityManager = entityManager;
+        this.authorization = authorization;
     }
 
     private void ensureTenantGuc() {
@@ -97,8 +101,37 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         }
     }
 
+    /**
+     * User-facing JE creation: the {@code post_journal} gate, then the mechanics.
+     *
+     * <p>The gate lives HERE and not in {@link #createInternal} because {@link #autoPostInternal}
+     * — the seam POS, HR, inventory and purchasing post through — has no user principal to
+     * authorize. It arrives on {@code /internal/**} behind the shared-service secret, carrying a
+     * system identity, and asking OPA whether "the caller" holds {@code finance.journal.post} would
+     * deny every automatic posting in the platform. Gating {@code create} directly did exactly that
+     * and took 27 auto-posting tests down with it.
+     */
     @Override
     public JournalEntryDto create(CreateJeRequest req) {
+        return create(req, true);
+    }
+
+    /** Mechanics only — NO authorization. Reachable from {@link #autoPostInternal}. */
+    private JournalEntryDto createInternal(CreateJeRequest req) {
+        return create(req, false);
+    }
+
+    /**
+     * @param enforcePolicy false ONLY on the internal auto-posting seam.
+     *
+     * <p>The gate sits where it does — after the period and account-code checks, next to the branch
+     * it needs — rather than at the top of the public method. Hoisting it changed the order in which
+     * this method fails: a post to a LOCKED period with no branch context started reporting "Branch
+     * context required" instead of 423 PERIOD_LOCKED, because the gate resolved the branch before
+     * the period check ran. Neither answer is a security decision, and the caller has already
+     * cleared {@code @PreAuthorize}, so the honest one is the one that names the real problem.
+     */
+    private JournalEntryDto create(CreateJeRequest req, boolean enforcePolicy) {
         ensureTenantGuc();
         UUID currentTenantId = tenantContext.requireTenantId();
         AccountingPeriod period = periodRepo
@@ -112,6 +145,9 @@ public class JournalEntryServiceImpl implements JournalEntryService {
 
         validateAccountCodes(currentTenantId, req);
         UUID branchId = requireBranchId(req.branchId());
+        if (enforcePolicy) {
+            authorization.authorizePostJournal(null, currentTenantId, branchId);
+        }
 
         JournalEntry je = new JournalEntry();
         // NEVER set je.setId() — Spring Data calls merge() on non-null ID [03-02-B]
@@ -139,8 +175,18 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         // NOTE: deferred trigger registered but NOT fired yet (fires at @Transactional commit)
     }
 
+    /** User-facing posting: {@code post_journal} on the JE's OWN branch, then the mechanics. */
     @Override
     public JournalEntryDto post(UUID jeId) {
+        ensureTenantGuc();
+        JournalEntry target = jeRepo.findById(jeId)
+                .orElseThrow(() -> new JeNotFoundException(jeId));
+        authorization.authorizePostJournal(target.getId(), target.getTenantId(), target.getBranchId());
+        return postInternal(jeId);
+    }
+
+    /** Mechanics only — NO authorization. Reachable from {@link #autoPostInternal}. */
+    private JournalEntryDto postInternal(UUID jeId) {
         ensureTenantGuc();
         JournalEntry je = jeRepo.findById(jeId)
                 .orElseThrow(() -> new JeNotFoundException(jeId));
@@ -179,14 +225,16 @@ public class JournalEntryServiceImpl implements JournalEntryService {
             return new InternalJePostResponse(je.getId(), je.getEntryNo());
         }
 
-        JournalEntryDto draft = create(new CreateJeRequest(
+        // Deliberately createInternal/postInternal: this seam is authorized by the internal
+        // shared-service secret at the controller, not by a user's finance.journal.post claim.
+        JournalEntryDto draft = createInternal(new CreateJeRequest(
                 req.entryDate(),
                 req.description(),
                 req.branchId(),
                 req.sourceType(),
                 req.sourceId(),
                 req.lines()));
-        JournalEntryDto posted = post(draft.id());
+        JournalEntryDto posted = postInternal(draft.id());
         return new InternalJePostResponse(posted.id(), posted.entryNo());
     }
 
@@ -195,6 +243,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         ensureTenantGuc();
         JournalEntry orig = jeRepo.findById(jeId)
                 .orElseThrow(() -> new JeNotFoundException(jeId));
+        authorization.authorizeReverseJournal(orig.getId(), orig.getTenantId(), orig.getBranchId());
 
         if (orig.getStatus() != JeStatus.POSTED) {
             throw new IllegalStateException("Only POSTED JEs can be reversed");
@@ -252,9 +301,11 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     @Transactional(readOnly = true)
     public JournalEntryDto getById(UUID jeId) {
         ensureTenantGuc();
-        return jeRepo.findById(jeId)
-                .map(mapper::toDto)
-                .orElseThrow(() -> new JeNotFoundException(jeId));
+        JournalEntry je = jeRepo.findById(jeId).orElseThrow(() -> new JeNotFoundException(jeId));
+        // findById is branch-blind — the same shape as EmployeeService.load. view_journal is
+        // same_tenant_and_branch, so the JE's OWN branch is what the policy must be asked about.
+        authorization.authorizeViewJournal(je.getId(), je.getTenantId(), je.getBranchId());
+        return mapper.toDto(je);
     }
 
     @Override
@@ -262,6 +313,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     public Page<JournalEntryDto> listByPeriod(UUID periodId, Pageable pageable) {
         ensureTenantGuc();
         UUID branchId = requireBranchId(null);
+        authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
         return jeRepo.findByPeriodIdAndBranchId(periodId, branchId, pageable).map(mapper::toDto);
     }
 
@@ -270,6 +322,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     public Page<JournalEntryDto> listByDateRange(LocalDate from, LocalDate to, Pageable pageable) {
         ensureTenantGuc();
         UUID branchId = requireBranchId(null);
+        authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
         return jeRepo.findByEntryDateBetweenAndBranchId(from, to, branchId, pageable)
                 .map(mapper::toDto);
     }

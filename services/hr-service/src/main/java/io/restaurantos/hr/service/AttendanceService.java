@@ -1,5 +1,6 @@
 package io.restaurantos.hr.service;
 
+import io.restaurantos.hr.authz.HrAuthorizationService;
 import io.restaurantos.hr.entity.AttendanceDeviceEntity;
 import io.restaurantos.hr.entity.AttendanceDeviceEntity.ConnectionMode;
 import io.restaurantos.hr.entity.AttendancePunchEntity;
@@ -39,16 +40,19 @@ public class AttendanceService {
     private final ShiftRepository shiftRepository;
     private final EmployeeRepository employeeRepository;
     private final TenantContext tenantContext;
+    private final HrAuthorizationService authorization;
 
     public AttendanceService(AttendancePunchRepository punchRepository, AttendanceDeviceRepository deviceRepository,
                              ShiftAssignmentRepository assignmentRepository, ShiftRepository shiftRepository,
-                             EmployeeRepository employeeRepository, TenantContext tenantContext) {
+                             EmployeeRepository employeeRepository, TenantContext tenantContext,
+                             HrAuthorizationService authorization) {
         this.punchRepository = punchRepository;
         this.deviceRepository = deviceRepository;
         this.assignmentRepository = assignmentRepository;
         this.shiftRepository = shiftRepository;
         this.employeeRepository = employeeRepository;
         this.tenantContext = tenantContext;
+        this.authorization = authorization;
     }
 
     public record DailyAttendanceSummary(UUID employeeId, LocalDate date, Instant firstIn, Instant lastOut,
@@ -69,6 +73,9 @@ public class AttendanceService {
         UUID tenantId = requireTenant();
         EmployeeEntity employee = employeeRepository.findByIdAndTenantId(employeeId, tenantId)
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        // The employee's branch, not the caller's — a punch recorded against another branch's
+        // employee is exactly what hr.rego's same_tenant_and_branch exists to refuse.
+        authorization.authorizeAttendanceManage(tenantId, employee.getBranchId());
         AttendanceDeviceEntity manual = ensureManualDevice(tenantId, employee.getBranchId());
         AttendancePunchEntity p = new AttendancePunchEntity();
         p.setTenantId(tenantId);
@@ -84,6 +91,10 @@ public class AttendanceService {
 
     @Transactional(readOnly = true)
     public List<AttendancePunchEntity> punchesForDay(UUID employeeId, LocalDate date) {
+        UUID tenantId = requireTenant();
+        EmployeeEntity employee = employeeRepository.findByIdAndTenantId(employeeId, tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId));
+        authorization.authorizeAttendanceView(tenantId, employee.getBranchId());
         Instant start = date.atStartOfDay(ZONE).toInstant();
         Instant end = date.plusDays(1).atStartOfDay(ZONE).toInstant();
         return punchRepository.findAllByEmployeeIdAndDeviceReportedAtBetweenOrderByDeviceReportedAtAsc(employeeId, start, end);

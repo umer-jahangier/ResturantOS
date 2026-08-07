@@ -3,6 +3,7 @@ package io.restaurantos.hr.service;
 import io.restaurantos.hr.dto.EmployeeDtos.CreateEmployeeRequest;
 import io.restaurantos.hr.dto.EmployeeDtos.EmployeeResponse;
 import io.restaurantos.hr.dto.EmployeeDtos.UpdateEmployeeRequest;
+import io.restaurantos.hr.authz.HrAuthorizationService;
 import io.restaurantos.hr.entity.EmployeeEntity;
 import io.restaurantos.hr.repository.EmployeeRepository;
 import io.restaurantos.shared.event.EventPublisher;
@@ -20,6 +21,20 @@ import java.util.UUID;
  * Employee CRUD. Tenant + branch are ALWAYS taken from {@link TenantContext}, never from the
  * request. Create/deactivate publish EMPLOYEE_JOINED / EMPLOYEE_LEFT through the transactional
  * outbox on {@code hr.topic}.
+ *
+ * <h2>Branch isolation is enforced by policy, not by the query</h2>
+ *
+ * <p>{@link #load(UUID)} resolves by tenant only. That used to be the whole story, and it meant
+ * {@code get}, {@code update} and {@code deactivate} reached ANY employee in the tenant: a manager
+ * at one branch could read and modify {@code basicSalaryPaisa} at another. {@code hr.rego} had
+ * required {@code same_tenant_and_branch} on all nine HR actions since it was written, with 28
+ * passing tests — and hr-service had no OPA client at all, so none of it applied.
+ *
+ * <p>The fix is not a narrower {@code WHERE} clause. Each of those three methods now loads the
+ * record and hands the record's OWN tenant and branch to {@link HrAuthorizationService}, so OPA
+ * decides. A cross-branch request is refused by {@code hr.rego} as a 403, not hidden by a query as
+ * a 404, and the policy stays the thing that can be tested, audited and changed. See
+ * {@code HrAuthorizationService} for why that ordering matters.
  */
 @Service
 public class EmployeeService {
@@ -29,18 +44,22 @@ public class EmployeeService {
     private final EmployeeRepository repository;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
+    private final HrAuthorizationService authorization;
 
     public EmployeeService(EmployeeRepository repository, TenantContext tenantContext,
-                           EventPublisher eventPublisher) {
+                           EventPublisher eventPublisher, HrAuthorizationService authorization) {
         this.repository = repository;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
+        this.authorization = authorization;
     }
 
     @Transactional
     public EmployeeResponse create(CreateEmployeeRequest req) {
         UUID tenantId = requireTenant();
         UUID branchId = requireBranch();
+        // The new record is created in the caller's own branch, so that is the resource scope.
+        authorization.authorizeEmployeeManage(tenantId, branchId);
         if (repository.existsByTenantIdAndEmployeeNo(tenantId, req.employeeNo())) {
             throw new IllegalStateException("Employee number already exists: " + req.employeeNo());
         }
@@ -66,17 +85,22 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public List<EmployeeResponse> list() {
-        return repository.findAllByBranchId(requireBranch()).stream().map(EmployeeService::toResponse).toList();
+        UUID branchId = requireBranch();
+        authorization.authorizeEmployeeView(requireTenant(), branchId);
+        return repository.findAllByBranchId(branchId).stream().map(EmployeeService::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public EmployeeResponse get(UUID id) {
-        return toResponse(load(id));
+        EmployeeEntity e = load(id);
+        authorization.authorizeEmployeeView(e.getId(), e.getTenantId(), e.getBranchId());
+        return toResponse(e);
     }
 
     @Transactional
     public EmployeeResponse update(UUID id, UpdateEmployeeRequest req) {
         EmployeeEntity e = load(id);
+        authorization.authorizeEmployeeManage(e.getId(), e.getTenantId(), e.getBranchId());
         e.setFullName(req.fullName());
         e.setUserId(req.userId());
         // Encrypted PII is write-only from the client's point of view: reads return only masked
@@ -102,12 +126,18 @@ public class EmployeeService {
     @Transactional
     public void deactivate(UUID id) {
         EmployeeEntity e = load(id);
+        authorization.authorizeEmployeeManage(e.getId(), e.getTenantId(), e.getBranchId());
         e.setActive(false);
         e.setExitDate(LocalDate.now());
         e = repository.save(e);
         publishEmployeeEvent("hr.employee.left", "EMPLOYEE_LEFT", e);
     }
 
+    /**
+     * Resolves by tenant only, DELIBERATELY. Callers must authorize the loaded record's own branch
+     * through {@link HrAuthorizationService} before acting on it — narrowing this query instead
+     * would make the policy check unreachable and therefore untestable. See the class javadoc.
+     */
     private EmployeeEntity load(UUID id) {
         return repository.findByIdAndTenantId(id, requireTenant())
                 .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));

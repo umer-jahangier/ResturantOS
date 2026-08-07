@@ -1,6 +1,7 @@
 package io.restaurantos.hr.service;
 
 import io.restaurantos.hr.entity.EmployeeEntity;
+import io.restaurantos.hr.authz.HrAuthorizationService;
 import io.restaurantos.hr.entity.PayrollRunEntity;
 import io.restaurantos.hr.entity.PayrollRunEntity.Status;
 import io.restaurantos.hr.entity.PayslipEntity;
@@ -41,12 +42,14 @@ public class PayrollRunService {
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
     private final LateArrivalDeductionService lateArrivalDeductionService;
+    private final HrAuthorizationService authorization;
 
     public PayrollRunService(PayrollRunRepository runRepository, PayslipRepository payslipRepository,
                              EmployeeRepository employeeRepository, TaxConfigService taxConfigService,
                              SlabTaxCalculator slabTaxCalculator, EobiCalculator eobiCalculator,
                              EventPublisher eventPublisher, TenantContext tenantContext,
-                             LateArrivalDeductionService lateArrivalDeductionService) {
+                             LateArrivalDeductionService lateArrivalDeductionService,
+                             HrAuthorizationService authorization) {
         this.runRepository = runRepository;
         this.payslipRepository = payslipRepository;
         this.employeeRepository = employeeRepository;
@@ -56,11 +59,13 @@ public class PayrollRunService {
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
         this.lateArrivalDeductionService = lateArrivalDeductionService;
+        this.authorization = authorization;
     }
 
     @Transactional
     public PayrollRunEntity create(int periodMonth, int periodYear) {
         UUID tenantId = requireTenant();
+        authorization.authorizePayrollRun(null, tenantId, requireBranch());
         runRepository.findByTenantIdAndPeriodMonthAndPeriodYear(tenantId, periodMonth, periodYear)
                 .ifPresent(r -> {
                     throw new IllegalStateException(
@@ -86,6 +91,7 @@ public class PayrollRunService {
     /** Generate a payslip per active employee; idempotent (replaces this run's payslips in one tx). */
     @Transactional
     public PayrollRunEntity calculate(UUID runId) {
+        authorizePayrollRunOn(runId);
         PayrollRunEntity run = load(runId);
         if (run.getStatus() != Status.DRAFT && run.getStatus() != Status.CALCULATED) {
             throw new IllegalStateException("Only a DRAFT/CALCULATED run can be calculated; is " + run.getStatus());
@@ -190,6 +196,7 @@ public class PayrollRunService {
             throw new TotpRequiredException();
         }
         PayrollRunEntity run = load(runId);
+        authorization.authorizePayrollApprove(run.getId(), run.getTenantId(), run.getBranchId());
         if (run.getStatus() != Status.CALCULATED) {
             throw new IllegalStateException("Only a CALCULATED run can be approved; is " + run.getStatus());
         }
@@ -219,6 +226,7 @@ public class PayrollRunService {
     @Transactional
     public PayrollRunEntity pay(UUID runId) {
         PayrollRunEntity run = load(runId);
+        authorization.authorizePayrollApprove(run.getId(), run.getTenantId(), run.getBranchId());
         if (run.getStatus() != Status.APPROVED) {
             throw new IllegalStateException("Only an APPROVED run can be paid; is " + run.getStatus());
         }
@@ -239,18 +247,32 @@ public class PayrollRunService {
 
     @Transactional(readOnly = true)
     public PayrollRunEntity get(UUID runId) {
-        return load(runId);
+        PayrollRunEntity run = load(runId);
+        authorization.authorizePayrollView(run.getTenantId(), run.getBranchId());
+        return run;
     }
 
     @Transactional(readOnly = true)
     public List<PayrollRunEntity> list() {
+        authorization.authorizePayrollView(requireTenant(), requireBranch());
         return runRepository.findAllByTenantId(requireTenant());
     }
 
     @Transactional(readOnly = true)
     public List<PayslipEntity> payslips(UUID runId) {
-        load(runId); // tenant-scoped existence check
+        PayrollRunEntity run = load(runId); // tenant-scoped; hr.rego applies the branch test
+        authorization.authorizePayrollView(run.getTenantId(), run.getBranchId());
         return payslipRepository.findAllByRunId(runId);
+    }
+
+    /**
+     * {@code payroll_run} on the run's OWN branch. {@link #load(UUID)} is tenant-scoped, exactly as
+     * {@code EmployeeService.load} is, so without this a run belonging to another branch was
+     * readable and mutable from anywhere in the tenant.
+     */
+    private void authorizePayrollRunOn(UUID runId) {
+        PayrollRunEntity run = load(runId);
+        authorization.authorizePayrollRun(run.getId(), run.getTenantId(), run.getBranchId());
     }
 
     private PayrollRunEntity load(UUID runId) {

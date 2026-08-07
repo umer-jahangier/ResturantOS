@@ -3,7 +3,10 @@ package io.restaurantos.finance;
 import io.restaurantos.shared.idempotency.IdempotencyKeyRepository;
 import io.restaurantos.shared.event.OutboxRepository;
 import org.flywaydb.core.Flyway;
+import io.restaurantos.finance.feign.AuthorizationClient;
+import io.restaurantos.shared.api.ApiResponse;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -11,6 +14,11 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import java.util.Set;
+
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.when;
 
 /**
  * Base class for finance-service integration tests.
@@ -81,4 +89,36 @@ public abstract class FinanceTestBase {
 
     @MockitoBean
     protected OutboxRepository outboxRepository;
+
+    /**
+     * The OPA gate, allowed by default for the LEDGER actions only.
+     *
+     * <p>Phase 18b wired {@code finance.rego}'s six dead-letter rules into this service. Most ITs
+     * here post journal entries, read them back, or close a period as part of asserting something
+     * else entirely — balance triggers, immutability, AR ledger mechanics — and without a stub the
+     * real Feign client tries to reach authorization-service, which is not running, and
+     * {@code FinanceAuthorizationService} correctly turns that into a deny.
+     *
+     * <p>Matched on the action rather than {@code any()} deliberately. A blanket allow would also
+     * satisfy {@code approve}, whose deny path {@code ExpenseApprovalIT} and
+     * {@code ExpenseOpaPolicyIT} assert against real approval limits — the over-limit test would
+     * have gone green while proving nothing. Only the six actions this phase introduced are
+     * defaulted; {@code approve} keeps whatever behaviour each test gives it.
+     *
+     * <p>The policy itself is exercised for real, against the rego bundle in a container, by
+     * {@code ExpenseOpaPolicyIT} and by the reachability test in authorization-service.
+     */
+    @MockitoBean
+    protected AuthorizationClient authorizationClient;
+
+    private static final Set<String> LEDGER_ACTIONS = Set.of(
+            "close_period", "view_coa", "manage_coa",
+            "view_journal", "post_journal", "reverse_journal");
+
+    @BeforeEach
+    void allowLedgerActionsByDefault() {
+        when(authorizationClient.authorize(argThat(
+                payload -> payload != null && LEDGER_ACTIONS.contains(payload.action()))))
+            .thenReturn(ApiResponse.ok(new AuthorizationClient.AuthorizeResult(true, null)));
+    }
 }

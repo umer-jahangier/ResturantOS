@@ -4,7 +4,12 @@ import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.pos.dto.OrderPaymentDto;
 import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.SplitTenderCalculator;
+import io.restaurantos.pos.authz.PosAuthorizationService;
+import io.restaurantos.pos.domain.model.Order;
+import io.restaurantos.pos.exception.PosExceptions;
+import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -23,11 +28,20 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final SplitTenderCalculator splitTenderCalculator;
+    private final OrderRepository orderRepository;
+    private final PosAuthorizationService posAuthorizationService;
+    private final TenantContext tenantContext;
 
     public PaymentController(PaymentService paymentService,
-                             SplitTenderCalculator splitTenderCalculator) {
+                             SplitTenderCalculator splitTenderCalculator,
+                             OrderRepository orderRepository,
+                             PosAuthorizationService posAuthorizationService,
+                             TenantContext tenantContext) {
         this.paymentService = paymentService;
         this.splitTenderCalculator = splitTenderCalculator;
+        this.orderRepository = orderRepository;
+        this.posAuthorizationService = posAuthorizationService;
+        this.tenantContext = tenantContext;
     }
 
     /**
@@ -93,6 +107,17 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<List<Long>>> splitPreview(
             @PathVariable UUID id,
             @Valid @RequestBody SplitPreviewRequest request) {
+        // pos.rego's pos.order.split_bill rule, a dead letter until phase 18b. The ORDER's own
+        // branch is what the policy is asked about — passing the caller's own branch would compare
+        // it against itself and enforce nothing.
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = orderRepository.findById(id)
+                .filter(o -> tenantId.equals(o.getTenantId()))
+                .orElseThrow(() -> new PosExceptions.OrderNotFoundException(id.toString()));
+        posAuthorizationService.authorizeSplitBill(
+                id, tenantId, order.getBranchId(),
+                order.getCashierId(), order.getStatus().name());
+
         List<Long> shares = splitTenderCalculator.equalSplit(request.totalPaisa(), request.diners());
         return ResponseEntity.ok(ApiResponse.ok(shares));
     }

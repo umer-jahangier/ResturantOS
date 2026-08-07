@@ -8,6 +8,7 @@ import io.restaurantos.purchasing.dto.PurchaseOrderDto;
 import io.restaurantos.purchasing.dto.VendorDto;
 import io.restaurantos.purchasing.exception.ApprovalLimitExceededException;
 import io.restaurantos.purchasing.opa.OpaBackedAuthorizationClient;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.purchasing.opa.RealOpaTestConfig;
 import io.restaurantos.purchasing.opa.TestPrincipal;
 import io.restaurantos.purchasing.service.GrnReceiptSimulator;
@@ -86,7 +87,10 @@ class PurchasingOpaPolicyIT extends PurchasingTestBase {
 
         // Default principal: same tenant/branch as the resource, full permission, generous limit.
         // Individual tests narrow this down to exercise a specific deny path.
-        setPrincipal(tenantId, branchId, List.of("vendor.po.approve", "vendor.po.close"),
+        // vendor.manage is present so the vendor FIXTURE each test creates is allowed by the real
+        // policy. The rule itself is asserted directly in the two vendorManage_* tests below.
+        setPrincipal(tenantId, branchId,
+                List.of("vendor.po.approve", "vendor.po.close", "vendor.manage"),
                 Map.of("approval_limit_paisa", 100_000_000L));
     }
 
@@ -99,8 +103,26 @@ class PurchasingOpaPolicyIT extends PurchasingTestBase {
     }
 
     private PurchaseOrderDto createSubmittedPo(long unitPricePaisa) {
-        VendorDto vendor = vendorService.create(new CreateVendorRequest(
-                "Supplier Co", null, null, null, null, "NET30", null, null, null, null, null));
+        // Creating the vendor is FIXTURE, not the thing under test, and vendor.manage is now a real
+        // policy check. Tests here narrow the principal to exercise a specific approve/close deny
+        // path, which would otherwise refuse them their own setup. Grant vendor.manage just for the
+        // fixture and put the principal back, so what each test asserts is still decided entirely
+        // by the permissions IT chose.
+        List<String> callerPermissions = testPrincipal.permissions();
+        Map<String, Object> callerAttributes = testPrincipal.attributes();
+        List<String> withManage = new java.util.ArrayList<>(callerPermissions);
+        if (!withManage.contains("vendor.manage")) {
+            withManage.add("vendor.manage");
+        }
+        testPrincipal.setPermissions(withManage);
+        VendorDto vendor;
+        try {
+            vendor = vendorService.create(new CreateVendorRequest(
+                    "Supplier Co", null, null, null, null, "NET30", null, null, null, null, null));
+        } finally {
+            testPrincipal.setPermissions(callerPermissions);
+            testPrincipal.setAttributes(callerAttributes);
+        }
 
         PurchaseOrderDto po = purchaseOrderService.create(new CreatePurchaseOrderRequest(
                 vendor.id(), branchId, null, null,
@@ -111,7 +133,7 @@ class PurchasingOpaPolicyIT extends PurchasingTestBase {
     }
 
     private PurchaseOrderDto createPartiallyReceivedPo() {
-        setPrincipal(tenantId, branchId, List.of("vendor.po.approve"),
+        setPrincipal(tenantId, branchId, List.of("vendor.po.approve", "vendor.manage"),
                 Map.of("approval_limit_paisa", 100_000_000L));
 
         PurchaseOrderDto submitted = createSubmittedPo(1_000L);
@@ -126,6 +148,44 @@ class PurchasingOpaPolicyIT extends PurchasingTestBase {
         PurchaseOrderDto received = purchaseOrderService.get(sent.id());
         assertThat(received.status()).isEqualTo(PoStatus.PARTIALLY_RECEIVED);
         return received;
+    }
+
+    // ---- manage (vendor administration) ----
+
+    /**
+     * {@code vendor.rego}'s {@code manage} rule, wired into {@code VendorService} in phase 18b.
+     *
+     * <p>It was the module's only dead letter: {@code approve_po} and {@code close_po} both had
+     * callers while vendor creation and editing — which owns the encrypted bank details every PO is
+     * eventually paid into — had no policy check at all, only {@code @PreAuthorize} on seven
+     * endpoints. Both assertions below go through the real rego in the OPA container.
+     */
+    @Test
+    void vendorManage_deniedByRealPolicy_whenPermissionMissing() {
+        setPrincipal(tenantId, branchId, List.of("vendor.po.approve"), Map.of());
+
+        assertThatThrownBy(() -> vendorService.create(new CreateVendorRequest(
+                "Unauthorized Co", null, null, null, null, "NET30", null, null, null, null, null)))
+                .isInstanceOf(PermissionDeniedException.class);
+    }
+
+    @Test
+    void vendorManage_deniedByRealPolicy_whenCrossTenant() {
+        // Same permission, different tenant: same_tenant_and_branch must still refuse.
+        setPrincipal(UUID.randomUUID(), branchId, List.of("vendor.manage"), Map.of());
+
+        assertThatThrownBy(() -> vendorService.create(new CreateVendorRequest(
+                "Other Tenant Co", null, null, null, null, "NET30", null, null, null, null, null)))
+                .isInstanceOf(PermissionDeniedException.class);
+    }
+
+    @Test
+    void vendorManage_allowedByRealPolicy_whenPermissionHeldOnOwnTenantAndBranch() {
+        setPrincipal(tenantId, branchId, List.of("vendor.manage"), Map.of());
+
+        assertThat(vendorService.create(new CreateVendorRequest(
+                "Authorized Co", null, null, null, null, "NET30", null, null, null, null, null)).id())
+                .isNotNull();
     }
 
     // ---- approve_po ----

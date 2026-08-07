@@ -10,6 +10,7 @@ import io.restaurantos.finance.dto.CreateJeRequest;
 import io.restaurantos.finance.dto.JournalEntryDto;
 import io.restaurantos.finance.exception.JeAlreadyPostedException;
 import io.restaurantos.finance.exception.PeriodLockedException;
+import io.restaurantos.finance.authz.FinanceAuthorizationService;
 import io.restaurantos.finance.mapper.JournalEntryMapper;
 import io.restaurantos.finance.repository.AccountingPeriodRepository;
 import io.restaurantos.finance.repository.ChartOfAccountRepository;
@@ -60,6 +61,14 @@ class JournalEntryServiceUnitTest {
     private EventPublisher eventPublisher;
     @Mock
     private EntityManager entityManager;
+    /**
+     * A permissive stand-in for the OPA gate. These are UNIT tests of ledger mechanics — period
+     * state transitions, JE balancing, reversal — and the policy decision is exercised for real
+     * against the rego bundle elsewhere. A Mockito mock's void methods do nothing, so the default
+     * here is "allowed", which keeps every assertion below about the behaviour it was written for.
+     */
+    @Mock
+    private FinanceAuthorizationService authorization;
 
     private JournalEntryServiceImpl service;
 
@@ -70,7 +79,8 @@ class JournalEntryServiceUnitTest {
         when(gucQuery.setParameter(anyString(), any())).thenReturn(gucQuery);
         when(gucQuery.getSingleResult()).thenReturn("");
         service = new JournalEntryServiceImpl(
-                jeRepo, periodRepo, coaRepo, jeSeqRepo, mapper, tenantContext, eventPublisher, entityManager);
+                jeRepo, periodRepo, coaRepo, jeSeqRepo, mapper, tenantContext, eventPublisher,
+                entityManager, authorization);
     }
 
     @Test

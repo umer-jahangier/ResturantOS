@@ -4,8 +4,15 @@ import data.restaurantos.common
 
 default allow := false
 
+# Every rule below guards on input.action. The two void rules originally did not, which made them
+# match ANY action routed to this module: a holder of pos.order.void.any was allowed the refund,
+# discount-override and split-bill actions outright, without the approval-limit test the refund rule
+# exists to apply. Latent only because authorizeVoid was the module's sole caller at the time.
+# PolicyReachabilityTest now fails the build on an unguarded rule.
+
 # void.own: cashier can void their own OPEN order
 allow if {
+    input.action == "void"
     common.has_permission(input, "pos.order.void.own")
     input.resource.created_by == input.user.id
     input.resource.status == "OPEN"
@@ -14,6 +21,7 @@ allow if {
 
 # void.any: manager-level — can void any order regardless of creator/status
 allow if {
+    input.action == "void"
     common.has_permission(input, "pos.order.void.any")
     common.same_tenant_and_branch(input)
 }
