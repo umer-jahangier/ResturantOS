@@ -53,6 +53,19 @@ ever posted to the ledger, and that the audit log is empty.
 - [ ] **Phase 15: Verification Spine** — 8d. Non-superuser RLS harness, `ddl-auto=validate` everywhere, Feign contract tests, policy-reachability test. The countermeasure to seven "green tests over broken reality" defects.
 - [x] **Phase 15b: Audit Trail Repair** — `audit_events` had 0 rows: hard-coded event source, allow-list/publisher name mismatch hiding voids and refunds, `audit_writer` unable to SELECT, user-service publishing nothing. *(executing)*
 
+**Track C — truth and trust (parallel with 14, no dependencies):**
+
+- [x] **Phase 14b: Truth & Trust Triage** — 3d · **COMPLETE** (1/1 plan). The Tier 0 slice of
+  `.planning/research/gap-audit/DEFECT-REGISTER.md` §4.2: sixteen defects that made a working
+  product look broken and empty. A failed request rendered the EMPTY state on 11 of 15 list screens
+  (GA-001, now a shared `QueryBoundary` across 22 screens); one 503 on `/api/v1/feature-flags`
+  deleted 8 of 11 nav items (GA-002); journal-entry totals were 100× too large (GA-007);
+  `LOYALTY_POINTS` was a selectable tender with no balance check — free food that also corrupted the
+  GL (GA-006); and **a new tenant's owner could not log in at all**, because TOTP enrolment had no UI
+  and the error told the sole account holder to ask an administrator who does not exist (GA-008).
+  Plus GA-023, GA-032, GA-053, GA-059, GA-078, GA-091–096. Evidence: 26/26 live browser assertions
+  + before/after screenshots. See `phases/14b-truth-and-trust/`.
+
 **Track B — backend reachability and configurability (parallel):**
 
 - [ ] **Phase 16: API Reachability Repair** — 10d. Nine live API surfaces have zero frontend callers; five built domains have no controller (loyalty accrues points that can never be redeemed); audit-service has no gateway route.

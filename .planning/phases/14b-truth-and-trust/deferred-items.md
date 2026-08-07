@@ -121,6 +121,27 @@ trains the reader to ignore a red line during onboarding — which is how GA-008
 
 ---
 
+## D4b — Three verification tenants left in the dev databases
+
+Proving GA-008 required tenants whose owner had never enrolled a second factor, which only a
+freshly provisioned tenant can be. `scripts/onboarding.py` created three:
+
+| slug | why |
+|---|---|
+| `ga008-verify` | the curl walkthrough (bootstrap → verify → login) |
+| `ga008-browser` | first browser run |
+| `ga008-browser2` | second browser run, after the hydration fix |
+
+Left in place deliberately — they are the evidence, and removing a tenant means hand-written deletes
+across `platform_db` and `auth_db` with no supported teardown path. **Flagged because they inflate
+fleet-wide tenant counts**, and the register's GA-013 finding ("37 menu categories spanning 15
+tenants") is stated in exactly those terms; a later RLS audit comparing counts should know these
+three are test scaffolding, alongside the audit's own `gap-audit-bistro`.
+
+**Owner:** whoever writes the tenant-teardown path (Phase 21 or 29).
+
+---
+
 ## D5 — No QR code on the TOTP enrolment screen
 
 GA-008's flow is complete and verified end to end, but the enrolment step offers a manual setup key

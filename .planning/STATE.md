@@ -186,6 +186,36 @@ Last activity: 2026-07-13 — Completed 10-18 (AR sub-ledger + internal POS seam
 
 Progress: [██████████████████░░░░] 82% (36/44 plans)
 
+### Phase 14b — Truth & Trust Triage — COMPLETE (2026-08-07, 1/1 plan)
+
+Track C, parallel with Phase 14, no dependencies. The Tier 0 slice of the 9-agent gap audit:
+sixteen defects that made a working product look broken and empty.
+
+- **GA-001** — a failed request rendered the EMPTY state on 11 of 15 list screens. Shared
+  `QueryBoundary` (takes the query RESULT, not booleans, so `isError` cannot be forgotten;
+  precedence `error → loading → empty → children`). **22 screens converted**, including two variants
+  the register had not named: the "eternal spinner" (`isLoading || !data` also matches error) and
+  failed sub-panels inside till review.
+- **GA-002** — `if (isPending) return false` treated NOT-YET-KNOWN as DENIED, and a 503 keeps a
+  query pending through its whole retry backoff, so the broken branch was the one that ran.
+  **D-14b-1:** navigation fails OPEN; 13-03's fail-CLOSED entitlement decision is untouched and the
+  summary states why the two differ (the sidebar is not an authorization boundary).
+- **GA-008** — a new tenant's OWNER could not log in: TOTP enrolment had no UI and the message told
+  the only account holder to ask an administrator. Enrolment now renders in the login card (the
+  password never leaves form state). One additive backend change: the 401 carries the resolved
+  tenant slug in `details`, disclosed only after the password has verified.
+- **GA-007 / GA-078** money through `MoneyDisplay`; **GA-006** loyalty tender removed from the
+  picker (kept in the type so settled orders still parse); **GA-023** dashboard reads CLOSED orders
+  server-side; **GA-032** sidebar brand from the session; **GA-053/091** dead links guarded + a
+  branded 404; **GA-059/092/094/095** no-op and lying shell controls.
+- **Register corrected:** GA-093 is a false positive (the checkbox is implicitly labelled by its
+  wrapping `<label>`); GA-096 is half wrong — the "Seed default leave types" button is the only way
+  to create a leave type in the product, so it was relabelled, not deleted.
+- **Found while verifying:** the login form put the password in the URL on a pre-hydration submit.
+  Fixed.
+- Gates: `format:check` / `lint` (9 expected warnings) / `tsc --noEmit` all green. Journey suite
+  57 passed / 3 failed (baseline 50/56); all 3 pre-existing and logged in `deferred-items.md`.
+
 ### Phases merged from main (2026-07-14)
 
 Phase 07.2 (finance-accounting-period-provisioning-guarantee-open-period) — 6/7 plans complete
