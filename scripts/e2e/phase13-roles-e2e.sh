@@ -11,10 +11,14 @@
 # WHAT IT PROVES
 #   1. A WAITER can take an order and cannot touch the till. Both directions — a positive that
 #      would fail if the role were under-granted, and a negative that would fail if it were widened.
-#   2. A TENANT_ADMIN logs in WITHOUT a TOTP challenge and can administer branches and users. This
-#      is the precise regression D-23 exists to prevent: granting rbac.manage would have made the
-#      administration assertions pass and the login assertion fail, which is exactly the trade the
-#      permission split was designed to avoid.
+#   2. A TENANT_ADMIN is challenged for a second factor — and NOT because of rbac.manage, which its
+#      token is asserted not to carry. That pair is the precise regression D-23 exists to prevent:
+#      granting rbac.manage would make the administration assertions pass while turning the
+#      rbac.manage assertion red, which is exactly the trade the permission split was designed to
+#      avoid. The challenge itself is correct and intended (D-29a) — it comes from
+#      finance.period.close and hr.payroll.approve, which are money gates TENANT_ADMIN legitimately
+#      holds, and the script enrols its own factor over the public endpoints rather than requiring
+#      one to have been created by hand.
 #   3. Assigning a second role at a branch REPLACES the first, reports what it displaced, and leaves
 #      the roles claim single-valued.
 #
@@ -81,7 +85,15 @@ seed_persona() {
     ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash,
                                    is_active = true,
                                    failed_login_count = 0,
-                                   locked_until = NULL;
+                                   locked_until = NULL,
+                                   -- Reset the second factor too. These personas are this
+                                   -- script's own throwaway fixtures, and the tenant-admin block
+                                   -- below enrols one over the PUBLIC endpoints as part of what it
+                                   -- proves. Leaving a previous run's factor in place answers that
+                                   -- enrolment with TOTP_ALREADY_ENROLLED and reports a failure
+                                   -- that is an artefact of the fixture, not of the product.
+                                   totp_secret = NULL,
+                                   totp_enabled = false;
   " | auth_sql > /dev/null
 }
 
@@ -231,48 +243,88 @@ echo
 
 # First, with NO totpCode.
 #
+# 🔻 THIS ASSERTION WAS INVERTED BY D-29a, AND IT IS THE ASSERTION D-29a IS ABOUT.
+#
 # D-23's stated objective was that a TENANT_ADMIN reaches administration WITHOUT being forced into
 # TOTP step-up, and its stated mechanism was to keep rbac.manage — the step-up trigger — off the
 # role. The mechanism works and is asserted below. The objective does not follow from it, and this
-# assertion is what showed that.
+# assertion is what showed that: 13-02 left it FAILING on purpose rather than softening it.
 #
 # requiresTotpStepUp fires on rbac.manage OR finance.period.close OR hr.payroll.approve. Changeset
 # 030 grants TENANT_ADMIN "every permission except rbac.manage" — which includes
 # finance.period.close — and 045-hr adds hr.payroll.approve. So TENANT_ADMIN is still challenged,
-# for two triggers this plan neither introduced nor is permitted to remove: closing an accounting
-# period and approving payroll are exactly the money-moving actions step-up exists for.
+# for two triggers 13-02 neither introduced nor was permitted to remove.
 #
-# This assertion is therefore left FAILING rather than softened. Making it pass would require
-# either dropping a money gate from requiresTotpStepUp, or revoking finance.period.close and
-# hr.payroll.approve from TENANT_ADMIN — a reduction of the role's authority, and a decision to be
-# taken deliberately rather than smuggled in as a side effect of an RBAC repair. See 13-02-SUMMARY.
+# D-29a then RESOLVED it, in the direction of the behaviour rather than the assertion: step-up on
+# accounting-period close and payroll approval is CORRECT and stays, because revoking those two
+# codes would leave tenant admins unable to run payroll or close a period at all. Enrolment became
+# part of tenant-admin creation instead — which is exactly what scripts/seed_restaurantos.py now
+# does for every persona the platform challenges.
+#
+# So the thing to assert is no longer "is not challenged". It is the SHAPE of the challenge:
+#   * the tenant admin IS challenged, and
+#   * NOT because of rbac.manage — asserted positively below, on the token's own claims.
+# Anyone who "fixes" this by granting TENANT_ADMIN the umbrella code turns the second assertion
+# red, which is the regression D-23 exists to prevent and which this file still catches.
 TADMIN_LOGIN_BODY="{\"email\":\"${TADMIN_EMAIL}\",\"password\":\"${PROBE_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\"}"
 TADMIN_LOGIN="$(curl_retry -X POST "${GATEWAY}/api/v1/auth/login" \
   -H "Content-Type: application/json" -d "$TADMIN_LOGIN_BODY")"
 if printf '%s' "$TADMIN_LOGIN" | grep -qE 'TOTP_REQUIRED|TOTP_ENROLLMENT_REQUIRED'; then
-  echo "FAIL: tenant admin is still challenged for TOTP: ${TADMIN_LOGIN}"
-  echo "      (expected while TENANT_ADMIN holds finance.period.close / hr.payroll.approve — see the"
-  echo "       comment above and 13-02-SUMMARY. NOT caused by rbac.manage; that is asserted below.)"
-  PHASE13_FAIL=$((PHASE13_FAIL + 1))
+  echo "PASS: tenant admin is challenged for a second factor (D-29a: finance.period.close and"
+  echo "      hr.payroll.approve are money gates and keep their step-up; rbac.manage is asserted"
+  echo "      absent below, so this challenge is NOT the D-23 regression)"
+  PHASE13_PASS=$((PHASE13_PASS + 1))
   TADMIN_TOKEN=""
 else
-  echo "PASS: tenant admin logs in with no TOTP challenge"
-  PHASE13_PASS=$((PHASE13_PASS + 1))
+  echo "FAIL: tenant admin was NOT challenged for a second factor."
+  echo "      Under D-29a that means a money gate has been dropped from requiresTotpStepUp, or"
+  echo "      finance.period.close / hr.payroll.approve has been revoked from TENANT_ADMIN."
+  PHASE13_FAIL=$((PHASE13_FAIL + 1))
   TADMIN_TOKEN="$(printf '%s' "$TADMIN_LOGIN" | json_get "['data']['accessToken']")"
 fi
 
-# Step up and carry on, so the administration half — which is what the split actually delivers, and
-# what "multiple admins per tenant" depends on — is proved live rather than left unmeasured behind
-# the failure above.
+# Enrol a factor over the PUBLIC bootstrap endpoints and carry on, so the administration half —
+# which is what the split actually delivers, and what "multiple admins per tenant" depends on — is
+# proved live rather than left behind a manual step.
+#
+# This used to require `python3 scripts/generate_totp.py <email> --enroll` to have been run BY HAND,
+# which is why this script sat at 23 PASS / 1 FAIL indefinitely: a verification whose green depends
+# on a human remembering something is not a verification. 13-06's seam script and 13-13's script
+# both enrol over HTTP; this now does the same. Nothing is read from the database, and no package
+# is installed — the TOTP code is six lines of stdlib, as everywhere else in this phase.
+totp_now_for() {
+  python3 -c "
+import base64, hmac, hashlib, struct, sys, time
+s = sys.argv[1]
+k = base64.b32decode(s + '=' * (-len(s) % 8), casefold=True)
+m = hmac.new(k, struct.pack('>Q', int(time.time()) // 30), hashlib.sha1).digest()
+o = m[-1] & 0x0F
+print(str((struct.unpack('>I', m[o:o+4])[0] & 0x7FFFFFFF) % 10**6).zfill(6))
+" "$1"
+}
+
 if [[ -z "$TADMIN_TOKEN" ]]; then
-  TADMIN_TOTP="$(python3 scripts/generate_totp.py "$TADMIN_EMAIL" 2>/dev/null | grep -oE '[0-9]{6}' | head -1 || true)"
-  if [[ -n "$TADMIN_TOTP" ]]; then
-    TADMIN_TOKEN="$(tenant_login "$TADMIN_EMAIL" "$PROBE_PASSWORD" "$TENANT_SLUG" "$TADMIN_TOTP" 2>/dev/null || true)"
-    [[ -n "$TADMIN_TOKEN" ]] && echo "NOTE: continuing with a stepped-up tenant-admin token."
+  BOOTSTRAP_BODY="{\"email\":\"${TADMIN_EMAIL}\",\"password\":\"${PROBE_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\"}"
+  BOOTSTRAP="$(curl_retry -X POST "${GATEWAY}/api/v1/auth/2fa/bootstrap" \
+    -H "Content-Type: application/json" -d "$BOOTSTRAP_BODY")"
+  OTPAUTH_URI="$(printf '%s' "$BOOTSTRAP" | json_get "['data']['otpauthUri']" 2>/dev/null || true)"
+  if [[ -n "$OTPAUTH_URI" && "$OTPAUTH_URI" != "None" ]]; then
+    TADMIN_SECRET="$(printf '%s' "$OTPAUTH_URI" | python3 -c "
+import sys, urllib.parse as u
+print(u.parse_qs(u.urlparse(sys.stdin.read().strip()).query)['secret'][0])
+")"
+    VERIFY_BODY="{\"email\":\"${TADMIN_EMAIL}\",\"password\":\"${PROBE_PASSWORD}\",\"tenantSlug\":\"${TENANT_SLUG}\",\"code\":\"$(totp_now_for "$TADMIN_SECRET")\"}"
+    curl_status -X POST "${GATEWAY}/api/v1/auth/2fa/bootstrap/verify" \
+      -H "Content-Type: application/json" -d "$VERIFY_BODY" > /dev/null
+    TADMIN_TOKEN="$(tenant_login "$TADMIN_EMAIL" "$PROBE_PASSWORD" "$TENANT_SLUG" \
+      "$(totp_now_for "$TADMIN_SECRET")" 2>/dev/null || true)"
   fi
-  if [[ -z "$TADMIN_TOKEN" ]]; then
-    echo "NOTE: no TOTP secret enrolled for ${TADMIN_EMAIL}; the administration assertions below"
-    echo "      cannot run. Enrol one:  python3 scripts/generate_totp.py ${TADMIN_EMAIL} --enroll"
+  if [[ -n "$TADMIN_TOKEN" ]]; then
+    echo "PASS: tenant admin enrolled a second factor over the public endpoints and stepped up"
+    PHASE13_PASS=$((PHASE13_PASS + 1))
+  else
+    echo "FAIL: tenant admin could not enrol a second factor: ${BOOTSTRAP}"
+    PHASE13_FAIL=$((PHASE13_FAIL + 1))
   fi
 fi
 
