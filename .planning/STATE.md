@@ -6,15 +6,15 @@ current_phase: 10
 current_phase_name: Purchasing & Accounts Payable
 status: executing
 stopped_at: Completed 13-14-PLAN.md
-last_updated: "2026-08-07T00:14:15.028Z"
+last_updated: "2026-08-07T02:12:41.777Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
 progress:
   total_phases: 22
-  completed_phases: 14
+  completed_phases: 15
   total_plans: 168
-  completed_plans: 155
-  percent: 64
+  completed_plans: 158
+  percent: 68
 ---
 
 # Project State
@@ -304,6 +304,7 @@ _Updated after each plan completion_
 | Phase 13 P11 | ~4h | 3 tasks | 29 files |
 | Phase 13 P12 | ~3h | 2 tasks | 20 files |
 | Phase 13 P13 | ~2h | 3 tasks | 17 files |
+| Phase 13 P15 | 4h | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -623,6 +624,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 13-13]: admin reset is the ONLY working way to set a password this milestone (self-service ships disabled, D-31); the temp password returns to the calling admin and exists nowhere else
 - [Phase ?]: [Phase 13-13]: an admin reset is NOT subject to 13-09's per-account cooldown — it issues no token at all; bounded instead by the tier authority, the role ceiling, the gateway budget and the audit row
 - [Phase ?]: [Phase 13-13]: the platform tier may reset any tenant user (T-13-13-F accepted) — the only way to rescue a tenant that has lost its OWNER, since the ceiling correctly refuses every remaining insider
+- [Phase ?]: 13-15: pos-service and purchasing-service leak every tenant's rows on their list endpoints — RLS enabled but not FORCEd, and the runtime role owns the tables (deferred item 9)
 
 ### Pending Todos
 
@@ -666,7 +668,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-07T00:14:06.511Z
+Last session: 2026-08-07T02:12:33.767Z
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.

@@ -402,7 +402,91 @@ suite that needed one is marked `PASS*` and listed under `RETRIED` in the summar
 
 ## 7. The reference run
 
-<!-- gsd:acceptance-run -->
+```
+$ bash scripts/e2e/phase13-acceptance.sh
+
+  repo    : /Users/muhammadumer/Documents/Projects/ResturantOS
+  commit  : 42c898f
+  gateway : http://localhost:8080
+  started : 2026-08-07T02:00:54Z
+
+  … 13-05 platform login                    PASS  21/0   18s
+        cooling down 75s — this suite deliberately exhausts the gateway's auth budget
+  … 13-06 auth/provisioning seam            PASS  20/0    3s
+  … 13-02 roles: waiter + tenant admin      PASS  25/0    3s
+  … 13-07 role catalog                      PASS  28/0    3s
+  … 13-03 feature gating                    PASS  11/0    7s
+  … 13-04 self-service password change      PASS  22/0    5s
+  … 13-08 forced change at login            PASS  25/0    4s
+  … 13-09 reset hardening                   PASS  31/0  131s
+  … 13-10 provisioning saga                 PASS  27/0    5s
+  … 13-11 user lifecycle                    PASS  48/0    4s
+  … 13-12 tenant-admin user API             PASS  56/0   14s
+  … 13-13 administrator reset               PASS  48/0   19s
+  … 13-14 subscription and tier             PASS  51/0    7s
+
+  scripts/seed_restaurantos.py — every seeded principal, each authenticated
+  through the real gateway. Not by inspecting the database for expected rows.
+  PASS  17 of 17 principals
+
+  NONE. Every resource this run created or changed went through a real API at the
+  gateway. There is nothing on this list, and that is stated explicitly rather than
+  left to be inferred from an empty section.
+
+================================================================================
+  PHASE 13 ACCEPTANCE — RESULT
+================================================================================
+  SUITE                                    RESULT  PASS/FAIL BASELINE
+  13-05 platform login                     PASS    21/0      21/0
+  13-06 auth/provisioning seam             PASS    20/0      20/0
+  13-02 roles: waiter + tenant admin       PASS    25/0      25/0
+  13-07 role catalog                       PASS    28/0      28/0
+  13-03 feature gating                     PASS    11/0      11/0
+  13-04 self-service password change       PASS    22/0      22/0
+  13-08 forced change at login             PASS    25/0      25/0
+  13-09 reset hardening                    PASS    31/0      31/0
+  13-10 provisioning saga                  PASS    27/0      27/0
+  13-11 user lifecycle                     PASS    48/0      48/0
+  13-12 tenant-admin user API              PASS    56/0      56/0
+  13-13 administrator reset                PASS    48/0      48/0
+  13-14 subscription and tier              PASS    51/0      51/0
+  13-15 seed self-verification             PASS    17 of 17 principals
+
+  live assertions:  413 passed, 0 failed
+  suites:           14 run, 0 not green
+  elapsed:          493s
+
+  PHASE 13 ACCEPTED.
+$ echo $?
+0
+```
+
+**Every suite matches its baseline exactly, no suite needed a retry, and the direct-write ledger
+is empty.** `phase13-roles-e2e.sh` is the one number that moved, from **23 / 1** — the phase's last
+known failing assertion — to **25 / 0**. See SC5 for what changed and why the change is a
+correction rather than a relaxation.
+
+### The two rate-limit findings behind that clean run, both measured
+
+Neither was a product defect, and both were reported as one before being diagnosed:
+
+1. **`phase13-superadmin-e2e.sh` empties the gateway's auth budget on purpose.** Its section 7
+   hammers `/api/v1/platform/auth/login` until it gets a 429 — that IS one of its assertions, and
+   it is the right one to make. It tripped after **63 attempts** against a burst of 100. Run 15
+   seconds before the next suite, that left every following script logging the SuperAdmin in
+   against an empty bucket. Measured: **its own** later assertion ("could not log
+   `cashier@demo.local` in") went red at 19 / 1, and `phase13-admin-reset-e2e.sh` reported
+   **36 / 7 with every failure a 429** where a 401, 403 or 423 was expected. The runner now
+   declares a 75-second cooldown for that suite and, before the first one, **asks the endpoint
+   whether it is throttling and waits until it is not** rather than sleeping a fixed amount and
+   hoping.
+2. **`authorization-service` was not running**, and `phase13-feature-gating-e2e.sh` reported that
+   as **403 `PERMISSION_DENIED` "Authorization service unavailable"** on three assertions — 8 / 3.
+   That is a fail-closed OPA path behaving correctly. Started; 11 / 0.
+
+Both are recorded here because "the suite went red and then green" is worthless without the reason,
+and because the first one is a live measurement of a control (`GW-03`'s rate limit) that no other
+document in this phase has a number for: **63 attempts, burst 100, `platform-auth-route`.**
 
 ---
 
