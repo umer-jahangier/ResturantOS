@@ -96,26 +96,36 @@ trap 'echo "logs: ${LOG_DIR}"' EXIT
 
 # ── The suite, in dependency order ──────────────────────────────────────────────────────────
 #
-# name | script | the baseline PASS/FAIL recorded by the plan that produced it
+# name | script | baseline PASS | baseline FAIL | cooldown seconds after it
+#
+# THE COOLDOWN IS NOT PADDING. `phase13-superadmin-e2e.sh` deliberately hammers
+# /api/v1/platform/auth/login until the gateway answers 429 — that IS one of its assertions, and
+# it is the right one to make. Measured on this stack: it takes 63 attempts to trip, and it leaves
+# the bucket EMPTY. `platform-auth-route` refills at 2/s from a burst of 100, so ~50 seconds of
+# quiet is the honest number, and every script after it logs the SuperAdmin in during setup.
+# Running the next suite 15 seconds later reports 429s as product failures. Measured: with a 15s
+# gap, `phase13-superadmin-e2e.sh`'s OWN later assertion ("could not log cashier@demo.local in")
+# went red, and `phase13-admin-reset-e2e.sh` reported 36/7 with every failure a 429 where a 401,
+# 403 or 423 was expected.
 #
 # The baseline is carried here on purpose. "48 PASS / 0 FAIL" means nothing on its own — a script
 # that silently stopped asserting half of what it used to also reports 0 failures. A count that
 # DROPS while still passing is a regression in the verification itself, and this is the only place
 # it becomes visible.
 SUITE=(
-  "13-05 platform login|scripts/e2e/phase13-superadmin-e2e.sh|21|0"
-  "13-06 auth/provisioning seam|scripts/e2e/phase13-auth-provisioning-seam-e2e.sh|20|0"
-  "13-02 roles: waiter + tenant admin|scripts/e2e/phase13-roles-e2e.sh|25|0"
-  "13-07 role catalog|scripts/e2e/phase13-role-catalog-e2e.sh|28|0"
-  "13-03 feature gating|scripts/e2e/phase13-feature-gating-e2e.sh|11|0"
-  "13-04 self-service password change|scripts/e2e/phase13-password-change-e2e.sh|22|0"
-  "13-08 forced change at login|scripts/e2e/phase13-forced-change-e2e.sh|25|0"
-  "13-09 reset hardening|scripts/e2e/phase13-reset-hardening-e2e.sh|31|0"
-  "13-10 provisioning saga|scripts/e2e/phase13-provisioning-e2e.sh|27|0"
-  "13-11 user lifecycle|scripts/e2e/phase13-user-lifecycle-e2e.sh|48|0"
-  "13-12 tenant-admin user API|scripts/e2e/phase13-tenant-admin-users-e2e.sh|56|0"
-  "13-13 administrator reset|scripts/e2e/phase13-admin-reset-e2e.sh|48|0"
-  "13-14 subscription and tier|scripts/e2e/phase13-subscription-e2e.sh|51|0"
+  "13-05 platform login|scripts/e2e/phase13-superadmin-e2e.sh|21|0|75"
+  "13-06 auth/provisioning seam|scripts/e2e/phase13-auth-provisioning-seam-e2e.sh|20|0|0"
+  "13-02 roles: waiter + tenant admin|scripts/e2e/phase13-roles-e2e.sh|25|0|0"
+  "13-07 role catalog|scripts/e2e/phase13-role-catalog-e2e.sh|28|0|0"
+  "13-03 feature gating|scripts/e2e/phase13-feature-gating-e2e.sh|11|0|0"
+  "13-04 self-service password change|scripts/e2e/phase13-password-change-e2e.sh|22|0|0"
+  "13-08 forced change at login|scripts/e2e/phase13-forced-change-e2e.sh|25|0|0"
+  "13-09 reset hardening|scripts/e2e/phase13-reset-hardening-e2e.sh|31|0|0"
+  "13-10 provisioning saga|scripts/e2e/phase13-provisioning-e2e.sh|27|0|0"
+  "13-11 user lifecycle|scripts/e2e/phase13-user-lifecycle-e2e.sh|48|0|0"
+  "13-12 tenant-admin user API|scripts/e2e/phase13-tenant-admin-users-e2e.sh|56|0|0"
+  "13-13 administrator reset|scripts/e2e/phase13-admin-reset-e2e.sh|48|0|0"
+  "13-14 subscription and tier|scripts/e2e/phase13-subscription-e2e.sh|51|0|0"
 )
 
 echo
@@ -131,6 +141,35 @@ echo "  pause   : ${PAUSE_SECONDS}s between scripts, ${RETRY_PAUSE_SECONDS}s bef
 echo "            (the gateway's 2/s + burst-100 auth budget needs ~50s of quiet to refill)"
 echo "  logs    : ${LOG_DIR}"
 echo
+
+# ── Preflight: enter with a REFILLED auth budget ────────────────────────────────────────────
+#
+# The first suite starts immediately, so if the bucket is already low — from a previous run, from
+# a developer's own curl loop, from a concurrent agent — its very first login is a 429 and the
+# whole aggregate is wrong from line one. Measured: `phase13-superadmin-e2e.sh` reported 19/1 on
+# "could not log cashier@demo.local in" purely because of that, and 21/0 entering fresh.
+#
+# This does not sleep a fixed amount and hope. It asks the endpoint whether it is being throttled,
+# and waits until it is not.
+settle_auth_budget() {
+  local waited=0 code
+  while (( waited < 180 )); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 \
+      -X POST "${GATEWAY:-http://localhost:8080}/api/v1/auth/login" \
+      -H 'Content-Type: application/json' \
+      -d '{"email":"preflight@invalid.local","password":"x","tenantSlug":"demo"}' 2>/dev/null)"
+    # A 401 is the application answering on the merits, which is exactly what we want to see: the
+    # request reached auth-service rather than being refused at the edge. 429 means keep waiting.
+    if [[ "$code" != "429" ]]; then
+      [[ "$waited" -gt 0 ]] && echo "  ${DIM}auth budget settled after ${waited}s (probe answered ${code})${RESET}"
+      return 0
+    fi
+    sleep 10
+    waited=$((waited + 10))
+  done
+  echo "  ${YELLOW}!${RESET} the gateway is still throttling after ${waited}s — results below may be 429s"
+}
+settle_auth_budget
 
 RESULTS=()
 RETRIED=()
@@ -226,9 +265,14 @@ run_one() {
 }
 
 for entry in "${SUITE[@]}"; do
-  IFS='|' read -r label script base_pass base_fail <<< "$entry"
+  IFS='|' read -r label script base_pass base_fail cooldown <<< "$entry"
   run_one "$label" "$script" "$base_pass" "$base_fail"
-  sleep "$PAUSE_SECONDS"
+  gap="$PAUSE_SECONDS"
+  if [[ "${cooldown:-0}" -gt "$gap" ]]; then
+    gap="$cooldown"
+    echo "        ${DIM}cooling down ${gap}s — this suite deliberately exhausts the gateway's auth budget${RESET}"
+  fi
+  sleep "$gap"
 done
 
 # ── The seed's own verification — the acceptance test for the phase ─────────────────────────
