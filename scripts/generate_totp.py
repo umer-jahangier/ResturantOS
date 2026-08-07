@@ -124,8 +124,39 @@ def resolve_tenant_id(cur, tenant_slug: str) -> str:
     row = cur.fetchone()
     if not row:
         print(f"Tenant slug not found: {tenant_slug}", file=sys.stderr)
+        cur.execute("SELECT slug FROM auth_tenants ORDER BY slug")
+        known = [r[0] for r in cur.fetchall()]
+        if known:
+            print(f"Known tenants: {', '.join(known)}", file=sys.stderr)
         raise SystemExit(1)
     return row[0]
+
+
+def find_tenants_for_email(cur, email: str) -> list[tuple[str, str]]:
+    """
+    Every (tenant_id, slug) in which this email exists.
+
+    The tenant used to be assumed to be "demo", which meant the tool failed with
+    "User not found" for any account outside it — the failure looked like a missing user
+    rather than a wrong default. Cross-tenant email reuse is deliberately legal here
+    (plan 13-11), so this genuinely can return more than one row; the caller disambiguates
+    rather than silently picking the first.
+
+    RLS is set per candidate tenant before reading, because `users` is FORCE RLS and a
+    query without the GUC returns nothing at all — which would look exactly like "no such
+    user" again.
+    """
+    cur.execute("SELECT id::text, slug FROM auth_tenants ORDER BY slug")
+    found = []
+    for tenant_id, slug in cur.fetchall():
+        cur.execute("SELECT set_config('app.current_tenant_id', %s, false)", (tenant_id,))
+        cur.execute(
+            "SELECT 1 FROM users WHERE tenant_id = %s::uuid AND lower(email) = lower(%s)",
+            (tenant_id, email),
+        )
+        if cur.fetchone():
+            found.append((tenant_id, slug))
+    return found
 
 
 def fetch_user(cur, tenant_id: str, email: str):
@@ -157,8 +188,8 @@ def main() -> None:
     parser.add_argument("email", help="User email, e.g. owner@demo.local")
     parser.add_argument(
         "--tenant-slug",
-        default=DEFAULT_TENANT_SLUG,
-        help=f"Tenant slug (default: {DEFAULT_TENANT_SLUG})",
+        default=None,
+        help="Tenant slug. Omit and the tenant is resolved from the email.",
     )
     parser.add_argument(
         "--enroll",
@@ -178,11 +209,34 @@ def main() -> None:
     conn = connect(deploy_env)
     try:
         cur = conn.cursor()
-        tenant_id = resolve_tenant_id(cur, args.tenant_slug)
+
+        if args.tenant_slug:
+            tenant_slug = args.tenant_slug
+            tenant_id = resolve_tenant_id(cur, tenant_slug)
+        else:
+            # Resolve the tenant from the email rather than assuming one. The previous default
+            # was "demo", so every account outside it failed with "User not found" — a message
+            # that blames the user for a wrong default.
+            matches = find_tenants_for_email(cur, args.email)
+            if not matches:
+                print(f"No tenant contains a user with email {args.email}", file=sys.stderr)
+                cur.execute("SELECT slug FROM auth_tenants ORDER BY slug")
+                known = [r[0] for r in cur.fetchall()]
+                if known:
+                    print(f"Tenants searched: {', '.join(known)}", file=sys.stderr)
+                raise SystemExit(1)
+            if len(matches) > 1:
+                slugs = ", ".join(s for _, s in matches)
+                print(f"{args.email} exists in more than one tenant: {slugs}", file=sys.stderr)
+                print("Re-run with --tenant-slug <slug> to choose.", file=sys.stderr)
+                raise SystemExit(1)
+            tenant_id, tenant_slug = matches[0]
+            print(f"Resolved tenant from email: {tenant_slug}", file=sys.stderr)
+
         row = fetch_user(cur, tenant_id, args.email)
 
         if not row:
-            print(f"User not found: {args.email} (tenant {args.tenant_slug})", file=sys.stderr)
+            print(f"User not found: {args.email} (tenant {tenant_slug})", file=sys.stderr)
             raise SystemExit(1)
 
         user_id, email, totp_blob, totp_enabled = row
