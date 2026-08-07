@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.audit.entity.AuditEventEntity;
 import io.restaurantos.shared.event.AuditEventCatalog;
+import io.restaurantos.shared.event.CredentialRedactor;
 import io.restaurantos.shared.event.EventEnvelope;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -112,7 +113,12 @@ public class AuditIngestionService {
                 .action(envelope.eventType())
                 .resourceType(resolveResourceType(envelope))
                 .resourceId(resolveResourceId(envelope.payload()))
-                .afterState(serializePayload(envelope.payload()))
+                // Redacted BEFORE it is written, because this table cannot be edited afterwards.
+                // Measured: draining the pre-15-01 backlog carried three raw password-reset tokens
+                // from pre-D-19 messages into audit_events, where they are unremovable without
+                // destroying audit history. See CredentialRedactor — a consumer that assumes its
+                // producers are current is assuming something it cannot check.
+                .afterState(serializePayload(CredentialRedactor.redact(envelope.payload())))
                 .metadata(buildMetadata(envelope))
                 .build();
 

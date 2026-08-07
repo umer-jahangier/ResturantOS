@@ -443,6 +443,53 @@ class AuditReadPathIT {
     }
 
     /**
+     * Ingestion redacts credentials before the row exists.
+     *
+     * <p>The unit test covers the redactor; this covers the wiring, which is the part that failed.
+     * Correcting the allow-list drained a backlog containing three pre-D-19
+     * {@code PASSWORD_RESET_REQUESTED} messages, and their raw reset tokens were written into this
+     * append-only, seven-year-retention table before anyone looked. The producer-side rule had been
+     * correct since 13-09 and did not help, because the messages predated it.
+     */
+    @Test
+    @DisplayName("a raw token in a queued payload never reaches the table")
+    void ingestionRedactsCredentialsBeforeWriting() {
+        UUID actor = UUID.randomUUID();
+        java.util.Map<String, Object> prePhase13Payload = new java.util.LinkedHashMap<>();
+        prePhase13Payload.put("userId", actor.toString());
+        prePhase13Payload.put("email", "victim@example.test");
+        prePhase13Payload.put("token", "RAWTOKEN_MUST_NOT_PERSIST");
+        prePhase13Payload.put("tokenId", "8b1c9e00-0000-4000-8000-000000000001");
+
+        auditIngestionService.ingest(new EventEnvelope<>(
+                UUID.randomUUID(), "PASSWORD_RESET_REQUESTED", TENANT_A, null,
+                Instant.now(), UUID.randomUUID(), 1, "auth-service",
+                prePhase13Payload, actor, null));
+
+        List<String> stored = jdbcTemplate.queryForList(
+                "SELECT after_state::text FROM audit_events "
+                        + "WHERE tenant_id = ? AND action = 'PASSWORD_RESET_REQUESTED'",
+                String.class, TENANT_A);
+
+        assertThat(stored).isNotEmpty();
+        assertThat(stored).allSatisfy(json -> {
+            assertThat(json)
+                    .as("the raw token must not exist in a table that cannot be edited")
+                    .doesNotContain("RAWTOKEN_MUST_NOT_PERSIST");
+            assertThat(json)
+                    .as("the key survives so a reader can tell a redaction from an absence")
+                    .contains("\"token\": \"[REDACTED]\"");
+            assertThat(json)
+                    .as("tokenId is a row handle, not a credential — redacting it would redact "
+                            + "D-19's fix rather than the defect")
+                    .contains("8b1c9e00-0000-4000-8000-000000000001");
+            assertThat(json)
+                    .as("non-credential fields stay, or the row stops being useful")
+                    .contains("victim@example.test");
+        });
+    }
+
+    /**
      * ORDER_VOIDED is the type pos-service actually publishes. The allow-list said VOID_CREATED,
      * so this exact event was dropped on the floor for fourteen phases.
      */

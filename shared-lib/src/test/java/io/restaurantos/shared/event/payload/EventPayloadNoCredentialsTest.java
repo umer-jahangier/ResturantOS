@@ -1,5 +1,6 @@
 package io.restaurantos.shared.event.payload;
 
+import io.restaurantos.shared.event.CredentialRedactor;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -47,41 +48,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EventPayloadNoCredentialsTest {
 
     private static final Path REPO_ROOT = Path.of("..").toAbsolutePath().normalize();
-
-    /**
-     * Words that are credential or identity material outright. Flagged wherever they appear,
-     * including as {@code somethingId} — there is no legitimate {@code passwordId}.
-     *
-     * <p>The list is about things that grant access or identify a person, not about things that are
-     * merely sensitive: {@code reason} and {@code amount} are absent on purpose.
-     */
-    private static final Set<String> RAW_CREDENTIAL_WORDS = Set.of(
-            "password", "passwd", "pwd", "passphrase", "credential",
-            "apikey", "privatekey", "cvv", "cnic", "iban");
-
-    /**
-     * Words that name credential material but which also legitimately appear as a HANDLE to a
-     * stored record, in the form {@code <word>Id}.
-     *
-     * <p>The exemption is narrow — the word must be immediately followed by {@code Id} and
-     * {@code Id} must end the name — and it exists for one measured case.
-     * {@code PasswordResetRequestedPayload.tokenId} is the primary key of a
-     * {@code password_reset_tokens} row and is explicitly NOT the token: it is the shape 13-09
-     * (D-19) replaced the raw token with, so flagging it would flag the fix rather than the defect.
-     * {@code tokenId} is a reference that is worthless without database access; {@code token} is a
-     * bearer credential. That distinction is the whole reason D-19 was closeable.
-     *
-     * <p>{@code hash} and {@code salt} are here rather than above because a {@code passwordHash}
-     * already trips {@code password}, and a bare {@code hash} on an idempotency or content field is
-     * ordinary and common.
-     */
-    private static final Set<String> HANDLE_BEARING_WORDS = Set.of(
-            "token", "secret", "otp", "totp", "hash", "salt", "pin");
-
-    /** Multi-word names that are credential material only in combination. */
-    private static final Set<String> CREDENTIAL_PHRASES = Set.of(
-            "refreshtoken", "accesstoken", "bearertoken", "bankaccount",
-            "bankaccountno", "cardnumber", "sessiontoken");
 
     /**
      * Every payload record 15-01 introduced, plus the two credential-adjacent ones that already
@@ -217,57 +183,48 @@ class EventPayloadNoCredentialsTest {
     }
 
     /**
-     * True when a field or map-key name denotes credential material.
+     * The consumer-side control, on the exact payload shape that caused the incident.
      *
-     * <p>Splits the name into camelCase words rather than matching substrings, because substring
-     * matching produces false positives that are worse than useless: they train people to add
-     * exemptions. The first run of this test flagged {@code tillSessionId} — a till's business
-     * identifier — because "tillsessionid" contains "sessionid", and flagged
-     * {@code PasswordResetRequestedPayload.tokenId}, which is D-19's fix rather than its defect. A
-     * check that cries wolf on the repair gets switched off.
+     * <p>Three pre-D-19 {@code PASSWORD_RESET_REQUESTED} messages sat in the broker carrying raw
+     * reset tokens. When 15-01 corrected the allow-list, the backlog drained and all three tokens
+     * were written into {@code audit_events} — append-only, seven-year retention, unremovable. The
+     * producer-side rule was correct and current and did not help, because the messages predated it.
      */
-    static boolean namesCredentialMaterial(String fieldName) {
-        String normalised = fieldName.toLowerCase(Locale.ROOT).replace("_", "");
+    @Test
+    @DisplayName("a queued pre-D-19 payload is redacted before it can be stored")
+    void redactorStripsTheTokenThatReachedTheAppendOnlyTable() {
+        Object redacted = CredentialRedactor.redact(new java.util.LinkedHashMap<>(java.util.Map.of(
+                "userId", "c0000006-0000-4000-8000-000000000006",
+                "email", "manager@demo.local",
+                "token", "jIDh1dQt5kvpE6XCr7MfO1zz7RIB8FeIcUGbYInYzJg")));
 
-        for (String phrase : CREDENTIAL_PHRASES) {
-            if (normalised.contains(phrase)) {
-                return true;
-            }
-        }
-        // Also match raw words against the whole flattened name, because camelCase splitting takes
-        // apart the ones that are conventionally written as two words: apiKey splits to
-        // [api, key] and neither half is a credential on its own. Safe to do only for the RAW set —
-        // it holds nothing that occurs as a substring of an ordinary business term, which is
-        // precisely why "token" and "session" are not in it.
-        for (String raw : RAW_CREDENTIAL_WORDS) {
-            if (normalised.contains(raw)) {
-                return true;
-            }
-        }
+        assertThat(redacted).asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                .containsEntry("token", CredentialRedactor.REDACTED)
+                .as("the key survives so a reader can tell a redaction from an absence")
+                .containsKey("token")
+                .as("non-credential fields are untouched — the row must stay useful")
+                .containsEntry("email", "manager@demo.local")
+                .containsEntry("userId", "c0000006-0000-4000-8000-000000000006");
 
-        List<String> words = splitCamelCase(fieldName);
-        for (int i = 0; i < words.size(); i++) {
-            String word = words.get(i);
-            if (RAW_CREDENTIAL_WORDS.contains(word)) {
-                return true;
-            }
-            if (HANDLE_BEARING_WORDS.contains(word)) {
-                // "<word>Id" as the tail of the name is a reference to a stored record, not the
-                // material itself. Anything else — a bare "token", or "tokenValue" — is flagged.
-                boolean isTrailingHandle = i == words.size() - 2 && "id".equals(words.get(i + 1));
-                if (!isTrailingHandle) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        // The post-D-19 shape passes through intact: tokenId is a row handle, not a credential.
+        assertThat(CredentialRedactor.redact(new java.util.LinkedHashMap<>(java.util.Map.of(
+                "tokenId", "8b1c9e00-0000-4000-8000-000000000001"))))
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.MAP)
+                .containsEntry("tokenId", "8b1c9e00-0000-4000-8000-000000000001");
     }
 
-    private static List<String> splitCamelCase(String name) {
-        return Stream.of(name.split("(?<!^)(?=[A-Z])|_"))
-                .map(s -> s.toLowerCase(Locale.ROOT))
-                .filter(s -> !s.isBlank())
-                .toList();
+    /**
+     * Delegates to {@link CredentialRedactor#namesCredentialMaterial}, which is also what
+     * audit-service applies at ingestion time.
+     *
+     * <p>One definition, two enforcement points. The producer-side rule (this test) stops a
+     * credential field being added; the consumer-side rule (the redactor) stops one that already
+     * exists in a queued message from reaching an append-only table. They must not be allowed to
+     * disagree about what a credential looks like — a term added to one and not the other is a gap
+     * that shows up only in the table nobody can edit.
+     */
+    static boolean namesCredentialMaterial(String fieldName) {
+        return CredentialRedactor.namesCredentialMaterial(fieldName);
     }
 
     private static List<Path> eventPublishingSources() throws IOException {

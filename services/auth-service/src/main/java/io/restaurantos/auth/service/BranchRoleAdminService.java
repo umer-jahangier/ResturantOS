@@ -113,7 +113,12 @@ public class BranchRoleAdminService {
                                                    BranchRoleAssignRequest req) {
         setTenantGuc(tenantId);
         roleCeiling.requireAssignable(actingUserId, req.roleCode());
-        return assign(tenantId, userId, req);
+        // The acting user is threaded through EXPLICITLY rather than left to TenantContext.
+        // /internal/auth/** carries no JWT, so JwtAuthenticationFilter never populates the context
+        // and TenantContext.getUserId() is empty on this path — which is how the first live run of
+        // this phase produced a ROLE_GRANTED audit row with a NULL actor. A privilege escalation
+        // that cannot say who performed it is the one audit row that most needs to.
+        return assign(tenantId, actingUserId, userId, req);
     }
 
     /**
@@ -145,6 +150,14 @@ public class BranchRoleAdminService {
      */
     @Transactional
     public RoleAssignmentResult assign(UUID tenantId, UUID userId, BranchRoleAssignRequest req) {
+        // No acting human: the only caller is ProvisioningAdminService, creating a tenant's first
+        // admin before anyone in that tenant exists. Recorded as a null actor rather than
+        // substituted with the target's own id — see the roleGranted call below.
+        return assign(tenantId, null, userId, req);
+    }
+
+    private RoleAssignmentResult assign(UUID tenantId, UUID actingUserId, UUID userId,
+                                        BranchRoleAssignRequest req) {
         setTenantGuc(tenantId);
         requireUserInTenant(tenantId, userId);
         roleCatalog.requireKnown(req.roleCode());
@@ -201,12 +214,13 @@ public class BranchRoleAdminService {
         // also a revocation, and a trail that names only what the person can do now cannot answer
         // what they could do yesterday.
         //
-        // The actor is TenantContext's user rather than a parameter, because this method is also
-        // reached from the unbounded system-context path (ProvisioningAdminService) where there is
-        // no acting human — and a null actor recorded honestly beats attributing a system-created
-        // OWNER to whoever happened to be nearby.
-        events.roleGranted(tenantId, tenantContext.getUserId().orElse(null), userId,
-            req.branchId(), req.roleCode(), displacedRoleCode,
+        // The acting user comes from the caller, falling back to the verified context. Null on the
+        // provisioning path, where there genuinely is no acting human — recorded honestly rather
+        // than substituted with the target's own id, which is the D-34 defect that put every user
+        // in impersonation_logs down as their own impersonator.
+        events.roleGranted(tenantId,
+            actingUserId != null ? actingUserId : tenantContext.getUserId().orElse(null),
+            userId, req.branchId(), req.roleCode(), displacedRoleCode,
             saved.getApprovalLimitPaisa(), saved.isPrimary());
 
         return new RoleAssignmentResult(saved, displacedRoleCode);
