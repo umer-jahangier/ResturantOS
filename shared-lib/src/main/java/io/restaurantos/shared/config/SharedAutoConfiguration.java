@@ -175,11 +175,20 @@ public class SharedAutoConfiguration implements WebMvcConfigurer {
 
     // ── Transactional outbox ─────────────────────────────────────────────────
 
+    /**
+     * The service's own name is bound here, once, so no publish call site can get it wrong.
+     *
+     * <p>{@code spring.application.name} has no default on purpose: every one of the 16 services
+     * sets it, and a service that does not is a misconfiguration that should fail at startup rather
+     * than publish events the audit trail cannot attribute. See {@link DomainEventPublisher} for the
+     * measured consequence of the hardcoded {@code "shared-lib"} this replaces.
+     */
     @Bean
     public EventPublisher domainEventPublisher(OutboxRepository repo,
                                                TenantContext tc,
-                                               ObjectMapper sharedObjectMapper) {
-        return new DomainEventPublisher(repo, tc, sharedObjectMapper);
+                                               ObjectMapper sharedObjectMapper,
+                                               @Value("${spring.application.name}") String serviceName) {
+        return new DomainEventPublisher(repo, tc, sharedObjectMapper, serviceName);
     }
 
     @Bean
