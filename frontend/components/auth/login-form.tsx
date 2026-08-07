@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { TotpEnrollment } from "@/components/auth/totp-enrollment";
 
 /**
  * ONE login form, for everyone.
@@ -69,14 +70,33 @@ interface LoginFormProps {
   returnPath?: string | null;
 }
 
+/** SSR-safe "has React taken over?" — see the submit button for why this form needs to know. */
+const subscribeNothing = () => () => {};
+const onClient = () => true;
+const onServer = () => false;
+
 export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: LoginFormProps) {
   const router = useRouter();
   const login = useLogin();
+  const hydrated = useSyncExternalStore(subscribeNothing, onClient, onServer);
 
   const [totpRequired, setTotpRequired] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   /** Non-empty only after a 409 TENANT_SELECTION_REQUIRED. */
   const [choices, setChoices] = useState<TenantChoice[]>([]);
+  /**
+   * Non-null only after a 401 TOTP_ENROLLMENT_REQUIRED (GA-008).
+   *
+   * Holds the live password, which is why enrolment renders inside this component rather than on
+   * its own route: `/2fa/bootstrap` re-authenticates on every call, and a separate page could only
+   * receive the credential through a URL, storage or a store — each of them a worse home for it
+   * than the form state it is already in. Leaving the page discards it, which is correct.
+   */
+  const [enrolling, setEnrolling] = useState<{
+    email: string;
+    password: string;
+    tenantSlug: string;
+  } | null>(null);
   /** The advanced "I know my restaurant identifier" disclosure. Never shown by default. */
   const [showTenantField, setShowTenantField] = useState(false);
 
@@ -172,15 +192,41 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
           }
 
           if (error.isTotpEnrollmentRequired()) {
-            // The account must use a second factor and has never enrolled one, so there is no
-            // code to ask for. Revealing the TOTP field here would strand them at a prompt they
-            // cannot satisfy — say what is actually required instead.
-            const message =
-              "This account requires two-factor authentication, which has not been set up yet. " +
-              "Ask an administrator to complete enrolment before signing in.";
+            // GA-008. This branch used to render:
+            //
+            //   "Ask an administrator to complete enrolment before signing in."
+            //
+            // For the account that meets this refusal first — a newly provisioned OWNER — there is
+            // no administrator to ask. They are the only account on the tenant, and the product
+            // had just told them to seek help from someone who does not exist. A brand-new
+            // restaurant could not get in at all.
+            //
+            // Enrolment happens here instead. `/2fa/bootstrap` needs a tenant slug, which an
+            // email-first login never gave the browser; auth-service now returns the one it
+            // resolved in the refusal's `details` (safe: the refusal is thrown only after the
+            // password verified). Falling back to the typed slug covers the advanced path where
+            // the user supplied one themselves.
+            const resolvedSlug =
+              error.fieldErrors.find((f) => f.field === "tenantSlug")?.issue || slug;
+
+            if (!resolvedSlug) {
+              // Older auth-service that predates the detail. Say what is true and what to do,
+              // rather than pointing at an administrator who may not exist.
+              setTotpRequired(false);
+              setFormError(
+                "This account needs two-factor authentication set up before it can sign in. " +
+                  'Use "Use a restaurant identifier instead" to name your restaurant, then try again.',
+              );
+              return;
+            }
+
             setTotpRequired(false);
-            setFormError(message);
-            toast.error(message);
+            setFormError(null);
+            setEnrolling({
+              email: values.email,
+              password: values.password,
+              tenantSlug: resolvedSlug,
+            });
             return;
           }
 
@@ -250,7 +296,24 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
           </Alert>
         ) : null}
 
-        {choices.length > 0 ? (
+        {enrolling ? (
+          <TotpEnrollment
+            email={enrolling.email}
+            password={enrolling.password}
+            tenantSlug={enrolling.tenantSlug}
+            onCancel={() => setEnrolling(null)}
+            onEnrolled={() => {
+              // Back to the credentials form with the TOTP field already revealed: the account now
+              // HAS a factor, so the next login will be challenged for a code rather than refused.
+              // Enrolment is not a login and does not become one — the user signs in normally,
+              // which keeps the two events, and their two audit records, distinct.
+              setEnrolling(null);
+              setTotpRequired(true);
+              form.setValue("totpCode", "");
+              window.setTimeout(() => form.setFocus("totpCode"), 0);
+            }}
+          />
+        ) : choices.length > 0 ? (
           <div className="grid gap-3" data-testid="tenant-chooser">
             <div>
               <h2 className="text-base font-medium">Where would you like to sign in?</h2>
@@ -390,7 +453,24 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
                 </button>
               )}
 
-              <Button type="submit" disabled={login.isPending} className="w-full">
+              {/* Disabled until React has hydrated, and NOT for cosmetic reasons.
+                  `react-hook-form`'s `handleSubmit` is what calls `preventDefault()`; before
+                  hydration it is not attached, so a submit falls through to the browser's native
+                  handling. This form declares no `action` and no `method`, so a native submit is a
+                  GET to the current URL — which puts the typed EMAIL AND PASSWORD in the address
+                  bar, in browser history, and in any access log along the way. Observed live
+                  during 14b verification: `/login?email=owner%40terrace.local&password=…`.
+                  There is no non-JS path worth preserving here (the whole route is `"use client"`
+                  and cannot authenticate without JS), so refusing the submit until it can be
+                  handled properly costs nothing and closes the leak. Mirrors ThemeToggle's
+                  `useSyncExternalStore` mounted check rather than an effect, per the codebase's
+                  react-hooks/set-state-in-effect rule. */}
+              <Button
+                type="submit"
+                disabled={login.isPending || !hydrated}
+                className="w-full"
+                data-testid="login-submit"
+              >
                 {login.isPending ? "Signing in…" : "Sign in"}
               </Button>
             </form>

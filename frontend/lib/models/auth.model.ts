@@ -63,6 +63,35 @@ export interface ForcedPasswordChangeBody {
   newPassword: string;
 }
 
+/**
+ * Body of `POST /api/v1/auth/2fa/bootstrap` and `/bootstrap/verify` (GA-008).
+ *
+ * Carries the same three credentials as a login because the endpoint RE-AUTHENTICATES on every
+ * call — it is public at the gateway by necessity (the caller has no token and, until enrolment
+ * finishes, cannot obtain one), so the password IS the authorization. auth-service refuses once a
+ * secret exists, which is what confines this path to breaking a deadlock rather than re-pointing a
+ * live second factor.
+ *
+ * `tenantSlug` is required by the server and is NOT something the user is asked for: after
+ * 16a-01's email-first login the browser has no slug, so it comes back in the `details` of the
+ * `401 TOTP_ENROLLMENT_REQUIRED` that sent the user here.
+ *
+ * `code` is omitted on `/bootstrap` (which issues the secret) and carries the first generated code
+ * on `/bootstrap/verify` (which activates it).
+ */
+export interface TotpBootstrapBody {
+  email: string;
+  password: string;
+  tenantSlug: string;
+  code?: string;
+}
+
+/** `POST /api/v1/auth/2fa/bootstrap` response: the provisioning URI for an authenticator app. */
+export interface TotpSetup {
+  /** `otpauth://totp/<issuer>:<account>?secret=…&issuer=…` */
+  otpauthUri: string;
+}
+
 /** Tenant feature flags (D4 — shape mocked in Phase 4, live endpoint is Phase-3). */
 export interface FeatureFlags {
   features: string[];

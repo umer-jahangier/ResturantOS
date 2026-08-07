@@ -34,10 +34,22 @@ public class AuthExceptionHandler {
             .body(ApiError.of("TOTP_REQUIRED", ex.getMessage(), traceId()));
     }
 
+    /**
+     * <p>Carries the tenant slug in {@code details} (14b / GA-008) so the client can reach
+     * {@code POST /api/v1/auth/2fa/bootstrap}, which requires one that an email-first login never
+     * gave the browser. Without it this refusal was a dead end for the only account that could
+     * possibly resolve it. Same envelope shape as PASSWORD_CHANGE_REQUIRED below — one parser.
+     *
+     * <p>Emitted defensively: a null slug yields no detail rather than a null-valued field, so an
+     * unforeseen call path degrades to today's behaviour instead of a 500.
+     */
     @ExceptionHandler(TotpEnrollmentRequiredException.class)
     public ResponseEntity<ApiError> handleTotpEnrollment(TotpEnrollmentRequiredException ex) {
+        List<ApiError.FieldError> details = ex.tenantSlug() == null
+            ? List.of()
+            : List.of(new ApiError.FieldError("tenantSlug", ex.tenantSlug()));
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(ApiError.of("TOTP_ENROLLMENT_REQUIRED", ex.getMessage(), traceId()));
+            .body(ApiError.of("TOTP_ENROLLMENT_REQUIRED", ex.getMessage(), details, traceId()));
     }
 
     @ExceptionHandler(TotpAlreadyEnrolledException.class)

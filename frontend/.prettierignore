@@ -1,0 +1,17 @@
+# Prettier must not reformat a lockfile.
+#
+# There was no .prettierignore at all, so `prettier --check .` covered `pnpm-lock.yaml` — and it
+# FAILED on it, at HEAD, before this phase started. The CI gate `pnpm --dir frontend run
+# format:check` (ci.yml:97) was therefore red for reasons unrelated to any product change.
+#
+# The obvious "fix" is to run `prettier --write` over it, and that is the wrong one twice over:
+#
+#   1. It is 5,389 insertions and 3,157 deletions of pure quote-style churn — `'9.0'` becoming
+#      `"9.0"` about four thousand times — with no dependency change anywhere in it. That noise
+#      buries real review signal in whichever PR happens to carry it.
+#   2. The lockfile is the single most merge-conflict-prone file in the repository, and pnpm
+#      rewrites it in ITS own style on every `pnpm install`. Formatting it means the next install
+#      un-formats it, so the gate goes red again and the churn recurs forever.
+#
+# A package manager owns the format of its own lockfile. Prettier does not get a vote.
+pnpm-lock.yaml

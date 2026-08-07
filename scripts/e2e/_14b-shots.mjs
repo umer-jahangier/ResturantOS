@@ -43,13 +43,22 @@ async function shot(page, name) {
 
 async function login(page, email, password, withTotp) {
   await page.goto(`${APP}/login`, { waitUntil: "domcontentloaded" });
+  // Wait for hydration before typing. Clicking a pre-hydration submit used to fall through to the
+  // browser's native GET and put the password in the query string; the form now disables the
+  // button until React has taken over, so waiting for it enabled is both the correct wait and a
+  // live assertion that the guard is in place.
+  await page.getByTestId("login-submit").waitFor({ state: "visible", timeout: 20_000 });
+  await page
+    .getByTestId("login-submit")
+    .and(page.locator(":not([disabled])"))
+    .waitFor({ timeout: 20_000 });
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByTestId("login-submit").click();
   if (withTotp) {
-    await page.getByTestId("totp-code").waitFor({ timeout: 15_000 });
+    await page.getByTestId("totp-code").waitFor({ timeout: 20_000 });
     await page.getByTestId("totp-code").fill(totp(email));
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByTestId("login-submit").click();
   }
   await page.waitForURL(/\/app\//, { timeout: 30_000 });
 }
@@ -67,9 +76,74 @@ page.on("console", (m) => m.type() === "error" && console.log(`    [console] ${m
 console.log(`\n=== 14b evidence: ${TAG} ===`);
 
 // ---------------------------------------------------------------- GA-008 (pre-login)
+//
+// Driven against a tenant provisioned by scripts/onboarding.py whose OWNER has never enrolled a
+// second factor — the exact state the audit reached with `gap-audit-bistro`, and the one in which
+// the product used to tell the only account holder to "ask an administrator".
+const GA008_EMAIL = process.env.GA008_EMAIL;
+const GA008_PASSWORD = process.env.GA008_PASSWORD;
+
 console.log("GA-008 TOTP enrolment deadlock");
 await page.goto(`${APP}/login`, { waitUntil: "domcontentloaded" });
-await shot(page, "ga008-login-page");
+await shot(page, "ga008-1-login-page");
+
+if (GA008_EMAIL) {
+  await page.getByLabel("Email").fill(GA008_EMAIL);
+  await page.getByLabel("Password").fill(GA008_PASSWORD);
+  await page.getByTestId("login-submit").click();
+  await page.waitForTimeout(3000);
+  await shot(page, "ga008-2-after-refusal");
+
+  // BEFORE: a destructive alert reading "Ask an administrator to complete enrolment".
+  // AFTER:  the enrolment step, in place, with the password never leaving form state.
+  const enrolment = page.getByTestId("totp-enrollment");
+  if (await enrolment.count()) {
+    await page.getByTestId("totp-enroll-start").click();
+    await page.getByTestId("totp-secret").waitFor({ timeout: 15_000 });
+    await shot(page, "ga008-3-secret-issued");
+
+    const secret = (await page.getByTestId("totp-secret").innerText()).replace(/\s/g, "");
+    const code = execFileSync(
+      "python3",
+      [
+        "-c",
+        `import base64,hmac,hashlib,struct,time
+k=base64.b32decode('${secret}'+'='*((8-len('${secret}')%8)%8))
+m=hmac.new(k,struct.pack('>Q',int(time.time())//30),hashlib.sha1).digest()
+o=m[-1]&0xf
+print(str((struct.unpack('>I',m[o:o+4])[0]&0x7fffffff)%1000000).zfill(6))`,
+      ],
+      { encoding: "utf8" },
+    ).trim();
+    console.log(`    computed code ${code} from the on-screen key`);
+
+    await page.getByTestId("totp-enroll-code").fill(code);
+    await page.getByTestId("totp-enroll-verify").click();
+    await page.waitForTimeout(3000);
+    await shot(page, "ga008-4-enrolled");
+
+    // The account now HAS a factor, so signing in is challenged rather than refused.
+    await page.getByTestId("totp-code").fill(
+      execFileSync(
+        "python3",
+        [
+          "-c",
+          `import base64,hmac,hashlib,struct,time
+k=base64.b32decode('${secret}'+'='*((8-len('${secret}')%8)%8))
+m=hmac.new(k,struct.pack('>Q',int(time.time())//30),hashlib.sha1).digest()
+o=m[-1]&0xf
+print(str((struct.unpack('>I',m[o:o+4])[0]&0x7fffffff)%1000000).zfill(6))`,
+        ],
+        { encoding: "utf8" },
+      ).trim(),
+    );
+    await page.getByTestId("login-submit").click();
+    await page.waitForTimeout(6000);
+    console.log(`    landed on ${page.url()}`);
+    await shot(page, "ga008-5-signed-in");
+  }
+  await page.context().clearCookies();
+}
 
 // ---------------------------------------------------------------- sign in as owner
 await login(page, "owner@terrace.local", "Terrace#Owner1", true);

@@ -519,8 +519,14 @@ public class AuthServiceImpl implements AuthService {
         // with no way out. Point them at enrolment instead.
         if (user.getTotpSecret() == null) {
             loginEventPublisher.publishFailed(tenantId, user.getId(), email, ip);
+            // The slug rides along so the client can actually reach /2fa/bootstrap, which requires
+            // one — see TotpEnrollmentRequiredException's javadoc for why the browser has none of
+            // its own after 16a-01, and for the disclosure rule that makes this safe here.
+            // `request` is guaranteed to carry it: loginToTenant is only ever entered with an
+            // explicit slug (the unified path re-enters via withTenantSlug).
             throw new TotpEnrollmentRequiredException(
-                "Two-factor authentication is required for this account but has not been set up");
+                "Two-factor authentication is required for this account but has not been set up",
+                request.tenantSlug());
         }
         if (request.totpCode() == null
             || request.totpCode().isBlank()

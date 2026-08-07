@@ -28,6 +28,17 @@ export const apiTokenSchema = z.object({
   expiresInSeconds: z.number(),
 });
 
+/**
+ * `POST /api/v1/auth/2fa/bootstrap` success body (GA-008).
+ *
+ * One field, and it is the whole point: `TotpSetupResponse` is `record TotpSetupResponse(String
+ * otpauthUri)`. The SECRET is never returned on its own — it exists only inside this URI's
+ * `?secret=` parameter, which is what an authenticator app consumes.
+ */
+export const apiTotpSetupSchema = z.object({
+  otpauthUri: z.string(),
+});
+
 /** Feature-flags endpoint (D4 — shape mocked in Phase 4; confirm live contract). */
 export const apiFeatureFlagsSchema = z.object({
   features: z.array(z.string()),
@@ -35,4 +46,5 @@ export const apiFeatureFlagsSchema = z.object({
 
 export type ApiLogin = z.infer<typeof apiLoginSchema>;
 export type ApiToken = z.infer<typeof apiTokenSchema>;
+export type ApiTotpSetup = z.infer<typeof apiTotpSetupSchema>;
 export type ApiFeatureFlags = z.infer<typeof apiFeatureFlagsSchema>;

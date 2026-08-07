@@ -19,8 +19,22 @@ import { useSwitchBranch } from "@/lib/hooks/auth/use-switch-branch";
 import { BranchSwitchOverlay } from "./branch-switch-overlay";
 
 function BranchSwitcherSkeleton() {
+  // `role="status"` is not decoration. Without a role this is a generic <div>, and `aria-label` is
+  // PROHIBITED on a generic — so assistive technology discarded the label entirely and the region
+  // announced nothing at all while branches loaded. axe reports it as a serious
+  // `aria-prohibited-attr` violation; the accessibility journey caught it live on /app/reports
+  // during 14b verification, as a race that only appears while the query is in flight.
+  //
+  // Out of this phase's register scope (it is not a Tier 0 item) but fixed here rather than
+  // deferred: it is one line, it is the same class of defect as GA-059 — the shell telling a
+  // screen-reader user something untrue — and `status` is the role this element always meant.
   return (
-    <div className="flex w-full flex-col gap-1" aria-busy="true" aria-label="Loading branches">
+    <div
+      className="flex w-full flex-col gap-1"
+      role="status"
+      aria-busy="true"
+      aria-label="Loading branches"
+    >
       <Skeleton className="h-8 w-full" />
     </div>
   );
