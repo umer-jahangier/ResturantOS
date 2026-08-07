@@ -109,6 +109,30 @@ public class AuthExceptionHandler {
             .body(ApiError.of("ACTING_USER_REQUIRED", ex.getMessage(), traceId()));
     }
 
+    /**
+     * The unified-login chooser (16a-01).
+     *
+     * <p><b>409, and it travels on the error channel rather than as a success body.</b> Nothing was
+     * issued: no access token, no refresh session, no cookie. A 200 carrying a list of options would
+     * be a success shape that contains no session, which is exactly the sort of response a client
+     * eventually mistakes for one — and {@code LoginResponse} was deliberately left alone for the
+     * same reason {@code PASSWORD_CHANGE_REQUIRED} does not reuse it.
+     *
+     * <p>{@code details} carries one entry per tenant, {@code field} = the slug the client echoes
+     * back, {@code issue} = the display name. <b>Every entry is a tenant whose stored hash the
+     * submitted password matched</b> — see {@link TenantSelectionRequiredException}. This handler is
+     * the last point before that list becomes visible, and it adds nothing to it.
+     */
+    @ExceptionHandler(TenantSelectionRequiredException.class)
+    public ResponseEntity<ApiError> handleTenantSelection(TenantSelectionRequiredException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiError.of("TENANT_SELECTION_REQUIRED", ex.getMessage(),
+                ex.options().stream()
+                    .map(o -> new ApiError.FieldError(o.slug(), o.name()))
+                    .toList(),
+                traceId()));
+    }
+
     @ExceptionHandler(PasswordReuseException.class)
     public ResponseEntity<ApiError> handlePasswordReuse(PasswordReuseException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

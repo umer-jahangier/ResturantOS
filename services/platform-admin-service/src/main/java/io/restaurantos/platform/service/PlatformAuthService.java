@@ -126,6 +126,43 @@ public class PlatformAuthService {
      */
     @Transactional(readOnly = true)
     public PlatformLoginResponse login(String email, String password, String sourceAddress) {
+        PlatformUserEntity user = verifyCredential(email, password, sourceAddress);
+
+        // A signer outage is NOT a credential failure and must never be reported as one: a Feign
+        // error propagates to GlobalExceptionHandler as a 500. Telling a SuperAdmin with the correct
+        // password that their credential is invalid would send them to rotate a password that works.
+        MintedToken minted = mint(user);
+
+        log.info("[platform-auth] success — platformUserId={} role={} source={} ttl={}s",
+            user.getId(), user.getRole(), sourceAddress, minted.expiresIn());
+
+        return new PlatformLoginResponse(
+            minted.token(), minted.expiresIn(), minted.tokenType(), user.getId(), user.getRole().name());
+    }
+
+    /**
+     * Every credential check {@link #login} performs, and nothing else — extracted by 16a-01 so the
+     * unified email-first login in auth-service can ask "is this a platform credential?" over the
+     * internal channel and get an answer produced by <b>this exact code</b>.
+     *
+     * <h3>Why extraction rather than a second implementation</h3>
+     * <p>The whole complaint that produced phase 13 is that two credential paths which agreed on day
+     * one drifted afterwards. A unified login that re-derived the lockout window, the dummy-hash
+     * comparison, the active check and the mintable-role check would be a third such path. There is
+     * one method; {@link #login} and
+     * {@link io.restaurantos.platform.controller.PlatformInternalAuthController} both call it.
+     *
+     * <p><b>The refusal is still an exception, not a boolean.</b> A method that returned
+     * {@code Optional.empty()} for "wrong password" invites a caller to branch on emptiness and,
+     * eventually, to say something different for the empty case than the exception path says. The
+     * internal controller catches it and renders one constant {@code {"matched": false}} — it does
+     * not, and must not, forward the reason.
+     *
+     * @return the verified platform user; never null
+     * @throws PlatformAuthenticationFailedException on every failure, with no distinguishing detail
+     */
+    @Transactional(readOnly = true)
+    public PlatformUserEntity verifyCredential(String email, String password, String sourceAddress) {
         String normalized = normalize(email);
 
         if (isLockedOut(normalized)) {
@@ -165,17 +202,7 @@ public class PlatformAuthService {
         }
 
         clearFailures(normalized);
-
-        // A signer outage is NOT a credential failure and must never be reported as one: a Feign
-        // error propagates to GlobalExceptionHandler as a 500. Telling a SuperAdmin with the correct
-        // password that their credential is invalid would send them to rotate a password that works.
-        MintedToken minted = mint(user);
-
-        log.info("[platform-auth] success — platformUserId={} role={} source={} ttl={}s",
-            user.getId(), user.getRole(), sourceAddress, minted.expiresIn());
-
-        return new PlatformLoginResponse(
-            minted.token(), minted.expiresIn(), minted.tokenType(), user.getId(), user.getRole().name());
+        return user;
     }
 
     // --- Minting -------------------------------------------------------------------------------

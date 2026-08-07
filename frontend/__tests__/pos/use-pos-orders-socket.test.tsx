@@ -92,6 +92,9 @@ describe("usePosOrdersSocket", () => {
         userId: "u",
         tenantId: "t",
         branchId: BRANCH_ID,
+        // 16a-01: `Session` gained the platform/tenant discriminator. These fixtures are all
+        // tenant sessions.
+        tokenType: "access",
       },
     });
   });

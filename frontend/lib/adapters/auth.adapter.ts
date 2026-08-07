@@ -12,8 +12,11 @@ export function adaptSession(api: ApiLogin): Session {
     accessToken: api.accessToken,
     expiresAt: expiresAtFromNow(api.expiresInSeconds),
     userId: api.userId,
+    // Null for a platform session, and passed through as null rather than coerced: the whole point
+    // of the discriminator is that "this session has no tenant" is a fact, not a missing value.
     tenantId: api.tenantId,
     branchId: api.branchId,
+    tokenType: api.tokenType,
   };
 }
 
@@ -30,6 +33,10 @@ export function adaptTokenSession(api: ApiToken): Session {
     userId: claims.sub,
     tenantId: claims.tenantId,
     branchId: claims.branchId,
+    // Refresh and switch-branch are TENANT-only paths by construction: a platform token has no
+    // refresh session (auth-service issues none) and no branch. Anything arriving here is therefore
+    // a tenant token, and hard-coding that is more honest than reading a claim that is always absent.
+    tokenType: "access",
   };
 }
 

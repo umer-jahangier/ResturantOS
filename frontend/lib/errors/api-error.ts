@@ -57,6 +57,26 @@ export class ApiError extends Error {
   isTotpEnrollmentRequired(): boolean {
     return this.code === "TOTP_ENROLLMENT_REQUIRED";
   }
+  /**
+   * 409 — the credential verified in more than one place and the user must choose (16a-01).
+   *
+   * `fieldErrors` carries one entry per option: `field` is the slug to echo back as `tenantSlug`,
+   * `issue` is the display name. Every entry is a place the password ACTUALLY matched — auth-service
+   * builds the list after the bcrypt comparison, never before — so rendering it discloses nothing a
+   * caller has not already proven.
+   */
+  isTenantSelectionRequired(): boolean {
+    return this.code === "TENANT_SELECTION_REQUIRED";
+  }
+  /**
+   * 403 — the password is correct but must be changed before a session is issued (D-17).
+   *
+   * 403 rather than 401 on purpose: re-prompting for the password (the natural response to a 401)
+   * would loop forever. `fieldErrors` carries `changeToken` and `expiresAt`.
+   */
+  isPasswordChangeRequired(): boolean {
+    return this.code === "PASSWORD_CHANGE_REQUIRED";
+  }
   /** 403 — branch-switch denied (used by the 04-02 BranchSwitcher). */
   isBranchAccessDenied(): boolean {
     return this.code === "BRANCH_ACCESS_DENIED";

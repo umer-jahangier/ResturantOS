@@ -56,6 +56,14 @@ psql_super() {
 # needs to build the call.
 FIXUPS=(
   "auth_db|public.auth_lookup_refresh_tenant(TEXT)|auth_user|refresh_sessions|token_hash"
+  # 16a-01. The email-first login's cross-tenant candidate lookup — it runs before any tenant is
+  # known, which is exactly why it needs a definer context. Owned by auth_user it returns zero rows
+  # and EVERY login without a tenant slug is refused as "invalid credentials": the credential is
+  # correct, the resolution finds nothing, and the refusal is (correctly) generic, so there is no
+  # symptom to read. It is set-returning rather than scalar, and the probe below still works:
+  # `SELECT fn(x) IS NOT NULL` yields one boolean per returned row, so zero rows leaves the output
+  # empty and is reported as the failure it is.
+  "auth_db|public.auth_lookup_login_candidates(TEXT)|auth_user|users|email"
   "hr_db|public.resolve_device(TEXT)|hr_user|attendance_devices|device_token"
   "hr_db|public.hr_tenant_ids()|hr_user||"
 )

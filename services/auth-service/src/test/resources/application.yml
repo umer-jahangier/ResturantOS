@@ -1,3 +1,22 @@
+spring:
+  # REQUIRED, and its absence was breaking every integration test in this module.
+  #
+  # `SharedAutoConfiguration.domainEventPublisher` binds `@Value("${spring.application.name}")`
+  # with no default — deliberately, so a service that fails to name itself cannot publish events the
+  # audit trail can't attribute (15-01, commit 7081429). But this file SHADOWS
+  # `src/main/resources/application.yml` rather than merging with it: Spring Boot takes the first
+  # `application.yml` on the classpath, and `target/test-classes` precedes `target/classes`. So the
+  # `spring.application.name: auth-service` set for production was invisible to tests, every context
+  # failed to start with `Could not resolve placeholder 'spring.application.name'`, and every
+  # auth-service IT has been erroring since.
+  #
+  # Found by 16a-01 while running a NEW integration test — `AuthLoginIT`, untouched by that plan,
+  # fails identically on a clean tree, which is how it was identified as pre-existing rather than
+  # newly caused. Anything else added to the main application.yml that tests depend on has to be
+  # repeated here for the same reason.
+  application:
+    name: auth-service
+
 restaurantos:
   auth:
     cookie:

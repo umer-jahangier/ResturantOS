@@ -43,6 +43,9 @@ export function seedSession(claims: FixtureClaims = {}): string {
       userId: claims.sub ?? "user-1",
       tenantId: claims.tenantId ?? "tenant-1",
       branchId: claims.branchId ?? "branch-1",
+      // 16a-01: `Session` gained the platform/tenant discriminator. These fixtures are all
+      // tenant sessions.
+      tokenType: "access",
     },
   });
   return accessToken;

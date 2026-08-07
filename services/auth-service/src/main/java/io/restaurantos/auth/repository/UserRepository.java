@@ -22,6 +22,44 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByEmail(String email);
 
     /**
+     * The login lookup, with the tenant carried in the query as well as in the policy — 16a-01.
+     *
+     * <h2>Why {@link #findByEmail} was not enough</h2>
+     *
+     * <p>{@code users} is unique on {@code (tenant_id, lower(email))}, NOT on the address alone:
+     * changeset 058 kept cross-tenant reuse legal on purpose. {@code findByEmail} returns an
+     * {@code Optional}, so it is correct only for as long as the row-level-security policy is the
+     * thing narrowing the result to one tenant. On the live database it is — {@code auth_user} is
+     * {@code NOSUPERUSER NOBYPASSRLS} — but that makes the correctness of the login lookup rest
+     * entirely on a control that <b>cannot be exercised by any test in this repository</b>, because
+     * Testcontainers' Postgres user is a SUPERUSER and the policy is inert under it.
+     *
+     * <p>That is not theoretical. Writing {@code UnifiedLoginIT}'s duplicate-address fixture made
+     * {@code findByEmail} match two rows and login answered <b>HTTP 500</b>
+     * ({@code NonUniqueResultException}) — on the ORDINARY slug-bearing path, not the new one. On a
+     * database where the policy is enforced that cannot happen; on one where it has been
+     * misconfigured, dropped by a migration, or is being bypassed by a superuser connection, the
+     * login endpoint fails open into a 500 instead of quietly working. Carrying the predicate here
+     * gives two independent controls and makes the second one assertable in CI — the same reasoning
+     * {@link #findPageForTenant} and {@link #findByIdForTenant} already record.
+     *
+     * <p><b>{@code lower(email)} is compared, not {@code email}.</b> The callers lower-case the
+     * submitted address and 058's unique index is on {@code lower(email)}, so matching on the raw
+     * column would make a row stored as {@code Bob@x} unreachable at login while the index treats it
+     * as the same account.
+     *
+     * @param email a PRE-LOWERCASED address
+     */
+    @Query("""
+        SELECT u FROM UserEntity u
+         WHERE u.tenantId = :tenantId
+           AND LOWER(u.email) = :email
+           AND u.deletedAt IS NULL
+        """)
+    Optional<UserEntity> findByTenantAndEmail(@Param("tenantId") UUID tenantId,
+                                              @Param("email") String email);
+
+    /**
      * One page of a tenant's users, deterministically ordered.
      *
      * <h2>Why the tenant predicate is in the query as well as in the policy</h2>

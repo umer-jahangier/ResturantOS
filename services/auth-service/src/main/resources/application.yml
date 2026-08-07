@@ -46,6 +46,14 @@ management:
 restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  # 16a-01: where PlatformCredentialClient asks "is this a SuperAdmin credential?".
+  #
+  # A direct origin, NOT `lb://platform-admin-service`. auth-service has no @LoadBalanced
+  # RestClient.Builder and adding one for a single call would pull load-balancer configuration into
+  # a service that makes no other outbound HTTP call. The default is the dev stack's port; set
+  # PLATFORM_ADMIN_SERVICE_URI in any deployment where that is not where it lives.
+  platform-admin-service:
+    uri: ${PLATFORM_ADMIN_SERVICE_URI:http://localhost:8096}
   auth:
     step-up-enabled: ${AUTH_STEP_UP_ENABLED:true}
     # Control-plane token lifetime (PlatformTokenService). Deliberately NOT jwt.access-ttl-seconds:
@@ -54,6 +62,13 @@ restaurantos:
     # users also have no refresh path and no TOTP column yet, so the short TTL is the only bound on
     # a leaked control-plane token.
     platform-token-ttl-seconds: ${PLATFORM_TOKEN_TTL_SECONDS:900}
+    # 16a-01: whether the unified email-first login also checks platform (SuperAdmin) credentials.
+    #
+    # ON here, because with it off the SuperAdmin has no browser login at all — which is the defect
+    # this plan repairs. Turn it OFF only for a deployment that runs no platform-admin-service; the
+    # effect is that a platform credential simply never matches, which is indistinguishable from a
+    # wrong password and therefore leaks nothing about whether a control plane exists.
+    platform-login-enabled: ${AUTH_PLATFORM_LOGIN_ENABLED:true}
     # Self-service forgot-password (13-09, D-31).
     #
     # DISABLED by default, and that is a decision rather than an oversight: notification-service is

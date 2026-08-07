@@ -20,27 +20,26 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED = ["/platform", "/app"];
 
+/**
+ * Where an unauthenticated request to a protected route is sent.
+ *
+ * <b>`/login`. Bare. No `?tenant=`.</b> This function used to append
+ * `NEXT_PUBLIC_DEFAULT_TENANT_SLUG`, and there used to be a second rule above that redirected any
+ * `/login` without a `?tenant=` to one carrying it. Together they meant every visitor — including
+ * the SuperAdmin, who belongs to no tenant — was pinned to one hard-coded slug, and when that slug
+ * went stale (`test`, which no longer exists) the login page was unusable for everyone.
+ *
+ * The dev convenience it was reaching for is real but belongs one layer up: `?tenant=` still works
+ * as a hint, and the page still PREFILLS from it. What it must not do is REWRITE the URL, because a
+ * redirect makes the hint mandatory and unremovable — a user who deletes the query string is simply
+ * given it back.
+ */
 function loginUrl(request: NextRequest): URL {
-  const url = new URL("/login", request.url);
-  const defaultTenant = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
-  if (defaultTenant) {
-    url.searchParams.set("tenant", defaultTenant);
-  }
-  return url;
+  return new URL("/login", request.url);
 }
 
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
-
-  // Dev default tenant: hide the restaurant slug field on /login.
-  if (pathname === "/login" && !request.nextUrl.searchParams.get("tenant")) {
-    const defaultTenant = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
-    if (defaultTenant) {
-      const url = request.nextUrl.clone();
-      url.searchParams.set("tenant", defaultTenant);
-      return NextResponse.redirect(url);
-    }
-  }
 
   // Bare `/dashboard` is not a real route — the tenant dashboard lives at
   // `/app/dashboard`. Normalise it so bookmarks and direct navigation work.

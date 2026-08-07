@@ -56,4 +56,28 @@ public class LoginEventPublisher {
     public void logUnknownTenant(String tenantSlug, String email, String ip) {
         log.warn("Login attempt for unknown tenant slug={} email={} ip={}", tenantSlug, email, ip);
     }
+
+    /**
+     * A unified (no-slug) login that matched nothing anywhere — 16a-01.
+     *
+     * <p>Distinct from {@link #logUnknownTenant} because it is a distinct event: nobody typed a
+     * tenant, so nothing about a tenant was wrong. Reusing that line would have printed
+     * {@code slug=null} on every failed email-first attempt and taught whoever greps the logs that
+     * "unknown tenant" means nothing.
+     *
+     * <p>No AMQP event is published. {@link #publishFailed} carries a {@code tenantId} and is
+     * consumed by audit-service inside a tenant's own trail; a credential that matched no tenant has
+     * no trail to belong to, and attributing it to one would put a fabricated tenant id in the audit
+     * record. The per-candidate failures that DID touch a real account are published individually by
+     * the resolver's failure sink, which is where the tenant is known.
+     *
+     * <p><b>The password is not a parameter of this method and must never become one.</b> That is
+     * the whole reason it takes the three fields it takes: an operator investigating a burst of
+     * refusals needs the address, the source and the time, and nothing that would put a live
+     * credential — possibly a correct one for some other system — into a log aggregator.
+     */
+    public void logUnifiedRefusal(String email, String ip) {
+        log.warn("[unified-login] refused: credential matched no tenant and no platform user — "
+            + "email={} ip={}", email, ip);
+    }
 }

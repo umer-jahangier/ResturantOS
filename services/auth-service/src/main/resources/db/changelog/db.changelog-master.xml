@@ -75,6 +75,11 @@
          TENANT_ADMIN explicitly rather than relying on 057 above, which is point-in-time like
          every other blanket grant in this changelog and retro-grants nothing added after it. -->
     <include file="db/changelog/v1.0.0/059-audit-log-view-permission.xml"/>
+    <!-- 16a-01: the cross-tenant candidate lookup behind email-first login. Last, and it must stay
+         after 058: it indexes `lower(email)` over the same live-row predicate 058's unique index
+         uses, and the repair 058 performs is what guarantees the lookup cannot return two rows for
+         one (tenant, address) pair. -->
+    <include file="db/changelog/v1.0.0/081-login-candidate-lookup.xml"/>
     <!-- 18b-01: file.view/upload/manage — file-service enforced NOTHING beyond authenticated(), so
          any token in the tenant could delete any file — plus removal of the FINANCE_VIEWER grants
          that name a role no non-seed database has. Grants explicitly, like 055 and 059, because

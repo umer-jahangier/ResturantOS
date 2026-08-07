@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      16a-01 — the lookup that makes an email-first login possible.
+
+      THE PROBLEM THIS SOLVES.
+      Until now login has REQUIRED a tenant slug, because `users` is FORCE ROW LEVEL SECURITY and
+      `auth_user` is NOSUPERUSER NOBYPASSRLS: without `app.current_tenant_id` set, a SELECT over
+      `users` returns zero rows (measured by 13-02 on this same database — 0 of 18 rows visible with
+      no GUC). The application therefore could not ask "where does this address hold an account?"
+      at all, and pushed the question onto the human, who was made to type a slug they had no
+      reason to know.
+
+      WHY A SECURITY DEFINER FUNCTION AND NOT `NO FORCE`.
+      Exactly the shape changeset 052 already uses for `auth_lookup_refresh_tenant`: refresh and
+      logout have the same problem (a refresh token arrives with no tenant context) and it is
+      solved with one narrow, owner-executed function rather than by weakening the policy. Standing
+      RLS down on `users` to serve one query would remove the control from every OTHER query in the
+      service. This function is the whole of the widening, it is EXECUTE-granted to `auth_user`
+      alone, and REVOKEd from PUBLIC.
+
+      WHAT IT DELIBERATELY DOES NOT RETURN.
+      No `password_hash`, no `totp_secret`, no `locked_until`, no `is_active`. It answers the single
+      question "which live rows in ACTIVE tenants carry this address", and NOTHING that could
+      authenticate, or that describes an account's state. The caller re-reads each candidate
+      through ordinary JPA with the tenant GUC set, so every existing RLS-scoped read path, and
+      every check that hangs off it, still applies.
+
+      *** THE ORDERING CONSTRAINT THAT MATTERS MORE THAN ANYTHING ELSE HERE ***
+      This function answers "which tenants hold this email" WITHOUT a password. That is precisely
+      the account-enumeration oracle a unified login must not become, and the protection is NOT in
+      this function — it is in `LoginIdentityResolver`, which never lets a tenant name reach a
+      response until a bcrypt comparison against that tenant's row has SUCCEEDED. The function is
+      an internal lookup; the resolver is the disclosure boundary. Do not add a controller that
+      exposes this directly, and do not "helpfully" return the candidate list from a failed login.
+
+      `is_active` IS NOT FILTERED HERE, on purpose. A deactivated account must still be a
+      CANDIDATE, so that `AuthServiceImpl.refuseDeactivatedAccount` — which runs AFTER the password
+      comparison for the timing reason its javadoc gives — is the thing that refuses it. Filtering
+      it out here would move that refusal to BEFORE the hash is computed and re-open the several
+      -hundred-millisecond oracle that method exists to close.
+    -->
+    <changeSet id="auth-1.0.0-081-login-candidate-lookup-index" author="restaurantos-agent">
+        <comment>
+            Index supporting the cross-tenant lookup. 058's unique index is (tenant_id,
+            lower(email)) — tenant_id leads, so it cannot serve a probe that has no tenant. Without
+            this index the unified path is a sequential scan of `users` on every login attempt,
+            which is both slow and a denial-of-service lever on an unauthenticated endpoint.
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            CREATE INDEX IF NOT EXISTS idx_users_lower_email_live
+                ON users (lower(email))
+             WHERE deleted_at IS NULL;
+        ]]></sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS idx_users_lower_email_live;</sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      *** THIS FUNCTION IS INERT UNTIL ITS OWNER IS CHANGED, AND IT FAILS SILENTLY. ***
+
+      SECURITY DEFINER runs as the function's OWNER, and Liquibase runs as `auth_user`, so the
+      function is created owned by `auth_user` — which is NOSUPERUSER NOBYPASSRLS, and `users` is
+      FORCE ROW LEVEL SECURITY, and FORCE binds the owner. The function therefore returns ZERO ROWS.
+      It does not error. Measured on this database, same body, owner the only difference:
+
+          owned by auth_user -> 0 rows      (every email-first login refused as "invalid credentials")
+          owned by postgres  -> 1 row       (correct)
+
+      This was not predicted; it was found by deploying the plan and watching a correct password get
+      a 401. `auth_lookup_refresh_tenant` (changeset 052) has exactly the same shape and works only
+      because something once created it on a postgres connection — the same trap
+      `deploy/scripts/verify-security-definer-owners.sh` was written to close after refresh and
+      logout failed for every user for the same reason.
+
+      The ownership fixup therefore lives in TWO places, both of which are part of this plan:
+        · deploy/init/06-auth-login-candidates-owner.sql — for a database provisioned from scratch;
+        · deploy/scripts/verify-security-definer-owners.sh — which runs AFTER migrations, is
+          idempotent, and asserts the function can actually see a row rather than merely that it is
+          owned correctly.
+
+      runOnChange is set because the body is a CREATE OR REPLACE: editing it should re-apply it,
+      not fail on a checksum.
+    -->
+    <changeSet id="auth-1.0.0-081-login-candidate-lookup-function" author="restaurantos-agent" runOnChange="true">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION auth_lookup_login_candidates(p_email TEXT)
+            RETURNS TABLE (user_id UUID, tenant_id UUID, tenant_slug TEXT, tenant_name TEXT)
+            LANGUAGE sql
+            SECURITY DEFINER
+            SET search_path = public
+            STABLE
+            AS $body$
+              -- COALESCE, not t.name: auth_tenants.name is nullable, the chooser needs a label for
+              -- every option, and a NULL here would also make the ownership verifier's
+              -- `row IS NOT NULL` probe report a false failure (a composite is NULL if any field is).
+              SELECT u.id, u.tenant_id, t.slug::TEXT, COALESCE(t.name, t.slug)::TEXT
+                FROM users u
+                JOIN auth_tenants t ON t.id = u.tenant_id
+               WHERE lower(u.email) = lower(p_email)
+                 AND u.deleted_at IS NULL
+                 AND t.status = 'ACTIVE'
+               ORDER BY t.slug
+            $body$;
+
+            REVOKE ALL ON FUNCTION auth_lookup_login_candidates(TEXT) FROM PUBLIC;
+            GRANT EXECUTE ON FUNCTION auth_lookup_login_candidates(TEXT) TO auth_user;
+        ]]></sql>
+        <rollback>
+            <sql splitStatements="false">
+                REVOKE ALL ON FUNCTION auth_lookup_login_candidates(TEXT) FROM auth_user;
+                DROP FUNCTION IF EXISTS auth_lookup_login_candidates(TEXT);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

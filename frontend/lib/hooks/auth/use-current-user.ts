@@ -46,7 +46,11 @@ export function useCurrentUser(): CurrentUser {
     return {
       isAuthenticated: true,
       userId: claims.sub || session.userId,
-      branchId: claims.branchId || session.branchId,
+      // `session.branchId` is null for a PLATFORM session (16a-01): a SuperAdmin's token is
+      // tenant-less and therefore branch-less. Collapsed to "" to match ANONYMOUS's convention —
+      // every consumer already treats an empty branch as "no branch scope", and widening
+      // `CurrentUser.branchId` to `string | null` would push that same check into all of them.
+      branchId: claims.branchId || session.branchId || "",
       roles: claims.roles,
       permissions: claims.permissions,
       attributes: claims.attributes,

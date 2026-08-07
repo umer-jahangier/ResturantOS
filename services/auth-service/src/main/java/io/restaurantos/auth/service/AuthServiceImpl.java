@@ -10,6 +10,7 @@ import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AccountLockedException;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.exception.PasswordChangeRequiredException;
+import io.restaurantos.auth.exception.TenantSelectionRequiredException;
 import io.restaurantos.auth.exception.TotpEnrollmentRequiredException;
 import io.restaurantos.auth.exception.TotpRequiredException;
 import io.restaurantos.auth.repository.AuthTenantRepository;
@@ -23,14 +24,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    /**
+     * The reserved chooser value meaning "the platform console", used where a tenant slug would
+     * otherwise go. Not a slug and deliberately not slug-shaped: {@code auth_tenants.slug} is
+     * {@code varchar(100)} of the usual kebab-case, and a leading {@code @} cannot collide with one.
+     */
+    public static final String PLATFORM_CHOICE = "@platform";
+
     private static final int MAX_FAILED_ATTEMPTS = 5;
-    private static final String DUMMY_HASH =
+    /**
+     * Compared against whenever no real hash is available, so a refusal costs the same time whether
+     * or not the account exists. Package-visible since 16a-01 because {@link LoginIdentityResolver}
+     * needs the SAME constant for the same reason on the unified path — a second dummy at a
+     * different cost factor would reintroduce the timing difference both exist to remove.
+     */
+    static final String DUMMY_HASH =
         "$2a$12$HvDkD2g7oob7I/NXk3Oo/u6lcPoOVcBVa.Tb.dgQgCoiCua/fkII6";
 
     private final AuthTenantRepository authTenantRepository;
@@ -45,6 +60,8 @@ public class AuthServiceImpl implements AuthService {
     private final AuthJwtProperties jwtProperties;
     private final TotpService totpService;
     private final PasswordPolicyService passwordPolicyService;
+    private final LoginIdentityResolver loginIdentityResolver;
+    private final PlatformTokenService platformTokenService;
     private final boolean stepUpEnabled;
 
     public AuthServiceImpl(AuthTenantRepository authTenantRepository,
@@ -59,6 +76,8 @@ public class AuthServiceImpl implements AuthService {
                            AuthJwtProperties jwtProperties,
                            TotpService totpService,
                            PasswordPolicyService passwordPolicyService,
+                           LoginIdentityResolver loginIdentityResolver,
+                           PlatformTokenService platformTokenService,
                            @Value("${restaurantos.auth.step-up-enabled:true}") boolean stepUpEnabled) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
@@ -72,6 +91,8 @@ public class AuthServiceImpl implements AuthService {
         this.jwtProperties = jwtProperties;
         this.totpService = totpService;
         this.passwordPolicyService = passwordPolicyService;
+        this.loginIdentityResolver = loginIdentityResolver;
+        this.platformTokenService = platformTokenService;
         this.stepUpEnabled = stepUpEnabled;
     }
 
@@ -84,8 +105,152 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     @Transactional(noRollbackFor = {AuthenticationFailedException.class, AccountLockedException.class,
-        TotpRequiredException.class, PasswordChangeRequiredException.class})
+        TotpRequiredException.class, PasswordChangeRequiredException.class,
+        TenantSelectionRequiredException.class})
     public LoginResult login(LoginRequest request, String userAgent, String ip) {
+        // A slug supplied by a subdomain or ?tenant= takes the path it always took, byte for byte.
+        // The unified branch is reached only when the caller named no tenant, so 16a-01 cannot
+        // change the behaviour of any existing client, script or test that names one.
+        if (!request.hasTenantHint()) {
+            return unifiedLogin(request, userAgent, ip);
+        }
+        // The chooser's platform option comes back here as the reserved value. It is routed to the
+        // platform path rather than looked up in auth_tenants — where it would 401 as an unknown
+        // slug and leave a SuperAdmin who picked the right option unable to sign in.
+        //
+        // It re-verifies the credential from scratch through platform-admin-service. Choosing an
+        // option is not itself authorisation: the second request must earn its token exactly as the
+        // first would have, which is also why no selection state is held between them.
+        if (PLATFORM_CHOICE.equals(request.tenantHint())) {
+            var verdict = loginIdentityResolver.verifyPlatformOnly(request.email(), request.password(), ip);
+            if (!verdict.matched()) {
+                throw new AuthenticationFailedException("Invalid credentials");
+            }
+            return platformLoginResult(verdict);
+        }
+        return loginToTenant(request.withTenantSlug(request.tenantHint()), userAgent, ip);
+    }
+
+    /**
+     * Email-first login: verify the credential, THEN decide where it authenticated (16a-01).
+     *
+     * <h3>Why this resolves and then re-enters {@link #loginToTenant} rather than reimplementing it</h3>
+     *
+     * <p>Everything that makes a tenant login correct happens after the password check — the
+     * deactivation refusal, the forced-password-change gate, the TOTP step-up, the failed-count
+     * reset, the refresh session, the login-succeeded event. A unified path that duplicated any of
+     * it would be a second credential path, and the recurring finding of the audit that produced
+     * phase 13 is that two credential paths agree on day one and drift after. So this method does
+     * exactly one thing — turn "no slug" into "this slug" — and then hands over.
+     *
+     * <p><b>The cost, stated:</b> the winning candidate's password is bcrypt-compared twice, once to
+     * resolve and once to log in, so a unified login takes about twice as long as a slug-bearing one
+     * (~500ms rather than ~250ms at cost 12). That is the price of having one credential path
+     * instead of two, and it is the right trade: the alternative is a "trust me, it was already
+     * checked" flag threaded into the login, which is precisely the kind of shortcut that later
+     * becomes an authentication bypass when someone sets it from the wrong place.
+     *
+     * <h3>The four outcomes</h3>
+     * <ul>
+     *   <li><b>nothing matched</b> → the same generic {@code 401 UNAUTHENTICATED} an unknown address
+     *       and a wrong password have always produced. Identical status, identical body;</li>
+     *   <li><b>exactly one tenant</b> → re-enter the ordinary login with that slug;</li>
+     *   <li><b>only the platform</b> → mint a tenant-less control-plane token here (auth-service
+     *       already holds the key; PLATFORM-07 is satisfied because the CREDENTIAL was verified by
+     *       platform-admin-service, not by this service);</li>
+     *   <li><b>more than one</b> → {@link TenantSelectionRequiredException}, naming only the tenants
+     *       that actually matched.</li>
+     * </ul>
+     */
+    private LoginResult unifiedLogin(LoginRequest request, String userAgent, String ip) {
+        LoginIdentityResolver.Resolution resolution;
+        try {
+            resolution = loginIdentityResolver.resolve(
+                request.email(), request.password(), ip,
+                // Lockout accounting for candidates whose password did not match, through the very
+                // method the slug-bearing path uses. Without this, omitting the slug would be a
+                // brute-force bypass — guesses that never increment a counter and never lock.
+                this::handleFailedPassword);
+        } finally {
+            tenantContext.clear();
+        }
+
+        if (resolution.isEmpty()) {
+            if (resolution.lockedMatch()) {
+                // Reported only to a caller who has just PROVEN the password. Someone who has not
+                // gets the generic refusal below, so this cannot be used to discover that an
+                // address exists. Same rule as refuseDeactivatedAccount.
+                throw new AccountLockedException("Account is temporarily locked");
+            }
+            // Audit line only — the address and the source, never the password. The RESPONSE
+            // deliberately says nothing about how many candidates were considered, whether the
+            // address is known anywhere, or whether the control plane was reachable.
+            loginEventPublisher.logUnifiedRefusal(request.email(), ip);
+            throw new AuthenticationFailedException("Invalid credentials");
+        }
+
+        if (resolution.isSolePlatform()) {
+            return platformLoginResult(resolution.platform());
+        }
+
+        if (resolution.isSoleTenant()) {
+            return loginToTenant(
+                request.withTenantSlug(resolution.matches().get(0).slug()), userAgent, ip);
+        }
+
+        throw new TenantSelectionRequiredException(chooserOptions(resolution));
+    }
+
+    /**
+     * The chooser list.
+     *
+     * <p>Built ONLY from {@code resolution.matches()} — tenants whose stored hash the submitted
+     * password matched. A tenant that holds the address under a different password is absent, and
+     * absence here is indistinguishable from never having heard of the address.
+     *
+     * <p>A platform match alongside tenant matches is presented as one more option, because the
+     * human's question ("which of these am I signing into?") is the same question. Its slug is the
+     * reserved {@link #PLATFORM_CHOICE} rather than a tenant slug, which
+     * {@link #loginToTenant} would never resolve — so a client echoing it back cannot accidentally
+     * be routed into a tenant login.
+     */
+    private List<TenantSelectionRequiredException.Option> chooserOptions(
+            LoginIdentityResolver.Resolution resolution) {
+        List<TenantSelectionRequiredException.Option> options = new ArrayList<>();
+        if (resolution.platform().matched()) {
+            options.add(new TenantSelectionRequiredException.Option(
+                PLATFORM_CHOICE, "RestaurantOS Platform Console"));
+        }
+        for (LoginIdentityResolver.TenantMatch match : resolution.matches()) {
+            options.add(new TenantSelectionRequiredException.Option(
+                match.slug(), match.name() != null ? match.name() : match.slug()));
+        }
+        return options;
+    }
+
+    /**
+     * Mint the tenant-less control-plane token for a verified platform user.
+     *
+     * <p>No refresh session and no cookie, matching {@code POST /api/v1/platform/auth/login} exactly:
+     * a control-plane token lives 15 minutes and has no renewal path, which is the only bound on a
+     * leaked SuperAdmin credential while {@code platform_users} still has no second-factor column.
+     * Issuing a 30-day refresh token here to make the console more comfortable would quietly remove
+     * that bound.
+     */
+    private LoginResult platformLoginResult(io.restaurantos.auth.client.PlatformCredentialClient.Verdict verdict) {
+        PlatformTokenService.PlatformTokenResult minted =
+            platformTokenService.mint(verdict.platformUserId(), verdict.role());
+        LoginResponse body = new LoginResponse(
+            minted.token(), minted.expiresIn(), verdict.platformUserId(), null, null,
+            minted.tokenType());
+        return new LoginResult(body, null);
+    }
+
+    /**
+     * The original, unchanged tenant login. Every line below this point behaved exactly this way
+     * before 16a-01; only its name changed, so that {@link #login} could branch above it.
+     */
+    private LoginResult loginToTenant(LoginRequest request, String userAgent, String ip) {
         try {
             AuthTenantEntity tenant = authTenantRepository.findBySlug(request.tenantSlug())
                 .filter(t -> "ACTIVE".equals(t.getStatus()))
@@ -101,7 +266,10 @@ public class AuthServiceImpl implements AuthService {
             setTenantGuc(tenantId);
             tenantContext.set(tenantId, null, null, null);
 
-            UserEntity user = userRepository.findByEmail(request.email().toLowerCase()).orElse(null);
+            // Tenant-scoped in the query as well as by the RLS policy — see
+            // UserRepository.findByTenantAndEmail for why the policy alone was not enough.
+            UserEntity user = userRepository
+                .findByTenantAndEmail(tenantId, request.email().toLowerCase()).orElse(null);
             if (user == null) {
                 passwordEncoder.matches(request.password(), DUMMY_HASH);
                 loginEventPublisher.publishFailed(tenantId, null, request.email(), ip);
@@ -255,7 +423,9 @@ public class AuthServiceImpl implements AuthService {
         setTenantGuc(tenantId);
         tenantContext.set(tenantId, null, null, null);
 
-        UserEntity user = userRepository.findByEmail(email.toLowerCase()).orElse(null);
+        // Same two-control lookup as login: the bootstrap stands in for a login and must not be
+        // reachable through a weaker check than the one it replaces.
+        UserEntity user = userRepository.findByTenantAndEmail(tenantId, email.toLowerCase()).orElse(null);
         if (user == null) {
             passwordEncoder.matches(password, DUMMY_HASH);
             loginEventPublisher.publishFailed(tenantId, null, email, ip);

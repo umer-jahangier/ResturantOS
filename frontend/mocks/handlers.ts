@@ -151,6 +151,13 @@ export const handlers = [
           userId: user.userId,
           tenantId: TENANT_ID,
           branchId: BRANCH_ID,
+          // 16a-01 — the platform/tenant discriminator the same endpoint now returns, because it
+          // also issues control-plane tokens for SuperAdmins (who have no tenant and no branch).
+          // `apiLoginSchema` requires it, so its absence here is a Zod parse failure, not a soft
+          // default: the mock has to keep matching the contract or the tests pass against a shape
+          // production never sends. "access" = an ordinary tenant login, which is all this
+          // handler serves.
+          tokenType: "access",
         },
         meta: null,
         warnings: [],
