@@ -22,8 +22,21 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Query("SELECT o FROM Order o WHERE o.id = :id AND o.branchId = :branchId")
     Optional<Order> findByIdAndBranchId(@Param("id") UUID id, @Param("branchId") UUID branchId);
 
-    @Query("SELECT o FROM Order o WHERE o.clientOrderId = :clientOrderId")
-    Optional<Order> findByClientOrderId(@Param("clientOrderId") UUID clientOrderId);
+    /**
+     * Idempotency lookup for order creation, scoped to the tenant.
+     *
+     * <p>The tenant predicate is deliberately in the query as well as being enforced by RLS.
+     * {@code clientOrderId} is supplied by the caller, so without it this lookup was a
+     * cross-tenant oracle: posting another tenant's clientOrderId returned that tenant's
+     * order — items, totals and all — as a "replayed" 200, and bound the caller to it.
+     * pos_db's tables are now FORCE ROW LEVEL SECURITY (V11), which closes this at the
+     * database; this predicate is the second line of defence, because this lookup ran for
+     * a long time with neither.
+     */
+    @Query("SELECT o FROM Order o WHERE o.tenantId = :tenantId AND o.clientOrderId = :clientOrderId")
+    Optional<Order> findByTenantIdAndClientOrderId(
+            @Param("tenantId") UUID tenantId,
+            @Param("clientOrderId") UUID clientOrderId);
 
     @Query("SELECT o FROM Order o WHERE o.branchId = :branchId AND o.status IN :statuses ORDER BY o.createdAt DESC")
     Page<Order> findByBranchIdAndStatusIn(
