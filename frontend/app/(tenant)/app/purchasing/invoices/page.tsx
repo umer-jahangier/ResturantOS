@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useVendorInvoices } from "@/lib/hooks/purchasing/use-purchasing";
-import { INVOICE_STATUSES, type InvoiceStatus } from "@/lib/api-client/schemas/purchasing.schema";
+import { INVOICE_STATUSES, type InvoiceStatus } from "@/lib/models/purchasing-status";
 import { VendorInvoiceFormDialog } from "@/components/purchasing/VendorInvoiceFormDialog";
 import { MatchStatusBadge } from "@/components/purchasing/ThreeWayMatchTable";
 import { Button } from "@/components/ui/button";

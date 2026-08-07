@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+  INVOICE_STATUSES,
+  PO_STATUSES,
+  type InvoiceStatus,
+  type PoStatus,
+} from "@/lib/models/purchasing-status";
+
 // Mirrors VendorDto. `bankAccountLast4` is the ONLY bank field the API ever returns —
 // the account number itself is stored AES-encrypted and is never sent to a client (PUR-01).
 export const apiVendorSchema = z.object({
@@ -180,23 +187,11 @@ export const vendorCategoriesInputSchema = z.array(
   }),
 );
 
-/**
- * PoStatus (backend enum, `PoStatus.java`) — canonical order matches the domain lifecycle.
- * DRAFT -> PENDING_APPROVAL -> APPROVED -> SENT -> PARTIALLY_RECEIVED -> FULLY_RECEIVED -> CLOSED,
- * with REJECTED as an alternate terminal-ish state off PENDING_APPROVAL.
- */
-export const PO_STATUSES = [
-  "DRAFT",
-  "PENDING_APPROVAL",
-  "APPROVED",
-  "REJECTED",
-  "SENT",
-  "PARTIALLY_RECEIVED",
-  "FULLY_RECEIVED",
-  "CLOSED",
-] as const;
+// PoStatus / PO_STATUSES now live in `@/lib/models/purchasing-status` (20-01) so a route file
+// can render a status filter without importing Layer 1. Re-exported here unchanged, so every
+// existing `from "@/lib/api-client/schemas/purchasing.schema"` import still resolves.
+export { PO_STATUSES, type PoStatus };
 export const poStatusSchema = z.enum(PO_STATUSES);
-export type PoStatus = z.infer<typeof poStatusSchema>;
 
 // `qty` is a backend BigDecimal (PurchaseOrderDto.LineDto) with no custom Jackson serializer, so
 // the real API returns it as a JSON number (e.g. `100` or `12.5`), not a string — coerce either
@@ -291,20 +286,9 @@ export const rejectPoInputSchema = z.object({
   reason: z.string().min(1, "A reason is required to reject a purchase order"),
 });
 
-/**
- * InvoiceStatus (backend enum, `InvoiceStatus.java`) — PENDING_MATCH is the theoretical
- * pre-match state; in practice `VendorInvoiceService.create` always runs the 3-way match
- * synchronously, so an invoice is created straight into MATCHED or MISMATCHED.
- */
-export const INVOICE_STATUSES = [
-  "PENDING_MATCH",
-  "MATCHED",
-  "MISMATCHED",
-  "APPROVED_FOR_PAYMENT",
-  "PAID",
-] as const;
+// InvoiceStatus / INVOICE_STATUSES relocated alongside PO_STATUSES — see the note above.
+export { INVOICE_STATUSES, type InvoiceStatus };
 export const invoiceStatusSchema = z.enum(INVOICE_STATUSES);
-export type InvoiceStatus = z.infer<typeof invoiceStatusSchema>;
 
 /**
  * LineMatchStatus (backend enum, `LineMatchStatus.java`) — read from source, NOT guessed: it is

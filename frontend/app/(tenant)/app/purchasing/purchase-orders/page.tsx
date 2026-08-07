@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { usePurchaseOrders } from "@/lib/hooks/purchasing/use-purchasing";
-import { PO_STATUSES, type PoStatus } from "@/lib/api-client/schemas/purchasing.schema";
+import { PO_STATUSES, type PoStatus } from "@/lib/models/purchasing-status";
 import { PurchaseOrderFormDialog } from "@/components/purchasing/PurchaseOrderFormDialog";
 import { PoStatusBadge } from "@/components/purchasing/PoStatusBadge";
 import { Button } from "@/components/ui/button";
