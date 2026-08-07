@@ -109,7 +109,16 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
      */
     private static final List<String> WS_UPGRADE_PATHS = List.of(
             "/api/v1/reporting/dashboard/",
-            "/api/v1/kitchen/"
+            "/api/v1/kitchen/",
+            // The POS live-order socket, registered by pos-service's WebSocketConfig at
+            // /api/v1/pos/ws/orders/{branchId}. Its absence here meant the handshake fell through
+            // to the Authorization-header branch — which a browser's native WebSocket API cannot
+            // set — so the upgrade was refused for EVERY user, including a cashier with an open
+            // till. Real-time POS order sync had therefore never worked in a browser, while the
+            // REST endpoints it sits beside worked fine, which is why nothing caught it. Found by
+            // the browser E2E harness (defect E2E-D4); no server-side test could see it, because
+            // the failure only exists for a client that cannot send the header.
+            "/api/v1/pos/ws/orders/"
     );
 
     private static final String UNAUTHENTICATED_BODY =

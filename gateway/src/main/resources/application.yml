@@ -558,6 +558,14 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
         permittedNumberOfCallsInHalfOpenState: 3
+      # audit-route (phase 15) referenced this instance without declaring it, so the route ran on
+      # resilience4j defaults — caught by GatewayResilienceConfigTest, which exists for exactly
+      # this drift. Same settings as its peers; an audit read is an ordinary query.
+      auditCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
   # Reactive Spring Cloud CircuitBreaker applies a 1s call timeout when no time limiter is
   # configured for an instance. purchasing/pos/kitchen/inventory are the four routes this phase
   # puts real traffic on for the first time (recursive category-tree read, batch ingredient-category

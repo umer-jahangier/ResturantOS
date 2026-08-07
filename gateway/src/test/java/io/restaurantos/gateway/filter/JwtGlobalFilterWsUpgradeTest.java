@@ -221,6 +221,52 @@ class JwtGlobalFilterWsUpgradeTest {
         assertThat(upstreamRequest.getHeader("X-User-Id")).isEqualTo(userId.toString());
     }
 
+    /**
+     * The POS live-order socket. Registered by pos-service at
+     * {@code /api/v1/pos/ws/orders/{branchId}} but absent from {@code WS_UPGRADE_PATHS}, so the
+     * handshake fell through to the {@code Authorization}-header branch — which a browser's native
+     * WebSocket API cannot set. The upgrade was therefore refused for EVERY user, including a
+     * cashier with an open till, and real-time POS order sync had never worked in a browser.
+     *
+     * <p>Nothing server-side could catch it: the failure exists only for a client that cannot send
+     * the header, and every server-side test can. It took the browser E2E harness to find it
+     * (defect E2E-D4), which is the argument for that harness in one test case.
+     */
+    @Test
+    void wsUpgrade_posOrdersPath_validToken_isForwarded() throws Exception {
+        UUID tenantId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String token = buildToken(TEST_KID, userId, tenantId, false);
+
+        mockUpstream.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        webTestClient.get()
+                .uri("/api/v1/pos/ws/orders/" + BRANCH_ID + "?token=" + token)
+                .header(HttpHeaders.CONNECTION, "Upgrade")
+                .header(HttpHeaders.UPGRADE, "websocket")
+                .header("Sec-WebSocket-Version", "13")
+                .header("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+                .exchange()
+                .expectStatus().isEqualTo(org.springframework.http.HttpStatus.SWITCHING_PROTOCOLS);
+
+        RecordedRequest upstreamRequest = mockUpstream.takeRequest();
+        assertThat(upstreamRequest.getHeader("X-Tenant-Id")).isEqualTo(tenantId.toString());
+        assertThat(upstreamRequest.getHeader("X-User-Id")).isEqualTo(userId.toString());
+    }
+
+    /** The exemption must not become a way to skip auth: no token is still a refusal. */
+    @Test
+    void wsUpgrade_posOrdersPath_noToken_returns401() {
+        webTestClient.get()
+                .uri("/api/v1/pos/ws/orders/" + BRANCH_ID)
+                .header(HttpHeaders.CONNECTION, "Upgrade")
+                .header(HttpHeaders.UPGRADE, "websocket")
+                .header("Sec-WebSocket-Version", "13")
+                .header("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
     // ── Test 5: NON-upgrade REST request with ?token= but no header → still 401 ──────────────
 
     @Test
@@ -287,6 +333,12 @@ class JwtGlobalFilterWsUpgradeTest {
                             .uri("http://localhost:" + port))
                     .route("test-kitchen-route", r -> r
                             .path("/api/v1/kitchen/**")
+                            .uri("http://localhost:" + port))
+                    // The POS live-order socket. Absent here, the new POS cases would 404 on a
+                    // missing route rather than exercising the WS_UPGRADE_PATHS decision they are
+                    // written to test — a green that proved nothing, or a red blamed on the fix.
+                    .route("test-pos-route", r -> r
+                            .path("/api/v1/pos/**")
                             .uri("http://localhost:" + port))
                     .build();
         }
