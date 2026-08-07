@@ -1,0 +1,49 @@
+
+##### 1. TOP-BAR SEARCH (command palette)
+PALETTE CONTENTS: Command palette | Navigation | Dashboard | Appearance | Theme | Toggle theme
+AFTER TYPING 'Beef Nihari' (a real seeded menu item): Command palette | No results found.
+NETWORK DURING SEARCH: []
+AFTER TYPING an existing user email: Command palette | No results found.
+
+##### 2. PROFILE MENU
+PROFILE MENU ITEMS: My Account | Appearance | Log out
+
+##### 3. NOTIFICATION BELL
+BELL LABEL: Notifications (3 unread)
+BELL CLICK: dom_delta=0 popover=false network=[]
+
+##### 4. MENU ITEMS → Add item
+ADD-ITEM DIALOG: {"labels":["Category","Name","Description","Price (Rs)"],"inputs":["select[type=select-one] name=categoryId","input[type=text] name=name","input[type=text] name=description","input[type=text] name=priceRupees"],"fileInputs":0,"buttons":["Cancel","Add item","Close"]}
+SUBMIT "Audit Item 60568" -> network: ["200 POST /api/v1/pos/menu/items","200 GET /api/v1/pos/menu/categories/admin","200 GET /api/v1/pos/menu/categories","200 GET /api/v1/pos/menu/items/admin"]
+dialog still open after submit: false
+page mentions new item: true
+
+##### 5. SETTINGS → APPEARANCE save
+SAVE APPEARANCE -> network: []
+localStorage after save: {"brandColor":"#3b82f6","logoUrl":"https://example.com/logo.png"}
+success text shown: true
+logoUrl after reload: 
+fresh-browser localStorage: 
+
+##### 6. POS FLOOR VIEW — can an owner add a table?
+FLOOR VIEW: {"text":"Till OPEN Float: Rs 0.05 Cash: Rs 0.05 Orders: 0 Close Till POS Terminal Floor View Order Management Polling 🪑 No tables configured","buttons":["Close Till","POS Terminal","Floor View","Order Management"]}
+
+##### 7. CRM — add customer?
+CRM: {"buttons":[],"text":"Customers Find a customer, see their loyalty standing, and review the points they have earned. No customers found Add your first customer to start tracking loyalty. Select a customer to see their loyalty standing."}
+
+##### 8. BRANCH SWITCHER / branch admin
+SIDEBAR: Lume | OVERVIEW | Dashboard | ORDERS | POS | Kitchen Display | Till Review | MENU | Inventory | Menu Items | FINANCE | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | PURCHASING | Purchasing | PEOPLE | HR | Customers | REPORTING | Reports | Realtime Dashboard | Ask (NLQ) | SETTINGS | Appearance | Collapse
+
+##### 9. FILE INPUTS across the app
+  /app/menu/items: input[type=file] = 0
+  /app/inventory/ingredients: input[type=file] = 0
+  /settings/appearance: input[type=file] = 0
+  /app/purchasing/vendors: input[type=file] = 0
+  /app/hr/employees: input[type=file] = 0
+  /app/crm: input[type=file] = 0
+TOTAL FILE INPUTS: 0
+
+##### CONSOLE ERRORS SEEN OVERALL
+[
+ "WebSocket connection to 'ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03?token=eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIzNGRlNTIxOC01YzAxLTRiMWUtOTc1Zi00ZT"
+]

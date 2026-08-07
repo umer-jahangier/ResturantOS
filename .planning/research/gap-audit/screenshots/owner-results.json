@@ -1,0 +1,1791 @@
+[
+  {
+    "name": "dashboard",
+    "route": "/app/dashboard",
+    "httpStatus": 200,
+    "finalUrl": "/app/dashboard",
+    "is404": false,
+    "textLen": 841,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Dashboard Floating Terrace HQ Search… ⌘K 6 Dashboard Overview for your branch — signed in as OWNER. Closed sales Rs 0.00 0 completed orders Active orders 4 Open, in kitchen, or being served Menu items 0 Active items on this branch menu Dining tables 0 / 0 0 available now Recent orders Latest activity for this branch Order Status Total ORD-20260807-0028 SENT TO KDS Rs 92.80 ORD-20260807-0027 OPEN Rs 92.80 ORD-202",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ],
+    "netIssues": [
+      "503 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "503 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "503 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "503 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/pos",
+        "/app/kitchen",
+        "/app/finance/accounts"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 4
+    },
+    "screenshot": "owner-dashboard.png"
+  },
+  {
+    "name": "dashboard-realtime",
+    "route": "/app/dashboard/realtime",
+    "httpStatus": 200,
+    "finalUrl": "/app/dashboard/realtime",
+    "is404": false,
+    "textLen": 605,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Dashboard Realtime Floating Terrace HQ Search… ⌘K 6 Realtime Dashboard Updates automatically when an order or till closes. Live Today's Revenue Rs 33,686.40 updated 0s ago Today's Orders 24 updated 0s ago Today's Tax Rs 4,646.40 updated 0s ago Average Order Value Rs 1,403.60 updated 0s ago",
+    "console": [
+      "[warning] WebSocket connection to 'ws://localhost:8080/api/v1/reporting/dashboard/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03?token=eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI2MDZmNTlkZC1iMDIwLTRiYjQtYWE4OC0wZmEyMWM3OTNkNzMiLCJzdWIiOiI2MTMzNDY4OC02YjVjLTQ5MjYtYWM4Mi1lOTMyMDhiYTUzMjQiLCJ0ZW5hbnRfaWQiOiJk"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/reporting/dashboard/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03/tiles"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-dashboard-realtime.png"
+  },
+  {
+    "name": "pos",
+    "route": "/app/pos",
+    "httpStatus": 200,
+    "finalUrl": "/app/pos",
+    "is404": false,
+    "textLen": 582,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Pos Floating Terrace HQ Search… ⌘K 6 No active till Open Till POS Terminal Floor View Order Management Polling Your till is closed Open your till from the bar above — recording the counted starting float — before taking any orders. Orders can't be created without an open drawer.",
+    "console": [
+      "[warning] WebSocket connection to 'ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03?token=eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIyYTZhMjQwNy0wMGE1LTQ2NTQtODAzNS0wNzNlODJkY2VmYTciLCJzdWIiOiI2MTMzNDY4OC02YjVjLTQ5MjYtYWM4Mi1lOTMyMDhiYTUzMjQiLCJ0ZW5hbnRfaWQiOiJkMTA4Yz",
+      "[error] Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "[error] WebSocket connection to 'ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03?token=eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiIyYTZhMjQwNy0wMGE1LTQ2NTQtODAzNS0wNzNlODJkY2VmYTciLCJzdWIiOiI2MTMzNDY4OC02YjVjLTQ5MjYtYWM4Mi1lOTMyMDhiYTUzMjQiLCJ0ZW5hbnRfaWQiOiJkMTA4Yz"
+    ],
+    "netIssues": [
+      "503 GET /api/v1/pos/tills?cashierId=61334688-6b5c-4926-ac82-e93208ba5324&status=OPEN",
+      "503 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "503 GET /api/v1/pos/menu/categories",
+      "503 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "503 GET /api/v1/pos/tills?cashierId=61334688-6b5c-4926-ac82-e93208ba5324&status=OPEN",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "503 GET /api/v1/pos/menu/items?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "503 GET /api/v1/pos/menu/categories",
+      "503 GET /api/v1/pos/tables?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [
+        "Open Till",
+        "POS Terminal",
+        "Floor View",
+        "Order Management"
+      ],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-pos.png"
+  },
+  {
+    "name": "pos-tills",
+    "route": "/app/pos/tills",
+    "httpStatus": 200,
+    "finalUrl": "/app/pos/tills",
+    "is404": false,
+    "textLen": 481,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Pos Tills Floating Terrace HQ Search… ⌘K 6 Till Review Refresh OPENED CLOSED CASHIER STATUS REVIEW FLOAT EXPECTED DECLARED VARIANCE ACTIONS Page 1 · 0 sessions total Previous Next",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [
+        "Refresh",
+        "Previous",
+        "Next"
+      ],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 0
+    },
+    "screenshot": "owner-pos-tills.png"
+  },
+  {
+    "name": "kitchen",
+    "route": "/app/kitchen",
+    "httpStatus": 200,
+    "finalUrl": "/app/kitchen",
+    "is404": false,
+    "textLen": 525,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Kitchen Floating Terrace HQ Search… ⌘K 6 Kitchen — Stations DEFAULT DEFAULT 10 10 tickets 1 item Oldest 56m 1 NEW 0 STARTED 0 PREPARING 0 READY GRILL GRILL 1 1 ticket 1 item Oldest 14m 0 NEW 1 STARTED 0 PREPARING 0 READY",
+    "console": [],
+    "netIssues": [
+      "FAILED GET /api/v1/pos/tills?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&page=0&size=20 :: net::ERR_ABORTED"
+    ],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/kitchen/kds/stations?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "200 GET /api/v1/kitchen/kds/tickets?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status=PENDING,COOKING,READY"
+    ],
+    "controls": {
+      "buttons": [
+        "DEFAULT DEFAULT 10 10 tickets 1 item Old",
+        "GRILL GRILL 1 1 ticket 1 item Oldest 14m"
+      ],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-kitchen.png"
+  },
+  {
+    "name": "inventory",
+    "route": "/app/inventory",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory",
+    "is404": false,
+    "textLen": 531,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Inventory Recipe Builder Author versioned recipes for your synced menu items. Coverage See which active menu items still need a recipe.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-inventory.png"
+  },
+  {
+    "name": "inventory-ingredients",
+    "route": "/app/inventory/ingredients",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory/ingredients",
+    "is404": false,
+    "textLen": 1018,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Ingredients Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Ingredients Create, search, edit and archive the ingredients your recipes and purchase orders draw from. Add ingredient All categories Raw Materials Active Archived All Allergens Gluten Crustaceans Eggs Fish Peanuts Soybeans Milk Tree nuts Celery Mustard Sesame Sulphites Lupin Molluscs Name Category Stock u",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/inventory/uom",
+      "200 GET /api/v1/inventory/storage-locations?includeArchived=false",
+      "200 GET /api/v1/inventory/recipes/options",
+      "200 GET /api/v1/inventory/categories?includeArchived=false",
+      "200 GET /api/v1/inventory/ingredients?status=ACTIVE"
+    ],
+    "controls": {
+      "buttons": [
+        "Add ingredient",
+        "Gluten",
+        "Crustaceans",
+        "Eggs",
+        "Fish",
+        "Peanuts",
+        "Soybeans",
+        "Milk",
+        "Tree nuts",
+        "Celery",
+        "Mustard",
+        "Sesame",
+        "Sulphites",
+        "Lupin",
+        "Molluscs",
+        "Raw Materials",
+        "Actions for Audit Test Olive Oil",
+        "Actions for Basmati Rice",
+        "Actions for Chicken",
+        "Actions for Spice Mix",
+        "Previous",
+        "Next"
+      ],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup"
+      ],
+      "inputs": [
+        "input:Search ingredients",
+        "select:Filter by category",
+        "select:Filter by status"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 4
+    },
+    "screenshot": "owner-inventory-ingredients.png"
+  },
+  {
+    "name": "inventory-stock",
+    "route": "/app/inventory/stock",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory/stock",
+    "is404": false,
+    "textLen": 1026,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Stock Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Stock On-hand quantities and value at Floating Terrace HQ. Opening balance Receipt Transfer Count All categories Raw Materials Total stock value: Rs 0.00 Ingredient Category On hand Reorder point Avg cost Stock value Last counted Status Audit Test Olive Oil ING-AUDIT-OIL Raw Materials 0 EACH 10 Rs 0.00 Rs 0.00 Ne",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/inventory/transfers/pending?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "200 GET /api/v1/inventory/categories?includeArchived=false",
+      "200 GET /api/v1/inventory/ingredients",
+      "200 GET /api/v1/inventory/stock?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [
+        "Opening balance",
+        "Receipt",
+        "Transfer",
+        "Count",
+        "Previous",
+        "Next"
+      ],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup"
+      ],
+      "inputs": [
+        "input:Search stock",
+        "select:Filter by category"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 4
+    },
+    "screenshot": "owner-inventory-stock.png"
+  },
+  {
+    "name": "inventory-recipes",
+    "route": "/app/inventory/recipes",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory/recipes",
+    "is404": false,
+    "textLen": 955,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Recipes Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Recipes Pick a menu item to view its recipe history, author a revision, and see the live plate cost. New recipe version Select a menu item… Butter Naan Chicken Karahi Chicken Samosa Fresh Lime Mutton Biryani Seekh Kebab Revision authoring now lives on each recipe's detail page — open a menu item below to view i",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ],
+    "netIssues": [
+      "503 GET /api/v1/pos/menu/categories"
+    ],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "503 GET /api/v1/pos/menu/categories",
+      "200 GET /api/v1/inventory/menu-items",
+      "200 GET /api/v1/inventory/uom",
+      "200 GET /api/v1/inventory/recipes/coverage",
+      "200 GET /api/v1/inventory/ingredients",
+      "200 GET /api/v1/inventory/recipes?menuItemId=0c28b005-d836-48dd-8113-75c5e9aba90d",
+      "200 GET /api/v1/inventory/recipes?menuItemId=ac11b4bc-2b9a-4305-8ea2-3afb58f2ed0c",
+      "200 GET /api/v1/inventory/recipes?menuItemId=fd1614c4-12c0-4bff-a510-5c75ccc3ce08",
+      "200 GET /api/v1/inventory/recipes?menuItemId=23acb4e9-cb07-434d-87f4-de82b3a65ae5",
+      "200 GET /api/v1/inventory/recipes?menuItemId=18011d87-31ff-4cc2-a600-4ffd366cd2b2",
+      "200 GET /api/v1/inventory/recipes?menuItemId=c496bf7b-e6e9-49ed-b08d-a45536520e90"
+    ],
+    "controls": {
+      "buttons": [
+        "New recipe version"
+      ],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup",
+        "/app/inventory/recipes/0c28b005-d836-48dd-8113-75c5e9aba90d",
+        "/app/inventory/recipes/ac11b4bc-2b9a-4305-8ea2-3afb58f2ed0c",
+        "/app/inventory/recipes/18011d87-31ff-4cc2-a600-4ffd366cd2b2",
+        "/app/inventory/recipes/fd1614c4-12c0-4bff-a510-5c75ccc3ce08",
+        "/app/inventory/recipes/23acb4e9-cb07-434d-87f4-de82b3a65ae5",
+        "/app/inventory/recipes/c496bf7b-e6e9-49ed-b08d-a45536520e90"
+      ],
+      "inputs": [
+        "select:Menu item"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 6
+    },
+    "screenshot": "owner-inventory-recipes.png"
+  },
+  {
+    "name": "inventory-categories",
+    "route": "/app/inventory/categories",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory/categories",
+    "is404": false,
+    "textLen": 564,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Categories Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Categories Organize ingredients into up to three levels — categories drive default GL account codes. Add category Show archived Raw Materials 4 ingredients",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/inventory/categories?includeArchived=false",
+      "200 GET /api/v1/inventory/categories/tree?includeArchived=false"
+    ],
+    "controls": {
+      "buttons": [
+        "Add category",
+        "Actions for Raw Materials"
+      ],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup"
+      ],
+      "inputs": [
+        "input:checkbox"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-inventory-categories.png"
+  },
+  {
+    "name": "inventory-coverage",
+    "route": "/app/inventory/coverage",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory/coverage",
+    "is404": false,
+    "textLen": 844,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Coverage Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Recipe Coverage Which active menu items currently resolve an effective recipe — covered, scheduled for a future date, or with no recipe at all. 6 Total Active Menu Items 1 Covered 0 Scheduled 5 No Recipe Showing menu items that still need attention — a coverage report is a worklist. Show all Menu item Coverage",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/inventory/recipes/coverage"
+    ],
+    "controls": {
+      "buttons": [
+        "Show all"
+      ],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 5
+    },
+    "screenshot": "owner-inventory-coverage.png"
+  },
+  {
+    "name": "inventory-setup",
+    "route": "/app/inventory/setup",
+    "httpStatus": 200,
+    "finalUrl": "/app/inventory/setup",
+    "is404": false,
+    "textLen": 1392,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Inventory Setup Floating Terrace HQ Search… ⌘K 6 Ingredients Categories Recipes Coverage Stock Setup Setup The shared lists every ingredient draws on — how you measure stock, and where it lives. Units of measure A standard set is provided. Add a house unit for anything you buy or count your own way — a case, a bunch, a sheet pan. Add unit Weight Code Name Conversion G Gram Base unit KG Kilogram 1 KG = 1000 G LB ",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/inventory/storage-locations?includeArchived=true",
+      "200 GET /api/v1/inventory/uom"
+    ],
+    "controls": {
+      "buttons": [
+        "Add unit",
+        "Add location"
+      ],
+      "links": [
+        "/app/inventory/ingredients",
+        "/app/inventory/categories",
+        "/app/inventory/recipes",
+        "/app/inventory/coverage",
+        "/app/inventory/stock",
+        "/app/inventory/setup"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 3,
+      "rows": 14
+    },
+    "screenshot": "owner-inventory-setup.png"
+  },
+  {
+    "name": "menu-items",
+    "route": "/app/menu/items",
+    "httpStatus": 200,
+    "finalUrl": "/app/menu/items",
+    "is404": false,
+    "textLen": 613,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Menu Items Floating Terrace HQ Search… ⌘K 6 Menu Items What's sellable, organized into categories — write a recipe for an item under Inventory › Recipes once it's here. Add category Add item Show inactive No menu categories yet Add a category first, then add items to it — every item needs one. Add category",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ],
+    "netIssues": [
+      "503 GET /api/v1/pos/menu/items/admin",
+      "503 GET /api/v1/pos/menu/categories/admin",
+      "503 GET /api/v1/pos/menu/categories"
+    ],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "503 GET /api/v1/pos/menu/items/admin",
+      "503 GET /api/v1/pos/menu/categories/admin",
+      "503 GET /api/v1/pos/menu/categories",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [
+        "Add category",
+        "Add item"
+      ],
+      "links": [],
+      "inputs": [
+        "input:checkbox"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-menu-items.png"
+  },
+  {
+    "name": "finance",
+    "route": "/app/finance",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/accounts",
+    "is404": false,
+    "textLen": 2726,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Accounts Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Chart of Accounts Pakistan Restaurant Standard COA · 72 accounts Filter by type All Types Asset Liability Equity Revenue Expense Code Name Type Status Tag 2100 Accounts Payable LIABILITY Active AP 2110 Payable - Food Suppliers LIABILITY Active — 2120 Payable - Utilities LIAB",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/accounts/setup/status",
+      "200 GET /api/v1/finance/accounts"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [
+        "select:select-one"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 50
+    },
+    "screenshot": "owner-finance.png"
+  },
+  {
+    "name": "finance-accounts",
+    "route": "/app/finance/accounts",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/accounts",
+    "is404": false,
+    "textLen": 2726,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Accounts Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Chart of Accounts Pakistan Restaurant Standard COA · 72 accounts Filter by type All Types Asset Liability Equity Revenue Expense Code Name Type Status Tag 2100 Accounts Payable LIABILITY Active AP 2110 Payable - Food Suppliers LIABILITY Active — 2120 Payable - Utilities LIAB",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/accounts/setup/status",
+      "200 GET /api/v1/finance/accounts"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [
+        "select:select-one"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 50
+    },
+    "screenshot": "owner-finance-accounts.png"
+  },
+  {
+    "name": "finance-journal-entries",
+    "route": "/app/finance/journal-entries",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/journal-entries",
+    "is404": false,
+    "textLen": 3106,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Journal Entries Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Journal Entries Tab to navigate rows, Enter to open, E to export New Entry Entry No Date Description Status Debit Credit JE-2027-000001 2026-08-06 Order revenue 5e98e671-908c-4829-b2d0-4e6865c4c3b7 POSTED Rs 290.00 Rs 290.00 JE-2027-000002 2026-08-06 Order revenue b64",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/journal-entries"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging",
+        "/app/finance/journal-entries/new"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 24
+    },
+    "screenshot": "owner-finance-journal-entries.png"
+  },
+  {
+    "name": "finance-journal-new",
+    "route": "/app/finance/journal-entries/new",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/journal-entries/new",
+    "is404": false,
+    "textLen": 813,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse Finance Journal Entries New Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging New Journal Entry Debits must equal credits before saving. Entry Date (open periods only) August 2026 Su Mo Tu We Th Fr Sa 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Selected: 2026-07-01 Description Account Description Debit (p",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/periods/open"
+    ],
+    "controls": {
+      "buttons": [
+        "Previous month",
+        "Next month",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "×",
+        "+ Add line",
+        "Save as Draft",
+        "Cancel"
+      ],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [
+        "input:Journal entry description",
+        "input:Search account code or name",
+        "input:Line description",
+        "input:0"
+      ],
+      "fileInputs": 0,
+      "forms": 1,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-finance-journal-new.png"
+  },
+  {
+    "name": "finance-gl",
+    "route": "/app/finance/gl",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/gl",
+    "is404": false,
+    "textLen": 1051,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Gl Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging General Ledger Account balances by period. Click a row to drill into transactions. Period P1: 2026-07-01 – 2026-07-31 (OPEN) P2: 2026-08-01 – 2026-08-31 (OPEN) P3: 2026-09-01 – 2026-09-30 (OPEN) P4: 2026-10-01 – 2026-10-31 (OPEN) P5: 2026-11-01 – 2026-11-30 (OPEN) P6: 2026-12-01 –",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/accounts/setup/status",
+      "200 GET /api/v1/finance/periods?fiscalYear=2027",
+      "200 GET /api/v1/finance/gl/balances?periodId=9ae618b4-f9c3-4358-8d47-97fa69ad0237"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [
+        "select:select-one"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 1
+    },
+    "screenshot": "owner-finance-gl.png"
+  },
+  {
+    "name": "finance-periods",
+    "route": "/app/finance/periods",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/periods",
+    "is404": false,
+    "textLen": 1188,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Periods Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Accounting Periods FY 2026–2027 (Jul – Jun) FY 2026–2027 (Jul – Jun) Provision Periods Period Start Date End Date Status Locked By Period 1 2026-07-01 2026-07-31 OPEN — Close Period Period 2 2026-08-01 2026-08-31 OPEN — Close Period Period 3 2026-09-01 2026-09-30 OPEN — Close",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/periods?fiscalYear=2027",
+      "200 GET /api/v1/finance/accounts/setup/status"
+    ],
+    "controls": {
+      "buttons": [
+        "Previous fiscal year",
+        "Next fiscal year",
+        "Provision Periods",
+        "Close Period"
+      ],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 12
+    },
+    "screenshot": "owner-finance-periods.png"
+  },
+  {
+    "name": "finance-expenses",
+    "route": "/app/finance/expenses",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/expenses",
+    "is404": false,
+    "textLen": 665,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Expenses Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Expenses Create, approve and reject expenses. Approvals respect your OPA approval limit. Pending approval Approved Rejected All statuses New expense No expenses Use \"New expense\" to submit the first expense for approval.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/accounts?type=EXPENSE&active=true",
+      "200 GET /api/v1/finance/expenses?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=PENDING_APPROVAL"
+    ],
+    "controls": {
+      "buttons": [
+        "New expense"
+      ],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [
+        "select:Filter by status"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-finance-expenses.png"
+  },
+  {
+    "name": "finance-ap-aging",
+    "route": "/app/finance/ap-aging",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/ap-aging",
+    "is404": false,
+    "textLen": 598,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Ap Aging Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging AP Aging Outstanding payables bucketed by how overdue they are. No outstanding payables AP aging buckets will appear here once vendor invoices are booked.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/ap/aging?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-finance-ap-aging.png"
+  },
+  {
+    "name": "finance-ar-aging",
+    "route": "/app/finance/ar-aging",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/ar-aging",
+    "is404": false,
+    "textLen": 614,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance Ar Aging Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging AR Aging Outstanding house-account charges bucketed by how overdue they are. No outstanding receivables AR aging buckets will appear here once a house account is charged.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/ar/aging?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-finance-ar-aging.png"
+  },
+  {
+    "name": "finance-house-accounts",
+    "route": "/app/finance/house-accounts",
+    "httpStatus": 200,
+    "finalUrl": "/app/finance/house-accounts",
+    "is404": false,
+    "textLen": 673,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Finance House Accounts Floating Terrace HQ Search… ⌘K 6 Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging House Accounts Corporate clients and regulars billed on account — catering invoices, phone orders, month-end billing, settled later. New house account No house accounts yet Create one to bill a corporate client on account.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/finance/ar/customer-accounts?page=0"
+    ],
+    "controls": {
+      "buttons": [
+        "New house account"
+      ],
+      "links": [
+        "/app/finance/accounts",
+        "/app/finance/journal-entries",
+        "/app/finance/gl",
+        "/app/finance/periods",
+        "/app/finance/expenses",
+        "/app/finance/ap-aging",
+        "/app/finance/house-accounts",
+        "/app/finance/ar-aging"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-finance-house-accounts.png"
+  },
+  {
+    "name": "purchasing",
+    "route": "/app/purchasing",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing",
+    "is404": false,
+    "textLen": 744,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Purchasing Vendors Manage vendor records, payment terms and contacts. Purchase Orders Raise, approve and track purchase orders through receipt. Invoices Match vendor invoices against POs and goods receipts. Payments Record and track payments against approved invoices. Analytics Spend trends, price var",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-purchasing.png"
+  },
+  {
+    "name": "purchasing-vendors",
+    "route": "/app/purchasing/vendors",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing/vendors",
+    "is404": false,
+    "textLen": 494,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Vendors Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Vendors Add vendor Floating Terrace Supplies NET30 Manage catalog → Edit",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/purchasing/vendors"
+    ],
+    "controls": {
+      "buttons": [
+        "Add vendor",
+        "Edit"
+      ],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics",
+        "/app/purchasing/vendors/b6b79c85-6964-45b8-bd3c-e252399494bd"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-purchasing-vendors.png"
+  },
+  {
+    "name": "purchasing-pos",
+    "route": "/app/purchasing/purchase-orders",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing/purchase-orders",
+    "is404": false,
+    "textLen": 1105,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Purchase Orders Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Purchase orders All statuses DRAFT PENDING APPROVAL APPROVED REJECTED SENT PARTIALLY RECEIVED FULLY RECEIVED CLOSED New Purchase Order PO number Expected date Total Status 7b2c4a9f… — Rs 35,000.00 Pending approval 528d242e… — Rs 30,000.00 Pending approval 41701149… — Rs 25,000.00 Pendi",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/purchasing/vendors",
+      "200 GET /api/v1/inventory/ingredients",
+      "200 GET /api/v1/purchasing/purchase-orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [
+        "New Purchase Order"
+      ],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics",
+        "/app/purchasing/purchase-orders/7b2c4a9f-a751-4f26-8f6d-ee195304021e",
+        "/app/purchasing/purchase-orders/528d242e-d435-4e19-b221-a9c3680c02c4",
+        "/app/purchasing/purchase-orders/41701149-9b7d-4855-93d7-afd7a6baa2ba",
+        "/app/purchasing/purchase-orders/09812177-2290-4fc8-9f22-b54f3009e3ee",
+        "/app/purchasing/purchase-orders/62668ade-004c-4199-8c22-1d905fb8d3f4",
+        "/app/purchasing/purchase-orders/e6e428e0-8504-4468-ba78-a1d6752e2680",
+        "/app/purchasing/purchase-orders/0fa9438b-42a2-455a-9268-e09b69d30292",
+        "/app/purchasing/purchase-orders/e19d84f6-a6bd-4fe5-8975-251ed48948c5",
+        "/app/purchasing/purchase-orders/539759a1-3c34-45e0-8402-c87aa30cfc25",
+        "/app/purchasing/purchase-orders/c4fda9e8-2333-4628-affd-d26a373cf137",
+        "/app/purchasing/purchase-orders/678ac28d-ab0f-4bf5-b009-48946d37bfb0",
+        "/app/purchasing/purchase-orders/a048b785-fbbb-4931-a9f7-6814cd52bd4a"
+      ],
+      "inputs": [
+        "select:Filter by status"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 12
+    },
+    "screenshot": "owner-purchasing-pos.png"
+  },
+  {
+    "name": "purchasing-invoices",
+    "route": "/app/purchasing/invoices",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing/invoices",
+    "is404": false,
+    "textLen": 625,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Invoices Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Vendor invoices All statuses PENDING MATCH MATCHED MISMATCHED APPROVED FOR PAYMENT PAID Book Invoice No vendor invoices yet Use \"Book Invoice\" to invoice a sent purchase order and run the 3-way match.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/purchasing/invoices?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "200 GET /api/v1/purchasing/purchase-orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=SENT&status%5B%5D=PARTIALLY_RECEIVED&status%5B%5D=FULLY_RECEIVED"
+    ],
+    "controls": {
+      "buttons": [
+        "Book Invoice"
+      ],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics"
+      ],
+      "inputs": [
+        "select:Filter by status"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-purchasing-invoices.png"
+  },
+  {
+    "name": "purchasing-payments",
+    "route": "/app/purchasing/payments",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing/payments",
+    "is404": false,
+    "textLen": 631,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Payments Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Accounts payable Vendor invoices ready to pay -- matched or approved for payment. Payable Nothing to pay right now Book and match a vendor invoice to see it here. Recently paid No payments recorded yet.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/purchasing/invoices?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=MATCHED&status%5B%5D=APPROVED_FOR_PAYMENT&status%5B%5D=PAID"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-purchasing-payments.png"
+  },
+  {
+    "name": "purchasing-suggestions",
+    "route": "/app/purchasing/order-suggestions",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing/order-suggestions",
+    "is404": false,
+    "textLen": 1199,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Order Suggestions Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Suggested orders Everything that has dropped to its reorder point, with enough to bring it back up to its par level. Review the quantities, then create the orders. Low, but needs setting up first (4) Item On hand What's missing Audit Test Olive Oil Raw Materials 0 EACH No par level s",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/purchasing/order-suggestions?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics",
+        "/app/inventory/ingredients"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 4
+    },
+    "screenshot": "owner-purchasing-suggestions.png"
+  },
+  {
+    "name": "purchasing-analytics",
+    "route": "/app/purchasing/analytics",
+    "httpStatus": 200,
+    "finalUrl": "/app/purchasing/analytics",
+    "is404": false,
+    "textLen": 866,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Purchasing Analytics Floating Terrace HQ Search… ⌘K 6 Vendors Suggested Orders Purchase Orders Invoices Payments Analytics Vendor analytics Spend by vendor and category, 2026-07-31 to 2026-08-30, vs the prior period. Period This month Last month Last 90 days This quarter Custom Vendor Floating Terrace Supplies Vendor scorecard On-time delivery 0.0% Fill rate 0.0% Price variance +0.0% Total spend Rs 0.00 vs 2026-",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/purchasing/vendors",
+      "200 GET /api/v1/purchasing/analytics/spend?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&from=2026-07-31&to=2026-08-30",
+      "200 GET /api/v1/purchasing/analytics/scorecard?vendorId=b6b79c85-6964-45b8-bd3c-e252399494bd&branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/purchasing/vendors",
+        "/app/purchasing/order-suggestions",
+        "/app/purchasing/purchase-orders",
+        "/app/purchasing/invoices",
+        "/app/purchasing/payments",
+        "/app/purchasing/analytics"
+      ],
+      "inputs": [
+        "select:Analytics period",
+        "select:Scorecard vendor"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 2,
+      "rows": 2
+    },
+    "screenshot": "owner-purchasing-analytics.png"
+  },
+  {
+    "name": "hr",
+    "route": "/app/hr",
+    "httpStatus": 200,
+    "finalUrl": "/app/hr/employees",
+    "is404": false,
+    "textLen": 477,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Hr Employees Floating Terrace HQ Search… ⌘K 6 Employees Payroll Schedule Attendance & Leave Employees New employee No Name Designation CNIC Bank Basic Status No employees yet.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/hr/employees"
+    ],
+    "controls": {
+      "buttons": [
+        "New employee"
+      ],
+      "links": [
+        "/app/hr/employees",
+        "/app/hr/payroll",
+        "/app/hr/schedule",
+        "/app/hr/attendance"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 1
+    },
+    "screenshot": "owner-hr.png"
+  },
+  {
+    "name": "hr-employees",
+    "route": "/app/hr/employees",
+    "httpStatus": 200,
+    "finalUrl": "/app/hr/employees",
+    "is404": false,
+    "textLen": 477,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Hr Employees Floating Terrace HQ Search… ⌘K 6 Employees Payroll Schedule Attendance & Leave Employees New employee No Name Designation CNIC Bank Basic Status No employees yet.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/hr/employees"
+    ],
+    "controls": {
+      "buttons": [
+        "New employee"
+      ],
+      "links": [
+        "/app/hr/employees",
+        "/app/hr/payroll",
+        "/app/hr/schedule",
+        "/app/hr/attendance"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 1
+    },
+    "screenshot": "owner-hr-employees.png"
+  },
+  {
+    "name": "hr-attendance",
+    "route": "/app/hr/attendance",
+    "httpStatus": 200,
+    "finalUrl": "/app/hr/attendance",
+    "is404": false,
+    "textLen": 624,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Hr Attendance Floating Terrace HQ Search… ⌘K 6 Employees Payroll Schedule Attendance & Leave Time & attendance Select employee… Clock in Clock out Leave Employee… Leave type… Request leave Approve Reject Seed default leave types Attendance quarantine (0) Device ref Type Reported Resolve to employee No quarantined punches.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/hr/employees",
+      "200 GET /api/v1/hr/leave/types",
+      "200 GET /api/v1/hr/attendance/quarantine"
+    ],
+    "controls": {
+      "buttons": [
+        "Clock in",
+        "Clock out",
+        "Request leave",
+        "Approve",
+        "Reject",
+        "Seed default leave types"
+      ],
+      "links": [
+        "/app/hr/employees",
+        "/app/hr/payroll",
+        "/app/hr/schedule",
+        "/app/hr/attendance"
+      ],
+      "inputs": [
+        "select:select-one",
+        "input:date",
+        "input:Leave request id"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 1
+    },
+    "screenshot": "owner-hr-attendance.png"
+  },
+  {
+    "name": "hr-schedule",
+    "route": "/app/hr/schedule",
+    "httpStatus": 200,
+    "finalUrl": "/app/hr/schedule",
+    "is404": false,
+    "textLen": 696,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Hr Schedule Floating Terrace HQ Search… ⌘K 6 Employees Payroll Schedule Attendance & Leave Weekly schedule ← Prev week of 2026-08-03 Next → Add shift Drag an employee onto a shift/date cell to assign; drag an assigned chip between cells to move. Scoped to your active branch. Employees No employees. Shift 08-03 08-04 08-05 08-06 08-07 08-08 08-09 No shifts — create one to start scheduling.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/hr/employees",
+      "200 GET /api/v1/hr/shifts/week?weekStart=2026-08-03"
+    ],
+    "controls": {
+      "buttons": [
+        "← Prev",
+        "Next →",
+        "Add shift"
+      ],
+      "links": [
+        "/app/hr/employees",
+        "/app/hr/payroll",
+        "/app/hr/schedule",
+        "/app/hr/attendance"
+      ],
+      "inputs": [
+        "input:Shift name",
+        "input:Role",
+        "input:time",
+        "input:Days (1-7)"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 1,
+      "rows": 1
+    },
+    "screenshot": "owner-hr-schedule.png"
+  },
+  {
+    "name": "hr-payroll",
+    "route": "/app/hr/payroll",
+    "httpStatus": 200,
+    "finalUrl": "/app/hr/payroll",
+    "is404": false,
+    "textLen": 433,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Hr Payroll Floating Terrace HQ Search… ⌘K 6 Employees Payroll Schedule Attendance & Leave Payroll runs New run No payroll runs yet.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/hr/payroll-runs"
+    ],
+    "controls": {
+      "buttons": [
+        "New run"
+      ],
+      "links": [
+        "/app/hr/employees",
+        "/app/hr/payroll",
+        "/app/hr/schedule",
+        "/app/hr/attendance"
+      ],
+      "inputs": [
+        "input:number"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-hr-payroll.png"
+  },
+  {
+    "name": "crm",
+    "route": "/app/crm",
+    "httpStatus": 200,
+    "finalUrl": "/app/crm",
+    "is404": false,
+    "textLen": 555,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Crm Floating Terrace HQ Search… ⌘K 6 Customers Find a customer, see their loyalty standing, and review the points they have earned. No customers found Add your first customer to start tracking loyalty. Select a customer to see their loyalty standing.",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine",
+      "200 GET /api/v1/crm/customers/search?q=&size=20"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [
+        "input:Search customers"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-crm.png"
+  },
+  {
+    "name": "reports",
+    "route": "/app/reports",
+    "httpStatus": 200,
+    "finalUrl": "/app/reports",
+    "is404": false,
+    "textLen": 656,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Reports Floating Terrace HQ Search… ⌘K 6 Reports Named reports backed by real sales, cash and purchasing data. FBR Tax Summary → SALES Sales by Day 6 columns Sales by Item 6 columns Sales by Hour (Peak Hours) 3 columns Sales by Order Type 3 columns Discount Summary 3 columns CASH Till Sessions 7 columns PURCHASING Purchases by Purchase Order 5 columns",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/reporting/reports",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/reports/fbr",
+        "/app/reports/sales-by-day",
+        "/app/reports/sales-by-item",
+        "/app/reports/sales-by-hour",
+        "/app/reports/sales-by-order-type",
+        "/app/reports/discount-summary",
+        "/app/reports/till-sessions",
+        "/app/reports/purchases-by-po"
+      ],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-reports.png"
+  },
+  {
+    "name": "reports-fbr",
+    "route": "/app/reports/fbr",
+    "httpStatus": 200,
+    "finalUrl": "/app/reports/fbr",
+    "is404": false,
+    "textLen": 493,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Reports Fbr Floating Terrace HQ Search… ⌘K 6 ← All reports FBR Tax Summary Output tax vs input tax vs net payable — internal bookkeeping figures, not an FBR/IRIS e-filing submission. From To",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    ],
+    "netIssues": [
+      "400 GET /api/v1/reporting/reports/fbr-tax-summary?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&from=2026-07-31&to=2026-08-30"
+    ],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "400 GET /api/v1/reporting/reports/fbr-tax-summary?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&from=2026-07-31&to=2026-08-30",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [
+        "/app/reports"
+      ],
+      "inputs": [
+        "input:FBR period from",
+        "input:FBR period to"
+      ],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-reports-fbr.png"
+  },
+  {
+    "name": "nlq",
+    "route": "/app/nlq",
+    "httpStatus": 200,
+    "finalUrl": "/app/nlq",
+    "is404": false,
+    "textLen": 618,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse App Nlq Floating Terrace HQ Search… ⌘K 6 Ask a question Ask about your restaurant's data in plain English — see the answer, and the exact SQL that ran to produce it. Ask a question about your restaurant's data What was revenue last week? Which items sold most yesterday? What was our average order value this month? Ask",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [
+        "What was revenue last week?",
+        "Which items sold most yesterday?",
+        "What was our average order value this mo",
+        "Ask"
+      ],
+      "links": [],
+      "inputs": [
+        "textarea:Ask a question"
+      ],
+      "fileInputs": 0,
+      "forms": 1,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-nlq.png"
+  },
+  {
+    "name": "settings-appearance",
+    "route": "/settings/appearance",
+    "httpStatus": 200,
+    "finalUrl": "/settings/appearance",
+    "is404": false,
+    "textLen": 675,
+    "textHead": "Lume OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items FINANCE Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS Appearance Collapse Settings Appearance Floating Terrace HQ Search… ⌘K 6 Appearance Customize your restaurant's branding. Changes are saved locally and will be applied when you reload. Brand colour presets Custom hex colour # Palette preview Sample Text — AA black-on-light Logo URL File upload will be available in a future release. Provide a publicly accessible URL for now. Save appearance",
+    "console": [],
+    "netIssues": [],
+    "api": [
+      "200 GET /api/v1/auth/tenants/test",
+      "200 POST /api/v1/auth/refresh",
+      "200 GET /api/v1/feature-flags",
+      "200 GET /api/v1/branches/mine"
+    ],
+    "controls": {
+      "buttons": [
+        "Ocean Blue — #3b82f6",
+        "Emerald — #10b981",
+        "Amber — #f59e0b",
+        "Coral Red — #ef4444",
+        "Violet — #8b5cf6",
+        "Pink — #ec4899",
+        "Cyan — #06b6d4",
+        "Lime — #84cc16",
+        "Save appearance"
+      ],
+      "links": [],
+      "inputs": [
+        "input:Custom brand colour — 6 hex digits without #",
+        "input:brandColor",
+        "input:logoUrl"
+      ],
+      "fileInputs": 0,
+      "forms": 1,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-settings-appearance.png"
+  },
+  {
+    "name": "XX-settings",
+    "route": "/app/settings",
+    "httpStatus": 404,
+    "finalUrl": "/app/settings",
+    "is404": true,
+    "textLen": 33,
+    "textHead": "404 This page could not be found.",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 POST /api/v1/auth/refresh"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-XX-settings.png"
+  },
+  {
+    "name": "XX-settings-users",
+    "route": "/app/settings/users",
+    "httpStatus": 404,
+    "finalUrl": "/app/settings/users",
+    "is404": true,
+    "textLen": 33,
+    "textHead": "404 This page could not be found.",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 POST /api/v1/auth/refresh"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-XX-settings-users.png"
+  },
+  {
+    "name": "XX-settings-profile",
+    "route": "/settings/profile",
+    "httpStatus": 404,
+    "finalUrl": "/settings/profile",
+    "is404": true,
+    "textLen": 33,
+    "textHead": "404 This page could not be found.",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 POST /api/v1/auth/refresh"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-XX-settings-profile.png"
+  },
+  {
+    "name": "XX-profile",
+    "route": "/app/profile",
+    "httpStatus": 404,
+    "finalUrl": "/app/profile",
+    "is404": true,
+    "textLen": 33,
+    "textHead": "404 This page could not be found.",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 POST /api/v1/auth/refresh"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-XX-profile.png"
+  },
+  {
+    "name": "XX-reporting",
+    "route": "/app/reporting",
+    "httpStatus": 404,
+    "finalUrl": "/app/reporting",
+    "is404": true,
+    "textLen": 33,
+    "textHead": "404 This page could not be found.",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 POST /api/v1/auth/refresh"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-XX-reporting.png"
+  },
+  {
+    "name": "XX-users",
+    "route": "/app/users",
+    "httpStatus": 404,
+    "finalUrl": "/app/users",
+    "is404": true,
+    "textLen": 33,
+    "textHead": "404 This page could not be found.",
+    "console": [
+      "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "netIssues": [],
+    "api": [
+      "200 POST /api/v1/auth/refresh"
+    ],
+    "controls": {
+      "buttons": [],
+      "links": [],
+      "inputs": [],
+      "fileInputs": 0,
+      "forms": 0,
+      "tables": 0,
+      "rows": 0
+    },
+    "screenshot": "owner-XX-users.png"
+  }
+]
