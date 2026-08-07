@@ -74,11 +74,15 @@ ever posted to the ledger, and that the audit log is empty.
 - [ ] **Phase 32: Subscription Metering** — per-feature usage counters, soft/hard quotas, trial→past-due→suspended.
 - [ ] **Phase 33: NLQ Insights & Waste Control** — theoretical-vs-actual variance, the highest-value inventory feature for a restaurant.
 
-**Hardware and tax integrations (need user-supplied credentials/hardware):**
-- [ ] **Phase 25: Biometric Attendance Repair** — 4d. ADMS/iClock ingest already largely exists. Needs **U5** (a terminal) for sign-off.
-- [ ] **Phase 26: Receipt & Kitchen Printing** — 18d · needs **U3** (an 80mm ESC/POS printer)
-- [ ] **Phase 27: FBR Digital Invoicing** — 20d · needs **U1/U2** (NTN + PRAL sandbox credentials, static egress IPs)
-- [ ] **Phase 28: Multi-POS Terminals & KDS/BDS Routing** — 10d · needs 21
+- [ ] **Phase 28: Multi-POS Terminals & KDS/BDS Routing** — 10d · needs 21. No user dependency.
+
+**DEFERRED TO LAST — blocked on user-supplied credentials or hardware (2026-08-07).**
+Moved to the end at the user's direction so nothing in the critical path waits on them.
+Each is built and tested against simulators/protocol fixtures first, so the user-supplied
+item is needed only for final sign-off, not to start:
+- [ ] **Phase 25: Biometric Attendance Repair** — 4d. ADMS/iClock ingest already largely exists; the remaining work is testable by crafting the raw HTTP a terminal sends. **U5** (a ZKTeco terminal) needed only to confirm firmware quirks.
+- [ ] **Phase 26: Receipt & Kitchen Printing** — 18d. Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
+- [ ] **Phase 27: FBR Digital Invoicing** — 20d. **LAST.** Verified by live curl that every FBR endpoint — including read-only lookups — 401s without a taxpayer-issued token, so nothing beyond the offline queue and payload mapping can be validated without **U1/U2** (NTN + PRAL sandbox credentials + static egress IPs for whitelisting).
 
 **Close-out:**
 - [ ] **Phase 29: Production Hardening** — 10d · needs all. Includes root-causing the wedged-service defect: four services entered a state where `/actuator/health` returns 200 while every other path hangs, so a liveness probe would never restart them.
