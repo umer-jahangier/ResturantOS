@@ -153,7 +153,7 @@ export function CustomerPicker({
             <li key={c.id}>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted/60"
                 onClick={() => {
                   onChange(c);
                   setOpen(false);

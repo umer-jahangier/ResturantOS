@@ -300,7 +300,7 @@ export function CategoryFormDialog({
                       {...field}
                       disabled={isEdit}
                       aria-label="Parent category"
-                      className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">No parent (top-level)</option>
                       {parentOptions.map((c) => (

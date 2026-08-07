@@ -43,7 +43,7 @@ function FbrTaxSummaryPageInner() {
             value={period.from}
             max={period.to}
             onChange={(e) => setPeriod({ from: e.target.value, to: period.to })}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -54,7 +54,7 @@ function FbrTaxSummaryPageInner() {
             value={period.to}
             min={period.from}
             onChange={(e) => setPeriod({ from: period.from, to: e.target.value })}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring"
           />
         </label>
       </div>

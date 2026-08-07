@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
 
 const selectClass =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
 
 // Price travels the form as rupees (what a menu is priced in) and converts to paisa on submit —
 // the same VendorItemPriceDialog convention (`unitPriceRupees` -> Math.round(v * 100)) used

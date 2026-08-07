@@ -139,7 +139,7 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
               key={hex}
               type="button"
               onClick={() => handlePresetClick(hex)}
-              className="touch-target relative flex flex-col items-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="touch-target relative flex flex-col items-center gap-1 rounded-md"
               aria-label={`${label} — ${hex}`}
               aria-pressed={brandColor === hex}
             >
@@ -175,7 +175,7 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
             onChange={handleHexInputChange}
             maxLength={6}
             placeholder="3b82f6"
-            className="w-32 rounded-md border border-input bg-background px-3 py-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-32 rounded-md border border-input bg-background px-3 py-2 font-mono text-sm"
             aria-label="Custom brand colour — 6 hex digits without #"
             aria-describedby={errors.brandColor ? "hex-error" : undefined}
           />
@@ -225,7 +225,7 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
           type="url"
           {...register("logoUrl")}
           placeholder="https://example.com/logo.png"
-          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
           aria-describedby="logo-url-hint"
         />
         <p id="logo-url-hint" className="text-xs text-muted-foreground">
@@ -244,7 +244,7 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
         <button
           type="submit"
           disabled={contrastFailing}
-          className="touch-target inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="touch-target inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           aria-disabled={contrastFailing}
         >
           Save appearance

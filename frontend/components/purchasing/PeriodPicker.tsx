@@ -88,7 +88,7 @@ export function PeriodPicker({
           aria-label="Analytics period"
           value={preset}
           onChange={(e) => handlePresetChange(e.target.value as Preset)}
-          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring"
         >
           {PRESET_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>

@@ -39,7 +39,7 @@ export function NlqAskBox({ onAsk, isPending }: NlqAskBoxProps) {
         placeholder="e.g. What was revenue last week?"
         rows={3}
         disabled={isPending}
-        className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+        className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus-visible:border-ring disabled:opacity-50"
       />
 
       <div className="flex flex-wrap gap-2">

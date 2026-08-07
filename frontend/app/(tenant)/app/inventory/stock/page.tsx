@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
 
 const EMPTY_TITLE = "No stock recorded yet";
 const EMPTY_BODY =

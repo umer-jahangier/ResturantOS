@@ -43,7 +43,7 @@ type IngredientFormTarget = { mode: "create" } | { mode: "edit"; ingredient: Ing
 type StatusFilter = "ACTIVE" | "ARCHIVED" | "ALL";
 
 const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
 
 // URL: /app/inventory/ingredients — INV-01/INV-14's whole UI surface: create/search/filter/edit/
 // archive ingredients (UI-SPEC Screen 2). Section tabs are owned by inventory/layout.tsx (08.2-14)

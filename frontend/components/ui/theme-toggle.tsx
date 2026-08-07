@@ -57,7 +57,7 @@ export function ThemeToggle() {
       type="button"
       onClick={handleClick}
       aria-label={LABELS[current]}
-      className="touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="touch-target inline-flex items-center justify-center rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
     >
       {ICONS[current]}
     </button>

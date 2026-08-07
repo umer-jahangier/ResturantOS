@@ -86,15 +86,24 @@ function Breadcrumb() {
   );
 }
 
+// Every entry here must resolve to a route that exists (UI-SPEC §4.2, §4.3).
+// `/app/settings` used to sit in this list and in the profile menu below; it has no
+// `page.tsx` and `sidebar-nav-items.ts:334` has marked it `comingSoon: true` all along —
+// only the shell chrome never got the memo. `/settings/profile` was dead the same way.
+// The real GlobalSearch (business objects, permission-filtered) is UI-SPEC §4.4 / step 6;
+// this list stays a stopgap, but a stopgap without 404s.
 const NAV_COMMANDS = [
   { label: "Dashboard", href: "/app/dashboard" },
-  { label: "Settings", href: "/app/settings" },
-  { label: "Appearance", href: "/settings/appearance" },
+  { label: "Appearance", href: "/settings/appearance", roles: ["OWNER", "TENANT_ADMIN"] },
 ];
 
 export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
-  const { userId, branchId } = useCurrentUser();
+  const { userId, branchId, roles } = useCurrentUser();
+  const canSeeAppearance = roles.includes("OWNER") || roles.includes("TENANT_ADMIN");
+  const navCommands = NAV_COMMANDS.filter(
+    (cmd) => !cmd.roles || cmd.roles.some((role) => roles.includes(role)),
+  );
   const { data: myBranches = [], isLoading: branchesLoading } = useMyBranches();
   const logout = useLogout();
 
@@ -184,7 +193,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="touch-target inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="touch-target inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90"
                 aria-label="Open profile menu"
               >
                 {userInitial}
@@ -193,13 +202,19 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/settings/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/app/settings">Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              {/* Was `Profile` → /settings/profile and `Settings` → /app/settings. Neither
+                  route exists; `find app -ipath '*settings*' -name page.tsx` returns only
+                  the appearance page. A menu whose every item 404s is worse than a short
+                  menu, so the one real destination is the one that is offered — and only
+                  to the roles its sidebar twin admits. Profile returns when the page does. */}
+              {canSeeAppearance ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings/appearance">Appearance</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onSelect={handleLogout}
@@ -215,7 +230,7 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
       {/* Command palette (DS-04 integration — DS-05 mount point) */}
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen}>
         <CommandGroup heading="Navigation">
-          {NAV_COMMANDS.map((cmd) => (
+          {navCommands.map((cmd) => (
             <CommandItem
               key={cmd.href}
               onSelect={() => {

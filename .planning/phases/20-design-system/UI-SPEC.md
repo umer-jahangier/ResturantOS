@@ -151,6 +151,26 @@ plus `--chart-1` and the `--seq-*` ramp derived from the tenant hue, leaving
 able to break chart distinguishability or the meaning of red. The generator itself is
 kept as-is.
 
+> **MEASURED 2026-08-07 (20-01) — the tenant override needs a hue guard.** Rendering the
+> token layer at `--brand-h: 275` (see the evidence images beside this file) shows the
+> whole system regenerate correctly, and also shows the cost: `--chart-1` follows the brand
+> hue while `--chart-2..5` are pinned, so a tenant hue near 262 walks series 1 into series 3.
+> ΔE2000 between `--chart-1` and the fixed `--chart-3`, under **normal vision**, as the
+> brand hue moves:
+>
+> | `--brand-h` | 195 | 220 | 240 | 250 | **262** | 275 | 290 | 310 | 340 |
+> |---|---|---|---|---|---|---|---|---|---|
+> | ΔE2000 vs `--chart-3` | **35.5** | 26.6 | 19.5 | 17.1 | **15.8** | 16.8 | 20.6 | 27.0 | 34.6 |
+>
+> It never fully collapses — `--chart-1` sits at C 0.106 / L 0.62 against `--chart-3`'s
+> C 0.19 / L 0.50, so chroma and lightness keep them apart even at the same hue. But §3.4's
+> published guarantee (min ΔE **17.3** deuteranopia, **16.1** protanopia) was *solved at
+> hue 195* and does not survive an arbitrary tenant hue; at 240–290 the normal-vision figure
+> is already below both. **The tenant theme route must reject or nudge any `--brand-h`
+> within ~35° of 262**, or re-solve `--chart-2..5` per tenant. Dichromat ΔE across the hue
+> circle was not computed here — only normal vision — so the guard band is a floor, not a
+> proof. Carried to §12.
+
 ---
 
 ## 3. Design Tokens
@@ -347,15 +367,28 @@ and the five sibling files in `frontend/components/kds/`.
 
 | Token | OKLCH | Hex | Measured |
 |---|---|---|---|
-| `--kds-surface` | `oklch(0.1500 0.0060 var(--brand-h))` | `#0a0e0e` | board background |
-| `--kds-card` | `oklch(0.2120 0.0080 var(--brand-h))` | `#161b1b` | ticket background |
-| `--kds-card-focus` | `oklch(0.2620 0.0080 var(--brand-h))` | `#1f2525` | focused ticket |
+| `--kds-surface` | `oklch(0.1500 0.0060 var(--brand-h))` | `#080c0c` | board background |
+| `--kds-card` | `oklch(0.2120 0.0080 var(--brand-h))` | `#151a1a` | ticket background |
+| `--kds-card-focus` | `oklch(0.2620 0.0080 var(--brand-h))` | `#202626` | focused ticket |
 | `--kds-text` | `oklch(0.9680 0.0040 var(--brand-h))` | `#f1f5f5` | **16.06:1** on card |
 | `--kds-muted` | `oklch(0.7400 0.0100 var(--brand-h))` | `#a4adad` | **7.66:1** on card |
 | `--kds-fresh` | `oklch(0.8000 0.1500 149.6)` | `#6fd888` | **9.96:1** on card |
 | `--kds-warn` | `oklch(0.8650 0.1500 86)` | `#fecb4d` | **11.60:1** on card |
 | `--kds-late` | `oklch(0.6400 0.2000 27.3)` | `#ed4b42` | **4.76:1** on card |
 | `--kds-late-fill` | `oklch(0.4000 0.1500 27.3)` | `#861212` | `--kds-text` on it = **9.07:1** |
+
+> **CORRECTED 2026-08-07 (20-01).** The first three hexes read `#0a0e0e` / `#161b1b` /
+> `#1f2525`; re-derived from the OKLCH in this same table with the repo's `colorjs.io`
+> they are `#080c0c` / `#151a1a` / `#202626` — the old values sat about 0.008 L high.
+> The **OKLCH is authoritative** (it is what ships in `globals.css`; the hex column is a
+> human-readable annotation), and every measured ratio in this section reproduces to the
+> last digit from the OKLCH, so no contrast claim moves. The other six tokens were exact.
+>
+> Related measurement note, applying to the whole document: the §3.8 ratios were computed
+> from the **unquantised OKLCH**, not from the 8-bit hex beside it. All 53 reproduce
+> exactly that way; measuring the rounded hex instead drifts by up to 0.07 (e.g.
+> `--neutral-1000` on `--primary-400`: 10.27 from OKLCH, 10.34 from `#57cbca`).
+> `__tests__/lib/theme/design-tokens.test.ts` measures the OKLCH accordingly.
 
 Ageing separation, measured:
 
@@ -589,9 +622,32 @@ Two deletions in `globals.css`:
    deleted once Button/Input carry real `touch`/`pos` sizes (§4.2). A class that stacks
    `min-height` on top of a fixed-height component is a silent layout-bug source.
 2. `:focus-visible { @apply ring-2 ring-ring ring-offset-2 … }` (`globals.css:157-159`)
-   becomes a real `outline`. `ring` is a `box-shadow`, which is clipped by any
-   `overflow: hidden` ancestor — and the DataGrid, POS grid and KDS board are all
-   scroll containers. `outline` is never clipped. This is a functional bug fix.
+   becomes a real `outline`. This is a functional bug fix.
+
+   > **CORRECTED 2026-08-07 (20-01), measured in Chromium 1228.** The rationale first
+   > written here — "`ring` is a `box-shadow`, which is clipped by any `overflow: hidden`
+   > ancestor … `outline` is never clipped" — is **false**. Pixel-sampled, an `outline`
+   > with `outline-offset` is clipped by `overflow: hidden` **and** by `overflow: auto`
+   > exactly as a `box-shadow` is; at 3px outside the container both read as page
+   > background. Outlines do not contribute to scrollable overflow area either.
+   >
+   > The change is still right, for two reasons that were measured rather than assumed:
+   >
+   > | Condition | `ring` (box-shadow) | `outline` |
+   > |---|---|---|
+   > | `overflow: hidden` / `auto` ancestor | clipped | **clipped — no difference** |
+   > | `forced-colors: active` (Windows High Contrast) | **absent** — sampled 4px out it equals the canvas | **preserved**, repainted in the system colour |
+   > | Over a selected row (`--primary-50`) | `ring-offset-background` paints an **opaque rgb(255 255 255) band**, punching a white notch through the selection tint | offset gap is transparent — the tint shows through at rgb(237 250 250) |
+   >
+   > The High Contrast row is the serious one: every keyboard user running Windows HCM
+   > had **no focus indicator at all** anywhere in this product. The selected-row row is
+   > the one §5.1 cares about, which requires `selected` and `focus-visible` to be
+   > legible simultaneously.
+   >
+   > Consequence for §7.4/§9.1: because the outline *is* clipped, a focus indicator on
+   > a row inside the DataGrid's scroll container still needs the row to be scrolled
+   > into view — `scrollIntoView({ block: "nearest" })` on focus move is a requirement,
+   > not a nicety. Carried to step 7.
 
 ### 3.10 Spacing scale
 
@@ -871,8 +927,28 @@ definition referenced by every row below.
 | `loading` | Skeleton for initial load; inline spinner + `aria-busy="true"` for in-place refresh. Buttons keep their width and label, swapping the leading icon for a spinner (no layout shift) |
 | `error` | `--danger` border + `aria-invalid="true"` + `aria-describedby` → message. Message states the problem **and** the fix |
 | `empty` | Icon + heading + one-sentence body + primary action (§8) |
-| `selected` | `--primary-50` background + `--primary-600` left border (light); `aria-selected` |
+| `selected` | `--selected` background + `--selected-border` left border; `aria-selected`. See the correction below |
 | `read-only` | No border, `--foreground-secondary` text, no focus ring |
+
+> **CORRECTED 2026-08-07 (20-01) — the `selected` row had no dark theme.** This table, §7.4
+> and §11 accent-rule 6 all wrote the selected state as "`--primary-50` fill + `--primary-600`
+> left border", with "(light)" as the only hint that a second case exists. `--primary-50` is a
+> **ramp stop, not a role token**: it stays near-white when `.dark` is on. Applied literally,
+> a selected row in dark mode puts `--foreground` (`--neutral-50`) on `--primary-50` —
+> **measured 1.02:1**. The row is invisible. This was found by rendering the token layer in
+> Chromium, not by reading it.
+>
+> Replaced by a role-token triple, defined in both themes in `globals.css`:
+>
+> | Token | Light | Dark |
+> |---|---|---|
+> | `--selected` (fill) | `--primary-50` | `--primary-950` |
+> | `--selected-foreground` | `--neutral-950` — **17.96:1** | `--neutral-50` — **14.58:1** |
+> | `--selected-border` (2px, left) | `--primary-600` — **3.44:1** on the fill | `--primary-400` — **7.79:1** on the fill |
+>
+> The fill-vs-surface delta is deliberately low (1.07:1 light, 1.26:1 dark) — a selected row
+> is a tint, and the 2px left border is what carries the SC 1.4.11 duty. Asserted in
+> `__tests__/lib/theme/design-tokens.test.ts`.
 
 ### 5.2 Tier 0 — shadcn primitives to add
 
@@ -1431,9 +1507,16 @@ pressure** (D-UI-01 constraint 2). §3.8 records the measured ratio for every pa
 
 ### 9.1 Focus management
 
-- `:focus-visible` uses **`outline`, not `ring`** (§3.9). `ring` is a `box-shadow` and is
-  clipped by `overflow: hidden`; the DataGrid, POS grid and KDS board are all scroll
-  containers. This is a real bug in `globals.css:157-159` today.
+- `:focus-visible` uses **`outline`, not `ring`** (§3.9). Not because outline escapes an
+  `overflow` clip — measured, it does not (see the correction in §3.9) — but because
+  `box-shadow` is **dropped entirely under `forced-colors: active`**, leaving a Windows
+  High Contrast user with no focus indicator anywhere in the product, and because
+  `ring-offset-background` paints an opaque band that punches a hole through a selected
+  row's tint. This is a real bug in `globals.css:157-159` today.
+- Because the outline *is* clipped by a scroll container, moving focus within the
+  DataGrid, the POS tile grid or the KDS board must call
+  `scrollIntoView({ block: "nearest" })`, or the indicator on the row you just arrowed to
+  is cut off at the container edge.
 - Focus is **never** removed without replacement.
 - Dialog/Sheet/Drawer: focus moves to the first interactive element (or the heading if
   none), is trapped, and returns to the trigger on close — Radix provides this; do not
@@ -1713,6 +1796,18 @@ Stated rather than papered over:
    POS to measure it once shipped.
 7. **TanStack Table v9** (published 2026-08-04, no migration guide) is deliberately
    deferred. Revisit at 9.1/9.2.
+8. **The tenant `--brand-h` override has no hue guard** (§2.3, measured in 20-01). A tenant
+   hue in roughly 240–290 walks `--chart-1` to within ΔE2000 16 of the pinned `--chart-3`
+   under *normal* vision, below §3.4's published dichromat guarantee. Either band the
+   accepted hue or re-solve `--chart-2..5` per tenant, in the plan that extends
+   `app/api/theme/route.ts`.
+9. **Dichromat ΔE was verified only at `--brand-h: 195`.** §3.4's CVD figures are correct
+   for the shipped hue and were not recomputed across the hue circle; item 8 depends on
+   that work.
+10. **`--seq-*` and `--div-*` have no dark-theme values** (20-01). They render as
+    light-on-dark in dark mode. Acceptable for a heatmap fill — the §3.5 contract is the
+    *cell label* ratio, which holds in both themes — but the diverging ramp on a dark
+    dashboard should be re-measured when charts land at step 13.
 
 ---
 

@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/form";
 
 const selectClass =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
 
 // Every numeric field is a string here because that is what an <input>/<select> yields; mirrors
 // RecipeFormDialog.tsx's exact convention (conversion to the wire shape happens on submit).

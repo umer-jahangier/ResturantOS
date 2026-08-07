@@ -64,7 +64,7 @@ export function CustomerList({
                 type="button"
                 onClick={() => onSelect?.(c)}
                 aria-current={selectedId === c.id ? "true" : undefined}
-                className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-muted/60 ${
                   selectedId === c.id ? "bg-muted" : ""
                 }`}
               >

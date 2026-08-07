@@ -69,7 +69,7 @@ export function OverrideMatchDialog({ invoiceId }: { invoiceId: string }) {
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
           rows={4}
-          className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm focus-visible:border-ring"
         />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>

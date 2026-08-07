@@ -50,7 +50,7 @@ export function FieldHelp({ label, children }: FieldHelpProps) {
             setOpen(true);
           }}
           aria-label={`What is "${label}"?`}
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 rounded-full"
+          className="text-muted-foreground transition-colors hover:text-foreground rounded-full"
         >
           <HelpCircle className="size-3.5" aria-hidden="true" />
         </button>
