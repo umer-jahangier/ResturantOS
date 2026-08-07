@@ -138,3 +138,73 @@ one, but a role picker cannot tell "you may not assign that" from "the platform 
 
 Owned by **13-12**, which owns `UserAdminController`/`UserAdminService`. One `ErrorDecoder`, or an
 `@ExceptionHandler(FeignException.class)` that re-emits 4xx with the upstream body, closes both.
+
+### 9. 🔴 pos-service and purchasing-service leak every tenant's rows on their list endpoints (13-15)
+
+**Found by the seed script, live, and not by reading code.** `scripts/seed_restaurantos.py` built
+its menu for a freshly provisioned Saffron Grill, reconciled against the admin listing, and adopted
+a *different tenant's* menu item id. Every order priced from it was then rejected. The same run
+adopted another tenant's vendor and got `404 Vendor not found` on the next call, because the write
+path IS tenant-scoped while the read path is not.
+
+Measured on the live databases:
+
+| table | `relrowsecurity` | `relforcerowsecurity` | owner | runtime role |
+|---|---|---|---|---|
+| `pos_db.menu_items` | `t` | **`f`** | `pos_user` | `pos_user` |
+| `pos_db.menu_categories` | `t` | **`f`** | `pos_user` | `pos_user` |
+| `pos_db.orders` | `t` | **`f`** | `pos_user` | `pos_user` |
+| `purchasing_db.vendors` | `t` | **`f`** | `purchasing_user` | `purchasing_user` |
+| `purchasing_db.purchase_orders` | `t` | **`f`** | `purchasing_user` | `purchasing_user` |
+| `purchasing_db.vendor_invoices` | `t` | **`f`** | `purchasing_user` | `purchasing_user` |
+
+PostgreSQL exempts a table's **owner** from its own row-level-security policies unless
+`FORCE ROW LEVEL SECURITY` is set. Both services connect as the role that owns their tables, so
+the policies are inert at runtime. And the queries carry no tenant predicate of their own —
+`MenuItemRepository.findAllOrderByName` is `SELECT i FROM MenuItem i ORDER BY i.name`, and
+`OrderRepository.findByClientOrderId` has no tenant clause either.
+
+Contrast the tables this phase repaired: `auth_db.users`, `auth_db.user_branch_roles`,
+`user_db.branches` and `finance_db.chart_of_accounts` are all `t | t`. This is the same class of
+defect 13-02, 13-06 and 13-08 each found in their own service, in the two services nobody looked at.
+
+**Live evidence.** The Saffron manager, whose token carries tenant `4f2783b6…`, sees 13 menu items
+of which 2 are its own — including `Beef Nihari`, which belongs to the `test` tenant. Adding that
+item to a Saffron order was accepted and priced it.
+
+**Severity: high.** It is a cross-tenant data read, and via `findByClientOrderId` a cross-tenant
+*write* target. Not exploited by anything shipped today only because no UI surfaces another
+tenant's ids.
+
+**Why 13-15 did not fix it.** It is two migrations plus a re-audit of every query path in two
+services this plan's file list does not touch, and `ALTER TABLE … FORCE ROW LEVEL SECURITY` on a
+service whose queries have never carried a tenant predicate is an availability risk that has to be
+taken deliberately. The seed is instead made immune: every identifier it controls is a `uuid5`
+scoped to the **tenant id**, and every reconciliation key is a marker containing that id, so a
+neighbour's row can never be adopted. `scripts/seed_restaurantos.py` says so at both call sites.
+
+**What closes it.** Per service: (a) `ALTER TABLE … ENABLE + FORCE ROW LEVEL SECURITY` for every
+tenant-scoped table, (b) a tenant predicate in every finder that currently relies on the policy —
+`findByClientOrderId` above all, since it is an idempotency key — and (c) an e2e that provisions two
+real tenants and asserts each list endpoint returns only its own rows, with a control proving the
+neighbour's rows exist. 13-12's `phase13-tenant-admin-users-e2e.sh` is the template.
+
+### 10. `phase13-reset-hardening-e2e.sh` greps a fixed 400-line window of a growing log (13-15)
+
+Its last assertion is `tail -400 "$AUTH_LOG" | grep -q 'restaurantos.auth.password-reset.delivery-mode'`.
+`.dev-logs/auth-service.log` is appended to across sessions, and the script restarts auth-service
+twice, so whether the startup warning is inside that window depends on how much unrelated output
+happens to sit after it. Observed **30/1 then 31/0 on an immediate re-run with nothing changed**.
+
+The precise fix is to record `wc -l` before the restart and grep only the lines added after it,
+which cannot match an older startup either. Left to whoever owns 13-09's script;
+`scripts/e2e/phase13-acceptance.sh` retries a red suite once and reports the retry rather than
+hiding it, so this is visible instead of silently green.
+
+### 11. Nothing purges `pos_db` / `purchasing_db` when a tenant is deleted (13-15)
+
+13-CONTEXT already defers tenant data purge ("`DELETE` is a status flip today, no cross-service
+erasure"). This is the observed consequence: after a tenant is removed and re-provisioned under the
+same brand, its menu, orders, vendors and invoices remain, owned by a tenant id nothing resolves.
+Combined with item 9 they are visible to whoever comes next. The seed works around it by scoping
+every key to the tenant id; the underlying erasure is still owed.

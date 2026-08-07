@@ -47,9 +47,17 @@ naming the migration if refused.
 ### TOTP secrets — add these to Google Authenticator / Authy
 
 Three roles hold permissions that trigger step-up, so they cannot log in with a password
-alone. This is deliberate, not a bug: Owner and Tenant admin hold `rbac.manage`, and the
-Accountant holds `finance.period.close` — administering roles and closing an accounting
-period both need a second factor.
+alone. This is deliberate, not a bug. The trigger is `rbac.manage` **or**
+`finance.period.close` **or** `hr.payroll.approve`:
+
+- **Owner** holds `rbac.manage` and both money codes.
+- **Tenant admin** does **not** hold `rbac.manage` — 13-02 split user and branch administration
+  off it on purpose, and `phase13-roles-e2e.sh` asserts its token does not carry it (row 99 of
+  this file says the same). It is challenged for `finance.period.close` and `hr.payroll.approve`.
+  That is **D-29a**: revoking those two would leave tenant admins unable to run payroll or close
+  a period at all, so the step-up stays and enrolment became part of account creation.
+- **Accountant** holds `finance.period.close` only. It is not an administrator and is challenged
+  anyway, because the gate is on the action, not on seniority.
 
 | Account | Secret (Base32) |
 |---|---|

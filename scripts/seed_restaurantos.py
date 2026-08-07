@@ -591,7 +591,7 @@ def forced_change(change_token: str, current: str, new: str) -> Response:
                          "newPassword": new})
 
 
-def enrol_totp(email: str, password: str, slug: str) -> str:
+def enrol_totp(email: str, password: str, slug: str, repair: bool = True) -> str | None:
     """
     Enrol a second factor over the PUBLIC bootstrap endpoints — 13-06's and 13-13's recipe,
     copied rather than reinvented.
@@ -599,18 +599,41 @@ def enrol_totp(email: str, password: str, slug: str) -> str:
     ORDER MATTERS and is not negotiable: the forced password change happens FIRST, enrolment
     second, so the factor is never bound under a temporary credential that whoever provisioned
     the account also knows.
+
+    Returns None rather than aborting when enrolment genuinely cannot proceed, so ONE persona in
+    an odd state does not take the other seventeen down with it. Measured: a run died outright on
+    `409 TOTP_ALREADY_ENROLLED` for a single address and reported nothing about anybody else.
+
+    That 409 beside a `401 TOTP_ENROLLMENT_REQUIRED` from login is not a contradiction — the two
+    endpoints read different columns. Login demands enrolment when `totp_secret IS NULL`;
+    bootstrap refuses when `totp_enabled` is true. An account with the flag set and no secret is
+    stuck between them and can never log in again, because no endpoint at any tier resets another
+    user's second factor. The repair clears the factor directly and re-enrols, and prints that
+    write in the ledger.
     """
     resp = request("POST", "/api/v1/auth/2fa/bootstrap",
                    body={"email": email, "password": password, "tenantSlug": slug})
+
+    if resp.status == 409 and "TOTP_ALREADY_ENROLLED" in resp.raw:
+        if not repair:
+            warn(f"{email}: already holds a factor this run has no secret for, and repair is off")
+            return None
+        warn(f"{email}: holds an enrolled factor this run has no secret for — clearing and re-enrolling")
+        clear_totp(email)
+        resp = request("POST", "/api/v1/auth/2fa/bootstrap",
+                       body={"email": email, "password": password, "tenantSlug": slug})
+
     uri = resp.data("otpauthUri")
     if not uri:
-        die(f"TOTP bootstrap for {email} returned no otpauth uri (HTTP {resp.status}): {resp.raw[:300]}")
+        warn(f"TOTP bootstrap for {email} returned no otpauth uri (HTTP {resp.status}): {resp.raw[:200]}")
+        return None
     secret = urllib.parse.parse_qs(urllib.parse.urlparse(uri).query)["secret"][0]
     verify = request("POST", "/api/v1/auth/2fa/bootstrap/verify",
                      body={"email": email, "password": password, "tenantSlug": slug,
                            "code": totp_now(secret)})
     if verify.status != 200:
-        die(f"TOTP enrolment for {email} was not accepted (HTTP {verify.status}): {verify.raw[:300]}")
+        warn(f"TOTP enrolment for {email} was not accepted (HTTP {verify.status}): {verify.raw[:200]}")
+        return None
     store_totp_secret(email, secret)
     return secret
 
@@ -640,10 +663,19 @@ def login(email: str, password: str, slug: str) -> tuple[str | None, str]:
 
     if resp.status == 401 and resp.error_code == "TOTP_REQUIRED":
         if not secret:
+            # The factor is enrolled and this run holds no secret for it. The secret is minted by
+            # auth-service and cannot be re-derived, and no endpoint at any tier revokes another
+            # user's second factor — so the only way back is to clear it and enrol again, which is
+            # an enumerated direct write rather than a silent one.
+            if enrol_totp(email, password, slug):
+                secret = load_totp_secret(email)
+                resp = raw_login(email, password, slug, totp_now(secret) if secret else None)
+                if resp.status == 200:
+                    return resp.data("accessToken"), "ok (factor re-enrolled)"
             return None, (
-                "requires a TOTP code and this run holds no secret for it. The secret is generated "
-                f"by auth-service at enrolment and cannot be re-derived; it lives in {TOTP_DIR}. "
-                "Re-run with --repair to clear and re-enrol the factor."
+                "requires a TOTP code and this run holds no secret for it, and re-enrolment did "
+                f"not succeed. Secrets live in {TOTP_DIR}; losing that directory is recoverable "
+                "but not free."
             )
         # One clock-skew retry before calling it a failure.
         resp = raw_login(email, password, slug, totp_now(secret, skew=-1))
