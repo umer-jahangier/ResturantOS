@@ -17,6 +17,9 @@
 /blob-report/
 /playwright/.cache/
 /e2e/__screenshots__/
+# Playwright storage states minted by the auth-setup project. They contain live
+# refresh_token cookies for seeded personas — regenerated on every run, never committed.
+/e2e/.auth/
 *.lcov
 
 # next.js

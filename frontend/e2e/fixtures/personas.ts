@@ -1,0 +1,188 @@
+import { readFileSync } from "node:fs";
+
+/**
+ * The seeded persona catalog.
+ *
+ * SINGLE SOURCE OF TRUTH is `scripts/seed_restaurantos.py`. Every value below is derived
+ * the same way that script derives it, so a change there is a compile-visible change here
+ * rather than a silent drift:
+ *
+ *   email    = `${local}@${tenantKey}.local`                    (persona_email,    L204-205)
+ *   password = `${Capitalise(tenantKey)}#${Capitalise(local)}1`  (persona_password, L208-216)
+ *   tenants  = saffron / zaitoon / marina                        (TENANTS,          L130-172)
+ *   roles    = owner|manager|cashier|waiter|kitchen|accountant   (PERSONAS,         L188-202)
+ *
+ * The tenant SLUG is deliberately NOT hard-coded. It is minted by platform-admin-service
+ * from the brand name at provisioning time and is not the persona's email domain
+ * ("Saffron Grill" → `saffron-grill`, while the persona is `owner@saffron.local`). The
+ * setup project resolves it from the live platform API and writes `e2e/.auth/tenants.json`;
+ * everything downstream reads that. Hard-coding it would let a re-provisioned tenant
+ * silently point the whole suite at nothing.
+ */
+
+export type PersonaLocal = "owner" | "manager" | "cashier" | "waiter" | "kitchen" | "accountant";
+
+export type TenantKey = "saffron" | "zaitoon" | "marina";
+
+export interface TenantSpec {
+  key: TenantKey;
+  /** brandName as provisioned — the join key against GET /api/v1/platform/tenants. */
+  brand: string;
+  tier: "STARTER" | "GROWTH" | "ENTERPRISE";
+  /**
+   * Feature divergence the seed deliberately creates so gating is exercised rather than
+   * assumed (seed_restaurantos.py L124-172). Verified live 2026-08-07 against
+   * GET /api/v1/feature-flags.
+   */
+  expectFeatures: { on: string[]; off: string[] };
+}
+
+export const TENANTS: Record<TenantKey, TenantSpec> = {
+  saffron: {
+    key: "saffron",
+    brand: "Saffron Grill",
+    tier: "STARTER",
+    // FEATURE_NLQ is GROWTH+ by TierFeatureDefaults — a STARTER tenant holding it can only
+    // have got it from tenant_features.is_override.
+    expectFeatures: {
+      on: ["FEATURE_POS", "FEATURE_CRM", "FEATURE_NLQ"],
+      off: ["FEATURE_ANALYTICS", "FEATURE_MULTI_BRANCH", "FEATURE_REPORTING_ADVANCED"],
+    },
+  },
+  zaitoon: {
+    key: "zaitoon",
+    brand: "Zaitoon Kitchen",
+    tier: "GROWTH",
+    // FEATURE_CRM is ON in every tier by default — OFF here is an explicit override.
+    expectFeatures: {
+      on: ["FEATURE_POS", "FEATURE_REPORTING_ADVANCED", "FEATURE_MULTI_BRANCH"],
+      off: ["FEATURE_CRM"],
+    },
+  },
+  marina: {
+    key: "marina",
+    brand: "Marina Bay Dining",
+    tier: "ENTERPRISE",
+    expectFeatures: { on: ["FEATURE_POS", "FEATURE_CRM", "FEATURE_ANALYTICS"], off: [] },
+  },
+};
+
+export interface Persona {
+  /** Stable id used for the storage-state filename and as the fixture key. */
+  id: string;
+  tenantKey: TenantKey;
+  local: PersonaLocal;
+  email: string;
+  password: string;
+  role: string;
+  /**
+   * True when the seed enrolled a second factor for this account, so a password-only
+   * login is refused 401 TOTP_REQUIRED. Verified live 2026-08-07: owner and accountant
+   * are enrolled; manager/cashier/waiter/kitchen are not.
+   *
+   * Driven by auth-service's `requiresTotpStepUp`, which fires on permissions OWNER and
+   * ACCOUNTANT hold (finance.period.close, hr.payroll.approve) — D-29a.
+   */
+  totpEnrolled: boolean;
+}
+
+const ROLE_BY_LOCAL: Record<PersonaLocal, string> = {
+  owner: "OWNER",
+  manager: "MANAGER",
+  cashier: "CASHIER",
+  waiter: "WAITER",
+  kitchen: "KITCHEN_STAFF",
+  accountant: "ACCOUNTANT",
+};
+
+/** Enrolled at creation because their role holds a step-up-gated permission (D-29a). */
+const TOTP_ENROLLED_LOCALS: ReadonlySet<PersonaLocal> = new Set<PersonaLocal>([
+  "owner",
+  "accountant",
+]);
+
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function persona(tenantKey: TenantKey, local: PersonaLocal): Persona {
+  return {
+    id: `${tenantKey}.${local}`,
+    tenantKey,
+    local,
+    email: `${local}@${tenantKey}.local`,
+    password: `${capitalise(tenantKey)}#${capitalise(local)}1`,
+    role: ROLE_BY_LOCAL[local],
+    totpEnrolled: TOTP_ENROLLED_LOCALS.has(local),
+  };
+}
+
+export const PERSONA_LOCALS: PersonaLocal[] = [
+  "owner",
+  "manager",
+  "cashier",
+  "waiter",
+  "kitchen",
+  "accountant",
+];
+
+export const TENANT_KEYS: TenantKey[] = ["saffron", "zaitoon", "marina"];
+
+/** All 18 tenant personas, in a deterministic order. */
+export const ALL_PERSONAS: Persona[] = TENANT_KEYS.flatMap((t) =>
+  PERSONA_LOCALS.map((l) => persona(t, l)),
+);
+
+/**
+ * The SuperAdmin. NOT a tenant persona: it authenticates against
+ * POST /api/v1/platform/auth/login (platform-admin-service), gets a `token_type: platform`
+ * JWT with no tenant_id, and lives under /platform/** in the UI — a different route group,
+ * a different login route, a different rate-limit bucket.
+ *
+ * Created by 13-05's Liquibase migration, not by the seed script
+ * (services/platform-admin-service/.../901-seed-project-superadmin.xml).
+ */
+export const SUPERADMIN = {
+  id: "platform.superadmin",
+  email: "superadmin@softxlogic.com",
+  password: "Test@123!",
+} as const;
+
+/** Where the setup project writes per-persona storage state and the resolved tenant manifest. */
+export const AUTH_DIR = "e2e/.auth";
+
+export function storageStatePath(personaId: string): string {
+  return `${AUTH_DIR}/${personaId}.json`;
+}
+
+export const TENANT_MANIFEST_PATH = `${AUTH_DIR}/tenants.json`;
+
+/**
+ * The branch a persona's session is scoped to, read from the `__meta` the setup project
+ * wrote into its storage state (which took it from the live token's `branch_id` claim).
+ *
+ * Needed because several pos-service endpoints require an explicit `branchId` QUERY
+ * PARAMETER even though the token already carries the claim — e.g.
+ * `GET /api/v1/pos/orders/{id}` returns 400 without it (measured 2026-08-07;
+ * lib/repositories/pos.repository.ts:200-203 passes it for exactly this reason).
+ * Hard-coding a branch id would break the moment a tenant is re-provisioned.
+ */
+export function personaBranchId(personaId: string): string {
+  // Deliberately a require-time read rather than a cached module constant: storage states
+  // are minted per run, and a stale cache would silently point at a previous run's branch.
+  const raw = readFileSync(storageStatePath(personaId), "utf8");
+  const meta = (JSON.parse(raw) as { __meta?: { branchId?: string } }).__meta;
+  if (!meta?.branchId) {
+    throw new Error(
+      `No branch_id in the storage state for ${personaId}. Re-run the auth-setup project — ` +
+        "states are minted, not committed.",
+    );
+  }
+  return meta.branchId;
+}
+
+export interface TenantManifest {
+  generatedAt: string;
+  /** tenantKey → { slug, tenantId } resolved from the live platform API. */
+  tenants: Record<string, { slug: string; tenantId: string; tier: string }>;
+}

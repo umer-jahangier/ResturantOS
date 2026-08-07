@@ -385,6 +385,81 @@ jobs:
         run: pnpm --dir frontend run e2e
 
   # ---------------------------------------------------------------------------
+  # browser-e2e: the browser journey harness (frontend/e2e/journeys).
+  #
+  #   WHAT RUNS HERE AND WHAT DOES NOT, and why.
+  #
+  #   The journey suite drives a REAL browser against a REAL stack: gateway, auth, user,
+  #   platform-admin, pos, kitchen, inventory, purchasing, finance and reporting, plus
+  #   PostgreSQL, Redis, RabbitMQ, Eureka and ClickHouse, seeded with 19 principals. That is
+  #   not something a pull-request job can stand up, and pretending otherwise produces a job
+  #   that is either permanently red or permanently skipped.
+  #
+  #   So CI runs the two halves that ARE meaningful without a stack:
+  #     1. TYPECHECK the harness. The specs are TypeScript against the app's own types and
+  #        fixtures; a renamed testid, a changed persona shape or a dropped export breaks
+  #        compilation. This is what catches harness rot between stack runs.
+  #     2. The backend-free SMOKE project.
+  #
+  #   The full suite is opt-in: set the repository variable E2E_STACK_URL to a reachable
+  #   stack and this job runs the journeys against it. Until then that step is skipped, and
+  #   it says so rather than reporting a false green.
+  #
+  #   `needs: [lint]` — parallel with test/build, so it never lengthens the critical path.
+  # ---------------------------------------------------------------------------
+  browser-e2e:
+    name: Browser E2E harness (typecheck + smoke)
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Set up Node ${{ env.NODE_VERSION }} + pnpm store cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      # The real regression gate for this harness. NOT continue-on-error: a journey suite
+      # that no longer compiles is broken whether or not a stack is available to run it.
+      - name: Typecheck the E2E harness
+        run: pnpm --dir frontend run e2e:typecheck
+
+      - name: Lint the E2E harness
+        run: pnpm --dir frontend exec eslint e2e
+
+      - name: Install Playwright browser (chromium)
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+
+      - name: Backend-free smoke
+        run: bash scripts/e2e/browser-e2e.sh --smoke
+
+      - name: Full journey suite (only when a live stack is configured)
+        if: ${{ vars.E2E_STACK_URL != '' }}
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.E2E_STACK_URL }}
+          E2E_GATEWAY_URL: ${{ vars.E2E_GATEWAY_URL }}
+          # Behind a proxy that rewrites X-Forwarded-For the per-worker rate-limit
+          # isolation cannot work; raise RATE_LIMIT_AUTH_PER_MIN on that stack instead.
+          E2E_WORKER_IP: "0"
+        run: bash scripts/e2e/browser-e2e.sh
+
+      - name: Report why the journey suite was skipped
+        if: ${{ vars.E2E_STACK_URL == '' }}
+        run: |
+          echo "::notice title=Journey suite not run::E2E_STACK_URL is unset, so the browser"
+          echo "journey suite did not run. It needs a seeded, live stack. The harness was"
+          echo "typechecked and linted, and the backend-free smoke ran. To enable: set the"
+          echo "E2E_STACK_URL and E2E_GATEWAY_URL repository variables."
+
+  # ---------------------------------------------------------------------------
   # deploy-prod: PLACEHOLDER — the promote-to-prod gate is a DELIBERATE manual
   #   GitHub `environment: production` approval BY DESIGN (D6, spec D1.4). It is NOT
   #   part of the automated core (lint -> test -> build -> schema-sync) and performs
