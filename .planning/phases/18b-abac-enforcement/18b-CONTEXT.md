@@ -291,3 +291,52 @@ chose. `PurchaseOrderApprovalIT.approve_deniedByOpa`'s blanket deny was likewise
 | **W-18b-05** | Stale `target/` artefacts (`FinanceServiceApplication 2.class`, `HrServiceApplication 2.class`, `TestFixtures 2.class`) break `repackage` on an incremental build | Pre-existing, not introduced here; `mvn clean` clears it. Worth a CI guard |
 | **W-18b-06** | `AccountController.java` has `\r\r\n` line terminators | Pre-existing corruption; normalising it would produce a whole-file diff and collide with concurrent finance work. Edited byte-exactly instead |
 </deferred>
+
+---
+
+## D-18b-01 — `rbac.rego` is RETIRED, not wired (decided 2026-08-07)
+
+18b correctly declined to decide this and left it in the deferral registry. Decision: **delete
+`rbac.rego` and record `@PreAuthorize` + `RoleCeiling` as the chosen control for role
+grant/revoke.**
+
+### Why not wire it into user-service
+
+Because a second control over the same decision is the exact defect that produced this
+phase's worst finding.
+
+The privilege escalation closed in 13-11 existed because role assignment had **two places**
+that could decide it and only one of them checked: `GET /api/v1/roles` filtered the picker by
+the caller's ceiling, while `POST /api/v1/users/{id}/branch-roles` had no check at all. A
+TENANT_ADMIN could assign itself OWNER and receive 200. The fix was explicitly to make
+`RoleCeiling.permits` **the single shared rule**, used by the picker and the write path alike,
+so the two cannot drift.
+
+Adding an OPA rule for the same decision reintroduces exactly what was just removed: two
+authorities over one question, in two languages, in two repositories' worth of test suites,
+which agree today and are one edit away from disagreeing silently.
+
+### Why `RoleCeiling` is the right survivor
+
+- It is enforced **server-side in auth-service**, which owns `user_branch_roles` and
+  `role_permissions` — the data the decision is about. OPA would have to be told the ceiling;
+  auth-service already knows it.
+- It **recomputes the caller's permissions from the database on every call**. The acting user's
+  identity crosses the internal seam as an identity, never as an entitlement, so a forged
+  header buys nothing.
+- It is **fail-closed and measured**: acting as MANAGER, granting OWNER returns
+  `403 ROLE_CEILING_EXCEEDED` with zero rows written; a missing acting-user header returns
+  `403 ACTING_USER_REQUIRED`; and the OWNER→MANAGER control still returns 200, proving it
+  enforces a ceiling rather than blocking everything.
+- ABAC earns its place where a decision depends on **attributes the service does not own** —
+  tenant, branch, ownership, time. `hr.rego`'s `same_tenant_and_branch` is the model case, and
+  wiring it closed a live cross-branch salary leak. A role ceiling is not that shape: it is a
+  pure function of two permission sets auth-service already holds.
+
+### What must be true for this decision to stand
+
+The reachability registry must record `rbac.rego` as **deliberately retired**, not merely
+absent, so its deletion cannot later read as an oversight — and `PolicyReachabilityTest` keeps
+failing the build for any OTHER rule that becomes a dead letter. If role assignment ever needs
+a time-of-day, device or location attribute, this decision is revisited and ABAC is the right
+answer then.
