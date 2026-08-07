@@ -90,6 +90,38 @@
     -->
     <changeSet id="auth-1.0.0-081-login-candidate-lookup-function" author="restaurantos-agent" runOnChange="true">
         <sql splitStatements="false"><![CDATA[
+            -- OWNERSHIP GUARD.
+            --
+            -- Two things must both be true and they conflict: Liquibase (connecting as auth_user)
+            -- owns this function's DEFINITION, while deploy/scripts/verify-security-definer-owners.sh
+            -- must hand its OWNERSHIP to postgres — SECURITY DEFINER cannot bypass FORCE RLS
+            -- otherwise, and this function exists precisely to run before any tenant is known.
+            --
+            -- Once ownership has moved, auth_user can no longer CREATE OR REPLACE it: Postgres
+            -- refuses with "must be owner of function". With runOnChange="true" that turns any
+            -- future edit to the body into a startup failure for the whole service — the migration
+            -- aborts, and auth-service does not come up.
+            --
+            -- So: replace it only when this role still owns it (a fresh database, before the
+            -- verifier has run) or when it does not exist yet. Otherwise skip loudly. The verifier
+            -- is idempotent, runs after migrations, and asserts the function can actually resolve a
+            -- row — so a skip here is safe, but a silent one would not be.
+            --
+            -- To CHANGE the body after ownership has moved: edit it here, then run
+            -- `psql -U postgres -d auth_db` and apply the same CREATE OR REPLACE as postgres, or
+            -- ALTER FUNCTION ... OWNER TO auth_user first and let this changeset re-apply. Either
+            -- way re-run the verifier afterwards.
+            DO $guard$
+            BEGIN
+              IF to_regprocedure('public.auth_lookup_login_candidates(text)') IS NOT NULL
+                 AND pg_get_userbyid((SELECT proowner FROM pg_proc
+                                       WHERE oid = to_regprocedure('public.auth_lookup_login_candidates(text)')))
+                     IS DISTINCT FROM current_user THEN
+                RAISE NOTICE 'auth_lookup_login_candidates is owned by another role (expected: postgres, for SECURITY DEFINER over FORCE RLS). Skipping replace; deploy/scripts/verify-security-definer-owners.sh owns it.';
+                RETURN;
+              END IF;
+
+              EXECUTE $ddl$
             CREATE OR REPLACE FUNCTION auth_lookup_login_candidates(p_email TEXT)
             RETURNS TABLE (user_id UUID, tenant_id UUID, tenant_slug TEXT, tenant_name TEXT)
             LANGUAGE sql
@@ -108,9 +140,12 @@
                  AND t.status = 'ACTIVE'
                ORDER BY t.slug
             $body$;
+              $ddl$;
 
-            REVOKE ALL ON FUNCTION auth_lookup_login_candidates(TEXT) FROM PUBLIC;
-            GRANT EXECUTE ON FUNCTION auth_lookup_login_candidates(TEXT) TO auth_user;
+              EXECUTE 'REVOKE ALL ON FUNCTION auth_lookup_login_candidates(TEXT) FROM PUBLIC';
+              EXECUTE 'GRANT EXECUTE ON FUNCTION auth_lookup_login_candidates(TEXT) TO auth_user';
+            END
+            $guard$;
         ]]></sql>
         <rollback>
             <sql splitStatements="false">
