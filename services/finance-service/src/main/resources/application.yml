@@ -32,6 +32,27 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # default-requeue-rejected=false is the load-bearing line. Without it Spring AMQP's
+        # default of TRUE nacks a failed message back onto the head of the SAME queue with no
+        # delay: the container immediately redelivers it, the handler throws again, and the
+        # service spins at the speed of the broker round-trip. finance has ten @RabbitListeners
+        # on money paths, so ANY handler failure — a JE_UNBALANCED reject, an unresolvable
+        # account tag, a closed period — became a hot loop that pinned a core and starved every
+        # other message on the queue behind the poison one.
+        # FinanceRabbitConfig already gives every queue an x-dead-letter-exchange and a BOUND
+        # DLQ, so with this set a poison message retries three times with backoff and then lands
+        # somewhere a human can find it, instead of being redelivered forever.
+        # Mirrors pos-service and inventory-service, which have always had this block.
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 8000
   cloud:
     config:
       uri: ${CONFIG_URI:http://localhost:8888}

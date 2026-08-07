@@ -35,6 +35,25 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # NOTE: purchasing-service is currently PRODUCER-ONLY — it has no @RabbitListener and
+        # declares no queues, so this block changes nothing at runtime today. It is set anyway so
+        # that the first consumer added here inherits the safe default instead of silently
+        # inheriting Spring AMQP's default-requeue-rejected=true, which redelivers a failed
+        # message onto the same queue with no delay, forever. That is exactly how the other three
+        # services acquired the defect this block removes.
+        # Whoever adds that first listener MUST also declare an x-dead-letter-exchange and a BOUND
+        # DLQ for its queue (see FinanceRabbitConfig / ReportingRabbitConfig) — with requeue off
+        # and no bound DLQ, a rejected message is discarded silently instead of looping.
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 8000
   cloud:
     config:
       uri: ${CONFIG_URI:http://localhost:8888}

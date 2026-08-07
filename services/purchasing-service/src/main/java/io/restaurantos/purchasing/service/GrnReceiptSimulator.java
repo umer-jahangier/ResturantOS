@@ -8,7 +8,6 @@ import io.restaurantos.purchasing.domain.model.VendorItem;
 import io.restaurantos.purchasing.dto.MockReceiveRequest;
 import io.restaurantos.purchasing.dto.MockReceiveResponse;
 import io.restaurantos.purchasing.exception.InvalidPoStateException;
-import io.restaurantos.purchasing.feign.FinanceInternalClient;
 import io.restaurantos.purchasing.repository.MockGrnReceiptRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderLineRepository;
 import io.restaurantos.purchasing.repository.PurchaseOrderRepository;
@@ -20,13 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -36,22 +32,22 @@ public class GrnReceiptSimulator {
     private final PurchaseOrderLineRepository lineRepository;
     private final MockGrnReceiptRepository mockGrnReceiptRepository;
     private final VendorItemRepository vendorItemRepository;
-    private final FinanceInternalClient financeInternalClient;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
 
+    // No FinanceInternalClient. Purchasing still posts to finance for the vendor invoice
+    // (VendorInvoiceService) and the AP payment (ApPaymentService) — those are genuinely its own
+    // events. A goods receipt is not: inventory owns it. See simulateReceive.
     public GrnReceiptSimulator(PurchaseOrderRepository purchaseOrderRepository,
                                PurchaseOrderLineRepository lineRepository,
                                MockGrnReceiptRepository mockGrnReceiptRepository,
                                VendorItemRepository vendorItemRepository,
-                               FinanceInternalClient financeInternalClient,
                                EventPublisher eventPublisher,
                                TenantContext tenantContext) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.lineRepository = lineRepository;
         this.mockGrnReceiptRepository = mockGrnReceiptRepository;
         this.vendorItemRepository = vendorItemRepository;
-        this.financeInternalClient = financeInternalClient;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
     }
@@ -73,7 +69,6 @@ public class GrnReceiptSimulator {
         }
 
         UUID batchGrnId = UUID.randomUUID();
-        long inventoryAmount = 0L;
         List<PurchasingEventContract.GrnLine> grnLines = new ArrayList<>();
         for (MockReceiveRequest.Line lineReq : request.lines()) {
             PurchaseOrderLine poLine = lineRepository.findById(lineReq.poLineId()).orElseThrow();
@@ -91,11 +86,6 @@ public class GrnReceiptSimulator {
             receipt.setIdempotencyKey(idempotencyKey);
             mockGrnReceiptRepository.save(receipt);
 
-            inventoryAmount += lineReq.receivedQty()
-                    .multiply(BigDecimal.valueOf(poLine.getUnitPricePaisa()))
-                    .setScale(0, RoundingMode.HALF_UP)
-                    .longValue();
-
             VendorItem catalogItem = poLine.getVendorItemId() == null ? null
                     : vendorItemRepository.findByTenantIdAndId(tenantId, poLine.getVendorItemId()).orElse(null);
             grnLines.add(new PurchasingEventContract.GrnLine(
@@ -108,18 +98,19 @@ public class GrnReceiptSimulator {
                     packUom(catalogItem, poLine)));
         }
 
-        if (inventoryAmount > 0) {
-            financeInternalClient.autoPost(tenantId, new FinanceInternalClient.AutoPostJeRequest(
-                    po.getBranchId(),
-                    LocalDate.now(),
-                    "GRN receipt " + batchGrnId,
-                    "GRN",
-                    batchGrnId,
-                    List.of(
-                            new FinanceInternalClient.JeLine("1300", "Inventory", inventoryAmount, 0L),
-                            new FinanceInternalClient.JeLine("1700", "GR/IR Clearing", 0L, inventoryAmount))));
-        }
-
+        // NO direct DR 1300 / CR 1700 here. It used to post one, and finance ALSO posts one when
+        // the GRN_RECEIVED published below comes back around as inventory's STOCK_RECEIVED — two
+        // entries per receipt, under two different idempotency keys ("GRN"/grnId here and
+        // "STOCK_RECEIPT"/lotId there), so neither one's dedupe could see the other. Inventory was
+        // overstated and GR/IR held a permanent credit balance of one whole receipt, because the
+        // vendor invoice only ever debits 1700 once.
+        //
+        // Finance owns the entry now, posted from the real stock lot. That is the correct side to
+        // keep for three reasons: inventory-service is the authority on stock valuation (it applies
+        // the UOM/pack-factor conversion and recomputes moving-average cost, neither of which the
+        // qty * unitPrice sum here ever saw — that number is in the vendor's ORDER unit); the entry
+        // then ties to physical stock that demonstrably exists; and the manual receipt screen goes
+        // through exactly the same path, so both ways of receiving stock post identically.
         updatePoReceiveStatus(po);
 
         // Last statement: one GRN_RECEIVED for the whole batch, through the transactional outbox.

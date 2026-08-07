@@ -1,4 +1,15 @@
 spring:
+  # This file SHADOWS src/main/resources/application.yml — Spring Boot resolves
+  # classpath:/application.yml to the FIRST match and target/test-classes precedes
+  # target/classes, so the main file is not loaded and the two are never merged.
+  #
+  # spring.application.name therefore has to be repeated here. Without it SharedAutoConfiguration's
+  # domainEventPublisher fails on an unresolvable ${spring.application.name} and EVERY
+  # @SpringBootTest in this module dies at context startup. The suite only appeared to pass because
+  # stale classes from an earlier layout were still sitting in target/; the first `mvn clean test`
+  # exposes it. Keep this in step with the main file.
+  application:
+    name: finance-service
   config:
     import: "optional:configserver:"
   cloud:

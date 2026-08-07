@@ -29,6 +29,23 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # See finance-service for the full reasoning. Short version: Spring AMQP defaults
+        # default-requeue-rejected to TRUE, which requeues a failed message onto the head of the
+        # same queue with no delay — an unbounded redelivery loop for any handler that throws.
+        # crm's two listeners accrue and reverse loyalty points, so a poison ORDER_CLOSED would
+        # spin here and block every later accrual behind it.
+        # CrmRabbitConfig declares an x-dead-letter-exchange and a bound DLQ per queue, so a
+        # rejected message has somewhere to go.
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 8000
 
 eureka:
   client:

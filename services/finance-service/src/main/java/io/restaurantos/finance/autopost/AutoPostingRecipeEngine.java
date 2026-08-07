@@ -77,8 +77,8 @@ public class AutoPostingRecipeEngine {
 
     // ── Order revenue ───────────────────────────────────────────────────────
     /**
-     * DR each tender (cash/bank/loyalty/voucher) · CR net revenue, service charge and output tax,
-     * DR discount.
+     * DR each tender (cash/bank/loyalty/voucher) and the discount · CR GROSS revenue, service
+     * charge and output tax.
      *
      * <p>The entry balances because {@code sum(payments[].amountPaisa) == totalPaisa} and
      * {@code totalPaisa == subtotal - discount + tax + serviceCharge}. pos-service guarantees the
@@ -90,6 +90,33 @@ public class AutoPostingRecipeEngine {
      * <p>{@code serviceChargePaisa} is credited to its own revenue account. It has always been
      * part of {@code totalPaisa} and was never credited here, which would have made every
      * service-charged order unbalanceable the moment the field became settable.
+     *
+     * <p><b>Why revenue is credited GROSS.</b> The discount is already debited to 4920 "Discounts
+     * Given" as contra-revenue. Crediting revenue NET as well — {@code subtotal - discount} — books
+     * the same discount twice, once on each side, and the entry then fails to balance by exactly
+     * {@code discountPaisa}:
+     *
+     * <pre>
+     *   DR  payments        subtotal - discount + tax + serviceCharge
+     *   DR  discount        discount
+     *   ─────────────────── debits  = subtotal + tax + serviceCharge
+     *
+     *   CR  revenue (net)   subtotal - discount        ← the double-count
+     *   CR  serviceCharge   serviceCharge
+     *   CR  outputTax       tax
+     *   ─────────────────── credits = subtotal - discount + tax + serviceCharge
+     * </pre>
+     *
+     * <p>Every discounted order therefore tripped {@code JE_UNBALANCED} at commit and posted NO
+     * revenue at all — not a partial entry, no entry — while the message requeued. Crediting the
+     * gross {@code subtotalPaisa} makes both sides {@code subtotal + tax + serviceCharge} for ANY
+     * discount, including a 100% comp (where the tender covers only tax and service charge) and the
+     * degenerate discount &gt; subtotal case. It also gives the correct income statement: gross sales
+     * on 4100 and the discount visible on 4920, rather than a silently netted figure.
+     *
+     * <p>Undiscounted orders are untouched by construction: at {@code discount == 0} the old
+     * {@code subtotal - discount} and the new {@code subtotal} are the same number and no discount
+     * line is emitted. This changes only the orders that previously failed outright.
      */
     public void postOrderRevenue(EventEnvelope<PosEventContract.OrderClosedPayload> envelope) {
         PosEventContract.OrderClosedPayload p = envelope.payload();
@@ -97,16 +124,16 @@ public class AutoPostingRecipeEngine {
             return;
         }
 
-        long netRevenue = p.subtotalPaisa() - p.discountPaisa();
-
         List<CreateJeLineRequest> lines = new ArrayList<>();
         addPaymentDebits(p, lines);
 
         if (p.discountPaisa() > 0) {
             lines.add(line(tag("DISCOUNT"), "Discount", p.discountPaisa(), 0));
         }
-        if (netRevenue > 0) {
-            lines.add(line(tag("REVENUE"), "Sales revenue", 0, netRevenue));
+        // GROSS, not subtotal - discount. See the javadoc: netting here while also debiting the
+        // discount counts it twice and unbalances the entry by exactly discountPaisa.
+        if (p.subtotalPaisa() > 0) {
+            lines.add(line(tag("REVENUE"), "Sales revenue", 0, p.subtotalPaisa()));
         }
         if (p.serviceChargePaisa() > 0) {
             lines.add(line(tag("SERVICE_CHARGE"), "Service charge", 0, p.serviceChargePaisa()));

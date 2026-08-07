@@ -35,6 +35,22 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:${RABBITMQ_USER:guest}}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # See finance-service for the full reasoning. Spring AMQP's default of
+        # default-requeue-rejected=true redelivers a failed message onto the same queue with no
+        # delay, forever. reporting's three listeners drive the sales/till/invoice ETL, so a
+        # poison event would spin a consumer and stall every downstream fact behind it — and the
+        # dashboards would just look stale rather than broken.
+        # ReportingRabbitConfig declares an x-dead-letter-exchange and a bound DLQ per queue.
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          initial-interval: 2000
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 8000
   cloud:
     config:
       uri: ${CONFIG_URI:http://localhost:8888}

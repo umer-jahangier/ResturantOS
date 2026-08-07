@@ -50,5 +50,25 @@ abstract class AutoPostingITBase {
         r.add("eureka.client.enabled", () -> "false");
         r.add("spring.cloud.config.enabled", () -> "false");
         r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true");
+
+        // Mirror the production listener block from src/main/resources/application.yml.
+        //
+        // These ITs drive the REAL @RabbitListeners, so they must run the real consumer semantics.
+        // They did not: src/test/resources/application.yml shadows the main one on the test
+        // classpath, so every listener property was absent here and the containers fell back to
+        // Spring AMQP's default of default-requeue-rejected=TRUE — a failed message nacked back
+        // onto the head of the same queue with no delay, forever.
+        //
+        // Measured, not assumed: three deliberately unbalanced ORDER_CLOSED events produced
+        // 11,228 rejected posting attempts in a single ~20s run with the default, and 4 with this
+        // block. Setting it here rather than in the test YAML keeps the shadowing question out of
+        // it entirely — this is the same mechanism the datasource and broker already use above.
+        r.add("spring.rabbitmq.listener.simple.acknowledge-mode", () -> "auto");
+        r.add("spring.rabbitmq.listener.simple.default-requeue-rejected", () -> "false");
+        r.add("spring.rabbitmq.listener.simple.retry.enabled", () -> "true");
+        r.add("spring.rabbitmq.listener.simple.retry.initial-interval", () -> "2000");
+        r.add("spring.rabbitmq.listener.simple.retry.max-attempts", () -> "3");
+        r.add("spring.rabbitmq.listener.simple.retry.multiplier", () -> "2.0");
+        r.add("spring.rabbitmq.listener.simple.retry.max-interval", () -> "8000");
     }
 }
