@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Device-auth serial resolution. The /iclock device path carries NO tenant context (no JWT,
+         no X-Tenant-Id), so attendance_devices' FORCE RLS (keyed on app.current_tenant_id) would
+         hide every row on the pre-context lookup. resolve_device() is a narrowly-scoped SECURITY
+         DEFINER function that returns ONLY the single row matching a serial, so DeviceAuthResolver
+         can look up serial -> tenant/branch/token, verify the token, and only THEN set the tenant
+         GUC. It exposes nothing beyond a by-serial lookup (serials are globally unique).
+
+         DEPLOY NOTE: SECURITY DEFINER runs as the function OWNER. It bypasses FORCE RLS only if the
+         owner is a superuser or a BYPASSRLS role. In the Testcontainers harness the migration role
+         is a superuser so this holds. In production, ensure this function is owned by (or altered to
+         run as) a role not subject to attendance_devices RLS — verify during deploy review. -->
+    <changeSet id="hr-1.0.0-031-device-resolve-fn" author="restaurantos-agent">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION resolve_device(p_serial TEXT)
+            RETURNS SETOF attendance_devices
+            LANGUAGE sql
+            STABLE
+            SECURITY DEFINER
+            SET search_path = public
+            AS $func$
+                SELECT * FROM attendance_devices WHERE serial_no = p_serial;
+            $func$;
+        ]]></sql>
+        <sql>GRANT EXECUTE ON FUNCTION resolve_device(TEXT) TO hr_user;</sql>
+        <rollback>
+            <sql>DROP FUNCTION IF EXISTS resolve_device(TEXT);</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

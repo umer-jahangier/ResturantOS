@@ -28,6 +28,9 @@
     <include file="db/changelog/v1.0.0/047-crm-permissions.xml"/>
     <include file="db/changelog/v1.0.0/048-cashier-crm-manage.xml"/>
     <include file="db/changelog/v1.0.0/049-repair-permission-catalog-drift.xml"/>
+    <!-- Phase 11 HR permissions. Filename is distinct from prod's 045-* above; Liquibase keys on
+         (id, author, filename), so the reused 045 prefix is harmless (same rationale as above). -->
+    <include file="db/changelog/v1.0.0/045-hr-permissions.xml"/>
     <include file="db/changelog/v1.0.0/040-create-user-branch-roles.xml"/>
     <include file="db/changelog/v1.0.0/050-create-refresh-sessions.xml"/>
     <include file="db/changelog/v1.0.0/052-refresh-session-lookup-function.xml"/>

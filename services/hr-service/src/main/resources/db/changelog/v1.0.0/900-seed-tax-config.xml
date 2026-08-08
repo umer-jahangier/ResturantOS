@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- FY2025-26 (FBR Tax Year 2026) Pakistan salaried income-tax slabs + EOBI, seeded for the
+         demo tenant. ALL FIGURES ARE VERIFY-WITH-ACCOUNTANT (post Finance Act 2025: 1/11/23/30/35%
+         bands, 9% surcharge over Rs 1 crore, EOBI 5% employer / 1% employee on the Rs 37,000
+         statutory minimum wage). They live in tax_config precisely so an accountant can correct
+         them without a code deploy. Amounts are paisa (1 PKR = 100 paisa). -->
+    <changeSet id="hr-1.0.0-900-seed-tax-config" author="restaurantos-agent" context="seed">
+        <!-- tax_config has FORCE RLS; Liquibase runs as hr_user (NOSUPERUSER NOBYPASSRLS in prod)
+             with no tenant context, so set the GUC first or the policy's WITH CHECK rejects the
+             INSERT and the service cannot start. -->
+        <sql>
+            SELECT set_config('app.current_tenant_id', '00000000-0000-0000-0000-000000000001', false);
+        </sql>
+        <sql>
+            INSERT INTO tax_config (tenant_id, fiscal_year, effective_from, effective_to,
+                                    income_tax_slabs, surcharge_threshold_paisa, surcharge_rate_pct,
+                                    eobi_employer_rate_pct, eobi_employee_rate_pct, eobi_wage_base_paisa,
+                                    proration_method, is_active)
+            SELECT '00000000-0000-0000-0000-000000000001'::uuid, 2026, DATE '2025-07-01', DATE '2026-06-30',
+                   '[
+                      {"minPaisa": 0,         "maxPaisa": 60000000,  "baseTaxPaisa": 0,        "ratePct": 0.0},
+                      {"minPaisa": 60000000,  "maxPaisa": 120000000, "baseTaxPaisa": 0,        "ratePct": 1.0},
+                      {"minPaisa": 120000000, "maxPaisa": 220000000, "baseTaxPaisa": 600000,   "ratePct": 11.0},
+                      {"minPaisa": 220000000, "maxPaisa": 320000000, "baseTaxPaisa": 11600000, "ratePct": 23.0},
+                      {"minPaisa": 320000000, "maxPaisa": 410000000, "baseTaxPaisa": 34600000, "ratePct": 30.0},
+                      {"minPaisa": 410000000, "maxPaisa": null,      "baseTaxPaisa": 61600000, "ratePct": 35.0}
+                    ]'::jsonb,
+                   1000000000, 9.0, 5.0, 1.0, 3700000, 'CALENDAR_DAYS', true
+            WHERE NOT EXISTS (
+                SELECT 1 FROM tax_config
+                WHERE tenant_id = '00000000-0000-0000-0000-000000000001'::uuid AND fiscal_year = 2026
+            );
+        </sql>
+        <rollback>
+            DELETE FROM tax_config
+            WHERE tenant_id = '00000000-0000-0000-0000-000000000001'::uuid AND fiscal_year = 2026;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
