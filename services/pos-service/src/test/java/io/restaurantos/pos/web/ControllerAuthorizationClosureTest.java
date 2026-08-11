@@ -43,7 +43,11 @@ class ControllerAuthorizationClosureTest {
             MenuController.class,
             TillController.class,
             StationController.class,
-            TableController.class);
+            TableController.class,
+            // 26-03: issuing a print document allocates a sequence and writes a row, so it is a
+            // POST and it is gated. Added here rather than left out, because the whole point of
+            // this test is that an ungated endpoint is the absence of a line nobody reviews.
+            PrintJobController.class);
 
     private static final List<Class<? extends Annotation>> MAPPINGS = List.of(
             RequestMapping.class, GetMapping.class, PostMapping.class,
@@ -88,7 +92,7 @@ class ControllerAuthorizationClosureTest {
     /** Guards against the list above silently going stale if a controller is added or renamed. */
     @Test
     void theControllerListCoversEveryControllerInThePackage() {
-        assertThat(CONTROLLERS).hasSize(6);
+        assertThat(CONTROLLERS).hasSize(7);
         for (Class<?> controller : CONTROLLERS) {
             assertThat(controller.getPackageName()).isEqualTo(getClass().getPackageName());
         }
