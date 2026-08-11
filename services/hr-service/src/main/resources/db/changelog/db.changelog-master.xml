@@ -12,6 +12,13 @@
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
     <include file="db/changelog/v1.0.0/031-device-resolve-fn.xml"/>
     <include file="db/changelog/v1.0.0/032-hr-tenant-ids-fn.xml"/>
+    <!-- Phase 25. All three includes are wired by 25-03 so that no later plan in the phase has to
+         edit this file: 034 is owned by 25-06 and 035 by 25-07, they run in the same wave, and two
+         plans editing one line of XML would have to be serialised for no other reason. Both are
+         valid empty documents until their owners fill them, and apply as no-ops. -->
+    <include file="db/changelog/v1.0.0/033-attendance-device-management.xml"/>
+    <include file="db/changelog/v1.0.0/034-attendance-quarantine-reasons.xml"/>
+    <include file="db/changelog/v1.0.0/035-device-command-queue.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-tax-config.xml"/>
 
 </databaseChangeLog>

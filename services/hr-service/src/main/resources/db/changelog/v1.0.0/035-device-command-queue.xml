@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      OWNED BY PLAN 25-07 — the durable device command queue and its acknowledgement records.
+
+      Deliberately empty and deliberately already included from the master changelog. See the header
+      of 034-attendance-quarantine-reasons.xml for why both shells were created up front by 25-03: so
+      that two same-wave plans do not collide on one line of XML in the master.
+
+      A document with no changesets is valid and applies as a no-op.
+
+      If you are 25-06, this is not your file — yours is 034-attendance-quarantine-reasons.xml.
+    -->
+
+</databaseChangeLog>

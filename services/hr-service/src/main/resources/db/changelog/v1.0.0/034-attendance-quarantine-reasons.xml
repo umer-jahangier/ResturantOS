@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      OWNED BY PLAN 25-06 — the quarantine queue's reason column and its uniqueness key.
+
+      Deliberately empty and deliberately already included from the master changelog. 25-06 and 25-07
+      run in the same wave and each needs its own changeset; if each added its own include line they
+      would collide in the master for no reason but one line of XML, and two plans would have to be
+      serialised into separate waves to avoid it. 25-03 created both shells and wired both includes,
+      so after it lands no plan in this phase touches the master changelog again.
+
+      A document with no changesets is valid and applies as a no-op.
+
+      If you are 25-07, this is not your file — yours is 035-device-command-queue.xml.
+    -->
+
+</databaseChangeLog>

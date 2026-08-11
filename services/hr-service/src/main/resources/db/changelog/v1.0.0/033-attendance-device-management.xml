@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Phase 25-03 — the places a managed terminal's properties live.
+
+      attendance_devices knows a serial, a model, a connection mode, an encrypted token, a last-seen
+      timestamp and an active flag: enough to authenticate a device and nothing else. D-25-01 asks for
+      a device you can name, assign, disable and rotate. D-25-02 asks for silence to be measurable.
+      The user's own sentence asks for terminals that auto-sync with the app, which on this protocol
+      is a set of handshake values currently written as a string literal inside a controller method,
+      identical for every device in every tenant.
+
+      This changeset adds NO BEHAVIOUR. Every column is nullable or carries a default equal to what
+      the code does today, so migrating changes no existing device by a single character. The plan
+      that reads each column is named against it below; a column with no named reader is exactly the
+      shape of last_seen_at, which this phase exists partly to fix.
+
+      TWO THINGS TO KNOW BEFORE EDITING THIS FILE.
+
+      1. resolve_device (changelog 031) is declared RETURNS SETOF attendance_devices, so its row type
+         follows this table. Adding a column changes that function's signature implicitly. It is
+         SECURITY DEFINER, owned by postgres, and runs before any tenant is known — do not alter,
+         replace or re-own it. AttendanceDeviceSchemaIT and DeviceAuthResolverIT both resolve a real
+         serial after this migration; that is the check that the function survived.
+
+      2. attendance_devices is under FORCE row-level security (changelog 011). This changeset adds
+         columns only and does not touch the enable/force or the tenant_isolation policy. The table
+         grant in 010 covers columns added later, so nothing new is granted here.
+    -->
+    <changeSet id="hr-1.0.0-033-attendance-device-management" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            -- ── Identity ──────────────────────────────────────────────────────────────────────
+            -- Read by 25-09 (management API) and 25-11 (the terminals screen).
+            -- The model string is not a name. Two identical ZKTeco units in one branch are
+            -- indistinguishable without one, and "which of these two is the one by the kitchen door"
+            -- is the first question anybody asks the screen.
+            ALTER TABLE attendance_devices ADD COLUMN display_name TEXT;
+
+            -- ── Locale ────────────────────────────────────────────────────────────────────────
+            -- Read by 25-05 (the parser stops using a compiled-in zone).
+            -- Defaulted to the zone AttlogLineParser hard-codes today, so no existing device's
+            -- punches change meaning at migration time. A device reports LOCAL time and this is the
+            -- only thing that says which local.
+            ALTER TABLE attendance_devices ADD COLUMN device_timezone TEXT NOT NULL DEFAULT 'Asia/Karachi';
+
+            -- ── Liveness ──────────────────────────────────────────────────────────────────────
+            -- Read by 25-10 (the silence sweep) and 25-11 (the screen's unhealthy count).
+            -- 900s is comfortably longer than the 30s poll delay this server advertises in its
+            -- handshake, so a healthy device is never reported silent on a single missed poll or a
+            -- brief network blip.
+            ALTER TABLE attendance_devices
+                ADD COLUMN expected_contact_interval_seconds INTEGER NOT NULL DEFAULT 900;
+
+            -- UNKNOWN means never yet seen, which is the honest state for every row that exists when
+            -- this migration runs and for every device registered but not yet installed.
+            ALTER TABLE attendance_devices
+                ADD COLUMN health_state TEXT NOT NULL DEFAULT 'UNKNOWN';
+
+            -- The instant a device ENTERED silence, not the fact of being silent. 25-10 alerts on the
+            -- transition, because an alert that re-fires every sweep is an alert that gets muted, and
+            -- a muted alert is how a terminal stops talking for three days unnoticed.
+            ALTER TABLE attendance_devices ADD COLUMN silent_since TIMESTAMPTZ;
+
+            -- ── Clock discipline ──────────────────────────────────────────────────────────────
+            -- Read by 25-10 (drift detection).
+            -- The THRESHOLD is stored; the SKEW NEVER IS. Skew is device_reported_at minus
+            -- server_received_at, two facts already on every punch row, computed where it is read.
+            -- A stored third value is a fact that can disagree with its own inputs.
+            ALTER TABLE attendance_devices
+                ADD COLUMN max_clock_skew_seconds INTEGER NOT NULL DEFAULT 300;
+
+            -- ── Sync configuration ────────────────────────────────────────────────────────────
+            -- Read by 25-07 (the handshake reads the device's own row) and 25-09/25-11 (editing it).
+            -- Every default below is byte-identical to the literal AdmsController.cdataHandshake
+            -- emits today. "Auto-sync the terminals with the app" IS these six values; until 25-07
+            -- they are a decoration, which is why this changeset alone does not close BIO-04.
+            ALTER TABLE attendance_devices ADD COLUMN realtime_push BOOLEAN NOT NULL DEFAULT TRUE;
+            ALTER TABLE attendance_devices ADD COLUMN poll_delay_seconds INTEGER NOT NULL DEFAULT 30;
+            ALTER TABLE attendance_devices ADD COLUMN error_delay_seconds INTEGER NOT NULL DEFAULT 30;
+            ALTER TABLE attendance_devices ADD COLUMN transfer_interval_minutes INTEGER NOT NULL DEFAULT 1;
+            ALTER TABLE attendance_devices ADD COLUMN transfer_times TEXT NOT NULL DEFAULT '00:00;14:05';
+            ALTER TABLE attendance_devices ADD COLUMN transfer_flag TEXT NOT NULL DEFAULT '1111000000';
+
+            COMMENT ON COLUMN attendance_devices.transfer_flag IS
+                'ADMS TransFlag. NOT free text. Two encodings are observed in the wild and both are '
+                'plausible: a ten-character positional bitmask (the default here, and what this '
+                'server has always emitted) and a comma-separated table list. Choosing wrong '
+                'produces a device that connects, handshakes, reports healthy and uploads nothing '
+                '- so a change here is a change to whether attendance arrives at all. Settling '
+                'which encoding a given firmware honours is on the U5 hardware list; the point of '
+                'this being a column is that the answer is then a row update, not a code change.';
+
+            -- ── Authentication mode (D-25-06) ────────────────────────────────────────────────
+            -- Read by 25-08, which implements the modes this column names.
+            -- DEFAULT 'TOKEN' is load-bearing and is not a stylistic choice. It is the mode in force
+            -- today. A migration that silently relaxes how an existing device authenticates is the
+            -- exact failure D-25-06 forbids: a device authenticating with a token today keeps doing
+            -- so until a person decides otherwise and the decision is audited.
+            ALTER TABLE attendance_devices
+                ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'TOKEN';
+
+            -- Comma-separated IPs/CIDRs. 25-08 requires this to be NON-EMPTY for any mode that
+            -- presents no secret, checked before anything else and failing closed: serials are
+            -- globally unique and the resolver looks up by serial alone, so serial-only with no
+            -- network bound means anyone who learns a serial can post punches into that tenant's
+            -- payroll. Nullable here because TOKEN devices neither need nor use it.
+            ALTER TABLE attendance_devices ADD COLUMN source_address_allowlist TEXT;
+
+            -- The source address a refusal was actually seen from (25-AUTH-MODES, the one constraint
+            -- added beyond the plan). A restaurant on a domestic connection WILL have its public
+            -- address change, and without this the symptom is "the clock stopped working" with
+            -- nothing in the product that says why. Recording it turns a weekend support call into a
+            -- one-click fix on the device screen.
+            ALTER TABLE attendance_devices ADD COLUMN last_refused_source_address TEXT;
+            ALTER TABLE attendance_devices ADD COLUMN last_refused_at TIMESTAMPTZ;
+
+            -- ── Lifecycle ─────────────────────────────────────────────────────────────────────
+            -- Read by 25-09 (lifecycle API) and 25-11 (the screen).
+            -- Archiving is a recorded event, not an overloaded active flag. A device that punched
+            -- last month must stay resolvable FROM ITS PUNCHES after somebody removes it, or the
+            -- attendance history loses its provenance and a payroll dispute has no evidence.
+            ALTER TABLE attendance_devices ADD COLUMN archived_at TIMESTAMPTZ;
+
+            -- Rotating a token makes the physical terminal stop working until somebody walks to it
+            -- and retypes the credential. 25-10's sweep reads this so the resulting silence is
+            -- reported as the expected consequence of an action a person took ten minutes ago,
+            -- rather than as a fault.
+            ALTER TABLE attendance_devices ADD COLUMN token_rotated_at TIMESTAMPTZ;
+
+            -- The silence sweep's access path: per tenant, non-archived, ordered by staleness.
+            CREATE INDEX idx_attendance_devices_liveness
+                ON attendance_devices (tenant_id, archived_at, last_seen_at);
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP INDEX IF EXISTS idx_attendance_devices_liveness;
+                ALTER TABLE attendance_devices
+                    DROP COLUMN IF EXISTS display_name,
+                    DROP COLUMN IF EXISTS device_timezone,
+                    DROP COLUMN IF EXISTS expected_contact_interval_seconds,
+                    DROP COLUMN IF EXISTS health_state,
+                    DROP COLUMN IF EXISTS silent_since,
+                    DROP COLUMN IF EXISTS max_clock_skew_seconds,
+                    DROP COLUMN IF EXISTS realtime_push,
+                    DROP COLUMN IF EXISTS poll_delay_seconds,
+                    DROP COLUMN IF EXISTS error_delay_seconds,
+                    DROP COLUMN IF EXISTS transfer_interval_minutes,
+                    DROP COLUMN IF EXISTS transfer_times,
+                    DROP COLUMN IF EXISTS transfer_flag,
+                    DROP COLUMN IF EXISTS auth_mode,
+                    DROP COLUMN IF EXISTS source_address_allowlist,
+                    DROP COLUMN IF EXISTS last_refused_source_address,
+                    DROP COLUMN IF EXISTS last_refused_at,
+                    DROP COLUMN IF EXISTS archived_at,
+                    DROP COLUMN IF EXISTS token_rotated_at;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
