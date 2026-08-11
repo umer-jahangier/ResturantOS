@@ -73,11 +73,13 @@ describe.each(GATES)("$id — $name conformance", ({ key, pattern, id }) => {
   it("the baseline itself has not been inflated", () => {
     // Guards the loophole the per-file check cannot see: raising an allowance rather than
     // paying the debt. The recorded total is a high-water mark that only ever comes down.
+    // Regenerated in 38-02 after the scanner began stripping comments (see `read`), so these
+    // sit slightly under the audit's published figures. The difference is commentary, not code.
     const HIGH_WATER: Record<string, number> = {
-      typeScale: 981,
+      typeScale: 974,
       bareRounded: 141,
-      rawPalette: 180,
-      handRolledTable: 45,
+      rawPalette: 174,
+      handRolledTable: 43,
     };
     expect(
       drift.baselineTotal,
@@ -92,7 +94,14 @@ describe("38-01 paid down real debt rather than only fencing it", () => {
   // regress the phase's headline numbers back toward the audit's.
   it("type-scale classes are below the count measured at the start of 38-01", () => {
     const total = Object.values(scan(TYPE_SCALE)).reduce((a, b) => a + b, 0);
-    expect(total, "type-scale classes").toBeLessThanOrEqual(981);
+    expect(total, "type-scale classes").toBeLessThanOrEqual(974);
+  });
+
+  it("hand-rolled <table> count only ever falls", () => {
+    // 38-02 removed the purchase-order table and added `DataGrid`, which is the ONE sanctioned
+    // <table> in the product. Net: down. Waves 3-4 migrate the remaining ~37.
+    const total = Object.values(scan(HAND_ROLLED_TABLE)).reduce((a, b) => a + b, 0);
+    expect(total, "hand-rolled <table>").toBeLessThanOrEqual(43);
   });
 
   it("bare `rounded` call sites are below the count measured at the start of 38-01", () => {

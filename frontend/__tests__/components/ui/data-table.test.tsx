@@ -29,7 +29,7 @@ describe("DataTable — UI-SPEC §7.4 row-model wiring", () => {
   it("renders every row and reports the true total when nothing is filtered", () => {
     render(<DataTable columns={COLUMNS} data={DATA} />);
     expect(bodyRowCount()).toBe(5);
-    expect(screen.getByText("Showing 1–5 of 5")).toBeInTheDocument();
+    expect(screen.getByTestId("data-grid-count")).toHaveTextContent("5 rows");
   });
 
   it("applies a column filter — impossible before getFilteredRowModel was registered", () => {
@@ -60,8 +60,8 @@ describe("DataTable — UI-SPEC §7.4 row-model wiring", () => {
       />,
     );
 
-    expect(screen.getByText("Showing 1–3 of 3")).toBeInTheDocument();
-    expect(screen.queryByText("Showing 1–5 of 5")).not.toBeInTheDocument();
+    expect(screen.getByTestId("data-grid-count")).toHaveTextContent("3 rows");
+    expect(screen.getByTestId("data-grid-count")).not.toHaveTextContent("5 rows");
   });
 
   it("paginates over the filtered set, not the raw set", () => {
@@ -75,7 +75,7 @@ describe("DataTable — UI-SPEC §7.4 row-model wiring", () => {
     );
 
     expect(bodyRowCount()).toBe(2);
-    expect(screen.getByText("Showing 1–2 of 3")).toBeInTheDocument();
+    expect(screen.getByTestId("data-grid-count")).toHaveTextContent("Page 1 of 2 · 3 rows");
     expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
   });
 

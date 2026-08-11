@@ -118,18 +118,35 @@ describe("Stock count — variance cap requires an attributed override", () => {
 describe("Stock page — row emphasis reads server flags only (INV-15, T-08.2-173/175)", () => {
   afterEach(() => clearSession());
 
+  /**
+   * Scoped to the `<table>` since 38-02.
+   *
+   * `DataGrid` renders BOTH a desktop table and a below-`md` card list, and CSS picks one —
+   * choosing in JS from a media query would render one branch on the server and possibly the
+   * other on the client, i.e. a hydration mismatch on every list screen. Both branches are
+   * therefore in the DOM, so a bare `findByText("Chicken")` now matches twice.
+   *
+   * The row wash these tests assert on is a TABLE-row concern, so the query says so rather than
+   * relying on there having been only one match by luck.
+   */
+  async function findTableRow(label: string): Promise<HTMLElement> {
+    const table = await screen.findByRole("table", { name: "Stock levels" });
+    const cell = await within(table).findByText(label);
+    const row = cell.closest("tr");
+    expect(row).not.toBeNull();
+    return row as HTMLElement;
+  }
+
   it("rowAtOrBelowReorderPointGetsTheWarningWash", async () => {
     renderWithSession(<StockPage />);
 
     // Chicken: qtyOnHand=4, reorderPoint=10 (belowReorderPoint true, nonPositive false) — the
     // real MSW stock fixture, not a hand-built row.
-    const cell = await screen.findByText("Chicken");
-    const row = cell.closest("tr");
-    expect(row).not.toBeNull();
+    const row = await findTableRow("Chicken");
     expect(row).toHaveClass("bg-warning/10");
     expect(row).not.toHaveClass("bg-destructive/10");
     // Colour is never the sole signal — a text-labelled chip is present too.
-    expect(within(row as HTMLElement).getByText("Below reorder point")).toBeInTheDocument();
+    expect(within(row).getByText("Below reorder point")).toBeInTheDocument();
   });
 
   it("rowAtOrBelowZeroGetsTheDestructiveWash", async () => {
@@ -138,12 +155,10 @@ describe("Stock page — row emphasis reads server flags only (INV-15, T-08.2-17
     // Milk: qtyOnHand=-3, reorderPoint=0 — nonPositive true, belowReorderPoint FALSE (a positive
     // reorder point is required), so this is a genuinely destructive-only row, distinct from
     // Sugar's both-flags case below.
-    const cell = await screen.findByText("Milk");
-    const row = cell.closest("tr");
-    expect(row).not.toBeNull();
+    const row = await findTableRow("Milk");
     expect(row).toHaveClass("bg-destructive/10");
     expect(row).not.toHaveClass("bg-warning/10");
-    expect(within(row as HTMLElement).getByText("Out of stock")).toBeInTheDocument();
+    expect(within(row).getByText("Out of stock")).toBeInTheDocument();
   });
 
   it("rowWithBothFlagsPrefersDestructive", async () => {
@@ -151,12 +166,10 @@ describe("Stock page — row emphasis reads server flags only (INV-15, T-08.2-17
 
     // Sugar: qtyOnHand=-2, reorderPoint=15 — BOTH belowReorderPoint and nonPositive are true;
     // destructive must win the visual wash (tailwind-merge resolves the conflicting bg-* pair).
-    const cell = await screen.findByText("Sugar");
-    const row = cell.closest("tr");
-    expect(row).not.toBeNull();
+    const row = await findTableRow("Sugar");
     expect(row).toHaveClass("bg-destructive/10");
     expect(row).not.toHaveClass("bg-warning/10");
-    expect(within(row as HTMLElement).getByText("Out of stock")).toBeInTheDocument();
+    expect(within(row).getByText("Out of stock")).toBeInTheDocument();
   });
 
   it("emptyBranchRendersTheStockEmptyStateWithAnAction", async () => {

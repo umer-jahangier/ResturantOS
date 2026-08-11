@@ -54,8 +54,29 @@ export function sourceFiles(): string[] {
   return out.sort();
 }
 
+/**
+ * Source with comments removed.
+ *
+ * <h3>Why the gate strips and the audit did not</h3>
+ *
+ * The audit counted with plain `grep`, which is the right instrument for a one-off census: a
+ * `text-sm` in a comment is still evidence of what the codebase looks like. It is the wrong
+ * instrument for a GATE. 38-02's `DataGrid` docblock explains the defect it replaces, and quoting
+ * `<table>` in that explanation counted as a hand-rolled table — so documenting the rule tripped
+ * the rule. Two files went red for describing the problem accurately.
+ *
+ * A gate that punishes explanation trains people to delete explanations, so it strips first.
+ * The baselines below were regenerated after stripping, which is why they sit slightly under the
+ * audit's published figures; the difference is commentary, not code.
+ */
 export function read(file: string): string {
-  return readFileSync(resolve(ROOT, file), "utf8");
+  return stripComments(readFileSync(resolve(ROOT, file), "utf8"));
+}
+
+export function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "") // block comments, including JSX {/* … */} bodies
+    .replace(/(^|[^:])\/\/.*$/gm, "$1"); // line comments, without eating `https://`
 }
 
 /** G1 — Tailwind's stock type scale. The eight contract roles are deliberately NOT matched. */

@@ -15,7 +15,7 @@ import type { Ingredient } from "@/lib/adapters/inventory.adapter";
 import { AllergenPillToggle } from "@/components/inventory/allergen-pill-toggle";
 import { IngredientFormDialog } from "@/components/inventory/IngredientFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -275,7 +275,7 @@ export default function IngredientsPage() {
         query={ingredientsQuery}
         what="ingredients"
         isEmpty={rows.length === 0}
-        loading={<DataTable columns={columns} data={[]} isLoading />}
+        loading={<DataGrid columns={columns} data={[]} isLoading />}
         empty={
           <PermissionGuard
             require="inventory.item.manage"
@@ -289,7 +289,29 @@ export default function IngredientsPage() {
           </PermissionGuard>
         }
       >
-        <DataTable columns={columns} data={rows} />
+        <DataGrid
+          label="Ingredients"
+          columns={columns}
+          data={rows}
+          density="comfortable"
+          isFiltered={
+            Boolean(categoryFilter) ||
+            debouncedSearch.trim() !== "" ||
+            allergenFilter.length > 0 ||
+            statusFilter !== "ACTIVE"
+          }
+          onClearFilters={() => {
+            setCategoryFilter("");
+            setSearch("");
+            setAllergenFilter([]);
+            setStatusFilter("ACTIVE");
+          }}
+          card={{
+            primary: (r) => r.name,
+            secondary: (r) => `${r.categoryName ?? "Uncategorised"} · ${r.baseUomCode}`,
+            trailing: (r) => (r.active ? "Active" : "Archived"),
+          }}
+        />
       </QueryBoundary>
 
       {/* Single shared create-or-edit dialog, fully controlled — driven by the header button and

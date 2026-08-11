@@ -13,7 +13,7 @@ import { StockReceiptDialog } from "@/components/inventory/StockReceiptDialog";
 import { StockTransferDialog } from "@/components/inventory/StockTransferDialog";
 import { StockCountDialog } from "@/components/inventory/StockCountDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
-import { DataTable, type ColumnDef } from "@/components/ui/data-table";
+import { DataGrid, type ColumnDef } from "@/components/ui/data-grid/data-grid";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -207,7 +207,7 @@ export default function StockPage() {
           onRetry={() => void stockQuery.refetch()}
         />
       ) : isLoading ? (
-        <DataTable columns={columns} data={[]} isLoading />
+        <DataGrid columns={columns} data={[]} isLoading />
       ) : rows.length === 0 ? (
         <PermissionGuard
           require="inventory.item.manage"
@@ -224,7 +224,24 @@ export default function StockPage() {
           <p className="text-small text-muted-foreground">
             Total stock value: <MoneyDisplay paisa={data?.totalStockValuePaisa ?? 0} />
           </p>
-          <DataTable columns={columns} data={rows} rowClassName={rowClassName} />
+          <DataGrid
+            label="Stock levels"
+            columns={columns}
+            data={rows}
+            rowClassName={rowClassName}
+            density="comfortable"
+            isFiltered={Boolean(categoryFilter) || debouncedSearch.trim() !== ""}
+            onClearFilters={() => {
+              setCategoryFilter("");
+              setSearch("");
+            }}
+            card={{
+              primary: (r) => r.ingredientName,
+              secondary: (r) =>
+                `${r.categoryName ?? "Uncategorised"} · ${r.qtyOnHand} ${r.baseUomCode}`,
+              trailing: (r) => <MoneyDisplay paisa={r.stockValuePaisa} />,
+            }}
+          />
         </>
       )}
 

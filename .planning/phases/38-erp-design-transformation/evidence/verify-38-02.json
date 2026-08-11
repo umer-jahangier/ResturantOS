@@ -1,0 +1,73 @@
+{
+  "capturedAt": "2026-08-11T21:07:09.442Z",
+  "desktop": {
+    "inventory-stock": {
+      "theadPosition": "sticky",
+      "headerFontSize": "11px",
+      "cellFontSize": "13px",
+      "rowCount": 19,
+      "distinctRowHeights": [
+        44
+      ],
+      "rowHeightHistogram": {
+        "44": 19
+      },
+      "countLine": "19 rows",
+      "subTargetControls": 29
+    },
+    "inventory-ingredients": {
+      "theadPosition": "sticky",
+      "headerFontSize": "11px",
+      "cellFontSize": "13px",
+      "rowCount": 19,
+      "distinctRowHeights": [
+        44
+      ],
+      "rowHeightHistogram": {
+        "44": 19
+      },
+      "countLine": "19 rows",
+      "subTargetControls": 79
+    },
+    "purchasing-po": {
+      "theadPosition": "sticky",
+      "headerFontSize": "11px",
+      "cellFontSize": "13px",
+      "rowCount": 25,
+      "distinctRowHeights": [
+        44
+      ],
+      "rowHeightHistogram": {
+        "44": 25
+      },
+      "countLine": "Page 1 of 4 · 84 rows",
+      "subTargetControls": 27
+    }
+  },
+  "narrow": {
+    "inventory-stock": {
+      "tableInDom": true,
+      "tableVisible": false,
+      "cardsVisible": true,
+      "cardCount": 19,
+      "pageScroll": false,
+      "elementsPastViewport": 5
+    },
+    "inventory-ingredients": {
+      "tableInDom": true,
+      "tableVisible": false,
+      "cardsVisible": true,
+      "cardCount": 19,
+      "pageScroll": false,
+      "elementsPastViewport": 2
+    },
+    "purchasing-po": {
+      "tableInDom": true,
+      "tableVisible": false,
+      "cardsVisible": true,
+      "cardCount": 25,
+      "pageScroll": false,
+      "elementsPastViewport": 2
+    }
+  }
+}
