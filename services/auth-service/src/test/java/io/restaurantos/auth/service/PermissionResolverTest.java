@@ -3,6 +3,7 @@ package io.restaurantos.auth.service;
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import io.restaurantos.auth.repository.UserStationAssignmentRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,7 +43,13 @@ class PermissionResolverTest {
         assignments = mock(UserBranchRoleRepository.class);
         RolePermissionRepository permissions = mock(RolePermissionRepository.class);
         when(permissions.findPermissionCodesByRoleCodes(anyList())).thenReturn(List.of("pos.order.create"));
-        resolver = new PermissionResolver(assignments, permissions, mock(EntityManager.class));
+        // A mock with no stubbing returns an empty list, which is exactly the state every user in
+        // the product is in today: no station assignment, and therefore no station key on the
+        // token. These cases are about branch selection and are unaffected by it either way.
+        UserStationAssignmentRepository stations = mock(UserStationAssignmentRepository.class);
+        when(stations.findByTenantIdAndUserIdAndBranchIdAndActiveTrue(any(), any(), any()))
+                .thenReturn(List.of());
+        resolver = new PermissionResolver(assignments, permissions, stations, mock(EntityManager.class));
     }
 
     // ── Resolving at a named branch ───────────────────────────────────────────

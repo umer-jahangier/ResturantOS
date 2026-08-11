@@ -1,8 +1,10 @@
 package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
+import io.restaurantos.auth.entity.UserStationAssignmentEntity;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import io.restaurantos.auth.repository.UserStationAssignmentRepository;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,15 +22,29 @@ public class PermissionResolver {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionResolver.class);
 
+    /**
+     * The {@code attributes} key carrying a user's station scope. Value is a sorted
+     * {@code List<String>} of station CODES.
+     *
+     * <p>Read by kitchen-service (plan 28-07) straight off the verified token. Written from the
+     * admin UI (plan 28-11). The spelling is the contract; it is declared once, here, so a rename
+     * cannot leave a producer and a consumer disagreeing silently — which in this case would not
+     * throw, it would simply un-scope every cook in the product.
+     */
+    public static final String STATION_SCOPE_CLAIM = "stations";
+
     private final UserBranchRoleRepository userBranchRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final UserStationAssignmentRepository userStationAssignmentRepository;
     private final EntityManager entityManager;
 
     public PermissionResolver(UserBranchRoleRepository userBranchRoleRepository,
                               RolePermissionRepository rolePermissionRepository,
+                              UserStationAssignmentRepository userStationAssignmentRepository,
                               EntityManager entityManager) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.userStationAssignmentRepository = userStationAssignmentRepository;
         this.entityManager = entityManager;
     }
 
@@ -125,6 +141,46 @@ public class PermissionResolver {
         if (assignment.getApprovalLimitPaisa() != null) {
             attributes.put("approval_limit_paisa", assignment.getApprovalLimitPaisa());
         }
+        putStationScope(attributes, assignment);
         return new ResolvedBranchAuth(assignment.getBranchId(), roles, permissions, attributes);
+    }
+
+    /**
+     * The station codes this user works at the branch being resolved (D-28-02).
+     *
+     * <p>Rides {@code attributes}, alongside {@code approval_limit_paisa}, for one reason:
+     * shared-lib's {@code JwtAuthenticationFilter} reads that map straight out of the verified token
+     * in every downstream service. kitchen-service therefore learns a cook's station scope with no
+     * cross-service call, no projection table and no consumer that can silently drop a message. It
+     * also means all three minting paths — login, refresh and branch switch — carry it for free,
+     * because each of them passes {@code resolved.attributes()} through to the signer, and each of
+     * them arrives here rather than copying claims off a previous token.
+     *
+     * <p><b>Absent means unrestricted, and absent is the ONLY encoding of it.</b> A user with no
+     * assignment gets no key at all — not a key holding an empty list. That asymmetry is the whole
+     * back-compatibility story. Every user in this product today is unassigned, so the do-nothing
+     * state has to be the permissive one; and if "unrestricted" had two spellings, the first
+     * downstream reader to treat an empty list as an empty allow-list would black out every kitchen
+     * screen in the product, mid-service, on the day it deployed. There is nothing to read wrong
+     * here because there is nothing there.
+     *
+     * <p>Sorted, so two tokens minted for the same user are byte-comparable and a test can assert on
+     * the claim without ordering flake.
+     */
+    private void putStationScope(Map<String, Object> attributes, UserBranchRoleEntity assignment) {
+        List<String> codes = userStationAssignmentRepository
+            .findByTenantIdAndUserIdAndBranchIdAndActiveTrue(
+                assignment.getTenantId(), assignment.getUserId(), assignment.getBranchId())
+            .stream()
+            .map(UserStationAssignmentEntity::getStationCode)
+            .distinct()
+            .sorted()
+            .toList();
+        if (codes.isEmpty()) {
+            // Deliberately nothing. See the javadoc: an absent key is what "no station
+            // restriction" means, and it is the state every existing user is in.
+            return;
+        }
+        attributes.put(STATION_SCOPE_CLAIM, codes);
     }
 }
