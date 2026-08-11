@@ -174,10 +174,26 @@ class KdsAccessIsolationIT extends KitchenTestBase {
 
     // ── ACCOUNTANT ───────────────────────────────────────────────────────────
 
+    /**
+     * The ACCOUNTANT role's real grants, read from {@code role_permissions} on 2026-08-12.
+     *
+     * <p>These two tests used to build the accountant out of {@code finance.report.view} and
+     * {@code finance.period.manage}. Neither code is in the permissions catalog; neither has ever
+     * been granted to any role. So the "accountant" being denied here held <b>nothing</b>, and the
+     * denial said nothing about an accountant — it said an empty token is refused, which the
+     * KITCHEN_STAFF and CASHIER cases above already establish.
+     *
+     * <p>{@code pos.order.view} is the reason this list is not purely finance codes. A real
+     * ACCOUNTANT holds it, and it is the nearest neighbour to {@code pos.kds.view} in the whole
+     * catalogue. If the KDS authorization were ever widened to accept it, this is the test that has
+     * to go red — and with the old fixture it would have stayed green.
+     */
+    private static final List<String> ACCOUNTANT_PERMISSIONS = List.of(
+            "finance.journal.view", "finance.coa.view", "finance.period.close", "pos.order.view");
+
     @Test
     void accountant_denied_view() {
-        setAuth(UUID.randomUUID(), List.of("ACCOUNTANT"),
-                List.of("finance.report.view", "finance.period.manage"));
+        setAuth(UUID.randomUUID(), List.of("ACCOUNTANT"), ACCOUNTANT_PERMISSIONS);
         when(opaClient.evaluate(eq("kds"), any())).thenReturn(new OpaDecision(false));
 
         assertThatThrownBy(() -> kdsAuthorizationService.authorizeView(tenantId, branchId))
@@ -186,8 +202,7 @@ class KdsAccessIsolationIT extends KitchenTestBase {
 
     @Test
     void accountant_denied_update() {
-        setAuth(UUID.randomUUID(), List.of("ACCOUNTANT"),
-                List.of("finance.report.view", "finance.period.manage"));
+        setAuth(UUID.randomUUID(), List.of("ACCOUNTANT"), ACCOUNTANT_PERMISSIONS);
         when(opaClient.evaluate(eq("kds"), any())).thenReturn(new OpaDecision(false));
 
         assertThatThrownBy(() -> kdsAuthorizationService.authorizeUpdate(tenantId, branchId))

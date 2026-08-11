@@ -278,8 +278,10 @@ class MenuStationRoutingIT extends PosTestBase {
 
     private void atBranch(UUID branchId) {
         tenantContext.set(tenantId, branchId, userId, null);
+        // `pos.order.create` — singular. This read `pos.orders.create` for its whole life: a
+        // plural typo of a real code, which is in no catalogue and on no role.
         JwtClaims claims = new JwtClaims(userId, tenantId, branchId, List.of("MANAGER"),
-                List.of("pos.menu.manage", "pos.menu.view", "pos.orders.create"), Map.of(), null);
+                List.of("pos.menu.manage", "pos.menu.view", "pos.order.create"), Map.of(), null);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(claims, null, List.of()));
     }

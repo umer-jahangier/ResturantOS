@@ -80,7 +80,13 @@ class CashPaymentRequiresTillIT extends PosTestBase {
         branchId = UUID.randomUUID();
         cashierId = UUID.randomUUID();
         waiterId = UUID.randomUUID();
-        actAs(cashierId, List.of("pos.order.create", "pos.order.send_to_kds", "pos.till.manage"));
+        // `pos.till.open` / `pos.till.close`, not the `pos.till.manage` this used to name — that
+        // code is in no catalogue and on no role. It never made the test fail, because
+        // TillService is called directly here and consults no permission, but a fixture that
+        // claims to be a cashier has to be made of codes a cashier actually holds; otherwise the
+        // day a gate is added at this seam the failure arrives with a misleading cause.
+        actAs(cashierId, List.of(
+                "pos.order.create", "pos.order.send_to_kds", "pos.till.open", "pos.till.close"));
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -131,7 +137,7 @@ class CashPaymentRequiresTillIT extends PosTestBase {
         OrderDto served = createServedOrder();
         assertThat(orderRepository.findById(served.id()).orElseThrow().getTillSessionId()).isNull();
 
-        actAs(cashierId, List.of("pos.till.manage"));
+        actAs(cashierId, List.of("pos.till.open", "pos.till.close"));
         TillSessionDto till = tillService.openTill(new OpenTillRequest(branchId, 50000L));
 
         paymentService.recordPayment(served.id(), PaymentMethod.CASH, served.totalPaisa(), null);
