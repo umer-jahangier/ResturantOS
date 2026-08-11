@@ -137,7 +137,7 @@ item is needed only for final sign-off, not to start:
   any browser with no hardware at all, and silently on thermal paper with a cut and a cash-drawer
   kick where a printer exists — while the kitchen gets its ticket whether or not a browser is open.
   **Requirements:** PRINT-01 … PRINT-08
-  **Plans:** 12 plans, 6 waves
+  **Plans:** 12 plans, 7 waves
 
   Plans:
   - [ ] 26-01-PLAN.md — the print document contract and the one place paisa becomes a string *(wave 1)*
@@ -146,12 +146,18 @@ item is needed only for final sign-off, not to start:
   - [ ] 26-04-PLAN.md — the ESC/POS renderer and the emulator that proves the bytes *(wave 2)*
   - [ ] 26-05-PLAN.md — the 80 mm HTML bill and the FBR placeholder regions *(wave 3, independently shippable)*
   - [ ] 26-06-PLAN.md — the print agent: durable queue, transports, health *(wave 3)*
-  - [ ] 26-07-PLAN.md — kitchen ticket, station-routed, enqueued at the fire seam *(wave 3)*
+  - [ ] 26-07-PLAN.md — kitchen ticket, station-routed, dispatched after commit *(wave 3)*
   - [ ] 26-08-PLAN.md — reprint: identical body, unmistakable banner *(wave 4)*
   - [ ] 26-09-PLAN.md — the browser→agent bridge and the fallback ladder *(wave 4)*
-  - [ ] 26-10-PLAN.md — printer configuration UI, test print, column ruler *(wave 4)*
-  - [ ] 26-11-PLAN.md — agent enrolment and the pull channel *(wave 5)*
-  - [ ] 26-12-PLAN.md — the live proof and the U3 hardware sign-off list *(wave 6)*
+  - [ ] 26-10-PLAN.md — printer configuration UI, test print, column ruler *(wave 5)*
+  - [ ] 26-11-PLAN.md — agent enrolment and the pull channel *(wave 6)*
+  - [ ] 26-12-PLAN.md — the live proof and the U3 hardware sign-off list *(wave 7)*
+
+  **Touches the gateway.** Plan 26-11 adds one exact-match path list, one matcher and one branch to
+  `JwtGlobalFilter.java` so the on-premise print agent can claim its work without a user JWT — the
+  same shape as the existing device-authenticated attendance ingest. `PUBLIC_PATHS` cannot express
+  it, because that list is matched by a bare `startsWith`. The existing lists are unmodified and a
+  new gateway test asserts their contents and sizes permanently.
 
   **Effort note:** plans 26-01 through 26-10 and 26-12 fit the 18-day estimate. Plan 26-11 (the
   agent's cloud pull channel, which is what lets a kitchen ticket print with every browser closed)
