@@ -198,6 +198,78 @@ class FieldErrorContractTest {
         assertThat(fromNewHandler.error().code()).isEqualTo(fromExistingFactory.error().code());
     }
 
+    // ── Indexed paths, in the one spelling the client can bind ─────────────────
+
+    /**
+     * Spring's binding result spells an indexed path {@code slabs[0].ratePct}; the web client binds
+     * {@code slabs.0.ratePct}.
+     *
+     * <p>The difference is not cosmetic and it is not caught by any flat-field test, because no flat
+     * path contains a bracket. {@code frontend/lib/forms/server-field-errors.ts} splits a path on
+     * "." and walks the form's values, so the first segment of {@code slabs[0].ratePct} is the
+     * literal string {@code "slabs[0]"}, matches no key, and the message is demoted to a form-level
+     * sentence above the table — one error, no indication which of six rows produced it, which is
+     * the exact experience this phase exists to remove.
+     */
+    @Test
+    void anIndexedPathIsEmittedInTheDottedFormTheClientBinds() throws Exception {
+        var target = new SlabTableBody();
+        var binding = new org.springframework.validation.BeanPropertyBindingResult(target, "body");
+        binding.rejectValue("slabs[0].ratePct", "DecimalMax", "A tax rate cannot exceed 100%");
+        binding.rejectValue("effectiveFrom", "NotNull", "Enter the date this takes effect");
+
+        var parameter = new org.springframework.core.MethodParameter(
+                FieldErrorContractTest.class.getDeclaredMethod("dummyEndpoint", SlabTableBody.class), 0);
+        var ex = new org.springframework.web.bind.MethodArgumentNotValidException(parameter, binding);
+
+        List<ApiError.FieldError> details = handler.handleValidation(ex).getBody().error().details();
+
+        assertThat(details).extracting(ApiError.FieldError::field)
+                .as("brackets must not survive; a flat path must be untouched")
+                .containsExactly("slabs.0.ratePct", "effectiveFrom");
+    }
+
+    @SuppressWarnings("unused")
+    private void dummyEndpoint(SlabTableBody body) {
+        // Exists only so MethodParameter has a real method to describe. Never invoked.
+    }
+
+    /** Minimal stand-in for a request body carrying an indexed collection of nested objects. */
+    public static class SlabTableBody {
+        // Mutable and pre-populated: BeanPropertyBindingResult reads the ACTUAL field value when a
+        // path is rejected, so an immutable or empty list makes it try to grow the collection.
+        private List<SlabRow> slabs = new java.util.ArrayList<>(List.of(new SlabRow()));
+        private String effectiveFrom;
+
+        public List<SlabRow> getSlabs() {
+            return slabs;
+        }
+
+        public void setSlabs(List<SlabRow> slabs) {
+            this.slabs = slabs;
+        }
+
+        public String getEffectiveFrom() {
+            return effectiveFrom;
+        }
+
+        public void setEffectiveFrom(String effectiveFrom) {
+            this.effectiveFrom = effectiveFrom;
+        }
+    }
+
+    public static class SlabRow {
+        private String ratePct;
+
+        public String getRatePct() {
+            return ratePct;
+        }
+
+        public void setRatePct(String ratePct) {
+            this.ratePct = ratePct;
+        }
+    }
+
     private static String renderBody(ResponseEntity<ApiError> response) {
         ApiError body = response.getBody();
         assertThat(body).isNotNull();

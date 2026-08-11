@@ -101,9 +101,32 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
         List<ApiError.FieldError> details = ex.getBindingResult().getFieldErrors().stream()
-            .map(fe -> new ApiError.FieldError(fe.getField(), fe.getDefaultMessage())).toList();
+            .map(fe -> new ApiError.FieldError(toClientPath(fe.getField()), fe.getDefaultMessage())).toList();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiError.of("VALIDATION_FAILED", "Request validation failed", details, traceId()));
+    }
+
+    /**
+     * Spring writes an indexed path as {@code slabs[0].ratePct}; the web client binds
+     * {@code slabs.0.ratePct}. Same path, two spellings, and the difference is not cosmetic.
+     *
+     * <p>The client's binder ({@code frontend/lib/forms/server-field-errors.ts}) splits a path on
+     * {@code "."} and walks the form's values, exactly as {@code createZodResolver} does when it
+     * reports a client-side error for the same input. Given {@code slabs[0].ratePct} the first
+     * segment is the literal string {@code "slabs[0]"}, which matches no key, so the message is
+     * treated as naming a field this form does not have and is demoted to a form-level error above
+     * the table — which for a six-row slab editor is precisely the "one sentence and no idea which
+     * row" experience this phase exists to remove. Every flat field path is unaffected, because it
+     * contains no bracket.
+     *
+     * <p>Normalising here rather than in each client means the API has ONE documented shape for an
+     * indexed path, and it is the shape react-hook-form and the app's own resolver already use.
+     */
+    private static String toClientPath(String springFieldPath) {
+        if (springFieldPath == null || springFieldPath.indexOf('[') < 0) {
+            return springFieldPath;
+        }
+        return springFieldPath.replace("[", ".").replace("]", "");
     }
 
     /**

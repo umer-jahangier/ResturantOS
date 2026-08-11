@@ -42,8 +42,12 @@ public class FieldValidationException extends RestaurantOsException {
      * One refused input.
      *
      * @param field       the path the client binds to, matching the request DTO's own field name
-     *                    (dotted for nested paths, {@code slabs[2].ratePct} for indexed ones) so a
-     *                    form can find the input without a translation table
+     *                    (dotted for nested paths, and dotted for INDEXED ones too —
+     *                    {@code slabs.2.ratePct}, not {@code slabs[2].ratePct}) so a form can find
+     *                    the input without a translation table. The bracket spelling is what
+     *                    Spring's own binding result produces and what
+     *                    {@code GlobalExceptionHandler.toClientPath} normalises away; the web
+     *                    client splits a path on "." and cannot resolve a bracketed segment
      * @param instruction what the person filling the form should do about it
      */
     public record Violation(String field, String instruction) {
