@@ -115,14 +115,14 @@ Plans:
 - [x] 37-01-PLAN.md — one display authority for paisa, pinned by vectors both stacks read *(wave 1, independently shippable)*
 - [x] 37-02-PLAN.md — the verified-claim registry and its two-way gate *(wave 1, independently shippable)*
 - [~] 37-03-PLAN.md — one business date, honoured by every consumer; the 73 misdated facts realigned *(wave 1, closes 22b D-7)* — **code fix landed; realignment migration authored but NOT applied, blocked at the plan's own human checkpoint**
-- [~] 37-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)* — **task 1 done and live-verified (by-source endpoint, V10 index); task 2 (SourceReferenceResolver, human-readable reference) NOT started**
+- [x] 37-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)*
 - [ ] 37-05-PLAN.md — the queue no code declares, retired; a drift check that would have caught it *(wave 2, closes 22b D-9, independently shippable)*
 - [ ] 37-06-PLAN.md — tender facts: the missing half of daily takings *(wave 2)*
 - [ ] 37-07-PLAN.md — cost of sales attributed to the line that consumed it *(wave 2, closes 22b D-8 data half)*
-- [ ] 37-08-PLAN.md — the transaction register, at money-event grain, bounded and indexed *(wave 2)*
+- [~] 37-08-PLAN.md — the transaction register, at money-event grain, bounded and indexed *(wave 2)* — **query + endpoint live-verified; TransactionRegisterIT and the V13 index migration NOT written**
 - [ ] 37-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)*
 - [ ] 37-10-PLAN.md — cost and margin reported, with a check a mirrored error cannot pass *(wave 3)*
-- [ ] 37-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
+- [x] 37-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
 - [ ] 37-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)*
 - [ ] 37-13-PLAN.md — the Guide tab, rendered from the registry; an unproven sentence cannot be printed *(wave 5)*
 - [ ] 37-14-PLAN.md — inode-identity freshness gate and the six-item phase acceptance *(wave 6)*
