@@ -885,6 +885,24 @@
   box-shadow: var(--depth-lift-shadow);
 }
 
+/*
+ * Pointer tilt (D-34-06). `use-pointer-tilt.ts` writes ONLY --tilt-x / --tilt-y; this rule
+ * decides what they mean, so the hook never touches a stylesheet declaration and the whole
+ * gesture stays on the compositor.
+ *
+ * Expressive only, and the hook refuses to engage on a coarse pointer or under reduced motion
+ * as well — three overlapping exclusions rather than one that could be forgotten. A POS tablet
+ * satisfies two of them on its own.
+ *
+ * The resting value is the identity transform, per the resting-state contract: with the hook
+ * inert, --tilt-x and --tilt-y fall back to 0deg and the element sits flat.
+ */
+[data-zone="expressive"] .vdl-tilt {
+  transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform var(--motion-hover) var(--motion-hover-ease);
+  transform-style: preserve-3d;
+}
+
 [data-zone="restrained"] .vdl-lift {
   transition-duration: var(--motion-fast);
 }

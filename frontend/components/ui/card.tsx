@@ -2,17 +2,40 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Card, extended with an OPTIONAL depth variant (phase 34, D-34-06).
+ *
+ * <p>The default rendering is deliberately byte-identical to what it was. Card is consumed
+ * across the whole product, and silently restyling every card in every screen is a screen
+ * rebuild wearing a design pass's clothes — which this phase is explicitly not doing. Depth is
+ * opt-in, per call site, and `__tests__/components/surface/glass-panel.test.tsx` asserts the
+ * default class list is unchanged.
+ *
+ * @param depth      layered shadow level. Omitted = today's rendering, untouched.
+ * @param interactive adds the hover lift; translates only in the expressive zone.
+ */
 function Card({
   className,
   size = "default",
+  depth,
+  interactive = false,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & {
+  size?: "default" | "sm";
+  depth?: 1 | 2 | 3;
+  interactive?: boolean;
+}) {
   return (
     <div
       data-slot="card"
       data-size={size}
+      data-depth={depth}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        depth === 1 && "shadow-depth-1",
+        depth === 2 && "shadow-depth-2",
+        depth === 3 && "shadow-depth-3",
+        interactive && "vdl-lift",
         className,
       )}
       {...props}

@@ -97,7 +97,7 @@ describe("D-34-03 · the resting-state contract", () => {
     const reducedBlockStart = CSS.indexOf("@media (prefers-reduced-motion: reduce)");
     const offenders: string[] = [];
 
-    for (const cls of DECORATIVE_CLASSES.concat([".vdl-lift"])) {
+    for (const cls of DECORATIVE_CLASSES.concat([".vdl-lift", ".vdl-tilt"])) {
       const pattern = new RegExp(`([^{}]*\\${cls}[^{}]*)\\{([^{}]*)\\}`, "g");
       let match: RegExpExecArray | null;
       while ((match = pattern.exec(CSS)) !== null) {
@@ -108,9 +108,30 @@ describe("D-34-03 · the resting-state contract", () => {
 
         if (/opacity:\s*0(\D|$)/.test(body)) offenders.push(`${selector} → opacity: 0`);
         if (/visibility:\s*hidden/.test(body)) offenders.push(`${selector} → visibility: hidden`);
+
         const transform = /transform:\s*([^;]+)/.exec(body);
-        if (transform && !/^(none)\s*$/.test(transform[1]!.trim())) {
-          offenders.push(`${selector} → transform: ${transform[1]!.trim()}`);
+        if (transform) {
+          const value = transform[1]!.trim();
+          /*
+           * A resting transform is permitted ONLY when it is the identity for every dynamic
+           * part — i.e. every var() in it falls back to a no-op. `.vdl-tilt` is the case this
+           * allows: `perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y,
+           * 0deg))` renders flat when the hook is inert, which is exactly the resting-state
+           * contract rather than an exception to it.
+           *
+           * A literal offset — `translateY(10px)`, `scale(0.9)` — is still rejected, because
+           * that is a displacement nothing will undo if the animation does not run.
+           */
+          const identity =
+            value === "none" ||
+            (/var\(/.test(value) &&
+              !/(?:translate|scale|rotate|skew)[XYZ3d]*\(\s*(?!0(?:deg|px|%|\b))(?!var\()[^)]/.test(
+                value,
+              ) &&
+              (value.match(/var\([^,)]+,\s*(0deg|0px|0|1)\s*\)/g) ?? []).length ===
+                (value.match(/var\(/g) ?? []).length);
+
+          if (!identity) offenders.push(`${selector} → transform: ${value}`);
         }
       }
     }
