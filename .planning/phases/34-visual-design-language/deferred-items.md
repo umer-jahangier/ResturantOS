@@ -26,3 +26,13 @@ whoever owns the files.
   till is closed" because no till session is seeded. This is why 34-01's runtime portal test
   uses the command palette rather than the drawer the plan named. If a future phase wants that
   surface covered at runtime, the seed needs a table and an open till.
+
+## Added during 34-03
+
+| Found | Item | Evidence | Owner |
+|---|---|---|---|
+| 34-03 task 1 | `next build` cannot be run to completion — another agent is mid-edit in `components/users/assign-role-dialog.tsx`, `components/users/user-detail-panel.tsx`, `lib/repositories/user.repository.ts`. The reported error changed between two consecutive runs (`PaginatedResult.items` missing, then `Cannot find name 'bulkApply'`), naming files phase 34 does not touch. | `npm run build`; file mtimes 11s before the run | whoever is editing `components/users/**` |
+
+Phase 34's own files were verified clean by a scoped `tsc --noEmit` filter and by the full
+unit suite. The build DID compile successfully in every run — only the typecheck stage failed,
+and only on the other agent's in-flight files.
