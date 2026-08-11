@@ -10,6 +10,8 @@ provides:
   - "`Journal` — an append-only, fsync-durable, atomically-compacted record file"
   - "`PrintQueue` — enqueue, claim, backoff, dead-letter, depth-by-status"
   - "`loadConfig` — loopback by default, refuses a wide-open bind, validates printers at load"
+  - "`sendOverTcp9100` / `sendToSystemPrinter` / `selectTransport` — the wire, with every failure reported as one"
+  - "`FakePrinter` — a TCP printer that can refuse, stall and close mid-stream"
 affects:
   - print-agent (new src/config.ts, src/queue/*)
 tech-stack:
@@ -35,11 +37,12 @@ metrics:
   completed: 2026-08-11
 commits:
   - c5ea5b7 feat(26-06) — task 1
+  - dab08e9 feat(26-06) — task 2
 ---
 
 # Phase 26 Plan 06: The Print Agent — PARTIAL
 
-**Task 1 complete and verified. Tasks 2 (transports) and 3 (the daemon) are NOT started.**
+**Tasks 1 and 2 complete and verified. Task 3 (the daemon) is NOT started.**
 
 ## What landed
 
@@ -102,12 +105,52 @@ runtime deps: 1
 
 | Task | Status |
 | --- | --- |
-| **2 — the transports** (`tcp9100.ts`, `system-printer.ts`, `fake-printer.ts`) | not started |
-| **3 — the daemon** (`server.ts`, `main.ts`) | not started |
+| **3 — the daemon** (`server.ts`, `main.ts`, `server.test.ts`) | not started |
 
-Task 2 is the one that makes the byte assertion end-to-end: a fake TCP printer on an ephemeral
-port, with the received bytes decoded by 26-04's emulator and compared to the source document. That
-is where "the exact bytes arrive at a socket" stops being an in-process claim.
+Task 3 is the HTTP listener that ties the three together: accept a document over loopback, persist
+it before responding, drain to a transport, and report queue depth and printer reachability on a
+health surface. Everything it needs now exists.
+
+## Task 2 — the transports, and the first end-to-end byte claim
+
+Everything before this proved the renderer produced correct bytes. This proves those bytes **survive
+a socket** — and the assertion decodes what the socket RECEIVED using 26-04's emulator, not what the
+renderer returned. That distinction is the whole value: comparing the renderer's output to itself
+would let a renderer bug and a transport bug cancel out. Proven rather than argued — sabotaging the
+**renderer** to emit a wrong amount turns the **transport** suite red.
+
+`fake-printer.ts` also misbehaves the three ways a real 9100 device does: refuse, accept-then-stall,
+close mid-stream. Each is a way a job fails and each is asserted to be reported as a failure.
+
+One connection per job, never pooled — these devices drop idle sockets without telling anyone, and a
+pooled one the printer abandoned strands the next job behind a write that never completes.
+Reconnecting costs milliseconds; a stuck queue costs a kitchen. Asserted by counting connections.
+
+**What a resolved promise means**: bytes reached the kernel and the peer closed cleanly. It does not
+mean paper moved — an out-of-paper printer accepts bytes exactly like a working one. The system
+printer is weaker still and its header says so: a spooler accepts jobs for a printer that has been
+unplugged since Tuesday. Windows raw printing **rejects** rather than silently no-oping, because a
+till reporting every receipt accepted and printing none is the worst available outcome.
+
+### Negative controls — seven, three redone
+
+Red as intended: truncate in transit, corrupt a byte in transit, swallow a refused connection, and a
+renderer emitting a wrong amount.
+
+Green first time, and both investigated:
+
+- **"no inactivity timeout"** — a **bad sabotage**, not a bad test. The patch used the wrong
+  indentation so the write timeout was never actually removed. Redone properly, it goes red.
+- **"resolve on errored close"** — a **real finding**. Node emits `error` before `close`, so the
+  `hadError` branch never runs for any failure this transport actually meets; the error handler has
+  already settled the promise. It is kept as a backstop, and the code now **says** the suite does not
+  independently cover it rather than implying it does.
+
+### Caught by running the full verify, not just the tests
+
+A `TS4115` override error on `TransportError.cause`. `vitest` does not typecheck, so `npm test`
+alone was green while `tsc --noEmit` was not — a reminder that the plan's verify is
+`npm test && npx tsc --noEmit` for a reason.
 
 ## Known stubs
 
