@@ -4,6 +4,7 @@ import type {
   ApiBranchRoleWriteResult,
   ApiCreatedUser,
   ApiRoleEntry,
+  ApiStationAssignment,
   ApiUserDetail,
   ApiUserSummary,
 } from "@/lib/api-client/schemas/user.schema";
@@ -14,6 +15,7 @@ import type {
   OneTimePassword,
   TenantUser,
   TenantUserDetail,
+  UserStationScope,
 } from "@/lib/models/user.model";
 
 /**
@@ -86,6 +88,21 @@ export function adaptAdminResetResult(api: ApiAdminResetResult): OneTimePassword
     loginable: null,
     assignedRoleCode: null,
   };
+}
+
+/**
+ * The station scope, with the unrestricted state named rather than inferred.
+ *
+ * <p>A branch whose list came back empty is DROPPED rather than kept as an empty row. 28-01 says
+ * an empty list is never produced; if one ever arrives it means "unrestricted at that branch", and
+ * keeping it would let a `branches.length` check downstream report a restriction that does not
+ * exist.
+ */
+export function adaptUserStationScope(api: ApiStationAssignment[]): UserStationScope {
+  const branches = api
+    .filter((a) => a.stationCodes.length > 0)
+    .map((a) => ({ branchId: a.branchId, stationCodes: a.stationCodes }));
+  return { unrestrictedEverywhere: branches.length === 0, branches };
 }
 
 export function adaptBranchRoleWriteResult(api: ApiBranchRoleWriteResult): BranchRoleWriteResult {

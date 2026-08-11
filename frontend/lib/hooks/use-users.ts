@@ -7,6 +7,7 @@ import { formatUserFacingError } from "@/lib/errors";
 import type {
   AssignBranchRolePayload,
   CreateUserPayload,
+  ReplaceStationAssignmentPayload,
   UpdateUserPayload,
 } from "@/lib/models/user.model";
 
@@ -34,6 +35,8 @@ export const userKeys = {
   list: (params: UserListParams) => ["users", "list", params] as const,
   detail: (userId: string) => ["users", "detail", userId] as const,
   assignableRoles: () => ["users", "assignable-roles"] as const,
+  /** 28-11. A CHILD of `detail` so invalidating the detail refreshes the scope with it. */
+  stations: (userId: string) => ["users", "detail", userId, "stations"] as const,
 };
 
 export function useUsers(params: UserListParams) {
@@ -143,6 +146,44 @@ export function useAssignBranchRole() {
   return useMutation({
     mutationFn: ({ userId, payload }: { userId: string; payload: AssignBranchRolePayload }) =>
       UserRepository.assignBranchRole(userId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * A user's station scope (28-11).
+ *
+ * <p>`enabled` is driven by the userId alone rather than by a permission check: the read is gated
+ * on `rbac.user.manage` server-side and the two surfaces that call this — the user form and the
+ * detail panel — are already behind that authority.
+ */
+export function useUserStations(userId: string | null) {
+  return useQuery({
+    queryKey: userKeys.stations(userId ?? ""),
+    queryFn: () => UserRepository.getStationAssignments(userId as string),
+    enabled: Boolean(userId),
+  });
+}
+
+/**
+ * Replace one branch's station set.
+ *
+ * <p>Invalidates the whole `["users"]` prefix — which covers `userKeys.stations` and
+ * `userKeys.detail` both — for the same reason every other write here does: reconstructing the
+ * result client-side is how a panel ends up showing a state the server never had. The scope is
+ * also carried in the target user's ACCESS TOKEN, so the panel refreshing is the only part of
+ * this that is immediate; their own session picks the change up on its next refresh.
+ */
+export function useReplaceUserStations() {
+  const invalidate = useInvalidateUsers();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: ReplaceStationAssignmentPayload;
+    }) => UserRepository.replaceStationAssignments(userId, payload),
     onSuccess: invalidate,
   });
 }

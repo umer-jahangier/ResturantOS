@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api-client/client";
-import { del, get, getPaginated, patch, post } from "@/lib/api-client/request";
+import { del, get, getPaginated, patch, post, put } from "@/lib/api-client/request";
 import type { PaginatedResult } from "@/lib/api-client/request";
 import {
   apiAdminResetResultSchema,
@@ -7,6 +7,8 @@ import {
   apiAssignBranchRoleRequestSchema,
   apiBranchRoleWriteResultSchema,
   apiCreatedUserSchema,
+  apiReplaceStationsRequestSchema,
+  apiStationAssignmentSchema,
   apiUserDetailSchema,
   apiUserSummarySchema,
 } from "@/lib/api-client/schemas/user.schema";
@@ -17,6 +19,7 @@ import {
   adaptCreatedUser,
   adaptTenantUser,
   adaptTenantUserDetail,
+  adaptUserStationScope,
 } from "@/lib/adapters/user.adapter";
 import type {
   AssignBranchRolePayload,
@@ -24,9 +27,11 @@ import type {
   BranchRoleWriteResult,
   CreateUserPayload,
   OneTimePassword,
+  ReplaceStationAssignmentPayload,
   TenantUser,
   TenantUserDetail,
   UpdateUserPayload,
+  UserStationScope,
 } from "@/lib/models/user.model";
 import { z } from "zod";
 
@@ -172,6 +177,46 @@ export const UserRepository = {
 
   async removeBranchRole(userId: string): Promise<void> {
     await del(`/api/v1/users/${userId}/branch-roles`);
+  },
+
+  /**
+   * `GET /api/v1/users/{id}/stations` — which stations this user works, per branch (28-01).
+   *
+   * <p>Gated on `rbac.user.manage`, the read code, while the write below is gated on
+   * `rbac.role.manage`, the same authority that grants a branch role. That split is deliberate:
+   * D-28-02 puts the station picker in the same form as the role picker, and gating them
+   * differently would permit an administrator who can grant a role but not a station — a state
+   * with no operator meaning.
+   *
+   * <p>A branch with no assignment is ABSENT from the response. The adapter turns that into a
+   * named `unrestrictedEverywhere` rather than an empty array, because "no rows" here means the
+   * user sees everything, and that is the state every user in this product is in.
+   */
+  async getStationAssignments(userId: string): Promise<UserStationScope> {
+    const raw = await get<unknown[]>(`/api/v1/users/${userId}/stations`);
+    return adaptUserStationScope(z.array(apiStationAssignmentSchema).parse(raw ?? []));
+  },
+
+  /**
+   * `PUT /api/v1/users/{id}/stations` — replace semantics, gated on `rbac.role.manage`.
+   *
+   * <p>The body states what the user's stations now ARE at that branch; sending it twice leaves
+   * the same rows. An empty `stationCodes` is a legal request and is the only way to return a
+   * user to unrestricted — unchecking every box has no additive spelling, which is why this is a
+   * PUT and not a POST.
+   *
+   * <p>Station codes are NOT validated against pos-service on either side of the wire:
+   * auth-service has no route into `pos_db` and says so. That makes the client's
+   * clear-on-branch-change behaviour load-bearing rather than cosmetic — a code carried across a
+   * branch change would be accepted and would filter the user to a station producing no tickets.
+   */
+  async replaceStationAssignments(
+    userId: string,
+    payload: ReplaceStationAssignmentPayload,
+  ): Promise<UserStationScope> {
+    const body = apiReplaceStationsRequestSchema.parse(payload);
+    const raw = await put<typeof body, unknown[]>(`/api/v1/users/${userId}/stations`, body);
+    return adaptUserStationScope(z.array(apiStationAssignmentSchema).parse(raw ?? []));
   },
 
   /**

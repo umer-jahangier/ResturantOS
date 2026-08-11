@@ -50,6 +50,66 @@ export interface TenantUserDetail {
   assignments: BranchRoleAssignment[];
 }
 
+// ── Station assignment (28-01 / 28-11) ────────────────────────────────────────────────────
+
+/**
+ * The stations a user works at ONE branch.
+ *
+ * <p>`stationCodes` is never empty. auth-service omits a branch entirely rather than returning it
+ * with an empty list, because absence is the only encoding of "unrestricted" — see
+ * `PermissionResolver.STATION_SCOPE_CLAIM` and 28-01's contract.
+ */
+export interface BranchStationAssignment {
+  branchId: string;
+  stationCodes: string[];
+}
+
+/**
+ * A user's whole station scope.
+ *
+ * <p>The unrestricted state is a NAMED PROPERTY, not an empty array, and that is the whole design.
+ * Every user in every tenant is currently unassigned; a caller who reads `branches.length === 0`
+ * as "no access" would present the product's universal default as a restriction, and an admin
+ * would then start ticking boxes to fix a problem that does not exist. Three layers of this
+ * feature now encode the same rule — auth-service omits the claim key, kitchen-service's
+ * `StationScope` throws rather than hand back an empty set, and this type says it in its name.
+ */
+export interface UserStationScope {
+  /** True when the user has no assignment anywhere: they see every station at every branch. */
+  unrestrictedEverywhere: boolean;
+  branches: BranchStationAssignment[];
+}
+
+/**
+ * The scope at one branch, as a union rather than a possibly-empty array.
+ *
+ * <p>The dangerous reading — treating "no codes" as "no stations" — is not reachable: the
+ * unrestricted arm has no `stationCodes` property to iterate, so a component must handle the
+ * two cases separately or fail to compile.
+ */
+export type BranchStationScope =
+  | { unrestricted: true }
+  | { unrestricted: false; stationCodes: string[] };
+
+export function branchStationScope(
+  scope: UserStationScope | undefined,
+  branchId: string,
+): BranchStationScope {
+  const found = scope?.branches.find((b) => b.branchId === branchId);
+  if (!found || found.stationCodes.length === 0) return { unrestricted: true };
+  return { unrestricted: false, stationCodes: found.stationCodes };
+}
+
+export interface ReplaceStationAssignmentPayload {
+  branchId: string;
+  /**
+   * The FULL set this user now works at that branch. An empty array is a legal request and is
+   * how a branch is cleared back to unrestricted — `PUT`, not `POST`, precisely because
+   * unchecking a box has no additive spelling.
+   */
+  stationCodes: string[];
+}
+
 /** A role the CALLER may assign — `GET /api/v1/roles` is already ceiling-filtered (13-07). */
 export interface AssignableRole {
   code: string;

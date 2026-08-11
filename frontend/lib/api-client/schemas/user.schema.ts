@@ -155,3 +155,29 @@ export const apiAssignableRolesEnvelopeSchema = z.object({
   data: z.array(apiRoleEntrySchema),
   warnings: z.array(apiWarningSchema).nullable().optional(),
 });
+
+// ── Station assignment (28-01 / 28-11) ────────────────────────────────────────────────────
+
+/**
+ * Mirrors `BranchDtos.StationAssignment` — a user's active station codes at one branch.
+ *
+ * <p>A branch with no assignment simply does not appear in the array. There is no empty-list
+ * spelling of "unrestricted" and never will be: 28-01 states plainly that an empty list is NEVER
+ * PRODUCED, and a consumer that sees one is looking at a bug upstream rather than at a scope.
+ */
+export const apiStationAssignmentSchema = z.object({
+  branchId: z.string().uuid(),
+  stationCodes: z.array(z.string()),
+});
+
+export type ApiStationAssignment = z.infer<typeof apiStationAssignmentSchema>;
+
+/**
+ * Mirrors `BranchDtos.StationAssignmentRequest`. Validated on the way OUT as well as in: the
+ * request states what the user's stations now ARE at that branch, and a malformed one would
+ * either widen or clear a scope silently.
+ */
+export const apiReplaceStationsRequestSchema = z.object({
+  branchId: z.string().uuid(),
+  stationCodes: z.array(z.string()),
+});
