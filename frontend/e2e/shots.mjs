@@ -38,13 +38,27 @@ async function shot(page, name) {
   console.log("  ✓", `${name}.png`);
 }
 
-async function setTheme(page, theme) {
-  await page.evaluate((t) => {
-    localStorage.setItem("theme", t);
-    document.documentElement.classList.toggle("dark", t === "dark");
-    document.documentElement.style.colorScheme = t;
-  }, theme);
-  await page.waitForTimeout(350);
+/*
+ * Theme is driven by `prefers-color-scheme`, NOT by writing localStorage.
+ *
+ * ThemeProvider runs with defaultTheme="system" + enableSystem, so the OS preference is the
+ * real switch. Writing localStorage after navigation was a no-op — the provider had already
+ * read it — and produced dark screenshots that were byte-identical to the light ones. That
+ * looked like "the theme works" and actually meant "the theme never changed", which is
+ * precisely the kind of green nobody questions.
+ *
+ * Each theme therefore gets its OWN browser context with colorScheme set.
+ */
+async function ctxFor(browser, theme) {
+  return browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: theme });
+}
+
+/** Fails loudly if the requested theme did not actually take, so a screenshot cannot lie. */
+async function assertTheme(page, theme) {
+  const isDark = await page.evaluate(() => document.documentElement.classList.contains("dark"));
+  if (isDark !== (theme === "dark")) {
+    throw new Error(`theme did not apply: asked for ${theme}, html.dark=${isDark}`);
+  }
 }
 
 async function login(page, { slug, email, password }) {
@@ -61,50 +75,47 @@ async function login(page, { slug, email, password }) {
 
 async function main() {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const page = await ctx.newPage();
-  page.on("pageerror", (e) => console.log("    ! page error:", String(e).slice(0, 140)));
 
-  // Unauthenticated screens first — login is a first-impression surface.
   for (const theme of ["light", "dark"]) {
-    await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
-    await setTheme(page, theme);
-    await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1200);
-    await shot(page, `login-${theme}`);
-  }
+    const ctx = await ctxFor(browser, theme);
+    const page = await ctx.newPage();
+    page.on("pageerror", (e) => console.log("    ! page error:", String(e).slice(0, 140)));
 
-  const ok = await login(page, TENANT);
-  console.log(ok ? "  signed in as manager" : `  LOGIN FAILED (${page.url()})`);
-  if (ok) {
-    for (const [name, route] of TENANT_ROUTES) {
-      for (const theme of ["light", "dark"]) {
+    // Unauthenticated first — login is a first-impression surface.
+    await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1800);
+    await assertTheme(page, theme);
+    await shot(page, `login-${theme}`);
+
+    const ok = await login(page, TENANT);
+    console.log(ok ? `  signed in as manager (${theme})` : `  LOGIN FAILED (${page.url()})`);
+    if (ok) {
+      for (const [name, route] of TENANT_ROUTES) {
         await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
-        await setTheme(page, theme);
-        await page.waitForTimeout(2500);
+        await page.waitForTimeout(4500);
+        await assertTheme(page, theme);
         await shot(page, `${name}-${theme}`);
       }
     }
-  }
+    await ctx.close();
 
-  // Platform console needs the tenant-less SuperAdmin, so a fresh context.
-  const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const page2 = await ctx2.newPage();
-  const ok2 = await login(page2, PLATFORM);
-  console.log(ok2 ? "  signed in as superadmin" : `  PLATFORM LOGIN FAILED (${page2.url()})`);
-  if (ok2) {
-    for (const [name, route] of PLATFORM_ROUTES) {
-      for (const theme of ["light", "dark"]) {
+    // Platform console needs the tenant-less SuperAdmin, so a fresh context.
+    const ctx2 = await ctxFor(browser, theme);
+    const page2 = await ctx2.newPage();
+    const ok2 = await login(page2, PLATFORM);
+    console.log(ok2 ? `  signed in as superadmin (${theme})` : `  PLATFORM LOGIN FAILED`);
+    if (ok2) {
+      for (const [name, route] of PLATFORM_ROUTES) {
         await page2.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
-        await setTheme(page2, theme);
-        await page2.waitForTimeout(2500);
+        await page2.waitForTimeout(4000);
         await shot(page2, `${name}-${theme}`);
       }
     }
+    await ctx2.close();
   }
 
   await browser.close();
-  console.log("evidence →", OUT);
+  console.log("evidence \u2192", OUT);
 }
 
 main().catch((e) => {

@@ -10,7 +10,7 @@ import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useLogin } from "@/lib/hooks/auth/use-login";
 import { STEP_UP_LOGIN_REASON, sanitizeReturnPath } from "@/lib/auth/step-up";
 import { PLATFORM_CHOICE, type Session } from "@/lib/models/auth.model";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassPanel } from "@/components/ui/surface/glass-panel";
 import {
   Form,
   FormControl,
@@ -266,194 +266,217 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
   const restaurantLabel = tenantBrandName ?? tenantSlug;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {restaurantLabel ? `Sign in to ${restaurantLabel}` : "Sign in to RestaurantOS"}
-        </CardTitle>
-        <CardDescription>Enter your email and password to continue</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {reason === "session_expired" ? (
-          <p className="mb-4 text-sm text-muted-foreground" role="status">
-            Your session expired. Please sign in again.
-          </p>
-        ) : null}
+    /*
+     * Phase 34: glass + depth-3 + an entrance. ONLY the surface around the form changed.
+     *
+     * The field names, the submit path, the error wording, the step-up prompt behaviour and
+     * every redirect target below are untouched, and `__tests__/auth/login-form.test.tsx`
+     * asserts it. This is the one screen where a cosmetic change that breaks a flow locks
+     * every user out of the product, and it is reachable without a session — so nobody is
+     * watching it in a staging tenant either.
+     *
+     * The glass sits over `--surface-2`, which the (auth) layout declares and 34-02's manifest
+     * enumerates, so its contrast is measured (17.73:1 composited, 18.01:1 with the filter
+     * unavailable) rather than inherited from whatever the page happens to paint.
+     *
+     * `.vdl-enter` carries no resting style — strip it and the card is exactly where it is now,
+     * at full opacity. Under reduced motion it resolves `animation: none` and the card simply
+     * appears.
+     */
+    <GlassPanel depth={3} className="vdl-enter overflow-hidden p-0">
+      {/* A brand band, so the first screen a customer sees is not an unstyled white box. */}
+      <div
+        aria-hidden="true"
+        className="h-1 w-full bg-linear-to-r from-primary-400 via-primary-600 to-primary-800"
+      />
+      <div className="flex flex-col gap-4 p-6">
+        <div className="grid gap-1">
+          <h1 className="font-heading text-lg leading-snug font-medium">
+            {restaurantLabel ? `Sign in to ${restaurantLabel}` : "Sign in to RestaurantOS"}
+          </h1>
+          <p className="text-sm text-muted-foreground">Enter your email and password to continue</p>
+        </div>
+        <div>
+          {reason === "session_expired" ? (
+            <p className="mb-4 text-sm text-muted-foreground" role="status">
+              Your session expired. Please sign in again.
+            </p>
+          ) : null}
 
-        {/* Distinct from session_expired on purpose: nothing expired that the user did wrong,
+          {/* Distinct from session_expired on purpose: nothing expired that the user did wrong,
             and telling them their session ended when it did not invites a support call. */}
-        {reason === STEP_UP_LOGIN_REASON ? (
-          <p className="mb-4 text-sm text-muted-foreground" role="status">
-            That action needs a fresh authenticator code. Sign in again to continue — you&apos;ll be
-            asked for your code, then taken back to where you were.
-          </p>
-        ) : null}
+          {reason === STEP_UP_LOGIN_REASON ? (
+            <p className="mb-4 text-sm text-muted-foreground" role="status">
+              That action needs a fresh authenticator code. Sign in again to continue — you&apos;ll
+              be asked for your code, then taken back to where you were.
+            </p>
+          ) : null}
 
-        {formError ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Sign-in failed</AlertTitle>
-            <AlertDescription>{formError}</AlertDescription>
-          </Alert>
-        ) : null}
+          {formError ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Sign-in failed</AlertTitle>
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
 
-        {enrolling ? (
-          <TotpEnrollment
-            email={enrolling.email}
-            password={enrolling.password}
-            tenantSlug={enrolling.tenantSlug}
-            onCancel={() => setEnrolling(null)}
-            onEnrolled={() => {
-              // Back to the credentials form with the TOTP field already revealed: the account now
-              // HAS a factor, so the next login will be challenged for a code rather than refused.
-              // Enrolment is not a login and does not become one — the user signs in normally,
-              // which keeps the two events, and their two audit records, distinct.
-              setEnrolling(null);
-              setTotpRequired(true);
-              form.setValue("totpCode", "");
-              window.setTimeout(() => form.setFocus("totpCode"), 0);
-            }}
-          />
-        ) : choices.length > 0 ? (
-          <div className="grid gap-3" data-testid="tenant-chooser">
-            <div>
-              <h2 className="text-base font-medium">Where would you like to sign in?</h2>
-              <p className="text-sm text-muted-foreground">
-                This email is used in more than one place.
-              </p>
-            </div>
-            {choices.map((choice) => (
+          {enrolling ? (
+            <TotpEnrollment
+              email={enrolling.email}
+              password={enrolling.password}
+              tenantSlug={enrolling.tenantSlug}
+              onCancel={() => setEnrolling(null)}
+              onEnrolled={() => {
+                // Back to the credentials form with the TOTP field already revealed: the account now
+                // HAS a factor, so the next login will be challenged for a code rather than refused.
+                // Enrolment is not a login and does not become one — the user signs in normally,
+                // which keeps the two events, and their two audit records, distinct.
+                setEnrolling(null);
+                setTotpRequired(true);
+                form.setValue("totpCode", "");
+                window.setTimeout(() => form.setFocus("totpCode"), 0);
+              }}
+            />
+          ) : choices.length > 0 ? (
+            <div className="grid gap-3" data-testid="tenant-chooser">
+              <div>
+                <h2 className="text-base font-medium">Where would you like to sign in?</h2>
+                <p className="text-sm text-muted-foreground">
+                  This email is used in more than one place.
+                </p>
+              </div>
+              {choices.map((choice) => (
+                <Button
+                  key={choice.slug}
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  disabled={login.isPending}
+                  data-testid={`tenant-choice-${choice.slug}`}
+                  onClick={() => chooseTenant(choice.slug)}
+                >
+                  {choice.slug === PLATFORM_CHOICE ? "🛠 " : ""}
+                  {choice.name}
+                </Button>
+              ))}
               <Button
-                key={choice.slug}
                 type="button"
-                variant="outline"
-                className="justify-start"
+                variant="ghost"
+                onClick={() => setChoices([])}
                 disabled={login.isPending}
-                data-testid={`tenant-choice-${choice.slug}`}
-                onClick={() => chooseTenant(choice.slug)}
               >
-                {choice.slug === PLATFORM_CHOICE ? "🛠 " : ""}
-                {choice.name}
+                Back
               </Button>
-            ))}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setChoices([])}
-              disabled={login.isPending}
-            >
-              Back
-            </Button>
-          </div>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        autoComplete="email"
-                        autoFocus
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        autoComplete="current-password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {totpRequired ? (
+            </div>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
                 <FormField
                   control={form.control}
-                  name="totpCode"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Authenticator code</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          placeholder="123456"
-                          aria-describedby="totp-hint"
-                          data-testid="totp-code"
+                          type="email"
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          autoFocus
                           {...field}
                         />
                       </FormControl>
-                      <p id="totp-hint" className="text-sm text-muted-foreground">
-                        Enter your authenticator code to finish signing in.
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              ) : null}
 
-              {/* The restaurant field is an ESCAPE HATCH, not a step. It is shown when a hint
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {totpRequired ? (
+                  <FormField
+                    control={form.control}
+                    name="totpCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Authenticator code</FormLabel>
+                        <FormControl>
+                          <Input
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            placeholder="123456"
+                            aria-describedby="totp-hint"
+                            data-testid="totp-code"
+                            {...field}
+                          />
+                        </FormControl>
+                        <p id="totp-hint" className="text-sm text-muted-foreground">
+                          Enter your authenticator code to finish signing in.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
+
+                {/* The restaurant field is an ESCAPE HATCH, not a step. It is shown when a hint
                   already filled it (so the user can see and clear what the URL chose for them),
                   or on request. Nothing in the normal path needs it. */}
-              {showTenantField || (tenantSlug && form.getValues("tenantSlug")) ? (
-                <FormField
-                  control={form.control}
-                  name="tenantSlug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Restaurant identifier (optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="your-restaurant"
-                          autoComplete="organization"
-                          data-testid="tenant-slug"
-                          {...field}
-                        />
-                      </FormControl>
-                      <p className="text-sm text-muted-foreground">
-                        Only needed if you have been asked for it. Leave blank and we&apos;ll find
-                        your account.
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                /* The label must NOT begin with "Sign in". It did, and that made
+                {showTenantField || (tenantSlug && form.getValues("tenantSlug")) ? (
+                  <FormField
+                    control={form.control}
+                    name="tenantSlug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Restaurant identifier (optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="your-restaurant"
+                            autoComplete="organization"
+                            data-testid="tenant-slug"
+                            {...field}
+                          />
+                        </FormControl>
+                        <p className="text-sm text-muted-foreground">
+                          Only needed if you have been asked for it. Leave blank and we&apos;ll find
+                          your account.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  /* The label must NOT begin with "Sign in". It did, and that made
                    `getByRole("button", {name: "Sign in"})` — which `e2e/fixtures/auth.fixture.ts`
                    uses for every persona login in the suite — ambiguous, breaking journeys that
                    have nothing to do with this control. Caught by the browser run, not by review. */
-                <button
-                  type="button"
-                  className="justify-self-start text-sm text-muted-foreground underline underline-offset-4"
-                  data-testid="show-tenant-field"
-                  onClick={() => setShowTenantField(true)}
-                >
-                  Use a restaurant identifier instead
-                </button>
-              )}
+                  <button
+                    type="button"
+                    className="justify-self-start text-sm text-muted-foreground underline underline-offset-4"
+                    data-testid="show-tenant-field"
+                    onClick={() => setShowTenantField(true)}
+                  >
+                    Use a restaurant identifier instead
+                  </button>
+                )}
 
-              {/* Disabled until React has hydrated, and NOT for cosmetic reasons.
+                {/* Disabled until React has hydrated, and NOT for cosmetic reasons.
                   `react-hook-form`'s `handleSubmit` is what calls `preventDefault()`; before
                   hydration it is not attached, so a submit falls through to the browser's native
                   handling. This form declares no `action` and no `method`, so a native submit is a
@@ -465,18 +488,19 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
                   handled properly costs nothing and closes the leak. Mirrors ThemeToggle's
                   `useSyncExternalStore` mounted check rather than an effect, per the codebase's
                   react-hooks/set-state-in-effect rule. */}
-              <Button
-                type="submit"
-                disabled={login.isPending || !hydrated}
-                className="w-full"
-                data-testid="login-submit"
-              >
-                {login.isPending ? "Signing in…" : "Sign in"}
-              </Button>
-            </form>
-          </Form>
-        )}
-      </CardContent>
-    </Card>
+                <Button
+                  type="submit"
+                  disabled={login.isPending || !hydrated}
+                  className="w-full"
+                  data-testid="login-submit"
+                >
+                  {login.isPending ? "Signing in…" : "Sign in"}
+                </Button>
+              </form>
+            </Form>
+          )}
+        </div>
+      </div>
+    </GlassPanel>
   );
 }
