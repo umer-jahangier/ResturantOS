@@ -95,12 +95,27 @@ public class BranchService {
      * {@link #get} with the caller's tenant in the QUERY as well as in the RLS policy.
      *
      * <p>26-CONTEXT requires both. {@code ReceiptConfigIT} then measured why: {@link #get} handed
-     * back another tenant's branch under the integration harness. Two things have to be true at
-     * once for that, and both are: Testcontainers runs Postgres as a superuser, which bypasses even
-     * FORCE ROW LEVEL SECURITY; and Hibernate's {@code tenantFilter} is annotated on the
-     * {@code TenantAuditableEntity} mapped superclass, which Hibernate does not propagate to the
-     * concrete entity. So there was nothing scoping this read except a policy that is inert in the
-     * one place the tests can see.
+     * back another tenant's branch under the integration harness. Two things had to be true at
+     * once for that, and both were — but the second one is not what this comment used to say.
+     * Testcontainers ran Postgres as a superuser, which bypasses even FORCE ROW LEVEL SECURITY, so
+     * the policy was inert for the whole suite (fixed — {@code BaseUserIT} now connects as a
+     * NOSUPERUSER NOBYPASSRLS role); and the Hibernate {@code tenantFilter} was not in force on
+     * the query. The second one is not fixed and is not local to this service:
+     * {@code TenantFilterInterceptor} enables the filter in {@code preHandle}, but every service
+     * runs {@code spring.jpa.open-in-view: false}, so it enables it on a temporary session that
+     * closes before this {@code @Transactional} method opens its own. The interceptor is inert
+     * everywhere it is registered. {@code TenantIsolationHarnessIT} captures both SQL statements
+     * side by side.
+     *
+     * <p>Which makes this method load-bearing rather than defensive: it is currently the only
+     * application-layer tenant scoping on this read that reaches the database.
+     *
+     * <p>The claim that Hibernate does not propagate {@code @Filter} from the
+     * {@code TenantAuditableEntity} mapped superclass to the concrete entity is FALSE. It does.
+     * {@code TenantIsolationHarnessIT} captures the SQL Hibernate emits for {@code BranchEntity}
+     * with the filter enabled — {@code ... from branches be1_0 where be1_0.tenant_id = ?} — and
+     * {@code BranchEntity} declares no {@code @Filter} of its own. Do not re-derive the old
+     * conclusion from a missing predicate: check whether the filter was enabled on that path first.
      *
      * <p>Deliberately a NEW method rather than a change to {@link #get}: {@code get} is on the
      * branch read path, the internal provisioning path and the compensating-deactivation path, and
