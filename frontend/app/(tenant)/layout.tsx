@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/shared/sidebar";
 import { TopBar } from "@/components/shared/top-bar";
 import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav";
 import { SidebarSkeleton } from "@/components/skeletons/sidebar-skeleton";
-import { PageTransition } from "@/components/shared/page-transition";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useBootstrapping } from "@/components/providers/session-provider";
@@ -115,7 +114,29 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
                 />
               </div>
             ) : (
-              <PageTransition className="h-full">{children}</PageTransition>
+              /*
+               * No page-transition wrapper (D-34-02, UI-SPEC §3.12).
+               *
+               * This layout wraps EVERY route in the shell, so a 350ms fade-and-slide here
+               * played on the POS terminal and the KDS station board on every navigation —
+               * the same class of defect as the compositing filters 34-01 removed, and for
+               * the same reason: a shell cannot know which zone it is wrapping, so applying
+               * motion here applies it to the two screens that must never have any.
+               *
+               * §3.12 already said "there is no page-transition animation", with the
+               * arithmetic: an operator navigates ~200 times a shift and pays the duration
+               * every time.
+               *
+               * The entrance vocabulary now lives in globals.css as `.vdl-enter` /
+               * `.vdl-stagger`, scoped to [data-zone="expressive"], and an expressive page
+               * OPTS IN at the page or portlet level — where the choice is visible to whoever
+               * makes it. That per-surface choice is what the whole zoning decision rests on.
+               *
+               * PageTransition and PageTransitionMotion still exist but are no longer
+               * referenced by the shell. Deleting them is a shell change beyond this phase;
+               * leaving them wired was the actual defect.
+               */
+              children
             )}
           </main>
         </div>
