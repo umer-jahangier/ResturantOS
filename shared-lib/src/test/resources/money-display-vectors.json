@@ -1,0 +1,24 @@
+{
+  "_readme": [
+    "THE arbiter of how an integer paisa value becomes a string a human reads.",
+    "This file is loaded by TWO stacks: MoneyDisplayAuthorityTest (JVM, via the shared-lib test",
+    "classpath) and frontend/__tests__/lib/money-display-authority.test.ts (Node/vitest, via a",
+    "relative import). Neither stack owns it. Change a display rule on one side and the other",
+    "side's test goes red, which is the entire point — see 37-01-PLAN.md.",
+    "",
+    "'paisa' is a JSON STRING on purpose. A JSON parser coerces a bare number to an IEEE-754",
+    "double, which loses the 2^53 vector precisely where it is being asserted."
+  ],
+  "vectors": [
+    { "name": "zero still shows its minor unit", "paisa": "0", "display": "Rs 0.00" },
+    { "name": "a single paisa is not rounded away", "paisa": "1", "display": "Rs 0.01" },
+    { "name": "a whole rupee keeps two places so a column aligns", "paisa": "100", "display": "Rs 1.00" },
+    { "name": "a non-zero minor unit survives (the 56-paisa defect)", "paisa": "123456", "display": "Rs 1,234.56" },
+    { "name": "grouped thousands", "paisa": "100000", "display": "Rs 1,000.00" },
+    { "name": "grouped millions", "paisa": "123456789", "display": "Rs 1,234,567.89" },
+    { "name": "negative takes a leading sign, ahead of the prefix", "paisa": "-50000", "display": "-Rs 500.00" },
+    { "name": "negative minor unit only", "paisa": "-1", "display": "-Rs 0.01" },
+    { "name": "beyond 2^53 paisa — exact, so no double is on the path", "paisa": "9007199254740993", "display": "Rs 90,071,992,547,409.93" },
+    { "name": "far beyond 2^53, near the long ceiling", "paisa": "922337203685477580", "display": "Rs 9,223,372,036,854,775.80" }
+  ]
+}
