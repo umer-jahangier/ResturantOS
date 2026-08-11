@@ -119,3 +119,11 @@ Verifiable by command or browser journey, never by opinion:
 5. The FBR QR and invoice-number regions render when populated and collapse cleanly when not.
 6. A tenant with no printer configured still gets a bill.
 7. Every item genuinely requiring physical hardware is listed explicitly as awaiting U3.
+8. **A kitchen ticket reaches a station printer, and a printer fault cannot stop an order being
+   fired.** Added 2026-08-07 — the plan-checker found the scope fence put the kitchen ticket in
+   scope while these seven items never mentioned it, so the phase's second-largest subsystem
+   (26-07, most of 26-06, all of 26-11) had **no section in the live proof script**. Tickets were
+   exercised only by "rows exist via the API", which is precisely the structurally-present /
+   behaviourally-absent shape this phase exists to escape. My omission, faithfully reproduced by
+   the planner. Proof must drive a document through the agent's HTTP endpoint → durable queue →
+   transport → socket and assert the bytes the socket **received**, not what the renderer returned.
