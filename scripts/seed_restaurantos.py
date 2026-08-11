@@ -1397,13 +1397,23 @@ def seed_purchasing(t: Tenant, manager_token: str) -> int:
     how period-scoped purchase reporting gets more than one day in it without any direct write:
     `invoiceDate` is a request field, so no back-dating is needed anywhere."""
     vendor_name = f"{t.brand} Supplies"
-    # 🔴 `GET /api/v1/purchasing/vendors` returns EVERY TENANT'S vendors, for the same reason
-    # the POS menu listing does: `purchasing_db.vendors` is `relrowsecurity=t
-    # relforcerowsecurity=f` and the runtime connects as `purchasing_user`, which OWNS the
-    # table, so the policy never applies to it. The write path IS tenant-scoped, so adopting a
-    # neighbour's vendor id produces `404 Vendor not found` on the very next call — which is
-    # how this run found it. The reconciliation key is therefore a `notes` marker carrying this
-    # tenant's id, which no other tenant's row can carry.
+    # ✅ FIXED — this comment described a real cross-tenant leak that phase 17b closed. Left here
+    # corrected rather than deleted, because a stale 🔴 warning is worse than none: it trains the
+    # reader to disbelieve the next one, and the phase-31 planner spent real effort deciding
+    # whether this or the phase-17b record was the lie.
+    #
+    # It WAS true: `purchasing_db.vendors` was `relrowsecurity=t relforcerowsecurity=f` while the
+    # runtime connects as `purchasing_user`, which OWNS the table — and Postgres exempts a table's
+    # owner from its own policies unless FORCE is set. So the listing returned every tenant's rows.
+    #
+    # Re-measured 2026-08-07 after 17b forced RLS on all 33 previously-unforced tables:
+    #     vendors: rls=true FORCE=true
+    #     as purchasing_user with the tenant GUC set -> 1 vendor across 1 tenant
+    #     as superuser                                -> 14 vendors across 14 tenants
+    #
+    # The `notes` marker below is KEPT anyway. It is now belt-and-braces rather than a workaround:
+    # it makes the reconciliation independent of RLS being correct, which is exactly the property
+    # worth having in a seed that has to detect a regression rather than rely on one not happening.
     marker = f"seed:{t.tenant_id}"
     listed = request("GET", "/api/v1/purchasing/vendors", token=manager_token)
     if listed.status in (403, 404, 503):
