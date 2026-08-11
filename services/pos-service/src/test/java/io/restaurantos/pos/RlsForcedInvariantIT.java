@@ -153,6 +153,70 @@ class RlsForcedInvariantIT extends PosTestBase {
     }
 
     /**
+     * The same canary, aimed at {@code print_jobs} specifically (26-03).
+     *
+     * <p>The schema-wide assertion above already fails if a new table ships {@code ENABLE} without
+     * {@code FORCE}. This one is narrower and stronger: it proves the policy on THIS table actually
+     * binds for a non-superuser owner. `print_jobs` stores the rendered customer receipt — line
+     * items, totals, tenders, the customer's change — so an inert policy here is not an abstract
+     * isolation gap, it is one tenant reading another tenant's bills.
+     */
+    @Test
+    @DisplayName("a NOSUPERUSER owner of print_jobs cannot read another tenant's documents")
+    void printJobsOwnerCannotBypassTenantIsolation() throws SQLException {
+        UUID tenantA = UUID.randomUUID();
+        UUID tenantB = UUID.randomUUID();
+
+        try (Connection admin = asSuperuser(); Statement s = admin.createStatement()) {
+            dropCanaryRole(s);
+            s.execute("CREATE ROLE " + CANARY_ROLE
+                    + " LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '" + CANARY_PASSWORD + "'");
+            s.execute("GRANT ALL ON SCHEMA public TO " + CANARY_ROLE);
+
+            insertPrintJob(s, tenantA, "receipt-a");
+            insertPrintJob(s, tenantB, "receipt-b");
+
+            s.execute("ALTER TABLE print_jobs OWNER TO " + CANARY_ROLE);
+        }
+
+        try (Connection owner = DriverManager.getConnection(
+                postgres.getJdbcUrl(), CANARY_ROLE, CANARY_PASSWORD);
+             Statement s = owner.createStatement()) {
+
+            s.execute("SELECT set_config('app.current_tenant_id', '" + tenantA + "', false)");
+
+            try (ResultSet rs = s.executeQuery(
+                    "SELECT count(*) FILTER (WHERE tenant_id <> '" + tenantA + "'), count(*)"
+                            + " FROM print_jobs")) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getLong(1))
+                        .as("""
+                            The owning role read another tenant's print_jobs. These rows hold \
+                            rendered customer receipts — line items, totals, tenders and change. \
+                            FORCE ROW LEVEL SECURITY on print_jobs is missing or was removed.""")
+                        .isZero();
+                assertThat(rs.getLong(2))
+                        .as("tenant A's own documents must still be readable — isolation, not a blackout")
+                        .isEqualTo(1);
+            }
+        } finally {
+            try (Connection admin = asSuperuser(); Statement s = admin.createStatement()) {
+                s.execute("ALTER TABLE print_jobs OWNER TO " + postgres.getUsername());
+                s.execute("DELETE FROM print_jobs WHERE target_printer_id IN ('receipt-a','receipt-b')");
+                dropCanaryRole(s);
+            }
+        }
+    }
+
+    private static void insertPrintJob(Statement s, UUID tenantId, String target) throws SQLException {
+        s.execute("INSERT INTO print_jobs (id, tenant_id, branch_id, order_id, document_type,"
+                + " target_printer_id, issue_seq, status, document, issued_at)"
+                + " VALUES ('" + UUID.randomUUID() + "','" + tenantId + "','" + UUID.randomUUID()
+                + "','" + UUID.randomUUID() + "','CUSTOMER_RECEIPT','" + target + "',1,'ISSUED',"
+                + " '{\"schemaVersion\":\"1.0\"}'::jsonb, now())");
+    }
+
+    /**
      * {@code DROP ROLE} refuses while any privilege is still granted to the role, so the grants
      * have to be surrendered first. {@code DROP OWNED BY} does both — it drops objects the role
      * owns and revokes privileges granted to it — but errors if the role does not exist, hence
