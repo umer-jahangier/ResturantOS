@@ -49,7 +49,10 @@ import java.util.UUID;
 @Component
 public class JwtGlobalFilter implements GlobalFilter, Ordered {
 
-    private static final List<String> PUBLIC_PATHS = List.of(
+    // Package-private (not private) so JwtGlobalFilterAgentPathTest can assert its SIZE is
+    // unchanged. 26-11 added a sibling list beside it; the guard against that having quietly
+    // grown this one is an assertion on a literal count, not a reviewer's memory.
+    static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/login",
             "/api/v1/auth/refresh",
             "/api/v1/auth/reset-password",
@@ -84,6 +87,31 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
     );
 
     /**
+     * The two print-agent endpoints (26-11). EXACT paths, matched by equality — never a prefix.
+     *
+     * <p>A print agent is a daemon on a restaurant's LAN holding a per-branch credential. It has no
+     * user token and cannot obtain one, because it is not a user: the credential resolves to a
+     * branch and grants no permission. pos-service authenticates it with
+     * {@code X-Print-Agent-Key}; this list only says "do not demand a user JWT here".
+     *
+     * <p><b>Why these are NOT in {@link #PUBLIC_PATHS}.</b> That list is matched by a bare
+     * {@code startsWith}, so an entry cannot mean "this exact path" — it means "anything beginning
+     * with these characters". The comment on the forced-change entry above records that this has
+     * already nearly exposed a neighbouring authenticated endpoint at the same prefix. The
+     * requirement here is two exact paths, and {@code startsWith} cannot express it.
+     *
+     * <p><b>Why the acknowledge endpoint takes its job id in the BODY.</b> Exact-equality matching
+     * is only available while both paths are static literals. A {@code /{jobId}} path variable would
+     * force prefix matching and hand back the widening this design exists to avoid. If you are here
+     * to make the endpoint "properly RESTful", the near-miss tests in
+     * {@code JwtGlobalFilterAgentPathTest} will fail, and they are failing on purpose.
+     */
+    static final List<String> AGENT_PATHS = List.of(
+            "/api/v1/pos/print-agent/claim",
+            "/api/v1/pos/print-agent/ack"
+    );
+
+    /**
      * Path prefixes on which a token carrying NO {@code tenant_id} claim is acceptable.
      *
      * <p>Exactly one entry, and it should stay that way. A platform user lives in
@@ -110,7 +138,8 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
      * {@code Authorization} header, so a JWT is never accepted from a URL/query string for normal
      * API calls (where it could leak into logs/proxies/browser history).
      */
-    private static final List<String> WS_UPGRADE_PATHS = List.of(
+    // Package-private for the same reason PUBLIC_PATHS is — see the note there.
+    static final List<String> WS_UPGRADE_PATHS = List.of(
             "/api/v1/reporting/dashboard/",
             "/api/v1/kitchen/",
             // The POS live-order socket, registered by pos-service's WebSocketConfig at
@@ -146,6 +175,13 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getPath().value();
 
         if (isPublicPath(path)) {
+            return chain.filter(exchange);
+        }
+
+        // 26-11: a print agent carries no user JWT and no tenant header. Forward without either;
+        // pos-service authenticates the X-Print-Agent-Key credential and derives the tenant and
+        // branch from the agent row it resolves to.
+        if (isAgentPath(path)) {
             return chain.filter(exchange);
         }
 
@@ -325,6 +361,31 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
      */
     boolean isPublicPath(String path) {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    }
+
+    /**
+     * True when {@code path} is one of the two {@link #AGENT_PATHS}, by EXACT equality.
+     *
+     * <p>Exact equality, not the segment-boundary match {@link #isTenantOptionalPath} uses and
+     * certainly not the {@code startsWith} {@link #isPublicPath} uses. There are two paths, they are
+     * static literals, and nothing beneath them is exempt — so equality is both sufficient and the
+     * narrowest thing that works. A trailing segment, a trailing character, the same path under
+     * another service prefix: none of them classify.
+     *
+     * <p>A path containing a {@code ..} segment is refused outright, for the reason
+     * {@link #isTenantOptionalPath} refuses one: WebFlux does not collapse dot segments, so without
+     * this the gateway and the upstream could disagree about which resource is addressed. With exact
+     * equality a dot-dot path could not match anyway — the refusal is explicit so that it stays true
+     * if this matcher is ever loosened.
+     *
+     * <p>Package-private for the same reason the other two matchers are: this list is a security
+     * boundary and "path X is NOT an agent path" must be assertable directly.
+     */
+    boolean isAgentPath(String path) {
+        if (path == null || path.contains("/../") || path.endsWith("/..")) {
+            return false;
+        }
+        return AGENT_PATHS.contains(path);
     }
 
     /**

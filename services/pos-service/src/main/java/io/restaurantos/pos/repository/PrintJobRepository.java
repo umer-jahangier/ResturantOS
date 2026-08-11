@@ -109,6 +109,60 @@ public interface PrintJobRepository extends JpaRepository<PrintJob, UUID> {
                                          @Param("firedFrom") java.time.Instant firedFrom,
                                          @Param("firedTo") java.time.Instant firedTo);
 
+    /**
+     * One branch's claimable work, oldest first, under {@code FOR UPDATE SKIP LOCKED} (26-11).
+     *
+     * <p><b>SKIP LOCKED, not plain FOR UPDATE.</b> Two agents may legitimately serve one branch — a
+     * till and a spare. With a plain row lock the second one blocks on the first's rows until its
+     * own HTTP poll times out, which turns a redundant agent into a liability. With SKIP LOCKED it
+     * simply takes different jobs.
+     *
+     * <p>Native rather than JPQL because JPA has no way to express SKIP LOCKED portably, and
+     * expressing it is the entire point of the query.
+     */
+    @Query(value = """
+           SELECT * FROM print_jobs
+           WHERE tenant_id = :tenantId
+             AND branch_id = :branchId
+             AND status = 'QUEUED'
+             AND deleted_at IS NULL
+             AND (next_attempt_at IS NULL OR next_attempt_at <= :now)
+           ORDER BY created_at
+           LIMIT :batch
+           FOR UPDATE SKIP LOCKED
+           """, nativeQuery = true)
+    List<PrintJob> lockClaimableForBranch(@Param("tenantId") UUID tenantId,
+                                          @Param("branchId") UUID branchId,
+                                          @Param("now") java.time.Instant now,
+                                          @Param("batch") int batch);
+
+    /**
+     * Return every expired claim to the queue, incrementing its attempt count (26-11).
+     *
+     * <p>Runs on a timer, so there is no request and no tenant context — and therefore <b>this is
+     * the one statement in this repository that does not name a tenant</b>. That is safe because it
+     * reads nothing into a response: it moves a status back and touches no row belonging to a
+     * caller. Stated rather than left for a reader to notice.
+     *
+     * <p>A job at the attempt limit is dead-lettered here rather than looping forever, so an agent
+     * that reliably dies mid-job produces a finite number of retries and then a visible dead letter.
+     */
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+           UPDATE print_jobs
+              SET status = CASE WHEN attempts + 1 >= 5 THEN 'DEAD_LETTERED' ELSE 'QUEUED' END,
+                  attempts = attempts + 1,
+                  claimed_by_agent_id = NULL,
+                  lease_expires_at = NULL,
+                  next_attempt_at = :now,
+                  last_error = 'LEASE_EXPIRED: the agent claimed this job and never acknowledged it',
+                  updated_at = now()
+            WHERE status = 'CLAIMED'
+              AND lease_expires_at IS NOT NULL
+              AND lease_expires_at <= :now
+           """, nativeQuery = true)
+    int reclaimExpiredLeases(@Param("now") java.time.Instant now);
+
     /** Every issue of every document for one order — the reprint history (26-08). */
     @Query("""
            SELECT j FROM PrintJob j

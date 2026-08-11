@@ -99,4 +99,20 @@ public class PrintJob extends TenantAuditableEntity {
 
     @Column(name = "idempotency_key", length = 120)
     private String idempotencyKey;
+
+    /**
+     * The agent currently holding this job (26-11). Recorded so a late acknowledgement from an
+     * agent whose lease already expired can be refused: if the sweep handed the job to a sibling
+     * agent, marking it PRINTED here would mark as done a job the sibling is still printing.
+     */
+    @Column(name = "claimed_by_agent_id")
+    private UUID claimedByAgentId;
+
+    /** When the current claim stops being valid. Null unless {@code status == CLAIMED}. */
+    @Column(name = "lease_expires_at")
+    private Instant leaseExpiresAt;
+
+    /** Server-side backoff. Null means claimable now. */
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
 }

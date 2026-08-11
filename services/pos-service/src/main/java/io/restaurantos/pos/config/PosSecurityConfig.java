@@ -21,9 +21,12 @@ import org.springframework.web.client.RestClient;
 public class PosSecurityConfig {
 
     private final PosInternalServiceFilter internalServiceFilter;
+    private final PrintAgentCredentialFilter printAgentCredentialFilter;
 
-    public PosSecurityConfig(PosInternalServiceFilter internalServiceFilter) {
+    public PosSecurityConfig(PosInternalServiceFilter internalServiceFilter,
+                             PrintAgentCredentialFilter printAgentCredentialFilter) {
         this.internalServiceFilter = internalServiceFilter;
+        this.printAgentCredentialFilter = printAgentCredentialFilter;
     }
 
     @Bean
@@ -40,18 +43,6 @@ public class PosSecurityConfig {
     @Bean
     public AuthorizationService authorizationService(OpaClient opaClient) {
         return new AuthorizationService(opaClient);
-    }
-
-    /**
-     * The encoder for print-agent credentials (26-11).
-     *
-     * <p>BCrypt at cost 12 — deliberately the SAME construction auth-service uses for user
-     * passwords, not a second scheme chosen here. One hashing decision in this product, made once,
-     * so "how are credentials stored" has one answer rather than one per service.
-     */
-    @Bean
-    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
-        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12);
     }
 
     @Bean
@@ -72,7 +63,11 @@ public class PosSecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(jwtAuthenticationFilter, PosInternalServiceFilter.class);
+            .addFilterAfter(jwtAuthenticationFilter, PosInternalServiceFilter.class)
+            // 26-11. Deliberately NOT paired with a permitAll entry above: the agent paths stay
+            // under anyRequest().authenticated(), and this filter is what authenticates them. An
+            // open path guarded only by its controller is one refactor away from being open.
+            .addFilterAfter(printAgentCredentialFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }
