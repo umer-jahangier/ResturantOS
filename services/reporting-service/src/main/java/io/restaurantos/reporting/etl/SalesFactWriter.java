@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +44,9 @@ public class SalesFactWriter {
 
     public void write(EventEnvelope<OrderClosedPayload> env, LocalDate businessDate) {
         OrderClosedPayload payload = env.payload();
-        Timestamp closedAt = Timestamp.from(payload.closedAt());
+        // MUST go through AnalyticsInstant — a java.sql.Timestamp here silently stores local
+        // wall-clock in a UTC column (DEFECT-37-03-B; see AnalyticsInstant for the measurements).
+        OffsetDateTime closedAt = AnalyticsInstant.utc(payload.closedAt());
 
         clickHouseJdbcTemplate.update(INSERT_ORDER_SQL,
                 env.tenantId(),

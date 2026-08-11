@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.sql.Timestamp;
 import java.time.LocalDate;
 
 /**
@@ -42,7 +41,8 @@ public class PurchaseTaxFactWriter {
                 payload.inputTaxPaisa(),
                 payload.amountPaisa(),
                 payload.matchStatus(),
-                Timestamp.from(env.occurredAt()),
+                // DEFECT-37-03-B — never a java.sql.Timestamp against a UTC column.
+                AnalyticsInstant.utc(env.occurredAt()),
                 env.eventId());
     }
 }

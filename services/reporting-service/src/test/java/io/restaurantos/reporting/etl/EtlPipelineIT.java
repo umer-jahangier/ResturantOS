@@ -214,6 +214,18 @@ class EtlPipelineIT {
                     orderId);
             assertThat(((Number) row.get("total_paisa")).longValue()).isEqualTo(payload.totalPaisa());
             assertThat(((Number) row.get("tax_paisa")).longValue()).isEqualTo(payload.taxPaisa());
+
+            // DEFECT-37-03-B regression. Until this assertion existed, NOTHING in the suite ever
+            // read a timestamp column back, so the ETL stored local wall-clock in a UTC column
+            // (+5h on this deployment) through four green tests. Compare absolute instants —
+            // toString() would compare wall-clocks and hide exactly the defect under test.
+            Long storedMillis = clickHouseJdbcTemplate.queryForObject(
+                    "SELECT toUnixTimestamp64Milli(closed_at) FROM clickhouse_analytics.sales_order_facts "
+                            + "WHERE order_id = ?", Long.class, orderId);
+            assertThat(storedMillis)
+                    .as("closed_at must be the true instant, not the JVM's local wall-clock "
+                            + "(JVM zone here = %s)", java.util.TimeZone.getDefault().getID())
+                    .isEqualTo(closedAt.toEpochMilli());
         });
     }
 
