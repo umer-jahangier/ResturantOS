@@ -977,12 +977,12 @@ Plans:
 - [x] 28-03-PLAN.md (wave 1) — KDS WebSocket validates tenant and branch; closes a live cross-tenant read (SC5)
 - [x] 28-04-PLAN.md (wave 2) — `pos_terminals` + menu-scope and station-set join tables, admin CRUD behind `pos.terminals.admin` (D-28-03)
 - [x] 28-05-PLAN.md (wave 2) — per-branch `menu_item/category_station_routes` + `StationRoutingResolver`; closes the cross-branch overwrite (SC3)
-- [ ] 28-06-PLAN.md (wave 2) — station admin UI; the backend CRUD gets its first caller (D-28-05)
+- [x] 28-06-PLAN.md (wave 2) — station admin UI; the backend CRUD gets its first caller (D-28-05)
 - [x] 28-07-PLAN.md (wave 2) — kitchen-service enforces the station scope on tickets, station list and socket; no assignment means everything (D-28-02)
 - [ ] 28-08-PLAN.md (wave 3) — split-ticket proof on a real spanning order + `ORDER_READY` cross-station fix (D-28-04)
 - [ ] 28-09-PLAN.md (wave 3) — terminal admin UI with the menu-scope picker (D-28-03)
 - [ ] 28-10-PLAN.md (wave 3) — menu-item and category→station routing UI (D-28-04, D-28-05)
-- [ ] 28-11-PLAN.md (wave 3) — station assignment in the user create/edit form (D-28-02) — **the user's stated gap**
+- [x] 28-11-PLAN.md (wave 3) — station assignment in the user create/edit form (D-28-02) — **the user's stated gap**
 - [ ] 28-12-PLAN.md (wave 3) — `orders.terminal_id` + `source`, branch-validated; till rule untouched (D-28-06)
 - [ ] 28-13-PLAN.md (wave 4) — POS terminal selection and menu-grid scoping (D-28-03)
 - [ ] 28-14-PLAN.md (wave 5) — browser proof of the whole definition of done + live gateway script (D-28-05)

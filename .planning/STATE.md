@@ -7,13 +7,13 @@ current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
 last_updated: "2026-08-11T19:32:19.979Z"
-last_activity: 2026-08-11
-last_activity_desc: Phase 35 execution started
+last_activity: 2026-08-12
+last_activity_desc: Phase 28 — 28-06 and 28-11 executed and verified in a browser
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 163
+  completed_plans: 165
   percent: 79
 ---
 
@@ -41,19 +41,31 @@ Corrective action: subsequent phases go through /gsd-plan-phase before /gsd-exec
 <!--
 PHASE 28 — Stations, POS Profiles & Staff Assignment (session of 2026-08-11/12)
 
-Executed 28-01 … 28-05 and 28-07 of 14 through the GSD workflow (PLAN -> atomic commits per task ->
-SUMMARY). Waves 1 and 2's BACKEND is complete; the four wave-2/3 FRONTEND plans and the remaining
-backend/e2e plans are NOT started: 28-06, 28-08, 28-09, 28-10, 28-11, 28-12, 28-13, 28-14.
+Executed 28-01 … 28-07 and 28-11 of 14 through the GSD workflow (PLAN -> atomic commits per task ->
+SUMMARY). All BACKEND plans are complete. The station admin UI (28-06) and the station picker on the
+account form (28-11) landed in the session of 2026-08-12 and are VERIFIED IN A REAL BROWSER.
+NOT started: 28-08, 28-09, 28-10, 28-12, 28-13, 28-14.
 
-WHAT AN OPERATOR CAN DO NOW, OVER HTTP, AND WHAT THEY STILL CANNOT
-  CAN (API): create a typed station (KITCHEN/BAR/PANTRY/EXPO/DESSERT); create a POS terminal
-    profile with a menu scope and a station set; route an item or a whole category to a station
-    PER BRANCH; bind a user to zero or more stations and have that ride their access token; and
-    have kitchen-service honour that scope on the board, the station list and the live socket.
-  CANNOT (yet): do ANY of it from the UI. Every one of those is an API-only capability until
-    28-06/09/10/11/13 land, so D-28-05 ("nothing seeded by developers, all tenant-manageable")
-    is NOT yet satisfied end to end, and the phase's definition of done is NOT met.
-  NOT VERIFIED IN A BROWSER. No screenshot evidence exists for this phase yet.
+WHAT AN OPERATOR CAN DO NOW, FROM A SCREEN, AND WHAT THEY STILL CANNOT
+  CAN (UI, proven in a browser 2026-08-12, screenshots in the phase directory):
+    - create/rename/retype/retire/restore a typed station at /app/stations (28-06);
+    - bind a staff account to zero or more of that branch's stations, in the SAME dialog as the
+      branch and the role, at creation and at edit, and read the assignment back off the user
+      detail panel (28-11) — this is the user's stated gap, and it is closed.
+    Measured end to end: a station created through the form as `bar` stores as `BAR`; an account
+    created through the form with BAR ticked reads back
+    `GET /api/v1/users/{id}/stations -> [{stationCodes:["BAR"]}]`, its own access token carries
+    `attributes.stations = ["BAR"]`, and `GET /api/v1/kitchen/kds/stations` returns a NARROWER set
+    for it than for an unassigned kitchen account.
+  CAN (API only, still no UI): create a POS terminal profile with a menu scope and a station set
+    (28-04); route an item or a whole category to a station per branch (28-05). Those need 28-09,
+    28-10 and 28-13.
+  CANNOT (yet): show a bar TICKET on a bar board. `kds_stations` is a PROJECTION — a station gets a
+    row there only once a ticket has been fired to it, and firing a drink to the bar needs the
+    item->station routing UI (28-10). So the station scope is proven to FILTER and proven not to
+    affect an unassigned user, but "the bartender sees bar tickets and the cook does not" is not
+    yet demonstrable from screens alone. D-28-05 is satisfied for stations and staff assignment,
+    NOT yet for terminals or menu routing.
 
 THE CLAIM CONTRACT other plans depend on (28-01):
   JWT: attributes.stations = sorted List<String> of station CODES.
