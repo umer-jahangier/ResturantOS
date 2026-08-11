@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { MonitorSmartphone } from "lucide-react";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { generatePalette, type ThemePalette } from "@/lib/theme/palette-generator";
@@ -71,11 +72,98 @@ function PaletteSwatch({
   );
 }
 
+/**
+ * The key `(tenant)/layout.tsx` reads on every load to decide whether to inject `/api/theme`.
+ * Named here rather than repeated as a literal so the reader and the writer cannot drift.
+ */
+const STORAGE_KEY = "tenant-theme-settings";
+
+/**
+ * Read back what was last saved — in THIS browser, which is the only place it was ever written.
+ *
+ * <p>Measured before this existed, on 2026-08-11, signed in as `admin@terrace.local`: choose
+ * Emerald `#10b981`, enter a logo URL, save, reload. The theme `<link>` WAS injected (so the app
+ * turned green) and the form came back reading `3b82f6` with an empty logo field. The product was
+ * therefore showing a green interface next to a form insisting the brand colour was blue, and the
+ * logo URL had been written to storage that nothing on earth reads.
+ *
+ * <p>That is the half this closes. The other half — that none of it leaves this browser — is closed
+ * by saying so, not by pretending, because there is no endpoint to close it with.
+ */
+function readStoredSettings(): string | null {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // Unreadable storage is the same as no storage. Never throw out of a render path over it.
+    return null;
+  }
+}
+
+function parseStoredSettings(raw: string | null): AppearanceSettings | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<AppearanceSettings>;
+    if (typeof parsed.brandColor !== "string" || !HEX_REGEX.test(parsed.brandColor)) return null;
+    return {
+      brandColor: parsed.brandColor,
+      logoUrl: typeof parsed.logoUrl === "string" ? parsed.logoUrl : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+// `useSyncExternalStore` and not a lazy `useState`, for the reason `(tenant)/layout.tsx` uses an
+// effect for the same value: the server renders this form and cannot see localStorage, so reading
+// it during the first client render is a hydration mismatch. The server snapshot is null, the
+// client adopts the stored value on the commit after hydration, and the `key` below remounts the
+// fields around it — which is the only way a form whose inputs are `useState`-initialised can take
+// on a value that arrives after mount.
+const subscribeToNothing = () => () => {};
+
+/**
+ * Settings → Appearance.
+ *
+ * <p><b>This screen saves to this browser and to nowhere else, and it now says so.</b> There is no
+ * tenant-theme API: `PUT/GET /api/v1/tenants/{id}/theme` answers 404, as do `/api/v1/tenant-profile`
+ * and `/api/v1/settings` (measured as TENANT_ADMIN through the real gateway, 2026-08-11). The
+ * "Phase 7 backend contract" this file has cited since it was written was never built.
+ *
+ * <p>The brief for this work is "persist through a real API, or state plainly in the UI that a
+ * setting is not yet persisted — never silently discard input". There is no API to persist through,
+ * so the second option is the honest one, and the notice is placed above the controls rather than
+ * in small print underneath them.
+ */
 export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceFormProps) {
+  const storedRaw = useSyncExternalStore(subscribeToNothing, readStoredSettings, () => null);
+  const stored = parseStoredSettings(storedRaw);
+
+  return (
+    <AppearanceFormFields
+      // Remount when the stored value first becomes readable (server null → client value), so the
+      // uncontrolled inputs below pick it up instead of keeping the defaults they mounted with.
+      key={stored?.brandColor ?? "unset"}
+      initialColor={stored?.brandColor ?? initialColor}
+      initialLogoUrl={stored?.logoUrl ?? ""}
+      {...(onSave ? { onSave } : {})}
+    />
+  );
+}
+
+function AppearanceFormFields({
+  initialColor,
+  initialLogoUrl,
+  onSave,
+}: {
+  initialColor: string;
+  initialLogoUrl: string;
+  onSave?: (settings: AppearanceSettings) => void;
+}) {
   const [brandColor, setBrandColor] = useState(initialColor);
   const [hexInput, setHexInput] = useState(initialColor.replace(/^#/, ""));
   const [palette, setPalette] = useState<ThemePalette>(() => generatePalette(initialColor));
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   const {
     register,
@@ -84,7 +172,7 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
     formState: { errors },
   } = useForm<AppearanceFormValues>({
     resolver: createZodResolver(appearanceSchema),
-    defaultValues: { brandColor: initialColor, logoUrl: "" },
+    defaultValues: { brandColor: initialColor, logoUrl: initialLogoUrl },
   });
 
   const applyColor = (hex: string) => {
@@ -115,14 +203,19 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
       logoUrl: data.logoUrl,
     };
 
-    // Persistence stub (localStorage).
-    // Phase 7 backend contract: PUT /api/v1/tenants/:id/theme { brandColor, logoUrl }
+    // localStorage is the whole of persistence here, and the notice above the form says so.
+    // A failure used to be swallowed with `// silently skip`, which meant a private-mode browser
+    // showed "Saved successfully" over a save that did not happen — the same class of lie this
+    // screen's copy is being fixed for, one level down. It is now reported.
     try {
-      localStorage.setItem("tenant-theme-settings", JSON.stringify(settings));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch {
-      // storage unavailable in some browser contexts — silently skip
+      setSaveFailed(true);
+      setSaveSuccess(false);
+      return;
     }
 
+    setSaveFailed(false);
     onSave?.(settings);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
@@ -130,6 +223,19 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" aria-label="Appearance settings">
+      {/* GA-009 / the settings-that-forget defect. Above the controls, not under them: a caveat
+          a user reads after choosing a colour and clicking Save has already failed at its job. */}
+      <div
+        data-testid="appearance-not-persisted"
+        className="flex items-start gap-2 rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
+      >
+        <MonitorSmartphone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span>
+          <span className="font-medium">Saved in this browser only.</span> There is no API to store
+          a restaurant&apos;s branding yet, so this is not attached to your account: colleagues, and
+          you on another device, will see the default colours. Clearing your browser data resets it.
+        </span>
+      </div>
       {/* Preset colour swatches */}
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium text-foreground">Brand colour presets</legend>
@@ -229,8 +335,9 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
           aria-describedby="logo-url-hint"
         />
         <p id="logo-url-hint" className="text-xs text-muted-foreground">
-          File upload will be available in a future release. Provide a publicly accessible URL for
-          now.
+          Stored alongside the colour in this browser — but nothing in the app renders a restaurant
+          logo yet, so setting it changes nothing you can see today. It is kept rather than dropped
+          so it is here when a logo surface ships.
         </p>
         {errors.logoUrl && (
           <p role="alert" className="mt-0.5 text-xs text-destructive">
@@ -251,7 +358,13 @@ export function AppearanceForm({ initialColor = "#3b82f6", onSave }: AppearanceF
         </button>
         {saveSuccess && (
           <p role="status" className="text-sm text-success">
-            Saved successfully
+            Saved in this browser
+          </p>
+        )}
+        {saveFailed && (
+          <p role="alert" className="text-sm text-destructive">
+            This browser refused to store the setting, so nothing was saved. Private browsing and
+            blocked site data both do this.
           </p>
         )}
       </div>

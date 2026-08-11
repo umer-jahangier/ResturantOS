@@ -94,7 +94,7 @@ export function useNavItemVisible(
   if (!hasRole(roles, item.roles)) {
     return false;
   }
-  if (!hasPermission(permissions, item.permission)) {
+  if (!hasPermission(permissions, item.permission, item.permissionMode)) {
     return false;
   }
   return hasFeature(item.feature, features, isPending, isError, failOpen);
@@ -116,7 +116,7 @@ export function useNavGroupVisibility(
       if (!hasRole(roles, item.roles)) {
         return false;
       }
-      if (!hasPermission(permissions, item.permission)) {
+      if (!hasPermission(permissions, item.permission, item.permissionMode)) {
         return false;
       }
       return hasFeature(item.feature, features, isPending, isError, failOpen);

@@ -67,6 +67,16 @@ const NAV_PERMISSIONS = {
   ],
 } as const;
 
+/**
+ * 19-01: the two administration codes TENANT_ADMIN holds INSTEAD of `rbac.manage`.
+ *
+ * <p>13-02 split user and branch administration off the umbrella code precisely so a tenant admin
+ * cannot mint an OWNER, and this is the first phase whose nav reads them. Measured on a live
+ * TENANT_ADMIN token (`admin@terrace.local`, 2026-08-11): 68 permissions including
+ * `rbac.user.manage`, `rbac.role.manage` and `branch.manage`, and NOT `rbac.manage`.
+ */
+const TENANT_ADMIN_NAV_CODES = ["rbac.user.manage", "branch.manage"];
+
 interface RoleFixture {
   role: string;
   roles: string[];
@@ -82,8 +92,14 @@ const FIXTURES: Record<string, RoleFixture> = {
   TENANT_ADMIN: {
     role: "TENANT_ADMIN",
     roles: ["TENANT_ADMIN"],
-    // Everything except `rbac.manage` — 13-02 split user/branch administration off it.
-    permissions: NAV_PERMISSIONS.full.filter((code) => code !== "rbac.manage"),
+    // Everything except `rbac.manage` — 13-02 split user/branch administration off it — PLUS the
+    // two narrower codes it holds in its place. Before 19-01 those were omitted because no nav item
+    // read them; the Settings group now does, and omitting them would make this fixture describe a
+    // principal that does not exist.
+    permissions: [
+      ...NAV_PERMISSIONS.full.filter((code) => code !== "rbac.manage"),
+      ...TENANT_ADMIN_NAV_CODES,
+    ],
   },
   MANAGER: {
     role: "MANAGER",
@@ -203,14 +219,20 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["HR", "Customers"] },
       { group: "Reporting", items: ["Reports", "Realtime Dashboard", "Ask (NLQ)"] },
-      { group: "Settings", items: ["Appearance"] },
+      // 19-01: General and Users stopped being `comingSoon` when their pages shipped. OWNER
+      // reaches both through `rbac.manage`, which is `any`-matched against the narrower codes.
+      { group: "Settings", items: ["General", "Appearance", "Users"] },
     ]);
   });
 
-  it("TENANT_ADMIN sees the same as OWNER — `rbac.manage` gates only comingSoon items today", async () => {
-    // Not a bug: the two items `rbac.manage` would unlock (Settings → Users) are
-    // `comingSoon: true`, so today the difference is invisible in the nav. Recorded here so
-    // that when `/app/settings/users` ships, THIS assertion is what forces the split.
+  it("TENANT_ADMIN reaches Settings and Users through the NARROW codes, not `rbac.manage`", async () => {
+    // This is the assertion the pre-19-01 version of this file said would force the split when
+    // `/app/settings/users` shipped. It ships here — and the split turns out to be that the two
+    // roles see the SAME nav for a different reason: OWNER via `rbac.manage`, TENANT_ADMIN via
+    // `rbac.user.manage` / `branch.manage`. That equality is the requirement, not a coincidence:
+    // administering users is what a tenant admin is FOR, and the endpoints agree
+    // (`hasAnyAuthority('rbac.manage','rbac.user.manage')`). The control below is what makes this
+    // assertion mean something — strip the narrow codes and the group collapses.
     expect(await visibleNavFor(FIXTURES.TENANT_ADMIN!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
@@ -222,8 +244,25 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["HR", "Customers"] },
       { group: "Reporting", items: ["Reports", "Realtime Dashboard", "Ask (NLQ)"] },
-      { group: "Settings", items: ["Appearance"] },
+      { group: "Settings", items: ["General", "Appearance", "Users"] },
     ]);
+  });
+
+  it("the narrow codes are LOAD-BEARING — without them a tenant admin loses General and Users", async () => {
+    // The control for the assertion above. `TENANT_ADMIN` minus `rbac.user.manage` and
+    // `branch.manage` is a principal that holds no administration code at all, and the Settings
+    // group must collapse to the role-gated Appearance entry. Without this, "TENANT_ADMIN sees
+    // General and Users" would pass just as happily against a nav that gates them on nothing.
+    const stripped = {
+      role: "TENANT_ADMIN",
+      roles: ["TENANT_ADMIN"],
+      permissions: NAV_PERMISSIONS.full.filter((code) => code !== "rbac.manage"),
+    };
+    const nav = await visibleNavFor(stripped, ENTERPRISE_FEATURES);
+    expect(nav.find((g) => g.group === "Settings")).toEqual({
+      group: "Settings",
+      items: ["Appearance"],
+    });
   });
 
   it("MANAGER gets operations and reports but no ledger, no HR, no Appearance", async () => {
@@ -319,10 +358,14 @@ describe("nav permission matrix — comingSoon items reach no surface", () => {
   afterEach(() => clearSession());
 
   it("no route without a page.tsx is ever rendered, for any role", async () => {
-    // UI-SPEC §4.2 "Dead links must be fixed, not carried over". These three hrefs have no
-    // page and are marked `comingSoon`; before 20-01 the mobile bar and the profile menu
-    // linked to the first of them anyway.
-    const DEAD = ["/app/settings", "/app/settings/users", "/app/reporting"];
+    // UI-SPEC §4.2 "Dead links must be fixed, not carried over".
+    //
+    // 19-01 shrank this list rather than editing it around: `/app/settings` and
+    // `/app/settings/users` are gone from it because the first now HAS a page and the second was
+    // never built and never will be — Users lives at `/app/users`, and the nav entry moved rather
+    // than a second route being invented to match a placeholder href. `/app/reporting` is still
+    // unbuilt and still `comingSoon`.
+    const DEAD = ["/app/settings/users", "/app/reporting"];
     for (const key of Object.keys(FIXTURES)) {
       const nav = await visibleNavFor(FIXTURES[key]!, ENTERPRISE_FEATURES);
       const hrefs = [...document.querySelectorAll("[data-testid='nav-item']")].map((a) =>

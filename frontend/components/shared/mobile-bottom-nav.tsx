@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DollarSign, LayoutDashboard, Palette, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { DollarSign, LayoutDashboard, Settings, ShoppingCart, UtensilsCrossed } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { NavItem } from "./sidebar-nav-items";
@@ -16,12 +16,15 @@ import { useNavGroupVisibility } from "@/lib/hooks/auth/use-nav-visibility";
 // permission and feature (feature fails open on error, hides while pending), plus the two
 // this bar never honoured: `roles` and — the reason for the change — `comingSoon`.
 //
-// The dead link this fixes: the fifth tab pointed at `/app/settings`, which has no
-// `page.tsx` and never has. `sidebar-nav-items.ts:334` has marked it `comingSoon: true`
-// since it was added; the mobile bar never got the memo, so a phone user tapping Settings
-// got a 404 (UI-SPEC §4.2 "Dead links must be fixed, not carried over"). The only settings
-// surface that actually exists is `/settings/appearance`, so that is where the tab goes —
-// role-gated exactly as its sidebar twin is (`sidebar-nav-items.ts:336-342`).
+// The dead link 20-01 fixed: the fifth tab pointed at `/app/settings`, which had no
+// `page.tsx`. `sidebar-nav-items.ts` had marked it `comingSoon: true` since it was added;
+// the mobile bar never got the memo, so a phone user tapping Settings got a 404 (UI-SPEC
+// §4.2 "Dead links must be fixed, not carried over"). 20-01 pointed the tab at
+// `/settings/appearance`, the only settings surface that then existed.
+//
+// 19-01: `/app/settings` is now a real page and is the hub Appearance sits inside, so the tab
+// points back at it — this time at a route that exists, gated on the permissions the page's own
+// guard checks rather than on a role list that would drift from it.
 const BOTTOM_NAV_ITEMS: NavItem[] = [
   {
     label: "Dashboard",
@@ -50,10 +53,11 @@ const BOTTOM_NAV_ITEMS: NavItem[] = [
     feature: "FEATURE_FINANCE",
   },
   {
-    label: "Appearance",
-    href: "/settings/appearance",
-    icon: Palette,
-    roles: ["OWNER", "TENANT_ADMIN"],
+    label: "Settings",
+    href: "/app/settings",
+    icon: Settings,
+    permission: ["rbac.manage", "branch.manage"],
+    permissionMode: "any",
   },
 ];
 

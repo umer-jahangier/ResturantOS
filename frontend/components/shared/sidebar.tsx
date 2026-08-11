@@ -100,8 +100,19 @@ function GuardedNavItem({ item, collapsed, pathname }: GuardedNavItemProps) {
     link
   );
 
+  // 19-01: `mode` must be forwarded. The sidebar gates every item TWICE — once through
+  // `useNavGroupVisibility` in `NavGroupSection` below, and again here — and this copy defaulted
+  // to `mode="all"`. So an item declaring `permission: ["rbac.manage","rbac.user.manage"]` with
+  // `permissionMode: "any"` passed the hook and was then hidden by the guard, silently, for the
+  // one role it was written for. Measured live: a TENANT_ADMIN saw Settings → Appearance alone
+  // while the mobile bar (which uses the hook only) showed Settings correctly.
+  //
+  // Forwarding it is the one-line fix. The double gate itself is the real defect and is left
+  // named rather than removed, because collapsing the two is a change to every nav item at once.
   const guarded = item.permission ? (
-    <PermissionGuard require={item.permission}>{withFeature}</PermissionGuard>
+    <PermissionGuard require={item.permission} mode={item.permissionMode ?? "all"}>
+      {withFeature}
+    </PermissionGuard>
   ) : (
     withFeature
   );

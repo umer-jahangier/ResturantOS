@@ -122,23 +122,36 @@ function Breadcrumb() {
 }
 
 // Every entry here must resolve to a route that exists (UI-SPEC §4.2, §4.3).
-// `/app/settings` used to sit in this list and in the profile menu below; it has no
-// `page.tsx` and `sidebar-nav-items.ts:334` has marked it `comingSoon: true` all along —
-// only the shell chrome never got the memo. `/settings/profile` was dead the same way.
+// `/app/settings` used to sit in this list and in the profile menu below; it had no
+// `page.tsx` and `sidebar-nav-items.ts` marked it `comingSoon: true` all along — only the
+// shell chrome never got the memo. `/settings/profile` was dead the same way.
+//
+// 19-01: both destinations now exist — `/app/settings` and `/app/profile` have real pages —
+// so they come back, each gated the way the page itself is. Profile carries no gate at all:
+// every signed-in user has one, which is the point of GA-019.
 // The real GlobalSearch (business objects, permission-filtered) is UI-SPEC §4.4 / step 6;
 // this list stays a stopgap, but a stopgap without 404s.
-const NAV_COMMANDS = [
+const NAV_COMMANDS: { label: string; href: string; roles?: string[]; permissions?: string[] }[] = [
   { label: "Dashboard", href: "/app/dashboard" },
+  { label: "Your profile", href: "/app/profile" },
+  { label: "Users", href: "/app/users", permissions: ["rbac.manage", "rbac.user.manage"] },
+  { label: "Settings", href: "/app/settings", permissions: ["rbac.manage", "branch.manage"] },
   { label: "Appearance", href: "/settings/appearance", roles: ["OWNER", "TENANT_ADMIN"] },
 ];
 
 export function TopBar({ onMobileMenuToggle }: TopBarProps) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-  const { userId, branchId, roles } = useCurrentUser();
+  const { userId, branchId, roles, permissions } = useCurrentUser();
   const canSeeAppearance = roles.includes("OWNER") || roles.includes("TENANT_ADMIN");
+  // `any` of the listed codes, matching the backend's own `hasAnyAuthority(…)` gates: OWNER holds
+  // `rbac.manage`, TENANT_ADMIN deliberately holds only the narrower codes (13-02).
+  const canSeeSettings =
+    permissions.includes("rbac.manage") || permissions.includes("branch.manage");
   const navCommands = NAV_COMMANDS.filter(
-    (cmd) => !cmd.roles || cmd.roles.some((role) => roles.includes(role)),
+    (cmd) =>
+      (!cmd.roles || cmd.roles.some((role) => roles.includes(role))) &&
+      (!cmd.permissions || cmd.permissions.some((code) => permissions.includes(code))),
   );
   const { data: myBranches = [], isLoading: branchesLoading } = useMyBranches();
   const logout = useLogout();
@@ -237,19 +250,29 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {/* Was `Profile` → /settings/profile and `Settings` → /app/settings. Neither
-                  route exists; `find app -ipath '*settings*' -name page.tsx` returns only
-                  the appearance page. A menu whose every item 404s is worse than a short
-                  menu, so the one real destination is the one that is offered — and only
-                  to the roles its sidebar twin admits. Profile returns when the page does. */}
-              {canSeeAppearance ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings/appearance">Appearance</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                </>
+              {/* `Profile` → /settings/profile and `Settings` → /app/settings were removed here
+                  because neither route existed. 19-01 built them, at `/app/profile` and
+                  `/app/settings`, so they return — which is the whole of GA-019's second half:
+                  for six of the eight seeded roles this menu was `Log out` alone.
+
+                  Profile is offered to EVERYONE. It is the one page in the product whose gate is
+                  "you are signed in": changing your own password takes the subject from the token
+                  and has no field for anyone else, so there is no permission that could sensibly
+                  withhold it. */}
+              <DropdownMenuItem asChild>
+                <Link href="/app/profile">Your profile</Link>
+              </DropdownMenuItem>
+              {canSeeSettings ? (
+                <DropdownMenuItem asChild>
+                  <Link href="/app/settings">Settings</Link>
+                </DropdownMenuItem>
               ) : null}
+              {canSeeAppearance ? (
+                <DropdownMenuItem asChild>
+                  <Link href="/settings/appearance">Appearance</Link>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onSelect={handleLogout}
