@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 19
-current_phase_name: Admin Surfaces, Tables/Images, SuperAdmin Console (parallel)
+current_phase: 35
+current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-11T23:05:00.000Z"
+last_updated: "2026-08-11T18:11:36.907Z"
 last_activity: 2026-08-11
-last_activity_desc: Phase 13 complete (16 plans); 14, 14b, 15, 15c, 16a, 17b, 18b, 20 complete
+last_activity_desc: Phase 35 execution started
 progress:
-  total_phases: 38
-  completed_phases: 23
-  total_plans: 190
-  completed_plans: 180
-  percent: 60
+  total_phases: 19
+  completed_phases: 15
+  total_plans: 182
+  completed_plans: 156
+  percent: 79
 ---
 
 <!--
@@ -38,7 +38,6 @@ which is committed and is the real ground truth for that work.
 Corrective action: subsequent phases go through /gsd-plan-phase before /gsd-execute-phase.
 -->
 
-
 <!--
 PHASE 37 — Finance ↔ Orders Integration (session of 2026-08-11)
 
@@ -60,6 +59,7 @@ SUMMARY → state/roadmap). Plans 37-04 … 37-14 are NOT started.
       bash scripts/e2e/phase32-business-date-reconciliation.sh --apply
 
 ENVIRONMENT FACTS that affect every remaining plan in this phase:
+
   - `mvn test -Dtest=SomethingIT` reports SUCCESS having run ZERO tests, because surefire excludes
     `**/*IT.java`. Use `mvn verify -Dit.test=`. Several 37-* plans' <verify> blocks use the wrong form.
     THIS ONE IS REAL and applies to every phase.
@@ -117,9 +117,11 @@ different face depending on which container drew the poisoned port:
 
 - `Timed out waiting for URL to be accessible (http://localhost:34831/health should return HTTP 200)`
   after a full 60 s, with **no request in the container's log** — it never arrived.
+
 - `PSQLException: The connection attempt failed` a few seconds into Liquibase, on the next run.
 - `HTTP/1.1 header parser received no bytes` — which is *also* what an HTTP/2 upgrade attempt
   produces, so it reads as a client-config bug on a client already pinned to HTTP/1.1.
+
 - Sticky, per-container failures that kill a whole IT module mid-run, including a test that passed
   twenty minutes earlier on the same machine.
 
@@ -197,6 +199,7 @@ precisely the change that collides worst with an agent editing 19 harnesses conc
 1. **During the conversion:** the converting agent copies the twelve-line helper and its comment into
    each base it touches, and adds `server.address=127.0.0.1` to any `RANDOM_PORT` harness. No
    build-graph change, no collision, no waiting.
+
 2. **Immediately after, as its own commit:** extract to a `test-support` module (or a `shared-lib`
    test-jar) in one change that touches all the poms at once, when nothing else is editing them.
    Cheap then; a merge disaster now.
@@ -210,7 +213,7 @@ machine, a new IDE, and a developer who has never heard of this note.
 See: .planning/PROJECT.md (updated 2026-06-22)
 
 **Core value:** A restaurant tenant can run operations end-to-end — POS order → inventory depletion → balanced double-entry JE — with strict tenant/branch isolation and no accounting imbalance.
-**Current focus:** Phase 08.2 — inventory-master-data-procurement-catalog
+**Current focus:** Phase 35 — HR Usability & App-Wide Form Standard
 
 > **Integration repair (2026-08-02):** a source-level audit of the merged Phases 7–10 found that
 > the phases were individually complete and jointly disconnected — 8 blockers, 10 high, 8 medium.
@@ -236,9 +239,9 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: 10 — Purchasing & Accounts Payable
-Plan: Not started
-Status: Ready to execute
+Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING
+Plan: 1 of 14
+Status: Executing Phase 35
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
 Wave 1 (01-05, 20) = additive Flyway migrations (inventory V5, purchasing V5), the
@@ -298,7 +301,7 @@ registry asserted populated before sweep runs) — full module regression: 18 IT
 classes, all green. Tenant isolation on every domain table is completely unchanged. See
 08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-07-24 — Phase 08.2 complete, transitioned to Phase 10
+Last activity: 2026-08-11 — Phase 35 execution started
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
@@ -382,23 +385,29 @@ sixteen defects that made a working product look broken and empty.
   precedence `error → loading → empty → children`). **22 screens converted**, including two variants
   the register had not named: the "eternal spinner" (`isLoading || !data` also matches error) and
   failed sub-panels inside till review.
+
 - **GA-002** — `if (isPending) return false` treated NOT-YET-KNOWN as DENIED, and a 503 keeps a
   query pending through its whole retry backoff, so the broken branch was the one that ran.
   **D-14b-1:** navigation fails OPEN; 13-03's fail-CLOSED entitlement decision is untouched and the
   summary states why the two differ (the sidebar is not an authorization boundary).
+
 - **GA-008** — a new tenant's OWNER could not log in: TOTP enrolment had no UI and the message told
   the only account holder to ask an administrator. Enrolment now renders in the login card (the
   password never leaves form state). One additive backend change: the 401 carries the resolved
   tenant slug in `details`, disclosed only after the password has verified.
+
 - **GA-007 / GA-078** money through `MoneyDisplay`; **GA-006** loyalty tender removed from the
   picker (kept in the type so settled orders still parse); **GA-023** dashboard reads CLOSED orders
   server-side; **GA-032** sidebar brand from the session; **GA-053/091** dead links guarded + a
   branded 404; **GA-059/092/094/095** no-op and lying shell controls.
+
 - **Register corrected:** GA-093 is a false positive (the checkbox is implicitly labelled by its
   wrapping `<label>`); GA-096 is half wrong — the "Seed default leave types" button is the only way
   to create a leave type in the product, so it was relabelled, not deleted.
+
 - **Found while verifying:** the login form put the password in the URL on a pre-hydration submit.
   Fixed.
+
 - Gates: `format:check` / `lint` (9 expected warnings) / `tsc --noEmit` all green. Journey suite
   57 passed / 3 failed (baseline 50/56); all 3 pre-existing and logged in `deferred-items.md`.
 
@@ -884,7 +893,49 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-11T23:05:00.000Z
+Last session: 2026-08-11T23:40:00.000Z
+
+--- Phase 34 (Visual Design Language) — 4 of 8 plans complete, 2 partial ---
+
+Executed 2026-08-11 in wave order.
+
+**COMPLETE: 34-01, 34-02, 34-03, 34-04.**
+**PARTIAL: 34-06 (portlet treatment only), 34-07 (login only).**
+**NOT STARTED: 34-05 (state character), 34-08 (spec, latency measurement, bundle budget).**
+
+What landed, in one line each:
+- 34-01 — the three-zone spine (`data-zone` + React context), five compositing filters removed
+  (three were repainting the POS from the shell chrome above it), and a two-part containment gate
+  watched to fail three ways.
+- 34-02 — `compositeOver()` in the WCAG validator so a translucent surface is measurable as it
+  renders; glass + depth tokens authored SOLID-FIRST; a substrate manifest; 20 contrast rows
+  measured under both deployment conditions, all clearing AA. Binding constraint: 5.34:1.
+- 34-03 — a five-family motion vocabulary under the resting-state contract; reduced motion that
+  REMOVES decorative animation rather than shortening it; retirement of the 350ms navigation
+  entrance that was playing on the KDS board and POS terminal; a two-direction runtime gate.
+- 34-04 — GlassPanel / Reveal / RevealGroup / Card depth / usePointerTilt, plus a dependency gate
+  that forecloses three.js and friends BY NAME. Performance properties asserted by COUNTING calls.
+- 34-06 (partial) — glass portlets, depth grid, hover lift, staggered entrance. NO chart reveal,
+  NO count-up, NO dashboard-specific tests.
+- 34-07 (partial) — login card as glass over a MEASURED substrate. NO platform console, NO
+  settings screens, NO brand-hue contrast sweep.
+
+Carry-forward for whoever resumes:
+1. **The brand-hue sweep is the most substantive gap.** Glass contrast is proven at hue 195 only,
+   and the appearance screen can move `--brand-h` at runtime.
+2. 34-05 and 34-08 are untouched. 34-08 owns the SURFACE-MOTION-SPEC, the POS latency measurement
+   and the bundle delta — so the phase's definition of done is NOT met.
+3. framer-motion is still in package.json but reachable from no route (3 orphaned files).
+   `dependency-budget.test.ts` will fail if it is removed without updating the baseline in the
+   same commit — that is deliberate.
+4. Evidence (before/after, both themes) is in
+   `.planning/phases/34-visual-design-language/evidence/`.
+
+Environment notes recorded in that phase's `deferred-items.md`: a stale git stash dated
+2026-07-14 was popped across the repo mid-session leaving conflict markers in 12+ files; the
+gateway, auth-service and pos-service were rebuilt repeatedly by other agents, which
+intermittently failed the journeys suite for reasons unrelated to this phase.
+
 
 --- Phase 25 (Biometric Terminals, ZKTeco) — 3 of 13 plans complete ---
 
@@ -912,12 +963,14 @@ bounded per-serial failure logging (5 polls → 1 line, 0 stack traces, live-ver
 device routes now tripping the breaker on 500.
 
 **Two environment traps solved, both worth knowing before the next session:**
+
 1. Testcontainers ports were being hijacked by an IDE's automatic port forwarding, which holds
    listeners after containers die and accumulates across Docker's whole auto-allocation range.
    Containers started healthy and unreachable — 60s timeouts one run, connection failures the
    next. `HrTestBase` now claims a loopback port from the OS ephemeral range and binds Docker to
    it, so Docker binds first. 45 errors → 45 green, 62s → 13s. The test Tomcat needed the same
    (`server.address=127.0.0.1`).
+
 2. hr-service and gateway must be restarted after every rebuild, then `bash
    scripts/check-stale-jars.sh` run, before any live result is trusted.
 

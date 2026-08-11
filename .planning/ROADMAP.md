@@ -200,6 +200,7 @@ what happened dressed as a decision taken beforehand. See the process note in `S
 - [ ] **Phase 31: Tenant Onboarding** - guided, resumable setup driving the real Phase 13 APIs.
 - [ ] **Phase 32: Subscription Metering** - per-feature usage counters, soft/hard quotas, trial→past-due→suspended.
 - [ ] **Phase 33: NLQ Insights & Waste Control** - theoretical-vs-actual variance, the highest-value inventory feature for a restaurant.
+- [ ] **Phase 34: Visual Design Language** - glass, depth and motion on top of phase 20's tokens. **PARTIAL (2026-08-11): 4 of 8 plans complete, 2 partial, 2 not started.** Landed: the three-zone spine and its containment gate (34-01), composite-aware contrast + glass/depth tokens authored solid-first (34-02), the motion vocabulary and reduced-motion gate (34-03), the surface primitives and the dependency budget (34-04). Partial: dashboard portlet treatment (34-06), login only (34-07). **Outstanding: 34-05 (state character), 34-08 (SPEC + POS latency measurement + bundle delta), the SuperAdmin console and settings screens, the chart reveal and count-up, and the brand-hue contrast sweep — so the phase's definition of done is NOT met.**
 
 - [ ] **Phase 28: Multi-POS Terminals & KDS/BDS Routing** - 10d · needs 21. No user dependency.
 
