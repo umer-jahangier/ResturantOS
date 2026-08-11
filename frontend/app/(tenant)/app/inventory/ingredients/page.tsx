@@ -20,6 +20,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
@@ -29,14 +30,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const EMPTY_TITLE = "No ingredients yet";
 const EMPTY_BODY = "Add an ingredient to start building recipes and vendor catalogs.";
@@ -330,37 +323,18 @@ export default function IngredientsPage() {
 
       {/* Archive confirmation — no in-use refusal path for ingredients (unlike categories); a
           plain toast on error is acceptable, but the dialog only closes on success. */}
-      <Dialog
+      <ConfirmDialog
         open={archiving !== null}
         onOpenChange={(next) => {
           if (!next) setArchiving(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Archive ingredient</DialogTitle>
-            <DialogDescription>
-              {archiving
-                ? `Archive "${archiving.name}"? Existing recipes, stock and purchase history keep referencing it; it disappears from pickers for new use.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setArchiving(null)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleConfirmArchive}
-              disabled={archiveIngredient.isPending}
-            >
-              {archiveIngredient.isPending ? "Archiving…" : "Archive ingredient"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={archiving ? `Archive "${archiving.name}"?` : "Archive ingredient"}
+        body="Existing recipes, stock and purchase history keep referencing it; it disappears from pickers for new use."
+        confirmLabel="Archive ingredient"
+        pendingLabel="Archiving…"
+        onConfirm={handleConfirmArchive}
+        isPending={archiveIngredient.isPending}
+      />
     </PageBody>
   );
 }

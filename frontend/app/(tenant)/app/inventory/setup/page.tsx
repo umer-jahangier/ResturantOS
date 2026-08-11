@@ -16,19 +16,12 @@ import { StorageLocationFormDialog } from "@/components/inventory/StorageLocatio
 import { UomFormDialog } from "@/components/inventory/UomFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageBody } from "@/components/ui/page-body";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const MEASURE_TYPES = [
   { key: "WEIGHT", label: "Weight" },
@@ -307,7 +300,7 @@ export default function InventorySetupPage() {
 
       {/* Archive confirmation — mirrors the categories page: stays open and renders the server's
           refusal inline (role="alert") rather than a toast the user could miss. */}
-      <Dialog
+      <ConfirmDialog
         open={archiving !== null}
         onOpenChange={(next) => {
           if (!next) {
@@ -315,41 +308,14 @@ export default function InventorySetupPage() {
             setArchiveError(null);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Archive storage location</DialogTitle>
-            <DialogDescription>
-              {archiving
-                ? `Archive "${archiving.name}"? It stops being offered on the ingredient form, and nothing already filed there is moved.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          {archiveError ? (
-            <div
-              role="alert"
-              className="rounded-lg border bg-card px-2.5 py-2 text-small text-destructive"
-            >
-              {archiveError}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setArchiving(null)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleConfirmArchive}
-              disabled={archiveLocation.isPending}
-            >
-              {archiveLocation.isPending ? "Archiving…" : "Archive location"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={archiving ? `Archive "${archiving.name}"?` : "Archive storage location"}
+        body="It stops being offered on the ingredient form, and nothing already filed there is moved."
+        confirmLabel="Archive location"
+        pendingLabel="Archiving…"
+        error={archiveError}
+        onConfirm={handleConfirmArchive}
+        isPending={archiveLocation.isPending}
+      />
     </PageBody>
   );
 }

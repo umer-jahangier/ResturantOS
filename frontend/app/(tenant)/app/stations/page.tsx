@@ -10,17 +10,10 @@ import { StationList } from "@/components/stations/station-list";
 import { StationFormDialog } from "@/components/stations/station-form-dialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const EMPTY_TITLE = "No stations yet";
 const EMPTY_BODY =
@@ -173,31 +166,18 @@ export default function StationsPage() {
         }}
       />
 
-      <Dialog
+      <ConfirmDialog
         open={retireTarget !== null}
         onOpenChange={(next) => {
           if (!next) setRetireTarget(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Retire {retireTarget?.name}?</DialogTitle>
-            <DialogDescription>
-              Its screen stops receiving new tickets and it disappears from this list. Nothing is
-              deleted — past tickets keep naming it, and you can restore it from &ldquo;Show
-              retired&rdquo;.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRetireTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={confirmRetire} disabled={setActive.isPending}>
-              {setActive.isPending ? "Retiring…" : "Retire station"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={`Retire ${retireTarget?.name ?? "station"}?`}
+        body="Its screen stops receiving new tickets and it disappears from this list. Nothing is deleted — past tickets keep naming it, and you can restore it from “Show retired”."
+        confirmLabel="Retire station"
+        pendingLabel="Retiring…"
+        onConfirm={confirmRetire}
+        isPending={setActive.isPending}
+      />
     </div>
   );
 }

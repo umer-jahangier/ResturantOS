@@ -23,20 +23,13 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const EMPTY_CATALOG_TITLE = "No catalog items yet";
 const EMPTY_CATALOG_BODY =
@@ -388,36 +381,18 @@ export function VendorDetailPageContent({ vendorId }: { vendorId: string }) {
       )}
 
       {/* Archive confirmation — matches the Copywriting Contract's archive-vendor-item copy. */}
-      <Dialog
+      <ConfirmDialog
         open={archiving !== null}
         onOpenChange={(next) => {
           if (!next) setArchiving(null);
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Archive catalog item</DialogTitle>
-            <DialogDescription>
-              Archive this catalog item? Open purchase orders and price history are unaffected; it
-              drops out of the PO line picker.
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setArchiving(null)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleConfirmArchive}
-              disabled={archiveVendorItem.isPending}
-            >
-              {archiveVendorItem.isPending ? "Archiving…" : "Archive item"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title="Archive this catalog item?"
+        body="Open purchase orders and price history are unaffected; it drops out of the PO line picker."
+        confirmLabel="Archive item"
+        pendingLabel="Archiving…"
+        onConfirm={handleConfirmArchive}
+        isPending={archiveVendorItem.isPending}
+      />
     </div>
   );
 }

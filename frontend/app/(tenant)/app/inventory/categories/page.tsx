@@ -14,17 +14,10 @@ import { CategoryTree } from "@/components/inventory/category-tree";
 import { CategoryFormDialog } from "@/components/inventory/CategoryFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const EMPTY_TITLE = "No categories yet";
 const EMPTY_BODY =
@@ -219,7 +212,7 @@ export default function CategoriesPage() {
 
       {/* Archive confirmation — stays open and shows the server's refusal message inline
           (role="alert") rather than a toast the user could miss (UI-SPEC Screen 1). */}
-      <Dialog
+      <ConfirmDialog
         open={archiving !== null}
         onOpenChange={(next) => {
           if (!next) {
@@ -227,41 +220,14 @@ export default function CategoriesPage() {
             setArchiveError(null);
           }
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Archive category</DialogTitle>
-            <DialogDescription>
-              {archiving
-                ? `Archive "${archiving.name}"? Ingredients already assigned keep it; you won't be able to assign it to new ingredients until it's restored.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-
-          {archiveError ? (
-            <div
-              role="alert"
-              className="rounded-lg border bg-card px-2.5 py-2 text-sm text-destructive"
-            >
-              {archiveError}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setArchiving(null)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleConfirmArchive}
-              disabled={archiveCategory.isPending}
-            >
-              {archiveCategory.isPending ? "Archiving…" : "Archive category"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={archiving ? `Archive "${archiving.name}"?` : "Archive category"}
+        body="Ingredients already assigned keep it; you won't be able to assign it to new ingredients until it's restored."
+        confirmLabel="Archive category"
+        pendingLabel="Archiving…"
+        error={archiveError}
+        onConfirm={handleConfirmArchive}
+        isPending={archiveCategory.isPending}
+      />
     </div>
   );
 }
