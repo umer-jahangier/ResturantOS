@@ -93,8 +93,18 @@ export function MobileBottomNav() {
   });
 
   return (
+    /*
+     * Opaque, not translucent-plus-blur (D-34-02) — same reasoning as TopBar, and it
+     * matters more here. This bar is `fixed` at the bottom of the viewport on exactly
+     * the device class the operational zone is optimised for, so its compositing filter
+     * was repainting a strip of the POS terminal on every frame of every scroll.
+     *
+     * `bg-background` resolves to the same role token as the page beneath, so no new
+     * contrast pairing is introduced; separation is the top border plus elev-2 (this
+     * bar sits above content rather than below it, so it takes the higher level).
+     */
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-around border-t bg-background/95 backdrop-blur h-16 md:hidden"
+      className="fixed bottom-0 inset-x-0 z-40 flex h-16 items-center justify-around border-t bg-background shadow-elev-2 md:hidden"
       aria-label="Mobile navigation"
     >
       {BOTTOM_NAV_ITEMS.filter(isItemVisible).map((item) => (

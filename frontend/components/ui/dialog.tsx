@@ -5,6 +5,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useZone } from "@/components/providers/zone-provider";
 import { XIcon } from "lucide-react";
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -23,15 +24,34 @@ function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.C
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+/**
+ * The shared dialog overlay.
+ *
+ * The blur used to live here as a `supports-backdrop-filter:backdrop-blur-xs` utility,
+ * which meant every dialog in the product carried it — including the ones a cashier
+ * opens on the POS terminal. It is gone from this file entirely. The effect is now
+ * supplied by a single zone-scoped rule in globals.css keyed on `data-slot` +
+ * `data-zone`, so the CASCADE decides where glass is legal rather than developer
+ * discipline at each call site (D-34-02).
+ *
+ * That only works because of the `data-zone` stamp below, and this is the single most
+ * likely thing in this phase to be written, look correct, and do nothing: Radix portals
+ * this node to `document.body`, which is outside every zone subtree, so a rule written
+ * against DOM ancestry would never match. `useZone()` reads the zone at the TRIGGER's
+ * position in the React tree — which the portal preserves — and we copy it onto the
+ * portalled node by hand.
+ */
 function DialogOverlay({
   className,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  const zone = useZone();
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
+      data-zone={zone}
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 isolate z-50 bg-black/10 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}

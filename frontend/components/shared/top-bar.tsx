@@ -167,7 +167,21 @@ export function TopBar({ onMobileMenuToggle }: TopBarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:px-6">
+      {/*
+       * Opaque, not translucent-plus-blur (D-34-02). This header is a sibling of the
+       * page content, so it renders ABOVE the POS terminal and the KDS board on every
+       * one of those routes — a compositing filter here is a compositing filter on the
+       * operational zone, forcing a repaint of the screen beneath it on the cheap
+       * Android tablet a restaurant actually buys. The chrome cannot be richer than the
+       * poorest zone it can appear over.
+       *
+       * `bg-background` is the SAME role token the page beneath already resolves, so
+       * this introduces no new contrast pairing: every text-on-header pairing is a
+       * phase-20 §3.8 row that is already measured (foreground on background, 17.4:1
+       * light / 16.1:1 dark). Separation is now carried by the border plus elev-1
+       * rather than by translucency, which is what the token exists for.
+       */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 shadow-elev-1 lg:px-6">
         {/* Mobile hamburger */}
         <button
           type="button"

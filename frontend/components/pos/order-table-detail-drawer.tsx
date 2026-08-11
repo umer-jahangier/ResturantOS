@@ -27,6 +27,7 @@ import { useTableDetail } from "@/lib/hooks/pos/use-tables";
 import { useMenuItems } from "@/lib/hooks/pos/use-menu";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { useZone } from "@/components/providers/zone-provider";
 import { getOrderDisplayStatus, type MenuItem, type Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,7 @@ export function OrderTableDetailDrawer({
   onFullMenu,
 }: OrderTableDetailDrawerProps) {
   const { branchId } = useCurrentUser();
+  const zone = useZone();
   const isTableMode = !orderId && !!tableId;
 
   const orderQuery = useOrder(orderId ?? "");
@@ -114,7 +116,25 @@ export function OrderTableDetailDrawer({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        {/*
+         * No compositing filter, and no darkening either (D-34-02).
+         *
+         * This overlay blurred the POS screen behind it. That is the operational zone,
+         * and it is also pointless: a cashier mid-order needs the order state behind
+         * this drawer legible, so darkening the terminal buys nothing and costs a
+         * full-screen repaint on tablet hardware.
+         *
+         * `data-slot` and `data-zone` are stamped for the same reason the shared dialog
+         * overlay stamps them — this node is portalled to `document.body`, outside every
+         * zone subtree, so the zone-scoped rule in globals.css can only find it by
+         * attribute. `useZone()` resolves to `operational` here because the POS layout
+         * declares that zone and the portal preserves React tree position.
+         */}
+        <DialogPrimitive.Overlay
+          data-slot="dialog-overlay"
+          data-zone={zone}
+          className="fixed inset-0 z-50 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+        />
         {/*
          * Large in-place panel (POS-25/D-10) — occupies the primary content area (nearly
          * full viewport, responsive, no horizontal body overflow) rather than a centered
