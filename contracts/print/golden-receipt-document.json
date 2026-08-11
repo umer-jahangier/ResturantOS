@@ -1,0 +1,154 @@
+{
+  "schemaVersion" : "1.0",
+  "type" : "CUSTOMER_RECEIPT",
+  "provenance" : "SERVER",
+  "tenantId" : "11111111-1111-4111-8111-111111111111",
+  "branchId" : "22222222-2222-4222-8222-222222222222",
+  "orderId" : "33333333-3333-4333-8333-333333333333",
+  "orderNo" : "FT-2026-0811-1042",
+  "issue" : {
+    "sequenceNumber" : 1042,
+    "reprint" : false,
+    "issuedAt" : "2026-08-11T14:32:07Z",
+    "originalIssuedAt" : null
+  },
+  "header" : {
+    "branchName" : "Floating Terrace",
+    "addressLines" : [ "Street 12, F-7 Markaz", "Islamabad, ICT" ],
+    "phone" : "+92 51 234 5678",
+    "ntn" : "7000007-8",
+    "strn" : "17-00-9999-000-11",
+    "logoFileId" : "44444444-4444-4444-8444-444444444444"
+  },
+  "lines" : [ {
+    "name" : "Chicken Karahi (Full)",
+    "quantity" : 1,
+    "unitPrice" : {
+      "paisa" : 185000,
+      "formatted" : "Rs 1,850.00"
+    },
+    "lineTotal" : {
+      "paisa" : 185000,
+      "formatted" : "Rs 1,850.00"
+    },
+    "modifiers" : [ "Extra spicy" ],
+    "note" : "Guest is allergic to peanuts",
+    "stationCode" : "HOT"
+  }, {
+    "name" : "Garlic Naan",
+    "quantity" : 3,
+    "unitPrice" : {
+      "paisa" : 12000,
+      "formatted" : "Rs 120.00"
+    },
+    "lineTotal" : {
+      "paisa" : 36000,
+      "formatted" : "Rs 360.00"
+    },
+    "modifiers" : [ ],
+    "note" : null,
+    "stationCode" : "TANDOOR"
+  }, {
+    "name" : "Mineral Water 1.5L",
+    "quantity" : 2,
+    "unitPrice" : {
+      "paisa" : 8033,
+      "formatted" : "Rs 80.33"
+    },
+    "lineTotal" : {
+      "paisa" : 16066,
+      "formatted" : "Rs 160.66"
+    },
+    "modifiers" : [ ],
+    "note" : null,
+    "stationCode" : "COLD"
+  } ],
+  "totals" : {
+    "subtotal" : {
+      "paisa" : 237066,
+      "formatted" : "Rs 2,370.66"
+    },
+    "discount" : {
+      "paisa" : 10000,
+      "formatted" : "Rs 100.00"
+    },
+    "serviceCharge" : {
+      "paisa" : 22706,
+      "formatted" : "Rs 227.06"
+    },
+    "tax" : {
+      "paisa" : 34575,
+      "formatted" : "Rs 345.75"
+    },
+    "grandTotal" : {
+      "paisa" : 284347,
+      "formatted" : "Rs 2,843.47"
+    }
+  },
+  "taxBreakdown" : [ {
+    "rateCode" : "GST-16",
+    "label" : "Sales Tax",
+    "ratePercent" : "16.00",
+    "amount" : {
+      "paisa" : 33440,
+      "formatted" : "Rs 334.40"
+    }
+  }, {
+    "rateCode" : "ICT-05",
+    "label" : "ICT Services",
+    "ratePercent" : "5.00",
+    "amount" : {
+      "paisa" : 1135,
+      "formatted" : "Rs 11.35"
+    }
+  } ],
+  "tenders" : [ {
+    "method" : "CARD",
+    "amountApplied" : {
+      "paisa" : 200000,
+      "formatted" : "Rs 2,000.00"
+    },
+    "amountTendered" : {
+      "paisa" : 200000,
+      "formatted" : "Rs 2,000.00"
+    },
+    "change" : {
+      "paisa" : 0,
+      "formatted" : "Rs 0.00"
+    },
+    "referenceNo" : "VISA-4421"
+  }, {
+    "method" : "CASH",
+    "amountApplied" : {
+      "paisa" : 84347,
+      "formatted" : "Rs 843.47"
+    },
+    "amountTendered" : {
+      "paisa" : 100000,
+      "formatted" : "Rs 1,000.00"
+    },
+    "change" : {
+      "paisa" : 15653,
+      "formatted" : "Rs 156.53"
+    },
+    "referenceNo" : null
+  } ],
+  "fiscal" : {
+    "fbrInvoiceNumber" : "7000007DI1747300500123",
+    "qrPayload" : "FBR|7000007DI1747300500123|2026-08-11T14:32:07Z",
+    "qrSizeMm" : 25.4,
+    "logoAssetId" : "55555555-5555-4555-8555-555555555555",
+    "noticeLine" : "Verify this invoice with the FBR Tax Asaan app."
+  },
+  "drawer" : {
+    "kick" : true,
+    "connectorPin" : 2,
+    "pulseMs" : 100
+  },
+  "cut" : {
+    "mode" : "PARTIAL"
+  },
+  "footer" : {
+    "lines" : [ "Thank you — please come again", "www.floatingterrace.pk" ]
+  }
+}
