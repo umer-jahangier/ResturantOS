@@ -156,9 +156,23 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
             // handler is the only place the scope can be enforced — and RLS does not apply to a
             // subscription key held in a ConcurrentHashMap.
             //
-            // Tenant is checked as well as branch. A branch id is a UUID and collisions are not
-            // the threat; the threat is a token from a different tenant naming a branch it can
-            // describe, and checking only the branch would let a leaked or guessed id through.
+            // ── On the tenant claim, stated precisely rather than flatteringly ──────────────
+            //
+            // The subscription path is /api/v1/kitchen/kds/{branchId}/{stationId}. It carries NO
+            // tenant segment, so there is nothing here to compare a tenant claim AGAINST. What is
+            // enforced is that the branch in the URL is the branch in the token, and a branch
+            // belongs to exactly one tenant — so a token minted for tenant A cannot carry a branch
+            // claim equal to a branch of tenant B, and branch equality is what actually closes the
+            // cross-tenant read.
+            //
+            // The tenant claim is still REQUIRED, and its absence is a refusal. That is the
+            // fail-closed posture, not a comparison: a token with no tenant scope (the platform
+            // token shape) has no branch scope either and has no business on a board.
+            //
+            // This comment is deliberate. The version of this method before phase 28 accepted
+            // `branchId` as a parameter and never read it, and the defect survived because nothing
+            // said so out loud. Describing a check that does not exist is how the next reader
+            // stops looking.
             String tokenTenant = claims.get("tenant_id", String.class);
             String tokenBranch = claims.get("branch_id", String.class);
             if (tokenTenant == null || tokenBranch == null) {
@@ -166,6 +180,11 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
                 return false;
             }
             if (!tokenBranch.equals(branchId)) {
+                // WARN, and it names both ids — the operator debugging a legitimately misconfigured
+                // board needs to know which check failed. The CLIENT is told nothing: every refusal
+                // closes with the same status and the same generic reason, because a close reason
+                // that says whether the branch, the tenant or the permission was the problem is a
+                // probe an attacker can run.
                 log.warn("KDS WebSocket refused: token branch {} does not match requested branch {}",
                         tokenBranch, branchId);
                 return false;
