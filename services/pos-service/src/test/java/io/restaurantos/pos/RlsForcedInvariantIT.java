@@ -208,6 +208,67 @@ class RlsForcedInvariantIT extends PosTestBase {
         }
     }
 
+    /**
+     * The same canary again, aimed at {@code print_agents} (26-11).
+     *
+     * <p>Narrower and stronger than the schema-wide check for the same reason the {@code print_jobs}
+     * one is, but the stake is different: these rows are CREDENTIALS. An inert policy here does not
+     * leak a receipt, it lets one tenant enumerate another tenant's agent handles — and the lookup
+     * id is half of a credential string.
+     */
+    @Test
+    @DisplayName("a NOSUPERUSER owner of print_agents cannot read another tenant's credentials")
+    void printAgentsOwnerCannotBypassTenantIsolation() throws SQLException {
+        UUID tenantA = UUID.randomUUID();
+        UUID tenantB = UUID.randomUUID();
+
+        try (Connection admin = asSuperuser(); Statement s = admin.createStatement()) {
+            dropCanaryRole(s);
+            s.execute("CREATE ROLE " + CANARY_ROLE
+                    + " LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD '" + CANARY_PASSWORD + "'");
+            s.execute("GRANT ALL ON SCHEMA public TO " + CANARY_ROLE);
+
+            insertPrintAgent(s, tenantA, "canary-lookup-a");
+            insertPrintAgent(s, tenantB, "canary-lookup-b");
+
+            s.execute("ALTER TABLE print_agents OWNER TO " + CANARY_ROLE);
+        }
+
+        try (Connection owner = DriverManager.getConnection(
+                postgres.getJdbcUrl(), CANARY_ROLE, CANARY_PASSWORD);
+             Statement s = owner.createStatement()) {
+
+            s.execute("SELECT set_config('app.current_tenant_id', '" + tenantA + "', false)");
+
+            try (ResultSet rs = s.executeQuery(
+                    "SELECT count(*) FILTER (WHERE tenant_id <> '" + tenantA + "'), count(*)"
+                            + " FROM print_agents")) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getLong(1))
+                        .as("""
+                            The owning role read another tenant's print_agents. These rows are \
+                            machine CREDENTIALS. FORCE ROW LEVEL SECURITY on print_agents is \
+                            missing or was removed.""")
+                        .isZero();
+                assertThat(rs.getLong(2))
+                        .as("tenant A's own agents must still be readable — isolation, not a blackout")
+                        .isEqualTo(1);
+            }
+        } finally {
+            try (Connection admin = asSuperuser(); Statement s = admin.createStatement()) {
+                s.execute("ALTER TABLE print_agents OWNER TO " + postgres.getUsername());
+                s.execute("DELETE FROM print_agents WHERE lookup_id IN ('canary-lookup-a','canary-lookup-b')");
+                dropCanaryRole(s);
+            }
+        }
+    }
+
+    private static void insertPrintAgent(Statement s, UUID tenantId, String lookupId) throws SQLException {
+        s.execute("INSERT INTO print_agents (id, tenant_id, branch_id, label, lookup_id,"
+                + " credential_hash) VALUES ('" + UUID.randomUUID() + "','" + tenantId + "','"
+                + UUID.randomUUID() + "','canary','" + lookupId + "','$2a$12$notarealhash')");
+    }
+
     private static void insertPrintJob(Statement s, UUID tenantId, String target) throws SQLException {
         s.execute("INSERT INTO print_jobs (id, tenant_id, branch_id, order_id, document_type,"
                 + " target_printer_id, issue_seq, status, document, issued_at)"

@@ -42,6 +42,18 @@ public class PosSecurityConfig {
         return new AuthorizationService(opaClient);
     }
 
+    /**
+     * The encoder for print-agent credentials (26-11).
+     *
+     * <p>BCrypt at cost 12 — deliberately the SAME construction auth-service uses for user
+     * passwords, not a second scheme chosen here. One hashing decision in this product, made once,
+     * so "how are credentials stored" has one answer rather than one per service.
+     */
+    @Bean
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12);
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                     JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
