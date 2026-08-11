@@ -148,6 +148,20 @@ been written down; these eight are that gap stated as requirements.
 - [ ] **PRINT-07**: Printer configuration is stored per tenant, per branch and per terminal, and is administrable in-product with a test print and a measured columns-per-line
 - [ ] **PRINT-08**: When the thermal path is unavailable for any reason the product falls back to the printable bill without an error, and no path from pressing Print ever produces nothing
 
+### Purchasing & Inventory Wiring (PIW)
+
+Added 2026-08-11 during Phase 31 planning, from hands-on user testing of vendor invoices, stock and
+ingredients plus the measured findings in `.planning/phases/22-financial-wiring/22-01-SUMMARY.md`
+(defects D-2 and D-5) and the purchasing gap recorded in `scripts/CREDENTIALS.md`. These six are the
+locked decisions D-31-01…06 stated as requirements.
+
+- [ ] **PIW-01**: An owner completes vendor → purchase order → approve → receive → invoice → three-way match → payment entirely in the UI, proven by driving the chain against the live stack rather than by reading code
+- [ ] **PIW-02**: Purchasing is reachable by the role that owns procurement, under a permission model that was examined and repaired at its cause — never widened to make a call succeed
+- [ ] **PIW-03**: Approval limits are set in-product by an owner, per user or for every current holder of a role at a branch, and actually gate approval
+- [ ] **PIW-04**: A purchase-order line naming an ingredient inventory does not have, or a unit inventory cannot convert, is refused at the API with a message naming the problem — never accepted and then dead-lettered
+- [ ] **PIW-05**: Every purchase-to-stock conversion goes through one resolver computing the real ratio between purchase unit and stock unit, returning nothing across incompatible families, asserted with a case a human can check by hand and proven live
+- [ ] **PIW-06**: Stock, ingredients, categories, units, suppliers, reorder points and opening stock are complete CRUD in the UI, with completeness asserted by a test rather than remembered
+
 ### Kitchen / KDS (KDS)
 
 - [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
@@ -416,6 +430,12 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PRINT-06 | Phase 26 (26-04, 26-07, 26-11) | Planned |
 | PRINT-07 | Phase 26 (26-02, 26-10) | Planned |
 | PRINT-08 | Phase 26 (26-05, 26-06, 26-09, 26-11) | Planned |
+| PIW-01 | Phase 31 (31-01, 31-07, 31-08) | Planned |
+| PIW-02 | Phase 31 (31-02) | Planned |
+| PIW-03 | Phase 31 (31-03) | Planned |
+| PIW-04 | Phase 31 (31-04, 31-07) | Planned |
+| PIW-05 | Phase 31 (31-06) | Planned |
+| PIW-06 | Phase 31 (31-05, 31-08) | Planned |
 
 **Coverage:**
 

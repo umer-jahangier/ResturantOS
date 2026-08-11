@@ -74,6 +74,25 @@ right now, and renaming underneath a running agent destroys its work. It is a me
 resolves on the DIRECTORY, not the roadmap entry, so a collision is silent at creation time and
 only surfaces when someone tries to plan the phase that lost.
 
+#### Phase 36 — Purchasing & Inventory Wiring Repair *(directory `31-purchasing-inventory-wiring`, rename deferred per the table above)*
+
+**Goal:** An owner completes vendor → purchase order → approve → receive → invoice → three-way match
+→ payment entirely in the UI, on data whose ingredient references are real and whose unit
+conversions are arithmetically correct — with the permission model that blocked it examined rather
+than widened.
+**Requirements:** PIW-01 … PIW-06
+**Plans:** 8 plans, 5 waves
+
+Plans:
+- [ ] 31-01-PLAN.md — drive the whole procure-to-pay chain live and record where it actually breaks *(wave 1)*
+- [ ] 31-02-PLAN.md — which permission purchasing demands, who should hold it, and the repair at its cause *(wave 2)*
+- [ ] 31-03-PLAN.md — approval limits set in the product and gating approval *(wave 2, independently shippable)*
+- [ ] 31-04-PLAN.md — a PO line must name a real ingredient in a unit inventory can convert *(wave 2)*
+- [ ] 31-05-PLAN.md — inventory master data: complete CRUD, asserted by a coverage matrix *(wave 2, independently shippable)*
+- [ ] 31-06-PLAN.md — one conversion resolver, hand-checkable, and a receipt that refuses instead of guessing *(wave 3)*
+- [ ] 31-07-PLAN.md — the seed creates purchasing data; `CREDENTIALS.md` tells the truth *(wave 4)*
+- [ ] 31-08-PLAN.md — an owner completes the chain in the browser; phase acceptance *(wave 5)*
+
 ### Execution record — what has actually landed (2026-08-07)
 
 **Complete and independently verified** (each number re-run by the orchestrator, not taken from
