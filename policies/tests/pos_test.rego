@@ -58,9 +58,12 @@ test_void_any_cross_branch_deny if {
     }
 }
 
+# `pos.order.view`, not the uncatalogued `pos.order.read` this used to name. The distinction is the
+# whole test: a WAITER holds `pos.order.view` and must not be able to void, so this asserts the
+# rule refuses a real, common, same-module caller rather than a user holding nothing.
 test_void_any_missing_permission_deny if {
     not pos.allow with input as {
-        "user": base_user(["pos.order.read"]),
+        "user": base_user(["pos.order.view"]),
         "resource": base_resource({}),
         "action": "void",
     }

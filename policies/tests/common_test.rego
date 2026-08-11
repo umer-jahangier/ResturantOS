@@ -41,6 +41,10 @@ test_has_permission_true if {
     common.has_permission({"user": {"permissions": ["pos.order.void.any"]}}, "pos.order.void.any")
 }
 
+# The held code is `pos.order.view` — a real catalogue entry six roles hold — not the
+# `pos.order.read` this used to name, which is in no catalogue. has_permission is an exact-equality
+# test, so the fixture must be a code that really coexists with the one being asked for; otherwise
+# this proves only that an empty vocabulary matches nothing.
 test_has_permission_false if {
-    not common.has_permission({"user": {"permissions": ["pos.order.read"]}}, "pos.order.void.any")
+    not common.has_permission({"user": {"permissions": ["pos.order.view"]}}, "pos.order.void.any")
 }

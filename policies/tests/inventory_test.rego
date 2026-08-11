@@ -78,10 +78,15 @@ test_no_perms_denied_manage if {
 }
 
 # ── Unrelated permissions (e.g. finance/kds) ─────────────────────────────────
+#
+# Both codes are real and both are really held: `finance.journal.view` by ACCOUNTANT/OWNER/
+# TENANT_ADMIN, `pos.kds.view` by KITCHEN_STAFF/WAITER/MANAGER. The first used to read
+# `finance.report.view`, which is in no catalogue — so "a user with unrelated permissions" was
+# half a user with no permission at all, and the denial was weaker than it looked.
 
 test_unrelated_perms_denied_view if {
     not inventory.allow with input as {
-        "user":     base_user(["finance.report.view", "pos.kds.view"]),
+        "user":     base_user(["finance.journal.view", "pos.kds.view"]),
         "resource": inventory_resource,
         "action":   "inventory.item.view",
     }
@@ -89,7 +94,7 @@ test_unrelated_perms_denied_view if {
 
 test_unrelated_perms_denied_manage if {
     not inventory.allow with input as {
-        "user":     base_user(["finance.report.view", "pos.kds.view"]),
+        "user":     base_user(["finance.journal.view", "pos.kds.view"]),
         "resource": inventory_resource,
         "action":   "inventory.item.manage",
     }

@@ -42,9 +42,12 @@ test_rbac_cross_branch_deny if {
     }
 }
 
+# `pos.order.view` rather than the `pos.order.read` this used to name: read is in no catalogue, so
+# the "user with the wrong permission" held no permission at all. `pos.order.view` is held by six
+# of the eight roles, which makes this the commonest possible caller and the one that must not pass.
 test_rbac_missing_permission_deny if {
     not rbac.allow with input as {
-        "user": base_user(["pos.order.read"]),
+        "user": base_user(["pos.order.view"]),
         "resource": base_resource({}),
         "action": "manage",
     }
@@ -110,9 +113,23 @@ test_branch_manage_cross_tenant_deny if {
 
 # The negative that matters most: holding a plausible-looking administration-adjacent code, and
 # none of the four enumerated ones, is still a deny. This is what a prefix match would have broken.
+#
+# `audit.log.view` is the real one. It is an administration-console grant, held by OWNER and
+# TENANT_ADMIN and by nobody else, and it is NOT one of the four this module enumerates — which is
+# exactly the shape a widened rule would wrongly admit.
+#
+# This fixture used to read `["rbac.user.view", "branch.view", "pos.order.create"]`. Two of those
+# three are in no catalogue and never were, so the "plausible-looking administration-adjacent code"
+# the comment above describes was, in fact, not a code at all — and one of the two was the single
+# thing that made this a test of the startswith("rbac.") mutation rather than a test of nothing.
+#
+# It cannot be restored honestly today: the catalogue contains exactly three rbac.* codes and the
+# module enumerates all three, so no REAL code exists that a prefix test would wrongly admit. When
+# a narrower rbac.* code is declared — the case rbac.rego's own comment says the enumeration exists
+# to survive — add it here, and this becomes the prefix-mutation guard it was written to be.
 test_rbac_no_admin_permission_deny if {
     not rbac.allow with input as {
-        "user": base_user(["rbac.user.view", "branch.view", "pos.order.create"]),
+        "user": base_user(["audit.log.view", "pos.order.create"]),
         "resource": base_resource({}),
         "action": "manage",
     }

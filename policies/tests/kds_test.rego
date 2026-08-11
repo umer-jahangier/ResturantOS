@@ -96,10 +96,28 @@ test_cashier_denied_update if {
 }
 
 # ── ACCOUNTANT (finance perms — no kds perms) ────────────────────────────────
+#
+# These four codes are the ACCOUNTANT role's REAL grants, read from role_permissions on
+# 2026-08-12 (the role holds 27 in total). They used to read `finance.report.view` and
+# `finance.period.manage`, neither of which is in the permissions catalog and neither of which
+# any role has ever held — so the "accountant" these tests denied was a user holding NOTHING,
+# and the denial proved nothing about an accountant.
+#
+# `pos.order.view` is the load-bearing one and is why the list is not just finance codes. A real
+# ACCOUNTANT holds it. It is the nearest miss to `pos.kds.view` in the whole catalogue — same
+# module, same verb — so if kds.rego were ever widened to accept it, THIS is the test that has to
+# go red. With the old fixture it stayed green.
+
+accountant_permissions := [
+    "finance.journal.view",
+    "finance.coa.view",
+    "finance.period.close",
+    "pos.order.view",
+]
 
 test_accountant_denied_view if {
     not kds.allow with input as {
-        "user":     base_user(["finance.report.view", "finance.period.manage"]),
+        "user":     base_user(accountant_permissions),
         "resource": kds_resource,
         "action":   "pos.kds.view",
     }
@@ -107,25 +125,35 @@ test_accountant_denied_view if {
 
 test_accountant_denied_update if {
     not kds.allow with input as {
-        "user":     base_user(["finance.report.view", "finance.period.manage"]),
+        "user":     base_user(accountant_permissions),
         "resource": kds_resource,
         "action":   "pos.kds.update",
     }
 }
 
-# ── FINANCE_VIEWER (finance.report.view only) ────────────────────────────────
+# ── A finance read code on its own ───────────────────────────────────────────
+#
+# Was headed "FINANCE_VIEWER (finance.report.view only)" — doubly fictional. FINANCE_VIEWER is a
+# role that deliberately does NOT exist: changeset 082 deleted its orphan grants and
+# RoleCatalogClosureTest now fails the build if a role_code reappears without a roles row. And
+# `finance.report.view` is in no catalogue. So this asserted that a nonexistent role holding a
+# nonexistent permission is refused.
+#
+# What it is actually worth testing is the single-code case: holding exactly one real finance read
+# grant is not enough for a board. `finance.journal.view` is that code — ACCOUNTANT, OWNER and
+# TENANT_ADMIN all hold it.
 
-test_finance_viewer_denied_view if {
+test_single_finance_read_code_denied_view if {
     not kds.allow with input as {
-        "user":     base_user(["finance.report.view"]),
+        "user":     base_user(["finance.journal.view"]),
         "resource": kds_resource,
         "action":   "pos.kds.view",
     }
 }
 
-test_finance_viewer_denied_update if {
+test_single_finance_read_code_denied_update if {
     not kds.allow with input as {
-        "user":     base_user(["finance.report.view"]),
+        "user":     base_user(["finance.journal.view"]),
         "resource": kds_resource,
         "action":   "pos.kds.update",
     }
