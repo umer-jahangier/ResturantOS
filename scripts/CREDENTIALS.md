@@ -125,11 +125,6 @@ tender needs no till.
 
 **Control Bistro has no CRM.** Its module is deliberately off.
 
-**Purchasing is empty for Floating Terrace.** The seed reported this honestly rather than
-skipping it silently: purchasing answered **403 for the MANAGER**, so no vendor, purchase
-order or goods receipt was created. That is a real permission gap being tracked — not
-something you did wrong.
-
 ---
 
 ## Seeded data
@@ -139,6 +134,21 @@ something you did wrong.
 | Menu items | 78 |
 | Orders | 106 |
 | Ingredients | 42 |
+| Vendors | 1 per tenant |
+| Vendor catalog items | 1 per tenant (a 500 g pack) |
+| Purchase orders | 6 (Floating Terrace) · 1 (Control Bistro) |
+| Goods receipts | one per purchase order |
+| Vendor invoices | 6 (Floating Terrace) · 1 (Control Bistro) |
+
+The purchasing rows are counted from a real run, not from an expectation. One purchase order per
+tenant is raised from the **vendor catalog item** rather than as a hand-typed line, so at least one
+seeded receipt exercises the two-step pack conversion (pack unit → the ingredient's stock unit)
+the way a real tenant does. The rest are hand-typed lines — still against ingredients the seed read
+back from inventory, in unit codes read from the tenant's own registry.
+
+The seed **asserts** that each receipt moved stock, rather than trusting the 200. A receipt that
+answers success and produces no stock is defect D-5's shape, and it is listed as a gap rather than
+counted.
 
 Re-run any time; it reconciles rather than duplicates:
 

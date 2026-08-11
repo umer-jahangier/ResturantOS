@@ -41,6 +41,31 @@ and reporting.
 | `platform` | verifies the SuperAdmin **by logging in**, provisions the tenants, sets tiers, applies the deliberate feature overrides, and **asserts the enabled module sets differ** | `SUPER_ADMIN` |
 | `personas` | reads the role catalog, creates every account through the public user API, walks each one through the real forced-change flow, and enrols a second factor for every account the platform challenges | the tenant `OWNER` |
 | `business` | menu and categories, units of measure, ingredients and a recipe, vendor → PO → goods receipt → invoice, and point-of-sale orders taken by a waiter and settled by a cashier | **the role that owns each surface**, never the owner for everything |
+
+**What a complete purchasing seed produces, per tenant** — so a partial run is visible rather than
+merely quieter:
+
+| | |
+|---|---|
+| Vendor | 1, reconciled on a `seed:<tenantId>` marker in `notes` |
+| Vendor catalog item | 1 — a 500 g pack, priced per pack |
+| Purchase orders | one per invoice in the tenant's spec (Floating Terrace 6, Control Bistro 1) |
+| Goods receipts | one per purchase order, each asserted to have moved stock |
+| Vendor invoices | one per purchase order, dated across that many business dates |
+
+The **first** order of each tenant is raised from the catalog item rather than as a hand-typed
+line, so at least one seeded receipt exercises the two-step pack conversion — pack unit into the
+ingredient's stock unit — the way a real tenant does. A hand-typed line has a factor of one on the
+first step and proves nothing about the second.
+
+Every line names an ingredient the seed **read back** from the inventory listing it created, in a
+unit code **read from** the tenant's registry. Neither is minted. A deterministically generated
+ingredient id is the exact identifier phase 22 traced through a dead-lettered receipt to a purchase
+order that closed as `FULLY_RECEIVED` with no stock and no journal entry, and phase 36-04 now
+refuses it at the API with `422 INGREDIENT_NOT_FOUND`.
+
+After each receipt the seed **reads the stock level back and asserts the quantity moved**. A
+receipt that answers 200 and produces no stock is listed as a gap, not counted as a seeded receipt.
 | `verify` | authenticates **every** seeded principal through the real gateway and exits non-zero naming each failure | each persona, as itself |
 
 ---
@@ -164,19 +189,45 @@ itself a live exercise of a repaired API.
 
 ---
 
-## The leak the seed works around, and does not hide
+## The leak the seed worked around — closed, and re-measured rather than assumed
 
-`GET /api/v1/pos/menu/items/admin`, `.../categories/admin` and `GET /api/v1/purchasing/vendors`
-return **every tenant's rows**. `pos_db.menu_items`, `pos_db.menu_categories`, `pos_db.orders`,
-`purchasing_db.vendors`, `purchasing_db.purchase_orders` and `purchasing_db.vendor_invoices` are
-all `relrowsecurity = true` with `relforcerowsecurity = FALSE`, and both services connect as the
-role that **owns** those tables — PostgreSQL exempts a table's owner from its own policies unless
-`FORCE` is set. The queries carry no tenant predicate of their own either.
+**This section used to describe a live cross-tenant leak. It is closed.** Left here corrected
+rather than deleted, because a stale warning is worse than none: it trains the reader to disbelieve
+the next one.
 
-The seed is immune: every reconciliation key is a marker containing the tenant id, so a
-neighbour's row can never be adopted. **The platform is not immune.** It is recorded as item 9 in
-`.planning/phases/13-platform-tenant-access-repair/deferred-items.md` with the exact remedy, and
-in `13-E2E-EVIDENCE.md` §5 with the live evidence.
+It WAS true. `GET /api/v1/pos/menu/items/admin`, `.../categories/admin` and
+`GET /api/v1/purchasing/vendors` returned **every tenant's rows**, because
+`pos_db.menu_items`, `pos_db.menu_categories`, `pos_db.orders`, `purchasing_db.vendors`,
+`purchasing_db.purchase_orders` and `purchasing_db.vendor_invoices` were all
+`relrowsecurity = true` with `relforcerowsecurity = FALSE` — and both services connect as the role
+that **owns** those tables. PostgreSQL exempts a table's owner from its own policies unless `FORCE`
+is set.
+
+Phase **17b** forced row-level security on all 33 previously-unforced tables. Re-measured
+2026-08-12 during phase 36, against the live databases as the service roles — not read off the
+migration, because a migration establishes what was intended and only a query establishes what the
+database does:
+
+```
+pg_class, as the owning service role
+  pos_db:        menu_items | t | t      menu_categories | t | t      orders | t | t
+  purchasing_db: vendors    | t | t      purchase_orders | t | t      vendor_invoices | t | t
+
+the listings themselves, through the gateway as a floating-terrace MANAGER
+  GET /api/v1/pos/menu/items/admin  -> 13 rows;  that tenant has 13   (all tenants: 85 across 15)
+  GET /api/v1/purchasing/vendors    -> 17 rows;  that tenant has 17   (all tenants: 30 across 14)
+```
+
+Both listings now return exactly their own tenant's rows. Phase 36 also probed the by-id read paths
+directly — a foreign tenant's purchase order and a foreign tenant's ingredient both answer **404**,
+not 403 and not a row — which is a different question from the listing and had to be asked
+separately, because a `findById` where a `findByTenantIdAndId` was meant compiles fine and is scoped
+by nothing.
+
+The seed's marker-based reconciliation is **kept anyway**. It is belt-and-braces now rather than a
+workaround: it makes the reconciliation independent of RLS being correct, which is exactly the
+property worth having in a script whose job is to detect a regression rather than rely on one not
+happening.
 
 ---
 

@@ -1436,6 +1436,104 @@ def seed_purchasing(t: Tenant, manager_token: str) -> int:
             return 0
         vendor_id = r.data("id")
 
+    # ── What a purchase-order line may reference (36-07) ─────────────────────────────────────
+    #
+    # THE LINE BELOW USED TO BE `det(t.tenant_id, "po-ingredient", str(n))` — a deterministically
+    # MINTED ingredient id. It is not merely unseeded data. It is the exact identifier phase 22
+    # traced through a dead-lettered goods receipt to a purchase order that closed as
+    # FULLY_RECEIVED on paper and produced no stock row, no inventory movement and no journal
+    # entry (defect D-5). Plan 36-01 reproduced it on the live stack; plan 36-04 now refuses it at
+    # the API with 422 INGREDIENT_NOT_FOUND.
+    #
+    # So the seed reads the ingredients back — the ones its OWN inventory step created — and
+    # chooses among them by sorted position, so re-runs stay stable without inventing anything.
+    ing_resp = request("GET", "/api/v1/inventory/ingredients", token=manager_token)
+    ingredients = sorted(
+        [i for i in (ing_resp.data(default=[]) or []) if isinstance(i, dict) and i.get("id")],
+        key=lambda i: str(i.get("sku") or i.get("id")),
+    )
+    if not ingredients:
+        GAPS.append(f"{t.slug}: no ingredients to order — inventory seeding produced none, so no "
+                    f"purchase order can name a real one. Purchasing not seeded.")
+        return 0
+
+    # Units come from the tenant's own registry too. A hand-typed "kg" is what plan 36-01 measured
+    # turning seven FURLONG into seven kilograms; 36-04 now refuses an undefined code with 422
+    # PACK_UOM_INVALID. Reading the registry means the seed writes lines the product would accept
+    # from a person, which is the only kind worth seeding.
+    uom_resp = request("GET", "/api/v1/inventory/uom", token=manager_token)
+    uom_codes = [str(u.get("code")) for u in (uom_resp.data(default=[]) or [])
+                 if isinstance(u, dict) and u.get("code")]
+    by_upper = {c.upper(): c for c in uom_codes}
+    if not by_upper:
+        GAPS.append(f"{t.slug}: the tenant defines no units of measure, so no purchase-order line "
+                    f"could carry one inventory can convert. Purchasing not seeded.")
+        return 0
+
+    def gate_message(resp: "Response") -> str:
+        """The gate's own words. A status number alone sends the next reader to the wrong service."""
+        msg = resp.get("error", "message", default="") or ""
+        code = resp.error_code
+        return f"{resp.status} {code}: {msg}".strip() if (code or msg) else f"{resp.status} {resp.raw[:160]}"
+
+    # ── One vendor catalog item, with a real pack quantity ────────────────────────────────────
+    #
+    # A catalog line is the shape a real tenant buys in, and it is the ONLY shape that exercises
+    # the two-step purchase conversion: purchasing divides out how many pack units are in one
+    # order unit, inventory converts that pack unit into the ingredient's stock unit. A hand-typed
+    # line has a factor of one on the first step and proves nothing about the second.
+    #
+    # 500 of the finer unit per pack when the ingredient is stocked in the coarser one — the same
+    # hand-checkable case plan 36-06 asserts to the paisa.
+    catalog_ingredient = ingredients[0]
+    stock_uom = str(catalog_ingredient.get("baseUomCode") or "").upper()
+    pack_uom = None
+    if stock_uom == "KG" and "G" in by_upper:
+        pack_uom, pack_qty = by_upper["G"], 500      # 2 packs = 1000 g = 1.0 KG
+    elif stock_uom == "L" and "ML" in by_upper:
+        pack_uom, pack_qty = by_upper["ML"], 500
+    elif stock_uom in by_upper:
+        pack_uom, pack_qty = by_upper[stock_uom], 1  # same unit: honest, just not a conversion
+    vendor_item_id = None
+    if pack_uom:
+        sku = f"SEED-PACK-{t.tenant_id[:8].upper()}"
+        have_items = request("GET", f"/api/v1/purchasing/vendors/{vendor_id}/items",
+                             token=manager_token)
+        for row in (have_items.data(default=[]) or []):
+            if isinstance(row, dict) and row.get("vendorSku") == sku:
+                vendor_item_id = row["id"]
+        if not vendor_item_id:
+            vi = request("POST", f"/api/v1/purchasing/vendors/{vendor_id}/items",
+                         token=manager_token,
+                         body={"ingredientId": catalog_ingredient["id"], "vendorSku": sku,
+                               "orderUom": "PACK", "packQty": pack_qty, "packUom": pack_uom,
+                               "packDescription": f"{pack_qty} {pack_uom} pack",
+                               "initialUnitPricePaisa": 620000, "initialPriceUom": "PACK"})
+            if vi.status in (200, 201):
+                vendor_item_id = vi.data("id")
+            else:
+                GAPS.append(f"{t.slug}: vendor catalog item answered {gate_message(vi)} — the "
+                            f"seeded purchase orders will all be hand-typed lines, so no seeded "
+                            f"receipt exercises the pack conversion")
+
+    # Which invoice numbers this tenant ALREADY has, so a re-run reconciles the whole chain
+    # rather than only its last step.
+    #
+    # This used to be checked at the END: the purchase order, its approval, its dispatch and its
+    # goods receipt were all re-created on every run, and only the INVOICE came back 409 and was
+    # counted as reconciled. So a tenant accumulated a fresh purchase order and a fresh receipt per
+    # seed run — 29 seed-marked orders behind 7 invoices — and the stock they moved was real. A
+    # seed that quietly inflates inventory every time it runs is a seed nobody can measure against.
+    # branchId is REQUIRED here; without it the call is a 400, the set comes back empty, and the
+    # reconciliation silently does nothing — which is exactly what it looked like on the first
+    # attempt at this fix (29 orders -> 36 behind an unchanged 7 invoices).
+    existing_invoices = request(
+        "GET", f"/api/v1/purchasing/invoices?branchId={t.hq_branch_id}", token=manager_token)
+    have_invoice_nos = {
+        str(r.get("invoiceNo")) for r in (existing_invoices.data(default=[]) or [])
+        if isinstance(r, dict) and r.get("invoiceNo")
+    }
+
     import datetime as _dt
     today = _dt.date.today()
     made = 0
@@ -1444,39 +1542,97 @@ def seed_purchasing(t: Tenant, manager_token: str) -> int:
         # collides across a delete-and-reprovision otherwise.
         invoice_no = f"SEED-{t.key.upper()}-{t.tenant_id[:8].upper()}-{n + 1}"
         invoice_date = today - _dt.timedelta(days=n * 3)
-        ingredient = det(t.tenant_id, "po-ingredient", str(n))
-        qty, unit = 10 + n * 5, 100000
+        if invoice_no in have_invoice_nos:
+            made += 1          # the whole chain for this invoice already exists
+            continue
+
+        # The FIRST order is raised from the catalog item, so at least one seeded receipt goes
+        # through the two-step conversion. The rest are hand-typed lines against real ingredients
+        # in real units — still the shape a person can raise, just without a pack.
+        if n == 0 and vendor_item_id:
+            qty, unit = 2, 620000
+            line = {"vendorItemId": vendor_item_id, "qty": qty}
+            ordered = catalog_ingredient
+        else:
+            ordered = ingredients[n % len(ingredients)]
+            line_uom = by_upper.get(str(ordered.get("baseUomCode") or "").upper())
+            if not line_uom:
+                GAPS.append(f"{t.slug}: ingredient {ordered.get('sku')} is stocked in "
+                            f"'{ordered.get('baseUomCode')}', which the tenant's unit registry does "
+                            f"not define — no purchase order raised for it")
+                continue
+            qty, unit = 10 + n * 5, 100000
+            line = {"ingredientId": ordered["id"], "qty": qty, "uom": line_uom,
+                    "unitPricePaisa": unit}
+
         po = request("POST", "/api/v1/purchasing/purchase-orders", token=manager_token,
                      body={"vendorId": vendor_id, "branchId": t.hq_branch_id,
-                           "notes": f"seed {invoice_no}",
-                           "lines": [{"ingredientId": ingredient, "qty": qty, "uom": "kg",
-                                      "unitPricePaisa": unit}]})
+                           "notes": f"seed {invoice_no}", "lines": [line]})
         if po.status not in (200, 201):
             if po.status == 409:
                 made += 1  # already there from a previous run
                 continue
-            warn(f"{t.slug}: purchase order {invoice_no} answered {po.status} — {po.raw[:160]}")
+            # 422 here is the 36-04 line gate refusing, and it is a GAP rather than a warning:
+            # it means the seed tried to order something the product would not sell.
+            if po.status == 422:
+                GAPS.append(f"{t.slug}: purchase order {invoice_no} refused by the line gate — "
+                            f"{gate_message(po)}")
+            else:
+                warn(f"{t.slug}: purchase order {invoice_no} answered {gate_message(po)}")
             continue
         po_id, line_id = po.data("id"), (po.data("lines", default=[{}]) or [{}])[0].get("id")
         for verb, body in (("submit", None), ("approve", {}), ("send", None)):
             request("POST", f"/api/v1/purchasing/purchase-orders/{po_id}/{verb}",
                     token=manager_token, body=body)
-        request("POST", f"/api/v1/purchasing/purchase-orders/{po_id}/mock-receive",
-                token=manager_token, body={"lines": [{"poLineId": line_id, "receivedQty": qty}]})
+
+        grn = request("POST", f"/api/v1/purchasing/purchase-orders/{po_id}/mock-receive",
+                      token=manager_token,
+                      body={"lines": [{"poLineId": line_id, "receivedQty": qty}]})
+        if grn.status not in (200, 201):
+            GAPS.append(f"{t.slug}: goods receipt for {invoice_no} answered {gate_message(grn)} — "
+                        f"the purchase order exists and no stock arrived")
+        else:
+            # THE ASSERTION THIS PHASE EXISTS FOR. A receipt that answers 200 and produces no
+            # stock is exactly what plan 36-01 found, and the seed is the one place that can
+            # catch it on every run rather than during a demo. The stock write happens on a
+            # message, so this waits for it rather than reporting a false gap.
+            moved = False
+            for _ in range(8):
+                # branchId is REQUIRED on this endpoint; omitting it is a 400 that would read as
+                # "no stock arrived" and manufacture a false gap. StockLevelsResponse wraps the
+                # rows in `items`.
+                lvl = request("GET",
+                              f"/api/v1/inventory/stock?branchId={t.hq_branch_id}",
+                              token=manager_token)
+                rows = lvl.data("items", default=[]) or []
+                for row in rows if isinstance(rows, list) else []:
+                    if isinstance(row, dict) and str(row.get("ingredientId")) == str(ordered["id"]):
+                        try:
+                            moved = float(row.get("qtyOnHand") or 0) != 0.0
+                        except (TypeError, ValueError):
+                            moved = False
+                        break
+                if moved:
+                    break
+                time.sleep(2)
+            if not moved:
+                GAPS.append(f"{t.slug}: goods receipt for {invoice_no} reported success but no "
+                            f"stock movement reached ingredient {ordered.get('sku')} — this is "
+                            f"defect D-5's shape and must not be treated as a seeded receipt")
+
         inv = request("POST", "/api/v1/purchasing/invoices", token=manager_token,
                       body={"purchaseOrderId": po_id, "invoiceNo": invoice_no,
                             "invoiceDate": invoice_date.isoformat(),
                             "inputTaxPaisa": 1500 * (n + 1),
                             "lines": [{"poLineId": line_id, "qty": qty, "unitPricePaisa": unit}]})
-        if inv.status in (200, 201):
-            made += 1
-        elif inv.status == 409:
+        if inv.status in (200, 201, 409):
             made += 1
         else:
-            warn(f"{t.slug}: invoice {invoice_no} answered {inv.status} — {inv.raw[:160]}")
+            warn(f"{t.slug}: invoice {invoice_no} answered {gate_message(inv)}")
     if made:
         ok(f"{t.slug}: {made} vendor invoice(s) matched through PO → approve → send → GRN → invoice, "
-           f"dated across {t.spec['invoices']} business date(s)")
+           f"dated across {t.spec['invoices']} business date(s)"
+           + (f"; one raised from a {pack_qty} {pack_uom} catalog pack" if vendor_item_id else ""))
     return made
 
 
