@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+      Phase 35-03. The authority for HR configuration.
+
+      D-35-05 makes departments, designations, shifts, leave types, salary components and the tax
+      table tenant-managed screens. The permission catalog had no hr.config.* code at all, so those
+      screens would have been either unreachable or unguarded.
+
+      TWO CODES, NOT ONE.
+      Every dropdown in this phase reads one of these lists, so anyone who can fill an employee form
+      must be able to READ the department list — a manager creating an employee needs the options.
+      Editing the tax table must not follow from that. Collapsed into a single code, the choice
+      would be between a manager who cannot use a dropdown and a manager who can rewrite the tax
+      slabs, and both are wrong.
+
+      WHY NO PER-TENANT BACKFILL BLOCK.
+      `permissions` and `role_permissions` are GLOBAL tables — role_permissions is
+      (role_code, permission_code) with no tenant_id, and a JWT's permission union is computed by
+      RolePermissionRepository#findPermissionCodesByRoleCodes over role CODES. Measured, not
+      assumed: 13-07-SUMMARY established that `permissions` and `role_permissions` are global and
+      that `roles` is the tenant-scoped one. So a grant to OWNER reaches the owner of every tenant
+      that already exists the moment this changeset applies. There is nothing to backfill, and the
+      prohibition against a grant that only reaches future tenants is satisfied by construction
+      rather than by an extra statement.
+
+      Operational note: a user holding an ALREADY-ISSUED access token does not gain the permission
+      until their next login or token refresh, because the permission union is baked into the JWT
+      at issue time. That is existing behaviour for every permission, not something new here.
+    -->
+    <changeSet id="auth-1.0.0-046-hr-config-permissions" author="restaurantos-agent" runOnChange="false">
+
+        <insert tableName="permissions">
+            <column name="code" value="hr.config.view"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Read HR configuration lists — departments, designations, shifts, leave types, salary components, tax configuration"/>
+        </insert>
+        <insert tableName="permissions">
+            <column name="code" value="hr.config.manage"/>
+            <column name="module" value="hr"/>
+            <column name="description" value="Create and edit HR configuration, including the income tax table"/>
+        </insert>
+
+        <!--
+          VIEW: derived from who already holds hr.employee.view, never enumerated.
+
+          Anyone trusted to see an employee record is trusted to see the list of departments that
+          record can point at. Deriving it means a role granted hr.employee.view by a LATER
+          changeset (a drift repair, a new role) picks the config-read up automatically, instead of
+          silently acquiring a form whose dropdowns 403. This is the same "derived, never
+          enumerated" rule RoleCeiling and RoleCatalogService already follow.
+        -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT DISTINCT rp.role_code, 'hr.config.view'
+            FROM role_permissions rp
+            WHERE rp.permission_code = 'hr.employee.view'
+            AND NOT EXISTS (
+                SELECT 1 FROM role_permissions existing
+                WHERE existing.role_code = rp.role_code
+                AND existing.permission_code = 'hr.config.view'
+            );
+        </sql>
+
+        <!--
+          MANAGE: the two tenant-level roles and nobody else.
+
+          Deliberately NOT derived from hr.employee.manage — a branch MANAGER holds that, and a
+          branch manager editing the tax table is a money defect. The tax table determines what
+          every employee is paid, so the blast radius of one wrong row is every payslip in the
+          tenant for a year. Enumerated precisely because the set must not grow by accident.
+        -->
+        <sql>
+            INSERT INTO role_permissions (role_code, permission_code)
+            SELECT r.role_code, p.permission_code
+            FROM (VALUES ('OWNER'), ('TENANT_ADMIN')) AS r(role_code)
+            CROSS JOIN (VALUES ('hr.config.view'), ('hr.config.manage')) AS p(permission_code)
+            WHERE NOT EXISTS (
+                SELECT 1 FROM role_permissions existing
+                WHERE existing.role_code = r.role_code
+                AND existing.permission_code = p.permission_code
+            );
+        </sql>
+
+        <rollback>
+            <sql>DELETE FROM role_permissions WHERE permission_code IN ('hr.config.view', 'hr.config.manage');</sql>
+            <sql>DELETE FROM permissions WHERE code IN ('hr.config.view', 'hr.config.manage');</sql>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
