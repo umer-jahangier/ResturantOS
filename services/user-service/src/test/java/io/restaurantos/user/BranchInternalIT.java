@@ -73,21 +73,47 @@ class BranchInternalIT extends BaseUserIT {
         assertThat(listResp.getBody()).contains(name2);
     }
 
+    /**
+     * The endpoint answers for the tenant it is told about, and for no one else.
+     *
+     * <p>This assertion used to read {@code isIn(200, 400)} above a comment saying the response
+     * "may be 200 or 400 depending on whether X-Tenant-Id is required" — a test written without
+     * knowing what the endpoint does, and which could not have found out: the harness connected
+     * to PostgreSQL as a SUPERUSER, so RLS never applied and the branch came back whatever tenant
+     * was named. The foreign-tenant leg below is the one that matters. Restore the superuser
+     * connection in {@link BaseUserIT} and it fails, because nothing else in the request path
+     * scopes this read — {@code /internal/users/**} is not covered by
+     * {@code UserWebMvcConfig}'s {@code /api/v1/**} interceptor, so the Hibernate tenantFilter is
+     * never enabled on it either.
+     *
+     * <p>Not asserted here, and deliberately: what an internal call that names NO tenant returns.
+     * It is not a fixed value — see the report on {@code JwtAuthenticationFilter}'s no-token early
+     * return, which skips the {@code tenantContext.clear()} that its {@code finally} performs on
+     * the token path, leaving the previous request's tenant on the worker thread.
+     */
     @Test
-    void getBranch_byId_returnsDetail() throws Exception {
+    void getBranch_byId_needsATenant_andHonoursTheOneItIsGiven() throws Exception {
         setRls(TENANT_A);
         String name = "DetailBranch-" + UUID.randomUUID();
         UUID branchId = createBranch(name, false);
 
-        ResponseEntity<String> resp = getWithHeader(
-            "/internal/users/branches/" + branchId,
-            UserInternalServiceFilter.HEADER, INTERNAL_SECRET
-        );
-        // Requires X-Tenant-Id for GUC — basic check that endpoint exists
-        // Without X-Tenant-Id header the request should still reach the controller
-        // (GUC was already set in test via setRls). Response may be 200 or 400 depending
-        // on whether X-Tenant-Id is required.
-        assertThat(resp.getStatusCode().value()).isIn(200, 400);
+        ResponseEntity<String> owningTenant = rest.get()
+            .uri("/internal/users/branches/" + branchId)
+            .header(UserInternalServiceFilter.HEADER, INTERNAL_SECRET)
+            .header("X-Tenant-Id", TENANT_A.toString())
+            .exchange((req, res) -> toEntity(res), false);
+        assertThat(owningTenant.getStatusCode().value()).isEqualTo(200);
+        assertThat(owningTenant.getBody()).contains(name);
+
+        ResponseEntity<String> foreignTenant = rest.get()
+            .uri("/internal/users/branches/" + branchId)
+            .header(UserInternalServiceFilter.HEADER, INTERNAL_SECRET)
+            .header("X-Tenant-Id", TENANT_B.toString())
+            .exchange((req, res) -> toEntity(res), false);
+        assertThat(foreignTenant.getStatusCode().value())
+            .as("tenant B asked for tenant A's branch by id and must not get it")
+            .isEqualTo(404);
+        assertThat(foreignTenant.getBody()).doesNotContain(name);
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────

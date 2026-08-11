@@ -26,9 +26,19 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 public abstract class BaseIntegrationTest {
 
+    /**
+     * {@code sslmode=disable} is not cosmetic. Without it the driver opens with an SSLRequest,
+     * and on this Docker setup the server closes the socket mid-negotiation — surfacing as
+     * {@code EOFException at ConnectionFactoryImpl.enableSSL} while Testcontainers is running
+     * the init script, i.e. before a single test has had a chance to run. {@code BaseUserIT}
+     * carries the same workaround for the same reason. The parameter reaches the init-script
+     * connection because Testcontainers builds that URL from the same url-params map.
+     */
     static final PostgreSQLContainer<?> POSTGRES =
         new PostgreSQLContainer<>(DockerImageName.parse("postgres:18"))
             .withDatabaseName("shared_test_db")
+            .withUrlParam("sslmode", "disable")
+            .withUrlParam("tcpKeepAlive", "true")
             .withInitScript("db/init-test-db.sql");
 
     @SuppressWarnings("resource")

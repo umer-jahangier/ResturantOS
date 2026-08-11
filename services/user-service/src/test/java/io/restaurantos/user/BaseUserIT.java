@@ -29,11 +29,39 @@ import java.util.UUID;
 @Testcontainers
 public abstract class BaseUserIT {
 
+    /**
+     * The container user is a SUPERUSER — that is not configurable, it is what the postgres image
+     * creates from POSTGRES_USER. Naming it {@code user_service} (as this class used to) does not
+     * make it unprivileged; it makes a superuser called user_service, and PostgreSQL exempts
+     * superusers from row level security unconditionally, FORCE included. Every cross-tenant
+     * assertion in this module was therefore being made against a connection for which tenant
+     * isolation was switched off, and would have passed with the policies dropped entirely.
+     *
+     * <p>So the container user stays the bootstrap/owner role and {@code db/init-test-db.sql}
+     * creates the real one: {@code user_service}, NOSUPERUSER NOBYPASSRLS, which both Liquibase
+     * and the application connect as — the production topology from deploy/init/02-create-roles.sql.
+     *
+     * <p>That script is run by {@link #provisionAppRole()} after {@link #awaitPostgresReady()},
+     * NOT by {@code withInitScript}. Testcontainers runs an init script during container start
+     * with a single connection attempt and no retry, and the first connection to a freshly
+     * started container on this Docker setup intermittently dies mid-handshake
+     * ({@code EOFException} in {@code enableSSL} or {@code doAuthentication}). As an init script
+     * that is a hard container-start failure and every test in the module errors on class init;
+     * behind the existing retry loop it is a non-event.
+     *
+     * @see #APP_USER
+     */
     static final PostgreSQLContainer<?> POSTGRES =
         new PostgreSQLContainer<>(DockerImageName.parse("postgres:18"))
             .withDatabaseName("user_db")
-            .withUsername("user_service")
-            .withPassword("test-pass");
+            .withUsername("test_owner")
+            .withPassword("test-owner-pass")
+            .withUrlParam("sslmode", "disable")
+            .withUrlParam("tcpKeepAlive", "true");
+
+    /** The unprivileged role the application and Liquibase connect as. RLS applies to it. */
+    protected static final String APP_USER = "user_service";
+    protected static final String APP_PASSWORD = "test-pass";
 
     @SuppressWarnings("resource")
     static final GenericContainer<?> REDIS =
@@ -48,6 +76,30 @@ public abstract class BaseUserIT {
         REDIS.start();
         RABBIT.start();
         awaitPostgresReady();
+        provisionAppRole();
+    }
+
+    /**
+     * Creates the unprivileged {@link #APP_USER} role. The whole file goes to the server as one
+     * simple-query batch — PostgreSQL accepts semicolon-separated statements that way, which
+     * keeps the {@code DO $$ ... $$} block intact instead of being split on its inner semicolons.
+     */
+    private static void provisionAppRole() {
+        String sql;
+        try (java.io.InputStream in =
+                 BaseUserIT.class.getResourceAsStream("/db/init-test-db.sql")) {
+            if (in == null) {
+                throw new IllegalStateException("db/init-test-db.sql missing from the test classpath");
+            }
+            sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(e);
+        }
+        try (java.sql.Connection c = asOwner(); java.sql.Statement s = c.createStatement()) {
+            s.execute(sql);
+        } catch (java.sql.SQLException e) {
+            throw new IllegalStateException("Could not create the unprivileged test role", e);
+        }
     }
 
     private static void awaitPostgresReady() {
@@ -71,8 +123,18 @@ public abstract class BaseUserIT {
     }
 
     private static String jdbcUrl() {
-        String url = POSTGRES.getJdbcUrl();
-        return url + (url.contains("?") ? "&" : "?") + "sslmode=disable&tcpKeepAlive=true";
+        return POSTGRES.getJdbcUrl();
+    }
+
+    /**
+     * A connection as the container's superuser, for fixture setup that has to reach past RLS
+     * (seeding another tenant's rows so a leak has something to leak). Test code that is
+     * ASSERTING isolation must never use this — use the application's own connection, which is
+     * {@link #APP_USER} and subject to every policy.
+     */
+    protected static java.sql.Connection asOwner() throws java.sql.SQLException {
+        return java.sql.DriverManager.getConnection(
+            jdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
     }
 
     @DynamicPropertySource
@@ -84,8 +146,9 @@ public abstract class BaseUserIT {
         // it looks exactly like an application or network bug. See DEV-STACK-RUNBOOK.md.
         r.add("server.address", () -> "127.0.0.1");
         r.add("spring.datasource.url", BaseUserIT::jdbcUrl);
-        r.add("spring.datasource.username", POSTGRES::getUsername);
-        r.add("spring.datasource.password", POSTGRES::getPassword);
+        // NOT POSTGRES.getUsername() — that is the superuser, and RLS does not apply to it.
+        r.add("spring.datasource.username", () -> APP_USER);
+        r.add("spring.datasource.password", () -> APP_PASSWORD);
         r.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         r.add("spring.liquibase.change-log", () -> "classpath:db/changelog/db.changelog-master.xml");
         r.add("spring.liquibase.contexts", () -> "");
