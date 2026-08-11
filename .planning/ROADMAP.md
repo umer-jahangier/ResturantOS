@@ -203,7 +203,49 @@ Moved to the end at the user's direction so nothing in the critical path waits o
 Each is built and tested against simulators/protocol fixtures first, so the user-supplied
 item is needed only for final sign-off, not to start:
 
-- [ ] **Phase 25: Biometric Attendance Repair** - 4d. ADMS/iClock ingest already largely exists; the remaining work is testable by crafting the raw HTTP a terminal sends. **U5** (a ZKTeco terminal) needed only to confirm firmware quirks.
+- [ ] **Phase 30: Biometric Terminals (ZKTeco)** - originally estimated 4d as "Biometric Attendance Repair"; **~9-11d as planned** (see the effort note under the plan list). ADMS/iClock ingest already largely exists; the remaining work is testable by crafting the raw HTTP a terminal sends. **U5** (a ZKTeco terminal) needed only to confirm firmware quirks. *(Phase directory: `30-biometric-terminals`. This entry was numbered 25 while the directory was numbered 30; renumbered here to match.)*
+
+  **Goal:** A restaurant owner registers a biometric terminal from the product, the terminal pushes
+  attendance that lands on the right employee, an unattributed punch is retained and resolvable
+  rather than lost, a replayed batch never double-counts, and a terminal that stops talking is
+  reported before payroll notices.
+  **Requirements:** HR-07, BIO-01 … BIO-06
+  **Plans:** 13 plans, 8 waves
+
+  Plans:
+  - [ ] 30-01-PLAN.md — the executable audit: what works, what is decorative, what is missing *(wave 1)*
+  - [ ] 30-02-PLAN.md — the ADMS device simulator and the phase's shell harness *(wave 1)*
+  - [ ] 30-03-PLAN.md — the device columns a managed, observable, per-device-configured terminal needs *(wave 1)*
+  - [ ] 30-04-PLAN.md — device-auth refusals answer 401, and the log flood they caused is bounded *(wave 2)*
+  - [ ] 30-05-PLAN.md — read the bytes whatever the header says; a parser that reports outcomes *(wave 2)*
+  - [ ] 30-06-PLAN.md — three destinations and no fourth: quarantine reasons, deduplication, dismissal *(wave 3)*
+  - [ ] 30-07-PLAN.md — per-device handshake, a durable command queue, and a closed command set *(wave 3)*
+  - [ ] 30-08-PLAN.md — how a stock terminal authenticates; the honest feature gate *(wave 3, blocking decision)*
+  - [ ] 30-09-PLAN.md — the full device lifecycle API, and branch isolation this surface never had *(wave 4)*
+  - [ ] 30-10-PLAN.md — device health, the silence sweep and clock-drift measurement *(wave 5)*
+  - [ ] 30-11-PLAN.md — the terminals screen, and silence that travels with the navigation *(wave 6)*
+  - [ ] 30-12-PLAN.md — the mapping screen and the unattributed-punch queue *(wave 7)*
+  - [ ] 30-13-PLAN.md — the live proof and the U5 hardware sign-off list *(wave 8)*
+
+  **Effort note:** research's 4-day estimate covered the defect fixes to the existing ADMS adapter and
+  nothing else. 30-CONTEXT's definition of done is materially broader — a management UI, a health and
+  alerting system, a mapping surface, a device simulator and an authentication story a stock terminal
+  can walk. Plans 30-01, 30-04, 30-05, 30-06 and 30-07 are roughly the original 4 days. The remainder
+  is new scope that the context asks for, not overrun. If the phase must be cut, 30-12 is the plan to
+  defer, and the consequence is that the unattributed queue stays where it is today — a four-column
+  table at the bottom of the attendance screen with no place for a line the parser could not read.
+
+  **One decision 30-CONTEXT did not lock**, surfaced at a blocking checkpoint in 30-08: a stock ZKTeco
+  terminal's configuration menu offers only a server address and a port, so it cannot present the
+  query-parameter token this implementation requires. Verified live on 2026-08-11 — the exact boot
+  request a terminal sends is refused. The phase's six definition-of-done items can all be met while a
+  physical terminal still cannot connect, so the authentication mode is chosen by a human before the
+  modes are built.
+
+  **Touches the gateway.** Plan 30-04 adds the server-error status to the two device routes' circuit
+  breakers. Plan 30-08 corrects comments and a route-map entry that describe a feature gate the
+  gateway cannot perform on this path, moving the check into hr-service where the tenant is known, and
+  fixes the bridge route's rate-limit key. Neither plan adds or removes a public path.
 - [ ] **Phase 26: Receipt & Kitchen Printing** - 18d planned, **~21d as planned** (see the note under the plan list). Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
 
   **Goal:** A cashier settles an order and hands the customer a correctly totalled printed bill — in

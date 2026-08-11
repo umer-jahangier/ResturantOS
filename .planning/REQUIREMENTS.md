@@ -148,6 +148,21 @@ been written down; these eight are that gap stated as requirements.
 - [ ] **PRINT-07**: Printer configuration is stored per tenant, per branch and per terminal, and is administrable in-product with a test print and a measured columns-per-line
 - [ ] **PRINT-08**: When the thermal path is unavailable for any reason the product falls back to the printable bill without an error, and no path from pressing Print ever produces nothing
 
+### Biometric Terminals (BIO)
+
+Added 2026-08-11 during Phase 30 planning. `HR-07` already covers the ADMS/iClock ingest path and is
+substantially implemented; these six are what a working, manageable, observable terminal integration
+needs that HR-07 never stated. BIO-01 in particular was found by planning: the token this
+implementation requires is a query parameter a stock ZKTeco configuration menu has no field for, so
+until it is addressed no physical terminal can authenticate at all.
+
+- [ ] **BIO-01**: A terminal configured with only a server address and a port authenticates and delivers attendance; the authentication mode in force for each device is explicit, recorded, bounded, and changed only by an audited act
+- [ ] **BIO-02**: An administrator registers, names, assigns to a branch, enables, disables, rotates the token of and removes a biometric terminal entirely from the product UI, with no SQL and no restart, and only for terminals at branches they are authorised for
+- [ ] **BIO-03**: Every terminal's last contact is visible, a terminal silent beyond its own expected cadence is announced without anyone looking, and clock drift is measured per device from the two timestamps every punch already carries
+- [ ] **BIO-04**: Every line a device sends becomes an attendance punch, a resolvable queue entry, or a recorded duplicate — never nothing; and a replayed batch grows neither the punches nor the queue
+- [ ] **BIO-05**: The device-user-to-employee mapping is a first-class administrable surface with an unattributed-punch queue that shows its evidence, resolves in bulk by reference, and dismisses only with a named person and a typed reason
+- [ ] **BIO-06**: The integration is exercised end to end by a device simulator reproducing the real ADMS wire traffic, so no assertion in the phase waits on hardware except the firmware questions listed explicitly in `HARDWARE-SIGNOFF.md`
+
 ### Purchasing & Inventory Wiring (PIW)
 
 Added 2026-08-11 during Phase 31 planning, from hands-on user testing of vendor invoices, stock and
@@ -432,7 +447,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | HR-04 | Phase 11 | Pending |
 | HR-05 | Phase 11 | Pending |
 | HR-06 | Phase 11 | Pending |
-| HR-07 | Phase 11 | Pending |
+| HR-07 | Phase 11 (11-10, 11-11) + Phase 30 (30-01, 30-04 … 30-10, 30-13) | Partial — the ADMS ingest path exists and is idempotent; Phase 30 closes device auth for stock firmware, silent data loss, liveness, management and the mapping surface |
 | HR-08 | Phase 11 | Pending |
 | RPT-01 | Phase 12 (12-10) | Complete-with-a-note (12-10-E2E §2, §2h) |
 | RPT-02 | Phase 12 (12-10) | In Progress — gateway WS auth gap (12-10-E2E §1h, §3) |
@@ -446,6 +461,12 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PRINT-06 | Phase 26 (26-04, 26-07, 26-11) | Planned |
 | PRINT-07 | Phase 26 (26-02, 26-10) | Planned |
 | PRINT-08 | Phase 26 (26-05, 26-06, 26-09, 26-11) | Planned |
+| BIO-01 | Phase 30 (30-04, 30-08, 30-13) | Planned |
+| BIO-02 | Phase 30 (30-03, 30-09, 30-11) | Planned |
+| BIO-03 | Phase 30 (30-03, 30-10, 30-11) | Planned |
+| BIO-04 | Phase 30 (30-05, 30-06) | Planned |
+| BIO-05 | Phase 30 (30-06, 30-07, 30-09, 30-12) | Planned |
+| BIO-06 | Phase 30 (30-01, 30-02, 30-13) | Planned |
 | PIW-01 | Phase 31 (31-01, 31-07, 31-08) | Planned |
 | PIW-02 | Phase 31 (31-02) | Planned |
 | PIW-03 | Phase 31 (31-03) | Planned |
