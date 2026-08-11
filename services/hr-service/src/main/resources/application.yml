@@ -44,6 +44,20 @@ management:
         include: health,prometheus
 
 restaurantos:
+  hr:
+    # The address an installer types into a terminal's COMM -> Cloud Server screen. Until 25-08 this
+    # was unset everywhere, so AttendanceDeviceService fell back to its compiled-in placeholder and
+    # the one screen whose entire job is telling somebody what to type told them to replace something
+    # - beside a device token shown exactly once, so the only way back was re-registering.
+    #
+    # A terminal's Server Address field takes a bare host or IP and its Server Port a bare port; the
+    # firmware builds the /iclock path itself. So this is deliberately host and port, not a URL.
+    device-server-host: ${DEVICE_SERVER_HOST:localhost}
+    device-server-port: ${DEVICE_SERVER_PORT:8080}
+    # Which header carries the terminal's real source address. SERIAL_ONLY_BOUNDED rests entirely on
+    # this being trustworthy - see AdmsRequestContext. Set blank to fall back to the peer address,
+    # which fails closed.
+    device-source-address-header: ${DEVICE_SOURCE_ADDRESS_HEADER:X-Forwarded-For}
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
   jwks:

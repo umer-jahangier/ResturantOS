@@ -2,7 +2,7 @@
 phase: 26
 plan: "06"
 subsystem: print-agent
-status: partial
+status: complete
 tags: [print-agent, queue, durability, journal, config]
 requires:
   - 26-04 (the renderer and the emulator the transports will assert against)
@@ -40,9 +40,9 @@ commits:
   - dab08e9 feat(26-06) — task 2
 ---
 
-# Phase 26 Plan 06: The Print Agent — PARTIAL
+# Phase 26 Plan 06: The Print Agent
 
-**Tasks 1 and 2 complete and verified. Task 3 (the daemon) is NOT started.**
+**Complete.** There is a runnable agent that takes a document over loopback and puts bytes on a printer.
 
 ## What landed
 
@@ -103,13 +103,39 @@ runtime deps: 1
 
 ## NOT DONE
 
-| Task | Status |
-| --- | --- |
-| **3 — the daemon** (`server.ts`, `main.ts`, `server.test.ts`) | not started |
+## Task 3 — the daemon
 
-Task 3 is the HTTP listener that ties the three together: accept a document over loopback, persist
-it before responding, drain to a transport, and report queue depth and printer reachability on a
-health surface. Everything it needs now exists.
+**Three outcomes, three shapes.** Research §9.4's fallback ladder gives a cashier three different
+messages, so the agent gives three different responses: `200 DELIVERED` (bytes reached the socket),
+`202 QUEUED` (accepted and **on disk**, printer did not answer), `4xx` rejected. They differ by
+status code and not only by a body field, because 26-09 branches on exactly this and a ladder that
+cannot tell QUEUED from rejected shows the wrong message at the worst moment.
+
+Documents are **validated before persistence**, so a contract break is visible at the agent rather
+than at the printer — the test asserts the journal file does not exist afterwards. An unknown
+printer is `404` and an invalid document `422`, deliberately different: one is a configuration gap a
+manager fixes, the other a contract break an engineer does.
+
+`/test-print` emits a **column ruler**, and the test decodes what the socket received — so the
+configuration UI's Test Print button has an assertion behind it rather than a hope.
+
+The agent **refuses to start** on a non-loopback bind with no shared secret, and on a wildcard CORS
+origin. Both are refusals rather than warnings, because nobody reads a warning on a till.
+
+It never logs a document body. An unauthorised request is logged with its source address and
+nothing else.
+
+### Negative controls — seven, all red
+
+validate-after-persist · same status for unknown-printer as invalid-document · report QUEUED as
+DELIVERED · log the body · allow every origin · skip the secret check · accept a wildcard at load.
+
+## A note worth carrying to other agents: `npm test` green does not mean it compiles
+
+Twice in this plan the suite was green while `tsc --noEmit` was not — a `TS4115` override error in
+the transport, and three type errors in the daemon's spec. **Vitest does not typecheck.** That is
+why the plan's verify is `npm test && npx tsc --noEmit`, and it is worth stating here because
+several agents are running frontend suites and would make the same assumption.
 
 ## Task 2 — the transports, and the first end-to-end byte claim
 

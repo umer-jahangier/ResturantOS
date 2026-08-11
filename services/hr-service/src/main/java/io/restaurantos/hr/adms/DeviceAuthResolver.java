@@ -3,6 +3,8 @@ package io.restaurantos.hr.adms;
 import io.restaurantos.hr.entity.AttendanceDeviceEntity;
 import io.restaurantos.hr.repository.AttendanceDeviceRepository;
 import io.restaurantos.hr.service.AttendanceDeviceService;
+import io.restaurantos.shared.exception.FeatureDisabledException;
+import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -28,6 +30,9 @@ public class DeviceAuthResolver {
     private final AttendanceDeviceService deviceService;
     private final TenantContext tenantContext;
     private final DeviceAuthFailureRecorder failureRecorder;
+    private final DeviceCredentialPolicy credentialPolicy;
+    private final DeviceRefusalRecorder refusalRecorder;
+    private final FeatureFlagService featureFlagService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -35,11 +40,17 @@ public class DeviceAuthResolver {
     public DeviceAuthResolver(AttendanceDeviceRepository repository,
                               AttendanceDeviceService deviceService,
                               TenantContext tenantContext,
-                              DeviceAuthFailureRecorder failureRecorder) {
+                              DeviceAuthFailureRecorder failureRecorder,
+                              DeviceCredentialPolicy credentialPolicy,
+                              DeviceRefusalRecorder refusalRecorder,
+                              FeatureFlagService featureFlagService) {
         this.repository = repository;
         this.deviceService = deviceService;
         this.tenantContext = tenantContext;
         this.failureRecorder = failureRecorder;
+        this.credentialPolicy = credentialPolicy;
+        this.refusalRecorder = refusalRecorder;
+        this.featureFlagService = featureFlagService;
     }
 
     @Transactional
@@ -61,9 +72,21 @@ public class DeviceAuthResolver {
             failureRecorder.record(serial, DeviceAuthFailureRecorder.Cause.ARCHIVED_DEVICE, device.getTenantId());
             throw new DeviceAuthException("Device is archived");
         }
-        if (!deviceService.verifyToken(device, presentedToken)) {
-            failureRecorder.record(serial, DeviceAuthFailureRecorder.Cause.BAD_TOKEN, device.getTenantId());
-            throw new DeviceAuthException("Invalid device token");
+        // 25-08 substitutes the credential POLICY for the direct token check, inside this ordering
+        // rather than around it. For a TOKEN device the policy delegates to the same constant-time
+        // comparison as before, so that path is unchanged. Every other mode is refused with the same
+        // exception and the same recorder, so no mode is distinguishable from outside.
+        DeviceCredentialPolicy.Decision decision = credentialPolicy.evaluate(device, presentedToken);
+        if (!decision.permitted()) {
+            if (decision.observedSourceAddress() != null) {
+                // 25-AUTH-MODES.md's added constraint: record the address it was actually refused
+                // FROM, so a restaurant whose public IP changed can fix it from the device screen
+                // instead of raising a support call about attendance nobody can reconstruct.
+                refusalRecorder.recordObservedSourceAddress(
+                        device.getId(), device.getTenantId(), decision.observedSourceAddress());
+            }
+            failureRecorder.record(serial, decision.reason(), device.getTenantId());
+            throw new DeviceAuthException("Device credential refused");
         }
 
         // Only now bind tenant/branch from the registry (so failures above never leak context) and
@@ -72,6 +95,18 @@ public class DeviceAuthResolver {
         entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
                 .setParameter("tid", device.getTenantId().toString())
                 .getSingleResult();
+
+        // 25-08: the FEATURE_HR gate, enforced HERE because here is the first moment a tenant exists
+        // on this path. The gateway maps /iclock/ to FEATURE_HR and cannot ever act on it:
+        // FeatureFlagGlobalFilter reads the tenant from X-Tenant-Id and passes straight through when
+        // it is absent, which on a device request it always is - a terminal carries no JWT and no
+        // tenant header, which is the whole reason JwtGlobalFilter exempts this path. So the mapping
+        // was decorative and a tenant with HR switched off kept ingesting attendance.
+        //
+        // Placed after the bind and before the last-seen write, so a disabled tenant writes no row.
+        if (!featureFlagService.isEnabled(device.getTenantId(), "FEATURE_HR")) {
+            throw new FeatureDisabledException("FEATURE_HR");
+        }
 
         device.setLastSeenAt(Instant.now());
         repository.save(device);

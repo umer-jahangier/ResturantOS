@@ -1,9 +1,11 @@
 package io.restaurantos.hr.service;
 
 import io.restaurantos.hr.dto.DeviceDtos.DeviceRegistrationResponse;
+import io.restaurantos.hr.dto.DeviceDtos.DeviceSetupInstructions;
 import io.restaurantos.hr.dto.DeviceDtos.DeviceResponse;
 import io.restaurantos.hr.dto.DeviceDtos.RegisterDeviceRequest;
 import io.restaurantos.hr.entity.AttendanceDeviceEntity;
+import io.restaurantos.hr.entity.AttendanceDeviceEntity.AuthMode;
 import io.restaurantos.hr.repository.AttendanceDeviceRepository;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,14 +31,17 @@ public class AttendanceDeviceService {
 
     private final AttendanceDeviceRepository repository;
     private final TenantContext tenantContext;
-    private final String deviceServerUrl;
+    private final String deviceServerHost;
+    private final int deviceServerPort;
 
     public AttendanceDeviceService(AttendanceDeviceRepository repository,
                                    TenantContext tenantContext,
-                                   @Value("${restaurantos.hr.device-server-url:https://REPLACE-WITH-GATEWAY-HOST/iclock}") String deviceServerUrl) {
+                                   @Value("${restaurantos.hr.device-server-host:localhost}") String deviceServerHost,
+                                   @Value("${restaurantos.hr.device-server-port:8080}") int deviceServerPort) {
         this.repository = repository;
         this.tenantContext = tenantContext;
-        this.deviceServerUrl = deviceServerUrl;
+        this.deviceServerHost = deviceServerHost;
+        this.deviceServerPort = deviceServerPort;
     }
 
     @Transactional
@@ -60,7 +65,63 @@ public class AttendanceDeviceService {
         device.setActive(true);
         device = repository.save(device);
 
-        return new DeviceRegistrationResponse(toResponse(device), plaintextToken, deviceServerUrl);
+        // The token is handed back ONLY for the mode that uses one. A terminal in a secret-less mode
+        // has no field to type it into, and giving one anyway sends an installer looking for a field
+        // that does not exist.
+        boolean usesToken = device.getAuthMode() == AuthMode.TOKEN;
+        return new DeviceRegistrationResponse(
+                toResponse(device),
+                usesToken ? plaintextToken : null,
+                "http://" + deviceServerHost + ":" + deviceServerPort + "/iclock",
+                setupFor(device));
+    }
+
+    /**
+     * What to type into the terminal, for the mode this device is actually in.
+     *
+     * <p>Sourced from configuration rather than compiled in. Until 25-08 this response handed every
+     * installer {@code https://REPLACE-WITH-GATEWAY-HOST/iclock}, on every deployment, beside a token
+     * shown exactly once — so the one screen whose entire job is telling somebody what to type told
+     * them to replace something, and the only way back was re-registering the device.
+     */
+    private DeviceSetupInstructions setupFor(AttendanceDeviceEntity device) {
+        AuthMode mode = device.getAuthMode() == null ? AuthMode.TOKEN : device.getAuthMode();
+        return switch (mode) {
+            case TOKEN -> new DeviceSetupInstructions(
+                    mode, deviceServerHost, deviceServerPort, null,
+                    List.of("This mode needs a client that can send a token in the query string — "
+                                    + "the USB bridge agent, or firmware that permits one. A stock "
+                                    + "ZKTeco terminal cannot use it; choose 'Serial + network "
+                                    + "address' or 'Hostname' for one of those.",
+                            "Configure the bridge agent with the server address, the port, and the "
+                                    + "device token shown on this screen.",
+                            "The token is shown ONCE. If it is lost, rotate it rather than "
+                                    + "re-registering the device."),
+                    null);
+            case SERIAL_ONLY_BOUNDED -> new DeviceSetupInstructions(
+                    mode, deviceServerHost, deviceServerPort, null,
+                    List.of("On the terminal: COMM -> Cloud Server -> Enable = ON.",
+                            "Server Address = " + deviceServerHost,
+                            "Server Port = " + deviceServerPort,
+                            "Leave Domain Name empty. Nothing else needs to be set.",
+                            "If the terminal shows as refused, open its device screen: the address it "
+                                    + "is actually dialling from is displayed there, and 'allow this "
+                                    + "address' adds it."),
+                    "This device is trusted on its serial number plus its source address, so the "
+                            + "allowlist must stay correct. If the restaurant's connection changes "
+                            + "address regularly, ask the ISP for a static IP — it is a small monthly "
+                            + "cost and removes this class of problem entirely.");
+            case HOST_MAPPED -> new DeviceSetupInstructions(
+                    mode, null, deviceServerPort, device.getSourceAddressAllowlist(),
+                    List.of("On the terminal: COMM -> Cloud Server -> Enable = ON.",
+                            "Domain Name = " + (device.getSourceAddressAllowlist() == null
+                                    ? "(not yet set — set the device's hostname first)"
+                                    : device.getSourceAddressAllowlist()),
+                            "Server Port = " + deviceServerPort,
+                            "Leave Server Address empty."),
+                    "The hostname must resolve to this platform and must be covered by the TLS "
+                            + "certificate, or the terminal will not connect.");
+        };
     }
 
     @Transactional(readOnly = true)

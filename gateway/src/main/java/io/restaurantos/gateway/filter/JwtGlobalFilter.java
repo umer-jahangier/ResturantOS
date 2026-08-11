@@ -63,8 +63,11 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             "/actuator/prometheus",
             "/fallback",
             // Device-authenticated attendance ingest: no user JWT (the device has no login). The
-            // device token is verified by hr-service's DeviceAuthResolver, and these paths stay
-            // FEATURE_HR-gated (RouteFeatureMap) + per-device rate-limited. JWT-skip only.
+            // device credential is verified by hr-service's DeviceAuthResolver, which also enforces
+            // FEATURE_HR there - NOT here and not in FeatureFlagGlobalFilter, which cannot derive a
+            // tenant without the X-Tenant-Id header these requests by definition do not carry. See
+            // RouteFeatureMap for why. Per-device rate limiting IS applied here, by deviceKeyResolver.
+            // JWT-skip only.
             "/iclock",
             "/internal/attendance/ingest",
             // Platform (SuperAdmin) login — implemented by 13-05 in platform-admin-service. Public

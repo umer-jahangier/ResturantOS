@@ -35,8 +35,21 @@ public class RouteFeatureMap {
         PREFIX_TO_FEATURE.put("/api/v1/finance/",    "FEATURE_FINANCE");
         PREFIX_TO_FEATURE.put("/api/v1/purchasing/", "FEATURE_VENDOR");
         PREFIX_TO_FEATURE.put("/api/v1/hr/",         "FEATURE_HR");
-        // Device-authenticated attendance ingest (no user JWT) — still gated on the tenant's HR
-        // module so pushes to an HR-disabled tenant are rejected at the edge.
+        // Device-authenticated attendance ingest (no user JWT).
+        //
+        // These two entries are NOT enforced here and cannot be. FeatureFlagGlobalFilter derives the
+        // tenant from the X-Tenant-Id header and returns pass-through the moment it is absent - and
+        // on a device request it is always absent, because a terminal carries no JWT and no tenant
+        // header, which is exactly why JwtGlobalFilter exempts these paths. The gateway would have to
+        // look a serial up in hr_db to know the tenant, which is a database call at the edge on a
+        // path that runs every three seconds per device.
+        //
+        // FEATURE_HR for these paths is enforced in hr-service's DeviceAuthResolver, immediately
+        // after the device resolves - the first moment a tenant exists on this path - and before any
+        // row is written. This map entry is retained only so the prefix is not mistaken for
+        // deliberately ungated; the enforcement point is named above rather than implied. Until
+        // phase 25-08 the mapping was here and the enforcement was nowhere, and a tenant with HR
+        // switched off kept ingesting attendance.
         PREFIX_TO_FEATURE.put("/iclock/",            "FEATURE_HR");
         PREFIX_TO_FEATURE.put("/internal/attendance/", "FEATURE_HR");
         PREFIX_TO_FEATURE.put("/api/v1/crm/",        "FEATURE_CRM");
