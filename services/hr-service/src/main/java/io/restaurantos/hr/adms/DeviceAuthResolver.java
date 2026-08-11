@@ -27,26 +27,42 @@ public class DeviceAuthResolver {
     private final AttendanceDeviceRepository repository;
     private final AttendanceDeviceService deviceService;
     private final TenantContext tenantContext;
+    private final DeviceAuthFailureRecorder failureRecorder;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     public DeviceAuthResolver(AttendanceDeviceRepository repository,
                               AttendanceDeviceService deviceService,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              DeviceAuthFailureRecorder failureRecorder) {
         this.repository = repository;
         this.deviceService = deviceService;
         this.tenantContext = tenantContext;
+        this.failureRecorder = failureRecorder;
     }
 
     @Transactional
     public AttendanceDeviceEntity resolve(String serial, String presentedToken) {
-        AttendanceDeviceEntity device = repository.resolveBySerial(serial)
-                .orElseThrow(() -> new DeviceAuthException("Unknown device serial"));
+        // The ordering below is unchanged and must stay that way: resolve, then check active, then
+        // compare the token in constant time, and only THEN bind tenant context. 25-04 adds nothing
+        // but a recording call at each refusal — the recorder is bounded and publishes in its own
+        // transaction, because this one is about to roll back.
+        AttendanceDeviceEntity device = repository.resolveBySerial(serial).orElse(null);
+        if (device == null) {
+            failureRecorder.record(serial, DeviceAuthFailureRecorder.Cause.UNKNOWN_SERIAL, null);
+            throw new DeviceAuthException("Unknown device serial");
+        }
         if (!device.isActive()) {
+            failureRecorder.record(serial, DeviceAuthFailureRecorder.Cause.INACTIVE_DEVICE, device.getTenantId());
             throw new DeviceAuthException("Device is inactive");
         }
+        if (device.getArchivedAt() != null) {
+            failureRecorder.record(serial, DeviceAuthFailureRecorder.Cause.ARCHIVED_DEVICE, device.getTenantId());
+            throw new DeviceAuthException("Device is archived");
+        }
         if (!deviceService.verifyToken(device, presentedToken)) {
+            failureRecorder.record(serial, DeviceAuthFailureRecorder.Cause.BAD_TOKEN, device.getTenantId());
             throw new DeviceAuthException("Invalid device token");
         }
 

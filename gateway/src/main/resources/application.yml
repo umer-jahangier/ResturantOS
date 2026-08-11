@@ -391,7 +391,15 @@ spring:
                   args:
                     name: hrCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
+                    # 500 was deliberately absent until phase 25: a 500 on this route was
+                    # overwhelmingly an authentication refusal (DeviceAuthException resolved through
+                    # the shared catch-all), so tripping on it would have taken a whole branch's
+                    # terminals offline the first time an installer mistyped a serial. A refusal is
+                    # now a 401, so a 500 here is a genuine fault - and a device that meets an open
+                    # breaker buffers locally and replays on reconnect, which is what the ADMS
+                    # protocol has it do anyway and is safe only because ingestion is idempotent.
                     statusCodes:
+                      - 500
                       - 503
             - id: hr-attendance-ingest-route
               uri: lb://hr-service
@@ -407,7 +415,11 @@ spring:
                   args:
                     name: hrCircuitBreaker
                     fallbackUri: forward:/fallback/service-unavailable
+                    # See the comment on hr-iclock-route above: 500 is now a genuine fault on the
+                    # device path rather than an authentication refusal, and a bridge agent that
+                    # meets an open breaker buffers and replays exactly as a network terminal does.
                     statusCodes:
+                      - 500
                       - 503
 
             # ── Reporting Service (reports, FBR, realtime dashboard WS) ──────────
