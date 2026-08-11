@@ -14,6 +14,9 @@ const TABS = [
   { href: "/app/hr/payroll", label: "Payroll" },
   { href: "/app/hr/schedule", label: "Schedule" },
   { href: "/app/hr/attendance", label: "Attendance & Leave" },
+  // 35-11: departments, job titles and the tax table are tenant-managed and had no screen at all.
+  // A page nothing links to is a page that does not exist.
+  { href: "/app/hr/settings", label: "Settings" },
 ];
 
 function HrTabs() {
