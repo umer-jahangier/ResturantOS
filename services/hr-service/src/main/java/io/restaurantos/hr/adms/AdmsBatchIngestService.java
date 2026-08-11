@@ -1,6 +1,7 @@
 package io.restaurantos.hr.adms;
 
 import io.restaurantos.hr.entity.AttendanceDeviceEntity;
+import io.restaurantos.hr.entity.AttendanceQuarantineEntity.Reason;
 import io.restaurantos.hr.service.PunchIngestService;
 import io.restaurantos.hr.service.PunchIngestService.IngestResult;
 import org.slf4j.Logger;
@@ -21,12 +22,13 @@ import java.time.ZoneId;
  * needs the dispatch point. Putting the dispatch point in its own file is what lets those two plans
  * run in parallel rather than one waiting on the other for a file.
  *
- * <h2>The tally exists so a zero-yield batch cannot be silent</h2>
+ * <h2>The tally is the accounting, and it must sum</h2>
  *
- * <p>The device is told {@code OK} whatever happens — that is the protocol and this plan does not
- * change it. So the only place a batch that produced nothing can become visible is the server log.
- * A batch of five that writes zero rows and says {@code OK} is the same failure shape as an audit log
- * reporting healthy at zero rows, except that here each missing row is an unpaid hour.
+ * <p>The device is told {@code OK} whatever happens — that is the protocol and neither plan changes
+ * it. So the only place a batch that produced nothing can become visible is the server. Since 25-06
+ * every line reaches one of four outcomes, so {@code inserted + duplicates + quarantined + rejected}
+ * equals {@code lines} by construction; {@link BatchTally#unaccounted()} is that invariant written
+ * down, so the day a fifth branch is added without a destination it does not pass silently.
  */
 @Service
 public class AdmsBatchIngestService {
@@ -42,19 +44,27 @@ public class AdmsBatchIngestService {
     }
 
     /**
-     * What one uploaded batch did.
+     * What one uploaded batch did. <b>The four outcomes sum to {@link #lines()}</b> — that is the
+     * accounting D-25-03 requires and {@link #unaccounted()} is how a breach of it becomes visible.
      *
      * @param inserted  genuinely new punches
-     * @param duplicates lines that resolved to a punch already stored — expected, not exceptional
-     *                   (D-25-05): devices retransmit their offline buffer and must not double-count
-     * @param quarantined lines whose device user maps to no employee — retained, never dropped
-     * @param rejected  lines the parser could not interpret. 25-06 gives these a destination; until
-     *                  then they are counted and logged, which is already more than they used to get
+     * @param duplicates lines that resolved to a punch or a queue entry already stored — expected,
+     *                   not exceptional (D-25-05): devices retransmit their offline buffer and must
+     *                   not double-count, in the punch table OR in the queue a person has to clear
+     * @param quarantined new queue entries for a device user that maps to no employee
+     * @param rejected  new queue entries for a line the parser could not interpret. Before 25-06
+     *                  these were counted and logged and stored nowhere; they are now rows
      */
     public record BatchTally(int lines, int inserted, int duplicates, int quarantined, int rejected) {
-        /** True when nothing at all came of a body that was not empty. */
-        boolean yieldedNothing() {
-            return lines > 0 && inserted == 0 && duplicates == 0 && quarantined == 0;
+
+        /**
+         * Lines that reached no destination at all. <b>Structurally zero</b> — every branch below
+         * returns one of the four outcomes — which is exactly why it is worth asserting: this is the
+         * number that would move if a fifth branch were ever added without a destination, and it
+         * would move silently.
+         */
+        public int unaccounted() {
+            return lines - inserted - duplicates - quarantined - rejected;
         }
     }
 
@@ -76,11 +86,17 @@ public class AdmsBatchIngestService {
             lines++;
             AttlogParseOutcome outcome = parser.parse(line, zone);
             if (outcome instanceof AttlogParseOutcome.Rejection r) {
-                rejected++;
-                // 25-06 gives this a durable destination. Until then it is at least counted and named,
-                // where before it produced nothing at all — no row, no log line, no trace.
-                log.warn("ATTLOG line rejected: device={} reason={} bytes={}",
-                        device.getSerialNo(), r.reason(), line.length());
+                // 25-06 gave this a durable destination: the SAME queue an administrator already
+                // reads, distinguished by a reason. Before it, this branch produced a warning and no
+                // row — a smaller hole than the silent discard 25-05 removed, and still a hole.
+                IngestResult stored = punchIngestService.ingestRejection(device, quarantineReasonFor(r), line);
+                switch (stored) {
+                    case QUARANTINED -> rejected++;
+                    case QUARANTINE_DUPLICATE -> duplicates++;
+                    default -> throw new IllegalStateException("A rejection cannot become a punch: " + stored);
+                }
+                log.warn("ATTLOG line rejected: device={} reason={} bytes={} stored={}",
+                        device.getSerialNo(), r.reason(), line.length(), stored);
                 continue;
             }
             AttlogParseOutcome.Punch p = (AttlogParseOutcome.Punch) outcome;
@@ -88,21 +104,40 @@ public class AdmsBatchIngestService {
                     device, p.deviceUserRef(), p.deviceReportedAt(), p.punchType(), p.workCode(), line);
             switch (result) {
                 case INSERTED -> inserted++;
-                case DUPLICATE -> duplicates++;
+                case DUPLICATE, QUARANTINE_DUPLICATE -> duplicates++;
                 case QUARANTINED -> quarantined++;
             }
         }
 
         BatchTally tally = new BatchTally(lines, inserted, duplicates, quarantined, rejected);
-        if (tally.yieldedNothing()) {
-            // The one warning the acceptance criteria require. Names the device, what the device SAID
-            // the body was, and how big it was — the three facts that distinguish "the firmware sent
-            // a shape we cannot read" from "the body never arrived".
-            log.warn("ATTLOG batch yielded nothing: device={} declaredContentType={} bytes={} lines={} rejected={}",
-                    device.getSerialNo(), declaredContentType, body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
-                    tally.lines(), tally.rejected());
+        if (tally.unaccounted() != 0) {
+            // Should be unreachable: every branch above returns one of four outcomes and each is
+            // counted. It is logged rather than asserted because a batch that has already been
+            // partly written must still be acknowledged — the device deletes its buffer either way,
+            // so throwing here would trade a counting bug for a data-loss bug.
+            log.error("ATTLOG accounting breach: device={} declaredContentType={} bytes={} lines={} "
+                            + "inserted={} duplicates={} quarantined={} rejected={} UNACCOUNTED={}",
+                    device.getSerialNo(), declaredContentType,
+                    body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
+                    tally.lines(), tally.inserted(), tally.duplicates(), tally.quarantined(),
+                    tally.rejected(), tally.unaccounted());
         }
         return tally;
+    }
+
+    /**
+     * The parser's rejection reason as the queue's reason. Written as an exhaustive switch rather
+     * than {@code valueOf(name())} on purpose: the two enums are deliberately parallel, and a switch
+     * makes the compiler refuse a new parser reason that nobody decided a destination for. A
+     * name-based lookup would compile and fail at runtime, on a device, in production.
+     */
+    private static Reason quarantineReasonFor(AttlogParseOutcome.Rejection r) {
+        return switch (r.reason()) {
+            case BLANK_LINE -> Reason.BLANK_LINE;
+            case TOO_FEW_FIELDS -> Reason.TOO_FEW_FIELDS;
+            case MISSING_DEVICE_USER_REF -> Reason.MISSING_DEVICE_USER_REF;
+            case UNPARSEABLE_TIMESTAMP -> Reason.UNPARSEABLE_TIMESTAMP;
+        };
     }
 
     /**
