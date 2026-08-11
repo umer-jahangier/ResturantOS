@@ -319,7 +319,11 @@ tree shared by eight agents.
 | Reduced motion, both directions | `e2e/journeys/reduced-motion.spec.ts` | green |
 | Dependency budget | `__tests__/lib/theme/dependency-budget.test.ts` | green |
 | Bundle budget | `__tests__/lib/theme/bundle-budget.test.ts` | green |
-| Operational latency | `e2e/journeys/operational-latency.spec.ts` | POS half green; **KDS half not run** — kitchen-service is `DOWN` in Eureka |
+| Operational latency | `e2e/journeys/operational-latency.spec.ts` | green — POS **and** KDS, the latter on the real board for the first time (see §7 item 7) |
+| State distinguishability (GA-001, restyled) | `e2e/journeys/state-distinguishability.spec.ts` | green |
+| State character (salience, zone, precedence) | `__tests__/components/state-character.test.tsx` | green |
+| Dashboard character (composition, chart, count-up) | `__tests__/components/dashboard-character.test.tsx` | green |
+| Expressive surfaces, filter forced off | `e2e/journeys/expressive-surfaces-visual.spec.ts` | green |
 | **Phase 20 contrast (53 pairings)** | `__tests__/lib/theme/design-tokens.test.ts` | green, unchanged |
 | **Phase 20 permission matrix** | `__tests__/shared/nav-permission-matrix.test.tsx` | green, unchanged |
 
@@ -342,8 +346,69 @@ negative control rather than by trusting green:
    exist: one spent its full timeout and reported a 20-second "latency", the other queried
    `null`, returned `[]` and asserted nothing.
 
+6. **The pixel floor in `state-distinguishability.spec.ts`** — mine, found by its own negative
+   control. The floor was set at 2,000 pixels by reasoning rather than by measurement. The
+   control rewrote the error notice with the empty state's surface, disc and wording, retry
+   suppressed and alert removed — total convergence, the exact defect the gate exists to catch
+   — and the two renderings still differed by **2,920 pixels**, because the empty state carries
+   a description line the converged error did not. It passed. The floor is now calibrated from
+   two measured populations: 89,911 genuine against 2,920 converged, so 20,000 sits between
+   them with 4.5× and 6.8× of margin. The empty-vs-populated pair needed its own lower floor
+   (5,000 against a measured 12,652) because reusing 20,000 there failed **correct** code —
+   the opposite error, and just as fatal, since a gate that fails on correct code gets deleted.
+
+7. **All three KDS gates were on the wrong screen.** `operational-latency`,
+   `operational-zone-containment` and `reduced-motion` each navigated to a station board with
+   `page.locator('a[href^="/app/kitchen/"]')`, guarded by `.isVisible().catch(() => false)`.
+   The station tiles are **buttons** driving `router.push`; there is no anchor with that href
+   anywhere. So the locator matched nothing, the guard swallowed it, no click happened, and all
+   three ran against the **station picker**. Every assertion in them is an assertion of
+   absence, and the picker carries no filter and no animation either — so all three passed, for
+   the life of the phase, including the run that "confirmed" the KDS half after kitchen-service
+   came back up. Whether the service was up or down never changed what they measured.
+
+   Found by adding a positive anchor: each now fails with `ANCHOR NOT FOUND` unless
+   `[data-testid="kds-board"]` is attached. With the anchor in and the navigation fixed, two of
+   the three went **red on a healthy service**, and the failure was real: every ticket fragment
+   carried `animate-fade-in`, a 0.2 s `fadeIn` on mount, so arriving on a board with twenty open
+   tickets played twenty animations at once. That is the same defect 34-03 removed from the
+   board *root*, still present one level down in `kds-item-column.tsx`, on the screen D-34-02
+   exists to keep still. Removed; the `motion-safe:` collapse transition beside it stays,
+   because it is feedback for a bump the cook just performed rather than decoration on arrival.
+
+8. **The evidence harness signed in as a persona who could not reach the screen.**
+   `e2e/shots.mjs` uses `manager@terrace.local`, who does not hold `rbac.manage`, so every
+   settings screenshot this phase has on file is a picture of an **Access-denied page**, filed
+   as evidence that the settings restyle landed. The same harness cannot reach the owner
+   dashboard's chart at all, because the manager preset does not contain one. "Access denied"
+   renders perfectly well, and a harness with no *forbidden* condition files it happily.
+   `e2e/shots-owner.mjs` signs in as the OWNER (TOTP and all) and declares two conditions per
+   route: something that must be present, and a pattern whose presence means the shot would be
+   a lie. Run that way it found `/settings/appearance` untreated and its warning notice at
+   **1.21:1** in dark.
+
+### Three near-misses of the same family, recorded because the shape repeats
+
+Not gates in their own right, but each would have made one meaningless:
+
+- A route fulfilment returning a bare `[]` instead of this API's `{ data: [] }` envelope
+  produced the empty state **for the wrong reason** — `response.data.data` was `undefined` and
+  the page's `data ?? []` made a zero-length list of it. The spec would have reported "the empty
+  state renders" against a payload the product never receives.
+- A `[role="alert"]` query scoped to the whole page counted an alert the app shell renders
+  outside the content region, so the empty state "announced a failure". Scoped to `<main>`.
+- A fixture UUID of `1111…-1111-1111-…`. Zod 4 enforces the RFC 9562 version and variant
+  nibbles, so the row was rejected and the "populated" state rendered a parse failure.
+
 Every gate in this phase now carries its negative controls in its own docblock, recorded as
 *observed* rather than asserted.
+
+**The through-line, after eight of these.** Every one is an assertion of ABSENCE with no
+positive anchor: no filter, no animation, no difference, no violation. A screen that never
+rendered satisfies all of them, and so does a screen that is not the one under test. The rule
+this phase has earned: *an absence assertion must be preceded by an assertion that the thing it
+is looking at is there* — and where the anchor is a testid, its absence must fail loudly with
+`ANCHOR NOT FOUND` rather than resolve to `null` and quietly agree.
 
 ---
 

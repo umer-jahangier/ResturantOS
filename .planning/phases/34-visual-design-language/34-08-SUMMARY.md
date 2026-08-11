@@ -45,10 +45,9 @@ coverage:
         ref: "e2e/journeys/operational-latency.spec.ts — POS half green"
         status: pass
       - kind: e2e
-        ref: "KDS half — NOT RUN, kitchen-service DOWN in Eureka"
-        status: unknown
-    human_judgment: true
-    rationale: "The KDS assertions passed earlier in the session but were not green on the final sweep, so the phase cannot be reported complete on this deliverable."
+        ref: "KDS half — green on the REAL board since 2026-08-12; see the correction below"
+        status: pass
+    human_judgment: false
   - id: D3
     description: "Interaction latency on the POS tap-to-cart path is measured and recorded"
     verification:
@@ -78,13 +77,37 @@ status: complete
 - **Two more vacuous gates found while writing it** — a settle signal waiting on a testid that does not exist (it spent its full timeout and reported a 20-second "latency"), and a cart check scoped to the same missing testid (it queried `null`, returned `[]`, asserted nothing). Both now fail loudly if their anchor cannot be resolved.
 - **§7 of the SPEC catalogues all five vacuous gates found across the phase**, with what each was actually measuring. That list is the most useful part of the document.
 
-## NOT DONE
+## CORRECTION — 2026-08-12: the KDS problem was never kitchen-service
 
-The **KDS half of the latency spec did not run** on the final sweep — kitchen-service is `DOWN` in Eureka. It is written and it passed earlier in the session. Because of that, the phase's definition of done is **not** fully met, and this summary does not claim otherwise.
+This summary originally said the KDS half of the latency spec "did not run — kitchen-service is
+`DOWN` in Eureka", and that it "passed earlier in the session". Both statements were true and
+both were beside the point.
+
+With kitchen-service healthy, all three of this phase's KDS assertions were re-run and passed.
+They were then given a positive anchor — `[data-testid="kds-board"]` must be attached — and
+**all three went red**. They had never been on the board. Each navigated with
+`page.locator('a[href^="/app/kitchen/"]')` guarded by `.isVisible().catch(() => false)`; the
+station tiles are **buttons** driving `router.push`, so the locator matched nothing, the guard
+swallowed it, no click happened, and all three ran against the station picker. Every assertion
+in them is an assertion of absence, and the picker carries no filter and no animation either.
+The service being up or down never changed what they measured.
+
+With the navigation fixed, two of the three failed on a real defect: every ticket fragment
+carried `animate-fade-in`, a 0.2 s `fadeIn` on mount, so arriving on a board with twenty open
+tickets played twenty animations at once — the same defect 34-03 removed from the board *root*,
+still present one level down. Removed in `e04d55fa`.
+
+**The KDS half is now green on the real board**, verified in Chromium as the zaitoon kitchen
+persona: board rendered, one ticket fragment, zero running animations, LATE encoding intact
+(`evidence/after-34/kds-board.png`).
+
+Catalogued as vacuous gate #7 in SPEC §7, which now also carries #6 and #8 and the through-line
+those eight share: **an absence assertion must be preceded by an assertion that the thing it is
+looking at is there.**
 
 ## Self-Check: PASSED
 
-All four created files exist; the named tests are green apart from the KDS assertions recorded above.
+All four created files exist; the named tests are green, KDS included.
 
 ---
 *Phase: 34-visual-design-language*

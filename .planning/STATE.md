@@ -8,12 +8,12 @@ status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
 last_updated: "2026-08-11T19:32:19.979Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 28 — 28-06, 28-09 and 28-11 executed and verified in a browser
+last_activity_desc: Phase 34 completed — 8 of 8 plans, three vacuous-gate defects found and fixed
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 166
+  completed_plans: 168
   percent: 79
 ---
 
@@ -1150,13 +1150,12 @@ test-side by another agent, and NOT to be worked around by restoring the context
 failure in `PurchasingOpaPolicyIT`, an intermittent Testcontainers Postgres refusal, the 36-01
 handoffs, and a record that commit `f55292dc` swept three lines of the phase-37 agent's work.
 
---- Phase 34 (Visual Design Language) — 6 of 8 plans complete, 2 partial ---
+--- Phase 34 (Visual Design Language) — 8 of 8 plans complete ---
 
 Executed 2026-08-11/12 in wave order.
 
-**COMPLETE: 34-01, 34-02, 34-03, 34-04, 34-05, 34-08.**
-**PARTIAL: 34-06 (portlet treatment; no chart reveal, no count-up), 34-07 (login, console and
-settings; no dedicated visual spec).**
+**COMPLETE: all eight.** 34-06 and 34-07 were finished in a second session on 2026-08-12,
+along with 34-05's two missing gates and a correction to 34-08's KDS claim.
 
 What landed:
 
@@ -1202,19 +1201,66 @@ Corrections made to my own earlier reporting, both worth keeping:
    waiting on a testid that does not exist (one of which reported a 20-second "latency").
    All listed in SURFACE-MOTION-SPEC.md §7.
 
+SECOND SESSION (2026-08-12) — what was finished, and the three defects it found:
+
+- **34-05's two gates.** `state-character.test.tsx` (25 tests) measures salience rather than
+  arguing it: the error surface composites to **4–7x the chroma** of the empty state's disc in
+  both themes, and the measurement reads its tokens OFF the rendered element — the first draft
+  hard-coded `--destructive` and would have survived the exact restyle it exists to catch.
+  `state-distinguishability.spec.ts` (9 tests) forces failure / empty / populated on the
+  canonical GA-001 screen and compares by text, role and **pixels**: 89,911 differing pixels
+  failure-vs-empty, identical in both preference states. Six + two negative controls observed.
+
+- **34-06's chart reveal and count-up.** The reveal is a `<mask>`, not a dasharray on the series
+  strokes — `stroke-dasharray` is already the CVD redundant-encoding channel that UI-SPEC §3.4
+  makes mandatory, and overwriting it would trade an accessibility contract for an animation.
+  Path data asserted byte-identical against a baseline rendered from the pre-reveal component.
+  Count-up is keyed to mount; a value change renders instantly; reduced motion never animates.
+
+- **34-07's settings verification.** Done as the OWNER, in a real browser, both themes.
+
+THREE DEFECTS FOUND, all by giving an absence-assertion a positive anchor:
+
+1. **All three KDS gates were on the wrong screen.** They navigated with
+   `a[href^="/app/kitchen/"]`; the station tiles are BUTTONS driving router.push, so the locator
+   matched nothing, the `.catch(() => false)` guard swallowed it, and all three ran against the
+   station picker — which has no filter and no animation either, so all three passed for the
+   life of the phase. Whether kitchen-service was up or down never changed what they measured.
+   With the anchor in, two went red on a healthy service: every ticket fragment carried
+   `animate-fade-in`, so arriving on a board with twenty tickets played twenty animations at
+   once. Removed. All three now green ON THE BOARD, verified in Chromium.
+
+2. **The evidence harness signed in as a persona who could not reach the screen.** Every
+   settings screenshot in this phase is a picture of an Access-denied page. `shots-owner.mjs`
+   signs in as the OWNER and declares a forbidden condition as well as an anchor.
+
+3. **`/settings/appearance` was never restyled, and its warning notice measured 1.21:1 in dark.**
+   `--warning-foreground` is the stop for a SOLID fill; on a 10% tint over a dark card it is
+   camouflage. Light measured 17.74:1, which is why it survived — invisible in the theme people
+   develop in. Now 17.74 / 15.94, asserted per theme.
+
+And **the gate found a defect in itself**: the pixel floor was reasoned at 2,000, and a fully
+converged error/empty pair still measured 2,920 and passed. Recalibrated from two measured
+populations to 20,000, with a separate 5,000 floor for empty-vs-populated because 20,000 there
+failed CORRECT code.
+
+SPEC §7 now catalogues **eight** vacuous gates with the through-line they share: *an absence
+assertion must be preceded by an assertion that the thing it is looking at is there.*
+
 Carry-forward:
 
-1. **34-06's chart reveal and count-up are not built**, and neither are the dashboard-specific
-   test files. Direct series labelling (UI-SPEC §3.4) is untouched but unverified by this phase.
+1. The **platform console** was restyled in the breadth commit and its shots are genuine (the
+   SuperAdmin can reach it), but it was NOT re-verified in a browser this session and is not
+   covered by `expressive-surfaces-visual.spec.ts`.
 
-2. **KDS assertions were not re-run** on the final sweep — kitchen-service is DOWN in Eureka.
-   They passed earlier in the session; re-run them.
+2. The **onboarding surface** named in 34-CONTEXT does not exist in the codebase.
 
-3. The settings restyle is visually unverified: the seeded terrace manager lacks
-   `rbac.manage`/`branch.manage`, so the evidence harness sees "Access denied".
-
-4. framer-motion is in package.json but reachable from no route. `dependency-budget.test.ts`
+3. framer-motion is in package.json but reachable from no route. `dependency-budget.test.ts`
    fails if it is removed without updating the baseline in the same commit — deliberate.
+
+4. `npx tsc --noEmit` reports one error from `.next/dev/types/validator.ts` about
+   `/app/hr/settings` — a stale Next route-type artifact from another agent's in-flight work,
+   not from any file this phase touched.
 
 Environment notes recorded in that phase's `deferred-items.md`: a stale git stash dated
 2026-07-14 was popped across the repo mid-session leaving conflict markers in 12+ files; the
