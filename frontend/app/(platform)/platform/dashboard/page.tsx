@@ -34,7 +34,13 @@ export default function PlatformDashboardPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Platform overview</h1>
+        {/*
+          "Platform Dashboard", not "Platform overview". `e2e/journeys/unified-login.spec.ts`
+          (16a-01) asserts this exact heading as the proof that a SuperAdmin login lands on the
+          console — it is the passing assertion that the SuperAdmin has a browser path at all.
+          A nicer noun is not worth turning a green regression test red.
+        */}
+        <h1 className="text-2xl font-semibold">Platform Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Every action taken here affects a whole restaurant group, not one branch.
         </p>
