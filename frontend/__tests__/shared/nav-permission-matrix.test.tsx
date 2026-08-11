@@ -64,6 +64,12 @@ const NAV_PERMISSIONS = {
     "reporting.dashboard.view",
     "nlq.query.run",
     "rbac.manage",
+    // 28-01 defines `pos.terminals.admin` and grants it to OWNER, TENANT_ADMIN and MANAGER —
+    // and to those three only. 28-06 registers the POS Terminals nav entry behind it, so it is
+    // now a nav-relevant code and belongs in this fixture. Its absence from the ACCOUNTANT,
+    // CASHIER and KITCHEN_STAFF fixtures is what asserts the gate: a cashier must not be offered
+    // a screen that re-scopes which menu a till shows.
+    "pos.terminals.admin",
   ],
 } as const;
 
@@ -110,6 +116,7 @@ const FIXTURES: Record<string, RoleFixture> = {
       "pos.kds.view",
       "pos.till.review",
       "pos.menu.manage",
+      "pos.terminals.admin",
       "inventory.item.view",
       "vendor.view",
       "crm.customer.view",
@@ -211,7 +218,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     expect(await visibleNavFor(FIXTURES.OWNER!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
-      { group: "Menu", items: ["Inventory", "Menu Items"] },
+      { group: "Menu", items: ["Inventory", "Menu Items", "Stations", "POS Terminals"] },
       {
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
@@ -245,7 +252,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     expect(await visibleNavFor(FIXTURES.TENANT_ADMIN!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
-      { group: "Menu", items: ["Inventory", "Menu Items"] },
+      { group: "Menu", items: ["Inventory", "Menu Items", "Stations", "POS Terminals"] },
       {
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
@@ -287,7 +294,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     expect(await visibleNavFor(FIXTURES.MANAGER!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
-      { group: "Menu", items: ["Inventory", "Menu Items"] },
+      { group: "Menu", items: ["Inventory", "Menu Items", "Stations", "POS Terminals"] },
       // 37-12 CHANGED THIS LINE DELIBERATELY. A branch manager holds no `finance.journal.view`
       // and still sees Takings — because a manager is the person who counts the drawer, and
       // `DailyTakingsController` has gated on `pos.till.review` since 37-09. The ledger entries

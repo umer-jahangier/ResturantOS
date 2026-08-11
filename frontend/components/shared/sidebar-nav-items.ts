@@ -11,6 +11,8 @@ import {
   Contact,
   LayoutDashboard,
   LineChart,
+  MonitorSmartphone,
+  MonitorSpeaker,
   Palette,
   Receipt,
   Settings,
@@ -236,6 +238,31 @@ export const navGroups: NavGroup[] = [
         href: "/app/tables",
         icon: Armchair,
         permission: "pos.tables.admin",
+        feature: "FEATURE_POS",
+      },
+      {
+        // 28-06: the station catalogue. `/api/v1/pos/stations` has had full CRUD since phase 3
+        // and had ZERO frontend callers until this screen, so creating a station required curl —
+        // exactly what D-28-05 refuses. Gated on `pos.menu.manage`, which is what the create,
+        // update and deactivate endpoints @PreAuthorize; the list itself needs only
+        // `pos.menu.view`, but a nav entry to a screen whose every action 403s is worse than no
+        // entry. Sits under "Menu" beside Tables: both answer "what does this restaurant have".
+        label: "Stations",
+        href: "/app/stations",
+        icon: MonitorSpeaker,
+        permission: "pos.menu.manage",
+        feature: "FEATURE_POS",
+      },
+      {
+        // 28-09: the POS terminal catalogue — a named till profile with a menu scope and the
+        // stations it fires to (D-28-03). Registered here, by plan 28-06, in the SAME edit as
+        // Stations: phase 19b had two agents editing this shared file in one wave and had to
+        // reconcile it by hand. A nav entry pointing at a route that lands a wave later is the
+        // cheaper of the two trades.
+        label: "POS Terminals",
+        href: "/app/terminals",
+        icon: MonitorSmartphone,
+        permission: "pos.terminals.admin",
         feature: "FEATURE_POS",
       },
     ],
