@@ -8,12 +8,12 @@ changelog. They agree exactly, code for code. There is no migration/reality drif
 
 ## Headline
 
-| Direction | Count | Severity |
-|---|---|---|
-| **Referenced but not seeded** (phantom codes) | **9** | 0 live production gates. 2 latent, 7 test-fixture. |
-| **Seeded but never referenced** (dead permissions) | **1** | `pos.till.reconcile.override`, granted to 3 roles. |
-| Backend gates naming a code that does not exist | **0** | |
-| Frontend gates naming a code that does not exist | **2** | Both in an export nothing renders. |
+| Direction | Count | Severity | Status |
+|---|---|---|---|
+| **Referenced but not seeded** (phantom codes) | **9** | 0 live production gates. 2 latent, 7 test-fixture. | **7 fixed** (§5), 2 blocked (§6) |
+| **Seeded but never referenced** (dead permissions) | **1** | `pos.till.reconcile.override`, granted to 3 roles. | Left in place, deliberately (§3) |
+| Backend gates naming a code that does not exist | **0** | | |
+| Frontend gates naming a code that does not exist | **2** | Both in an export nothing renders. | Patch written, §6 — file locked |
 
 **The list is small. The reason it is small is not the reason you would hope.**
 
@@ -59,9 +59,11 @@ on the backend. There is no code the UI guards that the API leaves open.
 
 ## 2. Referenced but not seeded — the nine phantoms
 
-### 2a. Latent production gates (2)
+### 2a. Latent production gates (2) — **patch written, not applied** (§6a)
 
-Both in `frontend/components/shared/sidebar-nav-items.ts`, in `platformNavItems`:
+Both in `frontend/components/shared/sidebar-nav-items.ts`, in `platformNavItems`. Line numbers are
+as found; the file has since been edited by another workstream, so the entries have moved — which is
+exactly why `PermissionCatalogClosureTest` now computes locations live rather than recording them.
 
 | Code | Line | Symptom if rendered |
 |---|---|---|
@@ -86,10 +88,11 @@ This was already recorded as **N5/M5** in `.planning/research/authz-audit/RESEAR
 and again in `.planning/phases/19c-superadmin-console/deferred-items.md`. It has survived two audits
 because no automated control looks at nav `permission:` values.
 
-### 2b. Test-fixture phantoms (7)
+### 2b. Test-fixture phantoms (7) — **ALL SEVEN FIXED**, see §5
 
 Not broken gates. **Broken tests** — negative controls built from permissions no role holds, which
-therefore prove less than they claim.
+therefore prove less than they claim. The table below is the state as found; the corrections and
+their verification are in §5, and `KNOWN_UNSEEDED` no longer lists any of them.
 
 | Code | Sites | Real code that was meant |
 |---|---|---|
@@ -264,7 +267,52 @@ Only `services/auth-service/src/test/java/io/restaurantos/auth/PermissionCatalog
 | `QUOTED` accepts double quotes; new `CLAIM_CONTAINS` and `PERMISSION_CONSTANT` patterns for the WebSocket idiom | 4.1(b) |
 | New `everyPermissionInAPolicyFixtureExistsInTheCatalog` — reads `base_user([…])` / `"permissions": […]` lists | 4.1(c) |
 | New `everyFrontendNavPermissionExistsInTheCatalog` — reads `permission: "…"` from the nav config **as literal strings**, not through a dotted-code regex, because both live phantoms are colon-delimited and a house-convention regex would skip them | 4.1(a), 4.3 |
-| `KNOWN_UNSEEDED` — the 7 phantoms the two new tests would fail on, listed with file, line and the correct code | Makes the debt a ratchet: the **eighth** phantom fails the build |
+| `KNOWN_UNSEEDED` — the ratchet | Makes the debt a ratchet: the **next** phantom fails the build |
+| Every failure now reports **code → every `path:line` that names it**, computed live from the match offset | The test runs in auth-service and reads the whole repo; a bare code name sends the reader grepping in the wrong module |
+| `NAV_PERMISSION` reads the **array** form `permission: ["a","b"]`, not just the scalar | See below — this was not hypothetical |
+
+**The array form was a live miss, found while writing the fix.** The 37-12 workstream introduced
+`permission: ["finance.journal.view", "pos.order.view.all", "pos.till.review"]` with
+`permissionMode: "any"` during this audit. The scalar-only pattern I first shipped read **15** codes
+from `sidebar-nav-items.ts`; the array-aware one reads **19**. The four it had been skipping —
+`pos.order.view.all`, `branch.manage`, `rbac.manage`, `rbac.user.manage` — are all seeded, so nothing
+was concealed. But it is worth recording that a scan written *specifically to close an idiom blind
+spot* shipped with an idiom blind spot, in the same week, against a config shape that already
+existed. The pattern must track the config's shape, and that is now stated on the pattern itself.
+
+### Fixture phantoms fixed (7 of 9)
+
+All in clean files, all verified: **`opa test policies/` 160/160**, `KdsAccessIsolationIT` 10/10,
+`MenuStationRoutingIT` 9/9, `CashPaymentRequiresTillIT` 5/5.
+
+| File | Was | Now |
+|---|---|---|
+| `policies/tests/kds_test.rego` | `["finance.report.view", "finance.period.manage"]` as "ACCOUNTANT" | `accountant_permissions` = the role's four real codes **including `pos.order.view`** |
+| `policies/tests/kds_test.rego` | `["finance.report.view"]` as "FINANCE_VIEWER" | `["finance.journal.view"]`, relabelled — FINANCE_VIEWER is a role changeset 082 deliberately deleted |
+| `policies/tests/inventory_test.rego` | `["finance.report.view", "pos.kds.view"]` | `["finance.journal.view", "pos.kds.view"]` |
+| `policies/tests/rbac_test.rego` | `["pos.order.read"]` | `["pos.order.view"]` |
+| `policies/tests/rbac_test.rego` | `["rbac.user.view", "branch.view", "pos.order.create"]` | `["audit.log.view", "pos.order.create"]` |
+| `policies/tests/pos_test.rego` | `["pos.order.read"]` | `["pos.order.view"]` |
+| `policies/tests/common_test.rego` | `["pos.order.read"]` | `["pos.order.view"]` |
+| `KdsAccessIsolationIT.java` | two uncatalogued finance codes | `ACCOUNTANT_PERMISSIONS` constant, the role's real four |
+| `CashPaymentRequiresTillIT.java` | `pos.till.manage` (×2) | `pos.till.open`, `pos.till.close` |
+| `MenuStationRoutingIT.java` | `pos.orders.create` | `pos.order.create` |
+
+Two of these deserve their reasoning recorded, because "swap in a real code" was not always available:
+
+- **`kds_test.rego` / `KdsAccessIsolationIT` — `pos.order.view` is the load-bearing addition.** A real
+  ACCOUNTANT holds it, and it is the nearest neighbour to `pos.kds.view` in the entire catalogue:
+  same module, same verb. The old fixture would have stayed green if `kds.rego` were widened to
+  accept it. Now that widening turns this test red, which is the only reason the test is worth having.
+- **`rbac_test.rego` — the prefix-mutation guard cannot be honestly restored today.** Its comment says
+  it exists to catch a `startswith("rbac.")` rule, and the fictional `rbac.user.view` was the only
+  thing making that true. The catalogue holds exactly three `rbac.*` codes and `rbac.rego` enumerates
+  all three, so **no real code exists that a prefix test would wrongly admit.** `audit.log.view` is the
+  closest real administration-adjacent grant (OWNER and TENANT_ADMIN only, not one of the four), so
+  the test is now true; the comment says plainly that the prefix mutation is untestable until a
+  narrower `rbac.*` code is declared, and that when one is, it belongs in this fixture. Writing down
+  that a guard is currently weaker than its name is better than leaving fiction in place to make it
+  look strong.
 
 **5 tests, green**, and **verified capable of failing**: removing `finance.report.view` and
 `platform:admin` from `KNOWN_UNSEEDED` produces
@@ -280,7 +328,183 @@ its reference is corrected.
 
 ---
 
-## 6. Recommended follow-ups (not done here)
+## 6. Patches for the two files I could not touch
+
+Both were dirty when this ran — the **37-12 Finance/Takings** workstream is mid-edit in each
+(`git status` checked immediately before, per instruction). Applying anything here would have
+collided with in-flight work, so the exact changes are written out instead. Neither depends on the
+other; both are self-contained.
+
+### 7a. `frontend/components/shared/sidebar-nav-items.ts` — the two live phantoms
+
+Replace the permission gate with a **role** gate. `NavItem.roles` already exists for exactly this
+case — its own comment reads *"Role gate for items with no permission in the DB catalog yet"* — and
+`useNavGroupVisibility` composes it at `use-nav-visibility.ts:94,116`. This matches what the backend
+actually enforces (`PlatformAdminController` and `PlatformUserAdminController` are both
+`@PreAuthorize("hasAuthority('SUPER_ADMIN')")`), and it is why **seeding these codes would be wrong**:
+they are not tenant permissions, nothing would ever grant them, and adding them to the catalogue
+would make the vocabulary describe a principal that does not exist.
+
+```diff
+   {
+     label: "Tenants",
+     href: "/platform/tenants",
+     icon: Building2,
+-    permission: "platform:tenant:read",
++    // The platform JWT carries no permission codes at all — `permissions` is empty and the
++    // authority is the ROLE. This gated on `platform:tenant:read`, a colon-delimited code that
++    // exists in no catalogue and in no token, so the item could never render for anyone
++    // including a SuperAdmin. Latent only because `platformNavItems` is imported by nothing.
++    roles: ["SUPER_ADMIN"],
+     comingSoon: true, // /platform/tenants page not built yet (Phase 21)
+   },
+   {
+     label: "Platform Admin",
+     href: "/platform/dashboard",
+     icon: ShieldCheck,
+-    permission: "platform:admin",
++    roles: ["SUPER_ADMIN"], // matches PlatformAdminController's @PreAuthorize
+   },
+```
+
+Then delete both entries from `KNOWN_UNSEEDED` in `PermissionCatalogClosureTest` — the list is
+empty at that point, and the ratchet becomes a plain closure assertion again.
+
+### 7b. `frontend/__tests__/shared/nav-permission-matrix.test.tsx` — the concealment
+
+**This is the more important of the two, and it is not about the phantoms.** The test's permission
+sets are hand-maintained string lists. A nav item gated on a phantom is invisible to every fixture,
+so the expected-output list simply omits that item and the test goes green **having recorded the
+broken behaviour as correct**. It is not merely blind to the defect; it certifies it. That is why it
+is listed ahead of the phantoms it hides.
+
+The fix is to stop the fixtures being self-consistent-but-unreal, by checking both halves against
+the seeded catalogue. Read the changelog off disk — the same idiom `nav-feature-flags.test.ts`
+already uses at lines 12–20 to read `TierFeatureDefaults.java` and `RouteFeatureMap.java`.
+
+Add to the imports (`fs`, `path`, `fileURLToPath` and `repoRoot` are already declared in
+`nav-feature-flags.test.ts`; this file needs its own copies):
+
+```ts
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { navGroups, platformNavItems, tenantNavItems, type NavItem } from "@/components/shared/sidebar-nav-items";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const CHANGELOG_DIR = path.join(
+  repoRoot,
+  "services/auth-service/src/main/resources/db/changelog",
+);
+
+/**
+ * The seeded permission catalogue, read from the Liquibase changesets.
+ *
+ * Both insert idioms, because 049 declares four codes in raw SQL and an attribute-only parser
+ * reports them as undeclared. `<rollback>` bodies are stripped: 054 restores `pos.order.void` on
+ * the way back, and counting that would re-declare the row the changeset exists to delete.
+ */
+function seededPermissions(): Set<string> {
+  const codes = new Set<string>();
+  const walk = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(path.join(dir, e.name)) : path.join(dir, e.name),
+    );
+
+  for (const file of walk(CHANGELOG_DIR).filter((f) => f.endsWith(".xml"))) {
+    const xml = fs.readFileSync(file, "utf-8").replace(/<rollback>[\s\S]*?<\/rollback>/g, "");
+    for (const m of xml.matchAll(
+      /<insert\s+tableName="permissions">\s*<column\s+name="code"\s+value="([^"]+)"/g,
+    )) {
+      codes.add(m[1]);
+    }
+    for (const block of xml.matchAll(/INSERT\s+INTO\s+permissions[^;]*;/gi)) {
+      for (const m of block[0].matchAll(/\(\s*'([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+)'\s*,/g)) {
+        codes.add(m[1]);
+      }
+    }
+  }
+  return codes;
+}
+
+const CATALOGUE = seededPermissions();
+
+/** Every nav item, flat — tenant list, groups, and the platform console. */
+function allNavItems(): NavItem[] {
+  return [...tenantNavItems, ...navGroups.flatMap((g) => g.items), ...platformNavItems];
+}
+
+function permissionCodesOf(item: NavItem): string[] {
+  if (!item.permission) return [];
+  return Array.isArray(item.permission) ? item.permission : [item.permission];
+}
+```
+
+Then three new tests. The first is the vacuity guard, the second is the actual fix, the third makes
+the fixtures real:
+
+```ts
+describe("nav permission closure — a gate on a code nobody holds is not a gate", () => {
+  it("the catalogue was actually parsed", () => {
+    // Without this the two assertions below pass on an empty set. That exact hole is what let
+    // PermissionCatalogClosureTest run green while measuring nothing — see
+    // .planning/audits/PERMISSION-CODE-AUDIT.md §4.1(d).
+    expect(CATALOGUE.size).toBeGreaterThan(60);
+    expect(CATALOGUE.has("pos.order.view")).toBe(true);
+  });
+
+  it("every nav item gates on a permission the catalogue defines", () => {
+    const orphans = allNavItems().flatMap((item) =>
+      permissionCodesOf(item)
+        .filter((code) => !CATALOGUE.has(code))
+        .map((code) => `${item.label} (${item.href}) → ${code}`),
+    );
+    // A phantom here hides the item from EVERY user on every tenant and looks exactly like a
+    // correctly-applied permission. The frozen matrix below cannot see it: the item is absent
+    // from every fixture, so its absence reads as expected.
+    expect(orphans).toEqual([]);
+  });
+
+  it("every fixture permission is one a real role can hold", () => {
+    const unreal = Object.values(FIXTURES).flatMap((f) =>
+      f.permissions.filter((code) => !CATALOGUE.has(code)).map((code) => `${f.role} → ${code}`),
+    );
+    expect(unreal).toEqual([]);
+  });
+
+  // The negative control. Without it nothing proves the assertion above can fail — and an
+  // assertion that cannot fail is the defect this whole audit is about.
+  it("reports a phantom gate with the item that carries it", () => {
+    const bogus = [
+      { label: "Tenants", href: "/platform/tenants", permission: "platform:tenant:read" },
+      { label: "POS", href: "/app/pos", permission: "pos.order.view" },
+    ] as NavItem[];
+
+    const orphans = bogus.flatMap((item) =>
+      permissionCodesOf(item)
+        .filter((code) => !CATALOGUE.has(code))
+        .map((code) => `${item.label} (${item.href}) → ${code}`),
+    );
+    expect(orphans).toEqual(["Tenants (/platform/tenants) → platform:tenant:read"]);
+  });
+});
+```
+
+**Sequencing note:** the second test fails until 7a lands (`platform:tenant:read`,
+`platform:admin`), and the fourth is written to *depend* on `platform:tenant:read` staying unseeded —
+which is permanent, since 7a's whole point is that it must never be seeded. Apply 7a first, or land
+both together.
+
+**Why this is worth doing even though `PermissionCatalogClosureTest` now covers the same ground.**
+The Java test catches it, but it fails in a different module, in the other half of the repo, on a
+build a frontend change does not necessarily run. This one fails on the branch and in the package
+that introduced the drift. Cross-module detection is the backstop; same-package detection is the
+signal.
+
+---
+
+## 7. Recommended follow-ups (not done here)
 
 Ordered by value, not effort.
 
