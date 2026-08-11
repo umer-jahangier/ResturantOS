@@ -23,6 +23,20 @@ and the licensing position on QZ Tray. **The planner must read it and must not r
 
 ## Locked decisions
 
+> **AMENDED 2026-08-07, after the planner challenged it.** D-26-01 originally said "direct
+> ESC/POS", which read literally means *browser-direct* — and the research rejects that on four
+> independent grounds: Windows binds printer-class devices to `usbprint.sys` so WebUSB cannot
+> claim them, Web Serial does not enumerate printer-class devices at all, no browser has raw
+> TCP, and Safari supports none of it. **"Direct" means "not rasterised through a print driver",
+> not "issued from the browser process".** The transport is a local print agent, per research §9.
+> The planner was right to raise this before wave 3 rather than discover it there.
+>
+> **26-11 is KEPT, not cut.** The planner flagged it as the ~3-day overrun candidate and left the
+> decision here. Keeping it: its whole purpose is that a kitchen ticket prints when no browser tab
+> is open. A kitchen printer that fires only while someone's tablet happens to be awake is
+> precisely the "structurally present, behaviourally absent" outcome this project's defect
+> register catalogues 26 times — it would demo perfectly and fail on a Friday night.
+
 **D-26-01 — Two tiers, and the plain tier ships first.**
 A tenant with no thermal hardware must still be able to hand a customer a bill. So: an HTML
 receipt rendered for `window.print()` with an 80mm `@page` stylesheet, working in any browser
