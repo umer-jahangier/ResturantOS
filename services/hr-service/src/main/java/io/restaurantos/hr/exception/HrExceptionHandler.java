@@ -80,4 +80,33 @@ public class HrExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiError.of("DEVICE_AUTH_FAILED", "Device not recognised", traceId()));
     }
+
+    /**
+     * A fiscal year with no tax configuration is a 409 the operator can act on, not a 500.
+     *
+     * <p>See {@link TaxConfigNotConfiguredException} for why this exception exists. This handler is
+     * the half that makes it visible: it inherits this class's ordering ahead of the shared advice
+     * for the reason the class javadoc records, and without that the catch-all would win exactly as
+     * it did for the two exceptions above.
+     *
+     * <p><b>409, not 500 and not 422.</b> Not 500 because nothing broke — the request was correct
+     * and the tenant's configuration is absent, and a 500 tells the client to retry something that
+     * cannot succeed while also burying a real fault in the alerting. Not 422 because 422 in this
+     * codebase means "a rule looked at your input and refused it", and carries per-field details a
+     * form binds to inputs; there is no offending input here. 409 says the request conflicts with
+     * the current state of the tenant's configuration, which is exactly what happened, and it puts
+     * this alongside the {@code PAYROLL_RUN_*} state refusals from 35-01 that the Payroll screen
+     * already switches on.
+     *
+     * <p>The details list is deliberately empty. 35-01's rule: a refusal with no single offending
+     * field never guesses a path, because a path is an instruction to edit that box.
+     */
+    @ExceptionHandler(TaxConfigNotConfiguredException.class)
+    public ResponseEntity<ApiError> handleTaxConfigNotConfigured(TaxConfigNotConfiguredException ex) {
+        // info, not error: this is an ordinary operational state on the first of July, and logging
+        // it at error level would train operators to ignore the level that matters.
+        log.info("Payroll refused: no tax configuration for fiscal year {}", ex.getFiscalYear());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiError.of(TaxConfigNotConfiguredException.CODE, ex.getMessage(), traceId()));
+    }
 }

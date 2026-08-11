@@ -75,11 +75,65 @@ public class TaxConfigEntity {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
-    protected TaxConfigEntity() {
+    /**
+     * There is now a public constructor and a full set of setters, and until 35-06 there were
+     * neither — which is why this table had exactly one row, written by a Liquibase seed, for a
+     * placeholder tenant, for a fiscal year that had already ended. The entity was readable and
+     * unwritable, so "configure your tax table" meant "ask a developer to write a migration".
+     */
+    public TaxConfigEntity() {
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public void setFiscalYear(Integer fiscalYear) {
+        this.fiscalYear = fiscalYear;
+    }
+
+    public void setEffectiveFrom(LocalDate effectiveFrom) {
+        this.effectiveFrom = effectiveFrom;
+    }
+
+    public void setEffectiveTo(LocalDate effectiveTo) {
+        this.effectiveTo = effectiveTo;
+    }
+
+    public void setIncomeTaxSlabs(List<TaxSlab> incomeTaxSlabs) {
+        this.incomeTaxSlabs = incomeTaxSlabs;
+    }
+
+    public void setSurchargeThresholdPaisa(long surchargeThresholdPaisa) {
+        this.surchargeThresholdPaisa = surchargeThresholdPaisa;
+    }
+
+    public void setSurchargeRatePct(BigDecimal surchargeRatePct) {
+        this.surchargeRatePct = surchargeRatePct;
+    }
+
+    public void setEobiEmployerRatePct(BigDecimal eobiEmployerRatePct) {
+        this.eobiEmployerRatePct = eobiEmployerRatePct;
+    }
+
+    public void setEobiEmployeeRatePct(BigDecimal eobiEmployeeRatePct) {
+        this.eobiEmployeeRatePct = eobiEmployeeRatePct;
+    }
+
+    public void setEobiWageBasePaisa(long eobiWageBasePaisa) {
+        this.eobiWageBasePaisa = eobiWageBasePaisa;
+    }
+
+    public void setProrationMethod(String prorationMethod) {
+        this.prorationMethod = prorationMethod;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public UUID getTenantId() {
