@@ -70,9 +70,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiError.of("QUOTA_EXCEEDED", ex.getMessage(), traceId()));
     }
 
+    /**
+     * Emits the exception's own code rather than the literal {@code "STATE_INVALID"}.
+     *
+     * <p>Behaviour-preserving: the one-argument {@link StateInvalidException} constructor sets the
+     * code to {@code STATE_INVALID}, and all 42 pre-existing throw sites use it, so every existing
+     * response is byte-identical. Only the two-argument constructor introduced in 35-01 differs,
+     * which is what lets payroll distinguish "wrong state" from "no branch" (D-35-03).
+     */
     @ExceptionHandler(StateInvalidException.class)
     public ResponseEntity<ApiError> handleState(StateInvalidException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of("STATE_INVALID", ex.getMessage(), traceId()));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
     }
 
     @ExceptionHandler(IdempotencyConflictException.class)

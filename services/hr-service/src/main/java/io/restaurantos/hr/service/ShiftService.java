@@ -6,6 +6,9 @@ import io.restaurantos.hr.entity.ShiftEntity;
 import io.restaurantos.hr.repository.EmployeeRepository;
 import io.restaurantos.hr.repository.ShiftAssignmentRepository;
 import io.restaurantos.hr.repository.ShiftRepository;
+import io.restaurantos.shared.exception.DuplicateValueException;
+import io.restaurantos.shared.exception.FieldValidationException;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,13 +86,20 @@ public class ShiftService {
         UUID tenantId = requireTenant();
         ShiftEntity shift = loadShift(req.shiftId());
         EmployeeEntity employee = employeeRepository.findByIdAndTenantId(req.employeeId(), tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + req.employeeId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", req.employeeId()));
         if (!employee.getBranchId().equals(shift.getBranchId())) {
-            throw new IllegalArgumentException("Employee and shift belong to different branches");
+            // Bound to the shift, not the employee. The scheduling screen is a branch's own roster
+            // and the employee is the thing the user just picked deliberately; the shift is the
+            // value that can be wrong without the user noticing which branch it belongs to.
+            throw new FieldValidationException("SHIFT_BRANCH_MISMATCH", "shiftId",
+                    employee.getFullName() + " works at a different branch from this shift."
+                            + " Pick a shift at their own branch, or move the employee first.");
         }
         if (assignmentRepository.existsByTenantIdAndShiftIdAndEmployeeIdAndWorkDate(
                 tenantId, req.shiftId(), req.employeeId(), req.workDate())) {
-            throw new IllegalStateException("Employee already assigned to this shift on that date");
+            throw new DuplicateValueException("employeeId",
+                    employee.getFullName() + " is already on this shift on " + req.workDate()
+                            + ". Choose another employee, or another date.");
         }
         ShiftAssignmentEntity a = new ShiftAssignmentEntity();
         a.setTenantId(tenantId);
@@ -102,7 +112,7 @@ public class ShiftService {
     @Transactional
     public void unassign(UUID assignmentId) {
         ShiftAssignmentEntity a = assignmentRepository.findByIdAndTenantId(assignmentId, requireTenant())
-                .orElseThrow(() -> new IllegalArgumentException("Assignment not found: " + assignmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Shift assignment", assignmentId));
         assignmentRepository.delete(a);
     }
 
@@ -110,7 +120,7 @@ public class ShiftService {
     @Transactional
     public AssignmentResponse move(UUID assignmentId, UUID newShiftId, LocalDate newWorkDate) {
         ShiftAssignmentEntity a = assignmentRepository.findByIdAndTenantId(assignmentId, requireTenant())
-                .orElseThrow(() -> new IllegalArgumentException("Assignment not found: " + assignmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Shift assignment", assignmentId));
         UUID employeeId = a.getEmployeeId();
         assignmentRepository.delete(a);
         return assign(new AssignRequest(newShiftId, employeeId, newWorkDate));
@@ -128,9 +138,11 @@ public class ShiftService {
 
     private ShiftEntity loadShift(UUID id) {
         return shiftRepository.findByIdAndTenantId(id, requireTenant())
-                .orElseThrow(() -> new IllegalArgumentException("Shift not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Shift", id));
     }
 
+    // Raw IllegalStateException deliberately: no tenant/branch in context is a filter-chain
+    // invariant breach, not caller input. See the note in EmployeeService.
     private UUID requireTenant() {
         return tenantContext.getTenantId().orElseThrow(() -> new IllegalStateException("No tenant context"));
     }

@@ -15,6 +15,9 @@ import io.restaurantos.hr.repository.PayrollRunRepository;
 import io.restaurantos.hr.repository.PayslipRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.event.payload.HrEventContract;
+import io.restaurantos.shared.exception.DuplicateValueException;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
+import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,8 +71,9 @@ public class PayrollRunService {
         authorization.authorizePayrollRun(null, tenantId, requireBranch());
         runRepository.findByTenantIdAndPeriodMonthAndPeriodYear(tenantId, periodMonth, periodYear)
                 .ifPresent(r -> {
-                    throw new IllegalStateException(
-                            "A payroll run already exists for " + periodMonth + "/" + periodYear);
+                    throw new DuplicateValueException("periodMonth",
+                            "A payroll run already exists for " + periodMonth + "/" + periodYear
+                                    + ". Open that run instead of creating a second one.");
                 });
         PayrollRunEntity run = new PayrollRunEntity();
         run.setTenantId(tenantId);
@@ -94,13 +98,20 @@ public class PayrollRunService {
         authorizePayrollRunOn(runId);
         PayrollRunEntity run = load(runId);
         if (run.getStatus() != Status.DRAFT && run.getStatus() != Status.CALCULATED) {
-            throw new IllegalStateException("Only a DRAFT/CALCULATED run can be calculated; is " + run.getStatus());
+            // Own code, not the generic STATE_INVALID: the payroll screen must be able to tell
+            // "this run is already approved" from "this run has no branch" without reading prose,
+            // because the two have different next actions.
+            throw new StateInvalidException("PAYROLL_RUN_NOT_CALCULABLE",
+                    "This run is " + run.getStatus().name().toLowerCase()
+                            + " and can no longer be calculated. Only a draft or an already-calculated"
+                            + " run can be recalculated.");
         }
         // Guard rows created before create() required a branch: findAllByBranchId(null) matches no
         // employees, which would otherwise produce a zero-total run that looks successful.
         if (run.getBranchId() == null) {
-            throw new IllegalStateException(
-                    "Payroll run " + runId + " has no branch and cannot be calculated");
+            throw new StateInvalidException("PAYROLL_RUN_NO_BRANCH",
+                    "This run was created without a branch and cannot be calculated."
+                            + " Create a new run while signed in to the branch you are paying.");
         }
         int fiscalYear = run.getPeriodMonth() >= 7 ? run.getPeriodYear() + 1 : run.getPeriodYear();
         ActiveTaxConfig cfg = taxConfigService.getActiveConfig(fiscalYear);
@@ -147,7 +158,10 @@ public class PayrollRunService {
             // an all-or-nothing document, and silently omitting someone means they are not paid and
             // nobody is told. This throws with the employee and the numbers, so the fix is obvious.
             if (net < 0) {
-                throw new IllegalStateException(
+                // Keeps its full arithmetic breakdown — it is aimed at an operator who has to find
+                // the wrong number — but stops being reported as a server fault. 409, not 500: the
+                // data is wrong, the server is not.
+                throw new StateInvalidException("PAYSLIP_NET_NEGATIVE",
                         "Payslip for employee " + emp.getId() + " (" + emp.getEmployeeNo() + ") in run "
                                 + runId + " has a negative net of " + net + " paisa: gross=" + gross
                                 + ", incomeTax=" + incomeTaxMonth + ", eobi=" + eobiEmployee
@@ -198,7 +212,9 @@ public class PayrollRunService {
         PayrollRunEntity run = load(runId);
         authorization.authorizePayrollApprove(run.getId(), run.getTenantId(), run.getBranchId());
         if (run.getStatus() != Status.CALCULATED) {
-            throw new IllegalStateException("Only a CALCULATED run can be approved; is " + run.getStatus());
+            throw new StateInvalidException("PAYROLL_RUN_NOT_CALCULATED",
+                    "This run is " + run.getStatus().name().toLowerCase()
+                            + " and cannot be approved. Calculate it first.");
         }
         run.setStatus(Status.APPROVED);
         run.setApprovedBy(tenantContext.getUserId().orElse(null));
@@ -228,7 +244,9 @@ public class PayrollRunService {
         PayrollRunEntity run = load(runId);
         authorization.authorizePayrollApprove(run.getId(), run.getTenantId(), run.getBranchId());
         if (run.getStatus() != Status.APPROVED) {
-            throw new IllegalStateException("Only an APPROVED run can be paid; is " + run.getStatus());
+            throw new StateInvalidException("PAYROLL_RUN_NOT_APPROVED",
+                    "This run is " + run.getStatus().name().toLowerCase()
+                            + " and cannot be marked paid. Approve it first.");
         }
         run.setStatus(Status.PAID);
         run.setPaidAt(Instant.now());
@@ -277,9 +295,11 @@ public class PayrollRunService {
 
     private PayrollRunEntity load(UUID runId) {
         return runRepository.findByIdAndTenantId(runId, requireTenant())
-                .orElseThrow(() -> new IllegalArgumentException("Payroll run not found: " + runId));
+                .orElseThrow(() -> new ResourceNotFoundException("Payroll run", runId));
     }
 
+    // Raw IllegalStateException deliberately: no tenant/branch/user in context is a filter-chain
+    // invariant breach, not caller input. See the note in EmployeeService.
     private UUID requireTenant() {
         return tenantContext.getTenantId().orElseThrow(() -> new IllegalStateException("No tenant context"));
     }

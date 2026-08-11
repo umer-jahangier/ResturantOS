@@ -12,6 +12,9 @@ import io.restaurantos.hr.repository.LeaveAccrualLogRepository;
 import io.restaurantos.hr.repository.LeaveBalanceRepository;
 import io.restaurantos.hr.repository.LeaveRequestRepository;
 import io.restaurantos.hr.repository.LeaveTypeRepository;
+import io.restaurantos.shared.exception.FieldValidationException;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
+import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -100,15 +103,25 @@ public class LeaveService {
     public LeaveRequestResponse request(RequestLeave req) {
         UUID tenantId = requireTenant();
         LeaveTypeEntity type = typeRepository.findByIdAndTenantId(req.leaveTypeId(), tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Leave type not found: " + req.leaveTypeId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Leave type", req.leaveTypeId()));
         long days = ChronoUnit.DAYS.between(req.startDate(), req.endDate()) + 1;
         if (days <= 0) {
-            throw new IllegalArgumentException("endDate must be on or after startDate");
+            // Bound to endDate, not startDate. When a range runs backwards the start date is
+            // usually the one the user meant; sending them to edit it would have them change the
+            // value that was already right.
+            throw new FieldValidationException("LEAVE_RANGE_INVALID", "endDate",
+                    "The end date must be on or after " + req.startDate() + ".");
         }
         if (type.isPaid()) {
             LeaveBalanceEntity balance = getOrCreateBalance(tenantId, req.employeeId(), type.getId(), req.startDate().getYear());
             if (balance.getBalanceDays().compareTo(BigDecimal.valueOf(days)) < 0) {
-                throw new IllegalStateException("Insufficient leave balance for " + type.getName());
+                // The number is the whole point. "Insufficient leave balance" tells the user
+                // nothing they can act on; the balance and the request together tell them exactly
+                // how much shorter the request has to be.
+                throw new FieldValidationException("LEAVE_BALANCE_INSUFFICIENT", "leaveTypeId",
+                        "Only " + balance.getBalanceDays().stripTrailingZeros().toPlainString()
+                                + " days of " + type.getName() + " leave remain, and this request is "
+                                + days + " days. Shorten the request or choose an unpaid leave type.");
             }
         }
         LeaveRequestEntity r = new LeaveRequestEntity();
@@ -128,7 +141,11 @@ public class LeaveService {
         LeaveRequestEntity r = loadRequest(requestId, tenantId);
         authorization.authorizeLeaveApprove(r.getId(), tenantId, branchOfEmployee(tenantId, r.getEmployeeId()));
         if (r.getStatus() != Status.PENDING) {
-            throw new IllegalStateException("Only a PENDING request can be approved; is " + r.getStatus());
+            // No field path: the fault is the record's state, not any input the user typed, so
+            // there is nothing on the form to bind it to.
+            throw new StateInvalidException("LEAVE_NOT_PENDING",
+                    "This request is already " + r.getStatus().name().toLowerCase()
+                            + " and can no longer be approved.");
         }
         LeaveTypeEntity type = typeRepository.findByIdAndTenantId(r.getLeaveTypeId(), tenantId).orElseThrow();
         long days = ChronoUnit.DAYS.between(r.getStartDate(), r.getEndDate()) + 1;
@@ -148,7 +165,9 @@ public class LeaveService {
         LeaveRequestEntity r = loadRequest(requestId, tenantId);
         authorization.authorizeLeaveApprove(r.getId(), tenantId, branchOfEmployee(tenantId, r.getEmployeeId()));
         if (r.getStatus() != Status.PENDING) {
-            throw new IllegalStateException("Only a PENDING request can be rejected; is " + r.getStatus());
+            throw new StateInvalidException("LEAVE_NOT_PENDING",
+                    "This request is already " + r.getStatus().name().toLowerCase()
+                            + " and can no longer be rejected.");
         }
         r.setStatus(Status.REJECTED);
         r.setApprovedBy(tenantContext.getUserId().orElse(null));
@@ -197,7 +216,8 @@ public class LeaveService {
     @Transactional
     public int accrue(int year, int month) {
         if (month < 1 || month > 12) {
-            throw new IllegalArgumentException("month must be 1-12, was " + month);
+            throw new FieldValidationException("ACCRUAL_MONTH_INVALID", "month",
+                    "Month must be between 1 and 12.");
         }
         UUID tenantId = requireTenant();
         List<LeaveTypeEntity> paidTypes = typeRepository.findAllByTenantId(tenantId).stream()
@@ -265,7 +285,7 @@ public class LeaveService {
 
     private LeaveRequestEntity loadRequest(UUID id, UUID tenantId) {
         return requestRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Leave request not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Leave request", id));
     }
 
     /**
@@ -274,10 +294,12 @@ public class LeaveService {
      */
     private UUID branchOfEmployee(UUID tenantId, UUID employeeId) {
         return employeeRepository.findByIdAndTenantId(employeeId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + employeeId))
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", employeeId))
                 .getBranchId();
     }
 
+    // Raw IllegalStateException deliberately: no tenant/branch in context is a filter-chain
+    // invariant breach, not caller input. See the note in EmployeeService.
     private UUID requireBranch() {
         return tenantContext.getBranchId()
                 .orElseThrow(() -> new IllegalStateException("No branch context"));

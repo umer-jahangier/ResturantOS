@@ -7,6 +7,8 @@ import io.restaurantos.hr.authz.HrAuthorizationService;
 import io.restaurantos.hr.entity.EmployeeEntity;
 import io.restaurantos.hr.repository.EmployeeRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.exception.DuplicateValueException;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +63,9 @@ public class EmployeeService {
         // The new record is created in the caller's own branch, so that is the resource scope.
         authorization.authorizeEmployeeManage(tenantId, branchId);
         if (repository.existsByTenantIdAndEmployeeNo(tenantId, req.employeeNo())) {
-            throw new IllegalStateException("Employee number already exists: " + req.employeeNo());
+            throw new DuplicateValueException("employeeNo",
+                    "Employee number " + req.employeeNo()
+                            + " is already used by another employee. Choose a different number.");
         }
         EmployeeEntity e = new EmployeeEntity();
         e.setTenantId(tenantId);
@@ -140,9 +144,16 @@ public class EmployeeService {
      */
     private EmployeeEntity load(UUID id) {
         return repository.findByIdAndTenantId(id, requireTenant())
-                .orElseThrow(() -> new IllegalArgumentException("Employee not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", id));
     }
 
+    // The two guards below stay raw IllegalStateException DELIBERATELY, and a 500 with a logged
+    // stack trace is the correct answer to them. A request that reaches a service method with no
+    // tenant or branch in context is an invariant breach — JwtAuthenticationFilter should have made
+    // it impossible — not a mistake the caller made and can fix. Converting them for consistency
+    // with the typed exceptions around them would dress a broken filter chain up as bad user input
+    // and hide it from the error dashboard. Same reasoning in ShiftService, LeaveService and
+    // PayrollRunService.
     private UUID requireTenant() {
         return tenantContext.getTenantId()
                 .orElseThrow(() -> new IllegalStateException("No tenant context"));
