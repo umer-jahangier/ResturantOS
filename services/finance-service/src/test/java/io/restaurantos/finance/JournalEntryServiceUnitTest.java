@@ -78,9 +78,13 @@ class JournalEntryServiceUnitTest {
         when(entityManager.createNativeQuery(anyString())).thenReturn(gucQuery);
         when(gucQuery.setParameter(anyString(), any())).thenReturn(gucQuery);
         when(gucQuery.getSingleResult()).thenReturn("");
+        // 37-04: the source-reference resolver is a NETWORK collaborator. Stubbed to the
+        // "entered by hand" state so this unit test keeps testing posting mechanics and does not
+        // quietly acquire a dependency on pos-service.
         service = new JournalEntryServiceImpl(
                 jeRepo, periodRepo, coaRepo, jeSeqRepo, mapper, tenantContext, eventPublisher,
-                entityManager, authorization);
+                entityManager, authorization,
+                new io.restaurantos.finance.service.SourceReferenceResolver(orderId -> null));
     }
 
     @Test
@@ -110,7 +114,7 @@ class JournalEntryServiceUnitTest {
         JournalEntryDto expectedDto = new JournalEntryDto(
                 savedJe.getId(), null, null, LocalDate.now(),
                 "Test", null, null, JeStatus.DRAFT,
-                null, false, null, null, 1000L, 0L, List.of()
+                null, false, null, null, 1000L, 0L, List.of(), null
         );
         when(mapper.toDto(any())).thenReturn(expectedDto);
 

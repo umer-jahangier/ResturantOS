@@ -1,5 +1,6 @@
 package io.restaurantos.pos.web;
 
+import io.restaurantos.pos.dto.InternalOrderSummaryDto;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.tenant.TenantContext;
@@ -47,6 +48,29 @@ public class InternalPosController {
         }
         long count = orderRepository.countOpenOrdersByBusinessDateRange(periodStart, periodEnd);
         return ResponseEntity.ok(count);
+    }
+
+    /**
+     * Order summary for finance's journal-entry source reference (37-04, D-37-01).
+     *
+     * <p>Returns 404 when the order is not visible, which finance turns into an explicit
+     * "could not be read" state rather than a fabricated reference — see
+     * {@code SourceReferenceResolver}. Tenant scoping is by RLS via the tenant filter, exactly
+     * as the open-count endpoint above.
+     *
+     * @return bare DTO (NOT ApiResponse-wrapped) — mirrors this controller's existing contract
+     */
+    @GetMapping("/orders/{orderId}/summary")
+    public ResponseEntity<InternalOrderSummaryDto> getOrderSummary(
+            @PathVariable UUID orderId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
+        if (tenantId != null && tenantContext.getTenantId().isEmpty()) {
+            tenantContext.set(tenantId, null, null, null);
+        }
+        return orderRepository.findById(orderId)
+                .map(o -> ResponseEntity.ok(new InternalOrderSummaryDto(
+                        o.getId(), o.getOrderNo(), o.getBranchId(), o.getCashierId(), o.getClosedAt())))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**

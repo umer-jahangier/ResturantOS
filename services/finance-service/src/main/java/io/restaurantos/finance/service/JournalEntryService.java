@@ -37,5 +37,15 @@ public interface JournalEntryService {
      */
     List<JournalEntryDto> listBySource(UUID sourceId, String sourceType);
 
+    /**
+     * As {@link #listBySource}, optionally enriching each entry with a human-readable source
+     * reference (37-04).
+     *
+     * @param resolveSource when false (the default everywhere it is not explicitly asked for), NO
+     *                      pos lookup is performed at all. The register in 37-08 renders many rows
+     *                      and an eager per-row lookup would turn one screen into N network calls.
+     */
+    List<JournalEntryDto> listBySource(UUID sourceId, String sourceType, boolean resolveSource);
+
     InternalJePostResponse autoPostInternal(InternalAutoPostJeRequest req);
 }

@@ -33,7 +33,12 @@ public class JournalEntryMapper {
                 je.getReversedByJe(),
                 totalDebit,
                 totalCredit,
-                lineDtos
+                lineDtos,
+                // 37-04: the mapper stays a pure entity->DTO translation. Resolving the source
+                // reference is a NETWORK call, and a mapper that reaches out over the wire is a
+                // mapper that can hang a read. JournalEntryServiceImpl attaches it explicitly,
+                // only where the caller asked for it.
+                null
         );
     }
 

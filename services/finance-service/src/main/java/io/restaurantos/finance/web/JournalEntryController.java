@@ -85,8 +85,10 @@ public class JournalEntryController {
     @PreAuthorize("hasAuthority('finance.journal.view')")
     public ResponseEntity<ApiResponse<List<JournalEntryDto>>> listBySource(
             @PathVariable UUID sourceId,
-            @RequestParam(required = false) String sourceType) {
-        return ResponseEntity.ok(ApiResponse.ok(jeService.listBySource(sourceId, sourceType)));
+            @RequestParam(required = false) String sourceType,
+            @RequestParam(defaultValue = "false") boolean resolveSource) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                jeService.listBySource(sourceId, sourceType, resolveSource)));
     }
 
     @PostMapping("/{id}/post")

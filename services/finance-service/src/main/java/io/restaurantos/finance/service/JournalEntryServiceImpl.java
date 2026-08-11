@@ -11,6 +11,7 @@ import io.restaurantos.finance.dto.CreateJeRequest;
 import io.restaurantos.finance.dto.InternalAutoPostJeRequest;
 import io.restaurantos.finance.dto.InternalJePostResponse;
 import io.restaurantos.finance.dto.JournalEntryDto;
+import io.restaurantos.finance.dto.SourceReferenceDto;
 import io.restaurantos.finance.exception.InvalidAccountCodeException;
 import io.restaurantos.finance.exception.JeAlreadyPostedException;
 import io.restaurantos.finance.exception.JeNotFoundException;
@@ -58,6 +59,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     private final EventPublisher eventPublisher;
     private final EntityManager entityManager;
     private final FinanceAuthorizationService authorization;
+    private final SourceReferenceResolver sourceReferenceResolver;
 
     public JournalEntryServiceImpl(JournalEntryRepository jeRepo,
                                     AccountingPeriodRepository periodRepo,
@@ -67,7 +69,8 @@ public class JournalEntryServiceImpl implements JournalEntryService {
                                     TenantContext tenantContext,
                                     EventPublisher eventPublisher,
                                     EntityManager entityManager,
-                                    FinanceAuthorizationService authorization) {
+                                    FinanceAuthorizationService authorization,
+                                    SourceReferenceResolver sourceReferenceResolver) {
         this.jeRepo = jeRepo;
         this.periodRepo = periodRepo;
         this.coaRepo = coaRepo;
@@ -77,6 +80,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         this.eventPublisher = eventPublisher;
         this.entityManager = entityManager;
         this.authorization = authorization;
+        this.sourceReferenceResolver = sourceReferenceResolver;
     }
 
     private void ensureTenantGuc() {
@@ -306,7 +310,11 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         // findById is branch-blind — the same shape as EmployeeService.load. view_journal is
         // same_tenant_and_branch, so the JE's OWN branch is what the policy must be asked about.
         authorization.authorizeViewJournal(je.getId(), je.getTenantId(), je.getBranchId());
-        return mapper.toDto(je);
+        // 37-04: the SINGLE-entry read always resolves. This is the "open one entry and see where
+        // it came from" path, it is exactly one lookup, and the resolver degrades to an explicit
+        // state rather than throwing — so the entry comes back complete either way.
+        return mapper.toDto(je)
+                .withSourceReference(sourceReferenceResolver.resolve(je.getSourceType(), je.getSourceId()));
     }
 
     @Override
@@ -340,11 +348,30 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     @Override
     @Transactional(readOnly = true)
     public List<JournalEntryDto> listBySource(UUID sourceId, String sourceType) {
+        return listBySource(sourceId, sourceType, false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<JournalEntryDto> listBySource(UUID sourceId, String sourceType, boolean resolveSource) {
         ensureTenantGuc();
         authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), requireBranchId(null));
         List<JournalEntry> entries = (sourceType == null || sourceType.isBlank())
                 ? jeRepo.findAllBySourceId(sourceId)
                 : jeRepo.findAllBySourceIdAndSourceType(sourceId, sourceType);
+
+        // Every entry here shares ONE source id, so ONE lookup serves all of them however many
+        // came back. But each entry keeps its OWN sourceType on its reference: a revenue entry and
+        // a cost-of-sales entry from the same order are not interchangeable, and a client
+        // branching on sourceReference.sourceType would otherwise be told the COGS entry was a
+        // revenue entry. Same order, same order number — different reason for existing.
+        if (resolveSource && !entries.isEmpty()) {
+            SourceReferenceDto shared = sourceReferenceResolver.resolve(
+                    entries.get(0).getSourceType(), entries.get(0).getSourceId());
+            return entries.stream()
+                    .map(e -> mapper.toDto(e).withSourceReference(shared.forSourceType(e.getSourceType())))
+                    .toList();
+        }
         return entries.stream().map(mapper::toDto).toList();
     }
 
