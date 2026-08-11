@@ -27,6 +27,8 @@ import java.util.UUID;
  *   GET    /api/v1/users/{userId}/permissions  computed permissions (JWT-issuance concern)
  *   POST   /api/v1/users/{userId}/branch-roles assign a role at a branch
  *   DELETE /api/v1/users/{userId}/branch-roles revoke one
+ *   PUT    /api/v1/users/{userId}/stations     set which stations they work at a branch
+ *   GET    /api/v1/users/{userId}/stations     read them back
  * </pre>
  *
  * <p>All writes DELEGATE to auth-service (system of record for {@code users} and
@@ -201,6 +203,40 @@ public class UserAdminController {
             @RequestParam String roleCode) {
         userAdminService.revokeRole(userId, branchId, roleCode);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Station assignments (28-01) ──────────────────────────────────────────
+
+    /**
+     * Set which stations a user works at a branch (D-28-02). This is the account-system half of the
+     * capability this phase exists for: binding a person to a screen at the moment their account is
+     * created or edited.
+     *
+     * <p>PUT, not POST: the body states what the user's stations now ARE at that branch, and sending
+     * it twice must leave the same rows. An additive POST would make a checkbox list impossible to
+     * express, because unchecking a box has no additive spelling.
+     *
+     * <p>Gated on {@link #ROLE_ADMIN}, the same authority that gates role assignment, rather than on
+     * the user-administration one. D-28-02 places the station picker in the same form as the role
+     * picker; splitting the gate would permit an administrator who can grant a role but not a
+     * station, which is a state with no operator meaning. It is deliberately NOT gated on
+     * {@code pos.terminals.admin} — that permission governs the terminal CATALOGUE, and this is a
+     * decision about a person.
+     */
+    @PreAuthorize(ROLE_ADMIN)
+    @PutMapping("/{userId}/stations")
+    public ResponseEntity<ApiResponse<List<BranchDtos.StationAssignment>>> replaceStations(
+            @PathVariable UUID userId,
+            @Valid @RequestBody BranchDtos.StationAssignmentRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.replaceStations(userId, request)));
+    }
+
+    /** A user's current station assignments, grouped by branch. */
+    @PreAuthorize(USER_ADMIN)
+    @GetMapping("/{userId}/stations")
+    public ResponseEntity<ApiResponse<List<BranchDtos.StationAssignment>>> listStations(
+            @PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.listStations(userId)));
     }
 
     /**

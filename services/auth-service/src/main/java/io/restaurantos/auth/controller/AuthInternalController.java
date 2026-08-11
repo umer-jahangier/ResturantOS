@@ -1,13 +1,16 @@
 package io.restaurantos.auth.controller;
 
 import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
+import io.restaurantos.auth.dto.request.StationAssignmentRequest;
 import io.restaurantos.auth.dto.response.BranchRoleAssignWriteResponse;
 import io.restaurantos.auth.dto.response.BranchRoleAssignmentResponse;
+import io.restaurantos.auth.dto.response.StationAssignmentResponse;
 import io.restaurantos.auth.exception.ActingUserRequiredException;
 import io.restaurantos.auth.service.BranchAssignmentService;
 import io.restaurantos.auth.service.BranchRoleAdminService;
 import io.restaurantos.auth.service.PermissionResolver;
 import io.restaurantos.auth.service.ResolvedBranchAuth;
+import io.restaurantos.auth.service.StationAssignmentAdminService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,13 +33,16 @@ public class AuthInternalController {
     private final BranchRoleAdminService branchRoleAdminService;
     private final BranchAssignmentService branchAssignmentService;
     private final PermissionResolver permissionResolver;
+    private final StationAssignmentAdminService stationAssignmentAdminService;
 
     public AuthInternalController(BranchRoleAdminService branchRoleAdminService,
                                   BranchAssignmentService branchAssignmentService,
-                                  PermissionResolver permissionResolver) {
+                                  PermissionResolver permissionResolver,
+                                  StationAssignmentAdminService stationAssignmentAdminService) {
         this.branchRoleAdminService = branchRoleAdminService;
         this.branchAssignmentService = branchAssignmentService;
         this.permissionResolver = permissionResolver;
+        this.stationAssignmentAdminService = stationAssignmentAdminService;
     }
 
     /**
@@ -102,6 +108,39 @@ public class AuthInternalController {
             @PathVariable UUID userId,
             @RequestHeader("X-Tenant-Id") UUID tenantId) {
         return ResponseEntity.ok(branchAssignmentService.listActive(tenantId, userId));
+    }
+
+    // ── Station assignments (28-01) ──────────────────────────────────────────────────────────
+
+    /**
+     * Replace a user's station assignments at one branch (D-28-02).
+     *
+     * <p>Mounted beside the branch-role endpoints, and gated upstream by the SAME permission,
+     * because D-28-02 places both choices in one form. An administrator who could grant a role but
+     * not a station would be a state with no operator meaning.
+     *
+     * <p>No {@code X-Acting-User-Id} requirement, unlike the branch-role write. That header exists
+     * so auth-service can apply the ROLE CEILING — the rule that an assigner may only grant a role
+     * whose permissions are a subset of their own. A station assignment grants nothing: it NARROWS
+     * what the target user sees, and the narrowest possible assignment is strictly less authority
+     * than the unrestricted default. There is no ceiling to compute, so there is no identity to
+     * compute it against.
+     */
+    @PutMapping("/users/{userId}/stations")
+    public ResponseEntity<List<StationAssignmentResponse>> replaceStations(
+            @PathVariable UUID userId,
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @Valid @RequestBody StationAssignmentRequest request) {
+        return ResponseEntity.ok(stationAssignmentAdminService.replaceForBranch(
+            tenantId, userId, request.branchId(), request.stationCodes()));
+    }
+
+    /** A user's active station assignments, grouped by branch. */
+    @GetMapping("/users/{userId}/stations")
+    public ResponseEntity<List<StationAssignmentResponse>> listStations(
+            @PathVariable UUID userId,
+            @RequestHeader("X-Tenant-Id") UUID tenantId) {
+        return ResponseEntity.ok(stationAssignmentAdminService.list(tenantId, userId));
     }
 
     /**

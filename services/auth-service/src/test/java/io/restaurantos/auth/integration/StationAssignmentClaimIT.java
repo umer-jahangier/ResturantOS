@@ -40,6 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class StationAssignmentClaimIT extends BaseIntegrationTest {
 
+    /** /internal/auth/** is gated by InternalServiceFilter; the dev secret is what the test stack uses. */
+    private static final String INTERNAL_HEADER = "X-Internal-Service";
+    private static final String INTERNAL_SECRET = "dev-internal-secret";
+
     private static final UUID BAR = UUID.fromString("e0000001-0000-4000-8000-000000000001");
     private static final UUID PASS = UUID.fromString("e0000002-0000-4000-8000-000000000002");
     private static final UUID OTHER_BRANCH_ROW = UUID.fromString("e0000003-0000-4000-8000-000000000003");
@@ -197,7 +201,153 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         assertThat(attributes).containsKey(PermissionResolver.STATION_SCOPE_CLAIM);
     }
 
+    // ── The write path (task 3) ──────────────────────────────────────────────────────────────
+    //
+    // Deliberately in the SAME class as the claim behaviours above. The write and the claim it
+    // produces are one story: split across two files it becomes possible for the write to pass
+    // while the claim regresses, which is precisely the failure that leaves an administrator
+    // configuring a bartender who then sees everything.
+
+    @Test
+    void replacingStations_leavesExactlyThatSet() {
+        putStations(TestFixtures.mainBranchId(), List.of("BAR", "PASS"));
+        assertThat(activeCodesAtMainBranch()).containsExactly("BAR", "PASS");
+
+        putStations(TestFixtures.mainBranchId(), List.of("GRILL"));
+        assertThat(activeCodesAtMainBranch())
+            .as("replace, not merge — unchecking a box has no additive spelling")
+            .containsExactly("GRILL");
+    }
+
+    @Test
+    void replacingWithAnEmptySet_returnsTheUserToUnrestricted() throws Exception {
+        putStations(TestFixtures.mainBranchId(), List.of("BAR"));
+        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR");
+
+        putStations(TestFixtures.mainBranchId(), List.of());
+
+        assertThat(activeCodesAtMainBranch()).isEmpty();
+        assertThat(attributesOf(parseJwt(loginAsCashier())))
+            .as("cleared means unrestricted, and unrestricted means no key")
+            .doesNotContainKey(PermissionResolver.STATION_SCOPE_CLAIM);
+    }
+
+    @Test
+    void replacingIsIdempotent_andDoesNotAccumulateRows() {
+        putStations(TestFixtures.mainBranchId(), List.of("BAR", "PASS"));
+        putStations(TestFixtures.mainBranchId(), List.of("BAR", "PASS"));
+
+        List<UserStationAssignmentEntity> rows = inTenantTx(() ->
+            stationAssignmentRepository.findByTenantIdAndUserIdAndBranchId(
+                TestFixtures.demoTenantId(), TestFixtures.cashierUserId(), TestFixtures.mainBranchId()));
+        assertThat(rows).hasSize(2);
+        assertThat(activeCodesAtMainBranch()).containsExactly("BAR", "PASS");
+    }
+
+    @Test
+    void reAddingAStationThatWasRemoved_reactivatesTheRowRatherThanCollidingWithIt() {
+        putStations(TestFixtures.mainBranchId(), List.of("BAR"));
+        putStations(TestFixtures.mainBranchId(), List.of());
+
+        // The unique constraint on (tenant, user, branch, code) would reject a second BAR row, so a
+        // delete-then-insert implementation passes every test that assigns once and fails the first
+        // time an administrator changes their mind back.
+        putStations(TestFixtures.mainBranchId(), List.of("BAR"));
+
+        assertThat(activeCodesAtMainBranch()).containsExactly("BAR");
+    }
+
+    @Test
+    void aUserInAnotherTenant_answersExactlyAsANonexistentOne() {
+        UUID foreignUser = UUID.fromString("c000000f-0000-4000-8000-00000000000f");
+        UUID nonexistent = UUID.randomUUID();
+
+        var foreign = putStationsRaw(foreignUser, TestFixtures.mainBranchId(), List.of("BAR"));
+        var missing = putStationsRaw(nonexistent, TestFixtures.mainBranchId(), List.of("BAR"));
+
+        assertThat(foreign.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(missing.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(foreign.getBody())
+            .as("two different refusals are a distinguisher whatever their status codes say")
+            .isEqualTo(missing.getBody());
+    }
+
+    @Test
+    void aRequestWithStationCodesButNoBranch_isRefusedAsAValidationError() {
+        var response = rest.put()
+            .uri("/internal/auth/users/" + TestFixtures.cashierUserId() + "/stations")
+            .header(INTERNAL_HEADER, INTERNAL_SECRET)
+            .header("X-Tenant-Id", TestFixtures.demoTenantId().toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of("stationCodes", List.of("BAR")))
+            .exchange((req, res) -> org.springframework.http.ResponseEntity
+                .status(res.getStatusCode()).body(""));
+
+        assertThat(response.getStatusCode())
+            .as("a station code is only unique within a branch, so a branch-less assignment is "
+                + "ambiguous by construction and must not be guessed at")
+            .isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void theReadEndpoint_returnsAssignmentsGroupedByBranch() throws Exception {
+        putStations(TestFixtures.mainBranchId(), List.of("BAR", "PASS"));
+        putStations(TestFixtures.branch2Id(), List.of("GRILL"));
+
+        String body = rest.get()
+            .uri("/internal/auth/users/" + TestFixtures.cashierUserId() + "/stations")
+            .header(INTERNAL_HEADER, INTERNAL_SECRET)
+            .header("X-Tenant-Id", TestFixtures.demoTenantId().toString())
+            .retrieve()
+            .body(String.class);
+
+        var tree = objectMapper.readTree(body);
+        assertThat(tree).hasSize(2);
+        assertThat(tree.get(0).path("branchId").asText()).isEqualTo(TestFixtures.mainBranchId().toString());
+        assertThat(tree.get(0).path("stationCodes").toString()).isEqualTo("[\"BAR\",\"PASS\"]");
+        assertThat(tree.get(1).path("branchId").asText()).isEqualTo(TestFixtures.branch2Id().toString());
+        assertThat(tree.get(1).path("stationCodes").toString()).isEqualTo("[\"GRILL\"]");
+    }
+
+    @Test
+    void assigningOverHttpThenLoggingIn_yieldsATokenCarryingExactlyThoseCodes() throws Exception {
+        putStations(TestFixtures.mainBranchId(), List.of("PASS", "BAR"));
+
+        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR", "PASS");
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────
+
+    private void putStations(UUID branchId, List<String> codes) {
+        var response = putStationsRaw(TestFixtures.cashierUserId(), branchId, codes);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private org.springframework.http.ResponseEntity<String> putStationsRaw(
+            UUID userId, UUID branchId, List<String> codes) {
+        return rest.put()
+            .uri("/internal/auth/users/" + userId + "/stations")
+            .header(INTERNAL_HEADER, INTERNAL_SECRET)
+            .header("X-Tenant-Id", TestFixtures.demoTenantId().toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of("branchId", branchId.toString(), "stationCodes", codes))
+            .exchange((req, res) -> {
+                byte[] bytes = res.getBody() != null ? res.getBody().readAllBytes() : new byte[0];
+                return org.springframework.http.ResponseEntity.status(res.getStatusCode())
+                    .body(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+            });
+    }
+
+    private List<String> activeCodesAtMainBranch() {
+        return inTenantTx(() -> stationAssignmentRepository
+            .findByTenantIdAndUserIdAndBranchIdAndActiveTrue(
+                TestFixtures.demoTenantId(), TestFixtures.cashierUserId(), TestFixtures.mainBranchId())
+            .stream()
+            .map(UserStationAssignmentEntity::getStationCode)
+            .sorted()
+            .toList());
+    }
+
 
     /**
      * Writes an assignment row with the tenant GUC set on the SAME connection the write uses.

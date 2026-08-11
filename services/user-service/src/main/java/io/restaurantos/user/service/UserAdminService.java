@@ -173,6 +173,27 @@ public class UserAdminService {
         authInternalClient.revokeBranchRole(userId, tenantId, branchId, roleCode);
     }
 
+    // ── Station assignments (28-01) ──────────────────────────────────────────────────────────
+
+    /**
+     * Replace a user's stations at one branch — delegates to auth-service (D-28-02).
+     *
+     * <p>Gated upstream by the same permission that gates role assignment, because D-28-02 puts
+     * both choices in one form and an administrator who could set one but not the other would be a
+     * state with no operator meaning.
+     */
+    public List<BranchDtos.StationAssignment> replaceStations(
+            UUID userId, BranchDtos.StationAssignmentRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.replaceStations(userId, tenantId, request);
+    }
+
+    /** A user's active station assignments, grouped by branch — read-through to auth-service. */
+    public List<BranchDtos.StationAssignment> listStations(UUID userId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.listStations(userId, tenantId);
+    }
+
     /**
      * Fetch computed permissions for a user at a branch — read-through to auth-service.
      * Used for JWT-feeding lookups; auth-service is authoritative.

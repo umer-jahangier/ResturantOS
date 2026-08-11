@@ -52,6 +52,21 @@ public final class BranchDtos {
         LocalDate openedOn
     ) {}
 
+    /**
+     * What a user's stations should now be, at one branch (28-01, D-28-02).
+     *
+     * <p>A REPLACE: the admin UI edits a checkbox list and sends what the list now says. An empty
+     * {@code stationCodes} clears the branch and returns the user to seeing every station there —
+     * which is the state every user in this product is in today, so it must stay expressible.
+     */
+    public record StationAssignmentRequest(
+        @NotNull UUID branchId,
+        @NotNull java.util.List<String> stationCodes
+    ) {}
+
+    /** A user's active station codes at one branch. A branch with none simply does not appear. */
+    public record StationAssignment(UUID branchId, java.util.List<String> stationCodes) {}
+
     /** Used by the provisioning saga (FD-1 step 4) via POST /internal/users/branches. */
     public record InternalCreateBranchRequest(
         @NotNull UUID tenantId,

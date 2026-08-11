@@ -67,6 +67,32 @@ public interface AuthInternalClient {
     );
 
     /**
+     * Replace a user's station assignments at one branch (28-01, D-28-02).
+     *
+     * <p>Corresponds to PUT /internal/auth/users/{userId}/stations. auth-service is the system of
+     * record for {@code user_station_assignments}; user-service never writes that table, exactly as
+     * it never writes {@code user_branch_roles}.
+     *
+     * <p>No {@code X-Acting-User-Id}, unlike every other write on this client. That header exists so
+     * auth-service can apply the ROLE CEILING, and a station assignment has no ceiling to apply: it
+     * narrows what the target sees rather than granting them anything, so the narrowest assignment
+     * is strictly less authority than the unrestricted default every user already has.
+     */
+    @PutMapping("/internal/auth/users/{userId}/stations")
+    List<BranchDtos.StationAssignment> replaceStations(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestBody BranchDtos.StationAssignmentRequest request
+    );
+
+    /** A user's active station assignments, grouped by branch. */
+    @GetMapping("/internal/auth/users/{userId}/stations")
+    List<BranchDtos.StationAssignment> listStations(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId
+    );
+
+    /**
      * Compute permissions for a user at a branch (optional branchId).
      * Corresponds to GET /internal/auth/users/{userId}/permissions.
      *
