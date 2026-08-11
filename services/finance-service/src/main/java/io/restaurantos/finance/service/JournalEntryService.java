@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface JournalEntryService {
@@ -23,6 +24,18 @@ public interface JournalEntryService {
     Page<JournalEntryDto> listByPeriod(UUID periodId, Pageable pageable);
 
     Page<JournalEntryDto> listByDateRange(LocalDate from, LocalDate to, Pageable pageable);
+
+    /**
+     * Every journal entry a source produced, oldest first (37-04, D-37-01).
+     *
+     * <p>Returns an EMPTY list, never a 404, when the source produced nothing. "This order produced
+     * no entries" is a true and useful answer to an owner asking where a number came from; a 404
+     * would say "no such order", which is a different and usually false statement.
+     *
+     * @param sourceType optional filter; pass {@code null} for every entry regardless of type,
+     *                   which is what tracing an order actually requires
+     */
+    List<JournalEntryDto> listBySource(UUID sourceId, String sourceType);
 
     InternalJePostResponse autoPostInternal(InternalAutoPostJeRequest req);
 }

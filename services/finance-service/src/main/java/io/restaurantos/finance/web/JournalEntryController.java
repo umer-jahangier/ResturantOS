@@ -63,6 +63,32 @@ public class JournalEntryController {
         return ResponseEntity.ok(ApiResponse.ok(jeService.getById(id)));
     }
 
+    /**
+     * Every journal entry a source produced (37-04, D-37-01).
+     *
+     * <p>Placed under {@code /by-source/} rather than as a query parameter on the list endpoint so
+     * that it cannot be confused with the paginated date-range read, which is branch-scoped and
+     * page-shaped; this one is neither.
+     *
+     * <p>Takes NO tenant parameter, deliberately. The tenant comes from the authenticated context
+     * and is enforced by the FORCE RLS policy on journal_entries. A caller has no way to ask about
+     * another tenant's order because there is nowhere to put the tenant id.
+     *
+     * <p>Returns 200 with an empty list when the source produced nothing — see
+     * {@link io.restaurantos.finance.service.JournalEntryService#listBySource} for why that is not
+     * a 404.
+     *
+     * @param sourceType optional. Omit it to get every entry the source produced regardless of
+     *                   type, which is what tracing an order requires.
+     */
+    @GetMapping("/by-source/{sourceId}")
+    @PreAuthorize("hasAuthority('finance.journal.view')")
+    public ResponseEntity<ApiResponse<List<JournalEntryDto>>> listBySource(
+            @PathVariable UUID sourceId,
+            @RequestParam(required = false) String sourceType) {
+        return ResponseEntity.ok(ApiResponse.ok(jeService.listBySource(sourceId, sourceType)));
+    }
+
     @PostMapping("/{id}/post")
     @PreAuthorize("hasAuthority('finance.journal.post')")
     public ResponseEntity<ApiResponse<JournalEntryDto>> post(@PathVariable UUID id) {

@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -325,6 +326,26 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
         return jeRepo.findByEntryDateBetweenAndBranchId(from, to, branchId, pageable)
                 .map(mapper::toDto);
+    }
+
+    /**
+     * 37-04 / D-37-01: the ledger half of "where did this number come from?".
+     *
+     * <p>Not filtered by branch, unlike the list reads above. A journal entry's branch and the
+     * branch the caller is currently scoped to are different questions, and an owner tracing an
+     * order must see every entry that order produced or the answer is a partial one wearing the
+     * costume of a complete one. Tenant isolation is unaffected: it comes from the FORCE RLS
+     * policy on journal_entries, which no application code can opt out of.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<JournalEntryDto> listBySource(UUID sourceId, String sourceType) {
+        ensureTenantGuc();
+        authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), requireBranchId(null));
+        List<JournalEntry> entries = (sourceType == null || sourceType.isBlank())
+                ? jeRepo.findAllBySourceId(sourceId)
+                : jeRepo.findAllBySourceIdAndSourceType(sourceId, sourceType);
+        return entries.stream().map(mapper::toDto).toList();
     }
 
     private void ensureSequenceExists(UUID tenantId, int fiscalYear) {
