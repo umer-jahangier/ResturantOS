@@ -36,7 +36,20 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  permission?: string;
+  permission?: string | string[];
+  /**
+   * How a multi-code `permission` is combined. Defaults to `"all"`, which is what every
+   * single-code entry has always meant.
+   *
+   * <p>Added by 19-01 because the two administration surfaces need `"any"`: the backend gates
+   * `/api/v1/users` on `hasAnyAuthority('rbac.manage','rbac.user.manage')` and branch writes on
+   * `hasAnyAuthority('rbac.manage','branch.manage')`. OWNER holds `rbac.manage`; TENANT_ADMIN
+   * deliberately does NOT (13-02 split the authority so a tenant admin cannot mint an OWNER) and
+   * holds the narrower codes instead. A nav item requiring both would hide Users from the exact
+   * role the screen exists for — measured: a TENANT_ADMIN's token carries `rbac.user.manage` and
+   * `rbac.role.manage` and not `rbac.manage`.
+   */
+  permissionMode?: "all" | "any";
   feature?: FeatureFlag;
   // Role gate for items with no permission in the DB catalog yet (HR/CRM/Reporting
   // placeholders). When set, the item shows only if the user holds one of these
@@ -335,10 +348,16 @@ export const navGroups: NavGroup[] = [
     label: "Settings",
     items: [
       {
+        // 19-01: the page now exists (`app/(tenant)/app/settings/page.tsx`), so `comingSoon` is
+        // gone. It is gated rather than open because the branch details it edits are written
+        // through `PUT /api/v1/branches/{id}`, whose own gate is
+        // `hasAnyAuthority('rbac.manage','branch.manage')` — an ungated entry would offer every
+        // cashier a settings page whose only control 403s.
         label: "General",
         href: "/app/settings",
         icon: Settings,
-        comingSoon: true, // /app/settings page not built yet
+        permission: ["rbac.manage", "branch.manage"],
+        permissionMode: "any",
       },
       {
         // Tenant appearance/branding is an admin-tier configuration surface.
@@ -348,11 +367,18 @@ export const navGroups: NavGroup[] = [
         roles: ["OWNER", "TENANT_ADMIN"],
       },
       {
+        // 19-01: GA-003. The page is `app/(tenant)/app/users/page.tsx`, so the href moves off the
+        // never-built `/app/settings/users` and `comingSoon` is gone.
+        //
+        // The gate was `rbac.manage` ALONE, which would have hidden this screen from TENANT_ADMIN —
+        // the role it exists for. 13-02 split user/branch administration off `rbac.manage`
+        // precisely so a tenant admin does not hold it, and the backend gates `/api/v1/users` on
+        // `hasAnyAuthority('rbac.manage','rbac.user.manage')`. The nav now matches the endpoint.
         label: "Users",
-        href: "/app/settings/users",
+        href: "/app/users",
         icon: Users,
-        permission: "rbac.manage",
-        comingSoon: true, // /app/settings/users page not built yet
+        permission: ["rbac.manage", "rbac.user.manage"],
+        permissionMode: "any",
       },
     ],
   },
