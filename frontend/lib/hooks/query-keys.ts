@@ -24,6 +24,12 @@ export const queryKeys = {
     journalEntries: (branchId: string, orderId: string) =>
       ["transactions", branchId, "journal-entries", orderId] as const,
   },
+  // 37-12: the evening cash-up. Branch-scoped for the same reason as the register above — a
+  // branch switch must not leave last branch's takings on screen while the new ones load.
+  takings: {
+    all: (branchId: string) => ["takings", branchId] as const,
+    daily: (branchId: string, date: string) => ["takings", branchId, "daily", date] as const,
+  },
   // CRM keys are NOT branch-scoped: a customer and their loyalty balance belong to the tenant,
   // and follow them between branches.
   crm: {
