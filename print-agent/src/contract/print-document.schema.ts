@@ -97,6 +97,24 @@ export interface PrintFooter {
   lines: string[];
 }
 
+/**
+ * The kitchen routing block (26-07). Null on a customer receipt, and REFUSED there — the station,
+ * the cover count and the server's identity are back-of-house data, and this package is the thing
+ * that would actually put them on the paper a customer is handed.
+ */
+export interface PrintTicket {
+  stationCode: string | null;
+  stationName: string | null;
+  orderTypeLabel: string | null;
+  tableLabel: string | null;
+  coverCount: number | null;
+  revisionNo: number | null;
+  firedAt: string | null;
+  serverName: string | null;
+  serverRef: string | null;
+  orderInstructions: string[];
+}
+
 export interface PrintDocument {
   schemaVersion: string;
   type: DocumentType;
@@ -107,6 +125,7 @@ export interface PrintDocument {
   orderNo: string | null;
   issue: PrintIssue;
   header: PrintHeader | null;
+  ticket: PrintTicket | null;
   lines: PrintLine[];
   totals: PrintTotals | null;
   taxBreakdown: PrintTaxLine[];
@@ -281,6 +300,7 @@ export function parsePrintDocument(raw: unknown): PrintDocument {
     orderNo: nullableStr(d.orderNo, "$.orderNo"),
     issue,
     header: d.header == null ? null : parseHeader(d.header),
+    ticket: d.ticket == null ? null : parseTicket(d.ticket),
     lines: arr(d.lines, "$.lines").map((l, i) => parseLine(l, `$.lines[${i}]`)),
     totals: d.totals == null ? null : parseTotals(d.totals),
     taxBreakdown: arr(d.taxBreakdown, "$.taxBreakdown").map((t, i) =>
@@ -302,9 +322,36 @@ export function parsePrintDocument(raw: unknown): PrintDocument {
     if (document.tenders.length > 0) rejectKitchen("$.tenders", "tenders");
     if (document.fiscal !== null) rejectKitchen("$.fiscal", "a fiscal region");
     if (document.drawer !== null) rejectKitchen("$.drawer", "a drawer instruction");
+  } else if (document.ticket !== null) {
+    // The symmetric restriction shared-lib added in 26-07. A receipt carrying the routing block
+    // would print the station, the cover count and the server's identity on the customer's copy.
+    throw new PrintDocumentError(
+      "$.ticket",
+      "a CUSTOMER_RECEIPT must not carry a kitchen ticket block — the station, the cover count " +
+        "and the server's identity are back-of-house routing, not something a customer is handed",
+    );
   }
 
   return document;
+}
+
+function parseTicket(raw: unknown): PrintTicket {
+  const o = obj(raw, "$.ticket");
+  return {
+    stationCode: nullableStr(o.stationCode, "$.ticket.stationCode"),
+    stationName: nullableStr(o.stationName, "$.ticket.stationName"),
+    orderTypeLabel: nullableStr(o.orderTypeLabel, "$.ticket.orderTypeLabel"),
+    tableLabel: nullableStr(o.tableLabel, "$.ticket.tableLabel"),
+    coverCount: nullableInt(o.coverCount, "$.ticket.coverCount"),
+    revisionNo: nullableInt(o.revisionNo, "$.ticket.revisionNo"),
+    firedAt: nullableStr(o.firedAt, "$.ticket.firedAt"),
+    serverName: nullableStr(o.serverName, "$.ticket.serverName"),
+    serverRef: nullableStr(o.serverRef, "$.ticket.serverRef"),
+    orderInstructions:
+      o.orderInstructions == null
+        ? []
+        : strArray(o.orderInstructions, "$.ticket.orderInstructions"),
+  };
 }
 
 function rejectKitchen(path: string, what: string): never {

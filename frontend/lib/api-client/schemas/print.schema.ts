@@ -159,6 +159,29 @@ export const apiPrintFooterSchema = z.strictObject({
 });
 
 /**
+ * The kitchen routing block (26-07). Declared here because `strictObject` means an unknown key is
+ * an ERROR, not a stripped field — so the moment pos-service started sending `ticket` on every
+ * document, a mirror that did not know the key would reject every receipt at the boundary.
+ *
+ * The browser never renders a kitchen ticket (the kitchen printer is driven by the local agent,
+ * not by a tab), so `adaptPrintDocument` deliberately does not carry this into the domain type.
+ * It is parsed and dropped — which is the honest encoding for "the wire has it, this client has no
+ * use for it".
+ */
+export const apiPrintTicketSchema = z.strictObject({
+  stationCode: z.string().nullish(),
+  stationName: z.string().nullish(),
+  orderTypeLabel: z.string().nullish(),
+  tableLabel: z.string().nullish(),
+  coverCount: z.number().int().nullish(),
+  revisionNo: z.number().int().nullish(),
+  firedAt: z.string().nullish(),
+  serverName: z.string().nullish(),
+  serverRef: z.string().nullish(),
+  orderInstructions: z.array(z.string()),
+});
+
+/**
  * The whole document. `strictObject` throughout: an unknown key is NOT stripped, it is an error.
  * A field the server started sending that this mirror does not know about is drift, and drift in
  * a printed receipt is a customer-visible defect — better a loud parse failure at the boundary
@@ -176,6 +199,8 @@ export const apiPrintDocumentSchema = z.strictObject({
   orderNo: z.string().nullish(),
   issue: apiPrintIssueSchema,
   header: apiPrintHeaderSchema.nullish(),
+  // Null on a customer receipt — the server refuses to construct one that carries it.
+  ticket: apiPrintTicketSchema.nullish(),
   lines: z.array(apiPrintLineSchema),
   // Null on a kitchen ticket — the kitchen does not see what the customer paid.
   totals: apiPrintTotalsSchema.nullish(),

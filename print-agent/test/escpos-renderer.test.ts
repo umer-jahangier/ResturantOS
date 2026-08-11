@@ -220,6 +220,83 @@ describe("the renderer", () => {
     expect(text[hot + 1]).toContain("Chicken Karahi");
   });
 
+  // ── 8b. The kitchen routing block (26-07) ───────────────────────────────────────────────────
+
+  const ROUTING = {
+    stationCode: "HOT",
+    stationName: "Hot Pass",
+    orderTypeLabel: "DINE_IN",
+    tableLabel: "12",
+    coverCount: 4,
+    revisionNo: 2,
+    firedAt: "2026-08-11T18:04:20Z",
+    serverName: null,
+    serverRef: "9f2c81ba-4d3e-4a11-9f0a-1c2d3e4f5061",
+    orderInstructions: ["No nuts on this table"],
+  };
+
+  function kitchenTicket(overrides: Record<string, unknown> = {}): PrintDocument {
+    return parsePrintDocument({
+      ...RAW,
+      type: "KITCHEN_TICKET",
+      totals: null,
+      taxBreakdown: [],
+      tenders: [],
+      fiscal: null,
+      drawer: null,
+      ticket: ROUTING,
+      ...overrides,
+    });
+  }
+
+  it("puts the station, the table, the covers, the fire number and the server on the ticket", () => {
+    const decoded = render(kitchenTicket(), { ...PRINTER_42, cut: "FULL" });
+    const paper = decoded.lines.map((l) => l.text).join("\n");
+
+    expect(paper, "the cook must see which pass this is").toContain("Hot Pass");
+    expect(paper, "a plate has to go back to a table").toContain("Table 12");
+    expect(paper).toContain("DINE_IN");
+    expect(paper, "4 covers, pluralised").toContain("4 covers");
+    expect(paper, "which fire this is — a chef seeing #2 knows one preceded it").toContain("Fire #2");
+    expect(paper).toContain("2026-08-11T18:04:20Z");
+    // serverName is null in this phase (deferred item D-7); the short reference is what prints,
+    // and it is asserted so that populating the name later is a visible change, not a silent one.
+    expect(paper).toContain("Srv 9f2c81ba");
+
+    // The order-level instruction reaches the station. This is an allergy line; a station that
+    // does not see it plates the allergen.
+    expect(paper).toContain("No nuts on this table");
+
+    // And still no money, with the routing block present.
+    expect(currencyTokens(decoded)).toHaveLength(0);
+  });
+
+  it("prints one cover, not one covers", () => {
+    const paper = render(kitchenTicket({ ticket: { ...ROUTING, coverCount: 1 } }), PRINTER_42)
+      .lines.map((l) => l.text)
+      .join("\n");
+    expect(paper).toContain("1 cover");
+    expect(paper).not.toContain("1 covers");
+  });
+
+  it("renders a ticket with no routing block at all, unchanged", () => {
+    // 26-04's and 26-06's fixtures construct kitchen tickets with no routing block. The field is
+    // nullable on a ticket precisely so that adding it did not silently invalidate them.
+    const paper = render(kitchenTicket({ ticket: null }), PRINTER_42).lines.map((l) => l.text);
+    expect(paper.some((t) => t.includes("[HOT]"))).toBe(true);
+    expect(paper.some((t) => t.includes("Table"))).toBe(false);
+  });
+
+  it("REFUSES a customer receipt that carries the kitchen routing block", () => {
+    // Back-of-house data on the paper a customer walks out with. The same restriction shared-lib's
+    // compact constructor enforces, re-checked here because this package is the thing that would
+    // actually print it.
+    expect(() => parsePrintDocument({ ...RAW, fiscal: null, ticket: ROUTING })).toThrow(
+      PrintDocumentError,
+    );
+    expect(() => parsePrintDocument({ ...RAW, fiscal: null, ticket: ROUTING })).toThrow(/\$\.ticket/);
+  });
+
   // ── 9. Refusals name the field ──────────────────────────────────────────────────────────────
   it("refuses an unknown codepage rather than defaulting to one", () => {
     expect(() => renderReceipt(receipt(), { ...PRINTER_42, codepage: "CP864" })).toThrow(RenderError);

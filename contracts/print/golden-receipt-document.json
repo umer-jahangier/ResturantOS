@@ -20,6 +20,7 @@
     "strn" : "17-00-9999-000-11",
     "logoFileId" : "44444444-4444-4444-8444-444444444444"
   },
+  "ticket" : null,
   "lines" : [ {
     "name" : "Chicken Karahi (Full)",
     "quantity" : 1,

@@ -188,6 +188,25 @@ class PrintDocumentContractTest {
                 "a kitchen printer must not open the cash drawer");
     }
 
+    /**
+     * 26-07's symmetric restriction. The kitchen routing block names the station, the cover count
+     * and the server — back-of-house data on a document the customer walks out with.
+     */
+    @Test
+    void aCustomerReceiptCarryingAKitchenTicketBlockIsRejectedAtConstruction() {
+        PrintDocument.Ticket routing = new PrintDocument.Ticket(
+                "HOT", "Hot Pass", "DINE_IN", "12", 4, 2,
+                Instant.parse("2026-08-11T15:00:00Z"), null, UUID.randomUUID(), List.of("No nuts"));
+
+        // It constructs on a kitchen ticket …
+        assertNotNull(kitchenTicketBuilder().ticket(routing).build().ticket());
+
+        // … and is refused on a receipt.
+        assertThrows(IllegalArgumentException.class,
+                () -> canonicalReceiptBuilder().ticket(routing).build(),
+                "a customer receipt must not carry the kitchen routing block");
+    }
+
     // ══ Behaviour 4: the fiscal region exists NOW, nullable, before FBR does (D-26-03) ════════
 
     @Test
@@ -460,10 +479,14 @@ class PrintDocumentContractTest {
         Builder drawer(PrintDocument.Drawer v) { this.drawer = v; return this; }
         Builder cut(PrintDocument.Cut v) { this.cut = v; return this; }
 
+        PrintDocument.Ticket ticket;
+
+        Builder ticket(PrintDocument.Ticket v) { this.ticket = v; return this; }
+
         PrintDocument build() {
             return new PrintDocument(schemaVersion, type, provenance, tenantId, branchId, orderId,
-                    orderNo, issue, header, lines, totals, taxBreakdown, tenders, fiscal, drawer,
-                    cut, footer);
+                    orderNo, issue, header, ticket, lines, totals, taxBreakdown, tenders, fiscal,
+                    drawer, cut, footer);
         }
     }
 }

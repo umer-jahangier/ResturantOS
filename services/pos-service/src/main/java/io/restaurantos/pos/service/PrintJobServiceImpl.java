@@ -148,7 +148,8 @@ public class PrintJobServiceImpl implements PrintJobService {
                 original.schemaVersion(), original.type(), original.provenance(),
                 original.tenantId(), original.branchId(), original.orderId(), original.orderNo(),
                 issue,
-                original.header(), original.lines(), original.totals(), original.taxBreakdown(),
+                original.header(), original.ticket(),
+                original.lines(), original.totals(), original.taxBreakdown(),
                 original.tenders(), original.fiscal(), original.drawer(), original.cut(),
                 original.footer());
     }

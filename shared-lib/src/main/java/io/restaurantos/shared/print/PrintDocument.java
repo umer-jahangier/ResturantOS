@@ -50,6 +50,7 @@ import java.util.UUID;
  * @param orderNo       the human-readable order number printed on the paper
  * @param issue         sequence, reprint flag and timestamps; required
  * @param header        branch identity block
+ * @param ticket        the kitchen routing block; MUST be null on a customer receipt
  * @param lines         the ordered lines; never null, may be empty only on a voided document
  * @param totals        null on a kitchen ticket
  * @param taxBreakdown  empty on a kitchen ticket
@@ -69,6 +70,7 @@ public record PrintDocument(
         String orderNo,
         Issue issue,
         Header header,
+        Ticket ticket,
         List<Line> lines,
         Totals totals,
         List<TaxLine> taxBreakdown,
@@ -102,6 +104,15 @@ public record PrintDocument(
             reject(!tenders.isEmpty(), "tenders");
             reject(fiscal != null, "a fiscal region");
             reject(drawer != null, "a drawer instruction");
+        } else if (ticket != null) {
+            // The symmetric restriction, added in 26-07. A CUSTOMER_RECEIPT carrying a kitchen
+            // routing block would print the station, the cover count and the server's identity on
+            // the paper a customer walks out with. Less severe than the reverse, but it is the
+            // same class of mistake and it costs one branch to refuse it here.
+            throw new IllegalArgumentException(
+                    "a CUSTOMER_RECEIPT must not carry a kitchen ticket block — the station, the "
+                            + "cover count and the server's identity are back-of-house routing, not "
+                            + "something a customer is handed");
         }
     }
 
@@ -158,6 +169,58 @@ public record PrintDocument(
     ) {
         public Header {
             addressLines = addressLines == null ? List.of() : List.copyOf(addressLines);
+        }
+    }
+
+    /**
+     * The kitchen routing block (26-07). Null on a customer receipt, and refused there by the
+     * compact constructor.
+     *
+     * <p><b>Why this is not squeezed into {@link Header}.</b> Header is the branch identity block —
+     * name, address, phone, NTN. A chef needs a different five things, and putting "Table 12" into
+     * {@code addressLines} would work exactly once, until somebody reads the field name and
+     * believes it.
+     *
+     * <p>Every field is nullable because every one of them is genuinely absent on some real order:
+     * a takeaway has no table, a walk-in has no cover count, and an item whose menu row carries no
+     * station lands on {@code stationCode} {@code "UNASSIGNED"} rather than vanishing.
+     *
+     * <p>Nullable ON A KITCHEN TICKET TOO — deliberately not required. 26-04's renderer tests and
+     * 26-06's queue fixtures construct kitchen tickets with no routing block, and forcing one on
+     * them would be a schema change dressed up as a guarantee. What IS guaranteed is the direction
+     * that matters: a receipt can never carry one.
+     *
+     * @param stationCode  the station this ticket is for; the assembler's
+     *                     {@code UNASSIGNED} sentinel when the line carries no station
+     * @param stationName  the human name from the station catalogue, when one resolves
+     * @param orderTypeLabel DINE_IN / TAKEAWAY / … — a chef plates differently for each
+     * @param tableLabel   the table number as printed, never the table's UUID
+     * @param coverCount   how many people are eating, null when unknown
+     * @param revisionNo   which fire this is; a chef seeing revision 3 knows two tickets preceded it
+     * @param firedAt      when the line was fired, which is what a pass times against
+     * @param serverName   the server's display name when one is known
+     * @param serverRef    the cashier/server id. Carried because {@code serverName} is NOT
+     *                     populated by 26-07 — pos-service has no user-name lookup and adding one
+     *                     is a user-service change this plan does not make. A renderer prints the
+     *                     name when it has one and a short form of this reference otherwise, which
+     *                     at least matches against a shift roster. Logged as deferred item D-7.
+     * @param orderInstructions order-level notes; these appear on EVERY station's ticket, because
+     *                     "no nuts on this table" applies to the whole order and not to one pass
+     */
+    public record Ticket(
+            String stationCode,
+            String stationName,
+            String orderTypeLabel,
+            String tableLabel,
+            Integer coverCount,
+            Integer revisionNo,
+            Instant firedAt,
+            String serverName,
+            UUID serverRef,
+            List<String> orderInstructions
+    ) {
+        public Ticket {
+            orderInstructions = orderInstructions == null ? List.of() : List.copyOf(orderInstructions);
         }
     }
 

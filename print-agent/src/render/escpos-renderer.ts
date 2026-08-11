@@ -265,16 +265,51 @@ function renderKitchenTicket(
   out: ByteStream,
 ): void {
   const cols = printer.columns;
+  const ticket = document.ticket;
 
   out.push(align("CENTER"));
   out.push(emphasis(true));
   out.push(textSize(SIZE_DOUBLE, SIZE_DOUBLE));
+  // The station banner goes ABOVE the order number and at double size. A cook standing at a hot
+  // pass needs to know in one glance whether this ticket is theirs; the order number is what they
+  // read second, to call the plate back to a table.
+  if (ticket !== null && ticket.stationCode !== null) {
+    writeLines(out, centre(ticket.stationName ?? ticket.stationCode, cols));
+  }
   if (document.orderNo !== null) writeLines(out, centre(document.orderNo, cols));
   out.push(textSize(SIZE_NORMAL, SIZE_NORMAL));
   if (document.issue.reprint) writeLines(out, centre(`*** REPRINT #${document.issue.sequenceNumber} ***`, cols));
   out.push(emphasis(false));
   out.push(align("LEFT"));
   writeLine(out, divider(cols));
+
+  if (ticket !== null) {
+    // Two per row where they pair naturally, because vertical space on an 80 mm roll is the
+    // thing a kitchen printer is short of.
+    const where = [ticket.orderTypeLabel, ticket.tableLabel === null ? null : `Table ${ticket.tableLabel}`]
+      .filter((v): v is string => v !== null)
+      .join("  ");
+    const who = [
+      ticket.coverCount === null ? null : `${ticket.coverCount} cover${ticket.coverCount === 1 ? "" : "s"}`,
+      ticket.serverName ?? (ticket.serverRef === null ? null : `Srv ${ticket.serverRef.slice(0, 8)}`),
+    ]
+      .filter((v): v is string => v !== null)
+      .join("  ");
+    if (where.length > 0 || who.length > 0) writeLines(out, amountRow(where, who, cols));
+
+    const fire = ticket.revisionNo === null ? "" : `Fire #${ticket.revisionNo}`;
+    const firedAt = ticket.firedAt ?? "";
+    if (fire.length > 0 || firedAt.length > 0) writeLines(out, amountRow(fire, firedAt, cols));
+
+    // Order-level instructions, emphasised, on EVERY station's ticket. "No nuts on this table"
+    // applies to the whole order; a station that does not see it plates the allergen.
+    if (ticket.orderInstructions.length > 0) {
+      out.push(emphasis(true));
+      for (const note of ticket.orderInstructions) writeLines(out, wrap0(`** ${note}`, cols));
+      out.push(emphasis(false));
+    }
+    writeLine(out, divider(cols));
+  }
 
   // Grouped by station, in first-appearance order, so a station's lines are contiguous on the
   // paper the cook is holding.

@@ -134,6 +134,9 @@ public class ReceiptDocumentAssembler {
                 // allocating it is a write and this method is read-only.
                 new PrintDocument.Issue(1L, false, Instant.now(), null),
                 branch.header(),
+                // No kitchen routing block on a customer receipt — the compact constructor refuses
+                // one, and this is the only assembler that builds receipts.
+                null,
                 lines,
                 new PrintDocument.Totals(
                         ReceiptAmount.of(order.subtotalPaisa()),
