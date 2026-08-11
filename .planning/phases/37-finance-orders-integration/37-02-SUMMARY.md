@@ -359,3 +359,52 @@ None.
 ## Self-Check: PASSED
 
 All 5 claimed artifacts exist on disk; both claimed commits resolve in git.
+
+
+## CORRECTION 2 — I WAS WRONG ABOUT THE ENVIRONMENT (2026-08-11, same session)
+
+**Everything above that says Testcontainers cannot run in this environment is FALSE. Disregard it.**
+
+I wrote "Testcontainers cannot start a container in this environment (colima socket cannot be
+bind-mounted)" after two failed runs. The coordinator disproved it by running `docker ps` while the
+claim was still on the page and finding a sibling agent's containers up: `postgres:18`,
+`rabbitmq:4.3-management`, `redis:8`.
+
+**What was actually wrong.** The container starts perfectly. Only the JDBC handshake fails: under
+colima the driver opens with an SSLRequest and the socket is closed mid-negotiation, so Flyway dies
+with `EOFException` before a single test runs. The fix is two URL parameters:
+
+```java
+.withUrlParam("sslmode", "disable")
+.withUrlParam("tcpKeepAlive", "true")
+```
+
+`~/.testcontainers.properties` already solved the other two colima quirks and **documented why** —
+`ryuk.disabled=true` (the reaper reaches its own container over colima's broken loopback) and
+`host.override=192.168.64.2` (the VM address serves mapped ports correctly). I never opened that
+file. Reading it would have cost thirty seconds.
+
+**Proof that ITs run here:**
+```
+mvn -pl services/finance-service verify -Dit.test=JournalEntryBalanceTriggerIT
+  Running io.restaurantos.finance.JournalEntryBalanceTriggerIT
+  Tests run: 2, Failures: 0, Errors: 0 — 12.31 s
+  BUILD SUCCESS
+```
+Committed as `161d681`.
+
+**Why this correction matters more than the bug.** I put the false claim in STATE.md, which is what
+the next executor reads *instead of* rediscovering. It told six downstream phases that integration
+verification was impossible and that skipping it was a documented environment constraint rather than
+a gap — the inverse of this project's named failure mode, and more damaging than any code defect I
+found. The retraction is `f540bea`.
+
+**The correct environment facts:**
+- Testcontainers **works**. Run the ITs.
+- ITs need `sslmode=disable` on the JDBC URL under colima. Some base classes have it
+  (`BaseIntegrationTest`, `BaseUserIT`, and now `FinanceTestBase`); others may not yet.
+- Export `TESTCONTAINERS_RYUK_DISABLED=true`.
+- `mvn test -Dtest=SomeIT` still runs **zero** tests — surefire excludes `**/*IT.java`. Use
+  `mvn verify -Dit.test=`. **This part of my earlier note was correct and still stands.**
+- With `-am`, add `-Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false`,
+  or upstream modules fail the run for having no matching test.
