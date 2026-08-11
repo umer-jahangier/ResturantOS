@@ -183,3 +183,51 @@ a schema decision about snapshotting identity that belongs with whoever owns ord
 carry it, but it is genuinely a user-service/order-schema question, not a printing one.
 
 **Cost of leaving it:** a chef reading `Srv eb2ee67e` instead of `Srv Ali`. Visible on every ticket.
+
+---
+
+## D-8 · Printer discovery and USB/network parity are NOT built (26-10 was not reached)
+
+**Found:** end of the 26-07 / 26-11 session, recorded so the next executor starts from the
+constraints rather than rediscovering them.
+
+The user stated two things during this session that are binding on 26-10 and are NOT yet
+implemented anywhere:
+
+1. **Discovery must be agent-side and manager-triggered.** mDNS/DNS-SD is primary
+   (`_pdl-datastream._tcp` 9100, `_ipp._tcp` 631, `_printer._tcp` 515); a bounded port-9100 sweep of
+   the agent's own /24 is the fallback for cheap ESC/POS units with mDNS off, **opt-in only, never
+   on a timer** — an unattended subnet scan from a customer-facing network is indistinguishable from
+   reconnaissance and will trip a client's IDS. Discovery yields CANDIDATES, never configuration:
+   auto-binding whatever answered first on 9100 would route a customer's bill to an unknown device.
+   Test Print (26-06's column ruler) is the confirmation step.
+
+2. **USB and network printers are BOTH first-class, not one primary and one fallback.** The common
+   real layout is a USB receipt printer at the till and a network kitchen printer in the back. So:
+   - the candidate list needs a `connection` discriminator, stored explicitly rather than inferred
+     from whether an address is present;
+   - USB/system identity is a stable queue name or vendor/product/serial, **never an enumeration
+     index** — a queue that is #2 today can be #1 tomorrow, and a receipt silently routing to a
+     different device is exactly what the candidates-not-configuration rule exists to prevent;
+   - USB enumeration is cheap and local, so unlike the subnet sweep it is fine on agent start;
+   - the config screen must not show an IP field for a USB printer;
+   - **a CUPS queue configured with a DRIVER rather than as raw will re-render ESC/POS bytes as
+     text or garbage** — bytes go somewhere and the output is wrong, which is worse than an error.
+     Detect and refuse a non-raw queue if possible; if not, say so in the transport header and make
+     Test Print the confirmation.
+
+3. **A browser can reach NEITHER kind directly.** No raw TCP to 9100, no USB addressing. The only
+   browser-native path is the OS print dialog, which is what Tier 1's HTML bill uses. **Every
+   ESC/POS path — cut, drawer pulse, kitchen tickets, reprints — requires the local agent regardless
+   of how the printer is attached.** 26-12 must state this plainly so nobody later assumes network
+   printers could have been driven from the browser.
+
+4. Discovery results are the restaurant's internal network topology crossing into a cloud service:
+   branch-scoped, reported only for the branch that produced them, not broadly logged, and rejected
+   candidates not retained.
+
+**What exists today:** `print-agent/src/config.ts` already models both transports
+(`transport: "TCP" | "SYSTEM"`) and both are implemented in `src/transport/`. Nothing discovers
+anything, and the registry is still manual entry (26-02).
+
+**Suggested owner:** 26-10, unchanged — this is a note of the constraints, not a re-plan.
