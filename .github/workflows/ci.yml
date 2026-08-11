@@ -99,6 +99,26 @@ jobs:
       - name: tsc --noEmit (zero any)
         run: pnpm --dir frontend exec tsc --noEmit
 
+      # print-agent is a THIRD workspace, alongside the Maven reactor and frontend/,
+      # and nothing in this file knew it existed. Its 84 tests ran only if a person
+      # happened to `cd print-agent` — so the ESC/POS renderer, the durable queue and
+      # the transports were, from CI's point of view, unprotected against regression
+      # by anyone who didn't know to look there.
+      #
+      # `test` AND `typecheck`, not just `test`. Vitest does not typecheck, and that is
+      # not hypothetical here: this package twice had a green `npm test` sitting on top
+      # of a `tsc --noEmit` failure (a TS4115 override error in the transport, and three
+      # type errors in the daemon spec). A suite that passes while the package does not
+      # compile is worse than no suite, because it reports confidence it has not earned.
+      - name: Install print-agent dependencies
+        run: pnpm --dir print-agent install --frozen-lockfile
+
+      - name: print-agent tsc --noEmit
+        run: pnpm --dir print-agent run typecheck
+
+      - name: print-agent tests
+        run: pnpm --dir print-agent run test
+
   # ---------------------------------------------------------------------------
   # test: data-driven per-area coverage gates (Java + frontend + OPA)
   #   finance/inventory >= 75, all other Java modules + frontend (Vitest) >= 60,
