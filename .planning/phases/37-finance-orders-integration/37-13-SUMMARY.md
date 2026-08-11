@@ -289,9 +289,21 @@ orders from the same probing were also left; they carry no money and no items.
   need destructive state changes on a shared database.
 - **Four tabs have no rules** — Expenses, AP Aging, House Accounts, AR Aging. Not an oversight: no
   claim about them is currently bound to a test, and inventing one would defeat the mechanism.
-- **The prose describes House Accounts and AR Aging from the code's shape, not from driving them.**
-  Those two sections are the likeliest to contain an inaccuracy of the kind the waiter sentence
-  turned out to be, and nothing here has tested them the way the open-till rule was tested.
+- ~~**The prose describes House Accounts and AR Aging from the code's shape, not from driving them.**~~
+  **DRIVEN 2026-08-12** (all four undriven sections, as owner@terrace.local against the live stack).
+  The suspicion was correct and it found **two more false sentences** — see commit `d10d6d18`:
+  - *Expenses* claimed "larger ones go through an approval", telling an owner small expenses post
+    straight through. `ExpenseService.create()` sets `PENDING_APPROVAL` unconditionally; the
+    amount rule that exists governs **who may approve**, not whether approval happens.
+  - *AP Aging* enumerated three buckets; the endpoint returns **four** (`Current`, `31-60`,
+    `61-90`, `Over 90`) — the list omitted the oldest, and contradicted the section's own example.
+  - *House Accounts* and *AR Aging* **held up**: `PaymentMethod.CHARGE_TO_ACCOUNT` is a real tender
+    written to `order_payments`, so a signed bill genuinely is an ordinary sale on Takings and
+    Transactions; `creditLimitPaisa` is real; the AR buckets are identical to AP's.
+- **Those four sections still have no test-bound claims.** Nothing stops this prose drifting again.
+  Three false sentences have now been found in this guide by driving it and zero by reading it,
+  which is the argument for binding them — but inventing a claim purely to have one would defeat
+  the mechanism, so the gap is recorded rather than papered over.
 - **GitNexus is stale**; caller analysis was by grep and is stated as such.
 
 ---
