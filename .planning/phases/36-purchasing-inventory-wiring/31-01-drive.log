@@ -1,0 +1,240 @@
+==========================================================================
+PHASE 36-01 — procure-to-pay live drive
+started: 2026-08-11T17:23:28Z
+gateway: http://localhost:8080
+==========================================================================
+
+### GATE: jar freshness
+ok    audit-service (pid 99928, inode 47423181)
+ok    auth-service (pid 19705, inode 48214503)
+ok    authorization-service (pid 74570, inode 47504110)
+ok    crm-service (pid 44026, inode 47395731)
+ok    file-service (pid 98643, inode 48167275)
+ok    finance-service (pid 80044, inode 47496165)
+STALE hr-service (pid 46117) — jar built 15m AFTER the process started
+ok    inventory-service (pid 83086, inode 48126875)
+ok    kitchen-service (pid 1375, inode 47546977)
+ok    platform-admin-service (pid 19706, inode 48215435)
+STALE pos-service (pid 47292) — jar built 11m AFTER the process started
+ok    purchasing-service (pid 70866, inode 47545511)
+ok    reporting-service (pid 77135, inode 47393349)
+ok    user-service (pid 47293, inode 48268762)
+ok    gateway (pid 1376, inode 47508161)
+----------------------------------------
+checked=15 stale=2
+
+ERROR: at least one service is running code that is not what is on disk.
+
+Any verification against the live stack right now is measuring the OLD build. Restart the
+services named above before trusting a single result, and re-run whatever you were verifying.
+NOTE: a service outside this phase's scope is stale. Not gating on it — this phase reasons
+      about:auth-service purchasing-service inventory-service finance-service gateway.
+FRESHNESS GATE PASSED for:auth-service purchasing-service inventory-service finance-service gateway
+
+### GATE: RLS canary
+tenant floating-terrace = d108c2e6-a70d-49c8-acdc-37531fd752d8
+PASS: purchasing vendors invisible with no tenant GUC (0)
+PASS: purchasing vendors visible for the demo tenant GUC (9)
+PASS: inventory ingredients invisible with no tenant GUC (0)
+PASS: inventory ingredients visible for the demo tenant GUC (9)
+PASS: tenant 5ae760de cannot see tenant d108c2e6's vendors (0)
+
+### PERSONAS
+PASS: MANAGER authenticated
+PASS: OWNER authenticated
+  MANAGER vendor authorities : vendor.grn.receive,vendor.invoice.book,vendor.invoice.override,vendor.manage,vendor.payment.create,vendor.po.approve,vendor.po.close,vendor.po.create,vendor.po.send,vendor.view
+  MANAGER approval_limit_paisa: 30000000
+  OWNER vendor authorities : vendor.grn.receive,vendor.invoice.book,vendor.invoice.override,vendor.manage,vendor.payment.create,vendor.po.approve,vendor.po.close,vendor.po.create,vendor.po.send,vendor.view
+  OWNER approval_limit_paisa: 100000000
+  branch: 34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+
+### BROKER BEFORE
+  inventory.grn-received.queue     = 0   dlq = 6
+  finance.stock-received.queue.dlq = 0
+  finance.invoice-matched.queue    = 7
+
+### MASTER DATA (read through the product, as MANAGER)
+PASS [MD-ING-READ] list ingredients — HTTP 200
+  KG-stocked ingredient for the conversion probe: Basmati Rice (cdb0de29-cc90-4cbb-844d-af788eaf4b52)
+PASS [MD-UOM-READ] list units of measure — HTTP 200
+PASS [MD-CAT-READ] list item categories — HTTP 200
+PASS [MD-LOC-READ] list storage locations — HTTP 200
+
+==========================================================================
+### CHAIN as MANAGER
+==========================================================================
+PASS [M-01-VENDOR-CREATE] create vendor — HTTP 200
+      db: vendors row = 'Drive Vendor p36-1786469011 MANAGER'
+PASS [M-02-VENDOR-LIST] list vendors — HTTP 200
+PASS [M-03-VITEM-CREATE] create vendor catalog item (500 G pack, PKR 6200) — HTTP 200
+PASS [M-04-VITEM-PRICE] record a current price — HTTP 200
+      db: vendor_item_prices.unit_price_paisa = 620000
+PASS [M-05-PO-CREATE] create PO — one catalog line, one hand-typed line — HTTP 200
+      db: purchase_order_lines = 2
+      db: po status = DRAFT
+PASS [M-06-PO-SUBMIT] submit PO — HTTP 200
+      db: po status = PENDING_APPROVAL
+PASS [M-07-PO-APPROVE] approve PO (gated by the approval limit on the token) — HTTP 200
+      db: po status = APPROVED
+      db: approval records = 1
+PASS [M-08-PO-SEND] send PO to the vendor — HTTP 200
+      db: po status = SENT
+      db BEFORE receipt: qty_on_hand=151.5000 avg_cost_paisa=232524.7525
+FAIL [M-09-PO-RECEIVE] receive goods — BOTH lines in one call, as a receiving clerk would — expected 200, got 409 (CONFLICT)
+      body: {"error":{"code":"CONFLICT","message":"This conflicts with existing data","details":[],"traceId":"dd43d146-e5b2-4f41-bad1-fa3fc0d4b5e3"}}
+NOTE [M-09b] two-line receive failed; retrying ONE line to discriminate
+NOTE [M-09b] single-line receive of the catalog line -> HTTP 200 
+NOTE [M-09b] SINGLE LINE SUCCEEDS. The receiving path works; the MULTI-LINE call does not.
+NOTE [M-09b] single-line receive of the hand-typed line -> HTTP 200 
+      db: po status = FULLY_RECEIVED
+      db AFTER receipt : qty_on_hand=155.5000 avg_cost_paisa=258633.4406 movements(3m)=7
+NOTE [M-CONV] CONVERSION PROBE. 2 packs x 500 G = 1000 G = 1.0 KG expected onto a KG-stocked
+NOTE [M-CONV] ingredient, PLUS 3 KG from the hand-typed KG line = +4.0 KG expected in total.
+NOTE [M-CONV] observed delta = 151.5000 -> 155.5000.
+NOTE [M-CONV] A delta near +1003 means the G pack was received at face value (the 1000x defect).
+      broker: grn dlq now 6 (was 6)
+PASS [M-10-INVOICE-BOOK] book a vendor invoice against the PO — HTTP 200
+NOTE [M-MATCH] three-way match result on the response = 'MATCHED'
+      db: vendor_invoices.status = MATCHED
+      db: vendor_invoices.matched_at = 2026-08-11 17:23:46.766842+00
+PASS [M-11-BANK-LIST] list bank accounts for payment — HTTP 200
+PASS [M-12-AP-PAYMENT] post an AP payment — HTTP 200
+      db: ap_payment_allocations for this invoice = 1
+
+==========================================================================
+### CHAIN as OWNER
+==========================================================================
+PASS [O-01-VENDOR-CREATE] create vendor — HTTP 200
+      db: vendors row = 'Drive Vendor p36-1786469011 OWNER'
+PASS [O-02-VENDOR-LIST] list vendors — HTTP 200
+PASS [O-03-VITEM-CREATE] create vendor catalog item (500 G pack, PKR 6200) — HTTP 200
+PASS [O-04-VITEM-PRICE] record a current price — HTTP 200
+      db: vendor_item_prices.unit_price_paisa = 620000
+PASS [O-05-PO-CREATE] create PO — one catalog line, one hand-typed line — HTTP 200
+      db: purchase_order_lines = 2
+      db: po status = DRAFT
+PASS [O-06-PO-SUBMIT] submit PO — HTTP 200
+      db: po status = PENDING_APPROVAL
+PASS [O-07-PO-APPROVE] approve PO (gated by the approval limit on the token) — HTTP 200
+      db: po status = APPROVED
+      db: approval records = 1
+PASS [O-08-PO-SEND] send PO to the vendor — HTTP 200
+      db: po status = SENT
+      db BEFORE receipt: qty_on_hand=155.5000 avg_cost_paisa=258633.4406
+FAIL [O-09-PO-RECEIVE] receive goods — BOTH lines in one call, as a receiving clerk would — expected 200, got 409 (CONFLICT)
+      body: {"error":{"code":"CONFLICT","message":"This conflicts with existing data","details":[],"traceId":"ddd0a45e-a47e-4dd6-bf73-6901bc834ea5"}}
+NOTE [O-09b] two-line receive failed; retrying ONE line to discriminate
+NOTE [O-09b] single-line receive of the catalog line -> HTTP 200 
+NOTE [O-09b] SINGLE LINE SUCCEEDS. The receiving path works; the MULTI-LINE call does not.
+NOTE [O-09b] single-line receive of the hand-typed line -> HTTP 200 
+      db: po status = FULLY_RECEIVED
+      db AFTER receipt : qty_on_hand=159.5000 avg_cost_paisa=283432.6019 movements(3m)=9
+NOTE [O-CONV] CONVERSION PROBE. 2 packs x 500 G = 1000 G = 1.0 KG expected onto a KG-stocked
+NOTE [O-CONV] ingredient, PLUS 3 KG from the hand-typed KG line = +4.0 KG expected in total.
+NOTE [O-CONV] observed delta = 155.5000 -> 159.5000.
+NOTE [O-CONV] A delta near +1003 means the G pack was received at face value (the 1000x defect).
+      broker: grn dlq now 6 (was 6)
+PASS [O-10-INVOICE-BOOK] book a vendor invoice against the PO — HTTP 200
+NOTE [O-MATCH] three-way match result on the response = 'MATCHED'
+      db: vendor_invoices.status = MATCHED
+      db: vendor_invoices.matched_at = 2026-08-11 17:24:01.520016+00
+PASS [O-11-BANK-LIST] list bank accounts for payment — HTTP 200
+PASS [O-12-AP-PAYMENT] post an AP payment — HTTP 200
+      db: ap_payment_allocations for this invoice = 1
+
+==========================================================================
+### DELIBERATE PROBES
+==========================================================================
+
+-- PROBE 1: PO line for ingredient c02d8a28-9e48-4d3a-984e-d7cb7bc17b3c which inventory has never seen
+NOTE [P1-CREATE] POST purchase-orders with an unknown ingredient -> HTTP 200 
+NOTE [P1-CREATE] ACCEPTED. purchase order 2614d6bf-ce37-46f5-853b-423fda7d4d42 exists for an ingredient that does not.
+NOTE [P1-SUBMIT] submit -> HTTP 200
+NOTE [P1-APPROVE] approve -> HTTP 200
+NOTE [P1-SEND] send -> HTTP 200
+NOTE [P1-RECEIVE] receive -> HTTP 200
+NOTE [P1-AFTER] po status = FULLY_RECEIVED
+NOTE [P1-AFTER] stock rows for the ghost ingredient = 0
+NOTE [P1-AFTER] inventory movements for it = 0
+NOTE [P1-AFTER] grn dlq depth 6 -> 7
+
+-- PROBE 2: hand-typed line with a unit the registry does not define ('FURLONG')
+NOTE [P2-CREATE] POST purchase-orders with uom 'FURLONG' -> HTTP 200 
+NOTE [P2-CREATE] ACCEPTED. Nothing in the tenant's unit registry defines FURLONG.
+NOTE [P2-submit] -> HTTP 200
+NOTE [P2-approve] -> HTTP 200
+NOTE [P2-send] -> HTTP 200
+NOTE [P2-RECEIVE] receive -> HTTP 200
+NOTE [P2-AFTER] qty_on_hand 159.5000 -> 166.5000. 7 FURLONG is not a quantity of anything;
+NOTE [P2-AFTER] a +7 delta means it was received at face value into a KG-stocked ingredient.
+NOTE [P2-AFTER] grn dlq depth = 7
+
+-- PROBE 3: the finer-unit-into-coarser-unit conversion is driven inline (see *-CONV notes)
+
+-- PROBE 4: cross-tenant read by id, through the gateway (the Hibernate-filter shape)
+NOTE [P4] attempting tenant saffron-grill's purchase order d36c9d24-c138-450b-b207-bbe2b068c1b4 with a floating-terrace token
+NOTE [P4-PO] GET a foreign tenant's purchase order by id -> HTTP 404 NOT_FOUND
+NOTE [P4-PO] refused, as it must be (404 leaks less than 403)
+NOTE [P4] attempting tenant saffron-grill's ingredient 3664cd39-22a6-424b-a270-5c417ced461b with a floating-terrace token
+NOTE [P4-INGREDIENT] GET a foreign tenant's ingredient by id -> HTTP 404 NOT_FOUND
+NOTE [P4-INGREDIENT] refused, as it must be
+
+### GENERAL LEDGER (finance_db, as finance_user)
+  1300 inventory control — net DR-CR posted in the last 30 min:
+    43482972
+  1700 goods received / not invoiced — net DR-CR posted in the last 30 min:
+    -33583200
+  2100 accounts payable — net DR-CR posted in the last 30 min:
+    0
+  journal entries posted in the last 30 min, by source:
+    AP_PAYMENT|8|POSTED
+    COUNT_VARIANCE|4|POSTED
+    STOCK_RECEIPT|25|POSTED
+    VENDOR_INVOICE|8|POSTED
+
+==========================================================================
+### MASTER-DATA CRUD MATRIX (as MANAGER)
+==========================================================================
+PASS [MD-ING-CREATE] ingredient CREATE — HTTP 200
+PASS [MD-ING-GET] ingredient READ — HTTP 200
+PASS [MD-ING-UPDATE] ingredient UPDATE — HTTP 200
+PASS [MD-ING-ARCHIVE] ingredient ARCHIVE — HTTP 200
+PASS [MD-ING-RESTORE] ingredient RESTORE — HTTP 200
+PASS [MD-CAT-CREATE] category CREATE — HTTP 200
+PASS [MD-CAT-UPDATE] category UPDATE — HTTP 200
+PASS [MD-CAT-ARCHIVE] category ARCHIVE — HTTP 200
+PASS [MD-UOM-CREATE] unit of measure CREATE — HTTP 200
+NOTE [MD-UOM-UPDATE] PUT /api/v1/inventory/uom/{id} -> HTTP 404 (404/405 = the endpoint does not exist)
+NOTE [MD-UOM-ARCHIVE] POST /api/v1/inventory/uom/{id}/archive -> HTTP 404
+NOTE [MD-UOM-DELETE] DELETE /api/v1/inventory/uom/{id} -> HTTP 404
+PASS [MD-LOC-CREATE] storage location CREATE — HTTP 200
+PASS [MD-LOC-UPDATE] storage location UPDATE — HTTP 200
+PASS [MD-LOC-ARCHIVE] storage location ARCHIVE — HTTP 200
+PASS [MD-OPENING] record an opening balance — HTTP 200
+PASS [MD-RECEIPT] receive stock manually — HTTP 200
+PASS [MD-COUNT] post a stock count — HTTP 200
+      db: on hand for the drive ingredient = 13.0000
+PASS [MD-STOCK-READ] read stock levels — HTTP 200
+
+### BROKER AFTER
+  inventory.grn-received.queue     = 0 (was 0)
+  inventory.grn-received.queue.dlq = 7 (was 6)
+  finance.stock-received.queue.dlq = 0 (was 0)
+  finance.invoice-matched.queue    = 9 (was 7)
+
+### QUEUE CONSUMERS — a queue that is bound, filling, and has NO consumer is a silent break.
+    (name / ready / unacked / consumers)
+    inventory.grn-received.queue.dlq	7	0	0
+    inventory.grn-received.queue	0	0	1
+    finance.stock-received.queue.dlq	0	0	0
+    finance.invoice-matched.queue	9	0	0
+    finance.invoice-matched.queue.dlq	0	0	0
+    reporting.invoice-matched.queue	0	0	1
+    reporting.invoice-matched.queue.dlq	0	0	0
+    finance.stock-received.queue	0	0	1
+
+==========================================================================
+----------------------------------------
+PASS: 47   FAIL: 2
+finished: 2026-08-11T17:24:57Z
+==========================================================================

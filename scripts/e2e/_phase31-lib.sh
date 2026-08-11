@@ -102,8 +102,13 @@ phase31_sql() {
   if [[ -n "$tenant" ]]; then
     statement="select set_config('app.current_tenant_id', '${tenant}', false); ${sql}"
   fi
+  # `< /dev/null` is load-bearing. `docker exec -i` attaches the CALLER's stdin to the container, so
+  # a helper called from inside `while read ... < <(...)` silently drains the loop's input and the
+  # loop runs exactly once. It cost this harness a cross-tenant probe that reported "no foreign
+  # tenant holds a vendor" when three of them do — a false all-clear on an isolation check, which is
+  # the worst possible direction for that particular lie.
   docker exec -i "$PHASE31_PG_CONTAINER" \
-    psql -U "$role" -d "$db" -v ON_ERROR_STOP=1 -qtA -c "$statement" 2>&1 \
+    psql -U "$role" -d "$db" -v ON_ERROR_STOP=1 -qtA -c "$statement" < /dev/null 2>&1 \
     | { if [[ -n "$tenant" ]]; then tail -n +2; else cat; fi; }
 }
 
