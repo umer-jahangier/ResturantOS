@@ -1066,42 +1066,49 @@ Environment notes recorded in that phase's `deferred-items.md`: a stale git stas
 gateway, auth-service and pos-service were rebuilt repeatedly by other agents, which
 intermittently failed the journeys suite for reasons unrelated to this phase.
 
---- Phase 25 (Biometric Terminals, ZKTeco) — 3 of 13 plans complete ---
+--- Phase 25 (Biometric Terminals, ZKTeco) — 5 of 13 plans complete ---
 
-Executed 2026-08-11 in wave order: **25-01, 25-03, 25-04 landed and committed.**
-**Outstanding: 25-02, 25-05, 25-06, 25-07, 25-08, 25-09, 25-10, 25-11, 25-12, 25-13.**
+**Complete: 25-01, 25-03, 25-04, 25-05, 25-08.**
+**Outstanding: 25-02, 25-06, 25-07, 25-09, 25-10, 25-11, 25-12, 25-13.**
 
-Read `.planning/phases/25-biometric-terminals/25-INVENTORY.md` first — it is the ground
-truth for what works, what is decorative and what is missing, with a test name on every row.
+Read `25-INVENTORY.md` first (what works / decorative / missing, a test on every row), then
+`25-CLOUD-TOPOLOGY-GAPS.md` (four gaps in the *remaining* plans, all now amended into them).
 
-**The finding that reframes the phase.** 25-CONTEXT says the protocol work is largely done and
-the gap is management, sync and visibility. That is half right. The protocol is done **for a
-client we write ourselves**: the credential is a query parameter and a stock ZKTeco terminal's
-configuration menu has no field for one. **No stock terminal can authenticate today.** That is
-D-25-06, decided as `both` in `25-AUTH-MODES.md` (now committed), and it is **25-08's** work —
-still outstanding. Until 25-08 lands, a terminal configured with only an address and a port
-gets a clean, correct, uniform 401.
+**The headline, verified live on a fresh jar:** a stock ZKTeco given nothing but a server address
+and a port now boots, authenticates and delivers a punch that lands on the right employee. Before
+25-08 no terminal sold as a biometric clock could authenticate at all — the credential was a query
+parameter and the device menu has no field for one. A refusal from a changed IP records the observed
+address on the device row for one-click "allow this address".
 
-**What landed.** 25-01: `AdmsHttpContractIT` (frozen baseline, 8 cases over real HTTP) and four
-surviving defect registries pinning 13 tolerated behaviours, each owned by exactly one later
-plan which must invert and delete its own cases. 25-03: eighteen columns on
-`attendance_devices` (name, timezone, expected cadence, skew tolerance, the six handshake
-values, auth mode, allowlist, archived-at, token-rotated-at), every default equal to today's
-behaviour; `findSilentDevices`. 25-04: five refusal causes proven byte-identical over the wire,
-bounded per-serial failure logging (5 polls → 1 line, 0 stack traces, live-verified), and both
-device routes now tripping the breaker on 500.
+**25-05 closed three silent-loss paths**, each of which ended in HTTP 200 + the success
+acknowledgement + zero rows + nothing logged, after which the terminal deletes its buffer: a
+form-encoded POST, a sub-four-field line, and a Unix-epoch timestamp.
 
-**Two environment traps solved, both worth knowing before the next session:**
+**A cloud-deployment defect worth naming on its own:** `Asia/Karachi` was compiled into the ATTLOG
+parser. A single-tenant on-premise install would never have noticed. A cloud-hosted multi-tenant
+product serving branches in different countries stored **every one of their punches wrong**, at a
+plausible-looking time that nothing downstream would flag. Fixed in 25-05 (per-device zone, from
+25-03's column); the same class of assumption is worth hunting elsewhere.
 
-1. Testcontainers ports were being hijacked by an IDE's automatic port forwarding, which holds
-   listeners after containers die and accumulates across Docker's whole auto-allocation range.
-   Containers started healthy and unreachable — 60s timeouts one run, connection failures the
-   next. `HrTestBase` now claims a loopback port from the OS ephemeral range and binds Docker to
-   it, so Docker binds first. 45 errors → 45 green, 62s → 13s. The test Tomcat needed the same
-   (`server.address=127.0.0.1`).
+**NEXT: 25-06.** Not started. It carries two handoffs from 25-05:
+  1. the `source_record_id` -> `work_code` COLUMN rename (Java already renamed; 25-06 owns the
+     ingest changelog), and
+  2. giving `AttlogParseOutcome.Rejection` a durable destination. Today a rejected line gets a
+     counted warning and no home — a smaller hole than a silent discard, and still a hole against
+     D-25-03: a rejection nobody can retrieve is a punch that is still lost, just noisily.
+  Its own headline defect is that quarantine has NO uniqueness key, so a device polling every 3-8s
+  with one unmapped user grows the queue without bound.
 
-2. hr-service and gateway must be restarted after every rebuild, then `bash
-   scripts/check-stale-jars.sh` run, before any live result is trusted.
+**Plans amended 2026-08-12 (authorized), not yet built to:** 25-07 (revocation retries until
+acknowledged and never expires, escalates to the device screen, plus a server-side backstop that
+quarantines a punch for a terminated employee whatever the device believes; handshake sets device
+time; PIN vs biometric enrolment named separately), 25-10 (roster reconciliation), 25-12 (enrolment
+split in UI copy).
+
+**Environment:** see the `## ENVIRONMENT` section near the top of this file before writing off any
+Testcontainers failure. On this machine, run hr-service ITs with
+`RESTAURANTOS_TEST_CONTAINER_BIND_IP=127.0.0.1`. Always restart hr-service AND gateway after a
+rebuild, then `bash scripts/check-stale-jars.sh`, before trusting any live result.
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
