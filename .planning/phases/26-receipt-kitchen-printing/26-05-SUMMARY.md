@@ -11,6 +11,9 @@ provides:
   - "`ReceiptDocumentView` — the 80 mm bill, rendered from strings the server already produced"
   - "`receipt-print.css` — the `@page { size: 80mm auto }` stylesheet and the print-media isolation"
   - "`FiscalRegion` — the FBR invoice-number and QR regions, reserved and collapsing (D-26-03)"
+  - "`ReceiptView` + the `/app/pos/orders/[orderId]/receipt` route — the screen a cashier reaches"
+  - "`PrintRepository` / `useIssueReceipt` — the layer-3 and layer-4 halves of issuing a document"
+  - "a Print bill control on the settlement screen"
 affects:
   - frontend/components/print (new directory)
 tech-stack:
@@ -39,9 +42,11 @@ commits:
 
 # Phase 26 Plan 05: The 80 mm Browser Bill — PARTIAL
 
-**Tasks 1 and 2 are complete and verified. Tasks 3, 4 and 5 are NOT done.** This plan is
-`autonomous: false` and its task 5 is a blocking human checkpoint; the run was scoped to waves 1–3
-and stopped where a person is required.
+**Tasks 1, 2 and 3 are complete and verified. Tasks 4 and 5 are NOT done.**
+
+**Tier 1 is now reachable**: a cashier who has taken money sees a Print bill control on the
+settlement screen, which opens a route that issues a server-produced document and prints it. That
+was the gap called out at the end of the previous run.
 
 ## What landed
 
@@ -133,14 +138,77 @@ cwd. Not imported, and not copied.
 
 | Task | Status | Why |
 | --- | --- | --- |
-| **3 — the print route, the repository/hooks, the Print bill control on `charge-summary.tsx`** | not started | The remaining budget for this run was spent finishing 26-03 (the load-bearing plan) properly. This is the next thing to do and it is unblocked: 26-03's endpoints exist and are tested. |
-| **4 — the Playwright spec** | not started | Depends on task 3, and requires the dev stack running with a pos-service rebuilt to include 26-03. |
-| **5 — print one on paper** | **blocking human checkpoint** | `gate="blocking"`. Nobody can approve it but a person holding paper. |
+| **4 — the Playwright spec** | **BLOCKED** | Requires the dev stack. `pos-service` is running a pre-26-03 jar AND its on-disk jar is a thin, unbootable one. See deferred item **D-5** — it cannot be rebuilt while a sibling agent has uncommitted changes in the module. |
+| **5 — print one on paper** | **blocking human checkpoint** | `gate="blocking"`. Nobody can approve it but a person holding paper — and it cannot even be attempted until D-5 is resolved, because the Print bill button would 404 against the stale service. |
 
 **Consequence for the phase:** definition-of-done item 1 ("a cashier settles an order and gets a
-correctly totalled printed bill in a real browser") is **not yet demonstrated**. Every part of it
-below the UI wiring is built and asserted — the document, the totals, the issue history, the
-component, the stylesheet — but no cashier can reach it from a screen until task 3 lands.
+correctly totalled printed bill in a real browser") is **wired but not yet demonstrated in a real
+browser**. Every layer is built and unit-asserted; the live proof waits on D-5.
+
+## Task 3 — what landed
+
+**The route.** `/app/pos/orders/[orderId]/receipt`, guarded on `FEATURE_POS` then
+`pos.order.view` — matching 26-03's endpoints rather than the sibling Charge route's
+`pos.order.close`. Reprinting is reading; requiring the settlement permission would mean fetching a
+manager to reprint a torn receipt.
+
+The page holds the guards and `ReceiptView` holds the content, mirroring `ChargePage`/`ChargeSummary`.
+That split is not cosmetic: `use(params)` suspends, so a page-level test asserts against a Suspense
+fallback instead of against the thing it is testing. Discovered by writing the test first.
+
+**`useIssueReceipt` wraps a POST in a `useQuery`.** Issuing writes a `print_jobs` row, so it is a
+POST — but every data-fetching screen here is required to use `QueryBoundary`, which takes a query
+result. The wrap is only honest because of the idempotency key, generated **once per mount** in
+`useState` (not `useMemo` — `useMemo` is a hint React may discard, and a discarded idempotency key
+is a duplicate print job). Consequently TanStack's automatic retry, the error-state retry button and
+any re-render all return the *same* issue. `staleTime: Infinity` and no refetch on focus, so tabbing
+away from a printed bill and back does not add a phantom reprint to a customer's history.
+
+**The Print bill control** sits at the end of the bill breakdown on `charge-summary.tsx`, where the
+cashier's eye already is. It appears as soon as *something* has been paid rather than only when the
+order is `CLOSED`: an order stays open until it is both fully paid **and** fully served, and a
+customer asks for the bill at the moment they hand over money. It navigates; it does not print.
+
+**No success toast anywhere.** `window.print()` has no completion callback, no failure signal and no
+paper-out status (research §4.1). The only occurrence of the string `toast` in any file this task
+touched is the comment explaining why there is none.
+
+### Task 3 real command output
+
+```
+$ npm run test:run -- components/pos components/print
+ Test Files  7 passed (7)
+      Tests  38 passed (38)
+
+$ npm run typecheck
+(clean — 0 errors)
+
+$ npm run lint
+✖ 10 problems (0 errors, 10 warnings)     # the pre-existing baseline
+
+$ grep -rn "toast" components/print/ .../receipt/ lib/hooks/pos/use-print-document.ts lib/repositories/print.repository.ts
+components/print/receipt-view.tsx:19: * <p><b>No success toast, deliberately.</b> ...
+```
+
+`ReceiptView`'s four tests, the load-bearing one being **"renders an ERROR when the issue fails —
+never an empty bill"**: on rejection the screen shows `role="alert"`, there is no `receipt-root`
+anywhere, and `window.print` was never called. An empty bill is worse than an error message,
+because the cashier hands it over.
+
+### Task 3 deviations
+
+**[Rule 2 — missing verification] Added `components/print/__tests__/receipt-view.test.tsx`.** The
+plan's `files_modified` for task 3 lists no test file, but two of its acceptance criteria are
+assertions ("the route renders for a settled order"; "a forced failure renders an error state, not
+an empty document"). Shipping those unverified would have been the exact
+structurally-present/behaviourally-absent shape this phase exists to escape.
+
+**[Rule 3 — blocking] `ReceiptView` was extracted from the route file.** See above: `use(params)`
+suspends. The extraction also matches the charge route's existing shape.
+
+**Scope note:** `apiIssuedPrintDocumentSchema` was added to `lib/api-client/schemas/print.schema.ts`
+(26-01's file) rather than to a new schema module. Layer-1 is where a wire shape belongs, and that
+file is already the print wire contract.
 
 ## Hardware sign-off (U3) and open questions
 
