@@ -900,14 +900,14 @@ Recent decisions affecting current work:
 
 Last session: 2026-08-11T18:36:15.000Z
 
---- Phase 36 (Purchasing & Inventory Wiring Repair) — 5 of 8 plans complete ---
+--- Phase 36 (Purchasing & Inventory Wiring Repair) — 6 of 8 plans complete ---
 
 Executed 2026-08-11 in wave order, against the live stack, with a jar-freshness gate before every
 assertion.
 
-**COMPLETE: 36-01, 36-02, 36-03, 36-04, 36-05.**
-**NOT STARTED: 36-06 (conversion refusal in the inventory consumer), 36-07 (seed + CREDENTIALS.md),
-36-08 (browser acceptance journey — `autonomous: false`, needs a human).**
+**COMPLETE: 36-01, 36-02, 36-03, 36-04, 36-05, 36-06.**
+**NOT STARTED: 36-07 (seed + CREDENTIALS.md), 36-08 (browser acceptance journey — `autonomous: false`,
+needs a human at a browser regardless).**
 
 What the procure-to-pay chain does now that it did not before:
 
@@ -930,13 +930,18 @@ What the procure-to-pay chain does now that it did not before:
   journal entry. It is now refused at creation AND at receipt with a 422 naming the line. Also fixed
   a blocker nobody had recorded: a goods receipt of **more than one line** answered 409.
 
+- **36-06** made the receipt REFUSE an unresolvable unit instead of recording it at face value. The
+  fallback had a documented reason that stopped being true in phase 14, when finance began posting
+  from the stock lot rather than from the GRN message — so a refusal now strands nothing. Two ITs
+  that asserted the old behaviour were inverted, not deleted. The hand-checkable case is exact on
+  the live path: two 500 g packs = 1.0 KG at 1,240,000 paisa/KG, ledger debited 1,240,000.
 - **36-05** made a unit of measure correctable and retirable — both answered 404 — with a guard that
   refuses to retire a unit still referenced by an ingredient, a conversion row or a vendor catalog
   row in another database, and names which.
 
 Live evidence: `31-01-drive.log` (47/2), `phase31-purchasing-access-e2e.sh` (8/0),
 `phase31-approval-limit-e2e.sh` (18/0), `phase31-po-line-validity-e2e.sh` (20/0),
-`phase31-master-data-e2e.sh` (35/0).
+`phase31-master-data-e2e.sh` (35/0), `phase31-uom-conversion-e2e.sh` (15/0).
 
 Known gaps, recorded rather than hidden: `UomLifecycleIT` was not written (36-05 covers those seven
 behaviours live but not as a build gate); `.planning/phases/36-purchasing-inventory-wiring/deferred-items.md`
