@@ -139,7 +139,38 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
             Claims claims = jws.getPayload();
 
             List<String> permissions = claims.get("permissions", List.class);
-            return permissions != null && permissions.contains("pos.kds.view");
+            if (permissions == null || !permissions.contains("pos.kds.view")) {
+                return false;
+            }
+
+            // The branch in the URL must be the branch in the TOKEN.
+            //
+            // This method took `branchId` as a parameter and never looked at it. The only check
+            // was "does this token hold pos.kds.view" — a permission KITCHEN_STAFF holds, and
+            // that role carries exactly two permissions. So any kitchen account at any tenant
+            // could subscribe to ANY branch of ANY other tenant and watch their live tickets:
+            // order contents, table numbers, timings, in real time as they were fired.
+            //
+            // Nothing upstream saved it. The gateway permits ?token= on this path precisely
+            // because a browser's WebSocket API cannot set an Authorization header, so the
+            // handler is the only place the scope can be enforced — and RLS does not apply to a
+            // subscription key held in a ConcurrentHashMap.
+            //
+            // Tenant is checked as well as branch. A branch id is a UUID and collisions are not
+            // the threat; the threat is a token from a different tenant naming a branch it can
+            // describe, and checking only the branch would let a leaked or guessed id through.
+            String tokenTenant = claims.get("tenant_id", String.class);
+            String tokenBranch = claims.get("branch_id", String.class);
+            if (tokenTenant == null || tokenBranch == null) {
+                log.debug("KDS WebSocket refused: token carries no tenant/branch scope");
+                return false;
+            }
+            if (!tokenBranch.equals(branchId)) {
+                log.warn("KDS WebSocket refused: token branch {} does not match requested branch {}",
+                        tokenBranch, branchId);
+                return false;
+            }
+            return true;
         } catch (Exception e) {
             log.debug("WebSocket JWT validation failed: {}", e.getMessage());
             return false;

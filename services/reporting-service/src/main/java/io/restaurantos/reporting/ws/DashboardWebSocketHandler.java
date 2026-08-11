@@ -148,7 +148,33 @@ public class DashboardWebSocketHandler extends TextWebSocketHandler {
             Claims claims = jws.getPayload();
 
             List<String> permissions = claims.get("permissions", List.class);
-            return permissions != null && permissions.contains(REQUIRED_PERMISSION);
+            if (permissions == null || !permissions.contains(REQUIRED_PERMISSION)) {
+                return false;
+            }
+
+            // The branch in the URL must be the branch in the TOKEN. See the identical fix in
+            // kitchen-service's KdsWebSocketHandler — the two were copies of each other, and the
+            // copy propagated the defect.
+            //
+            // This one leaks further than the kitchen board: a dashboard subscription streams a
+            // branch's live REVENUE. Any holder of this one permission could watch a competitor's
+            // takings accumulate in real time, given only a branch id.
+            //
+            // Checked here rather than upstream because the gateway must permit ?token= on a
+            // WebSocket path (a browser cannot set an Authorization header on the handshake), and
+            // a subscriber list in memory is not reachable by row-level security.
+            String tokenTenant = claims.get("tenant_id", String.class);
+            String tokenBranch = claims.get("branch_id", String.class);
+            if (tokenTenant == null || tokenBranch == null) {
+                log.debug("Dashboard WebSocket refused: token carries no tenant/branch scope");
+                return false;
+            }
+            if (!tokenBranch.equals(branchId)) {
+                log.warn("Dashboard WebSocket refused: token branch {} does not match requested branch {}",
+                        tokenBranch, branchId);
+                return false;
+            }
+            return true;
         } catch (Exception e) {
             log.debug("Dashboard WebSocket JWT validation failed for branchId={}: {}", branchId, e.getMessage());
             return false;
