@@ -12,6 +12,8 @@ import { ProvisionPeriodDialog } from "@/components/finance/ProvisionPeriodDialo
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import type { AccountingPeriod } from "@/lib/models/finance.model";
 
 // URL: /app/finance/periods
@@ -27,23 +29,21 @@ export default function PeriodsPage() {
   const [provisionOpen, setProvisionOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Accounting Periods</h1>
-          <p className="text-sm text-muted-foreground">
-            FY {fiscalYear - 1}–{fiscalYear} (Jul – Jun)
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <FiscalYearNav fiscalYear={fiscalYear} onChange={setFiscalYear} />
-          <PermissionGuard require="finance.period.open">
-            <Button variant="outline" size="sm" onClick={() => setProvisionOpen(true)}>
-              Provision Periods
-            </Button>
-          </PermissionGuard>
-        </div>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Accounting Periods"
+        description={`FY ${fiscalYear - 1}–${fiscalYear} (Jul – Jun)`}
+        actions={
+          <>
+            <FiscalYearNav fiscalYear={fiscalYear} onChange={setFiscalYear} />
+            <PermissionGuard require="finance.period.open">
+              <Button variant="outline" size="sm" onClick={() => setProvisionOpen(true)}>
+                Provision Periods
+              </Button>
+            </PermissionGuard>
+          </>
+        }
+      />
 
       <QueryBoundary
         query={periodsQuery}
@@ -52,7 +52,7 @@ export default function PeriodsPage() {
         loading={
           <div className="animate-pulse space-y-2">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="h-12 rounded bg-muted" />
+              <div key={i} className="h-12 rounded-md bg-muted" />
             ))}
           </div>
         }
@@ -68,7 +68,7 @@ export default function PeriodsPage() {
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-small">
             <thead>
               <tr className="border-b text-left text-muted-foreground">
                 <th className="py-2 pr-4 font-medium">Period</th>
@@ -83,12 +83,12 @@ export default function PeriodsPage() {
               {(periods ?? []).map((period) => (
                 <tr key={period.id} className="border-b">
                   <td className="py-3 pr-4 font-medium">Period {period.periodNo}</td>
-                  <td className="py-3 pr-4 font-mono tabular-nums text-sm">{period.startDate}</td>
-                  <td className="py-3 pr-4 font-mono tabular-nums text-sm">{period.endDate}</td>
+                  <td className="py-3 pr-4 font-mono tabular-nums">{period.startDate}</td>
+                  <td className="py-3 pr-4 font-mono tabular-nums">{period.endDate}</td>
                   <td className="py-3 pr-4">
                     <PeriodStatusChip status={period.status} />
                   </td>
-                  <td className="py-3 pr-4 text-sm text-muted-foreground">
+                  <td className="py-3 pr-4 text-muted-foreground">
                     {period.lockedBy ?? "—"}
                   </td>
                   <td className="py-3 text-right">
@@ -119,6 +119,6 @@ export default function PeriodsPage() {
         onOpenChange={setProvisionOpen}
         initialFiscalYear={fiscalYear}
       />
-    </div>
+    </PageBody>
   );
 }

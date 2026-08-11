@@ -5,6 +5,8 @@ import { PermissionGuard } from "@/components/shared/permission-guard";
 import { AccessDenied } from "@/components/shared/access-denied";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { useReports } from "@/lib/hooks/reporting/use-reports";
 
@@ -21,21 +23,19 @@ function ReportsBrowser() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Reports</h1>
-          <p className="text-sm text-muted-foreground">
-            Named reports backed by real sales, cash and purchasing data.
-          </p>
-        </div>
-        <Link
-          href="/app/reports/fbr"
-          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-        >
-          FBR Tax Summary →
-        </Link>
-      </div>
+    <>
+      <PageHeader
+        title="Reports"
+        description="Named reports backed by real sales, cash and purchasing data."
+        actions={
+          <Link
+            href="/app/reports/fbr"
+            className="text-small font-medium text-primary underline-offset-4 hover:underline"
+          >
+            FBR Tax Summary →
+          </Link>
+        }
+      />
 
       <QueryBoundary
         query={reportsQuery}
@@ -54,7 +54,7 @@ function ReportsBrowser() {
       >
         {Array.from(byCategory.entries()).map(([category, items]) => (
           <div key={category} className="space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="text-label uppercase tracking-wide text-muted-foreground">
               {category}
             </h2>
             <ul className="divide-y rounded-lg border border-border">
@@ -65,7 +65,7 @@ function ReportsBrowser() {
                     className="flex items-center justify-between px-4 py-3 hover:bg-muted/40"
                   >
                     <span className="font-medium">{report.title}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-small text-muted-foreground">
                       {report.columns.length} columns
                     </span>
                   </Link>
@@ -75,16 +75,16 @@ function ReportsBrowser() {
           </div>
         ))}
       </QueryBoundary>
-    </div>
+    </>
   );
 }
 
 export default function ReportsPage() {
   return (
     <PermissionGuard require="reporting.report.view" fallback={<AccessDenied />}>
-      <div className="p-6">
+      <PageBody className="space-y-(--space-xl)">
         <ReportsBrowser />
-      </div>
+      </PageBody>
     </PermissionGuard>
   );
 }

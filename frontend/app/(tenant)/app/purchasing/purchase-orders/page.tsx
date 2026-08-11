@@ -9,6 +9,8 @@ import { PO_STATUSES, type PoStatus } from "@/lib/models/purchasing-status";
 import { PurchaseOrderFormDialog } from "@/components/purchasing/PurchaseOrderFormDialog";
 import { PoStatusBadge } from "@/components/purchasing/PoStatusBadge";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,25 +32,27 @@ export default function PurchaseOrdersPage() {
   const purchaseOrders = poQuery.data ?? [];
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Purchase orders</h1>
-        <div className="flex items-center gap-3">
-          <select
-            aria-label="Filter by status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "" | PoStatus)}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring"
-          >
-            {STATUS_FILTER_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <PurchaseOrderFormDialog trigger={<Button>New Purchase Order</Button>} />
-        </div>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Purchase orders"
+        actions={
+          <>
+            <select
+              aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "" | PoStatus)}
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-small focus-visible:border-ring"
+            >
+              {STATUS_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <PurchaseOrderFormDialog trigger={<Button>New Purchase Order</Button>} />
+          </>
+        }
+      />
 
       <QueryBoundary
         className="mt-4"
@@ -70,7 +74,7 @@ export default function PurchaseOrdersPage() {
           />
         }
       >
-        <table className="mt-4 w-full text-sm">
+        <table className="mt-4 w-full text-small">
           <thead>
             <tr className="border-b text-left text-muted-foreground">
               <th className="py-2 font-medium">PO number</th>
@@ -102,6 +106,6 @@ export default function PurchaseOrdersPage() {
           </tbody>
         </table>
       </QueryBoundary>
-    </div>
+    </PageBody>
   );
 }

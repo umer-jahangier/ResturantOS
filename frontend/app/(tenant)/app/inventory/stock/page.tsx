@@ -19,11 +19,13 @@ import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-small focus-visible:border-ring";
 
 const EMPTY_TITLE = "No stock recorded yet";
 const EMPTY_BODY =
@@ -59,7 +61,7 @@ function RiskChip({ row }: { row: StockLevel }) {
       </span>
     );
   }
-  return <span className="text-xs text-muted-foreground">—</span>;
+  return <span className="text-small text-muted-foreground">—</span>;
 }
 
 // URL: /app/inventory/stock — INV-15 item 8: on-hand stock per branch (a real read endpoint,
@@ -92,7 +94,7 @@ export default function StockPage() {
         <div>
           <div>{row.original.ingredientName}</div>
           {row.original.sku ? (
-            <div className="text-xs text-muted-foreground">{row.original.sku}</div>
+            <div className="text-small text-muted-foreground">{row.original.sku}</div>
           ) : null}
         </div>
       ),
@@ -139,37 +141,35 @@ export default function StockPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Stock</h1>
-          <p className="text-sm text-muted-foreground">
-            On-hand quantities and value at {branchName}.
-          </p>
-        </div>
-        <PermissionGuard require="inventory.item.manage">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpeningBalanceOpen(true)}>
-              Opening balance
-            </Button>
-            <StockReceiptDialog
-              trigger={
-                <Button type="button" variant="outline">
-                  Receipt
-                </Button>
-              }
-            />
-            <StockTransferDialog
-              trigger={
-                <Button type="button" variant="outline">
-                  Transfer
-                </Button>
-              }
-            />
-            <StockCountDialog trigger={<Button type="button">Count</Button>} />
-          </div>
-        </PermissionGuard>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Stock"
+        description={`On-hand quantities and value at ${branchName}.`}
+        actions={
+          <PermissionGuard require="inventory.item.manage">
+            <div className="flex flex-wrap gap-(--space-sm)">
+              <Button type="button" variant="outline" onClick={() => setOpeningBalanceOpen(true)}>
+                Opening balance
+              </Button>
+              <StockReceiptDialog
+                trigger={
+                  <Button type="button" variant="outline">
+                    Receipt
+                  </Button>
+                }
+              />
+              <StockTransferDialog
+                trigger={
+                  <Button type="button" variant="outline">
+                    Transfer
+                  </Button>
+                }
+              />
+              <StockCountDialog trigger={<Button type="button">Count</Button>} />
+            </div>
+          </PermissionGuard>
+        }
+      />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[200px] flex-1">
@@ -221,7 +221,7 @@ export default function StockPage() {
         </PermissionGuard>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">
             Total stock value: <MoneyDisplay paisa={data?.totalStockValuePaisa ?? 0} />
           </p>
           <DataTable columns={columns} data={rows} rowClassName={rowClassName} />
@@ -229,6 +229,6 @@ export default function StockPage() {
       )}
 
       <OpeningBalanceDialog open={openingBalanceOpen} onOpenChange={setOpeningBalanceOpen} />
-    </div>
+    </PageBody>
   );
 }

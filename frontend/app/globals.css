@@ -216,6 +216,92 @@
   --animate-fade-in: fadeIn 0.2s ease-out;
   --animate-scale-in: scaleIn 0.15s ease-out;
   --animate-bounce-subtle: bounceSlight 0.4s ease-out;
+
+  /* ── 38-01: the SPACE scale is NOT bridged into `--spacing-*`. Read why. ──
+
+     The first cut of 38-01 published the seven usage steps into Tailwind's
+     `--spacing-*` namespace:
+
+         --spacing-sm: var(--space-sm);     … 8px
+         --spacing-lg: var(--space-lg);     … 24px
+
+     That shipped `p-md` and `gap-lg` as intended — and silently resized EVERY
+     DIALOG IN THE PRODUCT, because in Tailwind v4 the `--spacing-*` namespace is
+     shared by padding/margin/gap AND by the width family. `max-w-*`, `w-*` and
+     `min-w-*` resolve a NAMED key from `--spacing-*` in preference to
+     `--container-*`. Measured, by compiling this stylesheet:
+
+       before   .max-w-sm { max-width: var(--container-sm) }   … 24rem = 384px
+       after    .max-w-sm { max-width: var(--space-sm)     }   …          8px
+       after    .max-w-lg { max-width: var(--space-lg)     }   …         24px
+
+     `components/ui/dialog.tsx` sizes its panel with `sm:max-w-lg`, so every dialog
+     in the product — including screens no design plan had touched — collapsed to a
+     24px sliver. Nothing threw, nothing logged, `tsc` was clean, all 1,127 unit
+     tests passed, and the type-scale gate went green. It was found by a person
+     looking at a screen.
+
+     The collision is TOTAL and cannot be worked around by precedence: the contract's
+     step names (xs/sm/md/lg/xl/2xl/3xl) are exactly the container scale's key names.
+     Re-declaring `--container-sm: 24rem` alongside was measured and does NOT help —
+     `--spacing-*` still wins.
+
+     So the steps stay plain custom properties in `:root`, and call sites consume
+     them with Tailwind v4's `-(--custom-property)` shorthand:
+
+         <div className="p-(--space-lg) gap-(--space-md) space-y-(--space-lg)">
+
+     which compiles to `padding: var(--space-lg)` and can never collide with a theme
+     namespace, because it never enters one. Slightly more verbose; provably inert.
+
+     Gated by `__tests__/components/ui/dialog-width.test.tsx`, which renders a real
+     dialog and asserts its computed `max-width` resolves in the hundreds of pixels.
+     The lesson generalises beyond spacing: BRIDGING A TOKEN INTO A TAILWIND NAMESPACE
+     IS A PRODUCT-WIDE CHANGE TO EVERY UTILITY THAT READS THAT NAMESPACE, not just the
+     one you had in mind. Check which utility families consume a namespace before
+     publishing into it. */
+}
+
+/* ── 38-01: the TYPE bridge (D-38-02, UI-SPEC §3, §3.1) ───────────────────────
+   `globals.css` withheld these from `@theme` for eight phases, on a trade that was
+   correct when it was made: bridging re-typesets ~700 call sites at once. The audit
+   measured what the withholding cost — **986 Tailwind type-scale classes against 1
+   contract-token class**, `--text-body` (15px) rendering on **22 text nodes** in the
+   entire product while 14px rendered on 1,901 — and the trade expired.
+
+   This block does NOT re-typeset anything. It publishes the eight contract roles as
+   NEW utility names (`text-body`, `text-h1`, `text-label`, …) alongside Tailwind's
+   untouched `text-sm`/`text-xs`/`text-2xl`. Nothing changes size until a call site is
+   deliberately migrated, which is why 38-01 migrates ten screens with screenshot
+   evidence rather than sixty-five in one commit.
+
+   NOT `inline`, deliberately: Tailwind must emit `--text-body` and
+   `--text-body--line-height` as real custom properties at `:root`, because
+   `kds-type.ts` and `dashboard-type.ts` read `var(--text-body)` directly and the
+   `--text-*-lh` aliases in `:root` are defined in terms of the paired name.
+   Asserted by `__tests__/lib/theme/type-scale.test.ts` against the BUILT stylesheet,
+   not against this source — a token that does not survive the build is not a token.
+
+   Size and line-height ship TOGETHER (UI-SPEC §3.1): Tailwind pairs
+   `--text-<role>--line-height` with `--text-<role>`, so `class="text-body"` sets both
+   and a call site cannot take the size without the leading it was measured with. */
+@theme {
+  --text-display: 30px;
+  --text-display--line-height: 36px;
+  --text-h1: 20px;
+  --text-h1--line-height: 28px;
+  --text-h2: 16px;
+  --text-h2--line-height: 24px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
+  --text-small: 13px;
+  --text-small--line-height: 18px;
+  --text-label: 11px;
+  --text-label--line-height: 16px;
+  --text-pos: 17px;
+  --text-pos--line-height: 24px;
+  --text-kds: 22px;
+  --text-kds--line-height: 28px;
 }
 
 :root {
@@ -523,14 +609,10 @@
   --z-palette: 70;
   --z-toast: 80;
 
-  /* ── spacing usage scale (§3.10) and type scale (§3.11) ─────────────────
-     DELIBERATELY NOT bridged into `@theme`. Tailwind owns the `--spacing-*` and
-     `--text-*` namespaces: declaring `--text-sm: 13px` inside `@theme` would
-     silently re-typeset every one of the ~700 `text-sm` call sites across 53
-     routes, which is a screen rewrite wearing a token's clothes. Declared here as
-     plain custom properties so the values are canonical and quotable now; the
-     bridge lands with PageHeader/PageBody (UI-SPEC §10.2 step 4), surface by
-     surface, where the change can be reviewed. */
+  /* ── spacing usage scale (§3.10) ────────────────────────────────────────
+     The seven usage steps. These stay declared here as the single source of
+     truth and are bridged into `@theme` by NAME (`--spacing-md: var(--space-md)`,
+     see the bridge block below), so there is exactly one place a value lives. */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -539,22 +621,22 @@
   --space-2xl: 48px;
   --space-3xl: 64px;
 
-  --text-display: 30px;
-  --text-display-lh: 36px;
-  --text-h1: 20px;
-  --text-h1-lh: 28px;
-  --text-h2: 16px;
-  --text-h2-lh: 24px;
-  --text-body: 15px;
-  --text-body-lh: 22px;
-  --text-small: 13px;
-  --text-small-lh: 18px;
-  --text-label: 11px;
-  --text-label-lh: 16px;
-  --text-pos: 17px;
-  --text-pos-lh: 24px;
-  --text-kds: 22px;
-  --text-kds-lh: 28px;
+  /* ── type scale (§3.11) — line-height aliases ───────────────────────────
+     38-01: the SIZES moved into `@theme` (see the bridge block) so Tailwind can
+     emit `text-body`, `text-h1`, … as real utilities. Tailwind's paired
+     line-height name is `--text-<role>--line-height`; these aliases keep the
+     pre-existing `--text-<role>-lh` spelling resolving, because
+     `components/kds/kds-type.ts` and `components/dashboard/dashboard-type.ts`
+     were written against it and phase 21/34 call sites read them. One value,
+     two spellings — not two values. */
+  --text-display-lh: var(--text-display--line-height);
+  --text-h1-lh: var(--text-h1--line-height);
+  --text-h2-lh: var(--text-h2--line-height);
+  --text-body-lh: var(--text-body--line-height);
+  --text-small-lh: var(--text-small--line-height);
+  --text-label-lh: var(--text-label--line-height);
+  --text-pos-lh: var(--text-pos--line-height);
+  --text-kds-lh: var(--text-kds--line-height);
 }
 
 .dark {
@@ -668,6 +750,23 @@
   --kds-late-fill: oklch(0.4 0.15 27.3);
 }
 
+/* 38-01 — deliberately UNLAYERED. See the @layer base note on PageBody for the why of the
+   rule; this is the why of its POSITION.
+
+   Written inside `@layer base` it had no effect, and the failure was invisible in the source:
+   `<main>` carries the utility classes `p-4 lg:p-6`, which live in `@layer utilities`, and a
+   later cascade layer beats an earlier one REGARDLESS OF SPECIFICITY. So the base-layer rule
+   lost every time and migrated pages rendered with BOTH gutters — measured in Chromium at
+   1440px as `main` padding 24px plus `PageBody` padding 24px, a 48px inset nobody designed.
+
+   Unlayered declarations outrank all layered ones, so this is the one position that works
+   without an `!important` or a specificity arms race. Asserted in a real browser by
+   `e2e/verify-38-01.mjs`, which reads the computed padding of `main` rather than trusting the
+   stylesheet to mean what it says. */
+main:has([data-page-body]) {
+  padding: 0;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -675,6 +774,25 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* ── 38-01: PageBody owns the page gutter (UI-SPEC §2) ────────────────────
+     `app/(tenant)/layout.tsx` hard-codes `p-4 lg:p-6 pb-20 md:pb-6` on `<main>`.
+     That default is why NO page could ever be full-bleed — the POS terminal, the
+     KDS board and the floor plan all need the viewport edge, and all three were
+     rendering inside back-office gutter they had no way to decline. The audit
+     photographed the consequence: "a dark board floating in light chrome".
+
+     The naive fix — delete the padding from `<main>` — strips the gutter from all
+     55 routes that do not use `PageBody` yet, in one commit, and turns a refactor
+     into an unattributable 65-route visual change.
+
+     So the shell default stands, and yields ONLY to a page that has explicitly
+     taken ownership. An unmigrated page renders byte-identically to before; a
+     migrated page gets the contract gutter (or none, when `fullBleed`).
+
+     `:has()` is the only mechanism that works here: the decision is made by a
+     DESCENDANT (the page) and applied to an ANCESTOR (`<main>`), and React context
+     flows the wrong way for that. Baseline in every browser this ships to. */
   html {
     @apply font-sans;
   }

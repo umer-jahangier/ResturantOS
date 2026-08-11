@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useVendors } from "@/lib/hooks/purchasing/use-purchasing";
 import { VendorFormDialog } from "@/components/purchasing/VendorFormDialog";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,11 +19,11 @@ export default function VendorsPage() {
   const rows = vendors.data ?? [];
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Vendors</h1>
-        <VendorFormDialog trigger={<Button>Add vendor</Button>} />
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Vendors"
+        actions={<VendorFormDialog trigger={<Button>Add vendor</Button>} />}
+      />
 
       <QueryBoundary
         className="mt-4"
@@ -42,12 +44,12 @@ export default function VendorsPage() {
           />
         }
       >
-        <ul className="mt-4 divide-y rounded border">
+        <ul className="mt-4 divide-y rounded-lg border">
           {rows.map((v) => (
             <li key={v.id} className="flex items-center justify-between gap-4 px-4 py-3">
               <div className="min-w-0">
                 <div className="font-medium">{v.name}</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-small text-muted-foreground">
                   {v.paymentTerms}
                   {v.contactPerson ? ` · ${v.contactPerson}` : ""}
                   {/* Last four digits only — the API never returns the full account (PUR-01). */}
@@ -57,7 +59,7 @@ export default function VendorsPage() {
               <div className="flex items-center gap-2">
                 <Link
                   href={`/app/purchasing/vendors/${v.id}`}
-                  className="text-sm text-primary hover:underline"
+                  className="text-small text-primary hover:underline"
                 >
                   Manage catalog →
                 </Link>
@@ -74,6 +76,6 @@ export default function VendorsPage() {
           ))}
         </ul>
       </QueryBoundary>
-    </div>
+    </PageBody>
   );
 }

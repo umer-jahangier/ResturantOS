@@ -1,0 +1,590 @@
+{
+  "capturedAt": "2026-08-11T20:46:11.107Z",
+  "routes": {
+    "inventory-stock|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Stock"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 160,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 3,
+        "12px": 12,
+        "14px": 109,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 22
+      },
+      "radii": {
+        "6.4px": 25,
+        "3.35544e+07px": 4,
+        "4px": 1,
+        "8px": 6
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "inventory-ingredients|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Ingredients"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 153,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 3,
+        "12px": 20,
+        "14px": 110,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 5,
+        "11px": 1
+      },
+      "radii": {
+        "6.4px": 35,
+        "3.35544e+07px": 26,
+        "4px": 1,
+        "8px": 4
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "inventory-setup|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Setup"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 304,
+      "sizes": {
+        "16px": 13,
+        "12.8px": 73,
+        "12px": 10,
+        "14px": 28,
+        "10px": 4,
+        "20px": 1,
+        "15px": 3,
+        "11px": 28,
+        "13px": 144
+      },
+      "radii": {
+        "6.4px": 94,
+        "3.35544e+07px": 14,
+        "4px": 1,
+        "8px": 6
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "purchasing-po|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Purchase orders"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 400,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 1,
+        "12px": 94,
+        "14px": 27,
+        "10px": 4,
+        "20px": 1,
+        "13px": 265
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 2,
+        "4px": 85,
+        "8px": 2
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "purchasing-vendors|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Vendors"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 131,
+      "sizes": {
+        "16px": 28,
+        "12.8px": 21,
+        "12px": 10,
+        "14px": 27,
+        "10px": 4,
+        "20px": 1,
+        "13px": 40
+      },
+      "radii": {
+        "6.4px": 42,
+        "3.35544e+07px": 2,
+        "4px": 1,
+        "8px": 2
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "purchasing-suggestions|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Suggested orders"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 85,
+      "sizes": {
+        "16px": 10,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 27,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 21,
+        "11px": 10
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 5,
+        "4px": 1,
+        "8px": 4
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "tables|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Tables"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 67,
+      "sizes": {
+        "16px": 11,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 20,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 14,
+        "11px": 5
+      },
+      "radii": {
+        "6.4px": 27,
+        "3.35544e+07px": 7,
+        "4px": 1,
+        "8px": 4
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "finance-periods|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Access denied"
+      ],
+      "pageBodyCount": 0,
+      "mainPadding": "24px",
+      "textNodes": 48,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 24,
+        "10px": 4,
+        "20px": 1
+      },
+      "radii": {
+        "6.4px": 23,
+        "3.35544e+07px": 2,
+        "4px": 1
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "reports|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Reports"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 62,
+      "sizes": {
+        "16px": 15,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 19,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 8,
+        "11px": 3
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 2,
+        "4px": 1,
+        "8px": 3
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "dashboard|light": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "What needs me in the next five minutes?"
+      ],
+      "pageBodyCount": 0,
+      "mainPadding": "24px",
+      "textNodes": 108,
+      "sizes": {
+        "16px": 16,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 19,
+        "10px": 4,
+        "30px": 5,
+        "13px": 17,
+        "11px": 14,
+        "15px": 22
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 6,
+        "4px": 7,
+        "11.2px": 8
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "inventory-stock|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Stock"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 160,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 3,
+        "12px": 12,
+        "14px": 109,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 22
+      },
+      "radii": {
+        "6.4px": 25,
+        "3.35544e+07px": 4,
+        "4px": 1,
+        "8px": 6
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "inventory-ingredients|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Ingredients"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 153,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 3,
+        "12px": 20,
+        "14px": 110,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 5,
+        "11px": 1
+      },
+      "radii": {
+        "6.4px": 35,
+        "3.35544e+07px": 26,
+        "4px": 1,
+        "8px": 4
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "inventory-setup|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Setup"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 304,
+      "sizes": {
+        "16px": 13,
+        "12.8px": 73,
+        "12px": 10,
+        "14px": 28,
+        "10px": 4,
+        "20px": 1,
+        "15px": 3,
+        "11px": 28,
+        "13px": 144
+      },
+      "radii": {
+        "6.4px": 94,
+        "3.35544e+07px": 14,
+        "4px": 1,
+        "8px": 6
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "purchasing-po|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Purchase orders"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 400,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 1,
+        "12px": 94,
+        "14px": 27,
+        "10px": 4,
+        "20px": 1,
+        "13px": 265
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 2,
+        "4px": 85,
+        "8px": 2
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "purchasing-vendors|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Vendors"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 131,
+      "sizes": {
+        "16px": 28,
+        "12.8px": 21,
+        "12px": 10,
+        "14px": 27,
+        "10px": 4,
+        "20px": 1,
+        "13px": 40
+      },
+      "radii": {
+        "6.4px": 42,
+        "3.35544e+07px": 2,
+        "4px": 1,
+        "8px": 2
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "purchasing-suggestions|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Suggested orders"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 85,
+      "sizes": {
+        "16px": 10,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 27,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 21,
+        "11px": 10
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 5,
+        "4px": 1,
+        "8px": 4
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "tables|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Tables"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 67,
+      "sizes": {
+        "16px": 11,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 20,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 14,
+        "11px": 5
+      },
+      "radii": {
+        "6.4px": 27,
+        "3.35544e+07px": 7,
+        "4px": 1,
+        "8px": 4
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "finance-periods|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Access denied"
+      ],
+      "pageBodyCount": 0,
+      "mainPadding": "24px",
+      "textNodes": 48,
+      "sizes": {
+        "16px": 8,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 24,
+        "10px": 4,
+        "20px": 1
+      },
+      "radii": {
+        "6.4px": 23,
+        "3.35544e+07px": 2,
+        "4px": 1
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "reports|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "Reports"
+      ],
+      "pageBodyCount": 1,
+      "mainPadding": "0px",
+      "textNodes": 62,
+      "sizes": {
+        "16px": 15,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 19,
+        "10px": 4,
+        "20px": 1,
+        "15px": 1,
+        "13px": 8,
+        "11px": 3
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 2,
+        "4px": 1,
+        "8px": 3
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    },
+    "dashboard|dark": {
+      "attempts": 1,
+      "h1Count": 1,
+      "h1Text": [
+        "What needs me in the next five minutes?"
+      ],
+      "pageBodyCount": 0,
+      "mainPadding": "24px",
+      "textNodes": 108,
+      "sizes": {
+        "16px": 16,
+        "12.8px": 1,
+        "12px": 10,
+        "14px": 19,
+        "10px": 4,
+        "30px": 5,
+        "13px": 17,
+        "11px": 14,
+        "15px": 22
+      },
+      "radii": {
+        "6.4px": 22,
+        "3.35544e+07px": 6,
+        "4px": 7,
+        "11.2px": 8
+      },
+      "alertCount": 0,
+      "alertTexts": []
+    }
+  },
+  "dialog": {
+    "opened": true,
+    "maxWidth": "448px",
+    "width": 448
+  },
+  "widths": {
+    "390": {
+      "docScroll": false,
+      "past": 146
+    },
+    "768": {
+      "docScroll": false,
+      "past": 130
+    },
+    "1024": {
+      "docScroll": false,
+      "past": 73
+    },
+    "1440": {
+      "docScroll": false,
+      "past": 0
+    }
+  }
+}

@@ -10,6 +10,8 @@ import { TableFormDialog } from "./TableFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -110,30 +112,28 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Tables</h1>
-          <p className="text-sm text-muted-foreground">
-            Your dining tables. Anything active here can be picked when a waiter starts an order.
-          </p>
-        </div>
-        <PermissionGuard require="pos.tables.admin">
-          <Button type="button" onClick={() => setFormTarget({ mode: "create" })}>
-            Add table
-          </Button>
-        </PermissionGuard>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Tables"
+        description="Your dining tables. Anything active here can be picked when a waiter starts an order."
+        actions={
+          <PermissionGuard require="pos.tables.admin">
+            <Button type="button" onClick={() => setFormTarget({ mode: "create" })}>
+              Add table
+            </Button>
+          </PermissionGuard>
+        }
+      />
 
       {/* A retired table is hidden from the order screen but not deleted — without this toggle
           there is no way to find, or restore, one again. Mirrors the Menu Items page's
           "Show inactive" checkbox exactly. */}
-      <label className="flex w-fit items-center gap-2 text-sm text-muted-foreground">
+      <label className="flex w-fit items-center gap-2 text-small text-muted-foreground">
         <input
           type="checkbox"
           checked={showRetired}
           onChange={(e) => setShowRetired(e.target.checked)}
-          className="size-4 rounded border-input"
+          className="size-4 rounded-sm border-input"
         />
         Show retired
       </label>
@@ -173,7 +173,7 @@ export default function TablesPage() {
             >
               <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
                 <span className="font-medium">{section}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-small text-muted-foreground">
                   {tables.length} {tables.length === 1 ? "table" : "tables"} ·{" "}
                   {tables.reduce((sum, t) => sum + t.capacity, 0)} seats
                 </span>
@@ -184,7 +184,7 @@ export default function TablesPage() {
                   <div
                     key={table.id}
                     data-testid="table-row"
-                    className="flex items-center gap-3 px-3 py-2 text-sm"
+                    className="flex items-center gap-3 px-3 py-2 text-small"
                   >
                     <span className="flex-1 truncate font-medium">{table.tableName}</span>
                     <span className="shrink-0 text-muted-foreground">
@@ -194,7 +194,7 @@ export default function TablesPage() {
                         different badges — conflating them is what makes an occupied table
                         look un-retirable and a retired one look available. */}
                     <span
-                      className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${RUNTIME_STATUS_CLASS[table.status]}`}
+                      className={`shrink-0 rounded-full border px-2 py-0.5 text-label ${RUNTIME_STATUS_CLASS[table.status]}`}
                     >
                       {RUNTIME_STATUS_LABEL[table.status]}
                     </span>
@@ -246,6 +246,6 @@ export default function TablesPage() {
           if (!next) setFormTarget(null);
         }}
       />
-    </div>
+    </PageBody>
   );
 }

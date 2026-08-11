@@ -222,8 +222,22 @@ export interface RankedRow {
   label: string;
   /** Formatted for display. */
   value: string;
-  /** 0..1 — the bar length. Bars are labelled, so length is never the only channel. */
-  fraction: number;
+  /**
+   * 0..1 — the bar length. Bars are labelled, so length is never the only channel.
+   *
+   * <p><b>Optional, and that is the fix for a real defect (38-01, UI-SPEC §9.1).</b> This was
+   * required, so a caller with nothing to encode had to invent a number — and
+   * `manager-dashboard.tsx` invented `fraction: 1` for every 86'd item. The result was three
+   * full-width teal bars that always read 100%, four lines from a sibling (`stationLoad`) that
+   * computes `count / max` correctly. One portlet component rendered one meaningful bar chart
+   * and one meaningless one on the same screen.
+   *
+   * <p>Brief §47: "every chart answers a business question". §64: "do not make dashboards
+   * decorative instead of useful". A bar that is always full answers nothing, so the type now
+   * lets a caller say so, and {@link RankedList} renders no bar at all rather than a lie.
+   * Omitting it is the honest option; passing `1` for everything is not.
+   */
+  fraction?: number;
 }
 
 export function RankedList({
@@ -259,15 +273,19 @@ export function RankedList({
                 <span className="truncate font-medium">{row.label}</span>
                 <span className="shrink-0 tabular-nums text-foreground-secondary">{row.value}</span>
               </div>
-              <div
-                className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-                aria-hidden="true"
-              >
+              {/* No fraction, no bar. See RankedRow.fraction — a bar drawn for a row with
+                  nothing to encode is decoration that reads as data. */}
+              {row.fraction !== undefined && (
                 <div
-                  className="h-full rounded-full bg-primary-700"
-                  style={{ width: `${Math.max(2, Math.round(row.fraction * 100))}%` }}
-                />
-              </div>
+                  className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                  aria-hidden="true"
+                >
+                  <div
+                    className="h-full rounded-full bg-primary-700"
+                    style={{ width: `${Math.max(2, Math.round(row.fraction * 100))}%` }}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ol>

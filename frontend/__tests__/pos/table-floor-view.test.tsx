@@ -183,7 +183,7 @@ describe("TableFloorView", () => {
     expect(onTableSelect).not.toHaveBeenCalled();
   });
 
-  it("shows the empty state when no tables are configured", async () => {
+  it("shows the empty state when the branch genuinely has no active tables", async () => {
     server.use(
       http.get("*/api/v1/pos/tables", () =>
         HttpResponse.json({ data: [], meta: null, warnings: [] }),
@@ -197,6 +197,42 @@ describe("TableFloorView", () => {
       </Wrapper>,
     );
 
-    await waitFor(() => expect(screen.getByText("No tables configured")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText(/No active tables at this branch/)).toBeInTheDocument(),
+    );
+  });
+
+  /**
+   * The regression this file was missing, and the reason the defect shipped (38-01).
+   *
+   * The audit found the Floor View reporting "No tables configured" while `/app/tables` listed
+   * five tables for the same branch. Measured against the live gateway, the API returned all
+   * five: the component was folding a FAILED read into an EMPTY state, because it destructured
+   * `{ data: tables = [], isLoading }` and never read `isError` — GA-001 bug shape 2, which
+   * `QueryBoundary`'s own docblock names.
+   *
+   * The suite above could not catch it: every case stubbed a 200. A screen whose failure path
+   * is untested is a screen whose failure path is whatever the last refactor left behind.
+   *
+   * This is the negative control for the fix, and it was OBSERVED RED against the pre-fix
+   * component: with `isError` unread, a 503 rendered "No tables configured" and this assertion
+   * failed on `getByRole("alert")`.
+   */
+  it("tells the operator the read FAILED — it does not claim the branch has no tables", async () => {
+    server.use(
+      http.get("*/api/v1/pos/tables", () => new HttpResponse(null, { status: 503 })),
+    );
+    seedSession({ branchId: BRANCH_ID, permissions: ["pos.order.close"] });
+    const Wrapper = createQueryWrapper();
+    render(
+      <Wrapper>
+        <TableFloorView />
+      </Wrapper>,
+    );
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(screen.getByRole("alert")).toHaveTextContent(/Couldn't load the floor plan/i);
+    // The specific lie: a failure must never be reported as an absence of tables.
+    expect(screen.queryByText(/No active tables at this branch/)).not.toBeInTheDocument();
   });
 });

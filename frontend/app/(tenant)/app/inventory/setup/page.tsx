@@ -16,6 +16,8 @@ import { StorageLocationFormDialog } from "@/components/inventory/StorageLocatio
 import { UomFormDialog } from "@/components/inventory/UomFormDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
@@ -34,8 +36,8 @@ const MEASURE_TYPES = [
   { key: "COUNT", label: "Count" },
 ] as const;
 
-const cellClass = "px-3 py-2 text-sm";
-const headClass = "px-3 py-2 text-left text-xs font-medium text-muted-foreground";
+const cellClass = "px-3 py-2 text-small";
+const headClass = "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
 
 /** How a unit converts, in words. A base unit has nothing above it — saying "1 G = 1 G" would be
  * noise, so it reads as the anchor it is. */
@@ -95,20 +97,18 @@ export default function InventorySetupPage() {
   const allLocations = locations ?? [];
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-semibold">Setup</h1>
-        <p className="text-sm text-muted-foreground">
-          The shared lists every ingredient draws on — how you measure stock, and where it lives.
-        </p>
-      </div>
+    <PageBody className="space-y-(--space-2xl)">
+      <PageHeader
+        title="Setup"
+        description="The shared lists every ingredient draws on — how you measure stock, and where it lives."
+      />
 
       {/* ── Units of measure ─────────────────────────────────────────────────────────────── */}
       <section className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Units of measure</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h2 font-semibold">Units of measure</h2>
+            <p className="text-body text-muted-foreground">
               A standard set is provided. Add a house unit for anything you buy or count your own
               way — a case, a bunch, a sheet pan.
             </p>
@@ -134,7 +134,7 @@ export default function InventorySetupPage() {
               if (rows.length === 0) return null;
               return (
                 <div key={type.key} className="space-y-2">
-                  <h3 className="text-sm font-medium">{type.label}</h3>
+                  <h3 className="text-h2 font-semibold">{type.label}</h3>
                   <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full min-w-[32rem]">
                       <thead className="border-b bg-muted/40">
@@ -178,8 +178,8 @@ export default function InventorySetupPage() {
       <section className="space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Storage locations</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-h2 font-semibold">Storage locations</h2>
+            <p className="text-body text-muted-foreground">
               Where stock physically lives. Managing the list here is what lets a count sheet be
               ordered by shelf instead of by three spellings of the same walk-in.
             </p>
@@ -240,7 +240,7 @@ export default function InventorySetupPage() {
                     <td className={`${cellClass} font-medium`}>
                       {location.name}
                       {location.archivedAt ? (
-                        <span className="ml-2 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                        <span className="ml-2 rounded-full border px-2 py-0.5 text-label text-muted-foreground">
                           Archived
                         </span>
                       ) : null}
@@ -329,7 +329,7 @@ export default function InventorySetupPage() {
           {archiveError ? (
             <div
               role="alert"
-              className="rounded-lg border bg-card px-2.5 py-2 text-sm text-destructive"
+              className="rounded-lg border bg-card px-2.5 py-2 text-small text-destructive"
             >
               {archiveError}
             </div>
@@ -350,7 +350,7 @@ export default function InventorySetupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageBody>
   );
 }
 
@@ -418,7 +418,7 @@ function UomRowActions({ uom }: { uom: Uom }) {
         </Button>
       </div>
       {refusal && (
-        <p role="alert" data-testid={`uom-retire-refusal-${uom.code}`} className="max-w-sm text-right text-xs text-destructive">
+        <p role="alert" data-testid={`uom-retire-refusal-${uom.code}`} className="max-w-sm text-right text-small text-destructive">
           {refusal}
         </p>
       )}

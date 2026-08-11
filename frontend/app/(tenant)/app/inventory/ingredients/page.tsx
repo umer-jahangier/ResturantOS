@@ -20,6 +20,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -44,7 +46,7 @@ type IngredientFormTarget = { mode: "create" } | { mode: "edit"; ingredient: Ing
 type StatusFilter = "ACTIVE" | "ARCHIVED" | "ALL";
 
 const selectClass =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
+  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-small focus-visible:border-ring";
 
 // URL: /app/inventory/ingredients — INV-01/INV-14's whole UI surface: create/search/filter/edit/
 // archive ingredients (UI-SPEC Screen 2). Section tabs are owned by inventory/layout.tsx (08.2-14)
@@ -123,7 +125,7 @@ export default function IngredientsPage() {
         <div>
           <div>{row.original.name}</div>
           {row.original.shortName ? (
-            <div className="text-xs text-muted-foreground">{row.original.shortName}</div>
+            <div className="text-small text-muted-foreground">{row.original.shortName}</div>
           ) : null}
         </div>
       ),
@@ -208,21 +210,18 @@ export default function IngredientsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Ingredients</h1>
-          <p className="text-sm text-muted-foreground">
-            Create, search, edit and archive the ingredients your recipes and purchase orders draw
-            from.
-          </p>
-        </div>
-        <PermissionGuard require="inventory.item.manage">
-          <Button type="button" onClick={openCreate}>
-            Add ingredient
-          </Button>
-        </PermissionGuard>
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Ingredients"
+        description="Create, search, edit and archive the ingredients your recipes and purchase orders draw from."
+        actions={
+          <PermissionGuard require="inventory.item.manage">
+            <Button type="button" onClick={openCreate}>
+              Add ingredient
+            </Button>
+          </PermissionGuard>
+        }
+      />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[200px] flex-1">
@@ -260,7 +259,7 @@ export default function IngredientsPage() {
         </select>
 
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Allergens</span>
+          <span className="text-label text-muted-foreground">Allergens</span>
           <AllergenPillToggle
             value={allergenFilter}
             onChange={setAllergenFilter}
@@ -340,6 +339,6 @@ export default function IngredientsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageBody>
   );
 }

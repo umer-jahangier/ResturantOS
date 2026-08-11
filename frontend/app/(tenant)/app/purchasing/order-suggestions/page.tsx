@@ -17,14 +17,16 @@ import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { FieldHelp } from "@/components/shared/field-help";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { Button } from "@/components/ui/button";
+import { PageBody } from "@/components/ui/page-body";
+import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Input } from "@/components/ui/input";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const cellClass = "px-3 py-2 text-sm";
-const headClass = "px-3 py-2 text-left text-xs font-medium text-muted-foreground";
+const cellClass = "px-3 py-2 text-small";
+const headClass = "px-3 py-2 text-left text-label uppercase tracking-[0.04em] text-muted-foreground";
 
 /** Keyed by vendorItemId — the only stable identifier a line carries all the way to a PO. */
 type Overrides = Record<string, string>;
@@ -137,29 +139,30 @@ export default function OrderSuggestionsPage() {
   const nothingToOrder = groups.length === 0 && unassigned.length === 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Suggested orders</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Everything that has dropped to its reorder point, with enough to bring it back up to its
-            par level. Review the quantities, then create the orders.
-          </p>
-        </div>
-        {selectedLines.length > 0 ? (
-          <PermissionGuard require="vendor.po.create">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                {selectedLines.length} line{selectedLines.length === 1 ? "" : "s"} ·{" "}
-                <MoneyDisplay paisa={selectedTotalPaisa} className="font-medium text-foreground" />
-              </span>
-              <Button type="button" onClick={handleCreate} disabled={createDrafts.isPending}>
-                {createDrafts.isPending ? "Creating…" : "Create draft orders"}
-              </Button>
-            </div>
-          </PermissionGuard>
-        ) : null}
-      </div>
+    <PageBody className="space-y-(--space-lg)">
+      <PageHeader
+        title="Suggested orders"
+        description="Everything that has dropped to its reorder point, with enough to bring it back up to its par level. Review the quantities, then create the orders."
+        actions={
+          selectedLines.length > 0 ? (
+            <PermissionGuard require="vendor.po.create">
+              <div className="flex items-center gap-(--space-md)">
+                {/* UI-SPEC §7.4 — the selected count is always visible while a selection exists. */}
+                <span className="text-small text-muted-foreground">
+                  {selectedLines.length} line{selectedLines.length === 1 ? "" : "s"} ·{" "}
+                  <MoneyDisplay
+                    paisa={selectedTotalPaisa}
+                    className="font-medium text-foreground"
+                  />
+                </span>
+                <Button type="button" onClick={handleCreate} disabled={createDrafts.isPending}>
+                  {createDrafts.isPending ? "Creating…" : "Create draft orders"}
+                </Button>
+              </div>
+            </PermissionGuard>
+          ) : null
+        }
+      />
 
       {nothingToOrder ? (
         <EmptyState
@@ -182,7 +185,7 @@ export default function OrderSuggestionsPage() {
       ))}
 
       {unassigned.length > 0 ? <UnassignedTable lines={unassigned} /> : null}
-    </div>
+    </PageBody>
   );
 }
 
@@ -210,8 +213,8 @@ function VendorGroupTable({
   return (
     <section className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">{group.vendorName ?? "Unnamed supplier"}</h2>
-        <span className="text-sm text-muted-foreground">
+        <h2 className="text-h2 font-semibold">{group.vendorName ?? "Unnamed supplier"}</h2>
+        <span className="text-small text-muted-foreground">
           {group.leadTimeDays != null ? `Arrives in about ${group.leadTimeDays} days · ` : ""}
           <MoneyDisplay paisa={selectedTotal} className="font-medium text-foreground" />
         </span>
@@ -271,18 +274,18 @@ function VendorGroupTable({
                       checked={included}
                       onChange={() => onToggle(vendorItemId)}
                       aria-label={`Include ${line.ingredientName}`}
-                      className="size-4 rounded border-input"
+                      className="size-4 rounded-sm border-input"
                     />
                   </td>
                   <td className={cellClass}>
                     <div className="font-medium">{line.ingredientName}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-small text-muted-foreground">
                       {[line.vendorSku, line.packDescription].filter(Boolean).join(" · ") || "—"}
                     </div>
                   </td>
                   <td className={`${cellClass} text-muted-foreground`}>
                     {line.qtyOnHand} {line.stockUom}
-                    <div className="text-xs">
+                    <div className="text-small">
                       reorder at {line.reorderPoint} · par {line.parLevel}
                     </div>
                   </td>
@@ -298,7 +301,7 @@ function VendorGroupTable({
                         aria-label={`Order quantity for ${line.ingredientName}`}
                         className="h-8 w-24"
                       />
-                      <span className="text-xs text-muted-foreground">{line.orderUom}</span>
+                      <span className="text-small text-muted-foreground">{line.orderUom}</span>
                     </div>
                   </td>
                   <td className={cellClass}>
@@ -331,7 +334,7 @@ function UnassignedTable({ lines }: { lines: OrderSuggestion[] }) {
     <section className="space-y-2">
       <div className="flex items-center gap-2">
         <AlertTriangle className="size-4 text-warning" aria-hidden="true" />
-        <h2 className="text-lg font-semibold">Low, but needs setting up first ({lines.length})</h2>
+        <h2 className="text-h2 font-semibold">Low, but needs setting up first ({lines.length})</h2>
       </div>
 
       <div className="overflow-x-auto rounded-lg border">
@@ -349,7 +352,7 @@ function UnassignedTable({ lines }: { lines: OrderSuggestion[] }) {
                 <td className={`${cellClass} font-medium`}>
                   {line.ingredientName}
                   {line.categoryName ? (
-                    <div className="text-xs font-normal text-muted-foreground">
+                    <div className="text-small font-normal text-muted-foreground">
                       {line.categoryName}
                     </div>
                   ) : null}
@@ -364,7 +367,7 @@ function UnassignedTable({ lines }: { lines: OrderSuggestion[] }) {
         </table>
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-small text-muted-foreground">
         Par levels are set on each item under{" "}
         <Link href="/app/inventory/ingredients" className="underline">
           Inventory → Ingredients
