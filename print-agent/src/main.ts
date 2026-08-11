@@ -2,6 +2,7 @@ import { Journal } from "./queue/journal.js";
 import { PrintQueue, type PrintJobRecord } from "./queue/queue.js";
 import { loadConfig } from "./config.js";
 import { AGENT_VERSION, createAgentServer } from "./server.js";
+import { createPollLoop, loadCloudConfig } from "./cloud/poll.js";
 
 /**
  * The entry point.
@@ -20,7 +21,22 @@ async function main(): Promise<void> {
     retentionMs: config.retentionMs,
   });
 
-  const agent = createAgentServer({ config, queue });
+  // The cloud channel (26-11). Declared before the server so the drain loop can acknowledge
+  // through it; `loadCloudConfig` returns nulls when nothing is configured, which disables the
+  // loop entirely and leaves the agent behaving exactly as it did in 26-06.
+  const cloud = loadCloudConfig();
+  const poll = createPollLoop({ queue, config: cloud });
+
+  const agent = createAgentServer({
+    config,
+    queue,
+    onSettled: (job, delivered, error) => {
+      // Only jobs that CAME from the cloud are acknowledged to it. A browser-submitted job has no
+      // server-side row and nothing to tell.
+      if (job.printJobId === null) return;
+      void poll.acknowledge(job.printJobId, delivered, error);
+    },
+  });
 
   // Job ids, printer ids, outcomes. Never a document.
   const log = (event: Record<string, unknown>): void => console.log(JSON.stringify(event));
@@ -56,6 +72,8 @@ async function main(): Promise<void> {
   };
 
   const timer = setInterval(() => void tick(), 1_000);
+  poll.start();
+  log({ event: "cloud_channel", state: poll.health().state, pollIntervalMs: cloud.pollIntervalMs });
 
   /**
    * Finish the in-flight job before exiting.
@@ -69,6 +87,7 @@ async function main(): Promise<void> {
     stopping = true;
     log({ event: "stopping", signal, depth: queue.depth() });
     clearInterval(timer);
+    poll.stop();
     void (async () => {
       const deadline = Date.now() + 5_000;
       while (draining && Date.now() < deadline) {

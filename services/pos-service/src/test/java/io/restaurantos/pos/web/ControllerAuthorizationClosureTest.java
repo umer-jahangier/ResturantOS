@@ -47,7 +47,15 @@ class ControllerAuthorizationClosureTest {
             // 26-03: issuing a print document allocates a sequence and writes a row, so it is a
             // POST and it is gated. Added here rather than left out, because the whole point of
             // this test is that an ungated endpoint is the absence of a line nobody reviews.
-            PrintJobController.class);
+            PrintJobController.class,
+            // 26-11: enrolling an agent decides what may print on a branch's printers, which is a
+            // branch-administration decision. Gated on branch.manage, like 26-02's registry.
+            PrintAgentAdminController.class,
+            // 26-11: reached by a DEVICE credential, never a user. Its gate is the PRINT_AGENT
+            // authority, which no user holds and which no other endpoint in this service asks for
+            // — so it is listed here (an ungated endpoint is the absence of a line nobody reviews)
+            // rather than allowlisted away.
+            PrintAgentController.class);
 
     private static final List<Class<? extends Annotation>> MAPPINGS = List.of(
             RequestMapping.class, GetMapping.class, PostMapping.class,
@@ -92,7 +100,7 @@ class ControllerAuthorizationClosureTest {
     /** Guards against the list above silently going stale if a controller is added or renamed. */
     @Test
     void theControllerListCoversEveryControllerInThePackage() {
-        assertThat(CONTROLLERS).hasSize(7);
+        assertThat(CONTROLLERS).hasSize(9);
         for (Class<?> controller : CONTROLLERS) {
             assertThat(controller.getPackageName()).isEqualTo(getClass().getPackageName());
         }

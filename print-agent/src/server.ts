@@ -60,6 +60,15 @@ export interface ServerDeps {
   /** Injected so tests can point every printer at a fake socket. */
   senderFor?: (printer: PrinterEntry) => Sender;
   log?: (event: Record<string, unknown>) => void;
+  /**
+   * Called after every drained job's delivery resolves (26-11).
+   *
+   * <p>This is the seam the cloud poll loop acknowledges through. It is a NOTIFICATION, not a
+   * gate: it is invoked after the queue has already been updated, so a cloud that is unreachable
+   * cannot stop a locally-submitted job from being marked sent. The two channels share one
+   * delivery path precisely so they cannot drift apart, and this is the one place they differ.
+   */
+  onSettled?: (job: PrintJobRecord, delivered: boolean, error?: string) => void;
 }
 
 export function createAgentServer(deps: ServerDeps): AgentServer {
@@ -107,6 +116,8 @@ export function createAgentServer(deps: ServerDeps): AgentServer {
     const result = await deliver(job);
     if (result.ok) queue.markSent(job.id);
     else queue.markFailed(job.id, result.error ?? "unknown transport failure");
+    // After the queue is updated, never before: the local record is the durable one.
+    deps.onSettled?.(job, result.ok, result.error);
     return true;
   }
 
