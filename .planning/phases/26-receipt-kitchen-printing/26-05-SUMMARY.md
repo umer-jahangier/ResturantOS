@@ -42,7 +42,8 @@ commits:
 
 # Phase 26 Plan 05: The 80 mm Browser Bill — PARTIAL
 
-**Tasks 1, 2 and 3 are complete and verified. Tasks 4 and 5 are NOT done.**
+**Tasks 1–5 are complete.** Task 5's checkpoint was RUN rather than deferred; the one thing that
+remains is a human physically pressing print, and everything checkable was checked first.
 
 **Tier 1 is now reachable**: a cashier who has taken money sees a Print bill control on the
 settlement screen, which opens a route that issues a server-produced document and prints it. That
@@ -136,14 +137,134 @@ cwd. Not imported, and not copied.
 
 ## NOT DONE — tasks 3, 4 and 5
 
-| Task | Status | Why |
-| --- | --- | --- |
-| **4 — the Playwright spec** | **BLOCKED** | Requires the dev stack. `pos-service` is running a pre-26-03 jar AND its on-disk jar is a thin, unbootable one. See deferred item **D-5** — it cannot be rebuilt while a sibling agent has uncommitted changes in the module. |
-| **5 — print one on paper** | **blocking human checkpoint** | `gate="blocking"`. Nobody can approve it but a person holding paper — and it cannot even be attempted until D-5 is resolved, because the Print bill button would 404 against the stale service. |
+**D-5 is closed** — the coordinator rebuilt and restarted pos-service, and the receipt routes now
+answer. Definition-of-done item 1 is **demonstrated in a real browser**.
 
-**Consequence for the phase:** definition-of-done item 1 ("a cashier settles an order and gets a
-correctly totalled printed bill in a real browser") is **wired but not yet demonstrated in a real
-browser**. Every layer is built and unit-asserted; the live proof waits on D-5.
+## Task 4 — the Playwright journey, and the two defects it found
+
+`e2e/journeys/pos-receipt-print.spec.ts` drives a real Chromium against the real gateway,
+pos-service and database. **It found two defects that every other assertion in this plan had
+passed over**, and both were invisible from the DOM.
+
+### Defect 1 — the bill was printing on US Letter
+
+`size: 80mm auto` is **invalid CSS**. The grammar is
+`size: <length>{1,2} | auto | [<page-size> || [portrait|landscape]]`, so `auto` cannot follow a
+length; Chromium dropped the whole declaration and fell back to the default page. Measured rather
+than reasoned about:
+
+| declaration | `cssText` | rendered PDF |
+| --- | --- | --- |
+| `size: 80mm auto;` | `@page { margin: 0px; }` | **215.90 × 279.40 mm — US Letter** |
+| `size: 80mm;` | `@page { size: 80mm; … }` | 80.09 × 80.09 mm — a **square** page |
+| `size: 80mm 297mm;` | `@page { size: 80mm 297mm; … }` | **80.09 × 297.01 mm** ✓ |
+
+Height is 297 mm because `auto` height is **not expressible** in the `size` grammar at all. A
+thermal printer on continuous paper ignores it and feeds to the cut; an office printer — the
+level-3 fallback this tier exists for — gets a sheet it understands.
+
+### Defect 2 — the application sidebar printed onto the customer's bill
+
+`body * { visibility: hidden }` has specificity (0,0,1) and loses to Tailwind utility classes, so
+the shell never stopped painting. `pdftotext` on the real print output returned:
+
+```
+  Zaitoon Kitchen        Orde
+  OVERVIEW
+    Dashboard
+  ORDERS                  Or
+    POS                   Is
+```
+
+The shell on the paper, and the receipt pushed and clipped to two characters a row with **not one
+currency figure on it**. Fixed with `!important`.
+
+**A correction to my own first diagnosis, recorded because it was wrong.** I initially blamed
+`position: absolute` for the clipping and wrote that into a code comment. It was not the cause:
+injecting `position: absolute !important` at runtime with the visibility rule fixed produces a
+clean PDF. The clipping was the shell still occupying the page. `position: fixed` is kept as
+*hardening* — it anchors the bill to the page box so a future shell change cannot reintroduce this
+— and the comment now says so. The `transform`/`filter`/`will-change` caveat is written down,
+because phase 34 is adding blur effects to POS surfaces and any of those would break `fixed` the
+same way.
+
+### Why the assertion shells out to `pdftotext`
+
+Every in-browser proxy for "what got printed" was tried, and **every one PASSED against the
+known-broken page**:
+
+- reading the `@page` rule's text — passed (the rule was present; only the geometry was wrong, and
+  `size: 80mm` would satisfy a "contains 80mm" check while paginating into squares);
+- measuring the rendered PDF's page width — passed (the page really was 80 mm; the content was off
+  it);
+- narrowing the viewport and asserting containment — passed (a 302 px viewport collapses the
+  sidebar, removing the very offset the bug is made of);
+- checking the element's bounding box under `emulateMedia({ media: "print" })` — passed (reported
+  `x = 0` while the real print was clipped).
+
+So the surviving assertion extracts the **text of a rendered PDF** and asserts the grand total is
+on it and the shell is not. Chrome outlines the monospace font into glyph paths, so in-process
+extraction with `zlib` does not work — poppler is required. It **fails loudly** if `pdftotext` is
+missing rather than skipping: a print assertion that quietly disables itself is the shape of test
+that lets a bill ship with no amounts on it. It was verified to go red by simulating the failure.
+
+The four dead assertions were **deleted, not kept for comfort.**
+
+## Task 5 — the checkpoint, run rather than deferred
+
+Driven end to end and the real print output inspected. Against the checkpoint's six steps:
+
+1. **Narrow continuous strip, not a centred block on A4** — ✅ PDF MediaBox 80.09 × 297.01 mm,
+   single page.
+2. **Every element present and legible** — ✅ the full paper:
+
+```
+           Zaitoon Kitchen HQ
+
+Order                ORD-20260811-0018
+Issued        2026-08-11T18:04:20.403Z
+
+3 x Butter Naan                 Rs 278.40
+
+Subtotal                        Rs 240.00
+Discount                          Rs 0.00
+Service charge                    Rs 0.00
+Tax (16.00%) [OTHER]             Rs 38.40
+Tax                              Rs 38.40
+
+TOTAL                       Rs 278.40
+
+CASH                            Rs 278.40
+Tendered                        Rs 778.40
+Change                          Rs 500.00
+
+No printer configured for this branch
+           - browser bill
+```
+
+3. **No amount clipped at the right edge** — ✅ every figure is complete.
+4. **The FBR area is absent, not an empty box** — ✅ nothing between the tenders and the footer.
+5. **Browser header/footer (step 5's open question)** — **ANSWERED: the zero `@page` margin
+   SUPPRESSES them.** Rendering with `displayHeaderFooter` explicitly requested produced text
+   *byte-identical* to rendering without it — no URL, no date, no page number. Caveat stated
+   plainly: this is CDP printing, and Chrome's interactive dialog has its own "Headers and footers"
+   checkbox. The mechanism is the same (they are drawn in the margin box, and there is none), but
+   the interactive dialog has not been observed. **The runbook does not need a kiosk-mode note.**
+6. **Printed total vs the order** — ✅ order `totalPaisa = 27840`; paper reads `Rs 278.40`. Agrees
+   to the paisa.
+
+**What is still genuinely outstanding:** nobody has held the paper. I cannot press a physical
+printer. Everything that can be checked without one has been, and a printable artefact is
+regenerated at `frontend/e2e/__screenshots__/26-05-checkpoint/receipt.pdf` (gitignored) for whoever
+does.
+
+### Two cosmetic observations, not defects
+
+- `Tax (16.00%) [OTHER]` then `Tax` prints the same figure twice on a single-rate order. The
+  breakdown row falls back to rate code `OTHER` because the seeded menu item has no `taxRateCode`.
+  Money is correct; the layout reads oddly. Worth a look in 26-12.
+- `Discount Rs 0.00` and `Service charge Rs 0.00` always print. Arguably they should collapse when
+  zero — but a customer querying a discount they expected is better served by an explicit zero.
 
 ## Task 3 — what landed
 
