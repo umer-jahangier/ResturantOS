@@ -131,7 +131,40 @@ Each is built and tested against simulators/protocol fixtures first, so the user
 item is needed only for final sign-off, not to start:
 
 - [ ] **Phase 25: Biometric Attendance Repair** - 4d. ADMS/iClock ingest already largely exists; the remaining work is testable by crafting the raw HTTP a terminal sends. **U5** (a ZKTeco terminal) needed only to confirm firmware quirks.
-- [ ] **Phase 26: Receipt & Kitchen Printing** - 18d. Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
+- [ ] **Phase 26: Receipt & Kitchen Printing** - 18d planned, **~21d as planned** (see the note under the plan list). Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
+
+  **Goal:** A cashier settles an order and hands the customer a correctly totalled printed bill — in
+  any browser with no hardware at all, and silently on thermal paper with a cut and a cash-drawer
+  kick where a printer exists — while the kitchen gets its ticket whether or not a browser is open.
+  **Requirements:** PRINT-01 … PRINT-08
+  **Plans:** 12 plans, 6 waves
+
+  Plans:
+  - [ ] 26-01-PLAN.md — the print document contract and the one place paisa becomes a string *(wave 1)*
+  - [ ] 26-02-PLAN.md — typed per-terminal printer configuration in `receipt_config` *(wave 1)*
+  - [ ] 26-03-PLAN.md — receipt issuance: assembler, `print_jobs` durable record, endpoints *(wave 2)*
+  - [ ] 26-04-PLAN.md — the ESC/POS renderer and the emulator that proves the bytes *(wave 2)*
+  - [ ] 26-05-PLAN.md — the 80 mm HTML bill and the FBR placeholder regions *(wave 3, independently shippable)*
+  - [ ] 26-06-PLAN.md — the print agent: durable queue, transports, health *(wave 3)*
+  - [ ] 26-07-PLAN.md — kitchen ticket, station-routed, enqueued at the fire seam *(wave 3)*
+  - [ ] 26-08-PLAN.md — reprint: identical body, unmistakable banner *(wave 4)*
+  - [ ] 26-09-PLAN.md — the browser→agent bridge and the fallback ladder *(wave 4)*
+  - [ ] 26-10-PLAN.md — printer configuration UI, test print, column ruler *(wave 4)*
+  - [ ] 26-11-PLAN.md — agent enrolment and the pull channel *(wave 5)*
+  - [ ] 26-12-PLAN.md — the live proof and the U3 hardware sign-off list *(wave 6)*
+
+  **Effort note:** plans 26-01 through 26-10 and 26-12 fit the 18-day estimate. Plan 26-11 (the
+  agent's cloud pull channel, which is what lets a kitchen ticket print with every browser closed)
+  adds roughly 3 days and was not in the original estimate. It is planned because research §9.3
+  decision 4 names it the single biggest reliability win available here; if the phase must be cut,
+  26-11 is the plan to defer, and the consequence is that kitchen tickets drain through the browser
+  and stop when the last tab closes.
+
+  **Independently shippable:** 26-01 → 26-03 → 26-05 alone delivers a printed bill in any browser
+  with no hardware, no agent and no install. That is the Tier 1 slice the defect register puts on
+  the shortest path to demo-able, and nothing after it is required for a restaurant to hand a
+  customer paper.
+
 - [ ] **Phase 27: FBR Digital Invoicing** - 20d. **LAST.** Verified by live curl that every FBR endpoint — including read-only lookups — 401s without a taxpayer-issued token, so nothing beyond the offline queue and payload mapping can be validated without **U1/U2** (NTN + PRAL sandbox credentials + static egress IPs for whitelisting).
 
 **Close-out:**

@@ -133,6 +133,21 @@
 - [x] **POS-25**: POS operational modal→page revamp — the payment, order/table detail, void/refund, and till open/close surfaces are converted from modals/sliders to dedicated full-page or large in-place components carrying full analytic information
 - [x] **POS-26**: Connectivity check fix — the online-status hook no longer issues the mis-targeted `HEAD /api/v1/pos/menu/categories` request; no repeated 404s appear in the console
 
+### Receipt & Kitchen Printing (PRINT)
+
+Added 2026-08-11 during Phase 26 planning. `GA-012` in `.planning/research/gap-audit/DEFECT-REGISTER.md`
+records that no printed receipt existed anywhere in the product and no printing requirement had ever
+been written down; these eight are that gap stated as requirements.
+
+- [ ] **PRINT-01**: A cashier can print an itemised customer bill on 80 mm paper from any browser, with no driver, no install and no thermal printer — the always-available tier
+- [ ] **PRINT-02**: Every amount on a printed bill matches the order and the posted journal entry to the paisa, with the paisa-to-string conversion happening in exactly one place
+- [ ] **PRINT-03**: A past order can be reprinted, producing a body identical to the original issue and unmistakably marked as a reprint, with every issue recorded
+- [ ] **PRINT-04**: The receipt reserves and renders the FBR invoice-number and QR regions — populated when present, collapsed without residual whitespace when not (layout only; Phase 27 populates them)
+- [ ] **PRINT-05**: A thermal printer receives a correct ESC/POS stream including paper cut and a cash-drawer kick on cash settlement, asserted byte-for-byte against an emulator
+- [ ] **PRINT-06**: A kitchen ticket is produced server-side at the fire seam, routed to the station's printer, and prints whether or not a browser is open
+- [ ] **PRINT-07**: Printer configuration is stored per tenant, per branch and per terminal, and is administrable in-product with a test print and a measured columns-per-line
+- [ ] **PRINT-08**: When the thermal path is unavailable for any reason the product falls back to the printable bill without an error, and no path from pressing Print ever produces nothing
+
 ### Kitchen / KDS (KDS)
 
 - [x] **KDS-01**: Orders route to station queues; items progress PENDING→COOKING→READY
@@ -393,6 +408,14 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | RPT-02 | Phase 12 (12-10) | In Progress — gateway WS auth gap (12-10-E2E §1h, §3) |
 | NLQ-01 | Phase 12 (12-10) | Complete-with-a-note (12-10-E2E §5, §1i) |
 | NLQ-02 | Phase 12 (12-10) | Complete-with-a-note (12-10-E2E §4, §5, §6, §1g) |
+| PRINT-01 | Phase 26 (26-03, 26-05, 26-09) | Planned |
+| PRINT-02 | Phase 26 (26-01, 26-03, 26-05) | Planned |
+| PRINT-03 | Phase 26 (26-03, 26-07, 26-08) | Planned |
+| PRINT-04 | Phase 26 (26-01, 26-03, 26-05) | Planned |
+| PRINT-05 | Phase 26 (26-03, 26-04, 26-06, 26-09, 26-10) | Planned |
+| PRINT-06 | Phase 26 (26-04, 26-07, 26-11) | Planned |
+| PRINT-07 | Phase 26 (26-02, 26-10) | Planned |
+| PRINT-08 | Phase 26 (26-05, 26-06, 26-09, 26-11) | Planned |
 
 **Coverage:**
 
