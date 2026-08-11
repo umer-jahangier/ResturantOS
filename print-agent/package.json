@@ -1,0 +1,20 @@
+{
+  "name": "@restaurantos/print-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-branch print agent: the ONLY component in this system permitted to emit printer bytes.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@point-of-sale/receipt-printer-encoder": "3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "typescript": "5.9.2",
+    "vitest": "4.1.9"
+  }
+}
