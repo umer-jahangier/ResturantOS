@@ -88,4 +88,16 @@ restaurantos:
   encryption:
     key: ${FIELD_ENCRYPTION_KEY:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
   inventory:
+    # TWO INDEPENDENT SETTINGS. They were one until 36-04, and merging them again would silently
+    # re-disable the reference check on every stack in the fleet.
+    #
+    #   integration-mode    — WHERE GOODS-RECEIPT DATA COMES FROM. Must stay `mock`: MockGrnController
+    #                         is the only receiving path anything has, and it answers 404 outside
+    #                         simulation mode.
+    #   validate-references — WHETHER A CROSS-SERVICE REFERENCE IS CHECKED BEFORE IT IS PERSISTED.
+    #                         On. inventory-service is reachable on this stack and always has been;
+    #                         asking it "does this ingredient exist?" has nothing to do with whether
+    #                         goods receipts are simulated. Set false ONLY where there is genuinely
+    #                         no inventory-service to ask.
     integration-mode: ${INVENTORY_INTEGRATION_MODE:mock}
+    validate-references: ${INVENTORY_VALIDATE_REFERENCES:true}

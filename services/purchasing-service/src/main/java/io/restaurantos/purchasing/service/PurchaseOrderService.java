@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ public class PurchaseOrderService {
     private final VendorItemPriceRepository vendorItemPriceRepository;
     private final VendorRepository vendorRepository;
     private final MockGrnReceiptRepository mockGrnReceiptRepository;
+    private final PoLineValidityGate poLineValidityGate;
 
     public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
                                 TenantContext tenantContext,
@@ -58,7 +60,8 @@ public class PurchaseOrderService {
                                 VendorItemRepository vendorItemRepository,
                                 VendorItemPriceRepository vendorItemPriceRepository,
                                 VendorRepository vendorRepository,
-                                MockGrnReceiptRepository mockGrnReceiptRepository) {
+                                MockGrnReceiptRepository mockGrnReceiptRepository,
+                                PoLineValidityGate poLineValidityGate) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.tenantContext = tenantContext;
         this.tenantSetupService = tenantSetupService;
@@ -68,6 +71,7 @@ public class PurchaseOrderService {
         this.vendorItemPriceRepository = vendorItemPriceRepository;
         this.vendorRepository = vendorRepository;
         this.mockGrnReceiptRepository = mockGrnReceiptRepository;
+        this.poLineValidityGate = poLineValidityGate;
     }
 
     @Transactional
@@ -152,6 +156,28 @@ public class PurchaseOrderService {
             line.setLineTotalPaisa(lineReq.qty().multiply(BigDecimal.valueOf(line.getUnitPricePaisa())).longValue());
             po.getLines().add(line);
         }
+
+        // THE GATE (D-36-04). After the catalog resolution loop, so both line shapes arrive in the
+        // same form — and before anything is persisted, so a refusal leaves no partial order.
+        //
+        // The unit handed over is the one that will TRAVEL on the goods-receipt event, which is not
+        // the same field for the two shapes: a catalog line's receipt carries the vendor item's
+        // packUom, never the orderUom the price is quoted in and never line.uom (which defaults to
+        // orderUom). A hand-typed line's receipt carries its own free-text uom. Validating the
+        // wrong one would pass a line that still receives at face value.
+        List<PoLineValidityGate.ResolvedLine> toCheck = new ArrayList<>();
+        int lineNumber = 0;
+        for (PurchaseOrderLine line : po.getLines()) {
+            lineNumber++;
+            String receiptUom = line.getVendorItemId() == null
+                    ? line.getUom()
+                    : java.util.Optional.ofNullable(catalogById.get(line.getVendorItemId()))
+                            .map(VendorItem::getPackUom)
+                            .orElse(line.getUom());
+            toCheck.add(new PoLineValidityGate.ResolvedLine(lineNumber, line.getIngredientId(), receiptUom));
+        }
+        poLineValidityGate.requireAllLinesValid(toCheck);
+
         po.setTotalPaisa(po.getLines().stream().mapToLong(PurchaseOrderLine::getLineTotalPaisa).sum());
         return toDto(purchaseOrderRepository.save(po));
     }

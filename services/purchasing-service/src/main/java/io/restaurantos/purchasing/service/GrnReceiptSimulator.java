@@ -34,6 +34,7 @@ public class GrnReceiptSimulator {
     private final VendorItemRepository vendorItemRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
+    private final PoLineValidityGate poLineValidityGate;
 
     // No FinanceInternalClient. Purchasing still posts to finance for the vendor invoice
     // (VendorInvoiceService) and the AP payment (ApPaymentService) — those are genuinely its own
@@ -43,13 +44,15 @@ public class GrnReceiptSimulator {
                                MockGrnReceiptRepository mockGrnReceiptRepository,
                                VendorItemRepository vendorItemRepository,
                                EventPublisher eventPublisher,
-                               TenantContext tenantContext) {
+                               TenantContext tenantContext,
+                               PoLineValidityGate poLineValidityGate) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.lineRepository = lineRepository;
         this.mockGrnReceiptRepository = mockGrnReceiptRepository;
         this.vendorItemRepository = vendorItemRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+        this.poLineValidityGate = poLineValidityGate;
     }
 
     @Transactional
@@ -69,13 +72,45 @@ public class GrnReceiptSimulator {
         }
 
         UUID batchGrnId = UUID.randomUUID();
-        List<PurchasingEventContract.GrnLine> grnLines = new ArrayList<>();
+
+        // EVERYTHING THAT CAN REFUSE, REFUSES FIRST. Resolve every line, re-run the validity gate
+        // over all of them, and only then write. Two reasons, and both were measured:
+        //
+        //  - An order created BEFORE plan 36-04's gate existed still has whatever line it was
+        //    created with. Without this re-check it would still reach FULLY_RECEIVED and still
+        //    produce no stock and no ledger entry (F-31-02) — the gate at creation cannot reach
+        //    backwards in time.
+        //  - A refusal halfway through the loop would leave receipt rows for the lines that
+        //    happened to be earlier in the list. The status update and the batch event both come
+        //    after, so a partial write here is a partially-received order nobody asked for.
+        List<PurchaseOrderLine> poLines = lineRepository.findByPurchaseOrderId(poId);
+        List<PurchaseOrderLine> resolved = new ArrayList<>();
+        List<VendorItem> catalogItems = new ArrayList<>();
+        List<PoLineValidityGate.ResolvedLine> toCheck = new ArrayList<>();
+        int lineNumber = 0;
         for (MockReceiveRequest.Line lineReq : request.lines()) {
-            PurchaseOrderLine poLine = lineRepository.findById(lineReq.poLineId()).orElseThrow();
-            if (!lineRepository.findByPurchaseOrderId(poId).stream()
-                    .anyMatch(l -> l.getId().equals(lineReq.poLineId()))) {
-                throw new InvalidPoStateException("PO line does not belong to PO");
-            }
+            PurchaseOrderLine poLine = poLines.stream()
+                    .filter(l -> l.getId().equals(lineReq.poLineId()))
+                    .findFirst()
+                    .orElseThrow(() -> new InvalidPoStateException("PO line does not belong to PO"));
+            VendorItem catalogItem = poLine.getVendorItemId() == null ? null
+                    : vendorItemRepository.findByTenantIdAndId(tenantId, poLine.getVendorItemId()).orElse(null);
+            resolved.add(poLine);
+            catalogItems.add(catalogItem);
+            lineNumber++;
+            // The unit that will actually travel on the event — see packUom below. Checking any
+            // other field would pass a line that still receives at face value.
+            toCheck.add(new PoLineValidityGate.ResolvedLine(
+                    lineNumber, poLine.getIngredientId(), packUom(catalogItem, poLine)));
+        }
+        poLineValidityGate.requireAllLinesValid(toCheck);
+
+        List<PurchasingEventContract.GrnLine> grnLines = new ArrayList<>();
+        for (int i = 0; i < request.lines().size(); i++) {
+            MockReceiveRequest.Line lineReq = request.lines().get(i);
+            PurchaseOrderLine poLine = resolved.get(i);
+            VendorItem catalogItem = catalogItems.get(i);
+
             MockGrnReceipt receipt = new MockGrnReceipt();
             receipt.setTenantId(tenantId);
             receipt.setPurchaseOrderId(poId);
@@ -83,11 +118,22 @@ public class GrnReceiptSimulator {
             receipt.setGrnId(batchGrnId);
             receipt.setReceivedQty(lineReq.receivedQty());
             receipt.setReceivedAt(Instant.now());
-            receipt.setIdempotencyKey(idempotencyKey);
+            // ONE ROW CARRIES THE KEY, NOT ALL OF THEM (F-31-01).
+            //
+            // `uq_mock_grn_idem UNIQUE (tenant_id, idempotency_key)` is correct — a key identifies
+            // one REQUEST. But this loop writes one row per LINE and used to stamp the caller's
+            // single key on every one of them, so the second row in a two-line receipt collided
+            // with the first and the whole call came back 409 CONFLICT "This conflicts with
+            // existing data". Receiving was not broken; receiving MORE THAN ONE LINE was, which is
+            // every realistic delivery. Measured on the live stack: two lines = 409, the same two
+            // lines one at a time = 200 twice.
+            //
+            // The key goes on the first row of the batch, which is what makes the constraint mean
+            // "this request has been processed" — the meaning it was always supposed to have. The
+            // replay lookup below finds that row and returns the batch's grnId.
+            receipt.setIdempotencyKey(i == 0 ? idempotencyKey : null);
             mockGrnReceiptRepository.save(receipt);
 
-            VendorItem catalogItem = poLine.getVendorItemId() == null ? null
-                    : vendorItemRepository.findByTenantIdAndId(tenantId, poLine.getVendorItemId()).orElse(null);
             grnLines.add(new PurchasingEventContract.GrnLine(
                     poLine.getId(),
                     poLine.getIngredientId(),

@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Feign-backed {@link IngredientReferenceValidator} for {@code integration-mode=feign} (T-08.2-044):
+ * Feign-backed {@link IngredientReferenceValidator}, active whenever
+ * {@code restaurantos.inventory.validate-references} is on — which is the default (T-08.2-044):
  * confirms an {@code ingredientId} resolves to a live ingredient in the caller's tenant before a
  * vendor-catalog row referencing it is persisted.
  *
@@ -31,7 +32,8 @@ import java.util.UUID;
  * "does not exist" answer (endpoint reachable, no non-null-category match) is fail-closed.
  */
 @Component
-@ConditionalOnProperty(name = "restaurantos.inventory.integration-mode", havingValue = "feign")
+@ConditionalOnProperty(name = "restaurantos.inventory.validate-references", havingValue = "true",
+        matchIfMissing = true)
 public class FeignIngredientReferenceValidator implements IngredientReferenceValidator {
 
     private static final Logger log = LoggerFactory.getLogger(FeignIngredientReferenceValidator.class);

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -21,6 +22,27 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
+/**
+ * The shared purchasing integration-test context: one Postgres under Testcontainers, Flyway-migrated
+ * per run, with the broker pointed at a dead port and every outbound seam mocked.
+ *
+ * <h3>Cross-service reference validation is OFF here, explicitly</h3>
+ *
+ * This context really has no inventory-service: one service under Testcontainers, no Eureka, nothing
+ * on :8085 — the one situation the permissive validator exists for.
+ *
+ * <p>It is a SEPARATE property from {@code integration-mode} since 36-04, because conflating the
+ * two is what disabled the reference check on the LIVE stack, where inventory-service has always
+ * been reachable, and let a purchase order for a nonexistent ingredient reach {@code FULLY_RECEIVED}
+ * with no stock and no ledger entry (finding F-31-02).
+ *
+ * <p>Declared as {@code @TestPropertySource} rather than in {@code @DynamicPropertySource} on
+ * purpose: dynamic properties have the HIGHEST precedence in Spring's test property hierarchy and
+ * cannot be overridden by a subclass, whereas an inherited {@code @TestPropertySource} merges with
+ * the subclass's own and the subclass wins. A test that wants the check turns it back on for itself
+ * and stubs the lookups — see {@code PoLineValidityGateIT}.
+ */
+@TestPropertySource(properties = "restaurantos.inventory.validate-references=false")
 @SpringBootTest
 public abstract class PurchasingTestBase {
 
