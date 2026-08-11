@@ -7,6 +7,10 @@
 
     <include file="db/changelog/v1.0.0/010-create-file-metadata.xml"/>
     <include file="db/changelog/v1.0.0/011-enable-rls-file-metadata.xml"/>
+    <!-- Immediately after 011, which created the policy with a raw cast of the tenant GUC. The
+         empty string is the GUC's "no tenant" value, and ''::uuid throws rather than excluding the
+         row; this re-creates the policy with NULLIF(..., ''). -->
+    <include file="db/changelog/v1.0.0/012-rls-policy-null-safe-guc.xml"/>
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
 
 </databaseChangeLog>
