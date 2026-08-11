@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import io.restaurantos.kitchen.authz.StationScope;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
 import io.restaurantos.shared.security.JwksKeyProvider;
 import io.restaurantos.shared.security.JwtClaims;
@@ -54,7 +55,7 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
         String stationId = pathVars[1];
 
         String token = extractToken(session.getUri());
-        if (!validateJwtAndPermission(token, branchId)) {
+        if (!validateJwtAndPermission(token, branchId, stationId)) {
             closeWithPolicy(session);
             return;
         }
@@ -124,7 +125,7 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private boolean validateJwtAndPermission(String token, String branchId) {
+    private boolean validateJwtAndPermission(String token, String branchId, String stationCode) {
         if (token == null || token.isBlank()) {
             return false;
         }
@@ -189,6 +190,22 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
                         tokenBranch, branchId);
                 return false;
             }
+
+            // ── Station scope (28-07, D-28-02) — LAST, and that ordering is the contract ──────
+            //
+            // Identity is fully established above: signature, permission, tenant and branch. Only
+            // then is the caller's VIEW scope applied. A scope check placed earlier would be
+            // deciding what a caller may watch before establishing who the caller is, and none of
+            // the checks above may be reordered behind it or weakened by it.
+            //
+            // An ABSENT station attribute means unrestricted — every user in the product is in
+            // that state, and reading it as an empty allow-list would refuse every kitchen socket
+            // in every tenant the moment this deployed. See StationScope.
+            if (!stationScopeOf(claims).permits(stationCode)) {
+                log.warn("KDS WebSocket refused: station {} is outside the caller's assigned scope",
+                        stationCode);
+                return false;
+            }
             return true;
         } catch (Exception e) {
             log.debug("WebSocket JWT validation failed: {}", e.getMessage());
@@ -202,5 +219,46 @@ public class KdsWebSocketHandler extends TextWebSocketHandler {
         } catch (IOException e) {
             log.debug("Error closing WebSocket session: {}", e.getMessage());
         }
+    }
+
+    /**
+     * The caller's station scope, read from the verified token's {@code attributes} map.
+     *
+     * <p>Resolved here rather than through {@code KdsAuthorizationService} because this handler
+     * runs outside a Spring Security filter chain — a WebSocket handshake never populates the
+     * {@code SecurityContext}, so there is no authenticated principal to read. The token is parsed
+     * directly a few lines above for exactly that reason. The RULE, however, is the one in
+     * {@link StationScope}, and it is applied through that type rather than reimplemented: every
+     * degenerate input degrades to unrestricted, and no caller ever sees a raw collection it could
+     * mistake for an empty allow-list.
+     */
+    private StationScope stationScopeOf(Claims claims) {
+        // NESTED under `attributes`, not a top-level claim. JwtSigningService emits
+        // `.claim("attributes", ...)` and auth-service's PermissionResolver puts the station list
+        // inside that map, alongside approval_limit_paisa. Reading a top-level "stations" claim
+        // would find nothing, produce an unrestricted scope for EVERY caller, and look exactly
+        // like a working feature — the board would simply never be filtered, and no test that only
+        // checked the unassigned case would notice.
+        Object attributes = claims.get("attributes", Object.class);
+        if (!(attributes instanceof java.util.Map<?, ?> attributeMap)) {
+            return StationScope.unrestricted();
+        }
+        Object raw = attributeMap.get("stations");
+        if (raw == null) {
+            // The overwhelmingly common case: no assignment, sees everything.
+            return StationScope.unrestricted();
+        }
+        if (!(raw instanceof java.util.Collection<?> collection)) {
+            log.warn("KDS WebSocket: station scope claim is a {} rather than a list — treating "
+                    + "the caller as unrestricted", raw.getClass().getSimpleName());
+            return StationScope.unrestricted();
+        }
+        java.util.List<String> codes = new java.util.ArrayList<>();
+        for (Object entry : collection) {
+            if (entry instanceof String code) {
+                codes.add(code);
+            }
+        }
+        return StationScope.restrictedTo(codes);
     }
 }

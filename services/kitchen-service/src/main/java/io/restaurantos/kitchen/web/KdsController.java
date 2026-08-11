@@ -1,6 +1,7 @@
 package io.restaurantos.kitchen.web;
 
 import io.restaurantos.kitchen.authz.KdsAuthorizationService;
+import io.restaurantos.kitchen.authz.StationScope;
 import io.restaurantos.kitchen.domain.enums.TicketItemStatus;
 import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
@@ -11,6 +12,7 @@ import io.restaurantos.kitchen.repository.KdsTicketRepository;
 import io.restaurantos.kitchen.service.TicketService;
 import io.restaurantos.kitchen.service.TicketServiceImpl;
 import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.feature.RequiresFeature;
 import io.restaurantos.shared.security.JwtClaims;
 import org.springframework.data.domain.Page;
@@ -60,14 +62,39 @@ public class KdsController {
                 .map(String::trim)
                 .map(TicketStatus::valueOf)
                 .toList();
-        // No stationCode → branch-wide active board (station-stats screen). Uses a branch+status
-        // scoped, item-eager query — never findAll (which leaked across tenants and threw on
-        // lazy items).
-        Page<KdsTicketDto> result = (stationCode != null)
-                ? ticketRepository.findByBranchIdAndStationCodeAndStatusIn(branchId, stationCode, statuses, pageable)
-                        .map(ticketService::toDto)
-                : ticketRepository.findByBranchIdAndStatusIn(branchId, statuses, pageable)
+        // The caller's station scope (28-07, D-28-02), resolved AFTER authorizeView above.
+        // Identity first, scope second — a scope check that ran first would be deciding what a
+        // caller may see before establishing who the caller is.
+        //
+        // UNRESTRICTED is the overwhelmingly common case and takes the byte-identical path this
+        // endpoint has always taken, including the station-less branch-wide board, which is a
+        // working pass view whether or not it was designed as one.
+        StationScope scope = authz.resolveStationScope();
+
+        Page<KdsTicketDto> result;
+        if (stationCode != null) {
+            if (!scope.permits(stationCode)) {
+                // An EMPTY PAGE, not a 403. An empty board is the honest answer to "show me a
+                // station I do not work", and a distinct error status would let a cook enumerate
+                // which stations exist at the branch by watching which requests 403.
+                result = Page.empty(pageable);
+            } else {
+                result = ticketRepository
+                        .findByBranchIdAndStationCodeAndStatusIn(branchId, stationCode, statuses, pageable)
                         .map(ticketService::toDto);
+            }
+        } else if (scope.isUnrestricted()) {
+            // No stationCode → branch-wide active board (station-stats screen). Uses a
+            // branch+status scoped, item-eager query — never findAll (which leaked across tenants
+            // and threw on lazy items).
+            result = ticketRepository.findByBranchIdAndStatusIn(branchId, statuses, pageable)
+                    .map(ticketService::toDto);
+        } else {
+            result = ticketRepository
+                    .findByBranchIdAndStationCodeInAndStatusIn(
+                            branchId, scope.permittedCodes(), statuses, pageable)
+                    .map(ticketService::toDto);
+        }
 
         return ResponseEntity.ok(result);
     }
@@ -135,7 +162,15 @@ public class KdsController {
             @AuthenticationPrincipal JwtClaims claims) {
 
         authz.authorizeView(claims.tenantId(), branchId);
-        return ResponseEntity.ok(ApiResponse.ok(ticketService.getTicketDetail(ticketId)));
+        KdsTicketDto ticket = ticketService.getTicketDetail(ticketId);
+        // Detail REFUSES rather than returning empty, unlike the list. The difference is
+        // deliberate: here a specific resource is being named, and handing back a ticket the
+        // caller may not see is the actual disclosure. On the list, an empty page is the honest
+        // answer and a 403 would be an enumeration oracle.
+        if (!authz.resolveStationScope().permits(ticket.stationCode())) {
+            throw new PermissionDeniedException("Ticket is not at a station assigned to this user");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(ticket));
     }
 
     /**
@@ -160,6 +195,7 @@ public class KdsController {
         List<KdsStation> stations = stationType != null
                 ? stationRepository.findByBranchIdAndActiveTrueAndStationType(branchId, stationType)
                 : stationRepository.findByBranchIdAndActiveTrue(branchId);
+
         if (stations.isEmpty()) {
             KdsStation defaultStation = new KdsStation();
             defaultStation.setTenantId(claims.tenantId());
@@ -172,6 +208,18 @@ public class KdsController {
             defaultStation.setStationType(StationType.DEFAULT);
             defaultStation.setEscalationThresholdSeconds(900);
             stations = List.of(stationRepository.save(defaultStation));
+        }
+
+        // Narrowed to the caller's own stations (28-07, D-28-02) — AFTER the auto-seed, and the
+        // order is load-bearing. Filtering first would make a bartender at a branch with only
+        // kitchen stations look like a branch with NO stations, and the seed would then create a
+        // spurious DEFAULT row in the tenant's database every time they opened the screen.
+        //
+        // An unassigned caller keeps the whole list, which is what every user in the product has
+        // today.
+        StationScope scope = authz.resolveStationScope();
+        if (!scope.isUnrestricted()) {
+            stations = stations.stream().filter(st -> scope.permits(st.getCode())).toList();
         }
         return ResponseEntity.ok(stations);
     }

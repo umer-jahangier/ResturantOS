@@ -181,6 +181,90 @@ class KdsWebSocketIsolationIT {
         }
     }
 
+    // ── Station scope on the socket (28-07, D-28-02) ─────────────────────────────────────────
+
+    @Test
+    void aScopedUsersSubscriptionToAStationInsideTheirScope_isAccepted() throws Exception {
+        String branch = UUID.randomUUID().toString();
+
+        assertThat(connectToStation(branch, "BAR", scopedToken(branch, List.of("BAR"))))
+                .as("a bartender must still be able to watch the bar")
+                .isNull();
+    }
+
+    @Test
+    void aScopedUsersSubscriptionToAStationOutsideTheirScope_isRefusedIdentically() throws Exception {
+        String branch = UUID.randomUUID().toString();
+
+        CloseStatus outOfScope = connectToStation(branch, "GRILL", scopedToken(branch, List.of("BAR")));
+        CloseStatus foreignBranch = connect(branch, token(tenant(), UUID.randomUUID().toString(),
+                List.of("pos.kds.view")));
+
+        assertThat(outOfScope).isNotNull();
+        assertThat(outOfScope.getCode()).isEqualTo(1008);
+        assertThat(outOfScope.getReason())
+                .as("the scope refusal must be indistinguishable from every other refusal, or the "
+                        + "close reason tells a cook which stations exist at the branch")
+                .isEqualTo(foreignBranch.getReason());
+    }
+
+    @Test
+    void anUnassignedUsersSubscriptionToAnyStationInTheirOwnBranch_isAccepted() throws Exception {
+        // THE regression guard for the installed base on the socket path. Every user in the
+        // product has no station assignment; if absent were read as an empty allow-list, every
+        // live kitchen board would stop receiving pushes the moment this deployed.
+        String branch = UUID.randomUUID().toString();
+
+        assertThat(connectToStation(branch, "GRILL", token(tenant(), branch, List.of("pos.kds.view"))))
+                .isNull();
+        assertThat(connectToStation(branch, "BAR", token(tenant(), branch, List.of("pos.kds.view"))))
+                .isNull();
+    }
+
+    @Test
+    void aScopeAttributeOfTheWrongShape_leavesTheSocketOpenRatherThanBlackingOutTheBoard() throws Exception {
+        String branch = UUID.randomUUID().toString();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tenant_id", tenant());
+        claims.put("branch_id", branch);
+        claims.put("permissions", List.of("pos.kds.view"));
+        claims.put("attributes", Map.of("stations", "BAR"));
+
+        assertThat(connectToStation(branch, "GRILL", signed(claims)))
+                .as("a malformed token degrades OPEN — the alternative is a blank screen with no "
+                        + "error anywhere, mid-service")
+                .isNull();
+    }
+
+    /** A token carrying a station scope in the nested `attributes` map, as auth-service mints it. */
+    private String scopedToken(String branchId, List<String> stations) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tenant_id", tenant());
+        claims.put("branch_id", branchId);
+        claims.put("permissions", List.of("pos.kds.view"));
+        // NESTED, exactly as JwtSigningService emits it. A top-level "stations" claim would find
+        // nothing and un-scope every caller while looking like a working feature.
+        claims.put("attributes", Map.of("stations", stations));
+        return signed(claims);
+    }
+
+    private CloseStatus connectToStation(String branchInUrl, String stationCode, String jwt) throws Exception {
+        AtomicReference<CloseStatus> closed = new AtomicReference<>();
+        WebSocketSession session = mock(WebSocketSession.class);
+        when(session.getId()).thenReturn("test-session");
+        when(session.getUri()).thenReturn(URI.create(
+                "ws://localhost/api/v1/kitchen/kds/" + branchInUrl + "/" + stationCode + "?token=" + jwt));
+        when(session.getAttributes()).thenReturn(new HashMap<>());
+        when(session.isOpen()).thenReturn(true);
+        org.mockito.Mockito.doAnswer(inv -> {
+            closed.set(inv.getArgument(0));
+            return null;
+        }).when(session).close(org.mockito.ArgumentMatchers.any(CloseStatus.class));
+
+        handler.afterConnectionEstablished(session);
+        return closed.get();
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────
 
     private static String tenant() {
