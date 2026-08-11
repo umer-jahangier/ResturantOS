@@ -125,3 +125,36 @@ bash scripts/check-stale-jars.sh          # must report ok pos-service
 
 Do this when no sibling is mid-edit in `services/pos-service`. Until then, every "does the bill
 print" check is measuring a service that does not have the endpoint.
+
+---
+
+## D-6 · Two receipt-layout items, assigned to 26-12 (not the backlog)
+
+Found by reading the real printed bill during 26-05 task 5.
+
+### D-6a · `Tax (16.00%) [OTHER]` and `Tax` print the same figure twice
+
+On a single-rate order the paper reads:
+
+```
+Tax (16.00%) [OTHER]             Rs 38.40
+Tax                              Rs 38.40
+```
+
+A customer reading two tax lines on one bill has a reasonable question. **And the `[OTHER]` is
+telling us something**: `ReceiptDocumentAssembler` falls back to the rate code `OTHER` when the
+menu item has none, and it fired for every line.
+
+**Checked, as instructed — it is a SEED-DATA gap, not only a display one.** `menu_items.tax_rate_code`
+exists and is nullable (`V1__pos_schema.sql:39`), and **no seeder sets it**:
+`grep -rn "taxRateCode" scripts/*.py` returns nothing. So every demo tenant's receipts will print
+`[OTHER]` on every line, and Phase 27 will need real rate codes for FBR.
+
+Two things for 26-12: suppress the redundant `Tax` total row when the breakdown has exactly one
+line that already carries the same figure, and seed real rate codes.
+
+### D-6b · `Discount Rs 0.00` and `Service charge Rs 0.00` always print
+
+Suppress zero rows — **keeping any line a fiscal regime requires**. That caveat is not decoration:
+some regimes require a tax line to appear even at zero, and Phase 27 is the plan that will know
+which. Suppress the discount and service-charge rows now; leave the tax rows alone until 27 says.

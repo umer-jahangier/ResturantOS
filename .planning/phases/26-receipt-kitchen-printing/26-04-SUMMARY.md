@@ -41,7 +41,7 @@ commits:
 
 # Phase 26 Plan 04: The ESC/POS Command Layer — PARTIAL
 
-**Task 1 (checkpoint) approved. Task 2 complete and verified. Task 3 NOT started.**
+**Task 1 (checkpoint) approved. Tasks 2 and 3 complete and verified.**
 
 ## Task 1 — the package-legitimacy checkpoint
 
@@ -139,16 +139,75 @@ commands round-trip through the emulator's decoder"* — but the emulator is cre
 The plan sequenced a forward reference. What task 2 asserts instead is the exact byte output for all
 three; the round-trip lands with the emulator.
 
-## NOT DONE — task 3
+## Task 3 — the emulator, and the renderer it proves
 
-**Task 3 (the emulator and the renderer it proves) is not started.** This is the substantial half of
-26-04: an emulator that decodes the produced stream back into a structured render and throws on any
-byte sequence it does not recognise, so a malformed or truncated stream cannot pass as correct —
-which is the mechanism D-26-02 names for proving behaviour without hardware.
+**The emulator is strict, and that is the whole argument.** It consumes every byte and throws on an
+unrecognised escape, a truncated multi-byte command, and any byte it cannot classify — each with
+its own self-test, plus a byte-offset check so a failure can be located. D-26-02 says hardware is
+sign-off rather than a dependency; that only holds if the emulator refuses malformed input. One
+that shrugged at garbage would report a truncated receipt as a correct one, and the no-hardware
+claim would be false while every test stayed green.
 
-Without it there is a command layer but no `PrintDocument → bytes` renderer, so nothing yet consumes
-`contracts/print/golden-receipt-document.json` on the agent side. 26-06 (the agent proper) depends on
-this.
+**The renderer refuses rather than degrading.** An unknown codepage throws instead of falling back
+to CP437 — a silent fallback on an Arabic-configured branch prints a receipt of question marks and
+nothing reports it. So does a drawer kick with no pin, a column count too small for the amounts,
+and a character it cannot encode. **The QR raster path throws a named not-yet-implemented error
+instead of skipping the region**: the DI specification requires the symbol on every invoice, so
+printing without it quietly would ship a receipt missing something a tax regime demands.
+
+Order at the end of a job is feed → cut → drawer, per research §7.3. No numeric column literal
+appears anywhere in the renderer; the count comes only from the printer profile.
+
+### The negative controls
+
+Per the coordinator's instruction, every load-bearing assertion was broken on purpose once and
+watched go red:
+
+| Sabotage | Result |
+| --- | --- |
+| hardcode the column count | 2 red |
+| compute an amount instead of printing the document's string | 1 red |
+| strand a wrapped item's amount on the last line | 1 red |
+| kick the drawer with no instruction | 2 red |
+| skip the QR region instead of refusing | 1 red |
+| **stamp `Date.now()` into the receipt** | **GREEN — the test was theatre** |
+
+The sixth found a defect **in the test**. `render(); render(); expect(a).toEqual(b)` passed against
+a clock-dependent renderer because both calls landed in the same millisecond — it was testing that
+the machine is fast, not that the renderer is pure. It now separates the two renders by 25 ms,
+comfortably clear of `Date.now()`'s 1 ms granularity, and the comment says why the delay must not be
+optimised away. Re-verified: the sabotage now goes red.
+
+### Deviation — the schema is hand-rolled, not zod
+
+The plan says "create a zod schema". Zod is not in this manifest, and **task 2's acceptance
+criterion is that `package.json` declares exactly one runtime dependency** — the encoder, which a
+human verified on npm and GitHub before it was installed. Adding a second to satisfy the letter of
+one instruction would break the other and bypass the package-legitimacy checkpoint this phase put
+in place deliberately. Structural validation of a known schema is a hundred lines; a supply-chain
+decision made unilaterally by an agent is not worth saving them.
+
+The hand-rolled validator reports a JSON path on every failure (`$.lines[2].lineTotal.formatted`),
+re-checks that each amount's rendered string re-parses to its paisa, and re-enforces the
+kitchen-ticket restriction. That paisa guard now exists in **three** places across two wire
+boundaries: the Java assembler, the frontend's zod refinement, and here.
+
+## Real command output — task 3
+
+```
+$ cd print-agent && npm test
+ Test Files  3 passed (3)
+      Tests  39 passed (39)
+
+$ npx tsc --noEmit
+TYPECHECK: clean
+
+$ # acceptance: no numeric column literal in the renderer
+  none (columns come only from printer.columns)
+
+$ # acceptance: exactly one runtime dependency
+@point-of-sale/receipt-printer-encoder
+```
 
 ## Hardware sign-off (U3)
 
