@@ -35,6 +35,31 @@ import static org.mockito.Mockito.when;
  * - CASHIER (pos.order.* only): DENIED both view and update
  * - ACCOUNTANT (finance.*): DENIED both
  * - Cross-branch/tenant: DENIED even with kds perms
+ *
+ * <h2>WARNING — the cross-tenant assertions here need a positive control before they mean anything</h2>
+ *
+ * <p>Every "DENIED" case below asserts an ABSENCE: no rows, or a refusal. An absence is the one
+ * result a broken harness produces for free, and this repository has now produced it in both
+ * directions in a single day:
+ *
+ * <ul>
+ *   <li><b>Showing everything.</b> Testcontainers hands back a PostgreSQL superuser, which is
+ *       exempt from row level security including FORCE. Cross-tenant tests passed because nothing
+ *       was enforced and the app-level check happened to hold.</li>
+ *   <li><b>Showing nothing.</b> This class is {@code @Transactional}, so Spring opens its
+ *       transaction before {@code @BeforeEach} runs and the connection is configured with whatever
+ *       tenant the thread held then — often none. Under a NOSUPERUSER role every read here returns
+ *       zero rows, so "tenant B cannot see it" passes without tenant B ever being tested.</li>
+ * </ul>
+ *
+ * <p>Both are green. Neither measures isolation. The discipline that separates them is a
+ * <b>positive control in the same test</b>: the owning tenant must SEE its row in the very
+ * assertion that proves the foreign tenant cannot. A test that only ever asserts emptiness cannot
+ * tell "isolated" from "switched off", and that distinction is the entire subject of this file.
+ *
+ * <p>See {@code TenantGucTransactionalProbeIT} for the measured ordering, and user-service's
+ * {@code TenantIsolationHarnessIT#enabledFilterStillReturnsTheCallersOwnRows} for the shape a
+ * positive control takes.
  */
 @Transactional
 class KdsAccessIsolationIT extends KitchenTestBase {
