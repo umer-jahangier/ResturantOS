@@ -21,12 +21,12 @@ class SlabTaxCalculatorTest {
     private final SlabTaxCalculator calc = new SlabTaxCalculator();
 
     private static final List<TaxSlab> FY2025_26 = List.of(
-            new TaxSlab(0L,          60000000L,  0L,        0.0),
-            new TaxSlab(60000000L,   120000000L, 0L,        1.0),
-            new TaxSlab(120000000L,  220000000L, 600000L,   11.0),
-            new TaxSlab(220000000L,  320000000L, 11600000L, 23.0),
-            new TaxSlab(320000000L,  410000000L, 34600000L, 30.0),
-            new TaxSlab(410000000L,  null,       61600000L, 35.0)
+            new TaxSlab(0L,          60000000L,  0L,        new BigDecimal("0.0")),
+            new TaxSlab(60000000L,   120000000L, 0L,        new BigDecimal("1.0")),
+            new TaxSlab(120000000L,  220000000L, 600000L,   new BigDecimal("11.0")),
+            new TaxSlab(220000000L,  320000000L, 11600000L, new BigDecimal("23.0")),
+            new TaxSlab(320000000L,  410000000L, 34600000L, new BigDecimal("30.0")),
+            new TaxSlab(410000000L,  null,       61600000L, new BigDecimal("35.0"))
     );
 
     @Test

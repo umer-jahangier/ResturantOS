@@ -24,7 +24,11 @@ public class SlabTaxCalculator {
                 .orElseThrow(() -> new IllegalStateException(
                         "No matching tax slab for income " + annualTaxableIncomePaisa + " paisa"));
         long excess = annualTaxableIncomePaisa - bracket.minPaisa();
-        return bracket.baseTaxPaisa() + Math.round(excess * bracket.ratePct() / 100.0);
+        // PercentOfPaisa, not Math.round(x * rate / 100.0) — same reason the surcharge and EOBI
+        // rates moved off double. It rounds HALF_UP explicitly and does the multiplication before
+        // the division entirely in BigDecimal, so a rate an accountant types as 11.500 is applied
+        // as written rather than as its nearest binary double.
+        return bracket.baseTaxPaisa() + PercentOfPaisa.apply(excess, bracket.ratePct());
     }
 
     /**
