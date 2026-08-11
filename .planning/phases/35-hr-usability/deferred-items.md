@@ -47,3 +47,23 @@ design-system phase (34/38). The `/app/users` reproduction is the cheapest one t
 Note for whoever picks it up: the FUNCTION of the phase-35 dialogs is verified correct despite this
 — see `.planning/phases/35-hr-usability/evidence/`. Labels, selects, live validation and
 field-bound server errors all behave; only the box they sit in is the wrong size.
+
+## The running OPA container served a stale policy bundle (found 35-11, fixed by restart)
+
+Everything 35-03, 35-05 and 35-06 built was unreachable at runtime and the symptom named the wrong
+thing. `GET /api/v1/hr/config/departments` as the tenant OWNER answered:
+
+    403 PERMISSION_DENIED — "Not permitted: hr.config_view"
+
+The permission rows WERE in `auth_db` (`hr.config.view` / `hr.config.manage`, granted to
+OWNER/TENANT_ADMIN/MANAGER/ACCOUNTANT, changeset `auth-1.0.0-046-hr-config-permissions` applied) and
+the owner's freshly minted JWT DID carry both codes — verified by decoding it. The denial came from
+OPA: `restaurantos-opa` bind-mounts `policies/` read-only and had been running since before 35-03
+added the `config_view` / `config_manage` rules to `hr.rego`. An undefined rule evaluates to deny, so
+a correct token was refused by a policy that did not yet know the rule existed.
+
+`docker restart restaurantos-opa` fixed it; both endpoints answered immediately afterwards. Recorded
+because the error message points at a permission code that is present and correct, which is a long
+way from "the policy container has not been restarted since the rule was written". Anyone adding a
+rego rule in this project must restart OPA before testing against the running stack — nothing does
+it automatically, and no test catches it because `HrTestBase` starts a fresh OPA container per run.
