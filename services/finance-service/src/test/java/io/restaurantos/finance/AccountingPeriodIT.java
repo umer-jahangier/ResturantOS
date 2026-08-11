@@ -137,6 +137,10 @@ class AccountingPeriodIT extends FinanceTestBase {
         assertThat(closed.lockedAt()).isNotNull();
     }
 
+    // GUIDE-CLAIM: FIN-GUIDE-0002 — "Once you close an accounting period, the system refuses
+    // any new entry dated inside it." The finance guide states this to owners as a promise that
+    // a closed month's numbers cannot move. Disabling this test unasserts that promise; see
+    // frontend/lib/finance/guide/claims.json and `make verify-guide-claims`.
     @Test
     void postToLockedPeriod_returns423() {
         // Provision + set tenant context for JE posting

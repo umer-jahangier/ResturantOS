@@ -145,6 +145,10 @@ class CashPaymentRequiresTillIT extends PosTestBase {
 
     // ── Refused: no OPEN till for the paying user ────────────────────────────────────────────
 
+    // GUIDE-CLAIM: FIN-GUIDE-0001 — "Settling in cash needs an open till; settling by card does
+    // not." This test and cardPayment_withNoTill_isAccepted_andLeavesTillNull below are the two
+    // halves the finance guide's sentence rests on. Do not disable either without deleting the
+    // claim from frontend/lib/finance/guide/claims.json; `make verify-guide-claims` enforces it.
     @Test
     void cashPayment_withNoTillAtAll_isRefused_andNothingIsApplied() {
         OrderDto served = createServedOrder();

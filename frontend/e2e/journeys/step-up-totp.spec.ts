@@ -39,6 +39,10 @@ const OWNER = persona("marina", "owner");
 test.describe.configure({ mode: "serial" });
 
 test.describe("TOTP step-up", () => {
+  // GUIDE-CLAIM: FIN-GUIDE-0004 — "A few actions ask for a six-digit code from your
+  // authenticator app, even though you are already signed in." The finance guide tells owners
+  // this is deliberate rather than a fault. See frontend/lib/finance/guide/claims.json and
+  // `make verify-guide-claims`.
   test("A · owner signs in through the form with a live code", async ({ page, tenants, obs }) => {
     // The 401 IS the mechanism under test: the form has no authenticator field until the
     // server has refused once. Declared rather than muted, so a 401 anywhere ELSE in this

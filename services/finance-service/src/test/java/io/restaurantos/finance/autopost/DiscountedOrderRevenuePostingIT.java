@@ -91,6 +91,10 @@ class DiscountedOrderRevenuePostingIT extends AutoPostingITBase {
      * tender at {@code 80000 - 12000 + 5600 + 4000 = 77600}, and both sides of the entry come to
      * {@code subtotal + tax + serviceCharge = 89600}.
      */
+    // GUIDE-CLAIM: FIN-GUIDE-0003 — "A discount lowers what the customer pays, not what your
+    // books call sales." Together with fullComp_creditsGrossRevenueWhileTheTenderCoversOnlyTax
+    // AndServiceCharge below, this is the assertion the finance guide's discount section rests
+    // on. See frontend/lib/finance/guide/claims.json and `make verify-guide-claims`.
     @Test
     void discountedOrder_postsBalancedEntryThatReachesTheLedger() throws Exception {
         UUID orderId = UUID.randomUUID();
