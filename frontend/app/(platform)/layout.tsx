@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { PlatformGuard } from "@/components/platform/platform-guard";
 import { PlatformShell } from "@/components/platform/platform-shell";
+import { ZoneProvider } from "@/components/providers/zone-provider";
 
 /**
  * The SuperAdmin control plane (19c).
@@ -30,7 +31,16 @@ import { PlatformShell } from "@/components/platform/platform-shell";
 export default function PlatformLayout({ children }: { children: ReactNode }) {
   return (
     <PlatformGuard>
-      <PlatformShell>{children}</PlatformShell>
+      {/*
+       * ZONE: expressive (D-34-02), declared INSIDE the guard for the same reason the
+       * shell is inside it. An access-denied response dressed in the console's surface
+       * treatment still tells a tenant user that a platform console exists and roughly
+       * what it looks like. The guard decides first; the zone only exists for a
+       * principal entitled to see the console.
+       */}
+      <ZoneProvider zone="expressive">
+        <PlatformShell>{children}</PlatformShell>
+      </ZoneProvider>
     </PlatformGuard>
   );
 }

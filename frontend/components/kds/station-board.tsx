@@ -23,6 +23,7 @@ import {
 } from "@/components/kds/kds-item-column";
 import { T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { ZoneProvider } from "@/components/providers/zone-provider";
 import type { KdsTicket } from "@/lib/models/kds.model";
 import { cn } from "@/lib/utils";
 
@@ -414,157 +415,171 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
 
   return (
     <KdsClockProvider>
-      <div
-        data-surface="kds"
-        data-testid="kds-board"
-        className="flex min-h-screen flex-col gap-3 bg-kds-surface p-3 text-kds-text"
-      >
-        {/* ── 48px header (§7.2) ───────────────────────────────────────────── */}
-        <header className="flex h-12 shrink-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-kds-card px-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <h1 className={cn("truncate font-bold tracking-wide text-kds-text", T_H1)}>
-              {station?.name ?? stationCode}
-            </h1>
-            <span
-              data-testid="kds-ticket-count"
-              className={cn("shrink-0 font-bold tabular-nums text-kds-muted", T_SMALL)}
-            >
-              {allFragments.length} {allFragments.length === 1 ? "ticket" : "tickets"}
-            </span>
-            <StationSwitcher
-              stations={activeStations}
-              currentCode={stationCode}
-              onSelect={(code) => router.push(`/app/kitchen/${code}`)}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {pageCount > 1 && (
-              <span
-                data-testid="kds-page-indicator"
-                className={cn("font-bold tabular-nums text-kds-muted", T_SMALL)}
-              >
-                {safePage + 1} / {pageCount}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowReady((v) => !v)}
-              aria-pressed={showReady}
-              data-testid="kds-toggle-ready"
-              className={cn(
-                "rounded-md border border-white/20 px-2 py-1 font-semibold uppercase tracking-wide text-kds-text",
-                T_LABEL,
-                showReady && "bg-white/10",
-              )}
-            >
-              Ready column
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/app/kitchen")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md border border-white/20 px-2 py-1 font-semibold text-kds-text",
-                T_LABEL,
-              )}
-              data-testid="kds-all-stations"
-            >
-              <LayoutGrid className="size-3.5" aria-hidden="true" />
-              All stations
-            </button>
-            {/* Connection state carries an ICON and a WORD, never a coloured dot alone. */}
-            <span
-              data-testid="kds-connection"
-              data-connected={isConnected ? "true" : "false"}
-              className={cn(
-                "inline-flex items-center gap-1 font-bold uppercase tracking-wide",
-                T_LABEL,
-                isConnected ? "text-kds-fresh" : "text-kds-warn",
-              )}
-            >
-              <Radio className="size-3.5" aria-hidden="true" />
-              {isConnected ? "Live" : "Polling"}
-            </span>
-          </div>
-        </header>
-
-        {bumpError && (
-          <div
-            role="alert"
-            data-testid="kds-bump-error"
-            className={cn(
-              "flex items-center gap-2 rounded-md border border-kds-late bg-kds-late-fill px-3 py-2 font-semibold text-kds-text",
-              T_SMALL,
-            )}
-          >
-            <RotateCcw className="size-4 shrink-0" aria-hidden="true" />
-            {bumpError}
-          </div>
-        )}
-
-        {/* ── The board ─────────────────────────────────────────────────────── */}
-        {failed ? (
-          // Never an empty board on failure. GA-001, on the screen where it matters most.
-          <QueryErrorNotice
-            what="the kitchen board"
-            error={failed.error}
-            isRetrying={ticketsQuery.isFetching || stationsQuery.isFetching}
-            onRetry={() => {
-              ticketsQuery.refetch();
-              stationsQuery.refetch();
-            }}
-          />
-        ) : isPending ? (
-          <p className={cn("p-6 text-kds-muted", T_H1)} data-testid="kds-board-loading">
-            Loading station…
-          </p>
-        ) : (
-          <div
-            data-testid="kds-board-scroll"
-            className={cn(
-              "min-h-0 flex-1 overflow-y-auto",
-              // 2 columns at 1024, 3 at 1440, 4 at 1920 (§7.2). Never horizontal scroll.
-              "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
-            )}
-          >
-            {visibleColumns.map((column) => (
-              <KdsItemColumn
-                key={column}
-                column={column}
-                tickets={pageTicketsByColumn.get(column) ?? []}
-                branchId={branchId}
-                canUpdate={canUpdate}
-                escalationThresholdSeconds={station?.escalationThresholdSeconds}
-                focusedKey={effectiveFocusedKey ?? undefined}
-                collapsingKeys={bumpingKeys}
-                positionOf={positionOf}
-                registerFragmentRef={registerFragmentRef}
-                onFocusFragment={setFocusedKey}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* The key map, on the screen. A bump bar has no tooltips. */}
-        <footer
-          className={cn(
-            "flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-1 text-kds-muted",
-            T_LABEL,
-          )}
+      {/*
+       * ZONE: operational (D-34-02). `asChild` because the board root below is a
+       * full-height flex column and an extra wrapper box breaks it; the attribute
+       * goes on the existing element and the provider supplies only the context half.
+       *
+       * `data-surface="kds"` and `data-zone="operational"` sit side by side and mean
+       * DIFFERENT things. `data-surface` says this screen is permanently dark and does
+       * not follow the office manager's theme preference (§3.7). `data-zone` says no
+       * compositing filter and no decorative motion may reach it — a board is read at
+       * two metres across a hot kitchen and repainting it costs a cook time.
+       */}
+      <ZoneProvider zone="operational" asChild>
+        <div
+          data-surface="kds"
+          data-zone="operational"
+          data-testid="kds-board"
+          className="flex min-h-screen flex-col gap-3 bg-kds-surface p-3 text-kds-text"
         >
-          <span>↑ ↓ move</span>
-          <span>1–9 0 jump</span>
-          <span>Enter open</span>
-          {canUpdate && <span>F bump</span>}
-          {canUpdate && <span>R recall</span>}
-          <span>V ready column</span>
-          {pageCount > 1 && <span>PgUp/PgDn page</span>}
-        </footer>
+          {/* ── 48px header (§7.2) ───────────────────────────────────────────── */}
+          <header className="flex h-12 shrink-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-kds-card px-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <h1 className={cn("truncate font-bold tracking-wide text-kds-text", T_H1)}>
+                {station?.name ?? stationCode}
+              </h1>
+              <span
+                data-testid="kds-ticket-count"
+                className={cn("shrink-0 font-bold tabular-nums text-kds-muted", T_SMALL)}
+              >
+                {allFragments.length} {allFragments.length === 1 ? "ticket" : "tickets"}
+              </span>
+              <StationSwitcher
+                stations={activeStations}
+                currentCode={stationCode}
+                onSelect={(code) => router.push(`/app/kitchen/${code}`)}
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {pageCount > 1 && (
+                <span
+                  data-testid="kds-page-indicator"
+                  className={cn("font-bold tabular-nums text-kds-muted", T_SMALL)}
+                >
+                  {safePage + 1} / {pageCount}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowReady((v) => !v)}
+                aria-pressed={showReady}
+                data-testid="kds-toggle-ready"
+                className={cn(
+                  "rounded-md border border-white/20 px-2 py-1 font-semibold uppercase tracking-wide text-kds-text",
+                  T_LABEL,
+                  showReady && "bg-white/10",
+                )}
+              >
+                Ready column
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/app/kitchen")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md border border-white/20 px-2 py-1 font-semibold text-kds-text",
+                  T_LABEL,
+                )}
+                data-testid="kds-all-stations"
+              >
+                <LayoutGrid className="size-3.5" aria-hidden="true" />
+                All stations
+              </button>
+              {/* Connection state carries an ICON and a WORD, never a coloured dot alone. */}
+              <span
+                data-testid="kds-connection"
+                data-connected={isConnected ? "true" : "false"}
+                className={cn(
+                  "inline-flex items-center gap-1 font-bold uppercase tracking-wide",
+                  T_LABEL,
+                  isConnected ? "text-kds-fresh" : "text-kds-warn",
+                )}
+              >
+                <Radio className="size-3.5" aria-hidden="true" />
+                {isConnected ? "Live" : "Polling"}
+              </span>
+            </div>
+          </header>
 
-        {/* Announce the bump to a screen reader; the collapse animation says nothing. */}
-        <span className="sr-only" role="status" aria-live="polite">
-          {bumpingKeys.length > 0 ? "Ticket bumped" : ""}
-        </span>
-      </div>
+          {bumpError && (
+            <div
+              role="alert"
+              data-testid="kds-bump-error"
+              className={cn(
+                "flex items-center gap-2 rounded-md border border-kds-late bg-kds-late-fill px-3 py-2 font-semibold text-kds-text",
+                T_SMALL,
+              )}
+            >
+              <RotateCcw className="size-4 shrink-0" aria-hidden="true" />
+              {bumpError}
+            </div>
+          )}
+
+          {/* ── The board ─────────────────────────────────────────────────────── */}
+          {failed ? (
+            // Never an empty board on failure. GA-001, on the screen where it matters most.
+            <QueryErrorNotice
+              what="the kitchen board"
+              error={failed.error}
+              isRetrying={ticketsQuery.isFetching || stationsQuery.isFetching}
+              onRetry={() => {
+                ticketsQuery.refetch();
+                stationsQuery.refetch();
+              }}
+            />
+          ) : isPending ? (
+            <p className={cn("p-6 text-kds-muted", T_H1)} data-testid="kds-board-loading">
+              Loading station…
+            </p>
+          ) : (
+            <div
+              data-testid="kds-board-scroll"
+              className={cn(
+                "min-h-0 flex-1 overflow-y-auto",
+                // 2 columns at 1024, 3 at 1440, 4 at 1920 (§7.2). Never horizontal scroll.
+                "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
+              )}
+            >
+              {visibleColumns.map((column) => (
+                <KdsItemColumn
+                  key={column}
+                  column={column}
+                  tickets={pageTicketsByColumn.get(column) ?? []}
+                  branchId={branchId}
+                  canUpdate={canUpdate}
+                  escalationThresholdSeconds={station?.escalationThresholdSeconds}
+                  focusedKey={effectiveFocusedKey ?? undefined}
+                  collapsingKeys={bumpingKeys}
+                  positionOf={positionOf}
+                  registerFragmentRef={registerFragmentRef}
+                  onFocusFragment={setFocusedKey}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* The key map, on the screen. A bump bar has no tooltips. */}
+          <footer
+            className={cn(
+              "flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-1 text-kds-muted",
+              T_LABEL,
+            )}
+          >
+            <span>↑ ↓ move</span>
+            <span>1–9 0 jump</span>
+            <span>Enter open</span>
+            {canUpdate && <span>F bump</span>}
+            {canUpdate && <span>R recall</span>}
+            <span>V ready column</span>
+            {pageCount > 1 && <span>PgUp/PgDn page</span>}
+          </footer>
+
+          {/* Announce the bump to a screen reader; the collapse animation says nothing. */}
+          <span className="sr-only" role="status" aria-live="polite">
+            {bumpingKeys.length > 0 ? "Ticket bumped" : ""}
+          </span>
+        </div>
+      </ZoneProvider>
     </KdsClockProvider>
   );
 }

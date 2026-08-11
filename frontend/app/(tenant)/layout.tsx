@@ -7,6 +7,7 @@ import { TopBar } from "@/components/shared/top-bar";
 import { MobileBottomNav } from "@/components/shared/mobile-bottom-nav";
 import { SidebarSkeleton } from "@/components/skeletons/sidebar-skeleton";
 import { PageTransition } from "@/components/shared/page-transition";
+import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useBootstrapping } from "@/components/providers/session-provider";
 
@@ -64,7 +65,21 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
   }
 
   return (
-    <>
+    /*
+     * ZONE: restrained (D-34-02).
+     *
+     * This is the default for admin CRUD, lists, forms and menu management — and it
+     * is deliberately what the shell CHROME gets even when an expressive page is
+     * rendered beneath it. TopBar and MobileBottomNav are siblings of the page
+     * content, not descendants of it, so they composite over the POS terminal and the
+     * KDS board whenever an operator is on those routes. The chrome therefore cannot
+     * be allowed to become richer than the poorest zone it can appear over: a glass
+     * header above a POS screen is a compositing filter on the POS screen.
+     *
+     * Expressive pages nested inside this shell (the dashboard) declare their own
+     * zone at the page, which is the nesting case the containment gate checks.
+     */
+    <ZoneProvider zone="restrained">
       <TenantThemeInjector />
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar with Suspense skeleton fallback (DS-02 integration) */}
@@ -108,6 +123,6 @@ export default function TenantLayout({ children }: TenantLayoutProps) {
         {/* Mobile bottom navigation (md:hidden — DS-05) */}
         <MobileBottomNav />
       </div>
-    </>
+    </ZoneProvider>
   );
 }
