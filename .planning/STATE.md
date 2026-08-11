@@ -913,14 +913,17 @@ Recent decisions affecting current work:
 
 Last session: 2026-08-11T18:36:15.000Z
 
---- Phase 36 (Purchasing & Inventory Wiring Repair) — 6 of 8 plans complete ---
+--- Phase 36 (Purchasing & Inventory Wiring Repair) — 7 of 8 plans complete ---
 
 Executed 2026-08-11 in wave order, against the live stack, with a jar-freshness gate before every
 assertion.
 
-**COMPLETE: 36-01, 36-02, 36-03, 36-04, 36-05, 36-06.**
-**NOT STARTED: 36-07 (seed + CREDENTIALS.md), 36-08 (browser acceptance journey — `autonomous: false`,
-needs a human at a browser regardless).**
+**COMPLETE: 36-01 … 36-07.**
+**REMAINING: 36-08 only — the browser acceptance journey. `autonomous: false`; it needs a human at
+a browser and was deliberately not attempted.**
+
+The phase closes on its own opening measurement: the SAME drive script, unchanged assertions, went
+from **47 pass / 2 fail** to **49 pass / 0 fail**, and `PHASE31_GATE=1` now exits 0.
 
 What the procure-to-pay chain does now that it did not before:
 
@@ -954,7 +957,9 @@ What the procure-to-pay chain does now that it did not before:
 
 Live evidence: `31-01-drive.log` (47/2), `phase31-purchasing-access-e2e.sh` (8/0),
 `phase31-approval-limit-e2e.sh` (18/0), `phase31-po-line-validity-e2e.sh` (20/0),
-`phase31-master-data-e2e.sh` (35/0), `phase31-uom-conversion-e2e.sh` (15/0).
+`phase31-master-data-e2e.sh` (35/0), `phase31-uom-conversion-e2e.sh` (15/0). The seed creates a full purchasing chain for both tenants
+and asserts each receipt moved stock; `CREDENTIALS.md`'s "purchasing is empty" caveat is deleted
+because it is no longer true.
 
 Known gaps, recorded rather than hidden: `UomLifecycleIT` was not written (36-05 covers those seven
 behaviours live but not as a build gate); `.planning/phases/36-purchasing-inventory-wiring/deferred-items.md`
