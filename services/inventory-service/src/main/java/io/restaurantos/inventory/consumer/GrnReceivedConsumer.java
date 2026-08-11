@@ -32,6 +32,17 @@ import org.springframework.stereotype.Component;
  * manual receipt screen uses, so lot creation, MAC recomputation and the real STOCK_RECEIVED event
  * are all shared rather than reimplemented. Inventory keeps sole ownership of the stock write.
  *
+ * <p><b>A line whose unit cannot be converted REFUSES the whole batch (36-06).</b>
+ * {@link GrnUomResolver} throws rather than falling back to a factor of one, the message
+ * dead-letters after its retries, and no stock lot, no moving-average blend and no movement row is
+ * written for ANY line in the batch — the handler is transactional, so a refusal on line three does
+ * not leave lines one and two received. Receiving at face value is what turned seven furlongs into
+ * seven kilograms of rice while every downstream check stayed green.
+ *
+ * <p>This is deliberately the SECOND line of defence: plan 36-04 refuses the same line at the API,
+ * where a person is present and can correct it. A dead-letter is loud but late, and it is only an
+ * acceptable outcome because the loud-and-early refusal exists too.
+ *
  * <p><b>Idempotent on the envelope's eventId</b> via {@code processed_events}, so purchasing may
  * retry freely without double-receiving. Each resulting movement is stamped
  * {@code referenceType='GRN'} + the grnId, which is what makes a stock lot traceable back to the

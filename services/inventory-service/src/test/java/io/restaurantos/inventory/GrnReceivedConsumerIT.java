@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Goods received against a purchase order become real stock.
@@ -234,47 +235,63 @@ class GrnReceivedConsumerIT extends InventoryTestBase {
     }
 
     /**
-     * Pack UOMs are free text on the vendor catalog, so unresolvable codes are expected. Receiving
-     * at face value is what the code did before any conversion existed — wrong, but no worse. The
-     * alternative, throwing, would DLQ the batch after finance has already posted GR/IR, turning a
-     * valuation error into a reconciliation gap.
+     * <b>INVERTED BY 36-06.</b> This test used to assert the opposite — that an unresolvable pack
+     * unit was received at face value — and its javadoc explained why: throwing would DLQ the batch
+     * after finance had already posted GR/IR, turning a valuation error into a reconciliation gap.
+     *
+     * <p>That reasoning was correct when it was written and is no longer true. Since phase 14
+     * finance posts the receipt entry from the real stock lot, not from this message, so a refused
+     * receipt strands nothing. And the cost of the fallback was measured on the live stack in plan
+     * 36-01: a line whose unit was {@code FURLONG} was received, and seven furlongs became seven
+     * kilograms of Basmati Rice, with every downstream check green.
+     *
+     * <p>So: refuse, write nothing, dead-letter. Loud and late — and acceptable only because plan
+     * 36-04 refuses the same line at the API, loud and early, where a person can fix it.
      */
     @Test
-    void unknownPackUnit_receivesAtFaceValueRatherThanFailingTheBatch() {
+    void unknownPackUnit_refusesTheBatchAndWritesNothing() {
         GramIngredient chicken = seedGramStockedIngredient();
 
-        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
-                UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
-                List.of(new PurchasingEventContract.GrnLine(
-                        UUID.randomUUID(), chicken.ingredientId(), new BigDecimal("10"), 62_000L,
-                        null, BigDecimal.ONE, "CARTON")))));
+        assertThatThrownBy(() -> grnReceivedConsumer.onMessage(
+                message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                        UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
+                        List.of(new PurchasingEventContract.GrnLine(
+                                UUID.randomUUID(), chicken.ingredientId(), new BigDecimal("10"), 62_000L,
+                                null, BigDecimal.ONE, "CARTON"))))))
+                .hasMessageContaining("CARTON");
 
-        assertThat(stockRepository.findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
-                .orElseThrow().getQtyOnHand())
-                .isEqualByComparingTo("10");
+        assertThat(stockRepository.findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId()))
+                .as("no stock row, no moving-average blend, no movement — a refusal writes NOTHING")
+                .isEmpty();
     }
 
     /**
      * A litre factor must never be applied to an ingredient stocked by weight. {@code toBaseFactor}
      * only means anything inside one unit family — the same rule
      * {@code RecipeCostPreviewService.dimensionMatches} enforces on recipe lines.
+     *
+     * <p><b>36-06:</b> not converting is no longer enough. There is no ratio between a litre and a
+     * gram, so ten litres is not ten grams either — receiving it at face value states a quantity
+     * nobody measured. Refused, across families, under all circumstances, including when the two
+     * codes look interchangeable to a reader.
      */
     @Test
-    void packUnitFromAnotherDimension_isNotConverted() {
+    void packUnitFromAnotherDimension_refusesRatherThanReceivingAtFaceValue() {
         GramIngredient chicken = seedGramStockedIngredient();
         InventoryFixtures.seedUom(unitOfMeasureRepository, chicken.tenantId(), "L", "Litre",
                 "VOLUME", "ML", new BigDecimal("1000"));
 
-        grnReceivedConsumer.onMessage(message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
-                UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
-                List.of(new PurchasingEventContract.GrnLine(
-                        UUID.randomUUID(), chicken.ingredientId(), new BigDecimal("10"), 62_000L,
-                        null, BigDecimal.ONE, "L")))));
+        assertThatThrownBy(() -> grnReceivedConsumer.onMessage(
+                message(UUID.randomUUID(), new PurchasingEventContract.GrnReceivedPayload(
+                        UUID.randomUUID(), UUID.randomUUID(), chicken.branchId(), UUID.randomUUID(), null,
+                        List.of(new PurchasingEventContract.GrnLine(
+                                UUID.randomUUID(), chicken.ingredientId(), new BigDecimal("10"), 62_000L,
+                                null, BigDecimal.ONE, "L"))))))
+                .hasMessageContaining("same unit family");
 
-        assertThat(stockRepository.findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId())
-                .orElseThrow().getQtyOnHand())
-                .as("weight ingredient, volume pack unit — converting would be worse than not")
-                .isEqualByComparingTo("10");
+        assertThat(stockRepository.findByBranchIdAndIngredientId(chicken.branchId(), chicken.ingredientId()))
+                .as("a weight ingredient and a volume pack unit have no ratio — nothing is written")
+                .isEmpty();
     }
 
     /**

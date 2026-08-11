@@ -1,6 +1,7 @@
 package io.restaurantos.inventory.service;
 
 import io.restaurantos.inventory.domain.model.Ingredient;
+import io.restaurantos.inventory.exception.GrnUomUnresolvableException;
 import io.restaurantos.inventory.domain.model.UnitOfMeasure;
 import io.restaurantos.inventory.repository.IngredientRepository;
 import io.restaurantos.inventory.repository.UnitOfMeasureRepository;
@@ -30,12 +31,23 @@ import java.util.UUID;
  * {@code units_of_measure}: purchasing knows a carton holds 10 of something, only inventory knows
  * what "kg" means to <i>this</i> ingredient.
  *
- * <p><b>Never throws.</b> An unknown or wrong-dimension unit code logs at ERROR and falls back to
- * a factor of one — exactly what the code did before this class existed. Throwing would DLQ the
- * whole GRN batch after finance has already posted its GR/IR entry, turning a valuation error into
- * a reconciliation gap. Vendor-catalog pack UOMs are free text today (they are typed, not picked),
- * so unresolvable codes are expected until that input is closed; the ERROR line carries every
- * identifier needed to correct the catalog row.
+ * <p><b>REFUSES rather than guesses (36-06, D-36-05).</b> An unknown or wrong-dimension unit code
+ * throws {@link io.restaurantos.inventory.exception.GrnUomUnresolvableException}, so the message
+ * dead-letters and no stock, no moving-average blend and no movement row is written.
+ *
+ * <p>This class used to log at ERROR and fall back to a factor of one, and that choice had a stated
+ * reason: throwing would DLQ the batch <em>after finance had already posted its GR/IR entry</em>,
+ * turning a valuation error into a reconciliation gap. <b>The reason no longer holds.</b> Since
+ * phase 14 finance posts the receipt entry from the real stock lot, not from this message, so a
+ * refused receipt strands nothing — there is no entry yet to strand.
+ *
+ * <p>What the fallback cost, measured on the live stack in plan 36-01: a purchase-order line whose
+ * unit was the string {@code FURLONG} was received, and seven furlongs became <b>seven kilograms</b>
+ * of Basmati Rice. Nothing failed — the receipt succeeded, the entry balanced, the invoice
+ * three-way-matched. Only the numbers were wrong.
+ *
+ * <p>Plan 36-04 refuses the same line at the API, where a person can fix it. This is the second line
+ * of defence, and it is deliberately loud.
  */
 @Service
 public class GrnUomResolver {
@@ -83,13 +95,16 @@ public class GrnUomResolver {
      */
     private BigDecimal resolveFactor(UUID tenantId, UUID ingredientId, UUID grnId, String packUomCode) {
         if (packUomCode == null || packUomCode.isBlank()) {
+            // No unit was stated at all. The quantity is already in whatever unit the ingredient is
+            // stocked in — there is nothing to convert and nothing to guess. This is the one
+            // remaining factor-of-one case, and it is not a fallback.
             return BigDecimal.ONE;
         }
         Ingredient ingredient = ingredientRepository.findByTenantIdAndId(tenantId, ingredientId).orElse(null);
         if (ingredient == null) {
-            log.error("GRN {}: ingredient {} not found in tenant {}; receiving {} at face value",
-                    grnId, ingredientId, tenantId, packUomCode);
-            return BigDecimal.ONE;
+            throw new GrnUomUnresolvableException(grnId, ingredientId, packUomCode, "<unknown>",
+                    "that ingredient does not exist in this tenant, so it has no stock unit to "
+                            + "convert into");
         }
         String baseUomCode = ingredient.getBaseUomCode();
         if (packUomCode.equalsIgnoreCase(baseUomCode)) {
@@ -102,11 +117,9 @@ public class GrnUomResolver {
         List<UnitOfMeasure> tenantUoms = unitOfMeasureRepository.findByTenantId(tenantId);
         UnitOfMeasure uom = byCode(tenantUoms, packUomCode);
         if (uom == null) {
-            log.error("GRN {}: pack unit '{}' on ingredient {} is not a unit this tenant defines — "
-                            + "receiving the quantity as if it were already in '{}'. Fix the vendor "
-                            + "catalog row's pack UOM.",
-                    grnId, packUomCode, ingredientId, baseUomCode);
-            return BigDecimal.ONE;
+            throw new GrnUomUnresolvableException(grnId, ingredientId, packUomCode, baseUomCode,
+                    "that is not a unit this tenant defines. Fix the vendor catalog row's pack "
+                            + "unit, or add the unit in Inventory > Setup");
         }
 
         // The ratio against the ingredient's OWN stock unit, never the raw family factor. Receiving
@@ -116,11 +129,11 @@ public class GrnUomResolver {
         Optional<BigDecimal> factor = IngredientUomFactorResolver.factorToIngredientBase(
                 uom, baseUomCode, byCode(tenantUoms, baseUomCode));
         if (factor.isEmpty()) {
-            log.error("GRN {}: pack unit '{}' and ingredient {}'s stock unit '{}' are not in the same "
-                            + "unit family, so no conversion is applied — receiving at face value. "
-                            + "Fix the vendor catalog row's pack UOM or the ingredient's base_uom_code.",
-                    grnId, packUomCode, ingredientId, baseUomCode);
-            return BigDecimal.ONE;
+            // NEVER across families, under any circumstance — including when the two codes look
+            // interchangeable to a reader. There is no ratio between a litre and a kilogram, and
+            // inventing one is how a wrong-family unit becomes a wrong number nobody sees.
+            throw new GrnUomUnresolvableException(grnId, ingredientId, packUomCode, baseUomCode,
+                    "they are not in the same unit family, so there is no conversion between them");
         }
         return factor.get();
     }
