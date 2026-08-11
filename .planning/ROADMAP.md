@@ -257,7 +257,7 @@ item is needed only for final sign-off, not to start:
   gateway cannot perform on this path, moving the check into hr-service where the tenant is known, and
   fixes the bridge route's rate-limit key. Neither plan adds or removes a public path.
 
-- [ ] **Phase 26: Receipt & Kitchen Printing** - 18d planned, **~21d as planned** (see the note under the plan list). Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
+- [ ] **Phase 26: Receipt & Kitchen Printing** - 18d planned, **~21d as planned** (see the note under the plan list). **PARTIAL (2026-08-12): 8 of 12 plans complete or near-complete.** 26-01..26-07 done; 26-11 partial (the cloud pull channel is live end-to-end — a kitchen ticket was claimed with no browser and no user token — but there is no enrolment UI and no human checkpoint). **Outstanding: 26-08 reprint, 26-09 browser bridge, 26-10 printer config UI + discovery (see D-8), 26-12 live proof.** Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
 
   **Goal:** A cashier settles an order and hands the customer a correctly totalled printed bill — in
   any browser with no hardware at all, and silently on thermal paper with a cut and a cash-drawer
@@ -267,17 +267,17 @@ item is needed only for final sign-off, not to start:
 
   Plans:
 
-  - [ ] 26-01-PLAN.md — the print document contract and the one place paisa becomes a string *(wave 1)*
-  - [ ] 26-02-PLAN.md — typed per-terminal printer configuration in `receipt_config` *(wave 1)*
-  - [ ] 26-03-PLAN.md — receipt issuance: assembler, `print_jobs` durable record, endpoints *(wave 2)*
-  - [ ] 26-04-PLAN.md — the ESC/POS renderer and the emulator that proves the bytes *(wave 2)*
-  - [ ] 26-05-PLAN.md — the 80 mm HTML bill and the FBR placeholder regions *(wave 3, independently shippable)*
-  - [ ] 26-06-PLAN.md — the print agent: durable queue, transports, health *(wave 3)*
-  - [ ] 26-07-PLAN.md — kitchen ticket, station-routed, dispatched after commit *(wave 3)*
+  - [x] 26-01-PLAN.md — the print document contract and the one place paisa becomes a string *(wave 1)*
+  - [x] 26-02-PLAN.md — typed per-terminal printer configuration in `receipt_config` *(wave 1)*
+  - [x] 26-03-PLAN.md — receipt issuance: assembler, `print_jobs` durable record, endpoints *(wave 2)*
+  - [x] 26-04-PLAN.md — the ESC/POS renderer and the emulator that proves the bytes *(wave 2)*
+  - [x] 26-05-PLAN.md — the 80 mm HTML bill and the FBR placeholder regions *(wave 3, independently shippable)*
+  - [x] 26-06-PLAN.md — the print agent: durable queue, transports, health *(wave 3)*
+  - [x] 26-07-PLAN.md — kitchen ticket, station-routed, dispatched after commit *(wave 3)*
   - [ ] 26-08-PLAN.md — reprint: identical body, unmistakable banner *(wave 4)*
   - [ ] 26-09-PLAN.md — the browser→agent bridge and the fallback ladder *(wave 4)*
   - [ ] 26-10-PLAN.md — printer configuration UI, test print, column ruler *(wave 5)*
-  - [ ] 26-11-PLAN.md — agent enrolment and the pull channel *(wave 6)*
+  - [~] 26-11-PLAN.md — agent enrolment and the pull channel *(wave 6)* — **PARTIAL: tasks 1-3 done and live-verified; no settings card, no human checkpoint**
   - [ ] 26-12-PLAN.md — the live proof and the U3 hardware sign-off list *(wave 7)*
 
   **Touches the gateway.** Plan 26-11 adds one exact-match path list, one matcher and one branch to

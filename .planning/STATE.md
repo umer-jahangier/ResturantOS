@@ -97,6 +97,37 @@ compile break and a full-suite-only TenantGuc probe failure, neither caused by p
 -->
 
 <!--
+PHASE 26 — Receipt & Kitchen Printing (session of 2026-08-12)
+
+Executed 26-07 and 26-11 of 12 through the GSD workflow. 26-01..26-06 were complete on entry.
+
+26-07 COMPLETE — the kitchen ticket, and dispatch that a printer cannot break. Dispatch is an
+  after-commit TransactionSynchronization, NOT REQUIRES_NEW and NOT same-transaction-with-try/catch;
+  the forced-failure tests drive a REAL duplicate insert against uq_print_jobs_revision, because a
+  mocked throw passes under the broken design. Ten negative controls, one of which passed first time
+  because the sabotage patch had the wrong indentation and never landed.
+  PrintDocument gained a nullable Ticket component (refused on a receipt) — this changed shared-lib,
+  the print-agent parser and renderer, the frontend zod mirror and the golden fixture.
+  Live: a real fire wrote a durable UNROUTABLE row; the reconciliation query returned exactly the
+  17 pre-26-07 fires and not the new one.
+
+26-11 PARTIAL — the cloud pull channel, which is what makes a cloud-hosted deployment able to print
+  at all. Enrolment (bcrypt, forced-RLS, shown once), claim/ack with a 120s lease, a tenant-wide
+  reclaim sweep, and one exact-equality path exemption in JwtGlobalFilter (one list, one matcher,
+  one branch; both neighbouring lists asserted verbatim by a new permanent test).
+  Live end-to-end: a kitchen ticket was claimed from the cloud by a process holding only a device
+  credential, with NO browser and NO user token in the request; ack moved it to PRINTED; revocation
+  was refused on the very next call.
+  NOT DONE: the settings-screen enrolment card, the human checkpoint on paper, killing an agent
+  mid-job, and running the daemon itself against the live gateway.
+
+NOT STARTED: 26-08 (reprint), 26-09 (browser bridge), 26-10 (printer config UI + discovery),
+  26-12 (live proof). See deferred-items.md D-7 (no server name on a ticket) and D-8 (the user's
+  binding constraints for 26-10: manager-triggered discovery, USB and network as equal
+  first-class transports, and the fact that a browser can drive neither directly).
+-->
+
+<!--
 PHASE 37 — Finance ↔ Orders Integration (session of 2026-08-11)
 
 Executed 37-01, 37-02 and 37-03 of 14 through the GSD workflow (PLAN → atomic commits per task →
