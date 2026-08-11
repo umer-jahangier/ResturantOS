@@ -98,5 +98,20 @@
          function: changeset 052's `auth_lookup_refresh_tenant` keeps working unmodified because the
          platform sentinel is a real, non-NULL uuid. -->
     <include file="db/changelog/v1.0.0/084-platform-refresh-scope.xml"/>
+    <!-- 28-01: pos.terminals.admin — the POS terminal PROFILE gate (name, station set, menu scope).
+         Held by OWNER/TENANT_ADMIN/MANAGER, the same people who already own the floor plan and the
+         menu; a cashier uses a terminal and does not get to re-scope it. Granted explicitly for the
+         point-in-time reason 055, 059, 082 and 083 each give, and verified, because a permission
+         nobody holds is a 403 that looks deliberate. Lands here rather than in plan 28-04 so that
+         the permission exists before PosTerminalController references it — PermissionCatalogClosureTest
+         fails the build otherwise. -->
+    <include file="db/changelog/v1.0.0/085-pos-terminals-admin-permission.xml"/>
+    <!-- 28-01: user_station_assignments — which stations a person works, per branch (D-28-02). The
+         set is resolved at token-mint time and rides the access token's existing `attributes` map,
+         so no downstream service needs a cross-service call or a projection table to know it. Stores
+         the station CODE, not an id: the code is already the routing key on tickets and on the KDS
+         socket, and it cannot go stale because a station's code cannot be renamed. ENABLEd AND
+         FORCEd, like 041/050/056/058 — an ENABLE-only tenant table is the exact defect 17b closed. -->
+    <include file="db/changelog/v1.0.0/086-user-station-assignments.xml"/>
 
 </databaseChangeLog>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      28-01. `user_station_assignments` — which stations a person works, per branch.
+
+      ══ Why this table exists ══
+
+      D-28-02: a user is assigned to zero or more stations, and that assignment filters what they
+      see. Today a kitchen account sees every ticket at the branch, so a bartender watches biryani
+      scroll past and a cook watches mojitos. The set lives here, it is resolved at token-mint time
+      by PermissionResolver, and it rides the access token's existing `attributes` map into every
+      downstream service.
+
+      ══ Why the CODE and not a station id ══
+
+      The column stores the station CODE, a string. It is deliberately NOT a UUID foreign key into
+      pos_db's `stations`:
+
+        - The code is already the routing key everywhere downstream. Kitchen tickets carry it, the
+          KDS WebSocket subscription key is built from it, and TicketRoutingService groups on it. A
+          UUID here would have to be resolved to a code before it could be used for anything.
+        - `StationServiceImpl.updateStation` cannot change a code once created, so a stored code
+          cannot go stale under a rename. That is what makes the string safe rather than sloppy.
+        - auth_db and pos_db are separate databases. A UUID column here would be a foreign key this
+          codebase cannot declare and cannot enforce — a referential claim with nothing behind it.
+
+      Consequence, stated rather than hidden: an unknown code can be stored. It filters that user
+      down to a station that produces no tickets, which is visible on their own screen within one
+      shift and self-corrects. The alternative — a synchronous call into pos-service on the
+      user-admin write path — makes editing a user fail whenever pos-service is redeploying. The
+      typo prevention belongs in the admin UI, which sources the code list from pos-service.
+
+      ══ Scoping ══
+
+      Unique on (tenant_id, user_id, branch_id, station_code): one row per station a user works, per
+      branch, matching 040's convention for user_branch_roles. A code is only unique within a
+      branch, so a branch-less assignment would be ambiguous by construction — hence branch_id NOT
+      NULL.
+
+      Indexed on (tenant_id, user_id) because that is the lookup PermissionResolver makes on every
+      single login, refresh and branch switch. Without it this is a sequential scan on the hottest
+      path in the product.
+
+      ══ FORCE, not merely ENABLE ══
+
+      ENABLE ROW LEVEL SECURITY exempts the table's OWNER from its own policies. Postgres does that
+      by design and it is why phase 17b spent a phase adding FORCE across pos_db after 16 tenants'
+      rows were reachable from one connection. auth_db already runs FORCEd tables (041, 050, 056,
+      058). A new tenant-scoped table that is merely ENABLEd is that same defect, freshly planted.
+    -->
+
+    <changeSet id="auth-1.0.0-086-create-user-station-assignments" author="restaurantos-agent">
+        <createTable tableName="user_station_assignments">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="user_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="branch_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="station_code" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="created_by" type="UUID"/>
+            <column name="updated_by" type="UUID"/>
+            <column name="deleted_at" type="TIMESTAMPTZ"/>
+        </createTable>
+        <addUniqueConstraint tableName="user_station_assignments"
+                             columnNames="tenant_id, user_id, branch_id, station_code"
+                             constraintName="uk_user_station_assignments"/>
+        <addForeignKeyConstraint baseTableName="user_station_assignments" baseColumnNames="user_id"
+                                 referencedTableName="users" referencedColumnNames="id"
+                                 constraintName="fk_user_station_assignments_user"/>
+        <createIndex tableName="user_station_assignments" indexName="idx_user_station_assignments_user">
+            <column name="tenant_id"/>
+            <column name="user_id"/>
+        </createIndex>
+        <rollback><dropTable tableName="user_station_assignments"/></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-086-rls-user-station-assignments" author="restaurantos-agent">
+        <comment>tenant_isolation, ENABLEd AND FORCEd — an ENABLE-only tenant table is the 17b defect</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE user_station_assignments ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE user_station_assignments FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON user_station_assignments
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON user_station_assignments TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON user_station_assignments;
+                ALTER TABLE user_station_assignments NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE user_station_assignments DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

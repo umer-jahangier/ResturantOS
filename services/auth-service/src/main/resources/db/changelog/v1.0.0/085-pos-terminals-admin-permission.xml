@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      28-01. `pos.terminals.admin` — the permission that decides which POS TERMINALS a branch has.
+
+      ══ What a terminal is ══
+
+      Phase 28 (D-28-03) makes a POS terminal a named profile rather than "whatever browser is
+      open": a name, a branch, the set of stations it fires to, and the menu categories it offers.
+      That is what "a dedicated POS selecting the respective menu" means, and creating, renaming,
+      re-scoping and retiring one is catalogue state — the same class of decision as deciding which
+      dining tables the restaurant has.
+
+      ══ Who holds it ══
+
+      OWNER, TENANT_ADMIN, MANAGER — exactly the holders of `pos.tables.admin` (083), and for the
+      same argument that changeset makes. A branch manager already owns the menu (`pos.menu.manage`)
+      and the floor plan (`pos.tables.admin`); deciding how many tills the branch runs and what each
+      one offers is the same kind of decision, made by the same person, on the same day the branch
+      opens.
+
+      CASHIER and WAITER hold NEITHER this nor anything that implies it. A cashier USES a terminal;
+      they do not get to re-scope the menu it offers. That distinction is the whole reason this is a
+      separate code rather than a reuse of `pos.orders.create`.
+
+      ══ Why the grant is explicit ══
+
+      Granted EXPLICITLY, never via a catalogue-wide SELECT from `permissions`. Every blanket grant
+      in this changelog (030/041/042/045/046/057) is point-in-time: it enumerates what existed the
+      day it ran and retro-grants nothing added afterwards. 055, 059, 082 and 083 all say this and
+      all grant explicitly for the same reason.
+
+      A permission that no role holds produces a clean, confident 403 for every user including
+      OWNER — indistinguishable from a deliberate denial, and invisible in logs. That is the exact
+      defect class `PermissionCatalogClosureTest` exists to catch, which is why it scans
+      @PreAuthorize across every service rather than trusting review, and why the verification
+      changeSet below RAISEs rather than warns.
+    -->
+
+    <changeSet id="auth-1.0.0-085-pos-terminals-admin" author="restaurantos-agent" runOnChange="false">
+        <comment>pos.terminals.admin — POS terminal profile CRUD (name, station set, menu scope), held by the same roles as pos.tables.admin</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.terminals.admin', 'pos', 'Create, rename, re-scope, retire and reactivate POS terminal profiles (catalogue, not order entry)')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.terminals.admin'),
+              ('TENANT_ADMIN', 'pos.terminals.admin'),
+              ('MANAGER',      'pos.terminals.admin')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'pos.terminals.admin';
+                DELETE FROM permissions WHERE code = 'pos.terminals.admin';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      Says so if the grant did not land, rather than leaving a permission that exists and that
+      nobody holds — which is invisible at runtime (everyone including OWNER just gets a clean 403
+      on the Terminals screen) and is precisely how the five outages listed in
+      PermissionCatalogClosureTest's javadoc each reached production. Same RAISE posture as 056,
+      057, 082 and 083.
+    -->
+    <changeSet id="auth-1.0.0-085-verify-pos-terminals-admin" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if pos.terminals.admin exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'pos.terminals.admin';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'pos.terminals.admin is defined but granted to no role. PosTerminalController gates create/update/activate/deactivate on it, so the POS terminal management screen would 403 for every user on every tenant including OWNER - and it would do so as a normal-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>
