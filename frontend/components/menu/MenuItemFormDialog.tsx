@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
+import { MenuItemImageField } from "@/components/menu/MenuItemImageField";
 
 const selectClass =
   "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm focus-visible:border-ring";
@@ -50,6 +51,27 @@ function defaultsFor(
     description: item.description ?? "",
     priceRupees: (item.basePricePaisa / 100).toString(),
   };
+}
+
+/**
+ * The picture lives in local state rather than in the react-hook-form schema.
+ *
+ * <p>It is not a text field being validated on submit — the upload has already happened by the
+ * time the form is submitted, and what remains is an id. Threading it through the resolver would
+ * add a zod branch whose only job is to pass a string through unchanged.
+ *
+ * <p>`fileId` is sent on EVERY save, including a price-only edit, because the backend reads a
+ * null `imageFileId` as "remove the picture" rather than "leave it alone" — see
+ * UpdateMenuItemRequest. Round-tripping the existing id is what makes that safe.
+ */
+interface ImageState {
+  fileId: string | null;
+  /** Server-derived URL for an already-saved picture; null once the user picks a new file. */
+  currentUrl: string | null;
+}
+
+function imageDefaultsFor(item: MenuItem | undefined): ImageState {
+  return { fileId: item?.imageFileId ?? null, currentUrl: item?.imageUrl ?? null };
 }
 
 interface MenuItemFormDialogProps {
@@ -82,6 +104,12 @@ export function MenuItemFormDialog({
     defaultValues: defaultsFor(item, defaultCategoryId),
   });
 
+  // Initialised once per mount and deliberately NOT re-synced in the effect below. Every caller
+  // passes a `key` that encodes the target (`edit-<id>` / `create-<categoryId>` / idle), so
+  // switching items remounts this component and the initialiser runs again with the right item.
+  // Re-setting it from an effect would be a redundant cascading render for the same result.
+  const [image, setImage] = useState<ImageState>(() => imageDefaultsFor(item));
+
   useEffect(() => {
     if (open) form.reset(defaultsFor(item, defaultCategoryId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,6 +121,10 @@ export function MenuItemFormDialog({
       name: values.name.trim(),
       description: values.description?.trim() || undefined,
       basePricePaisa: Math.round(Number(values.priceRupees) * 100),
+      // Always sent, never omitted: the backend treats a missing/null imageFileId as REMOVE.
+      // On a price-only edit this round-trips the item's existing id, which is what keeps the
+      // picture attached. Sending `undefined` would drop the key and silently clear it.
+      imageFileId: image.fileId,
     };
 
     if (isEdit) {
@@ -211,6 +243,18 @@ export function MenuItemFormDialog({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+
+            {/* Outside the <Form> field machinery on purpose — the upload has already happened
+                by the time this form is submitted, so what this control produces is an id, not
+                a value awaiting validation. See ImageState above. */}
+            <MenuItemImageField
+              value={image.fileId}
+              currentImageUrl={image.currentUrl}
+              onChange={(fileId, previewUrl) =>
+                setImage({ fileId, currentUrl: previewUrl ? null : image.currentUrl })
+              }
+              disabled={isPending}
             />
           </form>
         </Form>

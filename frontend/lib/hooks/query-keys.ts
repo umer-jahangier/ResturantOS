@@ -32,6 +32,11 @@ export const queryKeys = {
     menuItemsAdmin: (branchId: string, categoryId?: string) =>
       ["pos", branchId, "menu-items", "admin", categoryId] as const,
     tables: (branchId: string) => ["pos", branchId, "tables"] as const,
+    // Distinct key, and a PREFIX of `tables` so invalidating the latter refreshes both. The
+    // catalogue view returns a strict superset (retired tables included) and is gated on a
+    // permission the service-time list is not — sharing one key would let a manager's catalogue
+    // response be served to the picker, showing retired tables as selectable.
+    tablesAdmin: (branchId: string) => ["pos", branchId, "tables", "admin"] as const,
     tableDetail: (branchId: string, tableId: string) =>
       ["pos", branchId, "tables", tableId, "active-order"] as const,
     orders: (branchId: string, statuses?: string[]) =>

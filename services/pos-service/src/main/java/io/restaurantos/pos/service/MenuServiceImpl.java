@@ -48,6 +48,7 @@ public class MenuServiceImpl implements MenuService {
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
     private final PosAuthorizationService posAuthorizationService;
+    private final MenuItemImageService menuItemImageService;
 
     public MenuServiceImpl(MenuCategoryRepository categoryRepository,
                            MenuItemRepository itemRepository,
@@ -55,7 +56,8 @@ public class MenuServiceImpl implements MenuService {
                            StationRepository stationRepository,
                            TenantContext tenantContext,
                            EventPublisher eventPublisher,
-                           PosAuthorizationService posAuthorizationService) {
+                           PosAuthorizationService posAuthorizationService,
+                           MenuItemImageService menuItemImageService) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
         this.overrideRepository = overrideRepository;
@@ -63,6 +65,7 @@ public class MenuServiceImpl implements MenuService {
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
         this.posAuthorizationService = posAuthorizationService;
+        this.menuItemImageService = menuItemImageService;
     }
 
     @Override
@@ -165,11 +168,16 @@ public class MenuServiceImpl implements MenuService {
     @Transactional
     public MenuItemDto createItem(CreateMenuItemRequest request) {
         posAuthorizationService.requireMenuManage();
+        UUID tenantId = tenantContext.requireTenantId();
         MenuCategory category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + request.categoryId()));
 
+        // Validated BEFORE the row is written: a rejected image must not leave a half-created
+        // item behind, and this call can fail (it crosses a service boundary).
+        menuItemImageService.requireValidImage(tenantId, request.imageFileId());
+
         MenuItem item = new MenuItem();
-        item.setTenantId(tenantContext.requireTenantId());
+        item.setTenantId(tenantId);
         item.setCategory(category);
         item.setName(request.name());
         item.setDescription(request.description());
@@ -178,6 +186,7 @@ public class MenuServiceImpl implements MenuService {
             item.setTaxRatePct(request.taxRatePct());
         }
         item.setTaxRateCode(request.taxRateCode());
+        item.setImageFileId(request.imageFileId());
         item.setActive(true);
 
         MenuItem saved = itemRepository.save(item);
@@ -189,6 +198,7 @@ public class MenuServiceImpl implements MenuService {
     @Transactional
     public MenuItemDto updateItem(UUID itemId, UpdateMenuItemRequest request) {
         posAuthorizationService.requireMenuManage();
+        UUID tenantId = tenantContext.requireTenantId();
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
 
@@ -197,6 +207,12 @@ public class MenuServiceImpl implements MenuService {
                     .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + request.categoryId()));
             item.setCategory(category);
         }
+
+        // Captured before the setter, and only released after the save commits — releasing the
+        // old file first would leave the item picture-less if the save then failed.
+        UUID previousImageFileId = item.getImageFileId();
+        menuItemImageService.requireValidImage(tenantId, request.imageFileId());
+
         item.setName(request.name());
         item.setDescription(request.description());
         item.setBasePricePaisa(request.basePricePaisa());
@@ -204,8 +220,14 @@ public class MenuServiceImpl implements MenuService {
             item.setTaxRatePct(request.taxRatePct());
         }
         item.setTaxRateCode(request.taxRateCode());
+        // null here means REMOVE, not "unchanged" — see UpdateMenuItemRequest's javadoc.
+        item.setImageFileId(request.imageFileId());
 
         MenuItem saved = itemRepository.save(item);
+        // Replace and remove both land here: the old object is soft-deleted in file-service and
+        // its bytes stop counting against the tenant's storage quota. Best-effort — a failure is
+        // logged and never fails the menu edit.
+        menuItemImageService.releaseIfReplaced(tenantId, previousImageFileId, saved.getImageFileId());
         publishUpserted(saved);
         return toDto(saved, null);
     }
@@ -222,6 +244,25 @@ public class MenuServiceImpl implements MenuService {
         return toDto(saved, null);
     }
 
+    /**
+     * <h2>What happens to the stored image object</h2>
+     *
+     * <p>Nothing. {@code image_file_id} is RETAINED on the row and the file is NOT released.
+     *
+     * <p>This is a soft delete — it sets {@code deleted_at} and clears {@code active}, and the
+     * row stays. Reversibility is the entire reason it is a soft delete, and a soft delete that
+     * hard-deletes its attachments is not reversible: restoring the item would bring back a row
+     * pointing at a file that no longer resolves, and the manager would get a broken image with
+     * no way to know what the picture used to be.
+     *
+     * <p>The image IS released in the two cases where the reference genuinely goes away —
+     * replacing a picture and removing one — both handled in {@link #updateItem}. And
+     * DEACTIVATION deliberately does nothing to the image either: a deactivated item that is
+     * later reactivated must come back with its picture.
+     *
+     * <p>Nothing in the product hard-deletes a menu item today. If that is ever added, releasing
+     * the image belongs to that change, and this paragraph is the note saying so.
+     */
     @Override
     @Transactional
     public void deleteItem(UUID itemId) {
@@ -324,7 +365,9 @@ public class MenuServiceImpl implements MenuService {
                 item.getKdsStation(),
                 item.isActive(),
                 overridePrice,
-                item.getStationId()
+                item.getStationId(),
+                item.getImageFileId(),
+                MenuItemDto.imageUrlFor(item.getImageFileId())
         );
     }
 }

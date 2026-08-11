@@ -164,7 +164,27 @@ public class OrderServiceImpl implements OrderService {
         order.setNotes(request.notes());
 
         if (request.tableId() != null) {
-            order.setTableId(request.tableId());
+            // SECURITY / correctness (19b-01): this used to be a bare `order.setTableId(...)` with
+            // no lookup at all. It was unreachable in practice only because no tenant had any
+            // dining tables — the create path accepted ANY uuid, including a sibling branch's
+            // table or one that never existed, and the order would then carry a table id that
+            // resolves to nothing on every screen that tries to name it.
+            //
+            // Now the same rules the assign-table path already enforced apply at creation:
+            // the table must exist inside the caller's tenant AND branch, and must still be in
+            // service. Status is deliberately NOT checked here — createOrder immediately routes
+            // the binding through syncStatusForOrder, which is what flips the table to OCCUPIED;
+            // requiring AVAILABLE first would make two waiters racing the same table fail in a
+            // way the existing single-seam design already handles.
+            DiningTable table = tableRepository
+                    .findByIdTenantAndBranch(request.tableId(), tenantId, request.branchId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Dining table not found: " + request.tableId()));
+            if (!table.isActive()) {
+                throw new io.restaurantos.shared.exception.StateInvalidException(
+                        "Table is no longer in service: " + table.getTableNumber());
+            }
+            order.setTableId(table.getId());
         }
 
         // TILL BINDING IS OPPORTUNISTIC HERE — THE REQUIREMENT LIVES AT CASH SETTLEMENT (D-30).
@@ -527,8 +547,11 @@ public class OrderServiceImpl implements OrderService {
         // KDS-04 (pos-side, additive parity field): resolve the order's table number — null
         // for takeaway/pickup orders with no bound table. Field NAME must match the
         // kitchen-service consumer's matching field exactly (lands in 07.3-05).
+        // Resolves retired tables too (findByIdTenantAndBranch is not filtered on is_active):
+        // an order already bound to a table that was retired mid-service must still print the
+        // table it is being served at, on the ticket the kitchen reads.
         String tableNumber = order.getTableId() != null
-                ? tableRepository.findByIdAndBranchId(order.getTableId(), order.getBranchId())
+                ? tableRepository.findByIdTenantAndBranch(order.getTableId(), tenantId, order.getBranchId())
                         .map(DiningTable::getTableNumber)
                         .orElse(null)
                 : null;
@@ -636,7 +659,11 @@ public class OrderServiceImpl implements OrderService {
                 : orderRepository.findByBranchIdAndStatusInAndCashierId(
                         branchId, statusEnums, tenantContext.getUserId().orElse(null), pageable);
 
-        Map<UUID, String> tableNames = tableRepository.findByBranchId(branchId).stream()
+        // ALL tables, not just active ones — an order placed at a table that has since been
+        // retired must still show its name in the order list, or the row reads "—" and the
+        // manager cannot tell which table the money came from.
+        Map<UUID, String> tableNames = tableRepository
+                .findAllByTenantAndBranch(tenantContext.requireTenantId(), branchId).stream()
                 .collect(Collectors.toMap(DiningTable::getId, DiningTable::getTableNumber));
 
         // Batched payment sums for the WHOLE page in one query (N+1 avoidance, POS-24) — never
@@ -921,8 +948,16 @@ public class OrderServiceImpl implements OrderService {
                     "Cannot assign a table to an order in status: " + order.getStatus());
         }
 
-        DiningTable table = tableRepository.findByIdAndBranchId(tableId, order.getBranchId())
+        DiningTable table = tableRepository.findByIdTenantAndBranch(tableId, tenantId, order.getBranchId())
                 .orElseThrow(() -> new ResourceNotFoundException("Dining table not found: " + tableId));
+
+        // A retired table is not assignable (19b-01). Checked here as well as filtered out of
+        // the picker's list, because the list is a suggestion and this is the boundary — a
+        // client holding a table id it fetched before the table was retired must be refused.
+        if (!table.isActive()) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Table is no longer in service: " + table.getTableNumber());
+        }
 
         // Re-check AVAILABLE INSIDE the transaction (T-07.3-12 — concurrency-safe; a caller
         // cannot rely on a stale pre-fetched table list). OCCUPIED/NEEDS_BUSSING are rejected.

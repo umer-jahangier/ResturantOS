@@ -79,6 +79,14 @@ export EUREKA_URI=http://127.0.0.1:8761/eureka/
 export JWKS_URI=http://127.0.0.1:8081/.well-known/jwks.json
 # platform-admin-service is on 8096 (8083 is authorization-service).
 export PLATFORM_ADMIN_URI=http://127.0.0.1:8096
+# file-service reads a DIFFERENT property name for the same thing:
+# `restaurantos.platform-admin-service.uri: ${PLATFORM_ADMIN_SERVICE_URI:http://platform-admin-service:8096}`.
+# Without this export it falls back to the docker-compose hostname, which does not resolve on the
+# host, and EVERY upload dies in QuotaService with
+# `UnknownHostException: platform-admin-service` — surfaced as a bare 500, because the quota
+# check is deliberately fail-closed. Nobody hit it before 19b for the simple reason that nothing
+# in the product had ever called file-service; the menu-item picture upload is its first caller.
+export PLATFORM_ADMIN_SERVICE_URI=http://127.0.0.1:8096
 export CONFIG_URI=http://127.0.0.1:8888
 export FAIL_OPEN_ON_PLATFORM_DOWN=true
 

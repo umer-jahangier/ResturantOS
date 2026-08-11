@@ -30,9 +30,12 @@ import java.util.List;
 public class FileSecurityConfig {
 
     private final TenantContext tenantContext;
+    private final FileInternalServiceFilter internalServiceFilter;
 
-    public FileSecurityConfig(TenantContext tenantContext) {
+    public FileSecurityConfig(TenantContext tenantContext,
+                              FileInternalServiceFilter internalServiceFilter) {
         this.tenantContext = tenantContext;
+        this.internalServiceFilter = internalServiceFilter;
     }
 
     @Bean
@@ -54,9 +57,17 @@ public class FileSecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/prometheus").permitAll()
+                // permitAll to Spring Security ONLY — /internal/** is authenticated by
+                // FileInternalServiceFilter (shared-secret), which runs first and short-circuits
+                // with 403 before the chain is reached. It carries no user principal, so
+                // .authenticated() would reject every legitimate service-to-service call.
+                // Same arrangement as finance-service and crm-service. The gateway does not
+                // route /internal/** at all, so it is unreachable from outside the mesh.
+                .requestMatchers("/internal/**").permitAll()
                 .requestMatchers("/api/v1/files/**").authenticated()
                 .anyRequest().authenticated())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(internalServiceFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(jwtAuthenticationFilter, FileInternalServiceFilter.class)
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, e) -> writeError(res, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED"))
                 .accessDeniedHandler((req, res, e) -> writeError(res, HttpStatus.FORBIDDEN, "PERMISSION_DENIED")));

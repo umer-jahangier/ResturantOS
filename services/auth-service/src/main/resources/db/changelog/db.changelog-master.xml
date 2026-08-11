@@ -85,5 +85,12 @@
          that name a role no non-seed database has. Grants explicitly, like 055 and 059, because
          057's catalogue-wide repair is point-in-time and retro-grants nothing added after it. -->
     <include file="db/changelog/v1.0.0/082-file-permissions-and-finance-viewer-role.xml"/>
+    <!-- 19b-01: pos.tables.admin — the dining-table CATALOGUE gate. Separate from the existing
+         pos.tables.manage, which WAITER holds on purpose (055) so a waiter can seat a table;
+         reusing it for create/rename/retire would have let every waiter re-lay the floor plan.
+         Grants explicitly to OWNER/TENANT_ADMIN/MANAGER for the same point-in-time reason 055,
+         059 and 082 give, and verifies the grant landed rather than leaving a permission nobody
+         holds. -->
+    <include file="db/changelog/v1.0.0/083-pos-tables-admin-permission.xml"/>
 
 </databaseChangeLog>

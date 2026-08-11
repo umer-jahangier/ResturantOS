@@ -18,6 +18,11 @@ export const apiMenuItemSchema = z.object({
   taxRatePct: z.string().or(z.number()).transform(Number),
   kdsStation: z.string().nullable().optional(),
   active: z.boolean(),
+  // 19b: menu-item pictures. `imageFileId` is the file-service id that round-trips on update;
+  // `imageUrl` is derived server-side (/api/v1/files/{id}/download) so the route lives in one
+  // place. Both optional — an item saved before this phase carries neither.
+  imageFileId: z.string().uuid().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
 });
 
 export type ApiMenuItem = z.infer<typeof apiMenuItemSchema>;
@@ -50,6 +55,13 @@ export const createMenuItemInputSchema = z.object({
   basePricePaisa: z.number().int().nonnegative(),
   taxRatePct: z.number().optional(),
   taxRateCode: z.string().optional(),
+  // `.nullable()` and NOT `.optional()` alone — deliberate. On update the backend reads null as
+  // REMOVE THE PICTURE and an omitted field the same way, so "remove" is only expressible if
+  // null can be sent. The form always supplies this key explicitly (null when there is no
+  // image), which is the same always-send-it convention `updateMenuItem` documents for
+  // categoryId; an `undefined` here would be dropped by JSON.stringify and silently mean
+  // "remove" as well, so sending null keeps intent and wire in agreement.
+  imageFileId: z.string().uuid().nullable().optional(),
 });
 export type CreateMenuItemInput = z.infer<typeof createMenuItemInputSchema>;
 
@@ -61,6 +73,11 @@ export const apiDiningTableSchema = z.object({
   branchId: z.string().uuid(),
   tableName: z.string(),
   capacity: z.number().int(),
+  // 19b: `section` is a free-text grouping label, `active` is CATALOGUE state — distinct from
+  // `status`, which is runtime state (is someone sitting here right now). Optional so a
+  // response from a pos-service that predates V12 still parses.
+  section: z.string().nullable().optional(),
+  active: z.boolean().optional(),
   status: z.enum(["AVAILABLE", "OCCUPIED", "NEEDS_BUSSING"]),
   floorPlanX: z.number().nullable().optional(),
   floorPlanY: z.number().nullable().optional(),
@@ -68,6 +85,17 @@ export const apiDiningTableSchema = z.object({
 });
 
 export type ApiDiningTable = z.infer<typeof apiDiningTableSchema>;
+
+// ── Dining-table catalogue writes (19b) ───────────────────────────────────────────────────
+// Mirrors TableAdminDtos.CreateDiningTableRequest / UpdateDiningTableRequest. Capacity is
+// bounded on both ends server-side too — it feeds cover counts and therefore per-head
+// reporting, so a fat-fingered 400 distorts averages rather than failing visibly.
+export const createDiningTableInputSchema = z.object({
+  tableNumber: z.string().min(1).max(20),
+  capacity: z.number().int().min(1).max(100),
+  section: z.string().max(50).optional(),
+});
+export type CreateDiningTableInput = z.infer<typeof createDiningTableInputSchema>;
 
 export const apiOrderItemModifierSchema = z.object({
   id: z.string().uuid(),

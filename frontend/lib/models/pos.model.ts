@@ -47,6 +47,10 @@ export interface MenuItem {
   basePricePaisa: number;
   taxRatePct: number;
   kdsStation: string | null;
+  /** file-service id for the item's picture. Round-tripped on update; null means no picture. */
+  imageFileId: string | null;
+  /** Derived server-side from `imageFileId` — render this, never build the URL client-side. */
+  imageUrl: string | null;
   active: boolean;
 }
 
@@ -63,6 +67,14 @@ export interface DiningTable {
   branchId: string;
   tableName: string;
   capacity: number;
+  /** Free-text grouping label ("Rooftop", "Garden"). Not an entity — see V12. */
+  section: string | null;
+  /**
+   * CATALOGUE state: does this table still exist in the restaurant. Distinct from `status`,
+   * which is RUNTIME state (is someone sitting here right now). A retired table keeps its row
+   * forever because closed orders reference it.
+   */
+  active: boolean;
   status: TableStatus;
   floorPlanX: number | null;
   floorPlanY: number | null;

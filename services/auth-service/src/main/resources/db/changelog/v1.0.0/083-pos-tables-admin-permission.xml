@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      19b-01. `pos.tables.admin` — the permission that decides which tables a restaurant HAS.
+
+      ══ Why not reuse pos.tables.manage ══
+
+      `pos.tables.manage` already exists, and WAITER holds it. That is not an oversight — 055
+      granted it deliberately and said why: "Without it a waiter cannot seat a table or attach an
+      order to one." Table service does not work if the person carrying the plates cannot mark a
+      table occupied.
+
+      Until this phase, that permission gated the only write on TableController: PATCH /{id},
+      which sets status. Status is RUNTIME state. This phase adds create / rename / re-capacity /
+      retire / reactivate, which is CATALOGUE state, and hanging those off the same code would have
+      silently handed every waiter in every tenant the ability to rename and retire the
+      restaurant's tables in the middle of a shift. The verbs share a noun and nothing else:
+
+        pos.tables.manage  seat / release a table, attach an order    WAITER CASHIER MANAGER +
+        pos.tables.admin   create / rename / re-capacity / retire     MANAGER TENANT_ADMIN OWNER
+
+      ══ Who holds it ══
+
+      OWNER, TENANT_ADMIN, MANAGER. A branch manager already owns the menu (`pos.menu.manage`) and
+      the floor is the same kind of decision. CASHIER and WAITER hold NEITHER this nor anything
+      that implies it, and pos-service asserts both directions (TableCatalogueIT: a waiter can list
+      and seat, and is refused create, update, deactivate, and the includeInactive catalogue view).
+
+      Granted EXPLICITLY, never via a catalogue-wide SELECT. Every blanket grant in this changelog
+      (030/041/042/045/046/057) is point-in-time: it enumerates what existed the day it ran and
+      retro-grants nothing added afterwards. 055, 059 and 082 all say this and all grant explicitly
+      for the same reason. A permission no role holds produces a clean, confident 403 for every
+      user including OWNER — the exact defect class PermissionCatalogClosureTest exists to catch,
+      and the reason that test scans @PreAuthorize across every service rather than trusting review.
+    -->
+
+    <changeSet id="auth-1.0.0-083-pos-tables-admin" author="restaurantos-agent" runOnChange="false">
+        <comment>pos.tables.admin — dining-table catalogue CRUD, kept apart from the waiter-held pos.tables.manage</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.tables.admin', 'pos', 'Create, rename, re-capacity, retire and reactivate dining tables (catalogue, not seating)')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.tables.admin'),
+              ('TENANT_ADMIN', 'pos.tables.admin'),
+              ('MANAGER',      'pos.tables.admin')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'pos.tables.admin';
+                DELETE FROM permissions WHERE code = 'pos.tables.admin';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      Says so if the grant did not land, rather than leaving a permission that exists and that
+      nobody holds — which is invisible at runtime (everyone including OWNER just gets a clean
+      403 on the Tables screen) and is precisely how the five outages listed in
+      PermissionCatalogClosureTest's javadoc each reached production. Same RAISE posture as 056,
+      057 and 082.
+    -->
+    <changeSet id="auth-1.0.0-083-verify-pos-tables-admin" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if pos.tables.admin exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'pos.tables.admin';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'pos.tables.admin is defined but granted to no role. TableController gates create/update/activate/deactivate on it, so the dining-table management screen would 403 for every user on every tenant including OWNER - and it would do so as a normal-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -113,4 +113,28 @@ public class PosAuthorizationService {
             throw new PermissionDeniedException("Requires pos.menu.manage");
         }
     }
+
+    /**
+     * Dining-table CATALOGUE gate — create, rename, re-capacity, retire, reactivate (19b-01).
+     *
+     * <p>Deliberately NOT {@code pos.tables.manage}, which already exists and which
+     * <strong>WAITER holds</strong> (changeset 055, on purpose: "Without it a waiter cannot seat
+     * a table or attach an order to one"). The two verbs only look alike:
+     *
+     * <ul>
+     *   <li>{@code pos.tables.manage} — seat/release a table, attach an order. Runtime service
+     *       state, needed by everyone working the floor.</li>
+     *   <li>{@code pos.tables.admin} — decide which tables the restaurant HAS. Catalogue state,
+     *       needed by whoever lays out the floor, and by nobody else.</li>
+     * </ul>
+     *
+     * <p>Reusing the existing code would have handed every waiter the ability to rename and
+     * retire the restaurant's tables mid-shift. Held by OWNER, TENANT_ADMIN and MANAGER; see
+     * changeset 083.
+     */
+    public void requireTablesAdmin() {
+        if (!hasPermission("pos.tables.admin")) {
+            throw new PermissionDeniedException("Requires pos.tables.admin");
+        }
+    }
 }

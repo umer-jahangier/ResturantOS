@@ -28,6 +28,26 @@ public class DiningTable extends TenantAuditableEntity {
     @Column(name = "capacity", nullable = false)
     private int capacity = 4;
 
+    /**
+     * Free-text grouping label ("Rooftop", "Garden", "Hall") — deliberately NOT an entity.
+     * See V12's header for why a section is a label and a branch is a column.
+     */
+    @Column(name = "section", length = 50)
+    private String section;
+
+    /**
+     * CATALOGUE state: does this table still exist in this restaurant. Distinct from
+     * {@link #status}, which is RUNTIME state written by
+     * {@code TableService.syncStatusForOrder} on every order transition. Conflating the
+     * two would make an OCCUPIED table impossible to retire and a retired table flip
+     * itself back to AVAILABLE when its last order closed.
+     *
+     * <p>There is no hard delete: {@code orders.table_id} references these rows and a
+     * closed order must keep naming the table it was served at.
+     */
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private TableStatus status = TableStatus.AVAILABLE;

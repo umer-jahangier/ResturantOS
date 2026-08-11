@@ -47,6 +47,19 @@ public class MenuItem extends TenantAuditableEntity {
     @Column(name = "station_id")
     private UUID stationId;
 
+    /**
+     * file-service file id for this item's picture, or null. Deliberately the ID and not a URL:
+     * {@code MenuItemDto} derives {@code imageUrl} as {@code /api/v1/files/{id}/download}, so
+     * changing that route is a one-line change rather than a data migration across every row.
+     *
+     * <p>No JPA relationship and no FK — {@code file_metadata} lives in {@code file_db}, owned
+     * by file-service. Integrity is enforced at the application boundary by
+     * {@link io.restaurantos.pos.service.MenuItemImageService}, which resolves the id against
+     * file-service before any write persists it.
+     */
+    @Column(name = "image_file_id")
+    private UUID imageFileId;
+
     @Column(name = "active", nullable = false)
     private boolean active = true;
 }

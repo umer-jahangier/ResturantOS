@@ -170,8 +170,18 @@ describe("Menu Items page", () => {
     await user.type(within(dialog).getByRole("textbox", { name: "Price (Rs)" }), "550");
     await user.click(within(dialog).getByRole("button", { name: "Add item" }));
 
+    // `imageFileId: null` is sent EXPLICITLY even when no picture was chosen, and this
+    // assertion exists to keep it that way (19b). The backend reads a null/absent imageFileId on
+    // UPDATE as "remove the picture", so the form always sends the key rather than omitting it —
+    // otherwise a price-only edit would silently delete an item's photo. Create is asserted here
+    // because it is where the convention would most easily drift back to omission.
     await waitFor(() =>
-      expect(posted).toEqual({ categoryId: CAT_MAINS, name: "Biryani", basePricePaisa: 55000 }),
+      expect(posted).toEqual({
+        categoryId: CAT_MAINS,
+        name: "Biryani",
+        basePricePaisa: 55000,
+        imageFileId: null,
+      }),
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Added Biryani"));
   });

@@ -15,6 +15,7 @@ import {
 import type { MenuCategory, MenuItem } from "@/lib/models/pos.model";
 import { MenuCategoryFormDialog } from "@/components/menu/MenuCategoryFormDialog";
 import { MenuItemFormDialog } from "@/components/menu/MenuItemFormDialog";
+import { MenuItemImage } from "@/components/menu/MenuItemImage";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -224,6 +225,14 @@ export default function MenuItemsPage() {
                   <div className="divide-y">
                     {rows.map((item) => (
                       <div key={item.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+                        {/* Thumbnail. An item with no picture gets a calm placeholder, never a
+                            broken-image glyph — and a picture that fails to LOAD renders
+                            distinctly from one that was never set. */}
+                        <MenuItemImage
+                          imageUrl={item.imageUrl}
+                          name={item.name}
+                          className="size-9"
+                        />
                         <span className="flex-1 truncate">{item.name}</span>
                         <MoneyDisplay paisa={item.basePricePaisa} className="shrink-0" />
                         {!item.active ? <StatusBadge status="archived" label="Inactive" /> : null}

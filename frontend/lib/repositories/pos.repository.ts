@@ -12,8 +12,10 @@ import {
   apiMenuCategorySchema,
   createMenuItemInputSchema,
   createMenuCategoryInputSchema,
+  createDiningTableInputSchema,
   type CreateMenuItemInput,
   type CreateMenuCategoryInput,
+  type CreateDiningTableInput,
   apiDiningTableSchema,
   apiOrderSchema,
   apiOrderSummarySchema,
@@ -164,11 +166,64 @@ export const PosRepository = {
 
   // ── Tables ────────────────────────────────────────────────────────────────
 
+  /**
+   * Service-time list — ACTIVE tables only, which is the server default. This is what the
+   * order-taking picker reads; a retired table must never be selectable.
+   */
   async getTables(branchId: string): Promise<DiningTable[]> {
     const raw = await get<unknown[]>("/api/v1/pos/tables", { branchId });
     return (Array.isArray(raw) ? raw : []).map((r) =>
       adaptDiningTable(apiDiningTableSchema.parse(r)),
     );
+  },
+
+  /**
+   * Catalogue list — includes retired tables so they can be found and reactivated. Requires
+   * `pos.tables.admin`; a waiter calling this gets a 403 rather than a silently narrower list.
+   */
+  async getTablesForAdmin(branchId: string): Promise<DiningTable[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/tables", {
+      branchId,
+      includeInactive: true,
+    });
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptDiningTable(apiDiningTableSchema.parse(r)),
+    );
+  },
+
+  async createTable(branchId: string, payload: CreateDiningTableInput): Promise<DiningTable> {
+    const body = createDiningTableInputSchema.parse(payload);
+    const raw = await post<typeof body, unknown>(
+      `/api/v1/pos/tables?branchId=${encodeURIComponent(branchId)}`,
+      body,
+    );
+    return adaptDiningTable(apiDiningTableSchema.parse(raw));
+  },
+
+  async updateTable(
+    id: string,
+    branchId: string,
+    payload: CreateDiningTableInput,
+  ): Promise<DiningTable> {
+    const body = createDiningTableInputSchema.parse(payload);
+    const raw = await put<typeof body, unknown>(
+      `/api/v1/pos/tables/${id}?branchId=${encodeURIComponent(branchId)}`,
+      body,
+    );
+    return adaptDiningTable(apiDiningTableSchema.parse(raw));
+  },
+
+  /**
+   * Retire (`false`) or restore (`true`) a table. There is deliberately no delete: `orders`
+   * reference these rows, so a closed order must keep naming the table it was served at.
+   */
+  async setTableActive(id: string, branchId: string, active: boolean): Promise<DiningTable> {
+    const action = active ? "activate" : "deactivate";
+    const raw = await patch<undefined, unknown>(
+      `/api/v1/pos/tables/${id}/${action}?branchId=${encodeURIComponent(branchId)}`,
+      undefined,
+    );
+    return adaptDiningTable(apiDiningTableSchema.parse(raw));
   },
 
   async updateTableStatus(

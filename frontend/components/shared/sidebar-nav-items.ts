@@ -1,4 +1,5 @@
 import {
+  Armchair,
   Banknote,
   BarChart3,
   BookOpen,
@@ -216,6 +217,18 @@ export const navGroups: NavGroup[] = [
         href: "/app/menu/items",
         icon: UtensilsCrossed,
         permission: "pos.menu.manage",
+        feature: "FEATURE_POS",
+      },
+      {
+        // 19b: the dining-table catalogue. Gated on `pos.tables.admin` — the NEW catalogue
+        // permission, deliberately NOT the existing `pos.tables.manage`, which WAITER holds so
+        // a waiter can seat a table. Using the latter here would put a floor-plan editor in
+        // every waiter's sidebar. Sits under "Menu" alongside Menu Items because both are the
+        // same job: what this restaurant offers and where it seats people.
+        label: "Tables",
+        href: "/app/tables",
+        icon: Armchair,
+        permission: "pos.tables.admin",
         feature: "FEATURE_POS",
       },
     ],

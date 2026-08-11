@@ -71,10 +71,28 @@ public class FileStorageService {
     @Transactional
     public FileUploadResponse upload(MultipartFile file, UUID tenantId, UUID userId)
             throws IOException, MinioException, NoSuchAlgorithmException {
+        return upload(file, tenantId, userId, null);
+    }
+
+    /**
+     * @param enforcedContentType when non-null, the content type to STORE, overriding whatever
+     *                            the client declared. {@link ImageUploadPolicy} returns the type
+     *                            it sniffed from the file's own bytes; persisting that instead of
+     *                            the client's header is what stops a forged {@code image/png}
+     *                            label on a non-image from being echoed back to a browser by
+     *                            {@link #download}, which sets its response Content-Type from
+     *                            this stored value.
+     */
+    @Transactional
+    public FileUploadResponse upload(MultipartFile file, UUID tenantId, UUID userId,
+                                     String enforcedContentType)
+            throws IOException, MinioException, NoSuchAlgorithmException {
 
         long fileSize = file.getSize();
         String sanitizedFilename = sanitizeFilename(file.getOriginalFilename());
-        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        String contentType = enforcedContentType != null
+                ? enforcedContentType
+                : (file.getContentType() != null ? file.getContentType() : "application/octet-stream");
 
         quotaService.checkQuota(tenantId, fileSize);
 

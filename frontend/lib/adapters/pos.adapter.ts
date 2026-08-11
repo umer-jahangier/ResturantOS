@@ -41,6 +41,8 @@ export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
     taxRatePct: typeof raw.taxRatePct === "number" ? raw.taxRatePct : Number(raw.taxRatePct),
     kdsStation: raw.kdsStation ?? null,
     active: raw.active,
+    imageFileId: raw.imageFileId ?? null,
+    imageUrl: raw.imageUrl ?? null,
   };
 }
 
@@ -60,6 +62,11 @@ export function adaptDiningTable(raw: ApiDiningTable): DiningTable {
     branchId: raw.branchId,
     tableName: raw.tableName,
     capacity: raw.capacity,
+    section: raw.section ?? null,
+    // Defaults to TRUE, not false. A pos-service that predates V12 omits this field, and
+    // defaulting to false would render every table in the product as retired — the exact
+    // "the screen looks empty and nothing errored" failure mode this phase exists to avoid.
+    active: raw.active ?? true,
     status: raw.status,
     floorPlanX: raw.floorPlanX ?? null,
     floorPlanY: raw.floorPlanY ?? null,
