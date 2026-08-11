@@ -91,6 +91,40 @@ that a future reader does not attribute a whole-module failure to a code change.
 
 ---
 
+## D-5 — I swept three lines of the phase-37 agent's work into commit `f55292dc`
+
+**Mine, and recorded rather than quietly left.**
+
+`f55292dc` ("feat(36-05): edit and retire a unit from the setup screen…") contains a change to
+`frontend/app/(tenant)/app/finance/layout.tsx` that is not mine — the phase-37 agent's new
+**Transactions** tab, three lines, with their own `37-11` comment:
+
+```diff
+ const TABS = [
++  // 37-11: the register is the first tab an owner wants — "there was no system to see all
++  // the orders transactions in the app". It leads.
++  { href: "/app/finance/transactions", label: "Transactions" },
+   { href: "/app/finance/accounts", label: "Accounts" },
+```
+
+**Mechanism.** My `git add` named explicit files, but my `git commit` pathspec was
+`-- frontend`, a DIRECTORY. `git commit -- <dir>` commits everything staged beneath it, so their
+file — staged seconds earlier in the shared index — came with mine. Explicit `git add` is necessary
+and not sufficient; the commit pathspec has to be the explicit file list too.
+
+**Nothing is lost and nothing is broken.** The three lines are committed, correct and live on the
+branch; the Transactions tab works. The only damage is attribution: the phase-37 agent will find
+their change already committed under someone else's message, and their own commit will not contain
+it.
+
+**Deliberately NOT reverted.** Reverting it out of `f55292dc` would delete a working feature from
+HEAD to fix a bookkeeping problem, which is a strictly worse trade.
+
+**Owner:** the phase-37 agent, for awareness. **Action for them:** none required beyond knowing
+where the change went.
+
+---
+
 ## D-4 — Items handed off by the 36-01 findings register
 
 See `31-01-FINDINGS.md`, section "Handoff": the unconsumed `finance.invoice-matched.queue`, the
