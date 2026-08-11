@@ -1049,11 +1049,11 @@ route**, 0 routes with horizontal page scroll, 24 runtime dependencies.
 **Plans**:
 
 *Wave 1 — foundation*
-- [ ] 38-01-PLAN.md — the type and space bridge, `PageHeader`, `PageBody` (D-38-02)
+- [x] 38-01-PLAN.md — the type and space bridge, `PageHeader`, `PageBody` (D-38-02) — **COMPLETE** (`0cdcb523`). Type-scale classes 1037→981, bare `rounded` 149→141, 9 screens migrated, gates G1/G2/G12a + type-scale + sizing-namespace, 3 audit bugs fixed. Also caught and fixed a `--spacing-*` bridge that collapsed **every dialog in the product** to a 24px sliver (UI-SPEC §7.2.1).
 
 *Wave 2 — primitives*
-- [ ] 38-02-PLAN.md — `DataGrid` and `FilterBar`, the one table for 30+ screens
-- [ ] 38-03-PLAN.md — one `StatusBadge`, one `ConfirmDialog`, the visual form contract
+- [x] 38-02-PLAN.md — `DataGrid`, the one table for 30+ screens — **COMPLETE** (`0e3fb0f8`). Sticky headers 0→3 of 3, row heights 44+55→[44], 84-row list paged, 390px overflow 100→5/2/2, cells at `--text-small`. `FilterBar` NOT built; no virtualization (UI-SPEC §12 forbids the dependency). Also fixed `cn()` silently stripping the contract type scale.
+- [~] 38-03-PLAN.md — one `ConfirmDialog` + `aria-modal` — **PARTIAL** (`d95cd934`). 5 of 6 bespoke confirmations collapsed; `aria-modal` on every dialog incl. the palette. **NOT done:** the six `StatusBadge` implementations, required-field indication, `/app/hr/attendance` labelling. `void-refund-dialog` reassigned to 38-04 (it is a form, not a confirmation).
 
 *Wave 3 — operational surfaces, where a wrong UI costs money (D-38-03)*
 - [ ] 38-04-PLAN.md — POS terminal: operator shell, touch-first layout, print path kept intact
