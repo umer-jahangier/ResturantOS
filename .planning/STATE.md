@@ -6,8 +6,8 @@ current_phase: 19
 current_phase_name: Admin Surfaces, Tables/Images, SuperAdmin Console (parallel)
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-07T15:10:00.000Z"
-last_activity: 2026-08-07
+last_updated: "2026-08-11T23:05:00.000Z"
+last_activity: 2026-08-11
 last_activity_desc: Phase 13 complete (16 plans); 14, 14b, 15, 15c, 16a, 17b, 18b, 20 complete
 progress:
   total_phases: 38
@@ -38,6 +38,43 @@ which is committed and is the real ground truth for that work.
 Corrective action: subsequent phases go through /gsd-plan-phase before /gsd-execute-phase.
 -->
 
+
+<!--
+PHASE 37 — Finance ↔ Orders Integration (session of 2026-08-11)
+
+Executed 37-01, 37-02 and 37-03 of 14 through the GSD workflow (PLAN → atomic commits per task →
+SUMMARY → state/roadmap). Plans 37-04 … 37-14 are NOT started.
+
+37-01 COMPLETE — one money-display rule across JVM and browser, pinned by a shared vector file both
+  test suites read. The JVM was rendering 123456 paisa as "Rs1,235": a rupee HIGH, minor unit gone,
+  and a >2^53 value losing its last digit to a double.
+
+37-02 COMPLETE — the finance guide's claim registry and its three-direction gate
+  (`make verify-guide-claims`, 0.34s). Four claims, each bound to a test that already existed.
+  GOVERNING RULE for 37-03..37-12: do NOT edit claims.json and do NOT place markers; record the
+  claim sentence and its test identifier in your own SUMMARY. 37-13 writes the rows in one pass.
+
+37-03 BLOCKED at its own human checkpoint — the code fix is landed and committed (reporting reads
+  the producer's business date; a null dead-letters rather than falling back). The realignment of
+  the 73 historic misdated facts is authored (deploy/clickhouse/V003) and NOT applied. To finish:
+      bash scripts/e2e/phase32-business-date-reconciliation.sh --apply
+
+TWO ENVIRONMENT FACTS that affect every remaining plan in this phase:
+  - Testcontainers CANNOT start a container here (colima's docker socket cannot be bind-mounted;
+    ryuk and postgres:18 both fail). Every `*IT.java` in this repo is unrunnable locally.
+  - `mvn test -Dtest=SomethingIT` reports SUCCESS having run ZERO tests, because surefire excludes
+    `**/*IT.java`. Use `mvn verify -Dit.test=`. Several 37-* plans' <verify> blocks use the wrong form.
+  Consequence: plans 37-04, 37-06, 37-07, 37-08, 37-09, 37-10 all specify ITs as their verification.
+  Those must be verified against the LIVE stack instead, and a green IT run must not be claimed.
+
+DEFECT-37-03-B — NEW, found during 37-03, NOT fixed:
+  clickhouse_analytics.sales_order_facts.closed_at is NOT the true instant. SalesFactWriter:47
+  passes `Timestamp.from(instant)` to JDBC with no Calendar, so the driver renders it in the JVM's
+  default zone and stores branch-local wall-clock in a column declared DateTime64(3,'UTC').
+  Measured +5h on 73 of 73 sampled rows against pos_db. Every time-of-day report over these facts
+  is wrong by the JVM offset. Fix it in 37-06/37-07, which both rewrite SalesFactWriter; a backfill
+  of existing rows is also required.
+-->
 
 # Project State
 
