@@ -63,3 +63,79 @@ Port 9100 is fire-and-forget with no acknowledgement (research §5.1). The agent
 to a socket; it does **not** know whether paper moved. The queue's terminal success state is named
 `SENT` for that reason, and nothing in this package will ever claim a paper outcome it cannot
 observe.
+
+---
+
+# Running the agent
+
+## Install
+
+Node 20+. No native build, no compiler, no database.
+
+```bash
+cd print-agent && pnpm install && pnpm exec tsc -p tsconfig.json
+node dist/main.js            # or: PRINT_AGENT_CONFIG=/etc/print-agent.json node dist/main.js
+```
+
+One agent per BRANCH, not per till — a Raspberry Pi or the counter PC. That is the whole reason
+this exists rather than QZ Tray (see above): kitchen tickets must print when no browser tab is open.
+
+## Configuration
+
+`./print-agent.config.json` by default, overridable per key by environment variable.
+
+| Key | Env | Default | What it means |
+| --- | --- | --- | --- |
+| `bindAddress` | `PRINT_AGENT_BIND` | `127.0.0.1` | **Loopback by default.** A non-loopback bind with no `sharedSecret` **refuses to start**. |
+| `port` | `PRINT_AGENT_PORT` | `7654` | |
+| `sharedSecret` | `PRINT_AGENT_SECRET` | none | Required for any non-loopback bind. Sent as `X-Print-Agent-Secret`. |
+| `allowedOrigins` | `PRINT_AGENT_ORIGINS` | none | Browser origins that may call the agent. **A wildcard is refused at load.** |
+| `journalPath` | `PRINT_AGENT_JOURNAL` | `./.print-agent/queue.jsonl` | Where the queue lives. |
+| `maxAttempts` | `PRINT_AGENT_MAX_ATTEMPTS` | `5` | Matches the POS offline outbox. |
+| `printers` | — | `[]` | The registry from plan 26-02. Validated at LOAD, so a bad entry stops startup rather than a receipt. |
+
+### Why it refuses to start rather than warning
+
+An unauthenticated print endpoint on a restaurant LAN prints whatever anyone sends it, and on most
+restaurant networks that includes the guest wifi. `Access-Control-Allow-Origin: *` is the same
+problem through the browser: any page open on the till could print. Both are refusals, not
+warnings, because nobody reads a warning on a till.
+
+## Endpoints
+
+| Method | Path | Response |
+| --- | --- | --- |
+| `POST` | `/print` | `200 DELIVERED` \| `202 QUEUED` \| `404 UNKNOWN_PRINTER` \| `422 INVALID_DOCUMENT` |
+| `POST` | `/test-print` | as above; prints a **column ruler** |
+| `GET` | `/health` | version, queue depth by status, per-printer last attempt |
+| `GET` | `/printers` | the registry, without secrets |
+| `GET` | `/queue` | depth, plus dead-lettered jobs |
+
+**200 vs 202 is load-bearing.** They are two different messages to a cashier — "printed" and
+"queued, printer offline" — and 26-09's fallback ladder branches on exactly this.
+
+## The journal, and recovering a dead-lettered job
+
+`queue.jsonl` is line-delimited JSON, one record per event, **last record for an id wins**. Read it
+with anything:
+
+```bash
+tail -5 .print-agent/queue.jsonl | jq .
+jq -c 'select(.status=="DEAD_LETTERED") | {id, targetPrinterId, attempts, lastError}' .print-agent/queue.jsonl
+curl -s localhost:7654/queue | jq .deadLettered
+```
+
+A dead-lettered job has exhausted `maxAttempts` and will **never** be retried automatically — that
+is deliberate, so a wedged printer cannot consume the queue. It is also **never compacted away**:
+that record is the only evidence a customer's receipt was not printed. To retry one, re-POST the
+document to `/print`; to see what was lost, read the record.
+
+`corruptedJournalBytes` on `/health` counts bytes the loader could not parse — the shape a power cut
+leaves. A number that keeps climbing means a failing disk or a dying power supply, not a software
+bug.
+
+## What the agent will never tell you
+
+It **cannot** tell you a receipt printed. Port 9100 is fire-and-forget with no acknowledgement, and
+a spooler accepts jobs for a printer unplugged since Tuesday. The terminal success state is `SENT`
+— bytes reached a socket — and nothing here will ever claim more than that.

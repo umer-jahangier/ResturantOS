@@ -57,6 +57,11 @@ export interface AgentConfig {
   maxBackoffMs: number;
   connectTimeoutMs: number;
   writeTimeoutMs: number;
+  /**
+   * Origins permitted to call this agent from a browser. Defaults to NONE, and a wildcard is
+   * refused at load — see {@link loadConfig}.
+   */
+  allowedOrigins: string[];
   printers: PrinterEntry[];
 }
 
@@ -115,6 +120,7 @@ export function loadConfig(
     maxBackoffMs: num(fromFile.maxBackoffMs, DEFAULTS.maxBackoffMs, "maxBackoffMs"),
     connectTimeoutMs: num(fromFile.connectTimeoutMs, DEFAULTS.connectTimeoutMs, "connectTimeoutMs"),
     writeTimeoutMs: num(fromFile.writeTimeoutMs, DEFAULTS.writeTimeoutMs, "writeTimeoutMs"),
+    allowedOrigins: parseOrigins(env.PRINT_AGENT_ORIGINS ?? fromFile.allowedOrigins),
     printers: parsePrinters(fromFile.printers),
   };
 
@@ -135,6 +141,31 @@ export function isLoopback(address: string): boolean {
  * surfaces when a customer is standing at the counter waiting for a receipt, it has surfaced in the
  * worst possible place. The agent refuses to start instead.
  */
+/**
+ * Browser origins allowed to reach the agent.
+ *
+ * <p>Defaults to NONE. A wildcard is refused OUTRIGHT, at load, with a named error: this is an
+ * unauthenticated write endpoint, and `Access-Control-Allow-Origin: *` on it means any page the
+ * cashier's browser happens to open — an advert iframe on a news site left up on the till — can
+ * print on the branch's printers. The agent must name the POS origins it serves.
+ */
+function parseOrigins(raw: unknown): string[] {
+  if (raw === undefined || raw === null || raw === "") return [];
+  const list = typeof raw === "string" ? raw.split(",").map((o) => o.trim()).filter(Boolean) : raw;
+  if (!Array.isArray(list)) throw new ConfigError("allowedOrigins", "must be an array or a comma-separated string");
+  for (const origin of list) {
+    if (origin === "*") {
+      throw new ConfigError(
+        "allowedOrigins",
+        'a wildcard "*" is refused. This is an unauthenticated print endpoint: allowing every ' +
+          "origin lets any page open in the cashier's browser print on this branch's printers. " +
+          "Name the POS origins explicitly.",
+      );
+    }
+  }
+  return list.map(String);
+}
+
 function parsePrinters(raw: unknown): PrinterEntry[] {
   if (raw === undefined || raw === null) return [];
   if (!Array.isArray(raw)) throw new ConfigError("printers", "must be an array");
