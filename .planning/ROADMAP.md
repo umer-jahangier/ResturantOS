@@ -47,6 +47,33 @@ The renumbering exists because research found defects that must be fixed BEFORE 
 feature work that was previously queued — most importantly that no discounted order has
 ever posted to the ledger, and that the audit log is empty.
 
+### ⚠ Phase-number collision, resolved 2026-08-07 — rename PENDING
+
+I created six phase directories (`27`…`32`) for the production push **without checking that the
+roadmap already owned those numbers**. Second numbering collision I have caused; the first was
+Phase 22 double-booked for two different bodies of work. Caught by the phase-27 planner, which
+refused to write a duplicate ROADMAP entry and escalated instead — the right call.
+
+Two of the six turned out to be the **same work** the roadmap had already numbered, which is
+worth more than the numbering fix: it means the roadmap was already asking for them.
+
+| Directory | Collided with | Resolution |
+|---|---|---|
+| `28-station-pos-profiles` | 28 Multi-POS & KDS/BDS Routing | **Same phase** — keeps 28, scope merged |
+| `30-biometric-terminals` | 30 Business-Model Adaptivity | **Is roadmap 25** (Biometric Attendance Repair) — renumber to 25 |
+| `27-visual-design-language` | 27 FBR Digital Invoicing | → **34** |
+| `29-hr-usability` | 29 Production Hardening | → **35** |
+| `31-purchasing-inventory-wiring` | 31 Tenant Onboarding | → **36** |
+| `32-finance-orders-integration` | 32 Subscription Metering | → **37** |
+
+The directory rename is deliberately deferred: four planners are writing into those directories
+right now, and renaming underneath a running agent destroys its work. It is a mechanical
+`git mv` plus a frontmatter number once they land, and no plan content changes.
+
+**Do not add a phase number without grepping this file first.** `gsd-tools query init.plan-phase`
+resolves on the DIRECTORY, not the roadmap entry, so a collision is silent at creation time and
+only surfaces when someone tries to plan the phase that lost.
+
 ### Execution record — what has actually landed (2026-08-07)
 
 **Complete and independently verified** (each number re-run by the orchestrator, not taken from
