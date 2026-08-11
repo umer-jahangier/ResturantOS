@@ -31,3 +31,35 @@ hand-rolled encoder would get that wrong quietly.
 literal bytes checked against the Star Micronics specification. If a library upgrade changes what
 it emits for a cut or a drawer pulse, the test suite fails and a person decides — rather than a
 restaurant discovering it during service.
+
+## The queue is an append-only journal, and that is a decision — not a placeholder
+
+Two options were considered for durable storage and **both were rejected on operational grounds,
+not on taste**. Do not "simplify" this back:
+
+- **`better-sqlite3`** requires a **native build on every machine it installs on**. A print agent
+  that fails to install on a Windows till because there is no C++ toolchain has failed before it
+  started — and the person hitting that error is a restaurant manager, not an engineer.
+- **`node:sqlite`** is still an **experimental API**. A queue holding a customer's unprinted
+  receipt is not where you want to find out what changed between Node releases.
+
+An append-only, line-delimited journal has no dependency at all, is durable with one `fsync`, and —
+the part that matters at two in the morning — a support engineer can read it in a text editor.
+
+`src/queue/journal.ts` carries the same note at the top of the file, because a decision recorded
+only in a README is a decision the next person editing the file will not see.
+
+### What "accepted" means
+
+`Journal.append` does not return until the bytes are on the platter, and the HTTP response for an
+accepted job is written **after** it returns. That ordering is the contract: a job the cashier was
+told was accepted survives the power going out one millisecond later. Accepting and then losing is
+the print-queue form of the empty-state-on-failure defect — the product says it worked and no paper
+appears.
+
+### `SENT`, never `PRINTED`
+
+Port 9100 is fire-and-forget with no acknowledgement (research §5.1). The agent knows it wrote bytes
+to a socket; it does **not** know whether paper moved. The queue's terminal success state is named
+`SENT` for that reason, and nothing in this package will ever claim a paper outcome it cannot
+observe.
