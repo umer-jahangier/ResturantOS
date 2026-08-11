@@ -299,3 +299,8 @@ refuses money; the test scans generically by reflection), -C (the unique index),
 consumes the revision machinery's set), -E (FAILED row naming the station), -F (tenant predicate in
 the assembler's query plus forced RLS on `print_jobs`), -G (`gateway/` untouched, asserted by
 `git diff --quiet`), -SC (no package added to any manifest).
+
+## Self-Check: PASSED
+
+Every file named in `key-files` exists on disk and every commit hash in `commits` resolves in
+`git log`. Verified by script, not by memory.

@@ -343,3 +343,8 @@ unchanged), -F (lease reclaim, driven by an injected clock), -G (late ack is a n
 window documented), -H (revocation stops the loop and logs once), -I (an explicitly empty result,
 asserted at the service and over HTTP), -SC (no package added to any manifest — including the
 deliberate avoidance of `spring-security-test`).
+
+## Self-Check: PASSED
+
+Every file named in `key-files` exists on disk and every commit hash in `commits` resolves in
+`git log`. Verified by script, not by memory.
