@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -316,6 +316,35 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
             valueClassName={remainingPaisa > 0 ? "text-destructive" : "text-success"}
             testId="remaining-balance-value"
           />
+
+          {/*
+            Print bill (26-05). Sited here, at the end of the bill breakdown, because that is where
+            the cashier's eye already is at the moment the customer asks for it.
+
+            Offered as soon as SOMETHING has been paid, not only once the order is CLOSED: a
+            customer asks for the bill at the moment they hand over money, and an order stays open
+            until it is both fully paid AND fully served. Requiring CLOSED would mean the paper is
+            unavailable at exactly the moment it is wanted.
+
+            Navigation only — no printing happens here. The receipt route owns the document, the
+            80mm stylesheet and the print dialog, and it is a POST that writes a print_jobs row, so
+            it must not be triggered as a side effect of rendering this screen.
+          */}
+          {amountPaidPaisa > 0 && (
+            <button
+              type="button"
+              data-testid="print-bill-button"
+              onClick={() => router.push(`/app/pos/orders/${orderId}/receipt`)}
+              className={cn(
+                "mt-2 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl",
+                "border text-sm font-medium transition-all",
+                "hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
+              )}
+            >
+              <Printer className="size-4" aria-hidden="true" />
+              Print bill
+            </button>
+          )}
         </section>
       </div>
 

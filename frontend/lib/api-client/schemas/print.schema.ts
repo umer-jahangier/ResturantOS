@@ -187,6 +187,22 @@ export const apiPrintDocumentSchema = z.strictObject({
   footer: apiPrintFooterSchema.nullish(),
 });
 
+/**
+ * `PrintJobService.IssuedDocument` — what pos-service returns from both print-job endpoints
+ * (26-03). The row id travels beside the document so a caller can re-serve THIS issue later
+ * without allocating another sequence number.
+ *
+ * <p>`targetPrinterId` is `"unassigned"` for a branch with no printer configured, which is a
+ * supported branch (D-26-01) and not an error.
+ */
+export const apiIssuedPrintDocumentSchema = z.strictObject({
+  printJobId: z.string().uuid(),
+  targetPrinterId: z.string(),
+  document: apiPrintDocumentSchema,
+});
+
+export type ApiIssuedPrintDocument = z.infer<typeof apiIssuedPrintDocumentSchema>;
+
 export type ApiReceiptAmount = z.infer<typeof apiReceiptAmountSchema>;
 export type ApiPrintIssue = z.infer<typeof apiPrintIssueSchema>;
 export type ApiPrintHeader = z.infer<typeof apiPrintHeaderSchema>;
