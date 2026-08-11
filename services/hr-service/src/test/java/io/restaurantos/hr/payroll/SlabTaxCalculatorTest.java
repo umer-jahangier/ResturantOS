@@ -72,4 +72,49 @@ class SlabTaxCalculatorTest {
         assertThatThrownBy(() -> calc.computeAnnualTax(120000000L, List.of()))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    // ── the rate an accountant types is the rate that is applied ─────────────
+    //
+    // None of the six figures above moves under decimal arithmetic: every seeded slab rate is a
+    // whole number of percent, and whole percentages of whole paisa are exact in binary too. That
+    // is precisely why the double survived unnoticed for as long as the only slab table in
+    // existence was one a developer wrote. It stops being true the moment the tax-configuration
+    // screen lets an accountant enter 2.300 or 11.500, so the two tests below are the ones that
+    // hold the line — each is constructed to give a DIFFERENT answer under
+    // `Math.round(excess * ratePct / 100.0)`, so reverting TaxSlab.ratePct to a double fails them
+    // rather than merely making them redundant.
+
+    @Test
+    void aThreeDecimalRateIsAppliedExactly_notAsItsNearestDouble() {
+        // 100,500 paisa at 2.300% is exactly 2,311.5 paisa. In IEEE-754 the same expression lands
+        // on 2311.4999999999995, and Math.round takes that DOWN to 2311 — a paisa short, in the
+        // employee's favour here and against them for the next rate. Decimal arithmetic sees the
+        // exact half and applies the documented HALF_UP rule to get 2312.
+        List<TaxSlab> oneBand = List.of(new TaxSlab(0L, null, 0L, new BigDecimal("2.300")));
+
+        assertThat(calc.computeAnnualTax(100500L, oneBand))
+                .as("2.300%% of 100500 paisa is exactly 2311.5, which rounds HALF_UP to 2312")
+                .isEqualTo(2312L);
+    }
+
+    @Test
+    void anExactHalfPaisaRoundsHalfUp_likeEveryOtherStatutoryDeduction() {
+        // 500 paisa at 11.300% is exactly 56.5 paisa. HALF_UP is the rule PercentOfPaisa documents
+        // and the one EOBI and the surcharge already use; asserting it here means the income-tax
+        // slab walk cannot quietly acquire a different one.
+        List<TaxSlab> oneBand = List.of(new TaxSlab(0L, null, 0L, new BigDecimal("11.300")));
+
+        assertThat(calc.computeAnnualTax(500L, oneBand)).isEqualTo(57L);
+    }
+
+    @Test
+    void theBaseTaxIsAddedOnTopOfTheDecimalRateApplication() {
+        // The realistic shape: a mid-table band with a base amount and a fractional rate. Proves the
+        // decimal path is used inside a real slab walk, not only in a degenerate single-band table.
+        List<TaxSlab> band = List.of(
+                new TaxSlab(0L, 120000000L, 0L, new BigDecimal("0.000")),
+                new TaxSlab(120000000L, null, 600000L, new BigDecimal("2.300")));
+
+        assertThat(calc.computeAnnualTax(120000000L + 100500L, band)).isEqualTo(600000L + 2312L);
+    }
 }
