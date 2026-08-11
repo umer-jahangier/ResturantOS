@@ -71,6 +71,11 @@ class GlAccountValidationIT extends InventoryTestBase {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
+                // Binds TenantContext per REQUEST from the authenticated principal, the way
+                // JwtAuthenticationFilter does in production. Without it every perform() after the
+                // first runs with no tenant: the production filter clears on the way out, and it is
+                // right to. See TenantContextBindingTestFilter.
+                .addFilter(TenantContextBindingTestFilter.from(webApplicationContext), "/*")
                 .build();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();

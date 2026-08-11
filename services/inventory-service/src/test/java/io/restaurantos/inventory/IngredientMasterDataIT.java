@@ -77,6 +77,11 @@ class IngredientMasterDataIT extends InventoryTestBase {
     void setUp() {
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
+                // Binds TenantContext per REQUEST from the authenticated principal, the way
+                // JwtAuthenticationFilter does in production. Without it every perform() after the
+                // first runs with no tenant: the production filter clears on the way out, and it is
+                // right to. See TenantContextBindingTestFilter.
+                .addFilter(TenantContextBindingTestFilter.from(webApplicationContext), "/*")
                 .build();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
@@ -481,6 +486,12 @@ class IngredientMasterDataIT extends InventoryTestBase {
         JsonNode created = createIngredient(fullCreateRequest("Internal Lookup Item", "SKU-INTLOOKUP", categoryId, null, null));
         UUID ingredientId = UUID.fromString(created.path("id").asText());
         UUID unknownId = UUID.randomUUID();
+
+        // This call does not go through MockMvc, so TenantContextBindingTestFilter never runs and
+        // the tenant the fixture requests above bound has already been given back. Re-establish it
+        // for the direct invocation — in production this controller is reached over HTTP, where the
+        // filter chain is what puts a tenant on the thread.
+        tenantContext.set(tenantId, branchId, null, null);
 
         ResponseEntity<List<IngredientCategoryLookupDto>> response =
                 internalIngredientCategoryController.resolveIngredientCategories(
