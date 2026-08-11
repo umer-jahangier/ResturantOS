@@ -5,14 +5,24 @@ import react from "@vitejs/plugin-react";
 // Root dir without a trailing slash so the "@/..." alias resolves like tsconfig.
 const rootDir = fileURLToPath(new URL(".", import.meta.url)).replace(/\/$/, "");
 
+// 37-01: the money-display vector file lives in shared-lib and is read by BOTH stacks' tests.
+// It is aliased rather than copied on purpose — a copied fixture is a fixture that drifts, and
+// drift between the JVM renderer and the browser renderer is the entire defect plan 37-01 closes.
+const sharedFixtures = `${rootDir}/../shared-lib/src/test/resources`;
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: [{ find: /^@\//, replacement: `${rootDir}/` }],
+    alias: [
+      { find: /^@shared-fixtures\//, replacement: `${sharedFixtures}/` },
+      { find: /^@\//, replacement: `${rootDir}/` },
+    ],
   },
   test: {
     environment: "jsdom",
     globals: true,
+    // shared-lib sits outside the frontend root; without this the aliased fixture is refused.
+    server: { deps: { fallbackCJS: false } },
     setupFiles: ["./vitest.setup.ts"],
     include: [
       "__tests__/**/*.{test,spec}.{ts,tsx}",

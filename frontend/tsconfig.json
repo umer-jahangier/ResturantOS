@@ -20,7 +20,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@shared-fixtures/*": ["../shared-lib/src/test/resources/*"]
     }
   },
   "include": [

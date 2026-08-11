@@ -1,4 +1,5 @@
 import * as React from "react";
+import { formatPaisa } from "@/lib/adapters/shared";
 import { cn } from "@/lib/utils";
 
 interface MoneyDisplayProps {
@@ -14,31 +15,13 @@ interface MoneyDisplayProps {
   maxFractionDigits?: number;
 }
 
-function MoneyDisplay({
-  paisa,
-  currency = "PKR",
-  className,
-  maxFractionDigits = 2,
-}: MoneyDisplayProps) {
-  // Amounts are integral and can be very large, so they keep the exact BigInt path. Rates are not
-  // integral — since V12 a per-stock-unit cost is NUMERIC(18,4) — and BigInt() throws outright on
-  // a fractional value, which would have taken out every screen showing a unit cost.
-  const isWhole = typeof paisa === "bigint" || Number.isInteger(paisa);
-  let rupees: number;
-  if (isWhole) {
-    const paisaBig = BigInt(paisa);
-    const hundred = BigInt(100);
-    rupees = Number(paisaBig / hundred) + Number(paisaBig % hundred) / 100;
-  } else {
-    rupees = Number(paisa) / 100;
-  }
-
-  const formatted = new Intl.NumberFormat("en-PK", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: Math.max(2, maxFractionDigits),
-  }).format(rupees);
+/**
+ * Renders a paisa amount. The conversion itself lives in {@link formatPaisa} — one site shared
+ * with `toMoney` and pinned against the JVM formatter by a vector file both stacks read
+ * (37-01). This component owns the markup and nothing about the number.
+ */
+function MoneyDisplay({ paisa, currency = "PKR", className, maxFractionDigits = 2 }: MoneyDisplayProps) {
+  const formatted = formatPaisa(paisa, { maxFractionDigits, currency });
 
   return <span className={cn("tabular-nums font-medium", className)}>{formatted}</span>;
 }
