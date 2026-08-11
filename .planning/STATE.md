@@ -2,20 +2,42 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 10
-current_phase_name: Purchasing & Accounts Payable
+current_phase: 19
+current_phase_name: Admin Surfaces, Tables/Images, SuperAdmin Console (parallel)
 status: executing
-stopped_at: Completed 13-14-PLAN.md
-last_updated: "2026-08-07T02:12:41.777Z"
-last_activity: 2026-07-24
-last_activity_desc: Phase 08.2 complete, transitioned to Phase 10
+stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
+last_updated: "2026-08-07T15:10:00.000Z"
+last_activity: 2026-08-07
+last_activity_desc: Phase 13 complete (16 plans); 14, 14b, 15, 15c, 16a, 17b, 18b, 20 complete
 progress:
-  total_phases: 22
-  completed_phases: 15
-  total_plans: 168
-  completed_plans: 158
-  percent: 68
+  total_phases: 38
+  completed_phases: 23
+  total_plans: 190
+  completed_plans: 180
+  percent: 60
 ---
+
+<!--
+PROCESS NOTE — 2026-08-07. Read this before trusting the phase records below.
+
+This file said `current_phase: 10` while phases 13 through 22 were being executed, because
+several phases were driven by giving gsd-executor a freeform brief instead of a PLAN.md.
+gsd-executor exists to execute a plan; without one it does the work but updates none of the
+GSD bookkeeping. Flagged by the user, and they were right.
+
+Consequence, stated rather than papered over: phases 19, 19b, 19c, 21 and 22 were executed
+with a CONTEXT.md and a SUMMARY.md but **no PLAN.md**. Those plans are not missing — they
+were never written. They are deliberately NOT being back-filled: a plan authored after the
+work is a record of what happened wearing the costume of a decision made beforehand, and it
+would make every other plan in this repository less trustworthy by association.
+
+The briefs those phases were built from are not lost. They derive from
+`.planning/research/gap-audit/DEFECT-REGISTER.md` (103 defects with file-and-line evidence),
+which is committed and is the real ground truth for that work.
+
+Corrective action: subsequent phases go through /gsd-plan-phase before /gsd-execute-phase.
+-->
+
 
 # Project State
 

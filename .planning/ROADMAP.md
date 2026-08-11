@@ -47,6 +47,37 @@ The renumbering exists because research found defects that must be fixed BEFORE 
 feature work that was previously queued — most importantly that no discounted order has
 ever posted to the ledger, and that the audit log is empty.
 
+### Execution record — what has actually landed (2026-08-07)
+
+**Complete and independently verified** (each number re-run by the orchestrator, not taken from
+the executing agent):
+
+| Phase | Delivered | Evidence |
+|---|---|---|
+| **13** Platform & Tenant Access | 16 plans; blockers B1/B2/B3 | 413 live assertions, 0 failures |
+| **14** Money path | Discounted orders had never reached the ledger | `DR=89600 CR=77600` → balanced |
+| **14b** Truth & trust | 22 screens showed "empty" on failure | nav 6 → 19 items under a 503 |
+| **15** Audit trail | Four independent defects | **0 rows → 2,600** |
+| **15c** Browser E2E | Playwright harness | 50/56 live; found 7 product defects |
+| **16a** Unified login | Email-first, no tenant slug | SuperAdmin can log in — first time ever |
+| **17b** RLS FORCE rollout | Live cross-tenant read AND write | 78 rows/16 tenants → 10 rows/1 tenant |
+| **18b** ABAC enforcement | 16 of 22 policy rules enforced nothing | cross-branch salary access closed |
+| **20** Design system | OKLCH tokens, CVD-verified charts | contrast machine-checked, rendered |
+
+**Executing in parallel, and WITHOUT a PLAN.md** — recorded as a process deviation rather than
+hidden. These were driven from `.planning/research/gap-audit/DEFECT-REGISTER.md` (103 defects,
+file-and-line evidence) instead of a plan, so `gsd-executor` did the work but updated none of
+the GSD bookkeeping. Not back-filling the plans: a plan written after the work is a record of
+what happened dressed as a decision taken beforehand. See the process note in `STATE.md`.
+
+- [ ] **Phase 19: Admin Surfaces** — user management, settings, profile *(no PLAN.md)*
+- [ ] **Phase 19b: Tables & Menu Images** — table CRUD, first file upload in the product *(no PLAN.md)*
+- [ ] **Phase 19c: SuperAdmin Console** — tenants, tiers, features, usage *(no PLAN.md)*
+- [ ] **Phase 21: Screen Rebuilds** — KDS board + role dashboards on the design system *(no PLAN.md)*
+- [ ] **Phase 22: Financial Wiring** — every money path proven with persisted data *(no PLAN.md)*
+
+**Everything after these goes through `/gsd-plan-phase` before `/gsd-execute-phase`.**
+
 **Spine (strictly serial — everything else depends on these):**
 
 - [x] **Phase 14: Money-Path & Event-Bus Repair** — 5d. Discounted orders never posted revenue (debits exceed credits by the discount, `JE_UNBALANCED` rejects, and four services requeue the rejection forever). GR/IR double-post. *(executing)*
