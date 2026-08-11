@@ -7,6 +7,7 @@ import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { BranchSettingsForm } from "@/components/settings/branch-settings-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 
 /**
@@ -39,7 +40,15 @@ function SettingsPage() {
   const canSeeAppearance = roles.includes("OWNER") || roles.includes("TENANT_ADMIN");
 
   return (
-    <div className="space-y-6">
+    /*
+     * ZONE: expressive (D-34-02) — settings is named in the decision's table, alongside
+     * dashboards and the console. It was inheriting `restrained` from the back-office shell,
+     * which is the shell's correct default but not what this screen was assigned.
+     *
+     * Nested inside the restrained shell, exactly as the dashboard is: the page is richer than
+     * the chrome above it, and the chrome stays poor because it also renders over the POS.
+     */
+    <ZoneProvider zone="expressive" className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
         <p className="text-sm text-muted-foreground">
@@ -51,7 +60,7 @@ function SettingsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {canManageUsers && (
-          <Card>
+          <Card depth={2} interactive>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="size-4" aria-hidden="true" />
@@ -74,7 +83,7 @@ function SettingsPage() {
         )}
 
         {canSeeAppearance && (
-          <Card>
+          <Card depth={2} interactive>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="size-4" aria-hidden="true" />
@@ -96,7 +105,7 @@ function SettingsPage() {
           </Card>
         )}
       </div>
-    </div>
+    </ZoneProvider>
   );
 }
 

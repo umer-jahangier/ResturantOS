@@ -49,7 +49,15 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
         data-testid="platform-warning-rule"
       />
 
-      <header className="flex items-center gap-4 border-b bg-surface-1 px-6 py-3">
+      {/*
+       * Phase 34: the console header is a glass overlay surface.
+       *
+       * Safe here in a way it would not be in the tenant shell: this header only ever renders
+       * inside the platform route group, which is expressive end to end, so it can never
+       * composite over an operational screen the way TopBar can. `--surface-1` is a declared
+       * substrate in 34-02's manifest, so the header's text keeps a measured pairing.
+       */}
+      <header className="glass-surface-overlay sticky top-0 z-30 flex items-center gap-4 rounded-none border-x-0 border-t-0 px-6 py-3">
         <Link href="/platform/dashboard" className="font-semibold">
           RestaurantOS
         </Link>

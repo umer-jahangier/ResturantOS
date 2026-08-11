@@ -2,11 +2,7 @@
 
 import * as React from "react";
 
-import {
-  accessRefusalKind,
-  accessRefusalMessage,
-  formatUserFacingError,
-} from "@/lib/errors";
+import { accessRefusalKind, accessRefusalMessage, formatUserFacingError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -140,11 +136,7 @@ export function QueryErrorNotice({
   const refusal = accessRefusalKind(error);
   if (refusal) {
     return (
-      <AccessRefusalNotice
-        kind={refusal}
-        moduleLabel={moduleLabel ?? what}
-        className={className}
-      />
+      <AccessRefusalNotice kind={refusal} moduleLabel={moduleLabel ?? what} className={className} />
     );
   }
   return (
@@ -152,7 +144,14 @@ export function QueryErrorNotice({
       role="alert"
       data-testid="query-error"
       className={cn(
-        "space-y-2 rounded-md border border-destructive/30 bg-destructive/15 p-4 text-sm text-destructive",
+        // Phase 34 gives this depth and NOTHING else. 34-05 forbids making an error calmer,
+        // softer, slower to appear or more decorative — phase 14b exists because eleven screens
+        // told an owner their business had no vendors when the service was down, and character
+        // that lowers the salience of a failure recreates that defect with better typography.
+        // A raised surface reads as MORE urgent than a flat one, so depth is the one addition
+        // that moves in the permitted direction. Deliberately no entrance animation: if the
+        // animation does not run, the failure must already be on screen and readable.
+        "space-y-2 rounded-lg border border-destructive/30 bg-destructive/15 p-4 text-sm text-destructive shadow-depth-1",
         className,
       )}
     >

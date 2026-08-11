@@ -75,7 +75,7 @@ export default function PlatformDashboardPage() {
               <h2 id="attention-heading" className="text-lg font-semibold">
                 Needs attention
               </h2>
-              <ul className="divide-y rounded-lg border">
+              <ul className="glass-surface divide-y rounded-xl shadow-depth-2">
                 {failed.map((tenant) => (
                   <li key={tenant.id} className="flex items-center justify-between gap-4 px-4 py-3">
                     <div>
@@ -102,7 +102,10 @@ export default function PlatformDashboardPage() {
             </h2>
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {(["STARTER", "GROWTH", "ENTERPRISE", "CUSTOM"] as const).map((tier) => (
-                <li key={tier} className="rounded-lg border px-4 py-3">
+                <li
+                  key={tier}
+                  className="glass-surface vdl-lift rounded-xl px-4 py-3 shadow-depth-1"
+                >
                   <span className="text-sm text-muted-foreground">{tier}</span>
                   <span className="block text-xl font-semibold tabular-nums">
                     {countTier(live, tier)}
@@ -143,7 +146,9 @@ function StatTile({
 }) {
   return (
     <div
-      className="rounded-lg border p-4"
+      // Phase 34: a glass stat tile with depth. The console is expressive end to end, and this
+      // sits directly on the page background — a substrate 34-02's manifest declares.
+      className="glass-surface vdl-lift rounded-xl p-4 shadow-depth-2"
       data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <div className="flex items-center gap-2 text-sm text-muted-foreground">

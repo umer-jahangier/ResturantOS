@@ -27,7 +27,18 @@ function EmptyState({
     <div
       className={cn("flex flex-col items-center justify-center gap-3 py-12 text-center", className)}
     >
-      <Icon className="h-12 w-12 text-muted-foreground" aria-hidden="true" />
+      {/*
+       * Phase 34: the icon sits in a soft ramp-tinted disc so the empty state reads as designed
+       * rather than as an unstyled default. The disc is DECORATION ONLY — the title, the
+       * description and the action below are untouched, because an empty state teaches what to
+       * do next and 34-05 forbids losing that affordance to an illustration.
+       */}
+      <div
+        aria-hidden="true"
+        className="flex size-20 items-center justify-center rounded-full bg-surface-2 shadow-depth-1"
+      >
+        <Icon className="size-9 text-foreground-tertiary" aria-hidden="true" />
+      </div>
       <div className="flex flex-col gap-1">
         <p className="text-lg font-semibold text-foreground">{title}</p>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
