@@ -265,3 +265,44 @@ None.
 ## Self-Check: PASSED
 
 All 4 claimed artifacts exist on disk; all 3 claimed commits resolve in git.
+
+## CORRECTION (post-hoc, same session)
+
+**My "74/74 green" evidence above overstated what was verified.** Two things were wrong with it:
+
+1. **Surefire excludes `**/*IT.java` in this repository.** `mvn -pl shared-lib -am test` therefore
+   ran 74 *unit* tests and zero integration tests. It never ran `SharedLibVerificationIT` — the
+   single test that asserts `Money.pkr()`, which is the accessor this plan changed. I reported a
+   number that was true and irrelevant.
+2. **Testcontainers cannot start a container in this environment at all**, so re-running it under
+   failsafe (`mvn -pl shared-lib -am verify -Dit.test=SharedLibVerificationIT`) does not rescue the
+   claim either. All 10 of its tests error in the static initializer:
+
+   ```
+   Caused by: ContainerLaunchException: Container startup failed for image testcontainers/ryuk:0.12.0
+   Caused by: InternalServerErrorException: Status 500:
+     {"message":"error while creating mount source path
+       '/Users/muhammadumer/.colima/default/docker.sock':
+        mkdir /Users/muhammadumer/.colima/default/docker.sock: operation not supported"}
+   ```
+   With `TESTCONTAINERS_RYUK_DISABLED=true` it gets further and then fails identically on
+   `postgres:18` after 122s. **This is pre-existing and environmental — not caused by this plan.**
+
+**Fix applied:** rather than leave a changed accessor guarded only by a test that cannot execute,
+`deprecatedPkrAccessorStillReturnsItsBackwardCompatibleValue` was added to
+`MoneyDisplayAuthorityTest` (a plain unit test that does run). It pins `toMoney(100).pkr() == 1.0`,
+`.paisa() == 100`, `.formatted() == "Rs 1.00"`, and demonstrates *why* the accessor is deprecated:
+past 2^53 paisa, `(long)(pkr() * 100)` and `paisa()` disagree.
+
+`MoneyDisplayAuthorityTest` is now **9/9**. Commit: see below.
+
+**Consequence for the rest of phase 37 — this is the important part.** Plans 37-03, 37-04, 37-06,
+37-07, 37-08, 37-09 and 37-10 all specify `*IT.java` Testcontainers tests as their verification.
+Those tests **cannot be executed on this machine**. They will be written as specified, but a green
+IT run must not be claimed as evidence for any of them. Verification for those plans has to come
+from the live stack, which is what the phase brief demanded regardless.
+
+Two further environment facts recorded for later plans:
+- `mvn test -Dtest=SomeIT` reports success having run **zero** tests. Use `mvn verify -Dit.test=`.
+- Duplicate build artefacts (`Foo 2.class`) accumulate under `target/` and make surefire die with
+  an opaque `SurefireBooterForkException`. `bash scripts/check-stale-jars.sh` clears them.

@@ -15,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -138,5 +139,31 @@ class MoneyDisplayAuthorityTest {
     @Test
     void vectorFileIsLoadedFromTheClasspath() {
         assertNotNull(getClass().getResource(VECTOR_RESOURCE));
+    }
+
+    /**
+     * {@code Money.pkr()} became an explicit (deprecated) accessor in this plan, replacing the
+     * compiler-generated one. Its only existing assertion lives in {@code SharedLibVerificationIT},
+     * which is a Testcontainers test — and Testcontainers cannot start a container in this
+     * environment (colima's socket cannot be bind-mounted, so both ryuk and postgres:18 fail).
+     * Surefire additionally excludes {@code **}{@code /*IT.java}, so that assertion would not have
+     * run even in a working Docker environment.
+     *
+     * <p>An accessor whose behaviour is guarded only by a test that never executes is unguarded.
+     * This pins the contract in a suite that actually runs: the value is unchanged, and it is
+     * still the wrong thing to compute with.
+     */
+    @Test
+    void deprecatedPkrAccessorStillReturnsItsBackwardCompatibleValue() {
+        assertEquals(1.0, MoneyUtils.toMoney(100).pkr());
+        assertEquals(100L, MoneyUtils.toMoney(100).paisa());
+        assertEquals("Rs 1.00", MoneyUtils.toMoney(100).formatted());
+
+        // And the reason it is deprecated, made visible rather than asserted away: past 2^53 the
+        // double accessor and the integer of record disagree, and only one of them is the money.
+        Money large = MoneyUtils.toMoney(9_007_199_254_740_993L);
+        assertEquals(9_007_199_254_740_993L, large.paisa());
+        assertEquals("Rs 90,071,992,547,409.93", large.formatted());
+        assertNotEquals(large.paisa(), (long) (large.pkr() * 100));
     }
 }
