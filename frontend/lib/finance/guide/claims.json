@@ -1,0 +1,84 @@
+{
+  "_readme": [
+    "THE registry of every behavioural sentence the finance guide is allowed to print (D-37-03).",
+    "",
+    "Plan 37-13 renders the guide FROM this file. It cannot render a sentence this file does not",
+    "hold, and `make verify-guide-claims` refuses to pass if this file holds a sentence no live",
+    "test defends. A guide that lies is worse than no guide, because it is trusted.",
+    "",
+    "CLAIM ID SHAPE: FIN-GUIDE-NNNN — four digits, no slug.",
+    "Deliberately opaque. A slug id (FIN-GUIDE-cash-needs-till) invites renaming when the sentence",
+    "is reworded, which silently orphans every marker already placed in a Java comment, a vitest",
+    "name and a shell script. The number never needs to change, so the markers never rot.",
+    "",
+    "MARKER SYNTAX: the literal text `GUIDE-CLAIM: FIN-GUIDE-NNNN`.",
+    "Valid inside //, #, /* */ and inside a TypeScript test-name string, so one grep finds them all.",
+    "",
+    "WHO MAY EDIT THIS FILE: plans 37-03 through 37-12 must NOT. A marker with no row here fails the",
+    "gate's second direction, and eleven plans editing one JSON file would serialise the phase for no",
+    "benefit. Those plans record their claim sentence and test identifier in their own SUMMARY;",
+    "plan 37-13 collects them and writes the rows and markers in one pass."
+  ],
+  "claims": [
+    {
+      "id": "FIN-GUIDE-0001",
+      "surface": "cross-cutting",
+      "claim": "Settling in cash needs an open till; settling by card does not.",
+      "why": "Cash physically enters a drawer, so the system insists on knowing which drawer — that is what makes an end-of-shift count meaningful. A card payment never touches a drawer, so it needs no till. If a waiter takes an order and tries to settle it in cash without opening a till, the payment is refused with NO_OPEN_TILL and nothing at all is recorded against the order. Hand it to a cashier who has one open; that is the designed table-service flow, not a fault.",
+      "literals": ["NO_OPEN_TILL", "409"],
+      "assertedBy": [
+        {
+          "file": "services/pos-service/src/test/java/io/restaurantos/pos/CashPaymentRequiresTillIT.java",
+          "test": "cashPayment_withNoTillAtAll_isRefused_andNothingIsApplied"
+        },
+        {
+          "file": "services/pos-service/src/test/java/io/restaurantos/pos/CashPaymentRequiresTillIT.java",
+          "test": "cardPayment_withNoTill_isAccepted_andLeavesTillNull"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0002",
+      "surface": "periods",
+      "claim": "Once you close an accounting period, the system refuses any new entry dated inside it.",
+      "why": "Closing a month is a promise that the month's numbers will not move again — that is the whole reason a closed month can be reported on, taxed on, and argued from. An entry dated back into a closed period is refused with PERIOD_LOCKED rather than quietly accepted, so a figure you printed last week still says the same thing today. If something genuinely belongs to the closed month, post it in the open one with a note, or reopen the period deliberately.",
+      "literals": ["PERIOD_LOCKED", "423"],
+      "assertedBy": [
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/AccountingPeriodIT.java",
+          "test": "postToLockedPeriod_returns423"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0003",
+      "surface": "journal",
+      "claim": "A discount lowers what the customer pays, not what your books call sales: the full menu price is still credited to sales, and the discount is recorded separately against it.",
+      "why": "If a Rs 800 dish goes out at Rs 680, the books credit the whole Rs 800 to Food Sales (4100) and put the Rs 120 on Discounts Given (4920), which sits against sales rather than inside it. You can therefore answer 'what did we give away this month?' — a question a netted figure cannot answer at all, because the discount has already vanished into a smaller sales number. It also keeps the entry balanced: netting sales AND recording the discount would count the same Rs 120 twice.",
+      "literals": ["4100", "4920"],
+      "assertedBy": [
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/autopost/DiscountedOrderRevenuePostingIT.java",
+          "test": "discountedOrder_postsBalancedEntryThatReachesTheLedger"
+        },
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/autopost/DiscountedOrderRevenuePostingIT.java",
+          "test": "fullComp_creditsGrossRevenueWhileTheTenderCoversOnlyTaxAndServiceCharge"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0004",
+      "surface": "cross-cutting",
+      "claim": "A few actions ask for a six-digit code from your authenticator app, even though you are already signed in.",
+      "why": "Closing a period, approving payroll and changing who can do what are the actions where a stolen or borrowed session does the most damage, so the system asks the person in front of the screen to prove they are still there. The prompt is tied to the action, not to seniority — an accountant is asked for it and a manager is not, because the accountant is the one who can close a period. Without the code the request comes back TOTP_REQUIRED and nothing changes.",
+      "literals": ["TOTP_REQUIRED"],
+      "assertedBy": [
+        {
+          "file": "frontend/e2e/journeys/step-up-totp.spec.ts",
+          "test": "A · owner signs in through the form with a live code"
+        }
+      ]
+    }
+  ]
+}
