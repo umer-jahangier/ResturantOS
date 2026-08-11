@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      The last raw-cast tenant_isolation policy in auth_db.
+
+      053 converted the six policies that existed when it was written — users, roles,
+      user_branch_roles, refresh_sessions, password_reset_tokens, password_history — to
+      current_setting('app.current_tenant_id', true)::uuid. 086 then added
+      user_station_assignments and, running AFTER 053 in the master changelog, created its policy in
+      the raw-cast form 053 exists to remove. That is what two forms of one condition living side by
+      side does: the wrong one gets copied.
+
+      Why it matters: the GUC's "no tenant" value is the EMPTY STRING — it is what
+      TenantAwareDataSource writes on every tenantless checkout and on every connection reset at
+      close — and ''::uuid raises "invalid input syntax for type uuid". So a legitimately tenantless
+      read of user_station_assignments (an actuator probe, a platform-scoped query, a job that has
+      not adopted a tenant) failed with a cast error instead of returning nothing. NULLIF(..., '')
+      makes it NULL, and `tenant_id = NULL` is NULL, which is not true, so the row is excluded —
+      the same fail-closed outcome, expressed as an answer.
+
+      Behaviour for a tenant-scoped connection is unchanged: a non-empty GUC passes through NULLIF
+      untouched and the comparison is exactly what it was.
+
+      Written as a NEW changeset rather than an edit to 086: that one has been applied, and
+      Liquibase would see a checksum change. Same reasoning, and the same shape, as 053 itself.
+
+      RLS is left ENABLEd and FORCEd and the auth_user grants untouched, exactly as 086 set them —
+      this changeset touches the USING predicate and nothing else.
+
+      With this, every live policy in auth_db carries the null-safe form. The raw cast still appears
+      in 053's <rollback> and in the superseded 020/030/040/050/060/070 changesets; both are correct
+      and must stay — a rollback has to restore what was actually there, and an applied changeset
+      cannot be edited.
+    -->
+    <changeSet id="auth-1.0.0-087-rls-policy-null-safe-guc" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            DROP POLICY IF EXISTS tenant_isolation ON user_station_assignments;
+            CREATE POLICY tenant_isolation ON user_station_assignments
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+        </sql>
+        <rollback>
+            <!-- The raw cast below is deliberate and correct: rolling back means restoring exactly
+                 what 086 created, cast error and all. -->
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON user_station_assignments;
+                CREATE POLICY tenant_isolation ON user_station_assignments
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

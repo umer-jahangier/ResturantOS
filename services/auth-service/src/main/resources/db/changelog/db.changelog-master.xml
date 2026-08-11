@@ -116,5 +116,9 @@
          socket, and it cannot go stale because a station's code cannot be renamed. ENABLEd AND
          FORCEd, like 041/050/056/058 — an ENABLE-only tenant table is the exact defect 17b closed. -->
     <include file="db/changelog/v1.0.0/086-user-station-assignments.xml"/>
+    <!-- The last raw-cast tenant GUC policy in auth_db. 053 converted the six that existed then;
+         086 ran after it and created user_station_assignments' policy in the very form 053 exists
+         to remove. Must stay after 086, which creates the policy this re-creates. -->
+    <include file="db/changelog/v1.0.0/087-rls-policy-null-safe-guc.xml"/>
 
 </databaseChangeLog>
