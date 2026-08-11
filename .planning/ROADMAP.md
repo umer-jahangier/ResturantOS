@@ -113,7 +113,7 @@ Plans:
 - [x] 37-01-PLAN.md — one display authority for paisa, pinned by vectors both stacks read *(wave 1, independently shippable)*
 - [x] 37-02-PLAN.md — the verified-claim registry and its two-way gate *(wave 1, independently shippable)*
 - [~] 37-03-PLAN.md — one business date, honoured by every consumer; the 73 misdated facts realigned *(wave 1, closes 22b D-7)* — **code fix landed; realignment migration authored but NOT applied, blocked at the plan's own human checkpoint**
-- [ ] 37-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)*
+- [~] 37-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)* — **task 1 done and live-verified (by-source endpoint, V10 index); task 2 (SourceReferenceResolver, human-readable reference) NOT started**
 - [ ] 37-05-PLAN.md — the queue no code declares, retired; a drift check that would have caught it *(wave 2, closes 22b D-9, independently shippable)*
 - [ ] 37-06-PLAN.md — tender facts: the missing half of daily takings *(wave 2)*
 - [ ] 37-07-PLAN.md — cost of sales attributed to the line that consumed it *(wave 2, closes 22b D-8 data half)*
