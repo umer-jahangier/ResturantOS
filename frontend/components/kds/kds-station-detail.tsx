@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 
 import { KdsTicketDetail } from "@/components/kds/kds-ticket-detail";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { T_SMALL } from "@/components/kds/kds-type";
+import { cn } from "@/lib/utils";
 
 interface KdsStationDetailProps {
   branchId: string;
@@ -24,15 +26,22 @@ export function KdsStationDetail({ branchId, stationCode, ticketId }: KdsStation
   const canUpdate = permissions.includes("pos.kds.update");
 
   return (
-    <div className="dark bg-gray-950 min-h-screen p-4" data-testid="kds-station-detail">
+    <div
+      data-surface="kds"
+      className="min-h-screen bg-kds-surface p-4 text-kds-text"
+      data-testid="kds-station-detail"
+    >
       <Link
         href={`/app/kitchen/${stationCode}`}
-        className="inline-flex items-center gap-1 text-gray-400 hover:text-gray-200 text-sm mb-4"
+        className={cn(
+          "mb-4 inline-flex items-center gap-1 text-kds-muted hover:text-kds-text",
+          T_SMALL,
+        )}
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to board
       </Link>
-      <div className="max-w-2xl mx-auto rounded-xl border border-gray-800 bg-gray-950 p-4">
+      <div className="mx-auto max-w-2xl rounded-xl border border-white/10 bg-kds-card p-4">
         <KdsTicketDetail ticketId={ticketId} branchId={branchId} canUpdate={canUpdate} />
       </div>
     </div>

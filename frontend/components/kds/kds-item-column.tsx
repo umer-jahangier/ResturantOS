@@ -4,8 +4,10 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 import { KdsTicketCard } from "@/components/kds/kds-ticket-card";
+import { T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { useUpdateItemStatus } from "@/lib/hooks/kds/use-kds-tickets";
 import type { KdsItemStatus, KdsTicket, KdsTicketItem } from "@/lib/models/kds.model";
+import { cn } from "@/lib/utils";
 
 // Station-isolated item-status columns (KDS-04/D-12). A column is just a grouping
 // of item rows by mapped TicketItemStatus — item-centric, so a mixed-status order
@@ -70,6 +72,11 @@ export interface KdsColumnFragment {
   items: KdsTicketItem[];
 }
 
+/** The board-wide identity of one fragment — a ticket appears once PER COLUMN. */
+export function fragmentKey(column: KdsColumnKey, ticketId: string): string {
+  return `${column}:${ticketId}`;
+}
+
 /**
  * Item-centric grouping (KDS-04): an order with mixed item statuses appears in
  * EACH relevant column, each fragment carrying only that column's items (never
@@ -92,21 +99,36 @@ interface KdsItemColumnProps {
   tickets: readonly KdsTicket[];
   branchId: string;
   canUpdate: boolean;
-  /** Station escalationThresholdSeconds (KDS-05/D-13) forwarded to each card's
-   * subtle aging border + timer chip. */
+  /** Station escalationThresholdSeconds (KDS-05/D-13) — drives each card's ageing. */
   escalationThresholdSeconds?: number;
+  /**
+   * Bump-bar focus model (§7.2). The board owns focus because ↑/↓ traverse ACROSS
+   * columns; a column that owned its own focus could never hand off at its edge.
+   */
+  focusedKey?: string;
+  /**
+   * Fragments mid-bump. The card collapses to a 1px line and leaves after 400ms — the only
+   * animation §7.2 permits on this screen, because it confirms an irreversible action. It is
+   * `motion-safe:` so a cook who has asked their OS for reduced motion just sees it go.
+   */
+  collapsingKeys?: string[];
+  /** Board-wide 1–9/0 position number for a fragment, or undefined past the tenth. */
+  positionOf?: (key: string) => number | undefined;
+  /** Lets the board hold a DOM ref per fragment for `scrollIntoView` on focus movement. */
+  registerFragmentRef?: (key: string, el: HTMLDivElement | null) => void;
+  /** Clicking or touching a card also moves focus — pointer and bump bar stay in sync. */
+  onFocusFragment?: (key: string) => void;
 }
 
 /**
- * One New/Started/Preparing/Ready board column (KDS-04/D-12). Each fragment's
- * collapsed card (order#/table/age/item-names) opens the dedicated ticket detail
- * page on click; canUpdate principals get a per-item move action calling
- * useUpdateItemStatus with the column's next target status (server still
- * authoritatively validates the transition, T-07.3-30). `animate-fade-in` is
- * applied unconditionally to each fragment — React's keyed reconciliation only
- * replays the mount-time animation for a genuinely new ticket entering this
- * column, not on every re-render (KDS-05, eslint-safe no-tracking-state pattern
- * carried forward from the pre-07.3-10 board).
+ * One New/Started/Preparing/Ready board column (KDS-04/D-12), rebuilt on the phase-20
+ * `[data-surface="kds"]` tokens.
+ *
+ * Every `bg-gray-800` / `border-gray-700` / `bg-blue-600` literal is gone. The move button
+ * in particular was `bg-blue-600` — a colour from no ramp in this system, on the one
+ * control a cook presses hundreds of times a shift. It is now `--primary-700`, which
+ * UI-SPEC §3.8 measures at 5.46:1 for white text; `--primary-500`/`600` were measured and
+ * FAIL, which is exactly why the token, not the eye, picks the stop.
  */
 export function KdsItemColumn({
   column,
@@ -114,72 +136,111 @@ export function KdsItemColumn({
   branchId,
   canUpdate,
   escalationThresholdSeconds,
+  focusedKey,
+  collapsingKeys,
+  positionOf,
+  registerFragmentRef,
+  onFocusFragment,
 }: KdsItemColumnProps) {
   const router = useRouter();
   const updateItemStatus = useUpdateItemStatus(branchId);
   const fragments = useMemo(() => groupTicketsByColumn(tickets, column), [tickets, column]);
 
   return (
-    <div className="flex flex-col gap-2 min-w-0" data-testid={`kds-column-${column}`}>
-      <div className="rounded-lg bg-gray-800 border border-gray-700 px-3 py-2">
-        <h3 className="text-white font-bold text-sm uppercase tracking-wide">
+    <div className="flex min-w-0 flex-col gap-2" data-testid={`kds-column-${column}`}>
+      <div className="flex items-center justify-between rounded-lg border border-white/10 bg-kds-card px-3 py-2">
+        <h3
+          className={cn("font-bold uppercase tracking-wider text-kds-text", T_SMALL)}
+          id={`kds-column-heading-${column}`}
+        >
           {KDS_COLUMN_LABELS[column]}
         </h3>
+        <span
+          className={cn("font-bold tabular-nums text-kds-muted", T_SMALL)}
+          data-testid={`kds-column-count-${column}`}
+        >
+          {fragments.length}
+        </span>
       </div>
-      <div className="flex flex-col gap-2 overflow-y-auto">
+
+      <ul
+        className="flex flex-col gap-2"
+        aria-labelledby={`kds-column-heading-${column}`}
+        data-testid={`kds-column-list-${column}`}
+      >
         {fragments.length === 0 ? (
-          <div className="text-center text-gray-600 py-6 text-xs">—</div>
+          <li className={cn("py-6 text-center text-kds-muted", T_LABEL)}>Nothing here</li>
         ) : (
-          fragments.map(({ ticket, items }) => (
-            <div
-              key={ticket.id}
-              className="rounded-lg border border-gray-800 bg-gray-900 p-2 transition-all duration-500 animate-fade-in"
-              data-testid={`kds-fragment-${column}-${ticket.id}`}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  router.push(`/app/kitchen/${ticket.stationCode}/orders/${ticket.id}`)
-                }
-                className="w-full text-left"
-                aria-label={`Open ticket detail for ${ticket.orderNo ?? ticket.id.slice(0, 8)}`}
-              >
-                <KdsTicketCard
-                  ticket={ticket}
-                  items={items}
-                  escalationThresholdSeconds={escalationThresholdSeconds}
-                />
-              </button>
-              {canUpdate && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {items.map((item) => {
-                    const nextStatus = getNextItemStatus(item.status);
-                    if (!nextStatus) return null;
-                    const nextColumn = mapItemStatusToColumn(nextStatus) ?? column;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        data-testid={`column-move-${item.id}`}
-                        onClick={() =>
-                          updateItemStatus.mutate({
-                            ticketId: ticket.id,
-                            itemId: item.id,
-                            status: nextStatus,
-                          })
-                        }
-                        className="text-xs font-bold px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-                      >
-                        {item.name} → {KDS_COLUMN_LABELS[nextColumn]}
-                      </button>
-                    );
-                  })}
+          fragments.map(({ ticket, items }) => {
+            const key = fragmentKey(column, ticket.id);
+            const isFocused = focusedKey === key;
+            const isCollapsing = collapsingKeys?.includes(key) ?? false;
+            return (
+              <li key={ticket.id}>
+                <div
+                  ref={(el) => registerFragmentRef?.(key, el)}
+                  data-testid={`kds-fragment-${column}-${ticket.id}`}
+                  data-fragment-key={key}
+                  data-collapsing={isCollapsing ? "true" : undefined}
+                  className={cn(
+                    "animate-fade-in",
+                    isCollapsing &&
+                      "pointer-events-none motion-safe:h-px motion-safe:overflow-hidden motion-safe:opacity-0 motion-safe:transition-all motion-safe:duration-400 motion-reduce:hidden",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onFocusFragment?.(key);
+                      router.push(`/app/kitchen/${ticket.stationCode}/orders/${ticket.id}`);
+                    }}
+                    className="w-full text-left"
+                    aria-label={`Open ticket detail for ${ticket.orderNo ?? ticket.id.slice(0, 8)}`}
+                  >
+                    <KdsTicketCard
+                      ticket={ticket}
+                      items={items}
+                      positionNumber={positionOf?.(key)}
+                      isFocused={isFocused}
+                      escalationThresholdSeconds={escalationThresholdSeconds}
+                    />
+                  </button>
+                  {canUpdate && (
+                    <div className="mt-1.5 flex flex-col gap-1">
+                      {items.map((item) => {
+                        const nextStatus = getNextItemStatus(item.status);
+                        if (!nextStatus) return null;
+                        const nextColumn = mapItemStatusToColumn(nextStatus) ?? column;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            data-testid={`column-move-${item.id}`}
+                            onClick={() => {
+                              onFocusFragment?.(key);
+                              updateItemStatus.mutate({
+                                ticketId: ticket.id,
+                                itemId: item.id,
+                                status: nextStatus,
+                              });
+                            }}
+                            className={cn(
+                              "rounded-md bg-primary-700 px-2 py-1.5 font-bold text-white transition-colors hover:bg-primary-800",
+                              T_SMALL,
+                            )}
+                          >
+                            {item.name} → {KDS_COLUMN_LABELS[nextColumn]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))
+              </li>
+            );
+          })
         )}
-      </div>
+      </ul>
     </div>
   );
 }

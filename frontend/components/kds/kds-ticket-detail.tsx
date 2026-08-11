@@ -9,7 +9,10 @@ import {
   mapItemStatusToColumn,
   KDS_COLUMN_LABELS,
 } from "@/components/kds/kds-item-column";
+import { T_BODY, T_H2, T_KDS, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import type { KdsItemStatus, KdsTicketItem } from "@/lib/models/kds.model";
+import { cn } from "@/lib/utils";
 
 interface KdsTicketDetailProps {
   ticketId: string;
@@ -64,29 +67,50 @@ function formatRevisionTime(value: string | null): string {
  * Board stays always-dark inside the detail too — no theme-dependent classes here.
  */
 export function KdsTicketDetail({ ticketId, branchId, canUpdate = false }: KdsTicketDetailProps) {
-  const { data: ticket, isLoading } = useKdsTicketDetail(branchId, ticketId);
+  const detailQuery = useKdsTicketDetail(branchId, ticketId);
+  const ticket = detailQuery.data;
   const updateItemStatus = useUpdateItemStatus(branchId);
 
-  if (isLoading || !ticket) {
-    return <div className="p-4 text-sm text-gray-400">Loading ticket…</div>;
+  // GA-001 again: `isLoading || !ticket` folded a FAILED fetch into "Loading ticket…"
+  // forever — a spinner is just a slower lie than an empty state. Error first, always.
+  if (detailQuery.isError) {
+    return (
+      <QueryErrorNotice
+        what="this ticket"
+        error={detailQuery.error}
+        isRetrying={detailQuery.isFetching}
+        onRetry={() => detailQuery.refetch()}
+      />
+    );
+  }
+
+  if (detailQuery.isPending || !ticket) {
+    return <div className={cn("p-4 text-kds-muted", T_BODY)}>Loading ticket…</div>;
   }
 
   const revisions = groupByRevision(ticket.items);
 
   return (
-    <div className="flex flex-col gap-4 text-gray-100" data-testid="kds-ticket-detail">
+    <div className="flex flex-col gap-4 text-kds-text" data-testid="kds-ticket-detail">
       <div>
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className={cn("font-bold text-kds-text", T_KDS)}>
           {ticket.orderNo ?? ticket.id.slice(0, 8)}
         </h2>
-        <p className="text-xs text-gray-500 uppercase tracking-widest">{ticket.stationCode}</p>
+        <p className={cn("uppercase tracking-widest text-kds-muted", T_LABEL)}>
+          {ticket.stationCode}
+        </p>
       </div>
 
       {ticket.orderNotes && (
-        <div className="flex items-start gap-2 rounded-lg bg-warning/10 p-3 text-sm text-amber-200">
+        <div
+          className={cn(
+            "flex items-start gap-2 rounded-lg border-l-4 border-kds-warn bg-black/30 p-3 text-kds-text",
+            T_BODY,
+          )}
+        >
           <MessageSquare className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+            <p className={cn("font-bold uppercase tracking-wide text-kds-warn", T_LABEL)}>
               Kitchen Notes
             </p>
             <p>{ticket.orderNotes}</p>
@@ -97,31 +121,38 @@ export function KdsTicketDetail({ ticketId, branchId, canUpdate = false }: KdsTi
       <div className="flex flex-col gap-4">
         {revisions.map((rev) => (
           <div key={rev.revisionNo}>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+            <h3 className={cn("mb-2 font-bold uppercase tracking-wide text-kds-muted", T_LABEL)}>
               Rev {rev.revisionNo} · {formatRevisionTime(rev.firedAt)}
             </h3>
             <div className="flex flex-col gap-2">
               {rev.items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start justify-between gap-2 rounded-lg bg-gray-900 p-2"
+                  className="flex items-start justify-between gap-2 rounded-lg border border-white/10 bg-kds-card p-2"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <StatusBadge status={toLineItemStatusVariant(item.status)} />
                       <RevisionBadge revisionNo={item.revisionNo} />
                     </div>
-                    <div className="text-base font-semibold text-white truncate">
-                      {item.qty > 1 && <span className="text-gray-300 mr-1">×{item.qty}</span>}
+                    <div className={cn("truncate font-semibold text-kds-text", T_KDS)}>
+                      {item.qty > 1 && <span className="mr-1 text-kds-muted">×{item.qty}</span>}
                       {item.name}
                     </div>
                     {item.modifiers.length > 0 && (
-                      <div className="text-xs text-gray-500 mt-0.5">
+                      <div className={cn("mt-0.5 font-bold text-kds-warn", T_BODY)}>
                         {item.modifiers.join(" · ")}
                       </div>
                     )}
                     {item.notes && (
-                      <div className="text-xs text-amber-400 mt-0.5 italic">{item.notes}</div>
+                      <div
+                        className={cn(
+                          "mt-0.5 rounded border-l-2 border-kds-warn bg-black/30 px-2 py-1 font-medium text-kds-text",
+                          T_BODY,
+                        )}
+                      >
+                        ▸ {item.notes}
+                      </div>
                     )}
                   </div>
                   {canUpdate &&
@@ -140,7 +171,10 @@ export function KdsTicketDetail({ ticketId, branchId, canUpdate = false }: KdsTi
                               status: nextStatus,
                             })
                           }
-                          className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                          className={cn(
+                            "shrink-0 rounded-lg bg-primary-700 px-3 py-1.5 font-bold text-white transition-colors hover:bg-primary-800",
+                            T_SMALL,
+                          )}
                         >
                           {nextColumn ? `Move to ${KDS_COLUMN_LABELS[nextColumn]}` : "Advance"}
                         </button>

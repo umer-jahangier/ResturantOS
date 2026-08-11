@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { ChefHat, Clock, Layers, Timer } from "lucide-react";
 
 import { useKdsStations, useKdsTickets } from "@/lib/hooks/kds/use-kds-tickets";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
+import { cn } from "@/lib/utils";
 import { useKdsClock } from "@/lib/hooks/kds/use-kds-clock";
 import {
   mapItemStatusToColumn,
@@ -12,6 +15,7 @@ import {
   type KdsColumnKey,
 } from "@/components/kds/kds-item-column";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getAgingState } from "@/components/kds/kds-aging";
 import type { KdsStation, KdsTicket } from "@/lib/models/kds.model";
 
 interface StationPickerProps {
@@ -85,13 +89,18 @@ function formatAge(ageMs: number): string {
   return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
 }
 
-/** Amber past 0.66× the station's escalation threshold, red past 1.0×. */
+/**
+ * The same three ageing states the board uses, on the same tokens and the same fractions
+ * (`kds-aging.ts`) — a station tile that says "amber" while the board says "late" is two
+ * different products. Colour is never the only channel here either: the caller pairs this
+ * with a distinct icon and the literal word.
+ */
 function ageTreatment(oldestAgeMs: number | null, thresholdSeconds: number): string {
-  if (oldestAgeMs === null) return "text-gray-500";
-  const fraction = oldestAgeMs / (thresholdSeconds * 1000);
-  if (fraction >= 1) return "text-red-400";
-  if (fraction >= 0.66) return "text-amber-400";
-  return "text-emerald-400";
+  if (oldestAgeMs === null) return "text-kds-muted";
+  const state = getAgingState(oldestAgeMs, thresholdSeconds);
+  if (state === "late") return "text-kds-late";
+  if (state === "warn") return "text-kds-warn";
+  return "text-kds-fresh";
 }
 
 /**
@@ -102,8 +111,11 @@ function ageTreatment(oldestAgeMs: number | null, thresholdSeconds: number): str
  */
 export function StationPicker({ branchId }: StationPickerProps) {
   const router = useRouter();
-  const { data: stations = [], isLoading } = useKdsStations(branchId);
-  const { data: tickets = [] } = useKdsTickets(branchId);
+  const stationsQuery = useKdsStations(branchId);
+  const ticketsQuery = useKdsTickets(branchId);
+  const stations = useMemo(() => stationsQuery.data ?? [], [stationsQuery.data]);
+  const tickets = useMemo(() => ticketsQuery.data ?? [], [ticketsQuery.data]);
+  const isLoading = stationsQuery.isPending;
 
   const activeStations = useMemo(() => stations.filter((s) => s.active), [stations]);
   const singleStation = activeStations.length === 1 ? activeStations[0] : null;
@@ -119,9 +131,34 @@ export function StationPicker({ branchId }: StationPickerProps) {
     }
   }, [singleStation, router]);
 
+  // GA-001, on the kitchen's front door: a station list that failed to load must never
+  // render as "no stations configured". Error is checked BEFORE empty, always.
+  if (stationsQuery.isError || ticketsQuery.isError) {
+    const failed = stationsQuery.isError ? stationsQuery : ticketsQuery;
+    return (
+      <div data-surface="kds" className="min-h-screen bg-kds-surface p-6 text-kds-text">
+        <QueryErrorNotice
+          what="the kitchen stations"
+          error={failed.error}
+          isRetrying={stationsQuery.isFetching || ticketsQuery.isFetching}
+          onRetry={() => {
+            stationsQuery.refetch();
+            ticketsQuery.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
   if (isLoading || singleStation) {
     return (
-      <div className="dark bg-gray-950 min-h-screen flex items-center justify-center text-gray-500 text-lg">
+      <div
+        data-surface="kds"
+        className={cn(
+          "flex min-h-screen items-center justify-center bg-kds-surface text-kds-muted",
+          T_H1,
+        )}
+      >
         Loading stations…
       </div>
     );
@@ -129,19 +166,22 @@ export function StationPicker({ branchId }: StationPickerProps) {
 
   if (activeStations.length === 0) {
     return (
-      <div className="dark bg-gray-950 min-h-screen flex items-center justify-center">
+      <div
+        data-surface="kds"
+        className="flex min-h-screen items-center justify-center bg-kds-surface"
+      >
         <EmptyState
           icon={ChefHat}
           title="No active stations configured"
-          className="text-gray-100"
+          className="text-kds-text"
         />
       </div>
     );
   }
 
   return (
-    <div className="dark bg-gray-950 min-h-screen p-6">
-      <h1 className="text-white text-2xl font-bold mb-6">Kitchen — Stations</h1>
+    <div data-surface="kds" className="min-h-screen bg-kds-surface p-6 text-kds-text">
+      <h1 className={cn("mb-6 font-bold text-kds-text", T_H1)}>Kitchen — Stations</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {activeStations.map((station) => (
           <StationTile
@@ -174,47 +214,55 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
       type="button"
       onClick={onOpen}
       data-testid={`station-tile-${station.code}`}
-      className={`rounded-xl border p-5 text-left transition-colors ${
+      className={cn(
+        "rounded-xl border p-5 text-left transition-colors",
         busy
-          ? "border-gray-600 bg-gray-900 hover:border-gray-400"
-          : "border-gray-800 bg-gray-900/60 hover:border-gray-600"
-      }`}
+          ? "border-white/25 bg-kds-card hover:border-kds-text"
+          : "border-white/10 bg-kds-card/60 hover:border-white/30",
+      )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-white font-bold text-lg truncate">{station.name}</h2>
-          <p className="text-gray-500 text-xs mt-0.5 uppercase tracking-wide">{station.code}</p>
+          <h2 className={cn("truncate font-bold text-kds-text", T_H1)}>{station.name}</h2>
+          <p className={cn("mt-0.5 uppercase tracking-wide text-kds-muted", T_LABEL)}>
+            {station.code}
+          </p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${
-            busy ? "bg-primary/20 text-primary" : "bg-gray-800 text-gray-500"
-          }`}
+          className={cn(
+            "shrink-0 rounded-full px-2.5 py-1 font-bold tabular-nums",
+            T_SMALL,
+            busy ? "bg-white/15 text-kds-text" : "bg-white/5 text-kds-muted",
+          )}
           data-testid={`station-queue-${station.code}`}
         >
           {queueDepth}
         </span>
       </div>
 
-      <div className="mt-4 flex items-center gap-4 text-sm">
-        <span className="inline-flex items-center gap-1.5 text-gray-400" title="Tickets in queue">
+      <div className={cn("mt-4 flex items-center gap-4", T_SMALL)}>
+        <span className="inline-flex items-center gap-1.5 text-kds-muted" title="Tickets in queue">
           <Layers className="size-4" aria-hidden="true" />
           {queueDepth} {queueDepth === 1 ? "ticket" : "tickets"}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-gray-400" title="Items to prepare">
+        <span className="inline-flex items-center gap-1.5 text-kds-muted" title="Items to prepare">
           <ChefHat className="size-4" aria-hidden="true" />
           {itemCount} {itemCount === 1 ? "item" : "items"}
         </span>
       </div>
 
-      <div className="mt-2 flex items-center gap-1.5 text-sm">
+      <div className={cn("mt-2 flex items-center gap-1.5", T_SMALL)}>
         {oldestAgeMs === null ? (
-          <span className="inline-flex items-center gap-1.5 text-emerald-400/80">
+          <span className="inline-flex items-center gap-1.5 text-kds-fresh">
             <Clock className="size-4" aria-hidden="true" />
             Clear
           </span>
         ) : (
           <span
-            className={`inline-flex items-center gap-1.5 font-medium ${ageTreatment(oldestAgeMs, threshold)}`}
+            className={cn(
+              "inline-flex items-center gap-1.5 font-bold",
+              ageTreatment(oldestAgeMs, threshold),
+            )}
             title="Oldest ticket age"
             data-testid={`station-oldest-${station.code}`}
           >
@@ -231,15 +279,18 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
           return (
             <div
               key={col}
-              className="rounded-md bg-gray-800/70 px-1.5 py-1 text-center"
+              className="rounded-md bg-white/5 px-1.5 py-1 text-center"
               data-testid={`station-${station.code}-col-${col}`}
             >
               <div
-                className={`text-base font-bold tabular-nums ${n > 0 ? "text-white" : "text-gray-600"}`}
+                className={cn(
+                  "font-bold tabular-nums",
+                  n > 0 ? "text-kds-text" : "text-kds-muted opacity-60",
+                )}
               >
                 {n}
               </div>
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">
+              <div className={cn("uppercase tracking-wide text-kds-muted", T_LABEL)}>
                 {KDS_COLUMN_LABELS[col]}
               </div>
             </div>

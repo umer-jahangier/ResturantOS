@@ -23,7 +23,10 @@ export default function KdsTicketDetailPage({ params }: KdsTicketDetailPageProps
     <FeatureGuard
       feature="FEATURE_KDS"
       fallback={
-        <div className="dark bg-gray-950 min-h-screen flex items-center justify-center text-gray-400">
+        <div
+          data-surface="kds"
+          className="flex min-h-screen items-center justify-center bg-kds-surface text-kds-muted"
+        >
           Kitchen Display feature is not enabled for this account.
         </div>
       }
@@ -31,13 +34,19 @@ export default function KdsTicketDetailPage({ params }: KdsTicketDetailPageProps
       <PermissionGuard
         require="pos.kds.view"
         fallback={
-          <div className="dark bg-gray-950 min-h-screen flex items-center justify-center text-gray-400">
+          <div
+            data-surface="kds"
+            className="flex min-h-screen items-center justify-center bg-kds-surface text-kds-muted"
+          >
             You do not have permission to access the Kitchen Display.
           </div>
         }
       >
         {!branchId ? (
-          <div className="dark bg-gray-950 min-h-screen flex items-center justify-center text-gray-400">
+          <div
+            data-surface="kds"
+            className="flex min-h-screen items-center justify-center bg-kds-surface text-kds-muted"
+          >
             No branch selected
           </div>
         ) : (
