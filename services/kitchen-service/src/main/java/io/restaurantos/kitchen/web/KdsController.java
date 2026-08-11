@@ -4,6 +4,7 @@ import io.restaurantos.kitchen.authz.KdsAuthorizationService;
 import io.restaurantos.kitchen.domain.enums.TicketItemStatus;
 import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
+import io.restaurantos.kitchen.domain.model.StationType;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
 import io.restaurantos.kitchen.repository.KdsStationRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
@@ -147,11 +148,18 @@ public class KdsController {
     @GetMapping("/stations")
     public ResponseEntity<List<KdsStation>> getStations(
             @RequestParam UUID branchId,
+            @RequestParam(required = false) StationType stationType,
             @AuthenticationPrincipal JwtClaims claims) {
 
         authz.authorizeView(claims.tenantId(), branchId);
 
-        List<KdsStation> stations = stationRepository.findByBranchIdAndActiveTrue(branchId);
+        // Unfiltered is the default and is byte-identical to what this endpoint has always
+        // returned, so the existing board is unaffected. No feature flag: /api/v1/kitchen/ already
+        // gates on FEATURE_KDS and FEATURE_KDS is on for every tier — a code no tier grants
+        // produces a confident 403 for everyone, which this repository has shipped twice.
+        List<KdsStation> stations = stationType != null
+                ? stationRepository.findByBranchIdAndActiveTrueAndStationType(branchId, stationType)
+                : stationRepository.findByBranchIdAndActiveTrue(branchId);
         if (stations.isEmpty()) {
             KdsStation defaultStation = new KdsStation();
             defaultStation.setTenantId(claims.tenantId());
@@ -159,6 +167,9 @@ public class KdsController {
             defaultStation.setCode("DEFAULT");
             defaultStation.setName("DEFAULT");
             defaultStation.setActive(true);
+            // The auto-seeded fallback is a KITCHEN station, which is what it has always
+            // effectively been. Auto-seed-on-empty behaviour is otherwise unchanged.
+            defaultStation.setStationType(StationType.DEFAULT);
             defaultStation.setEscalationThresholdSeconds(900);
             stations = List.of(stationRepository.save(defaultStation));
         }

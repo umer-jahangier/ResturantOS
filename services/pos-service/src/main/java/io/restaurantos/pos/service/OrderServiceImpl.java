@@ -528,6 +528,12 @@ public class OrderServiceImpl implements OrderService {
                             : (item.getKdsStation() != null ? item.getKdsStation() : DEFAULT_KDS_STATION);
                     UUID stationId = station != null ? station.getId() : null;
                     String stationName = station != null ? station.getName() : null;
+                    // The DEFAULT rather than null when no FK resolves (D-28-01). A null would
+                    // make every consumer decide what a missing type means, and they would not
+                    // all decide the same thing.
+                    String stationType = station != null && station.getStationType() != null
+                            ? station.getStationType().name()
+                            : StationType.DEFAULT.name();
                     return new PosEventPayloads.KdsItemPayload(
                             item.getId(),
                             item.getMenuItemId(),
@@ -539,7 +545,8 @@ public class OrderServiceImpl implements OrderService {
                                     .collect(Collectors.toList()),
                             item.getNotes(),
                             stationId,
-                            stationName
+                            stationName,
+                            stationType
                     );
                 })
                 .collect(Collectors.toList());

@@ -38,4 +38,16 @@ public class KdsStation extends TenantAuditableEntity {
 
     @Column(name = "escalation_threshold_seconds", nullable = false)
     private int escalationThresholdSeconds = 900;
+
+    /**
+     * The KIND of destination this station is (D-28-01), projected from the fire event.
+     *
+     * <p>NOT NULL with a database default of {@code KITCHEN} (V9): every projected row that exists
+     * today feeds a kitchen board, so every one of them becomes KITCHEN and nothing moves. Stored
+     * as a STRING, never an ordinal — an ordinal would re-point every existing row the day a value
+     * was inserted into the middle of the enum, and V9's CHECK constraint is written against names.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "station_type", nullable = false, length = 20)
+    private StationType stationType = StationType.DEFAULT;
 }

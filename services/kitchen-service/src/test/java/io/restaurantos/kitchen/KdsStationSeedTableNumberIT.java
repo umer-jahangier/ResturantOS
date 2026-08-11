@@ -80,7 +80,9 @@ class KdsStationSeedTableNumberIT extends KitchenTestBase {
     void getStations_freshBranch_autoSeedsDefaultStation() {
         assertThat(stationRepository.findByBranchIdAndActiveTrue(branchId)).isEmpty();
 
-        ResponseEntity<List<KdsStation>> response = kdsController.getStations(branchId,
+        // null stationType is the unfiltered form — byte-identical to what this call has always
+        // done. The type filter added in 28-02 is additive and defaults to off.
+        ResponseEntity<List<KdsStation>> response = kdsController.getStations(branchId, null,
                 (JwtClaims) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
 
         List<KdsStation> stations = response.getBody();

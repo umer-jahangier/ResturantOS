@@ -4,6 +4,7 @@ import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
 import io.restaurantos.kitchen.domain.model.KdsTicket;
 import io.restaurantos.kitchen.domain.model.KdsTicketItem;
+import io.restaurantos.kitchen.domain.model.StationType;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderSentToKdsItem;
 import io.restaurantos.kitchen.event.KitchenEventPayloads.OrderSentToKdsPayload;
 import io.restaurantos.kitchen.repository.KdsStationRepository;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -82,15 +84,29 @@ public class TicketRoutingService {
         }
     }
 
-    /** Canonical station reference resolved from an event item group (id/name may be null). */
-    private record StationRef(UUID stationId, String stationName) {}
+    /**
+     * Canonical station reference resolved from an event item group (any field may be null).
+     *
+     * <p>A null {@code stationType} means "the producer said nothing", NOT "KITCHEN". See
+     * {@link #upsertStation} for why the difference decides whether a partial rollout quietly
+     * destroys a tenant's bar configuration.
+     */
+    private record StationRef(UUID stationId, String stationName, StationType stationType) {}
 
     private StationRef resolveStationRef(List<OrderSentToKdsItem> stationItems) {
+        // The type is resolved independently of the FK. A line can carry a type without a station
+        // id — pos-service emits the default type for an unresolved FK — and a group whose first
+        // FK-bearing line is not its first line would otherwise lose it.
+        StationType type = stationItems.stream()
+                .map(i -> StationType.fromWireOrNull(i.stationType()))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
         return stationItems.stream()
                 .filter(i -> i.stationId() != null)
                 .findFirst()
-                .map(i -> new StationRef(i.stationId(), i.stationName()))
-                .orElse(new StationRef(null, null));
+                .map(i -> new StationRef(i.stationId(), i.stationName(), type))
+                .orElse(new StationRef(null, null, type));
     }
 
     /**
@@ -192,6 +208,15 @@ public class TicketRoutingService {
                 station.setSourceStationId(ref.stationId());
                 dirty = true;
             }
+            // Promote the type ONLY when the event actually carries one (D-28-01). A message from
+            // a pos-service instance still on the pre-phase-28 build has no opinion about the type,
+            // and treating that as "KITCHEN" would walk every BAR station in the tenant back to the
+            // cooking board, one fire at a time, during a rolling deploy — with nothing in any log
+            // to say why the drinks started appearing on the wrong screen.
+            if (ref.stationType() != null && ref.stationType() != station.getStationType()) {
+                station.setStationType(ref.stationType());
+                dirty = true;
+            }
             if (dirty) {
                 stationRepository.save(station);
             }
@@ -207,9 +232,12 @@ public class TicketRoutingService {
                 ? ref.stationName() : code);
         station.setActive(true);
         station.setSourceStationId(ref.stationId());
+        // Absent means the default, for a row being created — there is no stored value to preserve.
+        station.setStationType(ref.stationType() != null ? ref.stationType() : StationType.DEFAULT);
         station.setEscalationThresholdSeconds(900);
         stationRepository.save(station);
-        log.info("Projected station: branch={} code={} sourceStationId={}", branchId, code, ref.stationId());
+        log.info("Projected station: branch={} code={} sourceStationId={} type={}",
+                branchId, code, ref.stationId(), station.getStationType());
     }
 
     /** Builds new KdsTicketItems for a station's items, stamping revisionNo/firedAt from the payload. */

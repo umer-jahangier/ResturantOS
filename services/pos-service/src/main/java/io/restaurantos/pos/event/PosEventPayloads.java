@@ -63,6 +63,12 @@ public class PosEventPayloads {
      * the free-text snapshot (coalesced to "DEFAULT"). {@code stationId} is null for a line with
      * no station FK. Field names+order MUST stay byte-identical to kitchen-service
      * KitchenEventPayloads.OrderSentToKdsItem — never reorder/rename; only append.
+     *
+     * <p>{@code stationType} (Phase 28, D-28-01) is the next ADDITIVE trailing field: the KIND of
+     * destination this line's station is, so the display side can decide whether a ticket belongs
+     * on the bar board without calling back into pos-service. Emitted as the DEFAULT ("KITCHEN")
+     * rather than null when no station FK resolves, so the consumer never has to decide what a
+     * missing type means — a decision two consumers would eventually make differently.
      */
     public record KdsItemPayload(
             UUID orderItemId,
@@ -73,8 +79,17 @@ public class PosEventPayloads {
             List<String> modifiers,
             String notes,
             UUID stationId,
-            String stationName
-    ) {}
+            String stationName,
+            String stationType
+    ) {
+        /** Pre-phase-28 shape. Jackson binds the canonical form; this is for call sites and fixtures. */
+        public KdsItemPayload(UUID orderItemId, UUID menuItemId, String name, int qty,
+                String kdsStation, List<String> modifiers, String notes, UUID stationId,
+                String stationName) {
+            this(orderItemId, menuItemId, name, qty, kdsStation, modifiers, notes, stationId,
+                stationName, null);
+        }
+    }
 
     /**
      * ORDER_ITEM_CANCELLED — a single already-fired line was cancelled on the POS. The kitchen

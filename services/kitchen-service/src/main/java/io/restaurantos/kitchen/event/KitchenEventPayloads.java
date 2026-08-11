@@ -63,6 +63,12 @@ public final class KitchenEventPayloads {
     // append, never reorder/rename. kdsStation (the code string) is RETAINED and stays the
     // kitchen's ticket/WS key; stationId is the canonical FK reference (null for a line with no
     // station), stationName the display name used to project a real kds_stations row.
+    // stationType is the NEXT additive trailing field (Phase 28, D-28-01) — the KIND of
+    // destination (KITCHEN/BAR/PANTRY/EXPO/DESSERT) the line's station is, so the board can filter
+    // without calling pos-service. Name MUST match pos-service KdsItemPayload.stationType exactly.
+    // NULL is legitimate and means "an older producer sent this": upsertStation must then leave the
+    // stored type alone rather than resetting it, or a partial rollout walks every bar station back
+    // to KITCHEN one fire at a time.
     public record OrderSentToKdsItem(
             UUID orderItemId,
             UUID menuItemId,
@@ -72,8 +78,21 @@ public final class KitchenEventPayloads {
             List<String> modifiers,
             String notes,
             UUID stationId,
-            String stationName
+            String stationName,
+            String stationType
     ) {
+        /**
+         * Pre-phase-28 shape (stationId/stationName present, no type). Jackson always deserializes
+         * via the canonical all-args form, so a live event omitting {@code stationType} yields null
+         * — never this ctor.
+         */
+        public OrderSentToKdsItem(UUID orderItemId, UUID menuItemId, String name, int qty,
+                String kdsStation, List<String> modifiers, String notes, UUID stationId,
+                String stationName) {
+            this(orderItemId, menuItemId, name, qty, kdsStation, modifiers, notes, stationId,
+                stationName, null);
+        }
+
         /**
          * Back-compat constructor for call-sites predating the additive {@code stationId}/
          * {@code stationName} fields (defaults both to null). Jackson always deserializes via the
@@ -82,7 +101,7 @@ public final class KitchenEventPayloads {
          */
         public OrderSentToKdsItem(UUID orderItemId, UUID menuItemId, String name, int qty,
                 String kdsStation, List<String> modifiers, String notes) {
-            this(orderItemId, menuItemId, name, qty, kdsStation, modifiers, notes, null, null);
+            this(orderItemId, menuItemId, name, qty, kdsStation, modifiers, notes, null, null, null);
         }
     }
 
