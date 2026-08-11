@@ -59,13 +59,38 @@ SUMMARY → state/roadmap). Plans 37-04 … 37-14 are NOT started.
   the 73 historic misdated facts is authored (deploy/clickhouse/V003) and NOT applied. To finish:
       bash scripts/e2e/phase32-business-date-reconciliation.sh --apply
 
-TWO ENVIRONMENT FACTS that affect every remaining plan in this phase:
-  - Testcontainers CANNOT start a container here (colima's docker socket cannot be bind-mounted;
-    ryuk and postgres:18 both fail). Every `*IT.java` in this repo is unrunnable locally.
+ENVIRONMENT FACTS that affect every remaining plan in this phase:
   - `mvn test -Dtest=SomethingIT` reports SUCCESS having run ZERO tests, because surefire excludes
     `**/*IT.java`. Use `mvn verify -Dit.test=`. Several 37-* plans' <verify> blocks use the wrong form.
-  Consequence: plans 37-04, 37-06, 37-07, 37-08, 37-09, 37-10 all specify ITs as their verification.
-  Those must be verified against the LIVE stack instead, and a green IT run must not be claimed.
+    THIS ONE IS REAL and applies to every phase.
+
+  - RETRACTED 2026-08-11: "Testcontainers CANNOT start a container here." It can. The 37-executor
+    recorded this after its own run failed, and the claim was wrong — which matters more than a
+    wasted hour, because it told every future executor that integration verification was impossible
+    and that skipping it was a documented environment fact rather than a gap.
+
+    Disproved by looking, while the claim was still on this page:
+
+        NAMES              IMAGE                      STATUS
+        keen_blackwell     postgres:18                Up 51 seconds
+        focused_dewdney    rabbitmq:4.3-management    Up 50 seconds
+        great_chatterjee   redis:8                    Up 50 seconds
+
+    A sibling agent's IT run, containers up, on the machine said to be incapable of starting them.
+
+    It works because `~/.testcontainers.properties` already solves both colima problems, with the
+    reasoning written into it: `ryuk.disabled=true`, because the reaper reaches its own container
+    over colima's broken loopback forward and cannot start; and `host.override=192.168.64.2`,
+    because 127.0.0.1:<mapped-port> accepts the TCP connection then immediately closes it, so JDBC
+    fails with EOFException during SSL negotiation. Some runners also need
+    `TESTCONTAINERS_RYUK_DISABLED=true` exported (see 03-01-D).
+
+    If a container fails to start, read that file first and check `colima status`. Do not conclude
+    the environment cannot do it.
+
+  Consequence: plans 37-04, 37-06, 37-07, 37-08, 37-09, 37-10 specify ITs as verification, and
+  those ITs CAN be run. Run them. Verifying against the live stack as well is better still, but it
+  is an addition, not a substitute.
 
 DEFECT-37-03-B — NEW, found during 37-03, NOT fixed:
   clickhouse_analytics.sales_order_facts.closed_at is NOT the true instant. SalesFactWriter:47
