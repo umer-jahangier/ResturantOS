@@ -93,6 +93,33 @@ Plans:
 - [ ] 31-07-PLAN.md — the seed creates purchasing data; `CREDENTIALS.md` tells the truth *(wave 4)*
 - [ ] 31-08-PLAN.md — an owner completes the chain in the browser; phase acceptance *(wave 5)*
 
+#### Phase 37 — Finance ↔ Orders Integration, Transactions & Guide *(directory `32-finance-orders-integration`, rename deferred per the table above)*
+
+**Goal:** An owner opens Finance and sees today's takings by tender, reconciled against what each till
+counted, with every variance shown as a variance; opens any transaction to the order behind it and the
+journal entries it produced, and any entry back to its order; reads real cost and margin figures; and
+finds a Guide tab that explains every finance tab in plain language, where every behavioural claim it
+makes is bound to a live test.
+**Requirements:** FIN-11 … FIN-16, RPT-10, RPT-11
+**Depends on:** 14 (money path, landed), 22b (financial wiring audit, landed)
+**Plans:** 14 plans, 6 waves
+
+Plans:
+- [ ] 32-01-PLAN.md — one display authority for paisa, pinned by vectors both stacks read *(wave 1, independently shippable)*
+- [ ] 32-02-PLAN.md — the verified-claim registry and its two-way gate *(wave 1, independently shippable)*
+- [ ] 32-03-PLAN.md — one business date, honoured by every consumer; the 73 misdated facts realigned *(wave 1, closes 22b D-7)*
+- [ ] 32-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)*
+- [ ] 32-05-PLAN.md — the queue no code declares, retired; a drift check that would have caught it *(wave 2, closes 22b D-9, independently shippable)*
+- [ ] 32-06-PLAN.md — tender facts: the missing half of daily takings *(wave 2)*
+- [ ] 32-07-PLAN.md — cost of sales attributed to the line that consumed it *(wave 2, closes 22b D-8 data half)*
+- [ ] 32-08-PLAN.md — the transaction register, at money-event grain, bounded and indexed *(wave 2)*
+- [ ] 32-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)*
+- [ ] 32-10-PLAN.md — cost and margin reported, with a check a mirrored error cannot pass *(wave 3)*
+- [ ] 32-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
+- [ ] 32-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)*
+- [ ] 32-13-PLAN.md — the Guide tab, rendered from the registry; an unproven sentence cannot be printed *(wave 5)*
+- [ ] 32-14-PLAN.md — inode-identity freshness gate and the six-item phase acceptance *(wave 6)*
+
 ### Execution record — what has actually landed (2026-08-07)
 
 **Complete and independently verified** (each number re-run by the orchestrator, not taken from
@@ -871,21 +898,39 @@ Plans:
 
 **Plans**: TBD
 
-### Phase 16: Multi-POS Terminals & KDS/BDS Routing
+### Phase 28: Stations, POS Profiles & Staff Assignment
 
-**Goal**: One tenant can run multiple POS terminals per branch, and the admin decides whether food and drink share one POS or split across separate ones — with orders routed to the correct kitchen or bar display.
-**Depends on**: Phase 13
-**Source**: `AUDIT-REPORT-2026-08-06.md` §2.4
+*(Planned 2026-08-11 as `28-station-pos-profiles`. Previously numbered Phase 16.)*
+
+**Goal**: A tenant admin can create a station, create a dedicated POS terminal that offers its own slice of the menu, and assign a staff member to a station — entirely in the UI — and an order spanning food and drink reaches the kitchen and the bar as two separate tickets.
+**Depends on**: Phase 13 (WAITER role, till rule), Phase 19b (table + station CRUD)
+**Source**: `AUDIT-REPORT-2026-08-06.md` §2.4, `.planning/research/adaptivity/multi-pos-stations.md`, `28-CONTEXT.md` (D-28-01…06)
 **Success Criteria**:
 
   1. `pos_terminals` exists (tenant+branch scoped, coded, named, activatable) with admin CRUD and UI; an order records `terminal_id` and a `source` channel.
-  2. `stations.station_type` distinguishes KITCHEN / BAR / EXPO; a BDS route renders bar stations using the existing board; KDS and BDS each request only their own type.
+  2. `stations.station_type` distinguishes the destination kinds and is projected into kitchen-service; boards request only their own type.
   3. `menu_item_station_routes` allows a tenant-scoped menu item to route to a different station per branch, with category-level fallback; a station admin UI and a menu-item→station picker exist.
-  4. Till sessions bind to a terminal, and the `uq_open_till_per_cashier` swap ships with a data-migration plan and no double-drawer regression.
-  5. The KDS WebSocket validates the branch claim (parity with the POS socket).
-  6. Configurable end to end: an admin with a combined food+drink POS and an admin with split POS/bar counters can each be configured through the UI, and orders reach the right display in both cases.
+  4. **DEFERRED — recommended as its own phase.** Till sessions binding to a terminal requires the `uq_open_till_per_cashier` index swap, which is a breaking change on the money path. Phase 28 records order attribution only and leaves the 13-16 cash-till rule untouched (D-28-06).
+  5. The KDS WebSocket validates the tenant and branch claims (parity with the POS socket).
+  6. Configurable end to end: a combined food+drink POS and a split POS/bar-counter setup can each be configured through the UI, and orders reach the right display in both cases.
 
-**Plans**: TBD
+**Plans**: 14 plans across 5 waves
+
+Plans:
+- [ ] 28-01-PLAN.md (wave 1) — user→station assignment in auth_db, carried in the JWT `attributes` map; `pos.terminals.admin` permission (D-28-02)
+- [ ] 28-02-PLAN.md (wave 1) — `stations.station_type` end to end: pos entity, event payload parity, kitchen projection (D-28-01)
+- [ ] 28-03-PLAN.md (wave 1) — KDS WebSocket validates tenant and branch; closes a live cross-tenant read (SC5)
+- [ ] 28-04-PLAN.md (wave 2) — `pos_terminals` + menu-scope and station-set join tables, admin CRUD behind `pos.terminals.admin` (D-28-03)
+- [ ] 28-05-PLAN.md (wave 2) — per-branch `menu_item/category_station_routes` + `StationRoutingResolver`; closes the cross-branch overwrite (SC3)
+- [ ] 28-06-PLAN.md (wave 2) — station admin UI; the backend CRUD gets its first caller (D-28-05)
+- [ ] 28-07-PLAN.md (wave 2) — kitchen-service enforces the station scope on tickets, station list and socket; no assignment means everything (D-28-02)
+- [ ] 28-08-PLAN.md (wave 3) — split-ticket proof on a real spanning order + `ORDER_READY` cross-station fix (D-28-04)
+- [ ] 28-09-PLAN.md (wave 3) — terminal admin UI with the menu-scope picker (D-28-03)
+- [ ] 28-10-PLAN.md (wave 3) — menu-item and category→station routing UI (D-28-04, D-28-05)
+- [ ] 28-11-PLAN.md (wave 3) — station assignment in the user create/edit form (D-28-02) — **the user's stated gap**
+- [ ] 28-12-PLAN.md (wave 3) — `orders.terminal_id` + `source`, branch-validated; till rule untouched (D-28-06)
+- [ ] 28-13-PLAN.md (wave 4) — POS terminal selection and menu-grid scoping (D-28-03)
+- [ ] 28-14-PLAN.md (wave 5) — browser proof of the whole definition of done + live gateway script (D-28-05)
 
 ### Phase 17: ERP Reporting Completeness
 

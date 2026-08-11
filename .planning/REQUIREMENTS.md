@@ -217,6 +217,16 @@ locked decisions D-31-01…06 stated as requirements.
 - [x] **FIN-09**: The auto-seed-on-miss fallback in getPeriodStatus is config-gated (finance.period.auto-seed-on-miss, default on in dev/staging, off in prod) and emits a WARN audit log when it seeds
 - [x] **FIN-10**: The Finance → Periods page provides a calendar-based "Provision Periods" UI, gated behind finance.period.open, that lets a permissioned user browse to any fiscal year (past, current, or future — computed dynamically from the existing Jul-Jun formula, never a hardcoded literal), preview the 12 monthly periods that will be created, and confirm provisioning via the FIN-08 endpoint
 
+*Added 2026-08-11 for Phase 32 (Finance ↔ Orders Integration, Transactions & Guide), from `32-CONTEXT.md`
+decisions D-32-01 … D-32-05 and the three defects phase 22b reported but could not fix in its lane:*
+
+- [ ] **FIN-11**: A Transactions surface lists every money event — order, payment, refund, void — filterable by date range, branch, terminal, cashier, tender and status, and traceable in both directions: a row opens to its order **and** to the journal entries it produced, and each entry names its source order back (D-32-01)
+- [ ] **FIN-12**: Daily takings is the finance landing screen — gross sales, discounts, comps, tax, service charge and net, split by tender, set against what each till counted, with every cash variance shown per till as a variance and never absorbed into another figure (D-32-02)
+- [ ] **FIN-13**: A Guide tab explains every finance tab in plain language — what it is, when you use it, what a typical entry looks like, what it affects downstream — and every behavioural claim it makes is bound to a live, enabled test by a two-way build gate, so prose and behaviour cannot drift apart in either direction (D-32-03)
+- [ ] **FIN-14**: One display authority converts BIGINT paisa to a string, shared by the JVM and the browser and pinned by a golden-vector file both read — resolving the existing disagreement between `MoneyUtils.formatPkr` (whole rupees) and the frontend's two-decimal renderers
+- [ ] **FIN-15**: Every durable bound queue on the broker is declared by code or by the definitions file, or listed as an exception with a written reason; `finance.invoice-matched.queue` — bound, durable, growing and declared nowhere — is retired with its contents captured and the decision recorded (22b D-9)
+- [ ] **FIN-16**: No finance surface renders a figure the system did not compute. An uncomputable number states that it is uncomputable and names the reason, following the SuperAdmin console's "Not metered" precedent; a failed request never renders as an empty day (D-32-05)
+
 ### HR & Payroll (HR)
 
 - [ ] **HR-01**: Manage employees (`cnic`, `bank_account_no` field-encrypted)
@@ -240,6 +250,12 @@ locked decisions D-31-01…06 stated as requirements.
 
 - [x] **RPT-01**: ClickHouse ETL from events into analytics facts; named reports (incl. FBR Tax Summary) within P95 latency targets — **Complete-with-a-note**: ETL (real POS/purchasing events → real ClickHouse facts within seconds) and named reports (sales-by-day, FBR Tax Summary) proven on the real stack with exact arithmetic (12-10-E2E §2). The "P95 latency targets" clause cannot be scored — no P95 target is stated anywhere in REQUIREMENTS.md or the ROADMAP; real `durationMs` values were captured (122–1231ms) and a target is *proposed* (12-10-E2E §2h) for a future owner to formally adopt. FBR `ntn`/`fbrStrn` are genuinely NULL live (12-10-E2E §1f, a real internal-auth-seam gap, not fixed by this plan).
 - [ ] **RPT-02**: Dashboard WebSocket pushes within 5s of `ORDER_CLOSED`/`TILL_CLOSED` — **In Progress, not Complete**: the push mechanism itself is proven live at 4364ms/2108ms (well under 5s, 12-10-E2E §3), but the real API gateway's `JwtGlobalFilter` has no query-param JWT fallback and neither `/api/v1/reporting/dashboard` nor `/api/v1/kitchen` is in its public-path allowlist — a browser cannot set an `Authorization` header on a WS handshake, so **no caller, with any token, can reach this socket through the real gateway today** (12-10-E2E §1h). This is a genuine, newly-discovered, live-only production blocker (affects KDS too) that must be fixed before RPT-02 can be called Complete.
+*Added 2026-08-11 for Phase 32, from 22b defects D-7 and D-8. Numbered from RPT-10 because RPT-03 is
+already taken by the deferred v2 "consolidated multi-branch reporting" item.*
+
+- [ ] **RPT-10**: Cost of sales and gross margin are reportable by day, by item and by order type from populated cost rows — closing 22b D-8, where 0 of 115 item fact rows carried a cost — with an unknown cost reported as unknown rather than as zero, plus an independent recomputation from purchase price and a plausibility band, because the general-ledger-to-sub-ledger tie held while cost was 1000× wrong and therefore proves wiring, not arithmetic
+- [ ] **RPT-11**: A sale's trading day is decided once by pos-service and read — never recomputed — by every downstream consumer, so the general ledger and the sales report name the same day for every order; closing 22b D-7, where 9,492,000 paisa across 73 orders sat on 08-06 in the ledger and 08-07 in the report
+
 - [x] **NLQ-01**: NLQ converts NL→SQL via Claude with 7-stage AST validation (shape, parse, table allowlist, PII deny-list, tenant filter, branch filter, limit inject) — **Complete-with-a-note**: the 7-stage validator is fully proven live against real hostile SQL and a real ClickHouse database (all 8 negative controls pass with exact rejection codes persisted to `nlq_query_log`, 12-10-E2E §5). The real Claude NL→SQL round-trip itself is IT-proven only (`NlqServiceIT`, 12-07) — `deploy/.env`'s `ANTHROPIC_API_KEY` is a placeholder on this host, so the live Claude call could not be independently re-proven here (12-10-E2E §1i).
 - [x] **NLQ-02**: NLQ enforces read-only, 5s timeout, row cap, per-tenant monthly + per-user hourly quotas; result cache 60s; impersonation stamped in `nlq_query_log` — **Complete-with-a-note**: read-only enforcement proven live at the ClickHouse SERVER layer (real `ACCESS_DENIED` on INSERT/DROP as `nlq_readonly`), the 60s cache proven live (`cacheHit:true` on repeat, single upstream call), and the impersonation stamp proven live end-to-end into `nlq_query_log.impersonated_by` (12-10-E2E §4, §6) — via a self-signed JWT working around a separately-broken real impersonation-issuance endpoint (12-10-E2E §1g, a real RLS-tenant-GUC gap in `ProvisioningAdminService.impersonate`, same bug class as the historical `2099ac0` fix, not fixed by this plan). The 5s timeout, row cap, and 429 quota-exhaustion were not independently re-driven live this session; `NlqServiceIT`/`NlqQuotaServiceTest` (12-07) IT-level coverage stands for those clauses, and the quota Redis key contract was confirmed present and correctly named live (12-10-E2E §5).
 
@@ -436,6 +452,14 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PIW-04 | Phase 31 (31-04, 31-07) | Planned |
 | PIW-05 | Phase 31 (31-06) | Planned |
 | PIW-06 | Phase 31 (31-05, 31-08) | Planned |
+| FIN-11 | Phase 32 (32-04, 32-08, 32-11) | Planned |
+| FIN-12 | Phase 32 (32-06, 32-09, 32-12) | Planned |
+| FIN-13 | Phase 32 (32-02, 32-13) | Planned |
+| FIN-14 | Phase 32 (32-01) | Planned |
+| FIN-15 | Phase 32 (32-05) | Planned |
+| FIN-16 | Phase 32 (32-08, 32-09, 32-11, 32-12) | Planned |
+| RPT-10 | Phase 32 (32-07, 32-10) | Planned |
+| RPT-11 | Phase 32 (32-03) | Planned |
 
 **Coverage:**
 
