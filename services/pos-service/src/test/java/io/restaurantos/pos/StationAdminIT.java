@@ -1,6 +1,7 @@
 package io.restaurantos.pos;
 
 import io.restaurantos.pos.domain.model.MenuCategory;
+import io.restaurantos.pos.domain.model.StationType;
 import io.restaurantos.pos.domain.model.MenuItem;
 import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
@@ -24,6 +25,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -53,6 +55,14 @@ class StationAdminIT extends PosTestBase {
     @Autowired MenuCategoryRepository menuCategoryRepository;
     @Autowired OutboxRepository outboxRepository;
     @Autowired TenantContext tenantContext;
+    /**
+     * Raw SQL, because two of the phase-28 cases are ABOUT the database rather than about the
+     * service: one inserts a row the way a pre-migration row exists (no station_type column named,
+     * so the DEFAULT supplies it), and one asserts the CHECK constraint refuses a value the Java
+     * enum would never produce. Neither is expressible through the service, and going through the
+     * service would prove the service's default rather than the migration's.
+     */
+    @Autowired JdbcTemplate jdbcTemplate;
 
     UUID tenantId;
     UUID ownBranch;
@@ -211,5 +221,99 @@ class StationAdminIT extends PosTestBase {
                 cashierId, tenantId, ownBranch, List.of("OWNER"), permissions, Map.of(), null);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(claims, null, List.of()));
+    }
+
+    // ── Phase 28: a station has a TYPE (D-28-01) ──────────────────────────────────────────────
+    //
+    // Appended. None of the nine tests above is modified: the two-argument request constructors
+    // they use are retained deliberately, so the pre-existing behaviour is measured by the
+    // pre-existing assertions rather than by rewritten ones.
+
+    @Test
+    void createStation_withNoTypeGiven_isKitchen() {
+        StationDto created = stationService.createStation(ownBranch, new CreateStationRequest("GRILL", "Grill Line"));
+
+        assertThat(created.stationType())
+                .as("the do-nothing configuration must be today's behaviour exactly")
+                .isEqualTo(StationType.KITCHEN);
+        assertThat(created.displayFamily()).isEqualTo(StationType.DisplayFamily.KITCHEN);
+    }
+
+    @Test
+    void everyStationRowThatPredatesTheMigration_readsBackAsKitchen() {
+        // Written the way a pre-phase-28 row exists: INSERTed without the column, so the DEFAULT is
+        // what supplies the value. Creating one through the service would prove the service's
+        // default, not the migration's, and it is the migration that every existing tenant depends
+        // on.
+        jdbcTemplate.update(
+                "INSERT INTO stations (id, tenant_id, branch_id, code, name, is_active) "
+                        + "VALUES (?, ?, ?, 'LEGACY', 'Legacy Line', TRUE)",
+                UUID.randomUUID(), tenantId, ownBranch);
+
+        assertThat(stationService.listStations(ownBranch))
+                .filteredOn(s -> "LEGACY".equals(s.code()))
+                .singleElement()
+                .extracting(StationDto::stationType)
+                .isEqualTo(StationType.KITCHEN);
+    }
+
+    @Test
+    void createStation_asBar_readsBackAsBar_onItsOwnDisplayFamily() {
+        StationDto created = stationService.createStation(
+                ownBranch, new CreateStationRequest("BAR", "Main Bar", StationType.BAR));
+
+        assertThat(created.stationType()).isEqualTo(StationType.BAR);
+        assertThat(created.displayFamily())
+                .as("a bar ticket must not land on a cooking board")
+                .isEqualTo(StationType.DisplayFamily.BAR);
+    }
+
+    @Test
+    void updateStation_canChangeTheType_andOmittingItLeavesItAlone() {
+        StationDto created = stationService.createStation(
+                ownBranch, new CreateStationRequest("PREP", "Prep", StationType.KITCHEN));
+
+        StationDto retyped = stationService.updateStation(
+                created.id(), ownBranch, new UpdateStationRequest("Prep", true, StationType.PANTRY));
+        assertThat(retyped.stationType()).isEqualTo(StationType.PANTRY);
+
+        // The pre-phase-28 two-argument shape: rename only. It must NOT reset the type, because
+        // every caller that predates this phase sends exactly this.
+        StationDto renamed = stationService.updateStation(
+                created.id(), ownBranch, new UpdateStationRequest("Cold Prep", true));
+        assertThat(renamed.stationType())
+                .as("absent means leave it alone, never 'make it KITCHEN'")
+                .isEqualTo(StationType.PANTRY);
+    }
+
+    @Test
+    void theDatabaseRefusesAnOutOfEnumType_soTheConstraintIsRealAndNotOnlyABeanValidationCourtesy() {
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                "INSERT INTO stations (id, tenant_id, branch_id, code, name, is_active, station_type) "
+                        + "VALUES (?, ?, ?, 'ROGUE', 'Rogue', TRUE, 'bar ')",
+                UUID.randomUUID(), tenantId, ownBranch))
+                .as("'bar ' with a trailing space is exactly how free text produces three bars")
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void listStations_canBeNarrowedToASingleType() {
+        stationService.createStation(ownBranch, new CreateStationRequest("GRILL", "Grill", StationType.KITCHEN));
+        stationService.createStation(ownBranch, new CreateStationRequest("BAR", "Main Bar", StationType.BAR));
+        stationService.createStation(ownBranch, new CreateStationRequest("PASS", "The Pass", StationType.EXPO));
+
+        assertThat(stationService.listStations(ownBranch, StationType.BAR))
+                .extracting(StationDto::code)
+                .containsExactly("BAR");
+        assertThat(stationService.listStations(ownBranch, null))
+                .as("unfiltered stays the default and stays byte-identical to what it always returned")
+                .extracting(StationDto::code)
+                .contains("GRILL", "BAR", "PASS");
+    }
+
+    @Test
+    void branchIsolationStillHolds_forTheTypedListForm() {
+        assertThatThrownBy(() -> stationService.listStations(foreignBranch, StationType.BAR))
+                .isInstanceOf(PermissionDeniedException.class);
     }
 }

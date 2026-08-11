@@ -1,5 +1,6 @@
 package io.restaurantos.pos.web;
 
+import io.restaurantos.pos.domain.model.StationType;
 import io.restaurantos.pos.dto.CreateStationRequest;
 import io.restaurantos.pos.dto.StationDto;
 import io.restaurantos.pos.dto.UpdateStationRequest;
@@ -33,8 +34,10 @@ public class StationController {
 
     @PreAuthorize("hasAnyAuthority('pos.menu.view','pos.kds.view')")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<StationDto>>> listStations(@RequestParam UUID branchId) {
-        return ResponseEntity.ok(ApiResponse.ok(stationService.listStations(branchId)));
+    public ResponseEntity<ApiResponse<List<StationDto>>> listStations(
+            @RequestParam UUID branchId,
+            @RequestParam(required = false) StationType stationType) {
+        return ResponseEntity.ok(ApiResponse.ok(stationService.listStations(branchId, stationType)));
     }
 
     @PreAuthorize("hasAuthority('pos.menu.manage')")

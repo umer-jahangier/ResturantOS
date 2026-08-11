@@ -1,5 +1,6 @@
 package io.restaurantos.pos.service;
 
+import io.restaurantos.pos.domain.model.StationType;
 import io.restaurantos.pos.dto.CreateStationRequest;
 import io.restaurantos.pos.dto.StationDto;
 import io.restaurantos.pos.dto.UpdateStationRequest;
@@ -15,6 +16,9 @@ import java.util.UUID;
 public interface StationService {
 
     List<StationDto> listStations(UUID branchId);
+
+    /** The branch's stations, narrowed to one type. A null type is the unfiltered form (D-28-01). */
+    List<StationDto> listStations(UUID branchId, StationType stationType);
 
     StationDto createStation(UUID branchId, CreateStationRequest request);
 
