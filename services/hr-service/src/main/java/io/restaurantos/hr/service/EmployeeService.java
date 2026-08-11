@@ -5,9 +5,14 @@ import io.restaurantos.hr.dto.EmployeeDtos.EmployeeResponse;
 import io.restaurantos.hr.dto.EmployeeDtos.UpdateEmployeeRequest;
 import io.restaurantos.hr.authz.HrAuthorizationService;
 import io.restaurantos.hr.entity.EmployeeEntity;
+import io.restaurantos.hr.entity.DepartmentEntity;
+import io.restaurantos.hr.entity.DesignationEntity;
+import io.restaurantos.hr.repository.DepartmentRepository;
+import io.restaurantos.hr.repository.DesignationRepository;
 import io.restaurantos.hr.repository.EmployeeRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.exception.DuplicateValueException;
+import io.restaurantos.shared.exception.FieldValidationException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -44,13 +49,20 @@ public class EmployeeService {
     private static final String HR_EXCHANGE = "hr.topic";
 
     private final EmployeeRepository repository;
+    private final DepartmentRepository departmentRepository;
+    private final DesignationRepository designationRepository;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
     private final HrAuthorizationService authorization;
 
-    public EmployeeService(EmployeeRepository repository, TenantContext tenantContext,
+    public EmployeeService(EmployeeRepository repository,
+                           DepartmentRepository departmentRepository,
+                           DesignationRepository designationRepository,
+                           TenantContext tenantContext,
                            EventPublisher eventPublisher, HrAuthorizationService authorization) {
         this.repository = repository;
+        this.departmentRepository = departmentRepository;
+        this.designationRepository = designationRepository;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
         this.authorization = authorization;
@@ -75,8 +87,8 @@ public class EmployeeService {
         e.setFullName(req.fullName());
         e.setCnic(req.cnic());
         e.setBankAccountNo(req.bankAccountNo());
-        e.setDesignation(req.designation());
-        e.setDepartment(req.department());
+        e.setDesignationId(requireDesignation(tenantId, req.designationId()));
+        e.setDepartmentId(requireDepartment(tenantId, req.departmentId()));
         e.setEmploymentType(req.employmentType());
         e.setJoinDate(req.joinDate());
         e.setBasicSalaryPaisa(req.basicSalaryPaisa());
@@ -84,21 +96,25 @@ public class EmployeeService {
         e.setActive(true);
         e = repository.save(e);
         publishEmployeeEvent("hr.employee.joined", "EMPLOYEE_JOINED", e);
-        return toResponse(e);
+        return toResponse(e, resolveNames(e));
     }
 
     @Transactional(readOnly = true)
     public List<EmployeeResponse> list() {
         UUID branchId = requireBranch();
         authorization.authorizeEmployeeView(requireTenant(), branchId);
-        return repository.findAllByBranchId(branchId).stream().map(EmployeeService::toResponse).toList();
+        // Names resolved in one pass rather than per row: a 200-employee branch would otherwise
+        // issue 400 lookups to render a table.
+        List<EmployeeEntity> employees = repository.findAllByBranchId(branchId);
+        Map<UUID, String> names = resolveNamesFor(requireTenant(), employees);
+        return employees.stream().map(e -> toResponse(e, names)).toList();
     }
 
     @Transactional(readOnly = true)
     public EmployeeResponse get(UUID id) {
         EmployeeEntity e = load(id);
         authorization.authorizeEmployeeView(e.getId(), e.getTenantId(), e.getBranchId());
-        return toResponse(e);
+        return toResponse(e, resolveNames(e));
     }
 
     @Transactional
@@ -119,12 +135,12 @@ public class EmployeeService {
         if (hasText(req.bankAccountNo())) {
             e.setBankAccountNo(req.bankAccountNo());
         }
-        e.setDesignation(req.designation());
-        e.setDepartment(req.department());
+        e.setDesignationId(requireDesignation(e.getTenantId(), req.designationId()));
+        e.setDepartmentId(requireDepartment(e.getTenantId(), req.departmentId()));
         e.setEmploymentType(req.employmentType());
         e.setBasicSalaryPaisa(req.basicSalaryPaisa());
         e.setDeviceUserRef(req.deviceUserRef());
-        return toResponse(repository.save(e));
+        return toResponse(repository.save(e), resolveNames(e));
     }
 
     @Transactional
@@ -174,11 +190,70 @@ public class EmployeeService {
         eventPublisher.publish(HR_EXCHANGE, routingKey, eventType, e.getBranchId(), payload);
     }
 
-    private static EmployeeResponse toResponse(EmployeeEntity e) {
+    /**
+     * A department id must exist, belong to the caller's tenant, and still be active.
+     *
+     * <p>Each refusal names {@code departmentId} so the form binds it to the select the user just
+     * used. Without this the three cases surface as a foreign-key violation reported by
+     * {@code handleDataIntegrity} as a 409 with an EMPTY details list — correct status, no way for
+     * a form to show it on the offending control.
+     *
+     * <p>Inactive is refused rather than silently accepted: an owner deactivated that department on
+     * purpose, and quietly assigning new people to it would make the deactivation meaningless.
+     */
+    private UUID requireDepartment(UUID tenantId, UUID departmentId) {
+        if (departmentId == null) {
+            return null;
+        }
+        DepartmentEntity d = departmentRepository.findByIdAndTenantId(departmentId, tenantId)
+                .orElseThrow(() -> new FieldValidationException("DEPARTMENT_NOT_FOUND", "departmentId",
+                        "That department no longer exists. Choose one from the list."));
+        if (!d.isActive()) {
+            throw new FieldValidationException("DEPARTMENT_INACTIVE", "departmentId",
+                    "The department \"" + d.getName() + "\" is no longer in use."
+                            + " Choose another, or reactivate it in HR settings.");
+        }
+        return d.getId();
+    }
+
+    private UUID requireDesignation(UUID tenantId, UUID designationId) {
+        if (designationId == null) {
+            return null;
+        }
+        DesignationEntity d = designationRepository.findByIdAndTenantId(designationId, tenantId)
+                .orElseThrow(() -> new FieldValidationException("DESIGNATION_NOT_FOUND", "designationId",
+                        "That designation no longer exists. Choose one from the list."));
+        if (!d.isActive()) {
+            throw new FieldValidationException("DESIGNATION_INACTIVE", "designationId",
+                    "The designation \"" + d.getName() + "\" is no longer in use."
+                            + " Choose another, or reactivate it in HR settings.");
+        }
+        return d.getId();
+    }
+
+    /** id -> display name for one employee's two references. */
+    private Map<UUID, String> resolveNames(EmployeeEntity e) {
+        return resolveNamesFor(e.getTenantId(), List.of(e));
+    }
+
+    private Map<UUID, String> resolveNamesFor(UUID tenantId, List<EmployeeEntity> employees) {
+        Map<UUID, String> names = new HashMap<>();
+        for (DepartmentEntity d : departmentRepository.findAllByTenantIdOrderByNameAsc(tenantId)) {
+            names.put(d.getId(), d.getName());
+        }
+        for (DesignationEntity d : designationRepository.findAllByTenantIdOrderByNameAsc(tenantId)) {
+            names.put(d.getId(), d.getName());
+        }
+        return names;
+    }
+
+    private static EmployeeResponse toResponse(EmployeeEntity e, Map<UUID, String> names) {
         return new EmployeeResponse(
                 e.getId(), e.getBranchId(), e.getEmployeeNo(), e.getFullName(), e.getUserId(),
                 maskLast4(e.getCnic()), maskLast4(e.getBankAccountNo()),
-                e.getDesignation(), e.getDepartment(), e.getEmploymentType(),
+                e.getDesignationId(), names.get(e.getDesignationId()),
+                e.getDepartmentId(), names.get(e.getDepartmentId()),
+                e.getEmploymentType(),
                 e.getJoinDate(), e.getExitDate(), e.getBasicSalaryPaisa(),
                 e.getDeviceUserRef(), e.isActive());
     }

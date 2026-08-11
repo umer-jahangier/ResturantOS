@@ -59,7 +59,7 @@ class EmployeeBranchIsolationIT extends HrTestBase {
         try {
             return employeeService.create(new CreateEmployeeRequest(
                     employeeNo, "Employee " + employeeNo, null, "4210112345678",
-                    "PK36SCBL0000001123456702", "Chef", "Kitchen",
+                    "PK36SCBL0000001123456702", null, null,
                     EmploymentType.PERMANENT, LocalDate.of(2025, 1, 1), salaryPaisa, null));
         } finally {
             tenantContext.clear();
@@ -88,7 +88,7 @@ class EmployeeBranchIsolationIT extends HrTestBase {
         tenantContext.set(TENANT, BRANCH_A, UUID.randomUUID(), null);
         try {
             assertThatThrownBy(() -> employeeService.update(atB.id(), new UpdateEmployeeRequest(
-                    "Renamed By Other Branch", null, null, null, "Chef", "Kitchen",
+                    "Renamed By Other Branch", null, null, null, null, null,
                     EmploymentType.PERMANENT, 99_999_00L, null)))
                     .isInstanceOf(PermissionDeniedException.class);
         } finally {
@@ -142,7 +142,7 @@ class EmployeeBranchIsolationIT extends HrTestBase {
         try {
             assertThat(employeeService.get(atA.id()).id()).isEqualTo(atA.id());
             assertThatCode(() -> employeeService.update(atA.id(), new UpdateEmployeeRequest(
-                    "Renamed By Own Branch", null, null, null, "Chef", "Kitchen",
+                    "Renamed By Own Branch", null, null, null, null, null,
                     EmploymentType.PERMANENT, 45_000_00L, null)))
                     .doesNotThrowAnyException();
             assertThat(employeeService.get(atA.id()).basicSalaryPaisa()).isEqualTo(45_000_00L);

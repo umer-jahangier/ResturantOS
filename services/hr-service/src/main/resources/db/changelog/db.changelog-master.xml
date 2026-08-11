@@ -13,6 +13,9 @@
          salary_components, employee_salary_components), each RLS-forced in the same changelog
          that creates it, and none of them seeded. -->
     <include file="db/changelog/v1.0.0/014-hr-config-tables.xml"/>
+    <!-- Phase 35-05: employees move onto those tables, carrying their existing free-text
+         values across rather than discarding them. -->
+    <include file="db/changelog/v1.0.0/015-employee-department-designation-fk.xml"/>
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
     <include file="db/changelog/v1.0.0/031-device-resolve-fn.xml"/>
     <include file="db/changelog/v1.0.0/032-hr-tenant-ids-fn.xml"/>

@@ -290,7 +290,7 @@ class HrFieldErrorIT extends HrTestBase {
 
     private static CreateEmployeeRequest newEmployee(String employeeNo, String name, UUID branch) {
         return new CreateEmployeeRequest(
-                employeeNo, name, null, null, null, "Waiter", "Front of House",
+                employeeNo, name, null, null, null, null, null,
                 EmploymentType.PERMANENT, LocalDate.of(2026, 1, 1), 5_000_000L, null);
     }
 }

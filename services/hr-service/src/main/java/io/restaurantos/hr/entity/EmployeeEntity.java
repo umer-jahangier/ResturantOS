@@ -54,11 +54,19 @@ public class EmployeeEntity extends TenantAuditableEntity {
     @Column(name = "bank_account_no", columnDefinition = "bytea")
     private String bankAccountNo;
 
-    @Column(name = "designation")
-    private String designation;
+    /**
+     * Foreign keys, not strings (35-05).
+     *
+     * <p>These were {@code department TEXT} and {@code designation TEXT}, which is how one
+     * department came to exist under three spellings. Nullable because an employee genuinely may
+     * have neither, and because the 015 backfill leaves a blank old value null rather than
+     * inventing a placeholder.
+     */
+    @Column(name = "department_id")
+    private UUID departmentId;
 
-    @Column(name = "department")
-    private String department;
+    @Column(name = "designation_id")
+    private UUID designationId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "employment_type", nullable = false)

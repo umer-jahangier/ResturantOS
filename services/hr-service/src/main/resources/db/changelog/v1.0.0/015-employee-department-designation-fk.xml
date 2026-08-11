@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Phase 35-05. Move employees off two free-text columns and onto the lists 35-02 created.
+
+      Three changesets in ONE file, applied in order, because the middle one is the only thing
+      standing between a tenant and the loss of every department they ever typed. Splitting them
+      across files makes it possible to apply the drop without the backfill.
+    -->
+
+    <changeSet id="hr-1.0.0-015a-add-lookup-columns" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE employees ADD COLUMN department_id  UUID REFERENCES departments(id);
+            ALTER TABLE employees ADD COLUMN designation_id UUID REFERENCES designations(id);
+
+            CREATE INDEX idx_employees_department ON employees (tenant_id, department_id);
+            CREATE INDEX idx_employees_designation ON employees (tenant_id, designation_id);
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP INDEX IF EXISTS idx_employees_designation;
+                DROP INDEX IF EXISTS idx_employees_department;
+                ALTER TABLE employees DROP COLUMN IF EXISTS designation_id;
+                ALTER TABLE employees DROP COLUMN IF EXISTS department_id;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      THE BACKFILL. This is the changeset that preserves a tenant's real data.
+
+      The obvious alternative — drop the TEXT columns and let everyone re-enter their departments —
+      is not a migration, it is data loss with a changelog id. Every existing employee keeps the
+      department they had.
+
+      The deduplication IS the repair. Three spellings of "Waiter" collapse to one row on
+      lower(trim(...)), and all three employees end up pointing at it, which is precisely the defect
+      the user described. The surviving spelling is the FIRST one seen per tenant (min by ctid via
+      DISTINCT ON), so an owner sees a real value they typed rather than a lowercased mangling of it.
+
+      A blank or null old value stays NULL. Inventing a placeholder department would be the
+      developer-seeded default the user explicitly ruled out, and it would be wrong for every tenant.
+
+      RLS: departments has FORCE ROW LEVEL SECURITY, and Liquibase runs as hr_user with NO tenant
+      context. Without set_config the policy's USING/WITH CHECK refuses every insert and hr-service
+      fails to start — the same trap 900-seed-tax-config documents. The GUC is therefore set per
+      tenant inside the loop.
+    -->
+    <changeSet id="hr-1.0.0-015b-backfill-from-free-text" author="restaurantos-agent">
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                t RECORD;
+            BEGIN
+                FOR t IN SELECT DISTINCT tenant_id FROM employees LOOP
+                    PERFORM set_config('app.current_tenant_id', t.tenant_id::text, false);
+
+                    -- One department row per distinct normalised spelling. DISTINCT ON keeps the
+                    -- first spelling encountered, so the tenant keeps a name they actually typed.
+                    INSERT INTO departments (tenant_id, name)
+                    SELECT DISTINCT ON (lower(trim(e.department)))
+                           t.tenant_id, trim(e.department)
+                    FROM employees e
+                    WHERE e.tenant_id = t.tenant_id
+                      AND e.department IS NOT NULL
+                      AND trim(e.department) <> ''
+                    ORDER BY lower(trim(e.department)), e.created_at, e.id
+                    ON CONFLICT DO NOTHING;
+
+                    UPDATE employees e
+                    SET department_id = d.id
+                    FROM departments d
+                    WHERE e.tenant_id = t.tenant_id
+                      AND d.tenant_id = t.tenant_id
+                      AND e.department IS NOT NULL
+                      AND trim(e.department) <> ''
+                      AND lower(trim(e.department)) = lower(trim(d.name));
+
+                    INSERT INTO designations (tenant_id, name)
+                    SELECT DISTINCT ON (lower(trim(e.designation)))
+                           t.tenant_id, trim(e.designation)
+                    FROM employees e
+                    WHERE e.tenant_id = t.tenant_id
+                      AND e.designation IS NOT NULL
+                      AND trim(e.designation) <> ''
+                    ORDER BY lower(trim(e.designation)), e.created_at, e.id
+                    ON CONFLICT DO NOTHING;
+
+                    UPDATE employees e
+                    SET designation_id = g.id
+                    FROM designations g
+                    WHERE e.tenant_id = t.tenant_id
+                      AND g.tenant_id = t.tenant_id
+                      AND e.designation IS NOT NULL
+                      AND trim(e.designation) <> ''
+                      AND lower(trim(e.designation)) = lower(trim(g.name));
+                END LOOP;
+
+                -- Reset so the connection Liquibase hands back carries no tenant.
+                PERFORM set_config('app.current_tenant_id', '', false);
+            END $$;
+            ]]></sql>
+        <rollback>
+            <!-- The generated rows cannot be told apart from ones an owner created afterwards, so
+                 the honest rollback is to unlink rather than to delete anything. -->
+            <sql splitStatements="true" endDelimiter=";">
+                UPDATE employees SET department_id = NULL, designation_id = NULL;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      Drop the TEXT columns.
+
+      Leaving them alongside the ids is how the two representations drift, and a later reader cannot
+      tell which one is authoritative. The data is not lost — it is in departments/designations and
+      referenced by every employee that had one.
+    -->
+    <changeSet id="hr-1.0.0-015c-drop-free-text-columns" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE employees DROP COLUMN department;
+            ALTER TABLE employees DROP COLUMN designation;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                ALTER TABLE employees ADD COLUMN department TEXT;
+                ALTER TABLE employees ADD COLUMN designation TEXT;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

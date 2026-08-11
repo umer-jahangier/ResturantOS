@@ -46,7 +46,7 @@ class EmployeeIT extends HrTestBase {
         tenantContext.set(tenantA, UUID.randomUUID(), null, null);
         try {
             resp = employeeService.create(new CreateEmployeeRequest(
-                    "EMP-ENC", "Ali Khan", null, cnicPlain, bankPlain, "Chef", "Kitchen",
+                    "EMP-ENC", "Ali Khan", null, cnicPlain, bankPlain, null, null,
                     EmploymentType.PERMANENT, LocalDate.of(2025, 1, 1), 20000000L, null));
             id = resp.id();
             // Responses never carry raw PII.

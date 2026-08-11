@@ -24,8 +24,11 @@ public final class EmployeeDtos {
             UUID userId,
             String cnic,
             String bankAccountNo,
-            String designation,
-            String department,
+            // Ids, not free text (35-05). The names live in `departments`/`designations`, which
+            // the tenant maintains; a text box here is what produced three spellings of one
+            // department. Nullable: an employee genuinely may have neither.
+            UUID designationId,
+            UUID departmentId,
             @NotNull EmploymentType employmentType,
             @NotNull LocalDate joinDate,
             // A negative salary is not a smaller number, it is an aborted payroll cycle: it
@@ -41,8 +44,8 @@ public final class EmployeeDtos {
             UUID userId,
             String cnic,
             String bankAccountNo,
-            String designation,
-            String department,
+            UUID designationId,
+            UUID departmentId,
             @NotNull EmploymentType employmentType,
             // Same guard as on create — both are @Valid-bound, and without it here a PUT walks
             // straight past the create-side constraint into the same broken payroll run.
@@ -58,8 +61,12 @@ public final class EmployeeDtos {
             UUID userId,
             String cnicMasked,
             String bankAccountMasked,
-            String designation,
-            String department,
+            // Both the id and the resolved name, so a table renders a department without a second
+            // request per row — and so a client that only wants to display does not have to join.
+            UUID designationId,
+            String designationName,
+            UUID departmentId,
+            String departmentName,
             EmploymentType employmentType,
             LocalDate joinDate,
             LocalDate exitDate,
