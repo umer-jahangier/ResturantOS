@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api-client/client";
 import {
+  del,
   get,
   post,
   put,
@@ -27,6 +28,11 @@ import {
   apiTillReviewActionSchema,
   apiOrderPaymentRecordSchema,
   apiRecordPaymentResultSchema,
+  apiStationSchema,
+  createStationInputSchema,
+  updateStationInputSchema,
+  type CreateStationInput,
+  type UpdateStationInput,
 } from "@/lib/api-client/schemas/pos.schema";
 import {
   adaptMenuItem,
@@ -39,6 +45,7 @@ import {
   adaptTillReconciliation,
   adaptTillReviewAction,
   adaptOrderPayment,
+  adaptStation,
 } from "@/lib/adapters/pos.adapter";
 import type {
   MenuItem,
@@ -62,6 +69,7 @@ import type {
   VoidOrderPayload,
   RefundOrderPayload,
   RecordPaymentPayload,
+  Station,
 } from "@/lib/models/pos.model";
 
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
@@ -224,6 +232,60 @@ export const PosRepository = {
       undefined,
     );
     return adaptDiningTable(apiDiningTableSchema.parse(raw));
+  },
+
+  // ── Stations (phase 28) ───────────────────────────────────────────────────
+
+  /**
+   * `GET /api/v1/pos/stations?branchId=` — the POS-OWNED canonical station list.
+   *
+   * <p>Deliberately NOT `/api/v1/kitchen/kds/stations`, which is the kitchen-service
+   * PROJECTION and auto-seeds a `DEFAULT` row for a branch that has none. That behaviour is
+   * correct for a board which must never be empty, and wrong for a catalogue screen, where it
+   * would invent a station the admin never created and then offer to edit it.
+   *
+   * <p>The server returns active AND retired rows — there is no `includeInactive` parameter on
+   * this endpoint (unlike tables). The catalogue screen filters client-side; see
+   * `use-station-admin.ts`.
+   */
+  async getStations(branchId: string): Promise<Station[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/stations", { branchId });
+    return (Array.isArray(raw) ? raw : []).map((r) => adaptStation(apiStationSchema.parse(r)));
+  },
+
+  async createStation(branchId: string, payload: CreateStationInput): Promise<Station> {
+    const body = createStationInputSchema.parse(payload);
+    const raw = await post<typeof body, unknown>(
+      `/api/v1/pos/stations?branchId=${encodeURIComponent(branchId)}`,
+      body,
+    );
+    return adaptStation(apiStationSchema.parse(raw));
+  },
+
+  async updateStation(
+    id: string,
+    branchId: string,
+    payload: UpdateStationInput,
+  ): Promise<Station> {
+    const body = updateStationInputSchema.parse(payload);
+    const raw = await put<typeof body, unknown>(
+      `/api/v1/pos/stations/${id}?branchId=${encodeURIComponent(branchId)}`,
+      body,
+    );
+    return adaptStation(apiStationSchema.parse(raw));
+  },
+
+  /**
+   * Retire a station. `DELETE` is the verb pos-service exposes but the effect is
+   * `active = false` — the row survives, because fired tickets and the KDS projection are keyed
+   * on its code. Restoring one goes back through `updateStation` with `active: true`; there is
+   * deliberately no separate reactivate endpoint to keep in step with it.
+   */
+  async retireStation(id: string, branchId: string): Promise<Station> {
+    const raw = await del<unknown>(
+      `/api/v1/pos/stations/${id}?branchId=${encodeURIComponent(branchId)}`,
+    );
+    return adaptStation(apiStationSchema.parse(raw));
   },
 
   async updateTableStatus(

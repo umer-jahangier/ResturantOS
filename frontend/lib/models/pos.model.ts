@@ -81,6 +81,34 @@ export interface DiningTable {
   floorPlanShape: string | null;
 }
 
+// ── Stations (phase 28) ───────────────────────────────────────────────────────────────────
+
+/** The five station types (D-28-01). Chosen from a control, never typed — free text is how
+ *  "Bar", "bar" and "BAR " become three stations. */
+export type StationType = "KITCHEN" | "BAR" | "PANTRY" | "EXPO" | "DESSERT";
+
+/** Which physical screen a station's tickets appear on. Five types, three screens. */
+export type StationDisplayFamily = "KITCHEN" | "BAR" | "EXPO";
+
+export interface Station {
+  id: string;
+  branchId: string;
+  /**
+   * The stable routing key. It rides every fired ticket, it is the KDS WebSocket subscription
+   * key, and it is what a user's station assignment stores (28-01). Immutable server-side.
+   */
+  code: string;
+  name: string;
+  stationType: StationType;
+  /** Derived server-side from the type — rendered, never re-derived here. */
+  displayFamily: StationDisplayFamily;
+  /**
+   * CATALOGUE state. A retired station keeps its row forever: fired tickets name it, and the
+   * KDS projection is keyed on its code.
+   */
+  active: boolean;
+}
+
 export interface OrderItemModifier {
   id: string;
   modifierId: string | null;

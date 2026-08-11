@@ -97,6 +97,63 @@ export const createDiningTableInputSchema = z.object({
 });
 export type CreateDiningTableInput = z.infer<typeof createDiningTableInputSchema>;
 
+// ── Stations (phase 28) ───────────────────────────────────────────────────────────────────
+// Mirrors pos-service `StationDto`. Five types, three display families — the mapping is
+// asserted server-side on `StationType` and sent down as `displayFamily`, so nothing here
+// re-derives it except as a fallback for a response that predates plan 28-02 (see the adapter).
+export const STATION_TYPES = ["KITCHEN", "BAR", "PANTRY", "EXPO", "DESSERT"] as const;
+export const DISPLAY_FAMILIES = ["KITCHEN", "BAR", "EXPO"] as const;
+
+/**
+ * The wire station.
+ *
+ * <p>`stationType` and `displayFamily` are typed as plain strings rather than enums ON PURPOSE.
+ * A `z.enum` would make an unrecognised value a PARSE FAILURE, and a parse failure on a list
+ * response empties the whole screen. The narrowing happens in the adapter, where an unknown
+ * value degrades to KITCHEN instead of throwing. Tightening this to an enum would convert
+ * "someone added a sixth station type" from a cosmetic mislabel into an outage.
+ */
+export const apiStationSchema = z.object({
+  id: z.string().uuid(),
+  branchId: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+  active: z.boolean().nullable().optional(),
+  stationType: z.string().nullable().optional(),
+  displayFamily: z.string().nullable().optional(),
+});
+export type ApiStation = z.infer<typeof apiStationSchema>;
+
+/**
+ * Create a station. `code` is the stable routing key — it is what rides a fired ticket, what
+ * the KDS WebSocket subscribes on, and what a user's station assignment stores (28-01).
+ *
+ * <p>It is upper-cased before it is sent. auth-service normalises an assignment's codes to
+ * upper case (`StationAssignmentAdminService`), pos-service stores a station's code verbatim,
+ * and the KDS scope filter compares the two with `IN`. A station created as `bar` would
+ * therefore never match an assignment stored as `BAR`, and the symptom would be a bartender
+ * with an empty board and nothing in any log.
+ */
+export const createStationInputSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50)
+    .transform((v) => v.toUpperCase()),
+  name: z.string().trim().min(1).max(100),
+  stationType: z.enum(STATION_TYPES),
+});
+export type CreateStationInput = z.infer<typeof createStationInputSchema>;
+
+/** Update a station. The code is immutable server-side and is deliberately absent here. */
+export const updateStationInputSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  active: z.boolean(),
+  stationType: z.enum(STATION_TYPES),
+});
+export type UpdateStationInput = z.infer<typeof updateStationInputSchema>;
+
 export const apiOrderItemModifierSchema = z.object({
   id: z.string().uuid(),
   modifierId: z.string().uuid().nullable().optional(),

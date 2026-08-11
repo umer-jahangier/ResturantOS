@@ -13,6 +13,7 @@ import type {
   ApiTillSession,
   ApiTillReconciliation,
   ApiTillReviewAction,
+  ApiStation,
 } from "@/lib/api-client/schemas/pos.schema";
 import type {
   MenuItem,
@@ -28,6 +29,9 @@ import type {
   TillSession,
   TillReconciliation,
   TillReviewAction,
+  Station,
+  StationType,
+  StationDisplayFamily,
 } from "@/lib/models/pos.model";
 
 export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
@@ -71,6 +75,59 @@ export function adaptDiningTable(raw: ApiDiningTable): DiningTable {
     floorPlanX: raw.floorPlanX ?? null,
     floorPlanY: raw.floorPlanY ?? null,
     floorPlanShape: raw.floorPlanShape ?? null,
+  };
+}
+
+// ── Stations (phase 28) ───────────────────────────────────────────────────────────────────
+
+const STATION_TYPE_SET = new Set<StationType>(["KITCHEN", "BAR", "PANTRY", "EXPO", "DESSERT"]);
+
+/**
+ * Five types to three screens. This is a FALLBACK only — `StationDto` sends `displayFamily`
+ * alongside the type precisely so the browser does not hold a second copy of this table.
+ * It is consulted when the server sent a type and no family, which only a pos-service that
+ * predates plan 28-02 does. If a sixth type is ever added, the server's answer keeps arriving
+ * and this map is not the thing that decides.
+ */
+const DISPLAY_FAMILY_FALLBACK: Record<StationType, StationDisplayFamily> = {
+  KITCHEN: "KITCHEN",
+  BAR: "BAR",
+  PANTRY: "KITCHEN",
+  EXPO: "EXPO",
+  DESSERT: "KITCHEN",
+};
+
+/**
+ * TOLERANT ON PURPOSE — do not "tighten" this into a throw.
+ *
+ * <p>An absent or unrecognised `stationType` becomes KITCHEN, which is the type every station
+ * that existed before phase 28 already has (V14's `DEFAULT 'KITCHEN'`). A browser deployed a
+ * few minutes ahead of pos-service, or pointed at an instance mid-rolling-restart, receives
+ * responses without the field; throwing there would empty the one screen whose job is to say
+ * which stations exist, and an empty catalogue reads as "you have no stations" rather than as
+ * a version skew.
+ */
+export function adaptStation(raw: ApiStation): Station {
+  const type = raw.stationType?.toUpperCase();
+  const stationType: StationType =
+    type && STATION_TYPE_SET.has(type as StationType) ? (type as StationType) : "KITCHEN";
+
+  const family = raw.displayFamily?.toUpperCase();
+  const displayFamily: StationDisplayFamily =
+    family === "KITCHEN" || family === "BAR" || family === "EXPO"
+      ? family
+      : DISPLAY_FAMILY_FALLBACK[stationType];
+
+  return {
+    id: raw.id,
+    branchId: raw.branchId,
+    code: raw.code,
+    name: raw.name,
+    stationType,
+    displayFamily,
+    // Defaults to TRUE for the same reason `adaptDiningTable` does: an absent flag rendering
+    // every station as retired is the "screen looks empty and nothing errored" failure.
+    active: raw.active ?? true,
   };
 }
 
