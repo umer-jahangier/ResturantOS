@@ -7,6 +7,8 @@ import {
   useArchiveStorageLocation,
   useRestoreStorageLocation,
   useStorageLocations,
+  useArchiveUom,
+  useRestoreUom,
   useUoms,
 } from "@/lib/hooks/inventory/use-inventory";
 import type { StorageLocation, Uom } from "@/lib/adapters/inventory.adapter";
@@ -51,7 +53,9 @@ export default function InventorySetupPage() {
   // GA-001: neither query's error was read. The units section then rendered as a silently empty
   // page body (every measure-type group returns null when its rows are empty) and the locations
   // section as "No storage locations yet" — two different disguises for the same 500.
-  const uomsQuery = useUoms();
+  // includeRetired: the setup screen is the ONE place a retired unit must still be visible —
+  // shown as retired, so it does not simply vanish with no explanation of where it went.
+  const uomsQuery = useUoms(true);
   const locationsQuery = useStorageLocations(true);
   const uoms = uomsQuery.data;
   const locations = locationsQuery.data;
@@ -138,6 +142,8 @@ export default function InventorySetupPage() {
                           <th className={headClass}>Code</th>
                           <th className={headClass}>Name</th>
                           <th className={headClass}>Conversion</th>
+                          <th className={headClass}>Status</th>
+                          <th className={headClass}></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -147,6 +153,14 @@ export default function InventorySetupPage() {
                             <td className={cellClass}>{u.name}</td>
                             <td className={`${cellClass} text-muted-foreground`}>
                               {conversionSummary(u)}
+                            </td>
+                            <td className={`${cellClass} text-muted-foreground`}>
+                              {u.archivedAt ? "Retired" : "In use"}
+                            </td>
+                            <td className={cellClass}>
+                              <PermissionGuard require="inventory.item.manage">
+                                <UomRowActions uom={u} />
+                              </PermissionGuard>
                             </td>
                           </tr>
                         ))}
@@ -336,6 +350,78 @@ export default function InventorySetupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/**
+ * Edit, retire and restore for one unit.
+ *
+ * <p>A refused retire is a CORRECT refusal — the server counts every ingredient, conversion row
+ * and vendor-catalog row that still names the unit and says so. That message is rendered verbatim
+ * and left on screen, because a bare "could not retire" toast turns a working guard into an
+ * apparently broken button and the person has no idea what to change.
+ */
+function UomRowActions({ uom }: { uom: Uom }) {
+  const archive = useArchiveUom();
+  const restore = useRestoreUom();
+  const [refusal, setRefusal] = useState<string | null>(null);
+
+  if (uom.archivedAt) {
+    return (
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={restore.isPending}
+          onClick={() =>
+            restore.mutate(uom.id, {
+              onSuccess: () => toast.success(`${uom.code} is back in use.`),
+              onError: (e) => toast.error(e.message || "Could not restore the unit."),
+            })
+          }
+        >
+          {restore.isPending ? "Restoring…" : "Restore"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2">
+        <UomFormDialog
+          editing={uom}
+          trigger={
+            <Button type="button" variant="ghost" size="sm">
+              Edit
+            </Button>
+          }
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={archive.isPending}
+          onClick={() => {
+            setRefusal(null);
+            archive.mutate(uom.id, {
+              onSuccess: () =>
+                toast.success(`${uom.code} retired. Historical records that use it still convert.`),
+              onError: (e) =>
+                setRefusal(e.message || "Could not retire the unit. Please try again."),
+            });
+          }}
+        >
+          {archive.isPending ? "Retiring…" : "Retire"}
+        </Button>
+      </div>
+      {refusal && (
+        <p role="alert" data-testid={`uom-retire-refusal-${uom.code}`} className="max-w-sm text-right text-xs text-destructive">
+          {refusal}
+        </p>
+      )}
     </div>
   );
 }

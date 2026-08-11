@@ -22,6 +22,7 @@ import {
   createStorageLocationInputSchema,
   createTransferInputSchema,
   createUomInputSchema,
+  updateUomInputSchema,
   moveItemCategoryInputSchema,
   previewRecipeCostInputSchema,
   receiveStockInputSchema,
@@ -54,6 +55,7 @@ import type {
   CreateStorageLocationInput,
   CreateTransferInput,
   CreateUomInput,
+  UpdateUomInput,
   GlAccountOption,
   GlAccountUsage,
   Ingredient,
@@ -194,8 +196,12 @@ export const InventoryRepository = {
     return adaptIngredient(apiIngredientSchema.parse(raw));
   },
 
-  async listUoms(): Promise<Uom[]> {
-    const raw = await get<unknown[]>("/api/v1/inventory/uom");
+  /**
+   * @param includeRetired only the SETUP screen passes true, so a retired unit is shown AS retired
+   *   rather than vanishing with no explanation of where it went. Every picker leaves it false.
+   */
+  async listUoms(includeRetired = false): Promise<Uom[]> {
+    const raw = await get<unknown[]>("/api/v1/inventory/uom", { includeRetired });
     return (raw ?? []).map((u) => adaptUom(apiUomSchema.parse(u)));
   },
 
@@ -204,6 +210,27 @@ export const InventoryRepository = {
    * lazy standard provisioning gave it, and nothing else. */
   async createUom(input: CreateUomInput): Promise<Uom> {
     const raw = await post("/api/v1/inventory/uom", createUomInputSchema.parse(input));
+    return adaptUom(apiUomSchema.parse(raw));
+  },
+
+  /** Correct a unit. The CODE cannot be changed — see `updateUomInputSchema` for why. */
+  async updateUom(id: string, input: UpdateUomInput): Promise<Uom> {
+    const raw = await put(`/api/v1/inventory/uom/${id}`, updateUomInputSchema.parse(input));
+    return adaptUom(apiUomSchema.parse(raw));
+  },
+
+  /**
+   * Retire — never delete. Refused with 422 and a message naming what still references the unit,
+   * which the caller must render: a bare failure toast turns a correct refusal into an apparently
+   * broken button.
+   */
+  async archiveUom(id: string): Promise<Uom> {
+    const raw = await post(`/api/v1/inventory/uom/${id}/archive`);
+    return adaptUom(apiUomSchema.parse(raw));
+  },
+
+  async restoreUom(id: string): Promise<Uom> {
+    const raw = await post(`/api/v1/inventory/uom/${id}/restore`);
     return adaptUom(apiUomSchema.parse(raw));
   },
 

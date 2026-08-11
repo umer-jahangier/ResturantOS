@@ -26,6 +26,7 @@ import type {
   createStorageLocationInputSchema,
   createTransferInputSchema,
   createUomInputSchema,
+  updateUomInputSchema,
   moveItemCategoryInputSchema,
   previewRecipeCostInputSchema,
   receiveStockInputSchema,
@@ -41,6 +42,7 @@ export type Ingredient = z.infer<typeof apiIngredientSchema>;
 export type Uom = z.infer<typeof apiUomSchema>;
 /** Write payload for `POST /api/v1/inventory/uom`. */
 export type CreateUomInput = z.infer<typeof createUomInputSchema>;
+export type UpdateUomInput = z.infer<typeof updateUomInputSchema>;
 export type Recipe = z.infer<typeof apiRecipeSchema>;
 /** A pickable recipe for the ingredient form's "Produced by" select. */
 export type RecipeOption = z.infer<typeof apiRecipeOptionSchema>;

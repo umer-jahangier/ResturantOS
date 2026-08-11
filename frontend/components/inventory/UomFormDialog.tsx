@@ -6,7 +6,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
-import { useCreateUom, useUoms } from "@/lib/hooks/inventory/use-inventory";
+import { useCreateUom, useUoms, useUpdateUom } from "@/lib/hooks/inventory/use-inventory";
 import type { Uom } from "@/lib/adapters/inventory.adapter";
 import {
   Dialog,
@@ -56,6 +56,8 @@ function baseUnitsFor(uoms: Uom[], measureType: string) {
 
 interface UomFormDialogProps {
   trigger: React.ReactNode;
+  /** Present = edit that unit. Absent = create a new one. */
+  editing?: Uom;
 }
 
 /**
@@ -65,10 +67,13 @@ interface UomFormDialogProps {
  * `POST /api/v1/inventory/uom` had no caller at all — so a kitchen that buys by the case had no
  * way to say so, anywhere.
  */
-export function UomFormDialog({ trigger }: UomFormDialogProps) {
+export function UomFormDialog({ trigger, editing }: UomFormDialogProps) {
   const [open, setOpen] = useState(false);
   const { data: uoms } = useUoms();
   const createUom = useCreateUom();
+  const updateUom = useUpdateUom();
+  const isEditing = editing !== undefined;
+  const pending = createUom.isPending || updateUom.isPending;
 
   const form = useForm<UomFormValues>({
     resolver: createZodResolver(uomFormSchema),
@@ -76,7 +81,18 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
   });
 
   useEffect(() => {
-    if (open) form.reset(EMPTY);
+    if (!open) return;
+    form.reset(
+      editing
+        ? {
+            code: editing.code,
+            name: editing.name,
+            measureType: (editing.measureType as UomFormValues["measureType"]) ?? "WEIGHT",
+            baseUnitCode: editing.baseUnitCode ?? "",
+            toBaseFactor: String(editing.toBaseFactor ?? "1"),
+          }
+        : EMPTY,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -88,24 +104,30 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
   const isFamilyBase = baseUnitCode.trim() === "";
 
   function onSubmit(values: UomFormValues) {
-    createUom.mutate(
-      {
-        code: values.code.trim(),
-        name: values.name.trim(),
-        measureType: values.measureType,
-        baseUnitCode: values.baseUnitCode.trim() || undefined,
-        toBaseFactor: isFamilyBase ? "1" : values.toBaseFactor.trim(),
+    const shared = {
+      name: values.name.trim(),
+      measureType: values.measureType,
+      baseUnitCode: values.baseUnitCode.trim() || undefined,
+      toBaseFactor: isFamilyBase ? "1" : values.toBaseFactor.trim(),
+    };
+    const handlers = {
+      onSuccess: (saved: Uom) => {
+        toast.success(isEditing ? `Updated ${saved.code} · ${saved.name}` : `Added ${saved.code} · ${saved.name}`);
+        setOpen(false);
       },
-      {
-        onSuccess: (saved) => {
-          toast.success(`Added ${saved.code} · ${saved.name}`);
-          setOpen(false);
-        },
-        onError: (error) => {
-          toast.error(error.message || "Could not add the unit. Please try again.");
-        },
+      onError: (error: { message?: string }) => {
+        // The server's own words. Its refusals name the conflicting unit, the dimension mismatch
+        // or the family-base rule, and none of that survives being replaced with "Please try again".
+        toast.error(error.message || "Could not save the unit. Please try again.");
       },
-    );
+    };
+    // `code` is deliberately NOT sent on an update: it is a foreign key by value into ingredients,
+    // conversion rows and purchasing's vendor catalog, and the server ignores it anyway.
+    if (editing) {
+      updateUom.mutate({ id: editing.id, input: shared }, handlers);
+    } else {
+      createUom.mutate({ code: values.code.trim(), ...shared }, handlers);
+    }
   }
 
   return (
@@ -113,10 +135,11 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add unit</DialogTitle>
+          <DialogTitle>{isEditing ? `Edit ${editing.code}` : "Add unit"}</DialogTitle>
           <DialogDescription>
-            Define a unit your kitchen buys or counts in. It becomes available on every ingredient
-            in the same measure type.
+            {isEditing
+              ? "Correct this unit's name, dimension or conversion factor. The code cannot be changed."
+              : "Define a unit your kitchen buys or counts in. It becomes available on every ingredient in the same measure type."}
           </DialogDescription>
         </DialogHeader>
 
@@ -137,8 +160,15 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
                       Code
                     </FieldLabel>
                     <FormControl>
-                      <Input placeholder="CASE" {...field} />
+                      <Input placeholder="CASE" disabled={isEditing} {...field} />
                     </FormControl>
+                    {isEditing && (
+                      <p className="text-xs text-muted-foreground">
+                        A code can’t be changed — ingredients, conversions and vendor catalog rows
+                        refer to it by this exact text. To change a code, retire this unit and add a
+                        new one.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -248,8 +278,8 @@ export function UomFormDialog({ trigger }: UomFormDialogProps) {
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button type="submit" form="uom-form" disabled={createUom.isPending}>
-            {createUom.isPending ? "Saving…" : "Add unit"}
+          <Button type="submit" form="uom-form" disabled={pending}>
+            {pending ? "Saving…" : isEditing ? "Save changes" : "Add unit"}
           </Button>
         </DialogFooter>
       </DialogContent>

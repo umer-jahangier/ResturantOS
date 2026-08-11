@@ -15,6 +15,15 @@ export const queryKeys = {
   branches: {
     mine: () => ["branches", "mine"] as const,
   },
+  // 37-11: the transaction register. Branch-scoped like the rest of the money keys, so a branch
+  // switch invalidates it cleanly rather than showing the previous branch's takings.
+  transactions: {
+    all: (branchId: string) => ["transactions", branchId] as const,
+    register: (branchId: string, filters: unknown) =>
+      ["transactions", branchId, "register", filters] as const,
+    journalEntries: (branchId: string, orderId: string) =>
+      ["transactions", branchId, "journal-entries", orderId] as const,
+  },
   // CRM keys are NOT branch-scoped: a customer and their loyalty balance belong to the tenant,
   // and follow them between branches.
   crm: {

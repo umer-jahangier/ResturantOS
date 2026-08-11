@@ -15,6 +15,9 @@ interface FinanceLayoutProps {
 
 // Matches the purchasing module's tab-bar shape exactly (frontend/app/(tenant)/app/purchasing/layout.tsx).
 const TABS = [
+  // 37-11: the register is the first tab an owner wants — "there was no system to see all
+  // the orders transactions in the app". It leads.
+  { href: "/app/finance/transactions", label: "Transactions" },
   { href: "/app/finance/accounts", label: "Accounts" },
   { href: "/app/finance/journal-entries", label: "Journal Entries" },
   { href: "/app/finance/gl", label: "General Ledger" },

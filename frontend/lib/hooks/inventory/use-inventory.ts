@@ -14,6 +14,7 @@ import type {
   CreateStorageLocationInput,
   CreateTransferInput,
   CreateUomInput,
+  UpdateUomInput,
   GlAccountOption,
   GlAccountUsage,
   Ingredient,
@@ -210,11 +211,16 @@ export function useRestoreIngredient() {
   });
 }
 
-export function useUoms() {
+/**
+ * @param includeRetired only the SETUP screen passes true. Every picker leaves it false, so a
+ *   retired unit can never be offered — while the conversion paths, which do not come through here
+ *   at all, keep resolving it so historical receipts still convert.
+ */
+export function useUoms(includeRetired = false) {
   const { branchId, isAuthenticated } = useCurrentUser();
   return useQuery({
-    queryKey: queryKeys.inventory.uoms(branchId),
-    queryFn: () => InventoryRepository.listUoms(),
+    queryKey: [...queryKeys.inventory.uoms(branchId), includeRetired],
+    queryFn: () => InventoryRepository.listUoms(includeRetired),
     enabled: isAuthenticated && !!branchId,
   });
 }
@@ -234,6 +240,49 @@ export function useCreateUom() {
       qc.invalidateQueries({ queryKey: ["inventory", branchId, "ingredients"] });
     },
   });
+}
+
+/** Correct a unit. The code is not changeable and is not in the payload. */
+export function useUpdateUom() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<Uom, ApiError, { id: string; input: UpdateUomInput }>({
+    mutationFn: ({ id, input }) => InventoryRepository.updateUom(id, input),
+    onSuccess: () => invalidateUomConsumers(qc, branchId),
+  });
+}
+
+/**
+ * Retire a unit. A 422 here is a CORRECT refusal carrying the reference breakdown — the caller
+ * must render the server's message rather than a generic failure, or a working guard reads as a
+ * broken button.
+ */
+export function useArchiveUom() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<Uom, ApiError, string>({
+    mutationFn: (id) => InventoryRepository.archiveUom(id),
+    onSuccess: () => invalidateUomConsumers(qc, branchId),
+  });
+}
+
+export function useRestoreUom() {
+  const qc = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation<Uom, ApiError, string>({
+    mutationFn: (id) => InventoryRepository.restoreUom(id),
+    onSuccess: () => invalidateUomConsumers(qc, branchId),
+  });
+}
+
+/**
+ * Units feed the ingredient form's two selects and the vendor catalog's pack picker, so any change
+ * to a unit has to reach those immediately rather than after a reload — the same reason
+ * `useCreateUom` invalidates ingredients.
+ */
+function invalidateUomConsumers(qc: ReturnType<typeof useQueryClient>, branchId: string) {
+  qc.invalidateQueries({ queryKey: queryKeys.inventory.uoms(branchId) });
+  qc.invalidateQueries({ queryKey: ["inventory", branchId, "ingredients"] });
 }
 
 // ── Storage locations (V10) ───────────────────────────────────────────────────────────────

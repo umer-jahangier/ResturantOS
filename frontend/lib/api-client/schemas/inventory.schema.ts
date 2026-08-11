@@ -215,6 +215,10 @@ export const apiUomSchema = z.object({
   measureType: z.string(),
   baseUnitCode: z.string().nullable().optional(),
   toBaseFactor: qtyField,
+  // V13. Non-null means RETIRED: hidden from every picker, still resolvable by every conversion.
+  // A unit row is never deleted — its code is a foreign key by value into ingredients, conversion
+  // rows and purchasing_db.vendor_items, and none of those can be followed backwards.
+  archivedAt: z.string().nullable().optional(),
 });
 
 // Mirrors InventoryDtos.CreateUomRequest — the write payload for `POST /api/v1/inventory/uom`,
@@ -222,6 +226,20 @@ export const apiUomSchema = z.object({
 // the base of its family", which the server enforces by also requiring a factor of exactly 1.
 export const createUomInputSchema = z.object({
   code: z.string().min(1, "Code is required").max(20),
+  name: z.string().min(1, "Name is required").max(60),
+  measureType: z.enum(["WEIGHT", "VOLUME", "COUNT"]),
+  baseUnitCode: z.string().optional(),
+  toBaseFactor: qtyInputField,
+});
+
+// Mirrors InventoryDtos.UpdateUomRequest — `PUT /api/v1/inventory/uom/{id}`.
+//
+// `code` IS DELIBERATELY ABSENT, on both sides. A unit code is a foreign key by value into
+// `ingredients.base_uom_code`, `ingredients.recipe_uom_code`, `ingredient_uom_conversions` on both
+// sides, and — across a database boundary — `purchasing_db.vendor_items.pack_uom`. Nothing can
+// follow those references backwards, so a rename would orphan every one of them silently and every
+// goods receipt in the old code would stop converting. Correcting a code is a retire-and-recreate.
+export const updateUomInputSchema = z.object({
   name: z.string().min(1, "Name is required").max(60),
   measureType: z.enum(["WEIGHT", "VOLUME", "COUNT"]),
   baseUnitCode: z.string().optional(),
