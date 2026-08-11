@@ -8,15 +8,210 @@
     <!--
       OWNED BY PLAN 25-06 — the quarantine queue's reason column and its uniqueness key.
 
-      Deliberately empty and deliberately already included from the master changelog. 25-06 and 25-07
-      run in the same wave and each needs its own changeset; if each added its own include line they
-      would collide in the master for no reason but one line of XML, and two plans would have to be
-      serialised into separate waves to avoid it. 25-03 created both shells and wired both includes,
-      so after it lands no plan in this phase touches the master changelog again.
-
-      A document with no changesets is valid and applies as a no-op.
-
+      Deliberately already included from the master changelog by 25-03. 25-06 and 25-07 run in the
+      same wave and each needs its own changeset; the shells exist so neither has to touch the master.
       If you are 25-07, this is not your file — yours is 035-device-command-queue.xml.
+
+      == WHAT THIS CHANGESET IS FOR ==
+
+      D-25-03 says a punch is never dropped. The queue that promise rests on has two holes.
+
+      1. It has NO UNIQUENESS KEY OF ANY KIND. The punch table beside it has one
+         (uk_attendance_punch) and the ingest service inserts into it with ON CONFLICT DO NOTHING.
+         The queue insert is unconditional. A device that buffers through a network blip and replays
+         its batch — the ordinary behaviour this protocol is built around — therefore produces a
+         fresh queue entry per unmapped punch per replay. A terminal polling every 3-8 seconds with
+         one unmapped user grows that queue without bound, and every row is work a person has to
+         clear. D-25-05 forbids a re-sent batch double-counting; a queue cleared three times for one
+         punch is double-counting in the surface that costs a human being time.
+
+      2. It can only hold ONE KIND of entry: an unmapped device-user reference. 25-05 made the parser
+         report a named Rejection instead of returning an empty Optional, but a rejection still has
+         nowhere to go — it gets a counted warning and no row. That is a smaller hole than the silent
+         discard it replaced, and it is still a hole against D-25-03.
+
+      == READ THE NULLABILITY CHANGE CORRECTLY: IT IS A TIGHTENING, NOT A RELAXATION ==
+
+      device_user_ref and device_reported_at lose their NOT NULL below. That is NOT a weakening.
+      An uninterpretable line has neither of those facts by definition — that is what makes it
+      uninterpretable — so a NOT NULL is the reason such a line cannot be stored at all today.
+      Both are immediately re-required by ck_attendance_quarantine_unmapped_has_identity, which is
+      STRICTLY STRONGER than the NOT NULL it replaces: the NOT NULL constrained a column, the check
+      constrains the column FOR EVERY REASON THAT CLAIMS TO CARRY A REFERENCE, including reasons
+      added after this file was written. Anyone adding a reason to the set below must decide, at that
+      moment, whether it carries an identity.
+
+      RLS: attendance_quarantine is already ENABLE'd and FORCE'd with a tenant_isolation policy in
+      changelog 011. This changeset adds and alters COLUMNS only and does not touch either. The table
+      grant in 010 covers columns added later, so nothing new is granted. No new table is created, so
+      RlsForcedInvariantIT has nothing new to guard.
     -->
+    <changeSet id="hr-1.0.0-034-attendance-quarantine-reasons" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            -- ── Why an entry is in the queue ──────────────────────────────────────────────────
+            -- Defaulted to the unmapped-reference case, which is the only reason that can exist
+            -- today, so every existing row keeps exactly the meaning it already had.
+            --
+            -- The value set is the union of that case and AttlogParseOutcome.Rejection.Reason from
+            -- 25-05. It is a CHECK rather than an enum type so that adding a reason is one ALTER in
+            -- a later changeset rather than a type migration; it is a CHECK rather than free text
+            -- because an open reason column is how a queue acquires a category nobody built a screen
+            -- for. 25-12 renders one row of its filter per value here.
+            ALTER TABLE attendance_quarantine ADD COLUMN reason TEXT NOT NULL DEFAULT 'UNMAPPED_DEVICE_USER';
+
+            ALTER TABLE attendance_quarantine ADD CONSTRAINT ck_attendance_quarantine_reason
+                CHECK (reason IN ('UNMAPPED_DEVICE_USER', 'BLANK_LINE', 'TOO_FEW_FIELDS',
+                                  'MISSING_DEVICE_USER_REF', 'UNPARSEABLE_TIMESTAMP'));
+
+            -- ── An uninterpretable line has no reference and no instant ───────────────────────
+            -- See the header: this pair of DROP NOT NULLs exists only so such a line can be stored,
+            -- and the check immediately below is stronger than what it replaces.
+            ALTER TABLE attendance_quarantine ALTER COLUMN device_user_ref DROP NOT NULL;
+            ALTER TABLE attendance_quarantine ALTER COLUMN device_reported_at DROP NOT NULL;
+
+            ALTER TABLE attendance_quarantine ADD CONSTRAINT ck_attendance_quarantine_unmapped_has_identity
+                CHECK (reason != 'UNMAPPED_DEVICE_USER'
+                       OR (device_user_ref IS NOT NULL AND device_reported_at IS NOT NULL));
+
+            -- The mirror of the above for the other direction. A rejected line whose raw text was
+            -- lost is an entry an administrator cannot act on: the raw line is the ONLY evidence of
+            -- what the device actually sent, and resolving one means reading it character by
+            -- character. An evidence-free rejection is not a smaller hole, it is the same hole.
+            ALTER TABLE attendance_quarantine ADD CONSTRAINT ck_attendance_quarantine_rejection_has_evidence
+                CHECK (reason = 'UNMAPPED_DEVICE_USER' OR raw_line IS NOT NULL);
+
+            -- ── A position in time even without a device timestamp ────────────────────────────
+            -- created_at is when the ROW was written and is not the same fact, but for every row
+            -- that exists now the two are within microseconds, so it is the correct backfill.
+            ALTER TABLE attendance_quarantine ADD COLUMN received_at TIMESTAMPTZ;
+            UPDATE attendance_quarantine SET received_at = created_at WHERE received_at IS NULL;
+            ALTER TABLE attendance_quarantine ALTER COLUMN received_at SET DEFAULT now();
+            ALTER TABLE attendance_quarantine ALTER COLUMN received_at SET NOT NULL;
+
+            -- ── Resolution note ───────────────────────────────────────────────────────────────
+            -- Written by the collapse below, and by nothing else yet. It is separate from
+            -- dismissal_reason on purpose: a dismissal is a person deciding not to pay someone, and
+            -- overloading its reason column with machine-written text would make the one column
+            -- anybody audits ambiguous about who wrote it.
+            ALTER TABLE attendance_quarantine ADD COLUMN resolution_note TEXT;
+
+            -- ── The deduplication key ─────────────────────────────────────────────────────────
+            -- COMPUTED BY THE SERVICE, NOT BY THE DATABASE, so its rule lives in one readable place
+            -- (PunchIngestService#dedupKeyFor). Two forms:
+            --
+            --   unmapped reference : 'REF:' || device_user_ref || '@' || epoch millis of the instant
+            --                        — i.e. the punch identity, minus the device, which is the other
+            --                        half of the uniqueness constraint. Deliberately the SAME
+            --                        identity uk_attendance_punch uses, so a punch that later
+            --                        becomes mapped deduplicates on the same facts it did while
+            --                        unmapped.
+            --   uninterpretable    : 'RAW:' || lowercase hex SHA-256 of the raw line, verbatim,
+            --                        untrimmed. Two different bad lines give two entries; the same
+            --                        bad line replayed gives one.
+            --
+            -- Epoch MILLIS rather than a rendered timestamp because a rendered one has to agree
+            -- byte for byte between Java and Postgres across fractional seconds, offsets and
+            -- locales, and the backfill below is the one place those two must produce an identical
+            -- string. A number cannot disagree about its own formatting.
+            ALTER TABLE attendance_quarantine ADD COLUMN dedup_key TEXT;
+
+            UPDATE attendance_quarantine
+               SET dedup_key = 'REF:' || device_user_ref || '@'
+                               || (EXTRACT(EPOCH FROM device_reported_at) * 1000)::bigint
+             WHERE dedup_key IS NULL;
+
+            -- THE COLLAPSE. The defect this changeset closes has been running in production, so this
+            -- table may ALREADY CONTAIN duplicates — and a migration that aborts on the very data
+            -- the defect produced would be unrunnable exactly where it is most needed. Those rows
+            -- are the evidence that the defect was real, so they are kept rather than deleted:
+            -- the earliest entry for each punch stays live, and every later copy is suffixed out of
+            -- the uniqueness namespace, marked RESOLVED so it leaves the pending queue, and given a
+            -- note saying what happened to it. Ordered by created_at then id so the outcome is
+            -- deterministic even for rows written in the same microsecond.
+            WITH ranked AS (
+                SELECT id, row_number() OVER (
+                           PARTITION BY device_id, dedup_key ORDER BY created_at, id) AS rn
+                  FROM attendance_quarantine
+            )
+            UPDATE attendance_quarantine q
+               SET dedup_key = q.dedup_key || '#collapsed-' || q.id,
+                   status = 'RESOLVED',
+                   resolution_note = 'Collapsed by migration 034: a duplicate queue entry created '
+                                     || 'before the (device_id, dedup_key) uniqueness constraint '
+                                     || 'existed. Retained as evidence; the earliest entry for this '
+                                     || 'punch is the live one.'
+              FROM ranked r
+             WHERE r.id = q.id AND r.rn &gt; 1;
+
+            ALTER TABLE attendance_quarantine ALTER COLUMN dedup_key SET NOT NULL;
+
+            ALTER TABLE attendance_quarantine ADD CONSTRAINT uk_attendance_quarantine_dedup
+                UNIQUE (device_id, dedup_key);
+
+            -- ── Dismissal: a decision not to pay somebody, so it carries a name ───────────────
+            -- Enforced HERE and not only in the service, because a service check is a promise about
+            -- one code path and this is a promise about the table. An entry dismissed with no person
+            -- and no reason is an hour of somebody's work deleted by nobody for nothing.
+            ALTER TABLE attendance_quarantine ADD COLUMN dismissed_by UUID;
+            ALTER TABLE attendance_quarantine ADD COLUMN dismissed_at TIMESTAMPTZ;
+            ALTER TABLE attendance_quarantine ADD COLUMN dismissal_reason TEXT;
+
+            ALTER TABLE attendance_quarantine ADD CONSTRAINT ck_attendance_quarantine_status
+                CHECK (status IN ('PENDING', 'RESOLVED', 'DISMISSED'));
+
+            ALTER TABLE attendance_quarantine ADD CONSTRAINT ck_attendance_quarantine_dismissal
+                CHECK (status != 'DISMISSED'
+                       OR (dismissed_by IS NOT NULL
+                           AND dismissed_at IS NOT NULL
+                           AND dismissal_reason IS NOT NULL
+                           AND btrim(dismissal_reason) != ''));
+
+            -- ── Access paths for the three queries 25-09 and 25-12 read ──────────────────────
+            -- (tenant_id, status) already exists from 010 and serves "pending for this tenant".
+            CREATE INDEX idx_attendance_quarantine_reason
+                ON attendance_quarantine (tenant_id, status, reason);
+            CREATE INDEX idx_attendance_quarantine_device
+                ON attendance_quarantine (tenant_id, device_id, status);
+
+            -- ── The work-code rename (handed over by 25-05) ──────────────────────────────────
+            -- THE OLD NAME WAS WRONG; THE MEANING HAS NOT CHANGED. All three reference ADMS parsers
+            -- call field index 4 the WORK CODE — a job or task code the operator may key in at the
+            -- terminal. None of them treats it as a record identifier. The wrong name was
+            -- load-bearing: it backed a comment proposing the value for idempotency, which would
+            -- have deduplicated two genuinely different punches that happened to share a work code.
+            -- Idempotency is, and remains, (device, device user, instant) — uk_attendance_punch,
+            -- untouched by this changeset and by this phase.
+            ALTER TABLE attendance_punches RENAME COLUMN source_record_id TO work_code;
+        </sql>
+        <rollback>
+            ALTER TABLE attendance_punches RENAME COLUMN work_code TO source_record_id;
+
+            DROP INDEX IF EXISTS idx_attendance_quarantine_device;
+            DROP INDEX IF EXISTS idx_attendance_quarantine_reason;
+
+            ALTER TABLE attendance_quarantine DROP CONSTRAINT IF EXISTS ck_attendance_quarantine_dismissal;
+            ALTER TABLE attendance_quarantine DROP CONSTRAINT IF EXISTS ck_attendance_quarantine_status;
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS dismissal_reason;
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS dismissed_at;
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS dismissed_by;
+
+            ALTER TABLE attendance_quarantine DROP CONSTRAINT IF EXISTS uk_attendance_quarantine_dedup;
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS dedup_key;
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS resolution_note;
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS received_at;
+
+            ALTER TABLE attendance_quarantine DROP CONSTRAINT IF EXISTS ck_attendance_quarantine_rejection_has_evidence;
+            ALTER TABLE attendance_quarantine DROP CONSTRAINT IF EXISTS ck_attendance_quarantine_unmapped_has_identity;
+            ALTER TABLE attendance_quarantine DROP CONSTRAINT IF EXISTS ck_attendance_quarantine_reason;
+
+            -- Rolling back re-imposes the NOT NULLs. Any row stored under a rejection reason has no
+            -- reference and no instant and CANNOT satisfy them; delete those first, because they are
+            -- rows the pre-034 schema had no way to represent.
+            DELETE FROM attendance_quarantine WHERE reason != 'UNMAPPED_DEVICE_USER';
+            ALTER TABLE attendance_quarantine DROP COLUMN IF EXISTS reason;
+            ALTER TABLE attendance_quarantine ALTER COLUMN device_user_ref SET NOT NULL;
+            ALTER TABLE attendance_quarantine ALTER COLUMN device_reported_at SET NOT NULL;
+        </rollback>
+    </changeSet>
 
 </databaseChangeLog>

@@ -56,6 +56,16 @@ public class AttendancePunchEntity {
     @Column(name = "server_received_at", nullable = false)
     private Instant serverReceivedAt = Instant.now();
 
-    @Column(name = "source_record_id")
-    private String sourceRecordId;
+    /**
+     * Field index 4 of an ATTLOG line: a job or task code the operator may key in at the terminal.
+     *
+     * <p><b>This column was called {@code source_record_id} and that name was wrong.</b> All three
+     * reference ADMS parsers call position 4 the work code; none treats it as a record identifier.
+     * The wrong name was load-bearing — it backed a comment proposing the value for idempotency,
+     * which would have deduplicated two genuinely different punches sharing a work code. Idempotency
+     * is, and remains, {@code uk_attendance_punch} on (device, device user, instant). Renamed by
+     * changelog 034; the meaning never changed.
+     */
+    @Column(name = "work_code")
+    private String workCode;
 }

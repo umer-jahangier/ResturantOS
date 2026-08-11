@@ -86,11 +86,27 @@ public class PunchIngestService {
         quarantineRepository.save(q);
     }
 
+    /**
+     * The queue's deduplication key for a line that PARSED but whose reference maps to nobody.
+     *
+     * <p>Deliberately the same identity {@code uk_attendance_punch} uses, minus the device — the
+     * device is the other half of {@code uk_attendance_quarantine_dedup}. So a punch deduplicates on
+     * the same three facts whether it lands in the punch table or in the queue, and a replayed
+     * offline buffer grows neither.
+     *
+     * <p>Epoch millis rather than a rendered timestamp because changelog 034's backfill has to
+     * produce a byte-identical string from Postgres, and a number cannot disagree with Java about
+     * its own formatting across fractional seconds, offsets and locales.
+     */
+    static String dedupKeyForReference(String deviceUserRef, Instant deviceReportedAt) {
+        return "REF:" + deviceUserRef + "@" + deviceReportedAt.toEpochMilli();
+    }
+
     public enum IngestResult { INSERTED, DUPLICATE, QUARANTINED }
 
     @Transactional
     public IngestResult ingest(AttendanceDeviceEntity device, String deviceUserRef, Instant deviceReportedAt,
-                               PunchType punchType, String sourceRecordId, String rawLine) {
+                               PunchType punchType, String workCode, String rawLine) {
         UUID tenantId = device.getTenantId();
         UUID branchId = device.getBranchId();
 
@@ -103,6 +119,9 @@ public class PunchIngestService {
             q.setPunchType(punchType);
             q.setDeviceReportedAt(deviceReportedAt);
             q.setRawLine(rawLine);
+            q.setReason(AttendanceQuarantineEntity.Reason.UNMAPPED_DEVICE_USER);
+            q.setDedupKey(dedupKeyForReference(deviceUserRef, deviceReportedAt));
+            q.setReceivedAt(Instant.now());
             q.setStatus(AttendanceQuarantineEntity.Status.PENDING);
             quarantineRepository.save(q);
             return IngestResult.QUARANTINED;
@@ -111,10 +130,10 @@ public class PunchIngestService {
         UUID employeeId = employee.get().getId();
         int rows = entityManager.createNativeQuery(
                         "INSERT INTO attendance_punches (tenant_id, branch_id, device_id, employee_id, "
-                                + "device_user_ref, punch_type, device_reported_at, server_received_at, source_record_id) "
+                                + "device_user_ref, punch_type, device_reported_at, server_received_at, work_code) "
                                 + "VALUES (CAST(:tenantId AS uuid), CAST(:branchId AS uuid), CAST(:deviceId AS uuid), "
                                 + "CAST(:employeeId AS uuid), :deviceUserRef, :punchType, CAST(:deviceReportedAt AS timestamptz), "
-                                + "now(), :sourceRecordId) "
+                                + "now(), :workCode) "
                                 + "ON CONFLICT (device_id, device_user_ref, device_reported_at) DO NOTHING")
                 .setParameter("tenantId", tenantId.toString())
                 .setParameter("branchId", branchId.toString())
@@ -123,7 +142,7 @@ public class PunchIngestService {
                 .setParameter("deviceUserRef", deviceUserRef)
                 .setParameter("punchType", punchType.name())
                 .setParameter("deviceReportedAt", deviceReportedAt.toString())
-                .setParameter("sourceRecordId", sourceRecordId)
+                .setParameter("workCode", workCode)
                 .executeUpdate();
 
         device.setLastSeenAt(Instant.now());
