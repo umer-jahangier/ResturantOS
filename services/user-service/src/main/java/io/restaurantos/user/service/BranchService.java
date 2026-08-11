@@ -6,6 +6,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.user.client.AuthInternalClient;
 import io.restaurantos.user.dto.BranchDtos;
 import io.restaurantos.user.entity.BranchEntity;
+import io.restaurantos.user.exception.ReceiptConfigExceptionHandler;
 import io.restaurantos.user.repository.BranchRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -39,8 +40,84 @@ public class BranchService {
         this.entityManager = entityManager;
     }
 
+    /**
+     * The message returned when a caller tries to write the printer registry through the legacy
+     * bare-string field. Package-visible so the integration test asserts the same constant the
+     * service raises rather than a copy of the sentence.
+     */
+    public static final String LEGACY_RECEIPT_CONFIG_REFUSED =
+            "receiptConfig is no longer writable through the branch endpoint. "
+                    + "Use PUT /api/v1/branches/{id}/receipt-config, which validates the printer registry.";
+
+    /**
+     * The legacy door, closed.
+     *
+     * <p>{@code CreateBranchRequest} and {@code UpdateBranchRequest} declare {@code receiptConfig}
+     * as a bare {@code String} with no validation, and this service used to persist it verbatim —
+     * so any caller of the branch write endpoints could overwrite a validated printer registry with
+     * arbitrary text and nothing would detect it until a kitchen stopped printing. Adding a
+     * validating endpoint beside an open door does not close the door.
+     *
+     * <p>A NULL stays a null and changes nothing, so an ordinary branch update — which is every
+     * branch update that exists today — is unaffected. Verified before making the change:
+     * {@code receiptConfig} appears in the frontend only in {@code apiBranchSchema} (the READ
+     * shape); {@code apiUpdateBranchSchema}, the write shape, has no such field. No shipped caller
+     * sends it.
+     *
+     * <p>The field itself is deliberately left on the DTOs: {@code BranchResponse} returns it and
+     * removing it would churn the read contract. The point is to make the WRITE refuse.
+     */
+    private static void refuseLegacyReceiptConfig(String receiptConfig) {
+        if (receiptConfig != null) {
+            // 400, not 409: the caller's request is wrong, not the server's state. StateInvalid
+            // maps to CONFLICT in the shared handler, which would tell a client to retry later.
+            throw new ReceiptConfigExceptionHandler.LegacyReceiptConfigWriteException(
+                    LEGACY_RECEIPT_CONFIG_REFUSED);
+        }
+    }
+
+    /**
+     * Set the printer registry on a branch. The ONLY write path to {@code receipt_config}.
+     *
+     * <p>Lives here rather than in {@link ReceiptConfigService} so there is one service, one
+     * repository and one tenant-scoped lookup for the branch row. {@link #get} raises the existing
+     * not-found for a branch outside the caller's tenant, so the authority question is answered by
+     * the code that already answers it for every other branch field.
+     */
+    @Transactional
+    public BranchEntity updateReceiptConfig(UUID id, String json) {
+        BranchEntity branch = getForCurrentTenant(id);
+        branch.setReceiptConfig(json);
+        return branchRepository.save(branch);
+    }
+
+    /**
+     * {@link #get} with the caller's tenant in the QUERY as well as in the RLS policy.
+     *
+     * <p>26-CONTEXT requires both. {@code ReceiptConfigIT} then measured why: {@link #get} handed
+     * back another tenant's branch under the integration harness. Two things have to be true at
+     * once for that, and both are: Testcontainers runs Postgres as a superuser, which bypasses even
+     * FORCE ROW LEVEL SECURITY; and Hibernate's {@code tenantFilter} is annotated on the
+     * {@code TenantAuditableEntity} mapped superclass, which Hibernate does not propagate to the
+     * concrete entity. So there was nothing scoping this read except a policy that is inert in the
+     * one place the tests can see.
+     *
+     * <p>Deliberately a NEW method rather than a change to {@link #get}: {@code get} is on the
+     * branch read path, the internal provisioning path and the compensating-deactivation path, and
+     * two of those run with the tenant set from a request body rather than from a token. Narrowing
+     * it belongs to a plan that can test all three. This one is used by the printer registry, which
+     * is the surface this plan is responsible for.
+     */
+    @Transactional(readOnly = true)
+    public BranchEntity getForCurrentTenant(UUID id) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return branchRepository.findByIdAndTenantIdAndDeletedAtIsNull(id, tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Branch not found: " + id));
+    }
+
     @Transactional
     public BranchEntity create(BranchDtos.CreateBranchRequest req) {
+        refuseLegacyReceiptConfig(req.receiptConfig());
         BranchEntity branch = new BranchEntity();
         branch.setId(UUID.randomUUID());
         branch.setTenantId(tenantContext.requireTenantId());
@@ -52,7 +129,9 @@ public class BranchService {
         branch.setEmail(req.email());
         branch.setTimezone(req.timezone() != null ? req.timezone() : "Asia/Karachi");
         branch.setCurrencyConfig(req.currencyConfig());
-        branch.setReceiptConfig(req.receiptConfig());
+        // receiptConfig is deliberately NOT set here — refuseLegacyReceiptConfig above has already
+        // established it is null, and the printer registry is written through
+        // ReceiptConfigService, which validates it.
         branch.setOpenedOn(req.openedOn());
         try {
             return branchRepository.save(branch);
@@ -114,6 +193,7 @@ public class BranchService {
 
     @Transactional
     public BranchEntity update(UUID id, BranchDtos.UpdateBranchRequest req) {
+        refuseLegacyReceiptConfig(req.receiptConfig());
         BranchEntity branch = get(id);
         if (req.name() != null) branch.setName(req.name());
         if (req.isActive() != null) branch.setActive(req.isActive());
@@ -122,7 +202,7 @@ public class BranchService {
         if (req.email() != null) branch.setEmail(req.email());
         if (req.timezone() != null) branch.setTimezone(req.timezone());
         if (req.currencyConfig() != null) branch.setCurrencyConfig(req.currencyConfig());
-        if (req.receiptConfig() != null) branch.setReceiptConfig(req.receiptConfig());
+        // receiptConfig: see refuseLegacyReceiptConfig. A non-null value never reaches this line.
         if (req.openedOn() != null) branch.setOpenedOn(req.openedOn());
         try {
             return branchRepository.save(branch);
