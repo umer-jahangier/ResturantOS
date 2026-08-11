@@ -118,12 +118,28 @@ describe("finance guide claim registry", () => {
     expect(claimById("FIN-GUIDE-9999")).toBeUndefined();
   });
 
-  it("seeds the four claims D-37-03 names explicitly", () => {
-    expect(claims.map((c) => c.id)).toEqual([
-      "FIN-GUIDE-0001",
-      "FIN-GUIDE-0002",
-      "FIN-GUIDE-0003",
-      "FIN-GUIDE-0004",
-    ]);
+  /**
+   * 37-02 seeded four and asserted the exact list, which was right while the registry was a seed.
+   * 37-13 collects the rest of the phase's claims, so the strict equality is loosened to what it
+   * was actually protecting: the four D-37-03 names BY NAME must be present, and the ids must stay
+   * unique and contiguously numbered so a marker can never point at a gap.
+   */
+  it("still holds the four claims D-37-03 names explicitly", () => {
+    const ids = claims.map((c) => c.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "FIN-GUIDE-0001", // cash needs an open till, card does not
+        "FIN-GUIDE-0002", // a closed period refuses a back-dated entry
+        "FIN-GUIDE-0003", // what a discount does to sales
+        "FIN-GUIDE-0004", // why some actions ask for a code
+      ]),
+    );
+  });
+
+  it("numbers its ids uniquely and without a gap", () => {
+    const nums = claims.map((c) => Number(c.id.slice("FIN-GUIDE-".length)));
+    expect(new Set(nums).size).toBe(nums.length);
+    expect(nums).toEqual([...nums].sort((a, b) => a - b));
+    expect(nums[nums.length - 1]! - nums[0]!).toBe(nums.length - 1);
   });
 });

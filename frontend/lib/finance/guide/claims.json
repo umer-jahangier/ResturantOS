@@ -24,8 +24,11 @@
       "id": "FIN-GUIDE-0001",
       "surface": "cross-cutting",
       "claim": "Settling in cash needs an open till; settling by card does not.",
-      "why": "Cash physically enters a drawer, so the system insists on knowing which drawer — that is what makes an end-of-shift count meaningful. A card payment never touches a drawer, so it needs no till. If a waiter takes an order and tries to settle it in cash without opening a till, the payment is refused with NO_OPEN_TILL and nothing at all is recorded against the order. Hand it to a cashier who has one open; that is the designed table-service flow, not a fault.",
-      "literals": ["NO_OPEN_TILL", "409"],
+      "why": "Cash physically enters a drawer, so the system insists on knowing which drawer — that is what makes an end-of-shift count meaningful. A card payment never touches a drawer, so it needs no till. If a cashier tries to settle a bill in cash before opening a till, the payment is refused with NO_OPEN_TILL and nothing at all is recorded against the order; open the till and the same settlement goes through. Waiting staff are a separate matter — they are not permitted to take payments at all, so they are turned away earlier and for a different reason. Handing the bill to a cashier is the designed table-service flow, not a fault.",
+      "literals": [
+        "NO_OPEN_TILL",
+        "409"
+      ],
       "assertedBy": [
         {
           "file": "services/pos-service/src/test/java/io/restaurantos/pos/CashPaymentRequiresTillIT.java",
@@ -42,7 +45,10 @@
       "surface": "periods",
       "claim": "Once you close an accounting period, the system refuses any new entry dated inside it.",
       "why": "Closing a month is a promise that the month's numbers will not move again — that is the whole reason a closed month can be reported on, taxed on, and argued from. An entry dated back into a closed period is refused with PERIOD_LOCKED rather than quietly accepted, so a figure you printed last week still says the same thing today. If something genuinely belongs to the closed month, post it in the open one with a note, or reopen the period deliberately.",
-      "literals": ["PERIOD_LOCKED", "423"],
+      "literals": [
+        "PERIOD_LOCKED",
+        "423"
+      ],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/AccountingPeriodIT.java",
@@ -55,7 +61,10 @@
       "surface": "journal",
       "claim": "A discount lowers what the customer pays, not what your books call sales: the full menu price is still credited to sales, and the discount is recorded separately against it.",
       "why": "If a Rs 800 dish goes out at Rs 680, the books credit the whole Rs 800 to Food Sales (4100) and put the Rs 120 on Discounts Given (4920), which sits against sales rather than inside it. You can therefore answer 'what did we give away this month?' — a question a netted figure cannot answer at all, because the discount has already vanished into a smaller sales number. It also keeps the entry balanced: netting sales AND recording the discount would count the same Rs 120 twice.",
-      "literals": ["4100", "4920"],
+      "literals": [
+        "4100",
+        "4920"
+      ],
       "assertedBy": [
         {
           "file": "services/finance-service/src/test/java/io/restaurantos/finance/autopost/DiscountedOrderRevenuePostingIT.java",
@@ -72,11 +81,167 @@
       "surface": "cross-cutting",
       "claim": "A few actions ask for a six-digit code from your authenticator app, even though you are already signed in.",
       "why": "Closing a period, approving payroll and changing who can do what are the actions where a stolen or borrowed session does the most damage, so the system asks the person in front of the screen to prove they are still there. The prompt is tied to the action, not to seniority — an accountant is asked for it and a manager is not, because the accountant is the one who can close a period. Without the code the request comes back TOTP_REQUIRED and nothing changes.",
-      "literals": ["TOTP_REQUIRED"],
+      "literals": [
+        "TOTP_REQUIRED"
+      ],
       "assertedBy": [
         {
           "file": "frontend/e2e/journeys/step-up-totp.spec.ts",
           "test": "A · owner signs in through the form with a live code"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0005",
+      "surface": "journal",
+      "claim": "Every entry in your books has two sides that must come to exactly the same amount, and the database itself refuses to save one that does not.",
+      "why": "This is not a check the app performs and could forget — it is a rule inside the database, so it holds no matter which part of the system writes the entry, including a script or a future feature nobody has written yet. An entry whose two sides disagree by even one paisa is rejected at the moment it is saved, with JE_UNBALANCED. That is why you can add up any page of the ledger and expect it to come out.",
+      "literals": [
+        "JE_UNBALANCED"
+      ],
+      "assertedBy": [
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryBalanceTriggerIT.java",
+          "test": "unbalancedJeIsRejectedAtCommit"
+        },
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryBalanceTriggerIT.java",
+          "test": "balancedJePostsSuccessfully"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0006",
+      "surface": "journal",
+      "claim": "Once an entry is posted it can never be edited. To correct it you post an opposite entry, and both stay on the record.",
+      "why": "A book you can go back and change is a book nobody can rely on. So a posted entry is frozen: an attempt to alter it is refused outright. Correcting a mistake means posting a reversal — the same lines with the debits and credits swapped — which is linked to the original. Both remain visible, which means anyone can see what was recorded, what was wrong with it, and what was done about it. That trail is the point.",
+      "literals": [],
+      "assertedBy": [
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryImmutabilityIT.java",
+          "test": "updateOnPostedJe_throwsException"
+        },
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryImmutabilityIT.java",
+          "test": "reversePostedJe_succeedsAndLinksOriginal"
+        },
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryImmutabilityIT.java",
+          "test": "reversalLinesSwapDebitCredit"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0007",
+      "surface": "transactions",
+      "claim": "Open an order and you can see every entry it created in your books — the sale, the cost of the food, and any refund.",
+      "why": "A number in your accounts that you cannot trace back to something that happened in the restaurant is a number you cannot check. Every order that closes writes its entries with the order's own id attached, so the two directions both work: from the order to what it did to your books, and from an entry back to the order behind it. A single order commonly produces two entries — the sale, and separately the cost of the ingredients that went out of the door — and a refund later adds a third.",
+      "literals": [
+        "ORDER_REVENUE",
+        "ORDER_COGS",
+        "ORDER_REFUND"
+      ],
+      "assertedBy": [
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryTraceabilityIT.java",
+          "test": "orderProducingRevenueAndCostOfSales_returnsBoth"
+        },
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/JournalEntryTraceabilityIT.java",
+          "test": "orderLaterRefunded_returnsTheRefundEntryToo"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0008",
+      "surface": "coa",
+      "claim": "A new restaurant is set up with a full set of accounts on day one — you do not have to invent them.",
+      "why": "The accounts are the buckets your money moves between: a bucket for the cash in the drawer, a bucket for food sales, a bucket for the tax you are holding on the government's behalf, and so on. Setting them up from scratch is the job most people get wrong and most accountants charge for, so the system seeds a complete set the first time your restaurant is provisioned, and seeding it twice does not duplicate anything.",
+      "literals": [
+        "1010"
+      ],
+      "assertedBy": [
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/CoaProvisioningIT.java",
+          "test": "provision_seedsAllTemplateAccounts"
+        },
+        {
+          "file": "services/finance-service/src/test/java/io/restaurantos/finance/CoaProvisioningIT.java",
+          "test": "getAccountByCode_returnsCashAccount"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0009",
+      "surface": "takings",
+      "claim": "Where the takings screen cannot work a figure out, it tells you why instead of showing you a zero.",
+      "why": "A zero on a cash-up screen is a statement: it says the drawer matched, or that nothing was given away today. If the system does not actually know, printing a zero is not a blank — it is a lie you will act on. So a figure the system cannot compute shows the reason in the place the number would have been. Comps are the standing example: a fully comped bill is recorded in the same column as a discount, so the two genuinely cannot be told apart, and the screen says exactly that rather than guessing a split.",
+      "literals": [],
+      "assertedBy": [
+        {
+          "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",
+          "test": "renders an unknown as a reason where the number would have been, never as 0 or a dash"
+        },
+        {
+          "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",
+          "test": "comps is UNKNOWN even when the server names nothing — never a zero"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0010",
+      "surface": "takings",
+      "claim": "Each till is shown on its own, and a shortfall on one is never cancelled out by an overage on another.",
+      "why": "If one drawer is Rs 900 short and another is Rs 900 over, that is two things to look into, not nothing. Added together they would come to zero and you would never hear about either. So the cash-up screen lists every till separately with its own expected amount, counted amount and difference, and there is no combined figure anywhere on it to hide behind.",
+      "literals": [],
+      "assertedBy": [
+        {
+          "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",
+          "test": "never nets two opposite variances into one figure"
+        },
+        {
+          "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",
+          "test": "shows a shortfall and an overage distinctly, and neither as an error"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0011",
+      "surface": "takings",
+      "claim": "A till still open and a till closed without anyone counting the drawer are shown as two different things.",
+      "why": "Both leave the difference blank, and they mean opposite things. A till still open is a shift in progress and there is nothing to reconcile yet — a normal Tuesday evening. A till closed with no count means the shift ended and nobody counted the money, so nobody knows whether it matched. Showing both as the same dash would make the second one invisible, which is precisely the situation you would want to be told about.",
+      "literals": [
+        "NOT_COUNTED"
+      ],
+      "assertedBy": [
+        {
+          "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",
+          "test": "OPEN and NOT_COUNTED both have a null variance and produce DIFFERENT reasons"
+        },
+        {
+          "file": "frontend/components/finance/__tests__/DailyTakings.test.tsx",
+          "test": "renders an OPEN till differently from a NOT_COUNTED till — not the same dash"
+        }
+      ]
+    },
+    {
+      "id": "FIN-GUIDE-0012",
+      "surface": "cross-cutting",
+      "claim": "The same amount reads identically on the screen, on the printed bill and in your books — down to the paisa.",
+      "why": "Money is held as a whole number of paisa everywhere in the system and only turned into text at the last moment, by one shared rule. The screen, the receipt printer and the ledger all call that same rule, and a shared list of test amounts is checked against both the Java side and the browser side, so the two cannot quietly drift apart. If a customer queries a bill, the figure they are holding is the figure you are looking at.",
+      "literals": [],
+      "assertedBy": [
+        {
+          "file": "shared-lib/src/test/java/io/restaurantos/shared/money/MoneyDisplayAuthorityTest.java",
+          "test": "everyVectorRendersItsRecordedString"
+        },
+        {
+          "file": "shared-lib/src/test/java/io/restaurantos/shared/money/MoneyDisplayAuthorityTest.java",
+          "test": "bothJvmRenderersAgreeOnEveryVector"
+        },
+        {
+          "file": "frontend/__tests__/lib/money-display-authority.test.ts",
+          "test": "toMoney and MoneyDisplay agree on every vector"
         }
       ]
     }

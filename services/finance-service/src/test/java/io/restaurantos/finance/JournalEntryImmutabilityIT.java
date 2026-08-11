@@ -74,6 +74,7 @@ class JournalEntryImmutabilityIT extends FinanceTestBase {
         return jeService.post(draft.id());
     }
 
+    // GUIDE-CLAIM: FIN-GUIDE-0006
     @Test
     void updateOnPostedJe_throwsException() {
         var posted = createAndPostBalancedJe();

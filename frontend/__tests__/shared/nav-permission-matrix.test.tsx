@@ -223,6 +223,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
         items: [
+          "Guide",
           "Takings",
           "Accounts",
           "Journal Entries",
@@ -257,6 +258,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
         items: [
+          "Guide",
           "Takings",
           "Accounts",
           "Journal Entries",
@@ -300,7 +302,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       // `DailyTakingsController` has gated on `pos.till.review` since 37-09. The ledger entries
       // are still absent, which is the assertion that keeps this honest: the module opened by
       // one code, it did not open wholesale.
-      { group: "Finance", items: ["Takings"] },
+      { group: "Finance", items: ["Guide", "Takings"] },
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["Customers"] },
       { group: "Reporting", items: ["Reports", "Realtime Dashboard"] },
@@ -317,6 +319,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
         items: [
+          "Guide",
           "Takings",
           "Accounts",
           "Journal Entries",

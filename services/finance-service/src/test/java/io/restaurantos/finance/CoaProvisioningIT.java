@@ -29,6 +29,7 @@ class CoaProvisioningIT extends FinanceTestBase {
     @Autowired
     private TenantContext tenantContext;
 
+    // GUIDE-CLAIM: FIN-GUIDE-0008
     @Test
     void provision_seedsAllTemplateAccounts() {
         UUID tenantId = UUID.randomUUID();

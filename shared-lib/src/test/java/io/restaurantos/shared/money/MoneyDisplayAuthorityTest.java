@@ -93,6 +93,7 @@ class MoneyDisplayAuthorityTest {
     }
 
     // ── Behaviour 5: every vector in the shared file renders exactly what the file records ────
+    // GUIDE-CLAIM: FIN-GUIDE-0012
     @Test
     void everyVectorRendersItsRecordedString() {
         for (Vector v : vectors) {

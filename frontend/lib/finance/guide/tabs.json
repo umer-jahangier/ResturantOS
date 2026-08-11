@@ -1,0 +1,148 @@
+{
+  "_readme": [
+    "The finance guide's prose, one entry per tab in the Finance module (D-37-03, plan 37-13).",
+    "",
+    "WHY THIS IS DATA AND NOT MARKUP: `guide-coverage.test.tsx` reads it and compares it against",
+    "the finance layout's exported tab array, so a tab shipped without a section FAILS A TEST. Prose",
+    "buried inside a component is prose nothing can check, and a guide nothing checks is a guide that",
+    "quietly stops being true — which D-37-03 says is worse than no guide at all.",
+    "",
+    "EVERY TAB ANSWERS THE SAME FOUR QUESTIONS, in D-37-03's order:",
+    "  whatItIs           — one plain sentence. No accounting vocabulary.",
+    "  whenYouUseIt       — the moment in a working day when you would open it.",
+    "  typicalEntry       — a concrete example using this restaurant's own words and real amounts.",
+    "  affectsDownstream  — what it changes elsewhere, NAMING the other tabs, so the module reads as",
+    "                       one system rather than as eleven unrelated screens.",
+    "",
+    "`claims` lists claim ids from claims.json. The renderer looks each one up; it cannot print a",
+    "sentence the registry does not hold, and `make verify-guide-claims` refuses to pass if the",
+    "registry holds a sentence no live test defends.",
+    "",
+    "THE REGISTER: 'the list of buckets your money moves between', not 'a normalised ledger account",
+    "hierarchy'. If a sentence here could not be read aloud to someone who has never seen a general",
+    "ledger, it is the wrong sentence."
+  ],
+  "tabs": [
+    {
+      "href": "/app/finance/takings",
+      "anchor": "takings",
+      "label": "Takings",
+      "oneLiner": "What you took today, and whether the drawers agree.",
+      "whatItIs": "The end-of-day picture of your money: what you sold, what you gave away, what the tax came to, what the bills actually added up to, how it was paid, and what each till counted at the end of the shift.",
+      "whenYouUseIt": "Every evening, when the last table has gone and the cashier is counting the drawer. It is the first screen Finance opens on, because it is the one question you ask every single day.",
+      "typicalEntry": "A Thursday: 26 bills, Rs 33,390 of food at menu price, Rs 5,342.40 of tax, Rs 38,732.40 taken in total — Rs 10,068.80 of it on card across 8 payments and Rs 28,663.60 in cash across 18. One till counted Rs 43,567 against an expected Rs 6,836.05, so it shows as Over by Rs 36,730.95, on that till and nowhere else. A second till was still open at the time, so it shows as still open rather than as an empty drawer.",
+      "affectsDownstream": "Nothing on this screen is typed in — every figure is the sum of orders that were closed in POS, so it changes when a bill is settled, refunded or voided. Each of those individual events is listed on Transactions, and the entries they wrote in your books are on Journal Entries and General Ledger. If a figure here looks wrong, Transactions is where you go to find out which bill caused it.",
+      "claims": ["FIN-GUIDE-0009", "FIN-GUIDE-0010", "FIN-GUIDE-0011", "FIN-GUIDE-0001", "FIN-GUIDE-0003"]
+    },
+    {
+      "href": "/app/finance/transactions",
+      "anchor": "transactions",
+      "label": "Transactions",
+      "oneLiner": "Every payment, refund and void — and what each one did to your books.",
+      "whatItIs": "The running list of every time money moved: a bill settled, a refund given, an order voided. One line per movement, filterable by date, by how it was paid, and by what kind of event it was.",
+      "whenYouUseIt": "When a number somewhere else does not look right and you want to know which bill produced it. Also when a customer queries a charge, or when you want to see what happened on a particular evening.",
+      "typicalEntry": "Order ORD-20260811-0004, settled in cash at 6:16pm for Rs 3,364.00. Open it and you see the bill behind it — Rs 2,900 of food plus Rs 464 of tax — and the two entries it wrote in your books: the sale, and separately the cost of the ingredients that went out with it.",
+      "affectsDownstream": "This is the bridge between the restaurant and the books. Every line here is one of the orders summed on Takings, and every line links through to the entries it created, which are the same entries you will find on Journal Entries and inside General Ledger. A bill split between cash and card appears here TWICE — once per payment — because each payment is a separate movement of money.",
+      "claims": ["FIN-GUIDE-0007", "FIN-GUIDE-0012"]
+    },
+    {
+      "href": "/app/finance/accounts",
+      "anchor": "accounts",
+      "label": "Accounts",
+      "oneLiner": "The list of buckets your money moves between.",
+      "whatItIs": "Every bucket the business uses: one for the cash in the drawer, one for money in the bank, one for food sales, one for the tax you are holding on the government's behalf, one for what suppliers are owed, and so on. Nothing happens on this screen; it is the vocabulary everything else is written in.",
+      "whenYouUseIt": "Rarely, and that is a good sign. You come here when you want to know what a bucket on another screen actually means, or when your accountant asks for a new one.",
+      "typicalEntry": "1010 Cash on Hand. 4100 Food Sales. 4920 Discounts Given. 2200 Output Tax Payable. 5100 Cost of Goods Sold. The numbers are just filing codes — they group related buckets together and keep the order stable no matter what you rename them to.",
+      "affectsDownstream": "Everything. Each side of every entry on Journal Entries names one of these buckets, and General Ledger is nothing more than one bucket's history laid out in date order. Rename a bucket here and it reads differently everywhere; the underlying number stays the same.",
+      "claims": ["FIN-GUIDE-0008"]
+    },
+    {
+      "href": "/app/finance/journal-entries",
+      "anchor": "journal-entries",
+      "label": "Journal Entries",
+      "oneLiner": "The individual records of money moving from one bucket to another.",
+      "whatItIs": "The book itself. Each entry says: on this date, this much left these buckets and the same amount arrived in those buckets, and here is why. Most are written automatically when an order closes; a few you write by hand.",
+      "whenYouUseIt": "When you want to see exactly how something was recorded, when your accountant asks a question, or when you need to record something the system has no other way of knowing about.",
+      "typicalEntry": "A Rs 3,364 cash bill produces one entry with three lines: Rs 3,364 INTO Cash on Hand, Rs 2,900 OUT of Food Sales, Rs 464 OUT of Output Tax Payable. The two directions come to the same total, which they always must.",
+      "affectsDownstream": "These entries are what General Ledger displays and what every financial report adds up. Each one that came from an order links back to that order on Transactions. An entry dated inside a month you have closed on Periods will be refused.",
+      "claims": ["FIN-GUIDE-0005", "FIN-GUIDE-0006", "FIN-GUIDE-0002", "FIN-GUIDE-0003"]
+    },
+    {
+      "href": "/app/finance/gl",
+      "anchor": "gl",
+      "label": "General Ledger",
+      "oneLiner": "One bucket's story, in date order, with a running total.",
+      "whatItIs": "The same entries as Journal Entries, but sorted by bucket instead of by date — so you can follow one bucket through the month and watch its balance move.",
+      "whenYouUseIt": "When you want to answer a question about one thing over time. How much food did we sell in July? How much have we given away in discounts this quarter? What has actually gone through the bank?",
+      "typicalEntry": "Open 4920 Discounts Given for a month and you see every bill that carried a discount, each one adding to a running total. That total is the answer to \"what did we give away this month?\" — a question you can only ask because discounts are recorded separately instead of being quietly subtracted from sales.",
+      "affectsDownstream": "Nothing is created here; it is a view. But it is where a wrong figure usually gets noticed, and from an entry you can go back to Journal Entries for the full record and on to Transactions for the order behind it.",
+      "claims": ["FIN-GUIDE-0003", "FIN-GUIDE-0012"]
+    },
+    {
+      "href": "/app/finance/periods",
+      "anchor": "periods",
+      "label": "Periods",
+      "oneLiner": "Closing a month so its numbers stop moving.",
+      "whatItIs": "A month at a time, each either open or closed. Closing one is you saying: this month is finished, and nothing new may be dated into it.",
+      "whenYouUseIt": "Once a month, after the last of the month's paperwork is in and you or your accountant have looked at the figures. Not before — reopening is deliberate and leaves a trace.",
+      "typicalEntry": "July is closed on the 4th of August. A supplier bill dated the 28th of July arriving on the 6th of August is refused for July and goes into August instead, with a note saying what it was for.",
+      "affectsDownstream": "Once a month is closed, Journal Entries will refuse anything dated inside it, and so will everything that writes entries automatically. That is what makes a report you printed last week still say the same thing today. Closing a period asks for a code from your authenticator app.",
+      "claims": ["FIN-GUIDE-0002", "FIN-GUIDE-0004"]
+    },
+    {
+      "href": "/app/finance/expenses",
+      "anchor": "expenses",
+      "label": "Expenses",
+      "oneLiner": "Money going out that is not a supplier invoice.",
+      "whatItIs": "The place to record what you spend that did not come with a purchase order — the electricity bill, a plumber, a taxi, a licence renewal. Larger ones go through an approval before they count.",
+      "whenYouUseIt": "As the receipts come in, and again when you approve what someone else has submitted.",
+      "typicalEntry": "Rs 18,000 for a walk-in fridge repair, submitted with the invoice attached, approved by the owner, and then recorded against the repairs bucket.",
+      "affectsDownstream": "An approved expense writes an entry, so it appears on Journal Entries and in the relevant bucket on General Ledger. It does not touch Takings — that screen is about money coming in from bills, not money going out.",
+      "claims": []
+    },
+    {
+      "href": "/app/finance/ap-aging",
+      "anchor": "ap-aging",
+      "label": "AP Aging",
+      "oneLiner": "Who you owe, and for how long you have owed them.",
+      "whatItIs": "Your unpaid supplier bills, grouped by how overdue they are: due now, a month late, two months late. \"AP\" is accounts payable — what you have to pay.",
+      "whenYouUseIt": "Before you decide who to pay this week, and before a supplier phones about it.",
+      "typicalEntry": "Rs 240,000 owed to a meat supplier, Rs 90,000 of it more than 60 days old — usually the sign of an invoice that got stuck rather than a bill you chose not to pay.",
+      "affectsDownstream": "The bills come from Purchasing, and paying one writes an entry you will find on Journal Entries and in the bank and payables buckets on General Ledger.",
+      "claims": []
+    },
+    {
+      "href": "/app/finance/house-accounts",
+      "anchor": "house-accounts",
+      "label": "House Accounts",
+      "oneLiner": "Customers who eat now and settle later.",
+      "whatItIs": "Running tabs for the regulars and companies you let sign for a meal — a nearby office, a hotel, a long-standing regular — with a limit on how much they may run up.",
+      "whenYouUseIt": "When setting someone up with a tab, when a bill is signed to one, and when they come in to settle.",
+      "typicalEntry": "A corporate account signs for Rs 12,400 of lunches across a week, then pays the whole balance by transfer on the Friday.",
+      "affectsDownstream": "Signing a bill to a house account still produces an ordinary sale — it appears on Takings and Transactions like any other — but the money has not arrived yet, so it sits as owed to you until they pay. AR Aging is where you watch how long it has been sitting.",
+      "claims": []
+    },
+    {
+      "href": "/app/finance/ar-aging",
+      "anchor": "ar-aging",
+      "label": "AR Aging",
+      "oneLiner": "Who owes you, and for how long.",
+      "whatItIs": "The mirror image of AP Aging: the money your house-account customers owe you, grouped by how old it is. \"AR\" is accounts receivable — what is owed to you.",
+      "whenYouUseIt": "Before you chase anyone, and before you let an account run up further.",
+      "typicalEntry": "Rs 12,400 outstanding on a corporate account, Rs 3,000 of it more than 90 days old — the point at which most restaurants stop extending credit and start telephoning.",
+      "affectsDownstream": "The balances come from House Accounts. When a customer settles, the payment clears their balance here and writes an entry you will see on Journal Entries.",
+      "claims": []
+    },
+    {
+      "href": "/app/finance/guide",
+      "anchor": "guide",
+      "label": "Guide",
+      "oneLiner": "This page.",
+      "whatItIs": "An explanation of every tab in this module, written for someone who runs a restaurant rather than for someone who keeps books.",
+      "whenYouUseIt": "The first week. And any time the product refuses to do something and you want to know why before you ring anyone.",
+      "typicalEntry": "The boxed rules on this page are the ones that generate the most questions — why cash needs an open till and card does not, why a closed month refuses a back-dated entry, what a discount really does to your sales figure, and why a few actions ask for a code.",
+      "affectsDownstream": "Nothing. This page changes nothing and records nothing. Every boxed rule on it, though, is tied to a test in the codebase that would fail if the product stopped behaving that way — so this page cannot quietly drift out of date while the system moves on.",
+      "claims": ["FIN-GUIDE-0001", "FIN-GUIDE-0004"]
+    }
+  ]
+}

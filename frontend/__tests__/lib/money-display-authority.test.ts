@@ -38,6 +38,7 @@ describe("money display authority — shared vectors", () => {
     expect(formatPaisa(BigInt(paisa))).toBe(display);
   });
 
+  // GUIDE-CLAIM: FIN-GUIDE-0012
   it("toMoney and MoneyDisplay agree on every vector", () => {
     for (const { name, paisa, display } of vectors) {
       const asBig = BigInt(paisa);

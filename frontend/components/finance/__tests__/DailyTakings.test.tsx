@@ -77,6 +77,8 @@ const LIVE_2026_08_08_CASH_VARIANCE_UNKNOWN = {
   ],
 };
 
+// GUIDE-CLAIM: FIN-GUIDE-0009
+// GUIDE-CLAIM: FIN-GUIDE-0011
 describe("takings adapter — the union assembled from the live wire shape", () => {
   it("keeps a stated amount as KNOWN, in paisa, untouched", () => {
     const t = adaptDailyTakings(LIVE_2026_08_06);
@@ -153,6 +155,7 @@ describe("takings adapter — the union assembled from the live wire shape", () 
   });
 });
 
+// GUIDE-CLAIM: FIN-GUIDE-0009
 describe("FigureValue — a zero and an unknown are not the same thing", () => {
   const zero: MoneyFigure = { state: "KNOWN", paisa: 0 };
   const unknown: MoneyFigure = {
@@ -208,6 +211,8 @@ describe("TenderSplit — observed methods only", () => {
   });
 });
 
+// GUIDE-CLAIM: FIN-GUIDE-0010
+// GUIDE-CLAIM: FIN-GUIDE-0011
 describe("TillVariancePanel — the reason this screen exists", () => {
   it("shows the seeded Rs 36,730.95 overage as a signed variance on that till alone", () => {
     const t = adaptDailyTakings(LIVE_2026_08_06);

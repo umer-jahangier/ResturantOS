@@ -75,6 +75,7 @@ class JournalEntryTraceabilityIT extends FinanceTestBase {
     }
 
     // ── Behaviour 1: revenue AND cost-of-sales, from one order id ─────────────────────────────
+    // GUIDE-CLAIM: FIN-GUIDE-0007
     @Test
     void orderProducingRevenueAndCostOfSales_returnsBoth() {
         UUID orderId = UUID.randomUUID();

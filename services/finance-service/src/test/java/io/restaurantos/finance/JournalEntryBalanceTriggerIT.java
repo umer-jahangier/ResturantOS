@@ -67,6 +67,7 @@ class JournalEntryBalanceTriggerIT extends FinanceTestBase {
         tenantContext.set(tenantId, branchId, null, null);
     }
 
+    // GUIDE-CLAIM: FIN-GUIDE-0005
     @Test
     void unbalancedJeIsRejectedAtCommit() {
         // Create a DRAFT JE first

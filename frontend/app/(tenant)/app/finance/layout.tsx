@@ -36,7 +36,19 @@ const LEDGER = "finance.journal.view";
  */
 const TAKINGS = [LEDGER, "pos.order.view.all", "pos.till.review"];
 
-const TABS: { href: string; label: string; require: string[] }[] = [
+export interface FinanceTab {
+  href: string;
+  label: string;
+  require: string[];
+}
+
+/**
+ * THE finance tab array. Exported because `guide-coverage.test.tsx` reads it and asserts every
+ * entry has a section in the guide (37-13) — so the next phase that adds a finance tab fails that
+ * test, which is exactly the moment to write its explanation. A guide that can silently fall
+ * behind the module it documents is the guide D-37-03 says is worse than none.
+ */
+export const FINANCE_TABS: FinanceTab[] = [
   // 37-12: Takings leads, and the finance root redirects here. It is the evening cash-up — the
   // number an owner looks at first, every single day (D-37-02).
   { href: "/app/finance/takings", label: "Takings", require: TAKINGS },
@@ -55,6 +67,9 @@ const TABS: { href: string; label: string; require: string[] }[] = [
   // phantom flag string).
   { href: "/app/finance/house-accounts", label: "House Accounts", require: [LEDGER] },
   { href: "/app/finance/ar-aging", label: "AR Aging", require: [LEDGER] },
+  // 37-13: the tab the user asked for by name. Gated as widely as Takings — the person most
+  // likely to need an explanation of this module is the one who has seen the least of it.
+  { href: "/app/finance/guide", label: "Guide", require: TAKINGS },
 ];
 
 function FinanceTabs() {
@@ -62,10 +77,10 @@ function FinanceTabs() {
   const { permissions } = useCurrentUser();
   // A tab the reader cannot open is not shown. Rendering it and letting the click land on an
   // "Access denied" is the product advertising something it will then refuse.
-  const visible = TABS.filter((tab) => tab.require.some((p) => permissions.includes(p)));
+  const visible = FINANCE_TABS.filter((tab) => tab.require.some((p) => permissions.includes(p)));
 
   return (
-    <nav className="mb-4 flex gap-4 border-b">
+    <nav aria-label="Finance" data-testid="finance-tabs" className="mb-4 flex gap-4 border-b">
       {visible.map((tab) => {
         const active = pathname?.startsWith(tab.href);
         return (
@@ -93,10 +108,13 @@ export default function FinanceLayout({ children }: FinanceLayoutProps) {
   // and the redirect only runs if the page actually renders. Guarding it as a ledger route meant a
   // manager landed on "Access denied" at a URL whose only job was to send them somewhere they were
   // allowed to be — and the redirect never fired, so the address bar sat on /app/finance forever.
-  const isTakings =
+  const widelyReadable =
     pathname === "/app/finance" ||
     pathname === "/app/finance/" ||
-    (pathname?.startsWith("/app/finance/takings") ?? false);
+    (pathname?.startsWith("/app/finance/takings") ?? false) ||
+    // 37-13: the Guide explains the module to someone who has not been given the ledger. Gating
+    // the explanation behind the thing it explains is the wrong way round.
+    (pathname?.startsWith("/app/finance/guide") ?? false);
 
   return (
     // The OUTER guard is the widest of the module's routes, so a till-reviewing manager reaches
@@ -107,7 +125,7 @@ export default function FinanceLayout({ children }: FinanceLayoutProps) {
         {/* … and the INNER guard keeps every ledger route exactly as tight as it was. Widening
             the shell must not widen the general ledger: someone who may check a drawer has not
             thereby been given the chart of accounts, and typing the URL must not grant it. */}
-        {isTakings ? (
+        {widelyReadable ? (
           children
         ) : (
           <PermissionGuard require={LEDGER} fallback={<AccessDenied />}>

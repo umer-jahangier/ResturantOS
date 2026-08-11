@@ -271,6 +271,16 @@ export const navGroups: NavGroup[] = [
     label: "Finance",
     items: [
       {
+        // 37-13: the explanation of this module, gated as widely as Takings. The person most
+        // likely to need it is the one who has seen the least of the module.
+        label: "Guide",
+        href: "/app/finance/guide",
+        icon: BookOpen,
+        permission: ["finance.journal.view", "pos.order.view.all", "pos.till.review"],
+        permissionMode: "any",
+        feature: "FEATURE_FINANCE",
+      },
+      {
         // 37-12. Leads the group for the same reason it leads the tab bar.
         label: "Takings",
         href: "/app/finance/takings",
