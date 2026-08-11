@@ -380,6 +380,10 @@ V13 index; 37-09's `DailyTakingsIT`; 37-03's blocked migration.
 backfilled, verified live. Its original diagnosis was wrong in a way that mattered; see the
 corrected entry near the top of this file before touching the ETL writers.
 
+**READ `.planning/phases/37-finance-orders-integration/37-STATUS.md` FIRST** if you are picking up
+phase 37. It records every Definition-of-Done item as measured (two are demonstrably unmet), what
+the third session closed, and the fact that neither blocking human checkpoint has been run.
+
 **Litter I created and am declaring:** probing the open-till rule left a Rs 1.00 cash payment on
 `ORD-20260812-0003`, now **voided** (the payment survives as a void event, which is correct), plus
 three empty DRAFT orders carrying no money.
