@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { T_BODY, T_DISPLAY, T_SMALL } from "@/components/dashboard/dashboard-type";
 import type { DashboardPreset } from "@/components/dashboard/presets";
@@ -62,13 +62,35 @@ export function PortletRow({
     <div
       className={cn(
         "grid",
+        /*
+         * Phase 34: a staggered entrance across the row (D-34-02, expressive only).
+         *
+         * `.vdl-stagger` is inert outside the expressive zone, and it sets no resting style —
+         * strip the class and every tile is exactly where it is now, at full opacity. Under a
+         * reduced-motion preference the rule resolves `animation: none` and the grid simply
+         * appears, which is what D-34-03 asks for: absence, not a faster flourish.
+         *
+         * The delay per child is computed by the stylesheet from `--vdl-i`, so adding a fifth
+         * portlet to a preset never means rewriting four delays.
+         */
+        "vdl-stagger",
         density === "compact" ? "gap-3" : "gap-4",
         columns === 1 && "grid-cols-1",
         columns === 2 && "grid-cols-1 lg:grid-cols-2",
         columns === 4 && "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4",
       )}
     >
-      {children}
+      {React.Children.map(children, (child, i) =>
+        React.isValidElement(child)
+          ? React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
+              style: {
+                ...((child as React.ReactElement<{ style?: React.CSSProperties }>).props.style ??
+                  {}),
+                ["--vdl-i" as string]: String(i),
+              },
+            })
+          : child,
+      )}
     </div>
   );
 }

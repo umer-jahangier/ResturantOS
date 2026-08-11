@@ -50,8 +50,24 @@ export function PortletShell({
       data-testid={`portlet-${id}`}
       aria-label={drillLabel}
       className={cn(
-        "group flex flex-col rounded-lg border border-border bg-card text-card-foreground",
-        "transition-colors hover:border-border-interactive",
+        "group flex flex-col rounded-xl text-card-foreground",
+        /*
+         * Phase 34: a glass panel on a depth-layered grid, with a hover lift on every
+         * drillable tile — which is all of them, because §7.3 makes the whole card the target.
+         *
+         * TREATMENT ONLY. No portlet is added, removed, reordered or re-typed here, and no
+         * preset changes; composition belongs to phases 21 and 33. A design pass that quietly
+         * re-lays-out a screen is how a restyle becomes an unreviewed feature change.
+         *
+         * `glass-surface` carries the OPAQUE fallback as its base declaration and gains
+         * translucency only inside a feature query, only under [data-zone="expressive"] — so
+         * this same component renders as a plain opaque card if it is ever composed on a
+         * restrained or operational surface, without a second code path.
+         *
+         * Substrate is `--background` (the shell's <main> inherits it), which 34-02's manifest
+         * enumerates and glass-contrast.test.ts measures.
+         */
+        "glass-surface shadow-depth-2 vdl-lift",
         density === "compact" ? "gap-1.5 p-3" : "gap-2.5 p-4",
         className,
       )}
