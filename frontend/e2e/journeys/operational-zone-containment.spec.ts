@@ -91,7 +91,85 @@ function report(where: string, offenders: Offender[]): string {
   );
 }
 
+/**
+ * Elements that create a CONTAINING BLOCK for `position: fixed` descendants.
+ *
+ * <h3>Why this belongs in a phase about how things look</h3>
+ *
+ * `transform`, `filter`, `backdrop-filter`, `perspective`, `will-change` and paint/layout
+ * `contain` all make an element the containing block for its fixed descendants. That is spec
+ * behaviour, not a Chromium quirk, and it applies at PRINT time as well as on screen.
+ *
+ * Phase 26's receipt lifts the bill out of the application shell with `position: fixed`
+ * (`components/print/receipt-print.css`), and the route — `/app/pos/orders/[orderId]/receipt` —
+ * lives under `app/pos/`. Glass morphism is exactly the technique that would break it, so this
+ * sweep asserts the operational zone creates no such containing block anywhere.
+ *
+ * <p>It passes today for a structural reason rather than a lucky one: D-34-02 puts the whole POS
+ * subtree in the operational zone, and every glass, tilt and lift rule in this phase is
+ * selector-rooted at `[data-zone="expressive"]`. This test is what keeps that true when someone
+ * later reaches for `will-change: transform` on a wrapper "for smoothness" — which creates the
+ * containing block permanently, even with no transform ever applied.
+ */
+async function containingBlockCreators(page: Page): Promise<Offender[]> {
+  return page.evaluate(() => {
+    const out: { selector: string; value: string }[] = [];
+    for (const el of Array.from(document.querySelectorAll("*"))) {
+      const cs = getComputedStyle(el);
+      const reasons: string[] = [];
+      if (cs.transform && cs.transform !== "none") reasons.push(`transform: ${cs.transform}`);
+      if (cs.filter && cs.filter !== "none") reasons.push(`filter: ${cs.filter}`);
+      const backdrop = cs.backdropFilter || cs.getPropertyValue("backdrop-filter");
+      if (backdrop && backdrop !== "none") reasons.push(`backdrop-filter: ${backdrop}`);
+      if (cs.perspective && cs.perspective !== "none") reasons.push(`perspective: ${cs.perspective}`);
+      // `will-change: opacity` does NOT create a containing block; transform/filter do.
+      if (/transform|filter|perspective/.test(cs.willChange ?? "")) {
+        reasons.push(`will-change: ${cs.willChange}`);
+      }
+      if (/paint|layout|strict|content/.test(cs.contain ?? "")) {
+        reasons.push(`contain: ${cs.contain}`);
+      }
+      if (reasons.length > 0) {
+        const tag = el.tagName.toLowerCase();
+        const cls = String(el.className).slice(0, 60);
+        out.push({ selector: `${tag}${cls ? "." + cls : ""}`, value: reasons.join(", ") });
+      }
+    }
+    return out;
+  });
+}
+
 test.describe("operational zone carries no compositing filter", () => {
+  test("nothing on the POS route becomes a containing block for the receipt", async ({
+    as,
+    obs,
+  }) => {
+    test.setTimeout(120_000);
+    tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+    obs.expect403(
+      /\/api\/v1\/pos\/tills/,
+      "a waiter has no till permissions; the POS page probes for an active till regardless",
+    );
+
+    const page = await as(WAITER);
+    await page.goto("/app/pos", { waitUntil: "domcontentloaded" });
+    await expect(page.locator('[data-zone="operational"]').first()).toBeAttached({
+      timeout: 30_000,
+    });
+    await page.waitForTimeout(3000);
+
+    const offenders = await containingBlockCreators(page);
+    expect(
+      offenders,
+      "An ancestor on the POS route creates a containing block for `position: fixed` " +
+        "descendants. The receipt at /app/pos/orders/[orderId]/receipt anchors itself to the " +
+        "page box with `position: fixed` precisely so a shell change cannot clip it — and any " +
+        "of transform / filter / backdrop-filter / perspective / will-change / contain on an " +
+        "ancestor silently undoes that, ON THE PRINTED PAGE, where nobody is looking.\n" +
+        offenders.map((o) => `  · ${o.selector}  →  ${o.value}`).join("\n"),
+    ).toEqual([]);
+  });
+
   test("the POS terminal — at rest and with the order drawer open", async ({ as, obs }) => {
     test.setTimeout(120_000);
     tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
