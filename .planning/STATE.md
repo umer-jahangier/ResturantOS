@@ -296,6 +296,43 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 > that branch's (which were older — 2026-07-21 vs 2026-07-24 — and counted a different phase set);
 > they do not yet account for Phase 12's plans. Reconcile via the GSD tooling rather than by hand.
 
+## Session — 2026-08-12 · Phase 37 continuation (37-12, 37-13)
+
+Picked up a clean handover after a previous executor exhausted its budget. Landed the two plans the
+user named as the priority — **the visible half**: the APIs existed and the screens did not.
+
+- **37-12 COMPLETE** — `/app/finance/takings`, and Finance now opens on it instead of on the chart
+  of accounts. Verified in a real browser against the live stack: the seeded 2026-08-06 overage
+  renders as **+Rs 36,730.95 on one till**, an open till says it has not been counted rather than
+  showing a zero, and a failed request renders an error rather than a day with no sales.
+  Screenshots in the phase directory.
+- **37-13 COMPLETE** — `/app/finance/guide`: 11 sections, four questions each, 12 registry claims,
+  `make verify-guide-claims` green (42 checks, 0 failures). A finance tab shipped without a section
+  now fails a test — demonstrated and reverted.
+
+**Two defects the browser caught that nothing else would have:**
+
+1. The **finance module refused the branch manager** — the person who counts the drawer. The UI
+   required `finance.journal.view`; the takings API had deliberately gated on `pos.till.review`
+   since 37-09. The UI was narrower than the server, so the feature did not exist for the role it
+   was built for. Fixed, with the ledger routes kept exactly as tight as they were.
+2. The guide's own journey found a **false sentence**: `FIN-GUIDE-0001` said a waiter settling in
+   cash is refused `NO_OPEN_TILL`. Measured: **403 `PERMISSION_DENIED`** — waiting staff may not
+   take payments at all and never reach the till rule. The registry now says what the product does.
+
+**Two guide claims LEFT OUT for want of proof**, on the explicit instruction of the plans that made
+the work true: 37-03's business-date claim (its migration is unapplied and still awaiting the user)
+and 37-08's transaction-grain claim (no IT exists). Both should be added the moment their proof
+lands.
+
+**STILL OPEN in phase 37:** 37-05, 37-06, 37-07, 37-10, 37-14; DEFECT-37-03-B (`SalesFactWriter:47`,
++5h on 73/73 sampled rows); 37-08's `TransactionRegisterIT` and V13 index; 37-09's `DailyTakingsIT`;
+37-03's blocked migration.
+
+**Litter I created and am declaring:** probing the open-till rule left a Rs 1.00 cash payment on
+`ORD-20260812-0003`, now **voided** (the payment survives as a void event, which is correct), plus
+three empty DRAFT orders carrying no money.
+
 ## Current Position
 
 Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING

@@ -123,8 +123,8 @@ Plans:
 - [~] 37-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)* — **API live-verified in pos-service (till counts are not in ClickHouse); no screen (37-12) and no IT**
 - [ ] 37-10-PLAN.md — cost and margin reported, with a check a mirrored error cannot pass *(wave 3)*
 - [x] 37-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
-- [ ] 37-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)*
-- [ ] 37-13-PLAN.md — the Guide tab, rendered from the registry; an unproven sentence cannot be printed *(wave 5)*
+- [x] 37-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)* — **live in a browser; the seeded Rs 36,730.95 overage renders as an overage. Also fixed: the finance module refused the branch manager who does the cash-up**
+- [x] 37-13-PLAN.md — the Guide tab, rendered from the registry; an unproven sentence cannot be printed *(wave 5)* — **11 sections, 12 claims, gate green; the journey caught and corrected a false sentence. 37-03's and 37-08's claims LEFT OUT for want of proof**
 - [ ] 37-14-PLAN.md — inode-identity freshness gate and the six-item phase acceptance *(wave 6)*
 
 ### Execution record — what has actually landed (2026-08-07)
