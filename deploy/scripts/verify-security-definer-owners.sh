@@ -64,7 +64,14 @@ FIXUPS=(
   # `SELECT fn(x) IS NOT NULL` yields one boolean per returned row, so zero rows leaves the output
   # empty and is reported as the failure it is.
   "auth_db|public.auth_lookup_login_candidates(TEXT)|auth_user|users|email"
-  "hr_db|public.resolve_device(TEXT)|hr_user|attendance_devices|device_token"
+  # serial_no, NOT device_token. resolve_device(p_serial) matches on serial_no; probing it with a
+  # device token made it return NULL for a row that plainly existed, and this script reported that
+  # as "RLS is not being bypassed" — a confident, wrong accusation against working code. It only
+  # surfaced once attendance_devices had rows; while the table was empty the probe was skipped and
+  # the mistake sat here unnoticed. Second wrong probe in this file: the first selected the
+  # protected table directly instead of calling the function. Both failures were the same shape —
+  # the check was wrong while sounding certain, which is worse than no check at all.
+  "hr_db|public.resolve_device(TEXT)|hr_user|attendance_devices|serial_no"
   "hr_db|public.hr_tenant_ids()|hr_user||"
 )
 
@@ -124,12 +131,33 @@ SQL
     continue
   fi
 
+  # Set-returning and scalar functions need DIFFERENT questions, and conflating them produced a
+  # false accusation against working code.
+  #
+  # `SELECT fn(x) IS NOT NULL` looks universal and is not: for a function returning SETOF <table>,
+  # the result is a COMPOSITE, and in Postgres a composite is NULL when ANY field is null. So
+  # resolve_device returned a perfectly good row — verified, COUNT(*) = 1 — while `IS NOT NULL`
+  # evaluated false because the device had a null employee_id. This script then reported "RLS is
+  # not being bypassed" about a function that was bypassing RLS correctly.
+  #
+  # proretset tells us which question to ask: row count for a set, nullness for a scalar.
+  retset=$(psql_super "$db" -tAc \
+    "SELECT p.proretset FROM pg_proc p WHERE p.oid = to_regprocedure('${fn}');")
+
   set +e
-  got=$(psql_super "$db" -tA 2>/dev/null <<SQL
+  if [[ "$retset" == "t" ]]; then
+    got=$(psql_super "$db" -tA 2>/dev/null <<SQL
+SET ROLE ${role};
+SELECT COUNT(*) > 0 FROM ${fn_name}('${sample}');
+SQL
+)
+  else
+    got=$(psql_super "$db" -tA 2>/dev/null <<SQL
 SET ROLE ${role};
 SELECT ${fn_name}('${sample}') IS NOT NULL;
 SQL
 )
+  fi
   rc=$?
   set -e
   got=$(printf '%s' "$got" | tail -1)
