@@ -143,7 +143,22 @@ describe("D-34-02 · the backdrop utility family has exactly one legal home", ()
 
 describe("D-34-02 · every compositing-filter rule in globals.css is expressive-scoped", () => {
   const cssPath = resolve(FRONTEND_ROOT, "app/globals.css");
-  const css = readFileSync(cssPath, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+
+  /**
+   * At-rule PRELUDES are blanked before scanning, preserving byte offsets.
+   *
+   * Without this the check reports a false positive on its own enabling condition:
+   * `@supports (backdrop-filter: blur(1px))` contains the literal text `backdrop-filter:`,
+   * but it is a feature QUERY, not a declaration — nothing is painted by it. Read as a
+   * declaration, the parser then walks back past the wrong brace and extracts garbage as the
+   * "selector", so a correctly-scoped stylesheet fails.
+   *
+   * Found by writing the first real glass rule in 34-02 and watching this test go red on it.
+   * Blanking rather than deleting keeps every index valid for the backward walk below.
+   */
+  const css = readFileSync(cssPath, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/@[a-zA-Z-]+[^{;]*/g, (prelude) => " ".repeat(prelude.length));
 
   /** Selector text immediately preceding each `{` that opens a block declaring the filter. */
   function rulesDeclaringFilter(): { selector: string; declaration: string }[] {

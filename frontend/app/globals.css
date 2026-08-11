@@ -190,6 +190,26 @@
   --shadow-elev-2: var(--elev-2);
   --shadow-elev-3: var(--elev-3);
 
+  /* ── phase 34: glass colours, addressable as utilities ─────────────────── */
+  --color-glass-panel-solid: var(--glass-panel-solid);
+  --color-glass-panel-hairline: var(--glass-panel-hairline);
+  --color-glass-overlay-solid: var(--glass-overlay-solid);
+  --color-glass-overlay-hairline: var(--glass-overlay-hairline);
+
+  /* ── phase 34: depth, as shadow utilities (shadow-depth-2, …) ──────────── */
+  --shadow-depth-1: var(--depth-1);
+  --shadow-depth-2: var(--depth-2);
+  --shadow-depth-3: var(--depth-3);
+  --shadow-depth-lift: var(--depth-lift-shadow);
+  --shadow-depth-inset: var(--depth-inset);
+
+  /* The FILL and BLUR tokens are deliberately NOT bridged. They are only ever
+     consumed by the .glass-* classes below, inside a feature query and under a
+     zone selector. Exposing `bg-glass-panel-fill` as a utility would hand every
+     call site a way to paint a translucent surface with no fallback and no zone
+     scoping — which is the whole failure mode D-34-04 and D-34-02 exist to
+     prevent, re-introduced through the convenience layer. */
+
   --animate-skeleton-shimmer: shimmer 2s linear infinite;
   --animate-count-up: fadeSlideUp 0.5s ease-out;
   --animate-slide-in-right: slideInRight 0.3s ease-out;
@@ -378,6 +398,71 @@
   --elev-2: 0 4px 12px oklch(0 0 0 / 0.08), 0 1px 3px oklch(0 0 0 / 0.06);
   --elev-3: 0 16px 40px oklch(0 0 0 / 0.16), 0 4px 12px oklch(0 0 0 / 0.08);
 
+  /* ═══ PHASE 34 · glass surfaces (D-34-04) ════════════════════════════════
+     Two weights, four values each: an OPAQUE FALLBACK, a translucent fill, a
+     blur radius, and a hairline.
+
+     Read the fallback first, because it is the one that ships. D-34-04 says
+     glass must degrade, and the usual way that promise is broken is to write
+     the fallback inside an `@supports not (...)` branch — a branch nobody
+     renders in development, nobody screenshots, and nobody measures. So here
+     the opaque colour is the BASE declaration of `.glass-surface` below and
+     the translucency is a positive-feature-query enhancement layered on top.
+     The degraded rendering is the stylesheet's default state.
+
+     The fallback is a DESIGNED value, not the fill with its alpha stripped.
+     `--glass-panel-fill` at alpha 1 would be oklch(0.99 …); the fallback sits
+     at 0.978 because it has to hold its own against the same foregrounds
+     without any substrate showing through. `glass-contrast.test.ts` asserts
+     the two differ, precisely so a future edit cannot collapse them.
+
+     Every value is authored against var(--brand-h), so glass follows the
+     tenant brand exactly as the rest of the system does (D-UI-01). */
+  --glass-panel-solid: oklch(0.978 0.004 var(--brand-h));
+  --glass-panel-fill: oklch(0.99 0.003 var(--brand-h) / 0.72);
+  --glass-panel-blur: 12px;
+  /* Decorative under WCAG 2.2 SC 1.4.11 — it is the edge of a surface, not the
+     boundary that identifies a component or its state, so the 3:1 floor does
+     not apply. Phase 20 drew that distinction deliberately (§3.2) and it is
+     restated here because the next reader will otherwise either over-constrain
+     this hairline or fail to notice the distinction exists. */
+  --glass-panel-hairline: oklch(1 0 var(--brand-h) / 0.55);
+
+  --glass-overlay-solid: oklch(0.968 0.004 var(--brand-h));
+  --glass-overlay-fill: oklch(0.99 0.003 var(--brand-h) / 0.6);
+  --glass-overlay-blur: 20px;
+  --glass-overlay-hairline: oklch(1 0 var(--brand-h) / 0.4);
+
+  /* A modest saturation lift alongside the blur is what makes glass read as
+     glass rather than as fog. Above ~1.6 it reads as a colour cast. */
+  --glass-saturate: 1.35;
+
+  /* The scrim behind an overlay's glass — kept separate from the fill so the
+     darkening and the blur can be tuned independently. */
+  --glass-scrim: oklch(0.168 0.006 var(--brand-h) / 0.18);
+
+  /* ═══ PHASE 34 · depth (D-34-06) ═════════════════════════════════════════
+     "3D" here means DEPTH, not literal 3D: layered shadows, restrained
+     transforms, in-card parallax and tilt. No WebGL, no scene graph.
+
+     Each level is TWO layers — a wide soft ambient layer and a tight dark key
+     layer — which is what separates a designed shadow from a blur under a box.
+     Chroma is 0 on every layer, following the phase-20 elevation rule, so
+     depth never tints the surface it sits under.
+
+     ADDITIVE. The four --elev-* levels above are untouched; components depend
+     on them today and a silent restyle of every elevated surface is a screen
+     rebuild, which this phase is explicitly not doing. */
+  --depth-1: 0 1px 2px oklch(0 0 0 / 0.05), 0 4px 12px oklch(0 0 0 / 0.06);
+  --depth-2: 0 2px 4px oklch(0 0 0 / 0.06), 0 12px 28px oklch(0 0 0 / 0.1);
+  --depth-3: 0 4px 8px oklch(0 0 0 / 0.08), 0 28px 60px oklch(0 0 0 / 0.16);
+
+  /* A hover lift is a translation AND its paired shadow. One token pair, so a
+     lift is not re-invented as a magic number at each call site. */
+  --depth-lift-y: -3px;
+  --depth-lift-shadow: 0 6px 12px oklch(0 0 0 / 0.08), 0 20px 44px oklch(0 0 0 / 0.14);
+  --depth-inset: inset 0 2px 4px oklch(0 0 0 / 0.1);
+
   /* ── motion (§3.12). Nothing exceeds 240ms; a data update never animates. ── */
   --motion-instant: 0ms;
   --motion-fast: 120ms;
@@ -493,6 +578,37 @@
   --elev-1: 0 1px 2px oklch(0 0 0 / 0.4), 0 1px 1px oklch(0 0 0 / 0.4);
   --elev-2: 0 4px 12px oklch(0 0 0 / 0.5), 0 1px 3px oklch(0 0 0 / 0.5);
   --elev-3: 0 16px 40px oklch(0 0 0 / 0.6), 0 4px 12px oklch(0 0 0 / 0.6);
+
+  /* ═══ PHASE 34 · glass in dark ════════════════════════════════════════════
+     A backdrop-filter tuned only for dark reads as muddy grey in light, and the
+     reverse is worse: a near-white fill at 0.72 over a near-black substrate is
+     a light rectangle, not glass. So dark gets its own stops, sitting near the
+     --surface-2 and --surface-3 lightnesses rather than near white.
+
+     Same alphas as light on purpose — the alpha is the "how much glass" knob
+     and it should mean the same thing in both themes; it is the underlying
+     LIGHTNESS that changes. */
+  --glass-panel-solid: oklch(0.242 0.008 var(--brand-h));
+  --glass-panel-fill: oklch(0.26 0.008 var(--brand-h) / 0.72);
+  /* Dark hairlines are a bright edge at low alpha, not a dark edge: on a
+     near-black surface a darker line is invisible, so the edge is light
+     catching the lip of the panel. Still decorative, still 1.4.11-exempt. */
+  --glass-panel-hairline: oklch(1 0 var(--brand-h) / 0.12);
+
+  --glass-overlay-solid: oklch(0.276 0.008 var(--brand-h));
+  --glass-overlay-fill: oklch(0.3 0.008 var(--brand-h) / 0.6);
+  --glass-overlay-hairline: oklch(1 0 var(--brand-h) / 0.1);
+
+  --glass-scrim: oklch(0.132 0.006 var(--brand-h) / 0.4);
+
+  /* Depth: identical geometry, deeper alpha — the same rule the --elev-* levels
+     above already follow, and glass-contrast.test.ts asserts the geometry match
+     so a dark-only tweak cannot silently diverge the two themes. */
+  --depth-1: 0 1px 2px oklch(0 0 0 / 0.4), 0 4px 12px oklch(0 0 0 / 0.44);
+  --depth-2: 0 2px 4px oklch(0 0 0 / 0.46), 0 12px 28px oklch(0 0 0 / 0.5);
+  --depth-3: 0 4px 8px oklch(0 0 0 / 0.5), 0 28px 60px oklch(0 0 0 / 0.62);
+  --depth-lift-shadow: 0 6px 12px oklch(0 0 0 / 0.5), 0 20px 44px oklch(0 0 0 / 0.56);
+  --depth-inset: inset 0 2px 4px oklch(0 0 0 / 0.5);
 }
 
 /* KDS is permanently dark regardless of theme — it is not a themed surface (§3.7).
@@ -562,6 +678,73 @@
   .touch-target {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   PHASE 34 · glass surfaces — SOLID FIRST (D-34-04, D-34-02)
+   ─────────────────────────────────────────────────────────────────────────────
+   Read the base rules below as the thing that ships. They are fully opaque and
+   they meet contrast on their own; `glass-contrast.test.ts` measures exactly
+   these colours as condition one, with no compositing involved.
+
+   The translucency is an ENHANCEMENT, added inside a POSITIVE feature query.
+   Authoring it the other way round — fallback inside `@supports not (…)` — puts
+   the degraded path in a branch that nobody renders locally, nobody screenshots
+   and nobody measures, which is how "it degrades gracefully" becomes a sentence
+   in a document rather than a property of the product.
+
+   And the enhancement is scoped to `[data-zone="expressive"]`. That is the ONLY
+   place in this codebase where a compositing filter may be written (D-34-02);
+   `__tests__/lib/theme/zone-containment.test.ts` fails on any rule declaring one
+   whose selector is not rooted there, and it has been watched to fail on exactly
+   that. The cascade, not developer discipline, is what keeps glass off the POS
+   terminal and the KDS board.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+.glass-surface {
+  background-color: var(--glass-panel-solid);
+  border: 1px solid var(--glass-panel-hairline);
+  box-shadow: var(--depth-2);
+}
+
+.glass-surface-overlay {
+  background-color: var(--glass-overlay-solid);
+  border: 1px solid var(--glass-overlay-hairline);
+  box-shadow: var(--depth-3);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  [data-zone="expressive"] .glass-surface,
+  [data-zone="expressive"].glass-surface {
+    background-color: var(--glass-panel-fill);
+    -webkit-backdrop-filter: blur(var(--glass-panel-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-panel-blur)) saturate(var(--glass-saturate));
+  }
+
+  [data-zone="expressive"] .glass-surface-overlay,
+  [data-zone="expressive"].glass-surface-overlay {
+    background-color: var(--glass-overlay-fill);
+    -webkit-backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-saturate));
+  }
+
+  /*
+   * The dialog overlay effect that plan 34-01 removed from the two component
+   * files, restored here as ONE rule the cascade owns.
+   *
+   * The selector matches the element's OWN data-zone, not an ancestor's, and
+   * that is not a stylistic choice. Radix portals this node to `document.body`,
+   * outside every zone subtree, so `[data-zone="expressive"] [data-slot=…]`
+   * would be a rule that is present in the stylesheet and never matches — the
+   * exact failure this phase is supposed to be immune to. The components stamp
+   * data-zone onto the portalled node from useZone(); the runtime spec in
+   * 34-01 is what proves the stamp is really there.
+   */
+  [data-slot="dialog-overlay"][data-zone="expressive"] {
+    background-color: var(--glass-scrim);
+    -webkit-backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-saturate));
   }
 }
 

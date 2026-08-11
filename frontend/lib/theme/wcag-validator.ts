@@ -78,7 +78,10 @@ export function compositeOver(fill: string, substrate: string): string {
   }
 
   const alpha = top.alpha ?? 1;
-  const blend = (f: number | undefined, b: number | undefined) =>
+  // Channels are `number | null | undefined`: colorjs.io represents a CSS Color 4 `none`
+  // component as null. Compositing treats a missing component as 0, which is what a browser
+  // does when it resolves `none` for an actual paint.
+  const blend = (f: number | null | undefined, b: number | null | undefined) =>
     (f ?? 0) * alpha + (b ?? 0) * (1 - alpha);
 
   const r = blend(top.r, bottom.r);
