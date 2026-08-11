@@ -6,14 +6,14 @@ current_phase: 35
 current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-11T18:32:47.609Z"
+last_updated: "2026-08-11T18:42:50.178Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 35 execution started
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 157
+  completed_plans: 159
   percent: 79
 ---
 
@@ -240,7 +240,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING
-Plan: 2 of 14
+Plan: 3 of 14
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -531,6 +531,7 @@ _Updated after each plan completion_
 | Phase 13 P13 | ~2h | 3 tasks | 17 files |
 | Phase 13 P15 | 4h | 3 tasks | 6 files |
 | Phase 35 P01 | 14min | 3 tasks | 14 files |
+| Phase 35 P02 | 21min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -853,6 +854,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 13-15: pos-service and purchasing-service leak every tenant's rows on their list endpoints — RLS enabled but not FORCEd, and the runtime role owns the tables (deferred item 9)
 - [Phase ?]: 35-01: business-rule refusals use 422 with details[].field in the existing ApiError envelope; 400 stays reserved for bean validation
 - [Phase ?]: 35-01: overnight shifts (end before start) stay legal — only equal start/end times are refused; 35-11 must use 'end != start'
+- [Phase ?]: 35-02: salary_components discriminators are EARNING/DEDUCTION and FIXED/PERCENT_OF_BASIC; five deduction-map keys are reserved by CHECK
 
 ### Pending Todos
 
@@ -913,17 +915,21 @@ What the procure-to-pay chain does now that it did not before:
   service role and REFUSES `postgres` (a superuser bypasses FORCE RLS), an RLS canary runs before
   any evidence is trusted, and a jar-inode gate refuses to produce a result against a stale process.
   It drove the whole chain twice and wrote `31-01-FINDINGS.md`: six findings, six confirmed-closed.
+
 - **36-02** settled the MANAGER 403: it does not reproduce, the grants are present, and **no role was
   widened and no migration was written**. What shipped instead is a test that reads both the demanded
   authorities (from `@PreAuthorize`) and the granted ones (from the changelogs) so the drift cannot
   return, plus a screen that finally tells `FEATURE_DISABLED` from `PERMISSION_DENIED`.
+
 - **36-03** made the approval limit settable in the product. It was NULL on every row and only ever
   written by a script; all three policies compare an amount against it, so nobody could approve a
   purchase order. Proven live in four cases including the stale-token promise the screen makes.
+
 - **36-04** closed the defect the phase was called for: a PO line naming an ingredient inventory has
   never seen was accepted, reached `FULLY_RECEIVED`, and produced no stock, no movement and no
   journal entry. It is now refused at creation AND at receipt with a 422 naming the line. Also fixed
   a blocker nobody had recorded: a goods receipt of **more than one line** answered 409.
+
 - **36-05** made a unit of measure correctable and retirable — both answered 404 — with a guard that
   refuses to retire a unit still referenced by an ingredient, a conversion row or a vendor catalog
   row in another database, and names which.

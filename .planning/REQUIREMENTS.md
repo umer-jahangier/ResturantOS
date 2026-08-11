@@ -14,7 +14,7 @@
 - [ ] **INFRA-03**: RabbitMQ topology (exchanges, queues, per-consumer DLQs) pre-created from definitions on first start
 - [ ] **INFRA-04**: `generate-keys.sh` produces RS256 JWT keypair + AES-256 key into `.env`; `.env.example` documents every variable
 - [ ] **INFRA-05**: CI pipeline runs lint → test (coverage gates: finance/inventory ≥75%, others ≥60%, OPA 100%) → build (signed images) → schema-sync, with no manual intervention
-- [ ] **XCUT-01**: Every entity extends `TenantAuditableEntity`; every tenant-scoped table has an RLS changeset immediately after creation
+- [x] **XCUT-01**: Every entity extends `TenantAuditableEntity`; every tenant-scoped table has an RLS changeset immediately after creation
 - [ ] **XCUT-02**: `tenant_id` is never accepted from client input; always resolved from JWT
 - [ ] **XCUT-03**: All money is `BIGINT` paisa end-to-end; display only via `MoneyUtils`; per-line floored tax with half-up rounding
 - [ ] **XCUT-04**: All timestamps `TIMESTAMPTZ`/`Instant`; business-day boundary formula applied in reporting
@@ -314,7 +314,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | INFRA-03 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
 | INFRA-05 | Phase 4 | Complete |
-| XCUT-01 | Phase 1 | Pending |
+| XCUT-01 | Phase 1 | Complete |
 | XCUT-02 | Phase 1 | Pending |
 | XCUT-03 | Phase 1 | Pending |
 | XCUT-04 | Phase 1 | Pending |
