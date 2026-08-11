@@ -1,6 +1,7 @@
 package io.restaurantos.reporting.event;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +17,8 @@ public final class ReportingEventPayloads {
 
     /**
      * ORDER_CLOSED — mirrors {@code io.restaurantos.pos.event.PosClosePayloads.OrderClosedPayload}
-     * field-for-field (pos-service is not a Maven dependency of reporting-service).
+     * field-for-field (pos-service is not a Maven dependency of reporting-service, so the shape is
+     * duplicated here rather than imported).
      */
     public record OrderClosedPayload(
             UUID orderId,
@@ -32,7 +34,25 @@ public final class ReportingEventPayloads {
             List<ItemEntry> items,
             UUID tillSessionId,
             UUID cashierId,
-            Instant closedAt
+            Instant closedAt,
+            /**
+             * The trading day this sale belongs to, decided ONCE by pos-service and carried on the
+             * event. Added in 37-03; the producer has published it since phase 14 and this mirror
+             * simply never read it.
+             *
+             * <p><b>The defect that made this necessary.</b> pos-service resolves the business day
+             * as {@code (closedAt − 4h)} in UTC and checks the accounting period against it;
+             * finance-service dates the journal entry from this same field. reporting-service
+             * instead re-derived it as {@code (closedAt − 4h)} in the BRANCH's timezone. For a
+             * UTC+5 branch the two formulas disagree for anything closed between 23:00Z and 04:00Z,
+             * so the general ledger and the sales report named different days for the same sale —
+             * measured live at 26 orders dated 2026-08-06 in the ledger and 2026-08-07 in the
+             * report. The amounts always tied to the paisa; only the day bucket was wrong, which is
+             * precisely the figure an owner looks at first.
+             *
+             * <p>A consumer downstream of pos must READ this, never re-derive it.
+             */
+            LocalDate businessDate
     ) {}
 
     public record PaymentEntry(

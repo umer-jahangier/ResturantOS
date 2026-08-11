@@ -6,8 +6,6 @@ import io.restaurantos.reporting.etl.SalesFactWriter;
 import io.restaurantos.reporting.event.ReportingEventPayloads.OrderClosedPayload;
 import io.restaurantos.reporting.service.DashboardTileService;
 import io.restaurantos.reporting.service.ProcessedEventService;
-import io.restaurantos.reporting.support.BranchTimeZoneResolver;
-import io.restaurantos.reporting.support.BusinessDay;
 import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.tenant.TenantAwareMessageProcessor;
 import org.slf4j.Logger;
@@ -19,14 +17,17 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 /**
  * Consumes ORDER_CLOSED from pos.topic and lands sales_order_facts + sales_item_facts in
  * ClickHouse. Idempotent via processed_events; tenant-aware via TenantAwareMessageProcessor.
- * The business-day bucket is derived from the payload's own closedAt timestamp — NOT
- * envelope.occurredAt() and definitely not Instant.now() — because the business day of a sale is
- * a property of the sale.
+ * The business-day bucket is READ from the payload's businessDate field — the value pos-service
+ * resolved once, checked the accounting period against, and that finance dates the journal entry
+ * from. It is deliberately NOT re-derived here: this consumer used to recompute it from closedAt
+ * against the branch timezone, which disagreed with pos for anything closed between 23:00Z and
+ * 04:00Z at a UTC+5 branch, and put 26 real orders on a different day from their own journal
+ * entries. BranchTimeZoneResolver and BusinessDay are intentionally absent from this class; the
+ * till consumer still needs them, because its payload genuinely carries no date.
  */
 @Component
 public class OrderClosedConsumer {
@@ -36,23 +37,17 @@ public class OrderClosedConsumer {
 
     private final ProcessedEventService processedEventService;
     private final TenantAwareMessageProcessor tenantAwareMessageProcessor;
-    private final BranchTimeZoneResolver branchTimeZoneResolver;
-    private final BusinessDay businessDay;
     private final SalesFactWriter salesFactWriter;
     private final DashboardTileService dashboardTileService;
     private final ObjectMapper objectMapper;
 
     public OrderClosedConsumer(ProcessedEventService processedEventService,
                                 TenantAwareMessageProcessor tenantAwareMessageProcessor,
-                                BranchTimeZoneResolver branchTimeZoneResolver,
-                                BusinessDay businessDay,
                                 SalesFactWriter salesFactWriter,
                                 DashboardTileService dashboardTileService,
                                 @Qualifier("eventObjectMapper") ObjectMapper objectMapper) {
         this.processedEventService = processedEventService;
         this.tenantAwareMessageProcessor = tenantAwareMessageProcessor;
-        this.branchTimeZoneResolver = branchTimeZoneResolver;
-        this.businessDay = businessDay;
         this.salesFactWriter = salesFactWriter;
         this.dashboardTileService = dashboardTileService;
         this.objectMapper = objectMapper;
@@ -69,10 +64,25 @@ public class OrderClosedConsumer {
         log.debug("OrderClosedConsumer: eventId={} orderId={}",
                 envelope.eventId(), envelope.payload().orderId());
 
+        // Read, never re-derive. See the field's javadoc on OrderClosedPayload for the divergence
+        // this closes. Checked BEFORE tryProcess so a payload missing the field does not burn its
+        // idempotency slot on a message that was never landed.
+        LocalDate businessDate = envelope.payload().businessDate();
+        if (businessDate == null) {
+            // Deliberately NOT a fallback to recomputation. A silent fallback would reintroduce
+            // exactly the ledger/report divergence being fixed, and would do it invisibly — which
+            // is worse than the original defect, because the original at least produced a stable
+            // wrong answer that an audit could find. Dead-letter it and name the field.
+            log.error("OrderClosedConsumer: ORDER_CLOSED payload has no businessDate — orderId={} eventId={}. "
+                            + "Routing to DLQ rather than re-deriving the trading day.",
+                    envelope.payload().orderId(), envelope.eventId());
+            throw new AmqpRejectAndDontRequeueException(
+                    "ORDER_CLOSED payload is missing the required 'businessDate' field for orderId="
+                            + envelope.payload().orderId());
+        }
+
         processedEventService.tryProcess(CONSUMER_NAME, envelope.eventId(), () ->
                 tenantAwareMessageProcessor.process(envelope, env -> {
-                    ZoneId zone = branchTimeZoneResolver.resolve(env.branchId());
-                    LocalDate businessDate = businessDay.businessDate(env.payload().closedAt(), zone);
                     salesFactWriter.write(env, businessDate);
 
                     // A dashboard-push failure must NEVER poison the ETL: this call is wrapped and

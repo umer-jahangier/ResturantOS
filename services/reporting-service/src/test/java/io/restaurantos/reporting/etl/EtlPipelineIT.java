@@ -367,7 +367,11 @@ class EtlPipelineIT {
                 orderId, "ORD-" + orderId.toString().substring(0, 8), "DINE_IN", null,
                 itemCount * 50000L, 0L, 0L, 4500L, itemCount * 50000L + 4500L,
                 List.of(), items,
-                UUID.randomUUID(), UUID.randomUUID(), closedAt);
+                UUID.randomUUID(), UUID.randomUUID(), closedAt,
+                // 37-03: the producer resolves the trading day once and puts it on the event. This
+                // mirrors pos-service's rule — (closedAt − 4h) in UTC — rather than recomputing it
+                // in the branch timezone, which is the divergence 37-03 closed.
+                io.restaurantos.shared.time.BusinessDay.of(closedAt));
     }
 
     private <T> void publish(String exchange, String routingKey, EventEnvelope<T> envelope) {

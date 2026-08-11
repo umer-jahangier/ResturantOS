@@ -401,11 +401,15 @@ class DashboardPushIT {
     }
 
     private OrderClosedPayload orderClosedPayload(UUID orderId, long totalPaisa) {
+        Instant closedAt = Instant.now();
         return new OrderClosedPayload(
                 orderId, "ORD-" + orderId.toString().substring(0, 8), "DINE_IN", null,
                 totalPaisa, 0L, 0L, 0L, totalPaisa,
                 List.of(), List.<ItemEntry>of(),
-                UUID.randomUUID(), UUID.randomUUID(), Instant.now());
+                UUID.randomUUID(), UUID.randomUUID(), closedAt,
+                // 37-03: the trading day travels on the event; the consumer reads it and no longer
+                // re-derives it. Same rule pos-service applies.
+                io.restaurantos.shared.time.BusinessDay.of(closedAt));
     }
 
     private <T> void publish(String exchange, String routingKey, EventEnvelope<T> envelope) {
