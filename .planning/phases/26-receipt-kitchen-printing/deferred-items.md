@@ -158,3 +158,28 @@ line that already carries the same figure, and seed real rate codes.
 Suppress zero rows — **keeping any line a fiscal regime requires**. That caveat is not decoration:
 some regimes require a tax line to appear even at zero, and Phase 27 is the plan that will know
 which. Suppress the discount and service-charge rows now; leave the tax rows alone until 27 says.
+
+---
+
+## D-7 · A kitchen ticket cannot name the server, only reference them
+
+**Found:** 26-07 task 1, building `PrintDocument.Ticket`.
+
+The plan requires the ticket to carry "the server or cashier identity". pos-service holds
+`orders.cashier_id` and **nothing else** — there is no user-name lookup in the service and no Feign
+client for one (`services/pos-service/src/main/java/io/restaurantos/pos/feign/` has clients for CRM,
+files, finance-AR, finance-period and user-BRANCH, but not for users).
+
+So `Ticket.serverName` ships null and `Ticket.serverRef` carries the UUID; the agent renders
+`Srv <first 8 chars>` when there is no name. A chef can match that against a shift roster, which is
+better than nothing and worse than a name.
+
+**Why it was not fixed here.** Resolving it means either a new `/internal/users/{id}` endpoint in
+user-service plus a Feign client, or denormalising the cashier's display name onto the order at
+creation. The first is a cross-service change in a plan whose scope fence is printing; the second is
+a schema decision about snapshotting identity that belongs with whoever owns order provenance.
+
+**Suggested owner:** 26-10 already touches the registry UI and 26-12 reads real paper — either could
+carry it, but it is genuinely a user-service/order-schema question, not a printing one.
+
+**Cost of leaving it:** a chef reading `Srv eb2ee67e` instead of `Srv Ali`. Visible on every ticket.
