@@ -33,10 +33,24 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 public abstract class FinanceTestBase {
 
+    /**
+     * {@code sslmode=disable} is not cosmetic. Without it the driver opens with an SSLRequest and,
+     * on this Docker setup (colima), the socket is closed mid-negotiation — surfacing as
+     * {@code FlywaySqlUnableToConnectToDbException} caused by {@code EOFException}, before a single
+     * test has had a chance to run. The container itself starts perfectly; only the JDBC handshake
+     * fails, which makes the symptom look like "Testcontainers does not work here" when it is in
+     * fact a two-parameter fix. {@code BaseIntegrationTest} and {@code BaseUserIT} carry the same
+     * workaround for the same reason.
+     *
+     * <p>See also {@code ~/.testcontainers.properties}, which supplies {@code ryuk.disabled=true}
+     * and {@code host.override} for the other two colima quirks.
+     */
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("finance_db")
             .withUsername("finance_user")
-            .withPassword("finance_pass");
+            .withPassword("finance_pass")
+            .withUrlParam("sslmode", "disable")
+            .withUrlParam("tcpKeepAlive", "true");
 
     static {
         postgres.start();
