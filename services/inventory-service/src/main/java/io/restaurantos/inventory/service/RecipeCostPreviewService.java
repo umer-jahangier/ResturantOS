@@ -24,7 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * INV-15: the non-persisting recipe cost-preview the live plate-cost panel round-trips to
@@ -77,11 +79,20 @@ public class RecipeCostPreviewService {
         Map<UUID, Ingredient> ingredientsById = new HashMap<>();
         ingredientRepository.findAllById(ingredientIds).forEach(i -> ingredientsById.put(i.getId(), i));
 
-        List<String> uomCodes = lineRequests.stream()
-                .map(RecipeLineRequest::uomCode)
+        // Both the LINE's unit and each ingredient's own STOCK unit are needed: the conversion is
+        // the ratio between them, not the line unit's family factor on its own (the 1000x defect —
+        // see IngredientUomFactorResolver). Fetching the stock units in this same batch keeps the
+        // "one query for the whole line array" property intact.
+        List<String> uomCodes = Stream.concat(
+                        lineRequests.stream().map(RecipeLineRequest::uomCode),
+                        ingredientsById.values().stream().map(Ingredient::getBaseUomCode))
+                .filter(c -> c != null && !c.isBlank())
                 .distinct()
                 .toList();
-        Map<String, UnitOfMeasure> uomsByCode = new HashMap<>();
+        // Case-insensitive: unit codes have never been normalised at rest — fixtures write 'KG'
+        // while live tenant rows can be lowercase 'kg' — and a missed lookup here now means a
+        // dropped line rather than a wrong number, but it is still a dropped line.
+        Map<String, UnitOfMeasure> uomsByCode = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         unitOfMeasureRepository.findByCodeIn(uomCodes).forEach(u -> uomsByCode.put(u.getCode(), u));
 
         Map<UUID, BigDecimal> avgCostByIngredientId = new HashMap<>();
@@ -166,7 +177,9 @@ public class RecipeCostPreviewService {
         }
 
         UnitOfMeasure uom = uomsByCode.get(lineRequest.uomCode());
-        if (uom == null || !dimensionMatches(uom, ingredient)) {
+        Optional<BigDecimal> factor = IngredientUomFactorResolver.factorToIngredientBase(
+                uom, ingredient.getBaseUomCode(), uomsByCode.get(ingredient.getBaseUomCode()));
+        if (factor.isEmpty()) {
             return PricedLine.warned(ingredient.getId(), ingredientName,
                     String.format(WARNING_TEMPLATE, ingredientName));
         }
@@ -183,29 +196,15 @@ public class RecipeCostPreviewService {
         line.setUomCode(lineRequest.uomCode());
         line.setYieldPct(lineRequest.yieldPct() != null ? lineRequest.yieldPct() : BigDecimal.valueOf(100));
 
+        // The factor is relative to the INGREDIENT's stock unit, so the quantity below is in the
+        // same unit as avg_cost_paisa and qty_on_hand. Passing uom.getToBaseFactor() here instead
+        // priced 0.25 KG of a KG-stocked ingredient as 250 units — the panel read a 4,310% food
+        // cost as if that were a number a kitchen could act on.
         BigDecimal effectiveBaseQty =
-                UomConverter.effectiveBaseQty(line, 1, recipeYieldServings, uom.getToBaseFactor());
+                UomConverter.effectiveBaseQty(line, 1, recipeYieldServings, factor.get());
         long lineCostPaisa = MacCalculator.extendedCostPaisa(effectiveBaseQty, avgCostPaisa);
 
         return PricedLine.priced(ingredient.getId(), ingredientName, effectiveBaseQty, lineCostPaisa);
-    }
-
-    /**
-     * A UOM is dimension-compatible with an ingredient when either the UOM code IS the
-     * ingredient's own base unit (no conversion needed, {@code toBaseFactor} is a no-op 1), or the
-     * UOM's declared {@code baseUnitCode} equals the ingredient's {@code baseUomCode} — otherwise
-     * {@code toBaseFactor} would convert into a different unit family entirely.
-     */
-    private static boolean dimensionMatches(UnitOfMeasure uom, Ingredient ingredient) {
-        String ingredientBase = ingredient.getBaseUomCode();
-        if (uom.getCode().equalsIgnoreCase(ingredientBase)) {
-            return true;
-        }
-        // Case-insensitive on BOTH branches. Unit codes have never been normalised at rest —
-        // fixtures write 'KG'/'G' while live tenant rows are lowercase 'g' — so a case-sensitive
-        // comparison here silently reported a dimension mismatch (and dropped the line's cost)
-        // for pairs that are in fact the same unit family.
-        return ingredientBase != null && ingredientBase.equalsIgnoreCase(uom.getBaseUnitCode());
     }
 
     /** Internal per-line pricing outcome — never exposed outside this service. */

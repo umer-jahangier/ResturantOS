@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -97,10 +99,8 @@ public class GrnUomResolver {
         // Tenant id passed explicitly rather than leaning on the Hibernate tenantFilter: this runs
         // on a @RabbitListener thread, and findByCode's ambient scoping has already been shown to
         // leak across tenants when the filter is not enabled on the session.
-        UnitOfMeasure uom = unitOfMeasureRepository.findByTenantId(tenantId).stream()
-                .filter(u -> packUomCode.equalsIgnoreCase(u.getCode()))
-                .findFirst()
-                .orElse(null);
+        List<UnitOfMeasure> tenantUoms = unitOfMeasureRepository.findByTenantId(tenantId);
+        UnitOfMeasure uom = byCode(tenantUoms, packUomCode);
         if (uom == null) {
             log.error("GRN {}: pack unit '{}' on ingredient {} is not a unit this tenant defines — "
                             + "receiving the quantity as if it were already in '{}'. Fix the vendor "
@@ -109,17 +109,28 @@ public class GrnUomResolver {
             return BigDecimal.ONE;
         }
 
-        // Same rule RecipeCostPreviewService.dimensionMatches applies, and for the same reason:
-        // toBaseFactor is only meaningful inside one unit family. Applying a WEIGHT factor to a
-        // VOLUME ingredient would convert into a different dimension entirely.
-        if (baseUomCode == null || !baseUomCode.equalsIgnoreCase(uom.getBaseUnitCode())) {
-            log.error("GRN {}: pack unit '{}' converts to base '{}' but ingredient {} is stocked in "
-                            + "'{}' — different unit families, so no conversion is applied. Receiving "
-                            + "at face value.",
-                    grnId, packUomCode, uom.getBaseUnitCode(), ingredientId, baseUomCode);
+        // The ratio against the ingredient's OWN stock unit, never the raw family factor. Receiving
+        // a G-priced pack into a KG-stocked ingredient used to fall into the "different families"
+        // branch below (G's base_unit_code is null, so it never equalled 'KG') and receive 500 g as
+        // 500 KG. Depletion had the mirror-image bug; both now go through one rule.
+        Optional<BigDecimal> factor = IngredientUomFactorResolver.factorToIngredientBase(
+                uom, baseUomCode, byCode(tenantUoms, baseUomCode));
+        if (factor.isEmpty()) {
+            log.error("GRN {}: pack unit '{}' and ingredient {}'s stock unit '{}' are not in the same "
+                            + "unit family, so no conversion is applied — receiving at face value. "
+                            + "Fix the vendor catalog row's pack UOM or the ingredient's base_uom_code.",
+                    grnId, packUomCode, ingredientId, baseUomCode);
             return BigDecimal.ONE;
         }
-        return uom.getToBaseFactor();
+        return factor.get();
+    }
+
+    /** Case-insensitive lookup — unit codes are not normalised at rest (see UomProvisioningService). */
+    private static UnitOfMeasure byCode(List<UnitOfMeasure> uoms, String code) {
+        if (code == null) {
+            return null;
+        }
+        return uoms.stream().filter(u -> code.equalsIgnoreCase(u.getCode())).findFirst().orElse(null);
     }
 
     /**

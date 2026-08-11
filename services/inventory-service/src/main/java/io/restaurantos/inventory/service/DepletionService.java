@@ -111,12 +111,33 @@ public class DepletionService {
             }
             Recipe recipe = recipeOpt.get();
             for (RecipeLine line : recipeLineRepository.findByRecipeId(recipe.getId())) {
-                BigDecimal toBaseFactor = unitOfMeasureRepository.findByCode(line.getUomCode())
-                        .map(UnitOfMeasure::getToBaseFactor)
+                UnitOfMeasure lineUom = unitOfMeasureRepository.findByCode(line.getUomCode())
                         .orElseThrow(() -> new IllegalStateException(
                                 "Unknown UOM code on recipe line: " + line.getUomCode()));
+
+                // to_base_factor converts into the unit FAMILY's base (KG -> 1000 G), never into
+                // the ingredient's own stock unit. Applying it raw depleted an ingredient stocked
+                // in KG by 1000x its recipe quantity and inflated COGS by the same factor — the
+                // live proof is in IngredientUomFactorResolver's javadoc. The factor must be
+                // relative to what qty_on_hand is actually denominated in.
+                Optional<BigDecimal> factor = ingredientStockUomFactor(tenantId, line.getIngredientId(), lineUom);
+                if (factor.isEmpty()) {
+                    // Wrong unit family (or an ingredient stocked in a unit this tenant never
+                    // defined). Depleting on a guessed factor of one is how a valuation error
+                    // becomes invisible, and DLQing the batch would strand an order finance has
+                    // already taken revenue for — so skip the line down the SAME channel a missing
+                    // recipe uses, which someone is already meant to be watching.
+                    log.error("DepletionService: recipe line uom '{}' cannot be converted to the stock "
+                                    + "unit of ingredient {} (menuItemId={}, order={}) — skipping the line "
+                                    + "and reporting DEPLETION_INCOMPLETE. Fix the recipe line's unit or "
+                                    + "the ingredient's base_uom_code.",
+                            line.getUomCode(), line.getIngredientId(), item.menuItemId(), payload.orderId());
+                    missingMenuItemIds.add(item.menuItemId());
+                    continue;
+                }
+
                 BigDecimal effectiveQty = UomConverter.effectiveBaseQty(
-                        line, item.qty(), recipe.getYieldServings(), toBaseFactor);
+                        line, item.qty(), recipe.getYieldServings(), factor.get());
                 requiredByIngredient.merge(line.getIngredientId(), effectiveQty, BigDecimal::add);
             }
         }
@@ -256,6 +277,26 @@ public class DepletionService {
      */
     public static long computeCogsPaisa(BigDecimal effectiveBaseQty, BigDecimal avgCostPaisa) {
         return MacCalculator.extendedCostPaisa(effectiveBaseQty, avgCostPaisa);
+    }
+
+    /**
+     * The multiplier that turns a recipe line's quantity into the ingredient's OWN stock unit —
+     * the unit {@code qty_on_hand} and {@code avg_cost_paisa} are denominated in.
+     *
+     * <p>Empty when the ingredient is gone, when it declares no base unit, or when the recipe
+     * line's unit belongs to a different family. See {@link IngredientUomFactorResolver} for why
+     * "empty" must never be softened into a fallback of one.
+     */
+    private Optional<BigDecimal> ingredientStockUomFactor(UUID tenantId, UUID ingredientId,
+                                                          UnitOfMeasure lineUom) {
+        Ingredient ingredient = ingredientRepository.findByTenantIdAndId(tenantId, ingredientId).orElse(null);
+        if (ingredient == null) {
+            return Optional.empty();
+        }
+        String baseCode = ingredient.getBaseUomCode();
+        UnitOfMeasure baseUom = baseCode == null ? null
+                : unitOfMeasureRepository.findByCode(baseCode).orElse(null);
+        return IngredientUomFactorResolver.factorToIngredientBase(lineUom, baseCode, baseUom);
     }
 
     private static IngredientBranchStock newStockRow(UUID tenantId, UUID branchId, UUID ingredientId) {
