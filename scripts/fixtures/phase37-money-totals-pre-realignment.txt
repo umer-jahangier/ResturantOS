@@ -1,0 +1,7 @@
+# Money totals across clickhouse_analytics.sales_order_facts and sales_item_facts,
+# recorded BEFORE V003__business_date_realignment.sql ran.
+# The realignment moves rows between day buckets and must not alter one paisa.
+# order_facts: count subtotal discount service_charge tax total
+83	11427300	95000	0	1762880	13095180
+# item_facts: count line_total
+115	13190180
