@@ -121,7 +121,8 @@ async function containingBlockCreators(page: Page): Promise<Offender[]> {
       if (cs.filter && cs.filter !== "none") reasons.push(`filter: ${cs.filter}`);
       const backdrop = cs.backdropFilter || cs.getPropertyValue("backdrop-filter");
       if (backdrop && backdrop !== "none") reasons.push(`backdrop-filter: ${backdrop}`);
-      if (cs.perspective && cs.perspective !== "none") reasons.push(`perspective: ${cs.perspective}`);
+      if (cs.perspective && cs.perspective !== "none")
+        reasons.push(`perspective: ${cs.perspective}`);
       // `will-change: opacity` does NOT create a containing block; transform/filter do.
       if (/transform|filter|perspective/.test(cs.willChange ?? "")) {
         reasons.push(`will-change: ${cs.willChange}`);
@@ -138,6 +139,17 @@ async function containingBlockCreators(page: Page): Promise<Offender[]> {
     return out;
   });
 }
+
+/*
+ * Serial, like `pos-waiter-to-kitchen.spec.ts`.
+ *
+ * Every test in this block loads the POS route, which fans out to /api/v1/pos/menu/*,
+ * /pos/tables and /pos/tills. Run in parallel across six workers they compete for the same
+ * endpoints and draw 503s, and the observability guard then fails them for a reason that has
+ * nothing to do with compositing — the suite generating its own load and then reporting it as
+ * a defect. Confirmed by running the same test alone, where it passes.
+ */
+test.describe.configure({ mode: "serial" });
 
 test.describe("operational zone carries no compositing filter", () => {
   test("nothing on the POS route becomes a containing block for the receipt", async ({
@@ -173,6 +185,14 @@ test.describe("operational zone carries no compositing filter", () => {
   test("the POS terminal — at rest and with the order drawer open", async ({ as, obs }) => {
     test.setTimeout(120_000);
     tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+    // A WAITER holds no till permissions, so the POS page's active-till probe is correctly
+    // refused. Declared with its reason rather than tolerated broadly, so this spec keeps
+    // failing on any 403 it did not predict.
+    obs.expect403(
+      /\/api\/v1\/pos\/tills/,
+      "a waiter has no till permissions; the POS page probes for an active till regardless " +
+        "and renders the till-closed state from the refusal",
+    );
 
     const page = await as(WAITER);
     await page.goto("/app/pos", { waitUntil: "domcontentloaded" });
@@ -271,32 +291,80 @@ test.describe("operational zone carries no compositing filter", () => {
 test.describe("positive control — the gate is measuring something", () => {
   /**
    * A containment test that would ALSO pass if the product had no glass anywhere is not
-   * measuring what it claims to. This asserts the expressive zone does carry the effect.
+   * measuring what it claims to. This asserts the expressive zone really does carry the effect.
    *
-   * Skipped with an explicit message until plan 34-02 lands the first zone-scoped rule,
-   * because requiring it before then would be a false dependency between plans in the
-   * same wave.
+   * <h3>Why the LOGIN screen and not the dashboard</h3>
+   *
+   * It was the dashboard, and it skipped for two weeks' worth of reasons that had nothing to do
+   * with glass: the seeded manager's dashboard renders "Couldn't load today's service" whenever
+   * a backing service is down, and an error state has no portlets, so it has no glass, so the
+   * control silently skipped while reporting green. A control that is coupled to seeded data and
+   * to six services being up is a control that will spend most of its life not running.
+   *
+   * The login screen is expressive, carries a GlassPanel, needs NO session and NO backend data.
+   * If glass is broken anywhere, it is broken here. That makes this the strongest available
+   * anchor, not merely the most convenient one.
    */
-  test("the dashboard resolves a compositing filter somewhere", async ({ as, obs }) => {
+  test("an expressive surface resolves a compositing filter", async ({ page }) => {
+    test.setTimeout(60_000);
+
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.locator('[data-zone="expressive"]').first(),
+      "the (auth) layout declares the expressive zone",
+    ).toBeAttached({ timeout: 20_000 });
+
+    const glass = await sweep(page);
+    expect(
+      glass.length,
+      "NO element in the expressive zone resolves a compositing filter. Either the glass rule " +
+        "is not shipping, or its selector does not match — and in that case every containment " +
+        "assertion in this file is passing because the product has no glass anywhere, not " +
+        "because the zoning works.",
+    ).toBeGreaterThan(0);
+
+    // And it must be the panel weight the login card actually uses, not some incidental effect.
+    const resolved = await page
+      .locator(".glass-surface")
+      .first()
+      .evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(resolved, `the login card's glass resolved "${resolved}"`).toContain("blur");
+  });
+
+  /**
+   * The dashboard check is kept, but as an OBSERVATION rather than a gate, and it records
+   * whether it actually ran. A skipped control that reports green is what this phase keeps
+   * finding; a control that says out loud "I did not run" is the fix.
+   */
+  test("the dashboard portlets carry glass when they render", async ({ as, obs }) => {
     test.setTimeout(120_000);
     tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
 
     const page = await as(MANAGER);
     await page.goto("/app/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(6000);
 
-    await expect(
-      page.locator('[data-zone="expressive"]').first(),
-      "the dashboard declares the expressive zone",
-    ).toBeAttached({ timeout: 20_000 });
+    const portlets = await page.locator("[data-portlet]").count();
+    if (portlets === 0) {
+      test.info().annotations.push({
+        type: "NOT EXERCISED",
+        description:
+          "the dashboard rendered no portlets (error or empty state), so portlet glass was " +
+          "not measured on this run. The login-screen control above still proves glass ships.",
+      });
+      return;
+    }
 
-    const glass = await sweep(page);
-    test.skip(
-      glass.length === 0,
-      "No glass exists in the expressive zone yet — plan 34-02 lands the first zone-scoped " +
-        "rule. Until then this control cannot pass, and it is skipped LOUDLY rather than " +
-        "quietly asserted, so nobody mistakes a green run for a measured one.",
-    );
-    expect(glass.length).toBeGreaterThan(0);
+    const withGlass = await page.locator("[data-portlet].glass-surface").count();
+    expect(
+      withGlass,
+      `${portlets} portlet(s) rendered but ${withGlass} carry the glass surface class`,
+    ).toBe(portlets);
+
+    const resolved = await page
+      .locator("[data-portlet]")
+      .first()
+      .evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(resolved, "a dashboard portlet must resolve the compositing filter").toContain("blur");
   });
 });

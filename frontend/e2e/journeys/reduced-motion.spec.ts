@@ -21,6 +21,17 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * reduced motion, where the animation is removed outright, such an element never appears. So
  * the reduced pass asserts the animated elements are at full opacity with no residual
  * transform, which is the assertion that actually fails when someone authors it backwards.
+ *
+ * <h3>Why the CSS contract is asserted on /login and not on a dashboard</h3>
+ *
+ * These four assertions are about the STYLESHEET, not about data. Running them behind a
+ * session made them depend on six services being up and on seeded rows existing — and when a
+ * backing service 503s, the dashboard correctly renders phase 14b's error state, which has no
+ * animated elements, so the assertions measured nothing while the run reported a failure that
+ * had nothing to do with motion. `/login` is expressive, carries a GlassPanel and an entrance,
+ * and needs no session and no backend. Fewer moving parts, and the contract is the same one.
+ *
+ * The POS and KDS checks below DO need their real routes, and keep them.
  */
 
 /*
@@ -33,6 +44,14 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * ran with NO preference set and still reported "reduce" in its name. A gate that lies about
  * which condition it measured is worse than no gate.
  */
+
+/*
+ * Serial. These tests each load a route and screenshot it twice; run in parallel across six
+ * workers alongside the containment spec they saturate the same services and draw 503s, which
+ * the observability guard then reports as a defect. The suite generating its own load and
+ * failing on it is not a finding.
+ */
+test.describe.configure({ mode: "serial" });
 
 const MANAGER = persona("zaitoon", "manager");
 const WAITER = persona("zaitoon", "waiter");
@@ -81,17 +100,31 @@ async function motionState(page: Page) {
 }
 
 test.describe("D-34-03 · with a reduced-motion preference", () => {
-  test("the expressive dashboard is visually identical half a second apart", async ({
-    as,
-    obs,
-  }) => {
-    test.setTimeout(120_000);
-    tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+  test("an expressive surface is visually identical half a second apart", async ({ page }) => {
+    test.setTimeout(60_000);
 
-    const page = await as(MANAGER);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/app/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(5000); // let data settle; we are measuring MOTION, not loading
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2500);
+
+    /*
+     * Blur first, and this is not a convenience.
+     *
+     * The login form autofocuses the email field, and a focused text input paints a BLINKING
+     * CARET — which changes pixels twice a second forever. Measured: with focus the two frames
+     * differ every time; after blurring they are byte-identical.
+     *
+     * A caret is a browser text cursor, not decorative motion, and `prefers-reduced-motion`
+     * deliberately does not suppress it — a user who cannot see where they are typing is worse
+     * off. Leaving it in frame would have made this assertion fail forever for a reason that
+     * has nothing to do with the motion system, and the tempting "fix" would have been to
+     * loosen the comparison to a pixel-difference threshold — which would then also swallow a
+     * real 10px entrance animation. Removing the caret keeps the comparison EXACT.
+     */
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    });
+    await page.waitForTimeout(300);
 
     const first = await page.screenshot();
     await page.waitForTimeout(600);
@@ -99,19 +132,17 @@ test.describe("D-34-03 · with a reduced-motion preference", () => {
 
     expect(
       differs(first, second),
-      "the dashboard changed between two frames 600ms apart under a reduced-motion " +
-        "preference. D-34-03 asks for decorative motion to be ABSENT, not fast.",
+      "the page changed between two frames 600ms apart under a reduced-motion preference. " +
+        "D-34-03 asks for decorative motion to be ABSENT, not fast.",
     ).toBe(false);
   });
 
-  test("animated elements are VISIBLE and still — not merely still", async ({ as, obs }) => {
-    test.setTimeout(120_000);
-    tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+  test("animated elements are VISIBLE and still — not merely still", async ({ page }) => {
+    test.setTimeout(60_000);
 
-    const page = await as(MANAGER);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/app/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(5000);
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2500);
 
     const { real, probe } = await motionState(page);
 
@@ -136,14 +167,12 @@ test.describe("D-34-03 · with a reduced-motion preference", () => {
     }
   });
 
-  test("hovering a lift target applies no transform", async ({ as, obs }) => {
-    test.setTimeout(120_000);
-    tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+  test("hovering a lift target applies no transform", async ({ page }) => {
+    test.setTimeout(60_000);
 
-    const page = await as(MANAGER);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/app/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(5000);
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2500);
 
     const transform = await page.evaluate(() => {
       const zone = document.querySelector('[data-zone="expressive"]') ?? document.body;
@@ -198,7 +227,7 @@ test.describe("D-34-03 · with a reduced-motion preference", () => {
 });
 
 test.describe("D-34-03 · WITHOUT a reduced-motion preference — the system must actually do something", () => {
-  test("the entrance animation is live on an expressive surface", async ({ as, obs }) => {
+  test("the entrance animation is live on an expressive surface", async ({ page }) => {
     /*
      * The direction that catches a motion system shipped as dead CSS. Every stillness
      * assertion in this file would also pass if `.vdl-enter` resolved to nothing at all.
@@ -208,13 +237,11 @@ test.describe("D-34-03 · WITHOUT a reduced-motion preference — the system mus
      * data settling rather than motion. Once 34-06 lands, the two-frame diff below also
      * becomes meaningful and is recorded as an observation.
      */
-    test.setTimeout(120_000);
-    tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
+    test.setTimeout(60_000);
 
-    const page = await as(MANAGER);
     await page.emulateMedia({ reducedMotion: "no-preference" });
-    await page.goto("/app/dashboard", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(5000);
+    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(2500);
 
     const { probe } = await motionState(page);
 
