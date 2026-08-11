@@ -115,15 +115,23 @@ class MoneyDisplayAuthorityTest {
      * A locale lookup is the non-determinism {@code ReceiptMoneyFormatter}'s javadoc argues
      * against: a German-locale JVM in one branch would swap the decimal and grouping separators.
      * Leaving the machinery in place as dead code invites its reuse, so it is asserted absent.
+     *
+     * <p>Comments are stripped before the scan. The prohibition is on the machinery, not on
+     * naming it — a guard that forbade the javadoc explaining why the machinery was removed would
+     * delete the only record of the defect, and the next author would reintroduce it.
      */
     @Test
     void moneyUtilsCarriesNoLocaleSensitiveFormattingMachinery() throws Exception {
         Path source = Path.of("src/main/java/io/restaurantos/shared/money/MoneyUtils.java");
         assertTrue(Files.exists(source), "expected MoneyUtils source at " + source.toAbsolutePath());
-        String body = Files.readString(source, StandardCharsets.UTF_8);
-        assertFalse(body.contains("NumberFormat"), "MoneyUtils must not reference NumberFormat");
-        assertFalse(body.contains("Locale"), "MoneyUtils must not reference Locale");
-        assertFalse(body.contains("FractionDigits"), "MoneyUtils must not configure fraction digits");
+        String code = stripComments(Files.readString(source, StandardCharsets.UTF_8));
+        assertFalse(code.contains("NumberFormat"), "MoneyUtils must not reference NumberFormat");
+        assertFalse(code.contains("Locale"), "MoneyUtils must not reference Locale");
+        assertFalse(code.contains("FractionDigits"), "MoneyUtils must not configure fraction digits");
+    }
+
+    private static String stripComments(String java) {
+        return java.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?m)//.*$", "");
     }
 
     /** Loaded by resource lookup so the frontend and the JVM can share one file, not two copies. */
