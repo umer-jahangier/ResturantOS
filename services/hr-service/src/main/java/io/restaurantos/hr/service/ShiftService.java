@@ -10,6 +10,12 @@ import io.restaurantos.shared.exception.DuplicateValueException;
 import io.restaurantos.shared.exception.FieldValidationException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,15 +41,35 @@ public class ShiftService {
         this.tenantContext = tenantContext;
     }
 
-    public record CreateShiftRequest(String name, String roleDesignation, LocalTime startTime,
-                                     LocalTime endTime, List<Integer> daysOfWeek) {
+    /**
+     * The constraints the service already assumed, now declared where the client can read them.
+     *
+     * <p>{@code endTime} vs {@code startTime}: the only rule enforced is that they must DIFFER.
+     * An end BEFORE a start is a legitimate overnight shift — 22:00 to 06:00 is the most ordinary
+     * shift a restaurant runs — so rejecting it would remove working behaviour. Equal times are a
+     * zero-length shift, which is always a mistake. That cross-field rule cannot be stated
+     * declaratively on a record, so it lives in {@link #validateTimes} and is applied by both
+     * create and update, expressed once so the two cannot disagree.
+     */
+    public record CreateShiftRequest(
+            @NotBlank(message = "Enter a name for this shift") String name,
+            String roleDesignation,
+            @NotNull(message = "Choose a start time") LocalTime startTime,
+            @NotNull(message = "Choose an end time") LocalTime endTime,
+            @NotEmpty(message = "Choose at least one day this shift runs")
+            @Size(max = 7, message = "A week has seven days")
+            List<@NotNull @Min(value = 1, message = "Days run from 1 (Monday) to 7 (Sunday)")
+                 @Max(value = 7, message = "Days run from 1 (Monday) to 7 (Sunday)") Integer> daysOfWeek) {
     }
 
     public record ShiftResponse(UUID id, UUID branchId, String name, String roleDesignation,
                                 LocalTime startTime, LocalTime endTime, List<Integer> daysOfWeek) {
     }
 
-    public record AssignRequest(UUID shiftId, UUID employeeId, LocalDate workDate) {
+    public record AssignRequest(
+            @NotNull(message = "Choose a shift") UUID shiftId,
+            @NotNull(message = "Choose an employee") UUID employeeId,
+            @NotNull(message = "Choose a date") LocalDate workDate) {
     }
 
     public record AssignmentResponse(UUID id, UUID shiftId, UUID employeeId, LocalDate workDate) {
@@ -52,8 +78,24 @@ public class ShiftService {
     public record WeekGrid(List<ShiftResponse> shifts, List<AssignmentResponse> assignments) {
     }
 
+    /**
+     * A shift that starts and ends at the same moment is zero minutes long and is always a typo.
+     *
+     * <p>Bound to {@code endTime}: the start time is the one the user set first and meant. Note
+     * what is deliberately ALLOWED — an end earlier than the start, which is an overnight shift
+     * crossing midnight. Forbidding that would have made it impossible to schedule a closing shift.
+     */
+    private static void validateTimes(CreateShiftRequest req) {
+        if (req.startTime() != null && req.startTime().equals(req.endTime())) {
+            throw new FieldValidationException("SHIFT_TIMES_INVALID", "endTime",
+                    "A shift cannot start and end at the same time."
+                            + " For a shift that runs past midnight, set an end time before the start time.");
+        }
+    }
+
     @Transactional
     public ShiftResponse create(CreateShiftRequest req) {
+        validateTimes(req);
         ShiftEntity shift = new ShiftEntity();
         shift.setTenantId(requireTenant());
         shift.setBranchId(requireBranch());
@@ -67,6 +109,7 @@ public class ShiftService {
 
     @Transactional
     public ShiftResponse update(UUID id, CreateShiftRequest req) {
+        validateTimes(req);
         ShiftEntity shift = loadShift(id);
         shift.setName(req.name());
         shift.setRoleDesignation(req.roleDesignation());

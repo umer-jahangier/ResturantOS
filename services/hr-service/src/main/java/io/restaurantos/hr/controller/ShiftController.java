@@ -7,6 +7,8 @@ import io.restaurantos.hr.service.ShiftService.CreateShiftRequest;
 import io.restaurantos.hr.service.ShiftService.ShiftResponse;
 import io.restaurantos.hr.service.ShiftService.WeekGrid;
 import io.restaurantos.shared.api.ApiResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,19 +37,22 @@ public class ShiftController {
         this.shiftService = shiftService;
     }
 
-    public record MoveRequest(UUID assignmentId, UUID newShiftId, LocalDate newWorkDate) {
+    public record MoveRequest(
+            @NotNull(message = "Choose the assignment to move") UUID assignmentId,
+            @NotNull(message = "Choose the shift to move it to") UUID newShiftId,
+            @NotNull(message = "Choose the date to move it to") LocalDate newWorkDate) {
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('hr.attendance.manage')")
-    public ApiResponse<ShiftResponse> create(@RequestBody CreateShiftRequest req) {
+    public ApiResponse<ShiftResponse> create(@Valid @RequestBody CreateShiftRequest req) {
         return ApiResponse.ok(shiftService.create(req));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('hr.attendance.manage')")
-    public ApiResponse<ShiftResponse> update(@PathVariable UUID id, @RequestBody CreateShiftRequest req) {
+    public ApiResponse<ShiftResponse> update(@PathVariable UUID id, @Valid @RequestBody CreateShiftRequest req) {
         return ApiResponse.ok(shiftService.update(id, req));
     }
 
@@ -61,13 +66,13 @@ public class ShiftController {
     @PostMapping("/assignments")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('hr.attendance.manage')")
-    public ApiResponse<AssignmentResponse> assign(@RequestBody AssignRequest req) {
+    public ApiResponse<AssignmentResponse> assign(@Valid @RequestBody AssignRequest req) {
         return ApiResponse.ok(shiftService.assign(req));
     }
 
     @PostMapping("/assignments/move")
     @PreAuthorize("hasAuthority('hr.attendance.manage')")
-    public ApiResponse<AssignmentResponse> move(@RequestBody MoveRequest req) {
+    public ApiResponse<AssignmentResponse> move(@Valid @RequestBody MoveRequest req) {
         return ApiResponse.ok(shiftService.move(req.assignmentId(), req.newShiftId(), req.newWorkDate()));
     }
 

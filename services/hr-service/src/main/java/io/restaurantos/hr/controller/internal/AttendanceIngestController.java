@@ -6,6 +6,9 @@ import io.restaurantos.hr.entity.AttendancePunchEntity.PunchType;
 import io.restaurantos.hr.service.PunchIngestService;
 import io.restaurantos.hr.service.PunchIngestService.IngestResult;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,11 +37,25 @@ public class AttendanceIngestController {
         this.tenantContext = tenantContext;
     }
 
-    public record IngestRequest(String serial, String token, String employeeRef, String punchType, Instant punchedAt) {
+    /**
+     * Constrained even though the caller is a field device rather than a person.
+     *
+     * <p>An unvalidated body from a device is a WIDER hole than one from a signed-in user, not a
+     * narrower one: this path is device-token authenticated, reachable without a JWT, and polled
+     * every few seconds forever. {@code punchType} is deliberately unconstrained — the handler
+     * already maps an unknown or absent value to {@code UNKNOWN}, which is the correct behaviour
+     * for a device firmware that reports a code we have not seen.
+     */
+    public record IngestRequest(
+            @NotBlank String serial,
+            @NotBlank String token,
+            @NotBlank String employeeRef,
+            String punchType,
+            @NotNull Instant punchedAt) {
     }
 
     @PostMapping("/ingest")
-    public Map<String, String> ingest(@RequestBody IngestRequest req) {
+    public Map<String, String> ingest(@Valid @RequestBody IngestRequest req) {
         // resolve() binds TenantContext before it persists the device's last-seen timestamp, so it
         // must be INSIDE the try — otherwise a failure in that save leaves the tenant bound to this
         // pooled request thread and the next request inherits it.

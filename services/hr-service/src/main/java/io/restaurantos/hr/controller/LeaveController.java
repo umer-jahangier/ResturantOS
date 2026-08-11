@@ -7,6 +7,7 @@ import io.restaurantos.hr.service.LeaveService.LeaveRequestResponse;
 import io.restaurantos.hr.service.LeaveService.RequestLeave;
 import io.restaurantos.hr.service.LeaveService.TypeResponse;
 import io.restaurantos.shared.api.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,7 +43,7 @@ public class LeaveController {
     @PostMapping("/requests")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('hr.leave.view')")
-    public ApiResponse<LeaveRequestResponse> request(@RequestBody RequestLeave req) {
+    public ApiResponse<LeaveRequestResponse> request(@Valid @RequestBody RequestLeave req) {
         return ApiResponse.ok(leaveService.request(req));
     }
 
@@ -73,7 +74,7 @@ public class LeaveController {
     @PostMapping("/types")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAuthority('hr.attendance.manage')")
-    public ApiResponse<TypeResponse> createType(@RequestBody CreateTypeRequest req) {
+    public ApiResponse<TypeResponse> createType(@Valid @RequestBody CreateTypeRequest req) {
         return ApiResponse.ok(leaveService.createType(req));
     }
 

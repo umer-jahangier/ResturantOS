@@ -17,6 +17,9 @@ import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,13 +62,30 @@ public class LeaveService {
         this.authorization = authorization;
     }
 
-    public record CreateTypeRequest(String name, boolean paid, BigDecimal accrualDaysPerMonth) {
+    public record CreateTypeRequest(
+            @NotBlank(message = "Enter a name for this leave type") String name,
+            boolean paid,
+            @PositiveOrZero(message = "Accrual cannot be negative — use 0 for a type that does not accrue")
+            BigDecimal accrualDaysPerMonth) {
     }
 
     public record TypeResponse(UUID id, String name, boolean paid, BigDecimal accrualDaysPerMonth) {
     }
 
-    public record RequestLeave(UUID employeeId, UUID leaveTypeId, LocalDate startDate, LocalDate endDate, String reason) {
+    /**
+     * Every missing field is reported in ONE response, which is what bean validation does by
+     * default. The service must not short-circuit it by re-checking one field and throwing before
+     * the rest are collected.
+     *
+     * <p>The date-ORDER rule is not here: it is cross-field, so it lives in {@link #request} as a
+     * FieldValidationException bound to {@code endDate}.
+     */
+    public record RequestLeave(
+            @NotNull(message = "Choose an employee") UUID employeeId,
+            @NotNull(message = "Choose a leave type") UUID leaveTypeId,
+            @NotNull(message = "Choose a start date") LocalDate startDate,
+            @NotNull(message = "Choose an end date") LocalDate endDate,
+            String reason) {
     }
 
     public record LeaveRequestResponse(UUID id, UUID employeeId, UUID leaveTypeId, LocalDate startDate,
