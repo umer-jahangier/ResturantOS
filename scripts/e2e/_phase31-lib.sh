@@ -115,8 +115,22 @@ phase31_sql() {
 purchasing_sql() { phase31_sql purchasing_db "$PURCHASING_DB_ROLE" "${1:-}" "${2:-}"; }
 inventory_sql()  { phase31_sql inventory_db  "$INVENTORY_DB_ROLE"  "${1:-}" "${2:-}"; }
 finance_sql()    { phase31_sql finance_db    "$FINANCE_DB_ROLE"    "${1:-}" "${2:-}"; }
-# auth_db is not RLS-scoped by a tenant GUC — it is queried without one, deliberately.
-auth_sql()       { phase31_sql auth_db       "$AUTH_DB_ROLE"       ""       "${1:-}"; }
+
+# auth_db is PARTLY row-level-security scoped, which is the trap here.
+#
+#   NOT scoped (global catalogues): auth_tenants, permissions, role_permissions
+#   FORCE RLS  (tenant-owned)     : users, user_branch_roles, roles, refresh_sessions,
+#                                   password_history, password_reset_tokens
+#
+# A query against `users` with no tenant GUC returns ZERO ROWS and no error. It looks exactly like
+# "that user does not exist", which is the most misleading possible answer when the question is
+# "did the write land?" — this cost a real read-back in 36-03, where the row was there the whole
+# time. So `auth_sql` takes the tenant id FIRST, like every other helper, and callers reading a
+# global catalogue pass an empty string explicitly rather than by accident.
+#
+#   auth_sql "$TENANT_ID" "select approval_limit_paisa from user_branch_roles where ..."
+#   auth_sql ""           "select role_code from role_permissions where ..."
+auth_sql() { phase31_sql auth_db "$AUTH_DB_ROLE" "${1:-}" "${2:-}"; }
 
 # ── The RLS canary ───────────────────────────────────────────────────────────────────────────
 #
@@ -258,7 +272,8 @@ phase31_freshness_gate() {
 tenant_id_for() {
   local slug="${1:-}"
   [[ -z "$slug" ]] && return 1
-  auth_sql "select id from auth_tenants where slug = '${slug}'" | head -1 | tr -d '[:space:]'
+  # auth_tenants is a global catalogue, not tenant-scoped — hence the explicit empty tenant.
+  auth_sql "" "select id from auth_tenants where slug = '${slug}'" | head -1 | tr -d '[:space:]'
 }
 
 # ── Self-test ────────────────────────────────────────────────────────────────────────────────

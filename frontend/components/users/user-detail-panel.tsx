@@ -15,6 +15,7 @@ import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useDeactivateUser, useReactivateUser, useUserDetail } from "@/lib/hooks/use-users";
 import { useTenantBranches } from "@/lib/hooks/use-tenant-settings";
 import { formatUserFacingError } from "@/lib/errors";
+import { formatPaisa } from "@/lib/adapters/shared";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -114,10 +115,25 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                     {assignments.map((a) => (
                       <li
                         key={`${a.branchId}-${a.roleCode}`}
-                        className="flex items-center justify-between px-3 py-2 text-sm"
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
                       >
-                        <span className="truncate">{branchName(a.branchId)}</span>
-                        <span className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate">{branchName(a.branchId)}</span>
+                        {/*
+                          The approval limit in force, in words rather than an empty cell. An
+                          absent limit denies every amount-gated action at any amount, so rendering
+                          nothing there would read as a rendering gap for the single most
+                          consequential fact on the row — which is the class of defect 14b spent a
+                          phase closing.
+                        */}
+                        <span
+                          className="shrink-0 text-xs text-muted-foreground"
+                          data-testid={`approval-limit-${a.branchId}`}
+                        >
+                          {a.approvalLimitPaisa === null || a.approvalLimitPaisa === undefined
+                            ? "No approval authority"
+                            : `Approves up to ${formatPaisa(a.approvalLimitPaisa)}`}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
                           {a.primary && (
                             <span className="text-xs text-muted-foreground">primary</span>
                           )}

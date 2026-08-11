@@ -508,7 +508,7 @@ while IFS='|' read -r t_id t_slug; do
   [[ -z "$t_id" || "$t_id" == "$TENANT_ID" ]] && continue
   v="$(purchasing_sql "$t_id" "select id from purchase_orders limit 1")"
   if [[ -n "$v" && "$v" != *ERROR* ]]; then FOREIGN_PO="$v"; FOREIGN_TENANT="$t_slug"; break; fi
-done < <(auth_sql "select id, slug from auth_tenants")
+done < <(auth_sql "" "select id, slug from auth_tenants")
 
 if [[ -n "$FOREIGN_PO" ]]; then
   note P4 "attempting tenant ${FOREIGN_TENANT}'s purchase order ${FOREIGN_PO} with a floating-terrace token"
@@ -528,7 +528,7 @@ while IFS='|' read -r t_id t_slug; do
   [[ -z "$t_id" || "$t_id" == "$TENANT_ID" ]] && continue
   i="$(inventory_sql "$t_id" "select id from ingredients limit 1")"
   if [[ -n "$i" && "$i" != *ERROR* ]]; then FOREIGN_ING="$i"; FOREIGN_ING_TENANT="$t_slug"; break; fi
-done < <(auth_sql "select id, slug from auth_tenants")
+done < <(auth_sql "" "select id, slug from auth_tenants")
 
 if [[ -n "$FOREIGN_ING" ]]; then
   note P4 "attempting tenant ${FOREIGN_ING_TENANT}'s ingredient ${FOREIGN_ING} with a floating-terrace token"

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { UserRepository, type UserListParams } from "@/lib/repositories/user.repository";
+import { formatUserFacingError } from "@/lib/errors";
 import type {
   AssignBranchRolePayload,
   CreateUserPayload,
@@ -142,6 +143,87 @@ export function useAssignBranchRole() {
   return useMutation({
     mutationFn: ({ userId, payload }: { userId: string; payload: AssignBranchRolePayload }) =>
       UserRepository.assignBranchRole(userId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+/** One holder's outcome from the bulk apply. `error` is already user-facing. */
+export interface ApprovalLimitApplyOutcome {
+  userId: string;
+  email: string;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Apply one approval limit to every current holder of a role at a branch.
+ *
+ * <h3>Why this is a loop and not an endpoint</h3>
+ *
+ * Every write goes through `UserRepository.assignBranchRole` — the SAME call a single assignment
+ * makes, hitting the same endpoint, passing the same server-side role-ceiling check. A bulk
+ * endpoint would be a second write path for one field, and a second write path is how two paths
+ * drift; worse, the ceiling check that stops an admin granting above their own level lives on the
+ * single-assignment path, so a bulk endpoint would have to re-implement it or skip it.
+ *
+ * <h3>Why every failure is reported by name</h3>
+ *
+ * A holder the caller may not assign that role to is refused server-side with
+ * `ROLE_CEILING_EXCEEDED` and writes nothing. Dropping that silently would tell an owner "limits
+ * applied" while some of their managers still could not approve anything — the precise shape of
+ * "structurally present, behaviourally absent" this phase exists to end. Each holder is therefore
+ * attempted independently and its outcome returned, and one refusal does not abort the rest.
+ *
+ * <h3>Why the holders are discovered client-side</h3>
+ *
+ * The roster endpoint returns users without their assignments, so membership of "holds ROLE at
+ * BRANCH" is read from each user's detail. It is N+1 calls against a roster the server caps at 200,
+ * which is acceptable for an explicit, rare, operator-initiated action — and it is honest, because
+ * it uses only endpoints that already exist rather than inventing a query the server cannot answer.
+ */
+export function useApplyApprovalLimitToRoleHolders() {
+  const invalidate = useInvalidateUsers();
+  return useMutation({
+    mutationFn: async ({
+      branchId,
+      roleCode,
+      approvalLimitPaisa,
+    }: {
+      branchId: string;
+      roleCode: string;
+      approvalLimitPaisa: number | null;
+    }): Promise<ApprovalLimitApplyOutcome[]> => {
+      const roster = await UserRepository.list({ size: 200, activeOnly: true });
+
+      const holders: { id: string; email: string }[] = [];
+      for (const candidate of roster.data) {
+        const detail = await UserRepository.get(candidate.id);
+        const holdsIt = detail.assignments.some(
+          (a) => a.branchId === branchId && a.roleCode === roleCode,
+        );
+        if (holdsIt) holders.push({ id: candidate.id, email: candidate.email });
+      }
+
+      const outcomes: ApprovalLimitApplyOutcome[] = [];
+      for (const holder of holders) {
+        try {
+          await UserRepository.assignBranchRole(holder.id, {
+            branchId,
+            roleCode,
+            approvalLimitPaisa,
+          });
+          outcomes.push({ userId: holder.id, email: holder.email, ok: true });
+        } catch (error) {
+          outcomes.push({
+            userId: holder.id,
+            email: holder.email,
+            ok: false,
+            error: formatUserFacingError(error),
+          });
+        }
+      }
+      return outcomes;
+    },
     onSuccess: invalidate,
   });
 }

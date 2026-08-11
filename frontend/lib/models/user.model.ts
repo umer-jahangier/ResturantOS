@@ -22,7 +22,18 @@ export interface TenantUser {
   createdAt: string | null;
 }
 
-/** One active branch-role row. `approvalLimitPaisa` is BIGINT paisa — display only. */
+/**
+ * One active branch-role row.
+ *
+ * `approvalLimitPaisa` is BIGINT paisa and is the attribute the policy engine reads: `vendor.rego`,
+ * `finance.rego` and `pos.rego` each compare a request's amount against it, and `null` denies every
+ * amount-gated action at any amount. It is **writable** — `POST /api/v1/users/{id}/branch-roles`
+ * has accepted it since the column existed, and `BranchRoleAdminService.assign` writes it
+ * unconditionally from the request.
+ *
+ * This comment used to say "display only". That sentence is the reason nobody wired it, the column
+ * stayed NULL on every row, and no one in the product could approve a purchase order.
+ */
 export interface BranchRoleAssignment {
   branchId: string;
   roleCode: string;
@@ -99,6 +110,14 @@ export interface OneTimePassword {
 export interface AssignBranchRolePayload {
   branchId: string;
   roleCode: string;
+  /**
+   * Integer paisa, or `null` for no approval authority.
+   *
+   * Written unconditionally by the server, which is why it must be sent on EVERY assignment of a
+   * role that needs one and never left to carry over: a user demoted from MANAGER to WAITER whose
+   * previous limit survived would keep spending authority nobody re-examined.
+   */
+  approvalLimitPaisa?: number | null;
 }
 
 /** The result of a role assignment, including whatever role it replaced on that branch. */

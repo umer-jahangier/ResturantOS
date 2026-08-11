@@ -4,6 +4,7 @@ import type { PaginatedResult } from "@/lib/api-client/request";
 import {
   apiAdminResetResultSchema,
   apiAssignableRolesEnvelopeSchema,
+  apiAssignBranchRoleRequestSchema,
   apiBranchRoleWriteResultSchema,
   apiCreatedUserSchema,
   apiUserDetailSchema,
@@ -151,15 +152,21 @@ export const UserRepository = {
    * <p>The split is 13-02's and it is load-bearing: gating role assignment on the user-administration
    * code would mean anyone able to edit a user could grant themselves OWNER. A role above the
    * caller's own ceiling is refused with 403 `ROLE_CEILING_EXCEEDED` and writes nothing.
+   *
+   * <p>`approvalLimitPaisa` travels on this call and on no other. There is deliberately no second
+   * endpoint for "just change the limit": the server writes the limit from this request
+   * unconditionally, and the ceiling check that protects the operation lives on this path. A second
+   * write path for the same field is how two paths drift.
+   *
+   * <p>The request is validated on the way OUT as well as the response on the way in — an integer
+   * paisa value is the one thing that must not be allowed to become a float in transit.
    */
   async assignBranchRole(
     userId: string,
     payload: AssignBranchRolePayload,
   ): Promise<BranchRoleWriteResult> {
-    const raw = await post<AssignBranchRolePayload, unknown>(
-      `/api/v1/users/${userId}/branch-roles`,
-      payload,
-    );
+    const body = apiAssignBranchRoleRequestSchema.parse(payload);
+    const raw = await post<typeof body, unknown>(`/api/v1/users/${userId}/branch-roles`, body);
     return adaptBranchRoleWriteResult(apiBranchRoleWriteResultSchema.parse(raw));
   },
 

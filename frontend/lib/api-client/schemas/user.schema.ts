@@ -94,6 +94,21 @@ export const apiAdminResetResultSchema = z.object({
 
 export type ApiAdminResetResult = z.infer<typeof apiAdminResetResultSchema>;
 
+/**
+ * `POST /api/v1/users/{userId}/branch-roles` request body.
+ *
+ * `approvalLimitPaisa` is an INTEGER number of paisa, or `null` for no approval authority. Declared
+ * here so a float can never reach the wire: `z.number().int()` rejects `1250049.9999999998`, which
+ * is what `19999.99 * 100 * ...` style arithmetic produces and what a money field must never send.
+ */
+export const apiAssignBranchRoleRequestSchema = z.object({
+  branchId: z.string().uuid(),
+  roleCode: z.string().min(1),
+  approvalLimitPaisa: z.number().int().nonnegative().nullable().optional(),
+});
+
+export type ApiAssignBranchRoleRequest = z.infer<typeof apiAssignBranchRoleRequestSchema>;
+
 /** `POST /api/v1/users/{userId}/branch-roles` → the assignment plus whatever it displaced. */
 export const apiBranchRoleWriteResultSchema = z.object({
   branchId: z.string().uuid(),
