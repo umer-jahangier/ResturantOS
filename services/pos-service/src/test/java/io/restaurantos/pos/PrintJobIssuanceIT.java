@@ -336,6 +336,23 @@ class PrintJobIssuanceIT extends PosTestBase {
         return json.replaceAll("\"issue\":\\{[^}]*}", "\"issue\":{}");
     }
 
+    /**
+     * A settled order with a CLEAN print history.
+     *
+     * <p><b>Why the clearing step exists (26-07).</b> Firing an order now enqueues a kitchen ticket
+     * and closing one now enqueues the customer receipt, both dispatched after their transaction
+     * commits. So by the time this helper returns, {@code print_jobs} already holds two rows — and
+     * every assertion in this file is about the ISSUE and REPRINT machinery, which starts counting
+     * from an empty slot. Left in place, the auto-enqueued receipt would take sequence 1 and the
+     * first explicit {@code issue()} would come back stamped "REPRINT #2".
+     *
+     * <p>The rows are ASSERTED before they are removed, so this helper cannot quietly paper over a
+     * dispatch regression: if 26-07's dispatch stops firing, this fails here rather than somewhere
+     * confusing later. The dispatch behaviour itself is proved in {@code PrintDispatchIT}.
+     *
+     * <p>A hard delete, deliberately: {@code lockSlotForSequence} and {@code findFirstIssue} do not
+     * filter on {@code deletedAt}, so a soft-deleted row would still occupy sequence 1.
+     */
     private OrderDto paidOrder() {
         OrderDto order = orderService.createOrder(
                 new CreateOrderRequest(branchId, UUID.randomUUID(), null, null, 1, null, null));
@@ -346,6 +363,16 @@ class PrintJobIssuanceIT extends PosTestBase {
         }
         long total = orderService.getOrder(order.id(), branchId).totalPaisa();
         paymentService.recordPayment(order.id(), PaymentMethod.CASH, total, null);
+
+        List<PrintJob> dispatched = printJobRepository.findHistoryForOrder(tenantId, order.id());
+        assertThat(dispatched)
+                .as("26-07 must have dispatched a kitchen ticket on the fire and a receipt on the close")
+                .hasSize(2);
+        assertThat(dispatched.stream().map(PrintJob::getDocumentType))
+                .containsExactlyInAnyOrder(PrintDocument.DocumentType.KITCHEN_TICKET,
+                        PrintDocument.DocumentType.CUSTOMER_RECEIPT);
+        printJobRepository.deleteAllInBatch(dispatched);
+
         return orderService.getOrder(order.id(), branchId);
     }
 }

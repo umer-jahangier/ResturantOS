@@ -10,6 +10,7 @@ import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.print.PrintDocument;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -38,6 +39,22 @@ public class PrintJobServiceImpl implements PrintJobService {
     @Override
     @Transactional
     public IssuedDocument issue(UUID orderId, UUID branchId, String idempotencyKey) {
+        return issueReceipt(orderId, branchId, idempotencyKey, PrintJobStatus.ISSUED);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public IssuedDocument enqueueReceipt(UUID orderId, UUID branchId, String idempotencyKey) {
+        return issueReceipt(orderId, branchId, idempotencyKey, PrintJobStatus.QUEUED);
+    }
+
+    /**
+     * The ONE write path for a customer receipt. {@code issue} and {@code enqueueReceipt} differ by
+     * a single field — the status the row lands in — and share everything that could get the
+     * document wrong: the reprint bytes, the sequence lock and the stamping.
+     */
+    private IssuedDocument issueReceipt(UUID orderId, UUID branchId, String idempotencyKey,
+                                        PrintJobStatus status) {
         UUID tenantId = tenantContext.requireTenantId();
 
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
@@ -89,7 +106,7 @@ public class PrintJobServiceImpl implements PrintJobService {
         job.setDocumentType(type);
         job.setTargetPrinterId(targetPrinterId);
         job.setIssueSeq(nextSeq);
-        job.setStatus(PrintJobStatus.ISSUED);
+        job.setStatus(status);
         // The body stored on a reprint row is the reprint's own document — stamped, so a later
         // re-serve of THIS row shows the reprint metadata it was printed with. The ORIGINAL bytes
         // remain on the sequence-1 row and are what every future reprint copies.
@@ -100,6 +117,49 @@ public class PrintJobServiceImpl implements PrintJobService {
 
         PrintJob saved = printJobRepository.saveAndFlush(job);
         return new IssuedDocument(saved.getId(), targetPrinterId, stamped);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public UUID enqueueKitchenTicket(UUID orderId, UUID branchId, String targetPrinterId,
+                                     int revisionNo, PrintDocument document,
+                                     PrintJobStatus status, String lastError) {
+        UUID tenantId = tenantContext.requireTenantId();
+        PrintDocument.DocumentType type = PrintDocument.DocumentType.KITCHEN_TICKET;
+
+        int nextSeq = nextSequence(tenantId, orderId, type, targetPrinterId);
+        Instant issuedAt = Instant.now();
+        // Sequence > 1 for a kitchen ticket means the SAME station is being re-issued for the same
+        // order — a manual reprint of a lost ticket, not a new fire (a new fire carries a new
+        // revision). Stamping it as a reprint is what puts "*** REPRINT #2 ***" on the paper, so a
+        // cook does not cook it twice.
+        PrintDocument stamped = restamp(serialise(document), nextSeq, nextSeq > 1, issuedAt,
+                nextSeq > 1 ? firstIssuedAt(tenantId, orderId, type, targetPrinterId) : null);
+
+        PrintJob job = new PrintJob();
+        job.setTenantId(tenantId);
+        job.setBranchId(branchId);
+        job.setOrderId(orderId);
+        job.setDocumentType(type);
+        job.setTargetPrinterId(targetPrinterId);
+        job.setIssueSeq(nextSeq);
+        job.setRevisionNo(revisionNo);
+        job.setStatus(status);
+        job.setLastError(lastError);
+        job.setDocument(serialise(stamped));
+        job.setIssuedAt(issuedAt);
+
+        // saveAndFlush, not save: the unique index on (tenant, order, type, target, revision) must
+        // speak NOW, inside this transaction, rather than at an implicit flush the caller cannot
+        // see. It is the after-commit dispatch's only idempotency guard.
+        return printJobRepository.saveAndFlush(job).getId();
+    }
+
+    private Instant firstIssuedAt(UUID tenantId, UUID orderId, PrintDocument.DocumentType type,
+                                  String target) {
+        return printJobRepository.findFirstIssue(tenantId, orderId, type, target)
+                .map(PrintJob::getIssuedAt)
+                .orElse(Instant.now());
     }
 
     @Override

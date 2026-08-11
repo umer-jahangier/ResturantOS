@@ -85,6 +85,8 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentStatusDerivationService paymentStatusDerivationService;
     private final TableService tableService;
     private final OrderMapper orderMapper;
+    /** 26-07. Reached ONLY through its two after-commit registration methods. */
+    private final PrintDispatchService printDispatchService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -107,7 +109,19 @@ public class OrderServiceImpl implements OrderService {
                             PaymentStatusDerivationService paymentStatusDerivationService,
                             TableService tableService,
                             OrderMapper orderMapper,
-                            StationRoutingResolver stationRoutingResolver) {
+                            StationRoutingResolver stationRoutingResolver,
+                            // @Lazy cuts a real cycle, at the ONE edge this plan adds:
+                            //   OrderServiceImpl -> PrintDispatchService -> PrintJobServiceImpl
+                            //     -> ReceiptDocumentAssembler -> OrderService
+                            // The assembler's dependency on OrderService is 26-03's and is on the
+                            // receipt READ path; narrowing it would mean reworking a shipped plan
+                            // to accommodate this one. A proxy here is honest instead: this
+                            // reference is dereferenced only AFTER a transaction commits, never
+                            // during context startup, so the laziness costs nothing and the
+                            // constraint it encodes ("printing depends on orders, not the other
+                            // way round") is the right one.
+                            @org.springframework.context.annotation.Lazy
+                            PrintDispatchService printDispatchService) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -130,6 +144,7 @@ public class OrderServiceImpl implements OrderService {
         this.tableService = tableService;
         this.orderMapper = orderMapper;
         this.stationRoutingResolver = stationRoutingResolver;
+        this.printDispatchService = printDispatchService;
     }
 
     // tableRepository is retained solely for listOrderSummaries' table-name lookup
@@ -600,6 +615,17 @@ public class OrderServiceImpl implements OrderService {
         eventPublisher.publish(POS_EXCHANGE, ORDER_SENT_TO_KDS_KEY, ORDER_SENT_TO_KDS_TYPE,
                 order.getBranchId(), payload);
 
+        // 26-07: the paper ticket, registered to run AFTER this transaction commits and never
+        // inside it. Nothing about printing may fail a fire — and a try/catch here would NOT
+        // achieve that, because a constraint breach on the print insert would mark this very
+        // transaction rollback-only and the fire would still fail at commit. See
+        // PrintDispatchService's header for the full argument and for why REQUIRES_NEW is also
+        // wrong. The set handed over is the one THIS method just stamped; the ticket does not
+        // re-derive which lines are new.
+        Set<UUID> firedItemIds = newItems.stream().map(OrderItem::getId).collect(Collectors.toSet());
+        printDispatchService.dispatchKitchenTicketsAfterCommit(
+                order.getId(), order.getBranchId(), nextRevision, firedItemIds);
+
         OrderDto dto = orderMapper.toDto(order);
         if (idempotencyKey != null) {
             idempotencyService.markComplete(idempotencyKey, dto.id().toString());
@@ -854,6 +880,13 @@ public class OrderServiceImpl implements OrderService {
 
         eventPublisher.publish(POS_EXCHANGE, ORDER_CLOSED_KEY, ORDER_CLOSED_TYPE,
                 finalOrder.getBranchId(), payload);
+
+        // 26-07: the customer receipt, for a branch that has a receipt printer configured — so a
+        // till set up for silent printing does not need the cashier to press anything. A branch
+        // with no printer enqueues NOTHING (D-26-01: that tenant prints through the browser), and
+        // the same after-commit reasoning as the fire seam applies here, only more so: this is the
+        // single seam five downstream services consume.
+        printDispatchService.dispatchReceiptAfterCommit(finalOrder.getId(), finalOrder.getBranchId());
 
         return finalOrder;
     }

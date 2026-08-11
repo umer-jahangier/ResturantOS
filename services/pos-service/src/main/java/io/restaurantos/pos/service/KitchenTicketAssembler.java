@@ -1,9 +1,11 @@
 package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.domain.model.DiningTable;
+import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.Station;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.repository.DiningTableRepository;
+import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.StationRepository;
 import io.restaurantos.shared.print.PrintDocument;
 import io.restaurantos.shared.print.ReceiptAmount;
@@ -58,16 +60,19 @@ public class KitchenTicketAssembler {
      */
     public static final String UNASSIGNED_STATION = "UNASSIGNED";
 
-    private final OrderService orderService;
+    private final OrderRepository orderRepository;
+    private final OrderMapper orderMapper;
     private final StationRepository stationRepository;
     private final DiningTableRepository tableRepository;
     private final TenantContext tenantContext;
 
-    public KitchenTicketAssembler(OrderService orderService,
+    public KitchenTicketAssembler(OrderRepository orderRepository,
+                                  OrderMapper orderMapper,
                                   StationRepository stationRepository,
                                   DiningTableRepository tableRepository,
                                   TenantContext tenantContext) {
-        this.orderService = orderService;
+        this.orderRepository = orderRepository;
+        this.orderMapper = orderMapper;
         this.stationRepository = stationRepository;
         this.tableRepository = tableRepository;
         this.tenantContext = tenantContext;
@@ -84,8 +89,17 @@ public class KitchenTicketAssembler {
     public List<StationTicket> assemble(UUID orderId, UUID branchId, int revisionNo,
                                         Set<UUID> firedItemIds) {
         UUID tenantId = tenantContext.requireTenantId();
-        OrderDto order = orderService.getOrder(orderId, branchId);
-        return assemble(order, tenantId, revisionNo, firedItemIds);
+        // Read through the repository and the mapper rather than through OrderService. Not a
+        // style choice: PrintDispatchService is injected INTO OrderServiceImpl, so an assembler
+        // that called OrderService back would close the cycle
+        // OrderServiceImpl -> PrintDispatchService -> KitchenTicketAssembler -> OrderService,
+        // and Spring would refuse to start. The tenant predicate is supplied here, in the query,
+        // exactly as 26-CONTEXT requires — the branch is checked too, because RLS is tenant-only.
+        Order order = orderRepository.findByIdAndBranchId(orderId, branchId)
+                .filter(o -> tenantId.equals(o.getTenantId()))
+                .orElseThrow(() -> new io.restaurantos.shared.exception.ResourceNotFoundException(
+                        "Order not found for kitchen ticket: " + orderId));
+        return assemble(orderMapper.toDto(order), tenantId, revisionNo, firedItemIds);
     }
 
     /** As above, for a caller that already holds the order — avoids a second read. */

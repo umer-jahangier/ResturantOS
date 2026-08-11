@@ -32,6 +32,37 @@ public interface PrintJobService {
     IssuedDocument fetch(UUID printJobId);
 
     /**
+     * Enqueue an already-assembled kitchen ticket for the print agent (26-07).
+     *
+     * <p>This exists so there is exactly ONE write path into {@code print_jobs}. Sequence
+     * allocation, the pessimistic slot lock and the document stamping are the same code the
+     * issuance path uses; only the status and the revision differ.
+     *
+     * <p><b>Runs in a NEW transaction.</b> Dispatch enqueues one ticket per station, and a
+     * constraint breach on one station must not roll back a sibling station's row — the hot pass
+     * duplicating is not a reason for the cold pass to go unprinted.
+     *
+     * @param revisionNo the order-item revision this ticket is for. Together with
+     *                   {@code targetPrinterId} it is the after-commit dispatch's idempotency key,
+     *                   enforced by {@code uq_print_jobs_revision}: a retried dispatch of the same
+     *                   revision to the same station is refused by the database, not by a guess.
+     * @param status     {@code QUEUED} when routed, {@code FAILED} when the station has no printer
+     * @param lastError  null when routed; names the station otherwise
+     */
+    UUID enqueueKitchenTicket(UUID orderId, UUID branchId, String targetPrinterId, int revisionNo,
+                              PrintDocument document, io.restaurantos.pos.domain.enums.PrintJobStatus status,
+                              String lastError);
+
+    /**
+     * Enqueue the customer receipt for the print agent on close.
+     *
+     * <p>Identical to {@link #issue} in every respect except the status it lands in: the agent will
+     * claim it, so it starts {@code QUEUED} rather than {@code ISSUED}. A branch with no receipt
+     * printer never reaches here — {@code PrintDispatchService} enqueues nothing at all for it.
+     */
+    IssuedDocument enqueueReceipt(UUID orderId, UUID branchId, String idempotencyKey);
+
+    /**
      * @param printJobId the row this issue is recorded on
      * @param document   the document to render; for a reprint, the first issue's body with new
      *                   issue metadata stamped on it

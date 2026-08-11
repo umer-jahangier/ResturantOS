@@ -71,6 +71,44 @@ public interface PrintJobRepository extends JpaRepository<PrintJob, UUID> {
     Optional<PrintJob> findByIdempotencyKey(@Param("tenantId") UUID tenantId,
                                             @Param("key") String key);
 
+    /**
+     * Fires that produced no kitchen ticket — the backstop for the ONE gap the after-commit
+     * dispatch design genuinely has (26-07).
+     *
+     * <p>Dispatch runs after the fire transaction commits, so a process death in that window loses
+     * the ticket with no row to show for it. The kitchen display is unaffected and the food still
+     * gets cooked, but the paper is silently absent — and silence is the failure mode this phase
+     * exists to eliminate. This query makes it loud. It follows the precedent of
+     * {@code scripts/reconcile-unposted-events.sql}, and the same statement is checked in at
+     * {@code scripts/reconcile-missing-kitchen-tickets.sql} for an operator with only psql.
+     *
+     * <p>Routing is deliberately NOT part of the predicate. An unrouted station still writes a row
+     * (a FAILED one naming the station), so "no row at all" means the dispatch never ran — which is
+     * exactly and only the thing this is looking for.
+     *
+     * @return one row per (order_id, revision_no) that was fired and never got a ticket
+     */
+    @Query(value = """
+           SELECT DISTINCT oi.order_id, oi.revision_no
+           FROM order_items oi
+           JOIN orders o ON o.id = oi.order_id
+           WHERE o.tenant_id = :tenantId
+             AND o.sent_to_kds_at >= :firedFrom
+             AND o.sent_to_kds_at < :firedTo
+             AND oi.revision_no > 0
+             AND oi.kds_status <> 'CANCELLED'
+             AND NOT EXISTS (
+                 SELECT 1 FROM print_jobs p
+                 WHERE p.tenant_id = o.tenant_id
+                   AND p.order_id = oi.order_id
+                   AND p.document_type = 'KITCHEN_TICKET'
+                   AND p.revision_no = oi.revision_no)
+           ORDER BY 1, 2
+           """, nativeQuery = true)
+    List<Object[]> findFiresWithNoTicket(@Param("tenantId") UUID tenantId,
+                                         @Param("firedFrom") java.time.Instant firedFrom,
+                                         @Param("firedTo") java.time.Instant firedTo);
+
     /** Every issue of every document for one order — the reprint history (26-08). */
     @Query("""
            SELECT j FROM PrintJob j
