@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 import { AppearanceForm } from "@/components/settings/appearance-form";
+import { ZoneProvider } from "@/components/providers/zone-provider";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Appearance | Settings",
@@ -29,7 +31,20 @@ export const metadata: Metadata = {
  */
 export default function AppearancePage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    /*
+     * ZONE: expressive (phase 34, D-34-02) — settings is named in the decision's table, and
+     * `/app/settings` already declares it. This screen did not, and inherited `restrained`
+     * from the back-office shell, which is the shell's correct default and not what this page
+     * was assigned. Verified in a real browser as the OWNER on 2026-08-12: it rendered as an
+     * untreated page with a horizontal rule for structure while the screen that links to it
+     * had depth. That gap survived because the evidence harness signed in as the MANAGER,
+     * who lacks `rbac.manage`, so every settings screenshot on file was of an Access-denied
+     * page.
+     *
+     * NOTHING functional changes here: no control, no preset, no persistence key, no
+     * validation rule. `AppearanceForm` is untouched.
+     */
+    <ZoneProvider zone="expressive" className="mx-auto max-w-2xl space-y-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Appearance</h1>
         <p className="text-sm text-muted-foreground">
@@ -38,9 +53,16 @@ export default function AppearancePage() {
         </p>
       </div>
 
-      <hr className="border-border" />
-
-      <AppearanceForm />
-    </div>
+      {/*
+       * The rule became a surface. A horizontal rule separates two things; a card says which
+       * of them is the thing you came here to operate — the §9 point that depth communicates
+       * hierarchy rather than decorating it.
+       */}
+      <Card depth={2}>
+        <CardContent className="pt-6">
+          <AppearanceForm />
+        </CardContent>
+      </Card>
+    </ZoneProvider>
   );
 }

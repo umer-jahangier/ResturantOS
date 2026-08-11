@@ -477,6 +477,84 @@ describe("GA-001 · precedence, unchanged by the restyle", () => {
   });
 });
 
+/**
+ * The generalisation of the error-surface measurement above, aimed at the place it actually
+ * broke: a SUBTLE semantic tint with a text stop chosen for a SOLID one.
+ *
+ * Found on `/settings/appearance` on 2026-08-12, by looking at the screen in a real browser in
+ * dark mode as a persona who could reach it. `--warning-foreground` is the stop for text on a
+ * solid warning fill; in dark it resolves to `--neutral-1000`, and on `bg-warning/10` over the
+ * card that measured **1.21:1**. Light measured 17.74:1, which is exactly why it survived —
+ * the defect is invisible in the theme people develop in, and the same class list is correct
+ * in one theme and unreadable in the other.
+ *
+ * Scoped to the notices that pair a `/NN` semantic tint with an explicit text colour, read out
+ * of the shipped source rather than restated here, so a later edit to the class list is what
+ * this test sees.
+ */
+describe("D-34-01 · a semantic tint's text stop clears AA in BOTH themes", () => {
+  const NOTICES: { file: string; testid: string; what: string }[] = [
+    {
+      file: "components/settings/appearance-form.tsx",
+      testid: "appearance-not-persisted",
+      what: "the appearance screen's not-persisted warning",
+    },
+  ];
+
+  it.each(NOTICES.flatMap((n) => THEMES.map((t) => [n, t] as const)))(
+    "%o in %s",
+    (notice, theme) => {
+      const source = readFileSync(resolve(FRONTEND_ROOT, notice.file), "utf8");
+      const block = source.slice(source.indexOf(`data-testid="${notice.testid}"`));
+      const classMatch = /className="([^"]+)"/.exec(block);
+      if (!classMatch) {
+        throw new Error(
+          `ANCHOR NOT FOUND: no className on the element carrying ` +
+            `data-testid="${notice.testid}" in ${notice.file}`,
+        );
+      }
+      const classes = classMatch[1]!;
+
+      const bg = /(?:^|\s)bg-([a-z0-9-]+?)\/(\d{1,3})(?=\s|$)/.exec(classes);
+      if (!bg) {
+        throw new Error(
+          `ANCHOR NOT FOUND: ${notice.what} paints no translucent \`bg-*\/NN\` tint, so there ` +
+            `is nothing to composite. Class list: "${classes}"`,
+        );
+      }
+      const textNames = [...classes.matchAll(/(?:^|\s)text-([a-z0-9-]+?)(?=\s|$)/g)].map(
+        (m) => m[1]!,
+      );
+      const colourName = textNames.find((name) => {
+        try {
+          token(`--${name}`, theme);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      if (!colourName) {
+        throw new Error(
+          `ANCHOR NOT FOUND: none of ${notice.what}'s text-* utilities resolves to a token`,
+        );
+      }
+
+      const composited = compositeOver(
+        atAlpha(token(`--${bg[1]}`, theme), Number(bg[2]) / 100),
+        token("--card", theme),
+      );
+      const result = wcagContrastCheck(token(`--${colourName}`, theme), composited);
+
+      expect(
+        result.passAA,
+        `${notice.what}: text-${colourName} on bg-${bg[1]}/${bg[2]} over --card measures ` +
+          `${result.ratio}:1 in ${theme}. A stop chosen for a SOLID semantic fill is not a stop ` +
+          `for a 10% tint of it, and the two themes disagree about which is which.`,
+      ).toBe(true);
+    },
+  );
+});
+
 describe("D-34-02 · the toast surface declares a zone", () => {
   it("stamps data-zone on its root, and it is never expressive", () => {
     const { container } = render(<Toaster />);

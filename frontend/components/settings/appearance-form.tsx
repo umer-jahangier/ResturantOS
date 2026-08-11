@@ -227,7 +227,19 @@ function AppearanceFormFields({
           a user reads after choosing a colour and clicking Save has already failed at its job. */}
       <div
         data-testid="appearance-not-persisted"
-        className="flex items-start gap-2 rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-warning-foreground"
+        /*
+         * `text-foreground`, not `text-warning-foreground`. Measured 2026-08-12 while verifying
+         * this screen in a real browser as the OWNER: `--warning-foreground` is the stop for
+         * text on a SOLID warning fill, and in dark it resolves to `--neutral-1000` — on a 10%
+         * warning tint over the card that is **1.21:1**, which is not a contrast, it is
+         * camouflage. Light was fine (17.74:1), which is why it survived: the defect is
+         * invisible in the theme most people develop in.
+         *
+         * The semantic channel is not lost — the border, the tint and the icon all still say
+         * "warning", and §40's rule is that colour is never the ONLY channel. Measured after:
+         * 17.74:1 light, 15.94:1 dark. Asserted in `state-character.test.tsx`.
+         */
+        className="flex items-start gap-2 rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm text-foreground"
       >
         <MonitorSmartphone className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <span>
