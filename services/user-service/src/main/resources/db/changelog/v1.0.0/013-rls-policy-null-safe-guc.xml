@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Make the tenant_isolation policy answer, rather than throw, on a connection with no tenant.
+
+      `current_setting('app.current_tenant_id', true)::uuid` casts the raw GUC. The GUC's "no
+      tenant" value is the EMPTY STRING — that is what TenantAwareDataSource writes on every
+      tenantless checkout and on every connection reset at close — and ''::uuid raises
+      "invalid input syntax for type uuid". So a legitimately tenantless read (an actuator probe,
+      a platform-scoped query, a scheduled job before it adopts a tenant) failed with a cast error
+      instead of returning nothing.
+
+      NULLIF(..., '') turns the empty string into NULL, and `tenant_id = NULL` is NULL, which is
+      not true, so the row is excluded. Same fail-closed outcome, expressed as an answer.
+
+      Behaviour for a tenant-scoped connection is unchanged: a non-empty GUC passes through NULLIF
+      untouched and the comparison is exactly what it was.
+
+      Written as a NEW changeset rather than an edit to 011: that one has been applied, and
+      Liquibase would see a checksum change. 011 is left as the historical record of what was
+      created; this is the record of the correction.
+
+      Fleet note: 40 further policies across auth-service (13), hr-service (19), crm-service (6)
+      and file-service (1) still carry the raw-cast form. Both forms in one codebase guarantee the
+      wrong one gets copied.
+    -->
+    <changeSet id="user-1.0.0-013-rls-policy-null-safe-guc" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            DROP POLICY IF EXISTS tenant_isolation ON branches;
+            CREATE POLICY tenant_isolation ON branches
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON branches;
+                CREATE POLICY tenant_isolation ON branches
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

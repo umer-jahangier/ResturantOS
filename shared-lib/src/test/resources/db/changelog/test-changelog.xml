@@ -110,7 +110,7 @@
             ALTER TABLE widgets ENABLE ROW LEVEL SECURITY;
             ALTER TABLE widgets FORCE ROW LEVEL SECURITY;
             CREATE POLICY tenant_isolation ON widgets
-                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid)
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid)
         </sql>
         <rollback>
             <sql splitStatements="true" endDelimiter=";">

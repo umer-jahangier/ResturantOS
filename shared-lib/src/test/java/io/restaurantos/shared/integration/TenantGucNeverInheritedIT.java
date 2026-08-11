@@ -153,23 +153,18 @@ class TenantGucNeverInheritedIT extends BaseIntegrationTest {
 
         aRequestRunsAsTenantA();
 
-        // Either outcome is fail-closed; what must never happen is the row coming back.
+        // Zero rows, and NOT an exception. A legitimately tenantless read — actuator, a health
+        // probe, a platform-scoped query — must come back empty rather than blowing up, and that
+        // is what NULLIF(current_setting(...), '')::uuid gives. A policy that casts the GUC
+        // directly throws "invalid input syntax for type uuid" on the empty string instead. Both
+        // are fail-closed, but only one is a usable answer, and having both forms in one codebase
+        // guarantees somebody copies the wrong one.
         //
-        // Zero rows is what the 7 policies written as NULLIF(current_setting(...), '')::uuid give.
-        // The other 41 in this repo cast the GUC directly, so an empty GUC makes them throw
-        // "invalid input syntax for type uuid" — loud, and safe. That inconsistency predates this
-        // test: '' is already the value TenantAwareDataSource writes when it resets a connection on
-        // close, so tenantless access to those 41 tables has only ever either thrown or read the
-        // previous borrower's tenant. Making it always throw removes the second case. Standardising
-        // the 41 on NULLIF would turn the throw into a clean empty result and is worth doing.
-        List<?> visible;
-        try {
-            visible = txTemplate.execute(tx -> em
-                    .createNativeQuery("SELECT name FROM widgets WHERE name = 'inherit-probe'")
-                    .getResultList());
-        } catch (RuntimeException refusedByPolicy) {
-            return;
-        }
+        // No try/catch here on purpose: swallowing the throw is what let this assertion pass
+        // against a policy that could not answer the question at all.
+        List<?> visible = txTemplate.execute(tx -> em
+                .createNativeQuery("SELECT name FROM widgets WHERE name = 'inherit-probe'")
+                .getResultList());
 
         assertThat(visible)
                 .as("""

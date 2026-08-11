@@ -188,6 +188,54 @@ class TenantIsolationHarnessIT extends BaseUserIT {
             .isZero();
     }
 
+    /**
+     * A connection with no tenant must get an ANSWER — zero rows — not a cast error.
+     *
+     * <p>The tenant GUC's "no tenant" value is the empty string: it is what
+     * {@code TenantAwareDataSource} writes on a tenantless checkout and on every reset at close.
+     * A policy written {@code current_setting('app.current_tenant_id', true)::uuid} casts that
+     * empty string and raises {@code invalid input syntax for type uuid}, so a legitimately
+     * tenantless read — an actuator probe, a platform-scoped query, a job that has not adopted a
+     * tenant yet — failed loudly instead of returning nothing. Changeset 013 wraps it in
+     * {@code NULLIF(..., '')}. Revert that changeset and this test errors rather than fails,
+     * which is how it was verified.
+     */
+    @Test
+    @DisplayName("a tenantless connection reads zero branches without throwing")
+    void aTenantlessReadAnswersEmptyRatherThanErroring() {
+        tenantContext.clear();
+
+        Number count = txTemplate.execute(tx -> (Number) entityManager
+            .createNativeQuery("SELECT count(*) FROM branches").getSingleResult());
+
+        assertThat(count.longValue())
+            .as("a connection carrying no tenant must see no branches")
+            .isZero();
+    }
+
+    @Test
+    @DisplayName("NULLIF changes nothing for a connection that does carry a tenant")
+    void aTenantScopedReadIsUnaffectedByTheNullSafeCast() {
+        Number own = txTemplate.execute(tx -> {
+            setTransactionTenant(TENANT_A);
+            return (Number) entityManager.createNativeQuery(
+                    "SELECT count(*) FROM branches WHERE name = :n")
+                .setParameter("n", nameA).getSingleResult();
+        });
+        Number foreign = txTemplate.execute(tx -> {
+            setTransactionTenant(TENANT_A);
+            return (Number) entityManager.createNativeQuery(
+                    "SELECT count(*) FROM branches WHERE name = :n")
+                .setParameter("n", nameB).getSingleResult();
+        });
+
+        // The positive control and the isolation assertion in one test, which is the rule this
+        // repo now applies to every isolation check: proving a foreign row is hidden means nothing
+        // unless the same connection is shown to still see its own.
+        assertThat(own.longValue()).as("tenant A must still see its own branch").isOne();
+        assertThat(foreign.longValue()).as("tenant A must not see tenant B's branch").isZero();
+    }
+
     // ── 2. the Hibernate filter, on a real production entity ──────────────────────────
 
     @Test
