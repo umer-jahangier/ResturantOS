@@ -6,13 +6,19 @@ import { KeyRound, Pencil, ShieldPlus, UserMinus, UserRoundCheck } from "lucide-
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { QueryBoundary } from "@/components/ui/query-boundary";
+import { QueryBoundary, QueryErrorNotice } from "@/components/ui/query-boundary";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AdminResetDialog } from "@/components/users/admin-reset-dialog";
 import { AssignRoleDialog } from "@/components/users/assign-role-dialog";
 import { EditUserDialog } from "@/components/users/user-form-dialog";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { useDeactivateUser, useReactivateUser, useUserDetail } from "@/lib/hooks/use-users";
+import {
+  useDeactivateUser,
+  useReactivateUser,
+  useUserDetail,
+  useUserStations,
+} from "@/lib/hooks/use-users";
+import { useStations } from "@/lib/hooks/pos/use-station-admin";
 import { useTenantBranches } from "@/lib/hooks/use-tenant-settings";
 import { formatUserFacingError } from "@/lib/errors";
 import { formatPaisa } from "@/lib/adapters/shared";
@@ -46,6 +52,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export function UserDetailPanel({ userId }: { userId: string | null }) {
   const detail = useUserDetail(userId);
   const branches = useTenantBranches(Boolean(userId));
+  const stationScope = useUserStations(userId);
+  const stations = useStations();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
   const { permissions, userId: currentUserId } = useCurrentUser();
@@ -73,6 +81,11 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
   const assignments = detail.data?.assignments ?? [];
   const branchName = (branchId: string) =>
     branches.data?.find((b) => b.id === branchId)?.name ?? branchId;
+  // The code is the routing key and the only thing stored; the NAME is what an operator recognises.
+  // Only the signed-in branch's stations can be listed (the endpoint refuses any other branch), so
+  // a code from another branch falls back to itself rather than being hidden.
+  const stationName = (code: string) =>
+    stations.data?.find((s) => s.code === code)?.name ?? code;
 
   // Deactivating yourself revokes your own sessions mid-click. The API permits it; offering it is
   // still a trap, so the control is withheld and the reason is stated where the control would be.
@@ -138,6 +151,46 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                             <span className="text-xs text-muted-foreground">primary</span>
                           )}
                           <StatusBadge status="active" label={a.roleCode} />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/*
+                28-11. Rendered as a SENTENCE when there is no assignment, not as a blank region
+                or the word "none". Every user in this product is unassigned, and unassigned means
+                they see every station — presenting the universal default as an absence is how an
+                admin concludes something is broken and "fixes" it into a restriction nobody
+                wanted. The panel already treats "holds no role" as a state in its own right for
+                exactly this reason.
+              */}
+              <section className="space-y-2" data-testid="user-station-scope">
+                <h3 className="text-sm font-medium">Stations</h3>
+                {stationScope.isError ? (
+                  <QueryErrorNotice
+                    what="this user's stations"
+                    error={stationScope.error}
+                    onRetry={() => void stationScope.refetch()}
+                    isRetrying={stationScope.isFetching}
+                  />
+                ) : stationScope.isPending ? (
+                  <p className="text-sm text-muted-foreground">Loading…</p>
+                ) : stationScope.data?.unrestrictedEverywhere ? (
+                  <p className="text-sm text-muted-foreground">
+                    Sees every station in every branch they work.
+                  </p>
+                ) : (
+                  <ul className="divide-y rounded-md border">
+                    {(stationScope.data?.branches ?? []).map((b) => (
+                      <li
+                        key={b.branchId}
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 truncate">{branchName(b.branchId)}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {b.stationCodes.map((code) => stationName(code)).join(", ")}
                         </span>
                       </li>
                     ))}
