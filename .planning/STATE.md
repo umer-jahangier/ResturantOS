@@ -8,12 +8,12 @@ status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
 last_updated: "2026-08-11T19:32:19.979Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 28 — 28-06 and 28-11 executed and verified in a browser
+last_activity_desc: Phase 28 — 28-06, 28-09 and 28-11 executed and verified in a browser
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 165
+  completed_plans: 166
   percent: 79
 ---
 
@@ -41,10 +41,10 @@ Corrective action: subsequent phases go through /gsd-plan-phase before /gsd-exec
 <!--
 PHASE 28 — Stations, POS Profiles & Staff Assignment (session of 2026-08-11/12)
 
-Executed 28-01 … 28-07 and 28-11 of 14 through the GSD workflow (PLAN -> atomic commits per task ->
-SUMMARY). All BACKEND plans are complete. The station admin UI (28-06) and the station picker on the
-account form (28-11) landed in the session of 2026-08-12 and are VERIFIED IN A REAL BROWSER.
-NOT started: 28-08, 28-09, 28-10, 28-12, 28-13, 28-14.
+Executed 28-01 … 28-07, 28-09 and 28-11 of 14 through the GSD workflow (PLAN -> atomic commits per
+task -> SUMMARY). All BACKEND plans are complete. The station admin UI (28-06), the station picker
+on the account form (28-11) and the POS terminal catalogue (28-09) landed in the session of
+2026-08-12 and are VERIFIED IN A REAL BROWSER. NOT started: 28-08, 28-10, 28-12, 28-13, 28-14.
 
 WHAT AN OPERATOR CAN DO NOW, FROM A SCREEN, AND WHAT THEY STILL CANNOT
   CAN (UI, proven in a browser 2026-08-12, screenshots in the phase directory):
@@ -57,9 +57,12 @@ WHAT AN OPERATOR CAN DO NOW, FROM A SCREEN, AND WHAT THEY STILL CANNOT
     `GET /api/v1/users/{id}/stations -> [{stationCodes:["BAR"]}]`, its own access token carries
     `attributes.stations = ["BAR"]`, and `GET /api/v1/kitchen/kds/stations` returns a NARROWER set
     for it than for an unassigned kitchen account.
-  CAN (API only, still no UI): create a POS terminal profile with a menu scope and a station set
-    (28-04); route an item or a whole category to a station per branch (28-05). Those need 28-09,
-    28-10 and 28-13.
+    - create a named POS terminal at /app/terminals, choose which menu categories it offers and
+      which stations it fires to, and retire it (28-09). Browser-read-back: the row summarises as
+      "Offers Starters · fires to Main bar", and an unscoped one as "Offers the whole menu".
+  CAN (API only, still no UI): route an item or a whole category to a station per branch (28-05).
+    That needs 28-10. And NOTHING on a till reads a terminal profile yet — binding a browser
+    session to one is 28-13.
   CANNOT (yet): show a bar TICKET on a bar board. `kds_stations` is a PROJECTION — a station gets a
     row there only once a ticket has been fired to it, and firing a drink to the bar needs the
     item->station routing UI (28-10). So the station scope is proven to FILTER and proven not to
