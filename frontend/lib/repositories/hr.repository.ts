@@ -16,7 +16,20 @@ import {
   apiLabourCostByBranchSchema,
   apiAssignmentSchema,
   createEmployeeInputSchema,
+  updateEmployeeInputSchema,
+  apiDepartmentSchema,
+  apiDesignationSchema,
+  lookupInputSchema,
+  designationInputSchema,
+  apiTaxConfigSchema,
+  apiTaxConfigSummarySchema,
+  apiCurrentFiscalYearSchema,
+  saveTaxConfigInputSchema,
   type CreateEmployeeInput,
+  type UpdateEmployeeInput,
+  type LookupInput,
+  type DesignationInput,
+  type SaveTaxConfigInput,
 } from "@/lib/api-client/schemas/hr.schema";
 import {
   adaptEmployee,
@@ -32,6 +45,11 @@ import {
   adaptQuarantine,
   adaptLabourCostByBranch,
   adaptAssignment,
+  adaptDepartment,
+  adaptDesignation,
+  adaptTaxConfig,
+  adaptTaxConfigSummary,
+  adaptCurrentFiscalYear,
 } from "@/lib/adapters/hr.adapter";
 import type {
   Employee,
@@ -48,6 +66,11 @@ import type {
   QuarantinedPunch,
   LabourCostByBranch,
   CreateShiftInput,
+  Department,
+  Designation,
+  TaxConfig,
+  TaxConfigSummary,
+  CurrentFiscalYear,
 } from "@/lib/models/hr.model";
 
 // Layer-2 HR repository. All calls go to /api/v1/hr/** through the shared api-client
@@ -75,15 +98,109 @@ export const HrRepository = {
     const raw = await post<typeof body, unknown>("/api/v1/hr/employees", body);
     return adaptEmployee(apiEmployeeSchema.parse(raw));
   },
-  async updateEmployee(
-    id: string,
-    input: Omit<CreateEmployeeInput, "employeeNo" | "joinDate">,
-  ): Promise<Employee> {
-    const raw = await put<typeof input, unknown>(`/api/v1/hr/employees/${id}`, input);
+  async updateEmployee(id: string, input: UpdateEmployeeInput): Promise<Employee> {
+    const body = updateEmployeeInputSchema.parse(input);
+    const raw = await put<typeof body, unknown>(`/api/v1/hr/employees/${id}`, body);
     return adaptEmployee(apiEmployeeSchema.parse(raw));
   },
   async deactivateEmployee(id: string): Promise<void> {
     await apiClient.delete(`/api/v1/hr/employees/${id}`);
+  },
+
+  // ── Tenant-managed lists (35-05) ───────────────────────────────────────────
+  //
+  // There is deliberately no delete on either list, and please do not add one for symmetry: a
+  // department referenced by an employee cannot be removed without orphaning them or silently
+  // rewriting their record. `setDepartmentActive(id, false)` is what an owner actually means by
+  // "we do not have that department any more" — the row stays resolvable, and stops being offered.
+
+  async listDepartments(): Promise<Department[]> {
+    const raw = await get<unknown[]>("/api/v1/hr/config/departments");
+    return (raw ?? []).map((r) => adaptDepartment(apiDepartmentSchema.parse(r)));
+  },
+  async createDepartment(input: LookupInput): Promise<Department> {
+    const body = lookupInputSchema.parse(input);
+    const raw = await post<typeof body, unknown>("/api/v1/hr/config/departments", body);
+    return adaptDepartment(apiDepartmentSchema.parse(raw));
+  },
+  async renameDepartment(id: string, input: LookupInput): Promise<Department> {
+    const body = lookupInputSchema.parse(input);
+    const raw = await put<typeof body, unknown>(`/api/v1/hr/config/departments/${id}`, body);
+    return adaptDepartment(apiDepartmentSchema.parse(raw));
+  },
+  async setDepartmentActive(id: string, active: boolean): Promise<Department> {
+    const raw = await put<{ active: boolean }, unknown>(
+      `/api/v1/hr/config/departments/${id}/active`,
+      { active },
+    );
+    return adaptDepartment(apiDepartmentSchema.parse(raw));
+  },
+
+  async listDesignations(): Promise<Designation[]> {
+    const raw = await get<unknown[]>("/api/v1/hr/config/designations");
+    return (raw ?? []).map((r) => adaptDesignation(apiDesignationSchema.parse(r)));
+  },
+  async createDesignation(input: DesignationInput): Promise<Designation> {
+    const body = designationInputSchema.parse(input);
+    const raw = await post<typeof body, unknown>("/api/v1/hr/config/designations", body);
+    return adaptDesignation(apiDesignationSchema.parse(raw));
+  },
+  async renameDesignation(id: string, input: DesignationInput): Promise<Designation> {
+    const body = designationInputSchema.parse(input);
+    const raw = await put<typeof body, unknown>(`/api/v1/hr/config/designations/${id}`, body);
+    return adaptDesignation(apiDesignationSchema.parse(raw));
+  },
+  async setDesignationActive(id: string, active: boolean): Promise<Designation> {
+    const raw = await put<{ active: boolean }, unknown>(
+      `/api/v1/hr/config/designations/${id}/active`,
+      { active },
+    );
+    return adaptDesignation(apiDesignationSchema.parse(raw));
+  },
+
+  // ── Tax configuration (35-06) ──────────────────────────────────────────────
+
+  async listTaxConfigs(): Promise<TaxConfigSummary[]> {
+    const raw = await get<unknown[]>("/api/v1/hr/config/tax");
+    return (raw ?? []).map((r) => adaptTaxConfigSummary(apiTaxConfigSummarySchema.parse(r)));
+  },
+  /** The July rule lives in the server's `FiscalYear`; never reimplement it here. */
+  async getCurrentFiscalYear(): Promise<CurrentFiscalYear> {
+    const raw = await get<unknown>("/api/v1/hr/config/tax/current");
+    return adaptCurrentFiscalYear(apiCurrentFiscalYearSchema.parse(raw));
+  },
+  /** Throws `ApiError` 409 `TAX_CONFIG_NOT_CONFIGURED` when that year has none. */
+  async getTaxConfig(fiscalYear: number): Promise<TaxConfig> {
+    const raw = await get<unknown>(`/api/v1/hr/config/tax/${fiscalYear}`);
+    return adaptTaxConfig(apiTaxConfigSchema.parse(raw));
+  },
+  async saveTaxConfig(fiscalYear: number, input: SaveTaxConfigInput): Promise<TaxConfig> {
+    const body = saveTaxConfigInputSchema.parse(input);
+    const raw = await put<typeof body, unknown>(`/api/v1/hr/config/tax/${fiscalYear}`, body);
+    return adaptTaxConfig(apiTaxConfigSchema.parse(raw));
+  },
+  async setTaxConfigActive(fiscalYear: number, active: boolean): Promise<TaxConfig> {
+    const raw = await put<{ active: boolean }, unknown>(
+      `/api/v1/hr/config/tax/${fiscalYear}/active`,
+      { active },
+    );
+    return adaptTaxConfig(apiTaxConfigSchema.parse(raw));
+  },
+  /**
+   * Last year's figures as a draft for this one. Writes NOTHING — a GET, deliberately.
+   *
+   * Silently creating next year's table from last year's rates is how a rate superseded by a
+   * Finance Act survives into a year it does not apply to, so the accountant is shown the figures
+   * and their save is the confirmation. The draft comes back `active: false` for the same reason.
+   */
+  async draftTaxConfigFrom(
+    fiscalYear: number,
+    sourceFiscalYear: number,
+  ): Promise<SaveTaxConfigInput> {
+    const raw = await get<unknown>(
+      `/api/v1/hr/config/tax/${fiscalYear}/draft-from?sourceFiscalYear=${sourceFiscalYear}`,
+    );
+    return saveTaxConfigInputSchema.parse(raw);
   },
 
   // ── Payroll runs ───────────────────────────────────────────────────────────

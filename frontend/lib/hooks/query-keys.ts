@@ -122,6 +122,19 @@ export const queryKeys = {
     leaveBalances: (branchId: string, employeeId: string) =>
       ["hr", branchId, "leave", "balances", employeeId] as const,
     leave: (branchId: string) => ["hr", branchId, "leave"] as const,
+    /**
+     * HR configuration is TENANT-scoped, not branch-scoped, so these keys deliberately carry no
+     * branchId. 35-02 put no `branch_id` on `departments` or `designations`: the list belongs to
+     * the tenant, and per-branch copies would make a four-location owner retype it four times and
+     * let the copies drift. Keying by branch here would refetch the same rows per branch and, worse,
+     * make a department created at one branch invisible at another until its cache expired.
+     */
+    config: () => ["hr", "config"] as const,
+    departments: () => ["hr", "config", "departments"] as const,
+    designations: () => ["hr", "config", "designations"] as const,
+    taxConfigs: () => ["hr", "config", "tax"] as const,
+    taxConfig: (fiscalYear: number) => ["hr", "config", "tax", fiscalYear] as const,
+    currentFiscalYear: () => ["hr", "config", "tax", "current"] as const,
   },
   kds: {
     tickets: (branchId: string, stationCode?: string, status?: string) =>

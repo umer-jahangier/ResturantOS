@@ -12,6 +12,12 @@ import type {
   ApiLeaveBalance,
   ApiQuarantine,
   ApiLabourCostByBranch,
+  ApiDepartment,
+  ApiDesignation,
+  ApiTaxSlab,
+  ApiTaxConfig,
+  ApiTaxConfigSummary,
+  ApiCurrentFiscalYear,
 } from "@/lib/api-client/schemas/hr.schema";
 import type {
   Employee,
@@ -27,6 +33,12 @@ import type {
   LeaveBalance,
   QuarantinedPunch,
   LabourCostByBranch,
+  Department,
+  Designation,
+  TaxSlab,
+  TaxConfig,
+  TaxConfigSummary,
+  CurrentFiscalYear,
 } from "@/lib/models/hr.model";
 
 // Layer-2 HR adapters: raw API shape -> domain model, normalizing optional/null.
@@ -39,14 +51,69 @@ export const adaptEmployee = (a: ApiEmployee): Employee => ({
   userId: a.userId ?? null,
   cnicMasked: a.cnicMasked ?? null,
   bankAccountMasked: a.bankAccountMasked ?? null,
-  designation: a.designation ?? null,
-  department: a.department ?? null,
+  designationId: a.designationId ?? null,
+  designationName: a.designationName ?? null,
+  departmentId: a.departmentId ?? null,
+  departmentName: a.departmentName ?? null,
   employmentType: a.employmentType,
   joinDate: a.joinDate,
   exitDate: a.exitDate ?? null,
   basicSalaryPaisa: a.basicSalaryPaisa,
   deviceUserRef: a.deviceUserRef ?? null,
   active: a.active,
+});
+
+export const adaptDepartment = (a: ApiDepartment): Department => ({
+  id: a.id,
+  name: a.name,
+  code: a.code ?? null,
+  active: a.active,
+});
+
+export const adaptDesignation = (a: ApiDesignation): Designation => ({
+  id: a.id,
+  name: a.name,
+  code: a.code ?? null,
+  departmentId: a.departmentId ?? null,
+  active: a.active,
+});
+
+export const adaptTaxSlab = (a: ApiTaxSlab): TaxSlab => ({
+  minPaisa: a.minPaisa,
+  maxPaisa: a.maxPaisa ?? null,
+  baseTaxPaisa: a.baseTaxPaisa,
+  ratePct: a.ratePct,
+});
+
+export const adaptTaxConfig = (a: ApiTaxConfig): TaxConfig => ({
+  id: a.id,
+  fiscalYear: a.fiscalYear,
+  effectiveFrom: a.effectiveFrom,
+  effectiveTo: a.effectiveTo ?? null,
+  slabs: a.slabs.map(adaptTaxSlab),
+  surchargeThresholdPaisa: a.surchargeThresholdPaisa,
+  surchargeRatePct: a.surchargeRatePct,
+  eobiEmployerRatePct: a.eobiEmployerRatePct,
+  eobiEmployeeRatePct: a.eobiEmployeeRatePct,
+  eobiWageBasePaisa: a.eobiWageBasePaisa,
+  prorationMethod: a.prorationMethod,
+  active: a.active,
+});
+
+export const adaptTaxConfigSummary = (a: ApiTaxConfigSummary): TaxConfigSummary => ({
+  id: a.id,
+  fiscalYear: a.fiscalYear,
+  effectiveFrom: a.effectiveFrom,
+  effectiveTo: a.effectiveTo ?? null,
+  active: a.active,
+  bandCount: a.bandCount,
+});
+
+export const adaptCurrentFiscalYear = (a: ApiCurrentFiscalYear): CurrentFiscalYear => ({
+  fiscalYear: a.fiscalYear,
+  startsOn: a.startsOn,
+  endsOn: a.endsOn,
+  configured: a.configured,
 });
 
 export const adaptPayrollRun = (a: ApiPayrollRun): PayrollRun => ({
