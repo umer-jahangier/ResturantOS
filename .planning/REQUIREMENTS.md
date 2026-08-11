@@ -19,7 +19,7 @@
 - [ ] **XCUT-03**: All money is `BIGINT` paisa end-to-end; display only via `MoneyUtils`; per-line floored tax with half-up rounding
 - [ ] **XCUT-04**: All timestamps `TIMESTAMPTZ`/`Instant`; business-day boundary formula applied in reporting
 - [ ] **XCUT-05**: Every event carries the standard envelope; every consumer is idempotent via `processed_events`; transactional outbox guarantees publish-on-commit
-- [ ] **XCUT-06**: Standard `ApiResponse`/`ApiError` envelopes and error-code catalogue used everywhere; `GlobalExceptionHandler` maps every exception type
+- [x] **XCUT-06**: Standard `ApiResponse`/`ApiError` envelopes and error-code catalogue used everywhere; `GlobalExceptionHandler` maps every exception type
 
 ### Shared Library (LIB)
 
@@ -244,11 +244,11 @@ decisions D-37-01 … D-37-05 and the three defects phase 22b reported but could
 
 ### HR & Payroll (HR)
 
-- [ ] **HR-01**: Manage employees (`cnic`, `bank_account_no` field-encrypted)
-- [ ] **HR-02**: Payroll run lifecycle; Pakistan income-tax slabs + EOBI from `tax_config` (annual, config-driven)
+- [x] **HR-01**: Manage employees (`cnic`, `bank_account_no` field-encrypted)
+- [x] **HR-02**: Payroll run lifecycle; Pakistan income-tax slabs + EOBI from `tax_config` (annual, config-driven)
 - [ ] **HR-03**: Payroll approval/payment posts JE; `PAYROLL_RUN_PAID` consumed by Finance
 - [ ] **HR-04**: Role-based shift scheduling on a drag-and-drop calendar, per branch
-- [ ] **HR-05**: Time & attendance (clock-in/out) and leave/absence management (types, accrual, approval workflow); late-arrival deductions feed payroll
+- [x] **HR-05**: Time & attendance (clock-in/out) and leave/absence management (types, accrual, approval workflow); late-arrival deductions feed payroll
 - [ ] **HR-06**: Labour-cost % vs revenue tracking by shift and branch
 - [ ] **HR-07**: Biometric attendance device integration — register devices (`attendance_devices`: serial→token→branch→tenant); ingest punches from (a) network terminals pushing ADMS/iClock over HTTPS (`/iclock/*`) and (b) USB readers via a local bridge agent (`wss://127.0.0.1` → device-authenticated ingest). Device-authenticated (not JWT); tenant/branch resolved from registry (never client input); idempotent on `(device_id, device_user_ref, device_reported_at)`; offline-buffer/replay safe; stores both device + server timestamps; unmapped punches quarantined; each punch persists to `attendance_punches`, publishes `ATTENDANCE_PUNCHED`, and feeds attendance/payroll; gated by `FEATURE_HR`
 - [ ] **HR-08**: Biometric privacy — matching happens at the edge (on-device for network terminals, in the agent for USB); the platform stores ONLY `employee_id + device_id + punched_at` and NO raw biometrics by default. Central templates are opt-in only and, when stored, are AES-256-GCM encrypted in a dedicated RLS table with restricted access + retention
@@ -265,6 +265,7 @@ decisions D-37-01 … D-37-05 and the three defects phase 22b reported but could
 
 - [x] **RPT-01**: ClickHouse ETL from events into analytics facts; named reports (incl. FBR Tax Summary) within P95 latency targets — **Complete-with-a-note**: ETL (real POS/purchasing events → real ClickHouse facts within seconds) and named reports (sales-by-day, FBR Tax Summary) proven on the real stack with exact arithmetic (12-10-E2E §2). The "P95 latency targets" clause cannot be scored — no P95 target is stated anywhere in REQUIREMENTS.md or the ROADMAP; real `durationMs` values were captured (122–1231ms) and a target is *proposed* (12-10-E2E §2h) for a future owner to formally adopt. FBR `ntn`/`fbrStrn` are genuinely NULL live (12-10-E2E §1f, a real internal-auth-seam gap, not fixed by this plan).
 - [ ] **RPT-02**: Dashboard WebSocket pushes within 5s of `ORDER_CLOSED`/`TILL_CLOSED` — **In Progress, not Complete**: the push mechanism itself is proven live at 4364ms/2108ms (well under 5s, 12-10-E2E §3), but the real API gateway's `JwtGlobalFilter` has no query-param JWT fallback and neither `/api/v1/reporting/dashboard` nor `/api/v1/kitchen` is in its public-path allowlist — a browser cannot set an `Authorization` header on a WS handshake, so **no caller, with any token, can reach this socket through the real gateway today** (12-10-E2E §1h). This is a genuine, newly-discovered, live-only production blocker (affects KDS too) that must be fixed before RPT-02 can be called Complete.
+
 *Added 2026-08-11 for Phase 32, from 22b defects D-7 and D-8. Numbered from RPT-10 because RPT-03 is
 already taken by the deferred v2 "consolidated multi-branch reporting" item.*
 
@@ -318,7 +319,7 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | XCUT-03 | Phase 1 | Pending |
 | XCUT-04 | Phase 1 | Pending |
 | XCUT-05 | Phase 1 | Pending |
-| XCUT-06 | Phase 1 | Pending |
+| XCUT-06 | Phase 1 | Complete |
 | LIB-01 | Phase 1 | Pending |
 | LIB-02 | Phase 1 | Pending |
 | LIB-03 | Phase 1 | Pending |
@@ -441,11 +442,11 @@ Every v1 requirement maps to exactly one phase (see ROADMAP.md). Status `Pending
 | PUR-07 | Phase 08.2 | Complete (08.2-04 vendor-catalog V5; 08.2-08 vendor item/append-only price API; 08.2-18 vendor detail + catalog/price UI) |
 | PUR-08 | Phase 08.2 | Complete (08.2-10 catalog-driven PO line; 08.2-11 real spend-by-category analytics, mock resolver deleted; 08.2-13 purchasing data layer; 08.2-19 PO-line catalog picker) |
 | FIN-05 | Phase 10 (10-02/10-05 AP; 10-18 AR) + Phase 7 (POS charge-to-account tender) | In Progress |
-| HR-01 | Phase 11 | Pending |
-| HR-02 | Phase 11 | Pending |
+| HR-01 | Phase 11 | Complete |
+| HR-02 | Phase 11 | Complete |
 | HR-03 | Phase 11 | Pending |
 | HR-04 | Phase 11 | Pending |
-| HR-05 | Phase 11 | Pending |
+| HR-05 | Phase 11 | Complete |
 | HR-06 | Phase 11 | Pending |
 | HR-07 | Phase 11 (11-10, 11-11) + Phase 30 (30-01, 30-04 … 30-10, 30-13) | Partial — the ADMS ingest path exists and is idempotent; Phase 30 closes device auth for stock firmware, silent data loss, liveness, management and the mapping surface |
 | HR-08 | Phase 11 | Pending |

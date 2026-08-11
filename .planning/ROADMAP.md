@@ -89,6 +89,7 @@ than widened.
 **Plans:** 8 plans, 5 waves
 
 Plans:
+
 - [ ] 36-01-PLAN.md — drive the whole procure-to-pay chain live and record where it actually breaks *(wave 1)*
 - [ ] 36-02-PLAN.md — which permission purchasing demands, who should hold it, and the repair at its cause *(wave 2)*
 - [ ] 36-03-PLAN.md — approval limits set in the product and gating approval *(wave 2, independently shippable)*
@@ -110,6 +111,7 @@ makes is bound to a live test.
 **Plans:** 14 plans, 6 waves
 
 Plans:
+
 - [x] 37-01-PLAN.md — one display authority for paisa, pinned by vectors both stacks read *(wave 1, independently shippable)*
 - [x] 37-02-PLAN.md — the verified-claim registry and its two-way gate *(wave 1, independently shippable)*
 - [~] 37-03-PLAN.md — one business date, honoured by every consumer; the 73 misdated facts realigned *(wave 1, closes 22b D-7)* — **code fix landed; realignment migration authored but NOT applied, blocked at the plan's own human checkpoint**
@@ -173,6 +175,7 @@ what happened dressed as a decision taken beforehand. See the process note in `S
   GL (GA-006); and **a new tenant's owner could not log in at all**, because TOTP enrolment had no UI
   and the error told the sole account holder to ask an administrator who does not exist (GA-008).
   Plus GA-023, GA-032, GA-053, GA-059, GA-078, GA-091–096. Evidence: 26/26 live browser assertions
+
   + before/after screenshots. See `phases/14b-truth-and-trust/`.
 
 **Track B — backend reachability and configurability (parallel):**
@@ -219,6 +222,7 @@ item is needed only for final sign-off, not to start:
   **Plans:** 13 plans, 8 waves — **3 complete (25-01, 25-03, 25-04), 10 outstanding** as of 2026-08-11
 
   Plans:
+
   - [x] 25-01-PLAN.md — the executable audit: what works, what is decorative, what is missing *(wave 1)*
   - [ ] 25-02-PLAN.md — the ADMS device simulator and the phase's shell harness *(wave 1)*
   - [x] 25-03-PLAN.md — the device columns a managed, observable, per-device-configured terminal needs *(wave 1)*
@@ -252,6 +256,7 @@ item is needed only for final sign-off, not to start:
   breakers. Plan 30-08 corrects comments and a route-map entry that describe a feature gate the
   gateway cannot perform on this path, moving the check into hr-service where the tenant is known, and
   fixes the bridge route's rate-limit key. Neither plan adds or removes a public path.
+
 - [ ] **Phase 26: Receipt & Kitchen Printing** - 18d planned, **~21d as planned** (see the note under the plan list). Buildable against an ESC/POS emulator; **U3** (an 80mm printer) settles cut degradation, drawer pulse and columns-per-line, which no simulator answers.
 
   **Goal:** A cashier settles an order and hands the customer a correctly totalled printed bill — in
@@ -261,6 +266,7 @@ item is needed only for final sign-off, not to start:
   **Plans:** 12 plans, 7 waves
 
   Plans:
+
   - [ ] 26-01-PLAN.md — the print document contract and the one place paisa becomes a string *(wave 1)*
   - [ ] 26-02-PLAN.md — typed per-terminal printer configuration in `receipt_config` *(wave 1)*
   - [ ] 26-03-PLAN.md — receipt issuance: assembler, `print_jobs` durable record, endpoints *(wave 2)*
@@ -965,6 +971,7 @@ Plans:
 **Plans**: 14 plans across 5 waves
 
 Plans:
+
 - [ ] 28-01-PLAN.md (wave 1) — user→station assignment in auth_db, carried in the JWT `attributes` map; `pos.terminals.admin` permission (D-28-02)
 - [ ] 28-02-PLAN.md (wave 1) — `stations.station_type` end to end: pos entity, event payload parity, kitchen projection (D-28-01)
 - [ ] 28-03-PLAN.md (wave 1) — KDS WebSocket validates tenant and branch; closes a live cross-tenant read (SC5)

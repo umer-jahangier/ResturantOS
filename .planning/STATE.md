@@ -6,14 +6,14 @@ current_phase: 35
 current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-11T18:11:36.907Z"
+last_updated: "2026-08-11T18:32:47.609Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 35 execution started
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 156
+  completed_plans: 157
   percent: 79
 ---
 
@@ -240,8 +240,8 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING
-Plan: 1 of 14
-Status: Executing Phase 35
+Plan: 2 of 14
+Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
 Wave 1 (01-05, 20) = additive Flyway migrations (inventory V5, purchasing V5), the
@@ -530,6 +530,7 @@ _Updated after each plan completion_
 | Phase 13 P12 | ~3h | 2 tasks | 20 files |
 | Phase 13 P13 | ~2h | 3 tasks | 17 files |
 | Phase 13 P15 | 4h | 3 tasks | 6 files |
+| Phase 35 P01 | 14min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -850,6 +851,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 13-13]: an admin reset is NOT subject to 13-09's per-account cooldown — it issues no token at all; bounded instead by the tier authority, the role ceiling, the gateway budget and the audit row
 - [Phase ?]: [Phase 13-13]: the platform tier may reset any tenant user (T-13-13-F accepted) — the only way to rescue a tenant that has lost its OWNER, since the ceiling correctly refuses every remaining insider
 - [Phase ?]: 13-15: pos-service and purchasing-service leak every tenant's rows on their list endpoints — RLS enabled but not FORCEd, and the runtime role owns the tables (deferred item 9)
+- [Phase ?]: 35-01: business-rule refusals use 422 with details[].field in the existing ApiError envelope; 400 stays reserved for bean validation
+- [Phase ?]: 35-01: overnight shifts (end before start) stay legal — only equal start/end times are refused; 35-11 must use 'end != start'
 
 ### Pending Todos
 
@@ -893,7 +896,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-11T23:40:00.000Z
+Last session: 2026-08-11T18:32:40.806Z
 
 --- Phase 34 (Visual Design Language) — 4 of 8 plans complete, 2 partial ---
 
@@ -904,30 +907,40 @@ Executed 2026-08-11 in wave order.
 **NOT STARTED: 34-05 (state character), 34-08 (spec, latency measurement, bundle budget).**
 
 What landed, in one line each:
+
 - 34-01 — the three-zone spine (`data-zone` + React context), five compositing filters removed
   (three were repainting the POS from the shell chrome above it), and a two-part containment gate
   watched to fail three ways.
+
 - 34-02 — `compositeOver()` in the WCAG validator so a translucent surface is measurable as it
   renders; glass + depth tokens authored SOLID-FIRST; a substrate manifest; 20 contrast rows
   measured under both deployment conditions, all clearing AA. Binding constraint: 5.34:1.
+
 - 34-03 — a five-family motion vocabulary under the resting-state contract; reduced motion that
   REMOVES decorative animation rather than shortening it; retirement of the 350ms navigation
   entrance that was playing on the KDS board and POS terminal; a two-direction runtime gate.
+
 - 34-04 — GlassPanel / Reveal / RevealGroup / Card depth / usePointerTilt, plus a dependency gate
   that forecloses three.js and friends BY NAME. Performance properties asserted by COUNTING calls.
+
 - 34-06 (partial) — glass portlets, depth grid, hover lift, staggered entrance. NO chart reveal,
   NO count-up, NO dashboard-specific tests.
+
 - 34-07 (partial) — login card as glass over a MEASURED substrate. NO platform console, NO
   settings screens, NO brand-hue contrast sweep.
 
 Carry-forward for whoever resumes:
+
 1. **The brand-hue sweep is the most substantive gap.** Glass contrast is proven at hue 195 only,
    and the appearance screen can move `--brand-h` at runtime.
+
 2. 34-05 and 34-08 are untouched. 34-08 owns the SURFACE-MOTION-SPEC, the POS latency measurement
    and the bundle delta — so the phase's definition of done is NOT met.
+
 3. framer-motion is still in package.json but reachable from no route (3 orphaned files).
    `dependency-budget.test.ts` will fail if it is removed without updating the baseline in the
    same commit — that is deliberate.
+
 4. Evidence (before/after, both themes) is in
    `.planning/phases/34-visual-design-language/evidence/`.
 
@@ -935,7 +948,6 @@ Environment notes recorded in that phase's `deferred-items.md`: a stale git stas
 2026-07-14 was popped across the repo mid-session leaving conflict markers in 12+ files; the
 gateway, auth-service and pos-service were rebuilt repeatedly by other agents, which
 intermittently failed the journeys suite for reasons unrelated to this phase.
-
 
 --- Phase 25 (Biometric Terminals, ZKTeco) — 3 of 13 plans complete ---
 
