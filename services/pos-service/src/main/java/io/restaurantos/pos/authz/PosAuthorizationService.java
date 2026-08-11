@@ -137,4 +137,23 @@ public class PosAuthorizationService {
             throw new PermissionDeniedException("Requires pos.tables.admin");
         }
     }
+
+    /**
+     * POS TERMINAL PROFILE gate — create, rename, re-scope, retire, reactivate (28-04, D-28-03).
+     *
+     * <p>Its own code, not {@code pos.menu.manage}. A terminal is not a menu: deciding how many
+     * tills a branch runs and what each one offers is a different decision, made at a different
+     * time, by the same person who lays out the floor. Phase 19b established the precedent when it
+     * separated {@code pos.tables.admin} from {@code pos.tables.manage} — verbs that share a noun
+     * and nothing else do not share a permission.
+     *
+     * <p>Held by OWNER, TENANT_ADMIN and MANAGER; see auth changeset 085, which also fails the
+     * migration if the grant lands on zero roles. CASHIER and WAITER hold neither this nor anything
+     * that implies it: a cashier USES a terminal and does not get to re-scope the menu it offers.
+     */
+    public void requireTerminalsAdmin() {
+        if (!hasPermission("pos.terminals.admin")) {
+            throw new PermissionDeniedException("Requires pos.terminals.admin");
+        }
+    }
 }
