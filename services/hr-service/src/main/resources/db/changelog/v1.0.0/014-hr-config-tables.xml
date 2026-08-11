@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Phase 35-02. The four tenant-managed lists a closed-set field can be backed by.
+
+      WHY THESE ARE TABLES AND NOT ENUMS OR FREE TEXT
+      `employees.designation` and `employees.department` are plain TEXT with no lookup behind them,
+      which is exactly how "Waiter", "waiter" and "Wtr" become three departments that no report can
+      group. A hardcoded enum would fix the spelling and break the product: every restaurant has its
+      own departments, and one that needs "Shisha Lounge" cannot wait for a release. So: a table the
+      tenant owns, with a case-insensitive uniqueness rule the database enforces.
+
+      NOTHING IS SEEDED HERE, DELIBERATELY.
+      Not a default department, not a standard designation, not a conventional allowance. The user
+      was explicit that nothing may require a developer to seed, and a migration-inserted row IS a
+      developer seeding it — it just hides the fact in version control. Every one of these tables is
+      empty on day one by design; plan 35-11 owns the empty state that tells an owner what to do
+      about it. RlsForcedInvariantIT asserts the emptiness behaviourally, because reading this
+      comment is not evidence.
+
+      NO branch_id ON departments OR designations.
+      A department list is a property of the tenant. Scoping it per branch would make an owner with
+      four locations retype the same list four times and would let the four drift apart, which is
+      the same defect one level up.
+
+      MONEY IS BIGINT PAISA; RATES ARE NUMERIC.
+      Never a float. `tax_config` mapping NUMERIC as a Java double is what stopped hr-service
+      booting, and a float column here would reproduce that class of defect one table over.
+    -->
+    <changeSet id="hr-1.0.0-014a-config-tables" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            CREATE TABLE departments (
+              id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id  UUID NOT NULL,
+              name       TEXT NOT NULL,
+              code       TEXT,
+              is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+              created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+              created_by UUID,
+              updated_by UUID
+            );
+
+            CREATE TABLE designations (
+              id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id     UUID NOT NULL,
+              name          TEXT NOT NULL,
+              code          TEXT,
+              -- Nullable on purpose: a tenant that wants designations grouped under departments can
+              -- have that, and one that does not can leave every row unattached. Requiring it would
+              -- force an owner to invent a department before they can name a single job title.
+              department_id UUID REFERENCES departments(id),
+              is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+              created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+              created_by    UUID,
+              updated_by    UUID
+            );
+
+            CREATE TABLE salary_components (
+              id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id    UUID NOT NULL,
+              code         TEXT NOT NULL,
+              name         TEXT NOT NULL,
+              -- EARNING adds to gross, DEDUCTION subtracts from net. The ledger identity finance
+              -- posts against depends on knowing which, so it is a column and not a sign convention
+              -- on the amount.
+              kind         TEXT NOT NULL,
+              -- FIXED uses amount_paisa; PERCENT_OF_BASIC uses rate_pct.
+              calculation  TEXT NOT NULL,
+              amount_paisa BIGINT,
+              rate_pct     NUMERIC(7,4),
+              is_taxable   BOOLEAN NOT NULL DEFAULT TRUE,
+              is_active    BOOLEAN NOT NULL DEFAULT TRUE,
+              created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+              created_by   UUID,
+              updated_by   UUID,
+              CONSTRAINT salary_components_kind_ck
+                CHECK (kind IN ('EARNING', 'DEDUCTION')),
+              CONSTRAINT salary_components_calculation_ck
+                CHECK (calculation IN ('FIXED', 'PERCENT_OF_BASIC')),
+              -- Exactly one of the two is populated, keyed off the discriminator. A component that
+              -- is ambiguous about how it is computed is a payroll defect waiting for a month-end:
+              -- whichever branch of the calculator reads it first silently wins.
+              CONSTRAINT salary_components_amount_xor_rate_ck CHECK (
+                (calculation = 'FIXED'            AND amount_paisa IS NOT NULL AND rate_pct IS NULL)
+                OR
+                (calculation = 'PERCENT_OF_BASIC' AND rate_pct     IS NOT NULL AND amount_paisa IS NULL)
+              ),
+              CONSTRAINT salary_components_amount_nonneg_ck
+                CHECK (amount_paisa IS NULL OR amount_paisa &gt;= 0),
+              CONSTRAINT salary_components_rate_nonneg_ck
+                CHECK (rate_pct IS NULL OR rate_pct &gt;= 0),
+              -- RESERVED CODES. PayrollRunService.calculate() writes these five keys into
+              -- payslips.deductions_json directly. A tenant component sharing one of those codes
+              -- would be merged into, or silently overwrite, an engine-computed deduction when
+              -- 35-08 folds components into the payslip. Refused here, at the only place that can
+              -- refuse it for every writer at once.
+              CONSTRAINT salary_components_code_not_reserved_ck CHECK (
+                lower(trim(code)) NOT IN (
+                  'income_tax_paisa', 'eobi_employee_paisa', 'advances_paisa',
+                  'late_arrival_paisa', 'other'
+                )
+              )
+            );
+
+            CREATE TABLE employee_salary_components (
+              id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id           UUID NOT NULL,
+              employee_id         UUID NOT NULL REFERENCES employees(id),
+              salary_component_id UUID NOT NULL REFERENCES salary_components(id),
+              effective_from      DATE NOT NULL,
+              -- NULL means open-ended. A closed range stops a mid-year allowance from rewriting
+              -- history when an old run is recalculated.
+              effective_to        DATE,
+              -- Per-employee override of the component's own amount/rate. NULL means "use the
+              -- component's value"; the same XOR rule applies to whichever is supplied.
+              override_amount_paisa BIGINT,
+              override_rate_pct     NUMERIC(7,4),
+              created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+              updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+              created_by          UUID,
+              updated_by          UUID,
+              CONSTRAINT employee_salary_components_override_xor_ck
+                CHECK (override_amount_paisa IS NULL OR override_rate_pct IS NULL),
+              CONSTRAINT employee_salary_components_override_amount_nonneg_ck
+                CHECK (override_amount_paisa IS NULL OR override_amount_paisa &gt;= 0),
+              CONSTRAINT employee_salary_components_override_rate_nonneg_ck
+                CHECK (override_rate_pct IS NULL OR override_rate_pct &gt;= 0),
+              CONSTRAINT employee_salary_components_effective_range_ck
+                CHECK (effective_to IS NULL OR effective_to &gt;= effective_from)
+            );
+
+            -- FUNCTIONAL unique indexes, not plain UNIQUE(tenant_id, name).
+            -- A plain unique constraint is precisely what lets "Waiter", "waiter" and " Waiter "
+            -- coexist in one tenant, which is the defect the user described and the reason this
+            -- phase exists. lower(trim(...)) makes the three the same value to the database, so no
+            -- amount of client-side carelessness can produce them.
+            CREATE UNIQUE INDEX ux_departments_tenant_name
+              ON departments (tenant_id, lower(trim(name)));
+            CREATE UNIQUE INDEX ux_designations_tenant_name
+              ON designations (tenant_id, lower(trim(name)));
+            CREATE UNIQUE INDEX ux_salary_components_tenant_code
+              ON salary_components (tenant_id, lower(trim(code)));
+            CREATE UNIQUE INDEX ux_employee_salary_components_assignment
+              ON employee_salary_components (tenant_id, employee_id, salary_component_id, effective_from);
+
+            -- Read paths: the pickers in 35-09 list active rows per tenant; the payroll calculator
+            -- in 35-08 resolves a period's assignments per employee.
+            CREATE INDEX idx_departments_tenant_active ON departments (tenant_id, is_active);
+            CREATE INDEX idx_designations_tenant_active ON designations (tenant_id, is_active);
+            CREATE INDEX idx_salary_components_tenant_active ON salary_components (tenant_id, is_active);
+            CREATE INDEX idx_employee_salary_components_employee
+              ON employee_salary_components (tenant_id, employee_id, effective_from);
+
+            GRANT SELECT, INSERT, UPDATE, DELETE
+              ON departments, designations, salary_components, employee_salary_components
+              TO hr_user;
+        </sql>
+        <rollback>
+            DROP TABLE IF EXISTS employee_salary_components, salary_components, designations, departments CASCADE;
+        </rollback>
+    </changeSet>
+
+    <!--
+      RLS in the SAME FILE as creation, so the two can never be applied apart.
+
+      A tenant-scoped table that exists for even one deploy without FORCE is a cross-tenant read,
+      and the window between two changelogs is exactly where that happens. FORCE is the load-bearing
+      half: PostgreSQL exempts a table's OWNER from its own policies unless FORCE is set, and
+      hr_service connects as the owner — so ENABLE alone would be an inert policy that every
+      schema-level test reports as present and correct.
+    -->
+    <changeSet id="hr-1.0.0-014b-enable-rls" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE departments ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE departments FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON departments
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE designations ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE designations FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON designations
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE salary_components ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE salary_components FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON salary_components
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+            ALTER TABLE employee_salary_components ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE employee_salary_components FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON employee_salary_components
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+        </sql>
+        <rollback>
+            DROP POLICY IF EXISTS tenant_isolation ON employee_salary_components;
+            DROP POLICY IF EXISTS tenant_isolation ON salary_components;
+            DROP POLICY IF EXISTS tenant_isolation ON designations;
+            DROP POLICY IF EXISTS tenant_isolation ON departments;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
