@@ -782,7 +782,42 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-07T02:12:33.767Z
+Last session: 2026-08-11T23:05:00.000Z
+
+--- Phase 25 (Biometric Terminals, ZKTeco) — 3 of 13 plans complete ---
+
+Executed 2026-08-11 in wave order: **25-01, 25-03, 25-04 landed and committed.**
+**Outstanding: 25-02, 25-05, 25-06, 25-07, 25-08, 25-09, 25-10, 25-11, 25-12, 25-13.**
+
+Read `.planning/phases/25-biometric-terminals/25-INVENTORY.md` first — it is the ground
+truth for what works, what is decorative and what is missing, with a test name on every row.
+
+**The finding that reframes the phase.** 25-CONTEXT says the protocol work is largely done and
+the gap is management, sync and visibility. That is half right. The protocol is done **for a
+client we write ourselves**: the credential is a query parameter and a stock ZKTeco terminal's
+configuration menu has no field for one. **No stock terminal can authenticate today.** That is
+D-25-06, decided as `both` in `25-AUTH-MODES.md` (now committed), and it is **25-08's** work —
+still outstanding. Until 25-08 lands, a terminal configured with only an address and a port
+gets a clean, correct, uniform 401.
+
+**What landed.** 25-01: `AdmsHttpContractIT` (frozen baseline, 8 cases over real HTTP) and four
+surviving defect registries pinning 13 tolerated behaviours, each owned by exactly one later
+plan which must invert and delete its own cases. 25-03: eighteen columns on
+`attendance_devices` (name, timezone, expected cadence, skew tolerance, the six handshake
+values, auth mode, allowlist, archived-at, token-rotated-at), every default equal to today's
+behaviour; `findSilentDevices`. 25-04: five refusal causes proven byte-identical over the wire,
+bounded per-serial failure logging (5 polls → 1 line, 0 stack traces, live-verified), and both
+device routes now tripping the breaker on 500.
+
+**Two environment traps solved, both worth knowing before the next session:**
+1. Testcontainers ports were being hijacked by an IDE's automatic port forwarding, which holds
+   listeners after containers die and accumulates across Docker's whole auto-allocation range.
+   Containers started healthy and unreachable — 60s timeouts one run, connection failures the
+   next. `HrTestBase` now claims a loopback port from the OS ephemeral range and binds Docker to
+   it, so Docker binds first. 45 errors → 45 green, 62s → 13s. The test Tomcat needed the same
+   (`server.address=127.0.0.1`).
+2. hr-service and gateway must be restarted after every rebuild, then `bash
+   scripts/check-stale-jars.sh` run, before any live result is trusted.
 
 --- Phase 11 (unchanged, still open) ---
 Phase 11 (HR & Payroll) ALL 12 PLANS EXECUTED (code-complete). Runtime verification PENDING.
