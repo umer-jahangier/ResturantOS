@@ -76,6 +76,31 @@ check_one() {
   echo "ok    $name (pid $pid, inode $ondisk_inode)"
 }
 
+# ---------------------------------------------------------------------------
+# Duplicate build artefacts: "Foo 2.class", "bar 3.jar"
+#
+# A second, related way a build lies to you. Something — iCloud's conflict
+# resolution, a copy racing a concurrent build, Finder — finds two versions of a
+# file and keeps both by appending " 2". The JVM then opens `TestFixtures 2.class`,
+# reads the class name recorded INSIDE it as `TestFixtures`, and refuses to load it:
+#
+#   There was an error in the forked process
+#   io/restaurantos/shared/integration/TestFixtures 2 (wrong name: .../TestFixtures)
+#
+# Which surfaces as an opaque SurefireBooterForkException with no test failure and
+# no compile error — a green module that will not run its own suite. 132 of these
+# had accumulated here, and they reappear whenever several builds run at once.
+#
+# Deleted rather than reported, because a duplicate .class is unambiguously
+# garbage: the real file sits beside it, and nothing in any build references the
+# name with a space in it. Source files are NEVER touched — only build output
+# under target/, so a genuine " 2.java" a person wrote cannot be lost here.
+dupes="$(find ./*/target ./*/*/target -name "* [0-9].class" -o -name "* [0-9].jar" 2>/dev/null | wc -l | tr -d ' ')"
+if [ "${dupes:-0}" -gt 0 ]; then
+  find ./*/target ./*/*/target \( -name "* [0-9].class" -o -name "* [0-9].jar" \) -delete 2>/dev/null
+  echo "clean removed $dupes duplicate build artefact(s) — these break surefire with 'wrong name'"
+fi
+
 for dir in services/*/; do
   svc="$(basename "$dir")"
   check_one "$svc" "${dir}target/${svc}-1.0.0.jar"
