@@ -1,0 +1,40 @@
+package io.restaurantos.pos.web;
+
+import io.restaurantos.pos.dto.DailyTakingsDto;
+import io.restaurantos.pos.service.DailyTakingsService;
+import io.restaurantos.shared.api.ApiResponse;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+/**
+ * Daily takings, reconciled (37-09, D-37-02) — the number a restaurant owner looks at first.
+ *
+ * <p>Gated by {@code pos.order.view.all} OR {@code finance.journal.view} OR {@code pos.till.review},
+ * all three of which are really seeded (checked against the catalogue, not assumed — the 37-08 plan
+ * named a {@code pos.report.view} that exists nowhere). {@code pos.till.review} is included because
+ * a MANAGER cashing up holds it and it is precisely the permission for "did the drawer match".
+ */
+@RestController
+@RequestMapping("/api/v1/pos/takings")
+public class DailyTakingsController {
+
+    private final DailyTakingsService service;
+
+    public DailyTakingsController(DailyTakingsService service) {
+        this.service = service;
+    }
+
+    @GetMapping("/daily")
+    @PreAuthorize("hasAnyAuthority('pos.order.view.all','finance.journal.view','pos.till.review')")
+    public ResponseEntity<ApiResponse<DailyTakingsDto>> daily(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) UUID branchId) {
+        LocalDate businessDate = date != null ? date : LocalDate.now(java.time.ZoneOffset.UTC).minusDays(0);
+        return ResponseEntity.ok(ApiResponse.ok(service.forDate(businessDate, branchId)));
+    }
+}
