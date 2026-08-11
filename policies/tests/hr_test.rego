@@ -266,3 +266,134 @@ test_no_permissions_deny_all if {
         }
     }
 }
+
+# ── HR configuration: tenant-scoped ON PURPOSE (35-03) ──────────────────────
+#
+# config_view and config_manage are the only hr actions without a branch predicate. That is a
+# deliberate scoping decision, documented in hr.rego, and these tests pin BOTH halves of it: the
+# branch is genuinely ignored, and the tenant is genuinely not.
+
+test_config_view_allow if {
+    hr.allow with input as {
+        "action": "config_view",
+        "user": base_user(["hr.config.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_config_manage_allow if {
+    hr.allow with input as {
+        "action": "config_manage",
+        "user": base_user(["hr.config.manage"]),
+        "resource": base_resource({}),
+    }
+}
+
+# The behaviour this plan deliberately introduces. Asserted explicitly and named clearly, because
+# a future reader who finds a cross-branch allow in an HR policy will otherwise assume it is a bug
+# and "fix" it — which would leave an owner able to edit the department list only while switched
+# to one particular branch.
+test_config_view_allowed_across_branches_deliberately if {
+    hr.allow with input as {
+        "action": "config_view",
+        "user": base_user(["hr.config.view"]),
+        "resource": base_resource({"branch_id": other_branch}),
+    }
+}
+
+test_config_manage_allowed_across_branches_deliberately if {
+    hr.allow with input as {
+        "action": "config_manage",
+        "user": base_user(["hr.config.manage"]),
+        "resource": base_resource({"branch_id": other_branch}),
+    }
+}
+
+# Dropping the branch predicate is a scoping decision. Dropping the tenant predicate would be a
+# cross-tenant leak of another business's tax table.
+test_config_view_cross_tenant_deny if {
+    not hr.allow with input as {
+        "action": "config_view",
+        "user": base_user(["hr.config.view"]),
+        "resource": base_resource({"tenant_id": other_tenant}),
+    }
+}
+
+test_config_manage_cross_tenant_deny if {
+    not hr.allow with input as {
+        "action": "config_manage",
+        "user": base_user(["hr.config.manage"]),
+        "resource": base_resource({"tenant_id": other_tenant}),
+    }
+}
+
+test_config_view_without_permission_deny if {
+    not hr.allow with input as {
+        "action": "config_view",
+        "user": base_user(["hr.employee.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+# The separation of the two codes is the whole reason there are two. A caller who may read the
+# lists must not thereby be able to rewrite the tax table.
+test_config_manage_with_only_view_permission_deny if {
+    not hr.allow with input as {
+        "action": "config_manage",
+        "user": base_user(["hr.config.view"]),
+        "resource": base_resource({}),
+    }
+}
+
+test_config_unknown_action_deny if {
+    not hr.allow with input as {
+        "action": "config_delete_everything",
+        "user": base_user(["hr.config.manage"]),
+        "resource": base_resource({}),
+    }
+}
+
+# ── Regression: the nine operational actions are STILL branch-isolated ───────
+#
+# Stated out loud rather than left to be inferred from an absence. The point of this phase is not
+# to loosen branch isolation, and the one file that could silently do so is this one.
+
+test_all_operational_actions_still_deny_cross_branch if {
+    every case in [
+        {"action": "employee_view", "perm": "hr.employee.view"},
+        {"action": "employee_manage", "perm": "hr.employee.manage"},
+        {"action": "attendance_view", "perm": "hr.attendance.view"},
+        {"action": "attendance_manage", "perm": "hr.attendance.manage"},
+        {"action": "leave_view", "perm": "hr.leave.view"},
+        {"action": "leave_approve", "perm": "hr.leave.approve"},
+        {"action": "payroll_view", "perm": "hr.payroll.view"},
+        {"action": "payroll_run", "perm": "hr.payroll.run"},
+        {"action": "payroll_approve", "perm": "hr.payroll.approve"},
+    ] {
+        not hr.allow with input as {
+            "action": case.action,
+            "user": base_user([case.perm]),
+            "resource": base_resource({"branch_id": other_branch}),
+        }
+    }
+}
+
+test_all_operational_actions_still_allow_same_branch if {
+    every case in [
+        {"action": "employee_view", "perm": "hr.employee.view"},
+        {"action": "employee_manage", "perm": "hr.employee.manage"},
+        {"action": "attendance_view", "perm": "hr.attendance.view"},
+        {"action": "attendance_manage", "perm": "hr.attendance.manage"},
+        {"action": "leave_view", "perm": "hr.leave.view"},
+        {"action": "leave_approve", "perm": "hr.leave.approve"},
+        {"action": "payroll_view", "perm": "hr.payroll.view"},
+        {"action": "payroll_run", "perm": "hr.payroll.run"},
+        {"action": "payroll_approve", "perm": "hr.payroll.approve"},
+    ] {
+        hr.allow with input as {
+            "action": case.action,
+            "user": base_user([case.perm]),
+            "resource": base_resource({}),
+        }
+    }
+}
