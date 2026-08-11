@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import Color from "colorjs.io";
 
-import { compositeOver, wcagContrastCheck, wcagContrastOverGlass } from "@/lib/theme/wcag-validator";
+import {
+  compositeOver,
+  wcagContrastCheck,
+  wcagContrastOverGlass,
+} from "@/lib/theme/wcag-validator";
 
 /**
  * Source-over compositing, which is what makes a glass surface measurable.
