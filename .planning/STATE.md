@@ -103,6 +103,108 @@ DEFECT-37-03-B — NEW, found during 37-03, NOT fixed:
 
 # Project State
 
+## ENVIRONMENT — Testcontainers ports are hijacked on this machine (2026-08-11)
+
+**Read this before writing off any Testcontainers failure as "Docker does not work here".**
+Three agents hit this in one session and two recorded it as an environment fact. It is not one.
+One of those entries was retracted in `f540bea`.
+
+### The symptom, which does not look like one bug
+
+A container starts, `docker ps` shows the port mapping, the container's own log shows a healthy
+server — and every connection from the test JVM hangs until it times out. The failure then wears a
+different face depending on which container drew the poisoned port:
+
+- `Timed out waiting for URL to be accessible (http://localhost:34831/health should return HTTP 200)`
+  after a full 60 s, with **no request in the container's log** — it never arrived.
+- `PSQLException: The connection attempt failed` a few seconds into Liquibase, on the next run.
+- `HTTP/1.1 header parser received no bytes` — which is *also* what an HTTP/2 upgrade attempt
+  produces, so it reads as a client-config bug on a client already pinned to HTTP/1.1.
+- Sticky, per-container failures that kill a whole IT module mid-run, including a test that passed
+  twenty minutes earlier on the same machine.
+
+Nothing in that list points at the cause, and the third one actively points somewhere else.
+
+### The cause
+
+An IDE's automatic port forwarding (Cursor's, here — the same feature exists in VS Code Remote)
+watches for new listening sockets and binds them itself so it can forward them. It wins the race
+against Docker's proxy, so Docker's listener is displaced, and it **keeps those listeners alive long
+after the container is gone**. Docker allocates its automatic host ports sequentially from the low
+end of a fixed range, so the leftovers accumulate exactly where the next container is about to land.
+Measured here: **40+ contiguous ports from 32768 held by the forwarder**, so essentially every new
+container drew a dead port.
+
+### The one command that names it
+
+```
+lsof -nP -iTCP:<the port from the error> -sTCP:LISTEN
+```
+
+If the owner is not a Docker process, this is what happened. Observed:
+
+```
+ssh     57093 ... IPv4 TCP *:34831 (LISTEN)
+Cursor  96884 ... IPv4 TCP 127.0.0.1:34831 (LISTEN)
+Cursor  96884 ... IPv6 TCP [::1]:34831 (LISTEN)
+```
+
+Docker's own listener is absent from that list. That absence is the whole bug.
+
+### The fix, and why it works
+
+**Claim the host port in the JVM first, then hand it to Docker**, bound to loopback. Binding a
+socket on `127.0.0.1:0` takes a port from the OS ephemeral range (49152+ on macOS), which is clear of
+Docker's automatic range and therefore clear of the forwarder's accumulated leftovers. Docker binds
+first, and a forwarder that notices afterwards cannot displace a listener that is already there.
+Reference implementation: `HrTestBase.publishedOnClaimedLoopbackPorts` in
+`services/hr-service/src/test/java/io/restaurantos/hr/HrTestBase.java` — about twelve lines.
+
+**hr-service, before → after: 45 errors → 45 green; 62 s of timeouts → 13 s of tests.**
+
+**Two halves, and the second is easy to miss.** The container side is not sufficient on its own. Any
+harness using `@SpringBootTest(webEnvironment = RANDOM_PORT)` also publishes an embedded Tomcat on a
+wildcard-bound random port, which the forwarder takes just as happily; those tests then fail with
+`HTTP/1.1 header parser received no bytes`. That half needs `properties = "server.address=127.0.0.1"`
+on the annotation **and** requests addressed to `http://127.0.0.1:port`, not to the name `localhost`.
+
+It is also correct on its own merits, independent of the bug: a Testcontainers Postgres publishes a
+database whose password is written in the test file, and it has no business being reachable from the
+LAN for the ninety seconds it exists.
+
+### Where this fix belongs — a recommendation, since 19 harnesses are being converted right now
+
+**The fix belongs in one shared place. The extraction does not belong in the middle of the
+conversion.** Both halves of that matter.
+
+*Why shared:* the repository has **six** `*TestBase` classes today
+(`FinanceTestBase`, `HrTestBase`, `InventoryTestBase`, `KitchenTestBase`, `PosTestBase`,
+`PurchasingTestBase`), and every one of them constructs `new PostgreSQLContainer<>("postgres:16")`
+inline with its own duplicated `@DynamicPropertySource` block. With 19 more harnesses arriving that
+is ~25 copies of a twelve-line fix. But duplication is the smaller argument. The real one is that
+**this bug is silent and misattributes itself**: it presents as four unrelated symptoms, none of
+which names Docker port binding, and two of three agents who met it concluded the environment was
+broken. A per-service copy fixes the harnesses that exist and leaves the next person to re-derive it
+from a sixty-second timeout. What has to be shared is the *diagnostic comment* — the `lsof` line
+above — at least as much as the code.
+
+*Why not right now:* there is no shared test module. `shared-lib` publishes no test-jar and there is
+no `test-support` module, so creating one means editing every service `pom.xml` in the reactor —
+precisely the change that collides worst with an agent editing 19 harnesses concurrently.
+
+*So, concretely:*
+
+1. **During the conversion:** the converting agent copies the twelve-line helper and its comment into
+   each base it touches, and adds `server.address=127.0.0.1` to any `RANDOM_PORT` harness. No
+   build-graph change, no collision, no waiting.
+2. **Immediately after, as its own commit:** extract to a `test-support` module (or a `shared-lib`
+   test-jar) in one change that touches all the poms at once, when nothing else is editing them.
+   Cheap then; a merge disaster now.
+
+*What this fix is not:* a substitute for turning the IDE's automatic port forwarding off, which is
+the real remedy on a developer's own machine. It is the durable one, because it survives a new
+machine, a new IDE, and a developer who has never heard of this note.
+
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-06-22)
