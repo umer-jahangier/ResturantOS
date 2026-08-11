@@ -258,7 +258,7 @@ assertion ever written.
 
 | Measurement | Value | Kind |
 |---|---|---|
-| POS tap-to-cart, real path with an open till | **99 ms** | observation |
+| POS tap-to-cart, real path with an open till | **79–99 ms** (two runs) | observation |
 | Compositing filters on the POS terminal | **0** | **gate** |
 | Running animations on the POS terminal | **0** | **gate** |
 | Geometry transitions in the cart on mutation | **0** | **gate** |
@@ -319,7 +319,7 @@ tree shared by eight agents.
 | Reduced motion, both directions | `e2e/journeys/reduced-motion.spec.ts` | green |
 | Dependency budget | `__tests__/lib/theme/dependency-budget.test.ts` | green |
 | Bundle budget | `__tests__/lib/theme/bundle-budget.test.ts` | green |
-| Operational latency | `e2e/journeys/operational-latency.spec.ts` | green (KDS half blocked by a service outage at time of writing) |
+| Operational latency | `e2e/journeys/operational-latency.spec.ts` | POS half green; **KDS half not run** — kitchen-service is `DOWN` in Eureka |
 | **Phase 20 contrast (53 pairings)** | `__tests__/lib/theme/design-tokens.test.ts` | green, unchanged |
 | **Phase 20 permission matrix** | `__tests__/shared/nav-permission-matrix.test.tsx` | green, unchanged |
 

@@ -68,3 +68,28 @@ what proves the containment gate is not passing merely because the product has n
 
 Unit coverage is unaffected: the full frontend suite is **876 tests / 91 files, all passing**,
 lint clean (0 errors, 10 pre-existing warnings).
+
+## End-of-session state (2026-08-12)
+
+**kitchen-service is `DOWN` in Eureka (port 8090).** Three phase-34 assertions therefore did not
+run on the final sweep and are recorded as NOT VERIFIED rather than green:
+
+| Not run | Spec |
+|---|---|
+| KDS board carries no compositing filter | `operational-zone-containment.spec.ts#a KDS station board` |
+| KDS board runs no animation without the preference | `reduced-motion.spec.ts#a KDS station board still does not animate` |
+| KDS half of the latency gate | `operational-latency.spec.ts#a KDS station board runs no animation` |
+
+All three passed earlier in the session when kitchen-service was up. They should be re-run once
+it is restarted; nothing in this phase changed the KDS board after they last passed, so the
+expectation is green, but that is an expectation and not a measurement.
+
+**Everything else is green on the final sweep:** 10 of 13 journeys assertions pass, including the
+positive control, the containing-block/print-safety guard, the POS containment sweep and both
+directions of the reduced-motion gate. POS tap-to-cart measured 79 ms in isolation and 99 ms
+under parallel load.
+
+**Settings restyle is visually unverified.** The seeded terrace manager lacks
+`rbac.manage`/`branch.manage`, so `/app/settings` renders "Access denied" for the persona the
+evidence harness signs in as. The code change is covered by unit tests and the zone gate, but no
+screenshot shows it.

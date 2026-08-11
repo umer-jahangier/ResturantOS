@@ -1022,51 +1022,58 @@ test-side by another agent, and NOT to be worked around by restoring the context
 failure in `PurchasingOpaPolicyIT`, an intermittent Testcontainers Postgres refusal, the 36-01
 handoffs, and a record that commit `f55292dc` swept three lines of the phase-37 agent's work.
 
---- Phase 34 (Visual Design Language) — 4 of 8 plans complete, 2 partial ---
+--- Phase 34 (Visual Design Language) — 6 of 8 plans complete, 2 partial ---
 
-Executed 2026-08-11 in wave order.
+Executed 2026-08-11/12 in wave order.
 
-**COMPLETE: 34-01, 34-02, 34-03, 34-04.**
-**PARTIAL: 34-06 (portlet treatment only), 34-07 (login only).**
-**NOT STARTED: 34-05 (state character), 34-08 (spec, latency measurement, bundle budget).**
+**COMPLETE: 34-01, 34-02, 34-03, 34-04, 34-05, 34-08.**
+**PARTIAL: 34-06 (portlet treatment; no chart reveal, no count-up), 34-07 (login, console and
+settings; no dedicated visual spec).**
 
-What landed, in one line each:
-
+What landed:
 - 34-01 — the three-zone spine (`data-zone` + React context), five compositing filters removed
-  (three were repainting the POS from the shell chrome above it), and a two-part containment gate
-  watched to fail three ways.
-
-- 34-02 — `compositeOver()` in the WCAG validator so a translucent surface is measurable as it
-  renders; glass + depth tokens authored SOLID-FIRST; a substrate manifest; 20 contrast rows
-  measured under both deployment conditions, all clearing AA. Binding constraint: 5.34:1.
-
+  (three were repainting the POS from the shell chrome above it), a two-part containment gate
+  watched to fail three ways, and a containing-block guard protecting phase 26's printed receipt.
+- 34-02 — `compositeOver()` in the WCAG validator (sRGB, not OKLCH — a compositor blends in the
+  space it paints in); glass + depth tokens authored SOLID-FIRST; a substrate manifest; 20
+  contrast rows measured under both deployment conditions. Binding constraint 5.34:1.
 - 34-03 — a five-family motion vocabulary under the resting-state contract; reduced motion that
-  REMOVES decorative animation rather than shortening it; retirement of the 350ms navigation
-  entrance that was playing on the KDS board and POS terminal; a two-direction runtime gate.
+  REMOVES decorative animation; retirement of the 350ms navigation entrance that was playing on
+  the KDS board and POS terminal; a two-direction runtime gate.
+- 34-04 — GlassPanel / Reveal / RevealGroup / Card depth / usePointerTilt; a dependency gate
+  foreclosing three.js and friends BY NAME. Performance properties asserted by COUNTING calls.
+- 34-05 — the four data states given character with none made quieter. Skeleton shimmers on
+  back-office surfaces and sits still on operational ones; the error box gains DEPTH only
+  (a raised surface reads as more urgent, which is the one permitted direction); the empty state
+  keeps its next-action affordance.
+- 34-08 — SURFACE-MOTION-SPEC.md with every value derivable from the shipped stylesheet;
+  POS tap-to-cart measured at 79–99ms as an OBSERVATION beside deterministic gates; bundle delta
+  +5,821 B of CSS, 24 kB of new JS source, zero dependencies added.
+- 34-06 (partial) — glass portlets, depth grid, hover lift, staggered entrance.
+- 34-07 (partial) — login card, SuperAdmin console (header, stat tiles, tier list) and the
+  settings screens; glass contrast swept across all 360° of brand hue.
 
-- 34-04 — GlassPanel / Reveal / RevealGroup / Card depth / usePointerTilt, plus a dependency gate
-  that forecloses three.js and friends BY NAME. Performance properties asserted by COUNTING calls.
+Corrections made to my own earlier reporting, both worth keeping:
+1. I claimed a tenant could pick a brand hue that drops glass below AA. **Wrong.**
+   `app/api/theme/route.ts` emits only `--primary-*`; no glass input resolves through it, so a
+   tenant cannot move any figure in the glass table. The hue sweep is a BUILD-TIME guarantee and
+   is now labelled as one, with three assertions that fail if the route's scope ever widens.
+2. Five gates in this phase were found passing VACUOUSLY, each caught by running a negative
+   control rather than trusting green — a proximity regex matching a neighbouring rule,
+   `test.use({reducedMotion})` silently doing nothing, dark screenshots identical to light, a
+   positive control anchored to a dashboard that renders an error state, and two latency probes
+   waiting on a testid that does not exist (one of which reported a 20-second "latency").
+   All listed in SURFACE-MOTION-SPEC.md §7.
 
-- 34-06 (partial) — glass portlets, depth grid, hover lift, staggered entrance. NO chart reveal,
-  NO count-up, NO dashboard-specific tests.
-
-- 34-07 (partial) — login card as glass over a MEASURED substrate. NO platform console, NO
-  settings screens, NO brand-hue contrast sweep.
-
-Carry-forward for whoever resumes:
-
-1. **The brand-hue sweep is the most substantive gap.** Glass contrast is proven at hue 195 only,
-   and the appearance screen can move `--brand-h` at runtime.
-
-2. 34-05 and 34-08 are untouched. 34-08 owns the SURFACE-MOTION-SPEC, the POS latency measurement
-   and the bundle delta — so the phase's definition of done is NOT met.
-
-3. framer-motion is still in package.json but reachable from no route (3 orphaned files).
-   `dependency-budget.test.ts` will fail if it is removed without updating the baseline in the
-   same commit — that is deliberate.
-
-4. Evidence (before/after, both themes) is in
-   `.planning/phases/34-visual-design-language/evidence/`.
+Carry-forward:
+1. **34-06's chart reveal and count-up are not built**, and neither are the dashboard-specific
+   test files. Direct series labelling (UI-SPEC §3.4) is untouched but unverified by this phase.
+2. **KDS assertions were not re-run** on the final sweep — kitchen-service is DOWN in Eureka.
+   They passed earlier in the session; re-run them.
+3. The settings restyle is visually unverified: the seeded terrace manager lacks
+   `rbac.manage`/`branch.manage`, so the evidence harness sees "Access denied".
+4. framer-motion is in package.json but reachable from no route. `dependency-budget.test.ts`
+   fails if it is removed without updating the baseline in the same commit — deliberate.
 
 Environment notes recorded in that phase's `deferred-items.md`: a stale git stash dated
 2026-07-14 was popped across the repo mid-session leaving conflict markers in 12+ files; the
