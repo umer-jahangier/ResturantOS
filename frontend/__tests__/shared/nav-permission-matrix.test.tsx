@@ -214,7 +214,16 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Menu", items: ["Inventory", "Menu Items"] },
       {
         group: "Finance",
-        items: ["Accounts", "Journal Entries", "General Ledger", "Periods", "Expenses", "AP Aging"],
+        // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
+        items: [
+          "Takings",
+          "Accounts",
+          "Journal Entries",
+          "General Ledger",
+          "Periods",
+          "Expenses",
+          "AP Aging",
+        ],
       },
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["HR", "Customers"] },
@@ -239,7 +248,16 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Menu", items: ["Inventory", "Menu Items"] },
       {
         group: "Finance",
-        items: ["Accounts", "Journal Entries", "General Ledger", "Periods", "Expenses", "AP Aging"],
+        // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
+        items: [
+          "Takings",
+          "Accounts",
+          "Journal Entries",
+          "General Ledger",
+          "Periods",
+          "Expenses",
+          "AP Aging",
+        ],
       },
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["HR", "Customers"] },
@@ -270,6 +288,12 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
       { group: "Menu", items: ["Inventory", "Menu Items"] },
+      // 37-12 CHANGED THIS LINE DELIBERATELY. A branch manager holds no `finance.journal.view`
+      // and still sees Takings — because a manager is the person who counts the drawer, and
+      // `DailyTakingsController` has gated on `pos.till.review` since 37-09. The ledger entries
+      // are still absent, which is the assertion that keeps this honest: the module opened by
+      // one code, it did not open wholesale.
+      { group: "Finance", items: ["Takings"] },
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["Customers"] },
       { group: "Reporting", items: ["Reports", "Realtime Dashboard"] },
@@ -284,7 +308,16 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Overview", items: ["Dashboard"] },
       {
         group: "Finance",
-        items: ["Accounts", "Journal Entries", "General Ledger", "Periods", "Expenses", "AP Aging"],
+        // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
+        items: [
+          "Takings",
+          "Accounts",
+          "Journal Entries",
+          "General Ledger",
+          "Periods",
+          "Expenses",
+          "AP Aging",
+        ],
       },
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "Reporting", items: ["Reports"] },

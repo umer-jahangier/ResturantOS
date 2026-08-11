@@ -94,10 +94,17 @@ export const tenantNavItems: NavItem[] = [
     feature: "FEATURE_INVENTORY",
   },
   {
+    // 37-12: lands on Takings, not the chart of accounts — the evening cash-up is what this
+    // module is opened for (D-37-02). `any` mirrors the three codes `DailyTakingsController`
+    // gates on, so the BRANCH MANAGER who actually counts the drawer can reach it; the ledger
+    // tabs behind it keep needing `finance.journal.view` (see the finance layout's inner guard).
+    // Checked against live tokens: a cashier holds `pos.till.open`/`close` but NOT
+    // `pos.till.review`, so this does not put branch revenue in front of the till operator.
     label: "Finance",
-    href: "/app/finance/accounts",
+    href: "/app/finance/takings",
     icon: Wallet,
-    permission: "finance.journal.view",
+    permission: ["finance.journal.view", "pos.order.view.all", "pos.till.review"],
+    permissionMode: "any",
     feature: "FEATURE_FINANCE",
   },
   {
@@ -236,6 +243,15 @@ export const navGroups: NavGroup[] = [
   {
     label: "Finance",
     items: [
+      {
+        // 37-12. Leads the group for the same reason it leads the tab bar.
+        label: "Takings",
+        href: "/app/finance/takings",
+        icon: Wallet,
+        permission: ["finance.journal.view", "pos.order.view.all", "pos.till.review"],
+        permissionMode: "any",
+        feature: "FEATURE_FINANCE",
+      },
       {
         label: "Accounts",
         href: "/app/finance/accounts",
