@@ -410,8 +410,24 @@ public class AuthServiceImpl implements AuthService {
      * deliberate dropping of the step-up marker and the absence of rotation. Rotating tenant tokens
      * is a separate decision with its own multi-tab failure modes; this phase does not take it.
      */
+    /**
+     * <h3>{@code noRollbackFor} is load-bearing, and it was a live defect without it</h3>
+     *
+     * <p>{@link #refreshPlatform} responds to a detected token replay by revoking every live session
+     * for that platform user and THEN refusing. {@code AuthenticationFailedException} is a
+     * {@code RuntimeException}, so without this attribute Spring rolls the transaction back on the
+     * way out and <b>un-revokes the sessions the method just revoked</b> — leaving the reuse
+     * detection as a log line and a 401 with no effect on the credential that was replayed.
+     *
+     * <p>Measured, not theorised. Against the live stack, before this was added: replaying a spent
+     * token correctly returned 401, and its successor then still returned <b>200</b>. The alarm
+     * fired and nothing happened. The same shape as the {@code PasswordChangeRequiredException}
+     * entry on {@link #login} above, and found the same way — by exercising the real thing rather
+     * than by a test. No unit test could have caught it: mocks record that the revocation was
+     * called, which it was.
+     */
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = AuthenticationFailedException.class)
     public RefreshResult refresh(String rawRefreshToken) {
         RefreshSessionEntity peek = refreshSessionService.findForRedemption(rawRefreshToken)
             .orElseThrow(() -> new AuthenticationFailedException("Invalid refresh session"));

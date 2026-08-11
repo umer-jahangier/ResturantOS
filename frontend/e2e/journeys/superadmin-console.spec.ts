@@ -54,14 +54,18 @@ async function signInAsSuperAdmin(page: import("@playwright/test").Page): Promis
 }
 
 /**
- * Reach a tenant's detail screen the way a SuperAdmin actually can: by clicking.
+ * Reach a tenant's detail screen by clicking through the list.
  *
- * <b>`page.goto` would fail, and not because of anything on this page.</b> A platform session
- * cannot survive a full page load — see test F, which pins the cause. The access token is
- * memory-only by design, and the platform login issues an EMPTY `refresh_token`, so any navigation
- * that reloads the document drops the session and `SessionProvider` sends the browser to
- * `/login?reason=session_expired`. Client-side navigation keeps the token in memory, which is why
- * every screen here is reached by clicking through the list rather than by URL.
+ * <p>This used to carry a warning that `page.goto` "would fail, and not because of anything on this
+ * page" — a platform session could not survive a full document load, so every screen here had to be
+ * reached by client-side navigation to keep the memory-only access token alive. <b>16b-01 fixed the
+ * cause</b> (a platform login now issues a real, short-lived rotating refresh token) and test F
+ * proves a URL load works, so the workaround is gone.
+ *
+ * <p>The clicking remains, but it is now a CHOICE rather than a constraint, and a better one for
+ * this particular helper: it exercises the tenant list's links, so a detail screen that is only
+ * reachable by typing its URL would fail here — which is what a console's navigation should
+ * guarantee. Deep linking is asserted directly, once, in test F.
  */
 async function openTenant(page: import("@playwright/test").Page, brandName: string): Promise<void> {
   await page
@@ -263,55 +267,49 @@ test.describe("SuperAdmin platform console", () => {
   });
 
   /**
-   * F · PINNED DEFECT — a SuperAdmin cannot reload, deep-link, or open a platform page in a new tab.
+   * F · A SuperAdmin session survives a full page load — reload, deep link and new tab.
    *
-   * <h3>What was measured</h3>
+   * <h3>What this replaced</h3>
    *
-   * Found while building this console: `page.goto('/platform/tenants/{id}')` after a successful
-   * SuperAdmin login lands on `/login` reading "Your session expired. Please sign in again."
+   * Until 16b-01 this slot held a PINNED DEFECT asserting the opposite: that a platform login
+   * issued `Set-Cookie: refresh_token=;` — an empty cookie — so any document load dropped the
+   * session and `SessionProvider` redirected to `/login?reason=session_expired`. That pin existed to
+   * go red the day somebody fixed the cause, and to tell them to delete it and drop `openTenant`'s
+   * click-through workaround. Both have now been done.
    *
-   * The cause is one header. `POST /api/v1/auth/login` sets an <b>empty</b> refresh cookie for a
-   * platform user and a real one for a tenant user:
+   * <h3>Why the assertion is a RELOAD and not a cookie shape</h3>
    *
-   * <pre>
-   *   platform: Set-Cookie: refresh_token=;         Path=/api/v1/auth; Max-Age=604800; HttpOnly
-   *   tenant:   Set-Cookie: refresh_token=eyJhbGci… Path=/api/v1/auth; Max-Age=604800; HttpOnly
-   * </pre>
+   * The old test asserted a header, because a header was all it could reach without the fix. The
+   * thing anyone actually cares about is this: a SuperAdmin who presses F5 is still signed in. So
+   * that is what is asserted — through the real browser, on a real reload, with the access token
+   * genuinely gone from memory. A cookie assertion would pass on a cookie that was well-formed and
+   * useless, which is exactly the failure mode being replaced.
    *
-   * The access token is memory-only by design, so a document load has nothing to rehydrate from:
-   * `SessionProvider` calls `/auth/refresh`, the empty cookie fails, and the browser is redirected.
-   * 13-05 states a platform session deliberately has no refresh token ("it re-authenticates rather
-   * than refreshes, so no long-lived platform credential exists to be stolen") — a defensible
-   * security posture whose browser consequence was never worked through. It predates this phase and
-   * is not fixable inside it: the fix belongs in auth-service or in a platform-specific rehydration
-   * path, neither of which this workstream owns.
-   *
-   * <h3>Why this test asserts the DEFECT rather than the fix</h3>
-   *
-   * Following the `known-defects.ts` philosophy: name it once, pin it, and make the pin fail when
-   * somebody fixes it. Asserting the correct behaviour would leave a permanently red test that gets
-   * ignored; asserting the current behaviour means the day a real refresh token appears here, this
-   * test goes red and tells the reader to delete it and drop `openTenant`'s click-through workaround.
+   * The platform refresh token is SINGLE-USE and rotating, so each reload spends one token and
+   * receives its successor. Reloading twice is deliberate: once proves rehydration works, twice
+   * proves the ROTATION works — a broken successor would let the first reload pass and the second
+   * fail, and a test that only reloaded once would ship that.
    */
-  test("F · PINNED DEFECT: a platform login issues no usable refresh token", async ({
-    gateway,
-  }) => {
-    const platform = await gateway.post(`${GATEWAY_URL}/api/v1/auth/login`, {
-      data: SUPERADMIN,
-    });
-    expect(platform.status()).toBe(200);
+  test("F · a SuperAdmin stays signed in across a reload and a deep link", async ({ page }) => {
+    await signInAsSuperAdmin(page);
+    await expect(page.getByTestId("platform-chip")).toBeVisible();
 
-    const platformCookie = (platform.headersArray() ?? [])
-      .filter((h) => h.name.toLowerCase() === "set-cookie")
-      .find((h) => h.value.startsWith("refresh_token="));
+    // 1 · Reload. Before 16b-01 this alone landed on /login?reason=session_expired.
+    await page.reload();
+    await expect(page.getByTestId("platform-chip")).toBeVisible({ timeout: 20_000 });
+    expect(page.url(), "a reload must not bounce the SuperAdmin to the sign-in form").not.toContain(
+      "/login",
+    );
 
-    expect(platformCookie, "the platform login still sets a refresh_token cookie").toBeTruthy();
-    expect(
-      platformCookie!.value.startsWith("refresh_token=;"),
-      "PINNED DEFECT — if this fails, a platform login now issues a REAL refresh token. That is " +
-        "the fix: a SuperAdmin can reload and deep-link again. Delete this test and simplify " +
-        "openTenant() to a plain page.goto.",
-    ).toBe(true);
+    // 2 · Reload again — the successor token from reload 1 must itself be redeemable.
+    await page.reload();
+    await expect(page.getByTestId("platform-chip")).toBeVisible({ timeout: 20_000 });
+    expect(page.url()).not.toContain("/login");
+
+    // 3 · Deep link by URL, which is a full document load and was the original symptom.
+    await page.goto("/platform/tenants");
+    await expect(page.getByTestId("tenant-table")).toBeVisible({ timeout: 20_000 });
+    expect(page.url()).not.toContain("/login");
   });
 });
 
