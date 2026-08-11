@@ -20,6 +20,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  *
  * <p>It lives in its own file because `vi.mock` is hoisted per module graph, and mocking `node:fs`
  * for the whole queue suite would replace the real filesystem those tests deliberately use.
+ *
+ * <h2>What would actually test durability</h2>
+ *
+ * <p>A filesystem that can be made to lie: a loopback block device whose writeback can be dropped,
+ * or a fault-injecting FUSE mount that acknowledges writes it never commits. Then the assertion is
+ * on data surviving a simulated power loss rather than on a call being made. That is a phase of
+ * work, not a task, and it is not this one — recorded so the gap is a known one rather than an
+ * assumption that this file closed it.
  */
 
 const fsyncSpy = vi.fn();
