@@ -1,0 +1,172 @@
+{
+  "capturedAt": "2026-08-11T19:40:30.772Z",
+  "routes": {
+    "dashboard|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "tables|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "orders|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "menu-items|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "finance|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 21
+    },
+    "finance-takings|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 21
+    },
+    "hr-attendance|light": {
+      "attempts": 4,
+      "cleanCapture": false,
+      "residualAlerts": [
+        "Couldn't load the employee roster. This module is temporarily unavailable. Try again in a moment.Try again",
+        "Couldn't load leave types. This module is temporarily unavailable. Try again in a moment.Try again",
+        "Couldn't load the quarantine queue. This module is temporarily unavailable. Try again in a moment.Try again"
+      ],
+      "navItemCount": 23
+    },
+    "hr-employees|light": {
+      "attempts": 4,
+      "cleanCapture": false,
+      "residualAlerts": [
+        "Couldn't load the employee roster. This module is temporarily unavailable. Try again in a moment.Try again"
+      ],
+      "navItemCount": 23
+    },
+    "reports|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "settings|light": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "dashboard|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "tables|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "orders|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "menu-items|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "finance|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 21
+    },
+    "finance-takings|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 21
+    },
+    "hr-attendance|dark": {
+      "attempts": 4,
+      "cleanCapture": false,
+      "residualAlerts": [
+        "Couldn't load the employee roster. This module is temporarily unavailable. Try again in a moment.Try again",
+        "Couldn't load leave types. This module is temporarily unavailable. Try again in a moment.Try again",
+        "Couldn't load the quarantine queue. This module is temporarily unavailable. Try again in a moment.Try again"
+      ],
+      "navItemCount": 23
+    },
+    "hr-employees|dark": {
+      "attempts": 4,
+      "cleanCapture": false,
+      "residualAlerts": [
+        "Couldn't load the employee roster. This module is temporarily unavailable. Try again in a moment.Try again"
+      ],
+      "navItemCount": 23
+    },
+    "reports|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    },
+    "settings|dark": {
+      "attempts": 1,
+      "cleanCapture": true,
+      "residualAlerts": [],
+      "navItemCount": 19
+    }
+  },
+  "navStability": {
+    "counts": [
+      19,
+      19,
+      19,
+      19,
+      19,
+      19
+    ],
+    "distinctCompositions": 1,
+    "stable": true,
+    "compositions": [
+      [
+        "Dashboard",
+        "POS",
+        "Kitchen Display",
+        "Till Review",
+        "Inventory",
+        "Menu Items",
+        "Tables",
+        "Stations",
+        "POS Terminals",
+        "Guide",
+        "Takings",
+        "Purchasing",
+        "Customers",
+        "Reports",
+        "Realtime Dashboard",
+        "Ask (NLQ)",
+        "Dashboard",
+        "Orders",
+        "Menu"
+      ]
+    ]
+  }
+}

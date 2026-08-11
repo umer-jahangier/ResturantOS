@@ -1,0 +1,35 @@
+{
+  "skipLink": {
+    "count": 0,
+    "texts": []
+  },
+  "tabsToReachMain": {
+    "tabs": 22,
+    "reached": "A :: Vendors"
+  },
+  "rowActionButtons": [],
+  "tableChrome": {
+    "theadPosition": "static",
+    "wrapperOverflow": "hidden",
+    "tableWidth": 1086,
+    "wrapperWidth": 1088,
+    "rowHeights": [
+      65,
+      81
+    ],
+    "hasPagination": false,
+    "paginationText": "Showing 1",
+    "selectionCheckboxes": 0,
+    "nativeSelects": 1
+  },
+  "toastRegion": {
+    "tag": "DIV",
+    "live": "polite",
+    "sonner": false
+  },
+  "containingBlockOnPos": {
+    "count": 0,
+    "sample": []
+  },
+  "animationsOnPos": []
+}

@@ -1003,6 +1003,78 @@ Plans:
 
 **Plans**: TBD
 
+### Phase 38: ERP Design Transformation
+
+**Goal**: Deliver `.planning/DESIGN-BRIEF.md` steps 5–20 — the complete UI/UX transformation of the
+Restaurant ERP — on top of the design vocabulary phases 20 and 34 already shipped. Adoption of a
+system that exists, plus the gates that stop it drifting again. No new design vocabulary.
+**Depends on**: Phase 20 (OKLCH tokens, 53 measured pairings), Phase 34 (zones, glass, depth,
+motion), Phase 21 (KDS + dashboards)
+**Source**: `.planning/DESIGN-BRIEF.md` (product owner, 2026-08-12) · audit in
+`.planning/phases/38-erp-design-transformation/38-AUDIT.md` (56 screenshots, 4 live browser probes)
+**Contract**: `38-CONTEXT.md` (D-38-01…D-38-10), `UI-SPEC.md`
+
+**What the audit measured** (all re-measurable; full table in `38-AUDIT.md` §13):
+986 Tailwind type-scale classes against 1 contract-token class · 12 distinct font sizes shipped
+against a contract of 8 · 37 hand-rolled `<table>` against 4 uses of the shared one · 0 sticky
+table headers of 12 · 6 status-badge implementations · 6 confirmation implementations and 0
+primitives · 60 files with their own `<h1>` and no `PageHeader` · 0 skip links · **22 Tab presses
+to reach page content** · 108 sub-44px targets on one screen · 100 elements past the viewport at
+390px. Verified intact and to be kept: **0 containing-block creators and 0 animations on the POS
+route**, 0 routes with horizontal page scroll, 24 runtime dependencies.
+
+**Success Criteria**:
+
+  1. The phase-20 type and space scales are bridged and adopted; `--text-body` is the dominant body size; ≤ 8 distinct font sizes render.
+  2. One `DataGrid` serves the list screens — sticky headers, one row height per table, pagination, selection, bulk actions, and a card fallback below `md`. Hand-rolled `<table>` count ≤ 6.
+  3. One `StatusBadge`, one `ConfirmDialog`, one `PageHeader`, one `PageBody`.
+  4. POS and KDS remain operational: 0 compositing filters, 0 animations, 0 containing-block creators, and the receipt path verified by **rendering a real PDF and extracting its text**.
+  5. A skip link on every route; ≤ 2 Tab presses to `<main>`; exactly one `<h1>` per route; 0 unlabelled inputs; 0 sub-44px operational targets.
+  6. Loading, empty, **filtered-empty**, error and success states complete; 0 files with `isLoading` and no error path; error salience never lowered.
+  7. Every screen adapts at 390 / 768 / 1024 / 1440 — 0 elements past the viewport and 0 occluded interactive controls.
+  8. Zero new runtime dependencies; zero new design tokens; the CSS delta recorded against phase 34's baseline.
+  9. Gates G1–G13 green, **each with its negative control observed and recorded** — no gate is trusted until it has been watched failing.
+ 10. Brief §71's 35 acceptance criteria answered individually; items blocked on backend work reported as **not met, with the reason**, never quietly ticked.
+
+**Plans**:
+
+*Wave 1 — foundation*
+- [ ] 38-01-PLAN.md — the type and space bridge, `PageHeader`, `PageBody` (D-38-02)
+
+*Wave 2 — primitives*
+- [ ] 38-02-PLAN.md — `DataGrid` and `FilterBar`, the one table for 30+ screens
+- [ ] 38-03-PLAN.md — one `StatusBadge`, one `ConfirmDialog`, the visual form contract
+
+*Wave 3 — operational surfaces, where a wrong UI costs money (D-38-03)*
+- [ ] 38-04-PLAN.md — POS terminal: operator shell, touch-first layout, print path kept intact
+- [ ] 38-05-PLAN.md — KDS: counter collision, viewport ownership, bounded elapsed time
+- [ ] 38-06-PLAN.md — orders and tables, incl. diagnosing the Floor View that reports no tables
+
+*Wave 4 — back office breadth*
+- [ ] 38-07-PLAN.md — inventory, menu and purchasing onto the grid
+- [ ] 38-08-PLAN.md — customers, staff and finance, with takings as the standard
+- [ ] 38-09-PLAN.md — dashboards, reports and analytics; delete the bar that always reads 100%
+- [ ] 38-10-PLAN.md — settings and auth, beginning with the audit TOTP blocked
+- [ ] 38-11-PLAN.md — the command palette, which currently answers "ord" with "Dashboard"
+
+*Wave 5 — cross-cutting quality*
+- [ ] 38-12-PLAN.md — loading / empty / error / success completeness
+- [ ] 38-13-PLAN.md — micro-interactions and selective depth: adopt, do not extend
+- [ ] 38-14-PLAN.md — responsive: adapt the interface, do not shrink it
+- [ ] 38-15-PLAN.md — accessibility: the 22-Tab journey, targets, labels, landmarks
+- [ ] 38-16-PLAN.md — performance: bundle, re-renders, dependency budget
+
+*Wave 6 — close*
+- [ ] 38-17-PLAN.md — visual and interaction consistency audit, and regression
+
+**Explicitly out of scope** — recorded so no plan builds a facade (`38-AUDIT.md` §11–12):
+`<select>` migration, live validation and server-error→field mapping belong to **Phase 35**
+(D-35-01…05, plans 35-06…35-14 written and unexecuted). Blocked on backend work: KPI comparison
+data (§13), floor-plan occupancy and seat-time (§17), order facets by server/customer (§19),
+expiry/wastage/valuation columns (§20), personalisation persistence (§45), the notification centre
+(§52 — service unregistered), the activity timeline (§53). The HR screens could not be visually
+audited: `hr-service` has no listener and returns 503.
+
 ## Progress
 
 **Execution Order:**

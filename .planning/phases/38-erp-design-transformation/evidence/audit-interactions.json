@@ -1,0 +1,149 @@
+{
+  "commandPalette": {
+    "present": true,
+    "role": "dialog",
+    "ariaModal": null,
+    "labelled": true,
+    "described": true,
+    "width": 384,
+    "height": 250,
+    "radius": "11.2px",
+    "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0",
+    "overlayBackdrop": "none",
+    "inputCount": 1,
+    "inputsWithoutLabel": [],
+    "placeholderOnlyLabels": [],
+    "focusInside": true,
+    "activeElement": "INPUT.flex h-10 w-full rounded-md bg",
+    "nativeSelects": 0,
+    "requiredMarked": 0
+  },
+  "commandPaletteResults": {
+    "text": "Command palette\nNavigation\nDashboard",
+    "items": 1
+  },
+  "poDialog": {
+    "present": true,
+    "role": "dialog",
+    "ariaModal": null,
+    "labelled": true,
+    "described": true,
+    "width": 768,
+    "height": 464,
+    "radius": "11.2px",
+    "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0",
+    "overlayBackdrop": "none",
+    "inputCount": 6,
+    "inputsWithoutLabel": [],
+    "placeholderOnlyLabels": [],
+    "focusInside": true,
+    "activeElement": "SELECT.h-8 w-full rounded-lg border b",
+    "nativeSelects": 2,
+    "requiredMarked": 0
+  },
+  "tableDialog": {
+    "present": true,
+    "role": "dialog",
+    "ariaModal": null,
+    "labelled": true,
+    "described": true,
+    "width": 448,
+    "height": 371,
+    "radius": "11.2px",
+    "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0",
+    "overlayBackdrop": "none",
+    "inputCount": 3,
+    "inputsWithoutLabel": [],
+    "placeholderOnlyLabels": [],
+    "focusInside": true,
+    "activeElement": "BUTTON.text-muted-foreground transiti",
+    "nativeSelects": 0,
+    "requiredMarked": 0
+  },
+  "focusTrail": [
+    {
+      "tag": "BUTTON",
+      "text": "Floating Terrace HQ",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "231x28"
+    },
+    {
+      "tag": "A",
+      "text": "Dashboard",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "POS",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Kitchen Display",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Till Review",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Inventory",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Menu Items",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Tables",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Stations",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "POS Terminals",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Guide",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    },
+    {
+      "tag": "A",
+      "text": "Takings",
+      "outline": "2px solid",
+      "inView": true,
+      "size": "239x36"
+    }
+  ]
+}
