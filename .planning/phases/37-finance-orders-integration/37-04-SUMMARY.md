@@ -80,22 +80,43 @@ coverage:
     human_judgment: false
   - id: D5
     description: "Task 2 — a journal entry names its source in words an owner recognises"
-    verification: []
-    human_judgment: true
-    rationale: "NOT STARTED. SourceReferenceResolver, SourceReferenceDto, PosLookupClient and the four-state resolved/unresolvable/failed/absent contract do not exist. 37-11 will render raw UUIDs until this lands."
+    verification:
+      - kind: unit
+        ref: "SourceReferenceResolverTest (7 tests — all four states, degradation, no-fabrication)"
+        status: pass
+      - kind: e2e
+        ref: "resolveSource=true → orderNo ORD-20260811-0004 on both entries; omitted → zero lookups"
+        status: pass
+    human_judgment: false
 
 duration: 50min
 completed: 2026-08-11
-status: partial
+status: complete
 ---
 
 # Phase 37 Plan 04: Journal Entry Traceability Summary
 
 **An order id now returns every journal entry it produced — revenue, cost-of-sales and refund — through a permission-guarded, index-backed endpoint, verified live with balanced entries. The human-readable source reference (task 2) is not built.**
 
-## STATUS: PARTIAL — task 1 of 2 complete
+## STATUS: COMPLETE — both tasks done and live-verified
 
-Task 1 is done and verified against the live stack. **Task 2 is not started.**
+Task 2 landed in commit `02b3aa5`. Four distinguishable states (RESOLVED / NOT_APPLICABLE /
+UNSUPPORTED_SOURCE_TYPE / LOOKUP_FAILED), a dedicated Feign client with an explicit 1s/2s timeout
+and NO fallback (a fallback returns a value, and any value here would be a fabricated order
+number), resolution on the single-entry read and opt-in on the list read.
+
+`SourceReferenceResolverTest` 7/7. Live:
+
+```
+by-source/0dc09465…?resolveSource=true
+  JE-2027-000044 entry=ORDER_REVENUE ref=ORDER_REVENUE orderNo=ORD-20260811-0004 RESOLVED
+  JE-2027-000045 entry=ORDER_COGS    ref=ORDER_COGS    orderNo=ORD-20260811-0004 RESOLVED
+flag omitted → 2 entries, zero references, zero pos calls
+```
+
+**A bug caught live before shipping:** resolving once and attaching the SAME object to every entry
+of an order labelled the ORDER_COGS entry as ORDER_REVENUE. One order id still needs only one
+lookup, but each entry now keeps its own `sourceType`.
 
 ## The plan's query key was wrong, and the plan's own objective says why
 
@@ -196,12 +217,12 @@ entries from an owner tracing an order. Tenant isolation is unaffected — it co
 `sslmode=disable` + `tcpKeepAlive=true`. Committed separately as `161d681` with the environment
 correction, since it is the fix that disproved my own false "Testcontainers cannot run here" claim.
 
-## Not done — task 2
+## Task 2 — done
 
-`SourceReferenceResolver`, `SourceReferenceDto`, `PosLookupClient`, the four-state
-resolved / unresolvable-for-type / lookup-failed / absent contract, the opt-in list flag, and the
-degradation-under-unavailable-pos behaviour are **all unbuilt**. Until they land, 37-11 can link a
-journal entry to its order id but must render a raw UUID rather than an order number.
+Built and verified. See the STATUS section above. Note for 37-12/37-13: the resolver's four states
+are returned by the API but the Transactions screen does not yet *render* them — it shows the order
+number carried on the register row instead. Surfacing "entered by hand" / "could not be read" to a
+user is still to do.
 
 ## Guide claims this plan makes true
 
@@ -230,4 +251,4 @@ None new. The endpoint takes no tenant parameter and carries the seeded `finance
 
 ---
 *Phase: 37-finance-orders-integration*
-*Completed: 2026-08-11 (PARTIAL — task 1 of 2)*
+*Completed: 2026-08-11*

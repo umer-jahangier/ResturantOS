@@ -53,6 +53,14 @@ SUMMARY → state/roadmap). Plans 37-04 … 37-14 are NOT started.
   GOVERNING RULE for 37-03..37-12: do NOT edit claims.json and do NOT place markers; record the
   claim sentence and its test identifier in your own SUMMARY. 37-13 writes the rows in one pass.
 
+37-04 COMPLETE — by-source journal lookup + the four-state source reference. Two plan defects
+  caught by checking live data first: the plan's (sourceType,sourceId) PAIR key returns 1 of the 3
+  entries an order posts; and the plan's gate permission pos.report.view DOES NOT EXIST.
+37-08 PARTIAL — the money-event register query and endpoint are live-verified (38 events,
+  Rs 58,447.00 net). TransactionRegisterIT and the V13 index migration are NOT written.
+37-11 COMPLETE — Finance now opens on Transactions. Verified in a real browser with screenshots:
+  totals band, 38 rows, and drill-through to two BALANCED journal entries.
+
 37-03 BLOCKED at its own human checkpoint — the code fix is landed and committed (reporting reads
   the producer's business date; a null dead-letters rather than falling back). The realignment of
   the 73 historic misdated facts is authored (deploy/clickhouse/V003) and NOT applied. To finish:
