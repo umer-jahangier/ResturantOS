@@ -151,13 +151,49 @@ ENVIRONMENT FACTS that affect every remaining plan in this phase:
   those ITs CAN be run. Run them. Verifying against the live stack as well is better still, but it
   is an addition, not a substitute.
 
-DEFECT-37-03-B — NEW, found during 37-03, NOT fixed:
-  clickhouse_analytics.sales_order_facts.closed_at is NOT the true instant. SalesFactWriter:47
-  passes `Timestamp.from(instant)` to JDBC with no Calendar, so the driver renders it in the JVM's
-  default zone and stores branch-local wall-clock in a column declared DateTime64(3,'UTC').
-  Measured +5h on 73 of 73 sampled rows against pos_db. Every time-of-day report over these facts
-  is wrong by the JVM offset. Fix it in 37-06/37-07, which both rewrite SalesFactWriter; a backfill
-  of existing rows is also required.
+DEFECT-37-03-B — FIXED AND BACKFILLED 2026-08-12 (commits 206876d8, aed99b2d).
+
+  THE ORIGINAL DIAGNOSIS RECORDED HERE WAS WRONG, AND ITS IMPLIED FIX WAS ALSO WRONG. It is kept
+  below, struck through, because an executor who had acted on it would have shipped a still-broken
+  writer and believed it fixed. That is the failure this note now exists to prevent.
+
+  WRONG (as recorded 2026-08-11): "SalesFactWriter:47 passes Timestamp.from(instant) to JDBC with
+  no Calendar, so the driver renders it in the JVM's default zone." The implication — add a UTC
+  Calendar — is false. Measured against live ClickHouse 25.9 / clickhouse-jdbc 0.8.6 in
+  Asia/Karachi, binding 2026-07-16T14:30:00.932Z:
+
+      ps.setTimestamp(i, ts)                  CORRECT      <- the driver was never the problem
+      ps.setTimestamp(i, ts, utcCalendar)     +5h WRONG    <- the "obvious fix" makes it no better
+      ps.setObject(i, ts)                     +5h WRONG
+      ps.setObject(i, OffsetDateTime @UTC)    CORRECT
+      jdbcTemplate.update(sql, ts)            +5h WRONG    <- the actual production path
+
+  RIGHT: Spring never calls setTimestamp. StatementCreatorUtils.isDateValue() explicitly EXCLUDES
+  java.sql.Timestamp, so a Timestamp argument falls through to ps.setObject(), which this driver
+  renders in the JVM default zone; the DateTime64(3,'UTC') column then reads that wall-clock as
+  UTC. The bug is in the Spring/driver seam, not in either alone — which is why reading the code
+  could not settle it and a probe against the real database could.
+
+  SCOPE WAS WIDER THAN RECORDED. Not just SalesFactWriter: all THREE ETL writers had it
+  (SalesFactWriter, TillSessionFactWriter, PurchaseTaxFactWriter) across all FOUR
+  DateTime64(3,'UTC') columns. All now route through the single seam AnalyticsInstant.utc(),
+  which returns an OffsetDateTime so no driver or JVM zone can reinterpret it.
+
+  ("73 of 73 sampled rows" does not correspond to anything now in the database; the tables held 44
+  rows when this was repaired. The +5h finding itself reproduced exactly.)
+
+  WHY IT SURVIVED: no test in the suite had ever read a timestamp column back — four green ETL
+  tests asserted money and business_date only. Two assertions now exist and BOTH were demonstrated
+  to fail on the old code (18000000 ms out): EtlPipelineIT end to end, and AnalyticsInstantBindingIT,
+  which FORCES a non-UTC JVM zone because the defect is invisible to a suite that inherits a UTC
+  CI zone.
+
+  BACKFILL: scripts/ops/phase37-repair-analytics-utc-drift.py. Corrects each row to the instant on
+  the event that produced it (joined on event_id from the producing service's event_outbox) rather
+  than subtracting five hours — so it is idempotent and a no-op on already-correct rows. 44 rows
+  repaired; verified by re-read, by a second dry run, by cross-checking all 11 sales_order_facts
+  against pos_db to the millisecond, and by replaying an ORDER_CLOSED through the live rebuilt
+  service (drift_ms = 0).
 -->
 
 # Project State
@@ -325,9 +361,12 @@ the work true: 37-03's business-date claim (its migration is unapplied and still
 and 37-08's transaction-grain claim (no IT exists). Both should be added the moment their proof
 lands.
 
-**STILL OPEN in phase 37:** 37-05, 37-06, 37-07, 37-10, 37-14; DEFECT-37-03-B (`SalesFactWriter:47`,
-+5h on 73/73 sampled rows); 37-08's `TransactionRegisterIT` and V13 index; 37-09's `DailyTakingsIT`;
-37-03's blocked migration.
+**STILL OPEN in phase 37:** 37-05, 37-06, 37-07, 37-10, 37-14; 37-08's `TransactionRegisterIT` and
+V13 index; 37-09's `DailyTakingsIT`; 37-03's blocked migration.
+
+**DEFECT-37-03-B is CLOSED** (2026-08-12, commits 206876d8 + aed99b2d) — writers fixed, 44 rows
+backfilled, verified live. Its original diagnosis was wrong in a way that mattered; see the
+corrected entry near the top of this file before touching the ETL writers.
 
 **Litter I created and am declaring:** probing the open-till rule left a Rs 1.00 cash payment on
 `ORD-20260812-0003`, now **voided** (the payment survives as a void event, which is correct), plus
