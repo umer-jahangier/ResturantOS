@@ -470,6 +470,48 @@
   --motion-slow: 240ms;
   --motion-ease: cubic-bezier(0.2, 0, 0.38, 1);
 
+  /* ═══ PHASE 34 · the motion vocabulary (D-34-01, D-34-03) ═════════════════
+     Five families, every duration and easing NAMED rather than inlined at a
+     call site. The four durations above stay authoritative and unchanged;
+     these sit beside them.
+
+     ── On the two durations that exceed §3.12's 240ms ceiling ──────────────
+     --motion-entrance (420ms) and --motion-reveal (620ms) break the ceiling,
+     and that is a ZONE-SCOPED EXTENSION, not a reversal. Read why the ceiling
+     exists before moving it: 240ms is there because an operator navigates
+     roughly 200 times a shift and every millisecond is paid 200 times. Nobody
+     navigates a login screen 200 times a shift, and nobody watches a chart
+     draw itself in twice in a row.
+
+     So the ceiling STILL BINDS on restrained and operational surfaces. Only
+     the expressive zone may reach these two, enforced by the entrance and
+     reveal classes being scoped to [data-zone="expressive"] and asserted by
+     __tests__/lib/motion/motion-vocabulary.test.ts. */
+  --motion-entrance: 420ms;
+  --motion-entrance-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* A sequenced reveal is ONE token and an index, not a hand-written delay per
+     child — which is how a stagger drifts out of rhythm as items are added. */
+  --motion-stagger: 55ms;
+
+  --motion-hover: 140ms;
+  --motion-hover-ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* State transitions — focus ring, checkbox, selection. Feedback, not
+     decoration: these SURVIVE reduced motion at the instant duration, because
+     removing them makes a control feel broken rather than calm. */
+  --motion-state: 120ms;
+
+  --motion-loading: 1600ms;
+
+  /* Success / error acknowledgement. Deliberately brief: an error must be on
+     screen and readable immediately, never gated behind a flourish. */
+  --motion-feedback: 200ms;
+
+  /* Data reveal — a chart drawing itself in on first mount. Expressive only. */
+  --motion-reveal: 620ms;
+  --motion-reveal-ease: cubic-bezier(0.33, 1, 0.68, 1);
+
   /* ── z-index scale (§3.12). There was none, which is how overlays fight. ── */
   --z-base: 0;
   --z-sticky: 10;
@@ -748,6 +790,109 @@
   }
 }
 
+/* ═════════════════════════════════════════════════════════════════════════════
+   PHASE 34 · THE RESTING-STATE CONTRACT — read this before adding a keyframe
+   ─────────────────────────────────────────────────────────────────────────────
+   An animated element's STATIC style IS its FINISHED style. The keyframe's
+   opening frame carries the offset (a translation, a scale, a dash offset) and
+   its closing frame carries nothing, so the animation moves the element from an
+   offset toward where it already was.
+
+   The opposite authoring is the intuitive one, and it is a bug that renders as
+   a blank screen:
+
+       .thing        { opacity: 0 }          ← WRONG. Never do this.
+       @keyframes in { to { opacity: 1 } }
+
+   Written that way, the element is invisible until a keyframe runs. Then a
+   reduced-motion user — for whom D-34-03 requires decorative motion to be
+   ABSENT, not fast — sees nothing at all. So does anyone whose animation fails,
+   whose tab is backgrounded, or whose compositor is paused. The content is
+   simply gone, and it looks like a data-loading bug rather than a motion bug,
+   which is why it survives review.
+
+   `motion-vocabulary.test.ts` asserts this structurally: no animation class may
+   set a zero opacity, a non-identity transform, or a hidden visibility as its
+   RESTING declaration. That makes the defect unrepresentable rather than merely
+   discouraged.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes vdlEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+@keyframes vdlEnterScale {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes vdlReveal {
+  from {
+    opacity: 0;
+    stroke-dashoffset: var(--vdl-reveal-length, 1000);
+  }
+}
+
+/*
+ * Entrance and reveal are scoped to the expressive zone — same mechanism plan
+ * 34-02 used for glass, and the same reason. These are the two families that
+ * exceed §3.12's 240ms ceiling, so the cascade is what keeps them off a
+ * restrained list page and an operational terminal.
+ *
+ * Note there is NO resting declaration on these classes: the element's normal
+ * style is already correct, and the class only attaches an animation. Delete
+ * the animation and the element is still right where it belongs.
+ */
+[data-zone="expressive"] .vdl-enter {
+  animation: vdlEnter var(--motion-entrance) var(--motion-entrance-ease) both;
+}
+
+[data-zone="expressive"] .vdl-enter-scale {
+  animation: vdlEnterScale var(--motion-entrance) var(--motion-entrance-ease) both;
+}
+
+[data-zone="expressive"] .vdl-reveal {
+  animation: vdlReveal var(--motion-reveal) var(--motion-reveal-ease) both;
+}
+
+/*
+ * Stagger: one token and an index. `--vdl-i` is set per child by the Reveal
+ * primitive (34-04), so adding a sixth item does not require rewriting five
+ * delays.
+ */
+[data-zone="expressive"] .vdl-stagger > * {
+  animation: vdlEnter var(--motion-entrance) var(--motion-entrance-ease) both;
+  animation-delay: calc(var(--vdl-i, 0) * var(--motion-stagger));
+}
+
+/*
+ * Hover lift — available to RESTRAINED surfaces too, but bound to the fast
+ * duration there. A list row may acknowledge a pointer; it may not perform.
+ */
+.vdl-lift {
+  transition:
+    transform var(--motion-hover) var(--motion-hover-ease),
+    box-shadow var(--motion-hover) var(--motion-hover-ease);
+}
+
+[data-zone="expressive"] .vdl-lift:hover {
+  transform: translate3d(0, var(--depth-lift-y), 0);
+  box-shadow: var(--depth-lift-shadow);
+}
+
+[data-zone="restrained"] .vdl-lift {
+  transition-duration: var(--motion-fast);
+}
+
+[data-zone="restrained"] .vdl-lift:hover {
+  box-shadow: var(--elev-2);
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -811,6 +956,54 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /*
+   * D-34-03 asks for decorative motion to be ABSENT, not fast. A two-frame
+   * version of a flourish is still a vestibular trigger and still a paint, so
+   * these families are removed outright rather than collapsed by the global
+   * safety net below.
+   *
+   * This is only safe because of the resting-state contract: every element
+   * below is already in its finished position, so deleting the animation leaves
+   * it correct rather than invisible. `reduced-motion.spec.ts` asserts exactly
+   * that — full opacity, no residual transform — rather than merely asserting
+   * stillness, because a blank screen is perfectly still.
+   */
+  [data-zone="expressive"] .vdl-enter,
+  [data-zone="expressive"] .vdl-enter-scale,
+  [data-zone="expressive"] .vdl-reveal,
+  [data-zone="expressive"] .vdl-stagger > * {
+    animation: none !important;
+  }
+
+  /* The lift is a transform on hover — a decorative movement, so it goes. The
+     shadow may stay: it conveys the same affordance without moving anything. */
+  [data-zone="expressive"] .vdl-lift:hover,
+  [data-zone="restrained"] .vdl-lift:hover {
+    transform: none !important;
+  }
+
+  .vdl-lift {
+    transition: box-shadow var(--motion-instant) !important;
+  }
+
+  /* The perpetual loading shimmer is a permanent animation on screen. Removed;
+     the skeleton keeps its flat --muted fill, which still reads as a
+     placeholder. */
+  .skeleton {
+    animation: none !important;
+    background: var(--muted) !important;
+  }
+
+  /*
+   * The global safety net, unchanged from phase 20. It stays BELOW the explicit
+   * rules above and covers what they cannot name: third-party animation, legacy
+   * classes, and anything added later that forgets this block exists.
+   *
+   * State transitions — a focus ring, a checkbox, a selection — deliberately
+   * survive at this collapsed duration rather than being removed. Those are
+   * FEEDBACK, not decoration, and taking them away makes a control feel broken
+   * rather than calm.
+   */
   *,
   ::before,
   ::after {
