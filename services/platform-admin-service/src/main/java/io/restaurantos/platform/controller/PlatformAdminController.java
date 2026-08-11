@@ -1,5 +1,6 @@
 package io.restaurantos.platform.controller;
 
+import io.restaurantos.platform.config.TierFeatureDefaults;
 import io.restaurantos.platform.dto.PlatformDtos.*;
 import io.restaurantos.platform.entity.TenantEntity;
 import io.restaurantos.platform.repository.TenantRepository;
@@ -8,6 +9,7 @@ import io.restaurantos.platform.service.ImpersonationService;
 import io.restaurantos.platform.service.ProvisioningService;
 import io.restaurantos.platform.service.TenantLifecycleService;
 import io.restaurantos.platform.service.TenantSubscriptionService;
+import io.restaurantos.platform.service.UsageService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.security.JwtClaims;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -40,6 +43,8 @@ public class PlatformAdminController {
     private final TenantSubscriptionService subscriptionService;
     private final FeatureFlagAdminService featureFlagService;
     private final ImpersonationService impersonationService;
+    private final UsageService usageService;
+    private final TierFeatureDefaults tierFeatureDefaults;
     private final TenantRepository tenantRepository;
 
     public PlatformAdminController(ProvisioningService provisioningService,
@@ -47,12 +52,16 @@ public class PlatformAdminController {
                                     TenantSubscriptionService subscriptionService,
                                     FeatureFlagAdminService featureFlagService,
                                     ImpersonationService impersonationService,
+                                    UsageService usageService,
+                                    TierFeatureDefaults tierFeatureDefaults,
                                     TenantRepository tenantRepository) {
         this.provisioningService = provisioningService;
         this.lifecycleService    = lifecycleService;
         this.subscriptionService = subscriptionService;
         this.featureFlagService  = featureFlagService;
         this.impersonationService = impersonationService;
+        this.usageService        = usageService;
+        this.tierFeatureDefaults = tierFeatureDefaults;
         this.tenantRepository    = tenantRepository;
     }
 
@@ -184,9 +193,38 @@ public class PlatformAdminController {
 
     // --- Feature flags ---
 
+    /**
+     * A tenant's feature flags, and — since 19c — where each value came from.
+     *
+     * <p><b>What was missing.</b> This returned a bare {@code Map<String,Boolean>}, so
+     * {@code "FEATURE_CRM": false} (an operator's deliberate revocation on control-bistro) and
+     * {@code "FEATURE_ANALYTICS": false} (simply not in the STARTER tier) arrived byte-identical.
+     * Four rows in this database carry {@code is_override = true} and no client could see one of
+     * them. 13-14 added that column so tier reconciliation would neither wipe a deliberate override
+     * nor refuse to disable anything; withholding it from the API meant the console could not show
+     * an operator which of their settings the next tier change will respect — which is the entire
+     * reason the column exists.
+     *
+     * <p><b>Additive, not a replacement.</b> The {@code features} map is unchanged and still first
+     * in the payload, so {@code scripts/e2e/phase13-subscription-e2e.sh} (which greps this body for
+     * {@code "FEATURE_X":true}) and {@code superadmin-tenant-lifecycle.spec.ts} keep passing. The
+     * gateway's {@code /internal/**} twin is not touched at all: it feeds enforcement, it does not
+     * need provenance, and widening an enforcement path to serve a screen is how enforcement paths
+     * acquire bugs.
+     *
+     * <p>Defaults are computed against the tenant's CURRENT tier and that tier is returned
+     * alongside, so the screen never has to assume the tenant row it fetched separately is still
+     * current.
+     */
     @GetMapping("/tenants/{tenantId}/features")
-    public ResponseEntity<ApiResponse<FeaturesResponse>> getFeatures(@PathVariable UUID tenantId) {
-        return ResponseEntity.ok(ApiResponse.ok(new FeaturesResponse(featureFlagService.getFeatures(tenantId))));
+    public ResponseEntity<ApiResponse<TenantFeaturesResponse>> getFeatures(@PathVariable UUID tenantId) {
+        TenantEntity tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+        Map<String, Boolean> defaults = tierFeatureDefaults.defaultsFor(tenant.getTier().name());
+        return ResponseEntity.ok(ApiResponse.ok(new TenantFeaturesResponse(
+            tenant.getTier().name(),
+            featureFlagService.getFeatures(tenantId),
+            featureFlagService.getFeatureStates(tenantId, defaults))));
     }
 
     @PatchMapping("/tenants/{tenantId}/features/{featureCode}")
@@ -196,6 +234,52 @@ public class PlatformAdminController {
             @Valid @RequestBody FeatureToggleRequest req) {
         boolean result = featureFlagService.setFeature(tenantId, featureCode, req.enabled());
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    /**
+     * Drop a SuperAdmin override and hand the code back to tier control (19c).
+     *
+     * <p>The counterpart to {@code PATCH .../features/{code}}, which sets the override marker on
+     * every call by design. Without this there is no way back: once touched, a row is excluded from
+     * tier reconciliation permanently, and an operator who toggled a flag by mistake has silently
+     * pinned it against every future upgrade and downgrade.
+     *
+     * <p>The value is reset to the current tier's default in the same transaction — a row claiming
+     * to be "inherited" while holding the override's value would be contradicted by the very next
+     * read.
+     */
+    @DeleteMapping("/tenants/{tenantId}/features/{featureCode}/override")
+    public ResponseEntity<ApiResponse<Boolean>> clearFeatureOverride(
+            @PathVariable UUID tenantId,
+            @PathVariable String featureCode) {
+        TenantEntity tenant = tenantRepository.findById(tenantId)
+            .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+        boolean tierDefault = Boolean.TRUE.equals(
+            tierFeatureDefaults.defaultsFor(tenant.getTier().name()).get(featureCode));
+        return ResponseEntity.ok(ApiResponse.ok(
+            featureFlagService.clearOverride(tenantId, featureCode, tierDefault)));
+    }
+
+    // --- Usage against entitlement ---
+
+    /**
+     * What this tenant is entitled to, and what they have used where that is knowable (19c).
+     *
+     * <p>Closes the read half of GA-011 — {@code /usage}, {@code /usage-summary},
+     * {@code /entitlements} and {@code /limits} were all <b>404</b> with a valid SUPER_ADMIN token —
+     * and GA-083, the four entitlement ceilings that the tenant list has always returned and no UI
+     * has ever read.
+     *
+     * <p><b>It reports honestly that almost nothing is metered.</b> {@code usage_records} holds 0
+     * rows with 0 producers and the NLQ counter has 0 keys; exactly one dimension (branches) has a
+     * real live count. The response marks each meter as counted / not-metered / unreadable rather
+     * than defaulting a missing count to {@code 0}, because a console showing four confident zeros
+     * for a tenant with seven branches and forty staff is worse than no console — an operator would
+     * act on it. See {@code UsageService.meters}.
+     */
+    @GetMapping("/tenants/{tenantId}/usage")
+    public ResponseEntity<ApiResponse<TenantUsageResponse>> getUsage(@PathVariable UUID tenantId) {
+        return ResponseEntity.ok(ApiResponse.ok(usageService.meters(tenantId)));
     }
 
     // --- Impersonation ---

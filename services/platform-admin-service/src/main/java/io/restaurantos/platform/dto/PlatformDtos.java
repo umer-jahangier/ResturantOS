@@ -200,7 +200,151 @@ public final class PlatformDtos {
     public record ProvisionResult(UUID tenantId, String slug, String adminEmail,
                                   String tempPassword, String loginUrl) {}
 
+    /**
+     * The gateway's view of a tenant's flags: code → enabled, and nothing else.
+     *
+     * <p><b>Deliberately unchanged by 19c.</b> This shape is consumed by the gateway's
+     * {@code PlatformAdminClient}, by {@code FeatureFlagPublicController}, and by three assertions
+     * in {@code TenantSubscriptionIT}. An enforcement path is not a good place to discover that a
+     * console needed a richer payload — the console got {@link TenantFeaturesResponse} instead.
+     */
     public record FeaturesResponse(Map<String, Boolean> features) {}
+
+    /**
+     * Where a tenant's current value for a feature code came from.
+     *
+     * <p>This is the distinction {@code tenant_features.is_override} was added for in 13-14 and
+     * that the API did not expose until 19c. Without it, a console cannot tell an operator's
+     * deliberate decision apart from a tier default — the two are the same {@code false} on the
+     * wire — and UI-SPEC §7.5's requirement that "inherit" and "force" be distinguishable at a
+     * glance cannot be met.
+     *
+     * <p>It is derived on the server rather than in the browser because the tier→default matrix
+     * ({@code TierFeatureDefaults}) is backend state. A client computing this would need its own
+     * copy of that matrix, and a duplicated matrix is wrong from the first time a code changes tier.
+     */
+    public enum FeatureSource {
+        /** No override. The value is whatever the tier says, and a tier change will move it. */
+        TIER_DEFAULT,
+        /**
+         * An operator set this row, and it happens to agree with the tier's default. Reverting it
+         * changes nothing <i>today</i> — but the marker still matters, because reconciliation skips
+         * this row on the next tier change while a TIER_DEFAULT row of the same value would move.
+         */
+        OVERRIDE_MATCHES_TIER,
+        /** An operator switched ON a module this tier does not include. Survives a downgrade. */
+        OVERRIDE_GRANT,
+        /** An operator switched OFF a module this tier does include. Survives an upgrade. */
+        OVERRIDE_REVOKE,
+        /**
+         * The tier matrix knows this code but the tenant has no row for it — a tenant provisioned
+         * before the code existed. The gateway reads a missing row as disabled, so this is shown as
+         * off; the next tier change backfills it.
+         */
+        UNSEEDED
+    }
+
+    /**
+     * One feature code as the console needs to render it.
+     *
+     * @param enabled     the stored value the gateway enforces right now
+     * @param tierDefault what this tenant's CURRENT tier would give if the override were removed.
+     *                    Shown beside an override so an operator can see what they are diverging
+     *                    from — "Force off (tier grants this)" rather than a bare "Off".
+     * @param isOverride  {@code tenant_features.is_override} verbatim, no interpretation
+     * @param source      {@link FeatureSource}, derived from the three fields above
+     */
+    public record FeatureState(
+        String code,
+        boolean enabled,
+        boolean tierDefault,
+        boolean isOverride,
+        FeatureSource source
+    ) {}
+
+    /**
+     * The SuperAdmin-facing feature payload (19c).
+     *
+     * <p>{@code features} is retained byte-for-byte from {@link FeaturesResponse} so existing
+     * callers keep working — {@code scripts/e2e/phase13-subscription-e2e.sh} asserts on
+     * {@code "FEATURE_X":true} appearing in this body, and the Playwright lifecycle journey asserts
+     * the response contains {@code FEATURE_}. Both still pass. {@code featureStates} is additive.
+     *
+     * @param tier the tier the defaults in {@code featureStates} were computed against. Carried
+     *             explicitly so the screen never has to assume it still holds the tenant row it
+     *             fetched a moment ago — a tier change between the two calls would otherwise render
+     *             every "tier default" against the wrong tier.
+     */
+    public record TenantFeaturesResponse(
+        String tier,
+        Map<String, Boolean> features,
+        java.util.List<FeatureState> featureStates
+    ) {}
+
+    /**
+     * One entitlement dimension: what the tenant is allowed, and what they have used — when that
+     * second number is knowable at all.
+     *
+     * <p><b>The three states below are not interchangeable, and collapsing them is the defect this
+     * record exists to prevent.</b> The audit found `usage_records` with 0 rows and 0 producers; a
+     * response that reported {@code used: 0} for every resource would be indistinguishable from a
+     * platform where nothing has happened yet, and a console rendering "0 / 50 branches" for a
+     * tenant with seven live branches is worse than a console with no usage screen — decisions get
+     * made on it.
+     *
+     * <ul>
+     *   <li>{@code metered=true, used=n} — really counted. {@code used=0} here means zero happened.
+     *   <li>{@code metered=false, used=null} — nothing records this. The screen must say so in
+     *       words, never render a number.
+     *   <li>{@code unavailable=true, used=null} — a real meter that could not be read on this
+     *       request. Same posture as 13-03's tenant status: undeterminable is neither zero nor
+     *       permissive, so the screen reports a failure rather than a comforting number.
+     * </ul>
+     *
+     * @param limit  the tier ceiling from {@code TierLimits}, stamped on the tenant row. Never
+     *               {@code Long.MAX_VALUE} — that placeholder (GA-052) was the entitlement half of
+     *               usage-against-entitlement being thrown away.
+     * @param source plain-language provenance, rendered in the UI. An operator looking at "Not
+     *               metered" is owed the reason.
+     */
+    public record UsageMeter(
+        String resource,
+        String unit,
+        Long used,
+        long limit,
+        boolean metered,
+        boolean unavailable,
+        String source
+    ) {
+        /** A dimension nothing records. */
+        public static UsageMeter notMetered(String resource, String unit, long limit, String why) {
+            return new UsageMeter(resource, unit, null, limit, false, false, why);
+        }
+
+        /** A real meter, read successfully. */
+        public static UsageMeter counted(String resource, String unit, long used, long limit, String src) {
+            return new UsageMeter(resource, unit, used, limit, true, false, src);
+        }
+
+        /** A real meter whose value could not be obtained. Refused, not defaulted. */
+        public static UsageMeter unreadable(String resource, String unit, long limit, String why) {
+            return new UsageMeter(resource, unit, null, limit, true, true, why);
+        }
+    }
+
+    /**
+     * Usage against entitlement for one tenant (19c, closing GA-011's read half and GA-083).
+     *
+     * @param anyMetered false when NOT ONE dimension is actually recorded. The console renders a
+     *                   single honest banner in that case instead of four "Not metered" rows that
+     *                   each look like an isolated omission rather than a platform-wide one.
+     */
+    public record TenantUsageResponse(
+        UUID tenantId,
+        String tier,
+        java.util.List<UsageMeter> meters,
+        boolean anyMetered
+    ) {}
 
     /**
      * Doc 4 §4.2, extended by 13-14 with {@code nlqQuota}.

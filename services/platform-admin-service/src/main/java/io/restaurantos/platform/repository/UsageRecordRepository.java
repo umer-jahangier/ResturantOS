@@ -18,4 +18,15 @@ public interface UsageRecordRepository extends JpaRepository<UsageRecordEntity, 
 
     List<UsageRecordEntity> findByTenantId(UUID tenantId);
     long countByTenantIdAndResource(UUID tenantId, String resource);
+
+    /**
+     * Every resource name this tenant has at least one record for (19c).
+     *
+     * <p>Used by {@code UsageService.meters} to surface resources a future producer starts
+     * emitting without needing a code change here. Today it returns nothing —
+     * {@code select count(*) from usage_records} is 0 — which is exactly why the read endpoint
+     * must not report a fabricated number for the resources it enumerates by hand.
+     */
+    @Query("SELECT DISTINCT u.resource FROM UsageRecordEntity u WHERE u.tenantId = :tenantId ORDER BY u.resource")
+    List<String> findDistinctResourcesByTenantId(@Param("tenantId") UUID tenantId);
 }

@@ -102,12 +102,26 @@ public class PlatformInternalController {
             new ImpersonateResponse(result.token(), result.expiresIn())));
     }
 
-    /** Record usage telemetry for a tenant resource (called by domain services). */
+    /**
+     * Record usage telemetry for a tenant resource (called by domain services).
+     *
+     * <p><b>Both numbers in this response were wrong (GA-051, GA-052).</b> {@code newCount} was the
+     * ROW COUNT rather than the summed quantity — record 5 then 3 and it answered 2 — and
+     * {@code limit} was the literal {@code Long.MAX_VALUE}, which is the entitlement half of
+     * usage-against-entitlement thrown away at the moment it becomes useful. A caller comparing the
+     * two to decide whether to keep serving a tenant would have compared a cardinality against
+     * infinity and always continued.
+     *
+     * <p>The service now returns the summed quantity and the real tier ceiling from the tenant row.
+     * A resource with no ceiling concept reports {@code -1} — "not capped" — which a caller can
+     * tell apart from a large cap, whereas {@code Long.MAX_VALUE} was indistinguishable from both.
+     */
     @PostMapping("/tenants/{tenantId}/usage")
     public ResponseEntity<ApiResponse<UsageRecordResponse>> recordUsage(
             @PathVariable UUID tenantId,
             @Valid @RequestBody UsageRecordRequest req) {
-        long newCount = usageService.record(tenantId, req.resource(), req.delta());
-        return ResponseEntity.ok(ApiResponse.ok(new UsageRecordResponse(newCount, Long.MAX_VALUE)));
+        long total = usageService.record(tenantId, req.resource(), req.delta());
+        long limit = usageService.limitFor(tenantId, req.resource());
+        return ResponseEntity.ok(ApiResponse.ok(new UsageRecordResponse(total, limit)));
     }
 }

@@ -1,5 +1,7 @@
 package io.restaurantos.platform.service;
 
+import io.restaurantos.platform.dto.PlatformDtos.FeatureSource;
+import io.restaurantos.platform.dto.PlatformDtos.FeatureState;
 import io.restaurantos.platform.entity.TenantFeatureEntity;
 import io.restaurantos.platform.repository.TenantFeatureRepository;
 import org.slf4j.Logger;
@@ -11,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,6 +51,108 @@ public class FeatureFlagAdminService {
                 TenantFeatureEntity::getFeatureCode,
                 TenantFeatureEntity::isEnabled
             ));
+    }
+
+    /**
+     * The same flags as {@link #getFeatures(UUID)}, plus the one fact that method structurally
+     * cannot carry: whether each value is a tier default or a decision somebody made.
+     *
+     * <p><b>Why this exists (19c).</b> {@code getFeatures} returns {@code Map<String,Boolean>}, so
+     * on the wire {@code "FEATURE_CRM": false} — deliberately revoked by an operator on
+     * control-bistro — is byte-identical to {@code "FEATURE_ANALYTICS": false}, which is merely
+     * absent from the STARTER tier. Four rows in this database carry {@code is_override = true} and
+     * every client was blind to all four. 13-14 added the column precisely so
+     * {@link #reconcileToTierDefaults} would not undo deliberate settings, and that logic reads it
+     * correctly — but a console cannot show an operator which of their modules will survive the
+     * next tier change if the API refuses to tell it which ones it is protecting.
+     *
+     * <p>{@code getFeatures} is left alone rather than widened. Its callers are the gateway's
+     * fallback path, {@code FeatureFlagPublicController} and three integration assertions; none of
+     * them wants this, and an enforcement path is the wrong place to absorb a console's needs.
+     *
+     * <p>Codes present in {@code defaults} but absent from {@code tenant_features} are reported as
+     * {@link FeatureSource#UNSEEDED} rather than omitted. Omitting them would make a tenant
+     * provisioned before a code existed look like a tenant that has that code switched off, and
+     * those two states behave differently on the next tier change — the second is skipped only if
+     * marked, the first is created.
+     *
+     * @param defaults the CURRENT tier's matrix, from {@code TierFeatureDefaults.defaultsFor}
+     * @return one entry per known code, ordered by code so the screen does not reshuffle on refetch
+     */
+    public List<FeatureState> getFeatureStates(UUID tenantId, Map<String, Boolean> defaults) {
+        Map<String, TenantFeatureEntity> rows = featureRepository.findByTenantId(tenantId).stream()
+            .collect(Collectors.toMap(TenantFeatureEntity::getFeatureCode, f -> f, (a, b) -> a));
+
+        // Union of both sides. A row for a code the tier matrix has since dropped is still real and
+        // still enforced by the gateway, so hiding it would hide a live grant.
+        Set<String> codes = new TreeSet<>(defaults.keySet());
+        codes.addAll(rows.keySet());
+
+        List<FeatureState> states = new ArrayList<>(codes.size());
+        for (String code : codes) {
+            boolean tierDefault = Boolean.TRUE.equals(defaults.get(code));
+            TenantFeatureEntity row = rows.get(code);
+
+            if (row == null) {
+                // No row: the gateway reads a cache/DB miss as disabled, so this reports as off
+                // regardless of what the tier would grant. Saying otherwise would describe an
+                // entitlement the tenant does not currently have.
+                states.add(new FeatureState(code, false, tierDefault, false, FeatureSource.UNSEEDED));
+                continue;
+            }
+
+            boolean enabled = row.isEnabled();
+            FeatureSource source;
+            if (!row.isOverride()) {
+                source = FeatureSource.TIER_DEFAULT;
+            } else if (enabled == tierDefault) {
+                source = FeatureSource.OVERRIDE_MATCHES_TIER;
+            } else if (enabled) {
+                source = FeatureSource.OVERRIDE_GRANT;
+            } else {
+                source = FeatureSource.OVERRIDE_REVOKE;
+            }
+            states.add(new FeatureState(code, enabled, tierDefault, row.isOverride(), source));
+        }
+        return List.copyOf(states);
+    }
+
+    /**
+     * Drop a SuperAdmin override and put the row back under tier control.
+     *
+     * <p>The revert control UI-SPEC §7.5 requires ("an explicit override renders solid with an
+     * 'Overridden' chip and a revert control"). Clearing the marker is not cosmetic: it is the
+     * difference between a row reconciliation will move on the next tier change and one it will
+     * skip forever. There is no other way back — {@link #setFeature} sets the marker on every call,
+     * by design, so an operator toggling a flag twice cannot accidentally un-mark it.
+     *
+     * <p>The value is reset to the tier default in the same transaction, because leaving the value
+     * where the override put it while claiming the row is "inherited" would be a lie the very next
+     * read exposes. Both Redis key shapes are re-written when the value actually moves — through
+     * the same private helper the other two writers use, so no path can update one shape and leave
+     * the other serving the previous answer.
+     *
+     * @return the value the row now holds (the tier default)
+     */
+    @Transactional
+    public boolean clearOverride(UUID tenantId, String featureCode, boolean tierDefault) {
+        TenantFeatureEntity row = featureRepository
+            .findByTenantIdAndFeatureCode(tenantId, featureCode)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "No feature row for tenant=" + tenantId + " code=" + featureCode
+                    + " — there is no override to clear"));
+
+        boolean valueMoved = row.isEnabled() != tierDefault;
+        row.setEnabled(tierDefault);
+        row.setOverride(false);
+        featureRepository.save(row);
+
+        if (valueMoved) {
+            invalidateBothKeyShapes(tenantId, featureCode, tierDefault);
+        }
+        log.info("[feature-flag] tenant={} feature={} override CLEARED — back to the tier default "
+            + "of {} (value {}moved)", tenantId, featureCode, tierDefault, valueMoved ? "" : "un");
+        return tierDefault;
     }
 
     /**
