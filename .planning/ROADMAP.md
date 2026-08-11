@@ -120,7 +120,7 @@ Plans:
 - [ ] 37-06-PLAN.md — tender facts: the missing half of daily takings *(wave 2)*
 - [ ] 37-07-PLAN.md — cost of sales attributed to the line that consumed it *(wave 2, closes 22b D-8 data half)*
 - [~] 37-08-PLAN.md — the transaction register, at money-event grain, bounded and indexed *(wave 2)* — **query + endpoint live-verified; TransactionRegisterIT and the V13 index migration NOT written**
-- [ ] 37-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)*
+- [~] 37-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)* — **API live-verified in pos-service (till counts are not in ClickHouse); no screen (37-12) and no IT**
 - [ ] 37-10-PLAN.md — cost and margin reported, with a check a mirrored error cannot pass *(wave 3)*
 - [x] 37-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
 - [ ] 37-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)*

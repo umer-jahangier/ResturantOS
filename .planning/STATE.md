@@ -61,6 +61,11 @@ SUMMARY → state/roadmap). Plans 37-04 … 37-14 are NOT started.
 37-11 COMPLETE — Finance now opens on Transactions. Verified in a real browser with screenshots:
   totals band, 38 rows, and drill-through to two BALANCED journal entries.
 
+37-09 PARTIAL — daily takings API, live-verified. Built in POS-SERVICE not reporting-service:
+  till counts (declared_closing_paisa) exist only in pos_db, so a reporting-side screen could show
+  takings and NOT whether the drawer matched. Real variance surfaced: +3,673,095 paisa OVER.
+  No screen yet (37-12), no IT.
+
 37-03 BLOCKED at its own human checkpoint — the code fix is landed and committed (reporting reads
   the producer's business date; a null dead-letters rather than falling back). The realignment of
   the 73 historic misdated facts is authored (deploy/clickhouse/V003) and NOT applied. To finish:
