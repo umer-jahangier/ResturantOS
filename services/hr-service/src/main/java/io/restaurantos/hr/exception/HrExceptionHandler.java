@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * and which one wins is registration-dependent.
  */
 @RestControllerAdvice
+@lombok.extern.slf4j.Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class HrExceptionHandler {
 
@@ -47,5 +48,36 @@ public class HrExceptionHandler {
     public ResponseEntity<ApiError> handleTotpRequired(TotpRequiredException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiError.of("TOTP_REQUIRED", ex.getMessage(), traceId()));
+    }
+
+    /**
+     * An unrecognised or inactive biometric terminal gets 401, not 500.
+     *
+     * <p>{@code DeviceAuthException} carries {@code @ResponseStatus(UNAUTHORIZED)} and it has never
+     * run: the shared advice ends in {@code @ExceptionHandler(Exception.class)} and
+     * {@code ExceptionHandlerExceptionResolver} consults advices before the annotation, so the
+     * catch-all won. Measured live through the gateway:
+     *
+     * <pre>GET /iclock/cdata?SN=UNKNOWN-DEVICE-999 → 500 INTERNAL_ERROR</pre>
+     *
+     * <p>The identical defect this class was created to fix, on a second exception in the same
+     * service — which is the argument for the class existing rather than for another
+     * {@code @ResponseStatus}.
+     *
+     * <p>It matters more here than a wrong status usually does. An ADMS terminal polls every 3–8
+     * seconds forever, so an unknown device produced a 500 and a stack trace on every poll: a log
+     * flood that buries real failures, and a device that can never learn it is unauthorised
+     * because 500 reads as "the server is broken, retry" while 401 reads as "you are not enrolled".
+     *
+     * <p>The message is deliberately not echoed. The caller is an unauthenticated device on a
+     * public path, and the exception's text names why the lookup failed — unknown serial versus
+     * inactive versus bad token — which is exactly the distinction not to hand an attacker probing
+     * serial numbers.
+     */
+    @ExceptionHandler(io.restaurantos.hr.adms.DeviceAuthException.class)
+    public ResponseEntity<ApiError> handleDeviceAuth(io.restaurantos.hr.adms.DeviceAuthException ex) {
+        log.warn("Device authentication refused: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiError.of("DEVICE_AUTH_FAILED", "Device not recognised", traceId()));
     }
 }
