@@ -13,12 +13,31 @@
  */
 
 /*
- * The `size` descriptor with an explicit length reached baseline browser availability in
- * December 2024 (research §4.1). `auto` height is what makes this a continuous strip rather than a
- * narrow block centred on A4.
+ * TWO LENGTHS, NOT `80mm auto`.
+ *
+ * `size: 80mm auto` is INVALID CSS and this file shipped with it. The grammar is
+ * `size: <length>{1,2} | auto | [<page-size> || [portrait|landscape]]` — `auto` is a standalone
+ * keyword and cannot be combined with a length, so the whole declaration is dropped as
+ * unparseable. Measured in Chromium rather than reasoned about (26-05 task 4):
+ *
+ *   size: 80mm auto;    -> cssText "@page { margin: 0px; }"        PDF 215.90mm x 279.40mm  <- US LETTER
+ *   size: 80mm;         -> cssText "@page { size: 80mm; ... }"     PDF  80.09mm x  80.09mm  <- a SQUARE page
+ *   size: 80mm 297mm;   -> cssText "@page { size: 80mm 297mm; }"   PDF  80.09mm x 297.01mm  <- correct
+ *
+ * The failure was silent and looked fine on screen: the `@page` rule was still present, the
+ * margin still applied, and only the page GEOMETRY was wrong — so the bill printed as a 72mm
+ * strip of content centred on a Letter sheet. That is why the e2e assertion measures the PDF
+ * MediaBox and not the rule's text: `size: 80mm` would satisfy a "contains 80mm" check while
+ * paginating a receipt into 80mm squares.
+ *
+ * Height is 297mm (A4) rather than `auto`, because `auto` height cannot be expressed here at all.
+ * A thermal printer on continuous paper ignores the page height and feeds to the cut; an office
+ * printer — the level-3 fallback this tier exists for — gets a sheet it understands. A receipt
+ * longer than 297mm paginates onto a second 80mm page, which is honest; `size: 80mm` would
+ * paginate every 80mm.
  */
 @page {
-  size: 80mm auto;
+  size: 80mm 297mm;
   margin: 0;
 }
 
