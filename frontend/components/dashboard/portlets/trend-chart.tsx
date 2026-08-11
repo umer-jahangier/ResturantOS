@@ -68,6 +68,7 @@ const PAD_B = 26;
  */
 export function TrendChart({ categories, series, className }: TrendChartProps) {
   const gradientId = useId();
+  const maskId = useId();
   const plotW = VIEW_W - PAD_L - PAD_R;
   const plotH = VIEW_H - PAD_T - PAD_B;
 
@@ -79,6 +80,16 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
   const x = (i: number) =>
     categories.length <= 1 ? PAD_L : PAD_L + (i / (categories.length - 1)) * plotW;
   const y = (v: number) => PAD_T + plotH - (v / max) * plotH;
+
+  /*
+   * The reveal length, computed from the geometry rather than measured from the DOM.
+   *
+   * `getTotalLength()` would need a ref, a layout pass and a state write, and would produce a
+   * different number on the server than in the browser. The plot is a straight horizontal
+   * sweep, so the sweep length is simply the plot width plus the left pad — arithmetic, on
+   * both renderers, with no effect and no re-render.
+   */
+  const revealLength = PAD_L + plotW;
 
   return (
     <figure className={cn("m-0", className)} data-testid="trend-chart">
@@ -94,6 +105,49 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
             <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.18" />
             <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0" />
           </linearGradient>
+
+          {/*
+           * The reveal (34-06): a MASK over an unchanged drawing.
+           *
+           * The line below is the only animated thing in this component, and the only property
+           * that animates on it is `stroke-dashoffset` — `.vdl-reveal`'s keyframe carries the
+           * opening offset and nothing else, so the element's resting style is its finished
+           * style (SPEC §4.1). Nothing about the series geometry changes: the polylines, the
+           * polygon and the circles below are byte-for-byte what they were before the reveal
+           * existed, which `dashboard-character.test.tsx` asserts against a captured baseline.
+           *
+           * Why the dash offset is on a MASK rather than on the series strokes themselves:
+           * `stroke-dasharray` is already load-bearing on those strokes. UI-SPEC §3.4 makes the
+           * dash PATTERN a redundant encoding channel because no five-colour categorical
+           * palette is safe under dichromacy, so overwriting it with a reveal-length dash would
+           * trade a CVD contract for an animation. One property, two meanings, and the
+           * accessibility one loses — so the reveal moved to a surface of its own.
+           *
+           * `.vdl-reveal` is scoped to `[data-zone="expressive"]` and removed outright under
+           * reduced motion, so in both of those cases the mask sits at dashoffset 0 — fully
+           * open, chart complete at first paint. Not fast: complete.
+           */}
+          <mask
+            id={maskId}
+            maskUnits="userSpaceOnUse"
+            x="0"
+            y="0"
+            width={VIEW_W}
+            height={VIEW_H}
+          >
+            <line
+              data-testid="trend-chart-reveal-mask"
+              x1="0"
+              y1={VIEW_H / 2}
+              x2={VIEW_W}
+              y2={VIEW_H / 2}
+              stroke="white"
+              strokeWidth={VIEW_H * 2}
+              strokeDasharray={VIEW_W}
+              className="vdl-reveal"
+              style={{ ["--vdl-reveal-length" as string]: `${VIEW_W}` }}
+            />
+          </mask>
         </defs>
 
         {/* Baseline only. Gridlines on four data points is chartjunk. */}
@@ -106,42 +160,60 @@ export function TrendChart({ categories, series, className }: TrendChartProps) {
           strokeWidth="1"
         />
 
-        {series.map((s, si) => {
-          const points = s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
-          const lastIndex = s.values.length - 1;
-          return (
-            <g key={s.label}>
-              {si === 0 && s.values.length > 1 && (
-                <polygon
-                  points={`${PAD_L},${PAD_T + plotH} ${points} ${x(lastIndex)},${PAD_T + plotH}`}
-                  fill={`url(#${gradientId})`}
+        <g mask={`url(#${maskId})`} data-testid="trend-chart-revealed">
+          {series.map((s, si) => {
+            const points = s.values.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+            const lastIndex = s.values.length - 1;
+            return (
+              <g key={s.label}>
+                {si === 0 && s.values.length > 1 && (
+                  <polygon
+                    points={`${PAD_L},${PAD_T + plotH} ${points} ${x(lastIndex)},${PAD_T + plotH}`}
+                    fill={`url(#${gradientId})`}
+                  />
+                )}
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={`var(${s.colorVar})`}
+                  strokeWidth="2.5"
+                  strokeDasharray={s.dash}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              )}
-              <polyline
-                points={points}
-                fill="none"
-                stroke={`var(${s.colorVar})`}
-                strokeWidth="2.5"
-                strokeDasharray={s.dash}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {s.values.map((v, i) => (
-                <circle key={i} cx={x(i)} cy={y(v)} r="3" fill={`var(${s.colorVar})`} />
-              ))}
-              {/* CHANNEL 1 — the name, on the line. No swatch to match. */}
-              {lastIndex >= 0 && (
-                <text
-                  x={x(lastIndex) + 8}
-                  y={y(s.values[lastIndex] ?? 0) + 4}
-                  fill={`var(${s.colorVar})`}
-                  fontSize="12"
-                  fontWeight="700"
-                >
-                  {s.label}
-                </text>
-              )}
-            </g>
+                {s.values.map((v, i) => (
+                  <circle key={i} cx={x(i)} cy={y(v)} r="3" fill={`var(${s.colorVar})`} />
+                ))}
+              </g>
+            );
+          })}
+        </g>
+
+        {/*
+         * CHANNEL 1 — the name, on the line. No swatch to match.
+         *
+         * Rendered OUTSIDE the mask, deliberately. UI-SPEC §3.4 measured the minimum series
+         * separation under deuteranopia at about seventeen and under protanopia at about
+         * sixteen and concluded that no five-colour palette is safe by colour alone. A label
+         * that arrives when the line finishes drawing is a label that is absent for the whole
+         * animation and absent permanently if the animation never runs — so during a reveal the
+         * chart would be identified by colour alone, which is the state §3.4 forbids.
+         */}
+        {series.map((s) => {
+          const lastIndex = s.values.length - 1;
+          if (lastIndex < 0) return null;
+          return (
+            <text
+              key={s.label}
+              data-testid="trend-chart-series-label"
+              x={x(lastIndex) + 8}
+              y={y(s.values[lastIndex] ?? 0) + 4}
+              fill={`var(${s.colorVar})`}
+              fontSize="12"
+              fontWeight="700"
+            >
+              {s.label}
+            </text>
           );
         })}
 
