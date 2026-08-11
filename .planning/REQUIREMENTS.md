@@ -78,13 +78,13 @@
 ### Frontend Shell (FE)
 
 - [ ] **FE-01**: Next.js 16 App Router shell with TS strict, Tailwind CSS 4, shadcn/ui, route groups (auth/platform/tenant)
-- [ ] **FE-02**: Four-layer API abstraction (client/request/errors/types + schemas/adapters/models/repositories/hooks) wired
+- [x] **FE-02**: Four-layer API abstraction (client/request/errors/types + schemas/adapters/models/repositories/hooks) wired
 - [ ] **FE-03**: `middleware.ts` protects tenant and platform routes (redirect to login without valid session)
 - [ ] **FE-04**: Login page (tenant slug from subdomain/`?tenant=`), conditional TOTP step
 - [ ] **FE-05**: Sidebar nav conditioned on permissions + feature flags; BranchSwitcher reissues JWT and invalidates query cache
 - [ ] **FE-06**: `FeatureGuard` and `PermissionGuard` components
 - [ ] **FE-07**: MSW dev mocks for auth endpoints; every API response Zod-parsed before adaptation
-- [ ] **FE-08**: Components never import `lib/api-client` or `lib/repositories` (ESLint enforced); zero `any`; `tsc --noEmit` clean
+- [x] **FE-08**: Components never import `lib/api-client` or `lib/repositories` (ESLint enforced); zero `any`; `tsc --noEmit` clean
 
 ### Design System — Shell (DS)
 

@@ -6,7 +6,7 @@ current_phase: 35
 current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-11T19:05:35.353Z"
+last_updated: "2026-08-11T19:14:49.518Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 35 execution started
 progress:
@@ -299,7 +299,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING
-Plan: 4 of 14
+Plan: 5 of 14
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -592,6 +592,7 @@ _Updated after each plan completion_
 | Phase 35 P01 | 14min | 3 tasks | 14 files |
 | Phase 35 P02 | 21min | 2 tasks | 3 files |
 | Phase 35 P03 | 34min | 3 tasks | 7 files |
+| Phase 35 P04 | 26min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -916,6 +917,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 35-01: overnight shifts (end before start) stay legal — only equal start/end times are refused; 35-11 must use 'end != start'
 - [Phase ?]: 35-02: salary_components discriminators are EARNING/DEDUCTION and FIXED/PERCENT_OF_BASIC; five deduction-map keys are reserved by CHECK
 - [Phase ?]: 35-03: HR config is authorised tenant-wide (same_tenant only); hr.config.view derived from hr.employee.view holders, hr.config.manage enumerated to OWNER/TENANT_ADMIN
+- [Phase ?]: 35-04: the app form standard is useStandardForm (mode onTouched + reValidateMode onChange) + applyServerFieldErrors + shared Select/Combobox; documented in Docs/conventions/form-standard.md
 
 ### Pending Todos
 
@@ -1096,8 +1098,10 @@ plausible-looking time that nothing downstream would flag. Fixed in 25-05 (per-d
 25-03's column); the same class of assumption is worth hunting elsewhere.
 
 **NEXT: 25-06.** Not started. It carries two handoffs from 25-05:
+
   1. the `source_record_id` -> `work_code` COLUMN rename (Java already renamed; 25-06 owns the
      ingest changelog), and
+
   2. giving `AttlogParseOutcome.Rejection` a durable destination. Today a rejected line gets a
      counted warning and no home — a smaller hole than a silent discard, and still a hole against
      D-25-03: a rejection nobody can retrieve is a punch that is still lost, just noisily.
