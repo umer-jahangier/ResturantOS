@@ -311,6 +311,44 @@ column visibility · density toggle · empty / loading / error states · **respo
 | identifier columns | truncated UUIDs (`ca6ed037…`) | a **human identifier** — PO number, order number, SKU. If none exists, the column is not shown |
 | empty columns | "Expected date" is em-dash × 84 | a column with no data on any row is not rendered |
 
+### 7.2.1 Bridging a token into a Tailwind namespace is a product-wide change
+
+**Added 2026-08-12, after 38-01 collapsed every dialog in the product to a 24px sliver.**
+
+38-01 published the seven usage steps into Tailwind's `--spacing-*` namespace so `p-md` and
+`gap-lg` would exist. In Tailwind v4 that namespace is **also** the one the width family
+consults for a *named* key — and it takes precedence over `--container-*`. Measured by
+compiling the shipped stylesheet:
+
+| utility | before | after |
+|---|---|---|
+| `.max-w-sm` | `var(--container-sm)` — 24rem = **384px** | `var(--space-sm)` — **8px** |
+| `.max-w-lg` | `var(--container-lg)` — 32rem = **512px** | `var(--space-lg)` — **24px** |
+
+`components/ui/dialog.tsx` sizes its panel `sm:max-w-sm`, and **53 call sites** override it with
+`max-w-md` / `max-w-lg` / `max-w-2xl`. Every dialog in the product — including screens no design
+plan had touched — became unreadable.
+
+**What makes this a spec item rather than a bug report:** `tsc` was clean, ESLint was clean, all
+1,127 unit tests passed, and 38-01's own type-scale gate went green. jsdom does not apply the
+stylesheet, so a `render()` + `getComputedStyle` test would also have passed. It was found by a
+person looking at a screen. The collision is **total** — the contract's step names
+(`xs sm md lg xl 2xl 3xl`) are exactly the container scale's keys — and re-declaring
+`--container-sm` alongside was measured and does **not** help.
+
+**The rule.** Before publishing into a Tailwind theme namespace, establish *every* utility family
+that reads it. `--spacing-*` is read by padding, margin, gap **and** width/height/max-width/
+min-width. The contract's steps therefore stay plain custom properties, consumed at call sites as
+`p-(--space-lg)` / `gap-(--space-md)`, which compiles to `padding: var(--space-lg)` and can never
+collide because it never enters a namespace.
+
+**Gate:** `__tests__/lib/theme/sizing-namespace.test.ts` resolves each width utility through the
+built stylesheet to a pixel value and fails below a dialog-sized floor; it also asserts
+`--spacing-{step}` is undefined, so the failure names the cause rather than a symptom. Negative
+control: reinstating the bridge produced 6 failures, the first reading *"max-w-sm resolves to 8px
+— a width utility resolved from the spacing namespace"*. A second control shrank `--container-sm`
+to `2rem` to prove the gate tracks the emitted value rather than asserting a constant.
+
 ### 7.3 `FilterBar`
 
 Brief §48. Chips, discoverable, individually removable, `Clear all`, persisted per screen.

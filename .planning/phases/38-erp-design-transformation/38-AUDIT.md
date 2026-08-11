@@ -525,6 +525,53 @@ on `/app/finance`. Note the mark name begins with a **zero-width space** (`U+200
 
 ---
 
+## 10.1 Post-audit addendum — three figures this audit got slightly wrong, and one it could not have found
+
+Recorded 2026-08-12 during 38-01, measured the same way the audit was.
+
+**a. The counts had already drifted upward before execution began.** Re-running this audit's own
+`grep` commands days later, against the same two trees:
+
+| | audit | at the start of 38-01 |
+|---|---|---|
+| Tailwind type-scale classes | 986 | **1,037** |
+| bare `rounded` | 145 | **149** |
+| files hand-rolling `<table>` | 37 | **39** |
+| files declaring their own `<h1>` | 60 | **63** |
+
+Nobody added those deliberately. It is the argument for a conformance gate rather than a cleanup,
+and it is why 38-01's baselines refuse a violation in any file absent from the baseline.
+
+**b. "Expected date is an em-dash on all 84 rows" is 83 of 84, not 84 of 84.** Queried live:
+`GET /api/v1/purchasing/purchase-orders` returns 84 rows, of which **one** carries
+`expectedDeliveryDate: "2026-08-09"`. The column is still nearly worthless; UI-SPEC §7.2's rule
+("a column with no data on *any* row is not rendered") correctly keeps it.
+
+**c. The truncated PO numbers are not a display bug.** The audit read `ca6ed037…` as a UI choice.
+The purchase-order response has **no PO-number field at all** — its keys are `branchId`,
+`closeReason`, `closedAt`, `expectedDeliveryDate`, `id`, `lines`, `notes`, `requesterId`,
+`requiredTiers`, `status`, `submittedAt`, `tiersApproved`, `totalPaisa`, `vendorId`. There is
+nothing human to render. This belongs in §12 (blocked on backend work), not in §5.3.
+
+**d. "POS Floor View says no tables" — diagnosed.** `GET /api/v1/pos/tables?branchId=34cd6f62-…`
+returns **5 active tables**; with `includeInactive=true`, 9 (5 active + 4 retired `E2E-*`). The
+backend and `/app/tables` are both correct. `table-floor-view.tsx` destructured
+`{ data: tables = [], isLoading }` and never read `isError`, so a failure became an empty list —
+GA-001 bug shape 2, which `query-boundary.tsx`'s own docblock names. A second path reaches the
+same false message with no error at all: `useTables` is `enabled: !!branchId`, and in TanStack v5
+a *disabled* query reports `isPending: true` but `isLoading: false`, so the guard fell through
+during session bootstrap. Fixed in 38-01.
+
+**e. What no source count and no browser probe could have found.** 38-01 bridged the space scale
+into Tailwind's `--spacing-*` namespace and thereby redefined `max-w-*` product-wide, collapsing
+every dialog to a 24px sliver. `tsc`, ESLint, 1,127 unit tests and the phase's own new type gate
+were all green. jsdom does not apply the stylesheet, so a `render()` test could not see it. **It
+was found by a person opening a dialog.** Recorded in UI-SPEC §7.2.1 with its gate. The audit's
+own §0 lesson generalises: an instrument that cannot observe the failure mode is not evidence
+about it.
+
+---
+
 ## 11. What is out of phase 38's scope
 
 | Item | Owner | Why |
