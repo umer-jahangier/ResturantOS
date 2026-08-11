@@ -84,6 +84,21 @@ public interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
     long countByTenantIdAndCategoryIdAndArchivedAtIsNull(UUID tenantId, UUID categoryId);
 
     /**
+     * How many LIVE ingredients are stocked in this unit — the first half of the unit-retire guard
+     * (36-05). Case-insensitive because unit codes have never been normalised at rest: fixtures
+     * write {@code KG} while live tenant rows use lowercase {@code g}, and a guard that missed a
+     * lowercase match would let a unit be retired out from under the ingredients using it.
+     */
+    @Query("select count(i) from Ingredient i where i.tenantId = :tenantId "
+            + "and lower(i.baseUomCode) = lower(:code) and i.archivedAt is null")
+    long countLiveByBaseUomCode(@Param("tenantId") UUID tenantId, @Param("code") String code);
+
+    /** The other half: ingredients whose RECIPE unit is this one. */
+    @Query("select count(i) from Ingredient i where i.tenantId = :tenantId "
+            + "and lower(i.recipeUomCode) = lower(:code) and i.archivedAt is null")
+    long countLiveByRecipeUomCode(@Param("tenantId") UUID tenantId, @Param("code") String code);
+
+    /**
      * Ingredient count per {@code categoryId} for {@code tenantId} in a single grouped query —
      * feeds {@code ItemCategoryService}'s list/tree DTOs' {@code ingredientCount} field without
      * issuing one count query per node (08.2-PATTERNS.md's explicit "never one count query per

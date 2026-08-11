@@ -12,6 +12,9 @@ import io.restaurantos.inventory.dto.InventoryDtos.IngredientCategoryLookupDto;
 import io.restaurantos.inventory.dto.InventoryDtos.IngredientConversionDto;
 import io.restaurantos.inventory.dto.InventoryDtos.IngredientDto;
 import io.restaurantos.inventory.dto.InventoryDtos.UomDto;
+import io.restaurantos.inventory.dto.InventoryDtos.UpdateUomRequest;
+import io.restaurantos.inventory.dto.InventoryDtos.UomReferenceBreakdown;
+import io.restaurantos.inventory.feign.PurchasingUomUsageClient;
 import io.restaurantos.inventory.dto.InventoryDtos.UpdateIngredientRequest;
 import io.restaurantos.inventory.exception.IngredientCategoryInvalidException;
 import io.restaurantos.inventory.exception.ItemTypeInvalidException;
@@ -71,8 +74,12 @@ public class IngredientService {
             "Can't change the unit type — stock transactions already exist for this ingredient.";
     private static final String UNCATEGORIZED = "Uncategorized";
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(IngredientService.class);
+
     private final IngredientRepository ingredientRepository;
     private final UnitOfMeasureRepository uomRepository;
+    private final PurchasingUomUsageClient purchasingUomUsageClient;
     private final IngredientUomConversionRepository conversionRepository;
     private final IngredientAllergenRepository allergenRepository;
     private final ItemCategoryRepository itemCategoryRepository;
@@ -85,6 +92,7 @@ public class IngredientService {
 
     public IngredientService(IngredientRepository ingredientRepository,
                               UnitOfMeasureRepository uomRepository,
+                              PurchasingUomUsageClient purchasingUomUsageClient,
                               IngredientUomConversionRepository conversionRepository,
                               IngredientAllergenRepository allergenRepository,
                               ItemCategoryRepository itemCategoryRepository,
@@ -96,6 +104,7 @@ public class IngredientService {
                               TenantContext tenantContext) {
         this.ingredientRepository = ingredientRepository;
         this.uomRepository = uomRepository;
+        this.purchasingUomUsageClient = purchasingUomUsageClient;
         this.conversionRepository = conversionRepository;
         this.allergenRepository = allergenRepository;
         this.itemCategoryRepository = itemCategoryRepository;
@@ -260,8 +269,25 @@ public class IngredientService {
      */
     @Transactional
     public List<UomDto> listUoms() {
+        return listUoms(false);
+    }
+
+    /**
+     * @param includeRetired whether retired units are included. FALSE for every picker; TRUE only
+     *        for the setup screen, which must show a retired unit AS retired rather than let it
+     *        vanish with no explanation of where it went.
+     *
+     * <p>THE CONVERSION PATHS DELIBERATELY DO NOT COME THROUGH HERE. {@code GrnUomResolver} and
+     * {@code UomConverter} read {@code UnitOfMeasureRepository} directly and see retired units, and
+     * they must: a goods receipt recorded last year in a unit since retired has to keep converting,
+     * or the stock valuation it produced becomes unreproducible. A picker must not OFFER the unit;
+     * a conversion must still HONOUR it. The two read paths disagree on purpose.
+     */
+    @Transactional
+    public List<UomDto> listUoms(boolean includeRetired) {
         UUID tenantId = tenantContext.requireTenantId();
         return uomProvisioningService.ensureStandardUoms(tenantId).stream()
+                .filter(u -> includeRetired || u.getArchivedAt() == null)
                 .sorted(Comparator.comparing(UnitOfMeasure::getMeasureType, Comparator.nullsLast(String::compareTo))
                         .thenComparing(UnitOfMeasure::getCode, String.CASE_INSENSITIVE_ORDER))
                 .map(IngredientService::toDto)
@@ -326,6 +352,157 @@ public class IngredientService {
         uom.setBaseUnitCode(baseUnitCode);
         uom.setToBaseFactor(request.toBaseFactor());
         return toDto(uomRepository.save(uom));
+    }
+
+
+    /**
+     * Correct a unit's name, dimension or conversion factor. <b>The code cannot be changed.</b>
+     *
+     * <p>"Why can't I fix the typo in the code?" is the first question a reader will have, and the
+     * answer is not obvious, so it is here and in the refusal message: a unit code is a foreign key
+     * BY VALUE into {@code ingredients.base_uom_code}, {@code ingredients.recipe_uom_code},
+     * {@code ingredient_uom_conversions} on both sides, and — across a database boundary —
+     * {@code purchasing_db.vendor_items.pack_uom}. Nothing can follow those references backwards, so
+     * a rename orphans all of them silently and every goods receipt in the old code stops
+     * converting. Correcting a code is a retire-and-recreate, which is a decision a person should
+     * make explicitly.
+     *
+     * <p>Everything else reuses {@link #createUom}'s validation rather than restating it — the
+     * duplicate check, the family-base invariant and the dimension check are already correct there,
+     * and a second copy is how two paths drift.
+     */
+    @Transactional
+    public UomDto updateUom(UUID id, UpdateUomRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UnitOfMeasure uom = uomRepository.findById(id)
+                .filter(u -> tenantId.equals(u.getTenantId()))
+                .orElseThrow(() -> UomInvalidException.notFound("the unit", String.valueOf(id)));
+
+        String measureType = requireMeasureType(
+                request.measureType() != null ? request.measureType() : uom.getMeasureType());
+
+        Map<String, UnitOfMeasure> byCode = new HashMap<>();
+        for (UnitOfMeasure other : uomProvisioningService.ensureStandardUoms(tenantId)) {
+            byCode.put(UomProvisioningService.normalize(other.getCode()), other);
+        }
+
+        String baseUnitCode = null;
+        if (trimToNull(request.baseUnitCode()) != null) {
+            UnitOfMeasure base = require(byCode, request.baseUnitCode(), "the base unit");
+            if (base.getId().equals(uom.getId())) {
+                throw UomInvalidException.conversionInvalid(
+                        "A unit cannot be measured in itself.");
+            }
+            if (!measureType.equalsIgnoreCase(base.getMeasureType())) {
+                throw UomInvalidException.dimensionMismatch(
+                        "Base unit \"" + base.getCode() + "\" measures " + describe(base.getMeasureType())
+                                + ", but this unit is set to " + describe(measureType) + ".");
+            }
+            if (base.getBaseUnitCode() != null) {
+                throw UomInvalidException.conversionInvalid(
+                        "\"" + base.getCode() + "\" is itself measured in \"" + base.getBaseUnitCode()
+                                + "\". Convert to the base unit of the family directly.");
+            }
+            baseUnitCode = base.getCode();
+        } else if (request.toBaseFactor().compareTo(BigDecimal.ONE) != 0) {
+            throw UomInvalidException.conversionInvalid(
+                    "A unit with no base unit is the base of its own family, so its factor must be 1 — got "
+                            + request.toBaseFactor().stripTrailingZeros().toPlainString() + ".");
+        }
+
+        uom.setName(request.name().trim());
+        uom.setMeasureType(measureType);
+        uom.setBaseUnitCode(baseUnitCode);
+        uom.setToBaseFactor(request.toBaseFactor());
+        return toDto(uomRepository.save(uom));
+    }
+
+    /**
+     * Retire a unit: hidden from every picker, still resolvable by every conversion.
+     *
+     * <p>Refused while anything still names it, with the count per kind — a bare "cannot retire"
+     * turns a correct refusal into an apparently broken button, and the person cannot act on it.
+     *
+     * <p>Idempotent: retiring an already-retired unit succeeds and changes nothing, so a double
+     * click is not an error.
+     */
+    @Transactional
+    public UomDto archiveUom(UUID id) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UnitOfMeasure uom = uomRepository.findById(id)
+                .filter(u -> tenantId.equals(u.getTenantId()))
+                .orElseThrow(() -> UomInvalidException.notFound("the unit", String.valueOf(id)));
+        if (uom.getArchivedAt() != null) {
+            return toDto(uom);
+        }
+
+        UomReferenceBreakdown refs = countUomReferences(tenantId, uom.getCode());
+        if (refs.vendorCountUnavailable()) {
+            // Refuse rather than guess. The two failure modes are not symmetric: retiring a unit is
+            // never urgent, and a unit retired out from under a vendor catalog row makes every
+            // receipt against it convert at face value — silently wrong quantity AND cost.
+            throw UomInvalidException.conversionInvalid(
+                    "\"" + uom.getCode() + "\" cannot be retired right now: the vendor catalog could "
+                            + "not be checked, and retiring a unit a catalog row still packs in would "
+                            + "make every goods receipt against it convert wrongly. Try again shortly.");
+        }
+        if (refs.total() > 0) {
+            throw UomInvalidException.conversionInvalid(describeReferences(uom.getCode(), refs));
+        }
+
+        uom.setArchivedAt(Instant.now());
+        return toDto(uomRepository.save(uom));
+    }
+
+    /** Bring a retired unit back into the pickers. */
+    @Transactional
+    public UomDto restoreUom(UUID id) {
+        UUID tenantId = tenantContext.requireTenantId();
+        UnitOfMeasure uom = uomRepository.findById(id)
+                .filter(u -> tenantId.equals(u.getTenantId()))
+                .orElseThrow(() -> UomInvalidException.notFound("the unit", String.valueOf(id)));
+        uom.setArchivedAt(null);
+        return toDto(uomRepository.save(uom));
+    }
+
+    /**
+     * Everything that still names this unit. Three counts come from this database; the fourth
+     * crosses into purchasing_db, where no constraint can reach.
+     */
+    UomReferenceBreakdown countUomReferences(UUID tenantId, String code) {
+        long stocked = ingredientRepository.countLiveByBaseUomCode(tenantId, code);
+        long recipe = ingredientRepository.countLiveByRecipeUomCode(tenantId, code);
+        long conversions = conversionRepository.countByUomCodeEitherSide(tenantId, code);
+
+        long vendorRows = 0;
+        boolean vendorUnavailable = false;
+        try {
+            vendorRows = purchasingUomUsageClient.uomUsage(tenantId, code).vendorItemCount();
+        } catch (Exception e) {
+            log.warn("Unit-retire guard could not reach purchasing-service for tenant {} unit '{}': {}",
+                    tenantId, code, e.getMessage());
+            vendorUnavailable = true;
+        }
+        return new UomReferenceBreakdown(stocked, recipe, conversions, vendorRows, vendorUnavailable);
+    }
+
+    private static String describeReferences(String code, UomReferenceBreakdown refs) {
+        List<String> parts = new ArrayList<>();
+        if (refs.ingredientsStockedInIt() > 0) {
+            parts.add(refs.ingredientsStockedInIt() + " ingredient(s) stocked in it");
+        }
+        if (refs.ingredientsWithItAsRecipeUnit() > 0) {
+            parts.add(refs.ingredientsWithItAsRecipeUnit() + " ingredient(s) using it as their recipe unit");
+        }
+        if (refs.conversionRows() > 0) {
+            parts.add(refs.conversionRows() + " conversion row(s)");
+        }
+        if (refs.vendorCatalogRows() > 0) {
+            parts.add(refs.vendorCatalogRows() + " vendor catalog row(s) packed in it");
+        }
+        return "\"" + code + "\" is still used by " + String.join(", ", parts)
+                + ". Change those to another unit first — the unit is kept rather than deleted so "
+                + "historical records that name it still convert.";
     }
 
     // ---- helpers ----
@@ -679,6 +856,7 @@ public class IngredientService {
                 uom.getName(),
                 uom.getMeasureType(),
                 uom.getBaseUnitCode(),
-                uom.getToBaseFactor());
+                uom.getToBaseFactor(),
+                uom.getArchivedAt());
     }
 }

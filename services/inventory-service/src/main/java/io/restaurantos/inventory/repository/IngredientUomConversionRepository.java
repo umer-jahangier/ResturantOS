@@ -17,6 +17,15 @@ public interface IngredientUomConversionRepository extends JpaRepository<Ingredi
 
     List<IngredientUomConversion> findByTenantIdAndIngredientId(UUID tenantId, UUID ingredientId);
 
+    /**
+     * Conversion rows naming this unit on EITHER side — part of the unit-retire guard (36-05).
+     * Both sides matter: retiring the "from" of a conversion breaks it exactly as thoroughly as
+     * retiring the "to".
+     */
+    @Query("select count(c) from IngredientUomConversion c where c.tenantId = :tenantId "
+            + "and (lower(c.fromUomCode) = lower(:code) or lower(c.toUomCode) = lower(:code))")
+    long countByUomCodeEitherSide(@Param("tenantId") UUID tenantId, @Param("code") String code);
+
     /** Bulk fetch for list rendering — one query for the whole page, never one per ingredient. */
     List<IngredientUomConversion> findByTenantIdAndIngredientIdIn(UUID tenantId, Collection<UUID> ingredientIds);
 

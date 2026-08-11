@@ -134,7 +134,43 @@ public final class InventoryDtos {
             String name,
             String measureType,
             String baseUnitCode,
-            BigDecimal toBaseFactor) {}
+            BigDecimal toBaseFactor,
+            /** Non-null means retired: absent from the pickers, still resolvable by conversion. */
+            Instant archivedAt) {}
+
+    /**
+     * A unit's changeable fields. {@code code} is deliberately ABSENT.
+     *
+     * <p>A unit code is a foreign key by value into {@code ingredients.base_uom_code}, into
+     * {@code ingredient_uom_conversions} on both sides, and into another service's
+     * {@code vendor_items.pack_uom}. There is no way to follow those references backwards, so a
+     * rename would silently orphan every one of them. Correcting a typo in a CODE is therefore a
+     * retire-and-recreate, and the form says so.
+     */
+    public record UpdateUomRequest(
+            @NotBlank String name,
+            String measureType,
+            String baseUnitCode,
+            @NotNull @Positive BigDecimal toBaseFactor) {}
+
+    /**
+     * Why a unit could not be retired: the count of records that still name it, per kind.
+     *
+     * <p>A bare "cannot retire" turns a correct refusal into an apparently broken button. Naming
+     * the references is what lets a person go and change them.
+     */
+    public record UomReferenceBreakdown(
+            long ingredientsStockedInIt,
+            long ingredientsWithItAsRecipeUnit,
+            long conversionRows,
+            long vendorCatalogRows,
+            /** True when the cross-database vendor count could not be read at all. */
+            boolean vendorCountUnavailable) {
+
+        public long total() {
+            return ingredientsStockedInIt + ingredientsWithItAsRecipeUnit + conversionRows + vendorCatalogRows;
+        }
+    }
 
     /**
      * Records the opening on-hand quantity + unit cost for an ingredient at a branch (INV-07).

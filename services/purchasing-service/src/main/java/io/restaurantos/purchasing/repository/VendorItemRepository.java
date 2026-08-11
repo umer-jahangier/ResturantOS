@@ -12,6 +12,17 @@ import java.util.UUID;
 
 public interface VendorItemRepository extends JpaRepository<VendorItem, UUID> {
 
+    /**
+     * Live catalog rows in this tenant packing in a unit code — the cross-database half of
+     * inventory's unit-retire guard (36-05). Case-insensitive: unit codes are not normalised at
+     * rest, and a guard that missed a lowercase match would not guard.
+     */
+    @org.springframework.data.jpa.repository.Query(
+            "select count(v) from VendorItem v where v.tenantId = :tenantId "
+            + "and lower(v.packUom) = lower(:code) and v.archivedAt is null")
+    long countLiveByPackUom(@org.springframework.data.repository.query.Param("tenantId") UUID tenantId,
+                            @org.springframework.data.repository.query.Param("code") String code);
+
     Page<VendorItem> findByTenantIdAndVendorIdAndArchivedAtIsNull(UUID tenantId, UUID vendorId, Pageable pageable);
 
     List<VendorItem> findByTenantIdAndVendorIdAndArchivedAtIsNull(UUID tenantId, UUID vendorId);

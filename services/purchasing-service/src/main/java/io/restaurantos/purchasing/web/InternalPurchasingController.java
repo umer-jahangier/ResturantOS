@@ -35,14 +35,38 @@ public class InternalPurchasingController {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final MockGrnReceiptRepository mockGrnReceiptRepository;
     private final VendorInvoiceRepository vendorInvoiceRepository;
+    private final io.restaurantos.purchasing.repository.VendorItemRepository vendorItemRepository;
 
     public InternalPurchasingController(PurchaseOrderRepository purchaseOrderRepository,
                                         MockGrnReceiptRepository mockGrnReceiptRepository,
-                                        VendorInvoiceRepository vendorInvoiceRepository) {
+                                        VendorInvoiceRepository vendorInvoiceRepository,
+                                        io.restaurantos.purchasing.repository.VendorItemRepository vendorItemRepository) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.mockGrnReceiptRepository = mockGrnReceiptRepository;
         this.vendorInvoiceRepository = vendorInvoiceRepository;
+        this.vendorItemRepository = vendorItemRepository;
     }
+
+    /**
+     * How many vendor-catalog rows in this tenant pack in a given unit code.
+     *
+     * <p>Inventory owns {@code units_of_measure} and is the only place a unit can be retired — but
+     * a unit code is a foreign key BY VALUE into this service's {@code vendor_items.pack_uom},
+     * across a database boundary that no constraint can span. Retiring a unit that a vendor catalog
+     * still packs in would leave every goods receipt against that row unable to convert, receiving
+     * at face value. So inventory asks here before it retires anything (36-05).
+     *
+     * <p>Case-insensitive, because unit codes have never been normalised at rest and a guard that
+     * missed a lowercase match would be a guard that does not guard.
+     */
+    @GetMapping("/uom-usage")
+    public UomUsageResponse uomUsage(@RequestHeader("X-Tenant-Id") UUID tenantId,
+                                     @RequestParam("code") String code) {
+        return new UomUsageResponse(vendorItemRepository.countLiveByPackUom(tenantId, code));
+    }
+
+    /** How many live vendor-catalog rows pack in the requested unit. */
+    public record UomUsageResponse(long vendorItemCount) {}
 
     @GetMapping("/branches/{branchId}/open-receipts")
     public OpenReceiptsResponse openReceipts(@PathVariable UUID branchId) {

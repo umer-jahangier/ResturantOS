@@ -46,4 +46,17 @@ public class UnitOfMeasure extends TenantAuditableEntity {
      */
     @Column(name = "measure_type", nullable = false, length = 10)
     private String measureType = "COUNT";
+
+    /**
+     * Retired: hidden from every picker, still resolvable by every conversion path (V13).
+     *
+     * <p>Never a delete. This unit's CODE is a foreign key by value from
+     * {@code ingredients.base_uom_code}, {@code ingredients.recipe_uom_code},
+     * {@code ingredient_uom_conversions} on both sides, and — across a database boundary —
+     * {@code purchasing_db.vendor_items.pack_uom}. None of those references can be followed
+     * backwards, so a delete orphans all of them silently and makes a historical receipt in this
+     * unit stop converting, which makes the stock valuation it produced unreproducible.
+     */
+    @Column(name = "archived_at")
+    private java.time.Instant archivedAt;
 }
