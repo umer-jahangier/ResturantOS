@@ -36,3 +36,35 @@ whoever owns the files.
 Phase 34's own files were verified clean by a scoped `tsc --noEmit` filter and by the full
 unit suite. The build DID compile successfully in every run — only the typecheck stage failed,
 and only on the other agent's in-flight files.
+
+## Added at end of session (34-06 / 34-07)
+
+**The journeys suite could not be re-run at the end of the phase.** `auth-setup` fails on the
+SuperAdmin login with a 502 from the gateway, and earlier in the same window with a socket hang
+up. A direct `curl` to `/api/v1/auth/login` returned 200 between those failures, so the stack is
+flapping rather than broken.
+
+Cause, as far as it can be attributed: the stale `git stash` popped mid-session left merge
+conflicts in `gateway/src/main/resources/application.yml`,
+`gateway/.../JwtGlobalFilter.java`, and four `auth-service` files. Another agent resolved and
+rebuilt them; the 502 is consistent with `platform-admin-service` or its gateway route being
+mid-restart.
+
+**What this means for phase 34's evidence:** the runtime gates below were all observed GREEN
+earlier in the session against a settled stack, and are green in the record, but were not
+re-confirmed in one final consolidated run:
+
+| Spec | Last observed |
+|---|---|
+| `operational-zone-containment.spec.ts` (POS + KDS sweeps, portal stamp) | green |
+| `operational-zone-containment.spec.ts` — containing-block guard | green, plus its negative control |
+| `reduced-motion.spec.ts` — 9 tests, both directions | green |
+
+The **positive control** (`the dashboard resolves a compositing filter somewhere`) was still
+SKIPPING at its last successful run, because the dashboard had no glass at that point. Glass
+landed on the portlets afterwards (`794c7b9c`), so it should now pass — **that has not been
+observed** and is the single most useful thing for whoever resumes to confirm first, since it is
+what proves the containment gate is not passing merely because the product has no glass anywhere.
+
+Unit coverage is unaffected: the full frontend suite is **876 tests / 91 files, all passing**,
+lint clean (0 errors, 10 pre-existing warnings).
