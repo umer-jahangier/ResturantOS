@@ -45,7 +45,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
-            chain.doFilter(request, response);
+            // No token — but this request STILL has to clear tenant context on the way out.
+            //
+            // This early return used to skip the finally block below, and that leaked one tenant's
+            // data to the next request on the same Tomcat worker thread. The path that does it:
+            // `/internal/**` endpoints authenticate with a shared secret, not a Bearer token, so
+            // they land here; and BranchInternalController.setTenantGuc calls tenantContext.set(..)
+            // itself from the X-Tenant-Id header. Nothing then cleared it. The thread went back to
+            // the pool still bound to that tenant.
+            //
+            // Observed (2026-08-11), the request that proves it: GET /internal/users/branches/{id}
+            // with the internal secret and NO X-Tenant-Id header returned 200 carrying tenant A's
+            // branch, immediately after an A-scoped call on the same worker — and 409 when the
+            // preceding call differed. The same request answering differently depending on what
+            // the thread did before it is the signature of leaked thread-local state.
+            //
+            // Clearing here is safe for the authenticated case too: `finally` runs after the entire
+            // downstream chain, so every controller has already read whatever it set.
+            try {
+                chain.doFilter(request, response);
+            } finally {
+                tenantContext.clear();
+                MDC.clear();
+            }
             return;
         }
         String token = header.substring(7);
