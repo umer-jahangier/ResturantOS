@@ -41,6 +41,24 @@ import java.util.Optional;
 @Component
 public class AdmsRequestContext {
 
+    /**
+     * Everything a handler needs to know about one device request, captured once.
+     *
+     * <p>{@code host} and {@code remoteAddress} are read by {@link DeviceCredentialPolicy} for the
+     * modes D-25-06 added; {@code declaredContentType} is carried so a zero-yield batch can name what
+     * the device SAID it was sending, which is the fact that distinguishes "firmware sent a shape we
+     * cannot read" from "the body never arrived".
+     */
+    public record Captured(String serialNo, String presentedToken, String table,
+                           String declaredContentType, String host, String remoteAddress) {
+    }
+
+    /** Capture the current request. Cheap; call once per handler. */
+    public Captured capture(String serialNo, String presentedToken, String table, String declaredContentType) {
+        return new Captured(serialNo, presentedToken, table, declaredContentType,
+                host().orElse(null), sourceAddress().orElse(null));
+    }
+
     private final String sourceAddressHeader;
 
     public AdmsRequestContext(

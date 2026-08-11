@@ -1,14 +1,17 @@
 package io.restaurantos.hr.adms;
 
 import io.restaurantos.hr.entity.AttendanceDeviceEntity;
-import io.restaurantos.hr.service.PunchIngestService;
 import io.restaurantos.shared.tenant.TenantContext;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * ADMS/iClock adapter (Mode A) — plain-text, tab-delimited, serial-addressed. Every handler resolves
@@ -20,19 +23,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdmsController {
 
     private final DeviceAuthResolver deviceAuthResolver;
-    private final AttlogLineParser parser;
-    private final PunchIngestService punchIngestService;
+    private final AdmsBatchIngestService batchIngestService;
     private final DeviceCommandQueueService commandQueue;
     private final TenantContext tenantContext;
+    private final AdmsRequestContext requestContext;
 
-    public AdmsController(DeviceAuthResolver deviceAuthResolver, AttlogLineParser parser,
-                         PunchIngestService punchIngestService, DeviceCommandQueueService commandQueue,
-                         TenantContext tenantContext) {
+    public AdmsController(DeviceAuthResolver deviceAuthResolver, AdmsBatchIngestService batchIngestService,
+                         DeviceCommandQueueService commandQueue, TenantContext tenantContext,
+                         AdmsRequestContext requestContext) {
         this.deviceAuthResolver = deviceAuthResolver;
-        this.parser = parser;
-        this.punchIngestService = punchIngestService;
+        this.batchIngestService = batchIngestService;
         this.commandQueue = commandQueue;
         this.tenantContext = tenantContext;
+        this.requestContext = requestContext;
     }
 
     /** Handshake: the device fetches its operating config. */
@@ -56,26 +59,52 @@ public class AdmsController {
         }
     }
 
-    /** Attendance upload: the device pushes ATTLOG records; we parse each line and ingest. */
+    /**
+     * Attendance upload: the device pushes ATTLOG records.
+     *
+     * <p><b>The body is read from the input stream, not from a body binding, and decoded as UTF-8
+     * explicitly.</b> Two separate defects live in the alternative. A binding sees an empty stream
+     * when the container has already drained the body into the parameter map — which it does whenever
+     * the device declares form encoding — and the old null guard then skipped ingest entirely,
+     * answering {@code OK} over zero rows. {@link io.restaurantos.hr.config.DeviceBodyPreservingFilter}
+     * now prevents that consumption; reading the stream here is the other half. And decoding with the
+     * platform default charset differs between a developer's machine and a container, so the same
+     * bytes would produce different text in each — for a non-ASCII device user reference that is a
+     * punch attributed to nobody on one of them.
+     *
+     * <p>The wire reply is unchanged in every case, including when the batch yields nothing: the
+     * protocol says {@code OK} and the device's retry behaviour depends on it. A batch that produced
+     * nothing becomes visible in the server log, never in what the device is told — see
+     * {@link AdmsBatchIngestService}.
+     */
     @PostMapping(value = "/iclock/cdata", produces = MediaType.TEXT_PLAIN_VALUE)
     public String cdataUpload(@RequestParam("SN") String sn,
                               @RequestParam(value = "token", required = false) String token,
                               @RequestParam(value = "table", required = false) String table,
-                              @RequestBody(required = false) String body) {
+                              HttpServletRequest request) {
         // Inside the try, matching the other three handlers: resolve() binds TenantContext before it
         // saves the device's last-seen timestamp, so a failure in that save would otherwise leak the
         // tenant onto this pooled request thread for the next caller to inherit.
         try {
-            AttendanceDeviceEntity device = deviceAuthResolver.resolve(sn, token);
-            if ("ATTLOG".equalsIgnoreCase(table) && body != null) {
-                for (String line : body.split("\\r?\\n")) {
-                    parser.parse(line).ifPresent(p -> punchIngestService.ingest(
-                            device, p.deviceUserRef(), p.deviceReportedAt(), p.punchType(), p.sourceRecordId(), line));
-                }
+            AdmsRequestContext.Captured captured =
+                    requestContext.capture(sn, token, table, request.getContentType());
+            AttendanceDeviceEntity device = deviceAuthResolver.resolve(captured.serialNo(), captured.presentedToken());
+            if ("ATTLOG".equalsIgnoreCase(captured.table())) {
+                batchIngestService.ingestAttlog(device, readBody(request), captured.declaredContentType());
             }
             return "OK";
         } finally {
             tenantContext.clear();
+        }
+    }
+
+    /** Explicit UTF-8. Never the platform default — see the handler javadoc. */
+    private static String readBody(HttpServletRequest request) {
+        try {
+            return new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            // A truncated upload is not a parse failure and must not look like one.
+            return "";
         }
     }
 

@@ -78,11 +78,11 @@ class AdmsIngestIT extends HrTestBase {
         String shortLine = "bad\tline\t3"; // 3 fields — skipped
         String body = good + "\n" + shortLine;
 
-        assertThat(admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", body)).isEqualTo("OK");
+        assertThat(admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", attlogRequest(body))).isEqualTo("OK");
         assertThat(countPunches(fx.employeeId())).isEqualTo(1); // short line skipped
 
         // Replay the same body — ON CONFLICT means no duplicate row.
-        assertThat(admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", body)).isEqualTo("OK");
+        assertThat(admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", attlogRequest(body))).isEqualTo("OK");
         assertThat(countPunches(fx.employeeId())).isEqualTo(1);
 
         ArgumentCaptor<OutboxEntry> captor = ArgumentCaptor.forClass(OutboxEntry.class);
@@ -106,7 +106,7 @@ class AdmsIngestIT extends HrTestBase {
         }
 
         // Punch for an unmapped ref -> quarantine, no attendance_punch.
-        admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", "2002\t2026-06-15 09:00:00\t0\t1");
+        admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", attlogRequest("2002\t2026-06-15 09:00:00\t0\t1"));
         assertThat(countPunchesByRef("2002")).isZero();
 
         AttendanceQuarantineEntity q;
@@ -125,7 +125,7 @@ class AdmsIngestIT extends HrTestBase {
         assertThat(countPunchesByRef("2002")).isEqualTo(1); // parked punch re-ingested
 
         // A SUBSEQUENT punch with the same ref auto-resolves — NOT a second quarantine.
-        admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", "2002\t2026-06-16 09:00:00\t0\t1");
+        admsController.cdataUpload(fx.serial(), fx.token(), "ATTLOG", attlogRequest("2002\t2026-06-16 09:00:00\t0\t1"));
         assertThat(countPunchesByRef("2002")).isEqualTo(2);
         tenantContext.set(fx.tenant(), fx.branch(), UUID.randomUUID(), null);
         try {
@@ -139,7 +139,7 @@ class AdmsIngestIT extends HrTestBase {
     void wrongToken_rejected_noRows() throws Exception {
         Fixture fx = register("3003");
         assertThatThrownBy(() -> admsController.cdataUpload(
-                fx.serial(), "not-the-token", "ATTLOG", "3003\t2026-06-15 09:00:00\t0\t1"))
+                fx.serial(), "not-the-token", "ATTLOG", attlogRequest("3003\t2026-06-15 09:00:00\t0\t1")))
                 .isInstanceOf(DeviceAuthException.class);
         assertThat(countPunches(fx.employeeId())).isZero();
     }
@@ -150,6 +150,25 @@ class AdmsIngestIT extends HrTestBase {
         ingestController.ingest(new IngestRequest(
                 fx.serial(), fx.token(), "4004", "IN", Instant.parse("2026-06-15T09:00:00Z")));
         assertThat(countPunches(fx.employeeId())).isEqualTo(1);
+    }
+
+    /**
+     * 25-05 changed {@code cdataUpload} to read its body from the request input stream rather than
+     * from a body binding, because a body binding sees an empty stream whenever the container has
+     * already drained the body into the parameter map — which it does for a form-encoded upload, and
+     * which silently discarded the whole batch while answering OK.
+     *
+     * <p>These direct-method-call tests therefore pass a request carrying the body. Note what that
+     * makes visible: this class cannot see the defect 25-05 fixed at all, because the container is
+     * not in the picture. {@code AdmsBodyContractIT} asserts it over real HTTP; that is the point of
+     * that class existing.
+     */
+    private static jakarta.servlet.http.HttpServletRequest attlogRequest(String body) {
+        org.springframework.mock.web.MockHttpServletRequest request =
+                new org.springframework.mock.web.MockHttpServletRequest();
+        request.setContentType("text/plain;charset=UTF-8");
+        request.setContent(body == null ? new byte[0] : body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return request;
     }
 
     private int countPunches(UUID employeeId) throws Exception {
