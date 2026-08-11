@@ -73,13 +73,77 @@ public abstract class HrTestBase {
             "hr.leave.view", "hr.leave.approve",
             "hr.payroll.view", "hr.payroll.run", "hr.payroll.approve");
 
+    /**
+     * Publish a container's ports on {@code 127.0.0.1}, at a host port this JVM has claimed for itself
+     * first, instead of letting Docker pick one from its own automatic range.
+     *
+     * <h3>Why the binding is loopback-only</h3>
+     *
+     * <p>Correct on its own merits: a Testcontainers Postgres publishes a database whose username and
+     * password are written a few lines below, and there is no reason for it to be reachable from the
+     * LAN for the ninety seconds it exists. Loopback is the binding a test fixture should have had.
+     *
+     * <h3>Why the port is chosen here rather than by Docker</h3>
+     *
+     * <p>This is the fix for a failure that costs an hour to diagnose and produces two symptoms that
+     * look unrelated. Anything on the machine that watches for new listeners and forwards them — an
+     * IDE's automatic port forwarding is the usual culprit — will grab a published container port, and
+     * it commonly keeps that listener alive long after the container is gone. Docker allocates its
+     * automatic host ports sequentially from the low end of a fixed range, so the forwarder's leftover
+     * listeners accumulate exactly where the next container is about to land. The forwarder is then
+     * already bound when Docker tries, Docker's listener loses, and the port behaves as follows: it is
+     * open, {@code docker ps} shows the mapping, the container's own log shows a healthy server, and
+     * every connection from the test JVM hangs until it times out. Measured on this machine as
+     *
+     * <pre>
+     * Timed out waiting for URL to be accessible (http://localhost:32780/health)     [one run]
+     * PSQLException: The connection attempt failed                                   [the next]
+     * </pre>
+     *
+     * <p>— one cause, two faces, neither of them in this repository, and both of them looking like a
+     * broken test.
+     *
+     * <p>Claiming the port here inverts the race. We bind a socket on {@code 127.0.0.1:0}, let the OS
+     * pick from the ephemeral range (49152+ on macOS, well clear of Docker's automatic range and so of
+     * the forwarder's accumulated leftovers), close it, and hand that number to Docker immediately.
+     * Docker binds first, and a forwarder that notices afterwards cannot displace a listener that is
+     * already there. The close-then-bind window is real but is microseconds wide and is in a range
+     * nothing else on the machine is competing for.
+     *
+     * <p>If this ever regresses, the diagnostic is one command:
+     * {@code lsof -nP -iTCP:<port> -sTCP:LISTEN} — if the owner is not a Docker process, this is what
+     * happened again.
+     */
+    private static <T extends GenericContainer<?>> T publishedOnClaimedLoopbackPorts(T container,
+                                                                                     int... containerPorts) {
+        container.withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withPortBindings(
+                java.util.Arrays.stream(containerPorts)
+                        .mapToObj(p -> new com.github.dockerjava.api.model.PortBinding(
+                                com.github.dockerjava.api.model.Ports.Binding.bindIpAndPort(
+                                        "127.0.0.1", claimEphemeralPort()),
+                                com.github.dockerjava.api.model.ExposedPort.tcp(p)))
+                        .toList()));
+        return container;
+    }
+
+    /** A currently-free port on the loopback interface, from the OS ephemeral range. */
+    private static int claimEphemeralPort() {
+        try (java.net.ServerSocket probe =
+                     new java.net.ServerSocket(0, 1, java.net.InetAddress.getByName("127.0.0.1"))) {
+            return probe.getLocalPort();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("Could not claim a loopback port for a test container", e);
+        }
+    }
+
     @SuppressWarnings("resource")
-    static final GenericContainer<?> OPA =
+    static final GenericContainer<?> OPA = publishedOnClaimedLoopbackPorts(
             new GenericContainer<>(DockerImageName.parse("openpolicyagent/opa:1.17.1"))
                     .withCommand("run", "--server", "--addr=0.0.0.0:8181", "/policies")
                     .withExposedPorts(8181)
                     .withFileSystemBind(policiesDir().toString(), "/policies", BindMode.READ_ONLY)
-                    .waitingFor(Wait.forHttp("/health").forPort(8181));
+                    .waitingFor(Wait.forHttp("/health").forPort(8181)),
+            8181);
 
     private static Path policiesDir() {
         Path cwd = Path.of(System.getProperty("user.dir")).toAbsolutePath();
@@ -94,10 +158,15 @@ public abstract class HrTestBase {
         throw new IllegalStateException("Could not locate policies/ from " + cwd);
     }
 
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
-            .withDatabaseName("hr_db")
-            .withUsername("hr_user")
-            .withPassword("hr_pass");
+    // protected, not package-private: phase 25's ADMS tests live in io.restaurantos.hr.adms and read
+    // this container's JDBC coordinates to verify what the service wrote. A subclass in another
+    // package can reach a protected static member of its superclass; a package-private one it cannot.
+    protected static final PostgreSQLContainer<?> postgres = publishedOnClaimedLoopbackPorts(
+            new PostgreSQLContainer<>("postgres:16")
+                    .withDatabaseName("hr_db")
+                    .withUsername("hr_user")
+                    .withPassword("hr_pass"),
+            5432);
 
     static {
         System.setProperty("TESTCONTAINERS_RYUK_DISABLED", "true");
