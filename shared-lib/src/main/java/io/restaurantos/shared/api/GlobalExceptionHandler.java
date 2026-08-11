@@ -178,6 +178,42 @@ public class GlobalExceptionHandler {
                 "This record changed while you were editing it — reload and try again", traceId()));
     }
 
+    /**
+     * A domain rule refused the request and named the input to blame (D-35-03).
+     *
+     * <p>422, not 400: 400 stays reserved for bean validation, so a client can tell a malformed
+     * request from a well-formed one refused by a rule. The body reuses the four-argument
+     * {@link ApiError} factory that {@link #handleValidation} already uses, because the web client
+     * parses {@code details[]} into {@code fieldErrors} today — a second envelope shape would need
+     * a second parser on every screen.
+     *
+     * <p>Declared above {@link #handleBase} for readability. Spring resolves by exception-type
+     * depth rather than declaration order, so the subclass would win regardless; the placement is
+     * for the next person reading the file, not for the resolver.
+     */
+    @ExceptionHandler(FieldValidationException.class)
+    public ResponseEntity<ApiError> handleFieldValidation(FieldValidationException ex) {
+        List<ApiError.FieldError> details = ex.getViolations().stream()
+            .map(v -> new ApiError.FieldError(v.field(), v.instruction())).toList();
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(ApiError.of(ex.getCode(), ex.getMessage(), details, traceId()));
+    }
+
+    /**
+     * A value collided with an existing row and the service knows which input it was.
+     *
+     * <p>Same 409 as {@link #handleDataIntegrity}, but with a field path: this is raised by a
+     * service that checked before writing, so unlike the driver-level violation it can say which
+     * box the user must change. See {@link DuplicateValueException} for why disclosing the
+     * collision is acceptable.
+     */
+    @ExceptionHandler(DuplicateValueException.class)
+    public ResponseEntity<ApiError> handleDuplicateValue(DuplicateValueException ex) {
+        List<ApiError.FieldError> details = List.of(new ApiError.FieldError(ex.getField(), ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiError.of("DUPLICATE_VALUE", ex.getMessage(), details, traceId()));
+    }
+
     @ExceptionHandler(RestaurantOsException.class)
     public ResponseEntity<ApiError> handleBase(RestaurantOsException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
