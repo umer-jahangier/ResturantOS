@@ -79,3 +79,49 @@ style issues, all from the tables/menu-image work (`app/(tenant)/app/tables/*`,
 `__tests__/pos/tables-page.test.tsx`).
 
 None are in files this phase touched, and none were made worse. Left alone per the scope boundary.
+
+---
+
+## D-5 · `pos-service` cannot be restarted right now, and its jar is NOT bootable
+
+**Found:** after 26-05 task 3, checking whether a human could actually press "Print bill".
+
+`bash scripts/check-stale-jars.sh` reports `STALE pos-service (pid 47292)` — the running process
+predates the jar on disk. So **the live stack does not have 26-03's endpoints**, and a person
+pressing Print bill today gets a 404. That blocks 26-05 task 4 (the Playwright spec) and task 5
+(the human checkpoint).
+
+**It is worse than stale.** `services/pos-service/target/pos-service-1.0.0.jar` is 294 KB with
+**zero `BOOT-INF` entries** — a thin jar, not a Spring Boot executable one. My own test runs passed
+`-Dspring-boot.repackage.skip=true` (to get past the duplicate-`.class` repackage failure), which
+left it unbootable. `java -jar` on it fails with no main manifest attribute. **Restarting from this
+jar would take pos-service DOWN, not bring it up.**
+
+**Why I did not rebuild it.** `scripts/DEV-STACK-RUNBOOK.md` says: *"Never rebuild a module a
+sibling agent/session is actively editing — check `git status <module>` and `ps aux | grep mvn`
+first."* Both conditions are live:
+
+- `services/pos-service/src/test/java/io/restaurantos/pos/CashPaymentRequiresTillIT.java` has an
+  **uncommitted modification** that is not mine.
+- A sibling `mvn verify -pl shared-lib -Dit.test=TenantFilterPropagationIT` was running at the time
+  (that is the D-1 follow-up).
+
+Rebuilding would either bake a sibling's in-flight test state into the artifact or collide with
+their build over `shared-lib`.
+
+**What needs to happen, in order:**
+
+```bash
+bash scripts/check-stale-jars.sh          # now also clears the duplicate " 2.class" files
+mvn -pl services/pos-service -am package -DskipTests   # NO repackage.skip — the fat jar is the point
+ls -la services/pos-service/target/pos-service-1.0.0.jar   # expect tens of MB, not 294 KB
+kill -TERM 47292 && sleep 10
+( source scripts/dev-env.sh; source scripts/local-service-env.sh; \
+  exec java -jar services/pos-service/target/pos-service-1.0.0.jar ) \
+  >>.dev-logs/pos-service.log 2>&1 &
+disown
+bash scripts/check-stale-jars.sh          # must report ok pos-service
+```
+
+Do this when no sibling is mid-edit in `services/pos-service`. Until then, every "does the bill
+print" check is measuring a service that does not have the endpoint.
