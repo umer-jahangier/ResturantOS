@@ -1,0 +1,50 @@
+[
+  {
+    "id": "login",
+    "detail": "signed in as owner@terrace.local through the real form, TOTP included"
+  },
+  {
+    "id": "departments-list",
+    "detail": "heading=\"Departments\" rows=1"
+  },
+  {
+    "id": "client-rule-on-blur",
+    "detail": "after typing \"K\" and blurring: \"Give it a name people will recognise\""
+  },
+  {
+    "id": "server-error-on-field",
+    "detail": "after saving \"  kitchen  \" when \"Kitchen\" exists: \"A department called \\\"Kitchen\\\" already exists. Names are matched ignoring case and spacing, so \\\"kitchen\\\" would be the same department. Choose a different name.\""
+  },
+  {
+    "id": "tax-screen",
+    "detail": "banner=\"Payroll cannot run yet. FY2027 (2026-07-01 to 2027-06-30) has no tax table in force. Fill this in and tick “In force”.\""
+  },
+  {
+    "id": "tax-fiscal-year",
+    "detail": "year select value=2027"
+  },
+  {
+    "id": "slab-errors-per-row",
+    "detail": "[\"There is a gap: no band covers income between Rs 600,000.00 and Rs 700,000.00. Start this band at Rs 600,000.00.\",\"The highest band must have no upper limit, or any salary above Rs 1,200,000.00 falls in no band at all. Clear the upper limit on this band.\"]"
+  },
+  {
+    "id": "department-is-a-select",
+    "detail": "tag=SELECT options=[\"Choose a department\",\"Kitchen\"]"
+  },
+  {
+    "id": "designation-is-a-select",
+    "detail": "tag=SELECT options=[\"Choose a job title\",\"bcugh78\",\"Chef\",\"test\"]"
+  },
+  {
+    "id": "employee-form-messages",
+    "detail": "[\"A join date cannot be in the future\",\"Rupees only, up to two decimal places\"]"
+  },
+  {
+    "id": "submit-disabled-with-reason",
+    "detail": "disabled=true reason=\"Fix join date and basic salary rupees to continue\""
+  },
+  {
+    "id": "duplicate-employee-no",
+    "detail": "[\"Employee number 1 is already used by another employee. Choose a different number.\"]"
+  }
+]
