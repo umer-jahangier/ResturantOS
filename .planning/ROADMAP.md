@@ -86,15 +86,15 @@ only surfaces when someone tries to plan the phase that lost.
 conversions are arithmetically correct — with the permission model that blocked it examined rather
 than widened.
 **Requirements:** PIW-01 … PIW-06
-**Plans:** 8 plans, 5 waves
+**Plans:** 8 plans, 5 waves · **5 of 8 complete** (36-01 … 36-05)
 
 Plans:
 
-- [ ] 36-01-PLAN.md — drive the whole procure-to-pay chain live and record where it actually breaks *(wave 1)*
-- [ ] 36-02-PLAN.md — which permission purchasing demands, who should hold it, and the repair at its cause *(wave 2)*
-- [ ] 36-03-PLAN.md — approval limits set in the product and gating approval *(wave 2, independently shippable)*
-- [ ] 36-04-PLAN.md — a PO line must name a real ingredient in a unit inventory can convert *(wave 2)*
-- [ ] 36-05-PLAN.md — inventory master data: complete CRUD, asserted by a coverage matrix *(wave 2, independently shippable)*
+- [x] 36-01-PLAN.md — drive the whole procure-to-pay chain live and record where it actually breaks *(wave 1)*
+- [x] 36-02-PLAN.md — which permission purchasing demands, who should hold it, and the repair at its cause *(wave 2)*
+- [x] 36-03-PLAN.md — approval limits set in the product and gating approval *(wave 2, independently shippable)*
+- [x] 36-04-PLAN.md — a PO line must name a real ingredient in a unit inventory can convert *(wave 2)*
+- [x] 36-05-PLAN.md — inventory master data: complete CRUD, asserted by a coverage matrix *(wave 2, independently shippable)*
 - [ ] 36-06-PLAN.md — one conversion resolver, hand-checkable, and a receipt that refuses instead of guessing *(wave 3)*
 - [ ] 36-07-PLAN.md — the seed creates purchasing data; `CREDENTIALS.md` tells the truth *(wave 4)*
 - [ ] 36-08-PLAN.md — an owner completes the chain in the browser; phase acceptance *(wave 5)*

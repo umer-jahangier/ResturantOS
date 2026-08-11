@@ -896,7 +896,46 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-11T18:32:40.806Z
+Last session: 2026-08-11T18:36:15.000Z
+
+--- Phase 36 (Purchasing & Inventory Wiring Repair) — 5 of 8 plans complete ---
+
+Executed 2026-08-11 in wave order, against the live stack, with a jar-freshness gate before every
+assertion.
+
+**COMPLETE: 36-01, 36-02, 36-03, 36-04, 36-05.**
+**NOT STARTED: 36-06 (conversion refusal in the inventory consumer), 36-07 (seed + CREDENTIALS.md),
+36-08 (browser acceptance journey — `autonomous: false`, needs a human).**
+
+What the procure-to-pay chain does now that it did not before:
+
+- **36-01** built a harness that cannot fool itself — every SQL helper connects as the owning
+  service role and REFUSES `postgres` (a superuser bypasses FORCE RLS), an RLS canary runs before
+  any evidence is trusted, and a jar-inode gate refuses to produce a result against a stale process.
+  It drove the whole chain twice and wrote `31-01-FINDINGS.md`: six findings, six confirmed-closed.
+- **36-02** settled the MANAGER 403: it does not reproduce, the grants are present, and **no role was
+  widened and no migration was written**. What shipped instead is a test that reads both the demanded
+  authorities (from `@PreAuthorize`) and the granted ones (from the changelogs) so the drift cannot
+  return, plus a screen that finally tells `FEATURE_DISABLED` from `PERMISSION_DENIED`.
+- **36-03** made the approval limit settable in the product. It was NULL on every row and only ever
+  written by a script; all three policies compare an amount against it, so nobody could approve a
+  purchase order. Proven live in four cases including the stale-token promise the screen makes.
+- **36-04** closed the defect the phase was called for: a PO line naming an ingredient inventory has
+  never seen was accepted, reached `FULLY_RECEIVED`, and produced no stock, no movement and no
+  journal entry. It is now refused at creation AND at receipt with a 422 naming the line. Also fixed
+  a blocker nobody had recorded: a goods receipt of **more than one line** answered 409.
+- **36-05** made a unit of measure correctable and retirable — both answered 404 — with a guard that
+  refuses to retire a unit still referenced by an ingredient, a conversion row or a vendor catalog
+  row in another database, and names which.
+
+Live evidence: `31-01-drive.log` (47/2), `phase31-purchasing-access-e2e.sh` (8/0),
+`phase31-approval-limit-e2e.sh` (18/0), `phase31-po-line-validity-e2e.sh` (20/0),
+`phase31-master-data-e2e.sh` (35/0).
+
+Known gaps, recorded rather than hidden: `UomLifecycleIT` was not written (36-05 covers those seven
+behaviours live but not as a build gate); `.planning/phases/36-purchasing-inventory-wiring/deferred-items.md`
+holds four items that are not this phase's to fix, including a sibling test class broken by another
+executor's commit `f72e012`.
 
 --- Phase 34 (Visual Design Language) — 4 of 8 plans complete, 2 partial ---
 
