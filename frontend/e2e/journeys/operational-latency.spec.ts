@@ -207,15 +207,55 @@ test.describe("D-34-02 · the POS terminal carries no phase-34 cost", () => {
     }
   });
 
+  /**
+   * <h3>Why this test asserts the board is THERE before asserting what it does not do</h3>
+   *
+   * Every assertion below is an assertion of ABSENCE — no filter, no animation. A screen that
+   * failed to render has none of those things either, so without an anchor this test reports
+   * green when kitchen-service is down, when the persona cannot reach the board, and when the
+   * route 404s. That is vacuous gate #4 of this phase exactly: a control anchored to a screen
+   * that renders an error whenever a backing service is down.
+   *
+   * It happened here. On 2026-08-12 these three KDS assertions (this one, the containment
+   * one and the reduced-motion one) were re-run after kitchen-service came back up, and all
+   * three passed — but the previous run, with the service DOWN in Eureka, would have passed
+   * identically. The anchor is what makes the difference between the two runs visible.
+   */
   test("a KDS station board runs no animation and carries no filter", async ({ as }) => {
     test.setTimeout(120_000);
     const page = await as(KITCHEN);
     await page.goto("/app/kitchen", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
 
-    const link = page.locator('a[href^="/app/kitchen/"]').first();
-    if (await link.isVisible().catch(() => false)) await link.click();
+    /*
+     * The station tiles are BUTTONS driving `router.push`, not anchors.
+     *
+     * All three of this phase's KDS assertions navigated with
+     * `page.locator('a[href^="/app/kitchen/"]').first()`, guarded by
+     * `.isVisible().catch(() => false)` — so the locator matched nothing, no click happened,
+     * and every "KDS board" assertion in this phase ran against the STATION PICKER instead.
+     * Found 2026-08-12 by adding the board anchor below and watching all three go red on a
+     * healthy kitchen-service. The picker carries no filter and no animation either, which is
+     * why nobody noticed for the life of the phase.
+     */
+    const stationTile = page.locator('[data-testid^="station-tile-"]').first();
+    await expect(
+      stationTile,
+      "ANCHOR NOT FOUND: no station tile on /app/kitchen, so there is no board to open",
+    ).toBeVisible({ timeout: 20_000 });
+    await stationTile.click();
     await page.waitForTimeout(4000);
+
+    const board = page.getByTestId("kds-board");
+    await expect(
+      board,
+      "ANCHOR NOT FOUND: no [data-testid=kds-board] on screen. Every assertion in this test " +
+        "is an assertion of absence, and a board that never rendered satisfies all of them.",
+    ).toBeAttached({ timeout: 20_000 });
+    await expect(board, "the board must still declare the operational zone").toHaveAttribute(
+      "data-zone",
+      "operational",
+    );
 
     const offenders = await page.evaluate(() =>
       Array.from(document.querySelectorAll("*"))

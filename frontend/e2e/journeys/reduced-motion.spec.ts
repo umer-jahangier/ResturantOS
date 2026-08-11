@@ -277,9 +277,33 @@ test.describe("D-34-03 · WITHOUT a reduced-motion preference — the system mus
     await page.goto("/app/kitchen", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
 
-    const stationLink = page.locator('a[href^="/app/kitchen/"]').first();
-    if (await stationLink.isVisible().catch(() => false)) await stationLink.click();
+    /*
+     * The station tiles are BUTTONS driving `router.push`, not anchors.
+     *
+     * All three of this phase's KDS assertions navigated with
+     * `page.locator('a[href^="/app/kitchen/"]').first()`, guarded by
+     * `.isVisible().catch(() => false)` — so the locator matched nothing, no click happened,
+     * and every "KDS board" assertion in this phase ran against the STATION PICKER instead.
+     * Found 2026-08-12 by adding the board anchor below and watching all three go red on a
+     * healthy kitchen-service. The picker carries no filter and no animation either, which is
+     * why nobody noticed for the life of the phase.
+     */
+    const stationTile = page.locator('[data-testid^="station-tile-"]').first();
+    await expect(
+      stationTile,
+      "ANCHOR NOT FOUND: no station tile on /app/kitchen, so there is no board to open",
+    ).toBeVisible({ timeout: 20_000 });
+    await stationTile.click();
     await page.waitForTimeout(4000);
+
+    // The anchor. This whole test is the "without the preference" half of a both-directions
+    // gate — its point is that the system is not merely dead CSS — and a board that never
+    // rendered is dead in exactly the way the test exists to rule out.
+    await expect(
+      page.getByTestId("kds-board"),
+      "ANCHOR NOT FOUND: no [data-testid=kds-board] on screen. An assertion that nothing " +
+        "animates is satisfied by a screen with nothing on it.",
+    ).toBeAttached({ timeout: 20_000 });
 
     const animated = await page.evaluate(
       () =>

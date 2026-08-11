@@ -183,7 +183,23 @@ export function KdsItemColumn({
                   data-fragment-key={key}
                   data-collapsing={isCollapsing ? "true" : undefined}
                   className={cn(
-                    "animate-fade-in",
+                    /*
+                     * NO entrance animation here (D-34-02). `animate-fade-in` used to sit on
+                     * this element and it violated the operational-zone contract outright:
+                     * every ticket fragment ran a 0.2s fadeIn on mount, so arriving on the
+                     * board played one animation per open ticket at once — the same defect
+                     * 34-03 removed from the board root, still present one level down.
+                     *
+                     * It survived because the three assertions that were supposed to catch it
+                     * never reached this screen: they navigated with
+                     * `a[href^="/app/kitchen/"]`, the station tiles are BUTTONS, so all three
+                     * ran against the station picker instead and passed on a screen with no
+                     * tickets on it. Found 2026-08-12 by adding a board anchor.
+                     *
+                     * The collapse transition below STAYS. It is feedback for an action the
+                     * cook just took — a bump — not decoration on arrival, and it is already
+                     * `motion-safe:` scoped so a reduced-motion user gets `hidden` instead.
+                     */
                     isCollapsing &&
                       "pointer-events-none motion-safe:h-px motion-safe:overflow-hidden motion-safe:opacity-0 motion-safe:transition-all motion-safe:duration-400 motion-reduce:hidden",
                   )}

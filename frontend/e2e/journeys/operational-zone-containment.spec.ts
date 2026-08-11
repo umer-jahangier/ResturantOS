@@ -271,17 +271,40 @@ test.describe("operational zone carries no compositing filter", () => {
     await page.goto("/app/kitchen", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
 
-    // The picker links to a station; take the first one rather than hard-coding a code.
-    const stationLink = page.locator('a[href^="/app/kitchen/"]').first();
-    if (await stationLink.isVisible().catch(() => false)) {
-      await stationLink.click();
-    }
-    await page.waitForTimeout(3000);
+    /*
+     * The station tiles are BUTTONS driving `router.push`, not anchors.
+     *
+     * All three of this phase's KDS assertions navigated with
+     * `page.locator('a[href^="/app/kitchen/"]').first()`, guarded by
+     * `.isVisible().catch(() => false)` — so the locator matched nothing, no click happened,
+     * and every "KDS board" assertion in this phase ran against the STATION PICKER instead.
+     * Found 2026-08-12 by adding the board anchor below and watching all three go red on a
+     * healthy kitchen-service. The picker carries no filter and no animation either, which is
+     * why nobody noticed for the life of the phase.
+     */
+    const stationTile = page.locator('[data-testid^="station-tile-"]').first();
+    await expect(
+      stationTile,
+      "ANCHOR NOT FOUND: no station tile on /app/kitchen, so there is no board to open",
+    ).toBeVisible({ timeout: 20_000 });
+    await stationTile.click();
+    await page.waitForTimeout(4000);
 
+    /*
+     * The anchor, asserted rather than probed.
+     *
+     * This was `if (await board.isVisible()) { … }` — so when the board did not render, the
+     * zone assertion was skipped AND the sweep below returned [] from an error page, and the
+     * test reported green. Absence-only assertions need a positive anchor or they measure
+     * nothing; that is the pattern this phase has now caught seven times.
+     */
     const board = page.getByTestId("kds-board");
-    if (await board.isVisible().catch(() => false)) {
-      await expect(board).toHaveAttribute("data-zone", "operational");
-    }
+    await expect(
+      board,
+      "ANCHOR NOT FOUND: no [data-testid=kds-board] on screen, so the containment sweep below " +
+        "would run over whatever error state rendered instead and pass on an empty result",
+    ).toBeAttached({ timeout: 20_000 });
+    await expect(board).toHaveAttribute("data-zone", "operational");
 
     const offenders = await sweep(page);
     expect(offenders, report("the KDS board", offenders)).toEqual([]);
