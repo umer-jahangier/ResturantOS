@@ -272,8 +272,25 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
         )}
       </div>
 
-      {/* Per-status breakdown (New / Started / Preparing / Ready) */}
-      <div className="mt-3 grid grid-cols-4 gap-1.5">
+      {/*
+        Per-status breakdown (New / Started / Preparing / Ready).
+
+        `grid-cols-4` forced four columns into whatever width the card had — ~26px each at 1024px,
+        against a `PREPARING` label that needs 63px at 11px uppercase. The label overflowed its
+        cell and painted straight across its neighbour: the audit photographed `PREPARINGREADY` on
+        both station cards, in both themes, at the widest viewport tested.
+
+        `auto-fit` + `minmax` sizes the column from the LONGEST label instead of from the card, so
+        the row re-flows to two columns when there is not room for four. The label never overflows,
+        because the track is never narrower than the label — which is UI-SPEC §9.3's rule that the
+        block "wraps or abbreviates by rule, never by overflow".
+
+        4.75rem = 76px = PREPARING's 63px painted width + the cell's 12px horizontal padding, with
+        a pixel to spare. Re-measured by `e2e/verify-38-wave3.mjs`, which compares PAINTED extent
+        (`left + scrollWidth`) rather than box extent — box comparison reported 0 collisions
+        against this very defect, because each box was dutifully 26px wide and 44px apart.
+      */}
+      <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))] gap-1.5">
         {COLUMN_ORDER.map((col) => {
           const n = stats?.columnCounts[col] ?? 0;
           return (

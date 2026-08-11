@@ -83,6 +83,12 @@ export function CustomerPicker({
         size="sm"
         disabled={disabled}
         onClick={() => setOpen(true)}
+        // `size="sm"` renders 28px tall. This picker sits in the POS cart, which is touch-first
+        // and where brief §16 requires 44px. Raised on the CALL SITE rather than by changing the
+        // shared `sm` variant, because `sm` is used across the back office where 28px is a
+        // deliberate density choice and 44px would re-space those screens (38-15 owns that
+        // decision product-wide).
+        className="min-h-11"
       >
         Add customer
       </Button>

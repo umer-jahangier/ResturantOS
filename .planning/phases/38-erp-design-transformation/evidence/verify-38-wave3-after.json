@@ -1,0 +1,211 @@
+{
+  "tag": "after",
+  "capturedAt": "2026-08-11T21:37:57.030Z",
+  "pos": {
+    "390": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 0,
+        "sample": []
+      },
+      "h1Count": 1,
+      "cartWidth": 0,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    },
+    "768": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 3,
+        "sample": [
+          {
+            "tag": "a",
+            "label": "Dashboard",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "POS",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "Customers",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          }
+        ]
+      },
+      "h1Count": 1,
+      "cartWidth": 256,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    },
+    "1024": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 3,
+        "sample": [
+          {
+            "tag": "a",
+            "label": "Dashboard",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "POS",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "Customers",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          }
+        ]
+      },
+      "h1Count": 1,
+      "cartWidth": 256,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    },
+    "1440": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 3,
+        "sample": [
+          {
+            "tag": "a",
+            "label": "Dashboard",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "POS",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "Customers",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          }
+        ]
+      },
+      "h1Count": 1,
+      "cartWidth": 256,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    }
+  },
+  "kds": {
+    "390|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 0,
+        "collisions": 0,
+        "detail": [],
+        "widest": 73
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 16,
+        "itemFontSizes": []
+      }
+    },
+    "768|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 0,
+        "collisions": 0,
+        "detail": [],
+        "widest": 68
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 272,
+        "itemFontSizes": []
+      }
+    },
+    "1024|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 0,
+        "collisions": 0,
+        "detail": [],
+        "widest": 71
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 280,
+        "itemFontSizes": []
+      }
+    },
+    "1440|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 0,
+        "collisions": 0,
+        "detail": [],
+        "widest": 94
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 280,
+        "itemFontSizes": []
+      }
+    },
+    "1440|dark": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 0,
+        "collisions": 0,
+        "detail": [],
+        "widest": 94
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 280,
+        "itemFontSizes": []
+      }
+    }
+  }
+}

@@ -90,7 +90,7 @@ export function TableSelectCombobox({
         aria-expanded={open}
         aria-label="Select table"
         data-testid="table-select-trigger"
-        className="flex h-10 w-full items-center justify-between gap-2 rounded-md border bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-11 w-full items-center justify-between gap-2 rounded-md border bg-background px-3 text-small disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className={cn("truncate", !selected && "text-muted-foreground")}>
           {selected ? selected.tableName : "No table (optional)"}

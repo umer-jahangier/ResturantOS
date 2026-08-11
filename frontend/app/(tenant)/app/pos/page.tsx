@@ -60,6 +60,20 @@ export default function PosPage() {
         }
       >
         <div className="flex flex-col h-full">
+          {/*
+            The page's one <h1>, and it is deliberately sr-only.
+
+            `h1Count` was 0 here, so a screen-reader user landing on the terminal got no page
+            identity at all and the document outline had nothing to anchor on (audit §6.2, §9).
+            But this is an `operational` full-bleed surface where vertical space is the scarce
+            resource — a visible 20px page title would push the tile grid down on every tablet,
+            on the one screen the brief says to optimise for speed above all else (§15, §65).
+
+            The tab bar immediately below names the current view visibly, so sighted users are
+            not missing information. This restores the semantics without spending the pixels.
+          */}
+          <h1 className="sr-only">Point of sale</h1>
+
           {/* Till session — page-level chrome, session-scoped (not per-tab/per-order),
               visible identically across every tab (UI-SPEC §3). */}
           <TillSessionBar activeTill={activeTill} />
@@ -70,7 +84,7 @@ export default function PosPage() {
               <button
                 key={tab.id}
                 onClick={() => setView(tab.id)}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                className={`min-h-11 px-4 py-2 text-pos font-medium border-b-2 transition-colors ${
                   view === tab.id
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -83,13 +97,13 @@ export default function PosPage() {
                 (kitchen updates arrive live), amber when falling back to the 15s poll. */}
             <span
               data-testid="pos-live-indicator"
-              className={`ml-auto mb-2 inline-flex items-center gap-1.5 text-xs font-medium ${
-                isConnected ? "text-emerald-600" : "text-amber-600"
+              className={`ml-auto mb-2 inline-flex items-center gap-1.5 text-small font-medium ${
+                isConnected ? "text-success" : "text-warning"
               }`}
               title={isConnected ? "Live — kitchen updates in real time" : "Polling — reconnecting"}
             >
               <span
-                className={`h-2 w-2 rounded-full ${isConnected ? "bg-emerald-500" : "bg-amber-500"}`}
+                className={`h-2 w-2 rounded-full ${isConnected ? "bg-success" : "bg-warning"}`}
               />
               {isConnected ? "Live" : "Polling"}
             </span>

@@ -34,7 +34,7 @@ export function OrderTypeToggle({ value, onChange, className }: OrderTypeToggleP
           data-testid={`order-type-${opt.value.toLowerCase()}`}
           onClick={() => onChange(opt.value)}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "min-h-11 rounded-md px-3 py-1.5 text-pos font-medium transition-colors",
             value === opt.value
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",

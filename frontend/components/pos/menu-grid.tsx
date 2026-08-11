@@ -100,7 +100,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
           <button
             onClick={() => setActiveCategoryId(undefined)}
             className={cn(
-              "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+              "min-h-11 px-4 py-2 rounded-full text-pos font-medium transition-colors",
               !activeCategoryId
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -116,7 +116,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                 key={cat.id}
                 onClick={() => setActiveCategoryId(cat.id)}
                 className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                  "min-h-11 px-4 py-2 rounded-full text-pos font-medium transition-colors",
                   activeCategoryId === cat.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",

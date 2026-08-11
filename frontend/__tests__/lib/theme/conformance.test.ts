@@ -76,9 +76,9 @@ describe.each(GATES)("$id — $name conformance", ({ key, pattern, id }) => {
     // Regenerated in 38-02 after the scanner began stripping comments (see `read`), so these
     // sit slightly under the audit's published figures. The difference is commentary, not code.
     const HIGH_WATER: Record<string, number> = {
-      typeScale: 974,
-      bareRounded: 141,
-      rawPalette: 174,
+      typeScale: 961,
+      bareRounded: 137,
+      rawPalette: 142,
       handRolledTable: 43,
     };
     expect(
@@ -94,7 +94,7 @@ describe("38-01 paid down real debt rather than only fencing it", () => {
   // regress the phase's headline numbers back toward the audit's.
   it("type-scale classes are below the count measured at the start of 38-01", () => {
     const total = Object.values(scan(TYPE_SCALE)).reduce((a, b) => a + b, 0);
-    expect(total, "type-scale classes").toBeLessThanOrEqual(974);
+    expect(total, "type-scale classes").toBeLessThanOrEqual(961);
   });
 
   it("hand-rolled <table> count only ever falls", () => {
@@ -106,6 +106,6 @@ describe("38-01 paid down real debt rather than only fencing it", () => {
 
   it("bare `rounded` call sites are below the count measured at the start of 38-01", () => {
     const total = Object.values(scan(BARE_ROUNDED)).reduce((a, b) => a + b, 0);
-    expect(total, "bare rounded").toBeLessThanOrEqual(141);
+    expect(total, "bare rounded").toBeLessThanOrEqual(137);
   });
 });

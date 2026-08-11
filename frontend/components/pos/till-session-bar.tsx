@@ -99,16 +99,16 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
 
   if (!activeTill || activeTill.status === "CLOSED") {
     return (
-      <div className="border-b border-amber-200 dark:border-amber-900">
+      <div className="border-b border-warning/30">
         {!showOpenModal ? (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40">
-            <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+          <div className="flex items-center gap-2 px-3 py-2 bg-warning/15">
+            <span className="text-small text-warning font-medium">
               No active till
             </span>
             <button
               data-testid="open-till-button"
               onClick={() => setShowOpenModal(true)}
-              className="ml-auto text-xs bg-emerald-600 text-white rounded px-3 py-1 font-medium hover:bg-emerald-700"
+              className="ml-auto min-h-11 text-small bg-success text-success-foreground rounded-md px-4 py-2 font-medium hover:opacity-90"
             >
               Open Till
             </button>
@@ -123,7 +123,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
            */
           <div
             data-testid="open-till-panel"
-            className="flex flex-col gap-4 bg-amber-50 dark:bg-amber-950/40 p-4 sm:p-6"
+            className="flex flex-col gap-4 bg-warning/15 p-4 sm:p-6"
           >
             <h2 className="font-semibold">Open Till Session</h2>
             <p className="text-xs text-muted-foreground">
@@ -153,7 +153,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
                 data-testid="open-till-confirm-button"
                 onClick={() => void handleOpenTill()}
                 disabled={openTillMutation.isPending}
-                className="text-sm px-4 py-2 rounded bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
+                className="min-h-11 text-pos px-4 py-2 rounded-md bg-success text-success-foreground font-medium hover:opacity-90 disabled:opacity-50"
               >
                 {openTillMutation.isPending ? "Opening…" : "Open Till"}
               </button>
@@ -170,10 +170,10 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   }
 
   return (
-    <div className="border-b border-emerald-200 dark:border-emerald-900">
+    <div className="border-b border-success/30">
       {!showCloseModal ? (
-        <div className="flex items-center gap-3 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/40">
-          <span className="text-xs font-medium text-emerald-800 dark:text-emerald-300">
+        <div className="flex items-center gap-3 px-3 py-2 bg-success/15">
+          <span className="text-small font-medium text-success">
             Till OPEN
           </span>
           <span className="text-xs text-muted-foreground">
@@ -193,7 +193,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
             <span
               className={cn(
                 "text-xs font-medium",
-                Math.abs(variance) > varianceThreshold ? "text-red-600" : "text-emerald-700",
+                Math.abs(variance) > varianceThreshold ? "text-destructive" : "text-success",
               )}
             >
               Var: <MoneyDisplay paisa={Math.abs(variance)} className="text-xs" />
@@ -203,7 +203,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
           <button
             data-testid="close-till-button"
             onClick={() => setShowCloseModal(true)}
-            className="ml-auto text-xs bg-slate-600 text-white rounded px-3 py-1 font-medium hover:bg-slate-700"
+            className="ml-auto min-h-11 text-small bg-secondary text-secondary-foreground rounded-md px-4 py-2 font-medium hover:opacity-90"
           >
             Close Till
           </button>
@@ -212,7 +212,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
         /* Dedicated large in-place panel (POS-25/D-10) — see the open-till panel comment above. */
         <div
           data-testid="close-till-panel"
-          className="flex flex-col gap-4 bg-emerald-50 dark:bg-emerald-950/40 p-4 sm:p-6"
+          className="flex flex-col gap-4 bg-success/15 p-4 sm:p-6"
         >
           <h2 className="font-semibold">Close Till Session</h2>
 
@@ -267,8 +267,8 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
                     Math.round(parseFloat(declaredCash) * 100) -
                       (activeTill.expectedClosingPaisa ?? 0),
                   ) > varianceThreshold
-                    ? "text-red-600"
-                    : "text-emerald-600",
+                    ? "text-destructive"
+                    : "text-success",
                 )}
               >
                 <MoneyDisplay
@@ -292,7 +292,7 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
               data-testid="close-till-confirm-button"
               onClick={() => void handleCloseTill()}
               disabled={closeTillMutation.isPending}
-              className="text-sm px-4 py-2 rounded bg-slate-600 text-white font-medium hover:bg-slate-700 disabled:opacity-50"
+              className="min-h-11 text-pos px-4 py-2 rounded-md bg-secondary text-secondary-foreground font-medium hover:opacity-90 disabled:opacity-50"
             >
               {closeTillMutation.isPending ? "Closing…" : "Close Till"}
             </button>

@@ -1,0 +1,535 @@
+{
+  "tag": "before",
+  "capturedAt": "2026-08-11T21:28:21.129Z",
+  "pos": {
+    "390": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 10,
+        "sample": [
+          {
+            "tag": "button",
+            "label": "Close Till",
+            "w": 60,
+            "h": 40,
+            "cls": "ml-auto text-xs bg-slate-600 text-white rounded px-3 py-1 fo"
+          },
+          {
+            "tag": "button",
+            "label": "All",
+            "w": 49,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Starters",
+            "w": 85,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Mains",
+            "w": 71,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Drinks",
+            "w": 74,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Add customer",
+            "w": 106,
+            "h": 28,
+            "cls": "group/button inline-flex shrink-0 items-center justify-cente"
+          },
+          {
+            "tag": "button",
+            "label": "Dine-in",
+            "w": 72,
+            "h": 32,
+            "cls": "rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Takeaway",
+            "w": 89,
+            "h": 32,
+            "cls": "rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Pickup",
+            "w": 69,
+            "h": 32,
+            "cls": "rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Select table",
+            "w": 288,
+            "h": 40,
+            "cls": "flex h-10 w-full items-center justify-between gap-2 rounded-"
+          }
+        ]
+      },
+      "h1Count": 0,
+      "cartWidth": 0,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    },
+    "768": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 17,
+        "sample": [
+          {
+            "tag": "a",
+            "label": "Dashboard",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "POS",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "Customers",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "button",
+            "label": "Close Till",
+            "w": 75,
+            "h": 24,
+            "cls": "ml-auto text-xs bg-slate-600 text-white rounded px-3 py-1 fo"
+          },
+          {
+            "tag": "button",
+            "label": "POS Terminal",
+            "w": 120,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "Floor View",
+            "w": 101,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "Order Management",
+            "w": 159,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "All",
+            "w": 49,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Starters",
+            "w": 85,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Mains",
+            "w": 71,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Drinks",
+            "w": 74,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Soft Drinks",
+            "w": 106,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          }
+        ]
+      },
+      "h1Count": 0,
+      "cartWidth": 256,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    },
+    "1024": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 17,
+        "sample": [
+          {
+            "tag": "a",
+            "label": "Dashboard",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "POS",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "Customers",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "button",
+            "label": "Close Till",
+            "w": 75,
+            "h": 24,
+            "cls": "ml-auto text-xs bg-slate-600 text-white rounded px-3 py-1 fo"
+          },
+          {
+            "tag": "button",
+            "label": "POS Terminal",
+            "w": 120,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "Floor View",
+            "w": 101,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "Order Management",
+            "w": 159,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "All",
+            "w": 49,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Starters",
+            "w": 85,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Mains",
+            "w": 71,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Drinks",
+            "w": 74,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Soft Drinks",
+            "w": 106,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          }
+        ]
+      },
+      "h1Count": 0,
+      "cartWidth": 256,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    },
+    "1440": {
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "touch": {
+        "count": 17,
+        "sample": [
+          {
+            "tag": "a",
+            "label": "Dashboard",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "POS",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "a",
+            "label": "Customers",
+            "w": 239,
+            "h": 36,
+            "cls": "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-me"
+          },
+          {
+            "tag": "button",
+            "label": "Close Till",
+            "w": 75,
+            "h": 24,
+            "cls": "ml-auto text-xs bg-slate-600 text-white rounded px-3 py-1 fo"
+          },
+          {
+            "tag": "button",
+            "label": "POS Terminal",
+            "w": 120,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "Floor View",
+            "w": 101,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "Order Management",
+            "w": 159,
+            "h": 38,
+            "cls": "px-4 py-2 text-sm font-medium border-b-2 transition-colors b"
+          },
+          {
+            "tag": "button",
+            "label": "All",
+            "w": 49,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Starters",
+            "w": 85,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Mains",
+            "w": 71,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Drinks",
+            "w": 74,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          },
+          {
+            "tag": "button",
+            "label": "Soft Drinks",
+            "w": 106,
+            "h": 36,
+            "cls": "px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          }
+        ]
+      },
+      "h1Count": 0,
+      "cartWidth": 256,
+      "ellipsisLabels": 1,
+      "pageScroll": false
+    }
+  },
+  "kds": {
+    "390|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 2,
+        "collisions": 0,
+        "detail": [],
+        "widest": 63
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 16,
+        "itemFontSizes": []
+      }
+    },
+    "768|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 8,
+        "collisions": 4,
+        "detail": [
+          {
+            "a": "Started",
+            "b": "Preparing",
+            "px": 5
+          },
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 20
+          },
+          {
+            "a": "Started",
+            "b": "Preparing",
+            "px": 5
+          },
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 20
+          }
+        ],
+        "widest": 63
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 272,
+        "itemFontSizes": []
+      }
+    },
+    "1024|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 6,
+        "collisions": 4,
+        "detail": [
+          {
+            "a": "Started",
+            "b": "Preparing",
+            "px": 3
+          },
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 19
+          },
+          {
+            "a": "Started",
+            "b": "Preparing",
+            "px": 4
+          },
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 19
+          }
+        ],
+        "widest": 63
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 280,
+        "itemFontSizes": []
+      }
+    },
+    "1440|light": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 4,
+        "collisions": 2,
+        "detail": [
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 7
+          },
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 7
+          }
+        ],
+        "widest": 63
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 280,
+        "itemFontSizes": []
+      }
+    },
+    "1440|dark": {
+      "collision": {
+        "totalLabels": 8,
+        "overflowingLabels": 4,
+        "collisions": 2,
+        "detail": [
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 7
+          },
+          {
+            "a": "Preparing",
+            "b": "Ready",
+            "px": 7
+          }
+        ],
+        "widest": 63
+      },
+      "containingBlockCreators": 0,
+      "offenders": [],
+      "animations": 0,
+      "fit": {
+        "boardHeightRatio": 1,
+        "boardLeft": 280,
+        "itemFontSizes": []
+      }
+    }
+  }
+}
