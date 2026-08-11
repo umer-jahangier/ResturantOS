@@ -200,11 +200,16 @@ methods that task 3 adds, so committing it first would have committed a red test
 
 ## Gaps left open, named rather than exempted
 
-- **`UomLifecycleIT` was not written.** The plan asks for an integration test covering the seven
-  behaviours. All seven are covered by `scripts/e2e/phase31-master-data-e2e.sh` against the live
-  stack — including the cross-database guard, which a Testcontainers IT could only assert against a
-  mock — but a live script is not a build gate, so a regression here would not fail CI. **Owner:**
-  this phase's follow-up. This is a real gap and is recorded as one rather than dressed up.
+> **Update:** the first item below was closed after plan 36-07 landed. Left visible rather than
+> deleted, so the record shows a named gap being closed rather than a summary that never had one.
+
+- ~~**`UomLifecycleIT` was not written.**~~ **CLOSED** — written after 36-07, commit `b179b57`,
+  **12/12** under failsafe. All seven behaviours are now a build gate as well as a live assertion:
+  name/factor correctable, the code unchangeable (asserted by reflection on the request record, so
+  a rename is unrepresentable rather than merely refused), the family-base invariant on update, the
+  retire guard with one test per kind of reference including the unreachable cross-database case,
+  retired-but-still-converting, restore, and idempotent retirement — plus the invariant that the row
+  count never falls and no delete method exists. Live proof and a build gate, not either alone.
 - **The `TETS` unit in Floating Terrace's registry was not removed.** It can now be retired through
   the product, which is the point; removing it is tenant data and not this plan's to change.
 

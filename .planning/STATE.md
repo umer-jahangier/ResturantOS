@@ -1010,10 +1010,15 @@ Live evidence: `31-01-drive.log` (47/2), `phase31-purchasing-access-e2e.sh` (8/0
 and asserts each receipt moved stock; `CREDENTIALS.md`'s "purchasing is empty" caveat is deleted
 because it is no longer true.
 
-Known gaps, recorded rather than hidden: `UomLifecycleIT` was not written (36-05 covers those seven
-behaviours live but not as a build gate); `.planning/phases/36-purchasing-inventory-wiring/deferred-items.md`
-holds four items that are not this phase's to fix, including a sibling test class broken by another
-executor's commit `f72e012`.
+`UomLifecycleIT` was subsequently written (commit `b179b57`, 12/12), closing the one gap 36-05 had
+named — the seven unit-lifecycle behaviours are now a build gate as well as a live assertion.
+
+`.planning/phases/36-purchasing-inventory-wiring/deferred-items.md` holds five items that are not
+this phase's to fix: a sibling test class broken by another executor's commit `f72e012` (a correct
+cross-request tenant-leak fix that purchasing's ITs were relying on not existing — being repaired
+test-side by another agent, and NOT to be worked around by restoring the context), a CGLIB context
+failure in `PurchasingOpaPolicyIT`, an intermittent Testcontainers Postgres refusal, the 36-01
+handoffs, and a record that commit `f55292dc` swept three lines of the phase-37 agent's work.
 
 --- Phase 34 (Visual Design Language) — 4 of 8 plans complete, 2 partial ---
 
