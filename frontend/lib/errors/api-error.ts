@@ -94,10 +94,71 @@ export class ApiError extends Error {
   isFeatureDisabled(): boolean {
     return this.code === "FEATURE_DISABLED";
   }
+  /**
+   * Whether this is a 403 of EITHER kind — the module is not on the tenant's plan, or the signed-in
+   * role may not do this.
+   *
+   * Both arrive as HTTP 403 from `GlobalExceptionHandler`, and until 36-02 both rendered as the
+   * same red "Couldn't load vendors" box. They are completely different situations: one is fixed by
+   * an owner upgrading a plan, the other by an owner changing a role assignment, and a user who
+   * cannot tell them apart can act on neither. Exposed as one predicate so a caller cannot handle
+   * one and silently fall through on the other.
+   *
+   * @see accessRefusalKind for which of the two it is
+   */
+  isAccessRefusal(): boolean {
+    return this.isFeatureDisabled() || this.isPermissionDenied();
+  }
   isQuotaExceeded(): boolean {
     return this.code === "QUOTA_EXCEEDED";
   }
   isValidationFailed(): boolean {
     return this.code === "VALIDATION_FAILED";
   }
+}
+
+/** Which kind of 403 a thrown value is, or `null` when it is not a refusal at all. */
+export type AccessRefusalKind = "feature-disabled" | "permission-denied";
+
+/**
+ * Classify a thrown value as one of the two 403 shapes, or `null`.
+ *
+ * Returning a discriminated value rather than two independent booleans is deliberate: a caller
+ * writing `if (isFeatureDisabled) … else …` handles one case and buries the other in a generic
+ * failure, which is how a permission problem became "Couldn't load vendors" and stayed there.
+ */
+export function accessRefusalKind(error: unknown): AccessRefusalKind | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.isFeatureDisabled()) return "feature-disabled";
+  if (error.isPermissionDenied()) return "permission-denied";
+  return null;
+}
+
+/**
+ * What to tell a human, for each kind.
+ *
+ * Honest and unhelpful to an attacker, in both directions:
+ *   - neither message names the permission code, so a probing user learns no authority strings;
+ *   - neither says whether the underlying resource exists;
+ *   - the feature message names the MODULE, because the tenant's own plan is not a secret from the
+ *     tenant and "purchasing is not on your plan" is the only version of this a person can act on.
+ */
+export function accessRefusalMessage(
+  kind: AccessRefusalKind,
+  moduleLabel: string,
+): { title: string; detail: string } {
+  if (kind === "feature-disabled") {
+    return {
+      title: `${moduleLabel} is not enabled for this account`,
+      detail:
+        `Your current plan does not include ${moduleLabel.toLowerCase()}. ` +
+        `An owner can enable it, or contact your administrator.`,
+    };
+  }
+  return {
+    title: `You don't have access to ${moduleLabel.toLowerCase()}`,
+    detail:
+      "Your signed-in role may not perform this action. " +
+      "An owner or administrator can change your role.",
+  };
 }

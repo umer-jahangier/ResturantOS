@@ -2,7 +2,11 @@
 
 import * as React from "react";
 
-import { formatUserFacingError } from "@/lib/errors";
+import {
+  accessRefusalKind,
+  accessRefusalMessage,
+  formatUserFacingError,
+} from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +74,53 @@ interface QueryErrorNoticeProps {
   onRetry?: () => void;
   isRetrying?: boolean;
   className?: string;
+  /**
+   * The module this screen belongs to, in the reader's words — "Purchasing", "Inventory". Used
+   * only for the two 403 states. Defaults to `what`, which reads acceptably ("vendors is not
+   * enabled") but is worth passing properly on any screen that has a module name.
+   */
+  moduleLabel?: string;
+}
+
+/**
+ * A 403, told apart.
+ *
+ * 36-01 drove purchasing as MANAGER and OWNER and found the reported 403 no longer reproduces —
+ * but while chasing it, the reason it took an afternoon was that the product could not say which
+ * kind of refusal it had received. `FEATURE_DISABLED` ("purchasing is not on this tenant's plan")
+ * and `PERMISSION_DENIED` ("this role may not") are both HTTP 403 and both rendered as the same
+ * red "Couldn't load vendors" box, next to a retry button that could never help. Retrying a
+ * refusal is not a remedy; it is the product suggesting the user's problem is transient when it
+ * is structural.
+ *
+ * So: a distinct, calm, non-destructive state per kind, with NO retry button, and never an empty
+ * state — GA-001's whole lesson is that "you have no vendors" must not be shown to someone who
+ * simply was not allowed to look.
+ */
+function AccessRefusalNotice({
+  kind,
+  moduleLabel,
+  className,
+}: {
+  kind: NonNullable<ReturnType<typeof accessRefusalKind>>;
+  moduleLabel: string;
+  className?: string;
+}) {
+  const { title, detail } = accessRefusalMessage(kind, moduleLabel);
+  return (
+    <div
+      role="alert"
+      data-testid="query-access-refusal"
+      data-refusal-kind={kind}
+      className={cn(
+        "space-y-1 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm",
+        className,
+      )}
+    >
+      <p className="font-medium">{title}</p>
+      <p className="text-muted-foreground">{detail}</p>
+    </div>
+  );
 }
 
 /**
@@ -82,7 +133,20 @@ export function QueryErrorNotice({
   onRetry,
   isRetrying,
   className,
+  moduleLabel,
 }: QueryErrorNoticeProps) {
+  // Checked FIRST, for the same reason error is checked before empty: a refusal has no
+  // trustworthy failure story to tell, and "couldn't load" is not what happened.
+  const refusal = accessRefusalKind(error);
+  if (refusal) {
+    return (
+      <AccessRefusalNotice
+        kind={refusal}
+        moduleLabel={moduleLabel ?? what}
+        className={className}
+      />
+    );
+  }
   return (
     <div
       role="alert"
@@ -131,6 +195,8 @@ interface QueryBoundaryProps {
   loading?: React.ReactNode;
   /** Suppress the retry button (a query with no `refetch` never shows one anyway). */
   hideRetry?: boolean;
+  /** The module in the reader's words — "Purchasing". Only used by the two 403 states. */
+  moduleLabel?: string;
   className?: string;
   children: React.ReactNode;
 }
@@ -142,6 +208,7 @@ export function QueryBoundary({
   empty,
   loading,
   hideRetry,
+  moduleLabel,
   className,
   children,
 }: QueryBoundaryProps) {
@@ -152,6 +219,7 @@ export function QueryBoundary({
     return (
       <QueryErrorNotice
         what={what}
+        moduleLabel={moduleLabel}
         error={failed.error}
         isRetrying={queries.some((q) => q.isFetching)}
         onRetry={
