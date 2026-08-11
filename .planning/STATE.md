@@ -6,14 +6,14 @@ current_phase: 35
 current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-11T18:42:50.178Z"
+last_updated: "2026-08-11T19:05:35.353Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 35 execution started
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 159
+  completed_plans: 162
   percent: 79
 ---
 
@@ -36,6 +36,52 @@ The briefs those phases were built from are not lost. They derive from
 which is committed and is the real ground truth for that work.
 
 Corrective action: subsequent phases go through /gsd-plan-phase before /gsd-execute-phase.
+-->
+
+<!--
+PHASE 28 — Stations, POS Profiles & Staff Assignment (session of 2026-08-11/12)
+
+Executed 28-01 … 28-05 and 28-07 of 14 through the GSD workflow (PLAN -> atomic commits per task ->
+SUMMARY). Waves 1 and 2's BACKEND is complete; the four wave-2/3 FRONTEND plans and the remaining
+backend/e2e plans are NOT started: 28-06, 28-08, 28-09, 28-10, 28-11, 28-12, 28-13, 28-14.
+
+WHAT AN OPERATOR CAN DO NOW, OVER HTTP, AND WHAT THEY STILL CANNOT
+  CAN (API): create a typed station (KITCHEN/BAR/PANTRY/EXPO/DESSERT); create a POS terminal
+    profile with a menu scope and a station set; route an item or a whole category to a station
+    PER BRANCH; bind a user to zero or more stations and have that ride their access token; and
+    have kitchen-service honour that scope on the board, the station list and the live socket.
+  CANNOT (yet): do ANY of it from the UI. Every one of those is an API-only capability until
+    28-06/09/10/11/13 land, so D-28-05 ("nothing seeded by developers, all tenant-manageable")
+    is NOT yet satisfied end to end, and the phase's definition of done is NOT met.
+  NOT VERIFIED IN A BROWSER. No screenshot evidence exists for this phase yet.
+
+THE CLAIM CONTRACT other plans depend on (28-01):
+  JWT: attributes.stations = sorted List<String> of station CODES.
+  ABSENT means UNRESTRICTED. An empty list is NEVER produced. Constant:
+  PermissionResolver.STATION_SCOPE_CLAIM (auth) / KdsAuthorizationService (kitchen, nested read).
+
+MIGRATION NUMBERS SHIFTED BY ONE from every 28-xx plan: V13 was taken by 26-03's print_jobs, so
+  28-02 -> pos V14, 28-04 -> pos V15, 28-05 -> pos V16. 28-12's order attribution should therefore
+  be V17, not the V16 its plan names. kitchen V9 is as planned.
+
+TWO SHIPPED BUGS CLOSED ALONG THE WAY, both previously invisible:
+
+  1. menu_items.station_id is tenant-wide while stations are branch-scoped, so an admin at branch B
+     assigning a dish silently re-pointed the same dish at branch A (28-05). Masked only because no
+     UI called the endpoint — and 28-10 was about to build that UI.
+
+  2. The KDS station list filter, if applied before the auto-seed, would have written a spurious
+     DEFAULT station row on every screen open for any scoped user (28-07, caught in implementation).
+
+ENVIRONMENT NOTES for whoever continues:
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home
+  export TESTCONTAINERS_RYUK_DISABLED=true TESTCONTAINERS_HOST_OVERRIDE=192.168.64.2
+  (/usr/libexec/java_home -v 25 does NOT resolve on this machine; ~/.testcontainers.properties is
+  not honoured by the failsafe fork — the env vars are.)
+  `mvn test -Dtest=SomethingIT` runs NOTHING. Use `mvn verify -Dit.test=`.
+
+Open items are in .planning/phases/28-station-pos-profiles/deferred-items.md (shared-lib print
+compile break and a full-suite-only TenantGuc probe failure, neither caused by phase 28).
 -->
 
 <!--
@@ -253,7 +299,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING
-Plan: 3 of 14
+Plan: 4 of 14
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -545,6 +591,7 @@ _Updated after each plan completion_
 | Phase 13 P15 | 4h | 3 tasks | 6 files |
 | Phase 35 P01 | 14min | 3 tasks | 14 files |
 | Phase 35 P02 | 21min | 2 tasks | 3 files |
+| Phase 35 P03 | 34min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -868,6 +915,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 35-01: business-rule refusals use 422 with details[].field in the existing ApiError envelope; 400 stays reserved for bean validation
 - [Phase ?]: 35-01: overnight shifts (end before start) stay legal — only equal start/end times are refused; 35-11 must use 'end != start'
 - [Phase ?]: 35-02: salary_components discriminators are EARNING/DEDUCTION and FIXED/PERCENT_OF_BASIC; five deduction-map keys are reserved by CHECK
+- [Phase ?]: 35-03: HR config is authorised tenant-wide (same_tenant only); hr.config.view derived from hr.employee.view holders, hr.config.manage enumerated to OWNER/TENANT_ADMIN
 
 ### Pending Todos
 
@@ -951,6 +999,7 @@ What the procure-to-pay chain does now that it did not before:
   from the stock lot rather than from the GRN message — so a refusal now strands nothing. Two ITs
   that asserted the old behaviour were inverted, not deleted. The hand-checkable case is exact on
   the live path: two 500 g packs = 1.0 KG at 1,240,000 paisa/KG, ledger debited 1,240,000.
+
 - **36-05** made a unit of measure correctable and retirable — both answered 404 — with a guard that
   refuses to retire a unit still referenced by an ingredient, a conversion row or a vendor catalog
   row in another database, and names which.
