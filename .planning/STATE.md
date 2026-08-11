@@ -6,14 +6,14 @@ current_phase: 35
 current_phase_name: HR Usability & App-Wide Form Standard
 status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
-last_updated: "2026-08-11T19:14:49.518Z"
+last_updated: "2026-08-11T19:31:08.444Z"
 last_activity: 2026-08-11
 last_activity_desc: Phase 35 execution started
 progress:
   total_phases: 19
   completed_phases: 15
   total_plans: 182
-  completed_plans: 162
+  completed_plans: 163
   percent: 79
 ---
 
@@ -299,7 +299,7 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 ## Current Position
 
 Phase: 35 (HR Usability & App-Wide Form Standard) — EXECUTING
-Plan: 5 of 14
+Plan: 6 of 14
 Status: Ready to execute
 (iteration 1 found 1 blocker + 2 warnings, all closed). Coverage gates: 6/6 requirements
 (INV-01, INV-13, INV-14, INV-15, PUR-07, PUR-08), 9/9 CONTEXT.md decisions (D-01..D-09).
@@ -593,6 +593,7 @@ _Updated after each plan completion_
 | Phase 35 P02 | 21min | 2 tasks | 3 files |
 | Phase 35 P03 | 34min | 3 tasks | 7 files |
 | Phase 35 P04 | 26min | 2 tasks | 9 files |
+| Phase 35 P05 | 48min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -918,6 +919,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 35-02: salary_components discriminators are EARNING/DEDUCTION and FIXED/PERCENT_OF_BASIC; five deduction-map keys are reserved by CHECK
 - [Phase ?]: 35-03: HR config is authorised tenant-wide (same_tenant only); hr.config.view derived from hr.employee.view holders, hr.config.manage enumerated to OWNER/TENANT_ADMIN
 - [Phase ?]: 35-04: the app form standard is useStandardForm (mode onTouched + reValidateMode onChange) + applyServerFieldErrors + shared Select/Combobox; documented in Docs/conventions/form-standard.md
+- [Phase ?]: 35-05: departments/designations are tenant-managed rows; employees carry department_id/designation_id; 015 backfill dedupes on lower(trim()) keeping the first spelling. shifts.role_designation is still free text — flagged for follow-up.
 
 ### Pending Todos
 
@@ -1031,33 +1033,42 @@ Executed 2026-08-11/12 in wave order.
 settings; no dedicated visual spec).**
 
 What landed:
+
 - 34-01 — the three-zone spine (`data-zone` + React context), five compositing filters removed
   (three were repainting the POS from the shell chrome above it), a two-part containment gate
   watched to fail three ways, and a containing-block guard protecting phase 26's printed receipt.
+
 - 34-02 — `compositeOver()` in the WCAG validator (sRGB, not OKLCH — a compositor blends in the
   space it paints in); glass + depth tokens authored SOLID-FIRST; a substrate manifest; 20
   contrast rows measured under both deployment conditions. Binding constraint 5.34:1.
+
 - 34-03 — a five-family motion vocabulary under the resting-state contract; reduced motion that
   REMOVES decorative animation; retirement of the 350ms navigation entrance that was playing on
   the KDS board and POS terminal; a two-direction runtime gate.
+
 - 34-04 — GlassPanel / Reveal / RevealGroup / Card depth / usePointerTilt; a dependency gate
   foreclosing three.js and friends BY NAME. Performance properties asserted by COUNTING calls.
+
 - 34-05 — the four data states given character with none made quieter. Skeleton shimmers on
   back-office surfaces and sits still on operational ones; the error box gains DEPTH only
   (a raised surface reads as more urgent, which is the one permitted direction); the empty state
   keeps its next-action affordance.
+
 - 34-08 — SURFACE-MOTION-SPEC.md with every value derivable from the shipped stylesheet;
   POS tap-to-cart measured at 79–99ms as an OBSERVATION beside deterministic gates; bundle delta
   +5,821 B of CSS, 24 kB of new JS source, zero dependencies added.
+
 - 34-06 (partial) — glass portlets, depth grid, hover lift, staggered entrance.
 - 34-07 (partial) — login card, SuperAdmin console (header, stat tiles, tier list) and the
   settings screens; glass contrast swept across all 360° of brand hue.
 
 Corrections made to my own earlier reporting, both worth keeping:
+
 1. I claimed a tenant could pick a brand hue that drops glass below AA. **Wrong.**
    `app/api/theme/route.ts` emits only `--primary-*`; no glass input resolves through it, so a
    tenant cannot move any figure in the glass table. The hue sweep is a BUILD-TIME guarantee and
    is now labelled as one, with three assertions that fail if the route's scope ever widens.
+
 2. Five gates in this phase were found passing VACUOUSLY, each caught by running a negative
    control rather than trusting green — a proximity regex matching a neighbouring rule,
    `test.use({reducedMotion})` silently doing nothing, dark screenshots identical to light, a
@@ -1066,12 +1077,16 @@ Corrections made to my own earlier reporting, both worth keeping:
    All listed in SURFACE-MOTION-SPEC.md §7.
 
 Carry-forward:
+
 1. **34-06's chart reveal and count-up are not built**, and neither are the dashboard-specific
    test files. Direct series labelling (UI-SPEC §3.4) is untouched but unverified by this phase.
+
 2. **KDS assertions were not re-run** on the final sweep — kitchen-service is DOWN in Eureka.
    They passed earlier in the session; re-run them.
+
 3. The settings restyle is visually unverified: the seeded terrace manager lacks
    `rbac.manage`/`branch.manage`, so the evidence harness sees "Access denied".
+
 4. framer-motion is in package.json but reachable from no route. `dependency-budget.test.ts`
    fails if it is removed without updating the baseline in the same commit — deliberate.
 
