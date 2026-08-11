@@ -193,6 +193,22 @@ TENANTS: list[dict[str, Any]] = [
 #   KITCHEN_STAFF  pos.kds.view       GET /api/v1/pos/stations   (its ONLY reachable POS read)
 #   ACCOUNTANT     finance.coa.view   GET /api/v1/finance/accounts
 
+# Approval limits (paisa) written onto user_branch_roles when the persona is assigned.
+# vendor.rego / finance.rego / pos.rego all fail-closed when approval_limit_paisa is absent,
+# so a seeded MANAGER with vendor.po.approve but a NULL limit cannot approve any PO.
+# Values match the demo Liquibase seeds (900-seed-auth-dev-data.xml) and onboarding.py.
+APPROVAL_LIMIT_BY_ROLE: dict[str, int | None] = {
+    "OWNER": 100_000_000,
+    "TENANT_ADMIN": 100_000_000,
+    "ACCOUNTANT": 50_000_000,
+    "MANAGER": 30_000_000,
+    "FINANCE_VIEWER": 25_000_000,
+    "CASHIER": 5_000_000,
+    "WAITER": None,
+    "KITCHEN_STAFF": None,
+    "INVENTORY_MANAGER": None,
+}
+
 PERSONAS: list[dict[str, Any]] = [
     {"local": "owner", "role": "OWNER", "label": "Owner / tenant admin",
      "provisioned": True, "verify_path": "/api/v1/users?page=0&size=1"},
@@ -1068,6 +1084,31 @@ def phase_personas(tenants: list[Tenant], repair: bool = True) -> dict[str, str]
         t.hq_branch_id = hq["id"]
         t.branch_ids = [t.hq_branch_id]
 
+        # Provisioning saga creates the OWNER without approval_limit_paisa. Same fail-closed
+        # OPA trap as the created personas — pin the documented OWNER limit onto the HQ row.
+        owner_user = find_user(owner_token, owner_email)
+        owner_limit = APPROVAL_LIMIT_BY_ROLE["OWNER"]
+        if owner_user:
+            ol = request(
+                "POST", f"/api/v1/users/{owner_user['id']}/branch-roles", token=owner_token,
+                body={"branchId": t.hq_branch_id, "roleCode": "OWNER",
+                      "approvalLimitPaisa": owner_limit},
+            )
+            if ol.status in (200, 201):
+                owner_token, note = ensure_persona_usable(
+                    owner_email, owner_password, t.slug, None,
+                    owner_token_for_repair=lambda: None, user_id=None, repair=False,
+                )
+                if owner_token:
+                    tokens[owner_email] = owner_token
+                    attrs = (jwt_claims(owner_token).get("attributes") or {})
+                    if attrs.get("approval_limit_paisa") != owner_limit:
+                        warn(f"{owner_email}: JWT still missing approval_limit_paisa after assign")
+                    else:
+                        ok(f"{owner_email}: approval_limit_paisa={owner_limit}")
+            else:
+                warn(f"{owner_email}: OWNER approval-limit assign answered {ol.status}")
+
         for extra in t.spec["extra_branches"]:
             if extra in by_name:
                 t.branch_ids.append(by_name[extra])
@@ -1110,6 +1151,30 @@ def phase_personas(tenants: list[Tenant], repair: bool = True) -> dict[str, str]
             if not token:
                 die(f"{email}: could not be brought to its documented working password ({note}). "
                     f"A partial seed is a failed seed.")
+
+            # CreateUserRequest has no approvalLimitPaisa field, so POST /users leaves the HQ
+            # assignment NULL. OPA deny-by-default on missing approval_limit_paisa then makes
+            # every vendor.po.approve / finance.expense.approve call return APPROVAL_LIMIT_EXCEEDED
+            # even for tiny amounts. Re-assign the HQ role with the documented limit (idempotent).
+            limit = APPROVAL_LIMIT_BY_ROLE.get(p["role"])
+            if limit is not None:
+                limit_resp = request(
+                    "POST", f"/api/v1/users/{user_id}/branch-roles", token=owner_token,
+                    body={"branchId": t.hq_branch_id, "roleCode": p["role"],
+                          "approvalLimitPaisa": limit},
+                )
+                if limit_resp.status not in (200, 201):
+                    warn(f"{email}: approval-limit assign answered {limit_resp.status} — "
+                         f"{limit_resp.raw[:200]}")
+                # Re-login so the JWT we cache carries attributes.approval_limit_paisa.
+                token, note = ensure_persona_usable(
+                    email, password, t.slug, None,
+                    owner_token_for_repair=lambda tok=owner_token: tok,
+                    user_id=user_id, repair=repair,
+                )
+                if not token:
+                    die(f"{email}: re-login after approval-limit assign failed ({note})")
+
             tokens[email] = token
             claims = jwt_claims(token)
             got_roles = claims.get("roles") or []
@@ -1117,6 +1182,10 @@ def phase_personas(tenants: list[Tenant], repair: bool = True) -> dict[str, str]
                 die(f"{email}: the issued token carries roles {got_roles}, not {p['role']}. "
                     f"A role code that persists but does not resolve is the silent "
                     f"permissionless-login defect B3 is about.")
+            attrs = claims.get("attributes") or {}
+            if limit is not None and attrs.get("approval_limit_paisa") != limit:
+                die(f"{email}: JWT attributes.approval_limit_paisa is {attrs.get('approval_limit_paisa')!r}, "
+                    f"expected {limit}. OPA will deny every approval this persona attempts.")
             ok(f"{email}: {p['role']}, {len(claims.get('permissions', []))} permissions — {note}")
 
         # ── one persona at BOTH branches, so the one-active-role-per-branch rule (13-02) is
@@ -1125,11 +1194,14 @@ def phase_personas(tenants: list[Tenant], repair: bool = True) -> dict[str, str]
             mgr_email = persona_email(t.key, "manager")
             mgr = find_user(owner_token, mgr_email)
             if mgr:
+                mgr_limit = APPROVAL_LIMIT_BY_ROLE["MANAGER"]
                 resp = request("POST", f"/api/v1/users/{mgr['id']}/branch-roles", token=owner_token,
-                               body={"branchId": t.branch_ids[1], "roleCode": "MANAGER"})
+                               body={"branchId": t.branch_ids[1], "roleCode": "MANAGER",
+                                     "approvalLimitPaisa": mgr_limit})
                 if resp.status in (200, 201):
                     ok(f"{mgr_email} now holds MANAGER at BOTH branches "
-                       f"(displaced: {resp.data('displacedRoleCode', default=None)})")
+                       f"(displaced: {resp.data('displacedRoleCode', default=None)}; "
+                       f"limit={mgr_limit})")
                 else:
                     warn(f"{mgr_email}: second-branch assignment answered {resp.status} — {resp.raw[:200]}")
 
