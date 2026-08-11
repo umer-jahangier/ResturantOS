@@ -8,7 +8,7 @@ status: executing
 stopped_at: Phases 19, 19b, 19c, 21, 22 executing in parallel
 last_updated: "2026-08-11T19:32:19.979Z"
 last_activity: 2026-08-12
-last_activity_desc: Phase 34 completed — 8 of 8 plans, three vacuous-gate defects found and fixed
+last_activity_desc: "Phase 35: 35-06 (tax config unblocks payroll), 35-09/10/11 (HR data layer, employee form, settings + tax screens) — 9 of 14 plans, browser-verified" 
 progress:
   total_phases: 19
   completed_phases: 15
@@ -486,7 +486,7 @@ registry asserted populated before sweep runs) — full module regression: 18 IT
 classes, all green. Tenant isolation on every domain table is completely unchanged. See
 08-08-SUMMARY.md's "D6 Gap-Closure (2026-07-19)" section for full detail.
 Next: Phase 9 (Order-to-Ledger Auto-Posting & Customer Loyalty).
-Last activity: 2026-08-11 — Phase 35 execution started
+Last activity: 2026-08-12 — Phase 35: 35-06, 35-09, 35-10 and 35-11 complete (9/14 plans)
 
 <details>
 <summary>Historical Phase 07.3 / Phase 10 notes (pre-existing, retained for context — not updated by 08-01)</summary>
@@ -720,6 +720,10 @@ _Updated after each plan completion_
 | Phase 35 P03 | 34min | 3 tasks | 7 files |
 | Phase 35 P04 | 26min | 2 tasks | 9 files |
 | Phase 35 P05 | 48min | 2 tasks | 14 files |
+| Phase 35 P06 | 78min | 3 tasks | 16 files |
+| Phase 35 P09 | 34min | 2 tasks | 7 files |
+| Phase 35 P10 | 41min | 2 tasks | 4 files |
+| Phase 35 P11 | 38min | 2 tasks | 9 files |
 
 ## Accumulated Context
 

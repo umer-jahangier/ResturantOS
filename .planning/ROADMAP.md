@@ -63,6 +63,16 @@ worth more than the numbering fix: it means the roadmap was already asking for t
 | `25-biometric-terminals` | 30 Business-Model Adaptivity | **Is roadmap 25** (Biometric Attendance Repair) — renumber to 25 |
 | `34-visual-design-language` | 27 FBR Digital Invoicing | → **34** |
 | `35-hr-usability` | 29 Production Hardening | → **35** |
+
+> **Phase 35 progress (2026-08-12): 9 of 14 plans complete.** 35-01…35-06 and 35-09…35-11 landed.
+> Payroll's hard blocker is closed — a tenant can now enter their own tax table over the API *and*
+> on a screen. The employee form, the departments/job-titles screens and the tax screen are the
+> first user-visible output of the phase. **Remaining: 35-07** (non-HR form conversion + the ESLint
+> rule that enforces adoption), **35-08** (salary components), **35-12** (Payroll screen — it still
+> reports every failure as `toast.error("Action failed")`), **35-13** (Attendance & Leave; the
+> Schedule page still parses days-of-week from a `1,2,3,4,5` text box), **35-14** (e2e + human
+> checkpoint). See `.planning/phases/35-hr-usability/deferred-items.md` for three defects found
+> during execution that this phase did not cause.
 | `36-purchasing-inventory-wiring` | 31 Tenant Onboarding | → **36** |
 | `37-finance-orders-integration` | 32 Subscription Metering | → **37** |
 
