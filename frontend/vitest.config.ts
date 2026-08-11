@@ -21,6 +21,11 @@ export default defineConfig({
       // acceptance criteria fix the test file's path under components/inventory/__tests__/,
       // so the discovery glob is widened rather than fighting the plan's literal path.
       "components/**/__tests__/**/*.{test,spec}.{ts,tsx}",
+      // 26-01: colocated tests for the lib/ layers (schemas, adapters, models). Same reasoning as
+      // the components glob above — the plan's acceptance criteria fix the test file's path at
+      // lib/adapters/__tests__/print.adapter.test.ts, and a test file that no glob discovers is a
+      // test file that silently never runs.
+      "lib/**/__tests__/**/*.{test,spec}.{ts,tsx}",
     ],
     // Visible to the whole test process BEFORE any test module is imported, so the
     // module-level constant in lib/hooks/ws-base-url.ts captures the real gateway base
