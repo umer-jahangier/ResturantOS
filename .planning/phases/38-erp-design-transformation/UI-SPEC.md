@@ -394,6 +394,13 @@ exists to fix would have quietly reproduced itself under new names.
 - A gate that asserts on a **different element** than the contract names is not testing the
   contract. 38-02 shipped `sticky` on `<thead>`; the unit test asserted on `<thead>` and passed
   while Chromium reported `thead th { position: static }` — the exact property §7.2 measures.
+- A gate that measures a **different quantity** than the defect is not testing the defect. 38-05's
+  first station-counter check compared element bounding boxes and reported **0 collisions at every
+  width in both themes** — against the code the audit had photographed rendering `PREPARINGREADY`.
+  The labels overflow 26px cells and paint across their neighbours; the *boxes* never overlap.
+  Re-measured on painted extent (`left + scrollWidth`) it reported 4 collisions at 1024px. **The
+  only way to find this out is to run the check against known-bad code and watch it go red** —
+  which is why D-38-07 requires the negative control be *observed*, not merely written.
 
 ### 7.3 `FilterBar`
 

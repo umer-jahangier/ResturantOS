@@ -1056,9 +1056,9 @@ route**, 0 routes with horizontal page scroll, 24 runtime dependencies.
 - [~] 38-03-PLAN.md — one `ConfirmDialog` + `aria-modal` — **PARTIAL** (`d95cd934`). 5 of 6 bespoke confirmations collapsed; `aria-modal` on every dialog incl. the palette. **NOT done:** the six `StatusBadge` implementations, required-field indication, `/app/hr/attendance` labelling. `void-refund-dialog` reassigned to 38-04 (it is a form, not a confirmation).
 
 *Wave 3 — operational surfaces, where a wrong UI costs money (D-38-03)*
-- [ ] 38-04-PLAN.md — POS terminal: operator shell, touch-first layout, print path kept intact
-- [ ] 38-05-PLAN.md — KDS: counter collision, viewport ownership, bounded elapsed time
-- [ ] 38-06-PLAN.md — orders and tables, incl. diagnosing the Floor View that reports no tables
+- [~] 38-04-PLAN.md — POS terminal — **PARTIAL**. Touch targets **10 → 0 at 390px**, 17 → 3 at desktop (the 3 are sidebar chrome the operator shell removes); `h1Count` 0 → 1; till-session-bar's 15 raw literals → role tokens. Invariants held: **0 containing-block creators, 0 animations**, tap-to-cart 41ms median. **NOT done:** the operator shell (task 1), 360px cart (measured 256px), product-card image/availability/quick-add, the 390px bottom-sheet layout.
+- [~] 38-05-PLAN.md — KDS — **PARTIAL**. **Counter collision fixed** (4/4/2/2 → 0 at 768/1024/1440 light+dark; overflowing labels 8/6/4/2 → 0), invariants held at 0/0. **NOT done:** bounded elapsed-time formatting (`Oldest 113h 52m` still renders), board viewport ownership, station-index density, `PageHeader` on the index.
+- [ ] 38-06-PLAN.md — orders and tables — **NOT STARTED**. (The Floor View "no tables" defect it was to diagnose was found and fixed in 38-01.)
 
 *Wave 4 — back office breadth*
 - [ ] 38-07-PLAN.md — inventory, menu and purchasing onto the grid
