@@ -219,7 +219,7 @@ item is needed only for final sign-off, not to start:
   rather than lost, a replayed batch never double-counts, and a terminal that stops talking is
   reported before payroll notices.
   **Requirements:** HR-07, BIO-01 … BIO-06
-  **Plans:** 13 plans, 8 waves — **3 complete (25-01, 25-03, 25-04), 10 outstanding** as of 2026-08-11
+  **Plans:** 13 plans, 8 waves — **4 complete (25-01, 25-03, 25-04, 25-08), 9 outstanding** as of 2026-08-11
 
   Plans:
 
@@ -230,7 +230,7 @@ item is needed only for final sign-off, not to start:
   - [ ] 25-05-PLAN.md — read the bytes whatever the header says; a parser that reports outcomes *(wave 2)*
   - [ ] 25-06-PLAN.md — three destinations and no fourth: quarantine reasons, deduplication, dismissal *(wave 3)*
   - [ ] 25-07-PLAN.md — per-device handshake, a durable command queue, and a closed command set *(wave 3)*
-  - [ ] 25-08-PLAN.md — how a stock terminal authenticates; the honest feature gate *(wave 3, blocking decision)*
+  - [x] 25-08-PLAN.md — how a stock terminal authenticates; the honest feature gate *(wave 3, blocking decision)*
   - [ ] 25-09-PLAN.md — the full device lifecycle API, and branch isolation this surface never had *(wave 4)*
   - [ ] 25-10-PLAN.md — device health, the silence sweep and clock-drift measurement *(wave 5)*
   - [ ] 25-11-PLAN.md — the terminals screen, and silence that travels with the navigation *(wave 6)*
