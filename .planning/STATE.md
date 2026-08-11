@@ -1132,10 +1132,10 @@ Environment notes recorded in that phase's `deferred-items.md`: a stale git stas
 gateway, auth-service and pos-service were rebuilt repeatedly by other agents, which
 intermittently failed the journeys suite for reasons unrelated to this phase.
 
---- Phase 25 (Biometric Terminals, ZKTeco) — 5 of 13 plans complete ---
+--- Phase 25 (Biometric Terminals, ZKTeco) — 6 of 13 plans complete ---
 
-**Complete: 25-01, 25-03, 25-04, 25-05, 25-08.**
-**Outstanding: 25-02, 25-06, 25-07, 25-09, 25-10, 25-11, 25-12, 25-13.**
+**Complete: 25-01, 25-03, 25-04, 25-05, 25-06, 25-08.**
+**Outstanding: 25-02, 25-07, 25-09, 25-10, 25-11, 25-12, 25-13.**
 
 Read `25-INVENTORY.md` first (what works / decorative / missing, a test on every row), then
 `25-CLOUD-TOPOLOGY-GAPS.md` (four gaps in the *remaining* plans, all now amended into them).
@@ -1156,16 +1156,31 @@ product serving branches in different countries stored **every one of their punc
 plausible-looking time that nothing downstream would flag. Fixed in 25-05 (per-device zone, from
 25-03's column); the same class of assumption is worth hunting elsewhere.
 
-**NEXT: 25-06.** Not started. It carries two handoffs from 25-05:
+**25-06 is DONE (2026-08-12).** Every line a device sends now ends in one of exactly three places —
+a punch, a queue entry, or a recorded duplicate — and `PunchRetentionIT` asserts that as a SUM over a
+ten-line batch across three replays, because a per-case assertion passes while a line quietly falls
+between two cases. Both 25-05 handoffs are discharged: `source_record_id` is renamed to `work_code`
+(changelog 034), and a parse `Rejection` now lands in the same queue an administrator already reads,
+distinguished by a reason. Its headline defect is closed: `attendance_quarantine` has a
+`(device_id, dedup_key)` uniqueness constraint, so a terminal polling every 3-8s with one unmapped
+user no longer grows the queue without bound. Dismissal requires a name and a reason, enforced by the
+table and not only by the service. The migration collapses pre-existing duplicates rather than
+aborting on them — proven against a database seeded with five copies of one punch.
 
-  1. the `source_record_id` -> `work_code` COLUMN rename (Java already renamed; 25-06 owns the
-     ingest changelog), and
+**READ `25-biometric-terminals/deferred-items.md` BEFORE RESTARTING hr-service.** It is currently
+**DOWN** and cannot start: plan 35-05's committed changeset `015b-backfill-from-free-text` fails with
+`invalid input syntax for type uuid: ""` on `SELECT DISTINCT tenant_id FROM employees`. Its comment
+assumes Liquibase's connection carries no tenant; it carries the empty string, and every hr policy
+casts that GUC to uuid unguarded. `HrTestBase` migrates an EMPTY employees table so the loop iterates
+zero times and the failure is invisible under test. Underneath it: `employees` is FORCE RLS, so that
+driving query returns zero rows to `hr_user` even when the cast succeeds — the backfill cannot see
+the tenants it must iterate, and `015c` then drops the free-text columns believing it ran. Not
+patched by 25-06 on purpose: stopping only the error would hand `015c` a green light. This is on
+committed HEAD and the next restart by any agent hits it.
 
-  2. giving `AttlogParseOutcome.Rejection` a durable destination. Today a rejected line gets a
-     counted warning and no home — a smaller hole than a silent discard, and still a hole against
-     D-25-03: a rejection nobody can retrieve is a punch that is still lost, just noisily.
-  Its own headline defect is that quarantine has NO uniqueness key, so a device polling every 3-8s
-  with one unmapped user grows the queue without bound.
+**NEXT: 25-07.** Per-device handshake from 25-03's columns, a durable command queue with a closed
+command set (no free text — the ADMS command set includes running a shell command on the terminal's
+OS), and the amendments in `25-CLOUD-TOPOLOGY-GAPS.md`.
 
 **Plans amended 2026-08-12 (authorized), not yet built to:** 25-07 (revocation retries until
 acknowledged and never expires, escalates to the device screen, plus a server-side backstop that
