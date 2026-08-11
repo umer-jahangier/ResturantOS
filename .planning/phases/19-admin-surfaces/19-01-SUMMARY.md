@@ -374,13 +374,28 @@ forces the split."* It shipped, and it did force it:
 
 MANAGER, ACCOUNTANT, CASHIER and KITCHEN_STAFF expectations are **unchanged**.
 
-### One staging note, recorded rather than hidden
+### Two staging notes, recorded rather than hidden
 
-`components/shared/sidebar-nav-items.ts` also contained phase 19b's uncommitted `Tables` entry when
-this work was committed. Rather than sweeping another agent's work into this commit — the exact
-mis-attribution 13-12 recorded and regretted — the diff was split by hunk and only this plan's three
-hunks were staged with `git apply --cached`. Verified: the staged diff contains **zero** lines
-mentioning `Armchair` or `/app/tables`.
+**1. A shared file was split by hunk.** `components/shared/sidebar-nav-items.ts` also contained phase
+19b's uncommitted `Tables` entry. Rather than sweeping another agent's work into this commit — the
+exact mis-attribution 13-12 recorded and regretted — the diff was split by hunk and only this plan's
+three hunks were staged with `git apply --cached` on a filtered patch. Verified both times: the
+staged diff contains **zero** lines mentioning `Armchair` or `/app/tables`, and 19b's work is
+untouched in the working tree afterwards.
+
+**2. The first commit was broken, and the fix is a second commit rather than an amend.** `cf28719`
+committed `sidebar.tsx`, `mobile-bottom-nav.tsx` and the permission-matrix test — all of which read
+`item.permissionMode` — while `sidebar-nav-items.ts`, which **declares** it, was lost from the index
+between staging and commit. `HEAD` therefore did not typecheck for one commit. Caught by checking the
+commit's contents afterwards rather than by trusting the staging step, and closed by `8319dbc`.
+
+It is a follow-up and not an `--amend` deliberately: four agents are committing onto this branch, so
+rewriting a shared tip to tidy history risks more than an honest second commit is worth. The lesson
+worth carrying is the narrower one — **`git apply --cached` staging must be re-verified immediately
+before `git commit`, not only after it**, because a concurrent `git add`/`git reset` in another agent's
+shell can clear it in between.
+
+**Commits:** `cf28719` (the surfaces) · `8319dbc` (the missing declaration).
 
 ---
 
@@ -491,6 +506,10 @@ statements are asserted in the browser run.
 
 ## Self-Check: PASSED
 
-All 28 created files exist on disk. All 8 modified files carry this plan's changes and no other
-plan's, verified hunk by hunk before staging (§7). Every number in §9 came from a command executed
-in the reported state.
+All 28 created files exist on disk (checked individually, 28/28 FOUND). Both commits exist in
+`git log`: `cf28719` and `8319dbc`. All 8 modified files carry this plan's changes and no other
+plan's, verified hunk by hunk before staging (§7). `HEAD`'s nav contract was re-checked after the
+second commit and is self-consistent — `sidebar-nav-items.ts` declares `permissionMode`, and
+`sidebar.tsx`, `mobile-bottom-nav.tsx` and `use-nav-visibility.ts` all read it; `tsc --noEmit` is
+clean and the 32 nav/users/settings tests pass. Every number in §9 came from a command executed in
+the reported state.
