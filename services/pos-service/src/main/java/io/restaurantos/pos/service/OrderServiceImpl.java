@@ -66,6 +66,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderSequenceRepository sequenceRepository;
     private final MenuItemRepository menuItemRepository;
     private final StationRepository stationRepository;
+    /** The ONE place that decides where a menu item goes at a branch (28-05). */
+    private final StationRoutingResolver stationRoutingResolver;
     private final BranchMenuOverrideRepository overrideRepository;
     private final DiningTableRepository tableRepository;
     private final OrderPaymentRepository orderPaymentRepository;
@@ -104,7 +106,8 @@ public class OrderServiceImpl implements OrderService {
                             OrderStatusDerivationService orderStatusDerivationService,
                             PaymentStatusDerivationService paymentStatusDerivationService,
                             TableService tableService,
-                            OrderMapper orderMapper) {
+                            OrderMapper orderMapper,
+                            StationRoutingResolver stationRoutingResolver) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -126,6 +129,7 @@ public class OrderServiceImpl implements OrderService {
         this.paymentStatusDerivationService = paymentStatusDerivationService;
         this.tableService = tableService;
         this.orderMapper = orderMapper;
+        this.stationRoutingResolver = stationRoutingResolver;
     }
 
     // tableRepository is retained solely for listOrderSummaries' table-name lookup
@@ -266,11 +270,30 @@ public class OrderServiceImpl implements OrderService {
         item.setItemNameSnapshot(menuItem.getName());
         item.setUnitPriceSnapshot(unitPrice);
         item.setQuantity(request.quantity());
-        item.setKdsStation(menuItem.getKdsStation());
-        // Phase 3: snapshot the canonical station FK alongside the free-text kds_station string,
-        // both captured at add-item time (never at fire time) so a later menu re-assignment
-        // never retroactively re-routes an already-added line.
-        item.setStationId(menuItem.getStationId());
+        // Phase 28 (28-05): the destination is resolved through the ONE resolver, using the
+        // ORDER'S OWN branch — the server-derived one the order already carries, never a branch
+        // supplied on the request. The order is the authority for its own branch; this is the same
+        // reasoning the branch-override price lookup two lines away already applies.
+        //
+        // Phase 3's snapshot invariant is UNCHANGED and is load-bearing: BOTH routing keys are
+        // captured at add-item time and NEVER at fire time, so a later menu re-assignment can
+        // never retroactively re-route an already-added line. Two tests in MenuStationRoutingIT
+        // exist solely to fail if this resolution ever moves to sendToKds.
+        var resolvedStation = stationRoutingResolver.resolve(tenantId, order.getBranchId(), menuItem);
+        // The free-text key DOES keep its historical fallback: when nothing resolves, the line
+        // carries the item's own kds_station snapshot exactly as it always has, and sendToKds
+        // coalesces that to DEFAULT. That path is unchanged for every tenant who configures
+        // nothing, which is every tenant on the day this ships.
+        item.setKdsStation(resolvedStation
+                .map(io.restaurantos.pos.domain.model.Station::getCode)
+                .orElseGet(menuItem::getKdsStation));
+        // NO fallback to menuItem.getStationId() here, deliberately. The resolver ALREADY
+        // considers that column (step 3) and refuses it when it names a station in a different
+        // branch — which is the bug this plan closes. Re-adding it as a fallback would reinstate
+        // exactly the cross-branch mis-route, one line below the code that prevents it.
+        item.setStationId(resolvedStation
+                .map(io.restaurantos.pos.domain.model.Station::getId)
+                .orElse(null));
         item.setNotes(request.notes());
 
         // Add modifiers if requested

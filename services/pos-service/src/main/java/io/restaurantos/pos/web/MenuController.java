@@ -116,6 +116,26 @@ public class MenuController {
 
     public record AssignStationRequest(UUID stationId) {}
 
+    /**
+     * Route a whole CATEGORY to a station for the caller's branch (28-05).
+     *
+     * <p>"All drinks go to the bar" is one call, not two hundred. An item-level route overrides
+     * this, so the exception is still expressible; clearing the category route (null station) does
+     * NOT discard those exceptions.
+     *
+     * <p>The route applies to THIS BRANCH ONLY. Menu categories are tenant-scoped and stations are
+     * branch-scoped, which is the whole reason these route tables exist.
+     */
+    @PreAuthorize("hasAuthority('pos.menu.manage')")
+    @PutMapping("/categories/{id}/station")
+    public ResponseEntity<Void> assignCategoryStation(
+            @PathVariable UUID id,
+            @RequestParam UUID branchId,
+            @RequestBody AssignStationRequest request) {
+        menuService.assignCategoryStation(id, branchId, request.stationId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PreAuthorize("hasAuthority('pos.menu.manage')")
     @PostMapping("/items")
     public ResponseEntity<ApiResponse<MenuItemDto>> createItem(

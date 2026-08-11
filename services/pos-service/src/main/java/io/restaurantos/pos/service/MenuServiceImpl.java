@@ -16,6 +16,10 @@ import io.restaurantos.pos.event.PosEventPayloads.MenuItemUpsertedPayload;
 import io.restaurantos.pos.repository.BranchMenuOverrideRepository;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
+import io.restaurantos.pos.domain.model.MenuItemStationRoute;
+import io.restaurantos.pos.domain.model.MenuCategoryStationRoute;
+import io.restaurantos.pos.repository.MenuItemStationRouteRepository;
+import io.restaurantos.pos.repository.MenuCategoryStationRouteRepository;
 import io.restaurantos.pos.repository.StationRepository;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.exception.PermissionDeniedException;
@@ -49,6 +53,9 @@ public class MenuServiceImpl implements MenuService {
     private final EventPublisher eventPublisher;
     private final PosAuthorizationService posAuthorizationService;
     private final MenuItemImageService menuItemImageService;
+    private final MenuItemStationRouteRepository itemStationRoutes;
+    private final MenuCategoryStationRouteRepository categoryStationRoutes;
+    private final StationRoutingResolver stationRoutingResolver;
 
     public MenuServiceImpl(MenuCategoryRepository categoryRepository,
                            MenuItemRepository itemRepository,
@@ -57,7 +64,10 @@ public class MenuServiceImpl implements MenuService {
                            TenantContext tenantContext,
                            EventPublisher eventPublisher,
                            PosAuthorizationService posAuthorizationService,
-                           MenuItemImageService menuItemImageService) {
+                           MenuItemImageService menuItemImageService,
+                           MenuItemStationRouteRepository itemStationRoutes,
+                           MenuCategoryStationRouteRepository categoryStationRoutes,
+                           StationRoutingResolver stationRoutingResolver) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
         this.overrideRepository = overrideRepository;
@@ -66,6 +76,9 @@ public class MenuServiceImpl implements MenuService {
         this.eventPublisher = eventPublisher;
         this.posAuthorizationService = posAuthorizationService;
         this.menuItemImageService = menuItemImageService;
+        this.itemStationRoutes = itemStationRoutes;
+        this.categoryStationRoutes = categoryStationRoutes;
+        this.stationRoutingResolver = stationRoutingResolver;
     }
 
     @Override
@@ -148,17 +161,53 @@ public class MenuServiceImpl implements MenuService {
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
 
+        UUID tenantId = tenantContext.requireTenantId();
+
         if (stationId == null) {
-            // Clear the assignment — leave the free-text kds_station untouched (back-compat).
-            item.setStationId(null);
+            // Clear THIS BRANCH's route. The item then falls through to its category's route, and
+            // failing that to the legacy columns and finally to DEFAULT — see StationRoutingResolver.
+            itemStationRoutes.deleteByTenantIdAndBranchIdAndMenuItemId(tenantId, branchId, itemId);
+            itemStationRoutes.flush();
+            // The legacy tenant-wide column is deliberately NOT cleared here. It is shared across
+            // branches, and clearing it would do to the OTHER branches exactly what this plan
+            // exists to stop: one branch's edit changing another branch's routing.
         } else {
-            // Validate the station belongs to the caller's tenant (RLS) AND branch — a client
-            // cannot assign a sibling branch's station id to a menu item.
-            Station station = stationRepository.findByIdAndBranchId(stationId, branchId)
+            // Validate the station belongs to the caller's tenant AND branch — a client cannot
+            // assign a sibling branch's station id to a menu item.
+            Station station = stationRepository.findByIdAndTenantIdAndBranchId(stationId, tenantId, branchId)
                     .orElseThrow(() -> new ResourceNotFoundException("Station not found for this branch: " + stationId));
+
+            // THE per-branch row. This replaces overwriting menu_items.station_id, which is
+            // tenant-wide: a two-branch tenant has ONE row for a dish, so assigning it at branch B
+            // silently re-pointed the same dish at branch A and overwrote the free-text mirror
+            // with B's code. Each write passed its own branch guard; nothing guarded the collision.
+            MenuItemStationRoute route = itemStationRoutes
+                    .findByTenantIdAndBranchIdAndMenuItemId(tenantId, branchId, itemId)
+                    .orElseGet(() -> {
+                        MenuItemStationRoute r = new MenuItemStationRoute();
+                        r.setTenantId(tenantId);
+                        r.setBranchId(branchId);
+                        r.setMenuItemId(itemId);
+                        return r;
+                    });
+            route.setStationId(station.getId());
+            itemStationRoutes.save(route);
+
+            // The legacy columns are STILL written, for one release, and only ever widened toward
+            // agreement with this branch's choice.
+            //
+            // The free-text mirror is still read by the order-ready consumer on the POS side, and
+            // retiring it is a later phase's job with its own consumer audit — not a side effect of
+            // this one. REMOVE THESE TWO LINES when: (a) no consumer reads menu_items.kds_station,
+            // and (b) a migration has backfilled per-branch routes for every tenant that has a
+            // non-null menu_items.station_id. Until both hold, dropping them silently un-routes
+            // every tenant who upgraded and never opened the new screen.
+            //
+            // This is still a tenant-wide write and therefore still visible to the other branches.
+            // It is now a FALLBACK they may or may not use rather than the answer they must use:
+            // the resolver only consults it when the station it names is in the reading branch, so
+            // a cross-branch value stops applying instead of mis-routing.
             item.setStationId(station.getId());
-            // Keep the retained free-text mirror in sync so back-compat routing (and any reader
-            // still on kds_station) resolves to the same canonical code.
             item.setKdsStation(station.getCode());
         }
         return toDto(itemRepository.save(item), branchId);
@@ -344,6 +393,50 @@ public class MenuServiceImpl implements MenuService {
         eventPublisher.publish(POS_EXCHANGE, MENU_ITEM_UPSERTED_KEY, MENU_ITEM_UPSERTED_TYPE, null, payload);
     }
 
+    /**
+     * Route a whole CATEGORY to a station, for the caller's branch (28-05, D-28-05).
+     *
+     * <p>This is how "all drinks go to the bar" is actually configured. Expressing it per item
+     * would be two hundred checkbox clicks that then drift every time an item is added to the
+     * category — and a routing rule that drifts silently is worse than no routing rule.
+     *
+     * <p>A null station clears the branch's category route. Item-level routes are untouched either
+     * way: they are the exception mechanism, and clearing a category rule must not also discard the
+     * exceptions somebody set against it.
+     */
+    @Override
+    @Transactional
+    public void assignCategoryStation(UUID categoryId, UUID branchId, UUID stationId) {
+        posAuthorizationService.requireMenuManage();
+        requireOwnBranchIfPresent(branchId);
+        if (branchId == null) {
+            throw new PermissionDeniedException("branchId is required to route a category");
+        }
+        UUID tenantId = tenantContext.requireTenantId();
+        categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + categoryId));
+
+        if (stationId == null) {
+            categoryStationRoutes.deleteByTenantIdAndBranchIdAndCategoryId(tenantId, branchId, categoryId);
+            categoryStationRoutes.flush();
+            return;
+        }
+        Station station = stationRepository.findByIdAndTenantIdAndBranchId(stationId, tenantId, branchId)
+                .orElseThrow(() -> new ResourceNotFoundException("Station not found for this branch: " + stationId));
+
+        MenuCategoryStationRoute route = categoryStationRoutes
+                .findByTenantIdAndBranchIdAndCategoryId(tenantId, branchId, categoryId)
+                .orElseGet(() -> {
+                    MenuCategoryStationRoute r = new MenuCategoryStationRoute();
+                    r.setTenantId(tenantId);
+                    r.setBranchId(branchId);
+                    r.setCategoryId(categoryId);
+                    return r;
+                });
+        route.setStationId(station.getId());
+        categoryStationRoutes.save(route);
+    }
+
     private MenuItemDto toDto(MenuItem item, UUID branchId) {
         Long overridePrice = null;
         if (branchId != null) {
@@ -353,6 +446,13 @@ public class MenuServiceImpl implements MenuService {
                 overridePrice = override.get().getPricePaisa();
             }
         }
+        // Where this item ACTUALLY fires at the requested branch (28-05). Resolved server-side so
+        // the menu screen can show a dish's destination without reimplementing the resolution
+        // order in TypeScript — a second copy of that rule is a second answer.
+        Optional<Station> effective = branchId != null
+                ? stationRoutingResolver.resolve(item.getTenantId(), branchId, item)
+                : Optional.empty();
+
         return new MenuItemDto(
                 item.getId(),
                 item.getCategory().getId(),
@@ -367,7 +467,10 @@ public class MenuServiceImpl implements MenuService {
                 overridePrice,
                 item.getStationId(),
                 item.getImageFileId(),
-                MenuItemDto.imageUrlFor(item.getImageFileId())
+                MenuItemDto.imageUrlFor(item.getImageFileId()),
+                effective.map(Station::getId).orElse(null),
+                effective.map(Station::getCode).orElse(null),
+                effective.map(Station::getName).orElse(null)
         );
     }
 }

@@ -26,7 +26,23 @@ public record MenuItemDto(
         Long overridePricePaisa,
         UUID stationId,
         UUID imageFileId,
-        String imageUrl
+        String imageUrl,
+        /**
+         * Where this item ACTUALLY fires at the requested branch (28-05), and the code and type of
+         * that station.
+         *
+         * <p>Resolved server-side by {@code StationRoutingResolver}, which walks item route →
+         * category route → legacy FK (branch-checked) → legacy free text → nothing. Sent rather
+         * than left to the client, so plan 28-10's picker can show what a dish currently does
+         * without reimplementing that order in TypeScript — a second copy of a resolution rule is
+         * a second answer, and the two disagree the first time a step is added.
+         *
+         * <p>Null when nothing resolves, which is what an unconfigured item has always been and
+         * which the fire path renders as the DEFAULT key.
+         */
+        UUID effectiveStationId,
+        String effectiveStationCode,
+        String effectiveStationName
 ) {
     /** The single place the download route is spelled out for menu images. */
     public static String imageUrlFor(UUID imageFileId) {

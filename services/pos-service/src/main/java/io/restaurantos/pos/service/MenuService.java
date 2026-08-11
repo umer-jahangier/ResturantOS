@@ -33,6 +33,9 @@ public interface MenuService {
      * against the JWT branch. Also mirrors the station's code into the retained free-text
      * {@code kds_station} so the two stay consistent for back-compat routing.
      */
+    /** Route a whole category to a station for the caller's branch (28-05). Null station clears it. */
+    void assignCategoryStation(UUID categoryId, UUID branchId, UUID stationId);
+
     MenuItemDto assignStation(UUID itemId, UUID branchId, UUID stationId);
 
     /**
