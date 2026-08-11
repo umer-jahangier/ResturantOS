@@ -83,6 +83,23 @@
             -- ── A position in time even without a device timestamp ────────────────────────────
             -- created_at is when the ROW was written and is not the same fact, but for every row
             -- that exists now the two are within microseconds, so it is the correct backfill.
+            --
+            -- The NO FORCE / FORCE pair around the UPDATE is not optional and not cosmetic.
+            -- attendance_quarantine is FORCE ROW LEVEL SECURITY and hr_user OWNS it — FORCE is
+            -- exactly what makes an owner subject to its own policies. Liquibase connects with no
+            -- tenant, so app.current_tenant_id is the empty string, and the policy casts it
+            -- unguarded:
+            --     ERROR: invalid input syntax for type uuid: ""
+            -- which stopped hr-service booting for every agent on this branch. Suppressing only
+            -- the cast would be worse than the crash: the UPDATE would then match ZERO rows and
+            -- the SET NOT NULL two lines down would fail instead — or, on an empty table, succeed
+            -- while having backfilled nothing.
+            --
+            -- Same repair as 015b, for the same reason, and it is transactional: Liquibase runs a
+            -- changeset in one transaction and PostgreSQL DDL is transactional, so any failure
+            -- below rolls FORCE back with everything else. The table cannot be left unprotected.
+            ALTER TABLE attendance_quarantine NO FORCE ROW LEVEL SECURITY;
+
             ALTER TABLE attendance_quarantine ADD COLUMN received_at TIMESTAMPTZ;
             UPDATE attendance_quarantine SET received_at = created_at WHERE received_at IS NULL;
             ALTER TABLE attendance_quarantine ALTER COLUMN received_at SET DEFAULT now();

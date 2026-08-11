@@ -50,6 +50,40 @@
       context. Without set_config the policy's USING/WITH CHECK refuses every insert and hr-service
       fails to start — the same trap 900-seed-tax-config documents. The GUC is therefore set per
       tenant inside the loop.
+
+      THAT COMMENT WAS RIGHT ABOUT THE INSERTS AND WRONG ABOUT THE DRIVING QUERY, and the gap
+      stopped hr-service booting. Two defects, and the second is far worse than the crash:
+
+        1. `SELECT DISTINCT tenant_id FROM employees` runs BEFORE any set_config. The connection
+           carries app.current_tenant_id = '' (what TenantAwareDataSource writes for "no tenant"),
+           and the employees policy casts that GUC to uuid unguarded:
+               ERROR: invalid input syntax for type uuid: ""
+           Every restart failed here, for everyone, not just the agent who wrote it.
+
+        2. Suppress the cast error and it gets QUIETLY worse. employees is FORCE ROW LEVEL
+           SECURITY, and hr_user OWNS it — FORCE is precisely what makes an owner subject to its
+           own policies. So the driving query returns ZERO rows, the loop body never executes,
+           and 015c then drops the free-text columns believing the backfill ran. A green
+           migration followed by silent data loss. On this database that is 3 of 4 employees'
+           designations; on a customer's it is every department they ever typed.
+
+      HrTestBase migrates an EMPTY employees table, so the loop iterates zero times and both
+      defects are structurally invisible under test. The fix therefore cannot be a test.
+
+      The repair: drop FORCE for the duration of the backfill so the owner can see every tenant,
+      then restore it. Liquibase runs each changeset in a transaction and PostgreSQL DDL is
+      transactional, so a failure anywhere below rolls the NO FORCE back with everything else —
+      the table cannot be left unprotected by a crash. RlsForcedInvariantIT would catch it if it
+      somehow were.
+
+      NO FORCE rather than a SECURITY DEFINER helper because this is a one-shot migration by the
+      table's own owner, inside one transaction, with the invariant restored before commit. A
+      definer function would be a permanent new privileged surface — audited by
+      deploy/scripts/verify-security-definer-owners.sh — bought to solve a problem that exists
+      for the length of one statement.
+
+      The per-tenant set_config stays. It is no longer load-bearing for visibility, but it keeps
+      the INSERTs correct on their own terms rather than relying on the owner exemption.
     -->
     <changeSet id="hr-1.0.0-015b-backfill-from-free-text" author="restaurantos-agent">
         <sql splitStatements="false"><![CDATA[
@@ -57,6 +91,10 @@
             DECLARE
                 t RECORD;
             BEGIN
+                ALTER TABLE employees    NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE departments  NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE designations NO FORCE ROW LEVEL SECURITY;
+
                 FOR t IN SELECT DISTINCT tenant_id FROM employees LOOP
                     PERFORM set_config('app.current_tenant_id', t.tenant_id::text, false);
 
@@ -101,6 +139,12 @@
                       AND lower(trim(e.designation)) = lower(trim(g.name));
                 END LOOP;
 
+                -- Restore the invariant before this transaction commits. If anything above raised,
+                -- the whole changeset rolls back and these three tables never lost FORCE at all.
+                ALTER TABLE employees    FORCE ROW LEVEL SECURITY;
+                ALTER TABLE departments  FORCE ROW LEVEL SECURITY;
+                ALTER TABLE designations FORCE ROW LEVEL SECURITY;
+
                 -- Reset so the connection Liquibase hands back carries no tenant.
                 PERFORM set_config('app.current_tenant_id', '', false);
             END $$;
@@ -120,8 +164,54 @@
       Leaving them alongside the ids is how the two representations drift, and a later reader cannot
       tell which one is authoritative. The data is not lost — it is in departments/designations and
       referenced by every employee that had one.
+
+      IT REFUSES TO RUN IF THE BACKFILL DID NOT. That guard is the actual lesson of this file.
+
+      015b failed silently once already — the loop iterated zero times because FORCE RLS hid every
+      row from the migration's own owner — and this changeset would have dropped the columns
+      anyway, reporting success. A drop that trusts the step before it is a drop that turns one
+      quiet bug into permanent data loss.
+
+      So it counts, first, the employees that HAVE a free-text value and did NOT get an id, and
+      raises if any exist. It cannot be satisfied by an empty table (nothing to lose), it cannot
+      be satisfied by a partial backfill, and it names the number so whoever hits it knows the
+      size of what they nearly lost.
+
+      Blank and whitespace-only values are excluded deliberately: 015b maps those to NULL on
+      purpose, so they are not evidence of a failed backfill.
     -->
     <changeSet id="hr-1.0.0-015c-drop-free-text-columns" author="restaurantos-agent">
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                orphaned_departments  BIGINT;
+                orphaned_designations BIGINT;
+            BEGIN
+                -- Same owner-exemption trick as 015b, for the same reason: FORCE RLS would
+                -- otherwise hide every row from this check and it would pass by seeing nothing —
+                -- which is the exact failure mode it exists to catch.
+                ALTER TABLE employees NO FORCE ROW LEVEL SECURITY;
+
+                SELECT count(*) INTO orphaned_departments
+                FROM employees
+                WHERE department IS NOT NULL AND trim(department) <> '' AND department_id IS NULL;
+
+                SELECT count(*) INTO orphaned_designations
+                FROM employees
+                WHERE designation IS NOT NULL AND trim(designation) <> '' AND designation_id IS NULL;
+
+                ALTER TABLE employees FORCE ROW LEVEL SECURITY;
+
+                IF orphaned_departments > 0 OR orphaned_designations > 0 THEN
+                    RAISE EXCEPTION
+                        'REFUSING TO DROP: backfill 015b did not run to completion. % employee(s) '
+                        'have a department and no department_id, % have a designation and no '
+                        'designation_id. Dropping now would destroy that data permanently. '
+                        'Fix 015b and re-run; do not mark this changeset as ran.',
+                        orphaned_departments, orphaned_designations;
+                END IF;
+            END $$;
+            ]]></sql>
         <sql splitStatements="true" endDelimiter=";">
             ALTER TABLE employees DROP COLUMN department;
             ALTER TABLE employees DROP COLUMN designation;

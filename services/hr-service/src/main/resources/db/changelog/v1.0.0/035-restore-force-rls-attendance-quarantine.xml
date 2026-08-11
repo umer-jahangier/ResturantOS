@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Restore FORCE ROW LEVEL SECURITY on attendance_quarantine.
+
+      I dropped it in 034 so the backfill could run, and did not put it back. Measured
+      immediately after the migration finally succeeded:
+
+          relname                | relforcerowsecurity
+          employees              | t
+          departments            | t
+          designations           | t
+          attendance_quarantine  | f          <== mine
+
+      That is a real regression, not a cosmetic one. Without FORCE, hr_user — which OWNS the
+      table — is exempt from its own row-level-security policy, so every query hr-service makes
+      against attendance_quarantine sees every tenant's rows. It is the exact defect that leaked
+      33 tables across 16 tenants on this project earlier, reintroduced on one table by the fix
+      for a different bug.
+
+      A NEW changeset rather than an edit to 034, because 034 has already been applied and
+      recorded; editing it now would fail Liquibase's checksum validation on every database that
+      has it. On a fresh install 034 drops FORCE and this restores it, so both paths end in the
+      same state.
+
+      015b does this correctly — it restores FORCE inside its own DO block, before the transaction
+      commits, so a failure anywhere rolls the whole thing back and the table is never left
+      unprotected even momentarily. 034 should have done the same. The difference between the two
+      is the entire lesson: an invariant suspended for a migration has to be restored by the same
+      unit of work that suspended it, or it depends on someone remembering.
+
+      ALTER TABLE ... FORCE is idempotent, so this is safe to apply to a database where the table
+      is already forced.
+    -->
+    <changeSet id="hr-1.0.0-035-restore-force-rls-attendance-quarantine" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE attendance_quarantine FORCE ROW LEVEL SECURITY;
+        </sql>
+        <rollback>
+            <!-- Deliberately empty. There is no honest inverse: reverting this would re-open a
+                 cross-tenant read on a table that holds unmatched attendance records, and no
+                 rollback of a later changeset needs that. -->
+            <empty/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

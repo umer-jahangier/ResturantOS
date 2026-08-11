@@ -25,6 +25,7 @@
          valid empty documents until their owners fill them, and apply as no-ops. -->
     <include file="db/changelog/v1.0.0/033-attendance-device-management.xml"/>
     <include file="db/changelog/v1.0.0/034-attendance-quarantine-reasons.xml"/>
+    <include file="db/changelog/v1.0.0/035-restore-force-rls-attendance-quarantine.xml"/>
     <include file="db/changelog/v1.0.0/035-device-command-queue.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-tax-config.xml"/>
 
