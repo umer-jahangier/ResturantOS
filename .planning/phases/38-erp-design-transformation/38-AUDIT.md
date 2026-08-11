@@ -562,6 +562,21 @@ same false message with no error at all: `useTables` is `enabled: !!branchId`, a
 a *disabled* query reports `isPending: true` but `isLoading: false`, so the guard fell through
 during session bootstrap. Fixed in 38-01.
 
+**f. There are seven confirmation implementations, not six.**
+`components/platform/confirm-destructive-dialog.tsx` was invisible to this audit's command
+(`grep -rl 'AlertDialog\|ConfirmDialog'`) because it is named `ConfirmDestructiveDialog`. It is
+**not** drift and should not be collapsed: it requires the operator to type the tenant's brand name
+before suspending a tenant or disabling a module, on the argument that those actions sit one click
+apart in a list of visually similar rows and a plain confirmation captures the intent to click
+rather than the identity of the target. Kept deliberately in 38-03. The lesson for the audit's own
+method: a grep for *names* finds implementations that chose those names.
+
+**g. `expectedDeliveryDate` and the DataGrid empty-column rule.** UI-SPEC §7.2 says a column with
+no data on any row is not rendered. Implemented in 38-02 as an absolute rule, so the purchase-order
+"Expected date" column **survives** on the strength of its single populated row out of 84 — the
+correct outcome, since hiding it would hide a value a buyer entered. The column remains close to
+worthless and remains a backend finding.
+
 **e. What no source count and no browser probe could have found.** 38-01 bridged the space scale
 into Tailwind's `--spacing-*` namespace and thereby redefined `max-w-*` product-wide, collapsing
 every dialog to a 24px sliver. `tsc`, ESLint, 1,127 unit tests and the phase's own new type gate
