@@ -16,12 +16,34 @@ export const KdsRepository = {
     // when the order closes → SERVED). SERVED/CANCELLED are excluded server + client side.
     status = "PENDING,COOKING,READY",
   ): Promise<KdsTicket[]> {
-    const params: Record<string, string> = { branchId, status };
+    // `size` is NOT optional. KdsController takes a Spring `Pageable`, whose default page size is
+    // 20 — so omitting it silently truncated the board. Measured live during the phase-21 rebuild:
+    // 20 of 29 tickets returned, and ALL FIVE tickets in the WARN ageing band were among the nine
+    // dropped. A kitchen at full service saw twenty tickets with no indication that nine more
+    // existed, and the ones it could not see were disproportionately the late ones — because the
+    // default ordering put the oldest last.
+    //
+    // The board is a wall display, not a paged table: it must show everything open for the branch,
+    // or it is actively misleading rather than merely incomplete. 500 is far above any realistic
+    // simultaneous open-ticket count for one branch while still bounding a runaway response.
+    const params: Record<string, string> = { branchId, status, size: "500" };
     if (stationCode) params.stationCode = stationCode;
-    const response = await apiClient.get<{ content: unknown[] }>("/api/v1/kitchen/kds/tickets", {
-      params,
-    });
+    const response = await apiClient.get<{ content: unknown[]; totalElements?: number }>(
+      "/api/v1/kitchen/kds/tickets",
+      { params },
+    );
     const rawList = response.data.content ?? [];
+
+    // If the branch ever genuinely exceeds the cap, say so rather than quietly dropping tickets —
+    // a silently short board is the defect this fix exists to remove, and re-introducing it at a
+    // higher number would be worse for being harder to notice.
+    const total = response.data.totalElements;
+    if (typeof total === "number" && total > rawList.length) {
+      console.error(
+        `KDS board truncated: ${rawList.length} of ${total} tickets returned for branch ${branchId}. ` +
+          `Raise the page size — the board must show every open ticket.`,
+      );
+    }
     return rawList.map((item) => adaptKdsTicket(apiKdsTicketSchema.parse(item)));
   },
 
