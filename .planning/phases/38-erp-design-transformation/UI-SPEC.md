@@ -349,6 +349,52 @@ control: reinstating the bridge produced 6 failures, the first reading *"max-w-s
 — a width utility resolved from the spacing namespace"*. A second control shrank `--container-sm`
 to `2rem` to prove the gate tracks the emitted value rather than asserting a constant.
 
+### 7.2.2 A class present in the source is not evidence it is present in the DOM
+
+**The general rule, and it is the most transferable thing phase 38 found.**
+
+> **Any utility that composes class names can also delete them. Reading a class in the source is
+> therefore not evidence that it reaches the element.** The only evidence is the rendered
+> `className`, or the computed style.
+
+The instance: `cn()` is `twMerge(clsx(...))`, and tailwind-merge resolves conflicts by classifying
+each class into a group and keeping the last one per group. It knows Tailwind's stock font sizes
+and it knows colour utilities — but 38-01's eight roles are **custom** theme keys, so an
+unconfigured tailwind-merge classified `text-label` *by shape* as a text **colour** and dropped it:
+
+```tsx
+cn("text-label uppercase", "text-foreground-secondary")
+// → "uppercase text-foreground-secondary"     the font size is simply gone
+```
+
+Nothing errored. `tsc` was clean. ESLint was clean. Every prop-based test passed, because the
+props were correct — it is the *composition* that lost the class. Source review passes too: both
+classes are right there on the line.
+
+**Why this mattered more than the one component it was found in.** Adopting the contract type
+scale is the through-line of waves 3–5, and most adoption goes through `cn()`. Unfixed, every
+later plan would have produced call sites that look correct, review correct, test correct, and
+render at whatever size they inherited — and the `--text-body`-on-22-nodes measurement the phase
+exists to fix would have quietly reproduced itself under new names.
+
+**Gates.** `__tests__/lib/utils-cn.test.ts`, and it is deliberately hard to remove by accident:
+
+1. Each of the eight roles is asserted to survive `cn(role, colour)` — the runtime behaviour.
+2. `lib/utils.ts` is asserted to contain `extendTailwindMerge`, so the one-line revert to bare
+   `twMerge` fails loudly with a message naming the consequence rather than looking like a
+   simplification during a cleanup.
+3. **`TYPE_ROLES` is asserted to equal exactly the set of `--text-<role>` keys declared in
+   `globals.css`.** A ninth role added to `@theme` without registering it here would reproduce the
+   bug for that role alone, on whichever screen adopted it first. Observed red by adding
+   `--text-caption`.
+
+**Corollaries for the rest of the phase.** The same reasoning retires two assumptions:
+
+- A gate that asserts on **props** is not testing what renders. Assert on rendered output.
+- A gate that asserts on a **different element** than the contract names is not testing the
+  contract. 38-02 shipped `sticky` on `<thead>`; the unit test asserted on `<thead>` and passed
+  while Chromium reported `thead th { position: static }` — the exact property §7.2 measures.
+
 ### 7.3 `FilterBar`
 
 Brief §48. Chips, discoverable, individually removable, `Clear all`, persisted per screen.

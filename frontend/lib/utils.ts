@@ -4,11 +4,12 @@ import { extendTailwindMerge } from "tailwind-merge";
 /**
  * The eight contract type roles, published into `@theme` by 38-01 (UI-SPEC §3).
  *
- * <p>Kept beside the merge config rather than imported from a component, because the whole point
- * is that this list is the one tailwind-merge consults; a second copy that drifts re-opens the
- * bug below.
+ * <p>Exported ONLY so `__tests__/lib/utils-cn.test.ts` can prove this list is exactly the set of
+ * `--text-<role>` keys declared in `app/globals.css`. That tie is the point: adding a ninth role
+ * to the stylesheet without registering it here would reproduce the bug below for the new role
+ * alone — silently, on whatever screens adopted it first. Nothing else should import this.
  */
-const TYPE_ROLES = ["display", "h1", "h2", "body", "small", "label", "pos", "kds"] as const;
+export const TYPE_ROLES = ["display", "h1", "h2", "body", "small", "label", "pos", "kds"] as const;
 
 /**
  * `cn`, taught about the contract type scale.

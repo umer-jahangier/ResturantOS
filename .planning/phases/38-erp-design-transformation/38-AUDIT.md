@@ -529,18 +529,33 @@ on `/app/finance`. Note the mark name begins with a **zero-width space** (`U+200
 
 Recorded 2026-08-12 during 38-01, measured the same way the audit was.
 
-**a. The counts had already drifted upward before execution began.** Re-running this audit's own
-`grep` commands days later, against the same two trees:
+**a. The counts had already drifted upward before execution began — and that, not the reduction,
+is the finding.** Re-running this audit's own `grep` commands days later, against the same two
+trees, and again after waves 1–2:
 
-| | audit | at the start of 38-01 |
-|---|---|---|
-| Tailwind type-scale classes | 986 | **1,037** |
-| bare `rounded` | 145 | **149** |
-| files hand-rolling `<table>` | 37 | **39** |
-| files declaring their own `<h1>` | 60 | **63** |
+| | audit (2026-08-12) | start of 38-01 | after waves 1–2 |
+|---|---|---|---|
+| Tailwind type-scale classes | 986 | **1,037** | **974** |
+| bare `rounded` | 145 | **149** | 141 |
+| files hand-rolling `<table>` | 37 | **39** | 38 |
+| files declaring their own `<h1>` | 60 | **63** | — |
 
-Nobody added those deliberately. It is the argument for a conformance gate rather than a cleanup,
-and it is why 38-01's baselines refuse a violation in any file absent from the baseline.
+**Two claims, and they must be stated separately, because the second is the smaller one.**
+
+1. **The codebase was drifting away from the contract while nobody was doing anything wrong.**
+   986 → 1,037 type-scale classes in a handful of days, with no design work in flight. Every one
+   of those additions was a reasonable local choice by someone shipping a feature. That is the
+   argument for a **gate** rather than for a cleanup: a cleanup returns the number to 974 and the
+   next fortnight returns it to 1,037, because nothing in the repository notices.
+
+2. **Waves 1–2 stopped the bleeding and reversed it, by 6%.** 1,037 → 974. That is a real but
+   *small* reduction, and the natural misreading of "we reduced 1,037 to 974" is "the phase is 6%
+   done". It is not the claim. The claim is that the number can no longer rise: a file absent from
+   the baseline must score zero, and a file in it may only decrease. The remaining 974 are debt
+   with a ratchet on them, scheduled screen-by-screen through waves 3–5.
+
+Reporting only the second number would overstate the work. Reporting only the first would understate
+it. Both, in that order.
 
 **b. "Expected date is an em-dash on all 84 rows" is 83 of 84, not 84 of 84.** Queried live:
 `GET /api/v1/purchasing/purchase-orders` returns 84 rows, of which **one** carries
@@ -562,7 +577,15 @@ same false message with no error at all: `useTables` is `enabled: !!branchId`, a
 a *disabled* query reports `isPending: true` but `isLoading: false`, so the guard fell through
 during session bootstrap. Fixed in 38-01.
 
-**f. There are seven confirmation implementations, not six.**
+**f. A note on METHOD, before the finding it produced.** This audit enumerated implementations by
+grepping for their *names* (`grep -rl 'AlertDialog\|ConfirmDialog'`). A textual search finds only
+the implementations that chose the names you thought of. A **structural** search over the project's
+code-intelligence index — which resolves components by their role in the call graph rather than by
+their spelling — surfaced one this audit had reported as absent. Where a count is load-bearing
+("six implementations, zero primitives"), a name-grep is a lower bound and should be labelled as
+one.
+
+**f.1 There are seven confirmation implementations, not six.**
 `components/platform/confirm-destructive-dialog.tsx` was invisible to this audit's command
 (`grep -rl 'AlertDialog\|ConfirmDialog'`) because it is named `ConfirmDestructiveDialog`. It is
 **not** drift and should not be collapsed: it requires the operator to type the tenant's brand name

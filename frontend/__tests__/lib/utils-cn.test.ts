@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { cn } from "@/lib/utils";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { cn, TYPE_ROLES } from "@/lib/utils";
+import { frontendRoot } from "@/__tests__/lib/theme/conformance-scan";
 
 /**
  * `cn` must not delete the contract type scale (38-02, UI-SPEC §3).
@@ -25,7 +29,7 @@ import { cn } from "@/lib/utils";
  * Restored, green.
  */
 
-const ROLES = ["display", "h1", "h2", "body", "small", "label", "pos", "kds"];
+const ROLES = [...TYPE_ROLES];
 
 describe("cn keeps a contract type role beside a colour utility", () => {
   it.each(ROLES)("text-%s survives beside a colour", (role) => {
@@ -54,5 +58,34 @@ describe("cn keeps a contract type role beside a colour utility", () => {
     expect(out).toContain("flex");
     expect(out).toContain("items-center");
     expect(out).toContain("gap-(--space-md)");
+  });
+});
+
+describe("the fix cannot rot quietly", () => {
+  const root = frontendRoot();
+  const utils = readFileSync(resolve(root, "lib/utils.ts"), "utf8");
+  const globals = readFileSync(resolve(root, "app/globals.css"), "utf8");
+
+  it("cn is built from extendTailwindMerge, not the bare twMerge", () => {
+    // The whole defect is a one-line revert away. This names it so the revert cannot be
+    // mistaken for a simplification during a cleanup.
+    expect(
+      utils,
+      "lib/utils.ts no longer extends tailwind-merge — every contract type class is being " +
+        "silently dropped wherever cn() composes it with a colour. See UI-SPEC §7.2.2.",
+    ).toContain("extendTailwindMerge");
+    expect(utils).toContain('"font-size"');
+  });
+
+  it("the registered roles are EXACTLY the roles globals.css declares", () => {
+    // The failure this prevents: a ninth role added to @theme and not registered here. It would
+    // work everywhere except inside cn(), on whichever screen adopted it first, with no error.
+    const declared = [...globals.matchAll(/^\s+--text-([a-z0-9]+):\s*\d/gm)].map((m) => m[1]!);
+    const unique = [...new Set(declared)].sort();
+    expect(
+      unique,
+      "globals.css and lib/utils.ts disagree about the type roles. Register every new role " +
+        "in TYPE_ROLES in the same commit that declares it in @theme.",
+    ).toEqual([...TYPE_ROLES].sort());
   });
 });
