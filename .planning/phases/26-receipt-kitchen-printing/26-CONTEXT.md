@@ -37,6 +37,71 @@ and the licensing position on QZ Tray. **The planner must read it and must not r
 > precisely the "structurally present, behaviourally absent" outcome this project's defect
 > register catalogues 26 times — it would demo perfectly and fail on a Friday night.
 
+> **AMENDED 2026-08-11, after the user stated the deployment topology.** The user said:
+> *"the app will be running on cloud somewhere else while the users will be accessing it from
+> their browser… for the printers how the printers will automatically get detected and print slip
+> in pos and kds both."*
+>
+> This is decisive and it was not known when plans 26-07 to 26-12 were written. Two new locked
+> decisions follow, and the plan order changes.
+
+**D-26-06 — The cloud can NEVER open a connection to a printer. Only outbound polling works.**
+RestaurantOS runs in a datacentre; the printers sit on the restaurant's LAN behind NAT. There is
+no route from the cloud to port 9100 and there never will be — not a firewall rule, a topology
+fact. Everything that reaches a printer must be initiated from INSIDE the restaurant.
+
+What this changes, plan by plan:
+
+- **26-11 is no longer an optimisation. It is what makes the product deployable at all.** Its
+  `cloud/poll.ts` + `enrol.ts` shape — the agent authenticates with a per-branch credential and
+  polls outbound — is the only architecture that works. Without it a cloud-hosted RestaurantOS
+  cannot print anything. It now ranks ABOVE 26-08 and 26-10.
+- **Tier 1 (the browser bill) is unaffected.** `window.print()` runs in the cashier's browser,
+  which is inside the restaurant. Already proven end to end in 26-05.
+- **26-09's client bridge is unaffected**: browser → `127.0.0.1:7654` is LAN-local on both ends.
+- **The kitchen ticket must not depend on a browser being open.** That is 26-11's whole purpose and
+  it is now load-bearing: the cloud enqueues, the agent polls, the ticket prints with no KDS tab
+  anywhere. 26-12's proof must demonstrate exactly this — **fire an order with every browser
+  closed and assert the bytes reach the socket.**
+- **26-07 does not change**, and after-commit dispatch matters MORE here, not less: a phantom
+  ticket from a rolled-back fire is worse when the cook is in a different building from the
+  database.
+- **D-2 gets its answer from this.** The agent needs the printer registry, and it is not a user —
+  it should authenticate as a DEVICE with a per-branch credential (26-11's enrolment), not borrow
+  a cashier's token. So the fix for "the receipt-config read requires `branch.manage`" is a
+  device-scoped internal read, not widening a user permission. That is the resolution direction
+  for 26-09/26-11; do not grant cashiers something broad.
+
+**D-26-07 — Printers are DISCOVERED inside the restaurant and CONFIRMED by a human. Never
+auto-bound.**
+The registry today is manual IP entry, which does not survive contact with a restaurant manager.
+Discovery can only run inside the LAN, so it belongs in the print agent (26-06's daemon) and
+surfaces in the registry screen (26-10).
+
+- **mDNS / DNS-SD is the primary mechanism.** Browse `_pdl-datastream._tcp` (port 9100),
+  `_ipp._tcp` (631) and `_printer._tcp` (515). Address, port and usually make and model come off
+  the TXT record.
+- **A bounded port-9100 sweep of the agent's own /24 is the FALLBACK**, because cheap ESC/POS units
+  commonly ship with mDNS disabled. Rate-limited, never beyond the subnet the agent is attached to,
+  and **opt-in only — triggered by a manager pressing "Scan for printers", never on a timer.** An
+  unattended subnet scan from a device on a customer-facing network is indistinguishable from
+  reconnaissance and will trip a client's IDS.
+- **Enumerate USB / system print queues too.** Many tills have the printer on USB and the
+  system-printer transport already exists (26-06 task 2).
+- **Discovery produces CANDIDATES, not configuration.** A discovered device becomes a suggestion
+  with make, model and address prefilled; a manager names it, assigns it to a station and saves it.
+  Auto-binding would silently route a customer's bill to whatever answered first on port 9100.
+- **Test Print is the confirmation step.** The column ruler built in 26-06 task 3 is the only
+  honest way to establish that the thing which answered is a receipt printer and not a label
+  printer or a network appliance — and it measures the column count at the same time, which
+  research §7.5 says must be measured rather than assumed.
+- **Discovery results cross a trust boundary.** A candidate list is the restaurant's internal
+  network topology — addresses, makes, models. It is branch-scoped data: report it to the cloud
+  only for the branch that produced it, do not log it broadly, and do not retain rejected
+  candidates.
+
+**Revised plan order:** 26-07, **26-11**, 26-09, 26-10 (with discovery), 26-08, 26-12.
+
 **D-26-01 — Two tiers, and the plain tier ships first.**
 A tenant with no thermal hardware must still be able to hand a customer a bill. So: an HTML
 receipt rendered for `window.print()` with an 80mm `@page` stylesheet, working in any browser
