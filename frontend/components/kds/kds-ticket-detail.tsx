@@ -9,7 +9,7 @@ import {
   mapItemStatusToColumn,
   KDS_COLUMN_LABELS,
 } from "@/components/kds/kds-item-column";
-import { T_BODY, T_H2, T_KDS, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
+import { T_BODY, T_KDS, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import type { KdsItemStatus, KdsTicketItem } from "@/lib/models/kds.model";
 import { cn } from "@/lib/utils";

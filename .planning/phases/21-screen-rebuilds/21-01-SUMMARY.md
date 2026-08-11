@@ -158,33 +158,36 @@ holds `672800` paisa and the manager's Live Orders panel renders `Rs 6,728.00`.
 
 ### CI gates (repo root)
 
+Final state, after the concurrent agents' own work settled:
+
 ```
 $ pnpm --dir frontend exec tsc --noEmit
 (no output — clean)
 
 $ pnpm --dir frontend run lint
-✖ 16 problems (2 errors, 14 warnings)
-  → both errors are in frontend/lib/hooks/files/use-file-upload.ts, an UNTRACKED file
-    created by a concurrent agent at 18:01 while this work was in progress.
-    Zero errors in any file this plan owns.
+✖ 10 problems (0 errors, 10 warnings)
+  → zero errors. The 10 warnings are all pre-existing react-compiler
+    "incompatible library" notes (react-hook-form, TanStack Table) plus one
+    unused import in a concurrent agent's test.
 
 $ pnpm --dir frontend run format:check
-Code style issues found in 14 files
-  → all 14 belong to concurrent agents (tables/, menu/, platform/, users/, settings/).
-    Every file this plan owns passes.
+  → every file this plan owns passes. (Mid-run, 14 files belonging to concurrent
+    agents were unformatted; that is theirs to resolve, not this plan's to reformat.)
 
 $ pnpm --dir frontend exec vitest run
-Test Files  1 failed | 67 passed (68)
-     Tests  1 failed | 601 passed (602)
-  → the single failure is components/menu/__tests__/menu-items-page.test.tsx, which
-    expects a POST body without `imageFileId`; that field was added by the concurrent
-    menu/images agent. Not this plan's file, not this plan's regression.
+Test Files  74 passed (74)
+     Tests  635 passed (635)
 
-$ pnpm --dir frontend exec vitest run __tests__/kds __tests__/components/dashboard \
-    __tests__/components/kds __tests__/lib/theme __tests__/shared
-Test Files  9 passed (9)
-     Tests  228 passed (228)
+$ pnpm --dir frontend exec vitest run __tests__/kds __tests__/components \
+    __tests__/lib/theme __tests__/shared
+Test Files  14 passed (14)
+     Tests  255 passed (255)
 ```
+
+Mid-phase there was one failing test — `components/menu/__tests__/menu-items-page.test.tsx`,
+which expected a POST body without `imageFileId`, a field the concurrent menu/images agent was
+adding. It was not this plan's file and not this plan's regression; that agent has since fixed
+it, and the suite is now fully green.
 
 **Phase 20's contrast test and the permission matrix are both green.**
 `__tests__/lib/theme/design-tokens.test.ts` re-measures all 53 §3.8 pairings from
@@ -279,6 +282,36 @@ filtering paragraph are unbacked by any API and were not faked.
 
 ---
 
+## Defect found, not fixed — the board is silently capped at 20 tickets
+
+**KDS-21-D1.** `KdsRepository.getTickets` (`lib/repositories/kds.repository.ts:20`) sends
+`branchId`, `stationCode` and `status` — and **no `size`**. `KdsController.listTickets` takes a
+Spring `Pageable` (`KdsController.java:54`), whose default page size is **20**. So the board
+renders at most twenty tickets and gives no indication that any exist beyond them.
+
+Measured live, on `floating-terrace` / DEFAULT, at the moment of writing:
+
+```
+$ GET /api/v1/kitchen/kds/tickets?...&status=PENDING,COOKING,READY
+  returned 20 of total 29   → {late: 11}
+
+$ GET /api/v1/kitchen/kds/tickets?...&status=PENDING,COOKING,READY&size=200
+  returned 29 of total 29   → {late: 15, warn: 5}
+```
+
+Nine live tickets are invisible to the kitchen, **including every one of the five in the WARN
+state** — the server's page-1 ordering happens to differ from the board's, so the tickets
+approaching their deadline are exactly the ones that fall off. A kitchen at full service sees
+twenty tickets and has no way to know there are twenty-nine.
+
+This is the same family as GA-001: the screen presenting a partial answer as a complete one.
+It is **not fixed here** because `lib/repositories/**` is outside this plan's file list and
+four agents were working concurrently. The fix is one line (`size: "200"` in the params, or a
+paged fetch), and it wants a test that asserts `totalElements === content.length`.
+
+It is also why the single-frame fresh/warn greyscale shot below could not be captured: the
+warn tickets were on page 2.
+
 ## Known gaps
 
 1. **The KDS board renders inside the tenant app shell** — sidebar, breadcrumb, search bar all
@@ -295,9 +328,16 @@ filtering paragraph are unbacked by any API and were not faked.
    scope. Absent rather than faked.
 4. **Labour % of sales and Covers-vs-prior are absent** for the same reason — `useLabourCost`
    is keyed to a payroll run's branch and month, which is not the owner dashboard's window.
-5. **The three-state greyscale shot captures fresh and late**, the two states co-present in
-   live data at capture time. Warn is covered by the unit suite (border 4px + "DUE") and by
-   the browser assertion, which checks whichever state the focused ticket is actually in.
+5. **No single frame holds all three ageing states.** Two greyscale shots were captured
+   instead: `after-kds-board-greyscale.png` (**fresh + late**) and
+   `after-kds-late-warn-greyscale.png` (**warn + late**). Both pairs are trivially separable
+   with colour removed. The pair NOT captured in one frame is **fresh + warn** — which is,
+   annoyingly, the ΔE 8.3 pair the whole encoding exists for. It is asserted in the unit suite
+   (2px vs 4px border, `Clock` vs `AlertTriangle`, `mm:ss` vs `mm:ss + DUE`) and by the
+   browser check's `getComputedStyle` border measurement of each present state, but not
+   photographed side by side. Three attempts failed for the reason above: warn tickets existed
+   and were on page 2 of a request that never asked for page 2 (KDS-21-D1). Fixing that defect
+   makes this shot a one-minute job.
 
 ## The `--muted-foreground` contrast question
 
