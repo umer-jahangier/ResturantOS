@@ -74,7 +74,11 @@ public abstract class HrTestBase {
             "hr.employee.view", "hr.employee.manage",
             "hr.attendance.view", "hr.attendance.manage",
             "hr.leave.view", "hr.leave.approve",
-            "hr.payroll.view", "hr.payroll.run", "hr.payroll.approve");
+            "hr.payroll.view", "hr.payroll.run", "hr.payroll.approve",
+            // 35-03. Present here for the same reason as the other nine: this list exists so that a
+            // deny can only ever come from tenant/branch SCOPING, never from a missing permission,
+            // which is what makes an isolation test's red mean what it claims.
+            "hr.config.view", "hr.config.manage");
 
     // Container host ports are claimed by this JVM before Docker binds them — see
     // io.restaurantos.shared.testsupport.TestContainerPorts for the full reasoning. Short version: an

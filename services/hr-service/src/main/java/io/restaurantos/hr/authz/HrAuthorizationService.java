@@ -52,6 +52,7 @@ public class HrAuthorizationService {
     private static final String RESOURCE_ATTENDANCE = "attendance";
     private static final String RESOURCE_LEAVE = "leave_request";
     private static final String RESOURCE_PAYROLL = "payroll_run";
+    private static final String RESOURCE_CONFIG = "hr_config";
 
     private final AuthorizationService authorizationService;
 
@@ -121,6 +122,39 @@ public class HrAuthorizationService {
     public void authorizePayrollApprove(UUID payrollRunId, UUID tenantId, UUID branchId) {
         authorizationService.authorize(MODULE, "payroll_approve",
                 resource(RESOURCE_PAYROLL, payrollRunId, tenantId, branchId));
+    }
+
+    // ── configuration (35-03) ────────────────────────────────────────────────
+
+    /**
+     * HR configuration is authorised TENANT-wide, and takes no branch.
+     *
+     * <p>Every other method on this class passes the resource's branch, and that is the entire
+     * control for an operational record. Configuration is different in kind: a department list, a
+     * leave type, a salary component and the income-tax table belong to the business, not to one of
+     * its locations. {@code hr.rego}'s config rules therefore use {@code same_tenant} alone.
+     *
+     * <p>No branch parameter exists here rather than being accepted and ignored, so a caller cannot
+     * pass one and believe it is being enforced. The resource's {@code branch_id} goes to the policy
+     * as null, and the policy does not read it.
+     *
+     * <p>This is NOT a relaxation of phase 18b. The nine operational actions still require
+     * {@code same_tenant_and_branch}, and {@code hr_test.rego} asserts that explicitly for all nine.
+     */
+    public void authorizeConfigView(UUID tenantId) {
+        authorizationService.authorize(MODULE, "config_view",
+                resource(RESOURCE_CONFIG, null, tenantId, null));
+    }
+
+    /**
+     * Editing HR configuration, including the tax table.
+     *
+     * <p>Held only by OWNER and TENANT_ADMIN (auth changeset 046). A branch manager editing the tax
+     * table is a money defect whose blast radius is every payslip in the tenant for a year.
+     */
+    public void authorizeConfigManage(UUID tenantId) {
+        authorizationService.authorize(MODULE, "config_manage",
+                resource(RESOURCE_CONFIG, null, tenantId, null));
     }
 
     /**
