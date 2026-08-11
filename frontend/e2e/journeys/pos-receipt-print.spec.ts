@@ -39,6 +39,40 @@ interface IssuedDocumentResponse {
   };
 }
 
+/**
+ * The text of a rendered PDF, via poppler's `pdftotext`.
+ *
+ * <p>An external dependency in a test, deliberately. Chrome outlines the receipt's monospace font
+ * into glyph paths, so the literal strings are NOT recoverable from the content stream with
+ * `zlib` alone — that was tried. And every in-browser proxy for "what got printed" was tried too
+ * and each one PASSED against the known-broken stylesheet: reading the `@page` rule's text,
+ * measuring the PDF page width, and narrowing the viewport to check containment (which fails to
+ * reproduce the bug because a 302px viewport collapses the sidebar that causes it).
+ *
+ * <p>If `pdftotext` is missing this FAILS rather than skipping. A print assertion that quietly
+ * disables itself on a machine without poppler is worse than none: it is the shape of test that
+ * lets a bill ship with no amounts on it.
+ */
+async function extractPdfText(pdf: Buffer): Promise<string> {
+  const { execFileSync } = await import("node:child_process");
+  const { writeFileSync, mkdtempSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+
+  const dir = mkdtempSync(join(tmpdir(), "receipt-print-"));
+  const file = join(dir, "receipt.pdf");
+  writeFileSync(file, pdf);
+  try {
+    return execFileSync("pdftotext", ["-layout", file, "-"], { encoding: "utf8" });
+  } catch (err) {
+    throw new Error(
+      "could not run `pdftotext` to read the printed output. Install poppler " +
+        "(`brew install poppler` / `apt-get install poppler-utils`). This assertion is NOT " +
+        `optional — it is the only one that can see what actually reached the paper. ${String(err)}`,
+    );
+  }
+}
+
 /** Every `formatted` string anywhere in the server's document. */
 function formattedAmounts(node: unknown, out: Set<string> = new Set()): Set<string> {
   if (Array.isArray(node)) {
@@ -236,6 +270,47 @@ test.describe("a cashier settles an order and prints the bill", () => {
     expect(widthMm, `the printed page is ${widthMm.toFixed(2)}mm wide, not 80mm`).toBeLessThan(
       80.5,
     );
+
+    // ── 3c. WHAT IS ACTUALLY ON THE PAPER ────────────────────────────────────────────
+    //
+    // Everything above this point passed while the printed bill was unusable. The @page width was
+    // right, the DOM was right, the screen was right — and the real print output was the app
+    // SIDEBAR followed by a clipped receipt:
+    //
+    //     Zaitoon Kitchen        Orde
+    //     OVERVIEW
+    //       Dashboard
+    //     ORDERS                  Or
+    //       POS                   Is
+    //
+    // Cause: `body * { visibility: hidden }` has specificity (0,0,1) and lost to Tailwind utility
+    // classes, so the shell never stopped painting — and with it still on the page the receipt was
+    // pushed and cut. Confirmed by simulating the failure (injecting `visibility: visible`) and
+    // reading the PDF: "Dashboard" reappears on the customer's bill.
+    //
+    // This assertion reads the TEXT of a real print because NO in-browser proxy reproduced it.
+    // Each of these was tried and each PASSED against the known-broken page: reading the @page
+    // rule's text, measuring the PDF page width, narrowing the viewport to check containment, and
+    // checking the element's bounding box under `emulateMedia({ media: "print" })`. An assertion
+    // that cannot fail on the known-bad input is not an assertion.
+    const printedText = await extractPdfText(await page.pdf({ preferCSSPageSize: true }));
+
+    const grandTotal = (issued.data.document.totals as { grandTotal: { formatted: string } } | null)
+      ?.grandTotal.formatted;
+    expect(
+      printedText,
+      `the grand total ${grandTotal} is not on the printed page. The bill rendered but did not ` +
+        "PRINT — check `.receipt-root` is `position: fixed` under print media, because `absolute` " +
+        "anchors it to the shell's content area and pushes every amount off an 80mm page.",
+    ).toContain(grandTotal!);
+
+    for (const shellWord of ["OVERVIEW", "Dashboard"]) {
+      expect(
+        printedText,
+        `"${shellWord}" is on the paper. The application shell printed onto the customer's bill — ` +
+          "the print-media visibility rules need `!important` to beat utility-class specificity.",
+      ).not.toContain(shellWord);
+    }
 
     // ── 4. With print media emulated, the shell is gone and the bill is not ──────────
     await page.emulateMedia({ media: "print" });

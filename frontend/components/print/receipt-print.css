@@ -143,18 +143,47 @@
    * Everything that is not the bill is excluded. If the sidebar, the top bar, a navigation link or
    * a button reaches the paper, the bill is not a bill.
    */
+  /*
+   * `!important`, and it is load-bearing. `body *` has specificity (0,0,1) and loses to any
+   * utility class that sets visibility — which is why the FIRST version of this file printed the
+   * entire sidebar onto the bill. Measured on the real print output: `pdftotext` returned
+   * "OVERVIEW", "Dashboard", "POS" above a two-character-wide receipt.
+   */
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
 
   .receipt-root,
   .receipt-root * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
+  /*
+   * `fixed`, as HARDENING — not as the fix.
+   *
+   * Honest account, because the first version of this comment got it wrong. The bill printed with
+   * the application sidebar on it and its right-hand column clipped, and BOTH symptoms came from
+   * the visibility rule above losing on specificity: with the shell still painting, the receipt
+   * was pushed and cut. Once that rule carried `!important`, `position: absolute` printed
+   * correctly — verified by injecting `position: absolute !important` at runtime and reading the
+   * resulting PDF, which was clean.
+   *
+   * `fixed` is kept because it removes the dependency entirely: the bill anchors to the page box
+   * rather than to whatever the shell's layout happens to be, so a future shell change cannot
+   * reintroduce the clipping even if the isolation rule is weakened again.
+   *
+   * CAVEAT: a `transform`, `filter` or `will-change` on any ancestor makes that ancestor the
+   * containing block for FIXED descendants too, which would undo this — and phase 34 is adding
+   * blur effects to POS surfaces. The e2e reads the TEXT of a real PDF precisely because no
+   * in-browser measurement reproduced either defect.
+   */
   .receipt-root {
-    position: absolute;
-    inset: 0 auto auto 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: auto;
+    bottom: auto;
+    margin: 0;
   }
 
   /* Plain black on white — no theme, no shadow, no colour-adjust surprises. */
