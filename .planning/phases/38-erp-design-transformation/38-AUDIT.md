@@ -610,6 +610,29 @@ about it.
 
 ---
 
+**h. `/app/finance/periods` "Access denied" for a branch manager is CORRECT, and is not the
+UI-narrower-than-the-server defect.** Raised because it has the same *shape* as a defect phase 37
+already fixed once. Measured against the live gateway with a branch-manager token:
+
+| endpoint | manager |
+|---|---|
+| `GET /api/v1/finance/periods?fiscalYear=2026` | **403 PERMISSION_DENIED** |
+| `GET /api/v1/finance/periods/open` | **403** |
+| `GET /api/v1/finance/accounts` | **403** |
+| `GET /api/v1/finance/journal-entries` | **403** |
+
+The server refuses the role on every ledger route. `app/(tenant)/app/finance/layout.tsx` gates those
+routes on `finance.journal.view`, which the manager does not hold — so the UI is **exactly as tight
+as the API, not tighter**. The manager does hold `pos.order.view.all` and `pos.till.review`, which
+is why the outer `mode="any"` guard still admits them to the finance shell and to
+`/app/finance/takings`; that split is deliberate and documented in the layout ("someone who may
+check a drawer has not thereby been given the chart of accounts").
+
+**No permission was widened.** The consequence to carry: 38-01's migration of
+`/app/finance/periods` is committed but **visually unverified**, because no persona this session
+can reach the screen. It needs an accountant or owner under TOTP — the same limitation §8.6 records
+for settings.
+
 ## 11. What is out of phase 38's scope
 
 | Item | Owner | Why |
