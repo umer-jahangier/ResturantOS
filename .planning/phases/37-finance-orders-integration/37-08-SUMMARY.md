@@ -116,9 +116,14 @@ accountant@terrace.local  → HTTP 200
 - **`TransactionRegisterIT` was not written.** The plan specifies eight behaviours as an IT,
   including a query-plan assertion and a cross-branch access case. Verified live instead, which
   covers six of the eight; the cross-branch case and the plan-shape assertion are unverified.
-- **`V13__transaction_register_indexes.sql` was not created.** The register currently has no
-  supporting index on `(branch_id, recorded_at)` / `(order_id)`. At 38 rows this is invisible; it
-  will not be at 38,000.
+- ~~**`V13__transaction_register_indexes.sql` was not created.**~~ **DONE 2026-08-12** as
+  `V19__transaction_register_indexes.sql` — V13 through V18 were taken by phases 26/28 and by
+  sibling work while this phase ran. Four partial indexes, one per UNION branch plus the cashier
+  filter. Measured first: the CTE is inlined and the range predicate IS pushed down, so the query
+  is index-friendly; every branch was nonetheless a Seq Scan, which at 38 money events is the
+  correct plan. Verified applicable rather than assumed — with `enable_seqscan = off` the planner
+  selects each new index for its own branch. **No speedup is claimed at this row count**, because
+  there is none to claim; the indexes are for the shape the query has at volume.
 
 ## Guide claims this plan makes true
 
