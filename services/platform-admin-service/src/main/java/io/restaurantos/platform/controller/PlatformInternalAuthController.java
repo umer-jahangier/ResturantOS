@@ -6,6 +6,8 @@ import io.restaurantos.shared.api.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -74,6 +76,30 @@ public class PlatformInternalAuthController {
             // logged with its detail by verifyCredential, which is where an operator looks.
             return ResponseEntity.ok(ApiResponse.ok(VerifyResponse.NO_MATCH));
         }
+    }
+
+    /**
+     * May a platform session still be renewed for this user, and as what role? (16b-01)
+     *
+     * <p>Called by auth-service on every platform refresh-token rotation. See
+     * {@link PlatformAuthService#standing} for why this exists — in one line: a rotating session
+     * never logs in again, so without it, deactivating a SuperAdmin would no longer end their
+     * access.
+     *
+     * <p><b>Takes an id and no credential, and that is deliberate.</b> The caller has already proved
+     * possession of a live, unspent refresh token for this id; asking for a password here would
+     * require auth-service to have retained one, which is exactly what it must never do. The
+     * authorization for this call is the {@code X-Internal-Service} secret, the same one guarding
+     * {@code /verify} — and this endpoint is strictly less powerful than that one, since it mints
+     * nothing and reveals only a boolean and a role the caller's own token already carries.
+     *
+     * <p>GET, and read-only: this must not be usable to change anything about the account whose
+     * standing it reports.
+     */
+    @GetMapping("/users/{platformUserId}/standing")
+    public ResponseEntity<ApiResponse<PlatformAuthService.Standing>> standing(
+            @PathVariable UUID platformUserId) {
+        return ResponseEntity.ok(ApiResponse.ok(platformAuthService.standing(platformUserId)));
     }
 
     /**

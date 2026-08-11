@@ -1,7 +1,6 @@
 package io.restaurantos.auth.controller;
 
 import io.restaurantos.auth.config.AuthCookieProperties;
-import io.restaurantos.auth.config.AuthJwtProperties;
 import io.restaurantos.auth.dto.request.LoginRequest;
 import io.restaurantos.auth.dto.response.LoginResponse;
 import io.restaurantos.auth.dto.response.TenantBrandingResponse;
@@ -34,16 +33,20 @@ public class AuthController {
     static final String REFRESH_COOKIE = "refresh_token";
 
     private final AuthService authService;
-    private final AuthJwtProperties jwtProperties;
     private final AuthCookieProperties cookieProperties;
     private final AuthTenantRepository authTenantRepository;
 
+    /**
+     * {@code AuthJwtProperties} was dropped from this constructor by 16b-01. It existed only to
+     * supply {@code getRefreshTtlSeconds()} to the login cookie, and that number now travels on
+     * {@code LoginResult} because the two login paths disagree about it. Left injected, it would be
+     * a field holding the TENANT refresh lifetime inside the class that writes the PLATFORM cookie —
+     * precisely the thing for a later edit to reach for by mistake.
+     */
     public AuthController(AuthService authService,
-                          AuthJwtProperties jwtProperties,
                           AuthCookieProperties cookieProperties,
                           AuthTenantRepository authTenantRepository) {
         this.authService = authService;
-        this.jwtProperties = jwtProperties;
         this.cookieProperties = cookieProperties;
         this.authTenantRepository = authTenantRepository;
     }
@@ -100,21 +103,66 @@ public class AuthController {
         }
     }
 
+    /**
+     * <h3>The TTL comes from the result, not from {@code jwtProperties} (16b-01)</h3>
+     *
+     * <p>The two login paths no longer share a refresh lifetime — 7 days for a tenant session, 30
+     * minutes for a platform one — so the service decides and the cookie carries what it decided.
+     *
+     * <h3>A null refresh token now writes NO cookie, rather than an empty one</h3>
+     *
+     * <p>This line used to write {@code refreshCookie(null, …)} unconditionally, which is how the
+     * defect 19c pinned actually presented: a platform login returned no refresh token, and the
+     * browser was handed <b>{@code Set-Cookie: refresh_token=;}</b> — a cookie that exists and does
+     * not work. That is the worst of both, because the client's "do I have a session?" heuristics
+     * see a cookie and try to use it, and the failure surfaces one navigation later as a mysterious
+     * expiry rather than as an absent credential.
+     *
+     * <p>Both login paths issue a real token today, so the guard is unreachable — and it stays,
+     * because the next path that forgets to should produce "no cookie", which is honest, instead of
+     * quietly recreating this bug.
+     */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request,
                                                             HttpServletRequest httpRequest) {
         AuthService.LoginResult result = authService.login(
             request, httpRequest.getHeader("User-Agent"), clientIp(httpRequest));
+        if (result.refreshToken() == null || result.refreshToken().isBlank()) {
+            return ResponseEntity.ok(ApiResponse.ok(result.body()));
+        }
         return ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, refreshCookie(result.refreshToken(), jwtProperties.getRefreshTtlSeconds(), cookieProperties.isSecure()).toString())
+            .header(HttpHeaders.SET_COOKIE, refreshCookie(
+                result.refreshToken(), result.refreshTtlSeconds(),
+                cookieProperties.isSecure()).toString())
             .body(ApiResponse.ok(result.body()));
     }
 
+    /**
+     * Exchange the {@code refresh_token} cookie for a new access token.
+     *
+     * <p>Since 16b-01 this may also REPLACE the cookie. A platform session's refresh token is
+     * single-use: redeeming it revokes it, so the successor has to reach the browser in the same
+     * response or the caller is left holding a token that has just been invalidated. The tenant
+     * path returns {@code rotated() == false} and no {@code Set-Cookie} header is written at all —
+     * byte-for-byte the response it has always sent.
+     *
+     * <p>The successor cookie carries the same properties as the login cookie
+     * ({@link #refreshCookie}): {@code HttpOnly}, {@code SameSite=Strict},
+     * {@code Path=/api/v1/auth}, {@code Secure} per {@code cookieProperties}. Only {@code Max-Age}
+     * differs from the tenant path's, and it carries the platform TTL the service chose.
+     */
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refresh(HttpServletRequest httpRequest) {
         String token = readRefreshCookie(httpRequest);
-        TokenResponse body = authService.refresh(token);
-        return ResponseEntity.ok(ApiResponse.ok(body));
+        AuthService.RefreshResult result = authService.refresh(token);
+        if (!result.rotated()) {
+            return ResponseEntity.ok(ApiResponse.ok(result.body()));
+        }
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, refreshCookie(
+                result.rotatedRefreshToken(), result.rotatedTtlSeconds(),
+                cookieProperties.isSecure()).toString())
+            .body(ApiResponse.ok(result.body()));
     }
 
     @PostMapping("/logout")

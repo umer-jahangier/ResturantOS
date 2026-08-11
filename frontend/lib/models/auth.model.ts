@@ -105,6 +105,14 @@ export interface DecodedClaims {
   roles: string[];
   permissions: string[];
   attributes: Record<string, unknown>;
+  /**
+   * The `token_type` claim: `"platform"` for a control-plane token, `"access"` for a tenant one.
+   *
+   * A tenant access token does not carry the claim at all (`JwtSigningService.signAccessToken` never
+   * sets it), so `decodeJwt` supplies `"access"` when it is absent. Needed since 16b-01, when a
+   * platform session gained a refresh token and `/auth/refresh` stopped being a tenant-only path.
+   */
+  tokenType: string;
   /** Set only when a SuperAdmin is impersonating this user. */
   impersonatedBy?: string;
 }

@@ -25,6 +25,18 @@ public class RefreshSessionEntity {
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
 
+    /**
+     * {@code TENANT} or {@code PLATFORM} (16b-01). The discriminator {@code AuthServiceImpl.refresh}
+     * branches on to decide which KIND of token this session may mint.
+     *
+     * <p>Defaulted here as well as in the column definition so an entity constructed in code and
+     * never passed through {@link io.restaurantos.auth.service.RefreshSessionService} still carries
+     * the safe value. {@code chk_refresh_sessions_scope} (changeset 084) additionally binds this to
+     * {@code tenant_id}, so a row whose scope and tenant disagree cannot be stored at all.
+     */
+    @Column(name = "scope", nullable = false)
+    private String scope = RefreshScope.TENANT;
+
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      16b-01 — let a platform (SuperAdmin) session hold a refresh token.
+
+      THE PROBLEM.
+      `refresh_sessions.tenant_id` is NOT NULL and the table is FORCE ROW LEVEL SECURITY under
+      `tenant_isolation`: USING (tenant_id = NULLIF(current_setting('app.current_tenant_id',
+      true), '')::uuid). A platform user belongs to no tenant, so there is no value of
+      `app.current_tenant_id` that both exists and is honest.
+
+      WHY NOT `tenant_id IS NULL` FOR PLATFORM ROWS.
+      The policy compares with `=`. `NULL = <uuid>` evaluates to NULL, and RLS reads NULL as false,
+      so a NULL-tenant row would be INVISIBLE TO EVERYTHING, permanently — including to the code
+      that just wrote it. It would also poison two things that are working today:
+
+        · `auth_lookup_refresh_tenant` (changeset 052) returns `tenant_id` for a token hash, and
+          `RefreshSessionService.bootstrapTenantGuc` treats a NULL return as "invalid refresh
+          session". A platform row would therefore be unredeemable by construction.
+        · `deploy/scripts/verify-security-definer-owners.sh` probes that function by sampling an
+          ARBITRARY `refresh_sessions` row and asserting the result IS NOT NULL. Sampling a
+          NULL-tenant row would report a false FAIL and exit non-zero — a green deployment gate
+          turned red by a row that is behaving as designed.
+
+      WHY NOT A SEPARATE `platform_refresh_sessions` TABLE.
+      It would need its own entity, repository, RLS policy and — the part that matters — its own
+      SECURITY DEFINER lookup function, because the redemption path still arrives with no tenant
+      context. That is a new function of exactly the class changeset 081's ownership guard exists to
+      protect, and a second copy of the trap documented there (created by Liquibase as `auth_user`,
+      silently returning zero rows until someone reassigns it to postgres).
+
+      WHAT THIS DOES INSTEAD.
+      One reserved tenant namespace of size one. Platform rows carry the nil UUID
+      00000000-0000-0000-0000-000000000000, which:
+
+        · `gen_random_uuid()` cannot generate and no `auth_tenants` row holds, so a platform row is
+          invisible in every tenant context and every tenant row is invisible in the platform one —
+          the existing policy keeps doing real work, UNCHANGED, in both directions;
+        · is non-NULL, so changeset 052's function and the deployment verifier both keep working
+          with no edit at all. No SECURITY DEFINER function is created, altered or reassigned by
+          this changeset.
+
+      `refresh_sessions` has no FOREIGN KEY to `auth_tenants` (verified on the live schema: `\d
+      refresh_sessions` lists only the primary key and the NOT NULL constraints), so the sentinel
+      needs no phantom tenant row to point at.
+
+      AND WHY THE `scope` COLUMN EXISTS ANYWAY, GIVEN THE SENTINEL ALREADY ENCODES IT.
+      Because application code must never have to infer "is this a control-plane session?" from a
+      magic constant. `AuthServiceImpl.refresh` branches on `scope` — a platform refresh minting a
+      tenant token, or the reverse, is the failure this whole phase must not have — and the CHECK
+      constraint below makes the explicit column and the sentinel physically unable to disagree.
+      The invariant is enforced by the database, not by the diligence of the next caller.
+    -->
+    <changeSet id="auth-1.0.0-084-refresh-sessions-scope" author="restaurantos-agent">
+        <comment>
+            scope discriminator for refresh_sessions. DEFAULT 'TENANT' so all 2322 existing rows
+            (measured: 0 of them carry the nil tenant) are correct without a data migration, and so
+            any INSERT written before this changeset keeps its exact previous meaning.
+        </comment>
+        <addColumn tableName="refresh_sessions">
+            <column name="scope" type="VARCHAR(16)" defaultValue="TENANT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="refresh_sessions" columnName="scope"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-084-refresh-sessions-scope-check" author="restaurantos-agent">
+        <comment>
+            The correlation invariant. A TENANT session can never carry the platform sentinel and a
+            PLATFORM session can never carry a real tenant id — so the worst case of a bug in the
+            branching code is a failed INSERT, not a control-plane session filed under a customer's
+            tenant (or, far worse, a customer's session filed under the control plane).
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            ALTER TABLE refresh_sessions
+              ADD CONSTRAINT chk_refresh_sessions_scope CHECK (
+                   (scope = 'TENANT'   AND tenant_id <> '00000000-0000-0000-0000-000000000000'::uuid)
+                OR (scope = 'PLATFORM' AND tenant_id  = '00000000-0000-0000-0000-000000000000'::uuid)
+              );
+        ]]></sql>
+        <rollback>
+            <sql>ALTER TABLE refresh_sessions DROP CONSTRAINT IF EXISTS chk_refresh_sessions_scope;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-084-refresh-sessions-user-live-index" author="restaurantos-agent">
+        <comment>
+            Supports the reuse-detection revocation sweep, which on detecting a replayed platform
+            token revokes EVERY live session for that platform user — `findByUserIdAndRevokedAtIsNull`.
+            The table had exactly one index (token_hash), so that sweep was a sequential scan, on a
+            path reachable by an unauthenticated caller replaying a stolen cookie. Partial on the
+            live rows because revoked ones are never swept twice.
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            CREATE INDEX IF NOT EXISTS idx_refresh_sessions_user_live
+                ON refresh_sessions (user_id)
+             WHERE revoked_at IS NULL;
+        ]]></sql>
+        <rollback>
+            <sql>DROP INDEX IF EXISTS idx_refresh_sessions_user_live;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

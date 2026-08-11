@@ -38,6 +38,9 @@ export function decodeJwt(token: string): DecodedClaims {
     sub: typeof raw.sub === "string" ? raw.sub : "",
     tenantId: typeof raw.tenant_id === "string" ? raw.tenant_id : "",
     branchId: typeof raw.branch_id === "string" ? raw.branch_id : "",
+    // Absent on a tenant access token, which never sets the claim. Defaulting to "access" here —
+    // rather than "" — keeps the discriminator total: every decoded token names its kind.
+    tokenType: typeof raw.token_type === "string" ? raw.token_type : "access",
     roles: asStringArray(raw.roles),
     permissions: asStringArray(raw.permissions),
     attributes:

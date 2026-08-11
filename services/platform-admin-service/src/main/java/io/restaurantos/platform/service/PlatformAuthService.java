@@ -205,6 +205,63 @@ public class PlatformAuthService {
         return user;
     }
 
+    /**
+     * May this platform user's session still be RENEWED, and as what role? (16b-01)
+     *
+     * <h3>Why auth-service cannot answer this itself, and why it must ask on every renewal</h3>
+     *
+     * <p>16b-01 gives a platform session a 30-minute, single-use-rotating refresh token so the
+     * console survives a reload. Rotation means a session that is actively used never simply
+     * expires — it keeps issuing successors. Without this check, <b>deactivating a SuperAdmin would
+     * stop working</b>: {@link #verifyCredential} refuses an inactive user at LOGIN, but a rotating
+     * session never logs in again, so a revoked operator would keep console access indefinitely.
+     * That would be strictly worse than the behaviour 16b-01 replaced, where the 15-minute token
+     * simply died and the next login hit the check above.
+     *
+     * <p>PLATFORM-07 says only this service reads {@code platform_db}, so auth-service cannot look
+     * at {@code is_active} itself. Hence one narrow internal endpoint, taking an ID and no
+     * credential.
+     *
+     * <h3>Why it returns a verdict rather than the row</h3>
+     *
+     * <p>{@code renewable} is computed HERE, from the same two conditions {@link #verifyCredential}
+     * applies (active, and holding the mintable role), for the reason that method's own javadoc
+     * gives about extraction: a caller handed {@code isActive} and {@code role} would eventually
+     * re-implement the policy and drift from it. The policy stays in one service. The role comes
+     * back only so the renewed token carries the CURRENT one — a demotion takes effect at the next
+     * rotation rather than being frozen for the life of the session.
+     *
+     * <p>An unknown id is {@link Standing#NOT_RENEWABLE}, identical to a deactivated one. This
+     * endpoint is behind the internal-secret filter and its caller already holds a valid refresh
+     * token for the id it is asking about, so there is no enumeration surface to protect — but
+     * there is no reason to hand out a distinction either.
+     */
+    @Transactional(readOnly = true)
+    public Standing standing(UUID platformUserId) {
+        PlatformUserEntity user = platformUserRepository.findById(platformUserId).orElse(null);
+        if (user == null) {
+            log.warn("[platform-auth] renewal refused: no such platform user — platformUserId={}",
+                platformUserId);
+            return Standing.NOT_RENEWABLE;
+        }
+        if (!user.isActive()) {
+            log.warn("[platform-auth] renewal refused: account deactivated — platformUserId={}",
+                user.getId());
+            return Standing.NOT_RENEWABLE;
+        }
+        if (user.getRole() != MINTABLE_ROLE) {
+            log.warn("[platform-auth] renewal refused: role {} is not mintable — platformUserId={}",
+                user.getRole(), user.getId());
+            return Standing.NOT_RENEWABLE;
+        }
+        return new Standing(true, user.getRole().name());
+    }
+
+    /** {@code role} is null whenever {@code renewable} is false. */
+    public record Standing(boolean renewable, String role) {
+        public static final Standing NOT_RENEWABLE = new Standing(false, null);
+    }
+
     // --- Minting -------------------------------------------------------------------------------
 
     private MintedToken mint(PlatformUserEntity user) {

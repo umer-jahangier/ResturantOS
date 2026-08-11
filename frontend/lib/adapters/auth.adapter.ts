@@ -24,6 +24,22 @@ export function adaptSession(api: ApiLogin): Session {
  * Adapt a bare token response (refresh / switch-branch — only accessToken +
  * expiresInSeconds) into a {@link Session}. The ids are read from the new JWT,
  * since the bare response omits them.
+ *
+ * <h3>Why `tokenType` is read rather than assumed (16b-01)</h3>
+ *
+ * This function used to hard-code `tokenType: "access"`, with a comment explaining that refresh was
+ * a tenant-only path "by construction" because "a platform token has no refresh session
+ * (auth-service issues none)". That reasoning was sound and its premise is now false: 16b-01 gives
+ * a platform session a short-lived rotating refresh token, so `POST /api/v1/auth/refresh` can
+ * legitimately return a control-plane token.
+ *
+ * Left as it was, a SuperAdmin who reloaded would have rehydrated into a session labelled `access`
+ * with `tenantId: ""` — a platform user wearing a tenant session's clothes, which is exactly the
+ * confusion `isPlatformSession` exists to prevent. The claim is on the token
+ * (`JwtSigningService.signPlatformToken` sets `token_type: "platform"`), so it is read from there.
+ *
+ * A tenant access token carries no `token_type` claim at all, so the absent case falls back to
+ * `"access"` — which is what every existing caller, including switch-branch, keeps getting.
  */
 export function adaptTokenSession(api: ApiToken): Session {
   const claims = decodeJwt(api.accessToken);
@@ -31,12 +47,13 @@ export function adaptTokenSession(api: ApiToken): Session {
     accessToken: api.accessToken,
     expiresAt: expiresAtFromNow(api.expiresInSeconds),
     userId: claims.sub,
-    tenantId: claims.tenantId,
-    branchId: claims.branchId,
-    // Refresh and switch-branch are TENANT-only paths by construction: a platform token has no
-    // refresh session (auth-service issues none) and no branch. Anything arriving here is therefore
-    // a tenant token, and hard-coding that is more honest than reading a claim that is always absent.
-    tokenType: "access",
+    // Normalised to null, not passed through as "". A platform token has no `tenant_id` claim and
+    // `decodeJwt` renders a missing string claim as "", but `Session.tenantId` is typed
+    // `string | null` precisely so "this session has no tenant" is a fact rather than a falsy
+    // value that some consumer will one day send to an API as a tenant id.
+    tenantId: claims.tenantId || null,
+    branchId: claims.branchId || null,
+    tokenType: claims.tokenType,
   };
 }
 

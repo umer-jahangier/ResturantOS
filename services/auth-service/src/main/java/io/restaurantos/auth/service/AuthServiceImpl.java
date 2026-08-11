@@ -1,10 +1,12 @@
 package io.restaurantos.auth.service;
 
+import io.restaurantos.auth.client.PlatformCredentialClient;
 import io.restaurantos.auth.config.AuthJwtProperties;
 import io.restaurantos.auth.dto.request.LoginRequest;
 import io.restaurantos.auth.dto.response.LoginResponse;
 import io.restaurantos.auth.dto.response.TokenResponse;
 import io.restaurantos.auth.entity.AuthTenantEntity;
+import io.restaurantos.auth.entity.RefreshScope;
 import io.restaurantos.auth.entity.RefreshSessionEntity;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AccountLockedException;
@@ -18,6 +20,8 @@ import io.restaurantos.auth.repository.UserRepository;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,8 @@ import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     /**
      * The reserved chooser value meaning "the platform console", used where a tenant slug would
@@ -62,7 +68,15 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordPolicyService passwordPolicyService;
     private final LoginIdentityResolver loginIdentityResolver;
     private final PlatformTokenService platformTokenService;
+    private final PlatformCredentialClient platformCredentialClient;
     private final boolean stepUpEnabled;
+    /**
+     * 30 minutes (16b-01), against the tenant path's 7 days — see {@link #platformLoginResult} for
+     * why this number and not that one. A SEPARATE property rather than a reuse of
+     * {@code refresh-ttl-seconds} precisely so that giving a control-plane session the tenant
+     * lifetime would have to be someone typing 604800 into a field named for the platform.
+     */
+    private final long platformRefreshTtlSeconds;
 
     public AuthServiceImpl(AuthTenantRepository authTenantRepository,
                            UserRepository userRepository,
@@ -78,7 +92,10 @@ public class AuthServiceImpl implements AuthService {
                            PasswordPolicyService passwordPolicyService,
                            LoginIdentityResolver loginIdentityResolver,
                            PlatformTokenService platformTokenService,
-                           @Value("${restaurantos.auth.step-up-enabled:true}") boolean stepUpEnabled) {
+                           PlatformCredentialClient platformCredentialClient,
+                           @Value("${restaurantos.auth.step-up-enabled:true}") boolean stepUpEnabled,
+                           @Value("${restaurantos.auth.platform-refresh-ttl-seconds:1800}")
+                               long platformRefreshTtlSeconds) {
         this.authTenantRepository = authTenantRepository;
         this.userRepository = userRepository;
         this.entityManager = entityManager;
@@ -93,7 +110,9 @@ public class AuthServiceImpl implements AuthService {
         this.passwordPolicyService = passwordPolicyService;
         this.loginIdentityResolver = loginIdentityResolver;
         this.platformTokenService = platformTokenService;
+        this.platformCredentialClient = platformCredentialClient;
         this.stepUpEnabled = stepUpEnabled;
+        this.platformRefreshTtlSeconds = platformRefreshTtlSeconds;
     }
 
     /**
@@ -126,7 +145,7 @@ public class AuthServiceImpl implements AuthService {
             if (!verdict.matched()) {
                 throw new AuthenticationFailedException("Invalid credentials");
             }
-            return platformLoginResult(verdict);
+            return platformLoginResult(verdict, userAgent, ip);
         }
         return loginToTenant(request.withTenantSlug(request.tenantHint()), userAgent, ip);
     }
@@ -190,7 +209,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (resolution.isSolePlatform()) {
-            return platformLoginResult(resolution.platform());
+            return platformLoginResult(resolution.platform(), userAgent, ip);
         }
 
         if (resolution.isSoleTenant()) {
@@ -229,21 +248,69 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Mint the tenant-less control-plane token for a verified platform user.
+     * Mint the tenant-less control-plane token for a verified platform user, and open a SHORT-LIVED,
+     * SINGLE-USE-ROTATING refresh session to go with it (16b-01).
      *
-     * <p>No refresh session and no cookie, matching {@code POST /api/v1/platform/auth/login} exactly:
-     * a control-plane token lives 15 minutes and has no renewal path, which is the only bound on a
-     * leaked SuperAdmin credential while {@code platform_users} still has no second-factor column.
-     * Issuing a 30-day refresh token here to make the console more comfortable would quietly remove
-     * that bound.
+     * <h3>What this used to say, and why it changed</h3>
+     *
+     * <p>Until 16b-01 this method issued no refresh session at all, and the comment here said a
+     * control-plane token "lives 15 minutes and has no renewal path, which is the only bound on a
+     * leaked SuperAdmin credential while {@code platform_users} still has no second-factor column".
+     * <b>That was true and it is no longer true</b>, so it is replaced rather than left standing: a
+     * stale security comment is worse than none, because the next reader trusts it.
+     *
+     * <p>The half of it that remains true is the important half. {@code platform_users} STILL has no
+     * TOTP column — {@link JwtSigningService#signPlatformToken} hard-codes {@code totp_verified:
+     * false} for exactly that reason — so there is still no second factor behind a SuperAdmin
+     * password.
+     *
+     * <p>What the old comment did not work through is the browser. It was written for 13-05, when
+     * the SuperAdmin had no browser path at all; the platform console did not exist, so
+     * "re-authenticate rather than refresh" cost nothing. Since 16a-01 and 19c it costs a full
+     * password round trip on <b>every reload, every deep link and every new tab</b>, because the
+     * access token is memory-only and there was nothing to rehydrate from. That is not a comfort
+     * problem. A credential a human retypes a dozen times an hour is a credential that ends up in a
+     * password manager's autofill, on a sticky note, or shoulder-surfed.
+     *
+     * <h3>The bound now, stated exactly</h3>
+     *
+     * <p>Not the 30-day refresh the old comment warned about — that number is 1,440× larger than the
+     * one chosen and would genuinely have removed the bound. Instead:
+     *
+     * <ul>
+     *   <li><b>{@code platform-refresh-ttl-seconds} = 1800 (30 minutes)</b>, against the tenant
+     *       path's 7 days. A stolen cookie is worthless half an hour after the session goes idle;</li>
+     *   <li><b>single-use rotation</b> — redeeming a platform refresh token revokes it and issues a
+     *       new one, so a copied cookie and the genuine operator cannot both keep using it;</li>
+     *   <li><b>reuse revokes the family</b> — a replayed token is refused AND every live session for
+     *       that platform user is revoked ({@link #refresh}). The theft therefore costs the
+     *       attacker the session and announces itself to the victim, rather than running quietly
+     *       beside them.</li>
+     * </ul>
+     *
+     * <p>So the exposure on a leaked SuperAdmin credential goes from "15 minutes, nothing to renew
+     * with" to "30 minutes of idle life, renewable only by a party that has not been detected
+     * racing the real operator". That is a deliberate, modest widening, accepted in exchange for a
+     * console a human can actually use, and it is a bridge — <b>TOTP for {@code platform_users} is
+     * the follow-up phase that replaces this reasoning with a real second factor.</b> Until it
+     * lands, rotation-with-reuse-detection is the compensating control, not the TTL alone.
+     *
+     * <p>The cookie is written by {@link io.restaurantos.auth.controller.AuthController} with the
+     * identical properties the tenant path uses — {@code HttpOnly}, {@code SameSite=Strict},
+     * {@code Path=/api/v1/auth}, {@code Secure} per {@code cookieProperties} — differing only in
+     * {@code Max-Age}, which carries the 30 minutes above.
      */
-    private LoginResult platformLoginResult(io.restaurantos.auth.client.PlatformCredentialClient.Verdict verdict) {
+    private LoginResult platformLoginResult(
+            io.restaurantos.auth.client.PlatformCredentialClient.Verdict verdict,
+            String userAgent, String ip) {
         PlatformTokenService.PlatformTokenResult minted =
             platformTokenService.mint(verdict.platformUserId(), verdict.role());
+        String refreshToken = refreshSessionService.issuePlatform(
+            verdict.platformUserId(), platformRefreshTtlSeconds, userAgent, ip);
         LoginResponse body = new LoginResponse(
             minted.token(), minted.expiresIn(), verdict.platformUserId(), null, null,
             minted.tokenType());
-        return new LoginResult(body, null);
+        return new LoginResult(body, refreshToken, platformRefreshTtlSeconds);
     }
 
     /**
@@ -312,15 +379,45 @@ public class AuthServiceImpl implements AuthService {
             LoginResponse body = new LoginResponse(
                 accessToken, jwtProperties.getAccessTtlSeconds(),
                 user.getId(), tenantId, resolved.branchId());
-            return new LoginResult(body, refreshToken);
+            return new LoginResult(body, refreshToken, jwtProperties.getRefreshTtlSeconds());
         } finally {
             tenantContext.clear();
         }
     }
 
+    /**
+     * Exchange a refresh token for a new access token.
+     *
+     * <h3>The one invariant this method exists to hold (16b-01)</h3>
+     *
+     * <p><b>A platform refresh token may mint ONLY a platform token, and a tenant refresh token may
+     * mint ONLY a tenant token.</b> Since 16b-01 both kinds of session live in {@code
+     * refresh_sessions}, so this is the single place where a mix-up could happen and the single
+     * place it is prevented. The branch is on the explicit {@code scope} column and happens BEFORE
+     * anything else reads the session — no permission resolution, no tenant GUC, no claim
+     * construction runs until the kind of session is settled.
+     *
+     * <p>Three independent things have to fail together for a cross-mint:
+     * <ol>
+     *   <li>this branch, which reads a NOT NULL discriminator;</li>
+     *   <li>{@code chk_refresh_sessions_scope} (changeset 084), which makes a row whose {@code scope}
+     *       and {@code tenant_id} disagree unstorable;</li>
+     *   <li>the RLS policy, under which a tenant-context read cannot see a platform row at all
+     *       (its tenant is a sentinel no real tenant holds) and vice versa.</li>
+     * </ol>
+     *
+     * <p>The tenant branch below is byte-for-byte what it was before 16b-01, including the
+     * deliberate dropping of the step-up marker and the absence of rotation. Rotating tenant tokens
+     * is a separate decision with its own multi-tab failure modes; this phase does not take it.
+     */
     @Override
     @Transactional
-    public TokenResponse refresh(String rawRefreshToken) {
+    public RefreshResult refresh(String rawRefreshToken) {
+        RefreshSessionEntity peek = refreshSessionService.findForRedemption(rawRefreshToken)
+            .orElseThrow(() -> new AuthenticationFailedException("Invalid refresh session"));
+        if (RefreshScope.isPlatform(peek)) {
+            return refreshPlatform(rawRefreshToken, peek);
+        }
         try {
             RefreshSessionEntity session = refreshSessionService.validate(rawRefreshToken);
             setTenantGuc(session.getTenantId());
@@ -337,10 +434,89 @@ public class AuthServiceImpl implements AuthService {
                 session.getUserId(), session.getTenantId(), resolved.branchId(),
                 resolved.roles(), resolved.permissions(), resolved.attributes(), null);
             String accessToken = jwtSigningService.signAccessToken(claims);
-            return new TokenResponse(accessToken, jwtProperties.getAccessTtlSeconds());
+            // No rotated token: the tenant path's refresh cookie is unchanged by a refresh, exactly
+            // as it was before 16b-01. AuthController writes no Set-Cookie when this is null.
+            return new RefreshResult(
+                new TokenResponse(accessToken, jwtProperties.getAccessTtlSeconds()), null, 0);
         } finally {
             tenantContext.clear();
         }
+    }
+
+    /**
+     * Redeem a platform refresh token: single use, rotate, and treat a replay as a compromise
+     * (16b-01).
+     *
+     * <h3>Order of operations, and why it is this order</h3>
+     *
+     * <ol>
+     *   <li><b>Expiry first.</b> An expired token is refused as expired. Checked before the
+     *       spend attempt so that a token which simply timed out is never misreported as a replay,
+     *       and never triggers the family revocation below — that alarm has to mean something.</li>
+     *   <li><b>Spend it, atomically.</b> {@code claimForRotation} is a single conditional UPDATE
+     *       ({@code ... WHERE token_hash = ? AND revoked_at IS NULL}). Exactly one caller can win
+     *       it. A read-then-write here would let two concurrent redemptions of the same token both
+     *       succeed, which is the replay this method refuses, passing silently under load.</li>
+     *   <li><b>Losing the race IS the detection.</b> The token exists (step 1 found the row) and was
+     *       already spent, so it has been presented twice. One of the two presenters is not the
+     *       operator. There is no way to tell which, so BOTH lose: every live platform session for
+     *       this user is revoked, and this call is refused.</li>
+     *   <li>Only then mint, and open the successor session.</li>
+     * </ol>
+     *
+     * <p>The refusal is the same generic {@code AuthenticationFailedException} every other failure
+     * uses. The detail — that this was a replay and what it cost — goes to the log, not to the
+     * caller: an attacker holding a stolen cookie learns nothing from the response about whether
+     * they were detected.
+     */
+    private RefreshResult refreshPlatform(String rawRefreshToken, RefreshSessionEntity session) {
+        if (session.getExpiresAt().isBefore(Instant.now())) {
+            throw new AuthenticationFailedException("Invalid refresh session");
+        }
+
+        if (!refreshSessionService.claimForRotation(rawRefreshToken)) {
+            int revoked = refreshSessionService.revokeAllLiveSessions(
+                session.getUserId(), RefreshScope.PLATFORM);
+            log.warn("[platform-refresh] REUSE DETECTED for platform user {} — a refresh token was "
+                + "presented after it had already been redeemed. Revoked {} live platform "
+                + "session(s); the operator and any holder of the copied cookie must both "
+                + "re-authenticate.", session.getUserId(), revoked);
+            throw new AuthenticationFailedException("Invalid refresh session");
+        }
+
+        // Is this operator still allowed to hold a token AT ALL, and as what?
+        //
+        // Asked on every rotation, of the control plane, because a rotating session never logs in
+        // again — so verifyCredential's is_active check, the ONLY thing that has ever ended a
+        // deactivated SuperAdmin's access, would otherwise never run for them again. The role comes
+        // back from platform_db rather than from this row, so a demotion takes effect at the next
+        // rotation instead of being frozen for the life of the session. Fails closed on an outage:
+        // see PlatformCredentialClient.standing for why that is right HERE and wrong on login.
+        //
+        // Note the ordering: the old token has ALREADY been spent above. A refusal here therefore
+        // leaves the session dead rather than replayable, which is the safe direction — a revoked
+        // operator does not get to keep the token they just presented.
+        PlatformCredentialClient.Standing standing =
+            platformCredentialClient.standing(session.getUserId());
+        if (!standing.renewable()) {
+            refreshSessionService.revokeAllLiveSessions(session.getUserId(), RefreshScope.PLATFORM);
+            log.warn("[platform-refresh] renewal refused by the control plane for platform user {}; "
+                + "all live platform sessions revoked", session.getUserId());
+            throw new AuthenticationFailedException("Invalid refresh session");
+        }
+
+        // mint() re-validates the role against the three values chk_platform_users_role permits, so
+        // a role that could not exist in platform_db cannot be renewed into existence here either.
+        PlatformTokenService.PlatformTokenResult minted =
+            platformTokenService.mint(session.getUserId(), standing.role());
+
+        String rotated = refreshSessionService.issuePlatform(
+            session.getUserId(), platformRefreshTtlSeconds, session.getUserAgent(), session.getIp());
+
+        return new RefreshResult(
+            new TokenResponse(minted.token(), minted.expiresIn()),
+            rotated,
+            platformRefreshTtlSeconds);
     }
 
     @Override

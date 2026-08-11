@@ -62,6 +62,18 @@ restaurantos:
     # users also have no refresh path and no TOTP column yet, so the short TTL is the only bound on
     # a leaked control-plane token.
     platform-token-ttl-seconds: ${PLATFORM_TOKEN_TTL_SECONDS:900}
+    # 16b-01: how long a platform (SuperAdmin) REFRESH session lives.
+    #
+    # 30 minutes, against jwt.refresh-ttl-seconds' 7 days for tenant users (604800 in this
+    # deployment, via JWT_REFRESH_TTL_SECONDS). A separate property rather than a reuse of that one,
+    # so handing a control-plane session the tenant lifetime has to be somebody typing a large
+    # number into a field whose name says "platform".
+    #
+    # Read the javadoc on AuthServiceImpl.platformLoginResult before raising this. Until
+    # platform_users has a TOTP column there is no second factor behind a SuperAdmin password, and
+    # this TTL plus single-use rotation IS the bound on a leaked one. Raising it to the tenant value
+    # is the change that comment warns against.
+    platform-refresh-ttl-seconds: ${PLATFORM_REFRESH_TTL_SECONDS:1800}
     # 16a-01: whether the unified email-first login also checks platform (SuperAdmin) credentials.
     #
     # ON here, because with it off the SuperAdmin has no browser login at all — which is the defect

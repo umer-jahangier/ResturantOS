@@ -92,5 +92,11 @@
          059 and 082 give, and verifies the grant landed rather than leaving a permission nobody
          holds. -->
     <include file="db/changelog/v1.0.0/083-pos-tables-admin-permission.xml"/>
+    <!-- 16b-01: the `scope` discriminator that lets a tenant-less platform session live in
+         `refresh_sessions` without a NULL tenant id (which FORCE RLS would make permanently
+         invisible) and without a second SECURITY DEFINER lookup function. Deliberately touches NO
+         function: changeset 052's `auth_lookup_refresh_tenant` keeps working unmodified because the
+         platform sentinel is a real, non-NULL uuid. -->
+    <include file="db/changelog/v1.0.0/084-platform-refresh-scope.xml"/>
 
 </databaseChangeLog>

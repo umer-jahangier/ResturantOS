@@ -131,9 +131,71 @@ public class PlatformCredentialClient {
         }
     }
 
+    /**
+     * May this platform user's session still be renewed, and as what role? (16b-01)
+     *
+     * <h3>Why a platform refresh asks the control plane at all</h3>
+     *
+     * <p>A 16b-01 platform session rotates: while it is being used it never expires and never logs
+     * in again. {@link #verify} — the only thing that has ever checked {@code is_active} — is
+     * therefore never reached again either. Without this call, <b>deactivating a SuperAdmin would
+     * stop ending their access</b>, and a rotating session would outlive the revocation for as long
+     * as its holder kept clicking. That is the one way this phase could have made security worse
+     * instead of better, so it is closed here.
+     *
+     * <h3>This one FAILS CLOSED, unlike {@link #verify}, and the difference is deliberate</h3>
+     *
+     * <p>{@code verify} swallows an outage and returns {@code NO_MATCH} because it sits on the
+     * shared login path: propagating there would turn a control-plane incident into every
+     * restaurant's staff being unable to sign in. <b>Nothing of the sort is true here.</b> This call
+     * happens only on a platform refresh, and the only thing a platform refresh leads to is the
+     * console — which is served by the very service that would be down. So an unreachable peer
+     * yields {@link Standing#NOT_RENEWABLE} and the refresh is refused: the failure mode is "a
+     * SuperAdmin must sign in again once the console is back", not "a possibly-revoked SuperAdmin
+     * keeps rotating while the service that could say otherwise is unreachable".
+     *
+     * @return never null, and never throws
+     */
+    public Standing standing(UUID platformUserId) {
+        if (!enabled) {
+            return Standing.NOT_RENEWABLE;
+        }
+        try {
+            Map<?, ?> response = restClient.get()
+                .uri("/internal/platform/auth/users/{id}/standing", platformUserId)
+                .header(INTERNAL_HEADER, internalSecret)
+                .retrieve()
+                .body(Map.class);
+
+            Object data = response == null ? null : response.get("data");
+            if (!(data instanceof Map<?, ?> map) || !Boolean.TRUE.equals(map.get("renewable"))) {
+                return Standing.NOT_RENEWABLE;
+            }
+            Object role = map.get("role");
+            if (role == null) {
+                // renewable=true with no role is a contract violation, not a renewal. Refuse rather
+                // than mint a token for an unknown authority — the same rule verify() applies to a
+                // match with no identity.
+                log.error("[platform-refresh] standing returned renewable=true with no role; "
+                    + "treating as not renewable");
+                return Standing.NOT_RENEWABLE;
+            }
+            return new Standing(true, role.toString());
+        } catch (RuntimeException e) {
+            log.warn("[platform-refresh] control-plane standing check unavailable ({}); refusing "
+                + "the renewal", e.toString());
+            return Standing.NOT_RENEWABLE;
+        }
+    }
+
     /** {@code platformUserId} and {@code role} are null whenever {@code matched} is false. */
     public record Verdict(boolean matched, UUID platformUserId, String role) {
         public static final Verdict NO_MATCH = new Verdict(false, null, null);
+    }
+
+    /** {@code role} is null whenever {@code renewable} is false. */
+    public record Standing(boolean renewable, String role) {
+        public static final Standing NOT_RENEWABLE = new Standing(false, null);
     }
 
     private record VerifyRequest(String email, String password) {
