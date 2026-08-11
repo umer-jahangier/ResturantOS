@@ -12,9 +12,19 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 /**
- * Sets {@code app.current_tenant_id} (and, when present, {@code app.current_branch_id}) on
- * every JDBC connection checkout when {@link TenantContext} holds a tenant, so PostgreSQL RLS
- * sees both GUCs on the connection Hibernate uses inside {@code @Transactional} scope.
+ * Sets {@code app.current_tenant_id} and {@code app.current_branch_id} on EVERY JDBC connection
+ * checkout — to the values {@link TenantContext} holds, or to empty when it holds none — so
+ * PostgreSQL RLS sees both GUCs on the connection Hibernate uses inside {@code @Transactional}
+ * scope, and so a connection never begins life carrying the previous borrower's tenant.
+ *
+ * <p><b>Why "every" is load-bearing.</b> This class used to hand back the raw connection when the
+ * context was empty. That skipped the write AND the proxy, and only proxied connections are reset
+ * on close — so a checkout made before the tenant was known inherited whatever the last
+ * tenant-bearing borrower had left on that pooled session. Not a missing tenant: someone else's.
+ * A stale GUC does not violate an RLS policy, it redirects it, so PostgreSQL returns the wrong
+ * tenant's rows while being told, correctly, that the caller is that tenant. Checkouts that precede
+ * a tenant are routine — scheduled sweeps, message consumers, actuator, {@code /internal/**}
+ * handlers that resolve their tenant in the controller.
  *
  * <p><b>Why the GUCs are session-scoped, not transaction-local.</b> Spring's transaction manager
  * checks a connection out of the pool <i>before</i> it issues {@code BEGIN}. A GUC written with
@@ -33,9 +43,11 @@ import java.util.UUID;
  * {@code NULLIF(current_setting(..., true), '')}, so an empty value is treated as "no tenant" and
  * fails closed.
  *
- * <p>Branch is set only when the context carries one; when unset, branch-aware RLS policies (which
- * are permissive on an empty branch GUC) fall back to tenant-only scoping — preserving legitimate
- * cross-branch flows (reporting, all-branch views) that run without a branch context.
+ * <p>Branch is written as empty when the context carries none, rather than being left alone.
+ * Branch-aware RLS policies are permissive on an empty branch GUC, so this preserves the
+ * legitimate cross-branch flows (reporting, all-branch views) that run without a branch context —
+ * while removing the case where a tenant-only context inherited an earlier request's BRANCH and
+ * silently scoped a whole-tenant read down to one site.
  */
 public class TenantAwareDataSource extends DelegatingDataSource {
 
@@ -59,17 +71,38 @@ public class TenantAwareDataSource extends DelegatingDataSource {
         return configureTenant(super.getConnection(username, password));
     }
 
+    /**
+     * Writes both GUCs on EVERY checkout — empty when the context has no tenant — and proxies
+     * every connection so close() always resets them.
+     *
+     * <p>This used to return the raw connection untouched when the context was empty, which did two
+     * harmful things at once. It wrote no GUC, and — because only proxied connections are reset on
+     * close — it left whatever the PREVIOUS borrower of that pooled connection had written. So a
+     * checkout made before the tenant is known does not merely lack a tenant: it silently inherits
+     * one. Measured directly: a thread holding tenant 6299cf4e… ran a transaction on a connection
+     * whose {@code app.current_tenant_id} was bebfbe82…, a tenant from earlier in the same JVM.
+     *
+     * <p>RLS cannot catch that, for the same reason it could not catch the {@code TenantContext}
+     * bleed in {@code JwtAuthenticationFilter}: a stale GUC does not violate the policy, it
+     * REDIRECTS it. PostgreSQL returns the other tenant's rows because it was correctly told the
+     * caller was that tenant.
+     *
+     * <p>Checkouts that precede a tenant are ordinary, not exotic — scheduled sweeps, RabbitMQ
+     * consumers before {@code TenantAwareMessageProcessor} sets context, actuator probes,
+     * {@code /internal/**} endpoints that derive their tenant inside the controller, and any
+     * class-level {@code @Transactional} test whose transaction opens before {@code @BeforeEach}.
+     *
+     * <p>Cost: two {@code set_config} calls per checkout instead of zero on the no-tenant path,
+     * issued as one round trip. That is the price of a connection never starting life holding
+     * someone else's tenant.
+     */
     private Connection configureTenant(Connection connection) throws SQLException {
         UUID tenantId = tenantContext.getTenantId().orElse(null);
-        if (tenantId == null) {
-            return connection;
-        }
         UUID branchId = tenantContext.getBranchId().orElse(null);
         try {
-            setConfig(connection, TENANT_GUC, tenantId.toString());
-            if (branchId != null) {
-                setConfig(connection, BRANCH_GUC, branchId.toString());
-            }
+            setGucs(connection,
+                    tenantId == null ? "" : tenantId.toString(),
+                    branchId == null ? "" : branchId.toString());
         } catch (SQLException ex) {
             connection.close();
             throw ex;
@@ -119,21 +152,29 @@ public class TenantAwareDataSource extends DelegatingDataSource {
                 if (delegate.isClosed()) {
                     return;
                 }
-                setConfig(delegate, TENANT_GUC, "");
-                setConfig(delegate, BRANCH_GUC, "");
+                setGucs(delegate, "", "");
             } catch (SQLException ignored) {
                 // fall through to close
             }
         }
     }
 
-    private static void setConfig(Connection connection, String key, String value) throws SQLException {
-        // is_local = false: must survive the BEGIN that Spring issues after checkout. Reset on
-        // close() keeps this from leaking across pooled requests.
+    /**
+     * Both GUCs in one round trip. The keys are compile-time constants, never caller input, so
+     * inlining them costs nothing and lets a single statement carry both values.
+     *
+     * <p>{@code is_local = false}: the value must survive the {@code BEGIN} Spring issues after
+     * checkout. A transaction-local write would be discarded with its own implicit transaction and
+     * every RLS-protected read inside the following transaction would match zero rows. Resetting
+     * on close() is what keeps a session-scoped value from outliving its borrower.
+     */
+    private static void setGucs(Connection connection, String tenantId, String branchId)
+            throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(
-                "SELECT set_config(?, ?, false)")) {
-            ps.setString(1, key);
-            ps.setString(2, value);
+                "SELECT set_config('" + TENANT_GUC + "', ?, false),"
+                        + " set_config('" + BRANCH_GUC + "', ?, false)")) {
+            ps.setString(1, tenantId);
+            ps.setString(2, branchId);
             ps.execute();
         }
     }

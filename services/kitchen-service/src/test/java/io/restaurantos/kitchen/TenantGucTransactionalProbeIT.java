@@ -55,26 +55,32 @@ class TenantGucTransactionalProbeIT extends KitchenTestBase {
                 .as("the ThreadLocal is set — this is what the service sees and why it does not throw")
                 .contains(tenantId);
 
+        // What the GUC actually is here depends on what ran before, and that is worth stating
+        // precisely because it was mis-attributed once already.
+        //
+        // Run alone, it is NULL: the transaction opened with an empty context, so there was no
+        // tenant to write. Run in a suite, it is the PREVIOUS TEST CLASS's tenant — because these
+        // IT classes call tenantContext.set(...) in @BeforeEach and never clear it, and JUnit runs
+        // them all on one thread. The ThreadLocal is still populated when Spring opens this class's
+        // transaction, so TenantAwareDataSource writes that tenant, correctly, to this connection.
+        //
+        // That is a TEST-side ThreadLocal leak, not a DataSource defect. An earlier version of this
+        // assertion blamed TenantAwareDataSource for it and demanded an empty GUC; it failed even
+        // against the fixed DataSource, because the value it was seeing had been set on purpose
+        // from a context that genuinely held a tenant. The separate DataSource defect — a
+        // connection inheriting a GUC nobody in this request set — is proven in shared-lib's
+        // TenantGucNeverInheritedIT, which does go red when that fix is reverted.
+        //
+        // The invariant that holds either way, and the one that matters here: the tenant this test
+        // set in @BeforeEach never reaches the transaction Spring already opened.
         assertThat(guc)
                 .as("""
-                    KNOWN DEFECT, characterised. The connection carries GUC '%s' while the thread \
-                    carries tenant %s. Spring opened this transaction before @BeforeEach ran, so \
-                    TenantAwareDataSource had nothing to write. Under the superuser harness this \
-                    was invisible — RLS did not apply — which is why seven IT classes here are \
-                    written this way. Under a NOSUPERUSER role every write in them is refused and \
-                    every read returns nothing.
-
-                    When this is fixed — by setting the tenant before the transaction opens \
-                    (@BeforeTransaction), or by dropping class-level @Transactional in favour of \
-                    per-call transactions — this assertion flips. Invert it then.""",
-                        guc, tenantId)
-                // "Not this tenant" rather than "empty", because it is not reliably empty. Run
-                // alone the GUC is NULL; run in a suite it is a PREVIOUS test's tenant. That is
-                // the same mechanism a second time: TenantAwareDataSource only proxies — and so
-                // only RESETS on close — a connection it configured, so a checkout made with an
-                // empty context both writes no GUC and leaves whatever the last tenant-bearing
-                // checkout wrote. Asserting isNullOrEmpty() here passed alone and failed in the
-                // suite; this assertion holds either way, which is the property that matters.
+                    The tenant set in @BeforeEach (%s) reached an already-open transaction, whose \
+                    connection carries '%s'. That means the ordering this class characterises has \
+                    changed — a class-level @Transactional test now sees its own tenant. Good news: \
+                    invert this assertion, drop the KNOWN DEFECT framing, and the seven kitchen IT \
+                    classes can keep their class-level @Transactional through a harness \
+                    conversion.""", tenantId, guc)
                 .isNotEqualTo(tenantId.toString());
     }
 }
