@@ -47,7 +47,7 @@ The renumbering exists because research found defects that must be fixed BEFORE 
 feature work that was previously queued — most importantly that no discounted order has
 ever posted to the ledger, and that the audit log is empty.
 
-### ⚠ Phase-number collision, resolved 2026-08-07 — rename PENDING
+### ⚠ Phase-number collision, resolved 2026-08-07 — rename DONE 2026-08-11
 
 I created six phase directories (`27`…`32`) for the production push **without checking that the
 roadmap already owned those numbers**. Second numbering collision I have caused; the first was
@@ -60,21 +60,26 @@ worth more than the numbering fix: it means the roadmap was already asking for t
 | Directory | Collided with | Resolution |
 |---|---|---|
 | `28-station-pos-profiles` | 28 Multi-POS & KDS/BDS Routing | **Same phase** — keeps 28, scope merged |
-| `30-biometric-terminals` | 30 Business-Model Adaptivity | **Is roadmap 25** (Biometric Attendance Repair) — renumber to 25 |
-| `27-visual-design-language` | 27 FBR Digital Invoicing | → **34** |
-| `29-hr-usability` | 29 Production Hardening | → **35** |
-| `31-purchasing-inventory-wiring` | 31 Tenant Onboarding | → **36** |
-| `32-finance-orders-integration` | 32 Subscription Metering | → **37** |
+| `25-biometric-terminals` | 30 Business-Model Adaptivity | **Is roadmap 25** (Biometric Attendance Repair) — renumber to 25 |
+| `34-visual-design-language` | 27 FBR Digital Invoicing | → **34** |
+| `35-hr-usability` | 29 Production Hardening | → **35** |
+| `36-purchasing-inventory-wiring` | 31 Tenant Onboarding | → **36** |
+| `37-finance-orders-integration` | 32 Subscription Metering | → **37** |
 
-The directory rename is deliberately deferred: four planners are writing into those directories
-right now, and renaming underneath a running agent destroys its work. It is a mechanical
-`git mv` plus a frontmatter number once they land, and no plan content changes.
+The rename landed 2026-08-11, once all six planners had reported — deferring it was the point,
+because renaming a directory underneath a running planner destroys its work. It was mechanical:
+`git mv` on the directory and on each `NN-*.md` inside, then a reference rewrite across all 64
+tracked planning documents covering plan filenames, directory paths, `phase:` frontmatter and
+`D-NN-NN` decision ids. **No plan content changed.**
+
+Directory `30` is consequently free, and belongs to Phase 30 Business-Model Adaptivity, which is
+what the roadmap always meant by it.
 
 **Do not add a phase number without grepping this file first.** `gsd-tools query init.plan-phase`
 resolves on the DIRECTORY, not the roadmap entry, so a collision is silent at creation time and
 only surfaces when someone tries to plan the phase that lost.
 
-#### Phase 36 — Purchasing & Inventory Wiring Repair *(directory `31-purchasing-inventory-wiring`, rename deferred per the table above)*
+#### Phase 36 — Purchasing & Inventory Wiring Repair 
 
 **Goal:** An owner completes vendor → purchase order → approve → receive → invoice → three-way match
 → payment entirely in the UI, on data whose ingredient references are real and whose unit
@@ -84,16 +89,16 @@ than widened.
 **Plans:** 8 plans, 5 waves
 
 Plans:
-- [ ] 31-01-PLAN.md — drive the whole procure-to-pay chain live and record where it actually breaks *(wave 1)*
-- [ ] 31-02-PLAN.md — which permission purchasing demands, who should hold it, and the repair at its cause *(wave 2)*
-- [ ] 31-03-PLAN.md — approval limits set in the product and gating approval *(wave 2, independently shippable)*
-- [ ] 31-04-PLAN.md — a PO line must name a real ingredient in a unit inventory can convert *(wave 2)*
-- [ ] 31-05-PLAN.md — inventory master data: complete CRUD, asserted by a coverage matrix *(wave 2, independently shippable)*
-- [ ] 31-06-PLAN.md — one conversion resolver, hand-checkable, and a receipt that refuses instead of guessing *(wave 3)*
-- [ ] 31-07-PLAN.md — the seed creates purchasing data; `CREDENTIALS.md` tells the truth *(wave 4)*
-- [ ] 31-08-PLAN.md — an owner completes the chain in the browser; phase acceptance *(wave 5)*
+- [ ] 36-01-PLAN.md — drive the whole procure-to-pay chain live and record where it actually breaks *(wave 1)*
+- [ ] 36-02-PLAN.md — which permission purchasing demands, who should hold it, and the repair at its cause *(wave 2)*
+- [ ] 36-03-PLAN.md — approval limits set in the product and gating approval *(wave 2, independently shippable)*
+- [ ] 36-04-PLAN.md — a PO line must name a real ingredient in a unit inventory can convert *(wave 2)*
+- [ ] 36-05-PLAN.md — inventory master data: complete CRUD, asserted by a coverage matrix *(wave 2, independently shippable)*
+- [ ] 36-06-PLAN.md — one conversion resolver, hand-checkable, and a receipt that refuses instead of guessing *(wave 3)*
+- [ ] 36-07-PLAN.md — the seed creates purchasing data; `CREDENTIALS.md` tells the truth *(wave 4)*
+- [ ] 36-08-PLAN.md — an owner completes the chain in the browser; phase acceptance *(wave 5)*
 
-#### Phase 37 — Finance ↔ Orders Integration, Transactions & Guide *(directory `32-finance-orders-integration`, rename deferred per the table above)*
+#### Phase 37 — Finance ↔ Orders Integration, Transactions & Guide 
 
 **Goal:** An owner opens Finance and sees today's takings by tender, reconciled against what each till
 counted, with every variance shown as a variance; opens any transaction to the order behind it and the
@@ -105,20 +110,20 @@ makes is bound to a live test.
 **Plans:** 14 plans, 6 waves
 
 Plans:
-- [ ] 32-01-PLAN.md — one display authority for paisa, pinned by vectors both stacks read *(wave 1, independently shippable)*
-- [ ] 32-02-PLAN.md — the verified-claim registry and its two-way gate *(wave 1, independently shippable)*
-- [ ] 32-03-PLAN.md — one business date, honoured by every consumer; the 73 misdated facts realigned *(wave 1, closes 22b D-7)*
-- [ ] 32-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)*
-- [ ] 32-05-PLAN.md — the queue no code declares, retired; a drift check that would have caught it *(wave 2, closes 22b D-9, independently shippable)*
-- [ ] 32-06-PLAN.md — tender facts: the missing half of daily takings *(wave 2)*
-- [ ] 32-07-PLAN.md — cost of sales attributed to the line that consumed it *(wave 2, closes 22b D-8 data half)*
-- [ ] 32-08-PLAN.md — the transaction register, at money-event grain, bounded and indexed *(wave 2)*
-- [ ] 32-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)*
-- [ ] 32-10-PLAN.md — cost and margin reported, with a check a mirrored error cannot pass *(wave 3)*
-- [ ] 32-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
-- [ ] 32-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)*
-- [ ] 32-13-PLAN.md — the Guide tab, rendered from the registry; an unproven sentence cannot be printed *(wave 5)*
-- [ ] 32-14-PLAN.md — inode-identity freshness gate and the six-item phase acceptance *(wave 6)*
+- [ ] 37-01-PLAN.md — one display authority for paisa, pinned by vectors both stacks read *(wave 1, independently shippable)*
+- [ ] 37-02-PLAN.md — the verified-claim registry and its two-way gate *(wave 1, independently shippable)*
+- [ ] 37-03-PLAN.md — one business date, honoured by every consumer; the 73 misdated facts realigned *(wave 1, closes 22b D-7)*
+- [ ] 37-04-PLAN.md — a journal entry names its order, and an order names every entry it produced *(wave 1)*
+- [ ] 37-05-PLAN.md — the queue no code declares, retired; a drift check that would have caught it *(wave 2, closes 22b D-9, independently shippable)*
+- [ ] 37-06-PLAN.md — tender facts: the missing half of daily takings *(wave 2)*
+- [ ] 37-07-PLAN.md — cost of sales attributed to the line that consumed it *(wave 2, closes 22b D-8 data half)*
+- [ ] 37-08-PLAN.md — the transaction register, at money-event grain, bounded and indexed *(wave 2)*
+- [ ] 37-09-PLAN.md — daily takings, reconciled, honest about what it cannot compute *(wave 3)*
+- [ ] 37-10-PLAN.md — cost and margin reported, with a check a mirrored error cannot pass *(wave 3)*
+- [ ] 37-11-PLAN.md — the Transactions tab, and the round trip to the ledger and back *(wave 3)*
+- [ ] 37-12-PLAN.md — the Takings landing screen; Finance stops opening on a chart of accounts *(wave 4)*
+- [ ] 37-13-PLAN.md — the Guide tab, rendered from the registry; an unproven sentence cannot be printed *(wave 5)*
+- [ ] 37-14-PLAN.md — inode-identity freshness gate and the six-item phase acceptance *(wave 6)*
 
 ### Execution record — what has actually landed (2026-08-07)
 
@@ -203,7 +208,7 @@ Moved to the end at the user's direction so nothing in the critical path waits o
 Each is built and tested against simulators/protocol fixtures first, so the user-supplied
 item is needed only for final sign-off, not to start:
 
-- [ ] **Phase 30: Biometric Terminals (ZKTeco)** - originally estimated 4d as "Biometric Attendance Repair"; **~9-11d as planned** (see the effort note under the plan list). ADMS/iClock ingest already largely exists; the remaining work is testable by crafting the raw HTTP a terminal sends. **U5** (a ZKTeco terminal) needed only to confirm firmware quirks. *(Phase directory: `30-biometric-terminals`. This entry was numbered 25 while the directory was numbered 30; renumbered here to match.)*
+- [ ] **Phase 30: Biometric Terminals (ZKTeco)** - originally estimated 4d as "Biometric Attendance Repair"; **~9-11d as planned** (see the effort note under the plan list). ADMS/iClock ingest already largely exists; the remaining work is testable by crafting the raw HTTP a terminal sends. **U5** (a ZKTeco terminal) needed only to confirm firmware quirks. *(Phase directory: `25-biometric-terminals`. This entry was numbered 25 while the directory was numbered 30; renumbered here to match.)*
 
   **Goal:** A restaurant owner registers a biometric terminal from the product, the terminal pushes
   attendance that lands on the right employee, an unattributed punch is retained and resolvable
@@ -213,19 +218,19 @@ item is needed only for final sign-off, not to start:
   **Plans:** 13 plans, 8 waves
 
   Plans:
-  - [ ] 30-01-PLAN.md — the executable audit: what works, what is decorative, what is missing *(wave 1)*
-  - [ ] 30-02-PLAN.md — the ADMS device simulator and the phase's shell harness *(wave 1)*
-  - [ ] 30-03-PLAN.md — the device columns a managed, observable, per-device-configured terminal needs *(wave 1)*
-  - [ ] 30-04-PLAN.md — device-auth refusals answer 401, and the log flood they caused is bounded *(wave 2)*
-  - [ ] 30-05-PLAN.md — read the bytes whatever the header says; a parser that reports outcomes *(wave 2)*
-  - [ ] 30-06-PLAN.md — three destinations and no fourth: quarantine reasons, deduplication, dismissal *(wave 3)*
-  - [ ] 30-07-PLAN.md — per-device handshake, a durable command queue, and a closed command set *(wave 3)*
-  - [ ] 30-08-PLAN.md — how a stock terminal authenticates; the honest feature gate *(wave 3, blocking decision)*
-  - [ ] 30-09-PLAN.md — the full device lifecycle API, and branch isolation this surface never had *(wave 4)*
-  - [ ] 30-10-PLAN.md — device health, the silence sweep and clock-drift measurement *(wave 5)*
-  - [ ] 30-11-PLAN.md — the terminals screen, and silence that travels with the navigation *(wave 6)*
-  - [ ] 30-12-PLAN.md — the mapping screen and the unattributed-punch queue *(wave 7)*
-  - [ ] 30-13-PLAN.md — the live proof and the U5 hardware sign-off list *(wave 8)*
+  - [ ] 25-01-PLAN.md — the executable audit: what works, what is decorative, what is missing *(wave 1)*
+  - [ ] 25-02-PLAN.md — the ADMS device simulator and the phase's shell harness *(wave 1)*
+  - [ ] 25-03-PLAN.md — the device columns a managed, observable, per-device-configured terminal needs *(wave 1)*
+  - [ ] 25-04-PLAN.md — device-auth refusals answer 401, and the log flood they caused is bounded *(wave 2)*
+  - [ ] 25-05-PLAN.md — read the bytes whatever the header says; a parser that reports outcomes *(wave 2)*
+  - [ ] 25-06-PLAN.md — three destinations and no fourth: quarantine reasons, deduplication, dismissal *(wave 3)*
+  - [ ] 25-07-PLAN.md — per-device handshake, a durable command queue, and a closed command set *(wave 3)*
+  - [ ] 25-08-PLAN.md — how a stock terminal authenticates; the honest feature gate *(wave 3, blocking decision)*
+  - [ ] 25-09-PLAN.md — the full device lifecycle API, and branch isolation this surface never had *(wave 4)*
+  - [ ] 25-10-PLAN.md — device health, the silence sweep and clock-drift measurement *(wave 5)*
+  - [ ] 25-11-PLAN.md — the terminals screen, and silence that travels with the navigation *(wave 6)*
+  - [ ] 25-12-PLAN.md — the mapping screen and the unattributed-punch queue *(wave 7)*
+  - [ ] 25-13-PLAN.md — the live proof and the U5 hardware sign-off list *(wave 8)*
 
   **Effort note:** research's 4-day estimate covered the defect fixes to the existing ADMS adapter and
   nothing else. 30-CONTEXT's definition of done is materially broader — a management UI, a health and

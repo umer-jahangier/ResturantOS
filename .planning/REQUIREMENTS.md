@@ -168,7 +168,7 @@ until it is addressed no physical terminal can authenticate at all.
 Added 2026-08-11 during Phase 31 planning, from hands-on user testing of vendor invoices, stock and
 ingredients plus the measured findings in `.planning/phases/22-financial-wiring/22-01-SUMMARY.md`
 (defects D-2 and D-5) and the purchasing gap recorded in `scripts/CREDENTIALS.md`. These six are the
-locked decisions D-31-01…06 stated as requirements.
+locked decisions D-36-01…06 stated as requirements.
 
 - [ ] **PIW-01**: An owner completes vendor → purchase order → approve → receive → invoice → three-way match → payment entirely in the UI, proven by driving the chain against the live stack rather than by reading code
 - [ ] **PIW-02**: Purchasing is reachable by the role that owns procurement, under a permission model that was examined and repaired at its cause — never widened to make a call succeed
@@ -232,15 +232,15 @@ locked decisions D-31-01…06 stated as requirements.
 - [x] **FIN-09**: The auto-seed-on-miss fallback in getPeriodStatus is config-gated (finance.period.auto-seed-on-miss, default on in dev/staging, off in prod) and emits a WARN audit log when it seeds
 - [x] **FIN-10**: The Finance → Periods page provides a calendar-based "Provision Periods" UI, gated behind finance.period.open, that lets a permissioned user browse to any fiscal year (past, current, or future — computed dynamically from the existing Jul-Jun formula, never a hardcoded literal), preview the 12 monthly periods that will be created, and confirm provisioning via the FIN-08 endpoint
 
-*Added 2026-08-11 for Phase 32 (Finance ↔ Orders Integration, Transactions & Guide), from `32-CONTEXT.md`
-decisions D-32-01 … D-32-05 and the three defects phase 22b reported but could not fix in its lane:*
+*Added 2026-08-11 for Phase 32 (Finance ↔ Orders Integration, Transactions & Guide), from `37-CONTEXT.md`
+decisions D-37-01 … D-37-05 and the three defects phase 22b reported but could not fix in its lane:*
 
-- [ ] **FIN-11**: A Transactions surface lists every money event — order, payment, refund, void — filterable by date range, branch, terminal, cashier, tender and status, and traceable in both directions: a row opens to its order **and** to the journal entries it produced, and each entry names its source order back (D-32-01)
-- [ ] **FIN-12**: Daily takings is the finance landing screen — gross sales, discounts, comps, tax, service charge and net, split by tender, set against what each till counted, with every cash variance shown per till as a variance and never absorbed into another figure (D-32-02)
-- [ ] **FIN-13**: A Guide tab explains every finance tab in plain language — what it is, when you use it, what a typical entry looks like, what it affects downstream — and every behavioural claim it makes is bound to a live, enabled test by a two-way build gate, so prose and behaviour cannot drift apart in either direction (D-32-03)
+- [ ] **FIN-11**: A Transactions surface lists every money event — order, payment, refund, void — filterable by date range, branch, terminal, cashier, tender and status, and traceable in both directions: a row opens to its order **and** to the journal entries it produced, and each entry names its source order back (D-37-01)
+- [ ] **FIN-12**: Daily takings is the finance landing screen — gross sales, discounts, comps, tax, service charge and net, split by tender, set against what each till counted, with every cash variance shown per till as a variance and never absorbed into another figure (D-37-02)
+- [ ] **FIN-13**: A Guide tab explains every finance tab in plain language — what it is, when you use it, what a typical entry looks like, what it affects downstream — and every behavioural claim it makes is bound to a live, enabled test by a two-way build gate, so prose and behaviour cannot drift apart in either direction (D-37-03)
 - [ ] **FIN-14**: One display authority converts BIGINT paisa to a string, shared by the JVM and the browser and pinned by a golden-vector file both read — resolving the existing disagreement between `MoneyUtils.formatPkr` (whole rupees) and the frontend's two-decimal renderers
 - [ ] **FIN-15**: Every durable bound queue on the broker is declared by code or by the definitions file, or listed as an exception with a written reason; `finance.invoice-matched.queue` — bound, durable, growing and declared nowhere — is retired with its contents captured and the decision recorded (22b D-9)
-- [ ] **FIN-16**: No finance surface renders a figure the system did not compute. An uncomputable number states that it is uncomputable and names the reason, following the SuperAdmin console's "Not metered" precedent; a failed request never renders as an empty day (D-32-05)
+- [ ] **FIN-16**: No finance surface renders a figure the system did not compute. An uncomputable number states that it is uncomputable and names the reason, following the SuperAdmin console's "Not metered" precedent; a failed request never renders as an empty day (D-37-05)
 
 ### HR & Payroll (HR)
 
