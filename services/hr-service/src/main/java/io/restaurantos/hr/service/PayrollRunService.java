@@ -7,6 +7,7 @@ import io.restaurantos.hr.entity.PayrollRunEntity.Status;
 import io.restaurantos.hr.entity.PayslipEntity;
 import io.restaurantos.hr.exception.TotpRequiredException;
 import io.restaurantos.hr.payroll.tax.EobiCalculator;
+import io.restaurantos.hr.payroll.tax.FiscalYear;
 import io.restaurantos.hr.payroll.tax.SlabTaxCalculator;
 import io.restaurantos.hr.payroll.tax.TaxConfigService;
 import io.restaurantos.hr.payroll.tax.TaxConfigService.ActiveTaxConfig;
@@ -113,7 +114,12 @@ public class PayrollRunService {
                     "This run was created without a branch and cannot be calculated."
                             + " Create a new run while signed in to the branch you are paying.");
         }
-        int fiscalYear = run.getPeriodMonth() >= 7 ? run.getPeriodYear() + 1 : run.getPeriodYear();
+        // FiscalYear.forPeriod, not the ternary that was here. Identical arithmetic — asserted for
+        // every month of seven years in FiscalYearTest — but the tax-configuration screen now asks
+        // the same question, and two implementations of a statutory convention drift into a screen
+        // that configures FY2026 while payroll refuses because FY2027 is missing, with both halves
+        // apparently working.
+        int fiscalYear = FiscalYear.forPeriod(run.getPeriodMonth(), run.getPeriodYear());
         ActiveTaxConfig cfg = taxConfigService.getActiveConfig(fiscalYear);
         long eobiEmployee = eobiCalculator.employeeContribution(cfg.eobiWageBasePaisa(), cfg.eobiEmployeeRatePct());
 
