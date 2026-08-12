@@ -132,6 +132,29 @@ describe("the renderer", () => {
     }
   });
 
+  /**
+   * F6. This renderer produces the paper the guest actually walks out with — the browser bill is
+   * the fallback path. It printed the tax bucket's LEDGER code beside the rate:
+   * `Sales Tax (16.00%) [GST-16]`, and in production `SR-STD-17 (17.00%) [SR-STD-17]`, which at
+   * 42 columns wraps the code onto a second line of the roll. A rate code is an accountant's
+   * classification; the phrase and the percentage are what a guest can check.
+   */
+  it("prints the tax phrase and its percentage, and never the ledger rate code", () => {
+    const doc = receipt();
+    const decoded = render(doc, PRINTER_42);
+    const paper = decoded.lines.map((l) => l.text).join("\n");
+
+    expect(paper).toContain("Sales Tax (16.00%)");
+    expect(paper).toContain("ICT Services (5.00%)");
+
+    const codes = doc.taxBreakdown.map((t) => t.rateCode);
+    expect(codes.filter((c) => c !== null)).toHaveLength(doc.taxBreakdown.length);
+    for (const code of codes) {
+      expect(paper, `the rate code ${code} was printed on the roll`).not.toContain(code!);
+    }
+    expect(paper).not.toMatch(/\[[A-Z0-9][A-Z0-9_\-.]*\]/);
+  });
+
   // ── 5. Name and amount on one line; a long name wraps and the amount stays put ──────────────
   it("keeps an amount on the same line as its item, and on the FIRST line when the name wraps", () => {
     const shortName = render(receipt(), PRINTER_42);

@@ -261,9 +261,49 @@ public class ReceiptDocumentAssembler {
     }
 
     /**
-     * Tax grouped by the menu item's own rate code, with any residue attributed to an OTHER line so
-     * the breakdown ALWAYS sums to the order's tax exactly. A breakdown that does not add up to the
-     * printed tax total is the same defect class as a total that does not add up to the lines.
+     * What a guest's bill calls tax, on every breakdown line.
+     *
+     * <p>NOT the rate code. {@code SR-STD-17} is a LEDGER classification: it means something to an
+     * accountant reconciling a return and nothing at all to the person holding the paper. This
+     * method used to hand the code straight through as the label, and a real bill printed
+     * {@code SR-STD-17 (17.00%) [SR-STD-17]} — the internal code twice on one line, wrapping onto
+     * a second line of an 80 mm roll. The {@code "OTHER"} → {@code "Tax"} mapping that was here
+     * rescued only the UNCLASSIFIED case, which is why the defect was read as an {@code [OTHER]}
+     * problem when every classified item was worse.
+     *
+     * <p>A per-code display name — the golden fixture's "ICT Services" — is a TENANT setting, and
+     * the screen that would hold it does not exist yet (no sales-tax configuration exists anywhere
+     * in the product). Until it does, one honest phrase on every line beats reaching for the ledger
+     * code, and the PERCENTAGE is what distinguishes one rate from another for the person paying.
+     */
+    private static final String GUEST_TAX_LABEL = "Sales Tax";
+
+    /**
+     * The bucket a taxed line lands in when its menu item carries no rate code of its own.
+     *
+     * <p>A sentinel this assembler invents, never a code a tenant typed and never a tax anyone
+     * charges. It stays on the document as the bucket's machine identity and is never printed.
+     */
+    private static final String UNCLASSIFIED_RATE_CODE = "OTHER";
+
+    /**
+     * A breakdown bucket: one rate code AT one rate.
+     *
+     * <p>Keyed on both halves deliberately. Keyed on the code alone, two items sharing a code but
+     * carrying different percentages — trivially reachable, since the menu form lets a rate be
+     * edited without touching the code, and universally so for the unclassified {@code OTHER}
+     * bucket — collapsed into one line that stated the FIRST rate against the SUM of both. That
+     * prints a percentage which produces no amount on the bill. It was survivable only while the
+     * line looked odd enough to distrust; once the label became a plain phrase it would have read
+     * as authoritative, so the two changes belong together.
+     */
+    private record TaxBucket(String rateCode, String ratePercent) {}
+
+    /**
+     * Tax grouped by the menu item's own rate code and rate, with any residue attributed to an
+     * unclassified line so the breakdown ALWAYS sums to the order's tax exactly. A breakdown that
+     * does not add up to the printed tax total is the same defect class as a total that does not
+     * add up to the lines.
      *
      * <p>Looked up one item at a time through the tenant-predicated finder rather than
      * {@code findAllById}: orders have single-digit line counts, and 26-CONTEXT wants the tenant in
@@ -272,8 +312,7 @@ public class ReceiptDocumentAssembler {
     private List<PrintDocument.TaxLine> buildTaxBreakdown(List<OrderDto.OrderItemDto> billable,
                                                           long orderTaxPaisa,
                                                           UUID tenantId) {
-        Map<String, long[]> byCode = new LinkedHashMap<>();
-        Map<String, String> rateByCode = new LinkedHashMap<>();
+        Map<TaxBucket, long[]> byBucket = new LinkedHashMap<>();
 
         for (OrderDto.OrderItemDto item : billable) {
             if (item.taxPaisa() == 0L) {
@@ -282,26 +321,28 @@ public class ReceiptDocumentAssembler {
             Optional<MenuItem> menuItem =
                     menuItemRepository.findByIdAndTenantId(item.menuItemId(), tenantId);
             String code = menuItem.map(MenuItem::getTaxRateCode).filter(c -> c != null && !c.isBlank())
-                    .orElse("OTHER");
+                    .orElse(UNCLASSIFIED_RATE_CODE);
             String rate = menuItem.map(m -> m.getTaxRatePct() == null ? null : m.getTaxRatePct().toPlainString())
                     .orElse(null);
-            byCode.computeIfAbsent(code, k -> new long[1])[0] += item.taxPaisa();
-            rateByCode.putIfAbsent(code, rate);
+            byBucket.computeIfAbsent(new TaxBucket(code, rate), k -> new long[1])[0] += item.taxPaisa();
         }
 
-        long accounted = byCode.values().stream().mapToLong(v -> v[0]).sum();
+        long accounted = byBucket.values().stream().mapToLong(v -> v[0]).sum();
         if (accounted != orderTaxPaisa) {
             // Cannot happen while assertMoneyIdentities holds, but if a future change makes the
             // order's tax and its lines' tax diverge, the paper stays internally consistent and
-            // the difference is visible rather than silently absorbed.
-            byCode.computeIfAbsent("OTHER", k -> new long[1])[0] += (orderTaxPaisa - accounted);
+            // the difference is visible rather than silently absorbed. The residue gets its OWN
+            // bucket carrying no percentage: it is unattributable by definition, so it must not
+            // borrow a rate from a line it did not come from.
+            byBucket.computeIfAbsent(new TaxBucket(UNCLASSIFIED_RATE_CODE, null), k -> new long[1])[0]
+                    += (orderTaxPaisa - accounted);
         }
 
         List<PrintDocument.TaxLine> out = new ArrayList<>();
-        byCode.forEach((code, sum) -> out.add(new PrintDocument.TaxLine(
-                code,
-                "OTHER".equals(code) ? "Tax" : code,
-                rateByCode.get(code),
+        byBucket.forEach((bucket, sum) -> out.add(new PrintDocument.TaxLine(
+                bucket.rateCode(),
+                GUEST_TAX_LABEL,
+                bucket.ratePercent(),
                 ReceiptAmount.of(sum[0]))));
         return out;
     }

@@ -97,14 +97,61 @@ describe("ReceiptDocumentView", () => {
     expect(root).toHaveTextContent("Rs 2,843.47"); // grand total
   });
 
-  it("renders both tax rate codes as separate rows with their labels and rates", () => {
-    render(<ReceiptDocumentView document={docFrom()} />);
+  /**
+   * F6. A guest holds this paper, and a rate code is a LEDGER classification — it identifies a
+   * bucket for the accountant reconciling a return and means nothing at the counter. The live bill
+   * printed `SR-STD-17 (17.00%) [SR-STD-17]`: the internal code twice on one line, wrapping onto
+   * two lines of an 80 mm roll. This assertion previously demanded that exact shape, which is how
+   * it stayed green over a customer-facing defect for a whole phase.
+   *
+   * <p>The document still CARRIES the code — it is the identity of the bucket, and a stored print
+   * job is what a support engineer reads six weeks later. The paper simply does not say it.
+   */
+  it("prints each tax rate as a phrase and a percentage, and never the ledger rate code", () => {
+    const doc = docFrom();
+    render(<ReceiptDocumentView document={doc} />);
     const root = screen.getByTestId("receipt-root");
 
-    expect(root).toHaveTextContent("Sales Tax (16.00%) [GST-16]");
+    expect(root).toHaveTextContent("Sales Tax (16.00%)");
     expect(root).toHaveTextContent("Rs 334.40");
-    expect(root).toHaveTextContent("ICT Services (5.00%) [ICT-05]");
+    expect(root).toHaveTextContent("ICT Services (5.00%)");
     expect(root).toHaveTextContent("Rs 11.35");
+
+    // Text as PAINTED, not props. The fixture must genuinely carry codes, or this proves nothing.
+    const paper = root.textContent ?? "";
+    const codes = doc.taxBreakdown.map((t) => t.rateCode);
+    expect(codes.filter(Boolean)).toHaveLength(doc.taxBreakdown.length);
+    for (const code of codes) {
+      expect(paper, `the rate code ${code} reached the guest's paper`).not.toContain(code!);
+    }
+    // Named codes are the live defect; the bracket catches a future one this test cannot name.
+    expect(paper).not.toMatch(/\[[A-Z0-9][A-Z0-9_\-.]*\]/);
+  });
+
+  /**
+   * A breakdown line with no label and no percentage still has to say what the money IS. Rendering
+   * the label alone would print a bare amount against an empty phrase — a number on a bill with
+   * nothing naming it.
+   */
+  it("falls back to the word Tax when a breakdown line carries neither label nor rate", () => {
+    render(
+      <ReceiptDocumentView
+        document={docFrom({
+          taxBreakdown: [
+            {
+              rateCode: null,
+              label: null,
+              ratePercent: null,
+              amount: { paisa: 34575, formatted: "Rs 345.75" },
+            },
+          ],
+        })}
+      />,
+    );
+    const rows = Array.from(
+      screen.getByTestId("receipt-root").querySelectorAll(".receipt-row"),
+    ).map((r) => r.querySelector(".receipt-row-label")?.textContent?.trim());
+    expect(rows.filter((r) => r === "Tax")).toHaveLength(2); // the breakdown line and the total
   });
 
   it("prints tendered and change for a cash tender, and neither for a card", () => {

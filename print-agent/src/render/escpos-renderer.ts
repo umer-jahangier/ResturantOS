@@ -345,10 +345,19 @@ function renderKitchenTicket(
 const SIZE_NORMAL = 1;
 const SIZE_DOUBLE = 2;
 
-function taxLabel(tax: { label: string | null; ratePercent: string | null; rateCode: string | null }): string {
+/**
+ * The phrase and the percentage a guest can check — and nothing else.
+ *
+ * <p>F6: this used to append the bucket's `rateCode` in brackets, and the paper read
+ * `SR-STD-17 (17.00%) [SR-STD-17]` — a ledger classification, printed twice, wrapping onto a
+ * second line at 42 columns. The parameter type is narrowed to the two fields that belong on
+ * paper on purpose: the document still CARRIES `rateCode` (it is the bucket's machine identity,
+ * and a stored print job is what a support engineer reads six weeks later), and a narrow
+ * parameter is what stops a later edit from reaching for it again.
+ */
+function taxLabel(tax: { label: string | null; ratePercent: string | null }): string {
   const parts = [tax.label ?? "Tax"];
   if (tax.ratePercent !== null) parts.push(`(${tax.ratePercent}%)`);
-  if (tax.rateCode !== null) parts.push(`[${tax.rateCode}]`);
   return parts.join(" ");
 }
 

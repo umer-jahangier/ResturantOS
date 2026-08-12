@@ -103,12 +103,34 @@ export function ReceiptDocumentView({ document }: { document: PrintDocument }) {
             <span className="receipt-amount">{totals.serviceCharge.formatted}</span>
           </div>
 
-          {document.taxBreakdown.map((tax) => (
-            <div className="receipt-row" key={tax.rateCode ?? tax.label ?? "tax"}>
+          {/*
+            The phrase and the percentage. NOT `tax.rateCode` — F6.
+
+            A rate code is a LEDGER classification: it tells an accountant which bucket a line
+            reconciles into and means nothing to the person holding the paper. This row used to
+            append it, and the live bill read `SR-STD-17 (17.00%) [SR-STD-17]` — the internal code
+            twice on one line, wrapping onto a second line of an 80 mm roll.
+
+            The document still carries the code, deliberately: it is the identity of the bucket and
+            a stored print job is what a support engineer reads six weeks later. It is simply not a
+            word this document says out loud, here or in the print agent's ESC/POS renderer, which
+            is the path that produces the paper the guest actually walks out with.
+
+            The key is composite because a bucket is (code, rate) server-side: one code can carry
+            two rates across a menu edit, and `rateCode` alone would collide.
+          */}
+          {document.taxBreakdown.map((tax, index) => (
+            <div
+              className="receipt-row"
+              key={`${tax.rateCode ?? "tax"}-${tax.ratePercent ?? ""}-${index}`}
+            >
               <span className="receipt-row-label">
-                {tax.label}
+                {/*
+                  A label the server left null still has to say what the money IS — a bare amount
+                  against an empty phrase is a number on a bill with nothing naming it.
+                */}
+                {tax.label ?? "Tax"}
                 {tax.ratePercent ? ` (${tax.ratePercent}%)` : ""}
-                {tax.rateCode ? ` [${tax.rateCode}]` : ""}
               </span>
               <span className="receipt-amount">{tax.amount.formatted}</span>
             </div>

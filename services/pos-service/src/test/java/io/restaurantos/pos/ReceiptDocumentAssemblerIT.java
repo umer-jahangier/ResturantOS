@@ -69,6 +69,7 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
     UUID cashierId;
     UUID karahiId;
     UUID waterId;
+    MenuCategory category;
 
     /** Rs 1,850.00 at 16% — the food line. */
     static final long KARAHI_PAISA = 185_000L;
@@ -96,7 +97,8 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
         cat.setTenantId(tenantId);
         cat.setName("Mains-" + UUID.randomUUID());
         cat.setSortOrder(1);
-        cat = menuCategoryRepository.save(cat);
+        category = menuCategoryRepository.save(cat);
+        cat = category;
 
         karahiId = saveItem(cat, "Chicken Karahi", KARAHI_PAISA, "16.00", "GST-16");
         waterId = saveItem(cat, "Mineral Water 1.5L", WATER_PAISA, "5.00", "ICT-05");
@@ -164,6 +166,89 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
                 .containsExactlyInAnyOrder("GST-16", "ICT-05");
         long taxSum = doc.taxBreakdown().stream().mapToLong(t -> t.amount().paisa()).sum();
         assertThat(taxSum).isEqualTo(doc.totals().tax().paisa());
+    }
+
+    // ══ F6. The breakdown line is written for the guest, not for the ledger ═══════════════════
+
+    /**
+     * The walkthrough found `Tax (16.00%) [OTHER]` on a bill; the live re-run found worse —
+     * `SR-STD-17 (17.00%) [SR-STD-17]`, because the assembler used the rate CODE as the label for
+     * every classified item and only rescued the unclassified one. The renderers then appended the
+     * code a second time. This is the server half.
+     *
+     * <p>The code itself still travels on the document: it is the identity of the bucket, and a
+     * stored print job is what a support engineer reads six weeks later. It is simply not a word
+     * the paper says.
+     */
+    @Test
+    @DisplayName("every breakdown line is labelled in words, never with the ledger rate code")
+    void theBreakdownIsLabelledForAGuestNotForTheLedger() {
+        OrderDto order = servedOrderWithDiscountAndServiceCharge();
+        PrintDocument doc = assembler.assembleReceipt(order.id(), branchId).document();
+
+        assertThat(doc.taxBreakdown()).hasSize(2);
+        for (PrintDocument.TaxLine line : doc.taxBreakdown()) {
+            assertThat(line.rateCode())
+                    .as("the bucket keeps its machine identity on the document")
+                    .isNotBlank();
+            assertThat(line.label())
+                    .as("the guest's bill would read \"%s\" — a ledger classification, not a phrase",
+                            line.label())
+                    .isNotEqualTo(line.rateCode())
+                    .isEqualTo("Sales Tax");
+            assertThat(line.ratePercent())
+                    .as("a tax line with no percentage cannot be checked by the person paying it")
+                    .isNotNull();
+        }
+        assertThat(doc.taxBreakdown().stream().map(PrintDocument.TaxLine::ratePercent))
+                .containsExactlyInAnyOrder("16.00", "5.00");
+    }
+
+    /**
+     * An item with no rate code lands in a residual bucket the ASSEMBLER invents and calls
+     * {@code OTHER}. `OTHER` is not a tax anyone charges — it is a sentinel — and it reached a
+     * customer's paper. Two unclassified items at different rates used to share that one bucket,
+     * so the line stated the FIRST rate against the SUM of both: a percentage that produces no
+     * amount on the bill. Making the label authoritative without fixing that would have turned a
+     * visibly-odd line into a quietly wrong one.
+     */
+    @Test
+    @DisplayName("unclassified rates get a line each, so no printed percentage is a lie")
+    void unclassifiedRatesAreNotLumpedUnderOnePercentage() {
+        long base = 100_000L; // Rs 1,000.00 — round, so no rounding mode is on trial here
+        UUID plainSixteen = saveItem(category, "Unclassified 16", base, "16.00", null);
+        UUID plainFive = saveItem(category, "Unclassified 5", base, "5.00", null);
+
+        OrderDto order = orderService.createOrder(
+                new CreateOrderRequest(branchId, UUID.randomUUID(), null, null, 1, null, null));
+        orderService.addItem(order.id(), new AddOrderItemRequest(plainSixteen, branchId, 1, null, null));
+        orderService.addItem(order.id(), new AddOrderItemRequest(plainFive, branchId, 1, null, null));
+        OrderDto sent = orderService.sendToKds(order.id(), null);
+        for (OrderDto.OrderItemDto item : sent.items()) {
+            orderService.markItemServed(order.id(), item.id());
+        }
+
+        PrintDocument doc = assembler.assembleReceipt(order.id(), branchId).document();
+
+        assertThat(doc.taxBreakdown()).hasSize(2);
+        assertThat(doc.taxBreakdown().stream().map(PrintDocument.TaxLine::ratePercent))
+                .containsExactlyInAnyOrder("16.00", "5.00");
+        for (PrintDocument.TaxLine line : doc.taxBreakdown()) {
+            assertThat(line.label()).isEqualTo("Sales Tax");
+            long stated = new BigDecimal(line.ratePercent())
+                    .movePointLeft(2)
+                    .multiply(BigDecimal.valueOf(base))
+                    .setScale(0, java.math.RoundingMode.HALF_UP)
+                    .longValueExact();
+            assertThat(line.amount().paisa())
+                    .as("the line prints %s%%, so its amount must be that much of Rs 1,000.00",
+                            line.ratePercent())
+                    .isEqualTo(stated);
+        }
+        long sum = doc.taxBreakdown().stream().mapToLong(t -> t.amount().paisa()).sum();
+        assertThat(sum)
+                .as("the breakdown must still add up to the printed tax total, exactly")
+                .isEqualTo(doc.totals().tax().paisa());
     }
 
     @Test
