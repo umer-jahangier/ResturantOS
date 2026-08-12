@@ -1,0 +1,278 @@
+{
+  "pass": 53,
+  "fail": 0,
+  "failures": [],
+  "out": {
+    "second": [
+      {
+        "code": "DGS43431",
+        "tile": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          }
+        },
+        "board": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "moveButtons": 0,
+          "cards": 0
+        },
+        "gt": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "debris": 0
+        }
+      },
+      {
+        "code": "DGS20334",
+        "tile": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          }
+        },
+        "board": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "moveButtons": 0,
+          "cards": 0
+        },
+        "gt": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "debris": 0
+        }
+      },
+      {
+        "code": "PANTRY1",
+        "tile": {
+          "tickets": 53,
+          "items": 92,
+          "cols": {
+            "NEW": 48,
+            "STARTED": 7,
+            "PREPARING": 0,
+            "READY": 0
+          }
+        },
+        "board": {
+          "tickets": 53,
+          "items": 92,
+          "cols": {
+            "NEW": 48,
+            "STARTED": 7,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "moveButtons": 17,
+          "cards": 10
+        },
+        "gt": {
+          "tickets": 53,
+          "items": 92,
+          "cols": {
+            "NEW": 48,
+            "STARTED": 7,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "debris": 20
+        }
+      },
+      {
+        "code": "DEFAULT",
+        "tile": {
+          "tickets": 35,
+          "items": 35,
+          "cols": {
+            "NEW": 19,
+            "STARTED": 6,
+            "PREPARING": 6,
+            "READY": 4
+          }
+        },
+        "board": {
+          "tickets": 35,
+          "items": 35,
+          "cols": {
+            "NEW": 19,
+            "STARTED": 6,
+            "PREPARING": 6,
+            "READY": 4
+          },
+          "moveButtons": 8,
+          "cards": 10
+        },
+        "gt": {
+          "tickets": 35,
+          "items": 35,
+          "cols": {
+            "NEW": 19,
+            "STARTED": 6,
+            "PREPARING": 6,
+            "READY": 4
+          },
+          "debris": 2
+        }
+      },
+      {
+        "code": "BAR",
+        "tile": {
+          "tickets": 1,
+          "items": 1,
+          "cols": {
+            "NEW": 1,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          }
+        },
+        "board": {
+          "tickets": 1,
+          "items": 1,
+          "cols": {
+            "NEW": 1,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "moveButtons": 1,
+          "cards": 1
+        },
+        "gt": {
+          "tickets": 1,
+          "items": 1,
+          "cols": {
+            "NEW": 1,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "debris": 1
+        }
+      },
+      {
+        "code": "GRILL",
+        "tile": {
+          "tickets": 1,
+          "items": 1,
+          "cols": {
+            "NEW": 1,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          }
+        },
+        "board": {
+          "tickets": 1,
+          "items": 1,
+          "cols": {
+            "NEW": 1,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "moveButtons": 1,
+          "cards": 1
+        },
+        "gt": {
+          "tickets": 1,
+          "items": 1,
+          "cols": {
+            "NEW": 1,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "debris": 7
+        }
+      },
+      {
+        "code": "DGB28334",
+        "tile": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          }
+        },
+        "board": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "moveButtons": 0,
+          "cards": 0
+        },
+        "gt": {
+          "tickets": 0,
+          "items": 0,
+          "cols": {
+            "NEW": 0,
+            "STARTED": 0,
+            "PREPARING": 0,
+            "READY": 0
+          },
+          "debris": 0
+        }
+      }
+    ],
+    "waiter": {
+      "board": {
+        "tickets": 53,
+        "items": 92,
+        "cols": {
+          "NEW": 48,
+          "STARTED": 7,
+          "PREPARING": 0,
+          "READY": 0
+        },
+        "moveButtons": 0,
+        "cards": 10
+      },
+      "perms": [
+        "pos.kds.view"
+      ]
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "pass": 10,
+  "fail": 3,
+  "failures": [
+    "the ticket total is the same on page 2: got 103 want 102",
+    "the item total is the same on page 2: got 165 want 163",
+    "the column headers are the same on page 2: got {\"NEW\":88,\"STARTED\":20,\"PREPARING\":0,\"READY\":4} want {\"NEW\":87,\"STARTED\":20,\"PREPARING\":0,\"READY\":4}"
+  ],
+  "report": {
+    "paging": {
+      "p1": {
+        "tickets": 102,
+        "items": 163,
+        "page": "1 / 12",
+        "cols": {
+          "NEW": 87,
+          "STARTED": 20,
+          "PREPARING": 0,
+          "READY": 4
+        },
+        "cardsOnPage": 10,
+        "staleBtn": null
+      },
+      "p2": {
+        "tickets": 103,
+        "items": 165,
+        "page": "2 / 12",
+        "cols": {
+          "NEW": 88,
+          "STARTED": 20,
+          "PREPARING": 0,
+          "READY": 4
+        },
+        "cardsOnPage": 10,
+        "staleBtn": null
+      }
+    },
+    "expo": {
+      "pass": 168,
+      "branchTruth": 200
+    },
+    "persona_cashier": {
+      "tiles": 0,
+      "denied": true,
+      "notEnabled": false,
+      "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Kitchen Floating Terrace HQ Search… ⌘K E You do not have permission to access the Kitchen Display."
+    },
+    "persona_waiter": {
+      "tiles": 7,
+      "denied": false,
+      "notEnabled": false,
+      "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display MENU Service Charge Collapse App Kitchen Floating Terrace HQ Search… ⌘K 6 Kitchen — Stations The Pass — every check, whole Diag Dessert 4"
+    },
+    "crossTenant": {
+      "ctrlBranch": "99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+      "status": 403,
+      "rows": 0,
+      "tiles": []
+    },
+    "crossTenantReverse": {
+      "status": 403,
+      "rows": 0
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "pass": 9,
+  "fail": 0,
+  "failures": [],
+  "report": {
+    "paging": [
+      {
+        "i": 1,
+        "quiet": true,
+        "before": {
+          "tickets": 107,
+          "items": 172,
+          "page": "1 / 12",
+          "cols": {
+            "NEW": 92,
+            "STARTED": 20,
+            "PREPARING": 0,
+            "READY": 4
+          },
+          "cards": 10,
+          "overflowNotes": [
+            "+88 on other pages",
+            "+88 on other pages",
+            "+88 on other pages",
+            "+17 on other pages",
+            "+17 on other pages",
+            "+17 on other pages",
+            "+1 on other pages",
+            "+1 on other pages",
+            "+1 on other pages"
+          ]
+        },
+        "after": {
+          "tickets": 107,
+          "items": 172,
+          "page": "2 / 12",
+          "cols": {
+            "NEW": 92,
+            "STARTED": 20,
+            "PREPARING": 0,
+            "READY": 4
+          },
+          "cards": 10,
+          "overflowNotes": [
+            "+88 on other pages",
+            "+88 on other pages",
+            "+88 on other pages",
+            "+15 on other pages",
+            "+15 on other pages",
+            "+15 on other pages",
+            "+3 on other pages",
+            "+3 on other pages",
+            "+3 on other pages"
+          ]
+        },
+        "gtBefore": {
+          "tickets": 107,
+          "items": 172,
+          "cols": {
+            "NEW": 92,
+            "STARTED": 20,
+            "PREPARING": 0,
+            "READY": 4
+          }
+        },
+        "gtAfter": {
+          "tickets": 107,
+          "items": 172,
+          "cols": {
+            "NEW": 92,
+            "STARTED": 20,
+            "PREPARING": 0,
+            "READY": 4
+          }
+        }
+      }
+    ],
+    "control": {
+      "tiles": 0,
+      "redirectedToABoard": true,
+      "boardHeader": "0 tickets",
+      "emptyState": false,
+      "emptyTitle": null,
+      "alerts": [],
+      "loading": false,
+      "denied": false,
+      "url": "http://localhost:3000/app/kitchen/DEFAULT",
+      "branchId": "99aa0e36-6c4c-4019-98b4-2a87e21a7a2b",
+      "rows": 0
+    }
+  }
+}

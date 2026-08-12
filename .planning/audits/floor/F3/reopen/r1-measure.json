@@ -1,0 +1,343 @@
+{
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "tiles": [
+    {
+      "code": "DGS43431",
+      "visibleTickets": 0,
+      "visibleItems": 0,
+      "badge": 0,
+      "badgeAria": "0 tickets at Diag Dessert 43431",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "raw": "Diag Dessert 43431 | DGS43431 | 0 | 0 tickets | 0 items | Clear | TICKETS BY STAGE | 0 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY"
+    },
+    {
+      "code": "DGS20334",
+      "visibleTickets": 0,
+      "visibleItems": 0,
+      "badge": 0,
+      "badgeAria": "0 tickets at Diag Dessert 20334",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "raw": "Diag Dessert 20334 | DGS20334 | 0 | 0 tickets | 0 items | Clear | TICKETS BY STAGE | 0 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY"
+    },
+    {
+      "code": "PANTRY1",
+      "visibleTickets": 95,
+      "visibleItems": 153,
+      "badge": 95,
+      "badgeAria": "95 tickets at Cold prep",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 80,
+        "STARTED": 19,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "raw": "Cold prep | PANTRY1 | 95 | 95 tickets | 153 items | Oldest 9h | TICKETS BY STAGE | 80 | NEW | 19 | STARTED | 0 | PREPARING | 4 | READY"
+    },
+    {
+      "code": "DEFAULT",
+      "visibleTickets": 46,
+      "visibleItems": 52,
+      "badge": 46,
+      "badgeAria": "46 tickets at DEFAULT",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 30,
+        "STARTED": 6,
+        "PREPARING": 6,
+        "READY": 4
+      },
+      "raw": "DEFAULT | DEFAULT | 46 | 46 tickets | 52 items | Oldest 11h 25m | TICKETS BY STAGE | 30 | NEW | 6 | STARTED | 6 | PREPARING | 4 | READY"
+    },
+    {
+      "code": "BAR",
+      "visibleTickets": 13,
+      "visibleItems": 16,
+      "badge": 13,
+      "badgeAria": "13 tickets at Main bar",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 13,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "raw": "Main bar | BAR | 13 | 13 tickets | 16 items | Oldest 11h 25m | TICKETS BY STAGE | 13 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY"
+    },
+    {
+      "code": "GRILL",
+      "visibleTickets": 27,
+      "visibleItems": 30,
+      "badge": 27,
+      "badgeAria": "27 tickets at Hot line",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 23,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "raw": "Hot line | GRILL | 27 | 27 tickets | 30 items | Oldest 5h 46m | TICKETS BY STAGE | 23 | NEW | 0 | STARTED | 0 | PREPARING | 4 | READY"
+    },
+    {
+      "code": "DGB28334",
+      "visibleTickets": 0,
+      "visibleItems": 0,
+      "badge": 0,
+      "badgeAria": "0 tickets at Diag Bar 28334",
+      "hasCaption": true,
+      "cols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "raw": "Diag Bar 28334 | DGB28334 | 0 | 0 tickets | 0 items | Clear | TICKETS BY STAGE | 0 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY"
+    }
+  ],
+  "results": [
+    {
+      "code": "DGS43431",
+      "tileTickets": 0,
+      "tileItems": 0,
+      "tileBadge": 0,
+      "tileCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "boardTickets": 0,
+      "boardItems": 0,
+      "boardCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "truthTickets": 0,
+      "truthItems": 0,
+      "truthCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "debris": 0,
+      "headerText": "Diag Dessert 43431 | 0 tickets | · | 0 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": null,
+      "cardsOnPage": 0
+    },
+    {
+      "code": "DGS20334",
+      "tileTickets": 0,
+      "tileItems": 0,
+      "tileBadge": 0,
+      "tileCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "boardTickets": 0,
+      "boardItems": 0,
+      "boardCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "truthTickets": 0,
+      "truthItems": 0,
+      "truthCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "debris": 0,
+      "headerText": "Diag Dessert 20334 | 0 tickets | · | 0 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": null,
+      "cardsOnPage": 0
+    },
+    {
+      "code": "PANTRY1",
+      "tileTickets": 95,
+      "tileItems": 153,
+      "tileBadge": 95,
+      "tileCols": {
+        "NEW": 80,
+        "STARTED": 19,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "boardTickets": 95,
+      "boardItems": 153,
+      "boardCols": {
+        "NEW": 80,
+        "STARTED": 19,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "truthTickets": 95,
+      "truthItems": 153,
+      "truthCols": {
+        "NEW": 80,
+        "STARTED": 19,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "debris": 15,
+      "headerText": "Cold prep | 95 tickets | · | 153 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | 1 / 11 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": "1 / 11",
+      "cardsOnPage": 10
+    },
+    {
+      "code": "DEFAULT",
+      "tileTickets": 46,
+      "tileItems": 52,
+      "tileBadge": 46,
+      "tileCols": {
+        "NEW": 30,
+        "STARTED": 6,
+        "PREPARING": 6,
+        "READY": 4
+      },
+      "boardTickets": 46,
+      "boardItems": 52,
+      "boardCols": {
+        "NEW": 30,
+        "STARTED": 6,
+        "PREPARING": 6,
+        "READY": 4
+      },
+      "truthTickets": 46,
+      "truthItems": 52,
+      "truthCols": {
+        "NEW": 30,
+        "STARTED": 6,
+        "PREPARING": 6,
+        "READY": 4
+      },
+      "debris": 2,
+      "headerText": "DEFAULT | 46 tickets | · | 52 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | 1 / 5 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": "1 / 5",
+      "cardsOnPage": 10
+    },
+    {
+      "code": "BAR",
+      "tileTickets": 13,
+      "tileItems": 16,
+      "tileBadge": 13,
+      "tileCols": {
+        "NEW": 13,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "boardTickets": 13,
+      "boardItems": 16,
+      "boardCols": {
+        "NEW": 13,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "truthTickets": 13,
+      "truthItems": 16,
+      "truthCols": {
+        "NEW": 13,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "debris": 1,
+      "headerText": "Main bar | 13 tickets | · | 16 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | 1 / 2 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": "1 / 2",
+      "cardsOnPage": 10
+    },
+    {
+      "code": "GRILL",
+      "tileTickets": 27,
+      "tileItems": 30,
+      "tileBadge": 27,
+      "tileCols": {
+        "NEW": 23,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "boardTickets": 27,
+      "boardItems": 30,
+      "boardCols": {
+        "NEW": 23,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "truthTickets": 27,
+      "truthItems": 30,
+      "truthCols": {
+        "NEW": 23,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 4
+      },
+      "debris": 3,
+      "headerText": "Hot line | 27 tickets | · | 30 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | 1 / 3 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": "1 / 3",
+      "cardsOnPage": 10
+    },
+    {
+      "code": "DGB28334",
+      "tileTickets": 0,
+      "tileItems": 0,
+      "tileBadge": 0,
+      "tileCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "boardTickets": 0,
+      "boardItems": 0,
+      "boardCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "truthTickets": 0,
+      "truthItems": 0,
+      "truthCols": {
+        "NEW": 0,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "debris": 0,
+      "headerText": "Diag Bar 28334 | 0 tickets | · | 0 items | Diag Dessert 43431 | Diag Dessert 20334 | Cold prep | DEFAULT | Main bar | Hot line | Diag Bar 28334 | READY COLUMN | All stations | LIVE",
+      "alerts": [],
+      "page": null,
+      "cardsOnPage": 0
+    }
+  ]
+}
