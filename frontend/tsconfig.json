@@ -32,5 +32,14 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "e2e/**", "playwright.config.ts", "workbox/**"]
+  "exclude": [
+    "node_modules",
+    "e2e/**",
+    "playwright.config.ts",
+    "workbox/**",
+    "**/* ?.ts",
+    "**/* ?.tsx",
+    "**/* ??.ts",
+    "**/* ??.tsx"
+  ]
 }

@@ -25,6 +25,15 @@ target/
 .DS_Store
 Thumbs.db
 
+# Finder / cloud-sync conflict copies: "pos.adapter 2.ts", "PosServiceApplication 10.class".
+# These are byte-stale snapshots that keep compiling. A pre-F16 copy of pos.adapter.ts made
+# `npx tsc --noEmit` report errors against code nobody had edited, which makes the typecheck
+# gate useless — a real regression is indistinguishable from the noise. frontend/tsconfig.json
+# excludes the same shape (with `?`, since TS globs have no character classes), and
+# scripts/check-stale-jars.sh sweeps the .class equivalent.
+* [0-9].*
+* [0-9][0-9].*
+
 # Node / frontend
 node_modules/
 .next/

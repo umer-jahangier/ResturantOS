@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import type { Mock } from "vitest";
+import type { ComponentProps } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -56,9 +58,24 @@ function item(overrides: Partial<ItemRoute>): ItemRoute {
   };
 }
 
-function renderBoard(items: ItemRoute[], handlers: Partial<{ onRouteCategory: ReturnType<typeof vi.fn>; onRouteItem: ReturnType<typeof vi.fn> }> = {}) {
-  const onRouteCategory = handlers.onRouteCategory ?? vi.fn();
-  const onRouteItem = handlers.onRouteItem ?? vi.fn();
+/*
+ * Take the handler signatures FROM the component rather than restating them. `ReturnType<typeof
+ * vi.fn>` was the bug: on a generic function TypeScript resolves to the constraint, not the
+ * default, so it means `Mock<Procedure | Constructable>` — and a Constructable has no plain call
+ * signature, so it matches neither prop. Restating the signatures by hand would typecheck but
+ * would silently stop tracking the component the day a third argument is added.
+ */
+type BoardProps = ComponentProps<typeof StationRoutingBoard>;
+
+function renderBoard(
+  items: ItemRoute[],
+  handlers: Partial<{
+    onRouteCategory: Mock<BoardProps["onRouteCategory"]>;
+    onRouteItem: Mock<BoardProps["onRouteItem"]>;
+  }> = {},
+) {
+  const onRouteCategory = handlers.onRouteCategory ?? vi.fn<BoardProps["onRouteCategory"]>();
+  const onRouteItem = handlers.onRouteItem ?? vi.fn<BoardProps["onRouteItem"]>();
   render(
     <StationRoutingBoard
       categories={[drinks]}
