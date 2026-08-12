@@ -4,10 +4,16 @@ import io.restaurantos.shared.authz.AuthorizationService;
 import io.restaurantos.shared.authz.OpaInput;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.security.JwtClaims;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -17,10 +23,83 @@ import java.util.UUID;
 @Service
 public class PosAuthorizationService {
 
+    private static final Logger log = LoggerFactory.getLogger(PosAuthorizationService.class);
+
+    /**
+     * The token attribute carrying a caller's menu-category scope (Program A).
+     *
+     * <p>Written by auth-service's {@code PermissionResolver.MENU_CATEGORY_SCOPE_CLAIM} and read
+     * here straight off the verified token — no cross-service call, no projection table, no consumer
+     * that can silently drop a message.
+     *
+     * <p>The spelling is the contract between two services and a policy file. It is a constant on
+     * both sides so a rename cannot leave them disagreeing, which would not throw — it would
+     * silently hand every confined cashier the whole menu back.
+     */
+    private static final String MENU_CATEGORY_SCOPE_CLAIM = "menu_categories";
+
     private final AuthorizationService authorizationService;
 
     public PosAuthorizationService(AuthorizationService authorizationService) {
         this.authorizationService = authorizationService;
+    }
+
+    /**
+     * What menu categories the CURRENT caller may see on the grid (Program A).
+     *
+     * <p>Read from the signature-verified token's {@code attributes} map and from nowhere else.
+     * Never from a query parameter, a header or a request body — the reason
+     * {@code KdsAuthorizationService} gives for its station scope applies verbatim, and applies with
+     * more force here because this scope has a boundary attached: a scope a client can assert is not
+     * a scope, it is a suggestion.
+     *
+     * <p><b>This narrows the GRID only.</b> The refusal is {@link #authorizeAddItem}. See
+     * {@link MenuCategoryScope} for why the two are not duplicates of one control, and why every
+     * degenerate input here degrades to unrestricted.
+     */
+    public MenuCategoryScope resolveMenuCategoryScope() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof JwtClaims claims)) {
+            // No principal at all. Unrestricted: the grid endpoints are @PreAuthorize-gated on
+            // pos.menu.view, so a missing principal here is a filter-chain fault rather than an
+            // anonymous request, and emptying the menu is not the right way to report one.
+            return MenuCategoryScope.unrestricted();
+        }
+        Map<String, Object> attributes = claims.attributes();
+        if (attributes == null || !attributes.containsKey(MENU_CATEGORY_SCOPE_CLAIM)) {
+            // The overwhelmingly common case: no assignment, sees the whole menu. This is the state
+            // every user in the product is in today and it must stay the do-nothing default.
+            return MenuCategoryScope.unrestricted();
+        }
+        Object raw = attributes.get(MENU_CATEGORY_SCOPE_CLAIM);
+        if (!(raw instanceof Collection<?> collection)) {
+            log.warn("Menu category scope attribute '{}' is a {} rather than a list — treating the "
+                    + "caller as unrestricted. The grid keeps working; the token is wrong.",
+                MENU_CATEGORY_SCOPE_CLAIM, raw == null ? "null" : raw.getClass().getSimpleName());
+            return MenuCategoryScope.unrestricted();
+        }
+        List<UUID> ids = new ArrayList<>();
+        for (Object entry : collection) {
+            if (entry instanceof UUID id) {
+                ids.add(id);
+            } else if (entry instanceof String s) {
+                try {
+                    ids.add(UUID.fromString(s));
+                } catch (IllegalArgumentException e) {
+                    // Dropped, not fatal, and NOT silently: an id that is not a UUID cannot match
+                    // any category, so keeping it would only make the scope look larger than it is.
+                    log.warn("Menu category scope contains an entry that is not a UUID — ignoring it");
+                }
+            } else if (entry != null) {
+                log.warn("Menu category scope contains a non-string entry ({}) — ignoring it",
+                    entry.getClass().getSimpleName());
+            }
+        }
+        // An empty result here means the attribute was present but said nothing usable. Still
+        // unrestricted, matching pos.rego exactly: an empty allow-list has no legitimate meaning,
+        // and reading one as "permitted: nothing" is what turns a malformed token into an empty
+        // till grid. restrictedTo() collapses it for us.
+        return MenuCategoryScope.restrictedTo(ids);
     }
 
     /**
@@ -57,6 +136,46 @@ public class PosAuthorizationService {
                 "order", orderId, tenantId, branchId, createdBy, status, null, amountPaidPaisa,
                 anyLinePlated);
         authorizationService.authorize("pos", "void", resource);
+    }
+
+    /**
+     * Authorize adding ONE menu item to a check — the per-user menu-category boundary (Program A).
+     *
+     * <p><b>This is a hard boundary, not a filter.</b> The user's requirement was that the server
+     * REFUSE an item outside the operator's assigned categories; hiding the button was explicitly
+     * ruled insufficient. {@code MenuCategoryScope} narrows the grid so a cashier is not shown a
+     * tile that would 403, and that is all it does — the refusal lives here and in {@code pos.rego},
+     * and it holds for a caller that never opened the grid.
+     *
+     * <p><b>{@code categoryId} must come from the server-resolved item and never from the request.</b>
+     * {@code OrderServiceImpl.addItem} calls this after {@code menuItemRepository.findByIdAndTenantId}
+     * has produced the {@code MenuItem}, so the category is the one the catalogue says the item is
+     * in. Taking it off {@code AddOrderItemRequest} would let the caller nominate a category it is
+     * allowed and then ring an item from one it is not — the boundary would read correctly and
+     * enforce nothing, which is the exact defect this program exists to close.
+     *
+     * <p><b>Why the category and not the terminal.</b> Nothing signed says which terminal a caller
+     * is: there is no user→terminal table, no terminal claim and no {@code orders.terminal_id}, so a
+     * terminal id could only ever be client-asserted. {@code pos.rego} carries the full argument.
+     *
+     * <p>Fail-closed like every other call here: an OPA outage becomes "cannot add items". That is
+     * the same trade {@code authorizeVoid} makes, and it is a heavier one — a void is rare and this
+     * is the hottest write path on the till.
+     *
+     * @param orderId    the check being added to
+     * @param tenantId   the ORDER's tenant
+     * @param branchId   the ORDER's branch — compared against the caller's verified JWT branch
+     * @param createdBy  the check's original cashier; unread by this action's rules, sent for
+     *                   symmetry with the rest of the module
+     * @param status     the order's settlement status; likewise unread here
+     * @param categoryId the resolved {@code MenuItem}'s category, the fact the rule tests
+     */
+    public void authorizeAddItem(UUID orderId, UUID tenantId, UUID branchId, UUID createdBy,
+                                 String status, UUID categoryId) {
+        OpaInput.Resource resource = new OpaInput.Resource(
+                "order", orderId, tenantId, branchId, createdBy, status, null, null, null,
+                categoryId);
+        authorizationService.authorize("pos", "pos.order.add_item", resource);
     }
 
     /**

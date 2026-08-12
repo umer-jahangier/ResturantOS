@@ -118,3 +118,104 @@ allow if {
     common.has_permission(input, "pos.order.split_bill")
     common.same_tenant_and_branch(input)
 }
+
+# ── pos.order.add_item — the per-user MENU CATEGORY boundary (Program A) ──────────────────────
+#
+# WHAT THIS IS FOR. A restaurant runs a counter till that may only sell drinks and a waiter who may
+# sell everything. Before this rule the product could CONFIGURE that (V15's pos_terminal_categories,
+# written by the admin screen since phase 28) and could not ENFORCE it: MenuController.listItems
+# took (categoryId, branchId, pageable) and OrderServiceImpl.addItem made no authorization call at
+# all, so the whole menu was one POST away regardless of what any screen showed. Hiding a button is
+# not a boundary — the user asked for the server to REFUSE.
+#
+# WHY THE ALLOW-LIST IS ON input.user AND NOT ON input.resource. It is a fact about the PERSON, and
+# only input.user is trustworthy. shared-lib's AuthorizationService builds input.user from the
+# verified JwtClaims; authorization-service's AuthorizeService — the endpoint exposed to anyone —
+# does the same, and builds input.resource from the untrusted request body. An allow-list carried on
+# the resource is therefore fail-OPEN by construction: send a wider list, walk through. The category
+# being rung is the opposite kind of fact — it is about the ITEM — so it rides the resource, where
+# pos-service sets it from the server-resolved MenuItem and never from the request.
+#
+# WHY THERE IS NO input.resource.terminal_id CLAUSE. Nothing signed says which terminal you are.
+# There is no user→terminal table, no terminal claim and no orders.terminal_id, so a terminal id can
+# only ever be client-asserted — and KdsAuthorizationService already wrote the rule for that case:
+# "a view scope a client can assert is not a view scope, it is a suggestion". Terminal category
+# scope survives as a device-level FILTER on the grid (MenuCategoryScope in pos-service), which is
+# the one thing a client-asserted id may safely do, because it can only narrow.
+#
+# THE PERMISSION IS pos.order.update, UNCHANGED. That is exactly what OrderController's
+# @PreAuthorize on POST /orders/{id}/items already requires. Naming it here widens nothing and
+# narrows nothing; it means an OPA that is reachable cannot answer "allow" for a caller the
+# @PreAuthorize would have refused, which is what makes this a second line rather than a fork.
+
+# The categories this caller may ring, as a SET — and DEFINED ONLY when the token carries a
+# well-formed, non-empty list of them.
+#
+# READ THE UNDEFINED CASES, THEY ARE THE WHOLE RULE. Every one of these leaves this undefined, and
+# therefore leaves the caller UNRESTRICTED:
+#
+#   attributes absent          input.user.attributes.menu_categories  -> undefined
+#   attributes JSON null       key lookup on null                     -> undefined
+#   attributes {}              missing key                            -> undefined
+#   key present, []            is_array passes, the set is empty      -> count 0, undefined
+#   key present, "DRINKS"      is_array fails                         -> undefined
+#   key present, [1, 2]        no string survives the comprehension   -> count 0, undefined
+#
+# That asymmetry is not laziness, it is the entire back-compatibility story and it is the single
+# highest-blast-radius decision in this file. Every user in the product today carries no such claim.
+#
+# MEASURED, not assumed. The naive spelling — `not input.user.attributes.menu_categories` written
+# straight into the allow body — was substituted for the two lines below and `opa test policies/`
+# re-run. It handles the absent and JSON-null cases correctly (a key lookup on null is undefined, so
+# the negation still succeeds), which is the opposite of what the design predicted. What it gets
+# WRONG is the three malformed-but-present shapes: `[]`, a bare string, and a list holding no
+# string. Each of those is truthy to a bare negation, so the naive rule DENIES, and a token carrying
+# `menu_categories: []` would stop that operator ringing anything at all:
+#
+#   FAIL test_add_item_empty_list_allow
+#   FAIL test_add_item_non_list_claim_allow
+#   FAIL test_add_item_list_of_non_strings_allow
+#
+# PermissionResolver never mints those shapes today, so the naive form would have shipped green and
+# waited for the first hand-edited token or half-finished migration. That is the defect class this
+# branch keeps finding, so the check is written against the VALUE, not against the key's presence.
+#
+# A set comprehension is a `{…}` literal, so this MUST live at package level: PolicyReachabilityTest
+# scans rule bodies with `allow\s+if\s*\{([^}]*)}` and a brace inside an allow body truncates the
+# scan, silently dropping the rule from the reachability and action-guard checks. Same trap, same
+# answer, as cashier_voidable_statuses above.
+menu_category_scope := scope if {
+    raw := input.user.attributes.menu_categories
+    is_array(raw)
+    scope := {c | some c in raw; is_string(c)}
+    count(scope) > 0
+}
+
+# True only when the caller genuinely carries a usable scope. Undefined (hence `not` succeeds) in
+# every degenerate case above, because count() of an undefined value is undefined.
+menu_scope_restricted if {
+    count(menu_category_scope) > 0
+}
+
+# add_item, UNRESTRICTED: the caller carries no usable menu-category scope. This is every user in
+# the product today and must stay the do-nothing default.
+allow if {
+    input.action == "pos.order.add_item"
+    common.has_permission(input, "pos.order.update")
+    common.same_tenant_and_branch(input)
+    not menu_scope_restricted
+}
+
+# add_item, SCOPED: the caller carries a scope, and the item's category is in it.
+#
+# `in` against the set rather than a negation, deliberately, for the same reason void.own writes
+# `any_line_plated == false` rather than `not …`: an ABSENT input.resource.category_id makes this
+# expression undefined, the body fails, and the rule denies. A caller that cannot say what category
+# it is ringing does not get the benefit of the doubt — which is load-bearing for
+# authorization-service, whose 7-arg Resource constructor leaves category_id null.
+allow if {
+    input.action == "pos.order.add_item"
+    common.has_permission(input, "pos.order.update")
+    common.same_tenant_and_branch(input)
+    input.resource.category_id in menu_category_scope
+}

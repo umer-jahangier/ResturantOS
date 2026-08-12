@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Program A. `user_menu_category_assignments` — which MENU CATEGORIES a person may ring, per
+      branch.
+
+      ══ Why this table exists ══
+
+      The owner asked for a counter till that can only sell drinks and a waiter who can sell
+      everything, enforced by the SERVER rather than by a hidden button. The product could already
+      CONFIGURE something that looked like it: V15 (pos_db) created `pos_terminal_categories` under
+      a header saying "the categories a terminal offers", the admin screen has been writing rows
+      into it since phase 28, and there are live rows in it right now. Nothing has ever read them.
+      `PosTerminalCategoryRepository.findByTenantIdAndTerminalId` has exactly one caller —
+      `PosTerminalServiceImpl.toDto`, which echoes the list back to the form that just submitted it.
+      An administrator configures "Bar till offers Drinks only", saves, and the till shows the whole
+      menu. That is the reported symptom and it is a config screen writing rows nobody reads.
+
+      ══ Why per-USER and not per-terminal ══
+
+      Because nothing signed says which terminal you are. There is no user→terminal table, no
+      terminal claim on the token, and `orders.terminal_id` was deferred by V15's own header and
+      never built. A terminal id can therefore only reach the server by the client asserting it, and
+      kitchen-service already wrote the rule for that case: "a view scope a client can assert is not
+      a view scope, it is a suggestion". A boundary keyed on a client-asserted terminal is one you
+      defeat by editing a query parameter. Per-user is also what the owner actually asked for, so
+      the security argument and the product argument agree.
+
+      The terminal's category list is NOT dropped and NOT migrated. It survives as a DEVICE-LEVEL
+      FILTER on the grid, which is the one thing a client-asserted id may safely do because it can
+      only ever narrow what the person is already permitted. V15's own header draws exactly that
+      distinction.
+
+      ══ Why the category UUID and not a code, where 086 chose a code ══
+
+      086 (`user_station_assignments`) stores the station CODE and argued it at length. Re-run
+      against categories, two of its three reasons INVERT and the third is neutral:
+
+        - "The code is already the routing key everywhere downstream." For categories the UUID is:
+          `menu_items.category_id`, `pos_terminal_categories.category_id`,
+          `menu_category_station_routes.category_id`, and MenuController's own `?categoryId=`
+          parameter. A name would have to be resolved to an id before it could be used at all.
+        - "A code cannot go stale under a rename." `menu_categories` HAS no code column — V1 gives
+          it (id, tenant_id, name, description, sort_order, active) with UNIQUE (tenant_id, name) —
+          and `MenuServiceImpl.updateCategory` sets the name unconditionally. Names here are
+          renameable; a UUID is the thing that survives a rename.
+        - "auth_db and pos_db are separate databases, so a UUID is a foreign key this codebase
+          cannot enforce." Still true, and unchanged by the choice: a NAME stored here would be
+          exactly as unenforceable. The consequence is the same self-correcting one 086 accepted —
+          a stale id scopes the user to a category that no longer exists, which is visible on their
+          own screen within one shift. Typo prevention belongs in the admin UI, which sources the
+          list from pos-service.
+
+      So the divergence from the neighbouring table is deliberate and reasoned, not accidental.
+
+      ══ EMPTY MEANS EVERYTHING, AND THERE IS NO FLAG ══
+
+      A user with no rows here may ring the WHOLE menu. That is V15's documented default and it
+      survives here unchanged, because it is the state every existing user is in — the do-nothing
+      state has to be the permissive one or this ships as an outage.
+
+      There is deliberately NO `sells_all` boolean. V15 forbids one by name and gives the reason: a
+      flag and the rows it summarises can disagree, and then no reader can tell which is right.
+      `PermissionResolver.putStationScope` states the same rule one layer up and is sharper about
+      the cost — if "unrestricted" had two spellings, the first downstream reader to treat an empty
+      list as an empty allow-list would black out every till in the product, mid-service, on the day
+      it deployed. Unrestricted is spelled by ABSENCE, at every layer: no rows here, no claim on the
+      token, no restriction in the policy.
+
+      ══ Scoping ══
+
+      Unique on (tenant_id, user_id, branch_id, category_id): one row per category a user may ring,
+      per branch, matching 040's convention for user_branch_roles and 086's for stations.
+
+      Per-BRANCH, even though categories are tenant-scoped in pos_db and stations are branch-scoped.
+      Not for symmetry alone: a person already holds different roles at different branches, and the
+      resolver mints a token per branch assignment, so a tenant-wide scope could not express "runs
+      the bar at one site and the whole floor at another" — which is the ordinary case for a
+      multi-site operator and the reason this feature was asked for.
+
+      Indexed on (tenant_id, user_id) because that is the lookup PermissionResolver makes on every
+      login, refresh and branch switch. Without it this is a sequential scan on the hottest path in
+      the product.
+
+      ══ FORCE, not merely ENABLE ══
+
+      ENABLE ROW LEVEL SECURITY exempts the table's OWNER from its own policies. Postgres does that
+      by design and it is why phase 17b spent a phase adding FORCE across pos_db after 16 tenants'
+      rows were reachable from one connection. auth_db already runs FORCEd tables (041, 050, 056,
+      058, 086). A new tenant-scoped table that is merely ENABLEd is that same defect, freshly
+      planted.
+    -->
+
+    <changeSet id="auth-1.0.0-094-create-user-menu-category-assignments" author="restaurantos-agent">
+        <createTable tableName="user_menu_category_assignments">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="tenant_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="user_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="branch_id" type="UUID"><constraints nullable="false"/></column>
+            <!-- pos_db menu_categories.id. Not declarable as a foreign key: separate database. -->
+            <column name="category_id" type="UUID"><constraints nullable="false"/></column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="NOW()"><constraints nullable="false"/></column>
+            <column name="created_by" type="UUID"/>
+            <column name="updated_by" type="UUID"/>
+            <column name="deleted_at" type="TIMESTAMPTZ"/>
+        </createTable>
+        <addUniqueConstraint tableName="user_menu_category_assignments"
+                             columnNames="tenant_id, user_id, branch_id, category_id"
+                             constraintName="uk_user_menu_category_assignments"/>
+        <addForeignKeyConstraint baseTableName="user_menu_category_assignments" baseColumnNames="user_id"
+                                 referencedTableName="users" referencedColumnNames="id"
+                                 constraintName="fk_user_menu_category_assignments_user"/>
+        <createIndex tableName="user_menu_category_assignments" indexName="idx_user_menu_category_assignments_user">
+            <column name="tenant_id"/>
+            <column name="user_id"/>
+        </createIndex>
+        <rollback><dropTable tableName="user_menu_category_assignments"/></rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-094-rls-user-menu-category-assignments" author="restaurantos-agent">
+        <comment>tenant_isolation, ENABLEd AND FORCEd — an ENABLE-only tenant table is the 17b defect</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE user_menu_category_assignments ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE user_menu_category_assignments FORCE ROW LEVEL SECURITY;
+            CREATE POLICY tenant_isolation ON user_menu_category_assignments
+                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON user_menu_category_assignments TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON user_menu_category_assignments;
+                ALTER TABLE user_menu_category_assignments NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE user_menu_category_assignments DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

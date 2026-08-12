@@ -353,6 +353,26 @@ public class OrderServiceImpl implements OrderService {
         MenuItem menuItem = menuItemRepository.findByIdAndTenantId(request.menuItemId(), tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + request.menuItemId()));
 
+        // SECURITY (per-user menu scope, Program A): the HARD boundary. A counter cashier assigned
+        // only the bar's categories is REFUSED a food item here, with pos.rego's add_item rules
+        // deciding it — not an `if` in this method, and not the grid, which only chooses what to
+        // draw. The user asked for the server to refuse and said explicitly that hiding the tile
+        // was not enough.
+        //
+        // PLACED HERE, AND THE POSITION IS THE POINT. After findByIdAndTenantId, because the
+        // category must come from the item the CATALOGUE resolved — a category read off
+        // AddOrderItemRequest would let a caller nominate one it holds and ring an item from one it
+        // does not. And before the first field of `item` is set, so a refusal leaves no half-built
+        // line and no work to unwind.
+        //
+        // A user with no assignment is unaffected: the claim is absent from their token, pos.rego's
+        // unrestricted rule matches, and this is one OPA round trip that always says yes. That is
+        // every user in the product on the day this ships.
+        posAuthorizationService.authorizeAddItem(
+                order.getId(), tenantId, order.getBranchId(), order.getCashierId(),
+                order.getStatus() == null ? null : order.getStatus().name(),
+                menuItem.getCategory() == null ? null : menuItem.getCategory().getId());
+
         // SECURITY (branch isolation): resolve branch-override pricing from the ORDER's own
         // (server-derived, createOrder-validated) branch rather than the client-supplied
         // request.branchId() — the order already carries the authoritative branch, so a spoofed

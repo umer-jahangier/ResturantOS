@@ -31,6 +31,24 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
     @Query("SELECT i FROM MenuItem i WHERE i.active = true ORDER BY i.name ASC")
     Page<MenuItem> findByActiveTrue(Pageable pageable);
 
+    /**
+     * The whole-menu grid, narrowed to a caller's assigned categories (Program A).
+     *
+     * <p>Sliced in the database rather than filtered after the fact, for the reason
+     * {@link #findByCategoryIdAndActiveTrue} spells out: a page filtered in memory publishes
+     * metadata describing rows that were then thrown away, and a client that trusts it pages past
+     * the end or shows a short page as if it were full.
+     *
+     * <p>Only ever called with a NON-EMPTY set. An unrestricted caller takes
+     * {@link #findByActiveTrue} instead — {@code MenuCategoryScope.permittedCategoryIds()} throws
+     * rather than hand out an empty collection, precisely so this cannot be reached with an empty
+     * {@code IN} clause and quietly return an empty grid.
+     */
+    @Query("SELECT i FROM MenuItem i WHERE i.active = true AND i.category.id IN :categoryIds "
+            + "ORDER BY i.name ASC")
+    Page<MenuItem> findByActiveTrueAndCategoryIdIn(@Param("categoryIds") java.util.Collection<UUID> categoryIds,
+                                                   Pageable pageable);
+
     @Query("SELECT i FROM MenuItem i WHERE i.active = true ORDER BY i.name ASC")
     List<MenuItem> findByActiveTrueOrderByName();
 

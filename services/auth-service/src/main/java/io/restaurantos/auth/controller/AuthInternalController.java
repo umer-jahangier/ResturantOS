@@ -1,14 +1,17 @@
 package io.restaurantos.auth.controller;
 
 import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
+import io.restaurantos.auth.dto.request.MenuCategoryAssignmentRequest;
 import io.restaurantos.auth.dto.request.StationAssignmentRequest;
 import io.restaurantos.auth.dto.response.BranchRoleAssignWriteResponse;
 import io.restaurantos.auth.dto.response.BranchRoleAssignmentResponse;
 import io.restaurantos.auth.dto.response.BranchStaffResponse;
+import io.restaurantos.auth.dto.response.MenuCategoryAssignmentResponse;
 import io.restaurantos.auth.dto.response.StationAssignmentResponse;
 import io.restaurantos.auth.exception.ActingUserRequiredException;
 import io.restaurantos.auth.service.BranchAssignmentService;
 import io.restaurantos.auth.service.BranchRoleAdminService;
+import io.restaurantos.auth.service.MenuCategoryAssignmentAdminService;
 import io.restaurantos.auth.service.PermissionResolver;
 import io.restaurantos.auth.service.ResolvedBranchAuth;
 import io.restaurantos.auth.service.StationAssignmentAdminService;
@@ -35,15 +38,18 @@ public class AuthInternalController {
     private final BranchAssignmentService branchAssignmentService;
     private final PermissionResolver permissionResolver;
     private final StationAssignmentAdminService stationAssignmentAdminService;
+    private final MenuCategoryAssignmentAdminService menuCategoryAssignmentAdminService;
 
     public AuthInternalController(BranchRoleAdminService branchRoleAdminService,
                                   BranchAssignmentService branchAssignmentService,
                                   PermissionResolver permissionResolver,
-                                  StationAssignmentAdminService stationAssignmentAdminService) {
+                                  StationAssignmentAdminService stationAssignmentAdminService,
+                                  MenuCategoryAssignmentAdminService menuCategoryAssignmentAdminService) {
         this.branchRoleAdminService = branchRoleAdminService;
         this.branchAssignmentService = branchAssignmentService;
         this.permissionResolver = permissionResolver;
         this.stationAssignmentAdminService = stationAssignmentAdminService;
+        this.menuCategoryAssignmentAdminService = menuCategoryAssignmentAdminService;
     }
 
     /**
@@ -189,6 +195,42 @@ public class AuthInternalController {
             @PathVariable UUID userId,
             @RequestHeader("X-Tenant-Id") UUID tenantId) {
         return ResponseEntity.ok(stationAssignmentAdminService.list(tenantId, userId));
+    }
+
+    // ── Menu-category scope (Program A) ──────────────────────────────────────────────────────
+
+    /**
+     * Replace the menu categories a user may RING at one branch (Program A).
+     *
+     * <p>Mounted beside the station endpoints and shaped identically, because it is the same kind of
+     * decision made in the same form: what this person may see, and now what they may sell.
+     *
+     * <p><b>No {@code X-Acting-User-Id} requirement</b>, for exactly the reason the station write
+     * gives. That header exists so auth-service can apply the ROLE CEILING — an assigner may only
+     * grant a role whose permissions are a subset of their own. A menu scope grants nothing: it
+     * NARROWS what the target user may ring, and the narrowest possible assignment is strictly less
+     * authority than the unrestricted default every user already has. There is no ceiling to
+     * compute, so there is no identity to compute it against.
+     *
+     * <p>Sending an empty {@code categoryIds} clears the scope and returns the user to the whole
+     * menu. That is not a degenerate request to be rejected — it is the only way to undo a
+     * restriction, and it is the state every user in the product is in today.
+     */
+    @PutMapping("/users/{userId}/menu-categories")
+    public ResponseEntity<List<MenuCategoryAssignmentResponse>> replaceMenuCategories(
+            @PathVariable UUID userId,
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @Valid @RequestBody MenuCategoryAssignmentRequest request) {
+        return ResponseEntity.ok(menuCategoryAssignmentAdminService.replaceForBranch(
+            tenantId, userId, request.branchId(), request.categoryIds()));
+    }
+
+    /** A user's active menu-category scope, grouped by branch. Absent branch = whole menu there. */
+    @GetMapping("/users/{userId}/menu-categories")
+    public ResponseEntity<List<MenuCategoryAssignmentResponse>> listMenuCategories(
+            @PathVariable UUID userId,
+            @RequestHeader("X-Tenant-Id") UUID tenantId) {
+        return ResponseEntity.ok(menuCategoryAssignmentAdminService.list(tenantId, userId));
     }
 
     /**

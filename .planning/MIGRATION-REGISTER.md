@@ -88,7 +88,7 @@ No contention observed yet. The same rule applies — claim here first.
 | finance-service | Flyway | — | |
 | inventory-service | Flyway | — | |
 | purchasing-service | Flyway | — | |
-| auth-service | Liquibase | 090+ | changeset ids, not versions; same rule |
+| auth-service | Liquibase | **094** | `094-user-menu-category-assignments.xml` claimed 2026-08-12 (Program A, per-user POS menu scope). On disk before it: 083–093. NOT applied to the shared auth_db by this session — Liquibase runs it on the next auth-service start, and it is additive (one new table + its RLS policy), so it needs no quiet window and touches no existing row. Verified against a Testcontainers auth_db: both changesets ran, and `AuthInternalBranchRoleIT` / `OneActiveRolePerBranchIT` / `RoleCatalogSeedIT` / `DuplicateActiveRoleRepairIT` are green on top of it. |
 | user-service | Liquibase | 013 | |
 | hr-service | Liquibase | 035 | |
 | audit-service | Liquibase | **030** | `030-audit-events-rls.xml` applied. Partitioned: policy must be per-partition AND applied at creation — a parent-only policy leaks and its test stays green. |

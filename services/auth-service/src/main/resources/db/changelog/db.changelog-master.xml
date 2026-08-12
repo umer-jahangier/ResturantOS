@@ -166,5 +166,14 @@
          tables, 085 for terminals and 091 for tax; explicit and verified for the reason 088, 089,
          090 and 091 give. -->
     <include file="db/changelog/v1.0.0/093-pos-service-charge-manage-permission.xml"/>
+    <!-- Program A: which menu categories a person may RING, per branch. The owner's counter-till
+         requirement, enforced server-side. pos_db has had `pos_terminal_categories` since V15 and
+         it has never been read by anything but the form that wrote it — so the admin who configured
+         "Bar till offers Drinks only" saw no effect. Keyed on the USER rather than the terminal
+         because nothing signed says which terminal you are (no user→terminal table, no terminal
+         claim, no orders.terminal_id), and a boundary keyed on a client-asserted id is one you
+         defeat by editing a query parameter. NO ROWS MEANS THE WHOLE MENU, and it is spelled by
+         absence at every layer — V15 forbids a `sells_all` flag by name and 086 gives the reason. -->
+    <include file="db/changelog/v1.0.0/094-user-menu-category-assignments.xml"/>
 
 </databaseChangeLog>
