@@ -14,6 +14,28 @@ export type OrderStatus =
 
 export type OrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY" | "PICKUP";
 
+/**
+ * The one place a guest-facing order-type word is spelled.
+ *
+ * F2: Order Management had no type on its rows at all and printed `tableName ?? "Takeaway"`, so a
+ * dine-in check with no table read Takeaway while the void panel one click away — which DID have
+ * the order and DID have this mapping — called the same check Dine-in. Two surfaces, one order,
+ * two answers. The strings here are the ones the void panel, the charge page and the KDS card
+ * already print, so the surfaces agree by construction rather than by coincidence.
+ */
+export function orderTypeLabel(type: OrderType): string {
+  switch (type) {
+    case "TAKEAWAY":
+      return "Takeaway";
+    case "PICKUP":
+      return "Pickup";
+    case "DELIVERY":
+      return "Delivery";
+    case "DINE_IN":
+      return "Dine-in";
+  }
+}
+
 // 7-value item lifecycle (backend OrderItemStatus). Replaces the old 3-value
 // KdsItemStatus — the wire field is still named `kdsStatus` (see pos.schema.ts), but the
 // domain model uses the clearer `itemStatus` name (adapter renames at the boundary).
@@ -216,8 +238,18 @@ export interface OrderSummary {
   orderNo: string | null;
   tableId: string | null;
   tableName: string | null;
+  /**
+   * What KIND of check this is (F2). Server-authoritative and never inferred from `tableName`:
+   * a dine-in check whose table has not been assigned yet is still dine-in.
+   */
+  type: OrderType;
   derivedStatus: DerivedOrderStatus;
   cashierId: string | null;
+  /**
+   * The cashier's display name, resolved server-side from the staff directory (F2). Decoration —
+   * null when the directory was unreachable, in which case render the id, never a blank.
+   */
+  cashierName: string | null;
   coverCount: number;
   totalPaisa: number;
   openedAt: string | null;

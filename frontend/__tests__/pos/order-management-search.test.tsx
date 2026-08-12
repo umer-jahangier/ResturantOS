@@ -37,6 +37,7 @@ function row(overrides: Record<string, unknown>) {
     orderNo: "ORD-20260812-0001",
     tableId: null,
     tableName: "Table 5",
+    type: "DINE_IN",
     derivedStatus: "IN_PROGRESS",
     cashierId: CASHIER_ME,
     coverCount: 2,

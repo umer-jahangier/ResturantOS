@@ -8,6 +8,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import {
   OrderTableDetailDrawer,
@@ -20,6 +22,7 @@ import { useVoidOrder } from "@/lib/hooks/pos/use-payments";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import {
   getOrderDisplayStatus,
+  orderTypeLabel,
   type DerivedOrderStatus,
   type OrderStatus,
   type OrderSummary,
@@ -273,6 +276,24 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       : settlementFilter
         ? settledQuery.refetch()
         : activeQuery.refetch();
+  /**
+   * F2. `isError` was never destructured anywhere in this component, so a FAILED read rendered
+   * `filtered.length === 0` and the user got "No active orders" — a confident, wrong statement
+   * that there is no business today. That is the codebase's named failure shape (a component
+   * folding a failed read into an empty state), and it sits directly under this change: making
+   * the wire contract stricter without it would have converted a mislabelled row into a silent
+   * lie about the whole shift.
+   */
+  const listError = isSearching
+    ? searchQuery.error
+    : settlementFilter
+      ? settledQuery.error
+      : activeQuery.error;
+  const isError = isSearching
+    ? searchQuery.isError
+    : settlementFilter
+      ? settledQuery.isError
+      : activeQuery.isError;
 
   // Server-side matches can outrun one page. Say so rather than silently showing a prefix —
   // a truncated list that looks complete is the failure this whole gap is made of.
@@ -317,13 +338,22 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
     () => [
       {
         id: "orderTable",
-        header: "Order / Table",
+        header: "Order / Type",
         cell: ({ row }) => {
           const o = row.original;
+          // F2 (b). This read `{o.tableName ?? "Takeaway"}` — the order's own `type` was never
+          // consulted because the summary row never carried it. Every DINE_IN check without a
+          // table therefore read "Takeaway": measured 2026-08-12, ten of ten rows on the first
+          // page and thirteen consecutive rows on the Voided chip, on a screen a manager scans
+          // all day. The type is now server-authoritative and the table name rides ALONGSIDE it
+          // rather than standing in for it, so "Dine-in" and "Dine-in · H1" are both sayable.
+          const label = orderTypeLabel(o.type);
           return (
             <div className="flex flex-col">
               <span className="text-sm font-medium">{o.orderNo ?? "New Order"}</span>
-              <span className="text-xs text-muted-foreground">{o.tableName ?? "Takeaway"}</span>
+              <span className="text-xs text-muted-foreground" data-testid="order-type-cell">
+                {o.tableName ? `${label} · ${o.tableName}` : label}
+              </span>
             </div>
           );
         },
@@ -352,29 +382,72 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       {
         id: "cashier",
         header: "Server/Cashier",
-        cell: ({ row }) =>
-          row.original.cashierId ? (
-            <span className="font-mono text-xs text-muted-foreground">
-              {row.original.cashierId.slice(0, 8)}
+        // F2 (a). This printed `cashierId.slice(0, 8)` — "bc0d9897" — for every row and every
+        // persona, while the SAME table's Voided column printed "by Shift Cashier 984155" for a
+        // user id resolved by the same mechanism a few pixels away. The name now comes down on
+        // the row itself (OrderCashierNameService); the id remains the fallback, because a
+        // directory outage must cost the name and not the attribution.
+        cell: ({ row }) => {
+          const { cashierName, cashierId } = row.original;
+          if (cashierName) {
+            return (
+              <span className="text-sm" data-testid={`cashier-cell-${row.original.orderId}`}>
+                {cashierName}
+              </span>
+            );
+          }
+          if (cashierId) {
+            return (
+              <span
+                className="font-mono text-xs text-muted-foreground"
+                data-testid={`cashier-cell-${row.original.orderId}`}
+                title="This person's name could not be looked up just now — this is their user id."
+              >
+                {cashierId.slice(0, 8)}
+              </span>
+            );
+          }
+          return (
+            <span
+              className="text-xs text-muted-foreground"
+              data-testid={`cashier-cell-${row.original.orderId}`}
+            >
+              —
             </span>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          ),
+          );
+        },
       },
       {
         // POS-24: replaces the old "Covers" column — total item quantity across
-        // non-CANCELLED lines, with an optional distinct-line-count secondary line
-        // when it differs from the total (e.g. "8 Items" / "5 Items / 8 Qty").
+        // non-CANCELLED lines, with the distinct-line count beneath it when the two differ.
+        //
+        // F2 (e). This used to read "4 Items" and then "3 Items / 4 Qty" in the SAME cell: the
+        // word "Items" meant the total quantity on the first line and the number of distinct
+        // lines on the second, so the cell stated the count twice and disagreed with itself.
+        // Now each line has its own noun — 4 items of food, on 3 lines of the check — and
+        // neither is ever "1 Items".
         id: "items",
         header: "Items",
         cell: ({ row }) => {
           const o = row.original;
+          const qty = o.itemQuantity;
+          const lines = o.distinctItemCount;
           return (
-            <div className="flex flex-col">
-              <span className="text-sm tabular-nums">{o.itemQuantity} Items</span>
-              {o.distinctItemCount !== o.itemQuantity && (
-                <span className="text-xs text-muted-foreground">
-                  {o.distinctItemCount} Items / {o.itemQuantity} Qty
+            <div
+              className="flex flex-col"
+              data-testid={`items-cell-${o.orderId}`}
+              title={
+                lines === qty
+                  ? undefined
+                  : `${qty} ${qty === 1 ? "item" : "items"} in total, on ${lines} ${lines === 1 ? "line" : "lines"} of the check`
+              }
+            >
+              <span className="text-sm tabular-nums">
+                {qty} {qty === 1 ? "item" : "items"}
+              </span>
+              {lines !== qty && (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {lines} {lines === 1 ? "line" : "lines"}
                 </span>
               )}
             </div>
@@ -395,33 +468,9 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             {
               id: "settlement",
               header: settlementFilter === "VOIDED" ? "Voided" : "Refunded",
-              cell: ({ row }: { row: { original: OrderSummary } }) => {
-                const detail = row.original.settlement;
-                const when = formatSettledAt(detail?.at);
-                // The id is the fact; the name is decoration resolved from the staff
-                // directory. Falling back to the id keeps an attribution on screen when the
-                // directory is unreachable, instead of a blank that reads as "nobody".
-                const who = detail?.byName ?? detail?.byUserId?.slice(0, 8) ?? null;
-                const reason = detail?.reason?.trim() ? detail.reason : "No reason recorded";
-                const byline = `${who ? `by ${who}` : "by (not recorded)"}${when ? ` · ${when}` : ""}`;
-                // TRUNCATE, never wrap. DataGrid holds every row to one height with
-                // `whitespace-nowrap` on the <td>; a wrapping cell silently overrides that and a
-                // long free-text reason simply ran across the next column (measured: the reason
-                // printed on top of the Age value). `title` keeps the full text reachable.
-                return (
-                  <div
-                    className="flex max-w-[22rem] min-w-0 flex-col gap-0.5"
-                    data-testid={`settlement-detail-${row.original.orderId}`}
-                  >
-                    <span className="truncate text-sm" title={reason}>
-                      {reason}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground" title={byline}>
-                      {byline}
-                    </span>
-                  </div>
-                );
-              },
+              cell: ({ row }: { row: { original: OrderSummary } }) => (
+                <SettlementDetailCell order={row.original} />
+              ),
             } as ColumnDef<OrderSummary, unknown>,
           ]
         : []),
@@ -436,13 +485,19 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         id: "actions",
         header: "",
         cell: ({ row }) => {
-          const isDraft = row.original.derivedStatus === "DRAFT";
+          // F2 (c). `derivedStatus` records how far the FOOD got, not what happened to the
+          // check — a draft that was never fired keeps `derivedStatus === "DRAFT"` after it has
+          // been voided. So rows 0167/0168/0169, already VOIDED, still offered "Cancel" (which
+          // would void an already-voided order) and "Continue" (which would reopen it in the
+          // terminal). The settlement status is the one that says whether the check is over,
+          // and it is the same set already gating Assign Table two lines below.
+          const isSettled = TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus);
+          const isDraft = !isSettled && row.original.derivedStatus === "DRAFT";
           return (
             <div className="flex items-center justify-end gap-2">
-              {!row.original.tableId &&
-                !TERMINAL_SETTLEMENT_STATUSES.has(row.original.settlementStatus) && (
-                  <AssignTableAction orderId={row.original.orderId} />
-                )}
+              {!row.original.tableId && !isSettled && (
+                <AssignTableAction orderId={row.original.orderId} />
+              )}
               {isDraft && <CancelDraftAction orderId={row.original.orderId} />}
               <button
                 type="button"
@@ -594,7 +649,23 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       )}
 
       <div className="flex-1 overflow-y-auto">
-        {showEmptyState ? (
+        {isError ? (
+          // Error BEFORE empty, always. "No active orders" is a claim about the restaurant;
+          // this is a statement about the read that failed, and it is the only honest one when
+          // nothing came back.
+          <div className="flex h-full items-start justify-center overflow-auto p-2">
+            <div className="w-full max-w-xl">
+              <QueryErrorNotice
+                what="the order list"
+                moduleLabel="POS"
+                error={listError}
+                stillWorks="Orders already sent to the kitchen are unaffected. Do not assume a check is missing because it is not listed here."
+                isRetrying={isFetching}
+                onRetry={() => void refetch()}
+              />
+            </div>
+          </div>
+        ) : showEmptyState ? (
           isSearching ? (
             // Never "No active orders" here: the search deliberately spans every status, so
             // that copy would be a lie about what was looked at — the exact confusion the
@@ -648,6 +719,78 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         tableName={openOrder?.tableName ?? null}
         onFullMenu={onFullMenu}
       />
+    </div>
+  );
+}
+
+// ── Settlement provenance cell (S0-04, F2) ─────────────────────────────────────
+
+/**
+ * WHY a check was voided or refunded, and BY WHOM — readable in full, without a mouse.
+ *
+ * <h3>The constraint</h3>
+ * DataGrid holds every row to one height with `whitespace-nowrap` on the `<td>`; a wrapping cell
+ * silently overrides that, and a long free-text reason previously ran clean across the next
+ * column (measured: the reason printed on top of the Age value). So the cell must truncate.
+ *
+ * <h3>What was wrong with truncating alone</h3>
+ * The full text was reachable only through `title`, which is a hover affordance. Measured on the
+ * live Voided list: *"shift walkthrough — manager voiding a fired, unpaid check"* rendered at
+ * `scrollWidth 374 / clientWidth 352` with `white-space: nowrap` — genuinely clipped. On the
+ * tablet this screen is used on there is no hover, so the last words of a manager's reason were
+ * simply unavailable, and nothing on screen said there were any.
+ *
+ * <h3>The fix</h3>
+ * The reason becomes a real control: tap or click (or Enter/Space, it is a `<button>`) opens a
+ * popover carrying the reason WRAPPED in full plus the byline. `title` stays for mouse users who
+ * hover. The row keeps its single height, and no reason is unreadable on any input device.
+ */
+function SettlementDetailCell({ order }: { order: OrderSummary }) {
+  const detail = order.settlement;
+  const when = formatSettledAt(detail?.at);
+  // The id is the fact; the name is decoration resolved from the staff directory. Falling back to
+  // the id keeps an attribution on screen when the directory is unreachable, instead of a blank
+  // that reads as "nobody".
+  const who = detail?.byName ?? detail?.byUserId?.slice(0, 8) ?? null;
+  const recordedReason = detail?.reason?.trim() ? detail.reason.trim() : null;
+  const reason = recordedReason ?? "No reason recorded";
+  const byline = `${who ? `by ${who}` : "by (not recorded)"}${when ? ` · ${when}` : ""}`;
+
+  return (
+    <div
+      className="flex max-w-[22rem] min-w-0 flex-col gap-0.5"
+      data-testid={`settlement-detail-${order.orderId}`}
+    >
+      {recordedReason ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              title={recordedReason}
+              aria-label={`Read the full reason for order ${order.orderNo ?? order.orderId}`}
+              data-testid={`settlement-reason-${order.orderId}`}
+              className="min-w-0 truncate text-left text-sm underline decoration-dotted underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {recordedReason}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-80"
+            data-testid={`settlement-reason-full-${order.orderId}`}
+          >
+            <p className="text-sm break-words whitespace-normal">{recordedReason}</p>
+            <p className="mt-2 text-xs break-words whitespace-normal text-muted-foreground">
+              {byline}
+            </p>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <span className="truncate text-sm text-muted-foreground">{reason}</span>
+      )}
+      <span className="truncate text-xs text-muted-foreground" title={byline}>
+        {byline}
+      </span>
     </div>
   );
 }

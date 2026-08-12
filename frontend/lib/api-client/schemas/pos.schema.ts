@@ -300,8 +300,17 @@ export const apiOrderSummarySchema = z.object({
   orderNo: z.string().nullable().optional(),
   tableId: z.string().uuid().nullable().optional(),
   tableName: z.string().nullable().optional(),
+  // F2: REQUIRED, not optional. The row used to carry no type at all, so the client rendered
+  // `tableName ?? "Takeaway"` and every tableless DINE_IN check read Takeaway (measured 10/10 on
+  // 2026-08-12). An optional field here would let a stale pos-service silently reinstate exactly
+  // that guess; a parse failure surfaces as the list's error state instead, which is the truth.
+  type: z.enum(["DINE_IN", "TAKEAWAY", "DELIVERY", "PICKUP"]),
   derivedStatus: z.enum(["DRAFT", "IN_PROGRESS", "PARTIALLY_SERVED", "SERVED"]),
   cashierId: z.string().uuid().nullable().optional(),
+  // Decoration, exactly like `settlement.byName` below: resolved server-side from the staff
+  // directory and null when it could not be reached. The client falls back to the id — never to
+  // a blank, which on a "who took this check" column reads as "nobody".
+  cashierName: z.string().nullable().optional(),
   coverCount: z.number().int(),
   totalPaisa: z.number().int().nonnegative(),
   openedAt: z.string().nullable().optional(),

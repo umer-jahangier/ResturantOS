@@ -39,6 +39,7 @@ const activeRow = {
   orderNo: "ORD-ACTIVE",
   tableId: null,
   tableName: "Table 5",
+  type: "DINE_IN",
   derivedStatus: "IN_PROGRESS",
   cashierId: MANAGER,
   coverCount: 2,
@@ -57,6 +58,7 @@ const voidedRow = {
   orderNo: "ORD-VOIDED",
   tableId: null,
   tableName: null,
+  type: "DINE_IN",
   // Deliberately still IN_PROGRESS: `derivedStatus` records how far the FOOD got and does not
   // change on a void. A row that renders derivedStatus would badge this voided check "In
   // Progress", which is the wrong answer twice over.
