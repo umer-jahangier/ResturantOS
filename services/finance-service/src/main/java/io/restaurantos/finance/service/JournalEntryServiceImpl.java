@@ -26,7 +26,9 @@ import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.shared.tenant.TenantGucHelper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -323,7 +325,8 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         ensureTenantGuc();
         UUID branchId = requireBranchId(null);
         authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
-        return jeRepo.findByPeriodIdAndBranchId(periodId, branchId, pageable).map(mapper::toDto);
+        return jeRepo.findByPeriodIdAndBranchId(periodId, branchId, newestFirst(pageable))
+                .map(mapper::toDto);
     }
 
     @Override
@@ -332,8 +335,54 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         ensureTenantGuc();
         UUID branchId = requireBranchId(null);
         authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
-        return jeRepo.findByEntryDateBetweenAndBranchId(from, to, branchId, pageable)
+        return jeRepo.findByEntryDateBetweenAndBranchId(from, to, branchId, newestFirst(pageable))
                 .map(mapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<JournalEntryDto> search(String term, Pageable pageable) {
+        ensureTenantGuc();
+        UUID branchId = requireBranchId(null);
+        authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
+        return jeRepo.searchByBranch(branchId, escapeLikeTerm(term.trim()), newestFirst(pageable))
+                .map(mapper::toDto);
+    }
+
+    /**
+     * A {@code %} or {@code _} the user typed is text they are looking for, not a wildcard they
+     * asked for. Unescaped, a search for "50%" matched every entry in the ledger — a result that
+     * looks like the filter was ignored rather than like a bad match, which is the worst kind of
+     * wrong answer on a money screen. The backslash goes first, or it would double-escape the
+     * escapes this adds. Paired with {@code ESCAPE '\'} on the query itself.
+     */
+    private static String escapeLikeTerm(String term) {
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    /**
+     * Newest entry first, and — the load-bearing half — DETERMINISTIC.
+     *
+     * <p>Every paginated journal read here used to run with whatever {@code Pageable} the
+     * controller's {@code @PageableDefault(size = 50)} produced, which carries NO sort. PostgreSQL
+     * is then free to return the 254 rows of a busy branch's month in any order it likes, and
+     * {@code LIMIT 50} takes an arbitrary 50 of them. Measured on live data: page 1 ended at
+     * {@code JE-2027-000065} while the newest entry was {@code JE-2027-000256}, so an owner who
+     * settled a check and opened the ledger could not see the entry it had just posted — the row
+     * was not late, it was on some other page, and the screen offers no way to reach one.
+     * {@code LIMIT}/{@code OFFSET} without {@code ORDER BY} is also free to repeat and skip rows
+     * between pages, so paging through was never going to find it either.
+     *
+     * <p>{@code entryNo} breaks the tie within a date. It is a zero-padded sequence per fiscal
+     * year, so lexical descending is chronological descending. A caller that asks for its own sort
+     * still gets it — this only supplies one where there was none.
+     */
+    private static Pageable newestFirst(Pageable pageable) {
+        if (pageable.getSort().isSorted()) {
+            return pageable;
+        }
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                Sort.by(Sort.Order.desc("entryDate"), Sort.Order.desc("entryNo")));
     }
 
     /**

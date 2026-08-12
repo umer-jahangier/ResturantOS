@@ -142,8 +142,30 @@ public class AutoPostingRecipeEngine {
             lines.add(line(tag("OUTPUT_TAX"), "Output tax", 0, p.taxPaisa()));
         }
 
-        post(SOURCE_ORDER_REVENUE, p.orderId(), envelope, "Order revenue " + p.orderId(), lines,
+        post(SOURCE_ORDER_REVENUE, p.orderId(), envelope,
+                describeOrder("Order revenue", p.orderNo(), p.orderId()), lines,
                 p.businessDate());
+    }
+
+    /**
+     * The one line of an auto-posted entry a human ever reads on the journal list.
+     *
+     * <p>It used to be {@code "Order revenue " + orderId} — a UUID, on every row, for every closed
+     * check. The order number the guest, the kitchen ticket, the printed bill, the order list and
+     * the audit trail all use has ridden on {@code ORDER_CLOSED} as {@code orderNo} since the
+     * contract was written; the recipe simply reached for the wrong field. An owner reconciling
+     * takings against the ledger had no way to join the two without opening every entry one at a
+     * time.
+     *
+     * <p>Falls back to the id when the producer sent no order number. That is deliberately the OLD
+     * behaviour rather than an invented reference: the id is true and identifies the order, it is
+     * merely unreadable, and a fabricated {@code ORD-…} would be far worse than an ugly one. The
+     * ledger is immutable, so a description is written exactly once and can never be corrected —
+     * which is also why this is resolved from the payload and never from a network lookup that
+     * could fail and permanently freeze a UUID into the books.
+     */
+    private static String describeOrder(String what, String orderNo, UUID orderId) {
+        return what + " " + (orderNo != null && !orderNo.isBlank() ? orderNo : String.valueOf(orderId));
     }
 
     // ── Order COGS ──────────────────────────────────────────────────────────

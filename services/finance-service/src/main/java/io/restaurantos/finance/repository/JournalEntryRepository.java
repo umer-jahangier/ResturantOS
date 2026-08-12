@@ -57,4 +57,29 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
             + "AND je.sourceType = :sourceType ORDER BY je.entryDate ASC, je.entryNo ASC")
     List<JournalEntry> findAllBySourceIdAndSourceType(@Param("sourceId") UUID sourceId,
                                                       @Param("sourceType") String sourceType);
+
+    /**
+     * "Find me the entry for ORD-20260812-0164" — a free-text match on the two fields a human
+     * actually knows an entry by: its description and its entry number.
+     *
+     * <p><b>Not date-bounded, on purpose.</b> The list read is a date-range read and defaults to
+     * the last month; a search is not a date question. An accountant chasing an order number from
+     * a printed bill has the order number and nothing else, and a search that quietly only looked
+     * at the last 30 days would answer "no such entry" about an entry that exists. Branch scoping
+     * still applies (the caller may only search the branch they are scoped to) and tenant scoping
+     * comes from the FORCE RLS policy on this table, which no application code can opt out of.
+     *
+     * <p>{@code LOWER(...) LIKE LOWER(...)} rather than {@code ILIKE} so the query stays portable
+     * JPQL. The term is bound as a parameter, never concatenated, so a quote in the user's text is
+     * data. {@code ESCAPE '\'} makes {@code %} and {@code _} data too — the caller passes the term
+     * through {@link io.restaurantos.finance.service.JournalEntryServiceImpl}'s escaper first.
+     * Without it, typing a bare {@code %} matched the entire ledger, which looks like a search that
+     * ignored what you asked for.
+     */
+    @Query("SELECT je FROM JournalEntry je WHERE je.branchId = :branchId "
+            + "AND (LOWER(je.description) LIKE LOWER(CONCAT('%', :term, '%')) ESCAPE '\\' "
+            + "  OR LOWER(je.entryNo) LIKE LOWER(CONCAT('%', :term, '%')) ESCAPE '\\')")
+    Page<JournalEntry> searchByBranch(@Param("branchId") UUID branchId,
+                                      @Param("term") String term,
+                                      Pageable pageable);
 }

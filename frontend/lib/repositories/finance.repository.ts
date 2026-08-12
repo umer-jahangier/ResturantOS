@@ -103,8 +103,13 @@ export const FinanceRepository = {
     const params: Record<string, unknown> = {};
     if (filters?.periodId) params.periodId = filters.periodId;
     if (filters?.status) params.status = filters.status;
-    if (filters?.fromDate) params.fromDate = filters.fromDate;
-    if (filters?.toDate) params.toDate = filters.toDate;
+    // `from`/`to`, not `fromDate`/`toDate`. The controller has always read `from` and `to`
+    // (@RequestParam LocalDate from/to); sending the longer names meant the server saw neither
+    // and silently fell back to its own default window — a filter that was present in the type
+    // and absent in the request.
+    if (filters?.fromDate) params.from = filters.fromDate;
+    if (filters?.toDate) params.to = filters.toDate;
+    if (filters?.q) params.q = filters.q;
     if (filters?.page !== undefined) params.page = filters.page;
     if (filters?.size !== undefined) params.size = filters.size;
     const result = await getPaginated<unknown>("/api/v1/finance/journal-entries", params);

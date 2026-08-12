@@ -93,6 +93,15 @@ export interface JeFilters {
   status?: JeStatus;
   fromDate?: string;
   toDate?: string;
+  /**
+   * Free text matched server-side against the entry number and the description — which is where
+   * the order number lives, e.g. "Order revenue ORD-20260812-0164".
+   *
+   * <p>When set, the server searches the branch's WHOLE ledger rather than the list's default
+   * one-month window: an order number carries no date, and a search that quietly only looked at
+   * the last 30 days would report "no such entry" about an entry that exists.
+   */
+  q?: string;
   page?: number;
   size?: number;
 }

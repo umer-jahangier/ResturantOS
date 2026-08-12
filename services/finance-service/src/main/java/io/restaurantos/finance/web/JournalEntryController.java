@@ -38,15 +38,25 @@ public class JournalEntryController {
                 .body(ApiResponse.ok(created));
     }
 
+    /**
+     * @param q free-text search on entry number or description. When present it wins over every
+     *          other selector and searches the branch's WHOLE ledger, because the question it
+     *          answers — "which entry is order ORD-20260812-0164?" — carries no date and no
+     *          period. Blank is treated as absent rather than as "match everything with an empty
+     *          string", so clearing the box returns the normal list instead of a silent full scan.
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('finance.journal.view')")
     public ResponseEntity<ApiResponse<List<JournalEntryDto>>> list(
             @RequestParam(required = false) UUID periodId,
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @PageableDefault(size = 50) Pageable pageable) {
         Page<JournalEntryDto> page;
-        if (periodId != null) {
+        if (q != null && !q.isBlank()) {
+            page = jeService.search(q, pageable);
+        } else if (periodId != null) {
             page = jeService.listByPeriod(periodId, pageable);
         } else if (from != null && to != null) {
             page = jeService.listByDateRange(from, to, pageable);

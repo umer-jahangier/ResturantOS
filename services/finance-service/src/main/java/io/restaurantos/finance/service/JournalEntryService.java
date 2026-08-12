@@ -26,6 +26,18 @@ public interface JournalEntryService {
     Page<JournalEntryDto> listByDateRange(LocalDate from, LocalDate to, Pageable pageable);
 
     /**
+     * Free-text search over the branch's whole ledger by entry number or description.
+     *
+     * <p>Deliberately NOT date-bounded — see
+     * {@link io.restaurantos.finance.repository.JournalEntryRepository#searchByBranch}. The list
+     * read shows the last month; the search answers "where is the entry for this order number",
+     * which has no date in it.
+     *
+     * @param term the user's text, already known to be non-blank
+     */
+    Page<JournalEntryDto> search(String term, Pageable pageable);
+
+    /**
      * Every journal entry a source produced, oldest first (37-04, D-37-01).
      *
      * <p>Returns an EMPTY list, never a 404, when the source produced nothing. "This order produced

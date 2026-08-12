@@ -61,6 +61,12 @@ class OrderCloseAutoPostingIT extends AutoPostingITBase {
     private UUID branchId;
     private UUID orderId;
 
+    /**
+     * The real shape, not "ORD-1". The description this produces is quoted verbatim in the
+     * assertion below, so a change to the format is a visible diff rather than a silent one.
+     */
+    private static final String ORDER_NO = "ORD-20260812-0164";
+
     @BeforeEach
     void setUp() {
         tenantId = UUID.randomUUID();
@@ -153,6 +159,46 @@ class OrderCloseAutoPostingIT extends AutoPostingITBase {
     }
 
     /**
+     * F10 — the one line of this entry a human ever reads.
+     *
+     * <p>It used to be {@code "Order revenue " + orderId}: every row on
+     * {@code /app/finance/journal-entries} read {@code Order revenue b64e3cdd-6e00-4d45-88d6-…},
+     * while the order it came from is {@code ORD-20260812-0164} everywhere else in the product —
+     * on the guest's bill, on the kitchen ticket, in the order list and in the audit trail. The
+     * order number has ridden on ORDER_CLOSED as {@code orderNo} since the contract was written;
+     * the recipe reached for the wrong field, so an owner reconciling takings against the ledger
+     * had to open every entry one at a time to find out which check it was.
+     *
+     * <p>Asserted on the row read back out of Postgres, not on the payload, because the ledger is
+     * immutable: a description is written once and can never be corrected.
+     */
+    @Test
+    void orderRevenueEntry_isDescribedByTheOrderNumber_notByTheOrderUuid() throws Exception {
+        publishOrderClosed(UUID.randomUUID());
+
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            tenantHelper.activate(tenantId);
+            try {
+                var revenueJe = jeRepo.findByTenantIdAndSourceTypeAndSourceId(
+                        tenantId, AutoPostingRecipeEngine.SOURCE_ORDER_REVENUE, orderId);
+                assertThat(revenueJe).isPresent();
+                String description = revenueJe.get().getDescription();
+                System.out.printf("[UAT] ORDER_REVENUE description=%s (orderId=%s)%n",
+                        description, orderId);
+                assertThat(description)
+                        .as("the journal list is read by humans; the order number is the only "
+                                + "handle they hold")
+                        .isEqualTo("Order revenue " + ORDER_NO);
+                assertThat(description)
+                        .as("and the UUID must be gone, not merely accompanied")
+                        .doesNotContain(orderId.toString());
+            } finally {
+                tenantHelper.clear();
+            }
+        });
+    }
+
+    /**
      * Built from pos-service's OWN record, so the money invariant the revenue entry depends on —
      * {@code sum(payments[].amountPaisa) == totalPaisa} and
      * {@code totalPaisa == subtotal - discount + tax + serviceCharge} — is expressed in the same
@@ -168,13 +214,21 @@ class OrderCloseAutoPostingIT extends AutoPostingITBase {
         publish("pos.topic", PosEventContract.ORDER_CLOSED_KEY, eventId,
                 PosEventContract.ORDER_CLOSED, "pos-service",
                 new PosEventContract.OrderClosedPayload(
-                        orderId, "ORD-1", "TAKEAWAY", null,
+                        orderId, ORDER_NO, "TAKEAWAY", null,
                         subtotal, 0L, serviceCharge, tax, total,
                         // amountPaisa is what was APPLIED; the customer handed over 1000 paisa more
                         // and got it back as change. Only the applied amount reaches the ledger.
                         List.of(new PosEventContract.PaymentEntry("CASH", total, total + 1_000L, 1_000L, null)),
                         List.of(new PosEventContract.ItemEntry(UUID.randomUUID(), "Nihari", 1, subtotal, subtotal)),
-                        null, null, Instant.now(), BusinessDay.of(Instant.now())));
+                        // The zone is passed explicitly because BusinessDay.of(Instant) is now
+                        // @Deprecated(forRemoval) — it assumed UTC silently, which cut the trading
+                        // day at 09:00 local for Asia/Karachi and filed every breakfast sale to
+                        // yesterday. Its javadoc asks the remaining fixtures to be rewritten so it
+                        // can be deleted; this is one of them. UTC is exactly what this fixture
+                        // used to pass (it has no branch record and only needs A date, not the
+                        // right one), so nothing about this test's meaning changes.
+                        null, null, Instant.now(),
+                        BusinessDay.of(Instant.now(), java.time.ZoneOffset.UTC)));
     }
 
     private void publishStockDepleted(UUID eventId) throws Exception {
