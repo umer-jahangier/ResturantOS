@@ -553,3 +553,24 @@ export type ApiOrderPaymentRecord = z.infer<typeof apiOrderPaymentRecordSchema>;
 // ApiResponse<Long>, not an OrderDto — the frontend refetches the order separately to
 // pick up any settlement-status change from the maybeCloseOrder seam).
 export const apiRecordPaymentResultSchema = z.number().int().nonnegative();
+
+/**
+ * POST /orders/{id}/discounts/preview — what a discount WILL do to the check (D-1).
+ *
+ * Every field is paisa, and every field is the figure the server will write if the same request
+ * is sent to the apply route. The panel used to derive these itself by subtracting the discount
+ * from a tax-INCLUSIVE total; see `DiscountPreview` in the domain model for the measurement.
+ */
+export const apiDiscountPreviewSchema = z.object({
+  amountOffPaisa: z.number().int().nonnegative(),
+  subtotalPaisa: z.number().int(),
+  discountPaisa: z.number().int(),
+  taxPaisa: z.number().int(),
+  serviceChargePaisa: z.number().int(),
+  totalPaisa: z.number().int(),
+  previousTaxPaisa: z.number().int(),
+  previousServiceChargePaisa: z.number().int(),
+  previousTotalPaisa: z.number().int(),
+});
+
+export type ApiDiscountPreview = z.infer<typeof apiDiscountPreviewSchema>;

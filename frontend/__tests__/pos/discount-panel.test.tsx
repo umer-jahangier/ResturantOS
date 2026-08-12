@@ -42,7 +42,10 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 const ORDER_ID = "d1000001-0000-4000-8000-0000000000b3";
 const LINE_ID = "11111111-0000-4000-8000-0000000000b3";
 
-const { applyDiscountMock } = vi.hoisted(() => ({ applyDiscountMock: vi.fn() }));
+const { applyDiscountMock, previewDiscountMock } = vi.hoisted(() => ({
+  applyDiscountMock: vi.fn(),
+  previewDiscountMock: vi.fn(),
+}));
 
 let currentOrder: Order;
 let currentPayments: OrderPayment[];
@@ -53,6 +56,7 @@ vi.mock("@/lib/repositories/pos.repository", () => ({
     getTables: vi.fn(async () => []),
     getPayments: vi.fn(async () => currentPayments),
     applyDiscount: applyDiscountMock,
+    previewDiscount: previewDiscountMock,
     serveAllItems: vi.fn(),
     sendToKds: vi.fn(async () => currentOrder),
     recordPayment: vi.fn(),
@@ -182,8 +186,34 @@ describe("Charge page — giving a discount (B3)", () => {
     await waitFor(() => expect(screen.getByTestId("apply-discount-submit")).toBeEnabled());
   });
 
-  it("shows what the discount will do before it is applied, to the paisa", async () => {
+  /**
+   * D-1 — this test used to assert the defect.
+   *
+   * Its previous body read, verbatim:
+   *
+   * <pre>// 10% of 2 × Rs 450.00 = Rs 90.00; Rs 1,900.00 − Rs 90.00 = Rs 1,810.00.</pre>
+   *
+   * That is gross-minus-discount — the rule that quoted Rs 1,802.00 on a check that charged
+   * Rs 1,774.80. The test passed, was named "to the paisa", and pinned the wrong arithmetic in
+   * place. It is rewritten rather than deleted so the shape of the mistake stays legible: a
+   * preview is only correct if the SERVER said so, and the only way a browser test can assert
+   * that is to assert the browser asked and rendered the reply.
+   */
+  it("renders the server's figures, not its own arithmetic on the gross total", async () => {
     const user = userEvent.setup();
+    // What pos-service really returns for 10% off this line: the tax on this fixture is zero,
+    // so the movement is visible in the total alone.
+    previewDiscountMock.mockResolvedValue({
+      amountOffPaisa: 9000,
+      subtotalPaisa: 190000,
+      discountPaisa: 9000,
+      taxPaisa: 0,
+      serviceChargePaisa: 0,
+      totalPaisa: 181000,
+      previousTaxPaisa: 0,
+      previousServiceChargePaisa: 0,
+      previousTotalPaisa: 190000,
+    });
     renderCharge();
 
     await user.click(await screen.findByTestId("add-discount-button"));
@@ -191,11 +221,58 @@ describe("Charge page — giving a discount (B3)", () => {
     await user.type(screen.getByTestId("discount-value-input"), "10");
     await user.type(screen.getByTestId("discount-reason-input"), "Kebab arrived cold");
 
-    // 10% of 2 × Rs 450.00 = Rs 90.00; Rs 1,900.00 − Rs 90.00 = Rs 1,810.00.
-    await waitFor(() =>
-      expect(screen.getByTestId("discount-preview")).toHaveTextContent(/Rs 90\.00/),
-    );
-    expect(screen.getByTestId("discount-preview")).toHaveTextContent(/Rs 1,810\.00/);
+    const preview = await screen.findByTestId("discount-preview");
+    await waitFor(() => expect(preview).toHaveTextContent(/Rs 1,810\.00/));
+    expect(preview).toHaveTextContent(/Rs 90\.00/);
+
+    // It asked the server the question the operator actually typed — the same payload the apply
+    // route will receive, so the quote and the charge cannot be answers to different questions.
+    expect(previewDiscountMock).toHaveBeenCalledWith(ORDER_ID, {
+      scope: "LINE",
+      orderItemId: LINE_ID,
+      type: "PERCENT",
+      value: 10,
+      reason: "Kebab arrived cold",
+    });
+  });
+
+  /**
+   * The same screen, with a server whose tax rule moves the total by more than the discount —
+   * which is what every real check does and what the browser could never know.
+   */
+  it("quotes the tax-adjusted total, which is NOT the total minus the discount", async () => {
+    const user = userEvent.setup();
+    // ORD-20260812-0443's real figures, scaled onto this fixture's shape: Rs 170.00 off a
+    // Rs 1,972.00 check leaves Rs 1,774.80, because the tax falls from Rs 272.00 to Rs 244.80.
+    previewDiscountMock.mockResolvedValue({
+      amountOffPaisa: 17000,
+      subtotalPaisa: 170000,
+      discountPaisa: 17000,
+      taxPaisa: 24480,
+      serviceChargePaisa: 0,
+      totalPaisa: 177480,
+      previousTaxPaisa: 27200,
+      previousServiceChargePaisa: 0,
+      previousTotalPaisa: 197200,
+    });
+    renderCharge(MANAGER_PERMS);
+
+    await user.click(await screen.findByTestId("add-discount-button"));
+    await user.click(screen.getByTestId("discount-scope-order"));
+    await user.type(screen.getByTestId("discount-value-input"), "10");
+    await user.type(screen.getByTestId("discount-reason-input"), "Regular of twenty years");
+
+    const preview = await screen.findByTestId("discount-preview");
+    await waitFor(() => expect(preview).toHaveTextContent(/Rs 1,774\.80/));
+
+    // The number the old panel printed, and the number a manager read aloud on the floor. If it
+    // is anywhere on this screen the defect is back.
+    expect(preview).not.toHaveTextContent(/Rs 1,802\.00/);
+    expect(document.body.textContent).not.toMatch(/Rs 1,802\.00/);
+
+    // And the movement is EXPLAINED, so the person reading it aloud can check it.
+    expect(screen.getByTestId("discount-preview-tax")).toHaveTextContent(/Rs 272\.00/);
+    expect(screen.getByTestId("discount-preview-tax")).toHaveTextContent(/Rs 244\.80/);
   });
 
   it("sends the scope, the line, the value and the reason the operator actually entered", async () => {
@@ -255,8 +332,31 @@ describe("Charge page — giving a discount (B3)", () => {
     });
   });
 
-  it("names the field and the real number when the amount is more than the line is worth", async () => {
+  /**
+   * D-1 — this one asserted a REFUSAL the server does not make.
+   *
+   * The panel used to rebuild the server's headroom in the browser and block anything larger.
+   * That base double-counted every line discount already on the check (it read
+   * `item.discountPaisa`, which is `recomputeOrderTotals`'s output since V27), which is how
+   * Rs 213.90 came to be quoted against Rs 208.90 applied. And the refusal was wrong in kind as
+   * well as in number: the server CLAMPS an over-large discount rather than rejecting it.
+   *
+   * So the honest behaviour is to let it through and say what will really come off.
+   */
+  it("says what will really come off when the operator asks for more than is left", async () => {
     const user = userEvent.setup();
+    // Rs 2,000.00 asked of a line worth Rs 900.00 — the server clamps to Rs 900.00.
+    previewDiscountMock.mockResolvedValue({
+      amountOffPaisa: 90000,
+      subtotalPaisa: 190000,
+      discountPaisa: 90000,
+      taxPaisa: 0,
+      serviceChargePaisa: 0,
+      totalPaisa: 100000,
+      previousTaxPaisa: 0,
+      previousServiceChargePaisa: 0,
+      previousTotalPaisa: 190000,
+    });
     renderCharge();
 
     await user.click(await screen.findByTestId("add-discount-button"));
@@ -265,12 +365,10 @@ describe("Charge page — giving a discount (B3)", () => {
     await user.type(screen.getByTestId("discount-value-input"), "2000");
     await user.type(screen.getByTestId("discount-reason-input"), "Comped");
 
-    await waitFor(() =>
-      expect(screen.getByTestId("discount-validation-error")).toHaveTextContent(
-        /more than the Rs 900\.00 left on that item/i,
-      ),
-    );
-    expect(screen.getByTestId("apply-discount-submit")).toBeDisabled();
+    const capped = await screen.findByTestId("discount-preview-capped");
+    expect(capped).toHaveTextContent(/Rs 900\.00/);
+    // A legal discount, so it may be given — the old panel disabled the button here.
+    await waitFor(() => expect(screen.getByTestId("apply-discount-submit")).toBeEnabled());
   });
 
   it("shows every discount already on the check with its reason and who authorised it", async () => {

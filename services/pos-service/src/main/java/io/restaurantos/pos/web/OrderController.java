@@ -118,6 +118,28 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.applyDiscount(id, request)));
     }
 
+    /**
+     * What that discount would do, before it is done (D-1).
+     *
+     * <p>Same permission and same request body as the apply above, because it runs the same
+     * pricing and enforces the same rules — including the whole-check policy check, so a cashier
+     * who cannot apply an ORDER-scope discount is told so by the preview rather than after filling
+     * the form in. The panel that reads this used to compute its own answer by subtracting the
+     * discount from a tax-INCLUSIVE total, and was out by the tax relief on every check it ever
+     * previewed.
+     *
+     * <p>POST rather than GET because the input is the {@code ApplyDiscountRequest} body — the same
+     * shape, so the two routes cannot take different arguments — and because a reason string does
+     * not belong in a query log. Nothing is written; see {@code OrderServiceImpl.previewDiscount}.
+     */
+    @PreAuthorize("hasAuthority('pos.order.discount.line')")
+    @PostMapping("/{id}/discounts/preview")
+    public ResponseEntity<ApiResponse<DiscountPreviewDto>> previewDiscount(
+            @PathVariable UUID id,
+            @Valid @RequestBody ApplyDiscountRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.previewDiscount(id, request)));
+    }
+
     @PreAuthorize("hasAuthority('pos.order.send_to_kds')")
     @PostMapping("/{id}/send-to-kds")
     public ResponseEntity<ApiResponse<OrderDto>> sendToKds(

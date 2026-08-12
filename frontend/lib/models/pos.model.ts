@@ -592,3 +592,35 @@ export function derivePaymentStatus(
   }
   return "PAID";
 }
+
+/**
+ * What a discount will do to this check, as priced by the server that is about to do it (D-1).
+ *
+ * <h3>Why this crosses the wire instead of being computed here</h3>
+ *
+ * The discount panel used to answer this itself: `order.totalPaisa - amountOff`. `totalPaisa` is
+ * tax-INCLUSIVE, so that arithmetic asserts that taking money off a bill leaves the tax alone —
+ * the opposite of what the server does. Measured on ORD-20260812-0443 (subtotal Rs 1,700.00, tax
+ * Rs 272.00, total Rs 1,972.00), a 10% whole-check discount previewed "new total Rs 1,802.00" and
+ * applied as Rs 1,774.80: Rs 27.20 out, because the tax fell to Rs 244.80.
+ *
+ * The tax base is a tenant setting, an order-scope discount is allocated across lines pro-rata,
+ * the service charge has its own base and its own channel rules, and the discount is clamped
+ * against a headroom this panel also got wrong (Rs 213.90 quoted against Rs 208.90 applied).
+ * Reimplementing any of that here creates a second implementation of a tax rule, and two
+ * implementations of a tax rule drift. So the panel asks.
+ */
+export interface DiscountPreview {
+  /** What THIS discount takes off, after the server's headroom clamp. */
+  amountOffPaisa: number;
+  subtotalPaisa: number;
+  /** Every discount on the check afterwards, including this one. */
+  discountPaisa: number;
+  taxPaisa: number;
+  serviceChargePaisa: number;
+  /** What the guest will owe. The only number the operator reads aloud. */
+  totalPaisa: number;
+  previousTaxPaisa: number;
+  previousServiceChargePaisa: number;
+  previousTotalPaisa: number;
+}

@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { Percent, Tag } from "lucide-react";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { useApplyDiscount } from "@/lib/hooks/pos/use-orders";
+import { useApplyDiscount, usePreviewDiscount } from "@/lib/hooks/pos/use-orders";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { formatPaisa, parseRupeesToPaisa } from "@/lib/adapters/shared";
-import type { Order, OrderItem } from "@/lib/models/pos.model";
+import type { Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
 interface DiscountPanelProps {
@@ -82,47 +82,10 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
     order.status === "CLOSED" || order.status === "VOIDED" || order.status === "REFUNDED";
   const isDraft = order.status === "DRAFT";
 
-  const selectedItem: OrderItem | undefined = billableItems.find((i) => i.id === lineId);
-
-  /**
-   * What is still discountable — the same base the server prices against, so the preview on
-   * screen is the figure that will actually come off, not an estimate that turns out otherwise.
-   */
-  const lineDiscountsOnItem = (itemId: string) =>
-    order.discounts
-      .filter((d) => d.scope === "LINE" && d.orderItemId === itemId)
-      .reduce((acc, d) => acc + d.amountPaisa, 0);
-
-  const basePaisa = useMemo(() => {
-    if (scope === "ORDER") {
-      const lineTaken = billableItems.reduce(
-        (acc, i) => acc + i.discountPaisa + lineDiscountsOnItem(i.id),
-        0,
-      );
-      const orderTaken = order.discounts
-        .filter((d) => d.scope === "ORDER")
-        .reduce((acc, d) => acc + d.amountPaisa, 0);
-      return Math.max(0, order.subtotalPaisa - lineTaken - orderTaken);
-    }
-    if (!selectedItem) return 0;
-    const gross = selectedItem.unitPriceSnapshot * selectedItem.quantity;
-    return Math.max(0, gross - selectedItem.discountPaisa - lineDiscountsOnItem(selectedItem.id));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, selectedItem, billableItems, order.discounts, order.subtotalPaisa]);
-
   // ── validation, as they type ───────────────────────────────────────────────
   const rawValue = valueText.trim();
   const numericValue = rawValue === "" ? null : Number(rawValue);
   const valueIsNumber = numericValue !== null && Number.isFinite(numericValue);
-
-  const amountOffPaisa = useMemo(() => {
-    if (!valueIsNumber || numericValue === null || numericValue <= 0) return 0;
-    if (type === "PERCENT") {
-      return Math.min(basePaisa, Math.round((numericValue / 100) * basePaisa));
-    }
-    const paisa = parseRupeesToPaisa(rawValue);
-    return paisa === null ? 0 : Math.min(basePaisa, paisa);
-  }, [valueIsNumber, numericValue, type, basePaisa, rawValue]);
 
   const scopeError =
     scope === "ORDER" && !canWholeCheck
@@ -144,19 +107,22 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
     if (type === "FLAT" && parseRupeesToPaisa(rawValue) === null) {
       return `"${rawValue}" is not an amount in rupees.`;
     }
-    if (basePaisa === 0) {
-      return scope === "ORDER"
-        ? "There is nothing left on this check to take off."
-        : "That item has already been fully discounted.";
-    }
-    if (type === "FLAT") {
-      const asked = parseRupeesToPaisa(rawValue);
-      if (asked !== null && asked > basePaisa) {
-        return `That is more than the ${formatPaisa(basePaisa)} left on ${
-          scope === "ORDER" ? "this check" : "that item"
-        }.`;
-      }
-    }
+    /*
+      D-1 — the headroom checks that were here are GONE, and their absence is the fix.
+
+      They asked "is this more than what is left?" by rebuilding the server's base in the
+      browser: subtotal less every line discount less `item.discountPaisa`. That last term is
+      `recomputeOrderTotals`'s OUTPUT since V27, not an input, so every line discount already on
+      the check was counted twice and the headroom came out too small. On the floor that showed
+      as Rs 213.90 quoted against Rs 208.90 applied.
+
+      There is nothing to replace them with, because the server does not refuse an over-large
+      discount — it CLAMPS it (`effectiveDiscount = min(requested, base)`), and the preview below
+      reports the clamped figure. So "Rs 900.00 off a Rs 500.00 line" is not an error to be
+      blocked; it is a discount of Rs 500.00, and the panel now says so in the operator's own
+      numbers instead of refusing on a base it computed wrong. Every remaining rule here is one
+      the server states in exactly these words.
+    */
     return null;
   })();
 
@@ -170,7 +136,35 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
   const firstError = scopeError ?? lineError ?? valueError ?? reasonError;
   const canSubmit = !firstError && !applyDiscount.isPending;
 
-  const newTotalPaisa = Math.max(0, order.totalPaisa - amountOffPaisa);
+  /**
+   * The question, asked of the server, only once the form is worth asking about (D-1).
+   *
+   * `null` until every client-side rule passes — a half-typed "1" of an intended "15" is not a
+   * question anyone wants answered, and the reason field is part of the payload the server
+   * validates. The hook keys its cache on this object, so re-typing a value already asked about
+   * re-reads the answer rather than blanking the line.
+   */
+  const previewRequest =
+    firstError || !valueIsNumber || numericValue === null
+      ? null
+      : {
+          scope,
+          ...(scope === "LINE" ? { orderItemId: lineId } : {}),
+          type,
+          value: numericValue,
+          reason: reason.trim(),
+        };
+  const previewQuery = usePreviewDiscount(order.id, previewRequest);
+  const preview = previewQuery.data;
+
+  /**
+   * A FLAT discount larger than what is left gets clamped by the server. Saying so is the honest
+   * replacement for the client-side refusal that used to guard this, and it is derived from the
+   * server's OWN answer rather than from a base computed here.
+   */
+  const requestedFlatPaisa = type === "FLAT" ? parseRupeesToPaisa(rawValue) : null;
+  const wasCapped =
+    preview != null && requestedFlatPaisa != null && requestedFlatPaisa > preview.amountOffPaisa;
 
   const reset = () => {
     setOpen(false);
@@ -422,12 +416,67 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
         />
       </label>
 
-      {/* ── what it will do ───────────────────────────────────────────────── */}
-      {amountOffPaisa > 0 && !firstError && (
-        <p data-testid="discount-preview" className="text-xs text-muted-foreground">
-          Takes <MoneyDisplay paisa={amountOffPaisa} className="font-medium text-foreground" /> off
-          — new total <MoneyDisplay paisa={newTotalPaisa} className="font-medium text-foreground" />
-          .
+      {/* ── what it will do, according to the server that will do it (D-1) ── */}
+      {previewRequest && previewQuery.isPending && (
+        <p data-testid="discount-preview-pending" className="text-xs text-muted-foreground">
+          Working out the new total&hellip;
+        </p>
+      )}
+      {preview && preview.amountOffPaisa > 0 && (
+        <div data-testid="discount-preview" className="flex flex-col gap-0.5 text-xs text-muted-foreground">
+          <p>
+            Takes{" "}
+            <MoneyDisplay paisa={preview.amountOffPaisa} className="font-medium text-foreground" />{" "}
+            off — new total{" "}
+            <MoneyDisplay paisa={preview.totalPaisa} className="font-medium text-foreground" />.
+          </p>
+          {/*
+            The tax movement, stated rather than hidden.
+
+            A manager who reads "Rs 170.00 off" and then sees the total fall by Rs 197.20 is owed
+            an explanation, and the explanation is that tax is charged on what was actually sold
+            (D-TAX-DISCOUNT.md). Showing the two figures is what makes the new total checkable by
+            the person reading it aloud — which is the whole job of this line, and the reason it
+            being wrong was worth more than every other defect on the audit.
+          */}
+          {preview.taxPaisa !== preview.previousTaxPaisa && (
+            <p data-testid="discount-preview-tax">
+              Tax falls from <MoneyDisplay paisa={preview.previousTaxPaisa} /> to{" "}
+              <MoneyDisplay paisa={preview.taxPaisa} />, because tax is charged on what is sold.
+            </p>
+          )}
+          {preview.serviceChargePaisa !== preview.previousServiceChargePaisa && (
+            <p data-testid="discount-preview-service-charge">
+              Service charge falls from{" "}
+              <MoneyDisplay paisa={preview.previousServiceChargePaisa} /> to{" "}
+              <MoneyDisplay paisa={preview.serviceChargePaisa} />.
+            </p>
+          )}
+          {wasCapped && (
+            <p data-testid="discount-preview-capped">
+              That is more than is left, so only{" "}
+              <MoneyDisplay paisa={preview.amountOffPaisa} /> comes off.
+            </p>
+          )}
+        </div>
+      )}
+      {preview && preview.amountOffPaisa === 0 && (
+        <p data-testid="discount-preview-nothing" className="text-xs text-muted-foreground">
+          {scope === "ORDER"
+            ? "There is nothing left on this check to take off."
+            : "That item has already been fully discounted."}
+        </p>
+      )}
+      {/*
+        A preview the server REFUSED. The apply route enforces the same rules, so this is the
+        operator learning the rule before they press the button rather than after — which is what
+        the panel's own doc comment says it exists to do. The message is the server's, for the
+        same reason the 409 below is passed through: it is already written for this reader.
+      */}
+      {previewRequest && previewQuery.isError && (
+        <p data-testid="discount-preview-error" role="alert" className="text-xs text-destructive">
+          {(previewQuery.error as { message?: string } | null)?.message ??
+            "That discount was refused. Check the amount and try again."}
         </p>
       )}
 

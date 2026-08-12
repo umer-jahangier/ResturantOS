@@ -125,6 +125,15 @@ public class OrderServiceImpl implements OrderService {
      */
     private final StaffNameDirectory staffNameDirectory;
     /**
+     * D-1: used by {@link #previewDiscount} alone, to detach the aggregate it priced.
+     *
+     * <p>Field-injected rather than constructor-injected because this class's constructor already
+     * takes seventeen collaborators and an {@code EntityManager} is not one of them in spirit — it
+     * is the escape hatch a single read-only method needs, not a dependency the order service has.
+     */
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+    /**
      * F20: the branch's service-charge policy, read on the PRICING path. Its
      * {@code policyFor} is the only method used here and it performs no authorization check —
      * a cashier holds none of the settings permissions and must still get the right total.
@@ -650,6 +659,112 @@ public class OrderServiceImpl implements OrderService {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
 
+        OrderDiscount discount = stageDiscount(order, request, tenantId);
+
+        // WHO, stamped here and not in stageDiscount, because the preview path shares that method
+        // and must not spend a call to user-service on a keystroke. The pricing never reads these
+        // two fields, so stamping them after it has run changes nothing about the money.
+        UUID appliedBy = tenantContext.getUserId().orElse(null);
+        discount.setAppliedBy(appliedBy);
+        discount.setAppliedByName(staffNameDirectory.resolve(tenantId, appliedBy));
+
+        return orderMapper.toDto(orderRepository.save(order));
+    }
+
+    /**
+     * The same discount, priced but never written (D-1).
+     *
+     * <h2>Why this endpoint exists at all</h2>
+     *
+     * <p>Because the discount panel used to answer this question itself, in the browser, by
+     * subtracting the discount from {@code order.totalPaisa} — a tax-INCLUSIVE figure — and
+     * printing the difference. That asserts that taking money off a bill leaves the tax alone,
+     * which is the opposite of what {@link #recomputeOrderTotals} does. Measured on
+     * {@code ORD-20260812-0443}: previewed <em>"new total Rs 1,802.00"</em>, applied Rs 1,774.80.
+     * See {@link DiscountPreviewDto} for the full measurement and for why the answer is not simply
+     * better arithmetic on the client.
+     *
+     * <h2>How it cannot drift from apply</h2>
+     *
+     * <p>It runs {@link #stageDiscount} — the identical method {@link #applyDiscount} runs, which
+     * validates, clamps, replaces and calls {@link #recomputeOrderTotals}. There is no second
+     * pricing path to keep in step, which is the whole point: a preview computed by any other means
+     * is a second implementation of a tax rule, and this repository has already watched two
+     * implementations of a tax rule drift.
+     *
+     * <p>It therefore also REFUSES identically. A discount that would take the bill below what has
+     * already been tendered, a check that is closed, a reason under three characters, a percentage
+     * over 100 — every one of those throws here exactly as it throws on apply, so the panel names
+     * the obstacle before the manager commits rather than after.
+     *
+     * <h2>Why nothing reaches the database</h2>
+     *
+     * <p>{@code stageDiscount} mutates the managed aggregate: it adds an {@code OrderDiscount} to a
+     * cascaded collection, removes the rows it replaces, and stamps discount, tax, tax base and
+     * line total onto every line. That mutation is real, and if it reached a flush it would be a
+     * discount nobody applied. Two independent things stop it:
+     *
+     * <ol>
+     *   <li>{@code readOnly = true} puts the Hibernate session in {@code FlushMode.MANUAL}, so no
+     *       automatic flush happens at commit, and marks the JDBC connection read-only, so a flush
+     *       introduced by some future change fails at the driver rather than writing;</li>
+     *   <li>{@link jakarta.persistence.EntityManager#clear()} detaches the mutated aggregate
+     *       outright, so there is nothing dirty left to flush and nothing later in the request can
+     *       see the staged state.</li>
+     * </ol>
+     *
+     * <p><b>Measured, not assumed:</b> {@code aPreviewWritesNothing} was run against three
+     * mutilations of this method. With {@code readOnly} dropped it still passed; with
+     * {@code clear()} dropped it still passed; with BOTH dropped it failed
+     * ({@code [three previews, no discount on the check] expected: 0 but was: 1}). So either guard
+     * alone is sufficient today and the pair is deliberate redundancy — but the test can only catch
+     * the loss of both at once. Anyone removing one of them is removing a belt or braces and the
+     * suite will not object; removing both is caught.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public DiscountPreviewDto previewDiscount(UUID orderId, ApplyDiscountRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        long previousTax = order.getTaxPaisa();
+        long previousServiceCharge = order.getServiceChargePaisa();
+        long previousTotal = order.getTotalPaisa();
+
+        OrderDiscount staged = stageDiscount(order, request, tenantId);
+
+        DiscountPreviewDto preview = new DiscountPreviewDto(
+                staged.getAmountPaisa(),
+                order.getSubtotalPaisa(),
+                order.getDiscountPaisa(),
+                order.getTaxPaisa(),
+                order.getServiceChargePaisa(),
+                order.getTotalPaisa(),
+                previousTax,
+                previousServiceCharge,
+                previousTotal);
+
+        // Detach the whole staged aggregate. See the javadoc above: readOnly already stops the
+        // flush, and this stops the mutated entities from being visible to anything else at all.
+        entityManager.clear();
+        return preview;
+    }
+
+    /**
+     * Validate, authorize, clamp, replace and PRICE one discount onto the in-memory order — the one
+     * path {@link #applyDiscount} and {@link #previewDiscount} both run.
+     *
+     * <p>Everything here mutates {@code order} and nothing here saves it. The caller decides
+     * whether the mutation becomes a row: apply saves, preview runs in a read-only transaction and
+     * clears the persistence context. Splitting it any other way — a "pricing" helper that returns
+     * an amount and a separate recompute — is what would let the preview and the apply answer
+     * differently again.
+     *
+     * @return the staged discount, whose {@code amountPaisa} is the money that will really come off
+     */
+    private OrderDiscount stageDiscount(Order order, ApplyDiscountRequest request, UUID tenantId) {
+        UUID orderId = order.getId();
+
         assertDiscountable(order);
 
         // Also enforced by @NotBlank/@Size on the DTO, which is what turns a bad API call into a
@@ -755,16 +870,14 @@ public class OrderServiceImpl implements OrderService {
         discount.setAmountPaisa(amountPaisa);
         discount.setOrderItemId(orderScope ? null : request.orderItemId());
         discount.setReason(reason);
-        UUID appliedBy = tenantContext.getUserId().orElse(null);
-        discount.setAppliedBy(appliedBy);
-        discount.setAppliedByName(staffNameDirectory.resolve(tenantId, appliedBy));
         order.getDiscounts().add(discount);
 
         recomputeOrderTotals(order);
 
         // Priced last, checked last: a partly-tendered check must not be discounted below what the
         // guest has already handed over. The figures are named because "not allowed" tells a
-        // cashier nothing they can act on.
+        // cashier nothing they can act on. Thrown on the PREVIEW path too, which is the point of
+        // sharing this method — the panel refuses before the manager commits, not after.
         long paidPaisa = orderPaymentRepository.sumAmountByOrderId(orderId);
         if (paidPaisa > 0 && order.getTotalPaisa() < paidPaisa) {
             throw new io.restaurantos.shared.exception.StateInvalidException(
@@ -773,7 +886,7 @@ public class OrderServiceImpl implements OrderService {
                             + " already paid. Refund the difference instead.");
         }
 
-        return orderMapper.toDto(orderRepository.save(order));
+        return discount;
     }
 
     /**
