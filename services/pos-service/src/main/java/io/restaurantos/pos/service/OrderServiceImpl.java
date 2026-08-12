@@ -6,6 +6,7 @@ import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.enums.PaymentStatus;
+import io.restaurantos.pos.domain.enums.TaxBase;
 import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
@@ -116,6 +117,14 @@ public class OrderServiceImpl implements OrderService {
      * a cashier holds none of the settings permissions and must still get the right total.
      */
     private final ServiceChargeService serviceChargeService;
+    /**
+     * V27: the tenant's sales-tax base position, read on the PRICING path. Its
+     * {@code taxBaseForCurrentTenant} is the only method used here and it performs no
+     * authorization check, for the same reason {@link #serviceChargeService} above does not — a
+     * cashier holds none of the settings permissions and must still get the right total. It cannot
+     * fail or return "unknown": a tenant with no row is NET.
+     */
+    private final TaxPolicyService taxPolicyService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -156,8 +165,10 @@ public class OrderServiceImpl implements OrderService {
                             PrintDispatchService printDispatchService,
                             BranchBusinessDay branchBusinessDay,
                             StaffNameDirectory staffNameDirectory,
-                            ServiceChargeService serviceChargeService) {
+                            ServiceChargeService serviceChargeService,
+                            TaxPolicyService taxPolicyService) {
         this.serviceChargeService = serviceChargeService;
+        this.taxPolicyService = taxPolicyService;
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -1607,11 +1618,52 @@ public class OrderServiceImpl implements OrderService {
      * and a discount attached to a CANCELLED line contributes nothing (the line is not on the
      * bill, so neither is its discount).
      *
-     * <p>Tax is deliberately NOT recomputed here. It is the per-line figure stamped at add-item
-     * time, and the customer receipt asserts {@code Σ lineTax == order.taxPaisa} before it will
-     * print. Re-basing tax on the discounted amount is a real question with a real answer, but it
-     * is a change to what the ledger owes FBR and belongs with the tax work, not smuggled in
-     * behind a discount button.
+     * <h2>V27 — the two charges used to disagree about what a discount means</h2>
+     *
+     * <p>This method priced two charges on the same bill by opposite rules. Tax was the sum of the
+     * per-line snapshots V23 stamps at add-item time, taken on the GROSS line and never revisited;
+     * the service charge F20 added below was recomputed on the NET of every discount. So a
+     * discount moved one charge and not the other. Measured live on 2026-08-12 at Floating Terrace
+     * F-7, order ORD-20260812-0356: a Rs 49.90 line discount moved the service charge and left the
+     * tax at Rs 12.80, where the discounted base gives Rs 12.01 — Rs 0.79 over-charged. Comping the
+     * check further, the charge page read {@code Subtotal Rs 809.00 | Discounts Rs 579.00 |
+     * Taxes Rs 12.80 | Total Rs 254.30}: output tax collected on Rs 809.00 of food when Rs 230.00
+     * was sold.
+     *
+     * <p>This was nobody's defect, which is why it survived. B3 made discounts reachable, V23 put
+     * the per-line tax snapshot in place and V24 put the service charge beside it; each is correct
+     * alone and the interaction had no owner. The previous revision of this comment said re-basing
+     * tax "belongs with the tax work, not smuggled in behind a discount button" — correct at the
+     * time, and this is that work.
+     *
+     * <p><b>Tax is now charged on the same base the service charge is: the line, net of its share
+     * of every discount.</b> That is the normal Pakistani value-of-supply position where the
+     * discount is shown on the invoice — and this product shows it, on the bill and, since B3, as
+     * a reviewable row per discount. It is also what {@code OrderPricingCalculator.perLineTax} has
+     * always documented and computed; the reason that path never ran is that its only caller
+     * ({@link #addItem}) passes a hard-coded {@code 0L} discount, so {@code item.discountPaisa} is
+     * 0 on every row this product has ever written and every real discount arrives later as an
+     * {@code order_discounts} row that never re-enters the calculator. The gross behaviour was an
+     * artefact of that zero, not a position anyone took.
+     *
+     * <p><b>A tenant may hold the opposite position</b> — {@code tenant_tax_policy.tax_base =
+     * GROSS} restores exactly the arithmetic that shipped before V27. Whether a discount reduces
+     * the value of supply is a question about a business and its jurisdiction, and the person who
+     * signs the return is entitled to answer it. A tenant with no row is NET.
+     *
+     * <p><b>Three fields on the line move together or none of them do</b> —
+     * {@code discountPaisa}, {@code taxPaisa} and {@code lineTotalPaisa} — the same rule
+     * {@link #applyServiceCharge} states for its own three. {@code ReceiptDocumentAssembler}
+     * asserts both {@code Σ lineTax == order.taxPaisa} and
+     * {@code Σ(lineTotal + lineDiscount − lineTax) == subtotal} and THROWS rather than printing
+     * when either fails, so re-basing the order's tax without pushing the same figures down onto
+     * the lines would leave a cashier holding a guest's money and no way to produce paper.
+     *
+     * <p><b>What this does not do:</b> it does not restate history. This method runs only while an
+     * order is being mutated, so a closed check keeps the tax it was settled at and the rows
+     * reporting-service has already written to {@code sales_order_facts} do not move. It also does
+     * not decide whether the service charge is itself taxable; that question is still open and
+     * {@code OrderPricingCalculator.serviceCharge} still says so.
      *
      * <h2>F20 — the service charge is computed HERE, and nowhere else</h2>
      *
@@ -1642,33 +1694,53 @@ public class OrderServiceImpl implements OrderService {
             lineScopeByItem.merge(d.getOrderItemId(), d.getAmountPaisa(), Long::sum);
         }
 
+        // The tenant's position on what a discount does to the value of supply. Read on the
+        // PRICING path, inside this transaction, for a cashier who holds no settings permission —
+        // see TaxPolicyService.taxBaseForCurrentTenant. No row means NET.
+        TaxBase tenantBase = taxPolicyService.taxBaseForCurrentTenant();
+
+        // CANCELLED lines contribute nothing to the money owed — excluding them here is what makes
+        // a cancel actually reduce subtotal/tax/total (and therefore the amount due). Mirrors
+        // toSummaryDto's item-count exclusion.
+        //
+        // SORTED, because `Order.items` is a plain @OneToMany bag: Hibernate issues no ORDER BY and
+        // the order it hands back is not guaranteed stable across loads. The pro-rata allocation
+        // below breaks ties by position, so an unstable order would let a paisa of discount — and
+        // therefore of tax — move between lines, and between the rate buckets printed on the
+        // guest's bill, on a recompute triggered by something else entirely. Sorting on the line's
+        // own id makes the allocation a function of the data alone. A line added in this same
+        // transaction has no id yet and sorts last, which is where it was appended.
+        List<OrderItem> billable = order.getItems().stream()
+                .filter(item -> item.getItemStatus() != OrderItemStatus.CANCELLED)
+                .sorted(Comparator.comparing(OrderItem::getId,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        // ── Pass one: what each line is worth, and what its own discounts take off it ─────────
+        int lineCount = billable.size();
+        long[] gross = new long[lineCount];
+        long[] lineDiscount = new long[lineCount];
+        long[] remaining = new long[lineCount];
         long subtotal = 0L;
         long lineDiscounts = 0L;
-        long tax = 0L;
 
-        for (OrderItem item : order.getItems()) {
-            // CANCELLED lines contribute nothing to the money owed — excluding them here is
-            // what makes a cancel actually reduce subtotal/tax/total (and therefore the
-            // amount due). Mirrors toSummaryDto's item-count exclusion.
-            if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
-                continue;
-            }
+        for (int i = 0; i < lineCount; i++) {
+            OrderItem item = billable.get(i);
             // S6: through the calculator, NOT `unitPriceSnapshot * quantity` inline. This line
             // used to do its own arithmetic and left the modifier deltas out of it. That agreed
             // with the line's own `lineTotalPaisa` only for as long as every delta was the zero
             // the addItem stub wrote; the moment a modifier carried a real price the two diverged,
             // and the order header disagreed with its own lines — the screen, the printed bill and
             // the journal entry differing by the price of the extras on the same check.
-            long itemSubtotal = pricingCalculator.lineSubtotal(item);
-            long itemDiscount = item.getDiscountPaisa();
-            // Whatever is left of this line after the menu-level discount is the most any
-            // line-scope discount can take off it.
-            long headroom = Math.max(0L, itemSubtotal - itemDiscount);
-            itemDiscount += Math.min(lineScopeByItem.getOrDefault(item.getId(), 0L), headroom);
-
-            subtotal += itemSubtotal;
-            lineDiscounts += itemDiscount;
-            tax += item.getTaxPaisa();
+            gross[i] = pricingCalculator.lineSubtotal(item);
+            // Capped at the line, so no line goes below zero however many discounts land on it.
+            // `item.discountPaisa` is NOT read here any more: this method now assigns it (see pass
+            // two), because a line's discount and the tax computed from it have to be written by
+            // whichever code decides them, and that is here.
+            lineDiscount[i] = Math.min(lineScopeByItem.getOrDefault(item.getId(), 0L), gross[i]);
+            remaining[i] = gross[i] - lineDiscount[i];
+            subtotal += gross[i];
+            lineDiscounts += lineDiscount[i];
         }
 
         long orderLevelDiscount = order.getDiscounts().stream()
@@ -1676,8 +1748,58 @@ public class OrderServiceImpl implements OrderService {
                 .mapToLong(OrderDiscount::getAmountPaisa)
                 .sum();
 
-        long totalDiscount = lineDiscounts + Math.min(orderLevelDiscount, subtotal - lineDiscounts);
-        if (totalDiscount < 0) totalDiscount = 0L;
+        // An ORDER-scope discount carries no tax rate; the lines do, and one check may carry
+        // several. Until the discount is attributed to particular lines there is no rate to apply
+        // to it and nothing to say which bucket of the receipt's tax breakdown it came out of.
+        // The allocation caps itself at what is left of the check, which is the same clamp the old
+        // `Math.min(orderLevelDiscount, subtotal - lineDiscounts)` applied one level up.
+        long[] orderAllocation = pricingCalculator.allocateProRata(orderLevelDiscount, remaining);
+
+        // ── Pass two: stamp every line, and take the order's tax FROM the lines ──────────────
+        // The direction matters. `ReceiptDocumentAssembler` asserts Σ lineTax == order.taxPaisa and
+        // refuses to print when it fails, so the order's figure has to be the sum of the lines'
+        // rather than a number computed beside them.
+        long totalDiscount = lineDiscounts;
+        long tax = 0L;
+
+        for (int i = 0; i < lineCount; i++) {
+            OrderItem item = billable.get(i);
+            long discounted = lineDiscount[i] + orderAllocation[i];
+            long net = gross[i] - discounted;
+
+            long lineTax;
+            TaxBase appliedBase;
+            if (item.getTaxRatePct() != null && item.getTaxRatePct().signum() != 0) {
+                appliedBase = tenantBase;
+                lineTax = pricingCalculator.perLineTax(
+                        appliedBase == TaxBase.NET ? net : gross[i], item.getTaxRatePct());
+            } else if (item.getTaxPaisa() > 0L) {
+                // A PRE-F16 line: real tax on it, no rate recorded — the combination
+                // OrderItem.taxRatePct documents as impossible for a new line. Its rate is
+                // genuinely unknown, so there is nothing to re-derive the tax FROM, and
+                // recomputing would silently wipe a real charge to zero. Leave the money exactly
+                // where it is and record that it was priced on the gross, because it was.
+                appliedBase = TaxBase.GROSS;
+                lineTax = item.getTaxPaisa();
+            } else {
+                // Zero-rated, or a line that has never carried tax. Both bases give the same
+                // answer here, so the tenant's own is the honest thing to record against it.
+                appliedBase = tenantBase;
+                lineTax = 0L;
+            }
+
+            // Three fields, moved together. Leaving `lineTotalPaisa` gross while `discountPaisa`
+            // moved would break the receipt's other identity,
+            // Σ(lineTotal + lineDiscount − lineTax) == subtotal, and that one holds under BOTH
+            // bases only because all three are written here in one place.
+            item.setDiscountPaisa(discounted);
+            item.setTaxPaisa(lineTax);
+            item.setTaxBase(appliedBase);
+            item.setLineTotalPaisa(net + lineTax);
+
+            totalDiscount += orderAllocation[i];
+            tax += lineTax;
+        }
 
         applyServiceCharge(order, subtotal - totalDiscount);
 
@@ -1728,10 +1850,20 @@ public class OrderServiceImpl implements OrderService {
      * What is still discountable on one line: its menu price less every discount already on it.
      * A percentage is taken of this, never of {@code lineTotalPaisa} — that figure is
      * tax-INCLUSIVE, so "10% off" priced against it charged the guest 10% of the tax as well.
+     *
+     * <p><b>The discount rows are the input; {@code item.discountPaisa} is not.</b> That field is
+     * {@link #recomputeOrderTotals}'s OUTPUT as of V27 — it holds the line's line-scope discounts
+     * PLUS its share of any order-level one — so adding it to the sum below would count the
+     * line-scope rows twice and hand back a headroom smaller than the truth. The caller then caps
+     * a FLAT discount, or scales a PERCENT one, against that shrunken base silently: a manager
+     * typing "20% off" on a check that already carries a line discount would get less than they
+     * authorised, with the shortfall showing up only on the Discount Summary report. Reading the
+     * field here was harmless for exactly as long as nothing wrote it — which is the same shape as
+     * the {@code addItem} zero that let the gross tax base survive unnoticed until V27.
      */
     private long lineDiscountBase(Order order, OrderItem item) {
         long gross = item.getUnitPriceSnapshot() * item.getQuantity();
-        long already = item.getDiscountPaisa() + order.getDiscounts().stream()
+        long already = order.getDiscounts().stream()
                 .filter(d -> "LINE".equals(d.getScope()) && item.getId().equals(d.getOrderItemId()))
                 .mapToLong(OrderDiscount::getAmountPaisa)
                 .sum();
@@ -1754,7 +1886,9 @@ public class OrderServiceImpl implements OrderService {
                 continue;
             }
             long gross = item.getUnitPriceSnapshot() * item.getQuantity();
-            long already = item.getDiscountPaisa() + order.getDiscounts().stream()
+            // The rows, NOT item.discountPaisa — see lineDiscountBase for why reading that field
+            // back double-counts now that recomputeOrderTotals assigns it.
+            long already = order.getDiscounts().stream()
                     .filter(d -> "LINE".equals(d.getScope()) && item.getId().equals(d.getOrderItemId()))
                     .mapToLong(OrderDiscount::getAmountPaisa)
                     .sum();

@@ -130,6 +130,108 @@ public class OrderPricingCalculator {
     }
 
     /**
+     * Spread one order-level amount across lines in proportion to what each line is worth, in whole
+     * paisa, with the parts summing to the whole EXACTLY (V27).
+     *
+     * <h2>Why this has to exist</h2>
+     *
+     * <p>An ORDER-scope discount has no tax rate. The lines do — {@code order_items.tax_rate_pct},
+     * snapshotted per line since V23, and a check may legitimately carry several (a standard-rated
+     * dish beside a zero-rated one). So "tax the discounted amount" is not a question that can be
+     * answered at the order level at all: until the discount is attributed to particular lines,
+     * there is no rate to apply to it, and no way to say which bucket on the receipt's tax
+     * breakdown it came out of. This is that attribution.
+     *
+     * <h2>Pro-rata, by what is left of each line</h2>
+     *
+     * <p>Weighted by each line's remaining net — what it is still worth after its own line-scope
+     * discounts — rather than by its gross. A line already comped to zero must absorb none of a
+     * further order-level discount; weighting by gross would hand it a share it has no room for and
+     * push the line negative.
+     *
+     * <p>Pro-rata rather than a waterfall (fill the first line, then the next) because the choice
+     * is visible in the money: a waterfall attributes the whole discount to whichever lines happen
+     * to sort first, so on a check mixing a 17% dish with a zero-rated one the tax relief would
+     * depend on the order the cashier rang them in. Pro-rata is the only rule here that is neutral
+     * between rate buckets, which is the property that matters when the buckets are printed on the
+     * guest's bill and summed onto a return.
+     *
+     * <h2>Largest remainder, and why the tie-break is stable</h2>
+     *
+     * <p>Integer division leaves a few paisa unallocated; they go one each to the lines with the
+     * largest fractional remainders, ties broken by lowest index. The alternative — rounding each
+     * share independently — does not sum to the input, and a discount whose parts do not add up to
+     * itself would break {@code ReceiptDocumentAssembler.assertMoneyIdentities} and refuse to print
+     * the guest's bill.
+     *
+     * <p>The tie-break is deterministic ON PURPOSE. {@code recomputeOrderTotals} runs on EVERY
+     * mutation of the check, so the same inputs must produce the same allocation every time. A
+     * tie broken arbitrarily would let a line's tax jitter by a paisa each time an unrelated dish
+     * was added, and the jitter would land on the printed tax breakdown.
+     *
+     * @param amountPaisa  the amount to spread; zero or negative allocates nothing
+     * @param weightsPaisa each line's remaining net, in line order; negatives are treated as zero
+     * @return one allocation per weight, in the same order, summing to
+     *         {@code min(amountPaisa, Σ weightsPaisa)} exactly. Capped at the total weight so no
+     *         line is discounted below zero, which is the same floor {@link #effectiveDiscount}
+     *         applies one level down
+     */
+    public long[] allocateProRata(long amountPaisa, long[] weightsPaisa) {
+        long[] out = new long[weightsPaisa.length];
+        long totalWeight = 0L;
+        for (long w : weightsPaisa) {
+            if (w > 0) {
+                totalWeight += w;
+            }
+        }
+        if (amountPaisa <= 0 || totalWeight <= 0) {
+            return out;
+        }
+
+        // Capped, not an error. An order-level discount larger than what is left of the check is
+        // reachable the moment a cashier stacks a comp on top of line discounts, and the honest
+        // answer is "everything that remains" rather than a refusal at the till.
+        long amount = Math.min(amountPaisa, totalWeight);
+
+        long allocated = 0L;
+        long[] remainders = new long[weightsPaisa.length];
+        for (int i = 0; i < weightsPaisa.length; i++) {
+            long weight = Math.max(0L, weightsPaisa[i]);
+            // multiplyExact, never a silent wrap: paisa are BIGINT and this product is the one
+            // place two money-sized numbers meet. A wrapped negative here would hand a line a
+            // discount that increased the bill.
+            long product = Math.multiplyExact(amount, weight);
+            out[i] = product / totalWeight;
+            remainders[i] = product % totalWeight;
+            allocated += out[i];
+        }
+
+        // 0 <= leftover < number of lines, by construction: each floor loses strictly less than one
+        // paisa. Hand them to the largest remainders first; equal remainders go to the earlier
+        // line, so the result depends only on the inputs and not on when it was computed.
+        long leftover = amount - allocated;
+        while (leftover > 0) {
+            int best = -1;
+            for (int i = 0; i < remainders.length; i++) {
+                if (remainders[i] > 0 && (best == -1 || remainders[i] > remainders[best])) {
+                    best = i;
+                }
+            }
+            if (best == -1) {
+                // Every remainder is zero, so the division was exact and `leftover` is zero too.
+                // Unreachable while the arithmetic above holds; leaving the loop is the only safe
+                // thing to do if it ever does not, because spinning here would hang a cashier's
+                // till on an order that would not price.
+                break;
+            }
+            out[best]++;
+            remainders[best] = 0L;
+            leftover--;
+        }
+        return out;
+    }
+
+    /**
      * Compute and apply totals to the order item in-place.
      * Returns the computed line total for aggregation.
      */
