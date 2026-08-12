@@ -6,7 +6,7 @@
     "voided": {
       "term": "ORD-20260812-0058",
       "rows": [
-        "ORD-20260812-0058 Takeaway | Voided | Unpaid | fefd7187 | 1 Items | Rs 499.00 | 7m | Open"
+        "ORD-20260812-0058 Takeaway | Voided | Unpaid | fefd7187 | 1 Items | Rs 499.00 | 32m | Open"
       ],
       "badge": 1,
       "chipStillActive": true,
@@ -18,7 +18,7 @@
     "closed": {
       "term": "ORD-20260812-0060",
       "rows": [
-        "ORD-20260812-0060 Takeaway | Closed | Paid | fefd7187 | 4 Items 1 Items / 4 Qty | Rs 1,996.00 | 7m | Open"
+        "ORD-20260812-0060 Takeaway | Closed | Paid | fefd7187 | 4 Items 1 Items / 4 Qty | Rs 1,996.00 | 32m | Open"
       ],
       "badge": 1,
       "chipStillActive": true,
@@ -30,7 +30,7 @@
     "voidedTail": {
       "term": "0058",
       "rows": [
-        "ORD-20260812-0058 Takeaway | Voided | Unpaid | fefd7187 | 1 Items | Rs 499.00 | 7m | Open"
+        "ORD-20260812-0058 Takeaway | Voided | Unpaid | fefd7187 | 1 Items | Rs 499.00 | 32m | Open"
       ],
       "badge": 1,
       "chipStillActive": true,
@@ -42,9 +42,9 @@
     "phone": {
       "term": "03009824573",
       "rows": [
-        "ORD-20260812-0062 Takeaway | In Progress | Unpaid | fefd7187 | 1 Items | Rs 499.00 | 6m | Assign Table Open",
-        "ORD-20260812-0024 Takeaway | In Progress | Unpaid | eb2ee67e | 1 Items | Rs 255.20 | 2h 3m | Assign Table Open",
-        "ORD-20260812-0007 Takeaway | Closed | Paid | eb2ee67e | 1 Items | Rs 1,682.00 | 2h 40m | Open"
+        "ORD-20260812-0062 Takeaway | In Progress | Unpaid | fefd7187 | 1 Items | Rs 499.00 | 32m | Assign Table Open",
+        "ORD-20260812-0024 Takeaway | In Progress | Unpaid | eb2ee67e | 1 Items | Rs 255.20 | 2h 28m | Assign Table Open",
+        "ORD-20260812-0007 Takeaway | Closed | Paid | eb2ee67e | 1 Items | Rs 1,682.00 | 3h 6m | Open"
       ],
       "badge": 0,
       "chipStillActive": true,
