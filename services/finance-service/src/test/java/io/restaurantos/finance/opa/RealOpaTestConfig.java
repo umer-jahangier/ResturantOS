@@ -52,7 +52,7 @@ public class RealOpaTestConfig {
         OPA.start();
         // Positive control. Proves the engine actually holds the bundle before any test is allowed to
         // trust a decision from it; here rather than in an IT so it cannot be forgotten by one added later.
-        OpaPolicyBundle.assertActuallyLoaded(opaBaseUrl(), "restaurantos/finance.rego");
+        OpaPolicyBundle.assertActuallyLoaded(opaBaseUrl(), policiesDir(), "restaurantos/finance.rego");
     }
 
     private static Path policiesDir() {
