@@ -41,6 +41,10 @@ class ControllerAuthorizationClosureTest {
             OrderController.class,
             PaymentController.class,
             MenuController.class,
+            // S1-01: the read half of station routing. Its own controller because MenuController
+            // was mid-edit in a shared working tree — but listed here for the same reason
+            // everything else is: an ungated endpoint is the absence of a line nobody reviews.
+            MenuRoutingController.class,
             TillController.class,
             StationController.class,
             TableController.class,
@@ -100,7 +104,7 @@ class ControllerAuthorizationClosureTest {
     /** Guards against the list above silently going stale if a controller is added or renamed. */
     @Test
     void theControllerListCoversEveryControllerInThePackage() {
-        assertThat(CONTROLLERS).hasSize(9);
+        assertThat(CONTROLLERS).hasSize(10);
         for (Class<?> controller : CONTROLLERS) {
             assertThat(controller.getPackageName()).isEqualTo(getClass().getPackageName());
         }

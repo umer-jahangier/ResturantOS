@@ -15,6 +15,7 @@ import {
   MonitorSpeaker,
   Palette,
   Receipt,
+  Route,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -250,6 +251,22 @@ export const navGroups: NavGroup[] = [
         label: "Stations",
         href: "/app/stations",
         icon: MonitorSpeaker,
+        permission: "pos.menu.manage",
+        feature: "FEATURE_POS",
+      },
+      {
+        // S1-01: where each dish is MADE. Stations could be created (above) and menu items could
+        // be created (Menu Items) and there was no screen anywhere that joined the two — so every
+        // item resolved to no station, a mixed check produced one DEFAULT ticket, and the bar
+        // never received a drink. The two write endpoints have existed since 28-05 with zero
+        // callers; this entry is the first way into them.
+        //
+        // Sits directly under Stations because it is the second half of that job, and is gated on
+        // the same `pos.menu.manage` both writes @PreAuthorize — a nav entry to a screen whose
+        // every control 403s is worse than no entry.
+        label: "Station Routing",
+        href: "/app/menu/routing",
+        icon: Route,
         permission: "pos.menu.manage",
         feature: "FEATURE_POS",
       },
