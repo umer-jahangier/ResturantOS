@@ -1,0 +1,42 @@
+{
+  "agentsStatus": 200,
+  "healthStatus": 200,
+  "configStatus": 200,
+  "reporting": [
+    {
+      "label": "F8 live agent",
+      "devices": [
+        "_80Series2 (PRINTING)",
+        "STMicroelectronics_POS80_Printer_USB (PRINTING)"
+      ]
+    }
+  ],
+  "receipt": [
+    {
+      "id": "audit-receipt",
+      "transport": "SYSTEM",
+      "systemPrinterName": "STMicroelectronics_POS80_Printer_USB"
+    }
+  ],
+  "grill": [
+    {
+      "id": "grill-9105",
+      "host": "127.0.0.1",
+      "port": 9105
+    }
+  ],
+  "printerStates": [
+    {
+      "id": "audit-receipt",
+      "state": "PRINTING",
+      "printed": 126,
+      "failed": 0
+    },
+    {
+      "id": "grill-9105",
+      "state": "PRINTING",
+      "printed": 6,
+      "failed": 1
+    }
+  ]
+}
