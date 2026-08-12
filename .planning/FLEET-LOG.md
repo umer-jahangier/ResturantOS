@@ -80,6 +80,13 @@ Each of these produced a confident, wrong answer:
   you the no-match safety net, so read per-class counts out of `target/surefire-reports/*.txt`
   rather than trusting the aggregate. Confirmed independently by two sessions. For ITs, surefire
   excludes `**/*IT.java` entirely: use `mvn -pl <module> verify -Dit.test=…`.
+- **A structured-output schema is for SHORT fields and a FILE PATH — never for a report.** Two
+  agents produced ~21 KB and ~15 KB of measured findings inside single string fields; the payloads
+  failed to parse **five times each**, the workflow returned `{"results":[]}`, and only the opening
+  ~2 KB of each survived in the transcript. 331k tokens of real investigation, most of it
+  unrecoverable, because of how the *output* was asked for rather than anything the agents did. Have
+  agents **write long-form findings to a file and return the path**; keep schema fields to verdicts,
+  counts, SHAs and short summaries.
 - **`-Dit.test='ClassA+ClassB'` matches NOTHING.** `+` separates METHODS; classes are
   comma-separated. On its own that would fail loudly — but `-Dfailsafe.failIfNoSpecifiedTests=false`
   is *required* (or `-am` lets shared-lib's failsafe kill the reactor first), and it turns "matched
