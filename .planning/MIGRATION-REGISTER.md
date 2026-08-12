@@ -46,10 +46,37 @@ being careful.**
 | V25 | modifier catalogue | main | applied |
 | V26 | print agent devices | main | applied |
 | V27 | tenant tax policy | main | **applied to shared `pos_db`** — do not renumber |
-| V28 | hash legacy idempotency fingerprints | `practical-borg-3dc2b3` (void reason length) | claimed |
+| V28 | hash legacy idempotency fingerprints | `practical-borg-3dc2b3` (void reason length) | **claimed, NOT merged — see the gap warning below** |
 | V29 | order discount value bounded | `wizardly-lamport-e131f3` (PERCENT/FLAT bound) | claimed |
 | V30 | order discount source (MANUAL/PROMOTION) | `eloquent-napier-4baf6b` (promotions) | **assigned 2026-08-12** — reassigned from V27, then from V28 after BOTH collided |
 | V31+ | — | free | |
+
+### THE V28 GAP — a live hazard, not bookkeeping
+
+As of 2026-08-12, `main`/`prod`/`phase-13-access-repair` carry **V27, V29 and V30 but NOT V28**.
+V28 (`V28__hash_legacy_idempotency_fingerprints.sql`) is a **pos-service** migration and it is the
+only thing still sitting on the one unmerged branch, `claude/practical-borg-3dc2b3`.
+
+**Flyway `out-of-order` is not configured anywhere in this repo, so it defaults to FALSE.** Spring
+Boot also defaults `validate-on-migrate` to true. So the sequence matters:
+
+```
+live pos_db today          = version 27      (V29 and V30 are in the code, NOT yet applied)
+next restart on a main jar = applies 29, 30  -> schema reaches 30
+merging practical-borg later then introduces V28, BELOW the applied maximum
+  -> validation fails, and pos-service refuses to start for everyone
+```
+
+**There is still a window, and it closes at the next pos-service restart.** Two safe routes:
+
+1. **Merge `claude/practical-borg-3dc2b3` BEFORE the fleet next restarts**, so 28, 29 and 30 all
+   apply together in order. Task #37 carries the conflict resolutions.
+2. **Renumber V28 → V31 when merging.** Safe here *specifically because V28 has never been applied*
+   — the live database is at 27 — so the "never renumber an applied version" rule above does not
+   bite. Verify against `flyway_schema_history` before assuming that is still true, and rebuild with
+   `clean` afterwards (see the stale-`target/` trap below).
+
+Do not simply merge it after a restart and hope. That is the one ordering that breaks the service.
 
 ## Other services
 
