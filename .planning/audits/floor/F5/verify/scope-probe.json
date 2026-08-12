@@ -1,0 +1,68 @@
+{
+  "held": {
+    "refreshOk": true,
+    "tokenLen": 2930,
+    "permCount": 78,
+    "roles": [
+      "OWNER"
+    ],
+    "sample": [
+      "audit.log.view",
+      "branch.manage",
+      "crm.customer.manage",
+      "crm.customer.view",
+      "crm.promotion.manage"
+    ]
+  },
+  "rows": [
+    {
+      "route": "/app/dashboard",
+      "nav": 2,
+      "denied": false,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App Dashboard Search… ⌘K U"
+    },
+    {
+      "route": "/app/finance/takings",
+      "nav": 2,
+      "denied": true,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App Finance Takings Search… ⌘K U Access denied You do not have permission to vi"
+    },
+    {
+      "route": "/app/finance/accounts",
+      "nav": 2,
+      "denied": true,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App Finance Accounts Search… ⌘K U Access denied You do not have permission to v"
+    },
+    {
+      "route": "/app/pos",
+      "nav": 2,
+      "denied": false,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App POS Search… ⌘K U"
+    },
+    {
+      "route": "/app/menu/items",
+      "nav": 2,
+      "denied": false,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App Menu Items Search… ⌘K U Menu Items What's sellable, organized into categori"
+    },
+    {
+      "route": "/app/reports",
+      "nav": 2,
+      "denied": true,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App Reports Search… ⌘K U Access denied You do not have permission to view this "
+    },
+    {
+      "route": "/app/users",
+      "nav": 2,
+      "denied": true,
+      "spinner": false,
+      "head": "RestaurantOS OVERVIEW Dashboard Collapse App Users Search… ⌘K U Access denied You do not have permission to view this pa"
+    }
+  ]
+}

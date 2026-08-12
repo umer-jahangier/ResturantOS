@@ -1,0 +1,45 @@
+{
+  "kpi": {
+    "text": "NET SALES Rs 147,447.41 117 orders in 30 days No comparable prior period",
+    "amount": "Rs 147,447.41"
+  },
+  "tilePaisa": 14744741,
+  "sumSubtotal": 13589300,
+  "sumDiscount": 151230,
+  "sumTax": 1206320,
+  "sumTotal": 14744741,
+  "trueNet": 13438070,
+  "equalsBillTotal": true,
+  "equalsTrueNet": false,
+  "netExceedsGross": true,
+  "rows": [
+    {
+      "business_date": "2026-08-07T19:00:00.000Z",
+      "order_count": 5,
+      "subtotal_paisa": 960300,
+      "discount_paisa": 0,
+      "tax_paisa": 91160,
+      "total_paisa": 1051460
+    },
+    {
+      "business_date": "2026-08-10T19:00:00.000Z",
+      "order_count": 34,
+      "subtotal_paisa": 4384900,
+      "discount_paisa": 95000,
+      "tax_paisa": 356640,
+      "total_paisa": 4646540
+    },
+    {
+      "business_date": "2026-08-11T19:00:00.000Z",
+      "order_count": 78,
+      "subtotal_paisa": 8244100,
+      "discount_paisa": 56230,
+      "tax_paisa": 758520,
+      "total_paisa": 9046741
+    }
+  ],
+  "window": {
+    "from": "2026-07-13",
+    "to": "2026-08-12"
+  }
+}

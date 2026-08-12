@@ -1,0 +1,701 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "what": "there is at least one trading day to test against"
+    },
+    {
+      "ok": true,
+      "what": "at least one tested day has BOTH tax > 0 AND discounts > 0 (not a zero-tax tautology)",
+      "detail": "2026-08-12, 2026-08-11"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: no error/access-denied state",
+      "detail": "clean"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: gross + net tiles rendered",
+      "detail": "gross=Rs 109,918.00 net=Rs 109,355.70"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: \"Net sales\" (Rs 109,355.70) <= GROSS (Rs 109,918.00)"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: net === gross − discounts",
+      "detail": "10935570 === 10991800 − 56230"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: tax is NOT inside net",
+      "detail": "net=10935570 vs gross−disc+tax=11772810"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: total billed === net + tax + service",
+      "detail": "11876056 === 10935570 + 837240 + 103246"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: net tile caption says tax is excluded"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: identity line printed",
+      "detail": "Gross sales − discounts = net sales. Net sales + tax + service charge = total billed."
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: screen gross === server grossSalesPaisa",
+      "detail": "10991800 vs 10991800"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: screen net === server netSalesPaisa",
+      "detail": "10935570 vs 10935570"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: screen total billed === server totalBilledPaisa",
+      "detail": "11876056 vs 11876056"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: SERVER netSalesPaisa <= grossSalesPaisa",
+      "detail": "10935570 <= 10991800"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: SERVER net === gross − discounts"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12: SERVER totalBilled === net + tax + service"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: gross + net tiles rendered",
+      "detail": "gross=undefined net=undefined"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: net === gross − discounts",
+      "detail": "null === null − null"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-12 after reload: tax is NOT inside net",
+      "detail": "net=null vs gross−disc+tax=0"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: total billed === net + tax + service",
+      "detail": "null === null + null + null"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: net tile caption says tax is excluded"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12 after reload: identity line printed",
+      "detail": null
+    },
+    {
+      "ok": false,
+      "what": "2026-08-12: figures identical after reload",
+      "detail": "{\"gross\":10991800,\"disc\":56230,\"net\":10935570,\"tax\":837240,\"svc\":103246,\"billed\":11876056} vs {\"gross\":null,\"disc\":null,\"net\":null,\"tax\":null,\"svc\":null,\"billed\":null}"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: no error/access-denied state",
+      "detail": "clean"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: gross + net tiles rendered",
+      "detail": "gross=Rs 17,949.00 net=Rs 16,999.00"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: \"Net sales\" (Rs 16,999.00) <= GROSS (Rs 17,949.00)"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: net === gross − discounts",
+      "detail": "1699900 === 1794900 − 95000"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: tax is NOT inside net",
+      "detail": "net=1699900 vs gross−disc+tax=1979100"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: total billed === net + tax + service",
+      "detail": "1979100 === 1699900 + 279200 + 0"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: net tile caption says tax is excluded"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: identity line printed",
+      "detail": "Gross sales − discounts = net sales. Net sales + tax + service charge = total billed."
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: screen gross === server grossSalesPaisa",
+      "detail": "1794900 vs 1794900"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: screen net === server netSalesPaisa",
+      "detail": "1699900 vs 1699900"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: screen total billed === server totalBilledPaisa",
+      "detail": "1979100 vs 1979100"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: SERVER netSalesPaisa <= grossSalesPaisa",
+      "detail": "1699900 <= 1794900"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: SERVER net === gross − discounts"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11: SERVER totalBilled === net + tax + service"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: gross + net tiles rendered",
+      "detail": "gross=undefined net=undefined"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: net === gross − discounts",
+      "detail": "null === null − null"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-11 after reload: tax is NOT inside net",
+      "detail": "net=null vs gross−disc+tax=0"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: total billed === net + tax + service",
+      "detail": "null === null + null + null"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: net tile caption says tax is excluded"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11 after reload: identity line printed",
+      "detail": null
+    },
+    {
+      "ok": false,
+      "what": "2026-08-11: figures identical after reload",
+      "detail": "{\"gross\":1794900,\"disc\":95000,\"net\":1699900,\"tax\":279200,\"svc\":0,\"billed\":1979100} vs {\"gross\":null,\"disc\":null,\"net\":null,\"tax\":null,\"svc\":null,\"billed\":null}"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: no error/access-denied state",
+      "detail": "clean"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: gross + net tiles rendered",
+      "detail": "gross=Rs 9,603.00 net=Rs 9,603.00"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: \"Net sales\" (Rs 9,603.00) <= GROSS (Rs 9,603.00)"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: net === gross − discounts",
+      "detail": "960300 === 960300 − 0"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: tax is NOT inside net",
+      "detail": "net=960300 vs gross−disc+tax=1051460"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: total billed === net + tax + service",
+      "detail": "1051460 === 960300 + 91160 + 0"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: net tile caption says tax is excluded"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: identity line printed",
+      "detail": "Gross sales − discounts = net sales. Net sales + tax + service charge = total billed."
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: screen gross === server grossSalesPaisa",
+      "detail": "960300 vs 960300"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: screen net === server netSalesPaisa",
+      "detail": "960300 vs 960300"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: screen total billed === server totalBilledPaisa",
+      "detail": "1051460 vs 1051460"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: SERVER netSalesPaisa <= grossSalesPaisa",
+      "detail": "960300 <= 960300"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: SERVER net === gross − discounts"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08: SERVER totalBilled === net + tax + service"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: gross + net tiles rendered",
+      "detail": "gross=undefined net=undefined"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: net === gross − discounts",
+      "detail": "null === null − null"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-08 after reload: tax is NOT inside net",
+      "detail": "net=null vs gross−disc+tax=0"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: total billed === net + tax + service",
+      "detail": "null === null + null + null"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: net tile caption says tax is excluded"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08 after reload: identity line printed",
+      "detail": null
+    },
+    {
+      "ok": false,
+      "what": "2026-08-08: figures identical after reload",
+      "detail": "{\"gross\":960300,\"disc\":0,\"net\":960300,\"tax\":91160,\"svc\":0,\"billed\":1051460} vs {\"gross\":null,\"disc\":null,\"net\":null,\"tax\":null,\"svc\":null,\"billed\":null}"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: no error/access-denied state",
+      "detail": "clean"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: gross + net tiles rendered",
+      "detail": "gross=Rs 33,390.00 net=Rs 33,390.00"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: \"Net sales\" (Rs 33,390.00) <= GROSS (Rs 33,390.00)"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: net === gross − discounts",
+      "detail": "3339000 === 3339000 − 0"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: tax is NOT inside net",
+      "detail": "net=3339000 vs gross−disc+tax=3873240"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: total billed === net + tax + service",
+      "detail": "3873240 === 3339000 + 534240 + 0"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: net tile caption says tax is excluded"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: identity line printed",
+      "detail": "Gross sales − discounts = net sales. Net sales + tax + service charge = total billed."
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: screen gross === server grossSalesPaisa",
+      "detail": "3339000 vs 3339000"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: screen net === server netSalesPaisa",
+      "detail": "3339000 vs 3339000"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: screen total billed === server totalBilledPaisa",
+      "detail": "3873240 vs 3873240"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: SERVER netSalesPaisa <= grossSalesPaisa",
+      "detail": "3339000 <= 3339000"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: SERVER net === gross − discounts"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07: SERVER totalBilled === net + tax + service"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: gross + net tiles rendered",
+      "detail": "gross=undefined net=undefined"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: net === gross − discounts",
+      "detail": "null === null − null"
+    },
+    {
+      "ok": true,
+      "what": "2026-08-07 after reload: tax is NOT inside net",
+      "detail": "net=null vs gross−disc+tax=0"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: total billed === net + tax + service",
+      "detail": "null === null + null + null"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: net tile caption says tax is excluded"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07 after reload: identity line printed",
+      "detail": null
+    },
+    {
+      "ok": false,
+      "what": "2026-08-07: figures identical after reload",
+      "detail": "{\"gross\":3339000,\"disc\":0,\"net\":3339000,\"tax\":534240,\"svc\":0,\"billed\":3873240} vs {\"gross\":null,\"disc\":null,\"net\":null,\"tax\":null,\"svc\":null,\"billed\":null}"
+    },
+    {
+      "ok": false,
+      "what": "default view: gross + net tiles rendered",
+      "detail": "gross=undefined net=undefined"
+    },
+    {
+      "ok": false,
+      "what": "default view: net === gross − discounts",
+      "detail": "null === null − null"
+    },
+    {
+      "ok": true,
+      "what": "default view: tax is NOT inside net",
+      "detail": "net=null vs gross−disc+tax=0"
+    },
+    {
+      "ok": false,
+      "what": "default view: total billed === net + tax + service",
+      "detail": "null === null + null + null"
+    },
+    {
+      "ok": false,
+      "what": "default view: net tile caption says tax is excluded"
+    },
+    {
+      "ok": false,
+      "what": "default view: net tile is NOT captioned \"What the bills actually came to\""
+    },
+    {
+      "ok": false,
+      "what": "default view: \"What the bills actually came to\" is on TOTAL BILLED"
+    },
+    {
+      "ok": false,
+      "what": "default view: identity line printed",
+      "detail": null
+    },
+    {
+      "ok": true,
+      "what": "cross-tenant: control-bistro owner does NOT see Floating Terrace figures",
+      "detail": "status=200 theirGross=0 terraceGross=10991800"
+    }
+  ],
+  "days": {
+    "2026-08-12": {
+      "read": {
+        "gross": 10991800,
+        "disc": 56230,
+        "net": 10935570,
+        "tax": 837240,
+        "svc": 103246,
+        "billed": 11876056
+      },
+      "api": {
+        "gross": 10991800,
+        "disc": 56230,
+        "net": 10935570,
+        "tax": 837240,
+        "svc": 103246,
+        "billed": 11876056,
+        "orders": 104
+      }
+    },
+    "2026-08-11": {
+      "read": {
+        "gross": 1794900,
+        "disc": 95000,
+        "net": 1699900,
+        "tax": 279200,
+        "svc": 0,
+        "billed": 1979100
+      },
+      "api": {
+        "gross": 1794900,
+        "disc": 95000,
+        "net": 1699900,
+        "tax": 279200,
+        "svc": 0,
+        "billed": 1979100,
+        "orders": 10
+      }
+    },
+    "2026-08-08": {
+      "read": {
+        "gross": 960300,
+        "disc": 0,
+        "net": 960300,
+        "tax": 91160,
+        "svc": 0,
+        "billed": 1051460
+      },
+      "api": {
+        "gross": 960300,
+        "disc": 0,
+        "net": 960300,
+        "tax": 91160,
+        "svc": 0,
+        "billed": 1051460,
+        "orders": 5
+      }
+    },
+    "2026-08-07": {
+      "read": {
+        "gross": 3339000,
+        "disc": 0,
+        "net": 3339000,
+        "tax": 534240,
+        "svc": 0,
+        "billed": 3873240
+      },
+      "api": {
+        "gross": 3339000,
+        "disc": 0,
+        "net": 3339000,
+        "tax": 534240,
+        "svc": 0,
+        "billed": 3873240,
+        "orders": 26
+      }
+    }
+  },
+  "personas": {
+    "manager": {
+      "blocked": true,
+      "trouble": [
+        "access-denied"
+      ],
+      "apiStatus": 200,
+      "tiles": []
+    },
+    "cashier": {
+      "blocked": true,
+      "trouble": [
+        "access-denied"
+      ],
+      "apiStatus": 403,
+      "tiles": []
+    },
+    "waiter": {
+      "blocked": true,
+      "trouble": [
+        "access-denied"
+      ],
+      "apiStatus": 403,
+      "tiles": []
+    },
+    "accountant": {
+      "blocked": true,
+      "trouble": [
+        "access-denied"
+      ],
+      "apiStatus": 200,
+      "tiles": []
+    }
+  },
+  "dashboard": {
+    "tiles": [
+      "Is the business healthy? Last 30 days vs the 30 before NET SALES Rs 149,066.16 119 orders in 30 days No comparable prior period GROSS MARGIN — Cost of goods is not yet posted per item, so margin cannot be computed. Showing nothing rather than a wrong number. COVERS 20 Across 20 closed orders AVERAGE",
+      "Is the business healthy? Last 30 days vs the 30 before NET SALES Rs 149,066.16 119 orders in 30 days No comparable prior period GROSS MARGIN — Cost of goods is not yet posted per item, so margin cannot be computed. Showing nothing rather than a wrong number. COVERS 20 Across 20 closed orders AVERAGE",
+      "SALES AND ORDER VOLUME Net sales Orders Aug 8 Aug 11 Aug 12 Net sales — solid Orders — dashed Net sales and Orders by period Period Net sales Orders Aug 8 Rs 10,515 5 Aug 11 Rs 46,465 34 Aug 12 Rs 92,086 80 Net sales: Rs 92,086 latest Orders: 80 latest TOP ITEMS BY REVENUE Chicken Karahi Rs 55,506.0"
+    ],
+    "body": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nBranches\nAppearance\nUsers\nRoles\nAudit log\nService health\nCollapse\nApp\nDashboard\nFloating Terrace HQ\nSearch…\n⌘K\n6\nIs the business healthy?\n\nLast 30 days vs the 30 before\n\nNET SALES\n\nRs 149,066.16\n\n119 orders in 30 days\n\nNo comparable prior period\n\nGROSS MARGIN\n\n—\n\nCost of goods is not yet posted per item, so margin cannot be computed. Showing nothing rather than a wrong number.\n\nCOVERS\n\n20\n\nAcross 20 closed orders\nAVERAGE ORDER\n\nRs 1,252.66\n\nNet sales divided by orders\n\nNo comparable prior period\n\nSALES AND ORDER VOLUME\nNet sales\nOrders\nAug 8\nAug 11\nAug 12\nNet sales — solid\nOrders — dashed\nNet sales and Orders by period\nPeriod\tNet sales\tOrders\nAug 8\tRs 10,515\t5\nAug 11\tRs 46,465\t34\nAug 12\tRs 92,086\t80\nNet sales: Rs 92,086 latest\nOrders: 80 latest\nTOP ITEMS BY REVENUE\nChicken Karahi\nRs 55,506.00 · 33 sold\nAudit Item 52235\nRs 36,561.00 · 69 sold\nAudit Item 60568\nRs 21,457.00 · 43 sold\nMutton Biryani\nRs 7,250.00 · 5 sold\nF16 Biryani 166428\nRs 6,961.50 · 7 sold\nNEEDS A DECISION\nCHECK\nORD-20260812-0400 — refunded\nRs 765.45 · 8/12/2026\nCHECK\nORD-20260812-0399 — voided\nRs 765.45 · 8/12/2026\nCHECK\nORD-20260812-0386 — voided\nRs 92.80 · 8/12/2026\nCHECK\nORD-20260812-0385 — voided\nRs 1289.40 · 8/12/2026\nCHECK\nORD-20260812-0380 — voided\nRs 1289.40 · 8/12/2026"
+  },
+  "daysWithData": [
+    "2026-08-12",
+    "2026-08-11",
+    "2026-08-08",
+    "2026-08-07"
+  ],
+  "salesByDay": {
+    "status": 200,
+    "body": {
+      "data": {
+        "code": "sales-by-day",
+        "title": "Sales by Day",
+        "columns": [
+          "business_date",
+          "order_count",
+          "subtotal_paisa",
+          "discount_paisa",
+          "tax_paisa",
+          "total_paisa"
+        ],
+        "rows": [
+          {
+            "business_date": "2026-08-07T19:00:00.000Z",
+            "order_count": 5,
+            "subtotal_paisa": 960300,
+            "discount_paisa": 0,
+            "tax_paisa": 91160,
+            "total_paisa": 1051460
+          },
+          {
+            "business_date": "2026-08-10T19:00:00.000Z",
+            "order_count": 34,
+            "subtotal_paisa": 4384900,
+            "discount_paisa": 95000,
+            "tax_paisa": 356640,
+            "total_paisa": 4646540
+          },
+          {
+            "business_date": "2026-08-11T19:00:00.000Z",
+            "order_count": 80,
+            "subtotal_paisa": 8401800,
+            "discount_paisa": 56230,
+            "tax_paisa": 759800,
+            "total_paisa": 9208616
+          }
+        ],
+        "rowCount": 3,
+        "durationMs": 113,
+        "dataNotes": []
+      },
+      "meta": null,
+      "warnings": []
+    },
+    "from": "2026-07-14",
+    "to": "2026-08-12"
+  },
+  "crossTenant": {
+    "status": 200,
+    "gross": 0,
+    "net": 0,
+    "orders": 0
+  }
+}

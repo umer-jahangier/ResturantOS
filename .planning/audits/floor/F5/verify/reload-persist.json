@@ -1,0 +1,112 @@
+{
+  "passes": [
+    {
+      "navItems": 50,
+      "tileCount": 7,
+      "tiles": {
+        "Gross sales": "Rs 17,949.00",
+        "Discounts": "Rs 950.00",
+        "Comps": null,
+        "Net sales": "Rs 16,999.00",
+        "Tax": "Rs 2,792.00",
+        "Service charge": "Rs 0.00",
+        "Total billed": "Rs 19,791.00"
+      },
+      "denied": false,
+      "empty": false,
+      "error": false,
+      "spinner": false,
+      "deniedFlashMs": 17
+    },
+    {
+      "navItems": 50,
+      "tileCount": 7,
+      "tiles": {
+        "Gross sales": "Rs 17,949.00",
+        "Discounts": "Rs 950.00",
+        "Comps": null,
+        "Net sales": "Rs 16,999.00",
+        "Tax": "Rs 2,792.00",
+        "Service charge": "Rs 0.00",
+        "Total billed": "Rs 19,791.00"
+      },
+      "denied": false,
+      "empty": false,
+      "error": false,
+      "spinner": false,
+      "deniedFlashMs": 1
+    },
+    {
+      "navItems": 50,
+      "tileCount": 7,
+      "tiles": {
+        "Gross sales": "Rs 17,949.00",
+        "Discounts": "Rs 950.00",
+        "Comps": null,
+        "Net sales": "Rs 16,999.00",
+        "Tax": "Rs 2,792.00",
+        "Service charge": "Rs 0.00",
+        "Total billed": "Rs 19,791.00"
+      },
+      "denied": false,
+      "empty": false,
+      "error": false,
+      "spinner": false,
+      "deniedFlashMs": 5
+    },
+    {
+      "navItems": 50,
+      "tileCount": 7,
+      "tiles": {
+        "Gross sales": "Rs 17,949.00",
+        "Discounts": "Rs 950.00",
+        "Comps": null,
+        "Net sales": "Rs 16,999.00",
+        "Tax": "Rs 2,792.00",
+        "Service charge": "Rs 0.00",
+        "Total billed": "Rs 19,791.00"
+      },
+      "denied": false,
+      "empty": false,
+      "error": false,
+      "spinner": false,
+      "deniedFlashMs": 8
+    },
+    {
+      "navItems": 50,
+      "tileCount": 7,
+      "tiles": {
+        "Gross sales": "Rs 17,949.00",
+        "Discounts": "Rs 950.00",
+        "Comps": null,
+        "Net sales": "Rs 16,999.00",
+        "Tax": "Rs 2,792.00",
+        "Service charge": "Rs 0.00",
+        "Total billed": "Rs 19,791.00"
+      },
+      "denied": false,
+      "empty": false,
+      "error": false,
+      "spinner": false,
+      "deniedFlashMs": 2
+    },
+    {
+      "navItems": 50,
+      "tileCount": 7,
+      "tiles": {
+        "Gross sales": "Rs 17,949.00",
+        "Discounts": "Rs 950.00",
+        "Comps": null,
+        "Net sales": "Rs 16,999.00",
+        "Tax": "Rs 2,792.00",
+        "Service charge": "Rs 0.00",
+        "Total billed": "Rs 19,791.00"
+      },
+      "denied": false,
+      "empty": false,
+      "error": false,
+      "spinner": false,
+      "deniedFlashMs": 2
+    }
+  ]
+}

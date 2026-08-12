@@ -1,0 +1,81 @@
+{
+  "first": {
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-11",
+    "tileCount": 0,
+    "tiles": [],
+    "skeletons": 0,
+    "alerts": [],
+    "bodyHead": "RestaurantOS OVERVIEW Dashboard Collapse App Finance Takings Search… ⌘K U Access denied You do not have permission to view this page. Back to dashboard",
+    "hasEmpty": false,
+    "hasError": true,
+    "dateInput": null
+  },
+  "afterReload": {
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-11",
+    "tileCount": 0,
+    "tiles": [],
+    "skeletons": 0,
+    "alerts": [],
+    "bodyHead": "RestaurantOS OVERVIEW Dashboard Collapse App Finance Takings Search… ⌘K U Access denied You do not have permission to view this page. Back to dashboard",
+    "hasEmpty": false,
+    "hasError": true,
+    "dateInput": null
+  },
+  "secondGoto": {
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-11",
+    "tileCount": 0,
+    "tiles": [],
+    "skeletons": 0,
+    "alerts": [],
+    "bodyHead": "RestaurantOS OVERVIEW Dashboard Collapse App Finance Takings Search… ⌘K U Access denied You do not have permission to view this page. Back to dashboard",
+    "hasEmpty": false,
+    "hasError": true,
+    "dateInput": null
+  },
+  "net": [
+    {
+      "s": 401,
+      "u": "http://localhost:8080/api/v1/auth/login"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:8080/api/v1/auth/login"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:8080/api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:3000/app/finance/takings?date=2026-08-11"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:3000/_next/static/chunks/app_(tenant)_app_finance_takings_page_tsx_1ouplw8._.js"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:3000/app/finance/takings?date=2026-08-11"
+    },
+    {
+      "s": 304,
+      "u": "http://localhost:3000/_next/static/chunks/app_(tenant)_app_finance_takings_page_tsx_1ouplw8._.js"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:8080/api/v1/auth/refresh"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:8080/api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8"
+    },
+    {
+      "s": 200,
+      "u": "http://localhost:3000/app/finance/takings?date=2026-08-11"
+    }
+  ],
+  "errs": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ],
+  "netAfterFirst": 4
+}
