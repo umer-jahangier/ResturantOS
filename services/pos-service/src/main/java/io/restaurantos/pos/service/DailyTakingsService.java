@@ -261,11 +261,35 @@ public class DailyTakingsService {
      * <p>Every line also carries the part of itself that is sitting against an order which has not
      * closed. That is reported as a SUBSET of the line, never as a separate line: two rows would
      * invite a reader to add them, and the sum would be twice the cash that exists.
+     *
+     * <h2>The tip is summed PER TENDER, and the F20 defect</h2>
+     *
+     * <p>{@code SUM(p.tip_paisa)} is a second column on the line, deliberately, rather than a
+     * "tips" row underneath the split. The choice is argued in full on
+     * {@link io.restaurantos.pos.dto.DailyTakingsDto.TenderLine}; the short of it is that a tip's
+     * TENDER is the entire fact about it — a cash tip is in a drawer somebody counts tonight, a
+     * card tip is with the acquirer — so one combined figure cannot answer the only question this
+     * section is asked at closing time.
+     *
+     * <p>This query summed {@code amount_paisa} alone while
+     * {@code TillServiceImpl.closeTill} had already, correctly, been counting
+     * {@code p.getAmountPaisa() + p.getTipPaisa()} into {@code expected_closing_paisa} — the guest
+     * physically put the note in the drawer. So the EXPECTED CASH column and the tender split on
+     * the very same page differed by exactly the day's cash tips (Rs 185.00 at Floating Terrace on
+     * 2026-08-12) and the page named no reason, because the word "tip" was not on it anywhere. The
+     * screen even told the reader to "expect the count to include it", of a figure it was not
+     * showing. This is the missing half of that sentence.
+     *
+     * <p>The tip is NOT added into {@code amount_paisa}, which stays what settled the BILL. That
+     * separation is the same one {@code closeTill} and {@code getReconciliation} already keep, and
+     * it is what lets the split go on reconciling against TOTAL BILLED while the drawer figure
+     * reconciles against the till.
      */
     private List<TenderLine> tenderSplit(LocalDate date, UUID branchId, String zone) {
         Query q = em.createNativeQuery("""
                 SELECT p.method,
                        COALESCE(SUM(p.amount_paisa), 0),
+                       COALESCE(SUM(p.tip_paisa), 0),
                        COUNT(*),
                        COALESCE(SUM(p.amount_paisa) FILTER (WHERE o.closed_at IS NULL), 0),
                        COUNT(*) FILTER (WHERE o.closed_at IS NULL)
@@ -281,8 +305,8 @@ public class DailyTakingsService {
         List<Object[]> rows = q.getResultList();
         List<TenderLine> out = new ArrayList<>();
         for (Object[] r : rows) {
-            out.add(new TenderLine((String) r[0], toLong(r[1]), (int) toLong(r[2]),
-                    toLong(r[3]), (int) toLong(r[4])));
+            out.add(new TenderLine((String) r[0], toLong(r[1]), toLong(r[2]), (int) toLong(r[3]),
+                    toLong(r[4]), (int) toLong(r[5])));
         }
         return out;
     }
@@ -294,11 +318,20 @@ public class DailyTakingsService {
      *
      * <p>Runs over {@link #PAYMENTS_ON_DAY}, the same predicate {@link #tenderSplit} uses, so the
      * summary and the per-line subsets are answers to one question rather than two.
+     *
+     * <p>The tips are summed here for the same reason they are summed in {@link #tenderSplit}, and
+     * with more urgency: this is the figure the screen turns into "expect the count to include
+     * it". A tip taken on an order that is still open is in the drawer exactly like the cash that
+     * settled the bill, so a bridge stated without it sends the counter hunting an overage which
+     * is the restaurant's own gratuity. Cash and all-tender are kept apart because only the cash
+     * one is in a drawer.
      */
     private UnclosedTakings unclosedTakings(LocalDate date, UUID branchId, String zone) {
         Query q = em.createNativeQuery("""
                 SELECT COALESCE(SUM(p.amount_paisa) FILTER (WHERE p.method = 'CASH'), 0),
+                       COALESCE(SUM(p.tip_paisa)    FILTER (WHERE p.method = 'CASH'), 0),
                        COALESCE(SUM(p.amount_paisa), 0),
+                       COALESCE(SUM(p.tip_paisa), 0),
                        COUNT(DISTINCT o.id),
                        COUNT(*)
                 """ + PAYMENTS_ON_DAY + """
@@ -309,7 +342,8 @@ public class DailyTakingsService {
         q.setParameter("date", date);
         q.setParameter("branchId", branchId == null ? null : branchId.toString());
         Object[] r = (Object[]) q.getSingleResult();
-        return new UnclosedTakings(toLong(r[0]), toLong(r[1]), (int) toLong(r[2]), (int) toLong(r[3]));
+        return new UnclosedTakings(toLong(r[0]), toLong(r[1]), toLong(r[2]), toLong(r[3]),
+                (int) toLong(r[4]), (int) toLong(r[5]));
     }
 
     private List<TillReconciliation> tillReconciliations(LocalDate date, UUID branchId, String zone) {

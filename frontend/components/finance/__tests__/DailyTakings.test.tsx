@@ -118,6 +118,93 @@ const LIVE_OPEN_ORDER_CASH = {
   unknowns: [],
 };
 
+/**
+ * F20 — the day the drawer expectation stopped being explainable.
+ *
+ * Measured at Floating Terrace HQ on 2026-08-12: Rs 185.00 of CASH tips and Rs 300.00 of CARD
+ * tips. `TillServiceImpl.closeTill` counts a cash tip into `expected_closing_paisa` — the guest
+ * physically put the note in the drawer — so the till below expects
+ * `3000.00 float + 250.00 cash + 185.00 tip = 3435.00`. The tender split summed `amount_paisa`
+ * alone, so the same page showed Rs 250.00 of cash against an expectation of Rs 3,435.00 and the
+ * word "tip" appeared NOWHERE on it.
+ *
+ * The card tip is in the fixture on purpose: it must be reported AND must not be in the drawer,
+ * which is the whole argument for a per-tender column over one "tips" row.
+ */
+const LIVE_2026_08_12_TIPS = {
+  businessDate: "2026-08-12",
+  branchId: null,
+  grossSalesPaisa: 50000,
+  discountsPaisa: 0,
+  netSalesPaisa: 50000,
+  taxPaisa: 0,
+  serviceChargePaisa: 0,
+  totalBilledPaisa: 50000,
+  orderCount: 2,
+  byTender: [
+    {
+      method: "CARD",
+      amountPaisa: 25000,
+      tipPaisa: 30000,
+      paymentCount: 1,
+      unclosedAmountPaisa: 0,
+      unclosedPaymentCount: 0,
+    },
+    {
+      method: "CASH",
+      amountPaisa: 25000,
+      tipPaisa: 18500,
+      paymentCount: 1,
+      unclosedAmountPaisa: 0,
+      unclosedPaymentCount: 0,
+    },
+  ],
+  tills: [
+    {
+      tillSessionId: "b17269cb-0000-4000-8000-000000000001",
+      cashierId: "61334688-6b5c-4926-ac82-e93208ba5324",
+      status: "CLOSED",
+      openingFloatPaisa: 300000,
+      expectedClosingPaisa: 343500,
+      declaredClosingPaisa: 343500,
+      variancePaisa: 0,
+      openedAt: "2026-08-12T05:00:00.000000Z",
+      closedAt: "2026-08-12T20:00:00.000000Z",
+      reconciliationState: "MATCHED",
+    },
+  ],
+  unclosed: { cashPaisa: 0, cashTipPaisa: 0, totalPaisa: 0, tipPaisa: 0, orderCount: 0, paymentCount: 0 },
+  unknowns: [],
+};
+
+/** The same day, but the tipped cash bill has not been served yet — so it cannot close. */
+const LIVE_TIP_ON_AN_OPEN_BILL = {
+  ...LIVE_2026_08_12_TIPS,
+  grossSalesPaisa: 0,
+  netSalesPaisa: 0,
+  totalBilledPaisa: 0,
+  orderCount: 0,
+  byTender: [
+    {
+      method: "CASH",
+      amountPaisa: 25000,
+      tipPaisa: 18500,
+      paymentCount: 1,
+      unclosedAmountPaisa: 25000,
+      unclosedPaymentCount: 1,
+    },
+  ],
+  tills: [],
+  unclosed: {
+    cashPaisa: 25000,
+    cashTipPaisa: 18500,
+    totalPaisa: 25000,
+    tipPaisa: 18500,
+    orderCount: 1,
+    paymentCount: 1,
+  },
+};
+
 // GUIDE-CLAIM: FIN-GUIDE-0009
 // GUIDE-CLAIM: FIN-GUIDE-0011
 describe("takings adapter — the union assembled from the live wire shape", () => {
@@ -274,6 +361,71 @@ describe("TenderSplit — observed methods only", () => {
     // CARD took money on bills that were finalised, so nothing of it is outstanding — an em dash,
     // never "Rs 0.00", which reads as a computed figure rather than as "none".
     expect(screen.getByTestId("tender-unclosed-CARD")).toHaveTextContent("—");
+  });
+
+  // ── F20 ────────────────────────────────────────────────────────────────────────────────────
+  // The tip column is the opposite of the unclosed one: an ADDITION, not a subset. Both rules are
+  // asserted in the same file so a future edit that makes them behave alike breaks something.
+
+  it("states the tip per tender, and never inside the amount that settled the bill", () => {
+    const t = adaptDailyTakings(LIVE_2026_08_12_TIPS);
+    render(<TenderSplit lines={t.byTender} />);
+
+    // Rs 185.00 cash, Rs 300.00 card — reported apart, because only one of them is in a drawer.
+    expect(screen.getByTestId("tender-tip-CASH")).toHaveAttribute("data-paisa", "18500");
+    expect(screen.getByTestId("tender-tip-CARD")).toHaveAttribute("data-paisa", "30000");
+    expect(screen.getByTestId("tender-tip-CASH")).toHaveTextContent("Rs 185.00");
+
+    // The amount is untouched by the tip. A tip is not revenue and never entered the bill, so
+    // folding it in here would stop the split reconciling against TOTAL BILLED.
+    expect(screen.getByTestId("tender-amount-CASH")).toHaveAttribute("data-paisa", "25000");
+    expect(screen.getByTestId("tender-amount-CARD")).toHaveAttribute("data-paisa", "25000");
+  });
+
+  /**
+   * The reconciliation, asserted on the rendered page rather than in prose: the till's EXPECTED
+   * CASH must be reachable from the two numbers printed above it. This is the arithmetic an owner
+   * does at the counter, and before F20 it did not come out — the page was short by Rs 185.00 and
+   * said nothing about why.
+   *
+   * The screen itself still computes NOTHING (T-32-12-E). This test does the addition precisely
+   * because the page must not: it is checking that the FIGURES the server stated are mutually
+   * consistent, which is a property of the response, not a feature of the component.
+   */
+  it("prints the cash figures a drawer expectation can actually be rebuilt from", () => {
+    const t = adaptDailyTakings(LIVE_2026_08_12_TIPS);
+    render(<TenderSplit lines={t.byTender} />);
+
+    const cashAmount = Number(
+      screen.getByTestId("tender-amount-CASH").getAttribute("data-paisa"),
+    );
+    const cashTip = Number(screen.getByTestId("tender-tip-CASH").getAttribute("data-paisa"));
+    const till = t.tills[0];
+    if (!till) throw new Error("fixture must carry the closed till this identity is about");
+    // Not a fallback to 0: an UNKNOWN expected closing means nobody counted, and reconciling
+    // against a zero would report a matched drawer on a till that was never cashed up.
+    if (till.expectedClosing.state !== "KNOWN") {
+      throw new Error("fixture must state an expected closing — a dash cannot be reconciled");
+    }
+    const expected = till.expectedClosing.paisa;
+
+    expect(till.openingFloatPaisa + cashAmount + cashTip).toBe(expected);
+    // And the part the amount alone leaves unexplained IS the cash tip — the assertion that fails
+    // by exactly Rs 185.00 on a build whose server omits the figure.
+    expect(expected - till.openingFloatPaisa - cashAmount).toBe(18500);
+
+    // The card tip is on the page and is NOT in the drawer. One combined "tips" row would have
+    // sent the cashier looking for Rs 300.00 that was never there.
+    expect(
+      till.openingFloatPaisa + cashAmount + cashTip + 30000,
+    ).not.toBe(expected);
+  });
+
+  it("draws an em dash for a tender that took no tip, never Rs 0.00", () => {
+    render(<TenderSplit lines={adaptDailyTakings(LIVE_OPEN_ORDER_CASH).byTender} />);
+    // Present-and-checked, not merely absent: the cell must exist and say "none".
+    expect(screen.getByTestId("tender-tip-CASH")).toHaveTextContent("—");
+    expect(screen.getByTestId("tender-tip-CASH")).toHaveAttribute("data-paisa", "0");
   });
 });
 
@@ -635,5 +787,55 @@ describe("DailyTakings — cash on an open order (S0-02)", () => {
     // Always present, never conditional: "all of today's money is on closed bills" is the answer
     // a manager needs before accepting a drawer variance as real.
     expect(screen.getByTestId("unclosed-none")).toBeInTheDocument();
+  });
+});
+
+/**
+ * F20 — the screen names the tip, in the section whose copy already promised the drawer.
+ *
+ * "How it came in" told the reader this was "what the drawers and the card terminals took today"
+ * and the unclosed panel told them to "expect the count to include it". Both sentences were being
+ * made about the bill amounts alone, so a cashier who trusted them was short by exactly the cash
+ * tips — Rs 185.00 on the measured day — with no word on the page to explain the difference.
+ */
+describe("DailyTakings — the tip on the page (F20)", () => {
+  async function renderDay(raw: unknown) {
+    const { DailyTakings } = await import("@/components/finance/DailyTakings");
+    takingsQuery.current = {
+      isError: false,
+      isPending: false,
+      refetch: vi.fn(),
+      data: adaptDailyTakings(raw),
+    };
+    render(<DailyTakings />);
+  }
+
+  it("says the word, and says which side of the bill a tip is on", async () => {
+    await renderDay(LIVE_2026_08_12_TIPS);
+    // The rule has to be on the page, not only in the numbers: a column that ADDS sits beside a
+    // column that is a SUBSET, which is exactly the pair a tired reader gets backwards.
+    const note = screen.getByTestId("tender-tip-note");
+    expect(note).toHaveTextContent(/on top of/i);
+    expect(note).toHaveTextContent(/cash/i);
+    expect(screen.getByTestId("tender-tip-CASH")).toHaveTextContent("Rs 185.00");
+  });
+
+  it("keeps the tip out of every sales tile", async () => {
+    await renderDay(LIVE_2026_08_12_TIPS);
+    // A tip is not revenue — it never enters orders.total_paisa and finance books it as a
+    // liability owed to staff. Rs 500.00 billed, Rs 485.00 tipped, and the tiles show the bill.
+    expect(screen.getByTestId("figure-tile-gross-sales")).toHaveTextContent("Rs 500.00");
+    expect(screen.getByTestId("figure-tile-net-sales")).toHaveTextContent("Rs 500.00");
+    expect(screen.getByTestId("figure-tile-total-billed")).toHaveTextContent("Rs 500.00");
+  });
+
+  it("adds the cash tip on an open bill to what the counter is told to expect", async () => {
+    await renderDay(LIVE_TIP_ON_AN_OPEN_BILL);
+    const panel = screen.getByTestId("unclosed-tender-panel");
+    expect(panel).toHaveAttribute("data-unclosed-cash-tip-paisa", "18500");
+    // Wait FOR the sentence rather than for its absence: a tip in the drawer that the panel does
+    // not mention is reported by the cashier as an overage that is the restaurant's own gratuity.
+    expect(screen.getByTestId("unclosed-cash-tip-amount")).toHaveTextContent("Rs 185.00");
+    expect(panel).toHaveTextContent(/never a sale/i);
   });
 });

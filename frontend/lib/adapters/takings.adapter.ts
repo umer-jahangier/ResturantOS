@@ -105,6 +105,11 @@ export function adaptTenderLine(raw: any): TenderLine {
   return {
     method: raw.method,
     amountPaisa: Number(raw.amountPaisa ?? 0),
+    // A server too old to send this omits it. 0 is the only honest reading of "this build does not
+    // report tips" — and it is NOT the same kind of zero as the subset below. A missing tip figure
+    // UNDERSTATES the drawer, so the screen must go on saying which figure the drawer expectation
+    // is built from rather than quietly presenting a number that no longer includes it.
+    tipPaisa: Number(raw.tipPaisa ?? 0),
     paymentCount: Number(raw.paymentCount ?? 0),
     // A server too old to send these omits them, and 0 is the only honest reading of "this build
     // does not report an unclosed portion" — it is a SUBSET of a number that is already stated,
@@ -117,7 +122,9 @@ export function adaptTenderLine(raw: any): TenderLine {
 export function adaptUnclosedTakings(raw: any): UnclosedTakings {
   return {
     cashPaisa: Number(raw?.cashPaisa ?? 0),
+    cashTipPaisa: Number(raw?.cashTipPaisa ?? 0),
     totalPaisa: Number(raw?.totalPaisa ?? 0),
+    tipPaisa: Number(raw?.tipPaisa ?? 0),
     orderCount: Number(raw?.orderCount ?? 0),
     paymentCount: Number(raw?.paymentCount ?? 0),
   };

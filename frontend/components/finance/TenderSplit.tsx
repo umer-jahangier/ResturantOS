@@ -34,6 +34,18 @@ function label(method: string): string {
  * (S0-02: it used to be neither shown nor mentioned). The right-hand column says how much of the
  * SAME figure is sitting against an order still open. A second row would read as more money and
  * invite an addition that double-counts it, so it is a column on the line it qualifies.
+ *
+ * <h3>"Tips" is a column too — but an ADDITION, and the header has to say so</h3>
+ *
+ * The two middle columns look alike and behave oppositely: `Of which on open orders` is part of
+ * `Amount`, `Tips` is on top of it. That is not a detail a reader can be left to infer, so each
+ * header carries its own rule rather than relying on the table's shape to imply one.
+ *
+ * A day total of tips was the alternative and is the wrong figure. A tip's TENDER is the fact:
+ * cash tips are in the drawer being counted right now, card tips are with the acquirer. Floating
+ * Terrace took Rs 185.00 cash and Rs 300.00 card in tips on one day — a single Rs 485.00 row
+ * would send a cashier looking for Rs 300.00 that is not in the drawer. Per tender, the cash line
+ * alone reconciles the EXPECTED CASH the till panel below shows, which counts `amount + tip`.
  */
 export function TenderSplit({ lines }: { lines: TenderLine[] }) {
   if (lines.length === 0) {
@@ -50,7 +62,15 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
         <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
           <th className="pb-2 font-medium">Tender</th>
           <th className="pb-2 text-right font-medium">Payments</th>
-          <th className="pb-2 text-right font-medium">Amount</th>
+          <th className="pb-2 text-right font-medium" title="What settled the bill on this tender. Tips are not in it — they are the next column.">
+            Amount
+          </th>
+          <th
+            className="pb-2 text-right font-medium"
+            title="Taken ON TOP of the bill for the staff. Extra money, not part of Amount. The cash column is in the drawer and is counted into a till's expected cash; card tips are not."
+          >
+            Tips (on top)
+          </th>
           <th
             className="pb-2 text-right font-medium"
             title="Part of the same amount, taken against orders that have not been closed yet. Not extra money — do not add it on."
@@ -76,6 +96,23 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
               data-testid={`tender-amount-${line.method}`}
             >
               {formatPaisa(line.amountPaisa)}
+            </td>
+            {/* Same em-dash rule as the subset column: most tenders carry no tip and a Rs 0.00
+                there reads as a figure somebody worked out. When there IS one it is emphasised
+                rather than muted, because on the cash line it is the part of the drawer the
+                reader has never been shown before. */}
+            <td
+              className="py-2 text-right font-mono tabular-nums"
+              data-paisa={line.tipPaisa}
+              data-testid={`tender-tip-${line.method}`}
+            >
+              {line.tipPaisa > 0 ? (
+                <>+{formatPaisa(line.tipPaisa)}</>
+              ) : (
+                <span className="text-muted-foreground" aria-label="none">
+                  —
+                </span>
+              )}
             </td>
             {/* An em dash, not "Rs 0.00": nothing outstanding is the ordinary state of a settled
                 line, and a zero in a money column reads as a figure somebody computed. */}

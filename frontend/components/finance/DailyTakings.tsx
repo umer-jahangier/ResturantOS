@@ -200,6 +200,24 @@ function TakingsBody({
             Dated by when the money arrived, not by when its bill was finalised — so this is what
             the drawers and the card terminals took today, whether or not those orders are closed.
           </p>
+          {/* This section's copy already promised the reader "what the drawers took today", and
+              for tips it was not delivering: the server sent only what settled the bill, so a
+              till's EXPECTED CASH — which counts a cash tip, because the guest put the note in
+              the drawer — sat above a tender split that was short by exactly the day's cash tips,
+              with the word "tip" nowhere on the page. The Tips column supplies the figure; this
+              sentence supplies the rule for reading it, because a column that ADDS sitting beside
+              a column that is a SUBSET is exactly the pair a tired reader gets backwards.
+
+              A tip is deliberately absent from the tiles above. It is not gross, not net and not
+              total billed — it never enters orders.total_paisa and finance books it as a liability
+              owed to staff, not as revenue. It belongs here, where the question is what is in the
+              drawer, and nowhere else on this screen. */}
+          <p className="text-label text-muted-foreground" data-testid="tender-tip-note">
+            A tip is money taken <strong>on top of</strong> the bill, so it is a separate column
+            and is not inside Amount. It is not sales either — it is held for the staff, which is
+            why no tile above includes it. A <strong>cash</strong> tip is in the drawer and is part
+            of what a till is expected to hold; a card tip is not.
+          </p>
         </div>
         <TenderSplit lines={takings.byTender} />
         <UnclosedTakingsNote unclosed={takings.unclosed} />
@@ -261,7 +279,9 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
     <div
       data-testid="unclosed-tender-panel"
       data-unclosed-cash-paisa={unclosed.cashPaisa}
+      data-unclosed-cash-tip-paisa={unclosed.cashTipPaisa}
       data-unclosed-total-paisa={unclosed.totalPaisa}
+      data-unclosed-tip-paisa={unclosed.tipPaisa}
       data-unclosed-order-count={unclosed.orderCount}
       // The caution surface is the design system's `warning` token, not a raw amber ramp: the
       // token already carries its own light/dark values, so this reads correctly in both without
@@ -293,6 +313,25 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
             )}
             .
           </p>
+          {/* "Expect the count to include it" is a promise about a drawer, and it was being made
+              about the amounts only. A cash tip on one of these same open bills is in the drawer
+              too, so the sentence was short by exactly that figure — and a counter acting on it
+              would report the restaurant's own gratuity as an overage. Named separately rather
+              than added into the amount above it, because the two answer different questions:
+              one becomes a sale when the bill closes, the other never does. */}
+          {unclosed.cashTipPaisa > 0 && (
+            <p className="mt-1 font-medium">
+              Plus{" "}
+              <span
+                className="font-mono tabular-nums"
+                data-testid="unclosed-cash-tip-amount"
+              >
+                {formatPaisa(unclosed.cashTipPaisa)}
+              </span>{" "}
+              of cash tips taken on those same bills. Also in the drawer, also to be counted — but
+              never a sale, on any day: a tip is held for the staff.
+            </p>
+          )}
           <p className="mt-1 text-label">
             This money is part of the tender split above and is already in the drawer, so expect
             the count to include it. It is NOT in gross, net sales or total billed: a bill becomes

@@ -52,8 +52,24 @@ export type TillReconciliationState =
 export interface TenderLine {
   /** CASH, CARD, WALLET … as the server observed it. A method with no rows is ABSENT, not zero. */
   method: string;
-  /** Everything taken on this method today, dated by when it was TAKEN — open orders included. */
+  /**
+   * What settled the BILL on this method today, dated by when it was TAKEN — open orders included.
+   *
+   * Tips are NOT in this number; they are `tipPaisa` beside it. A tip never touches the balance and
+   * is not revenue, so folding it in here would stop the split reconciling against `totalBilled`.
+   */
   amountPaisa: number;
+  /**
+   * Taken on this tender ON TOP of the bill (F20). **An ADDITION to `amountPaisa`, not a subset** —
+   * the exact opposite of `unclosedAmountPaisa` below, which is why both rules are written down.
+   *
+   * Per tender rather than one day total, because a tip's tender is the whole fact about it: the
+   * cash ones are in a drawer somebody counts tonight and the card ones are with the acquirer. This
+   * is the figure that makes a till's EXPECTED CASH explainable — `TillServiceImpl.closeTill`
+   * counts `amount + tip` into it, and while the server sent only `amount` the two diverged by
+   * exactly the day's cash tips with nothing on the page naming the difference.
+   */
+  tipPaisa: number;
   paymentCount: number;
   /**
    * The part of `amountPaisa` sitting against an order that is not closed yet.
@@ -75,7 +91,18 @@ export interface TenderLine {
  */
 export interface UnclosedTakings {
   cashPaisa: number;
+  /**
+   * Cash tips on those same still-open orders. In the drawer, and ADDED to `cashPaisa`.
+   *
+   * This panel is what tells a counter to "expect the count to include it". Saying that of the
+   * amounts alone leaves the sentence short by the tips and sends them hunting an overage that is
+   * the restaurant's own gratuity.
+   */
+  cashTipPaisa: number;
   totalPaisa: number;
+  /** Tips across every tender. Only `cashTipPaisa` is in a drawer; this is stated so card tips
+   * on open bills are not silently dropped. */
+  tipPaisa: number;
   /** How many distinct orders those payments sit against. */
   orderCount: number;
   paymentCount: number;

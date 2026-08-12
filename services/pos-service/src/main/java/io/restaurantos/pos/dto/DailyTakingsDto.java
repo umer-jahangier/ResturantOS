@@ -105,11 +105,38 @@ public record DailyTakingsDto(
     /**
      * One tender method's contribution to the day, dated by {@code order_payments.recorded_at}.
      *
-     * @param amountPaisa          everything taken on this method today, open orders included
+     * <h3>THE TIP IS A COLUMN ON THE TENDER, NOT A ROW BELOW THE SPLIT (F20)</h3>
+     *
+     * <p>Both shapes were available and they are not equivalent. A single "Tips" row totalling the
+     * day's gratuities would have been shorter and is the wrong answer, because <b>a tip's tender
+     * is the entire fact about it</b>: a cash tip is in the drawer that somebody counts tonight, a
+     * card tip is with the acquirer and reaches the bank in days. On 2026-08-12 Floating Terrace
+     * took Rs 185.00 of cash tips and Rs 300.00 of card tips; one row reading Rs 485.00 would tell
+     * a cashier holding a drawer to expect Rs 300.00 that is not in it — a worse figure than the
+     * nothing that was there before, because it is confidently wrong. Split by tender, the cash
+     * line alone answers the drawer question, and it is the ONLY figure that can.
+     *
+     * <p>The reconciliation this restores, which is the point of the whole screen:
+     * {@code till_sessions.expected_closing_paisa = opening float + (cash amount + cash tip)
+     * − cash refunds}, because {@code TillServiceImpl.closeTill} sums
+     * {@code p.getAmountPaisa() + p.getTipPaisa()}. Summing only {@code amount_paisa} here made the
+     * EXPECTED CASH column and the tender split diverge by exactly the day's cash tips, with
+     * nothing on the page naming the difference — the word "tip" did not appear on it at all.
+     *
+     * @param amountPaisa          everything taken on this method today that settled a BILL, open
+     *                             orders included. Tips are NOT in it: a tip never touches the
+     *                             balance, never enters {@code orders.total_paisa}, and is not
+     *                             revenue — so folding it in here would make the split stop
+     *                             reconciling against TOTAL BILLED.
+     * @param tipPaisa             taken on this tender ON TOP of the bill. <b>An ADDITION to
+     *                             {@code amountPaisa}, not a subset of it</b> — the opposite of
+     *                             {@code unclosedAmountPaisa} below, and stated here because a
+     *                             reader who has learnt that column's rule would otherwise apply
+     *                             it to this one and under-count the drawer.
      * @param unclosedAmountPaisa  the part of {@code amountPaisa} whose order is NOT yet closed.
      *                             A SUBSET, never an addition — adding the two double-counts.
      */
-    public record TenderLine(String method, long amountPaisa, int paymentCount,
+    public record TenderLine(String method, long amountPaisa, long tipPaisa, int paymentCount,
                              long unclosedAmountPaisa, int unclosedPaymentCount) {}
 
     /**
@@ -119,9 +146,22 @@ public record DailyTakingsDto(
      * cash-up needs BEFORE anyone counts: without it a manager finds the surplus by hand and has
      * no way to tell an unclosed order from a genuine overage.
      *
-     * @param orderCount how many distinct orders those payments sit against
+     * <p>The tip figures are here for the same reason the amounts are. This record is what the
+     * screen turns into the sentence "expect the count to include it", and a tip taken against an
+     * order that is still open is in the drawer exactly like the cash that settled it. Stating the
+     * amounts without the tips would make that sentence short by the tips and send the counter
+     * looking for an overage that is the restaurant's own gratuity.
+     *
+     * @param cashPaisa    cash that settled a bill on an order still open
+     * @param cashTipPaisa cash tips taken on those same payments — in the drawer, ADDED to
+     *                     {@code cashPaisa}, never a subset of it
+     * @param totalPaisa   the same across every tender
+     * @param tipPaisa     tips across every tender. Only the cash part is in a drawer; this exists
+     *                     so the card figure is not silently dropped
+     * @param orderCount   how many distinct orders those payments sit against
      */
-    public record UnclosedTakings(long cashPaisa, long totalPaisa, int orderCount, int paymentCount) {}
+    public record UnclosedTakings(long cashPaisa, long cashTipPaisa, long totalPaisa, long tipPaisa,
+                                  int orderCount, int paymentCount) {}
 
     /**
      * One till, and whether it matched.
