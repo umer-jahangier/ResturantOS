@@ -29,12 +29,17 @@ base_user_with_attrs(permissions, attrs) := {
 # on an undefined field. An order with no tender recorded against it carries 0, which is what
 # PosAuthorizationService.authorizeVoid sends; see test_void_own_absent_amount_paid_deny for the
 # fail-closed behaviour when a caller omits it entirely.
+# `any_line_plated` joins the baseline for the same reason: void.own reads it and Rego denies on an
+# undefined field. False is the state of a check the kitchen has not plated anything on, which is
+# what PosAuthorizationService.authorizeVoid sends for a DRAFT, an OPEN check or one still cooking;
+# see test_void_own_absent_any_line_plated_deny for the fail-closed behaviour on an omission.
 base_resource(extra) := object.union({
     "tenant_id": tenant,
     "branch_id": branch,
     "created_by": user_id,
     "status": "OPEN",
     "amount_paid_paisa": 0,
+    "any_line_plated": false,
 }, extra)
 
 # ── void.any tests ────────────────────────────────────────────────────────────
@@ -149,28 +154,63 @@ test_void_own_draft_allow if {
     }
 }
 
-# ...and the boundary holds on the other side. Once the kitchen has plated anything, writing the
-# check off is void.any's business, not the cashier's.
-test_void_own_partial_ready_deny if {
+# ── void.own and THE PASS (B2 re-open) ────────────────────────────────────────
+#
+# Three tests stood here — test_void_own_partial_ready_deny, _ready_deny and _served_deny — each
+# feeding a status literal ("PARTIAL_READY", "READY", "SERVED") and asserting a denial. All three
+# passed, and all three were theatre: pos-service cannot produce any of those statuses. It declares
+# them on OrderStatus but has never written the first or third, and stopped writing the second in
+# fc6f389f. A live check holds SENT_TO_KDS from the fryer to the table.
+#
+# So the suite proved the rule refuses inputs that never arrive, while the input that DOES arrive —
+# SENT_TO_KDS on a check whose food is cooked and served — was allowed. ORD-20260812-0340: the
+# cashier's own void answered 200 after serve-all. A test that can only be asked an impossible
+# question cannot fail for the real reason.
+#
+# These drive the field that carries the actual answer.
+
+test_void_own_plated_deny if {
     not pos.allow with input as {
         "user": base_user(["pos.order.void.own"]),
-        "resource": base_resource({"status": "PARTIAL_READY"}),
+        "resource": base_resource({"status": "SENT_TO_KDS", "any_line_plated": true}),
         "action": "void",
     }
 }
 
-test_void_own_ready_deny if {
+# The exact shape of ORD-20260812-0340: fired, served, nothing paid — and the status the persisted
+# column really held while that was true. This is the case the old three could not express.
+test_void_own_served_check_is_plated_deny if {
     not pos.allow with input as {
         "user": base_user(["pos.order.void.own"]),
-        "resource": base_resource({"status": "READY"}),
+        "resource": base_resource({"status": "SENT_TO_KDS", "any_line_plated": true, "amount_paid_paisa": 0}),
         "action": "void",
     }
 }
 
-test_void_own_served_deny if {
+# ...and a manager still may, in the same state. Without this the two denials above would also be
+# satisfied by a policy that refused every void, and B2's widening would be silently undone.
+test_void_any_plated_allow if {
+    pos.allow with input as {
+        "user": base_user(["pos.order.void.any"]),
+        "resource": base_resource({"status": "SENT_TO_KDS", "any_line_plated": true}),
+        "action": "void",
+    }
+}
+
+# Fail-closed on omission. A caller that does not send the field — authorization-service rebuilds
+# this input from an HTTP body and cannot know the line statuses — is refused, not waved through.
+# This is what makes `== false` the right form and `not input.resource.any_line_plated` the wrong
+# one: the negated form would allow this.
+test_void_own_absent_any_line_plated_deny if {
     not pos.allow with input as {
         "user": base_user(["pos.order.void.own"]),
-        "resource": base_resource({"status": "SERVED"}),
+        "resource": {
+            "tenant_id": tenant,
+            "branch_id": branch,
+            "created_by": user_id,
+            "status": "SENT_TO_KDS",
+            "amount_paid_paisa": 0,
+        },
         "action": "void",
     }
 }

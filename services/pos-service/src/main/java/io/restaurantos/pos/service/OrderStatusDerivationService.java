@@ -5,7 +5,9 @@ import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.model.OrderItem;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Pure derivation of the aggregate order status from its line-level item statuses.

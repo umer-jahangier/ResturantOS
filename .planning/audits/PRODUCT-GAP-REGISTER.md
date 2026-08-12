@@ -399,6 +399,20 @@ Effort: S ≤1 day · M ≤1 week · L ≤3 weeks · XL >3 weeks.
 | 7 | POS | Offline downgrades a fired order to a draft | **PARTIAL** | Offline `Send to Kitchen` → the order later landed as `ORD-20260812-0030` with status **DRAFT**, not SENT. Panel showed `Subtotal Rs 0.00 / Total Rs 0.00` for a real Rs 499 order; connection dot still read a green `Live`; reload while offline → `net::ERR_INTERNET_DISCONNECTED`, empty body | When the line drops the cashier believes food was sent, the kitchen never sees it, the bill reads zero, and a refresh gives a blank white till | L | — |
 | 8 | POS | "Full Menu" from a parked order silently abandons it | **PARTIAL** | Clicked `Full Menu →` on the drawer for `ORD-20260812-0019`; landed on a terminal with **no order number and an empty cart**, "Add items to start an order". `onFullMenu` passes only a `tableId`; `PosTerminal` accepts no `orderId` | A cashier recalling a parked bill loses it and rings the guest a second time — two checks, one party | M | — |
 
+### S0 — addendum, 2026-08-12: an authorization hole the status enum was hiding
+
+| # | Module | Capability | Verdict | Evidence | User impact | Effort | Depends on |
+|---|---|---|---|---|---|---|---|
+| 9 | POS / Authz | A cashier must not void their own check once the kitchen has cooked the food | **CONFIRMED BUG — fix written, NOT deployed** | Floating Terrace, branch `34cd6f62-…`, `cashier@terrace.local`, token carrying `pos.order.void.own` and NOT `void.any`. `ORD-20260812-0340`: `POST /pos/orders/{id}/serve-all` → **200** with `derivedStatus:"SERVED"` while `status` stayed `SENT_TO_KDS`; the cashier's OWN `POST /pos/orders/{id}/void` then → **200**. Independently, a KDS ticket bumped `PENDING→COOKING→READY` on the cook's own bearer left the POS order at `SENT_TO_KDS` through 60s of polling (12 samples) | A cashier can unilaterally write off a check after the food has been cooked *and* carried to the table. A void moves no money and writes no reversing entry, so the plate and the labour in it leave no revenue, no refund row and no variance on any screen an owner reads. `void.any` — the manager gate that was supposed to cover this — is never reached | S | — |
+
+**Why it survived every gate.** `pos.rego` drew the line with `cashier_voidable_statuses := {"DRAFT","OPEN","SENT_TO_KDS"}` and a comment arguing the boundary sat "at the pass". It did not. `OrderStatus` declares `PARTIAL_READY`, `READY` and `SERVED`, but pos-service has **never** written the first or the third, and stopped writing the second in `fc6f389f` ("no more order-level hand-set"), which moved kitchen progress to per-item statuses and a computed `derivedStatus`. A live check therefore holds `SENT_TO_KDS` from the fryer to the table, so that set covered every status an unpaid check can hold and constrained nothing. `derivedStatus` cannot substitute: `derive()` collapses `READY` into `IN_PROGRESS` and only breaks out *served*.
+
+`VoidOwnOrderIT::cashierCannotVoidTheirOwnCheckOnceTheKitchenHasPlatedIt` asserted the boundary and was green throughout — it called `authorizeVoid` with the hand-written strings `"PARTIAL_READY","READY","SERVED"`, three statuses production cannot produce. This is the register's own headline pattern, **structurally present, behaviourally absent**, in the guard written to prevent it.
+
+**Fix** (branch `claude/suspicious-swirles-f5b5ad`, unmerged): a computed `anyLinePlated` — any non-cancelled line at `READY` or `SERVED` — derived at decision time, sent to OPA, and required `== false` by `void.own`. Falsified at all three layers (the IT fails on the unfixed policy with the void succeeding; 3 rego cases fail with the clause removed; 3 UI cases fail with the client guard removed). **Deploy order is load-bearing: pos-service jar FIRST, policy bundle SECOND** — a tightened bundle reaching OPA before the jar sends the field denies *every* cashier void.
+
+**Open follow-up:** there is no way for a manager to authorize this at the terminal. See §5 S1 note below.
+
 ### S1 — A restaurant cannot run a shift
 
 | # | Module | Capability | Verdict | Evidence | User impact | Effort | Depends on |
@@ -413,6 +427,28 @@ Effort: S ≤1 day · M ≤1 week · L ≤3 weeks · XL >3 weeks.
 | 16 | Branch | Branch switcher must survive a reload | **PARTIAL** | Switched to `Floating Terrace — Rooftop` (label changed); after reload the label read `Floating Terrace HQ`; the JWT branch claim never changed in either state | A manager works a whole shift on the wrong branch's data believing they switched | S | — |
 | 17 | KDS | A station created by an admin should appear on the KDS | **PARTIAL** | `GET /kitchen/kds/stations` returns only `DEFAULT` and `GRILL` (`sourceStationId: null`) while `GET /pos/stations` returns `BAR`, `GRILL`, `DGB28334`. `upsertStation()` is called only from the ticket-routing path — a station becomes visible only when its first ticket arrives | An admin creates a bar station and the kitchen never offers it, which reads as the owner's configuration mistake rather than a product defect | M | #10 |
 | 18 | KDS | An unknown station code renders a healthy empty board | **CONFIRMED BUG** | `/app/kitchen/NOPE123` → `h1 "NOPE123"`, `0 tickets`, connection badge **LIVE**, no error | A typo in a URL gives a plausible, healthy-looking kitchen display that can never show a ticket | S | — |
+
+**S1 addendum, 2026-08-12 — a manager cannot authorize anything at a cashier's terminal.** Every
+manager-level act in POS is gated by a *permission on the logged-in user*, so the only way to
+perform one is for the manager to be the session. There is no override prompt, no manager PIN, no
+card swipe, no approve-at-the-terminal flow anywhere in the product. `pos.till.open.other` is not a
+counter-example: it lets a manager, signed in as themselves, open a drawer for someone else.
+
+The existing TOTP step-up (`frontend/lib/auth/step-up.ts`) does **not** fill this hole and cannot be
+wired to it as-is. It is same-user re-authentication — it re-proves that *the person already signed
+in* holds a second factor — and it is used only by payroll approval and accounting-period close;
+`grep` across `frontend/components/pos`, `frontend/lib/hooks/pos` and `pos.repository.ts` returns
+zero hits. Its own header records that auth-service exposes enrolment but no re-verification
+endpoint, so "the single remedy is one more login with a code". Applying it here would mean logging
+the cashier out mid-service, logging the manager in with a TOTP code, voiding, and logging back in —
+which also tears down the cashier's till session.
+
+This is the operational cost attached to gap #9's fix: a cashier who needs a plated check written
+off must fetch a manager to the terminal and swap sessions. The fix is still correct — writing off
+cooked food is a manager's decision — but **second-person authorization at the terminal is a real,
+unbuilt capability**, not a wiring job, and it is what would make that boundary cheap to enforce.
+Effort: **M–L**. Depends on: nothing; blocks nothing, but every manager-gated act in POS pays for
+its absence.
 
 ### S2 — A restaurant cannot sell what it sells
 

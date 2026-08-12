@@ -137,11 +137,14 @@ class VoidOwnOrderIT extends PosTestBase {
 
         // ...and it decides, rather than merely holding text: a manager voiding in their own
         // tenant and branch is allowed by void.any, a rule this file does not otherwise touch.
+        // SENT_TO_KDS, not "SERVED": void.any reads no status at all, but a status literal that
+        // production cannot produce has no place in a positive control — that confusion is what
+        // this file's B2 re-open was about.
         assertThat(opaClient.evaluate("pos", OpaInput.builder()
                 .user(new OpaInput.User(cashierId, tenantId, branchId,
                         List.of("pos.order.void.any"), Map.of()))
                 .resource(new OpaInput.Resource("order", UUID.randomUUID(), tenantId, branchId,
-                        cashierId, "SERVED", null, 0L))
+                        cashierId, "SENT_TO_KDS", null, 0L, true))
                 .action("void")
                 .build()).allow())
                 .as("real OPA must ALLOW void.any for an in-tenant, in-branch manager")
@@ -339,18 +342,43 @@ class VoidOwnOrderIT extends PosTestBase {
         UUID orderId = UUID.randomUUID();
 
         assertThatThrownBy(() -> posAuthorizationService.authorizeVoid(
-                orderId, tenantId, branchId, cashierId, "SENT_TO_KDS", 168260L))
+                orderId, tenantId, branchId, cashierId, "SENT_TO_KDS", 168260L, false))
                 .isInstanceOf(PermissionDeniedException.class);
 
         // One paisa is money. There is no threshold below which a void becomes acceptable.
         assertThatThrownBy(() -> posAuthorizationService.authorizeVoid(
-                orderId, tenantId, branchId, cashierId, "OPEN", 1L))
+                orderId, tenantId, branchId, cashierId, "OPEN", 1L, false))
                 .isInstanceOf(PermissionDeniedException.class);
 
         // Control: the identical call with nothing tendered is allowed, so the two refusals above
         // are attributable to the money and not to some other clause failing.
         posAuthorizationService.authorizeVoid(
-                orderId, tenantId, branchId, cashierId, "SENT_TO_KDS", 0L);
+                orderId, tenantId, branchId, cashierId, "SENT_TO_KDS", 0L, false);
+    }
+
+    /**
+     * ...and the PASS clause is a live control at the same seam, for the same reason the money
+     * clause needed one.
+     *
+     * <p>{@link #cashierCannotVoidTheirOwnCheckOnceTheKitchenHasPlatedIt} proves the boundary
+     * end-to-end through {@code voidOrder}, which is the test that matters. This one pins the
+     * clause at {@link PosAuthorizationService#authorizeVoid} directly, because that method has a
+     * second caller: {@code authorization-service} exposes the same {@code (pos, void)} pair over
+     * HTTP. The two refusals differ only in {@code anyLinePlated}, so neither can be explained by
+     * another clause failing.
+     */
+    @Test
+    void thePolicyItselfRefusesAVoidOnceTheKitchenHasPlated() {
+        UUID orderId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> posAuthorizationService.authorizeVoid(
+                orderId, tenantId, branchId, cashierId, "SENT_TO_KDS", 0L, true))
+                .as("void.own must refuse a plated check even with no tender on it")
+                .isInstanceOf(PermissionDeniedException.class);
+
+        // Control: same call, nothing plated — allowed.
+        posAuthorizationService.authorizeVoid(
+                orderId, tenantId, branchId, cashierId, "SENT_TO_KDS", 0L, false);
     }
 
     // ── (3) the boundary on the other side: once food is plated it is a manager's call ────
