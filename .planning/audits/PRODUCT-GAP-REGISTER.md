@@ -404,7 +404,7 @@ Effort: S ≤1 day · M ≤1 week · L ≤3 weeks · XL >3 weeks.
 | # | Module | Capability | Verdict | Evidence | User impact | Effort | Depends on |
 |---|---|---|---|---|---|---|---|
 | 9 | Reliability | All services running and visibly healthy | **BROKEN** | Live now: `pos-service`, `kitchen-service`, `crm-service`, `hr-service`, `file-service`, `notification-service` absent from `ps`; a signed-in manager gets `503 {"code":"SERVICE_UNAVAILABLE"}` on `/pos/menu/items`, `/pos/orders`, `/kitchen/kds/stations`, `/crm/customers`, `/hr/employees` | The till, the kitchen screen, the customer file and payroll are all simply gone, and the product's only explanation is a generic error | M | — |
-| 10 | KDS | Route items to a station from a screen | **API_ONLY** | Endpoints exist (`MenuController.java:108,130`); `/app/menu/routing`, `/app/menu/stations`, `/app/settings/stations` → 404 as OWNER; all 9 items return `effectiveStationCode:null`; a mixed check produced ONE `DEFAULT` ticket while `/app/kitchen/BAR` had 0 cards | The bar never receives a drink order; every beverage on a mixed check is lost to the person who makes it | M | — |
+| 10 | KDS | Route items to a station from a screen | ~~**API_ONLY**~~ → **CLOSED 2026-08-12** | Was: endpoints exist (`MenuController.java:108,130`), `/app/menu/routing` 404 as OWNER, all 9 items `effectiveStationCode:null`, a mixed check produced ONE `DEFAULT` ticket. Now driven end to end on a `checked=16 stale=0` stack: sidebar → **Station Routing** → Drinks→BAR (*"Drinks now fires to Main bar (BAR)"*, one `PUT …/categories/{id}/station` 204) and Seekh Kebab→GRILL (*"Seekh Kebab now fires to Hot line (GRILL)"*, one `PUT …/items/{id}/station`), each saving on its own; `ORD-20260812-0273` then split three ways — `BAR 1× Pinacolada`, `GRILL 1× Seekh Kebab`, `DEFAULT 1× Chicken Karahi`, `PANTRY1` nothing. Evidence `.planning/audits/floor/S1/` | The bar now receives the drink | M | — |
 | 11 | KDS | The board must show started work | **PARTIAL** | `station-board.tsx` flattens all columns in order, then slices into pages of 16. Walked all pages: page 1/3 = `NEW n=16, STARTED 0, PREPARING 0, READY 0`; page 2/3 = `NEW 12, STARTED 4`; page 3/3 = `STARTED 1`. Positions are numbered only for the first ten of a page, so a PREPARING fragment on page 2 has `pos:""` and cannot be keyboard-bumped | A cook bumps a ticket and it vanishes onto a page behind them; the three progress columns in front of them are permanently empty whenever 16+ tickets are new | M | — |
 | 12 | Menu / POS | The till must show the whole menu | **PARTIAL** | `ZZPAGE probes visible at the till: 10 of 15 created`; grid rendered ≈22 price labels against 26 items. `getMenuItems` sends only `{categoryId, branchId}` to a `Page<MenuItemDto>` endpoint; search filters client-side over what was already fetched | A restaurant with a 60-item menu can sell about 20 of them, and searching for one of the others returns nothing | S | — |
 | 13 | Menu / KDS | 86 an item and have it disappear from the tills | **MISSING** | Owner deactivated `Butter Naan`; the cashier's open till still showed it at +5s, +10s and +20s with no reload, and only dropped it after a manual refresh. `grep eighty-six\|86'd\|eightySix` across the KDS components → 0 matches | The kitchen runs out, nobody can stop the tills selling it, and waiters keep ringing it one guest at a time all night | L | — |
@@ -562,10 +562,18 @@ Stated plainly, because a gap register that overstates its own certainty is how 
    verified over the API; the keyboard path's failure mode is diagnosed from
    `station-board.tsx` plus a `pos:""` observation, and was not exhaustively driven at every
    pagination boundary.
-10. **The bartender fix was proved by inference, not by a final drive.** Routing Drinks→BAR made the
-    BAR station appear on the KDS index and a bar ticket render — but `kitchen-service` and
+10. ~~**The bartender fix was proved by inference, not by a final drive.**~~ Routing Drinks→BAR made
+    the BAR station appear on the KDS index and a bar ticket render — but `kitchen-service` and
     `pos-service` went down before the bartender's own scoped screen could be re-checked with BAR
     live. Near-certain, not driven.
+    **CLOSED 2026-08-12 — driven.** A Kitchen Staff account was hired through `/app/users` with
+    "Main bar" ticked and nothing else (*"They will see Main bar only."*), signed in as themselves,
+    and `/app/kitchen` landed them on `/app/kitchen/BAR` — `h1 "Main bar"`, `3 tickets · 3 items`,
+    `LIVE`, carrying `ORD-20260812-0273 · DINE-IN · 1× Pinacolada`. `No active stations configured`
+    appeared nowhere, and the same account at `/app/kitchen/GRILL` got *"No such station — This
+    branch has no active station with the code "GRILL", or it is not one of yours"* with zero cards
+    and no sight of the Seekh Kebab or the Chicken Karahi from the same check.
+    `.planning/audits/floor/S1/09b-bartender-board.png`, `05f-bartender-grill-denied.png`.
 11. **The reference module model supplied to this compilation was truncated** mid-way through
     "Payments & Tender Types". Modules 10–24 of the scorecard are reconstructed from the 15 probed
     domains and the owner's stated complaints, not from the canonical list. If the canonical model
