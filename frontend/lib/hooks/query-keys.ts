@@ -22,6 +22,17 @@ export const queryKeys = {
   ops: {
     fleetHealth: () => ["ops", "fleet-health"] as const,
   },
+  // F4: the tenant audit trail. Deliberately NOT branch-scoped — audit_events is scoped to the
+  // TENANT and a single read returns rows from every branch (that is the point: "who granted that
+  // role" is not a question about one restaurant). Keying it on branchId would make a branch switch
+  // silently show a different, wrong slice of the same log, and would invalidate a screen an
+  // administrator is reading for reasons that have nothing to do with which till they are near.
+  audit: {
+    all: () => ["audit"] as const,
+    // Filters are the last segment so the prefix above invalidates every combination at once.
+    events: (filters: unknown) => ["audit", "events", filters] as const,
+    facets: (window: unknown) => ["audit", "facets", window] as const,
+  },
   // 37-11: the transaction register. Branch-scoped like the rest of the money keys, so a branch
   // switch invalidates it cleanly rather than showing the previous branch's takings.
   transactions: {

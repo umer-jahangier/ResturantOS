@@ -18,6 +18,7 @@ import {
   Printer,
   Receipt,
   Route,
+  ScrollText,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -483,6 +484,26 @@ export const navGroups: NavGroup[] = [
         icon: Users,
         permission: ["rbac.manage", "rbac.user.manage"],
         permissionMode: "any",
+      },
+      {
+        // F4: who did what, and when. audit_events held 3,457 rows for the working tenant, the
+        // permission was seeded, the endpoint answered 200 and the gateway routed it — and there
+        // was no page and no nav entry anywhere matching audit, log, activity, history or
+        // security. The 2026-08-12 walkthrough's own words: "nobody in the building can read the
+        // audit log."
+        //
+        // Gated on `audit.log.view` — the SAME code `AuditQueryController` @PreAuthorizes, not a
+        // broader one. A nav entry to a screen whose read 403s is worse than no entry, and a
+        // broader gate here would offer it to a MANAGER, who deliberately does not hold it: a
+        // manager can void an order, and a manager who can also read the void log is a manager who
+        // can see whether anyone is looking.
+        //
+        // Sits beside Users and Service health because it is read by the same two roles, on the
+        // same errand — checking on the business rather than running a shift.
+        label: "Audit log",
+        href: "/app/settings/audit",
+        icon: ScrollText,
+        permission: "audit.log.view",
       },
       {
         // S1-09: is the software running. There was no health route anywhere under
