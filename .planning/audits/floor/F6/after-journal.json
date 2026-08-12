@@ -1,0 +1,365 @@
+{
+  "results": {
+    "A-mixed": {
+      "no": "ORD-20260812-0219",
+      "orderId": "59bc68df-2dab-463c-9076-573088477ab4",
+      "allRows": [
+        {
+          "label": "Order",
+          "amount": ""
+        },
+        {
+          "label": "Issued",
+          "amount": ""
+        },
+        {
+          "label": "1 x Butter Naan",
+          "amount": "Rs 92.80"
+        },
+        {
+          "label": "1 x Pinacolada",
+          "amount": "Rs 700.00"
+        },
+        {
+          "label": "1 x Seekh Kebab",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "Subtotal",
+          "amount": "Rs 1,230.00"
+        },
+        {
+          "label": "Discount",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "Service charge",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "Sales Tax (16.00%)",
+          "amount": "Rs 12.80"
+        },
+        {
+          "label": "Sales Tax (17.00%)",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "Tax",
+          "amount": "Rs 89.30"
+        },
+        {
+          "label": "TOTAL",
+          "amount": "Rs 1,319.30"
+        },
+        {
+          "label": "CASH",
+          "amount": "Rs 1,319.30"
+        },
+        {
+          "label": "Tendered",
+          "amount": "Rs 3,000.00"
+        },
+        {
+          "label": "Change",
+          "amount": "Rs 1,680.70"
+        }
+      ],
+      "breakdown": [
+        {
+          "label": "Sales Tax (16.00%)",
+          "amount": "Rs 12.80"
+        },
+        {
+          "label": "Sales Tax (17.00%)",
+          "amount": "Rs 76.50"
+        }
+      ],
+      "receiptText": "*** REPRINT #2 ***\nOriginally issued 2026-08-12T05:01:41.963Z\nFloating Terrace HQ\n12 Khayaban-e-Iqbal\n+92 21 4628872\nOrder\nORD-20260812-0219\nIssued\n2026-08-12T05:01:49.313Z\n1 x Butter Naan\nRs 92.80\n1 x Pinacolada\nRs 700.00\n1 x Seekh Kebab\nRs 526.50\nSubtotal\nRs 1,230.00\nDiscount\nRs 0.00\nService charge\nRs 0.00\nSales Tax (16.00%)\nRs 12.80\nSales Tax (17.00%)\nRs 76.50\nTax\nRs 89.30\nTOTAL\nRs 1,319.30\nCASH\nRs 1,319.30\nTendered\nRs 3,000.00\nChange\nRs 1,680.70",
+      "issued": {
+        "status": 201,
+        "taxBreakdown": [
+          {
+            "rateCode": "OTHER",
+            "label": "Sales Tax",
+            "ratePercent": "16.00",
+            "amount": {
+              "paisa": 1280,
+              "formatted": "Rs 12.80"
+            }
+          },
+          {
+            "rateCode": "SR-STD-17",
+            "label": "Sales Tax",
+            "ratePercent": "17.00",
+            "amount": {
+              "paisa": 7650,
+              "formatted": "Rs 76.50"
+            }
+          }
+        ]
+      }
+    },
+    "B-single": {
+      "no": "ORD-20260812-0226",
+      "orderId": "58610185-44ea-447a-b14c-ed3ce2890144",
+      "allRows": [
+        {
+          "label": "Order",
+          "amount": ""
+        },
+        {
+          "label": "Issued",
+          "amount": ""
+        },
+        {
+          "label": "1 x Seekh Kebab",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "Subtotal",
+          "amount": "Rs 450.00"
+        },
+        {
+          "label": "Discount",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "Service charge",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "Sales Tax (17.00%)",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "Tax",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "TOTAL",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "CASH",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "Tendered",
+          "amount": "Rs 3,000.00"
+        },
+        {
+          "label": "Change",
+          "amount": "Rs 2,473.50"
+        }
+      ],
+      "breakdown": [
+        {
+          "label": "Sales Tax (17.00%)",
+          "amount": "Rs 76.50"
+        }
+      ],
+      "receiptText": "*** REPRINT #2 ***\nOriginally issued 2026-08-12T05:04:02.479Z\nFloating Terrace HQ\n12 Khayaban-e-Iqbal\n+92 21 4628872\nOrder\nORD-20260812-0226\nIssued\n2026-08-12T05:04:09.877Z\n1 x Seekh Kebab\nRs 526.50\nSubtotal\nRs 450.00\nDiscount\nRs 0.00\nService charge\nRs 0.00\nSales Tax (17.00%)\nRs 76.50\nTax\nRs 76.50\nTOTAL\nRs 526.50\nCASH\nRs 526.50\nTendered\nRs 3,000.00\nChange\nRs 2,473.50",
+      "issued": {
+        "status": 201,
+        "taxBreakdown": [
+          {
+            "rateCode": "SR-STD-17",
+            "label": "Sales Tax",
+            "ratePercent": "17.00",
+            "amount": {
+              "paisa": 7650,
+              "formatted": "Rs 76.50"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "journal": [
+    {
+      "step": "A-mixed.terminal-not-ready",
+      "seen": {
+        "url": "http://localhost:3000/app/pos",
+        "alerts": [
+          "The till is unavailable right now.\n\nThe part of RestaurantOS that handles the till is not answering. This is not something you did, and nothing you have entered has been lost. Orders already sent to t"
+        ],
+        "testids": [
+          "till-status-unavailable",
+          "pos-live-indicator",
+          "query-service-outage",
+          "query-error-retry"
+        ],
+        "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till status unavailable — the till service is not answering POS Terminal Floor View Order Management Live The till is unavailable right now. The part of RestaurantOS that handles the till is not answering. This is not something you did, and nothing you have entered has been lost. Orders already sent to the kitchen are unaffected, and the kitchen display keeps working. D"
+      }
+    },
+    {
+      "step": "A-mixed.cart",
+      "cart": {
+        "lines": [
+          "Seekh Kebab",
+          "Butter Naan",
+          "Pinacolada"
+        ],
+        "subtotal": "Rs 1,230.00",
+        "tax": "Rs 89.30"
+      }
+    },
+    {
+      "step": "A-mixed.fired",
+      "after": {
+        "nos": [
+          "ORD-20260812-0219"
+        ],
+        "alerts": []
+      }
+    },
+    {
+      "step": "A-mixed.paid",
+      "attempt": 1,
+      "outcome": {
+        "err": null,
+        "paid": null,
+        "rows": [
+          "CASH Aug 12, 2026, 10:01 AM Rs 1,319.30"
+        ],
+        "recordStillOffered": false
+      }
+    },
+    {
+      "step": "A-mixed.receipt.trouble",
+      "trouble": {
+        "bad": [],
+        "alerts": [],
+        "url": "http://localhost:3000/app/pos/orders/59bc68df-2dab-463c-9076-573088477ab4/receipt"
+      },
+      "rendered": true
+    },
+    {
+      "step": "A-mixed.receipt",
+      "breakdown": [
+        {
+          "label": "Sales Tax (16.00%)",
+          "amount": "Rs 12.80"
+        },
+        {
+          "label": "Sales Tax (17.00%)",
+          "amount": "Rs 76.50"
+        }
+      ],
+      "bracketedTokensOnPaper": []
+    },
+    {
+      "step": "A-mixed.server.taxBreakdown",
+      "issued": {
+        "status": 201,
+        "taxBreakdown": [
+          {
+            "rateCode": "OTHER",
+            "label": "Sales Tax",
+            "ratePercent": "16.00",
+            "amount": {
+              "paisa": 1280,
+              "formatted": "Rs 12.80"
+            }
+          },
+          {
+            "rateCode": "SR-STD-17",
+            "label": "Sales Tax",
+            "ratePercent": "17.00",
+            "amount": {
+              "paisa": 7650,
+              "formatted": "Rs 76.50"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step": "B-single.cart",
+      "cart": {
+        "lines": [
+          "Seekh Kebab"
+        ],
+        "subtotal": "Rs 450.00",
+        "tax": "Rs 76.50"
+      }
+    },
+    {
+      "step": "B-single.fired",
+      "after": {
+        "nos": [
+          "ORD-20260812-0223"
+        ],
+        "alerts": []
+      }
+    },
+    {
+      "step": "B-single.cart",
+      "cart": {
+        "lines": [
+          "Seekh Kebab"
+        ],
+        "subtotal": "Rs 450.00",
+        "tax": "Rs 76.50"
+      }
+    },
+    {
+      "step": "B-single.fired",
+      "after": {
+        "nos": [
+          "ORD-20260812-0226"
+        ],
+        "alerts": []
+      }
+    },
+    {
+      "step": "B-single.paid",
+      "attempt": 1,
+      "outcome": {
+        "err": null,
+        "paid": null,
+        "rows": [
+          "CASH Aug 12, 2026, 10:04 AM Rs 526.50"
+        ],
+        "recordStillOffered": false
+      }
+    },
+    {
+      "step": "B-single.receipt.trouble",
+      "trouble": {
+        "bad": [],
+        "alerts": [],
+        "url": "http://localhost:3000/app/pos/orders/58610185-44ea-447a-b14c-ed3ce2890144/receipt"
+      },
+      "rendered": true
+    },
+    {
+      "step": "B-single.receipt",
+      "breakdown": [
+        {
+          "label": "Sales Tax (17.00%)",
+          "amount": "Rs 76.50"
+        }
+      ],
+      "bracketedTokensOnPaper": []
+    },
+    {
+      "step": "B-single.server.taxBreakdown",
+      "issued": {
+        "status": 201,
+        "taxBreakdown": [
+          {
+            "rateCode": "SR-STD-17",
+            "label": "Sales Tax",
+            "ratePercent": "17.00",
+            "amount": {
+              "paisa": 7650,
+              "formatted": "Rs 76.50"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

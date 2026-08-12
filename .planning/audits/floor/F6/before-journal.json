@@ -1,0 +1,265 @@
+{
+  "results": {
+    "A-mixed": {
+      "no": "ORD-20260812-0171",
+      "orderId": "44d6e486-ba87-4f9c-8773-ffe5d2124e00",
+      "allRows": [
+        {
+          "label": "Order",
+          "amount": ""
+        },
+        {
+          "label": "Issued",
+          "amount": ""
+        },
+        {
+          "label": "1 x Seekh Kebab",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "1 x Butter Naan",
+          "amount": "Rs 92.80"
+        },
+        {
+          "label": "1 x Pinacolada",
+          "amount": "Rs 700.00"
+        },
+        {
+          "label": "Subtotal",
+          "amount": "Rs 1,230.00"
+        },
+        {
+          "label": "Discount",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "Service charge",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "SR-STD-17 (17.00%) [SR-STD-17]",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "Tax (16.00%) [OTHER]",
+          "amount": "Rs 12.80"
+        },
+        {
+          "label": "Tax",
+          "amount": "Rs 89.30"
+        },
+        {
+          "label": "TOTAL",
+          "amount": "Rs 1,319.30"
+        },
+        {
+          "label": "CASH",
+          "amount": "Rs 1,319.30"
+        },
+        {
+          "label": "Tendered",
+          "amount": "Rs 3,000.00"
+        },
+        {
+          "label": "Change",
+          "amount": "Rs 1,680.70"
+        }
+      ],
+      "breakdown": [
+        {
+          "label": "SR-STD-17 (17.00%) [SR-STD-17]",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "Tax (16.00%) [OTHER]",
+          "amount": "Rs 12.80"
+        }
+      ],
+      "receiptText": "Floating Terrace HQ\n12 Khayaban-e-Iqbal\n+92 21 4628872\nOrder\nORD-20260812-0171\nIssued\n2026-08-12T03:57:35.478Z\n1 x Seekh Kebab\nRs 526.50\n1 x Butter Naan\nRs 92.80\n1 x Pinacolada\nRs 700.00\nSubtotal\nRs 1,230.00\nDiscount\nRs 0.00\nService charge\nRs 0.00\nSR-STD-17 (17.00%) [SR-STD-17]\nRs 76.50\nTax (16.00%) [OTHER]\nRs 12.80\nTax\nRs 89.30\nTOTAL\nRs 1,319.30\nCASH\nRs 1,319.30\nTendered\nRs 3,000.00\nChange\nRs 1,680.70",
+      "issued": {
+        "status": 400,
+        "taxBreakdown": null
+      }
+    },
+    "B-single": {
+      "no": "ORD-20260812-0172",
+      "orderId": "30986c8f-b99f-465a-a0d6-6f6351add407",
+      "allRows": [
+        {
+          "label": "Order",
+          "amount": ""
+        },
+        {
+          "label": "Issued",
+          "amount": ""
+        },
+        {
+          "label": "1 x Seekh Kebab",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "Subtotal",
+          "amount": "Rs 450.00"
+        },
+        {
+          "label": "Discount",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "Service charge",
+          "amount": "Rs 0.00"
+        },
+        {
+          "label": "SR-STD-17 (17.00%) [SR-STD-17]",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "Tax",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "TOTAL",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "CASH",
+          "amount": "Rs 526.50"
+        },
+        {
+          "label": "Tendered",
+          "amount": "Rs 3,000.00"
+        },
+        {
+          "label": "Change",
+          "amount": "Rs 2,473.50"
+        }
+      ],
+      "breakdown": [
+        {
+          "label": "SR-STD-17 (17.00%) [SR-STD-17]",
+          "amount": "Rs 76.50"
+        }
+      ],
+      "receiptText": "Floating Terrace HQ\n12 Khayaban-e-Iqbal\n+92 21 4628872\nOrder\nORD-20260812-0172\nIssued\n2026-08-12T03:58:35.858Z\n1 x Seekh Kebab\nRs 526.50\nSubtotal\nRs 450.00\nDiscount\nRs 0.00\nService charge\nRs 0.00\nSR-STD-17 (17.00%) [SR-STD-17]\nRs 76.50\nTax\nRs 76.50\nTOTAL\nRs 526.50\nCASH\nRs 526.50\nTendered\nRs 3,000.00\nChange\nRs 2,473.50",
+      "issued": {
+        "status": 400,
+        "taxBreakdown": null
+      }
+    }
+  },
+  "journal": [
+    {
+      "step": "A-mixed.cart",
+      "cart": {
+        "lines": [
+          "Seekh Kebab",
+          "Butter Naan",
+          "Pinacolada"
+        ],
+        "subtotal": "Rs 1,230.00",
+        "tax": "Rs 89.30"
+      }
+    },
+    {
+      "step": "A-mixed.fired",
+      "after": {
+        "nos": [
+          "ORD-20260812-0171"
+        ],
+        "alerts": []
+      }
+    },
+    {
+      "step": "A-mixed.paid",
+      "paid": {
+        "err": null,
+        "paid": null
+      }
+    },
+    {
+      "step": "A-mixed.receipt.trouble",
+      "trouble": {
+        "bad": [],
+        "alerts": [],
+        "url": "http://localhost:3000/app/pos/orders/44d6e486-ba87-4f9c-8773-ffe5d2124e00/receipt"
+      }
+    },
+    {
+      "step": "A-mixed.receipt",
+      "breakdown": [
+        {
+          "label": "SR-STD-17 (17.00%) [SR-STD-17]",
+          "amount": "Rs 76.50"
+        },
+        {
+          "label": "Tax (16.00%) [OTHER]",
+          "amount": "Rs 12.80"
+        }
+      ],
+      "bracketedTokensOnPaper": [
+        "[SR-STD-17]",
+        "[OTHER]"
+      ]
+    },
+    {
+      "step": "A-mixed.server.taxBreakdown",
+      "issued": {
+        "status": 400,
+        "taxBreakdown": null
+      }
+    },
+    {
+      "step": "B-single.cart",
+      "cart": {
+        "lines": [
+          "Seekh Kebab"
+        ],
+        "subtotal": "Rs 450.00",
+        "tax": "Rs 76.50"
+      }
+    },
+    {
+      "step": "B-single.fired",
+      "after": {
+        "nos": [
+          "ORD-20260812-0172"
+        ],
+        "alerts": []
+      }
+    },
+    {
+      "step": "B-single.paid",
+      "paid": {
+        "err": null,
+        "paid": null
+      }
+    },
+    {
+      "step": "B-single.receipt.trouble",
+      "trouble": {
+        "bad": [],
+        "alerts": [],
+        "url": "http://localhost:3000/app/pos/orders/30986c8f-b99f-465a-a0d6-6f6351add407/receipt"
+      }
+    },
+    {
+      "step": "B-single.receipt",
+      "breakdown": [
+        {
+          "label": "SR-STD-17 (17.00%) [SR-STD-17]",
+          "amount": "Rs 76.50"
+        }
+      ],
+      "bracketedTokensOnPaper": [
+        "[SR-STD-17]"
+      ]
+    },
+    {
+      "step": "B-single.server.taxBreakdown",
+      "issued": {
+        "status": 400,
+        "taxBreakdown": null
+      }
+    }
+  ]
+}
