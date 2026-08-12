@@ -257,6 +257,70 @@ describe("a role can be taken back from the Roles-by-branch panel", () => {
     ).toBeInTheDocument();
   });
 
+  /**
+   * The same guarantee, for a refusal that does NOT fit in a tweet.
+   *
+   * <h3>Why this exists as well as the case above</h3>
+   *
+   * The case above was made to pass by shortening auth-service's sentence until it fitted a
+   * 160-character cap in `formatUserFacingError`. That fixed one message and left the rule that
+   * broke it in place — a rule keyed on LENGTH, which cannot tell a raw Zod dump from a refusal
+   * that took the trouble to explain itself. An audit of the fleet found eight refusals over that
+   * cap, every one of them reaching a screen as "Something went wrong": a payslip refusal carrying
+   * the arithmetic breakdown an operator needs (306 chars), a goods-receipt refusal that spends 72
+   * of its characters on two UUIDs (400), and more. The cap is now a structural test for machine
+   * output plus a backstop far above real copy.
+   *
+   * <p>So this drives the whole path — msw response, repository, hook, dialog — with a refusal
+   * that the old rule would have swallowed, and asserts the words survive to the alert. A unit
+   * test on `formatUserFacingError` would not have caught the original defect either, because the
+   * function was behaving exactly as written; what was wrong was what a person saw at the end of
+   * it. `__tests__/lib/errors/user-facing.test.ts` covers the rule itself.
+   */
+  it("shows a long refusal in full, rather than swallowing it for being long", async () => {
+    seedServer([assignment(HQ_ID, "WAITER", true), assignment(ROOFTOP_ID, "OWNER")]);
+    seedSession(OWNER);
+
+    // Realistic for this endpoint: names the role, the branch, the size of the gap, and the way
+    // out. 209 characters — comfortably past the cap that used to replace it wholesale.
+    const LONG_REFUSAL =
+      "You cannot revoke the role OWNER at Floating Terrace — Rooftop: it grants 12 permission(s) " +
+      "you do not hold yourself, including the authority to manage roles. Ask an administrator " +
+      "who holds them to make this change.";
+
+    // The guard. If this fixture is ever shortened under the old cap, this test stops proving
+    // anything, and it should say so loudly rather than keep passing.
+    expect(LONG_REFUSAL.length).toBeGreaterThan(160);
+
+    server.use(
+      http.delete(`*/api/v1/users/${USER_ID}/branch-roles`, () =>
+        HttpResponse.json(
+          {
+            error: { code: "ROLE_CEILING_EXCEEDED", message: LONG_REFUSAL, details: [] },
+          },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    renderPanel();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Revoke OWNER at Floating Terrace — Rooftop" }),
+    );
+    await userEvent.click(await screen.findByTestId("confirm-dialog-confirm"));
+
+    const dialog = await screen.findByRole("dialog");
+    const alert = await waitFor(() => within(dialog).getByRole("alert"));
+
+    // Every clause, not merely the opening one: the remedy is the LAST sentence in this message —
+    // as it is across the fleet — so a rule that truncated to fit would pass an "it starts with
+    // the right words" assertion while discarding the only part the reader can act on.
+    expect(alert).toHaveTextContent(/including the authority to manage roles/i);
+    expect(alert).toHaveTextContent(/Ask an administrator who holds them to make this change/i);
+    // The control, as in the case above.
+    expect(alert).not.toHaveTextContent(/Something went wrong/i);
+  });
+
   it("renders no revoke control for a persona without role authority", async () => {
     seedServer([assignment(HQ_ID, "WAITER", true)]);
     seedSession(MANAGER);
