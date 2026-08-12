@@ -193,6 +193,22 @@ public abstract class PosTestBase {
      * view scoping off this same claim list, so a generous default here would silently widen what
      * {@code listOrderSummaries} returns and quietly invalidate the suites that test it.
      */
+    /**
+     * Clears the principal AFTER every test, so the next one starts from a known state.
+     *
+     * <p>Without this the guard below is worse than useless. SecurityContextHolder is a
+     * THREAD-LOCAL and Failsafe runs the whole module in ONE fork, so a principal set by an
+     * earlier TEST CLASS is still on the thread when a later one starts — and the guard's early
+     * return then declines to install the default in precisely the case where a leak happened.
+     * Which principal a suite ran under was execution-order dependent, with a plausible principal
+     * instead of a loud failure, which is the harder version to notice. Measured 2026-08-12: 41
+     * files here touch SecurityContextHolder and only 4 cleared it.
+     */
+    @org.junit.jupiter.api.AfterEach
+    void noPrincipalOutlivesItsTest() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
     @BeforeEach
     void someoneIsLoggedInUnlessTheTestSaysOtherwise() {
         if (org.springframework.security.core.context.SecurityContextHolder.getContext()
