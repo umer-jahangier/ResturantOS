@@ -68,6 +68,12 @@ Each of these produced a confident, wrong answer:
   only — and `~/.testcontainers.properties` here **already** says `ryuk.disabled=true` and is not
   honoured by the failsafe fork. There is **no parent-pom entry**: five service poms each carry
   their own, and auth-service and shared-lib never got one. That is the whole defect.
+
+  **A third decorative form exists**, in `AuditImmutabilityIT`, `AuditConsumerIT` and
+  `AuditReadPathIT`: `r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true")` inside a
+  `@DynamicPropertySource`. That registers a **Spring property**. Testcontainers reads the
+  **process environment**. It was never going to arrive. Those suites pass only when someone
+  exports the variable on the command line, which is easy to mistake for the code working.
 - **`-Dtest=X` with `-am` fails the reactor before it reaches your module.** My earlier retraction
   was itself incomplete. With `-am` the filter also applies to shared-lib, which then fails on
   no-match *first*. `-Dsurefire.failIfNoSpecifiedTests=false` is required alongside — and it costs
@@ -81,8 +87,16 @@ Each of these produced a confident, wrong answer:
   empty run.*
 - **In a FRESH WORKTREE there is no `frontend/node_modules`.** `npx tsc` / `npx vitest` then fetch a
   bare toolchain, resolve nothing, and a grep-filtered typecheck comes back **"clean" having checked
-  nothing**. Install first — the repo's lockfile is `pnpm-lock.yaml`, so `pnpm install`; `npm ci`
-  fails on a lock mismatch.
+  nothing**. The correct command is **`pnpm install --frozen-lockfile`** — `frontend/` has
+  `pnpm-lock.yaml` and `pnpm-workspace.yaml`.
+
+  **Do NOT reach for `npm install` when `npm ci` fails.** `npm ci` is not failing on a broken
+  lockfile; it is failing because **there is no npm lockfile at all**. `npm install` then "works" by
+  resolving a fresh, *unlocked* tree — 642 packages nobody pinned — and writes a `package-lock.json`
+  that does not belong in the repo. Every suite run after that is measured against different
+  dependencies than the project ships. An earlier version of this very entry gave that advice; it
+  was retracted by the session that had just been caught by it, on the grounds that **the wrong
+  version is worse than the original problem, because `npm install` succeeds loudly.**
 - **The ONLY safe check that a suite ran is a positive `Tests run: N` line naming the class you
   care about.** Not the exit code, not `BUILD SUCCESS`, not the absence of red.
 - **An absence assertion written as `waitFor(() => expect(queryByRole(…)).not.toBeInTheDocument())`
@@ -125,6 +139,22 @@ ask the owning session first. `01384466` claimed "complete and verified in the w
 neither — a mid-flight capture missing two imports, so the commit does not compile, and carrying
 only the Java third of a change whose rego policy and frontend were still unwritten. Putting a false
 claim in the permanent record is the exact failure this register exists to prevent.
+
+**Never give the snapshot a subject line that claims an outcome.** `f84c55c3` was a mid-flight
+capture of a **test-first** worktree — 75 test insertions, zero production lines, which is precisely
+what "watch the assertion fail first" looks like from outside. I titled it
+*"fix(audit): bound the facets window so a 7-year log stays answerable"* and wrote that the work was
+*"complete and verified."* Neither was true of that moment.
+
+**Then it became evidence against its own author.** An integration agent read that commit, reported a
+`fix(...)` with no production change; I "independently confirmed" it by diffing the same commit, filed
+it as a **red spec — a test that fails by construction** — and put that on the register and in a
+message to the author. All three of us were reading an artefact I had created. The author had done
+the right thing in the right order and it was recorded as a defect.
+
+So: a snapshot commit gets a subject that says what it *is* (`wip(audit): snapshot of an unfinished
+worktree, unverified`), never what it *achieves*. And a test-only diff is not evidence of a red spec
+until you have checked whether the production half simply had not been written **yet**.
 
 **Then verify the file count.** `git show --stat HEAD` against what you intended. The follow-up to
 that same commit had to recover **six** files, including the OPA clause that was the entire point of
