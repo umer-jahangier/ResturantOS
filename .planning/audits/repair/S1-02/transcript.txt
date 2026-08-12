@@ -1,0 +1,31 @@
+  signed in as admin@terrace.local → http://localhost:3000/app/dashboard
+PASS  the contrast probe can tell readable from unreadable (bad 1.00:1, good 17.90:1)
+PASS  /app/stations rendered without an error state
+  PANTRY1 already exists at this branch — reusing it
+PASS  PANTRY1 (Cold prep) is listed on /app/stations
+PASS  /app/kitchen rendered without an error state
+PASS  #17 — PANTRY1 is an available board on /app/kitchen with NO ticket ever fired at it — tiles on screen: ["Diag Dessert 43431DGS4343100 tickets0 itemsClear0New0Started0Preparing0Ready","Diag Dessert 20334DGS2033400 tickets0 itemsClear0New0Started0Preparing0Ready","Cold prepPANTRY100 tickets0 itemsClear0New0Started0Preparing0Ready","DEFAULTDEFAULT8787 tickets97 itemsOldest 119h 36m69New22Started1Prepari
+PASS  /app/kitchen/PANTRY1 rendered without an error state
+PASS  /app/kitchen/PANTRY1 renders a real board
+PASS  /app/kitchen/PANTRY1 is NOT the unknown-station state
+PASS  the board's heading is the station's NAME — h1 = Cold prep
+PASS  the board is empty, honestly — 0 tickets
+PASS  #18 — /app/kitchen/NOPE123 shows an unknown-station state
+PASS  #18 — no connection badge (it read a green LIVE before)
+PASS  #18 — the typo is not rendered as the board's h1
+PASS  #18 — the screen says so in words
+PASS  #18 — and the words are legible on the permanently-dark KDS surface (computed contrast 17.90:1, needs 4.5) — oklch(0.968 0.004 195) on oklch(0.15 0.006 195) → rgb(241,245,245) on rgb(8,12,12)
+PASS  /app/users rendered without an error state
+PASS  the Edit-user dialog offers a station assignment
+PASS  Cold prep is offered as an assignable station without ever having had a ticket — ["Main barBar — Bar screen","Hot lineKitchen — Kitchen screen","Diag Bar 28334Bar — Bar screen","Diag Dessert 43431Dessert — Kitchen screen","Diag Dessert 20334Dessert — Kitchen screen","Cold prepPantry — Kitchen screen"]
+  signed in as kitchen@terrace.local → http://localhost:3000/app/dashboard
+PASS  /app/kitchen rendered without an error state for the kitchen persona
+PASS  #17/§4.1 — the station-scoped kitchen persona does NOT see "No active stations configured" — Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Floating Terrace HQ Search… ⌘K D Cold prep 0 tickets READY COLUMN All stations LIVE NEW 0 Nothing here START
+PASS  the kitchen persona can see PANTRY1 — url=http://localhost:3000/app/kitchen/PANTRY1
+PASS  kitchen persona: /app/kitchen/PANTRY1 without an error state
+PASS  kitchen persona gets a real board at /app/kitchen/PANTRY1
+PASS  #18 — the kitchen persona also gets the unknown-station state for NOPE123
+  signed in as admin@terrace.local → http://localhost:3000/app/dashboard
+PASS  the kitchen persona's station scope was handed back unrestricted
+
+25/25 checks passed. Screenshots in /Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/repair/S1-02
