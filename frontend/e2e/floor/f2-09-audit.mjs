@@ -83,9 +83,13 @@ try {
         Array.from(document.querySelectorAll('[data-testid^="table-option-"]')).map((n) => ({
           id: n.getAttribute("data-testid"),
           t: n.innerText.replace(/\s+/g, " ").trim(),
+          // An OCCUPIED table renders as aria-disabled, not merely styled: picking one by its
+          // label alone hangs the run on an element that will never be enabled.
+          disabled: n.getAttribute("aria-disabled") === "true",
         })),
       );
-      const free = opts.find((o) => /AVAILABLE|Free|Open/i.test(o.t)) ?? opts[0];
+      const free = opts.find((o) => !o.disabled && /AVAILABLE|Free|Open/i.test(o.t));
+      if (!free) throw new Error(`no free table among ${opts.length} options`);
       await page.locator(`[data-testid="${free.id}"]`).click();
       await page.waitForTimeout(1000);
       rung[`${label}TableTile`] = free.t;
