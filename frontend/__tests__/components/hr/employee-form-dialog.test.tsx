@@ -110,20 +110,18 @@ describe("closed sets are lists, not text boxes (D-35-01)", () => {
 describe("rules are shown before they are broken and checked as the user works (D-35-02)", () => {
   it("shows the employee-number rule while the field is still empty", async () => {
     renderDialog();
-    expect(await screen.findByText("3–20 characters, e.g. EMP-014")).toBeInTheDocument();
+    expect(await screen.findByText("Up to 20 characters, e.g. EMP-014")).toBeInTheDocument();
   });
 
-  it("names a too-short employee number on blur, with no submit", async () => {
+  it("names an empty employee number on blur, with no submit", async () => {
     const user = userEvent.setup();
     renderDialog();
 
     const employeeNo = await screen.findByLabelText("Employee number");
-    await user.type(employeeNo, "EM");
+    await user.click(employeeNo);
     await user.tab();
 
-    expect(
-      await screen.findByText("Employee number is 3–20 characters, e.g. EMP-014"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Enter the employee number")).toBeInTheDocument();
     expect(createEmployee).not.toHaveBeenCalled();
   });
 
@@ -132,15 +130,31 @@ describe("rules are shown before they are broken and checked as the user works (
     renderDialog();
 
     const employeeNo = await screen.findByLabelText("Employee number");
-    await user.type(employeeNo, "EM");
+    await user.click(employeeNo);
     await user.tab();
-    await screen.findByText("Employee number is 3–20 characters, e.g. EMP-014");
+    await screen.findByText("Enter the employee number");
 
-    await user.type(employeeNo, "P");
+    await user.type(employeeNo, "E");
     await waitFor(() =>
-      expect(
-        screen.queryByText("Employee number is 3–20 characters, e.g. EMP-014"),
-      ).not.toBeInTheDocument(),
+      expect(screen.queryByText("Enter the employee number")).not.toBeInTheDocument(),
+    );
+  });
+
+  /**
+   * Found by a browser run against real data: this rule was `min(3)` and it refused to EDIT an
+   * employee whose number is "1" — a row the server had accepted, because the server's rule is
+   * @NotBlank. A client rule stricter than the server's locks a user out of their own record.
+   */
+  it("accepts a one-character employee number, because the server does", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.type(await screen.findByLabelText("Employee number"), "1");
+    await user.type(screen.getByLabelText("Full name"), "Muhammad Ali");
+    await user.type(screen.getByLabelText("Basic salary"), "50000");
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add employee" })).not.toBeDisabled(),
     );
   });
 
@@ -171,8 +185,8 @@ describe("rules are shown before they are broken and checked as the user works (
     const user = userEvent.setup();
     renderDialog();
 
-    const employeeNo = await screen.findByLabelText("Employee number");
-    await user.type(employeeNo, "E");
+    const fullName = await screen.findByLabelText("Full name");
+    await user.click(fullName);
     await user.tab();
 
     const submit = await screen.findByRole("button", { name: "Add employee" });
@@ -182,7 +196,7 @@ describe("rules are shown before they are broken and checked as the user works (
     // invisible on touch and to a keyboard user who never hovers.
     const describedBy = submit.getAttribute("aria-describedby");
     expect(describedBy).toBeTruthy();
-    expect(document.getElementById(describedBy as string)?.textContent).toMatch(/employee no/i);
+    expect(document.getElementById(describedBy as string)?.textContent).toMatch(/full name/i);
   });
 });
 
@@ -296,7 +310,6 @@ describe("editing an existing employee", () => {
   });
 
   it("omits an untouched CNIC from the update rather than sending an empty string", async () => {
-    const user = userEvent.setup();
     renderDialog(existing);
 
     await screen.findByLabelText("CNIC");

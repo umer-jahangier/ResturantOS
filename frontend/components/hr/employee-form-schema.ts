@@ -22,13 +22,22 @@ import { EMPLOYMENT_TYPE_VALUES } from "@/lib/models/hr.model";
  */
 
 const CNIC_HINT = "13 digits, with or without dashes";
-const EMPLOYEE_NO_HINT = "3–20 characters, e.g. EMP-014";
+const EMPLOYEE_NO_HINT = "Up to 20 characters, e.g. EMP-014";
 
 export const employeeFormSchema = z.object({
+  /**
+   * A minimum of ONE character, not three.
+   *
+   * <p>It was three, and a browser run against real data found it refusing to edit an employee
+   * whose number is "1" — a row the server had accepted, because the server's rule is `@NotBlank`.
+   * A client rule stricter than the server's does not protect anything: it locks the user out of a
+   * record that already exists and tells them their own data is invalid. Where the two disagree,
+   * the server is the contract.
+   */
   employeeNo: z
     .string()
     .trim()
-    .min(3, `Employee number is ${EMPLOYEE_NO_HINT}`)
+    .min(1, "Enter the employee number")
     .max(20, `Employee number is ${EMPLOYEE_NO_HINT}`),
 
   fullName: z
