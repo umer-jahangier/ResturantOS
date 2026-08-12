@@ -2,22 +2,23 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2, Printer, XCircle } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import { ReceiptDocumentView } from "@/components/print/receipt-document";
-import { useIssueReceipt } from "@/lib/hooks/pos/use-print-document";
+import { useIssueReceipt, useReceiptDelivery } from "@/lib/hooks/pos/use-print-document";
+import {
+  describeLastSeen,
+  receiptDeliveryState,
+  UNASSIGNED_TARGET,
+  type PrintAgentPresence,
+  type ReceiptDeliveryState,
+} from "@/lib/models/print-agent.model";
 import "@/components/print/receipt-print.css";
 
 /**
- * The sentinel pos-service stores on a print job when the branch has no printer configured. Not
- * null and not the empty string — it is half of a unique key. Mirrored here because it is the one
- * value that decides which of the two printing paths this screen is on.
- */
-const UNASSIGNED_TARGET = "unassigned";
-
-/**
- * The printable-bill screen (26-05 task 3, repaired by S1-06).
+ * The printable-bill screen (26-05 task 3, repaired by S1-06, made honest by F8).
  *
  * <p>Separated from the route file for the same reason `ChargeSummary` is: the page holds the
  * guards, the component holds the content. It also makes this testable without a Suspense boundary
@@ -28,42 +29,145 @@ const UNASSIGNED_TARGET = "unassigned";
  * <p>Issuing a receipt writes a `print_jobs` row addressed to a printer. When the branch HAS a
  * receipt printer, that row is queued and the branch's print agent collects and prints it — on
  * paper, with a cut and a drawer kick, without a dialog. When the branch has no printer, the row is
- * addressed to {@link #UNASSIGNED_TARGET}, no agent will ever claim it, and the browser's own print
+ * addressed to {@link UNASSIGNED_TARGET}, no agent will ever claim it, and the browser's own print
  * dialog is the honest and only path (D-26-01).
  *
- * <p>This component shipped calling `window.print()` unconditionally, which meant a branch that had
- * bought, wired and configured a thermal printer still got a Ctrl-P dialog on every bill — the
- * measured "window.print() count 2, agent calls 0". The dialog is now opened only on the path where
- * it is the truth.
+ * <h2>What F8 changed, and why it is not cosmetic</h2>
  *
- * <p><b>No success toast on either path, deliberately.</b> `window.print()` has no completion
- * callback and no paper-out status (research §4.1), and neither a TCP socket nor a spooler reports
- * that paper moved. Claiming a print succeeded would be the same lie as the Appearance screen that
- * reported saving a setting it had discarded.
+ * <p>This screen used to render <b>"Sent to the receipt printer … the branch print agent will put
+ * it on paper"</b> for every routed bill, unconditionally. It said that whether or not any agent
+ * existed, and whether or not any agent had polled this century. Measured live on 2026-08-12 with
+ * NINE enrolled agents, every one of them reading "Not responding" on the Printers screen two
+ * clicks away: the cashier was told paper was coming and no paper was coming.
+ *
+ * <p>That is this codebase's signature defect — <i>structurally present, behaviourally absent</i> —
+ * in its most expensive form, because the person misled is holding a customer's money. The queue,
+ * the agent, the transports and the ESC/POS renderer were all real and all worked; the sentence on
+ * the screen was the only part that was fiction.
+ *
+ * <p>So the screen no longer predicts. It reads the row's own status and the branch's live agent
+ * presence, both of which ride on the issue response the cashier is already entitled to, and it
+ * re-reads the row until the agent's own acknowledgement arrives. Four outcomes, four different
+ * sentences, and only one of them claims paper.
+ *
+ * <p><b>Still no success toast, and still no claim that the customer has their bill.</b>
+ * `window.print()` has no completion callback and no paper-out status (research §4.1), and neither
+ * a TCP socket nor a spooler reports that paper moved. `PRINTED` here means the agent acknowledged
+ * that the BYTES reached the device — the strongest claim this product is ever allowed to make.
  */
+
+/** Copy per delivery outcome. One place, so no two states can drift into saying the same thing. */
+function deliveryCopy(
+  state: ReceiptDeliveryState,
+  printerId: string,
+  agent: PrintAgentPresence,
+): { title: string; detail: string; tone: string; alert: boolean; Icon: typeof Printer } {
+  const who = agent.label ?? "The branch print agent";
+
+  switch (state) {
+    case "ON_PAPER":
+      return {
+        title: `Printed on ${printerId}`,
+        detail: `${who} took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued.`,
+        tone: "border-success/40 bg-success/10",
+        alert: false,
+        Icon: CheckCircle2,
+      };
+    case "IN_FLIGHT":
+      return {
+        title: `Printing on ${printerId}…`,
+        detail: `${who} is connected and collecting this bill now. This notice will confirm when the agent reports it delivered.`,
+        tone: "border-info/40 bg-info/10",
+        alert: false,
+        Icon: Loader2,
+      };
+    case "NO_AGENT":
+      return {
+        title: "This bill has NOT been printed",
+        detail:
+          agent.enrolled === 0
+            ? `No print agent is enrolled on this branch, so nothing will collect the job queued for ${printerId} and no paper will come out. The bill is held and will print if an agent is enrolled and started — meanwhile, use Print a paper copy below. An owner or manager enrols one at Settings → Printers.`
+            : `${who} ${describeLastSeen(agent.lastSeenAt)}, so nothing is collecting the job queued for ${printerId} and no paper is coming out. The bill is held, not lost, and will print when that machine is back — meanwhile, use Print a paper copy below. Check the machine at Settings → Printers.`,
+        tone: "border-destructive/50 bg-destructive/10",
+        alert: true,
+        Icon: AlertTriangle,
+      };
+    case "REFUSED":
+      return {
+        title: "The print agent could not print this bill",
+        detail: `${who} tried to send this bill to ${printerId} and failed. The printer may be out of paper, switched off, or unreachable on the network. Use Print a paper copy below for the customer, then check the printer. Settings → Printers shows what the agent last reported.`,
+        tone: "border-destructive/50 bg-destructive/10",
+        alert: true,
+        Icon: XCircle,
+      };
+    case "NO_PRINTER":
+    default:
+      return {
+        title: "This branch has no receipt printer",
+        detail:
+          "The bill was recorded but addressed to no printer, so the browser's print dialog is the only way to get paper. Add a receipt printer at Settings → Printers to print without a dialog.",
+        tone: "border-warning/50 bg-warning/10",
+        alert: false,
+        Icon: Printer,
+      };
+  }
+}
+
 export function ReceiptView({ orderId }: { orderId: string }) {
   const router = useRouter();
   const query = useIssueReceipt(orderId);
   const printedRef = useRef(false);
 
   const issued = query.data;
-  const document = issued?.document;
-  // `undefined` while loading — deliberately NOT collapsed into "no printer". Until the response
-  // arrives the screen does not know which path it is on, and guessing would open a dialog over a
-  // branch that has a printer.
+
+  /*
+   * The live row, re-read until the agent acknowledges. Only ever started for a bill that IS
+   * addressed to a printer: an `unassigned` bill has no agent to wait for, and polling for one
+   * would be asking a question with no possible answer.
+   */
   const routedToPrinter =
     issued === undefined ? undefined : issued.targetPrinterId !== UNASSIGNED_TARGET;
+  const delivery = useReceiptDelivery(issued?.printJobId ?? null, routedToPrinter === true);
+
+  /*
+   * The freshest truth available: the polled row when it has arrived, the issue response until
+   * then. NOT the other way round — falling back to the issue response after a poll would make the
+   * notice flicker back to "printing…" every time a refetch was in flight.
+   */
+  const live = delivery.data ?? issued;
+
+  const state: ReceiptDeliveryState | undefined =
+    live === undefined
+      ? undefined
+      : receiptDeliveryState({
+          targetPrinterId: live.targetPrinterId,
+          status: live.status,
+          agent: live.agent,
+        });
+
+  const document = issued?.document;
 
   useEffect(() => {
     // Once, after the document has rendered, and ONLY when there is no printer to send it to. The
     // ref guard is not decoration: React re-runs effects on dependency changes and runs them twice
     // in StrictMode, and a print dialog that reopens itself is one a cashier cannot get out of.
+    //
+    // Deliberately NOT opened for NO_AGENT. The job is queued and will print when the machine is
+    // back; opening a dialog on top of that would hand the customer one bill and the kitchen
+    // another an hour later. The cashier is told plainly, and presses the button if they need it.
     if (!document || routedToPrinter !== false || printedRef.current) return;
     printedRef.current = true;
     // A frame, so the browser has painted the receipt before the dialog snapshots the page.
     const handle = window.requestAnimationFrame(() => window.print());
     return () => window.cancelAnimationFrame(handle);
   }, [document, routedToPrinter]);
+
+  const copy =
+    state === undefined || live === undefined
+      ? undefined
+      : deliveryCopy(state, live.targetPrinterId, live.agent);
+
+  const needsPaperNow = state === "NO_AGENT" || state === "REFUSED" || state === "NO_PRINTER";
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -83,35 +187,56 @@ export function ReceiptView({ orderId }: { orderId: string }) {
         </button>
 
         {/*
-          On the thermal path this is NOT the primary action — the paper is already coming out of
-          the printer — so it is labelled for what it actually does, which is produce a second copy
-          through the browser. On the no-printer path it is the manual retry for a dialog the
-          browser may have blocked, and a blocked dialog with no button is a dead end at the counter.
+          The label follows the truth. When the agent has it in hand this button produces a SECOND
+          copy and says so; when nothing is going to print it, this is the only way the customer
+          leaves with paper, and it is named for that.
+
+          The shared `Button` rather than a hand-rolled one: this screen shipped with its own
+          height, radius and type size, which is how a second visual vocabulary starts. It also
+          carried two raw palette literals that follow neither theme — replaced below by the
+          semantic `success`/`info`/`warning`/`destructive` tokens, which have light AND dark
+          values. Conformance gates G1 and G3 measure exactly this.
         */}
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="lg"
           data-testid="print-again-button"
           disabled={!document}
           onClick={() => window.print()}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Printer className="size-4" aria-hidden="true" />
-          {routedToPrinter ? "Print a browser copy" : "Print"}
-        </button>
+          {needsPaperNow ? "Print a paper copy" : "Print a browser copy"}
+        </Button>
       </div>
 
-      {routedToPrinter && (
+      {copy !== undefined && live !== undefined && (
         <div
-          className="receipt-no-print rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm"
-          data-testid="thermal-print-notice"
-          data-target-printer={issued?.targetPrinterId}
+          className={`receipt-no-print rounded-lg border p-3 text-sm ${copy.tone}`}
+          data-testid="delivery-notice"
+          data-delivery-state={state}
+          data-target-printer={live.targetPrinterId}
+          {...(copy.alert ? { role: "alert" as const } : {})}
         >
-          <p className="font-medium">Sent to the receipt printer</p>
-          <p className="text-muted-foreground">
-            This bill was queued for <strong>{issued?.targetPrinterId}</strong> and the branch print
-            agent will put it on paper. No browser print dialog is opened. If nothing comes out,
-            check the agent on Settings → Printers — the job is kept and retried, not lost.
+          <p className="flex items-center gap-1.5 font-medium">
+            <copy.Icon
+              className={`size-4 ${state === "IN_FLIGHT" ? "animate-spin" : ""}`}
+              aria-hidden="true"
+            />
+            {copy.title}
           </p>
+          <p className="mt-1 text-muted-foreground">{copy.detail}</p>
+          {/*
+            A failed re-read is NOT a delivery outcome and must never be folded into one. Without
+            this line an unreachable gateway would leave "Printing on …" on screen for ever, which
+            is the same comforting lie in a new costume.
+          */}
+          {delivery.isError && (
+            <p className="mt-1 font-medium" data-testid="delivery-unconfirmed">
+              This screen has lost contact with the server, so it can no longer confirm what
+              happened to the paper. Check Settings → Printers, or print a paper copy above.
+            </p>
+          )}
         </div>
       )}
 

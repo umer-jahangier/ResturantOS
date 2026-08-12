@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -184,6 +185,59 @@ public class PrintAgentEnrolmentService {
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Whether anything on this branch is in a position to put paper in a customer's hand, and which
+     * machine that is.
+     *
+     * <h2>Why a receipt needs this and why it is not the admin list</h2>
+     *
+     * <p>The bill screen told every cashier "the branch print agent will put it on paper" whether or
+     * not a single agent had ever polled — measured live on 2026-08-12 with nine enrolled agents,
+     * all of them cold. That is this product's signature defect wearing its friendliest face: the
+     * screen states an outcome it has not observed, and the cashier finds out at the counter.
+     *
+     * <p>The cashier cannot be told this by {@code GET /print-agents}: that endpoint carries
+     * {@code pos.printers.admin}, which a cashier does not hold and must not be given — deciding
+     * which machines may drive a branch's printers is not a cashier's business. So the answer rides
+     * on the response the cashier is ALREADY entitled to, the issue of their own bill, and carries
+     * only what the sentence on screen needs: how many agents are live-capable, the name of the one
+     * that would take this job, and when it was last heard from. No credential, no hash, no lookup
+     * id — there is no field on {@link Presence} that could hold one.
+     *
+     * <p><b>{@code lastSeenAt} is reported, not judged.</b> This service does not decide "connected";
+     * it hands over the timestamp and the caller applies the one recency rule the product has
+     * (`AGENT_CONNECTED_WINDOW_MS`). Two places computing liveness from the same timestamp can only
+     * ever agree; two places each storing their own flag cannot.
+     *
+     * @param enrolled   live-capable agents — enrolled and not revoked. Zero means nothing on this
+     *                   branch can print at all, which is a different sentence from "the machine is
+     *                   off" and the screen must be able to say both.
+     * @param label      the agent that would take this job: the one heard from most recently, or —
+     *                   when none has ever polled — the most recently enrolled, so the manager is
+     *                   told which machine to go and start rather than nothing at all.
+     * @param lastSeenAt null when that agent has never polled.
+     */
+    public record Presence(int enrolled, String label, Instant lastSeenAt) {}
+
+    @Transactional(readOnly = true)
+    public Presence presence(UUID branchId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        List<PrintAgent> live = repository.findForBranch(tenantId, branchId).stream()
+                .filter(a -> !a.isRevoked())
+                .toList();
+
+        PrintAgent candidate = live.stream()
+                .filter(a -> a.getLastSeenAt() != null)
+                .max(Comparator.comparing(PrintAgent::getLastSeenAt))
+                .orElseGet(() -> live.stream()
+                        .max(Comparator.comparing(PrintAgent::getCreatedAt))
+                        .orElse(null));
+
+        return new Presence(live.size(),
+                candidate == null ? null : candidate.getLabel(),
+                candidate == null ? null : candidate.getLastSeenAt());
     }
 
     @Transactional

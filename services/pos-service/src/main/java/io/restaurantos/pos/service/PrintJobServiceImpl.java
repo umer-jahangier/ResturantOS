@@ -26,15 +26,23 @@ public class PrintJobServiceImpl implements PrintJobService {
     private final ReceiptDocumentAssembler assembler;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper;
+    /**
+     * Read ONLY to answer "is anything on this branch in a position to print this". Nothing here
+     * enrols, revokes or authenticates an agent — see {@link PrintAgentEnrolmentService#presence}
+     * for why the answer travels on this response rather than on the admin list.
+     */
+    private final PrintAgentEnrolmentService agents;
 
     public PrintJobServiceImpl(PrintJobRepository printJobRepository,
                                ReceiptDocumentAssembler assembler,
                                TenantContext tenantContext,
-                               ObjectMapper objectMapper) {
+                               ObjectMapper objectMapper,
+                               PrintAgentEnrolmentService agents) {
         this.printJobRepository = printJobRepository;
         this.assembler = assembler;
         this.tenantContext = tenantContext;
         this.objectMapper = objectMapper;
+        this.agents = agents;
     }
 
     @Override
@@ -135,7 +143,8 @@ public class PrintJobServiceImpl implements PrintJobService {
         job.setIdempotencyKey(idempotencyKey == null || idempotencyKey.isBlank() ? null : idempotencyKey);
 
         PrintJob saved = printJobRepository.saveAndFlush(job);
-        return new IssuedDocument(saved.getId(), targetPrinterId, stamped);
+        return new IssuedDocument(saved.getId(), targetPrinterId, stamped, effectiveStatus,
+                agents.presence(branchId));
     }
 
     @Override
@@ -193,6 +202,10 @@ public class PrintJobServiceImpl implements PrintJobService {
                 .distinct()
                 .toList();
 
+        // ONE presence read for the whole reprint, not one per station: the answer is a property of
+        // the branch, and a per-row read would make a six-station reprint six identical queries.
+        PrintAgentEnrolmentService.Presence presence = agents.presence(branchId);
+
         List<IssuedDocument> reprinted = new ArrayList<>();
         for (String target : targets) {
             PrintJob first = printJobRepository.findFirstIssue(tenantId, orderId, type, target)
@@ -222,7 +235,8 @@ public class PrintJobServiceImpl implements PrintJobService {
             job.setOriginalIssuedAt(first.getIssuedAt());
 
             PrintJob saved = printJobRepository.saveAndFlush(job);
-            reprinted.add(new IssuedDocument(saved.getId(), target, stamped));
+            reprinted.add(new IssuedDocument(saved.getId(), target, stamped,
+                    PrintJobStatus.QUEUED, presence));
         }
         return reprinted;
     }
@@ -256,7 +270,8 @@ public class PrintJobServiceImpl implements PrintJobService {
     }
 
     private IssuedDocument toIssued(PrintJob job) {
-        return new IssuedDocument(job.getId(), job.getTargetPrinterId(), deserialise(job.getDocument()));
+        return new IssuedDocument(job.getId(), job.getTargetPrinterId(),
+                deserialise(job.getDocument()), job.getStatus(), agents.presence(job.getBranchId()));
     }
 
     /**

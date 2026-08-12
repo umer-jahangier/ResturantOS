@@ -16,6 +16,7 @@ import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.repository.PrintJobRepository;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.PaymentService;
+import io.restaurantos.pos.service.PrintAgentEnrolmentService;
 import io.restaurantos.pos.service.PrintJobService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.print.PrintDocument;
@@ -51,6 +52,7 @@ class PrintJobIssuanceIT extends PosTestBase {
     @Autowired OrderService orderService;
     @Autowired PaymentService paymentService;
     @Autowired PrintJobService printJobService;
+    @Autowired PrintAgentEnrolmentService enrolmentService;
     @Autowired PrintJobRepository printJobRepository;
     @Autowired MenuItemRepository menuItemRepository;
     @Autowired MenuCategoryRepository menuCategoryRepository;
@@ -123,8 +125,47 @@ class PrintJobIssuanceIT extends PosTestBase {
 
         List<PrintJob> rows = printJobRepository.findHistoryForOrder(tenantId, order.id());
         assertThat(rows).hasSize(1);
-        assertThat(rows.get(0).getStatus()).isEqualTo(PrintJobStatus.ISSUED);
+        /*
+         * QUEUED, not ISSUED — and this assertion was left saying ISSUED for a phase, RED, in a
+         * suite nobody re-ran.
+         *
+         * S1-06 made a ROUTED issue land in QUEUED on purpose: the agent's work query selects
+         * `status = 'QUEUED'`, so an ISSUED row addressed to a real printer is a row no agent will
+         * ever claim — the branch has a thermal printer, the job exists, and the only paper that
+         * can ever appear is a browser dialog. That is the register's "window.print() count 2,
+         * agent calls 0" from the server end, and it is fixed. The status is asserted here so the
+         * fix cannot be undone by an "obvious" simplification later.
+         *
+         * The sentence's other half — that an UNROUTED issue stays ISSUED — is the next test.
+         */
+        assertThat(rows.get(0).getStatus()).isEqualTo(PrintJobStatus.QUEUED);
         assertThat(rows.get(0).getDocument()).contains("CUSTOMER_RECEIPT");
+    }
+
+    /**
+     * The branch with NO receipt printer. Its row must stay {@code ISSUED}: nothing is going to
+     * collect it, the document exists and was handed over, and the browser dialog is the honest and
+     * only path (D-26-01). Queueing it would put a job in front of an agent that can never address
+     * it, and the bill screen would show a bill "printing" for ever.
+     */
+    @Test
+    @DisplayName("a branch with no receipt printer issues to the sentinel and stays ISSUED")
+    void unroutedIssue_staysIssued() {
+        // Built while the branch still HAS a printer, so `paidOrder`'s own dispatch assertion still
+        // means what it says; the registry is emptied afterwards, and `paidOrder` has already
+        // cleared the rows, so the issue below assembles from scratch against the empty one.
+        OrderDto order = paidOrder();
+
+        when(userBranchClient.getBranch(any(), any())).thenReturn(new UserBranchClient.BranchDetail(
+                branchId, "Floating Terrace", null, "+92 51 234 5678",
+                "7000007-8", "17-00-9999-000-11",
+                "{\"printers\":[],\"kitchenStations\":[],\"agent\":null,"
+                        + "\"header\":null,\"footer\":null,\"fbr\":null}", "Asia/Karachi"));
+
+        PrintJobService.IssuedDocument issued = printJobService.issue(order.id(), branchId, null);
+
+        assertThat(issued.targetPrinterId()).isEqualTo(PrintJob.UNASSIGNED_TARGET);
+        assertThat(issued.status()).isEqualTo(PrintJobStatus.ISSUED);
     }
 
     // ══ 2. A reprint is the SAME BYTES ═══════════════════════════════════════════════════════
@@ -304,6 +345,85 @@ class PrintJobIssuanceIT extends PosTestBase {
         assertThatThrownBy(() -> printJobRepository.saveAndFlush(duplicate))
                 .as("uq_print_jobs_revision must refuse a second ticket for the same revision")
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    // ══ 9. The bill screen must be able to tell "queued" from "queued and nothing is coming" ══
+
+    /**
+     * F8. The receipt screen rendered <b>"Sent to the receipt printer … the branch print agent will
+     * put it on paper"</b> for every routed bill, and said it whether or not a single agent had ever
+     * polled. Measured live on 2026-08-12: nine enrolled agents on Floating Terrace F-7, every one
+     * of them reading "Not responding", and the cashier told paper was coming.
+     *
+     * <p>The screen could not have known better: the ONE response it is entitled to — the issue of
+     * its own bill — carried a printer id and nothing else, and the endpoint that knows about agents
+     * carries {@code pos.printers.admin}, which a cashier does not hold. So the fix is here, on the
+     * response, and these assertions are what make the screen's four different sentences possible.
+     */
+    @Test
+    @DisplayName("an issued bill carries the branch's agent presence, so the screen can stop guessing")
+    void issue_carriesAgentPresence() {
+        OrderDto order = paidOrder();
+
+        // Nothing enrolled. The row is QUEUED and NOTHING is going to collect it — two facts the
+        // screen has to be able to state together, because "queued" alone reads as "on its way".
+        PrintJobService.IssuedDocument orphan = printJobService.issue(order.id(), branchId, null);
+        assertThat(orphan.status()).isEqualTo(PrintJobStatus.QUEUED);
+        assertThat(orphan.agent().enrolled()).isZero();
+        assertThat(orphan.agent().label()).isNull();
+        assertThat(orphan.agent().lastSeenAt()).isNull();
+
+        // Enrolled and NAMED — but it has never polled, so there is still no evidence it can print.
+        // "Enrolled" must never be readable as "answering"; that conflation is the whole finding.
+        PrintAgentEnrolmentService.Enrolled agent = enrolmentService.enrol(branchId, "Back office PC");
+        PrintJobService.IssuedDocument named = printJobService.issue(order.id(), branchId, null);
+        assertThat(named.agent().enrolled()).isEqualTo(1);
+        assertThat(named.agent().label()).isEqualTo("Back office PC");
+        assertThat(named.agent().lastSeenAt()).isNull();
+
+        // It polls. The timestamp is the ONLY evidence this product has that a machine is in a
+        // position to put paper in a customer's hand, and it is now on the cashier's own response.
+        enrolmentService.recordSeen(agent.agentId());
+        PrintJobService.IssuedDocument live = printJobService.issue(order.id(), branchId, null);
+        assertThat(live.agent().lastSeenAt()).isNotNull();
+        assertThat(live.agent().label()).isEqualTo("Back office PC");
+    }
+
+    @Test
+    @DisplayName("a revoked agent is not presence — the screen must not count a machine we refuse")
+    void revokedAgent_isNotCountedAsPresence() {
+        OrderDto order = paidOrder();
+        PrintAgentEnrolmentService.Enrolled agent = enrolmentService.enrol(branchId, "Old till");
+        enrolmentService.recordSeen(agent.agentId());
+        enrolmentService.revoke(agent.agentId());
+
+        PrintJobService.IssuedDocument issued = printJobService.issue(order.id(), branchId, null);
+
+        // Its credential is refused on the very next poll, so it will never claim this job. A
+        // presence count that included it would put "printing…" on screen for ever.
+        assertThat(issued.agent().enrolled()).isZero();
+        assertThat(issued.agent().label()).isNull();
+        assertThat(issued.agent().lastSeenAt()).isNull();
+    }
+
+    /**
+     * The screen watches this row until the agent's own acknowledgement arrives. If {@code fetch}
+     * did not re-read the CURRENT status, "Printing…" would never become "Printed" and the product
+     * would be back to predicting.
+     */
+    @Test
+    @DisplayName("re-serving a job reports its CURRENT status, so a screen can watch it reach paper")
+    void fetch_reportsTheLiveStatus() {
+        OrderDto order = paidOrder();
+        PrintJobService.IssuedDocument issued = printJobService.issue(order.id(), branchId, null);
+        assertThat(issued.status()).isEqualTo(PrintJobStatus.QUEUED);
+
+        PrintJob row = printJobRepository.findScoped(tenantId, issued.printJobId()).orElseThrow();
+        row.setStatus(PrintJobStatus.PRINTED);
+        printJobRepository.saveAndFlush(row);
+
+        assertThat(printJobService.fetch(issued.printJobId()).status())
+                .isEqualTo(PrintJobStatus.PRINTED);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────

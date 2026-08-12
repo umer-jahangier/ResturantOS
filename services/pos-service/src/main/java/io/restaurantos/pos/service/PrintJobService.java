@@ -88,8 +88,24 @@ public interface PrintJobService {
 
     /**
      * @param printJobId the row this issue is recorded on
+     * @param targetPrinterId the printer this issue is addressed to, or
+     *                   {@code PrintJob.UNASSIGNED_TARGET} when the branch has no printer
      * @param document   the document to render; for a reprint, the first issue's body with new
      *                   issue metadata stamped on it
+     * @param status     the row's CURRENT status. Carried so the screen can report what happened
+     *                   rather than predict it: a freshly issued job is {@code QUEUED} and has
+     *                   reached no paper, and only an agent's own acknowledgement moves it to
+     *                   {@code PRINTED}. Re-serving the same job through {@code fetch} is how a
+     *                   screen watches that transition.
+     * @param agent      the branch's print-agent presence at the moment of the read. Present on
+     *                   every issue — including one addressed to {@code unassigned}, where
+     *                   {@code enrolled} may still be non-zero and the honest answer is "there is
+     *                   an agent, but this branch has configured no printer for it to drive".
+     *                   Never null; a null here would be a third meaning nobody would handle.
      */
-    record IssuedDocument(UUID printJobId, String targetPrinterId, PrintDocument document) {}
+    record IssuedDocument(UUID printJobId,
+                          String targetPrinterId,
+                          PrintDocument document,
+                          io.restaurantos.pos.domain.enums.PrintJobStatus status,
+                          PrintAgentEnrolmentService.Presence agent) {}
 }

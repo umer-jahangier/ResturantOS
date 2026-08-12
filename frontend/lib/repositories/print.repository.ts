@@ -3,6 +3,7 @@ import { get } from "@/lib/api-client/request";
 import { apiIssuedPrintDocumentSchema } from "@/lib/api-client/schemas/print.schema";
 import { adaptPrintDocument } from "@/lib/adapters/print.adapter";
 import type { PrintDocument } from "@/lib/models/print.model";
+import type { PrintAgentPresence, PrintJobStatus } from "@/lib/models/print-agent.model";
 
 /** An issue of a printable document, with the row it was recorded on. */
 export interface IssuedPrintDocument {
@@ -10,6 +11,13 @@ export interface IssuedPrintDocument {
   /** `"unassigned"` when the branch has no printer configured — a supported branch, not an error. */
   targetPrinterId: string;
   document: PrintDocument;
+  /**
+   * The row's status at the moment of the read. `PRINTED` is the agent's acknowledgement that the
+   * bytes reached the device; every other value means no paper has come out yet.
+   */
+  status: PrintJobStatus;
+  /** Whether anything on this branch is in a position to collect the job, and which machine. */
+  agent: PrintAgentPresence;
 }
 
 function adaptIssued(raw: unknown): IssuedPrintDocument {
@@ -18,6 +26,12 @@ function adaptIssued(raw: unknown): IssuedPrintDocument {
     printJobId: parsed.printJobId,
     targetPrinterId: parsed.targetPrinterId,
     document: adaptPrintDocument(parsed.document),
+    status: parsed.status,
+    agent: {
+      enrolled: parsed.agent.enrolled,
+      label: parsed.agent.label,
+      lastSeenAt: parsed.agent.lastSeenAt,
+    },
   };
 }
 

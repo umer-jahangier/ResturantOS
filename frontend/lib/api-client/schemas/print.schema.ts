@@ -220,13 +220,48 @@ export const apiPrintDocumentSchema = z.strictObject({
  * <p>`targetPrinterId` is `"unassigned"` for a branch with no printer configured, which is a
  * supported branch (D-26-01) and not an error.
  */
+/**
+ * The lifecycle of one issued document, as `PrintJobStatus` names it.
+ *
+ * <p>`PRINTED` is the agent's own acknowledgement that the bytes reached the device — NOT that
+ * paper moved. Port 9100 has no acknowledgement and a spooler accepts jobs for a printer unplugged
+ * since Tuesday, so no value in this union may be rendered as "the customer has their bill".
+ */
+export const apiPrintJobStatusSchema = z.enum([
+  "ISSUED",
+  "QUEUED",
+  "CLAIMED",
+  "PRINTED",
+  "FAILED",
+  "DEAD_LETTERED",
+]);
+
+/**
+ * `PrintAgentEnrolmentService.Presence` — whether anything on this branch is in a position to
+ * print, and which machine that is.
+ *
+ * <p>Carries no credential, no lookup id and no hash: there is deliberately no field here that
+ * could hold one. `lastSeenAt` is a raw timestamp and NOT a verdict — the recency rule lives in
+ * one place (`AGENT_CONNECTED_WINDOW_MS`) so the bill screen and the Printers screen cannot
+ * disagree about the same machine.
+ */
+export const apiPrintAgentPresenceSchema = z.strictObject({
+  enrolled: z.number().int(),
+  label: z.string().nullable(),
+  lastSeenAt: z.string().nullable(),
+});
+
 export const apiIssuedPrintDocumentSchema = z.strictObject({
   printJobId: z.string().uuid(),
   targetPrinterId: z.string(),
   document: apiPrintDocumentSchema,
+  status: apiPrintJobStatusSchema,
+  agent: apiPrintAgentPresenceSchema,
 });
 
 export type ApiIssuedPrintDocument = z.infer<typeof apiIssuedPrintDocumentSchema>;
+export type ApiPrintJobStatus = z.infer<typeof apiPrintJobStatusSchema>;
+export type ApiPrintAgentPresence = z.infer<typeof apiPrintAgentPresenceSchema>;
 
 export type ApiReceiptAmount = z.infer<typeof apiReceiptAmountSchema>;
 export type ApiPrintIssue = z.infer<typeof apiPrintIssueSchema>;
