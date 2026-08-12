@@ -87,7 +87,24 @@ export function SettlementActions({ order, className }: SettlementActionsProps) 
                 data-testid="charge-now-button"
                 onClick={() => router.push(`/app/pos/orders/${order.id}/charge`)}
                 disabled={!canCharge}
-                aria-label="Charge order"
+                /*
+                 * F14 — no `aria-label` here, deliberately.
+                 *
+                 * It used to carry `aria-label="Charge order"` while the glass read CHARGE NOW.
+                 * `aria-label` does not ADD to a button's accessible name, it REPLACES the
+                 * button's text, so Chromium computed the name "Charge order" and marked the
+                 * contents superseded (measured over CDP, not inferred). Three things followed:
+                 * a screen reader announced words that are nowhere on screen, a speech-input
+                 * operator saying "click charge now" hit nothing, and every test looking for the
+                 * printed words found nothing — which is why the whole suite reached for
+                 * `data-testid` instead, and why nobody noticed for as long as it existed.
+                 *
+                 * With no attribute in the way the name is computed from the contents, so the
+                 * announced name IS the printed label and the two cannot drift apart. Extra
+                 * context belongs in an `sr-only` span INSIDE the button (which appends to the
+                 * name), never in an attribute that overrides it. `settlement-actions-label-in-
+                 * name.test.tsx` fails if this comes back — for this button or any future one.
+                 */
                 className="h-12 flex-1 rounded-xl border font-semibold text-sm transition-all disabled:cursor-not-allowed disabled:opacity-40 enabled:border-primary enabled:text-primary enabled:hover:bg-primary/5 enabled:active:scale-[0.98]"
               >
                 CHARGE NOW

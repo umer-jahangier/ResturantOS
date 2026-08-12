@@ -1,0 +1,139 @@
+{
+  "label": "after",
+  "at": "2026-08-12T05:27:41.129Z",
+  "probes": {
+    "void": {
+      "visibleText": "Void",
+      "accName": "Void order",
+      "nameFrom": "attribute",
+      "nameSources": [
+        "attribute[aria-label]=\"Void order\"",
+        "contents=\"Void\" (superseded)"
+      ],
+      "ariaLabel": "Void order",
+      "contains": true,
+      "startsWith": true,
+      "roleQueries": {
+        "byRoleLoose": 1,
+        "byRoleVisible": 1,
+        "byRoleVisibleExact": 0,
+        "byRoleAnchoredRegex": 0
+      }
+    },
+    "charge": {
+      "visibleText": "CHARGE NOW",
+      "accName": "CHARGE NOW",
+      "nameFrom": "contents",
+      "nameSources": [
+        "contents=\"CHARGE NOW\""
+      ],
+      "ariaLabel": null,
+      "contains": true,
+      "startsWith": true,
+      "roleQueries": {
+        "byRoleLoose": 1,
+        "byRoleVisible": 1,
+        "byRoleVisibleExact": 1,
+        "byRoleAnchoredRegex": 1
+      }
+    },
+    "refund": {
+      "visibleText": "Refund",
+      "accName": "Refund order",
+      "nameFrom": "attribute",
+      "nameSources": [
+        "attribute[aria-label]=\"Refund order\"",
+        "contents=\"Refund\" (superseded)"
+      ],
+      "ariaLabel": "Refund order",
+      "contains": true,
+      "startsWith": true,
+      "roleQueries": {
+        "byRoleLoose": 1,
+        "byRoleVisible": 1,
+        "byRoleVisibleExact": 0,
+        "byRoleAnchoredRegex": 0
+      }
+    }
+  },
+  "orderNo": "ORD-20260812-0257",
+  "orderId": "b4b1c8be-7d49-477e-b97b-6f0d797e39ac",
+  "shots": [
+    "after-01-voidable-check-drawer.png",
+    "after-02-refundable-check-drawer.png",
+    "after-03-refund-panel-opened-by-name.png"
+  ],
+  "healthOnVoidable": {
+    "alerts": [],
+    "couldntLoad": false
+  },
+  "voidCandidates": [
+    {
+      "visibleText": "Voided",
+      "innerText": "Voided",
+      "ariaLabel": null,
+      "testid": "status-filter-VOIDED",
+      "onScreen": true,
+      "accName": null,
+      "nameFrom": null,
+      "nameSources": []
+    },
+    {
+      "visibleText": "Void",
+      "innerText": "Void",
+      "ariaLabel": "Void order",
+      "testid": null,
+      "onScreen": true,
+      "accName": "Void order",
+      "nameFrom": "attribute",
+      "nameSources": [
+        "attribute[aria-label]=\"Void order\"",
+        "contents=\"Void\" (superseded)"
+      ]
+    }
+  ],
+  "chargeCandidates": [
+    {
+      "visibleText": "CHARGE NOW",
+      "innerText": "CHARGE NOW",
+      "ariaLabel": null,
+      "testid": "charge-now-button",
+      "onScreen": true,
+      "accName": "CHARGE NOW",
+      "nameFrom": "contents",
+      "nameSources": [
+        "contents=\"CHARGE NOW\""
+      ]
+    }
+  ],
+  "healthOnRefundable": {
+    "alerts": [],
+    "couldntLoad": false
+  },
+  "refundCandidates": [
+    {
+      "visibleText": "Refunded",
+      "innerText": "Refunded",
+      "ariaLabel": null,
+      "testid": "status-filter-REFUNDED",
+      "onScreen": true,
+      "accName": null,
+      "nameFrom": null,
+      "nameSources": []
+    },
+    {
+      "visibleText": "Refund",
+      "innerText": "Refund",
+      "ariaLabel": "Refund order",
+      "testid": null,
+      "onScreen": true,
+      "accName": "Refund order",
+      "nameFrom": "attribute",
+      "nameSources": [
+        "attribute[aria-label]=\"Refund order\"",
+        "contents=\"Refund\" (superseded)"
+      ]
+    }
+  ],
+  "refundPanelOpened": 1
+}
