@@ -138,10 +138,16 @@ public class ReportCatalog {
      *
      * <p>Ordered newest-first because the discount a manager wants to look at is almost always
      * one from the shift that just ended.
+     *
+     * <p>{@code discount_source} is carried beside {@code discount_type} because they answer two
+     * different questions and only one of them is about money. {@code discount_type} says how the
+     * figure was arrived at (rupees off, or a percentage); {@code discount_source} says whether a
+     * person decided it or the promotion engine did. An owner reviewing giveaway needs the second
+     * one to know which lever to pull — a manager to talk to, or a campaign to retune.
      */
     private static ReportDefinition discountSummary() {
         String sql = """
-                SELECT business_date, order_no, scope, item_name, discount_type,
+                SELECT business_date, order_no, scope, item_name, discount_type, discount_source,
                        discount_value, amount_paisa, reason,
                        coalesce(applied_by_name, toString(applied_by)) AS applied_by,
                        closed_at
@@ -152,7 +158,8 @@ public class ReportCatalog {
                 """;
         return define("discount-summary", "Discount Summary", "sales",
                 List.of("business_date", "order_no", "scope", "item_name", "discount_type",
-                        "discount_value", "amount_paisa", "reason", "applied_by", "closed_at"),
+                        "discount_source", "discount_value", "amount_paisa", "reason",
+                        "applied_by", "closed_at"),
                 sql);
     }
 

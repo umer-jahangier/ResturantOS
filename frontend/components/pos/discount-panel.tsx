@@ -243,7 +243,15 @@ export function DiscountPanel({ order }: DiscountPanelProps) {
             <span className="block text-muted-foreground">
               {d.reason ?? "No reason recorded"}
               {" · "}
-              {d.appliedByName ?? (d.appliedBy ? d.appliedBy.slice(0, 8) : "Unknown")}
+              {/*
+                An automatic promotion has no `appliedBy` — nobody pressed anything, the engine
+                matched the customer's offer. Falling through to the generic actor line would
+                print "Unknown", which reads as a missing audit record rather than as the truth,
+                which is that this one was not a person's decision at all.
+              */}
+              {d.source === "PROMOTION"
+                ? "Applied automatically"
+                : (d.appliedByName ?? (d.appliedBy ? d.appliedBy.slice(0, 8) : "Unknown"))}
             </span>
           </span>
           <MoneyDisplay paisa={-d.amountPaisa} className="font-mono tabular-nums" />

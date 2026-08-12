@@ -271,6 +271,8 @@ export const apiOrderDiscountSchema = z.object({
   orderItemId: z.string().uuid().nullable().optional(),
   itemName: z.string().nullable().optional(),
   type: z.string(),
+  /** MANUAL | PROMOTION. Optional: rows served by a pos-service older than V30 omit it. */
+  source: z.string().nullable().optional(),
   value: z.union([z.number(), z.string()]).nullable().optional(),
   amountPaisa: z.number().int().nonnegative(),
   reason: z.string().nullable().optional(),

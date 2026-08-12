@@ -195,6 +195,7 @@ export function adaptOrderDiscount(raw: ApiOrder["discounts"][number]): OrderDis
     orderItemId: raw.orderItemId ?? null,
     itemName: raw.itemName ?? null,
     type: raw.type,
+    source: raw.source ?? "MANUAL",
     value: raw.value === null || raw.value === undefined ? null : Number(raw.value),
     amountPaisa: raw.amountPaisa,
     reason: raw.reason ?? null,

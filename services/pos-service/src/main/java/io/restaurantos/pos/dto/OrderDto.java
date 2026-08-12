@@ -107,7 +107,10 @@ public record OrderDto(
      * @param scope           LINE or ORDER
      * @param orderItemId     which line, for a LINE discount; null for ORDER
      * @param itemName        that line's name, so a reader does not have to resolve an id
-     * @param type            FLAT or PERCENT (PROMOTION for the automatic engine's own rows)
+     * @param type            FLAT or PERCENT — how to read {@code value}, and nothing else
+     * @param source          MANUAL for a human's decision, PROMOTION for the automatic engine's
+     *                        own rows. Orthogonal to {@code type}: an automatic discount is still
+     *                        priced as FLAT or PERCENT
      * @param value           rupees for FLAT, percent for PERCENT — what was ASKED for
      * @param amountPaisa     what actually came off the bill, after capping — what was GIVEN
      * @param reason          why. Never blank on a row written since V22
@@ -120,6 +123,7 @@ public record OrderDto(
             UUID orderItemId,
             String itemName,
             String type,
+            String source,
             java.math.BigDecimal value,
             long amountPaisa,
             String reason,

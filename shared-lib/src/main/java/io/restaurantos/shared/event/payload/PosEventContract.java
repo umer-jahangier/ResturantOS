@@ -151,7 +151,10 @@ public final class PosEventContract {
      *
      * @param scope         LINE or ORDER
      * @param itemName      the line's name for a LINE discount; null for a whole-check discount
-     * @param type          FLAT, PERCENT, or PROMOTION for the automatic engine's own rows
+     * @param type          FLAT or PERCENT — how to read {@code value}, and nothing else
+     * @param source        MANUAL for a human's decision, PROMOTION for a row the crm-service
+     *                      promotion engine applied automatically. Orthogonal to {@code type}:
+     *                      an automatic discount is still priced as FLAT or PERCENT
      * @param amountPaisa   what came off the bill, in paisa. Positive
      * @param reason        why it was given. Never blank for a discount applied since V22
      * @param appliedBy     the user id that authorised it
@@ -162,6 +165,7 @@ public final class PosEventContract {
             UUID orderItemId,
             String itemName,
             String type,
+            String source,
             java.math.BigDecimal value,
             long amountPaisa,
             String reason,

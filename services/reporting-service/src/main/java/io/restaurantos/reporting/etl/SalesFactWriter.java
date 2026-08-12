@@ -41,9 +41,9 @@ public class SalesFactWriter {
     private static final String INSERT_DISCOUNT_SQL = """
             INSERT INTO clickhouse_analytics.sales_discount_facts
                 (tenant_id, branch_id, business_date, order_id, discount_no, order_no, scope,
-                 order_item_id, item_name, discount_type, discount_value, amount_paisa, reason,
-                 applied_by, applied_by_name, closed_at, event_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 order_item_id, item_name, discount_type, discount_source, discount_value,
+                 amount_paisa, reason, applied_by, applied_by_name, closed_at, event_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     private final JdbcTemplate clickHouseJdbcTemplate;
@@ -144,6 +144,11 @@ public class SalesFactWriter {
                     d.orderItemId(),
                     d.itemName(),
                     d.type(),
+                    // Null only on an ORDER_CLOSED published before pos V30 carried the field, and
+                    // every one of those is manual by construction — the automatic path could not
+                    // insert a row at all until V30 (it violated the type CHECK on every call). So
+                    // this is a statement of fact, not a guess standing in for one.
+                    d.source() == null || d.source().isBlank() ? "MANUAL" : d.source(),
                     d.value(),
                     d.amountPaisa(),
                     // The column is non-nullable String: a discount with no reason at all is a

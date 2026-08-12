@@ -284,6 +284,7 @@ describe("Charge page — giving a discount (B3)", () => {
           orderItemId: LINE_ID,
           itemName: "Seekh Kebab",
           type: "PERCENT",
+          source: "MANUAL",
           value: 10,
           amountPaisa: 9000,
           reason: "Kebab arrived cold",
@@ -302,6 +303,45 @@ describe("Charge page — giving a discount (B3)", () => {
     expect(list).toHaveTextContent(/Rs 90\.00/);
   });
 
+  /**
+   * An automatic promotion has no `appliedBy` — nobody pressed anything. Before pos V30 this
+   * rendering could not be reached at all, because the promotion path violated the
+   * `order_discounts_type_check` constraint and 500'd before a row ever existed. Now that it
+   * writes, the actor line must not fall through to "Unknown": on a money-adjacent audit list
+   * that reads as a LOST record rather than as the truth, which is that no person decided it.
+   */
+  it("names an automatic promotion as automatic rather than as an unknown person", async () => {
+    currentOrder = makeOrder({
+      discountPaisa: 15000,
+      totalPaisa: 175000,
+      discounts: [
+        {
+          id: "dddddddd-0000-4000-8000-0000000000c7",
+          scope: "ORDER",
+          orderItemId: null,
+          itemName: null,
+          // FLAT, not "PROMOTION" — `type` says how `value` is to be read (rupees), and the
+          // fact that the engine chose it is a separate axis carried by `source`.
+          type: "FLAT",
+          source: "PROMOTION",
+          value: 150,
+          amountPaisa: 15000,
+          reason: "Automatic promotion (customer's qualifying offer)",
+          appliedBy: null,
+          appliedByName: null,
+          appliedAt: "2026-08-12T04:40:29Z",
+        },
+      ],
+    });
+    renderCharge();
+
+    const list = await screen.findByTestId("applied-discounts");
+    expect(within(list).getByText(/Applied automatically/)).toBeInTheDocument();
+    expect(list).not.toHaveTextContent(/Unknown/);
+    expect(list).toHaveTextContent(/Off the whole check/);
+    expect(list).toHaveTextContent(/Rs 150\.00/);
+  });
+
   it("withdraws the control once the check is closed, but keeps the discounts explained", async () => {
     currentOrder = makeOrder({
       status: "CLOSED",
@@ -315,6 +355,7 @@ describe("Charge page — giving a discount (B3)", () => {
           orderItemId: LINE_ID,
           itemName: "Seekh Kebab",
           type: "PERCENT",
+          source: "MANUAL",
           value: 10,
           amountPaisa: 9000,
           reason: "Kebab arrived cold",
