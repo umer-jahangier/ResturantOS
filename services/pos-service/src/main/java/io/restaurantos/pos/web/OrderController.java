@@ -1,6 +1,7 @@
 package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.*;
+import io.restaurantos.pos.service.OrderCashierNameService;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.OrderSettlementDetailService;
 import io.restaurantos.pos.service.RefundService;
@@ -26,13 +27,16 @@ public class OrderController {
     private final OrderService orderService;
     private final RefundService refundService;
     private final OrderSettlementDetailService orderSettlementDetailService;
+    private final OrderCashierNameService orderCashierNameService;
 
     public OrderController(OrderService orderService,
                            RefundService refundService,
-                           OrderSettlementDetailService orderSettlementDetailService) {
+                           OrderSettlementDetailService orderSettlementDetailService,
+                           OrderCashierNameService orderCashierNameService) {
         this.orderService = orderService;
         this.refundService = refundService;
         this.orderSettlementDetailService = orderSettlementDetailService;
+        this.orderCashierNameService = orderCashierNameService;
     }
 
     @PreAuthorize("hasAuthority('pos.order.create')")
@@ -57,6 +61,10 @@ public class OrderController {
         // extra query at all) for a page of live orders, which is why it sits here as a second
         // pass rather than inside the row builder on the till's hot list path.
         List<OrderSummaryDto> rows = orderSettlementDetailService.withSettlementDetail(page.getContent());
+        // F2: and WHO took the check, on every row — not only the terminal ones. The Server/Cashier
+        // column printed `cashierId.slice(0,8)` because the row carried no name to print, while the
+        // settlement column one cell over printed a name for a different person on the same row.
+        rows = orderCashierNameService.withCashierNames(rows);
         return ResponseEntity.ok(ApiResponse.paginated(rows, new PageMeta(
                 new PageMeta.Page(
                         String.valueOf(page.getNumber()),

@@ -2,6 +2,7 @@ package io.restaurantos.pos.dto;
 
 import io.restaurantos.pos.domain.enums.DerivedOrderStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
+import io.restaurantos.pos.domain.enums.OrderType;
 import io.restaurantos.pos.domain.enums.PaymentStatus;
 
 import java.time.Instant;
@@ -22,16 +23,31 @@ import java.util.UUID;
  *
  * <p>S0-04: {@code settlement} carries WHY and BY WHOM a terminal order ended that way. It is
  * populated by {@link io.restaurantos.pos.service.OrderSettlementDetailService} <i>after</i> the
- * page is built — never by the row-building code — and is null on every non-terminal row, which
- * is why the 14-argument constructor below still exists and still compiles.
+ * page is built — never by the row-building code — and is null on every non-terminal row.
+ *
+ * <p>F2: {@code type} and {@code cashierName} close the two things this row LIED about.
+ *
+ * <ul>
+ *   <li>{@code type} — the row carried no order type at all, so the client rendered
+ *       {@code tableName ?? "Takeaway"} and every tableless DINE_IN check read <i>Takeaway</i>.
+ *       Measured 2026-08-12: ten of ten rows on the first page were DINE_IN on the server and
+ *       Takeaway on the screen. It is a column of the order row and costs nothing to project —
+ *       it comes straight off the entity in the same pass that reads the total.</li>
+ *   <li>{@code cashierName} — decoration, resolved by
+ *       {@link io.restaurantos.pos.service.OrderCashierNameService} in a pass after the page is
+ *       built, exactly like {@code settlement.byName}. Null when the directory could not be
+ *       reached; the client falls back to the id and never to a blank.</li>
+ * </ul>
  */
 public record OrderSummaryDto(
         UUID orderId,
         String orderNo,
         UUID tableId,
         String tableName,
+        OrderType type,
         DerivedOrderStatus derivedStatus,
         UUID cashierId,
+        String cashierName,
         int coverCount,
         long totalPaisa,
         Instant openedAt,
@@ -52,6 +68,9 @@ public record OrderSummaryDto(
      * a directory hiccup must never blank a manager's order screen. {@code byUserId} is the fact
      * and is always present when the platform recorded one.
      *
+     * <p>This actor is frequently NOT the row's cashier — a manager voids the cashier's check —
+     * which is why {@code cashierName} is resolved separately rather than reused from here.
+     *
      * @param reason   free-text reason captured at void/refund time; null for rows written before
      *                 the field existed
      * @param byUserId the actor's user id (JWT sub) — null means the platform never recorded one
@@ -61,15 +80,20 @@ public record OrderSummaryDto(
     public record SettlementDetail(String reason, UUID byUserId, String byName, Instant at) {}
 
     /**
-     * The un-enriched row. Kept as the 14-argument shape the summary builder has always called so
-     * that adding {@code settlement} is not a change to the (hot, N+1-sensitive) row-building
-     * path — enrichment is a separate, terminal-rows-only pass.
+     * The un-enriched row: everything the row builder can read from the order itself.
+     *
+     * <p>The two enrichment-only fields ({@code cashierName}, {@code settlement}) are the ones
+     * left out, because both are resolved in separate passes after the page is built. {@code type}
+     * is deliberately NOT optional here — it is a fact about the order, and the previous shape of
+     * this constructor, which let the row be built without one, is exactly what let the client
+     * guess it from the table name.
      */
     public OrderSummaryDto(
             UUID orderId,
             String orderNo,
             UUID tableId,
             String tableName,
+            OrderType type,
             DerivedOrderStatus derivedStatus,
             UUID cashierId,
             int coverCount,
@@ -80,15 +104,22 @@ public record OrderSummaryDto(
             long amountPaidPaisa,
             int itemQuantity,
             int distinctItemCount) {
-        this(orderId, orderNo, tableId, tableName, derivedStatus, cashierId, coverCount,
-                totalPaisa, openedAt, settlementStatus, paymentStatus, amountPaidPaisa,
+        this(orderId, orderNo, tableId, tableName, type, derivedStatus, cashierId, null,
+                coverCount, totalPaisa, openedAt, settlementStatus, paymentStatus, amountPaidPaisa,
                 itemQuantity, distinctItemCount, null);
     }
 
     /** This row with its settlement provenance attached. Records are immutable; this is the copy. */
     public OrderSummaryDto withSettlement(SettlementDetail detail) {
-        return new OrderSummaryDto(orderId, orderNo, tableId, tableName, derivedStatus, cashierId,
-                coverCount, totalPaisa, openedAt, settlementStatus, paymentStatus, amountPaidPaisa,
-                itemQuantity, distinctItemCount, detail);
+        return new OrderSummaryDto(orderId, orderNo, tableId, tableName, type, derivedStatus,
+                cashierId, cashierName, coverCount, totalPaisa, openedAt, settlementStatus,
+                paymentStatus, amountPaidPaisa, itemQuantity, distinctItemCount, detail);
+    }
+
+    /** This row with its cashier's display name attached. */
+    public OrderSummaryDto withCashierName(String name) {
+        return new OrderSummaryDto(orderId, orderNo, tableId, tableName, type, derivedStatus,
+                cashierId, name, coverCount, totalPaisa, openedAt, settlementStatus,
+                paymentStatus, amountPaidPaisa, itemQuantity, distinctItemCount, settlement);
     }
 }

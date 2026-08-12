@@ -5,17 +5,12 @@ import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.domain.model.OrderRefund;
 import io.restaurantos.pos.dto.OrderSummaryDto;
 import io.restaurantos.pos.dto.OrderSummaryDto.SettlementDetail;
-import io.restaurantos.pos.feign.AuthUserDirectoryClient;
 import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.shared.tenant.TenantContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -23,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -57,39 +51,34 @@ import java.util.stream.Collectors;
  *       has been given back, and the refund path writes a row for each tender it reverses.</li>
  * </ul>
  *
- * <p>The actor's NAME is resolved through {@link AuthUserDirectoryClient} and is decoration: if
- * auth-service is unreachable the id still renders and the screen still works. The id is the fact.
+ * <p>The actor's NAME is resolved through {@link StaffNameDirectory} (itself backed by
+ * {@link io.restaurantos.pos.feign.AuthUserDirectoryClient}) and is decoration: if auth-service is
+ * unreachable the id still renders and the screen still works. The id is the fact.
+ *
+ * <p>F2 moved the name cache OUT of this class and into {@link StaffNameDirectory}, because the
+ * Server/Cashier column needs the very same lookup for a frequently DIFFERENT person on the same
+ * row — a manager voids a cashier's check — and two private caches would have asked auth-service
+ * for the same people twice per render.
  */
 @Service
 public class OrderSettlementDetailService {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderSettlementDetailService.class);
 
     /** The two outcomes that have a reason and an actor. CLOSED is a settlement, not an exception. */
     private static final Set<OrderStatus> EXPLAINED_STATUSES =
             EnumSet.of(OrderStatus.VOIDED, OrderStatus.REFUNDED);
 
-    /**
-     * Display names change about as often as someone gets married. A short TTL keeps a manager
-     * paging through voided orders from re-asking auth-service for the same three people on every
-     * refetch, while still picking up a rename within the shift.
-     */
-    private static final Duration NAME_TTL = Duration.ofMinutes(5);
-
     private final OrderRepository orderRepository;
     private final OrderRefundRepository orderRefundRepository;
-    private final AuthUserDirectoryClient authUserDirectoryClient;
+    private final StaffNameDirectory staffNameDirectory;
     private final TenantContext tenantContext;
-
-    private final Map<String, CachedName> nameCache = new ConcurrentHashMap<>();
 
     public OrderSettlementDetailService(OrderRepository orderRepository,
                                         OrderRefundRepository orderRefundRepository,
-                                        AuthUserDirectoryClient authUserDirectoryClient,
+                                        StaffNameDirectory staffNameDirectory,
                                         TenantContext tenantContext) {
         this.orderRepository = orderRepository;
         this.orderRefundRepository = orderRefundRepository;
-        this.authUserDirectoryClient = authUserDirectoryClient;
+        this.staffNameDirectory = staffNameDirectory;
         this.tenantContext = tenantContext;
     }
 
@@ -139,7 +128,8 @@ public class OrderSettlementDetailService {
                 continue;
             }
             if (detail.byUserId() != null) {
-                nameByUserId.computeIfAbsent(detail.byUserId(), id -> resolveName(tenantId, id));
+                nameByUserId.computeIfAbsent(detail.byUserId(),
+                        id -> staffNameDirectory.resolve(tenantId, id));
             }
             detailByOrderId.put(orderId, detail);
         }
@@ -182,29 +172,5 @@ public class OrderSettlementDetailService {
                 .orElseThrow();
         return new SettlementDetail(latest.getReason(), latest.getRefundedBy(), null,
                 latest.getCreatedAt());
-    }
-
-    /** Never throws. A directory outage costs a name, not the screen. */
-    private String resolveName(UUID tenantId, UUID userId) {
-        String key = tenantId + ":" + userId;
-        CachedName cached = nameCache.get(key);
-        if (cached != null && cached.isFresh()) {
-            return cached.name();
-        }
-        try {
-            String name = authUserDirectoryClient.getUser(userId, tenantId).displayName();
-            nameCache.put(key, new CachedName(name, Instant.now()));
-            return name;
-        } catch (Exception e) {
-            log.warn("Could not resolve display name for user {} (tenant {}): {}",
-                    userId, tenantId, e.toString());
-            return null;
-        }
-    }
-
-    private record CachedName(String name, Instant fetchedAt) {
-        boolean isFresh() {
-            return fetchedAt.isAfter(Instant.now().minus(NAME_TTL));
-        }
     }
 }
