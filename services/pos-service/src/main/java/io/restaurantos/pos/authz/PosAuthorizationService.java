@@ -26,24 +26,36 @@ public class PosAuthorizationService {
     /**
      * Authorize a void operation.
      *
-     * <p>{@code pos.rego}'s {@code void.own} rule reads BOTH {@code status} and
-     * {@code amount_paid_paisa}: a cashier may write off their own check while it is DRAFT, OPEN
-     * or SENT_TO_KDS and carries no tender. Both are therefore sent, and
-     * {@code amountPaidPaisa} must be the real figure — passing a hard-coded 0 would turn the
-     * policy's money clause into a decoration. {@code void.any} reads neither.
+     * <p>{@code pos.rego}'s {@code void.own} rule reads THREE facts about the resource —
+     * {@code status}, {@code amount_paid_paisa} and {@code any_line_plated}: a cashier may write
+     * off their own check while it is non-terminal, carries no tender, and the kitchen has plated
+     * nothing on it. All three are therefore sent, and each must be the real measured value —
+     * passing a hard-coded {@code 0} or {@code false} would turn the corresponding clause into a
+     * decoration. {@code void.any} reads none of them.
+     *
+     * <p><b>Why {@code anyLinePlated} is a separate argument rather than read off {@code status}.</b>
+     * It cannot be derived from either status field. {@code OrderStatus} declares PARTIAL_READY,
+     * READY and SERVED but pos-service never writes them — the kitchen-progress meaning of that
+     * column was retired in {@code fc6f389f}, so a fired check sits at SENT_TO_KDS from the fryer
+     * to the table. {@code derivedStatus} collapses READY into IN_PROGRESS and only breaks out
+     * served. The caller therefore computes it from the line statuses via
+     * {@code OrderStatusDerivationService.anyLinePlated}.
      *
      * @param orderId         target order
      * @param tenantId        order's tenant
      * @param branchId        order's branch
      * @param createdBy       original cashier who created the order
-     * @param status          current order status
+     * @param status          current order status — the settlement lifecycle, NOT kitchen progress
      * @param amountPaidPaisa money already recorded against the order, summed over its payment
      *                        rows (refunds are negative rows, so a fully reversed order nets to 0)
+     * @param anyLinePlated   whether any non-cancelled line has reached READY or SERVED, i.e.
+     *                        whether cooked food exists on this check
      */
     public void authorizeVoid(UUID orderId, UUID tenantId, UUID branchId, UUID createdBy,
-                              String status, long amountPaidPaisa) {
+                              String status, long amountPaidPaisa, boolean anyLinePlated) {
         OpaInput.Resource resource = new OpaInput.Resource(
-                "order", orderId, tenantId, branchId, createdBy, status, null, amountPaidPaisa);
+                "order", orderId, tenantId, branchId, createdBy, status, null, amountPaidPaisa,
+                anyLinePlated);
         authorizationService.authorize("pos", "void", resource);
     }
 

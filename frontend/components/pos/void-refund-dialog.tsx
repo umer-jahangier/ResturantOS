@@ -81,7 +81,32 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
   // Unchanged status set — a void is still only offered on a live, un-settled ticket. What is
   // new is that money on the ticket withdraws it, and the operator is told why.
   const voidableStatus = order.status === "OPEN" || order.status === "SENT_TO_KDS";
-  const canVoidOwn = voidableStatus && !hasMoneyOnIt && !paymentsLoading;
+
+  /*
+   * B2 re-open — THE PASS, mirrored from pos.rego so the button cannot lie.
+   *
+   * `pos.rego`'s void.own now refuses a check the kitchen has plated: from the moment a line
+   * reaches READY, cooked food exists and writing it off is void.any's business. Without this
+   * clause the trigger below would render on a plated check (status is still SENT_TO_KDS —
+   * order.status has not tracked kitchen progress since fc6f389f, and no status in the enum
+   * distinguishes plated from fired), the cashier would type a reason, press Confirm, and be
+   * answered 403 "Not permitted: pos.void".
+   *
+   * That is not a hypothetical. It is the ORIGINAL B2 defect, verbatim — a Void button that
+   * rendered on permission alone and failed at the server — and re-creating it one status later
+   * while fixing it here would be the same bug wearing a different hat.
+   *
+   * The predicate is the client's copy of OrderStatusDerivationService.anyLinePlated, and the
+   * two must agree. It reads the same READY/SERVED pair; a CANCELLED line matches neither, which
+   * is the server's "cancelled lines are excluded" rule arriving at the same answer by the same
+   * route. This is a rendering decision only — the policy is still the authority, and a client
+   * that got it wrong would be corrected by a 403 rather than allowed anything.
+   */
+  const anyLinePlated = order.items.some(
+    (i) => i.itemStatus === "READY" || i.itemStatus === "SERVED",
+  );
+
+  const canVoidOwn = voidableStatus && !hasMoneyOnIt && !anyLinePlated && !paymentsLoading;
   // Refund wherever money was actually taken and the order has not already been settled away.
   // Deliberately NOT `status === "CLOSED"`: that is the gate that made this unreachable.
   const canRefund = hasMoneyOnIt && order.status !== "VOIDED" && order.status !== "REFUNDED";
@@ -113,6 +138,22 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
       : "Paid — void unavailable. A manager must refund this check."
     : showRefundNeedsManager
       ? "Paid — a manager must refund this check."
+      : null;
+
+  /*
+   * The sentence that replaces the Void button once the kitchen has plated. Money outranks it:
+   * a check that is BOTH paid and plated reads the paid copy, because refund is the action that
+   * actually moves the money and is therefore the one worth naming.
+   *
+   * It names the manager for the same reason F13's copy does. "Not permitted" tells a cashier
+   * they did something wrong; this tells them whose job it is, which is the only thing they can
+   * act on at the till. No permission is widened — void.any was always the manager's, and this
+   * check was never legitimately the cashier's to write off. What changes is that the screen
+   * stops offering it and then refusing.
+   */
+  const platedNotice =
+    voidableStatus && !hasMoneyOnIt && anyLinePlated
+      ? "Food has been plated — a manager must void this check."
       : null;
 
   const closePanel = () => {
@@ -168,7 +209,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     onDone?.();
   };
 
-  const hasAnyAction = canVoidOwn || canRefund || paidNotice !== null;
+  const hasAnyAction = canVoidOwn || canRefund || paidNotice !== null || platedNotice !== null;
 
   if (!hasAnyAction) return null;
 
@@ -380,6 +421,21 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
           className="text-xs text-muted-foreground"
         >
           {paidNotice}
+        </span>
+      )}
+
+      {/*
+        B2 re-open: the same treatment for the kitchen boundary. Its own testid rather than a
+        reuse of the paid one — they are different facts about the check, they lead to different
+        people (refund is the manager's money action, this is the manager's void), and a suite
+        that cannot tell them apart would pass while the screen named the wrong remedy.
+      */}
+      {platedNotice && (
+        <span
+          data-testid="void-blocked-plated-notice"
+          className="text-xs text-muted-foreground"
+        >
+          {platedNotice}
         </span>
       )}
 

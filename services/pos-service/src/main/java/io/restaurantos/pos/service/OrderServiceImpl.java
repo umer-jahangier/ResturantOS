@@ -1192,15 +1192,31 @@ public class OrderServiceImpl implements OrderService {
             return orderMapper.toDto(order);
         }
 
-        // OPA authorization: void.own for the cashier's own un-tendered check (DRAFT/OPEN/
-        // SENT_TO_KDS), void.any for manager level. `amountPaidPaisa` is always 0 by the time
-        // control reaches here — the guard above returned otherwise — and it is still passed as
-        // the measured value rather than a literal, because pos.rego's money clause guards every
-        // caller of this method, not only voidOrder. authorization-service exposes the same
-        // (module, action) pair over HTTP to anyone.
+        // OPA authorization: void.own for the cashier's own un-tendered, un-plated check,
+        // void.any for manager level. `amountPaidPaisa` is always 0 by the time control reaches
+        // here — the guard above returned otherwise — and it is still passed as the measured
+        // value rather than a literal, because pos.rego's money clause guards every caller of
+        // this method, not only voidOrder. authorization-service exposes the same (module,
+        // action) pair over HTTP to anyone.
+        //
+        // ── THE PASS (B2 re-open): why a third fact is measured here ─────────────────────────
+        // pos.rego's void.own draws the cashier's ceiling at the pass — a guest who walks out
+        // before the food is cooked is the cashier's own correction; writing off food that WAS
+        // cooked is a manager's call. That boundary used to be expressed as a status set,
+        // {DRAFT, OPEN, SENT_TO_KDS}, and it was inert: order.status never leaves SENT_TO_KDS
+        // while a check is live, because PARTIAL_READY/READY/SERVED were retired as order-level
+        // states in fc6f389f. The set therefore covered every status an unpaid check can hold and
+        // constrained nothing. Measured live 2026-08-12: ORD-20260812-0340, serve-all 200 with
+        // derivedStatus SERVED and status still SENT_TO_KDS, then the cashier's OWN void 200.
+        //
+        // derivedStatus cannot stand in for it either — derive() collapses READY into IN_PROGRESS
+        // and only breaks out served, so a plate under the heat lamp is indistinguishable from a
+        // ticket fired seconds ago. The question is asked of the LINES, which are the only place
+        // the answer lives, and it is asked here rather than stored so it cannot drift.
+        boolean anyLinePlated = orderStatusDerivationService.anyLinePlated(order.getItems());
         posAuthorizationService.authorizeVoid(
                 orderId, tenantId, order.getBranchId(),
-                order.getCashierId(), order.getStatus().name(), amountPaidPaisa);
+                order.getCashierId(), order.getStatus().name(), amountPaidPaisa, anyLinePlated);
 
         stateMachine.assertTransition(order.getStatus(), OrderStatus.VOIDED);
         order.setStatus(OrderStatus.VOIDED);
