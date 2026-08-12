@@ -57,6 +57,17 @@ public interface BranchRepository extends JpaRepository<BranchEntity, UUID> {
 
     List<BranchEntity> findAllByIdInAndDeletedAtIsNull(Collection<UUID> ids);
 
+    /**
+     * Live AND active. Used by {@code BranchService.listMine}, which is the branch switcher.
+     *
+     * <p>Separate from the method above rather than replacing it: {@code deletedAt IS NULL} means
+     * "this row still exists" and is the right predicate for every read that must not lose a
+     * record, while {@code is_active} means "you may work here" and is the right predicate for
+     * exactly one question — where may this person go. Collapsing the two would make deactivating
+     * a branch look like deleting it everywhere else in the service.
+     */
+    List<BranchEntity> findAllByIdInAndIsActiveTrueAndDeletedAtIsNull(Collection<UUID> ids);
+
     boolean existsByName(String name);
 
     List<BranchEntity> findAllByTenantIdAndDeletedAtIsNull(UUID tenantId);

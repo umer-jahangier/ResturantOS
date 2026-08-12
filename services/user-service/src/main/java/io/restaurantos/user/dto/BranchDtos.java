@@ -11,9 +11,38 @@ public final class BranchDtos {
 
     private BranchDtos() {}
 
+    /**
+     * A new branch. Only {@code name} is required — everything else is optional, including
+     * {@code isHq}.
+     *
+     * <h3>Why {@code isHq} is a {@code Boolean} and not a {@code boolean}</h3>
+     *
+     * <p>It was a primitive, and on a RECORD that made it mandatory in a way nothing said out loud.
+     * Jackson builds a record through its canonical constructor, so an absent key is passed as
+     * {@code null}, unboxing it throws, and Spring answers
+     * {@code 400 BAD_REQUEST — "Request body is missing or malformed"} — a message about the whole
+     * body, naming no field, for a request whose body is perfectly well-formed JSON.
+     *
+     * <p>Measured live through the gateway as OWNER on 2026-08-12, two requests differing by one
+     * key:
+     *
+     * <pre>
+     *   POST {"name":"A","isHq":false,"address":"1 Road","timezone":"Asia/Karachi"} → 201
+     *   POST {"name":"B",              "address":"1 Road","timezone":"Asia/Karachi"} → 400
+     * </pre>
+     *
+     * <p>That is a trap for every client, and it caught the first one: the Branches screen
+     * deliberately does not offer an HQ control — which branch is head office is settled when the
+     * tenant is provisioned, and a second HQ is not a state this product has any meaning for — so
+     * it omitted the key and every attempt to add a branch failed with a message pointing at the
+     * body rather than at the missing boolean.
+     *
+     * <p>Absent now means {@code false}, which is what "is this the head office?" unstated should
+     * always have meant.
+     */
     public record CreateBranchRequest(
         @NotBlank @Size(max = 150) String name,
-        boolean isHq,
+        Boolean isHq,
         String address,
         String phone,
         String email,
