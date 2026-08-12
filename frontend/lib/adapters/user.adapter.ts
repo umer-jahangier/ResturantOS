@@ -59,6 +59,7 @@ export function adaptAssignableRole(api: ApiRoleEntry): AssignableRole {
     name: api.name,
     system: api.system,
     permissions: api.permissions,
+    assignedUserCount: api.assignedUserCount ?? 0,
   };
 }
 

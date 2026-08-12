@@ -260,7 +260,18 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Reporting", items: ["Reports", "Realtime Dashboard", "Ask (NLQ)"] },
       // 19-01: General and Users stopped being `comingSoon` when their pages shipped. OWNER
       // reaches both through `rbac.manage`, which is `any`-matched against the narrower codes.
-      { group: "Settings", items: ["General", "Appearance", "Users", "Service health"] },
+      //
+      // "Branches" (S5) landed in the nav without this pinned expectation being updated, so this
+      // assertion was already red before S3 touched it — the same "a matrix that describes a nav
+      // nobody has any more is not a gate" note the Menu group carries below. Both it and "Roles"
+      // (S3) are recorded here so the list matches the tree; each plan owns its own row.
+      //
+      // "Roles" sits between Users and Service health, gated on
+      // `rbac.manage | rbac.user.manage | rbac.role.manage` with `any`.
+      {
+        group: "Settings",
+        items: ["General", "Branches", "Appearance", "Users", "Roles", "Service health"],
+      },
     ]);
   });
 
@@ -301,7 +312,14 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["HR", "Customers"] },
       { group: "Reporting", items: ["Reports", "Realtime Dashboard", "Ask (NLQ)"] },
-      { group: "Settings", items: ["General", "Appearance", "Users", "Service health"] },
+      // A TENANT_ADMIN sees "Roles" for the same reason it sees "Users": the entry is `any`-matched
+      // against `rbac.user.manage` / `rbac.role.manage`, both of which a tenant admin holds and
+      // neither of which is `rbac.manage`. An entry gated on `rbac.manage` alone would hide the
+      // role builder from the one role whose whole job is administering people.
+      {
+        group: "Settings",
+        items: ["General", "Branches", "Appearance", "Users", "Roles", "Service health"],
+      },
     ]);
   });
 

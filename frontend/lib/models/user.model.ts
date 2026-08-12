@@ -116,6 +116,12 @@ export interface AssignableRole {
   name: string;
   system: boolean;
   permissions: string[];
+  /**
+   * How many people hold it. Never null — an absent count on the wire is read as zero, because
+   * inventing holders would make the Roles screen refuse a deletion the server would allow, and
+   * inventing none would offer one the server then refuses.
+   */
+  assignedUserCount: number;
 }
 
 /**

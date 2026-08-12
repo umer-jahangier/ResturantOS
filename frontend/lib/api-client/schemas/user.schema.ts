@@ -135,6 +135,15 @@ export const apiRoleEntrySchema = z.object({
   name: z.string(),
   system: z.boolean(),
   permissions: z.array(z.string()),
+  /**
+   * How many DISTINCT people in this tenant hold the role (S3).
+   *
+   * <p>Optional on the wire on purpose. A browser tab left open across a deploy talks to whichever
+   * auth-service answers, and an older one does not send this key; a required field would turn that
+   * into a parse failure on the ASSIGN dialog — a screen that has nothing to do with the count.
+   * Absent becomes `0` in the adapter, which is the only reading that cannot invent holders.
+   */
+  assignedUserCount: z.number().int().nonnegative().optional(),
 });
 
 export type ApiRoleEntry = z.infer<typeof apiRoleEntrySchema>;
