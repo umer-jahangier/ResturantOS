@@ -40,7 +40,16 @@ function generateKey() {
 const TILL_ERROR_COPY: Record<string, string> = {
   TILL_HAS_OPEN_ORDERS:
     "This till still has open orders. Settle, serve, or void them before closing.",
-  TILL_ALREADY_OPEN: "You already have an open till on this device.",
+  // NOT "on this device". till_sessions has no device or terminal column at all — the rule is one
+  // open till per CASHIER, and the query behind it (findByCashierIdAndStatus) does not filter by
+  // branch either. So the case a user actually hits is: their own till is still open at ANOTHER
+  // branch, often from a previous day, and this bar cannot see it because its read IS
+  // branch-scoped. Saying "this device" sent them looking for a second browser tab that was never
+  // the cause. Until the server names the branch and the time (it already names the cashier when
+  // opening for somebody else), this is the most that is true.
+  TILL_ALREADY_OPEN:
+    "You already have a till open — it may be at another branch, or left open from an earlier " +
+    "shift. Close that one before opening a new till.",
   TILL_NOT_FOUND: "This till session no longer exists. Refresh and try again.",
   PERIOD_LOCKED: "The accounting period is locked. Contact a manager to reopen it.",
 };
