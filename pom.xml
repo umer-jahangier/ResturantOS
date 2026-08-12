@@ -79,6 +79,54 @@
     </dependencyManagement>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <!--
+                  Disable Testcontainers' Ryuk reaper for every module's integration tests, in ONE place.
+
+                  Ryuk is a sidecar container that bind-mounts the Docker socket to clean up after the
+                  run. Under colima the socket is `~/.colima/default/docker.sock`, and mounting it
+                  fails:
+
+                    InternalServerErrorException: Status 500: {"message":"error while creating mount
+                    source path '/Users/…/.colima/default/docker.sock': mkdir …: operation not
+                    supported"}
+                      at org.testcontainers.utility.RyukResourceReaper.maybeStart
+
+                  WHY THIS IS EXPENSIVE, AND WHY IT BELONGS HERE RATHER THAN IN EACH MODULE. The
+                  failure happens in BaseIntegrationTest's STATIC INITIALISER, so it surfaces as
+                  "Tests run: 21, Errors: 21" with NoClassDefFoundError cascades — which reads as a
+                  broken test class, not as infrastructure. Eight service poms had already been fixed
+                  one at a time, and NINE modules covering 79 IT files still had not: shared-lib,
+                  gateway, audit, auth, authorization, crm, file, hr and user. Every one of those
+                  suites only passed if a human happened to export the variable by hand, which is
+                  indistinguishable from the code working.
+
+                  IT MUST BE AN ENVIRONMENT VARIABLE ON THE FAILSAFE FORK. Testcontainers 1.21.4
+                  resolves `ryuk.disabled` from the process environment and `~/.testcontainers.properties`
+                  only. Three other forms are present in this repo and ALL THREE ARE MEASURED TO DO
+                  NOTHING: `System.setProperty("TESTCONTAINERS_RYUK_DISABLED", …)` in a static block;
+                  `r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true")` in a @DynamicPropertySource
+                  (that registers a SPRING property — Testcontainers never reads it); and
+                  `~/.testcontainers.properties`, which already says `ryuk.disabled=true` on this
+                  machine and is not honoured by the fork. Do not "simplify" this into any of them.
+
+                  pluginManagement rather than plugins: every module already DECLARES failsafe, so each
+                  inherits this configuration and merges its own <includes>/<argLine> over it. A module
+                  that sets its own <environmentVariables> keeps them — the eight that already do are
+                  redundant now but harmless, and are left alone rather than touched in the same change.
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <environmentVariables>
+                            <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                        </environmentVariables>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <!--
               Fail the build when Maven is not running on the JDK this project targets.

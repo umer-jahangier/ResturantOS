@@ -69,6 +69,15 @@ Each of these produced a confident, wrong answer:
   honoured by the failsafe fork. There is **no parent-pom entry**: five service poms each carry
   their own, and auth-service and shared-lib never got one. That is the whole defect.
 
+  **FIXED 2026-08-12 in the ROOT pom** (`<pluginManagement>` → failsafe → `<environmentVariables>`),
+  so all 18 modules inherit it. Nine were missing it, covering **79 IT files**: shared-lib, gateway,
+  audit, auth, authorization, crm, file, hr and user. Verified the way the fix has to be verified —
+  `mvn -pl services/auth-service verify -Dit.test=AuthInternalBranchRoleIT` with
+  `TESTCONTAINERS_RYUK_DISABLED` **stripped from the environment** (`env -u`): `Tests run: 19,
+  Failures: 0, Errors: 0`, Testcontainers logged *"Ryuk has been disabled"*, and zero
+  mount-source-path errors. The eight per-module entries are now redundant but were left alone
+  rather than churned in the same change.
+
   **A third decorative form exists**, in `AuditImmutabilityIT`, `AuditConsumerIT` and
   `AuditReadPathIT`: `r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true")` inside a
   `@DynamicPropertySource`. That registers a **Spring property**. Testcontainers reads the
