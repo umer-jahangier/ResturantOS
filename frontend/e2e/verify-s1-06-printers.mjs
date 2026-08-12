@@ -2,8 +2,12 @@
 // Drives real Chromium through the whole DONE-MEANS click path, starting a REAL print agent
 // with the credential the UI issued, and reading bytes off two captured thermal printers.
 //
-//   node e2e/verify-s1-06-printers.mjs before      (reproduction — expects 404s)
-//   node e2e/verify-s1-06-printers.mjs after       (the full journey)
+//   node e2e/fake-thermal-printer.mjs 9100 /tmp/receipt-printer.bin &
+//   node e2e/fake-thermal-printer.mjs 9101 /tmp/kitchen-printer.bin &
+//   S1_06_SCRATCH=/tmp node e2e/verify-s1-06-printers.mjs after
+//
+// The two capture servers are REQUIRED: the assertions read bytes off them, and without them the
+// agent has nowhere to deliver. `before` re-runs the reproduction (expects 404s).
 import { chromium } from "@playwright/test";
 import { mkdirSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
