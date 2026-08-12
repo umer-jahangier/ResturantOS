@@ -25,6 +25,15 @@ target/
 .DS_Store
 Thumbs.db
 
+# frontend/ is a pnpm workspace (pnpm-lock.yaml + pnpm-workspace.yaml). A package-lock.json here is
+# never a source of truth — it is the residue of someone running `npm install` after `npm ci` failed,
+# and `npm ci` fails not on a bad lockfile but because there IS no npm lockfile. `npm install` then
+# "succeeds" by resolving a fresh UNLOCKED tree, so every suite run afterwards measures dependencies
+# the project does not ship. Measured: an npm tree pulled vitest 4.1.10 where the pnpm lockfile pins
+# 4.1.9. Ignored so it can never be committed and mistaken for the lockfile.
+# Install with: pnpm install --frozen-lockfile
+package-lock.json
+
 # Finder / cloud-sync conflict copies: "pos.adapter 2.ts", "PosServiceApplication 10.class".
 # These are byte-stale snapshots that keep compiling. A pre-F16 copy of pos.adapter.ts made
 # `npx tsc --noEmit` report errors against code nobody had edited, which makes the typecheck

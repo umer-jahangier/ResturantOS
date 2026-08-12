@@ -97,6 +97,13 @@ Each of these produced a confident, wrong answer:
   dependencies than the project ships. An earlier version of this very entry gave that advice; it
   was retracted by the session that had just been caught by it, on the grounds that **the wrong
   version is worse than the original problem, because `npm install` succeeds loudly.**
+
+  Both halves were then measured. `pnpm install --frozen-lockfile` **succeeded**, so the pnpm
+  lockfile was valid all along and "lock mismatch" was never the reason `npm ci` failed. And the two
+  trees really did differ: the npm resolution pulled **vitest 4.1.10** where the lockfile pins
+  **4.1.9**. The suite happened to give the same result — 12/12 either way — but that could not have
+  been known without re-running it, which is the point. `package-lock.json` is now gitignored
+  repo-wide so it cannot be committed and mistaken for a lockfile; three worktrees had grown one.
 - **The ONLY safe check that a suite ran is a positive `Tests run: N` line naming the class you
   care about.** Not the exit code, not `BUILD SUCCESS`, not the absence of red.
 - **An absence assertion written as `waitFor(() => expect(queryByRole(…)).not.toBeInTheDocument())`
