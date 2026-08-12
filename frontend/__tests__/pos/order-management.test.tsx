@@ -21,6 +21,7 @@ const CASHIER_ME = "c0000001-0000-4000-8000-000000000001";
 const CASHIER_OTHER = "c0000002-0000-4000-8000-000000000002";
 const ORDER_A = "d1000001-0000-4000-8000-000000000001";
 const ORDER_B = "d1000002-0000-4000-8000-000000000002";
+const ORDER_DRAFT = "d1000003-0000-4000-8000-000000000003";
 
 const rawOrderA = {
   orderId: ORDER_A,
@@ -40,22 +41,47 @@ const rawOrderA = {
   distinctItemCount: 2,
 };
 
+// NOT a draft, deliberately. This row stands in the ACTIVE list, and the server's default
+// listing is "all non-terminal statuses EXCLUDING DRAFT" — so a DRAFT row here would be a
+// fixture describing a response the server cannot produce. It used to be one, which is how
+// the Draft chip's client-side filter tested green while being dead in production: the only
+// thing it could ever have filtered was a row that is never in the list it filters.
 const rawOrderB = {
   orderId: ORDER_B,
   orderNo: "ORD-B",
   tableId: null,
   tableName: "Table 2",
   type: "DINE_IN",
-  derivedStatus: "DRAFT",
+  derivedStatus: "SERVED",
   cashierId: CASHIER_OTHER,
   coverCount: 1,
   totalPaisa: 20000,
   openedAt: new Date().toISOString(),
-  settlementStatus: "DRAFT",
+  settlementStatus: "SENT_TO_KDS",
   paymentStatus: "UNPAID",
   amountPaidPaisa: 0,
   itemQuantity: 1,
   distinctItemCount: 1,
+};
+
+// A real draft shell: rung up, never fired, so it holds a till open until someone cancels it.
+// Owned by CASHIER_ME so it survives the My-Orders toggle and the row offers Cancel.
+const rawOrderDraft = {
+  orderId: ORDER_DRAFT,
+  orderNo: "ORD-DRAFT",
+  tableId: null,
+  tableName: null,
+  type: "DINE_IN",
+  derivedStatus: "DRAFT",
+  cashierId: CASHIER_ME,
+  coverCount: 1,
+  totalPaisa: 0,
+  openedAt: new Date().toISOString(),
+  settlementStatus: "DRAFT",
+  paymentStatus: "UNPAID",
+  amountPaidPaisa: 0,
+  itemQuantity: 0,
+  distinctItemCount: 0,
 };
 
 function pagedResponse(rows: unknown[]) {
@@ -80,6 +106,29 @@ function mockOrdersList(rows: unknown[]) {
   server.use(http.get("*/api/v1/pos/orders", () => pagedResponse(rows)));
 }
 
+/**
+ * Answers by the requested `status` the way the backend does, and — the part that matters here —
+ * refuses to put a DRAFT row in the default listing. OrderServiceImpl.listOrderSummaries returns
+ * "all non-terminal statuses EXCLUDING DRAFT" when no status is given, so a fixture that serves
+ * drafts unconditionally lets a client-side Draft filter pass a test it could never pass against
+ * the real server. Records what was asked so a test can assert the chip actually issued the query
+ * rather than quietly filtering rows it already had.
+ */
+function mockOrdersByStatus(rowsByStatus: { active: unknown[]; draft: unknown[] }) {
+  const requested: string[][] = [];
+  server.use(
+    http.get("*/api/v1/pos/orders", ({ request }) => {
+      const url = new URL(request.url);
+      const statuses = url.searchParams.getAll("status[]").concat(url.searchParams.getAll("status"));
+      requested.push(statuses);
+      if (statuses.includes("DRAFT")) return pagedResponse(rowsByStatus.draft);
+      if (statuses.length > 0) return pagedResponse([]);
+      return pagedResponse(rowsByStatus.active);
+    }),
+  );
+  return requested;
+}
+
 describe("OrderManagement", () => {
   afterEach(() => clearSession());
 
@@ -97,7 +146,7 @@ describe("OrderManagement", () => {
     await waitFor(() => expect(screen.getByText("ORD-A")).toBeInTheDocument());
     expect(screen.getByText("ORD-B")).toBeInTheDocument();
     expect(screen.getByLabelText("In Progress")).toBeInTheDocument();
-    expect(screen.getByLabelText("Draft")).toBeInTheDocument();
+    expect(screen.getByLabelText("Served")).toBeInTheDocument();
   });
 
   it("a status filter chip narrows the set", async () => {
@@ -114,10 +163,90 @@ describe("OrderManagement", () => {
 
     await waitFor(() => expect(screen.getByText("ORD-A")).toBeInTheDocument());
 
-    await user.click(screen.getByTestId("status-filter-DRAFT"));
+    await user.click(screen.getByTestId("status-filter-SERVED"));
 
     expect(screen.queryByText("ORD-A")).not.toBeInTheDocument();
     expect(screen.getByText("ORD-B")).toBeInTheDocument();
+  });
+
+  /**
+   * The Draft chip could not show a row, ever. It filtered the ACTIVE list client-side, and the
+   * server's default listing excludes DRAFT — so the one status it selects for is the one status
+   * its source can never contain. `CancelDraftAction` was written for those rows and was therefore
+   * unreachable code, which is how draft shells sat on a cashier's till with no screen able to
+   * reach them. The chip must ASK the server, so this asserts the request as well as the row.
+   */
+  it("the Draft chip asks the server for drafts and offers Cancel on the row", async () => {
+    const requested = mockOrdersByStatus({
+      active: [rawOrderA, rawOrderB],
+      draft: [rawOrderDraft],
+    });
+    seedSession({ sub: CASHIER_ME, branchId: BRANCH_ID, permissions: ["pos.order.view"] });
+    const { Wrapper } = createControlledWrapper();
+    const user = userEvent.setup();
+
+    render(
+      <Wrapper>
+        <OrderManagement />
+      </Wrapper>,
+    );
+
+    // The draft is absent from Active — not filtered out, never sent.
+    await waitFor(() => expect(screen.getByText("ORD-A")).toBeInTheDocument());
+    expect(screen.queryByText("ORD-DRAFT")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("status-filter-DRAFT"));
+
+    await waitFor(() => expect(screen.getByText("ORD-DRAFT")).toBeInTheDocument());
+    expect(requested).toContainEqual(["DRAFT"]);
+    expect(screen.queryByText("ORD-A")).not.toBeInTheDocument();
+    expect(screen.queryByText("ORD-B")).not.toBeInTheDocument();
+
+    // The control that was unreachable before: it exists on the row the chip now renders.
+    expect(screen.getByTestId(`cancel-draft-${ORDER_DRAFT}`)).toBeInTheDocument();
+  });
+
+  it("the Draft chip's empty state does not claim there are no ACTIVE orders", async () => {
+    mockOrdersByStatus({ active: [rawOrderA], draft: [] });
+    seedSession({ sub: CASHIER_ME, branchId: BRANCH_ID, permissions: ["pos.order.view"] });
+    const { Wrapper } = createControlledWrapper();
+    const user = userEvent.setup();
+
+    render(
+      <Wrapper>
+        <OrderManagement />
+      </Wrapper>,
+    );
+
+    await waitFor(() => expect(screen.getByText("ORD-A")).toBeInTheDocument());
+    await user.click(screen.getByTestId("status-filter-DRAFT"));
+
+    // "No active orders" here would be a claim about the restaurant, made while showing a
+    // differently-scoped fetch — the mislabelling EMPTY_SCOPED_COPY exists to prevent.
+    await waitFor(() => expect(screen.getByText("No draft orders")).toBeInTheDocument());
+    expect(screen.queryByText("No active orders")).not.toBeInTheDocument();
+    expect(screen.getByTestId("order-scope-note")).toHaveTextContent(/Draft orders/);
+    // §26: an empty Draft list should say what to do next, and starting an order is a real
+    // next step here (unlike an empty Voided list, which is why the CTA is per-filter).
+    expect(screen.getByRole("button", { name: "Go to POS" })).toBeInTheDocument();
+  });
+
+  it("an empty settlement view offers no 'Go to POS' CTA", async () => {
+    server.use(http.get("*/api/v1/pos/orders", () => pagedResponse([])));
+    seedSession({ sub: CASHIER_ME, branchId: BRANCH_ID, permissions: ["pos.order.view"] });
+    const { Wrapper } = createControlledWrapper();
+    const user = userEvent.setup();
+
+    render(
+      <Wrapper>
+        <OrderManagement />
+      </Wrapper>,
+    );
+
+    await user.click(screen.getByTestId("status-filter-VOIDED"));
+
+    await waitFor(() => expect(screen.getByText("No voided orders")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Go to POS" })).not.toBeInTheDocument();
   });
 
   it("hides the My/All-Branch toggle without the all-branch permission", async () => {

@@ -58,31 +58,52 @@ const TERMINAL_SETTLEMENT_STATUSES: ReadonlySet<OrderStatus> = new Set([
 ]);
 
 /**
- * The chips that ask the server for ONE explicit settlement status, instead of filtering the
- * active list client-side.
+ * The chips that ask the server for ONE explicit status, instead of filtering the active list
+ * client-side.
  *
- * <p>S0-04: "Closed" used to be the only one, and that was the whole defect. The default
- * listing is every NON-terminal status except DRAFT, so a voided or refunded order was in
- * neither the default fetch nor any client-side filter applied on top of it — it appeared under
- * none of the seven chips and under no search. `?status=VOIDED` had always worked; nothing ever
- * asked. Each entry here is one such ask.
+ * <p>Membership is decided by a single fact about the server: the default listing
+ * (OrderServiceImpl.listOrderSummaries) is every NON-terminal status EXCEPT DRAFT. A status
+ * outside that set is in neither the default fetch nor any client-side filter applied on top of
+ * it, so a chip for it can never match a row however it filters — the row is not merely
+ * filtered out, it was never fetched. Each entry here is the ask that gets it fetched.
+ *
+ * <p>S0-04: "Closed" used to be the only one, and that was the whole defect for voids — a voided
+ * order appeared under none of the seven chips and under no search.
+ *
+ * <p>DRAFT is here for exactly the same reason and was missed by that fix because it fails at
+ * the other end of the lifecycle: the default listing excludes it (POS-16), so the Draft chip
+ * filtered a list that by construction never contains a draft. The chip could not render a row,
+ * and `CancelDraftAction`, written for draft rows, was unreachable code. `?status=DRAFT` had
+ * always worked; nothing ever asked.
+ *
+ * <p>The claim being made here is deliberately narrow, because a DRAFT is far less than it
+ * sounds. It is `createOrder` before the first `addItem` — `addItem` flips it to OPEN and only
+ * then assigns an order number — so it has no lines, no total and no number, and it is inert:
+ * it binds no table (`syncStatusForOrder` runs on the DRAFT->OPEN transition, not at creation)
+ * and it does not block the cash-up (TillServiceImpl.DOES_NOT_BLOCK_CASH_UP). This fixes a chip
+ * that lies and a control that cannot be reached. It is not rescuing a stuck drawer.
+ *
+ * <p>The name is deliberately NOT "settlement": DRAFT is not a settlement outcome, it is a check
+ * on which nothing has happened yet. What CLOSED, VOIDED, REFUNDED and DRAFT share is not the
+ * money — it is that the default listing cannot serve them.
  *
  * <p>They stay SEPARATE chips rather than one "Settled" chip because CLOSED, VOIDED and REFUNDED
  * are three different things that happened to the money, and an owner looking for voids is not
  * looking for paid checks.
  */
-const SETTLEMENT_FILTER_STATUSES = {
+const SERVER_SCOPED_FILTER_STATUSES = {
+  DRAFT: ["DRAFT"],
   CLOSED: ["CLOSED"],
   VOIDED: ["VOIDED"],
   REFUNDED: ["REFUNDED"],
 } as const satisfies Record<string, readonly OrderStatus[]>;
 
-type SettlementFilter = keyof typeof SETTLEMENT_FILTER_STATUSES;
+type ServerScopedFilter = keyof typeof SERVER_SCOPED_FILTER_STATUSES;
 
-type StatusFilter = "ALL" | DerivedOrderStatus | SettlementFilter | "PAID";
+type StatusFilter = "ALL" | DerivedOrderStatus | ServerScopedFilter | "PAID";
 
-function isSettlementFilter(filter: StatusFilter): filter is SettlementFilter {
-  return filter in SETTLEMENT_FILTER_STATUSES;
+function isServerScopedFilter(filter: StatusFilter): filter is ServerScopedFilter {
+  return filter in SERVER_SCOPED_FILTER_STATUSES;
 }
 
 /**
@@ -105,7 +126,25 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "REFUNDED", label: "Refunded" },
 ];
 
-const EMPTY_SETTLEMENT_COPY: Record<SettlementFilter, { title: string; description: string }> = {
+/**
+ * Keyed on `ServerScopedFilter` rather than `string` on purpose: adding a chip to
+ * SERVER_SCOPED_FILTER_STATUSES without writing its empty-state copy is then a COMPILE error,
+ * not a screen that quietly claims "No active orders" while showing a differently-scoped fetch.
+ * That mislabelling is the bug this map was introduced to end, and the type is what keeps the
+ * next chip from re-introducing it.
+ */
+const EMPTY_SCOPED_COPY: Record<
+  ServerScopedFilter,
+  { title: string; description: string; goToPos?: boolean }
+> = {
+  DRAFT: {
+    title: "No draft orders",
+    description:
+      "Checks that have not reached the kitchen appear here — opened and never added to, or rung up but not yet sent.",
+    // The one scoped view where "start an order" IS the next action (design brief §26). It is a
+    // non-sequitur under Closed/Voided/Refunded, which answer "where did that check go".
+    goToPos: true,
+  },
   CLOSED: {
     title: "No closed orders",
     description: "Checks that have been paid and finished appear here.",
@@ -119,6 +158,26 @@ const EMPTY_SETTLEMENT_COPY: Record<SettlementFilter, { title: string; descripti
     description: "Checks where money was given back appear here with their reason.",
   },
 };
+
+/**
+ * The caption under the chip row, keyed on the same union and for the same reason as
+ * EMPTY_SCOPED_COPY: a chip that does not state where its rows live leaves the screen describing
+ * Active while showing something else, which is the confusion S0-04 exists to end. As a nested
+ * ternary this silently fell through to the Active copy for any chip nobody had thought about —
+ * which is precisely what Draft did.
+ */
+const SCOPE_NOTE: Record<ServerScopedFilter, string> = {
+  DRAFT:
+    "Draft orders — nothing here has gone to the kitchen yet: opened and never added to, or rung up but not yet sent. The empty ones are not in Active.",
+  CLOSED: "Closed orders — settled and finished. These are not in Active.",
+  VOIDED:
+    "Voided orders — cancelled checks, with the reason and who voided them. These are not in Active.",
+  REFUNDED:
+    "Refunded orders — money given back, with the reason and who refunded it. These are not in Active.",
+};
+
+const ACTIVE_SCOPE_NOTE =
+  "Active shows live orders only. Drafts are under Draft; settled checks are under Closed, Voided and Refunded.";
 
 function formatSettledAt(at: string | null | undefined): string | null {
   if (!at) return null;
@@ -229,18 +288,18 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
     null,
   );
 
-  const settlementFilter = isSettlementFilter(statusFilter) ? statusFilter : null;
+  const serverScopedFilter = isServerScopedFilter(statusFilter) ? statusFilter : null;
 
   // The ACTIVE (default, non-terminal/non-DRAFT) list — always fetched, and the ONLY
-  // source fed to `useFadeOutList` below. A settlement chip (Closed/Voided/Refunded)
+  // source fed to `useFadeOutList` below. A server-scoped chip (Draft/Closed/Voided/Refunded)
   // switches the DISPLAYED rows to a second, separately-fetched explicit-status query
   // instead of re-pointing this one — otherwise the fade-out invariant (RESEARCH POS-24)
   // would misfire: rows that are simply absent from a differently-scoped fetch are not
   // "closed while viewing the active list", they were never requested by it.
   const activeQuery = useOrderSummaries();
-  const settledQuery = useOrderSummaries(
-    settlementFilter ? [...SETTLEMENT_FILTER_STATUSES[settlementFilter]] : undefined,
-    { enabled: settlementFilter !== null },
+  const scopedQuery = useOrderSummaries(
+    serverScopedFilter ? [...SERVER_SCOPED_FILTER_STATUSES[serverScopedFilter]] : undefined,
+    { enabled: serverScopedFilter !== null },
   );
 
   // ── Search (S0-05) ──────────────────────────────────────────────────────────
@@ -262,19 +321,19 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
 
   const isLoading = isSearching
     ? searchQuery.isLoading
-    : settlementFilter
-      ? settledQuery.isLoading
+    : serverScopedFilter
+      ? scopedQuery.isLoading
       : activeQuery.isLoading;
   const isFetching = isSearching
     ? searchQuery.isFetching
-    : settlementFilter
-      ? settledQuery.isFetching
+    : serverScopedFilter
+      ? scopedQuery.isFetching
       : activeQuery.isFetching;
   const refetch = () =>
     isSearching
       ? searchQuery.refetch()
-      : settlementFilter
-        ? settledQuery.refetch()
+      : serverScopedFilter
+        ? scopedQuery.refetch()
         : activeQuery.refetch();
   /**
    * F2. `isError` was never destructured anywhere in this component, so a FAILED read rendered
@@ -286,13 +345,13 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
    */
   const listError = isSearching
     ? searchQuery.error
-    : settlementFilter
-      ? settledQuery.error
+    : serverScopedFilter
+      ? scopedQuery.error
       : activeQuery.error;
   const isError = isSearching
     ? searchQuery.isError
-    : settlementFilter
-      ? settledQuery.isError
+    : serverScopedFilter
+      ? scopedQuery.isError
       : activeQuery.isError;
 
   // Server-side matches can outrun one page. Say so rather than silently showing a prefix —
@@ -308,14 +367,38 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       return viewAll ? rows : rows.filter((row) => row.cashierId === userId);
     }
 
-    const source: OrderSummary[] = settlementFilter ? (settledQuery.data?.data ?? []) : visible;
+    // Draft is the one chip whose rows come from BOTH sources, because "draft" names two
+    // different things and the Status column shows the same word for each. getOrderDisplayStatus
+    // renders `derivedStatus` for any non-terminal check, so a row reads "Draft" when either:
+    //
+    //   settlementStatus DRAFT — opened, never had an item added. An empty shell. EXCLUDED from
+    //                            the default listing, so it can only arrive via ?status=DRAFT.
+    //   derivedStatus  DRAFT   — rung up, nothing fired to the kitchen yet. Its settlementStatus
+    //                            is OPEN, so it IS in the default listing.
+    //
+    // Taking only the second is what the chip did before, and it is why the shells were
+    // unreachable. Taking only the first would have been a swap, not a fix: it would have
+    // dropped the rung-but-unfired checks, which are the ones a cashier actually acts on, and
+    // silently narrowed a view that the F2 audit drove and passed. The union is what the chip
+    // says on the tin — every check whose status reads Draft.
+    const source: OrderSummary[] = (() => {
+      if (statusFilter === "DRAFT") {
+        const shells = scopedQuery.data?.data ?? [];
+        const shellIds = new Set(shells.map((r) => r.orderId));
+        const unfired = visible.filter(
+          (r) => r.derivedStatus === "DRAFT" && !shellIds.has(r.orderId),
+        );
+        return [...shells, ...unfired];
+      }
+      return serverScopedFilter ? (scopedQuery.data?.data ?? []) : visible;
+    })();
 
     return source.filter((row) => {
       if (statusFilter === "PAID" && row.paymentStatus !== "PAID") return false;
       if (
         statusFilter !== "ALL" &&
         statusFilter !== "PAID" &&
-        !isSettlementFilter(statusFilter) &&
+        !isServerScopedFilter(statusFilter) &&
         row.derivedStatus !== statusFilter
       ) {
         return false;
@@ -326,8 +409,8 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
   }, [
     isSearching,
     searchQuery.data,
-    settlementFilter,
-    settledQuery.data,
+    serverScopedFilter,
+    scopedQuery.data,
     visible,
     statusFilter,
     viewAll,
@@ -463,11 +546,11 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
       // blank, and a permanently-empty column is worse than no column (DESIGN-BRIEF §23).
       // The register's finding was not only that a void was unreachable but that nothing in
       // the product could say WHY it happened or WHO did it — this column is that answer.
-      ...(settlementFilter === "VOIDED" || settlementFilter === "REFUNDED"
+      ...(serverScopedFilter === "VOIDED" || serverScopedFilter === "REFUNDED"
         ? [
             {
               id: "settlement",
-              header: settlementFilter === "VOIDED" ? "Voided" : "Refunded",
+              header: serverScopedFilter === "VOIDED" ? "Voided" : "Refunded",
               cell: ({ row }: { row: { original: OrderSummary } }) => (
                 <SettlementDetailCell order={row.original} />
               ),
@@ -515,7 +598,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
         },
       },
     ],
-    [settlementFilter],
+    [serverScopedFilter],
   );
 
   const showEmptyState = !isLoading && filtered.length === 0;
@@ -554,13 +637,7 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
           className="w-full text-xs text-muted-foreground"
           aria-live="polite"
         >
-          {settlementFilter === "VOIDED"
-            ? "Voided orders — cancelled checks, with the reason and who voided them. These are not in Active."
-            : settlementFilter === "REFUNDED"
-              ? "Refunded orders — money given back, with the reason and who refunded it. These are not in Active."
-              : settlementFilter === "CLOSED"
-                ? "Closed orders — settled and finished. These are not in Active."
-                : "Active shows live orders only. Settled checks are under Closed, Voided and Refunded."}
+          {serverScopedFilter ? SCOPE_NOTE[serverScopedFilter] : ACTIVE_SCOPE_NOTE}
         </p>
 
         {/*
@@ -674,12 +751,20 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
               title="No orders match that search"
               description={`Nothing found for “${debouncedSearch}” in any order — live, closed, voided or refunded. Try the order number, the table, or the customer's phone.`}
             />
-          ) : settlementFilter ? (
-            // A settlement view's empty state must not read "No active orders" — that copy
-            // told a manager who had just voided a check that their void had vanished.
+          ) : serverScopedFilter ? (
+            // A server-scoped view's empty state must not read "No active orders" — that copy
+            // told a manager who had just voided a check that their void had vanished. The CTA
+            // is per-filter rather than always-on: an empty Draft list is a fine place to start
+            // an order, an empty Voided list is not (design brief §26 — say what to do NEXT,
+            // which means the next step has to be a real one).
             <EmptyState
-              title={EMPTY_SETTLEMENT_COPY[settlementFilter].title}
-              description={EMPTY_SETTLEMENT_COPY[settlementFilter].description}
+              title={EMPTY_SCOPED_COPY[serverScopedFilter].title}
+              description={EMPTY_SCOPED_COPY[serverScopedFilter].description}
+              action={
+                EMPTY_SCOPED_COPY[serverScopedFilter].goToPos
+                  ? { label: "Go to POS", onClick: () => onFullMenu?.({ orderId: null, tableId: null }) }
+                  : undefined
+              }
             />
           ) : (
             <EmptyState
@@ -699,8 +784,8 @@ export function OrderManagement({ onFullMenu }: OrderManagementProps) {
             emptyMessage={
               isSearching
                 ? "No orders match that search"
-                : settlementFilter
-                  ? EMPTY_SETTLEMENT_COPY[settlementFilter].title
+                : serverScopedFilter
+                  ? EMPTY_SCOPED_COPY[serverScopedFilter].title
                   : "No active orders"
             }
             rowClassName={(row) =>
