@@ -377,6 +377,13 @@ export interface TillSession {
   id: string;
   branchId: string;
   cashierId: string;
+  /**
+   * Whose drawer this was, as a name — resolved server-side (F21).
+   *
+   * Null when the staff directory could not be reached: the name is decoration, `cashierId` is the
+   * fact. Render the id as the fallback, never a blank, which reads as "nobody".
+   */
+  cashierName: string | null;
   openingFloatPaisa: number;
   expectedClosingPaisa: number | null;
   declaredClosingPaisa: number | null;

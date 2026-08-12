@@ -41,6 +41,7 @@ const openTill: TillSession = {
   id: TILL_ID,
   branchId: BRANCH_ID,
   cashierId: CASHIER_ID,
+  cashierName: null,
   openingFloatPaisa: OPENING_FLOAT_PAISA,
   // The whole point: the server leaves this NULL until the till is actually closed.
   expectedClosingPaisa: null,

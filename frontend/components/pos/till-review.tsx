@@ -415,8 +415,24 @@ function TillRow({
       <tr className="hover:bg-muted/30">
         <td className="px-3 py-2">{fmtTime(till.openedAt)}</td>
         <td className="px-3 py-2">{fmtTime(till.closedAt)}</td>
-        <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-          {till.cashierId.slice(0, 8)}
+        {/*
+          F21. This printed `cashierId.slice(0, 8)` — a column of "4fdc85ef", "4b9941f7",
+          "eb2ee67e" on the one screen whose whole job is answering "whose drawer was Rs 200
+          short". The name now comes down on the row itself (TillServiceImpl resolves it through
+          StaffNameDirectory); the id stays the fallback, because a directory outage must cost the
+          name and not the attribution.
+        */}
+        <td className="px-3 py-2" data-testid={`till-cashier-${till.id}`}>
+          {till.cashierName ? (
+            <span className="text-sm">{till.cashierName}</span>
+          ) : (
+            <span
+              className="font-mono text-xs text-muted-foreground"
+              title="This person's name could not be looked up just now — this is their user id."
+            >
+              {till.cashierId.slice(0, 8)}
+            </span>
+          )}
         </td>
         <td className="px-3 py-2">
           <span

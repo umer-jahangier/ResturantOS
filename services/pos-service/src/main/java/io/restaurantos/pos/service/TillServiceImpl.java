@@ -84,6 +84,13 @@ public class TillServiceImpl implements TillService {
     private final PosAuthorizationService posAuthorizationService;
     private final TillCashierDirectory tillCashierDirectory;
     private final ActiveBranchGuard activeBranchGuard;
+    /**
+     * F21: whose drawer this was, as a name. Fail-SOFT — deliberately the soft directory and not
+     * {@link TillCashierDirectory}, whose fail-CLOSED lookups decide money custody. A name is
+     * decoration on a reconciliation table; an auth-service outage must cost the name and never the
+     * manager's ability to read the variance.
+     */
+    private final StaffNameDirectory staffNameDirectory;
 
     public TillServiceImpl(TillSessionRepository tillSessionRepository,
                            OrderRepository orderRepository,
@@ -93,7 +100,8 @@ public class TillServiceImpl implements TillService {
                            TenantContext tenantContext,
                            PosAuthorizationService posAuthorizationService,
                            TillCashierDirectory tillCashierDirectory,
-                           ActiveBranchGuard activeBranchGuard) {
+                           ActiveBranchGuard activeBranchGuard,
+                           StaffNameDirectory staffNameDirectory) {
         this.tillSessionRepository = tillSessionRepository;
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
@@ -103,6 +111,7 @@ public class TillServiceImpl implements TillService {
         this.posAuthorizationService = posAuthorizationService;
         this.tillCashierDirectory = tillCashierDirectory;
         this.activeBranchGuard = activeBranchGuard;
+        this.staffNameDirectory = staffNameDirectory;
     }
 
     /**
@@ -331,8 +340,13 @@ public class TillServiceImpl implements TillService {
         // SECURITY (branch isolation): a client-supplied sibling branchId must not expose another
         // branch's till history within the same tenant — RLS is tenant-only, so guard here.
         requireOwnBranch(branchId);
-        return tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId, pageable)
-                .map(this::toDto);
+        Page<TillSession> page =
+                tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId, pageable);
+        // ONE lookup per distinct cashier for the whole page, not one per row: a branch runs a
+        // handful of cashiers per shift but a page of tills repeats them, and this is the screen a
+        // manager refetches all evening.
+        Map<UUID, String> nameById = resolveCashierNames(page.getContent());
+        return page.map(s -> toDto(s, nameById));
     }
 
     @Override
@@ -389,11 +403,40 @@ public class TillServiceImpl implements TillService {
         }
     }
 
+    /**
+     * One session, resolving its cashier's name on its own.
+     *
+     * <p>Every endpoint that returns a till funnels through here — open, close, get, the
+     * single-session list shapes, the reconciliation envelope, and (via {@code getTill})
+     * approve/flag/note. That is deliberate: decorating only the list would have left a row
+     * snapping back to a raw UUID the instant a manager approved or flagged it, which is precisely
+     * the moment they are reading the name.
+     */
     private TillSessionDto toDto(TillSession s) {
+        return toDto(s, null);
+    }
+
+    /**
+     * The page variant: takes names already resolved in one batch.
+     *
+     * <p>A null {@code nameById} means "resolve this one yourself"; a non-null map means the caller
+     * has already done one lookup per DISTINCT cashier for the whole page and this row should just
+     * read from it. Absent from the map == unresolved == null name, which the client renders as the
+     * id — never as a blank.
+     */
+    private TillSessionDto toDto(TillSession s, Map<UUID, String> nameById) {
+        UUID cashierId = s.getCashierId();
+        String cashierName = null;
+        if (cashierId != null) {
+            cashierName = nameById != null
+                    ? nameById.get(cashierId)
+                    : staffNameDirectory.resolve(tenantContext.requireTenantId(), cashierId);
+        }
         return new TillSessionDto(
                 s.getId(),
                 s.getBranchId(),
-                s.getCashierId(),
+                cashierId,
+                cashierName,
                 s.getOpeningFloatPaisa(),
                 s.getExpectedClosingPaisa(),
                 s.getDeclaredClosingPaisa(),
@@ -404,5 +447,24 @@ public class TillServiceImpl implements TillService {
                 s.getNote(),
                 s.getReviewStatus()
         );
+    }
+
+    /**
+     * Names for one page's worth of DISTINCT cashiers, in a single pass.
+     *
+     * <p>The de-duplication is the point, and it is what {@code StaffNameDirectory.resolveAll} is
+     * for: a shift where one cashier opened and closed the drawer six times is ONE lookup, not six.
+     * Ids whose name could not be resolved are simply absent from the map.
+     */
+    private Map<UUID, String> resolveCashierNames(List<TillSession> sessions) {
+        List<UUID> cashierIds = sessions.stream()
+                .map(TillSession::getCashierId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (cashierIds.isEmpty()) {
+            return Map.of();
+        }
+        return staffNameDirectory.resolveAll(tenantContext.requireTenantId(), cashierIds);
     }
 }

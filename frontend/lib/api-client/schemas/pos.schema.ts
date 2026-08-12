@@ -446,6 +446,11 @@ export const apiTillSessionSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
   cashierId: z.string().uuid(),
+  // F21. Nullable AND optional, for two different reasons: null is the server saying "the staff
+  // directory did not answer" (the client falls back to the id), absent is a server older than
+  // this field. Declared here because `z.object` strips what it does not name — an undeclared
+  // cashierName would be parsed away silently and the column would keep printing UUIDs.
+  cashierName: z.string().nullable().optional(),
   openingFloatPaisa: z.number().int().nonnegative(),
   expectedClosingPaisa: z.number().int().nullable().optional(),
   declaredClosingPaisa: z.number().int().nullable().optional(),
