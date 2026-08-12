@@ -26,8 +26,26 @@ public final class RoleCatalogDtos {
      *                    picker needs the distinction: a system role cannot be edited, and a
      *                    tenant role can.
      * @param permissions the codes this role grants, sorted.
+     * @param assignedUserCount how many DISTINCT people in this tenant currently hold the role
+     *                    (S3). A roles screen has to answer "is anything using this?" before an
+     *                    administrator will touch it, and it is the same number the delete refusal
+     *                    counts — computed once, in the same pass, so the list and the refusal
+     *                    cannot disagree. Zero for a role nobody holds, never null.
      */
-    public record RoleEntry(String code, String name, boolean system, List<String> permissions) {
+    public record RoleEntry(String code, String name, boolean system, List<String> permissions,
+                            long assignedUserCount) {
+
+        /**
+         * A role whose holders have not been counted — used by the write paths, which return the
+         * role they just wrote rather than a list row.
+         *
+         * <p>A freshly created role has no holders by construction, and an edited one's count did
+         * not change; recounting on the write path would be a query whose only purpose is to
+         * restate something the client already has.
+         */
+        public RoleEntry(String code, String name, boolean system, List<String> permissions) {
+            this(code, name, system, permissions, 0L);
+        }
     }
 
     /**

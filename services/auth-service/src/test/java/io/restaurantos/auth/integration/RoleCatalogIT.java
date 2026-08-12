@@ -388,7 +388,7 @@ class RoleCatalogIT extends BaseIntegrationTest {
         clearInvocations(roleRepository, rolePermissionRepository);
         get(ROLES, token);
         verify(roleRepository, times(1)).findVisibleToTenant(any());
-        verify(rolePermissionRepository, times(1)).findRolePermissionPairs(any());
+        verify(rolePermissionRepository, times(1)).findRolePermissionPairsForTenant(any(), any());
 
         for (int i = 0; i < 12; i++) {
             jdbc.update("INSERT INTO roles (id, tenant_id, code, name, is_system) VALUES (?, ?, ?, ?, false)",
@@ -398,7 +398,7 @@ class RoleCatalogIT extends BaseIntegrationTest {
         clearInvocations(roleRepository, rolePermissionRepository);
         assertThat(roleCodes(token)).contains("CATALOG_PROBE_0", "CATALOG_PROBE_11");
         verify(roleRepository, times(1)).findVisibleToTenant(any());
-        verify(rolePermissionRepository, times(1)).findRolePermissionPairs(any());
+        verify(rolePermissionRepository, times(1)).findRolePermissionPairsForTenant(any(), any());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────

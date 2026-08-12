@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      S3 — a tenant may compose its own role from the permission catalogue.
+
+      `roles` has carried a nullable `tenant_id` since changeset 031 and has been FORCE ROW LEVEL
+      SECURITY since 032, so a tenant-scoped role row was always representable. `role_permissions`
+      was NOT: its primary key is (role_code, permission_code) with no tenant column, so the moment
+      two tenants both define a role whose code happens to match, their grants merge into one row
+      set and each tenant silently inherits the other's permissions. That is a cross-tenant
+      privilege leak, and it is why the write side could not simply be built on the table as it
+      stood.
+
+      This changeset gives `role_permissions` the same shape `roles` already has: a nullable
+      tenant_id where NULL means "platform-defined, visible to every tenant", plus the identical
+      FORCE RLS policy. Every existing row keeps tenant_id NULL, so nothing about the eight system
+      roles changes and no login resolves differently.
+    -->
+    <changeSet id="auth-1.0.0-092-role-permissions-tenant-scope" author="restaurantos-agent">
+        <addColumn tableName="role_permissions">
+            <column name="tenant_id" type="UUID"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="role_permissions" columnName="tenant_id"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+      The primary key has to go, because a PK column cannot be NULL and NULL is precisely how a
+      platform-defined grant is spelled here. A unique index over COALESCE(tenant_id, nil-uuid)
+      restores the same guarantee — one row per (scope, role, permission) — while treating the
+      global scope as a value rather than as an absence. The nil UUID is not a tenant id and can
+      never collide with one: `gen_random_uuid()` is version 4 and never emits all zeroes.
+    -->
+    <changeSet id="auth-1.0.0-092-role-permissions-scope-key" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE role_permissions DROP CONSTRAINT IF EXISTS pk_role_permissions;
+            CREATE UNIQUE INDEX IF NOT EXISTS uk_role_permissions_scope
+                ON role_permissions (
+                    COALESCE(tenant_id, '00000000-0000-0000-0000-000000000000'::uuid),
+                    role_code,
+                    permission_code);
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP INDEX IF EXISTS uk_role_permissions_scope;
+                ALTER TABLE role_permissions ADD CONSTRAINT pk_role_permissions
+                    PRIMARY KEY (role_code, permission_code);
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      FORCE, not merely ENABLE. auth-service connects as auth_user and auth_user OWNS this table
+      (verified: `SELECT relowner::regrole FROM pg_class WHERE relname='role_permissions'` →
+      auth_user), and PostgreSQL exempts a table's owner from its own policies unless FORCE is set.
+      An ENABLE-only policy here would be inert in exactly the deployment it is written for — the
+      defect class that leaked 33 tables across 16 tenants in this codebase.
+
+      The predicate is character-for-character the one on `roles` after changeset 087, so the two
+      tables that jointly define a role cannot disagree about who can see it.
+    -->
+    <changeSet id="auth-1.0.0-092-role-permissions-rls" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
+            ALTER TABLE role_permissions FORCE ROW LEVEL SECURITY;
+            DROP POLICY IF EXISTS tenant_isolation ON role_permissions;
+            CREATE POLICY tenant_isolation ON role_permissions
+                USING (tenant_id IS NULL
+                       OR tenant_id = (NULLIF(current_setting('app.current_tenant_id', true), ''))::uuid);
+            GRANT SELECT, INSERT, UPDATE, DELETE ON role_permissions TO auth_user;
+        </sql>
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON role_permissions;
+                ALTER TABLE role_permissions NO FORCE ROW LEVEL SECURITY;
+                ALTER TABLE role_permissions DISABLE ROW LEVEL SECURITY;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

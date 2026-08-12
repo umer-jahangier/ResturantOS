@@ -131,9 +131,27 @@ public class PermissionResolver {
                 .orElseThrow());
     }
 
+    /**
+     * What one branch assignment resolves to: the role, its permissions, and the ABAC attributes.
+     *
+     * <h2>Why the permission read is tenant-scoped (S3)</h2>
+     *
+     * <p>Changeset 092 gave {@code role_permissions} a nullable {@code tenant_id} so a tenant can
+     * define a role of its own. Reading by role code alone would then union two tenants' grants for
+     * any role code they both happen to use, and mint a token carrying the other tenant's
+     * permissions. The assignment already knows whose it is, so the tenant travels with the query.
+     *
+     * <p>This is the login and refresh path, so the failure mode of the change matters more than
+     * the change: the predicate is {@code tenant_id IS NULL OR tenant_id = :tenantId}, which
+     * returns every platform-defined grant regardless of the tenant argument. All eight system
+     * roles are platform-defined, so a tenant id that is somehow wrong — or null — resolves exactly
+     * what it resolved before this column existed rather than resolving nothing and locking a user
+     * out of a product that looks empty.
+     */
     private ResolvedBranchAuth buildForAssignment(UserBranchRoleEntity assignment) {
         List<String> roles = List.of(assignment.getRoleCode());
-        List<String> permissions = rolePermissionRepository.findPermissionCodesByRoleCodes(roles).stream()
+        List<String> permissions = rolePermissionRepository
+            .findPermissionCodesByRoleCodesForTenant(roles, assignment.getTenantId()).stream()
             .distinct()
             .sorted()
             .toList();

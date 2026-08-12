@@ -9,6 +9,7 @@ import io.restaurantos.auth.entity.RoleEntity;
 import io.restaurantos.auth.repository.PermissionRepository;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.RoleRepository;
+import io.restaurantos.auth.repository.UserBranchRoleRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,13 +59,16 @@ public class RoleCatalogService {
     private final RoleRepository roleRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final PermissionRepository permissionRepository;
+    private final UserBranchRoleRepository userBranchRoleRepository;
 
     public RoleCatalogService(RoleRepository roleRepository,
                               RolePermissionRepository rolePermissionRepository,
-                              PermissionRepository permissionRepository) {
+                              PermissionRepository permissionRepository,
+                              UserBranchRoleRepository userBranchRoleRepository) {
         this.roleRepository = roleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.permissionRepository = permissionRepository;
+        this.userBranchRoleRepository = userBranchRoleRepository;
     }
 
     /**
@@ -99,7 +103,8 @@ public class RoleCatalogService {
     @Transactional(readOnly = true)
     public AssignableRoles listAssignableRoles(UUID tenantId, Collection<String> callerPermissions) {
         Map<String, RoleEntity> byCode = distinctByCode(roleRepository.findVisibleToTenant(tenantId));
-        Map<String, List<String>> permissionsByRole = permissionsFor(byCode.keySet());
+        Map<String, List<String>> permissionsByRole = permissionsFor(byCode.keySet(), tenantId);
+        Map<String, Long> holdersByRole = holdersFor(byCode.keySet(), tenantId);
         Set<String> ceiling = callerPermissions == null ? Set.of() : Set.copyOf(callerPermissions);
 
         List<RoleEntry> assignable = new ArrayList<>();
@@ -115,7 +120,8 @@ public class RoleCatalogService {
                 continue;
             }
             RoleEntity role = entry.getValue();
-            assignable.add(new RoleEntry(role.getCode(), role.getName(), role.isSystem(), granted));
+            assignable.add(new RoleEntry(role.getCode(), role.getName(), role.isSystem(), granted,
+                holdersByRole.getOrDefault(entry.getKey(), 0L)));
         }
         return new AssignableRoles(List.copyOf(assignable), withheld);
     }
@@ -175,13 +181,40 @@ public class RoleCatalogService {
         return byCode;
     }
 
-    /** Role code to its sorted permission codes, in ONE query for every role (T-13-07-D). */
-    private Map<String, List<String>> permissionsFor(Set<String> roleCodes) {
+    /**
+     * Role code to how many DISTINCT people hold it, in ONE query for every role (S3).
+     *
+     * <p>A roles screen is unusable without it: "delete this role" and "edit what 14 cashiers can
+     * do" are different decisions, and the only honest way to tell them apart is to say how many
+     * people are behind the row. It is the same count {@code RoleAdminService.delete} refuses on,
+     * read from the same query, so the list cannot promise a deletion the write path then refuses.
+     *
+     * <p>Roles nobody holds are absent from the result and read as zero.
+     */
+    private Map<String, Long> holdersFor(Set<String> roleCodes, UUID tenantId) {
+        if (roleCodes.isEmpty() || tenantId == null) {
+            return Map.of();
+        }
+        Map<String, Long> holders = new LinkedHashMap<>();
+        for (var row : userBranchRoleRepository.countHoldersByRole(tenantId, roleCodes)) {
+            holders.put(row.getRoleCode(), row.getHolders());
+        }
+        return holders;
+    }
+
+    /**
+     * Role code to its sorted permission codes, in ONE query for every role (T-13-07-D).
+     *
+     * <p>Scoped to the tenant since S3: {@code role_permissions} carries a nullable tenant column,
+     * so a role code defined by two tenants has two disjoint grant sets and a catalog that read by
+     * code alone would show each of them the union.
+     */
+    private Map<String, List<String>> permissionsFor(Set<String> roleCodes, UUID tenantId) {
         if (roleCodes.isEmpty()) {
             return Map.of();
         }
         Map<String, TreeSet<String>> sorted = new LinkedHashMap<>();
-        for (var pair : rolePermissionRepository.findRolePermissionPairs(roleCodes)) {
+        for (var pair : rolePermissionRepository.findRolePermissionPairsForTenant(roleCodes, tenantId)) {
             sorted.computeIfAbsent(pair.getRoleCode(), code -> new TreeSet<>())
                 .add(pair.getPermissionCode());
         }
