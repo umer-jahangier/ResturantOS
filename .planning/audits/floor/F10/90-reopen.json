@@ -1,0 +1,1060 @@
+{
+  "checks": [
+    {
+      "what": "unfiltered ledger carries a row naming ORD-20260812-0351",
+      "pass": true,
+      "detail": "[\"REV-2027-000203\",\"2026-08-12\",\"Reversal of JE-2027-000001\",\"POSTED\",\"Rs 290.00\",\"Rs 290.00\"]"
+    },
+    {
+      "what": "its description is exactly \"Order revenue ORD-20260812-0351\"",
+      "pass": true,
+      "detail": "[\"JE-2027-000312\",\"2026-08-12\",\"Order revenue ORD-20260812-0351\",\"POSTED\",\"Rs 789.00\",\"Rs 789.00\"]"
+    },
+    {
+      "what": "no [role=alert] on the ledger",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "what": "after a full reload the row is still there and still named",
+      "pass": true,
+      "detail": "Showing 50 of 311 entries"
+    },
+    {
+      "what": "page 2 has rows",
+      "pass": true,
+      "detail": "50"
+    },
+    {
+      "what": "page 2 repeats no row from page 1",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "what": "page 2 continues strictly below page 1 (entryNo desc)",
+      "pass": true,
+      "detail": "p1 last=JE-2027-000264 p2 first=JE-2027-000263"
+    },
+    {
+      "what": "Previous returns exactly page 1 again",
+      "pass": true,
+      "detail": "REV-2027-000203 vs REV-2027-000203"
+    },
+    {
+      "what": "the search finds the row",
+      "pass": true,
+      "detail": "\"1 entry matches “ORD-20260812-0351”\""
+    },
+    {
+      "what": "every returned row is actually about that order",
+      "pass": true,
+      "detail": "[\"Order revenue ORD-20260812-0351\"]"
+    },
+    {
+      "what": "searching \"%\" returns no rows rather than the whole ledger",
+      "pass": true,
+      "detail": "0 rows; count=0 entries match “%”"
+    },
+    {
+      "what": "a bad term says 'No entry matches'",
+      "pass": true,
+      "detail": "Takings\nTransactions\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\nHouse Accounts\nAR Aging\nGuide\nJournal Entries\n\nTab to navigate rows, Enter to open\n\nNew Entry\n\n0 entries match “ORD-19990101-0001”\n\nNo entry matches “ORD-19990101-0001”\n\nThe search covers every entry for this bran"
+    },
+    {
+      "what": "and does not claim the books are empty",
+      "pass": true,
+      "detail": "Takings\nTransactions\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\nHouse Accounts\nAR Aging\nGuide\nJournal Entries\n\nTab to navigate rows, Enter to open\n\nNew Entry\n\n0 entries match “ORD-19990101-0001”\n\nNo entry matches “ORD-19990101-0001”\n\nThe search covers every entry for this bran"
+    },
+    {
+      "what": "and says the search covered the whole branch",
+      "pass": true,
+      "detail": "Takings\nTransactions\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\nHouse Accounts\nAR Aging\nGuide\nJournal Entries\n\nTab to navigate rows, Enter to open\n\nNew Entry\n\n0 entries match “ORD-19990101-0001”\n\nNo entry matches “ORD-19990101-0001”\n\nThe search covers every entry for this bran"
+    },
+    {
+      "what": "clicking the row opens the entry",
+      "pass": true,
+      "detail": "http://localhost:3000/app/finance/journal-entries/53b2a453-c582-45d0-ad12-eb4f3d3a3076"
+    },
+    {
+      "what": "the detail page names the order number too",
+      "pass": true,
+      "detail": null
+    },
+    {
+      "what": "a cashier is refused the raw journal search",
+      "pass": true,
+      "detail": "HTTP 403"
+    },
+    {
+      "what": "and the cashier does not get the ledger screen",
+      "pass": true,
+      "detail": "[\"access-denied\"]"
+    },
+    {
+      "what": "Control Bistro searching our order number gets nothing",
+      "pass": true,
+      "detail": "{\"status\":200,\"n\":0}"
+    },
+    {
+      "what": "and a wide search returns none of Floating Terrace's order revenue rows",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "what": "and the Control Bistro ledger screen shows no Floating Terrace order",
+      "pass": true,
+      "detail": "{\"bad\":[],\"alerts\":[],\"url\":\"http://localhost:3000/app/finance/journal-entries\",\"rows\":8,\"count\":\"Showing 8 of 8 entries\"}"
+    },
+    {
+      "what": "the accountant reaches the ledger without an access-denied",
+      "pass": true,
+      "detail": "{\"bad\":[],\"alerts\":[],\"url\":\"http://localhost:3000/app/finance/journal-entries\"}"
+    },
+    {
+      "what": "and finds the same row by order number",
+      "pass": true,
+      "detail": "[\"JE-2027-000312\",\"2026-08-12\",\"Order revenue ORD-20260812-0351\",\"POSTED\",\"Rs 789.00\",\"Rs 789.00\"]"
+    }
+  ],
+  "till": "Till OPEN",
+  "orderNo": "ORD-20260812-0351",
+  "orderId": "98efbd18-4bd2-4a1d-b2df-bc29fad9008c",
+  "payErr": null,
+  "unfiltered": {
+    "rows": [
+      [
+        "REV-2027-000203",
+        "2026-08-12",
+        "Reversal of JE-2027-000001",
+        "POSTED",
+        "Rs 290.00",
+        "Rs 290.00"
+      ],
+      [
+        "JE-2027-000313",
+        "2026-08-12",
+        "Order COGS 98efbd18-4bd2-4a1d-b2df-bc29fad9008c",
+        "POSTED",
+        "Rs 1,250.00",
+        "Rs 1,250.00"
+      ],
+      [
+        "JE-2027-000312",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0351",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ],
+      [
+        "JE-2027-000311",
+        "2026-08-12",
+        "Order COGS 78a9ec19-3ad5-42e3-bd58-784deda64877",
+        "POSTED",
+        "Rs 1,250.00",
+        "Rs 1,250.00"
+      ],
+      [
+        "JE-2027-000310",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0348",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ],
+      [
+        "JE-2027-000309",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0346",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000308",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0339",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000307",
+        "2026-08-12",
+        "Order COGS fca5f520-a755-40ea-964e-b4f179e0193d",
+        "POSTED",
+        "Rs 1,250.00",
+        "Rs 1,250.00"
+      ],
+      [
+        "JE-2027-000306",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0334",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ],
+      [
+        "JE-2027-000305",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0327",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000304",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0323",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000303",
+        "2026-08-12",
+        "Order COGS e6fe0e41-886d-4178-88e4-3b8875de6fee",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000302",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0319",
+        "POSTED",
+        "Rs 2,011.36",
+        "Rs 2,011.36"
+      ],
+      [
+        "JE-2027-000301",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0305",
+        "POSTED",
+        "Rs 1,289.40",
+        "Rs 1,289.40"
+      ],
+      [
+        "JE-2027-000300",
+        "2026-08-12",
+        "Order COGS a4295e44-03d1-44de-ab59-7b6a18b6dfcd",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000299",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0304",
+        "POSTED",
+        "Rs 1,774.80",
+        "Rs 1,774.80"
+      ],
+      [
+        "JE-2027-000298",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0301",
+        "POSTED",
+        "Rs 1,147.90",
+        "Rs 1,147.90"
+      ],
+      [
+        "JE-2027-000297",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0297",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000296",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0296",
+        "POSTED",
+        "Rs 1,147.90",
+        "Rs 1,147.90"
+      ],
+      [
+        "JE-2027-000295",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0291",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000294",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0289",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000293",
+        "2026-08-12",
+        "F9 REOPEN — accountant types rupees by hand",
+        "POSTED",
+        "Rs 1,250.50",
+        "Rs 1,250.50"
+      ],
+      [
+        "JE-2027-000292",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0281",
+        "POSTED",
+        "Rs 3,350.50",
+        "Rs 3,350.50"
+      ],
+      [
+        "JE-2027-000291",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0280",
+        "POSTED",
+        "Rs 3,350.50",
+        "Rs 3,350.50"
+      ],
+      [
+        "JE-2027-000290",
+        "2026-08-12",
+        "Order COGS 307e8fe6-a58c-4ddc-a6a0-c9505b5a2a92",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000289",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0254",
+        "POSTED",
+        "Rs 1,774.80",
+        "Rs 1,774.80"
+      ],
+      [
+        "JE-2027-000288",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0252",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000286",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0210",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000285",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0199",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000284",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0203",
+        "POSTED",
+        "Rs 1,319.30",
+        "Rs 1,319.30"
+      ],
+      [
+        "JE-2027-000283",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0204",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000282",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0193",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000281",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0202",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000280",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0201",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000279",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0200",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000278",
+        "2026-08-12",
+        "Order COGS 671b556f-1bdc-42bb-8b0f-f54773c6836d",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000277",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0197",
+        "POSTED",
+        "Rs 2,208.50",
+        "Rs 2,208.50"
+      ],
+      [
+        "JE-2027-000276",
+        "2026-08-12",
+        "F9 rupee-entry proof",
+        "POSTED",
+        "Rs 1,250.50",
+        "Rs 1,250.50"
+      ],
+      [
+        "JE-2027-000275",
+        "2026-08-12",
+        "Order COGS c138c4fc-133b-47eb-9fa6-b87bbd86d3fb",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000274",
+        "2026-08-12",
+        "Order revenue 429c02b8-40b2-41de-8f9d-dfbfd3f35a5c",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000273",
+        "2026-08-12",
+        "Order revenue c138c4fc-133b-47eb-9fa6-b87bbd86d3fb",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ],
+      [
+        "JE-2027-000272",
+        "2026-08-12",
+        "Order COGS 3d3f8c98-1d2a-4d4a-a1dc-fbf3603531fa",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000271",
+        "2026-08-12",
+        "Order COGS 0b4fe38d-f975-4737-8815-869b04b91ec6",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000270",
+        "2026-08-12",
+        "Order COGS 983c95dc-e629-482d-a77f-a1dadae3ecec",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000269",
+        "2026-08-12",
+        "Order COGS e50d26d0-d85c-431e-9c05-e47f56662220",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000268",
+        "2026-08-12",
+        "Order COGS 4fa6c21a-94d2-4478-9966-dd22d6eecf20",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000267",
+        "2026-08-12",
+        "Order COGS 5474ddda-f6a2-4506-80d4-294f36c7c6f2",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000266",
+        "2026-08-12",
+        "Order revenue 3d3f8c98-1d2a-4d4a-a1dc-fbf3603531fa",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ],
+      [
+        "JE-2027-000265",
+        "2026-08-12",
+        "Order revenue 0b4fe38d-f975-4737-8815-869b04b91ec6",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ],
+      [
+        "JE-2027-000264",
+        "2026-08-12",
+        "Order revenue 983c95dc-e629-482d-a77f-a1dadae3ecec",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ]
+    ],
+    "countLine": "Showing 50 of 311 entries",
+    "alerts": [],
+    "bodyHead": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nBranches\n"
+  },
+  "afterReload": {
+    "rows": [
+      [
+        "REV-2027-000203",
+        "2026-08-12",
+        "Reversal of JE-2027-000001",
+        "POSTED",
+        "Rs 290.00",
+        "Rs 290.00"
+      ],
+      [
+        "JE-2027-000313",
+        "2026-08-12",
+        "Order COGS 98efbd18-4bd2-4a1d-b2df-bc29fad9008c",
+        "POSTED",
+        "Rs 1,250.00",
+        "Rs 1,250.00"
+      ],
+      [
+        "JE-2027-000312",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0351",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ],
+      [
+        "JE-2027-000311",
+        "2026-08-12",
+        "Order COGS 78a9ec19-3ad5-42e3-bd58-784deda64877",
+        "POSTED",
+        "Rs 1,250.00",
+        "Rs 1,250.00"
+      ],
+      [
+        "JE-2027-000310",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0348",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ],
+      [
+        "JE-2027-000309",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0346",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000308",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0339",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000307",
+        "2026-08-12",
+        "Order COGS fca5f520-a755-40ea-964e-b4f179e0193d",
+        "POSTED",
+        "Rs 1,250.00",
+        "Rs 1,250.00"
+      ],
+      [
+        "JE-2027-000306",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0334",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ],
+      [
+        "JE-2027-000305",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0327",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000304",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0323",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000303",
+        "2026-08-12",
+        "Order COGS e6fe0e41-886d-4178-88e4-3b8875de6fee",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000302",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0319",
+        "POSTED",
+        "Rs 2,011.36",
+        "Rs 2,011.36"
+      ],
+      [
+        "JE-2027-000301",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0305",
+        "POSTED",
+        "Rs 1,289.40",
+        "Rs 1,289.40"
+      ],
+      [
+        "JE-2027-000300",
+        "2026-08-12",
+        "Order COGS a4295e44-03d1-44de-ab59-7b6a18b6dfcd",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000299",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0304",
+        "POSTED",
+        "Rs 1,774.80",
+        "Rs 1,774.80"
+      ],
+      [
+        "JE-2027-000298",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0301",
+        "POSTED",
+        "Rs 1,147.90",
+        "Rs 1,147.90"
+      ],
+      [
+        "JE-2027-000297",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0297",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000296",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0296",
+        "POSTED",
+        "Rs 1,147.90",
+        "Rs 1,147.90"
+      ],
+      [
+        "JE-2027-000295",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0291",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000294",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0289",
+        "POSTED",
+        "Rs 681.45",
+        "Rs 681.45"
+      ],
+      [
+        "JE-2027-000293",
+        "2026-08-12",
+        "F9 REOPEN — accountant types rupees by hand",
+        "POSTED",
+        "Rs 1,250.50",
+        "Rs 1,250.50"
+      ],
+      [
+        "JE-2027-000292",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0281",
+        "POSTED",
+        "Rs 3,350.50",
+        "Rs 3,350.50"
+      ],
+      [
+        "JE-2027-000291",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0280",
+        "POSTED",
+        "Rs 3,350.50",
+        "Rs 3,350.50"
+      ],
+      [
+        "JE-2027-000290",
+        "2026-08-12",
+        "Order COGS 307e8fe6-a58c-4ddc-a6a0-c9505b5a2a92",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000289",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0254",
+        "POSTED",
+        "Rs 1,774.80",
+        "Rs 1,774.80"
+      ],
+      [
+        "JE-2027-000288",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0252",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000286",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0210",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000285",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0199",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000284",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0203",
+        "POSTED",
+        "Rs 1,319.30",
+        "Rs 1,319.30"
+      ],
+      [
+        "JE-2027-000283",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0204",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000282",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0193",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000281",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0202",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000280",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0201",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000279",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0200",
+        "POSTED",
+        "Rs 998.00",
+        "Rs 998.00"
+      ],
+      [
+        "JE-2027-000278",
+        "2026-08-12",
+        "Order COGS 671b556f-1bdc-42bb-8b0f-f54773c6836d",
+        "POSTED",
+        "Rs 1,162.71",
+        "Rs 1,162.71"
+      ],
+      [
+        "JE-2027-000277",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0197",
+        "POSTED",
+        "Rs 2,208.50",
+        "Rs 2,208.50"
+      ],
+      [
+        "JE-2027-000276",
+        "2026-08-12",
+        "F9 rupee-entry proof",
+        "POSTED",
+        "Rs 1,250.50",
+        "Rs 1,250.50"
+      ],
+      [
+        "JE-2027-000275",
+        "2026-08-12",
+        "Order COGS c138c4fc-133b-47eb-9fa6-b87bbd86d3fb",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000274",
+        "2026-08-12",
+        "Order revenue 429c02b8-40b2-41de-8f9d-dfbfd3f35a5c",
+        "POSTED",
+        "Rs 92.80",
+        "Rs 92.80"
+      ],
+      [
+        "JE-2027-000273",
+        "2026-08-12",
+        "Order revenue c138c4fc-133b-47eb-9fa6-b87bbd86d3fb",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ],
+      [
+        "JE-2027-000272",
+        "2026-08-12",
+        "Order COGS 3d3f8c98-1d2a-4d4a-a1dc-fbf3603531fa",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000271",
+        "2026-08-12",
+        "Order COGS 0b4fe38d-f975-4737-8815-869b04b91ec6",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000270",
+        "2026-08-12",
+        "Order COGS 983c95dc-e629-482d-a77f-a1dadae3ecec",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000269",
+        "2026-08-12",
+        "Order COGS e50d26d0-d85c-431e-9c05-e47f56662220",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000268",
+        "2026-08-12",
+        "Order COGS 4fa6c21a-94d2-4478-9966-dd22d6eecf20",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000267",
+        "2026-08-12",
+        "Order COGS 5474ddda-f6a2-4506-80d4-294f36c7c6f2",
+        "POSTED",
+        "Rs 2,325.42",
+        "Rs 2,325.42"
+      ],
+      [
+        "JE-2027-000266",
+        "2026-08-12",
+        "Order revenue 3d3f8c98-1d2a-4d4a-a1dc-fbf3603531fa",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ],
+      [
+        "JE-2027-000265",
+        "2026-08-12",
+        "Order revenue 0b4fe38d-f975-4737-8815-869b04b91ec6",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ],
+      [
+        "JE-2027-000264",
+        "2026-08-12",
+        "Order revenue 983c95dc-e629-482d-a77f-a1dadae3ecec",
+        "POSTED",
+        "Rs 3,456.80",
+        "Rs 3,456.80"
+      ]
+    ],
+    "countLine": "Showing 50 of 311 entries",
+    "alerts": [],
+    "bodyHead": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTING"
+  },
+  "hasNext": true,
+  "page1First": "REV-2027-000203",
+  "page1Last": "JE-2027-000264",
+  "page2First": "JE-2027-000263",
+  "searchHit": {
+    "rows": [
+      [
+        "JE-2027-000312",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0351",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ]
+    ],
+    "countLine": "1 entry matches “ORD-20260812-0351”",
+    "alerts": [],
+    "bodyHead": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTING"
+  },
+  "percent": {
+    "rows": [],
+    "countLine": "0 entries match “%”",
+    "alerts": [],
+    "bodyHead": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nSales Tax\nService Charge\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTING"
+  },
+  "noMatch": {
+    "rows": [],
+    "countLine": "0 entries match “ORD-19990101-0001”",
+    "alerts": [],
+    "mainText": "Takings\nTransactions\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\nHouse Accounts\nAR Aging\nGuide\nJournal Entries\n\nTab to navigate rows, Enter to open\n\nNew Entry\n\n0 entries match “ORD-19990101-0001”\n\nNo entry matches “ORD-19990101-0001”\n\nThe search covers every entry for this branch, not just the ones listed — so this really is no match. Check the order number, or try part of it."
+  },
+  "detailUrl": "http://localhost:3000/app/finance/journal-entries/53b2a453-c582-45d0-ad12-eb4f3d3a3076",
+  "detailNamesOrder": true,
+  "todayByKind": {
+    "?": {
+      "total": 4,
+      "uuid": 0,
+      "sample": null
+    },
+    "ORDER_COGS": {
+      "total": 17,
+      "uuid": 17,
+      "sample": "Order COGS 98efbd18-4bd2-4a1d-b2df-bc29fad9008c"
+    },
+    "ORDER_REVENUE": {
+      "total": 41,
+      "uuid": 13,
+      "sample": "Order revenue 429c02b8-40b2-41de-8f9d-dfbfd3f35a5c"
+    },
+    "ORDER_REFUND": {
+      "total": 17,
+      "uuid": 17,
+      "sample": "Order refund 143c1453-e876-41fe-8da8-d3fdfa4edee9"
+    },
+    "AR_SETTLEMENT": {
+      "total": 1,
+      "uuid": 0,
+      "sample": null
+    },
+    "AR_CHARGE": {
+      "total": 1,
+      "uuid": 0,
+      "sample": null
+    },
+    "AP_PAYMENT": {
+      "total": 4,
+      "uuid": 4,
+      "sample": "AP payment f2390286-28fe-4731-b09e-99cccc78d5cd"
+    },
+    "VENDOR_INVOICE": {
+      "total": 4,
+      "uuid": 0,
+      "sample": null
+    }
+  },
+  "todayCount": 89,
+  "cashier": {
+    "screen": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": [],
+      "url": "http://localhost:3000/app/finance/journal-entries"
+    },
+    "apiStatus": 403
+  },
+  "otherTenant": {
+    "exact": {
+      "status": 200,
+      "n": 0
+    },
+    "wide": {
+      "status": 200,
+      "n": 0,
+      "sample": []
+    }
+  },
+  "otherTenantScreen": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries",
+    "rows": 8,
+    "count": "Showing 8 of 8 entries"
+  },
+  "accountantHasBox": true,
+  "accountant": {
+    "trouble": {
+      "bad": [],
+      "alerts": [],
+      "url": "http://localhost:3000/app/finance/journal-entries"
+    },
+    "rows": [
+      [
+        "JE-2027-000312",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0351",
+        "POSTED",
+        "Rs 789.00",
+        "Rs 789.00"
+      ]
+    ],
+    "count": "1 entry matches “ORD-20260812-0351”"
+  }
+}
