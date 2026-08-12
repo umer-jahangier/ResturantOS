@@ -11,6 +11,7 @@ import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.shared.event.payload.PosEventContract;
+import io.restaurantos.pos.event.PosDiscountPayloads;
 import io.restaurantos.pos.event.PosEventPayloads;
 import io.restaurantos.pos.event.PosVoidRefundPayloads;
 import io.restaurantos.pos.exception.PosExceptions;
@@ -52,6 +53,17 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_CLOSED_TYPE = "ORDER_CLOSED";
     private static final String ORDER_VOIDED_KEY = "pos.order.voided";
     private static final String ORDER_VOIDED_TYPE = "ORDER_VOIDED";
+    /**
+     * D-2. Named exactly as {@code AuditEventCatalog.MUST_AUDIT} names them —
+     * {@code AuditAllowListClosureTest} compares the two vocabularies over the repository tree and
+     * fails the build if either side moves without the other, which is the mechanism that caught
+     * {@code VOID_CREATED} sitting in the allow-list while pos-service published
+     * {@code ORDER_VOIDED}.
+     */
+    private static final String ORDER_DISCOUNT_APPLIED_KEY = "pos.order.discount_applied";
+    private static final String ORDER_DISCOUNT_APPLIED_TYPE = "ORDER_DISCOUNT_APPLIED";
+    private static final String ORDER_DISCOUNT_REMOVED_KEY = "pos.order.discount_removed";
+    private static final String ORDER_DISCOUNT_REMOVED_TYPE = "ORDER_DISCOUNT_REMOVED";
     private static final String ORDER_ITEM_CANCELLED_KEY = "pos.order.item_cancelled";
     private static final String ORDER_ITEM_CANCELLED_TYPE = "ORDER_ITEM_CANCELLED";
     private static final String ORDER_ITEM_SERVED_KEY = "pos.order.item_served";
@@ -659,7 +671,8 @@ public class OrderServiceImpl implements OrderService {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
 
-        OrderDiscount discount = stageDiscount(order, request, tenantId);
+        StagedDiscount staged = stageDiscount(order, request, tenantId);
+        OrderDiscount discount = staged.discount();
 
         // WHO, stamped here and not in stageDiscount, because the preview path shares that method
         // and must not spend a call to user-service on a keystroke. The pricing never reads these
@@ -668,7 +681,53 @@ public class OrderServiceImpl implements OrderService {
         discount.setAppliedBy(appliedBy);
         discount.setAppliedByName(staffNameDirectory.resolve(tenantId, appliedBy));
 
-        return orderMapper.toDto(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+
+        // ── D-2: say so, where an owner who is not on the floor can read it ──────────────────
+        //
+        // Published AFTER the save and INSIDE this transaction, which is what the outbox buys:
+        // the event_outbox row commits with the discount or neither exists. The actor is not in
+        // the payload — DomainEventPublisher stamps it on the envelope from the verified JWT,
+        // which is the source AuditIngestionService trusts.
+        //
+        // Removals first, applies second, so the pair reads in the order the money moved.
+        for (OrderDiscount gone : staged.displaced()) {
+            eventPublisher.publish(POS_EXCHANGE, ORDER_DISCOUNT_REMOVED_KEY,
+                    ORDER_DISCOUNT_REMOVED_TYPE, saved.getBranchId(),
+                    new PosDiscountPayloads.OrderDiscountRemovedPayload(
+                            orderId, saved.getOrderNo(), gone.getScope(), gone.getOrderItemId(),
+                            gone.getType(), gone.getValue(), gone.getAmountPaisa(),
+                            gone.getReason(),
+                            "Replaced by a new discount at the same scope"));
+        }
+        eventPublisher.publish(POS_EXCHANGE, ORDER_DISCOUNT_APPLIED_KEY,
+                ORDER_DISCOUNT_APPLIED_TYPE, saved.getBranchId(),
+                new PosDiscountPayloads.OrderDiscountAppliedPayload(
+                        orderId, saved.getOrderNo(), discount.getScope(),
+                        discount.getOrderItemId(), discountedLineName(saved, discount),
+                        discount.getType(), discount.getValue(), discount.getAmountPaisa(),
+                        saved.getTotalPaisa(), discount.getReason()));
+
+        return orderMapper.toDto(saved);
+    }
+
+    /**
+     * The dish a LINE discount came off, by name, or null for a whole-check one.
+     *
+     * <p>In the payload so the audit log reads without a join into {@code order_items} — an
+     * auditor scanning a day of concessions wants "Mutton Karahi" and not a line UUID. Null rather
+     * than a placeholder when the line cannot be found: an invented name in an append-only record
+     * is worse than an absent one.
+     */
+    private static String discountedLineName(Order order, OrderDiscount discount) {
+        if (discount.getOrderItemId() == null) {
+            return null;
+        }
+        return order.getItems().stream()
+                .filter(i -> discount.getOrderItemId().equals(i.getId()))
+                .map(OrderItem::getItemNameSnapshot)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -731,7 +790,9 @@ public class OrderServiceImpl implements OrderService {
         long previousServiceCharge = order.getServiceChargePaisa();
         long previousTotal = order.getTotalPaisa();
 
-        OrderDiscount staged = stageDiscount(order, request, tenantId);
+        // The displaced rows are discarded here: nothing was really replaced, because nothing is
+        // really saved. Only the apply path announces a removal.
+        OrderDiscount staged = stageDiscount(order, request, tenantId).discount();
 
         DiscountPreviewDto preview = new DiscountPreviewDto(
                 staged.getAmountPaisa(),
@@ -760,9 +821,9 @@ public class OrderServiceImpl implements OrderService {
      * an amount and a separate recompute — is what would let the preview and the apply answer
      * differently again.
      *
-     * @return the staged discount, whose {@code amountPaisa} is the money that will really come off
+     * @return the staged discount and the rows it displaced
      */
-    private OrderDiscount stageDiscount(Order order, ApplyDiscountRequest request, UUID tenantId) {
+    private StagedDiscount stageDiscount(Order order, ApplyDiscountRequest request, UUID tenantId) {
         UUID orderId = order.getId();
 
         assertDiscountable(order);
@@ -849,14 +910,27 @@ public class OrderServiceImpl implements OrderService {
         // take back an offer the guest had earned with nothing on screen saying so. Pinned by
         // aManagersDiscountReplacesTheManagersPreviousOneAndLeavesThePromotionAlone; do not
         // "simplify" this predicate to drop the source test without re-opening that decision.
+        //
+        // The displaced rows are CAPTURED rather than merely dropped (D-2). Replacing "Rs 500 off"
+        // with "10% off" hands the guest back Rs 400, and before this the only trace of that was
+        // the disappearance of a row nobody was watching. Each one is announced as
+        // ORDER_DISCOUNT_REMOVED by the apply path; the preview path throws the list away.
+        List<OrderDiscount> displaced = new ArrayList<>();
         if (orderScope) {
-            order.getDiscounts().removeIf(d -> "ORDER".equals(d.getScope())
-                    && !PROMOTION_DISCOUNT_SOURCE.equals(d.getSource()));
+            for (OrderDiscount d : order.getDiscounts()) {
+                if ("ORDER".equals(d.getScope()) && !PROMOTION_DISCOUNT_SOURCE.equals(d.getSource())) {
+                    displaced.add(d);
+                }
+            }
         } else {
             UUID itemId = request.orderItemId();
-            order.getDiscounts().removeIf(d -> "LINE".equals(d.getScope())
-                    && itemId.equals(d.getOrderItemId()));
+            for (OrderDiscount d : order.getDiscounts()) {
+                if ("LINE".equals(d.getScope()) && itemId.equals(d.getOrderItemId())) {
+                    displaced.add(d);
+                }
+            }
         }
+        order.getDiscounts().removeAll(displaced);
 
         long amountPaisa = computeDiscountAmount(request, order, line);
 
@@ -886,8 +960,18 @@ public class OrderServiceImpl implements OrderService {
                             + " already paid. Refund the difference instead.");
         }
 
-        return discount;
+        return new StagedDiscount(discount, displaced);
     }
+
+    /**
+     * One priced discount and whatever it pushed off the check.
+     *
+     * @param discount  the new row, its {@code amountPaisa} already clamped to real headroom
+     * @param displaced the MANUAL rows at the same scope that this one replaces — see
+     *                  {@code PosDiscountPayloads.OrderDiscountRemovedPayload} for why the
+     *                  replacement is money movement and has to be announced
+     */
+    private record StagedDiscount(OrderDiscount discount, List<OrderDiscount> displaced) {}
 
     /**
      * The states in which a check may still be discounted: everything from the moment it has
