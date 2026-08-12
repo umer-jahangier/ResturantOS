@@ -1,11 +1,12 @@
 package io.restaurantos.purchasing.opa;
 
+import io.restaurantos.shared.testsupport.OpaPolicyBundle;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.UUID;
 
 /**
  * Starts a real OPA server (Testcontainers) with the repo's real {@code policies/} bundle
- * bind-mounted, and exposes a {@code @Primary} {@link AuthorizationClient} backed by it —
+ * copied in, and exposes a {@code @Primary} {@link AuthorizationClient} backed by it —
  * copied verbatim in spirit from
  * {@code authorization-service}'s {@code BaseIntegrationTest} (policiesDir() walker + OPA
  * container declaration).
@@ -33,16 +34,25 @@ import java.util.UUID;
 @TestConfiguration
 public class RealOpaTestConfig {
 
+    /**
+     * The bundle is <b>copied</b> into the container, never bind-mounted. A bind mount resolves to an
+     * empty {@code /policies} from any host path the Docker VM does not share, and an OPA holding no
+     * policy denies everything while answering {@code /health} with 200 — which would turn this
+     * suite's deny assertions green for the wrong reason. See {@link OpaPolicyBundle}.
+     */
     @SuppressWarnings("resource")
     static final GenericContainer<?> OPA =
         new GenericContainer<>(DockerImageName.parse("openpolicyagent/opa:1.17.1"))
             .withCommand("run", "--server", "--addr=0.0.0.0:8181", "/policies")
             .withExposedPorts(8181)
-            .withFileSystemBind(policiesDir().toString(), "/policies", BindMode.READ_ONLY)
+            .withCopyFileToContainer(MountableFile.forHostPath(policiesDir()), "/policies")
             .waitingFor(Wait.forHttp("/health").forPort(8181));
 
     static {
         OPA.start();
+        // Positive control. Proves the engine actually holds the bundle before any test is allowed to
+        // trust a decision from it; here rather than in an IT so it cannot be forgotten by one added later.
+        OpaPolicyBundle.assertActuallyLoaded(opaBaseUrl(), policiesDir(), "restaurantos/vendor.rego");
     }
 
     private static Path policiesDir() {
