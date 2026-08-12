@@ -1,4 +1,6 @@
+import type { PageMeta } from "@/lib/api-client/types";
 import type {
+  ApiImpersonationRecord,
   ApiPlatformTenant,
   ApiProvisionResult,
   ApiTenantFeatures,
@@ -6,6 +8,8 @@ import type {
   ApiTierChange,
 } from "@/lib/api-client/schemas/platform.schema";
 import type {
+  ImpersonationPage,
+  ImpersonationRecord,
   PlatformTenant,
   ProvisionResult,
   TenantFeatures,
@@ -88,6 +92,48 @@ export function adaptProvisionResult(api: ApiProvisionResult): ProvisionResult {
     adminEmail: api.adminEmail,
     tempPassword: api.tempPassword,
     loginUrl: api.loginUrl,
+  };
+}
+
+/**
+ * One impersonation record.
+ *
+ * `status` is copied, never recomputed. The rule is "ACTIVE while `expires_at` is in the future",
+ * and a browser evaluating it against its own clock would disagree with the server on any machine
+ * whose time is off — on the one screen where "was this session still live?" is the question being
+ * asked. Every nullable field stays nullable; nothing is defaulted to a string.
+ */
+export function adaptImpersonationRecord(api: ApiImpersonationRecord): ImpersonationRecord {
+  return {
+    id: api.id,
+    tenantId: api.tenantId,
+    tenantSlug: api.tenantSlug,
+    tenantBrandName: api.tenantBrandName,
+    adminUserId: api.adminUserId,
+    adminEmail: api.adminEmail,
+    targetUserId: api.targetUserId,
+    startedAt: new Date(api.startedAt),
+    expiresAt: toDate(api.expiresAt),
+    status: api.status,
+    reason: api.reason,
+  };
+}
+
+/**
+ * A page of records plus the two facts a pager needs.
+ *
+ * `nextPage` comes from `meta.page.nextCursor`, which the backend sets to null on the last page.
+ * Deriving "is there more?" from `records.length === size` instead would be wrong on a full final
+ * page, and the resulting phantom next page is indistinguishable from a broken filter.
+ */
+export function adaptImpersonationPage(
+  api: ApiImpersonationRecord[],
+  meta: PageMeta,
+): ImpersonationPage {
+  return {
+    records: api.map(adaptImpersonationRecord),
+    totalCount: meta.totalCount,
+    nextPage: meta.page.nextCursor === null ? null : Number(meta.page.nextCursor),
   };
 }
 

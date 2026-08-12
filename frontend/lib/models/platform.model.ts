@@ -164,6 +164,62 @@ export function meterLabel(resource: string): string {
   return labels[resource] ?? resource;
 }
 
+// --- Impersonation audit ---
+
+/**
+ * Whether the session's token can still be used.
+ *
+ * Derived on the SERVER from `expires_at`, never from `ended_at`. That column exists in the schema
+ * and has no writer anywhere in the product, so a status computed from it would read "still
+ * running" for every impersonation ever performed. The client does not recompute this — a second
+ * implementation of the rule is a second chance to get it wrong.
+ */
+export type ImpersonationStatus = "ACTIVE" | "EXPIRED" | "UNKNOWN";
+
+/**
+ * One SuperAdmin impersonation session.
+ *
+ * Note what is NOT here: the issued token (never persisted) and `endedAt` (no writer, always
+ * null). `targetUserId` carries no display name because tenant users live in a database the
+ * platform plane cannot reach — the UI must render the id and say what it is, not invent a name.
+ */
+export interface ImpersonationRecord {
+  id: string;
+  tenantId: string;
+  /** Null when the tenant registration is gone but the immutable record is not. */
+  tenantSlug: string | null;
+  tenantBrandName: string | null;
+  adminUserId: string;
+  /** Null when that platform account has since been deleted. The id still names it. */
+  adminEmail: string | null;
+  targetUserId: string;
+  startedAt: Date;
+  /** Null is a real state — `expires_at` is nullable, and that is what makes status UNKNOWN. */
+  expiresAt: Date | null;
+  status: ImpersonationStatus;
+  reason: string | null;
+}
+
+export interface ImpersonationPage {
+  records: ImpersonationRecord[];
+  /** Rows matching the filter, not rows on this page. */
+  totalCount: number;
+  /** Null on the last page — the only end-of-list signal the API gives. */
+  nextPage: number | null;
+}
+
+/** What the operator should read, per status. Never invents certainty the backend did not have. */
+export function impersonationStatusLabel(status: ImpersonationStatus): string {
+  switch (status) {
+    case "ACTIVE":
+      return "Active";
+    case "EXPIRED":
+      return "Expired";
+    case "UNKNOWN":
+      return "Unknown expiry";
+  }
+}
+
 // --- Request bodies ---
 
 export interface CreateTenantBody {

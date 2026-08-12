@@ -12,6 +12,7 @@ import { UsagePanel } from "@/components/platform/usage-panel";
 import { TenantStatusBadge, TierBadge } from "@/components/platform/tenant-badges";
 import { ConfirmDestructiveDialog } from "@/components/platform/confirm-destructive-dialog";
 import { TenantSubscriptionCard } from "@/components/platform/tenant-subscription-card";
+import { TenantImpersonationPanel } from "@/components/platform/tenant-impersonation-panel";
 import { formatUserFacingError } from "@/lib/errors";
 import {
   usePlatformTenant,
@@ -25,11 +26,16 @@ import {
  * Provision, suspend, reactivate, edit profile, change tier and per-module toggles were all live,
  * working endpoints with no browser path at all. This is that path.
  *
- * UI-SPEC §7.5 specifies tabs (Overview · Subscription · Features · Usage · Users · Audit). Two of
- * those six have no API this console can call — there is no per-tenant user list endpoint reachable
- * from the platform plane, and audit events return 404 (GA-102). Rather than ship four working tabs
- * and two that greet the operator with an error, the three panels that have real data are stacked
- * on one page. Tabs can arrive with the content that justifies them.
+ * UI-SPEC §7.5 specifies tabs (Overview · Subscription · Features · Usage · Users · Audit). One of
+ * those six still has no API this console can call — there is no per-tenant user list endpoint
+ * reachable from the platform plane. The Audit tab now has half its content:
+ * `GET /api/v1/platform/tenants/{id}/impersonations` exists (it was a 404 when this page was
+ * written, which is what GA-102 recorded) and is rendered by `TenantImpersonationPanel`. General
+ * tenant audit events remain unreachable from a platform token, which carries no tenant claim and
+ * is therefore refused by the tenant-facing audit endpoint — correctly.
+ *
+ * Rather than ship working tabs beside ones that greet the operator with an error, the panels that
+ * have real data are stacked on one page. Tabs can arrive with the content that justifies them.
  */
 export default function PlatformTenantDetailPage() {
   const params = useParams<{ tenantId: string }>();
@@ -104,6 +110,8 @@ export default function PlatformTenantDetailPage() {
             <UsagePanel tenantId={tenantId} />
 
             <FeatureMatrix tenantId={tenantId} tenantName={data.brandName} />
+
+            <TenantImpersonationPanel tenantId={tenantId} />
 
             <ConfirmDestructiveDialog
               open={suspendOpen}

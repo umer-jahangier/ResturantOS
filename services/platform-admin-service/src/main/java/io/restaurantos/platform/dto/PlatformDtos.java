@@ -364,4 +364,79 @@ public final class PlatformDtos {
     public record UsageRecordResponse(long newCount, long limit) {}
 
     public record ImpersonateResponse(String token, int expiresIn) {}
+
+    /**
+     * Whether an impersonation session's credential can still be used, <b>derived from
+     * {@code expires_at} and never from {@code ended_at}</b>.
+     *
+     * <p>The distinction is the whole reason this enum is declared rather than a boolean computed
+     * at the screen. {@code impersonation_log.ended_at} exists in the schema and has <b>no writer
+     * anywhere in this product</b> — grep for {@code setEndedAt} returns nothing, and the only
+     * mention of the column outside the DDL is changeset 040's note describing the endpoint it was
+     * added for and which was never built. A status derived from it therefore reads ACTIVE forever,
+     * on every row, including sessions whose token expired months ago. That is not a cosmetic bug:
+     * this screen is what an abuse review reads, and a permanent wall of ACTIVE is a screen nobody
+     * can act on.
+     *
+     * <p>{@code expires_at} is written by {@code ImpersonationService.impersonate} in the same
+     * transaction as the row, from the TTL the issued token actually carries, so it describes the
+     * credential's real lifetime.
+     */
+    public enum ImpersonationStatus {
+        /** {@code expires_at} is in the future: the issued token is still usable. */
+        ACTIVE,
+        /** {@code expires_at} has passed: the token can no longer authenticate. */
+        EXPIRED,
+        /**
+         * {@code expires_at} is NULL, so the credential's lifetime is unknown.
+         *
+         * <p>The column is nullable in {@code 010-create-platform-tables.xml} and no row written by
+         * the current service leaves it null — but a row written before that behaviour, or by hand,
+         * would. Reported as unknown rather than defaulted either way: calling it EXPIRED hides a
+         * possibly-live session from a review, and calling it ACTIVE manufactures an alarm. Same
+         * posture as {@code UsageMeter.unreadable} — not knowing is not the same as knowing.
+         */
+        UNKNOWN
+    }
+
+    /**
+     * One impersonation session, as the platform SuperAdmin console reads it.
+     *
+     * <p><b>There is no token field and there never will be.</b> The issued JWT is returned exactly
+     * once, to the caller of {@code POST /tenants/{id}/impersonate}, and is not persisted — the
+     * table has no column for it. This response therefore cannot leak a live credential even by
+     * accident, and that is a property of the schema rather than of this record's field list.
+     *
+     * <p><b>{@code ended_at} is deliberately absent.</b> It is NULL on every row in existence
+     * because nothing writes it. A field that is always null invites a screen to render
+     * "Ended: —" as though that were an observation about the session, when it is an observation
+     * about the product. See {@link ImpersonationStatus}.
+     *
+     * @param tenantSlug      resolved from {@code platform_db.tenants}, same database, one batched
+     *                        read per page. Null only if the tenant row is gone (a PURGED tenant's
+     *                        registration is deleted; the impersonation record is not, and must
+     *                        still be readable — the accountability record outliving the tenant is
+     *                        the point of an immutable log).
+     * @param adminEmail      resolved from {@code platform_db.platform_users}, likewise. Null if
+     *                        that account has since been deleted; {@code adminUserId} still names it.
+     * @param targetUserId    the impersonated tenant user. <b>Deliberately not resolved to a name.</b>
+     *                        Tenant users live in {@code user_db}, which platform_db cannot reach —
+     *                        no FDW, no dblink, and the platform roles hold zero grants in any
+     *                        tenant database (changeset 040 measured this). The only way to a name
+     *                        is a cross-service call per row; until an internal endpoint exists for
+     *                        it, the id is what is honestly known.
+     */
+    public record ImpersonationRecord(
+        UUID id,
+        UUID tenantId,
+        String tenantSlug,
+        String tenantBrandName,
+        UUID adminUserId,
+        String adminEmail,
+        UUID targetUserId,
+        Instant startedAt,
+        Instant expiresAt,
+        ImpersonationStatus status,
+        String reason
+    ) {}
 }

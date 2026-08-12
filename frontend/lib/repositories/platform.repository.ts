@@ -1,5 +1,6 @@
-import { del, get, patch, post } from "@/lib/api-client/request";
+import { del, get, getPaginated, patch, post } from "@/lib/api-client/request";
 import {
+  apiImpersonationRecordsSchema,
   apiPlatformTenantSchema,
   apiPlatformTenantsSchema,
   apiProvisionResultSchema,
@@ -8,6 +9,7 @@ import {
   apiTierChangeSchema,
 } from "@/lib/api-client/schemas/platform.schema";
 import {
+  adaptImpersonationPage,
   adaptPlatformTenant,
   adaptProvisionResult,
   adaptTenantFeatures,
@@ -17,6 +19,7 @@ import {
 import type {
   ChangeTierBody,
   CreateTenantBody,
+  ImpersonationPage,
   PlatformTenant,
   ProvisionResult,
   TenantFeatures,
@@ -135,5 +138,51 @@ export const PlatformRepository = {
   async getUsage(tenantId: string): Promise<TenantUsage> {
     const raw = await get(`/api/v1/platform/tenants/${tenantId}/usage`);
     return adaptTenantUsage(apiTenantUsageSchema.parse(raw));
+  },
+
+  /**
+   * One tenant's impersonation history.
+   *
+   * An unknown tenant is a 404 from the API and is left to surface as one. It must NOT be softened
+   * into an empty list here: "nobody has ever impersonated into this restaurant" and "there is no
+   * such restaurant" are opposite answers, and this is the screen where confusing them matters.
+   */
+  async listTenantImpersonations(
+    tenantId: string,
+    page = 0,
+    size = 25,
+  ): Promise<ImpersonationPage> {
+    const { data, meta } = await getPaginated(
+      `/api/v1/platform/tenants/${tenantId}/impersonations`,
+      { page, size },
+    );
+    return adaptImpersonationPage(apiImpersonationRecordsSchema.parse(data), meta);
+  },
+
+  /**
+   * Impersonations across every tenant — "where has admin X been?".
+   *
+   * This is the question `audit_events` cannot answer: it is per-tenant with FORCED row-level
+   * security, so the same query there is one request per tenant with one token per tenant.
+   *
+   * `from`/`to` are sent verbatim. The API accepts either a bare date (cut at UTC midnight, which
+   * it states) or an exact instant, and refuses anything else with a named 422 rather than quietly
+   * dropping the filter.
+   */
+  async listImpersonations(params: {
+    adminUserId?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    size?: number;
+  } = {}): Promise<ImpersonationPage> {
+    const { data, meta } = await getPaginated("/api/v1/platform/impersonations", {
+      ...(params.adminUserId ? { adminUserId: params.adminUserId } : {}),
+      ...(params.from ? { from: params.from } : {}),
+      ...(params.to ? { to: params.to } : {}),
+      page: params.page ?? 0,
+      size: params.size ?? 25,
+    });
+    return adaptImpersonationPage(apiImpersonationRecordsSchema.parse(data), meta);
   },
 };

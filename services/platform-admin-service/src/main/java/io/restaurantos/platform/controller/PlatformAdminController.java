@@ -5,12 +5,14 @@ import io.restaurantos.platform.dto.PlatformDtos.*;
 import io.restaurantos.platform.entity.TenantEntity;
 import io.restaurantos.platform.repository.TenantRepository;
 import io.restaurantos.platform.service.FeatureFlagAdminService;
+import io.restaurantos.platform.service.ImpersonationQueryService;
 import io.restaurantos.platform.service.ImpersonationService;
 import io.restaurantos.platform.service.ProvisioningService;
 import io.restaurantos.platform.service.TenantLifecycleService;
 import io.restaurantos.platform.service.TenantSubscriptionService;
 import io.restaurantos.platform.service.UsageService;
 import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.api.PageMeta;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.security.JwtClaims;
 import jakarta.validation.Valid;
@@ -43,6 +45,7 @@ public class PlatformAdminController {
     private final TenantSubscriptionService subscriptionService;
     private final FeatureFlagAdminService featureFlagService;
     private final ImpersonationService impersonationService;
+    private final ImpersonationQueryService impersonationQueryService;
     private final UsageService usageService;
     private final TierFeatureDefaults tierFeatureDefaults;
     private final TenantRepository tenantRepository;
@@ -52,6 +55,7 @@ public class PlatformAdminController {
                                     TenantSubscriptionService subscriptionService,
                                     FeatureFlagAdminService featureFlagService,
                                     ImpersonationService impersonationService,
+                                    ImpersonationQueryService impersonationQueryService,
                                     UsageService usageService,
                                     TierFeatureDefaults tierFeatureDefaults,
                                     TenantRepository tenantRepository) {
@@ -60,6 +64,7 @@ public class PlatformAdminController {
         this.subscriptionService = subscriptionService;
         this.featureFlagService  = featureFlagService;
         this.impersonationService = impersonationService;
+        this.impersonationQueryService = impersonationQueryService;
         this.usageService        = usageService;
         this.tierFeatureDefaults = tierFeatureDefaults;
         this.tenantRepository    = tenantRepository;
@@ -315,6 +320,80 @@ public class PlatformAdminController {
             tenantId, req.targetUserId(), actingPlatformUserId, req.reason());
         return ResponseEntity.ok(ApiResponse.ok(
             new ImpersonateResponse(result.token(), result.expiresIn())));
+    }
+
+    /**
+     * {@code GET /api/v1/platform/tenants/{tenantId}/impersonations?from=&to=&page=&size=}
+     *
+     * <p><b>The half of impersonation accountability that had no reader.</b> The write side has
+     * worked since PLATFORM-05: every impersonation writes an immutable {@code impersonation_log}
+     * row and publishes {@code IMPERSONATION_STARTED} into the tenant's own audit trail, and the
+     * tenant-facing reader for that ({@code GET /api/v1/audit/events}) is built, routed and
+     * correctly isolated between tenants. The platform SuperAdmin — the principal whose behaviour
+     * the record exists to constrain — had <b>no way to read it at all</b>: this path was 404, and
+     * a platform token is refused by the tenant audit endpoint (401, correctly: it carries no
+     * tenant claim). The repository finder that would have served it had zero callers.
+     *
+     * <p>An unknown {@code tenantId} is <b>404</b>, not an empty list. On this screen those two
+     * answers mean opposite things and must not look the same.
+     *
+     * <p>Newest first. Never returns the token — {@code impersonation_log} has no column for it.
+     */
+    @GetMapping("/tenants/{tenantId}/impersonations")
+    public ResponseEntity<ApiResponse<List<ImpersonationRecord>>> tenantImpersonations(
+            @PathVariable UUID tenantId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(paginate(
+            impersonationQueryService.forTenant(tenantId, from, to, page, size)));
+    }
+
+    /**
+     * {@code GET /api/v1/platform/impersonations?adminUserId=&from=&to=&page=&size=}
+     *
+     * <p><i>"Where has admin X been?"</i> — the question {@code audit_db} is structurally incapable
+     * of answering. {@code audit_events} is per-tenant with FORCED row-level security, so the same
+     * question there is one query per tenant with one token per tenant, and it misses any tenant
+     * whose outbox delivery failed. Here it is a single read of the row written in the same
+     * transaction that minted the token.
+     *
+     * <p>{@code adminUserId} omitted means every administrator. An {@code adminUserId} that names
+     * no surviving account returns an empty page rather than 404 — see
+     * {@code ImpersonationQueryService.search} for why that asymmetry with the tenant endpoint is
+     * deliberate.
+     */
+    @GetMapping("/impersonations")
+    public ResponseEntity<ApiResponse<List<ImpersonationRecord>>> impersonations(
+            @RequestParam(required = false) UUID adminUserId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return ResponseEntity.ok(paginate(
+            impersonationQueryService.search(adminUserId, from, to, page, size)));
+    }
+
+    /**
+     * {@code ApiResponse.paginated} + {@code PageMeta}, matching {@code AuditQueryController}.
+     *
+     * <p>The cursor fields carry the page NUMBER — {@code PageMeta} is shaped for cursor pagination
+     * and this is offset pagination, and one envelope for every list in the platform is worth more
+     * than a second one that fits better. A null {@code nextCursor} is the "last page" signal a
+     * pager needs; without it a client can only discover the end by asking for a page and receiving
+     * nothing, which is indistinguishable from a failed filter.
+     */
+    private static ApiResponse<List<ImpersonationRecord>> paginate(
+            ImpersonationQueryService.PagedImpersonations paged) {
+        boolean hasNext = (long) (paged.page() + 1) * paged.size() < paged.totalCount();
+        PageMeta meta = new PageMeta(
+            new PageMeta.Page(
+                String.valueOf(paged.page()),
+                hasNext ? String.valueOf(paged.page() + 1) : null,
+                paged.size()),
+            paged.totalCount());
+        return ApiResponse.paginated(paged.records(), meta);
     }
 
     /**

@@ -122,6 +122,45 @@ export const apiTierChangeSchema = z.object({
   forcedOverLimits: z.boolean(),
 });
 
+/**
+ * Mirrors `PlatformDtos.ImpersonationStatus`.
+ *
+ * `UNKNOWN` is a real backend value, not a client-side fallback: `expires_at` is nullable, and a
+ * row with no expiry has no knowable session lifetime. It is parsed rather than coerced so the
+ * screen can say so in words instead of picking one of the other two at random.
+ */
+export const apiImpersonationStatusSchema = z.enum(["ACTIVE", "EXPIRED", "UNKNOWN"]);
+
+/**
+ * Mirrors `PlatformDtos.ImpersonationRecord`.
+ *
+ * <b>There is no `token` field and no `endedAt` field, and both absences are deliberate.</b> The
+ * issued JWT is never persisted, so the schema cannot leak one. `ended_at` is a column with no
+ * writer anywhere in the product — always NULL — so it is not sent and the screen never renders an
+ * "Ended: —" that would look like an observation about the session rather than about the product.
+ *
+ * `tenantSlug`, `tenantBrandName` and `adminEmail` are nullable because the referenced row can be
+ * gone (a PURGED tenant, a deleted platform account) while the immutable impersonation record
+ * remains. `targetUserId` has no name at all: tenant users live in a database platform_db cannot
+ * reach.
+ */
+export const apiImpersonationRecordSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  tenantSlug: z.string().nullable(),
+  tenantBrandName: z.string().nullable(),
+  adminUserId: z.string().uuid(),
+  adminEmail: z.string().nullable(),
+  targetUserId: z.string().uuid(),
+  startedAt: z.string(),
+  expiresAt: z.string().nullable(),
+  status: apiImpersonationStatusSchema,
+  reason: z.string().nullable(),
+});
+
+export const apiImpersonationRecordsSchema = z.array(apiImpersonationRecordSchema);
+
+export type ApiImpersonationRecord = z.infer<typeof apiImpersonationRecordSchema>;
 export type ApiPlatformTenant = z.infer<typeof apiPlatformTenantSchema>;
 export type ApiTenantFeatures = z.infer<typeof apiTenantFeaturesSchema>;
 export type ApiTenantUsage = z.infer<typeof apiTenantUsageSchema>;

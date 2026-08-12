@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, LogOut } from "lucide-react";
+import { Building2, LayoutDashboard, LogOut, ShieldAlert } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ import { useLogout } from "@/lib/hooks/auth/use-logout";
 const NAV = [
   { href: "/platform/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/platform/tenants", label: "Tenants", icon: Building2 },
+  // Added with the endpoint that backs it, not before. This route was a 404 until
+  // GET /api/v1/platform/impersonations existed; a nav entry pointing at one of those is GA-053.
+  { href: "/platform/impersonations", label: "Impersonations", icon: ShieldAlert },
 ] as const;
 
 export function PlatformShell({ children }: { children: React.ReactNode }) {
