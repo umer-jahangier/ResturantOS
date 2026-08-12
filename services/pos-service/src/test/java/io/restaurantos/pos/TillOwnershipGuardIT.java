@@ -72,9 +72,17 @@ class TillOwnershipGuardIT extends PosTestBase {
     }
 
     @Test
-    void foreignCashierId_isRefused() {
+    void foreignCashierId_isRefused_whileOwnerStillSeesTheSameRow() {
         TillSessionDto victimTill = openTillAs(victimCashierId);
-        assertThat(victimTill.status().name()).isEqualTo("OPEN");
+
+        // POSITIVE CONTROL (KdsAccessIsolationIT's rule): prove the owner CAN read the exact row
+        // we are about to prove the colleague cannot. Without this, the denial below would also
+        // pass if the row were missing, RLS hid everything, or the status filter never matched —
+        // i.e. the isolation assertion could be green while enforcing nothing.
+        List<TillSessionDto> ownerView = tillService.listTills(victimCashierId, "OPEN");
+        assertThat(ownerView).hasSize(1);
+        assertThat(ownerView.get(0).id()).isEqualTo(victimTill.id());
+        assertThat(ownerView.get(0).openingFloatPaisa()).isEqualTo(victimTill.openingFloatPaisa());
 
         // The whole finding, in one call: a plain CASHIER naming a colleague's user id.
         actAs(otherCashierId, "pos.till.open");
@@ -131,7 +139,8 @@ class TillOwnershipGuardIT extends PosTestBase {
     void foreignCashierId_isAllowedForTillReviewers() {
         TillSessionDto victimTill = openTillAs(victimCashierId);
 
-        // A manager/owner holding pos.till.review keeps the named-cashier lookup.
+        // A manager/owner holding pos.till.review keeps the named-cashier lookup — the cash-up
+        // flow depends on it, so the ownership guard must not break it.
         actAs(otherCashierId, "pos.till.open", "pos.till.review");
 
         List<TillSessionDto> result = tillService.listTills(victimCashierId, "OPEN");
@@ -139,5 +148,84 @@ class TillOwnershipGuardIT extends PosTestBase {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(victimTill.id());
         assertThat(result.get(0).cashierId()).isEqualTo(victimCashierId);
+    }
+
+    @Test
+    void tillReviewer_cannotReachAnotherBranch() {
+        TillSessionDto victimTill = openTillAs(victimCashierId);
+
+        // Positive control: in-branch, this reviewer CAN read the row.
+        actAs(otherCashierId, "pos.till.open", "pos.till.review");
+        assertThat(tillService.listTills(victimCashierId, "OPEN")).hasSize(1);
+
+        // Same reviewer, same tenant, same permission — but scoped to a sibling branch.
+        // pos.till.review must not silently become a tenant-wide read.
+        UUID siblingBranch = UUID.randomUUID();
+        tenantContext.set(tenantId, siblingBranch, otherCashierId, null);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        new JwtClaims(otherCashierId, tenantId, siblingBranch,
+                                List.of("MANAGER"), List.of("pos.till.open", "pos.till.review"),
+                                Map.of(), null),
+                        null, List.of()));
+
+        assertThat(tillService.listTills(victimCashierId, "OPEN")).isEmpty();
+        assertThat(victimTill.branchId()).isEqualTo(branchId);
+    }
+
+    @Test
+    void branchPath_isNotAnEscapeHatchAroundTheOwnershipGuard() {
+        TillSessionDto victimTill = openTillAs(victimCashierId);
+
+        actAs(otherCashierId, "pos.till.open");
+
+        // Refused by the ownership guard...
+        assertThatThrownBy(() -> tillService.listTills(victimCashierId, "OPEN"))
+                .isInstanceOf(PermissionDeniedException.class);
+
+        // ...and must ALSO be refused by the branch-wide path, which returns strictly more (every
+        // till in the branch, including the one just denied). Without this the guard above is
+        // decorative: the same cashier asks ?branchId=<own> instead and gets the colleague's row.
+        assertThatThrownBy(() -> tillService.listTillsForBranch(branchId))
+                .isInstanceOf(PermissionDeniedException.class);
+
+        assertThat(victimTill.cashierId()).isEqualTo(victimCashierId);
+    }
+
+    @Test
+    void branchPath_stillWorksForTheManagerCashUpFlow() {
+        TillSessionDto victimTill = openTillAs(victimCashierId);
+
+        // The live till-review page gates on pos.order.view.all, so a manager holding it must keep
+        // working — closing the leak must not break cash-up.
+        actAs(otherCashierId, "pos.order.view.all");
+        List<TillSessionDto> viaIncumbent = tillService.listTillsForBranch(branchId);
+        assertThat(viaIncumbent).extracting(TillSessionDto::id).contains(victimTill.id());
+
+        // And the intended end-state permission works on its own.
+        actAs(otherCashierId, "pos.till.review");
+        List<TillSessionDto> viaTillReview = tillService.listTillsForBranch(branchId);
+        assertThat(viaTillReview).extracting(TillSessionDto::id).contains(victimTill.id());
+    }
+
+    @Test
+    void tillReviewer_cannotReachAnotherTenant() {
+        TillSessionDto victimTill = openTillAs(victimCashierId);
+
+        // A reviewer in a DIFFERENT restaurant must not read this tenant's till. RLS is the only
+        // enforced tenant boundary in this product, and Testcontainers connects as a SUPERUSER
+        // (which bypasses FORCE RLS) — so this asserts the in-app tenant predicate, which is what
+        // actually holds the line when RLS is bypassed or tenant context is wrong.
+        UUID foreignTenant = UUID.randomUUID();
+        tenantContext.set(foreignTenant, branchId, otherCashierId, null);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        new JwtClaims(otherCashierId, foreignTenant, branchId,
+                                List.of("OWNER"), List.of("pos.till.open", "pos.till.review"),
+                                Map.of(), null),
+                        null, List.of()));
+
+        assertThat(tillService.listTills(victimCashierId, "OPEN")).isEmpty();
+        assertThat(victimTill.id()).isNotNull();
     }
 }

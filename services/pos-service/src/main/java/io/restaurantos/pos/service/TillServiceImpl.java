@@ -47,6 +47,15 @@ public class TillServiceImpl implements TillService {
      */
     private static final String TILL_REVIEW_PERMISSION = "pos.till.review";
 
+    /**
+     * Incumbent supervisory permission that the till-review page already gates on client-side
+     * ({@code PermissionGuard require="pos.order.view.all"} in app/pos/tills). Accepted alongside
+     * {@link #TILL_REVIEW_PERMISSION} so that closing this hole does not lock managers out of the
+     * cash-up flow before the permission catalog seeds the till-specific permission. The
+     * till-specific one is the intended end state; this is the migration allowance, not the target.
+     */
+    private static final String ORDER_VIEW_ALL_PERMISSION = "pos.order.view.all";
+
     private final TillSessionRepository tillSessionRepository;
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
@@ -176,15 +185,23 @@ public class TillServiceImpl implements TillService {
         // foreign id outright, mirroring listTillsForBranch's cross-branch guard below. Managers
         // reviewing tills use the branch-scoped `?branchId=` path, which is separately gated.
         UUID targetCashierId = cashierId != null ? cashierId : callerId;
-        if (!callerId.equals(targetCashierId)
-                && !posAuthorizationService.hasPermission(TILL_REVIEW_PERMISSION)) {
+        boolean readingSomeoneElse = !callerId.equals(targetCashierId);
+        if (readingSomeoneElse && !canReviewTills()) {
             throw new PermissionDeniedException("Cannot read another user's till session");
         }
 
         TillStatus tillStatus = status != null ? TillStatus.valueOf(status) : TillStatus.OPEN;
         return tillSessionRepository.findByCashierIdAndStatus(targetCashierId, tillStatus)
-                // Defense-in-depth: the query carries no tenant predicate of its own (RLS only).
+                // Defense-in-depth: this query carries no tenant predicate of its own, and RLS is
+                // the ONLY enforced tenant boundary here (the Hibernate tenant filter is inert), so
+                // a lost/incorrect tenant context would otherwise be a cross-RESTAURANT read.
                 .filter(s -> tenantId.equals(s.getTenantId()))
+                // A reviewer's reach stops at their own branch, matching listTillsForBranch's
+                // requireOwnBranch — otherwise pos.till.review would silently be tenant-wide.
+                // Self-reads are deliberately exempt: a cashier reassigned to another branch must
+                // still see their own OPEN till in the POS bar.
+                .filter(s -> !readingSomeoneElse
+                        || tenantContext.getBranchId().map(b -> b.equals(s.getBranchId())).orElse(false))
                 .map(s -> List.of(toDto(s)))
                 .orElse(List.of());
     }
@@ -195,6 +212,18 @@ public class TillServiceImpl implements TillService {
         // SECURITY (branch isolation): a client-supplied sibling branchId must not expose another
         // branch's till history within the same tenant — RLS is tenant-only, so guard here.
         requireOwnBranch(branchId);
+
+        // SECURITY (till review is privileged): this path returns EVERY till in the branch — each
+        // one's opening float, expected/declared closing and variance. It previously enforced only
+        // own-branch, so any authenticated principal in the branch (cashier, kitchen, waiter) could
+        // read the whole branch's cash position. The till-review page gates on pos.order.view.all
+        // CLIENT-SIDE only, which is not a boundary. Without this check the ownership guard in
+        // listTills above is trivially bypassable: a cashier refused at ?cashierId=<colleague>
+        // could simply ask for ?branchId=<own> and get strictly more.
+        if (!canReviewTills()) {
+            throw new PermissionDeniedException("Till review requires the till-review permission");
+        }
+
         return tillSessionRepository.findByBranchIdOrderByOpenedAtDesc(branchId).stream()
                 .map(this::toDto)
                 .toList();
@@ -231,6 +260,17 @@ public class TillServiceImpl implements TillService {
         long liveExpectedCash = session.getOpeningFloatPaisa() + cash;
         return new TillReconciliationDto(
                 toDto(session), orders.size(), cash, nonCash, liveExpectedCash, lines);
+    }
+
+    /**
+     * Whether the caller may read till sessions that are not their own. Accepts the till-specific
+     * permission or the incumbent supervisory one the till-review UI already requires — see
+     * {@link #ORDER_VIEW_ALL_PERMISSION}. Fail-closed: {@code hasPermission} returns false when no
+     * {@code JwtClaims} principal is present.
+     */
+    private boolean canReviewTills() {
+        return posAuthorizationService.hasPermission(TILL_REVIEW_PERMISSION)
+                || posAuthorizationService.hasPermission(ORDER_VIEW_ALL_PERMISSION);
     }
 
     /**
