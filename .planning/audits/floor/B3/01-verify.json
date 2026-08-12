@@ -1,0 +1,236 @@
+{
+  "tableCreated": {
+    "name": "B3-161",
+    "status": 201
+  },
+  "cashierPerms": [
+    "pos.order.discount.line"
+  ],
+  "table": "B3-161 Available",
+  "order": {
+    "orderNo": "ORD-20260812-0197",
+    "orderId": "671b556f-1bdc-42bb-8b0f-f54773c6836d",
+    "statusAtDiscount": "SENT_TO_KDS"
+  },
+  "before": {
+    "status": "SENT_TO_KDS",
+    "subtotalPaisa": 190000,
+    "discountPaisa": 0,
+    "taxPaisa": 30850,
+    "totalPaisa": 220850
+  },
+  "chargeBefore": {
+    "subtotal": "Rs 1,900.00",
+    "discounts": "Rs 0.00",
+    "taxes": "Rs 308.50",
+    "total": "Rs 2,208.50",
+    "remaining": "Rs 2,208.50",
+    "hasAddDiscountButton": true,
+    "appliedDiscountText": null,
+    "rawPermissionStringOnScreen": null
+  },
+  "reasonGate": {
+    "submitDisabled": true,
+    "validation": "Say why the discount is being given."
+  },
+  "forcedClickChangedTotal": false,
+  "preview": "Takes Rs 45.00 off — new total Rs 2,163.50.",
+  "lineDiscount": {
+    "expectedPaisa": 4500,
+    "serverDiscountPaisa": 4500,
+    "totalBefore": 220850,
+    "totalAfter": 216350,
+    "totalDropped": 4500,
+    "discountRows": [
+      {
+        "id": "62baf267-1a3d-47ac-8a6b-610350e2dd7d",
+        "scope": "LINE",
+        "orderItemId": "17c60bc8-4daa-4b20-913c-1b25601fa5f8",
+        "itemName": "Seekh Kebab",
+        "type": "PERCENT",
+        "value": 10,
+        "amountPaisa": 4500,
+        "reason": "Kebab arrived cold",
+        "appliedBy": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+        "appliedByName": "Terrace Cashier",
+        "appliedAt": "2026-08-12T04:40:29.275271Z"
+      }
+    ]
+  },
+  "chargeAfterLine": {
+    "subtotal": "Rs 1,900.00",
+    "discounts": "Rs 45.00",
+    "taxes": "Rs 308.50",
+    "total": "Rs 2,163.50",
+    "remaining": "Rs 2,163.50",
+    "hasAddDiscountButton": true,
+    "appliedDiscountText": "10% off Seekh Kebab Kebab arrived cold · Terrace Cashier -Rs 45.00",
+    "rawPermissionStringOnScreen": null
+  },
+  "cashierWholeCheck": {
+    "message": "A discount on the whole check has to be approved by a manager. You can take an amount off an individual item; ask a manager to sign in for a whole-check discount.",
+    "submitDisabled": true,
+    "rawPermissionAnywhere": false
+  },
+  "cashierWholeCheckApi": {
+    "status": 403
+  },
+  "managerPreview": "Takes Rs 185.50 off — new total Rs 1,978.00.",
+  "afterOrderScope": {
+    "subtotalPaisa": 190000,
+    "discountPaisa": 23050,
+    "taxPaisa": 30850,
+    "totalPaisa": 197800,
+    "discounts": [
+      {
+        "id": "62baf267-1a3d-47ac-8a6b-610350e2dd7d",
+        "scope": "LINE",
+        "orderItemId": "17c60bc8-4daa-4b20-913c-1b25601fa5f8",
+        "itemName": "Seekh Kebab",
+        "type": "PERCENT",
+        "value": 10,
+        "amountPaisa": 4500,
+        "reason": "Kebab arrived cold",
+        "appliedBy": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+        "appliedByName": "Terrace Cashier",
+        "appliedAt": "2026-08-12T04:40:29.275271Z"
+      },
+      {
+        "id": "fa343f95-fa1e-4a54-8d6d-f4dfeb339e3c",
+        "scope": "ORDER",
+        "orderItemId": null,
+        "itemName": null,
+        "type": "PERCENT",
+        "value": 10,
+        "amountPaisa": 18550,
+        "reason": "Regular of twenty years",
+        "appliedBy": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+        "appliedByName": "Terrace Manager",
+        "appliedAt": "2026-08-12T04:40:43.217604Z"
+      }
+    ]
+  },
+  "managerBill": {
+    "subtotal": "Rs 1,900.00",
+    "discounts": "Rs 230.50",
+    "taxes": "Rs 308.50",
+    "total": "Rs 1,978.00",
+    "remaining": "Rs 1,978.00",
+    "hasAddDiscountButton": true,
+    "appliedDiscountText": "10% off Seekh Kebab Kebab arrived cold · Terrace Cashier -Rs 45.00 10% off the whole check Regular of twenty years · Terrace Manager -Rs 185.50",
+    "rawPermissionStringOnScreen": null
+  },
+  "moneyIdentityHolds": true,
+  "printedBill": {
+    "subtotal": null,
+    "discount": null,
+    "tax": "17.00",
+    "total": null,
+    "raw": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse Orders Order Receipt Floating Terrace HQ Search… ⌘K E Back Print a browser copy Printed on audit-receipt F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued. Floating Terrace HQ 12 Khayaban-e-Iqbal +92 21 4628872 Order ORD-20260812-0197 Issued 2026-08-12T04:40:47.313Z 1 x Seekh Kebab Rs 526.50 1 x Chicken Karahi Rs 1,682.00 Subtotal Rs 1,900.00 Discount Rs 230.50 Service charge Rs 0.00 Sales Tax (17.00%) Rs 76.50 Sales Tax (16.00%) Rs 232.00 Tax Rs 308.50 TOTAL Rs 1,97"
+  },
+  "settled": {
+    "status": "CLOSED",
+    "discountPaisa": 23050,
+    "totalPaisa": 197800
+  },
+  "takings": {
+    "gross": "Rs 26,017.00",
+    "discounts": "Rs 230.50",
+    "net": "Rs 25,786.50"
+  },
+  "report": {
+    "headers": [
+      "Business Date",
+      "Order No",
+      "Scope",
+      "Item Name",
+      "Discount Type",
+      "Discount Value",
+      "Amount Paisa",
+      "Reason",
+      "Applied By",
+      "Closed At"
+    ],
+    "firstRows": [
+      [
+        "2026-08-11T19:00:00.000Z",
+        "ORD-20260812-0197",
+        "LINE",
+        "Seekh Kebab",
+        "PERCENT",
+        "10",
+        "Rs 45.00",
+        "Kebab arrived cold",
+        "Terrace Cashier",
+        "2026-08-11T23:41:06.627Z"
+      ],
+      [
+        "2026-08-11T19:00:00.000Z",
+        "ORD-20260812-0197",
+        "ORDER",
+        "—",
+        "PERCENT",
+        "10",
+        "Rs 185.50",
+        "Regular of twenty years",
+        "Terrace Manager",
+        "2026-08-11T23:41:06.627Z"
+      ]
+    ],
+    "text": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Reports Discount Summary Floating Terrace HQ Search… ⌘K F ← All reports Discount Summary From To Business Date Order No Scope Item Name Discount Type Discount Value Amount Paisa Reason Applied By Closed At 2026-08-11T19:00:00.000Z ORD-20260812-0197 LINE Seekh Kebab PERCENT 10 Rs 45.00 Kebab arrived cold Terrace Cashier 2026-08-11T23:41:06.627Z 2026-08-11T19:00:00.000Z ORD-20260812-0197 ORDER — PERCENT 10 Rs 185.50 Regular of twenty years Terrace Manager 2026-08-11T23:41:06.627Z"
+  },
+  "reportApi": {
+    "status": 200,
+    "columns": [
+      "business_date",
+      "order_no",
+      "scope",
+      "item_name",
+      "discount_type",
+      "discount_value",
+      "amount_paisa",
+      "reason",
+      "applied_by",
+      "closed_at"
+    ],
+    "rowCount": 2,
+    "rows": [
+      {
+        "business_date": "2026-08-11T19:00:00.000Z",
+        "order_no": "ORD-20260812-0197",
+        "scope": "LINE",
+        "item_name": "Seekh Kebab",
+        "discount_type": "PERCENT",
+        "discount_value": 10,
+        "amount_paisa": 4500,
+        "reason": "Kebab arrived cold",
+        "applied_by": "Terrace Cashier",
+        "closed_at": "2026-08-11T23:41:06.627Z"
+      },
+      {
+        "business_date": "2026-08-11T19:00:00.000Z",
+        "order_no": "ORD-20260812-0197",
+        "scope": "ORDER",
+        "item_name": null,
+        "discount_type": "PERCENT",
+        "discount_value": 10,
+        "amount_paisa": 18550,
+        "reason": "Regular of twenty years",
+        "applied_by": "Terrace Manager",
+        "closed_at": "2026-08-11T23:41:06.627Z"
+      }
+    ]
+  },
+  "consoleErrors": {
+    "cashier": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ],
+    "manager": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ]
+  }
+}

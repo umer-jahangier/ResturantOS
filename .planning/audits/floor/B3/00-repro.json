@@ -1,0 +1,136 @@
+{
+  "cashierDiscountPerms": [
+    "pos.order.discount.line"
+  ],
+  "firedOrder": {
+    "orderNo": "ORD-20260812-0173",
+    "orderId": "bad4debc-1a8f-4a4a-8f7d-5ecea835ea7b"
+  },
+  "firedTotalsBefore": {
+    "status": "SENT_TO_KDS",
+    "subtotalPaisa": 99800,
+    "discountPaisa": 0,
+    "taxPaisa": 0,
+    "totalPaisa": 99800
+  },
+  "chargePageControls": {
+    "all": [
+      "Dashboard",
+      "POS",
+      "Customers",
+      "Collapse sidebar",
+      "Toggle mobile menu",
+      "Open command palette",
+      "Search",
+      "Switch to light mode",
+      "Open profile menu",
+      "Back",
+      "Payment method",
+      "Amount (Rs)",
+      "Reference number",
+      "Full amount",
+      "Tendered (Rs)",
+      "+50",
+      "+100",
+      "+500",
+      "+1,000",
+      "+5,000",
+      "Exact",
+      "+ Add tender",
+      "Record Payment",
+      "Orders"
+    ],
+    "discountish": [],
+    "hasDiscountWord": true,
+    "billBlock": "Subtotal Rs 998.00 Discounts Rs 0.00 Service charge Rs 0.00 Taxes Rs 0.00 Total Rs 998.00 Amount paid Rs 0.00 Remaining balance Rs 998.00"
+  },
+  "terminalControls": {
+    "all": [
+      "Dashboard",
+      "POS",
+      "Customers",
+      "Collapse sidebar",
+      "Toggle mobile menu",
+      "Open command palette",
+      "Search",
+      "Switch to light mode",
+      "Open profile menu",
+      "Close Till",
+      "POS Terminal",
+      "Floor View",
+      "Order Management",
+      "Search menu",
+      "All",
+      "Diag Cat 683566",
+      "Diag Cat 785508",
+      "Starters",
+      "Mains",
+      "Soft Drinks",
+      "Drinks",
+      "ZZ Till",
+      "Audit Item 52235Rs 499.00",
+      "Audit Item 60568Rs 499.00",
+      "Butter NaanRs 80.00",
+      "Chicken KarahiRs 1,450.00",
+      "Chicken SamosaRs 250.00",
+      "Fresh LimeRs 220.00",
+      "Mutton BiryaniRs 1,250.00",
+      "Photo Dish 50585Rs 725.00",
+      "PinacoladaRs 700.00",
+      "Seekh KebabRs 450.00",
+      "ZZ-01Rs 101.00",
+      "ZZ-02Rs 102.00",
+      "ZZ-03Rs 103.00",
+      "ZZ-04Rs 104.00",
+      "ZZ-05Rs 105.00",
+      "ZZ-06Rs 106.00",
+      "ZZ-07Rs 107.00",
+      "ZZ-08Rs 108.00"
+    ],
+    "discountish": [],
+    "hasDiscountWord": false,
+    "billBlock": null
+  },
+  "endpointMatrix": [
+    {
+      "who": "cashier",
+      "scope": "LINE",
+      "status": "SENT_TO_KDS",
+      "http": 409,
+      "msg": "Cannot apply discount to order in status: SENT_TO_KDS"
+    },
+    {
+      "who": "cashier",
+      "scope": "ORDER",
+      "status": "SENT_TO_KDS",
+      "http": 409,
+      "msg": "Cannot apply discount to order in status: SENT_TO_KDS"
+    },
+    {
+      "who": "manager",
+      "scope": "LINE",
+      "status": "SENT_TO_KDS",
+      "http": 409,
+      "msg": "Cannot apply discount to order in status: SENT_TO_KDS"
+    },
+    {
+      "who": "manager",
+      "scope": "ORDER",
+      "status": "SENT_TO_KDS",
+      "http": 409,
+      "msg": "Cannot apply discount to order in status: SENT_TO_KDS"
+    }
+  ],
+  "lineOnOpen": {
+    "http": 503,
+    "before": {
+      "subtotalPaisa": 99800,
+      "discountPaisa": 0,
+      "taxPaisa": 0,
+      "totalPaisa": 99800
+    },
+    "after": {},
+    "expectedDiscountPaisa": 9980
+  },
+  "reasonAccepted": 503
+}

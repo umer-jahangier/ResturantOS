@@ -1,0 +1,89 @@
+{
+  "orderNo": "ORD-20260812-0197",
+  "viewports": {
+    "light-390": {
+      "controlPresent": true,
+      "panel": true,
+      "panelBg": "oklch(1 0 195)",
+      "panelColor": "oklch(0.168 0.006 195)",
+      "panelWidth": 324,
+      "overflowsViewport": false,
+      "bodyScrollsSideways": false,
+      "submitBg": "oklch(0.512 0.0873 195)",
+      "submitColor": "oklch(1 0 195)",
+      "submitTapHeight": 44,
+      "reasonBoxHeight": 58,
+      "validationText": "Choose which item on the check the discount comes off."
+    },
+    "light-768": {
+      "controlPresent": true,
+      "panel": true,
+      "panelBg": "oklch(1 0 195)",
+      "panelColor": "oklch(0.168 0.006 195)",
+      "panelWidth": 446,
+      "overflowsViewport": false,
+      "bodyScrollsSideways": false,
+      "submitBg": "oklch(0.512 0.0873 195)",
+      "submitColor": "oklch(1 0 195)",
+      "submitTapHeight": 44,
+      "reasonBoxHeight": 58,
+      "validationText": "Choose which item on the check the discount comes off."
+    },
+    "light-1440": {
+      "controlPresent": true,
+      "panel": true,
+      "panelBg": "oklch(1 0 195)",
+      "panelColor": "oklch(0.168 0.006 195)",
+      "panelWidth": 522,
+      "overflowsViewport": false,
+      "bodyScrollsSideways": false,
+      "submitBg": "oklch(0.512 0.0873 195)",
+      "submitColor": "oklch(1 0 195)",
+      "submitTapHeight": 44,
+      "reasonBoxHeight": 58,
+      "validationText": "Choose which item on the check the discount comes off."
+    },
+    "dark-390": {
+      "controlPresent": true,
+      "panel": true,
+      "panelBg": "oklch(0.132 0.006 195)",
+      "panelColor": "oklch(0.985 0.002 195)",
+      "panelWidth": 324,
+      "overflowsViewport": false,
+      "bodyScrollsSideways": false,
+      "submitBg": "oklch(0.775 0.104 195)",
+      "submitColor": "oklch(0.132 0.006 195)",
+      "submitTapHeight": 44,
+      "reasonBoxHeight": 58,
+      "validationText": "Choose which item on the check the discount comes off."
+    },
+    "dark-768": {
+      "controlPresent": true,
+      "panel": true,
+      "panelBg": "oklch(0.132 0.006 195)",
+      "panelColor": "oklch(0.985 0.002 195)",
+      "panelWidth": 446,
+      "overflowsViewport": false,
+      "bodyScrollsSideways": false,
+      "submitBg": "oklch(0.775 0.104 195)",
+      "submitColor": "oklch(0.132 0.006 195)",
+      "submitTapHeight": 44,
+      "reasonBoxHeight": 58,
+      "validationText": "Choose which item on the check the discount comes off."
+    },
+    "dark-1440": {
+      "controlPresent": true,
+      "panel": true,
+      "panelBg": "oklch(0.132 0.006 195)",
+      "panelColor": "oklch(0.985 0.002 195)",
+      "panelWidth": 522,
+      "overflowsViewport": false,
+      "bodyScrollsSideways": false,
+      "submitBg": "oklch(0.775 0.104 195)",
+      "submitColor": "oklch(0.132 0.006 195)",
+      "submitTapHeight": 44,
+      "reasonBoxHeight": 58,
+      "validationText": "Choose which item on the check the discount comes off."
+    }
+  }
+}
