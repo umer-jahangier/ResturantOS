@@ -1,0 +1,589 @@
+{
+  "cashierPosPerms": [
+    "pos.menu.view",
+    "pos.order.close",
+    "pos.order.create",
+    "pos.order.discount.line",
+    "pos.order.send_to_kds",
+    "pos.order.update",
+    "pos.order.view",
+    "pos.order.void.own",
+    "pos.tables.manage",
+    "pos.till.close",
+    "pos.till.open"
+  ],
+  "cashierHasRefund": false,
+  "orderNo": "ORD-20260812-0253",
+  "orderId": "28a4fea5-836c-430b-a308-4014c0094f6c",
+  "totalPaisa": 99800,
+  "paidUi": {
+    "err": null,
+    "paid": null,
+    "rows": [
+      "CASH Aug 12, 2026, 10:25 AM Rs 998.00"
+    ]
+  },
+  "payments": [
+    {
+      "id": "dc783bad-ec41-4756-b41c-6acfff25cf37",
+      "method": "CASH",
+      "amountPaisa": 99800,
+      "tenderedPaisa": 99800,
+      "changePaisa": 0,
+      "referenceNo": null,
+      "recordedAt": "2026-08-12T05:25:40.634746Z",
+      "kind": "PAYMENT"
+    }
+  ],
+  "amountPaidPaisa": 99800,
+  "serverRow": {
+    "orderId": "28a4fea5-836c-430b-a308-4014c0094f6c",
+    "orderNo": "ORD-20260812-0253",
+    "tableId": null,
+    "tableName": null,
+    "type": "TAKEAWAY",
+    "derivedStatus": "IN_PROGRESS",
+    "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+    "cashierName": "Terrace Cashier",
+    "coverCount": 1,
+    "totalPaisa": 99800,
+    "openedAt": "2026-08-12T05:25:26.285901Z",
+    "settlementStatus": "SENT_TO_KDS",
+    "paymentStatus": "PAID",
+    "amountPaidPaisa": 99800,
+    "itemQuantity": 2,
+    "distinctItemCount": 2,
+    "settlement": null
+  },
+  "cashierView": {
+    "notice": "Paid — void unavailable. A manager must refund this check.",
+    "buttons": [
+      {
+        "text": "1 revision",
+        "aria": "1 revision"
+      },
+      {
+        "text": "",
+        "aria": "Refresh order details"
+      },
+      {
+        "text": "",
+        "aria": "Close order details"
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 52235 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 60568 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "+ Add note",
+        "aria": null
+      },
+      {
+        "text": "Full Menu",
+        "aria": null
+      },
+      {
+        "text": "CHARGE NOW",
+        "aria": null
+      },
+      {
+        "text": "Reprint kitchen ticket",
+        "aria": null
+      }
+    ],
+    "refundTrigger": false,
+    "voidTrigger": false
+  },
+  "managerHasRefund": true,
+  "managerView": {
+    "notice": "Paid — void unavailable. Use Refund.",
+    "buttons": [
+      {
+        "text": "1 revision",
+        "aria": "1 revision"
+      },
+      {
+        "text": "",
+        "aria": "Refresh order details"
+      },
+      {
+        "text": "",
+        "aria": "Close order details"
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 52235 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 60568 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "+ Add note",
+        "aria": null
+      },
+      {
+        "text": "Full Menu",
+        "aria": null
+      },
+      {
+        "text": "CHARGE NOW",
+        "aria": null
+      },
+      {
+        "text": "Refund",
+        "aria": "Refund order"
+      },
+      {
+        "text": "Reprint kitchen ticket",
+        "aria": null
+      }
+    ],
+    "refundTrigger": true,
+    "voidTrigger": false
+  },
+  "dmCashierLive": {
+    "notice": "Paid — void unavailable. A manager must refund this check.",
+    "buttons": [
+      {
+        "text": "1 revision",
+        "aria": "1 revision"
+      },
+      {
+        "text": "",
+        "aria": "Refresh order details"
+      },
+      {
+        "text": "",
+        "aria": "Close order details"
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 52235 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 60568 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "+ Add note",
+        "aria": null
+      },
+      {
+        "text": "Full Menu",
+        "aria": null
+      },
+      {
+        "text": "CHARGE NOW",
+        "aria": null
+      },
+      {
+        "text": "Reprint kitchen ticket",
+        "aria": null
+      }
+    ],
+    "refundTrigger": false,
+    "voidTrigger": false
+  },
+  "dmCashierClosed": {
+    "notice": "Paid — a manager must refund this check.",
+    "buttons": [
+      {
+        "text": "1 revision",
+        "aria": "1 revision"
+      },
+      {
+        "text": "",
+        "aria": "Refresh order details"
+      },
+      {
+        "text": "",
+        "aria": "Close order details"
+      },
+      {
+        "text": "+ Add note",
+        "aria": null
+      },
+      {
+        "text": "Reprint kitchen ticket",
+        "aria": null
+      }
+    ],
+    "refundTrigger": false,
+    "voidTrigger": false
+  },
+  "dmClosedStatus": null,
+  "dmFit768": {
+    "text": "Paid — a manager must refund this check.",
+    "visible": true,
+    "right": 727,
+    "viewport": 768,
+    "overflowsViewport": false,
+    "color": "oklch(0.508 0.01 195)",
+    "fontSize": "12px",
+    "docScrollsX": false
+  },
+  "dmFit390": {
+    "text": "Paid — a manager must refund this check.",
+    "visible": true,
+    "right": 357,
+    "viewport": 390,
+    "overflowsViewport": false,
+    "color": "oklch(0.508 0.01 195)",
+    "fontSize": "12px",
+    "docScrollsX": false
+  },
+  "dmManager": {
+    "notice": null,
+    "buttons": [
+      {
+        "text": "1 revision",
+        "aria": "1 revision"
+      },
+      {
+        "text": "",
+        "aria": "Refresh order details"
+      },
+      {
+        "text": "",
+        "aria": "Close order details"
+      },
+      {
+        "text": "+ Add note",
+        "aria": null
+      },
+      {
+        "text": "Refund",
+        "aria": "Refund order"
+      },
+      {
+        "text": "Reprint kitchen ticket",
+        "aria": null
+      }
+    ],
+    "refundTrigger": true,
+    "voidTrigger": false
+  },
+  "dmManagerLive": {
+    "notice": "Paid — void unavailable. Use Refund.",
+    "buttons": [
+      {
+        "text": "1 revision",
+        "aria": "1 revision"
+      },
+      {
+        "text": "",
+        "aria": "Refresh order details"
+      },
+      {
+        "text": "",
+        "aria": "Close order details"
+      },
+      {
+        "text": "Mark Served",
+        "aria": "Mark Audit Item 52235 served"
+      },
+      {
+        "text": "Cancel",
+        "aria": null
+      },
+      {
+        "text": "+ Add note",
+        "aria": null
+      },
+      {
+        "text": "Full Menu",
+        "aria": null
+      },
+      {
+        "text": "CHARGE NOW",
+        "aria": "Charge order"
+      },
+      {
+        "text": "Refund",
+        "aria": "Refund order"
+      },
+      {
+        "text": "Reprint kitchen ticket",
+        "aria": null
+      }
+    ],
+    "refundTrigger": true,
+    "voidTrigger": false
+  },
+  "dmManagerOrderNo": "ORD-20260812-0243",
+  "dmFails": [
+    "could not ring a manager-side check for the live-paid comparison :: "
+  ],
+  "dmOrderNo": "ORD-20260812-0252",
+  "closedOrderNo": "ORD-20260812-0249",
+  "closedOrderId": "e706960c-a40c-4286-bc65-b588b955ad87",
+  "closedStatus": null,
+  "closedCashierView": {
+    "notice": null,
+    "buttons": [
+      {
+        "text": "Collapse",
+        "aria": "Collapse sidebar"
+      },
+      {
+        "text": "",
+        "aria": "Toggle mobile menu"
+      },
+      {
+        "text": "Search…⌘K",
+        "aria": "Open command palette"
+      },
+      {
+        "text": "",
+        "aria": "Search"
+      },
+      {
+        "text": "",
+        "aria": "Switch to light mode"
+      },
+      {
+        "text": "E",
+        "aria": "Open profile menu"
+      },
+      {
+        "text": "POS Terminal",
+        "aria": null
+      },
+      {
+        "text": "Floor View",
+        "aria": null
+      },
+      {
+        "text": "Order Management",
+        "aria": null
+      },
+      {
+        "text": "Active",
+        "aria": null
+      },
+      {
+        "text": "Draft",
+        "aria": null
+      },
+      {
+        "text": "In Progress",
+        "aria": null
+      },
+      {
+        "text": "Partially Served",
+        "aria": null
+      },
+      {
+        "text": "Served",
+        "aria": null
+      },
+      {
+        "text": "Closed",
+        "aria": null
+      },
+      {
+        "text": "Paid",
+        "aria": null
+      },
+      {
+        "text": "Voided",
+        "aria": null
+      },
+      {
+        "text": "Refunded",
+        "aria": null
+      },
+      {
+        "text": "Refresh",
+        "aria": "Refresh orders"
+      },
+      {
+        "text": "Try again",
+        "aria": null
+      }
+    ],
+    "refundTrigger": false,
+    "voidTrigger": false
+  },
+  "closedManagerView": {
+    "notice": null,
+    "buttons": [
+      {
+        "text": "Floating Terrace HQ",
+        "aria": "Switch branch"
+      },
+      {
+        "text": "Collapse",
+        "aria": "Collapse sidebar"
+      },
+      {
+        "text": "",
+        "aria": "Toggle mobile menu"
+      },
+      {
+        "text": "Search…⌘K",
+        "aria": "Open command palette"
+      },
+      {
+        "text": "",
+        "aria": "Search"
+      },
+      {
+        "text": "",
+        "aria": "Switch to light mode"
+      },
+      {
+        "text": "F",
+        "aria": "Open profile menu"
+      },
+      {
+        "text": "POS Terminal",
+        "aria": null
+      },
+      {
+        "text": "Floor View",
+        "aria": null
+      },
+      {
+        "text": "Order Management",
+        "aria": null
+      },
+      {
+        "text": "Active",
+        "aria": null
+      },
+      {
+        "text": "Draft",
+        "aria": null
+      },
+      {
+        "text": "In Progress",
+        "aria": null
+      },
+      {
+        "text": "Partially Served",
+        "aria": null
+      },
+      {
+        "text": "Served",
+        "aria": null
+      },
+      {
+        "text": "Closed",
+        "aria": null
+      },
+      {
+        "text": "Paid",
+        "aria": null
+      },
+      {
+        "text": "Voided",
+        "aria": null
+      },
+      {
+        "text": "Refunded",
+        "aria": null
+      },
+      {
+        "text": "My Orders",
+        "aria": null
+      },
+      {
+        "text": "All Branch",
+        "aria": null
+      },
+      {
+        "text": "Refresh",
+        "aria": "Refresh orders"
+      },
+      {
+        "text": "Try again",
+        "aria": null
+      }
+    ],
+    "refundTrigger": false,
+    "voidTrigger": false
+  },
+  "closedFails": [
+    "the check really is CLOSED on the server :: null",
+    "the cashier is told something at all (this used to be an empty row) :: ",
+    "and it names a manager :: ",
+    "the manager can still refund the closed check :: false"
+  ],
+  "closeProbe": {
+    "screen": {
+      "err": "The service is temporarily unavailable. Please try again later.",
+      "chip": null,
+      "alerts": [
+        "The service is temporarily unavailable. Please try again later."
+      ],
+      "toasts": [],
+      "btnNow": {
+        "text": "Mark served & close order",
+        "disabled": false
+      }
+    },
+    "net": [
+      {
+        "m": "POST",
+        "s": 503,
+        "u": "/api/v1/pos/orders/4e7f435c-bb26-41e8-a0d4-7808dcd65f29/serve-all"
+      },
+      {
+        "m": "GET",
+        "s": 200,
+        "u": "/api/v1/pos/orders/4e7f435c-bb26-41e8-a0d4-7808dcd65f29?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      },
+      {
+        "m": "GET",
+        "s": 503,
+        "u": "/api/v1/pos/orders/4e7f435c-bb26-41e8-a0d4-7808dcd65f29"
+      }
+    ]
+  },
+  "themeLight": {
+    "theme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased light",
+    "text": "Paid — void unavailable. A manager must refund this check.",
+    "color": "oklch(0.508 0.01 195)",
+    "fontSize": "12px",
+    "bg": "oklch(1 0 195)",
+    "contrast": 5.8
+  },
+  "themeDark": {
+    "theme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased dark",
+    "text": "Paid — void unavailable. A manager must refund this check.",
+    "color": "oklch(0.74 0.01 195)",
+    "fontSize": "12px",
+    "bg": "oklch(0.168 0.006 195)",
+    "contrast": 8.35
+  }
+}

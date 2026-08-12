@@ -3,9 +3,20 @@
 import { useState } from "react";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useVoidOrder, useRefundOrder, useOrderPayments } from "@/lib/hooks/pos/use-payments";
 import type { Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
+
+/*
+ * F13 — the ONE place this permission code is written down in this file.
+ *
+ * The notice below tells the reader who can refund, and the guard below decides whether the
+ * Refund button is rendered. When those two read different codes they drift, and the drift is
+ * silent: the screen goes back to instructing a cashier to press a button they cannot see. One
+ * constant, consumed by both, is what makes the copy structurally unable to lie.
+ */
+const REFUND_PERMISSION = "pos.order.refund";
 
 interface VoidRefundDialogProps {
   order: Order;
@@ -78,6 +89,32 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
   // would simply be missing and the operator would be left guessing.
   const showPaidInsteadOfVoid = voidableStatus && hasMoneyOnIt;
 
+  /*
+   * F13 — the notice has to know who is reading it.
+   *
+   * It used to say "Paid — void unavailable. Use Refund." to everyone, while the Refund button
+   * sat behind `pos.order.refund`, which a cashier does not hold. Driven in Chromium on
+   * ORD-20260812-0221: the cashier read that sentence with `refundTrigger: false` — an
+   * instruction to press a control that is not on the screen, and no hint that this is a job
+   * for someone else. The manager, same check, read the same sentence WITH the button.
+   *
+   * The permission is not widened: a refund moves money out of the drawer and stays a manager's
+   * decision. What changes is that the sentence stops pretending otherwise and names who can.
+   */
+  const { permissions } = useCurrentUser();
+  const readerCanRefund = permissions.includes(REFUND_PERMISSION);
+  // A second case the old copy left blank rather than wrong: a settled check (CLOSED, so no
+  // void was ever on offer) still holds money, and a cashier looking at it got an empty action
+  // row — no button, no sentence, nothing to tell them a refund exists or who does it.
+  const showRefundNeedsManager = canRefund && !readerCanRefund;
+  const paidNotice = showPaidInsteadOfVoid
+    ? readerCanRefund
+      ? "Paid — void unavailable. Use Refund."
+      : "Paid — void unavailable. A manager must refund this check."
+    : showRefundNeedsManager
+      ? "Paid — a manager must refund this check."
+      : null;
+
   const closePanel = () => {
     setOpen(false);
     setVoidReason("");
@@ -112,7 +149,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     onDone?.();
   };
 
-  const hasAnyAction = canVoidOwn || canRefund || showPaidInsteadOfVoid;
+  const hasAnyAction = canVoidOwn || canRefund || paidNotice !== null;
 
   if (!hasAnyAction) return null;
 
@@ -296,19 +333,23 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
       {/*
         S0-01: an absent control with no explanation is how the operator ends up hunting for a
         way to cancel and finding a destructive one. Say the reason, in place, where the Void
-        button was. Not permission-guarded — it states a fact about the ORDER, and hiding it
-        from someone without void rights would only make the missing button more mysterious.
+        button was. Still not permission-guarded — it states a fact about the ORDER, and hiding
+        it from someone without void rights would only make the missing button more mysterious.
+
+        F13: what it SAYS is now chosen by what the reader can actually do, so the sentence and
+        the controls beside it always describe the same screen.
       */}
-      {showPaidInsteadOfVoid && (
+      {paidNotice && (
         <span
           data-testid="void-blocked-paid-notice"
+          data-reader-can-refund={readerCanRefund ? "true" : "false"}
           className="text-xs text-muted-foreground"
         >
-          Paid — void unavailable. Use Refund.
+          {paidNotice}
         </span>
       )}
 
-      <PermissionGuard require="pos.order.refund">
+      <PermissionGuard require={REFUND_PERMISSION}>
         {canRefund && (
           <button
             onClick={() => {
