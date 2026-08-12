@@ -1,0 +1,773 @@
+{
+  "recon": {
+    "manager": {
+      "sub": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "tenantId": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "perms": [
+        "pos.till.close",
+        "pos.till.open",
+        "pos.till.open.other",
+        "pos.till.reconcile.override",
+        "pos.till.review"
+      ]
+    },
+    "cashiersEndpoint": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "userId": "4b9941f7-ae70-431a-8c63-ec61032f7a30",
+            "name": "F11 Cashier 807971",
+            "email": "f11.cashier.807971@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": true
+          },
+          {
+            "userId": "76676e49-2138-41e1-bc77-55bd9e33e51d",
+            "name": "F11 Final 326886",
+            "email": "f11.final.326886@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e52a0b15-e8a7-4521-b70c-6108f3be08b0",
+            "name": "F11 Final 453158",
+            "email": "f11.final.453158@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "4fdc85ef-b1fc-4276-aedd-c998230e9786",
+            "name": "F11 Final 664573",
+            "email": "f11.final.664573@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": true
+          },
+          {
+            "userId": "0a6cab67-c212-4c4d-9feb-0157ee3faa15",
+            "name": "F12 Hire 152838",
+            "email": "f12.hire.152838@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "0f49f56b-fe53-430a-ae51-a0219201d611",
+            "name": "F12 Hire 251194",
+            "email": "f12.hire.251194@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f4abc7be-859d-4b4e-8a3c-90f72a908a74",
+            "name": "F12 Hire 443122",
+            "email": "f12.hire.443122@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "2373379a-fc8b-401c-929b-8e80bdcda2b2",
+            "name": "F12 Hire 557712",
+            "email": "f12.hire.557712@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "40f01687-0976-4210-b269-6b477403d23c",
+            "name": "F12 Hire 558887",
+            "email": "f12.hire.558887@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "36c425c4-9056-44d1-b8da-bd3f3951869e",
+            "name": "F12 Hire 730873",
+            "email": "f12.hire.730873@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "a6d88a31-83c6-4837-aa94-de417de208e6",
+            "name": "F12 Hire 775503",
+            "email": "f12.hire.775503@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "65b2d6e6-a1ad-43d2-8a32-c52b363bfe5c",
+            "name": "F12 Hire 830529",
+            "email": "f12.hire.830529@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "218ab179-93a4-4fe5-812b-e381776e985f",
+            "name": "F12 Hire 841199",
+            "email": "f12.hire.841199@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f3d03839-bcdf-4e52-8e17-08703485b4fa",
+            "name": "F12 Hire 991899",
+            "email": "f12.hire.991899@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "3444a172-ecdd-4559-b65c-2d5b6bc77352",
+            "name": "f12.state.143281@terrace.local",
+            "email": "f12.state.143281@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f7afe20a-a628-493c-81b2-70b599b9c90a",
+            "name": "f12.state.337752@terrace.local",
+            "email": "f12.state.337752@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "225e2025-81e0-4537-9bd6-f15fff9ac62a",
+            "name": "f12.sweep.152838@terrace.local",
+            "email": "f12.sweep.152838@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "1de8ad1e-5ad2-4fc5-b4a2-694e1f25cb82",
+            "name": "f12.sweep.251194@terrace.local",
+            "email": "f12.sweep.251194@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f8d77893-319a-4ceb-b960-ad46b18af5a7",
+            "name": "f12.sweep.557712@terrace.local",
+            "email": "f12.sweep.557712@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "3876b6d4-5481-4f98-9460-f6a27ae1b192",
+            "name": "f12.sweep.558887@terrace.local",
+            "email": "f12.sweep.558887@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "26ea373b-649c-4887-b7a9-d8891674e3e6",
+            "name": "f12.sweep.730873@terrace.local",
+            "email": "f12.sweep.730873@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "9ff76963-8abb-43b2-8cb0-a95c0e31e2db",
+            "name": "f12.sweep.991899@terrace.local",
+            "email": "f12.sweep.991899@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "99f5b959-60cd-4f4a-9a62-509b34ca2795",
+            "name": "F19 err 168168",
+            "email": "f19.err.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "5db12f9d-0328-49c8-be4f-5351334ccecb",
+            "name": "F19 err 285372",
+            "email": "f19.err.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e44b4570-3761-4930-b82d-795453236ee7",
+            "name": "F19 err 589511",
+            "email": "f19.err.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "a29ba287-6c00-46bc-9258-79dbe7e488a1",
+            "name": "F19 errx1 976609",
+            "email": "f19.errx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "14135f71-4c10-4aa9-926a-abcd05389a11",
+            "name": "F19 Hire 438806",
+            "email": "f19.hire.438806@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "bb1e5d09-8e7f-4764-920c-e18b4840b51b",
+            "name": "F19 load1440dark 168168",
+            "email": "f19.load1440dark.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e562fb53-4015-4575-bd14-8d44f059f496",
+            "name": "F19 load1440dark 285372",
+            "email": "f19.load1440dark.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e0223a59-c9bc-4f74-aeeb-8f882ea91b24",
+            "name": "F19 load1440dark 455604",
+            "email": "f19.load1440dark.455604@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "9e732f18-2237-4766-8ed4-8595ad42bf6b",
+            "name": "F19 load1440dark 589511",
+            "email": "f19.load1440dark.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "d11a075e-0b3e-4346-a88f-cdecc7bad36a",
+            "name": "F19 load1440darkx1 976609",
+            "email": "f19.load1440darkx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "c3b4e477-2a0f-4bc3-8e6f-e2b5978e798b",
+            "name": "F19 load1440light 156292",
+            "email": "f19.load1440light.156292@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "531c6097-362d-45ce-a8f1-e34eec66100d",
+            "name": "F19 load1440light 168168",
+            "email": "f19.load1440light.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "b153e4b7-b50b-4b61-9764-283f66059370",
+            "name": "F19 load1440light 285372",
+            "email": "f19.load1440light.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "35cae96c-a660-4335-94de-d966246eb375",
+            "name": "F19 load1440light 455604",
+            "email": "f19.load1440light.455604@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "fffa9181-c877-47ca-8b24-ac0520829a99",
+            "name": "F19 load1440light 589511",
+            "email": "f19.load1440light.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "bb8538b3-b0ae-4055-badc-f616a2d603bc",
+            "name": "F19 load1440lightx1 976609",
+            "email": "f19.load1440lightx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f3bb5f03-eaac-4cb5-b3f1-32f012452fcc",
+            "name": "F19 load390dark 168168",
+            "email": "f19.load390dark.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f1b85919-b6c7-4442-8228-dc5c2adb3278",
+            "name": "F19 load390dark 285372",
+            "email": "f19.load390dark.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "ab7a195a-2a2d-49dc-ae00-51db5f07869a",
+            "name": "F19 load390dark 455604",
+            "email": "f19.load390dark.455604@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "64045439-89c5-4a1f-baee-e4aeecab9e3d",
+            "name": "F19 load390dark 589511",
+            "email": "f19.load390dark.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e501ded7-3e4c-4331-a82f-483e4f93f852",
+            "name": "F19 load390darkx1 976609",
+            "email": "f19.load390darkx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "3b7d8d59-85c5-45cf-b288-f03727e8054b",
+            "name": "F19 load390light 156292",
+            "email": "f19.load390light.156292@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "16b3c26e-6f6d-4a79-bffd-65378a344ac8",
+            "name": "F19 load390light 168168",
+            "email": "f19.load390light.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "486c2584-3474-4e1a-8407-c7f5850562b0",
+            "name": "F19 load390light 285372",
+            "email": "f19.load390light.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "47af84ef-e5c0-4b2e-a1d2-cc8ae33781e5",
+            "name": "F19 load390light 455604",
+            "email": "f19.load390light.455604@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e87b7a43-b699-4e78-b27b-ee0c404a3ee9",
+            "name": "F19 load390light 589511",
+            "email": "f19.load390light.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "08a355d6-76ce-4786-9088-d990212eb90b",
+            "name": "F19 load390lightx1 976609",
+            "email": "f19.load390lightx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "db7d7fd5-ba50-4764-8980-8cef7e956f33",
+            "name": "F19 load768dark 168168",
+            "email": "f19.load768dark.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "5e155a83-1678-410a-96b7-9896909c434f",
+            "name": "F19 load768dark 285372",
+            "email": "f19.load768dark.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "d7ac3346-46e2-4671-afde-6e25d172961b",
+            "name": "F19 load768dark 455604",
+            "email": "f19.load768dark.455604@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "70193087-c9c1-4dff-8e1f-8e7fd2b053db",
+            "name": "F19 load768dark 589511",
+            "email": "f19.load768dark.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "fbc8dc4a-c1e4-40ba-a2a2-a372d9a27cd5",
+            "name": "F19 load768darkx1 976609",
+            "email": "f19.load768darkx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "80430a18-f8a8-44ab-ac92-7877620cf3fc",
+            "name": "F19 load768light 156292",
+            "email": "f19.load768light.156292@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "7ea735dc-ef84-4754-838d-27ffe1ed4cb5",
+            "name": "F19 load768light 168168",
+            "email": "f19.load768light.168168@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "4c5dc6bd-776e-45ce-b23f-a72c45e342a2",
+            "name": "F19 load768light 285372",
+            "email": "f19.load768light.285372@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "48f2b24a-ff66-44c9-87f5-ba9ab600a049",
+            "name": "F19 load768light 455604",
+            "email": "f19.load768light.455604@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "bbb43b43-54c0-4e09-a98e-91ac5bbc472f",
+            "name": "F19 load768light 589511",
+            "email": "f19.load768light.589511@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "c591cf30-5db1-44a1-a29a-5a4f9059ff09",
+            "name": "F19 load768lightx1 976609",
+            "email": "f19.load768lightx1.976609@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "43fad08e-bb22-4709-9bdf-4c744e3134af",
+            "name": "F19 Prove 034836",
+            "email": "f19.prove.034836@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "701e3e20-a91e-4a8e-858e-830e45fc9279",
+            "name": "F19 Prove 094463",
+            "email": "f19.prove.094463@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f43e0cee-7b9d-432a-98e7-c4812db24094",
+            "name": "F19 Prove 413900",
+            "email": "f19.prove.413900@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "fa825509-9d6c-4c53-94e0-4488bf1cbdbe",
+            "name": "F19 Prove 951415",
+            "email": "f19.prove.951415@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "1f08cd1e-13cb-419e-9f92-7328e038c3bf",
+            "name": "f19v.cash.598747@terrace.local",
+            "email": "f19v.cash.598747@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "61334688-6b5c-4926-ac82-e93208ba5324",
+            "name": "owner@terrace.local",
+            "email": "owner@terrace.local",
+            "roleCode": "OWNER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "c15107c4-9175-44ab-977f-18fbaf7be1f6",
+            "name": "Probe Nineteen Renamed",
+            "email": "probe19-1786095561@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "159edc08-a178-49a9-bc68-11f4edd3f3dc",
+            "name": "Reopen F11 075600",
+            "email": "reopen.f11.075600@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "184cb63a-0cd2-460b-9527-cbec76b8de60",
+            "name": "Reopen F11 155191",
+            "email": "reopen.f11.155191@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "9446a694-7acb-4850-92aa-a9c29360e8dd",
+            "name": "Reopen F11 209790",
+            "email": "reopen.f11.209790@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "d2c99d25-de2d-432b-b234-7c3e24c2a3fe",
+            "name": "Reopen F11 462969",
+            "email": "reopen.f11.462969@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "58f90d51-2d02-4883-9748-b7717aa29c7b",
+            "name": "S2 Blame Subject",
+            "email": "s2.blame.1786514963792@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "ba045a7a-d760-4975-9eb3-ca9319ac4e0f",
+            "name": "S2 Blame Subject",
+            "email": "s2.blame.1786515033201@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "300ba63e-e9d2-4f26-9c50-88f3ac9dddd0",
+            "name": "S2 Ceiling Fixture",
+            "email": "s2.ceiling.1786512791197@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "146b5438-a493-483a-9125-28c646c6ccd5",
+            "name": "S2 Recheck",
+            "email": "s2.recheck.1786515917421@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "86e4d0df-f294-45ca-92e5-f2179bf25aef",
+            "name": "S2 Responsive Subject",
+            "email": "s2.resp.1786515058906@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "c5b09380-97eb-472d-93d9-0a1c6938f914",
+            "name": "S2 Responsive Subject",
+            "email": "s2.resp.1786514807770@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "d56ca922-9412-46e3-8c3e-3ecec43eac64",
+            "name": "S2 Responsive Subject",
+            "email": "s2.resp.1786514882143@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "16cc329c-a043-4680-9714-4abbab8fa252",
+            "name": "S2 Revoke Subject",
+            "email": "s2.revoke.1786514563102@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "c0678bf5-57b8-477a-a880-2442d7c4c951",
+            "name": "S2 Revoke Subject",
+            "email": "s2.revoke.1786515195295@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "6754f306-a684-409a-90e7-d948fd78898f",
+            "name": "Shift Cashier 900435",
+            "email": "shift.cashier.900435@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+            "name": "Shift Cashier 984155",
+            "email": "shift.cashier.984155@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "9b1d4c3a-7466-47b7-9acc-15f18aade31e",
+            "name": "Terrace Admin",
+            "email": "admin@terrace.local",
+            "roleCode": "TENANT_ADMIN",
+            "hasOpenTill": true
+          },
+          {
+            "userId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+            "name": "Terrace Cashier",
+            "email": "cashier@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": true
+          },
+          {
+            "userId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+            "name": "Terrace Manager",
+            "email": "manager@terrace.local",
+            "roleCode": "MANAGER",
+            "hasOpenTill": true
+          },
+          {
+            "userId": "bfcd4b3c-9d0d-48ac-a087-99e44d2e5b55",
+            "name": "V12b Hire 536639",
+            "email": "v12b.hire.536639@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "11a78821-8ad5-48f5-beef-f1009beb0cd0",
+            "name": "V12c Hire 760140",
+            "email": "v12c.hire.760140@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "5c451012-b7a8-49a9-8539-f19a78c7f1d1",
+            "name": "V12c Hire 840715",
+            "email": "v12c.hire.840715@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "e2f13d00-cd01-4c3b-9664-1347afeea143",
+            "name": "V12d Hire 100723",
+            "email": "v12d.hire.100723@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "8e5273b8-013a-4d1a-abba-c815919c5149",
+            "name": "V12d Hire 630880",
+            "email": "v12d.hire.630880@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "f3d7dac7-0427-4853-b997-5c03c442887c",
+            "name": "V12d Hire 975496",
+            "email": "v12d.hire.975496@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          },
+          {
+            "userId": "0995097e-4307-4b99-a1c6-23ffc7026437",
+            "name": "V12 Hire 348164",
+            "email": "v12.hire.348164@terrace.local",
+            "roleCode": "CASHIER",
+            "hasOpenTill": false
+          }
+        ],
+        "meta": null,
+        "warnings": []
+      }
+    },
+    "branchTills": {
+      "status": 200,
+      "rows": [
+        {
+          "id": "61ab4a24-363b-4a21-bf0f-f8ba87befc6d",
+          "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "cashierName": "Shift Cashier 984155",
+          "status": "CLOSED",
+          "float": 431750
+        },
+        {
+          "id": "2633e288-561d-4e1d-b365-5d3abfbc1baf",
+          "cashierId": "d2c99d25-de2d-432b-b234-7c3e24c2a3fe",
+          "cashierName": "Reopen F11 462969",
+          "status": "CLOSED",
+          "float": 500000
+        },
+        {
+          "id": "b17269cb-a019-43d4-8738-afc4f12bdd11",
+          "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "cashierName": "Shift Cashier 984155",
+          "status": "CLOSED",
+          "float": 300000
+        },
+        {
+          "id": "7d01d1ff-6a1c-4d18-9530-8979ddd0e6a1",
+          "cashierId": "4fdc85ef-b1fc-4276-aedd-c998230e9786",
+          "cashierName": "F11 Final 664573",
+          "status": "OPEN",
+          "float": 500000
+        },
+        {
+          "id": "4191dc24-5741-49a1-b803-e8bde5f921d0",
+          "cashierId": "4b9941f7-ae70-431a-8c63-ec61032f7a30",
+          "cashierName": "F11 Cashier 807971",
+          "status": "OPEN",
+          "float": 500000
+        },
+        {
+          "id": "ae93ba15-bcc8-4c7a-b955-c30c5673b558",
+          "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+          "cashierName": "Terrace Cashier",
+          "status": "OPEN",
+          "float": 500000
+        },
+        {
+          "id": "d0a238df-6afb-479e-86ee-a841fa02bd14",
+          "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "cashierName": "Shift Cashier 984155",
+          "status": "CLOSED",
+          "float": 500000
+        },
+        {
+          "id": "f6b61863-0f47-4d17-923a-faa95ccb75ad",
+          "cashierId": "bc0d9897-e0ef-40de-b404-89ce044ab2cb",
+          "cashierName": "Shift Cashier 984155",
+          "status": "CLOSED",
+          "float": 500000
+        },
+        {
+          "id": "f92481a2-c459-44eb-b994-17fe4311542d",
+          "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+          "cashierName": "Terrace Manager",
+          "status": "OPEN",
+          "float": 500000
+        },
+        {
+          "id": "5e6687e9-9ec6-4004-8976-b31b13afe10e",
+          "cashierId": "9b1d4c3a-7466-47b7-9acc-15f18aade31e",
+          "cashierName": "Terrace Admin",
+          "status": "OPEN",
+          "float": 100000
+        }
+      ]
+    },
+    "cashier": {
+      "sub": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+      "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "perms": [
+        "pos.till.close",
+        "pos.till.open"
+      ]
+    },
+    "cashierOpenTill": {
+      "status": 200,
+      "body": [
+        {
+          "id": "ae93ba15-bcc8-4c7a-b955-c30c5673b558",
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+          "cashierName": "Terrace Cashier",
+          "openingFloatPaisa": 500000,
+          "expectedClosingPaisa": null,
+          "declaredClosingPaisa": null,
+          "variancePaisa": null,
+          "status": "OPEN",
+          "openedAt": "2026-08-12T05:00:59.399392Z",
+          "closedAt": null,
+          "note": null,
+          "reviewStatus": "PENDING_REVIEW"
+        }
+      ]
+    },
+    "cashierStrip": "Till OPEN Float: Rs 5,000.00 Cash: Rs 48,625.59 Orders: 120 Close Till POS Terminal Floor View Order Management Live All Diag Cat 683566 Diag Cat 785508 Starters F16 Mai"
+  }
+}

@@ -1,0 +1,316 @@
+{
+  "hire": {
+    "slug": "floating-terrace",
+    "email": "f11r.hire.697888@terrace.local",
+    "fullName": "F11R Hire 697888",
+    "newPassword": "Shift#Cashier1",
+    "reused": true
+  },
+  "startedAt": "2026-08-12T11:07:32.337Z",
+  "hireUserId": "0e7f51d0-1247-434e-83ad-3df3c8fb60c6",
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "hirePermissions": [
+    "pos.till.close",
+    "pos.till.open"
+  ],
+  "stripBefore": "No active till Open Till",
+  "managerId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+  "pickerSize": 94,
+  "hireOptionLabel": "F11R Hire 697888 — cashier",
+  "confirmationSentence": "Counting Rs 5,000.00 into F11R Hire 697888's drawer.",
+  "toast": "",
+  "stripAfter": "Till OPEN Float: Rs 5,000.00 Cash: Rs 5,000.00 Orders: 0 Close Till",
+  "cashierOwnTillRow": {
+    "id": "dc9b3276-810e-45ef-85ad-2e4ab736959f",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "cashierId": "0e7f51d0-1247-434e-83ad-3df3c8fb60c6",
+    "cashierName": "F11R Hire 697888",
+    "openingFloatPaisa": 500000,
+    "expectedClosingPaisa": null,
+    "declaredClosingPaisa": null,
+    "variancePaisa": null,
+    "status": "OPEN",
+    "openedAt": "2026-08-12T11:08:02.417253Z",
+    "closedAt": null,
+    "note": null,
+    "reviewStatus": "PENDING_REVIEW"
+  },
+  "tillId": "dc9b3276-810e-45ef-85ad-2e4ab736959f",
+  "managerOwnOpenTills": [
+    {
+      "id": "f92481a2-c459-44eb-b994-17fe4311542d",
+      "float": 500000
+    }
+  ],
+  "checks": [
+    {
+      "pass": true,
+      "label": "owner reaches /app/users without an error state",
+      "detail": "(reused hire)"
+    },
+    {
+      "pass": true,
+      "label": "the new cashier's token does NOT carry pos.till.open.other",
+      "detail": null
+    },
+    {
+      "pass": true,
+      "label": "the cashier's terminal reads 'No active till'",
+      "detail": "No active till Open Till"
+    },
+    {
+      "pass": true,
+      "label": "manager reaches Till Review without an error state",
+      "detail": "[]"
+    },
+    {
+      "pass": true,
+      "label": "the 'Open a drawer' control is on the manager's Till Review",
+      "detail": null
+    },
+    {
+      "pass": true,
+      "label": "the picker lists the cashier we just hired, by id",
+      "detail": null
+    },
+    {
+      "pass": true,
+      "label": "the picker names that cashier in words, not as a UUID",
+      "detail": "F11R Hire 697888 — cashier"
+    },
+    {
+      "pass": true,
+      "label": "the manager is shown the sentence they are signing off, naming the cashier and the float",
+      "detail": "Counting Rs 5,000.00 into F11R Hire 697888's drawer."
+    },
+    {
+      "pass": false,
+      "label": "the manager is told the drawer was opened, for whom, with which float",
+      "detail": ""
+    },
+    {
+      "pass": false,
+      "label": "that confirmation names the CASHIER, not the manager",
+      "detail": ""
+    },
+    {
+      "pass": true,
+      "label": "the cashier's terminal now shows an OPEN till",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 5,000.00 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…with the Rs 5,000.00 float the manager counted",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 5,000.00 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…and zero orders against it so far",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 5,000.00 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "the persisted row's cashierId is the CASHIER, not the manager",
+      "detail": "0e7f51d0-1247-434e-83ad-3df3c8fb60c6"
+    },
+    {
+      "pass": true,
+      "label": "the persisted float is 500000 paisa exactly",
+      "detail": "500000"
+    },
+    {
+      "pass": true,
+      "label": "the drawer the manager opened is NOT attributed to the manager",
+      "detail": null
+    }
+  ],
+  "cartText": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse",
+  "orderNo": "ORD-20260812-0398",
+  "orderListStatus": 200,
+  "orderId": "c1f0e442-07b1-4b02-a916-f1e837b0aa36",
+  "billAmountRupees": "1228.00",
+  "tenderedRupees": "1300",
+  "recordPaymentError": null,
+  "paymentRows": [
+    {
+      "id": "b19ac129-4caa-4819-b9f9-7b67ed0a13f1",
+      "method": "CASH",
+      "amountPaisa": 122800,
+      "tipPaisa": 0,
+      "tenderedPaisa": 130000,
+      "changePaisa": 7200,
+      "referenceNo": null,
+      "recordedAt": "2026-08-12T11:20:51.531361Z",
+      "kind": "PAYMENT"
+    }
+  ],
+  "stripAfterSettle": "Till OPEN Float: Rs 5,000.00 Cash: Rs 6,228.00 Orders: 5 Close Till",
+  "stripAfterFreshLogin": "Till OPEN Float: Rs 5,000.00 Cash: Rs 6,228.00 Orders: 5 Close Till",
+  "cashierAtTillReview": [],
+  "cashierNamingManager": {
+    "status": 403,
+    "code": "TILL_OPEN_FOR_OTHER_DENIED",
+    "detail": "You cannot open a till for Terrace Manager. Counting a float into another employee's drawer requires the pos.till.open.other permission — ask a manager to open it for them."
+  },
+  "managerOpenTillsAfterAttempt": [
+    "f92481a2-c459-44eb-b994-17fe4311542d"
+  ],
+  "kitchenUserId": "d608d82d-00bf-4d35-813a-ae7e07bbb386",
+  "D1_nonCashierTarget": {
+    "status": 422,
+    "code": "CASHIER_NOT_ELIGIBLE_FOR_TILL",
+    "detail": "Terrace Kitchen cannot be given a till at this branch: their role here does not allow running a cash drawer. Assign them a cashier role first — a drawer they cannot settle against could never be cashed up."
+  },
+  "controlTenantUserId": null,
+  "D3_alreadyHoldsADrawer": {
+    "status": 409,
+    "code": "TILL_ALREADY_OPEN",
+    "detail": "F11R Hire 697888 already has an open till. Cash up that drawer before opening another one for them."
+  },
+  "D4_negativeFloat": {
+    "status": 400,
+    "detail": "Request validation failed"
+  },
+  "otherBranch": {
+    "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+    "name": "Floating Terrace — Rooftop"
+  },
+  "D5_crossBranch": {
+    "status": 403,
+    "code": "FORBIDDEN",
+    "detail": "Cannot access tills for a different branch"
+  },
+  "waiterTillPerms": [],
+  "D6_waiterNamingSomeone": {
+    "status": 403,
+    "code": "PERMISSION_DENIED",
+    "detail": "You do not have permission to perform this action"
+  },
+  "checks2": [
+    {
+      "pass": true,
+      "label": "the cashier could ring a check on the handed-over drawer",
+      "detail": "ORD-20260812-0398"
+    },
+    {
+      "pass": true,
+      "label": "the cash tender was accepted (a cash tender 409s without an OPEN till)",
+      "detail": null
+    },
+    {
+      "pass": true,
+      "label": "the persisted payment row is CASH",
+      "detail": "CASH"
+    },
+    {
+      "pass": true,
+      "label": "order_payments.amountPaisa is the bill to the paisa (122800)",
+      "detail": "122800"
+    },
+    {
+      "pass": true,
+      "label": "order_payments.tenderedPaisa matches what was tendered (130000)",
+      "detail": "130000"
+    },
+    {
+      "pass": true,
+      "label": "change = tendered - bill, to the paisa (7200)",
+      "detail": "7200"
+    },
+    {
+      "pass": true,
+      "label": "the strip's cash is float + bill to the paisa (Rs 6,228.00)",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 6,228.00 Orders: 5 Close Till"
+    },
+    {
+      "pass": false,
+      "label": "…and the drawer counts exactly one order",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 6,228.00 Orders: 5 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "after a brand-new login the drawer is still open with the same float",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 6,228.00 Orders: 5 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…and still carries the cash that was settled into it",
+      "detail": "Till OPEN Float: Rs 5,000.00 Cash: Rs 6,228.00 Orders: 5 Close Till"
+    },
+    {
+      "pass": false,
+      "label": "Till Review is access-denied for a cashier",
+      "detail": "[]"
+    },
+    {
+      "pass": true,
+      "label": "the 'Open a drawer' control is absent for a cashier",
+      "detail": "0"
+    },
+    {
+      "pass": true,
+      "label": "GET /tills/cashiers answers 403 for a cashier",
+      "detail": "403"
+    },
+    {
+      "pass": true,
+      "label": "a cashier naming the manager is refused 403",
+      "detail": "403"
+    },
+    {
+      "pass": true,
+      "label": "…and the refusal names the person whose drawer they tried to open",
+      "detail": "You cannot open a till for Terrace Manager. Counting a float into another employee's drawer requires the pos.till.open.other permission — ask a manager to open it for them."
+    },
+    {
+      "pass": true,
+      "label": "…and says which permission it needs",
+      "detail": "You cannot open a till for Terrace Manager. Counting a float into another employee's drawer requires the pos.till.open.other permission — ask a manager to open it for them."
+    },
+    {
+      "pass": true,
+      "label": "nothing was created by the refused attempt",
+      "detail": "[\"2026-08-11T12:52:40.920778Z\"]"
+    },
+    {
+      "pass": true,
+      "label": "a target with no pos.till.open is refused a drawer",
+      "detail": "422 Terrace Kitchen cannot be given a till at this branch: their role here does not allow running a cash drawer. Assign them a cashier role first — a drawer they cannot settle against could never be cashed up."
+    },
+    {
+      "pass": true,
+      "label": "…and no drawer exists for them afterwards",
+      "detail": "[]"
+    },
+    {
+      "pass": true,
+      "label": "a second drawer for the same cashier is refused 409",
+      "detail": "409"
+    },
+    {
+      "pass": true,
+      "label": "…and the conflict names the TARGET, not the caller",
+      "detail": "F11R Hire 697888 already has an open till. Cash up that drawer before opening another one for them."
+    },
+    {
+      "pass": true,
+      "label": "a negative float is refused",
+      "detail": "400"
+    },
+    {
+      "pass": true,
+      "label": "a request naming another branch is refused",
+      "detail": "403 Cannot access tills for a different branch"
+    },
+    {
+      "pass": true,
+      "label": "a waiter cannot open a drawer for anybody",
+      "detail": "403 You do not have permission to perform this action"
+    },
+    {
+      "pass": true,
+      "label": "…and cannot read the eligible-cashier roster",
+      "detail": "403"
+    }
+  ]
+}

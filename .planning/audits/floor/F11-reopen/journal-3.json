@@ -1,0 +1,71 @@
+{
+  "expectedAtCashUp": "7,250.50",
+  "stripAfterCashUp": "No active till Open Till",
+  "stripAfterSelfOpen": "Till OPEN Float: Rs 3,000.00 Cash: Rs 3,000.00 Orders: 0 Close Till",
+  "selfOpenedRow": {
+    "cashierId": "8177414d-8580-4ef1-8e95-3a1b2677ca08",
+    "float": 300000
+  },
+  "ownerHasNewPermission": true,
+  "ownerPickedTarget": {
+    "id": "76676e49-2138-41e1-bc77-55bd9e33e51d",
+    "name": "F11 Final 326886"
+  },
+  "ownerOpenResult": {
+    "status": 201,
+    "cashierId": "76676e49-2138-41e1-bc77-55bd9e33e51d",
+    "float": 123456
+  },
+  "checks5": [
+    {
+      "pass": true,
+      "label": "the handed-over drawer cashes up normally",
+      "detail": "No active till Open Till"
+    },
+    {
+      "pass": true,
+      "label": "a cashier can still open their OWN drawer (the pre-F11 path)",
+      "detail": "Till OPEN Float: Rs 3,000.00 Cash: Rs 3,000.00 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…with the float they counted",
+      "detail": "Till OPEN Float: Rs 3,000.00 Cash: Rs 3,000.00 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…and it belongs to them",
+      "detail": "8177414d-8580-4ef1-8e95-3a1b2677ca08"
+    },
+    {
+      "pass": true,
+      "label": "…at 300000 paisa",
+      "detail": "300000"
+    },
+    {
+      "pass": true,
+      "label": "the OWNER's token carries pos.till.open.other",
+      "detail": null
+    },
+    {
+      "pass": true,
+      "label": "the OWNER can read the eligible-cashier roster",
+      "detail": "200"
+    },
+    {
+      "pass": true,
+      "label": "the OWNER can hand a drawer over",
+      "detail": "201"
+    },
+    {
+      "pass": true,
+      "label": "…and it lands on the NAMED cashier, not the owner",
+      "detail": "76676e49-2138-41e1-bc77-55bd9e33e51d"
+    },
+    {
+      "pass": true,
+      "label": "…with an awkward float carried through to the paisa (123456)",
+      "detail": "123456"
+    }
+  ]
+}

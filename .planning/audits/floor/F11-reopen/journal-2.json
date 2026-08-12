@@ -1,0 +1,84 @@
+{
+  "secondHire": {
+    "slug": "floating-terrace",
+    "email": "f11r.second.086884@terrace.local",
+    "fullName": "F11R Second 086884",
+    "newPassword": "Shift#Cashier1"
+  },
+  "secondHireId": "8177414d-8580-4ef1-8e95-3a1b2677ca08",
+  "stripBefore": "No active till Open Till",
+  "sentence": "Counting Rs 7,250.50 into F11R Second 086884's drawer.",
+  "toast": "Till opened for F11R Second 086884 with a Rs 7,250.50 float.",
+  "stripAfter": "Till OPEN Float: Rs 7,250.50 Cash: Rs 7,250.50 Orders: 0 Close Till",
+  "row": {
+    "id": "10a629cc-f1d7-4e10-a91a-9e6082b8220b",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "cashierId": "8177414d-8580-4ef1-8e95-3a1b2677ca08",
+    "openingFloatPaisa": 725050,
+    "expectedClosingPaisa": null,
+    "declaredClosingPaisa": null,
+    "variancePaisa": null,
+    "status": "OPEN",
+    "openedAt": "2026-08-12T11:29:03.610328Z",
+    "closedAt": null,
+    "note": null,
+    "reviewStatus": "PENDING_REVIEW"
+  },
+  "checks4": [
+    {
+      "pass": true,
+      "label": "the second cashier starts with no drawer",
+      "detail": "No active till Open Till"
+    },
+    {
+      "pass": true,
+      "label": "an odd-paisa float is echoed back exactly, naming the cashier",
+      "detail": "Counting Rs 7,250.50 into F11R Second 086884's drawer."
+    },
+    {
+      "pass": true,
+      "label": "the confirm control is enabled for an eligible target",
+      "detail": null
+    },
+    {
+      "pass": true,
+      "label": "the manager gets a confirmation at all",
+      "detail": "Till opened for F11R Second 086884 with a Rs 7,250.50 float."
+    },
+    {
+      "pass": true,
+      "label": "…which names the CASHIER the drawer was opened for",
+      "detail": "Till opened for F11R Second 086884 with a Rs 7,250.50 float."
+    },
+    {
+      "pass": true,
+      "label": "…and the float, to the paisa",
+      "detail": "Till opened for F11R Second 086884 with a Rs 7,250.50 float."
+    },
+    {
+      "pass": true,
+      "label": "their terminal shows an OPEN till",
+      "detail": "Till OPEN Float: Rs 7,250.50 Cash: Rs 7,250.50 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…with Rs 7,250.50 — no float rounding",
+      "detail": "Till OPEN Float: Rs 7,250.50 Cash: Rs 7,250.50 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "…and cash equal to the float on an empty drawer",
+      "detail": "Till OPEN Float: Rs 7,250.50 Cash: Rs 7,250.50 Orders: 0 Close Till"
+    },
+    {
+      "pass": true,
+      "label": "the persisted drawer is the CASHIER's",
+      "detail": "8177414d-8580-4ef1-8e95-3a1b2677ca08"
+    },
+    {
+      "pass": true,
+      "label": "the persisted float is 725050 paisa exactly",
+      "detail": "725050"
+    }
+  ]
+}
