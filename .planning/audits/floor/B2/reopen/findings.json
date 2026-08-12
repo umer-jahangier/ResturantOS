@@ -1,0 +1,186 @@
+[
+  {
+    "k": "cashier",
+    "v": {
+      "sub": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+      "roles": [
+        "CASHIER"
+      ],
+      "void": [
+        "pos.order.void.own"
+      ]
+    }
+  },
+  {
+    "k": "till-strip",
+    "v": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 28,551.70 Orders: 62 Close Till POS Terminal Floor View Order Management Live All Starters Diag Cat 683566 Diag Ca"
+  },
+  {
+    "k": "A.fired",
+    "v": {
+      "orderNo": "ORD-20260812-0312",
+      "status": "SENT_TO_KDS"
+    }
+  },
+  {
+    "k": "A.onKdsBoard",
+    "v": {
+      "station": "PANTRY1",
+      "card": "MN All stations LIVE NEW 78 1 ORD-20260812-0312 00:19 DINE-IN Table F2-4987 1× Audit Item 60568 Audit Item 60568 → Started 2 ORD-20260812-0311 00:39 DINE-IN Table F2-4987 1× Audit Item 52235 Extra cheese, Extra raita, Hot 1× Audit"
+    }
+  },
+  {
+    "k": "A.drawerOpened",
+    "v": "c4701762-897f-4b34-83d8-f55e46435358"
+  },
+  {
+    "k": "A.voidTriggerCount",
+    "v": 1
+  },
+  {
+    "k": "A.panelAfterConfirm",
+    "v": {
+      "err": null,
+      "panelOpen": false,
+      "toasts": []
+    }
+  },
+  {
+    "k": "A.voidNetwork",
+    "v": [
+      {
+        "m": "POST",
+        "s": 200,
+        "u": "/api/v1/pos/orders/c4701762-897f-4b34-83d8-f55e46435358/void"
+      }
+    ]
+  },
+  {
+    "k": "A.afterReload",
+    "v": {
+      "orderNo": "ORD-20260812-0312",
+      "status": "VOIDED"
+    }
+  },
+  {
+    "k": "A.voidedChipText",
+    "v": "ORD-20260812-0312”. ORDER / TYPE STATUS PAYMENT SERVER/CASHIER ITEMS TOTAL VOIDED AGE ORD-20260812-0312 Dine-in · F2-4987 Voided Unpaid Terrace Cashier 1 item Rs 523.95 Reopen check: guest walked out by Terrace Cashier · Aug 12, 11:39 AM 1m Open 1 row"
+  },
+  {
+    "k": "B.fired",
+    "v": {
+      "orderNo": "ORD-20260812-0315",
+      "id": "01698e52-79f2-49ed-ad6c-377a39a4a132"
+    }
+  },
+  {
+    "k": "B.statusAfterKitchen",
+    "v": {
+      "station": "PANTRY1",
+      "status": "SENT_TO_KDS"
+    }
+  },
+  {
+    "k": "B.voidTriggerOnAdvancedStatus",
+    "v": {
+      "drawerOpened": "01698e52-79f2-49ed-ad6c-377a39a4a132",
+      "triggerCount": 1
+    }
+  },
+  {
+    "k": "B.drawerMentionsVoidUnavailable",
+    "v": false
+  },
+  {
+    "k": "B.directVoidCall",
+    "v": {
+      "status": 200,
+      "body": "{\"data\":{\"id\":\"01698e52-79f2-49ed-ad6c-377a39a4a132\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"orderNo\":\"ORD-20260812-0315\",\"type\":\"DINE_IN\",\"status\":\"VOIDED\",\"derivedStatus\":\"IN_PROGRESS\",\"tableId\":\"8793bc14-33ac-4c45-acd3-96c5eff5b632\",\"coverCount\":"
+    }
+  },
+  {
+    "k": "C.fired",
+    "v": "ORD-20260812-0317"
+  },
+  {
+    "k": "C.totalPaisa",
+    "v": 52395
+  },
+  {
+    "k": "C.payment",
+    "v": {
+      "status": 200,
+      "body": "{\"data\":52395,\"meta\":null,\"warnings\":[]}"
+    }
+  },
+  {
+    "k": "C.paymentsBefore",
+    "v": "{\"data\":[{\"id\":\"59a63add-c968-45bc-b1ae-2fd5610d5fb5\",\"method\":\"CASH\",\"amountPaisa\":52395,\"tipPaisa\":0,\"tenderedPaisa\":52395,\"changePaisa\":0,\"referenceNo\":null,\"recordedAt\":\"2026-08-12T06:41:51.474797Z\",\"kind\":\"PAYMENT\"}],\"meta\":null,\"warnings\":[]}"
+  },
+  {
+    "k": "C.voidOnPaidCheck",
+    "v": {
+      "status": 409,
+      "body": "{\"detail\":\"Order ORD-20260812-0317 has 52395 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.\",\"instance\":\"/api/v1/pos/orders/53d070d4-efe7-4adb-8125-9d9c232b69c2/void\",\"status\":409,\"title\":\"ORDER_HAS_PAYMENTS\",\"type\":\"urn:restaurantos:pos:order-ha"
+    }
+  },
+  {
+    "k": "C.paymentsAfter",
+    "v": "{\"data\":[{\"id\":\"59a63add-c968-45bc-b1ae-2fd5610d5fb5\",\"method\":\"CASH\",\"amountPaisa\":52395,\"tipPaisa\":0,\"tenderedPaisa\":52395,\"changePaisa\":0,\"referenceNo\":null,\"recordedAt\":\"2026-08-12T06:41:51.474797Z\",\"kind\":\"PAYMENT\"}],\"meta\":null,\"warnings\":[]}"
+  },
+  {
+    "k": "C.paymentRowUntouched",
+    "v": true
+  },
+  {
+    "k": "C.drawer",
+    "v": {
+      "opened": "53d070d4-efe7-4adb-8125-9d9c232b69c2",
+      "voidTrigger": 0,
+      "text": "e Quick Add Full Menu CHARGE NOW Paid — void unavailable. A manager must refund this check. Reprint kitchen ticket"
+    }
+  },
+  {
+    "k": "manager",
+    "v": {
+      "sub": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "void": [
+        "pos.order.void.any",
+        "pos.order.void.own"
+      ]
+    }
+  },
+  {
+    "k": "mgr.orderCreated",
+    "v": {
+      "status": 400,
+      "id": null
+    }
+  },
+  {
+    "k": "E.closeTillButton",
+    "v": 1
+  },
+  {
+    "k": "E.closePanel",
+    "v": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Close Till Session Opening float: Rs 5,000.00 Cash taken (net of refunds): Rs 26,006.85 Expected cash: Rs 31,006.85 Declared Cash Count (PKR) Note for manager review (optional) Cancel Close Till POS Terminal Floor View Order Management Live All Starters Diag Cat 683566 Diag Cat 785508 Mains F16 Mains 166428 Drinks Soft Drinks ZZ Till 44 items Audit Item 52235 Rs 499.00 Audit Item 60568 Rs 499.00 Butter Naan Rs 80.00 Chicken Karahi Rs 1,450.00 Chicken Samosa Rs 250.00 F16 Biryani 166428 Rs 850.00 F16 Karahi 166428 Rs 950.00 F16 Lime 166428 Rs 250."
+  },
+  {
+    "k": "E.expected",
+    "v": "31006.85"
+  },
+  {
+    "k": "E.closeNetwork",
+    "v": [
+      {
+        "m": "POST",
+        "s": 409,
+        "u": "/api/v1/pos/tills/ae93ba15-bcc8-4c7a-b955-c30c5673b558/close"
+      }
+    ]
+  },
+  {
+    "k": "E.afterClose",
+    "v": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Close Till Session Opening float: Rs 5,000.00 Cash taken (net of refunds): Rs 26,006.85 Expected cash: Rs 31,006.85 Declared Cash Count (PKR) Note for manager review (optional) Variance: Balanced — your count matches the drawer Cancel Close Till This t"
+  }
+]
