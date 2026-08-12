@@ -1,4 +1,5 @@
 import {
+  Activity,
   Armchair,
   Banknote,
   BarChart3,
@@ -482,6 +483,24 @@ export const navGroups: NavGroup[] = [
         icon: Users,
         permission: ["rbac.manage", "rbac.user.manage"],
         permissionMode: "any",
+      },
+      {
+        // S1-09: is the software running. There was no health route anywhere under
+        // `app/(tenant)/app/` — crm, dashboard, finance, hr, inventory, kitchen, menu, nlq, pos,
+        // profile, purchasing, reports, settings, stations, tables, terminals, users, and nothing
+        // that could answer it — so when six services were down the register's manager got a
+        // generic 503 on the till, the kitchen board, the customer file and payroll at once and had
+        // no way to learn why. The only recourse was to telephone someone who could run `ps`.
+        //
+        // Gated on `ops.health.view` (auth changelog 089), granted to OWNER and TENANT_ADMIN: the
+        // two people who make that phone call, and the two /app/settings already admits. A cashier
+        // is deliberately not offered it — the till now tells them in plain language that the
+        // ordering service is unreachable and what still works, which is what the person at the
+        // till actually needs; a fleet inventory is not.
+        label: "Service health",
+        href: "/app/settings/health",
+        icon: Activity,
+        permission: "ops.health.view",
       },
     ],
   },
