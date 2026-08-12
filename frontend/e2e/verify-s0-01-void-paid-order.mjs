@@ -188,14 +188,16 @@ async function chargeCashInFull(page, orderId) {
   const health = await pageHealth(page);
   if (health.couldntLoad) throw new Error(`charge page in error state: ${JSON.stringify(health)}`);
 
-  const amountField = page.locator('input[aria-label="Amount in paisa"]').first();
+  // S1-05: the tender box asks for RUPEES now — "Amount in paisa" no longer exists anywhere.
+  const amountField = page.locator('input[aria-label="Amount (Rs)"]').first();
   await amountField.waitFor({ timeout: 15000 });
   // Leave the amount as the page pre-fills it (the outstanding balance) if it already has one;
-  // otherwise read the order total off the API and type it.
+  // otherwise read the order total off the API and type it, in rupees.
   const prefilled = await amountField.inputValue();
   if (!prefilled || Number(prefilled) <= 0) {
     const order = await orderOverSession(page, orderId);
-    await amountField.fill(String(order.totalPaisa));
+    const paisa = order.totalPaisa;
+    await amountField.fill(`${Math.floor(paisa / 100)}.${String(paisa % 100).padStart(2, "0")}`);
   }
   await page.locator('[data-testid="record-payment-button"], button:has-text("Record Payment")')
     .first()

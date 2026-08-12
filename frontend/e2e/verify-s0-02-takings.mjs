@@ -149,7 +149,12 @@ async function ringAndChargeCash(page) {
   }
 
   await page.getByLabel("Payment method").first().selectOption("CASH");
-  await page.getByLabel("Amount in paisa").first().fill(String(AMOUNT_PAISA));
+  // S1-05: the tender box is denominated in RUPEES now (aria-label "Amount (Rs)"), so the
+  // paisa constant is converted at the keystroke instead of being typed raw.
+  await page
+    .getByLabel("Amount (Rs)")
+    .first()
+    .fill(`${Math.floor(AMOUNT_PAISA / 100)}.${String(AMOUNT_PAISA % 100).padStart(2, "0")}`);
   const [resp] = await Promise.all([
     page.waitForResponse(
       (r) => r.url().includes("/payments") && r.request().method() === "POST",

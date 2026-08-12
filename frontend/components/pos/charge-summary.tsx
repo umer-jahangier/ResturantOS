@@ -14,6 +14,7 @@ import {
   derivePaymentStatus,
   type PaymentMethod,
 } from "@/lib/models/pos.model";
+import { formatPaisa, paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
 import { cn } from "@/lib/utils";
 
 interface ChargeSummaryProps {
@@ -47,19 +48,84 @@ interface ChargeSummaryProps {
  */
 const PAYMENT_METHODS: PaymentMethod[] = ["CASH", "CARD", "BANK_TRANSFER", "VOUCHER"];
 
+/**
+ * <h3>S1-05 — the tender row is denominated in RUPEES, and holds text, not a number</h3>
+ *
+ * Both halves of that sentence are the fix.
+ *
+ * The unit: this row used to carry `amountPaisa`, fed by an input whose accessible name was
+ * literally "Amount in paisa". A Rs 3,456.80 bill had to be entered as `345680`, and `Full amount`
+ * prefilled that integer. Nobody reads a bill in paisa, so the cashier was doing a ×100 in their
+ * head on a touchscreen with a queue behind them.
+ *
+ * The type: the old input was `type="number"` with `parseInt(e.target.value)`. Typing `3456.80`
+ * key by key put `34560` in the box — a Rs 345.60 tender against a Rs 3,456.80 check, silently,
+ * with no error anywhere. (`type="number"` reports `.value === ""` while the text buffer holds the
+ * intermediate `3456.`, so `parseInt` read 0 and the digits after the point landed on an emptied
+ * field.) Verified in Chromium before the fix, not reasoned about. Keeping the raw text and
+ * parsing it once, at the boundary, is what makes that class of corruption impossible.
+ */
 interface TenderRow {
   id: string;
   method: PaymentMethod;
-  amountPaisa: number;
+  /** RUPEES, exactly as typed. Converted to paisa once, by {@link parseRupeesToPaisa}. */
+  amountText: string;
+  /** RUPEES handed over. CASH only — every other method is hidden AND ignored. */
+  tenderedText: string;
   referenceNo: string;
 }
+
+/**
+ * One row's money, read out of its text. `amountPaisa === null` means the box holds something that
+ * is not an amount — which must block the tender, never quietly become zero.
+ */
+interface TenderReading {
+  amountPaisa: number | null;
+  amountInvalid: boolean;
+  /** null when the cashier has not said what was handed over (or the method has no drawer). */
+  tenderedPaisa: number | null;
+  tenderedInvalid: boolean;
+  /** tendered − amount, floored at 0. */
+  changePaisa: number;
+  /** amount − tendered, floored at 0: the guest has not handed over enough. */
+  shortPaisa: number;
+}
+
+function readTender(row: TenderRow): TenderReading {
+  const amountPaisa = row.amountText.trim() === "" ? 0 : parseRupeesToPaisa(row.amountText);
+  const isCash = row.method === "CASH";
+  const tenderedBlank = row.tenderedText.trim() === "";
+  const tenderedPaisa = !isCash || tenderedBlank ? null : parseRupeesToPaisa(row.tenderedText);
+  const delta = amountPaisa !== null && tenderedPaisa !== null ? tenderedPaisa - amountPaisa : 0;
+  return {
+    amountPaisa,
+    amountInvalid: amountPaisa === null,
+    tenderedPaisa,
+    tenderedInvalid: isCash && !tenderedBlank && tenderedPaisa === null,
+    changePaisa: Math.max(0, delta),
+    shortPaisa: Math.max(0, -delta),
+  };
+}
+
+/**
+ * The notes that come out of a Pakistani wallet. Quick-keys ADD, so Rs 1,000 + Rs 500 + Rs 500 is
+ * three taps and reads like the stack of paper actually on the counter — which is how a cashier
+ * counts, and why "set" would be the wrong verb here.
+ */
+const CASH_DENOMINATIONS: { paisa: number; label: string }[] = [
+  { paisa: 5000, label: "50" },
+  { paisa: 10000, label: "100" },
+  { paisa: 50000, label: "500" },
+  { paisa: 100000, label: "1,000" },
+  { paisa: 500000, label: "5,000" },
+];
 
 function generateKey() {
   return typeof crypto !== "undefined" ? crypto.randomUUID() : Math.random().toString(36).slice(2);
 }
 
-function newTenderRow(amountPaisa = 0): TenderRow {
-  return { id: generateKey(), method: "CASH", amountPaisa, referenceNo: "" };
+function newTenderRow(amountText = ""): TenderRow {
+  return { id: generateKey(), method: "CASH", amountText, tenderedText: "", referenceNo: "" };
 }
 
 function formatOrderTime(value: string | null): string {
@@ -160,7 +226,12 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   );
 
   const totalPaisa = order?.totalPaisa ?? 0;
-  const remainingPaisa = Math.max(0, totalPaisa - amountPaidPaisa);
+  // S0-01: `amountPaidPaisa` nets refund reversals, so a fully-refunded order reads Rs 0.00 paid
+  // — correct — but the naive remainder then climbed back to the full bill and printed
+  // "Remaining balance Rs 499.00" on an order nobody owes anything on. A settled-away order
+  // (REFUNDED or VOIDED) is not collectable, so its remainder is zero by definition.
+  const isUncollectable = order?.status === "REFUNDED" || order?.status === "VOIDED";
+  const remainingPaisa = isUncollectable ? 0 : Math.max(0, totalPaisa - amountPaidPaisa);
   const paymentStatus = order
     ? derivePaymentStatus(amountPaidPaisa, totalPaisa, order.status)
     : "UNPAID";
@@ -184,12 +255,24 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const showCloseCta = !!order && !isTerminal && paymentStatus === "PAID";
   const canClose = showCloseCta && activeItems.length > 0 && unfiredItems.length === 0;
 
-  const tenderTotalPaisa = rows.reduce((acc, r) => acc + r.amountPaisa, 0);
-  const hasValidTenders = rows.some((r) => r.amountPaisa > 0);
+  // One reading per row, computed once and shared by the markup, the guards and the submit —
+  // so what the cashier sees on screen and what leaves for the server can never be two different
+  // numbers derived two different ways.
+  const readings = rows.map(readTender);
+  const tenderTotalPaisa = readings.reduce((acc, r) => acc + (r.amountPaisa ?? 0), 0);
+  const changeDueTotalPaisa = readings.reduce((acc, r) => acc + r.changePaisa, 0);
+  const hasValidTenders = readings.some((r) => (r.amountPaisa ?? 0) > 0);
+  const anyUnparseable = readings.some((r) => r.amountInvalid || r.tenderedInvalid);
+  // A cash row whose tendered is BELOW its applied amount is a mis-key, not an under-payment: the
+  // server would silently raise the tender to the applied amount (PaymentServiceImpl clamps with
+  // Math.max), and the drawer would then be reconciled against money that was never handed over.
+  const anyShortTender = readings.some((r) => r.shortPaisa > 0);
   const canRecord =
     !blocksNewTenders &&
     !isClosed &&
     hasValidTenders &&
+    !anyUnparseable &&
+    !anyShortTender &&
     remainingPaisa > 0 &&
     tenderTotalPaisa <= remainingPaisa;
 
@@ -201,20 +284,38 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const updateRow = (id: string, patch: Partial<Omit<TenderRow, "id">>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const removeRow = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id));
+  /** Quick-keys add a note to what is already on the counter (see CASH_DENOMINATIONS). */
+  const addDenomination = (id: string, paisa: number) =>
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? { ...r, tenderedText: paisaToRupeeInput((parseRupeesToPaisa(r.tenderedText) ?? 0) + paisa) }
+          : r,
+      ),
+    );
 
   const handleRecordPayment = async () => {
     setRecordError(null);
-    const toSubmit = rows.filter((r) => r.amountPaisa > 0);
-    if (toSubmit.length === 0) return;
+    const toSubmit = rows
+      .map((row, index) => ({ row, reading: readings[index]! }))
+      .filter(({ reading }) => (reading.amountPaisa ?? 0) > 0);
+    if (toSubmit.length === 0 || anyUnparseable || anyShortTender) return;
 
     try {
       // The backend records ONE tender per call (POST /orders/{id}/payments) — split
       // tenders are submitted sequentially, awaiting each, so a later row never races a
       // still-in-flight earlier one against the same order's persisted-payment sum.
-      for (const row of toSubmit) {
+      for (const { row, reading } of toSubmit) {
         await recordPayment.mutateAsync({
           method: row.method,
-          amountPaisa: row.amountPaisa,
+          amountPaisa: reading.amountPaisa!,
+          // CASH only, and only when the cashier actually said what was handed over. On any other
+          // method a tender above the balance is an input error the server answers with a 422
+          // (PaymentServiceImpl.PaymentExceedsBalanceException) — there is no drawer to give
+          // change from, so the field is neither shown nor sent.
+          ...(row.method === "CASH" && reading.tenderedPaisa !== null
+            ? { tenderedPaisa: reading.tenderedPaisa }
+            : {}),
           referenceNo: row.referenceNo || null,
         });
       }
@@ -225,7 +326,7 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
       // never sent to the kitchen (sentToKdsAt == null → the pre-send Charge Now path), fire its
       // still-PENDING lines now that it's paid. An order that was already sent earlier (dine-in)
       // has sentToKdsAt set, so it is NEVER re-fired here — the two flows stay fully isolated.
-      const submittedTotal = toSubmit.reduce((acc, r) => acc + r.amountPaisa, 0);
+      const submittedTotal = toSubmit.reduce((acc, { reading }) => acc + (reading.amountPaisa ?? 0), 0);
       const willBeFullyPaid = totalPaisa > 0 && amountPaidPaisa + submittedTotal >= totalPaisa;
       const pendingUnfired = order?.items.filter((i) => i.itemStatus === "PENDING") ?? [];
       if (willBeFullyPaid && order && order.sentToKdsAt === null && pendingUnfired.length > 0) {
@@ -418,18 +519,38 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
             </p>
           ) : (
             <div className="flex flex-col divide-y" data-testid="payment-history-rows">
-              {payments.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between py-2 text-sm">
-                  <div className="flex flex-col">
-                    <span className="font-medium">{payment.method.replace("_", " ")}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {payment.referenceNo ? `Ref: ${payment.referenceNo} · ` : ""}
-                      {formatOrderTime(payment.recordedAt)}
-                    </span>
+              {payments.map((payment) => {
+                // S0-01: the history now carries refund reversals alongside tenders. A reversal
+                // is a negative row, so it has to READ as money going back rather than as another
+                // charge — otherwise a refunded bill still looks settled on the screen the
+                // cashier trusts.
+                const isRefund = payment.kind === "REFUND";
+                return (
+                  <div
+                    key={payment.id}
+                    data-testid={isRefund ? "refund-history-row" : "payment-history-row"}
+                    className="flex items-center justify-between py-2 text-sm"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        {isRefund
+                          ? `Refund · ${payment.method.replace("_", " ")}`
+                          : payment.method.replace("_", " ")}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {payment.referenceNo
+                          ? `${isRefund ? "Reason" : "Ref"}: ${payment.referenceNo} · `
+                          : ""}
+                        {formatOrderTime(payment.recordedAt)}
+                      </span>
+                    </div>
+                    <MoneyDisplay
+                      paisa={payment.amountPaisa}
+                      className={cn("font-mono text-sm", isRefund && "text-warning")}
+                    />
                   </div>
-                  <MoneyDisplay paisa={payment.amountPaisa} className="font-mono text-sm" />
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -485,68 +606,218 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
             <p className="text-sm text-muted-foreground">This order is closed.</p>
           ) : (
             <>
-              <div className="flex flex-col gap-2">
-                {rows.map((row, index) => (
-                  <div key={row.id} className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={row.method}
-                      onChange={(e) =>
-                        updateRow(row.id, { method: e.target.value as PaymentMethod })
-                      }
-                      aria-label="Payment method"
-                      className="w-36 flex-none rounded border bg-background px-2 py-1.5 text-sm"
+              <div className="flex flex-col gap-3">
+                {rows.map((row, index) => {
+                  const reading = readings[index]!;
+                  const isCash = row.method === "CASH";
+                  return (
+                    <div
+                      key={row.id}
+                      data-testid="tender-row"
+                      className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-3"
                     >
-                      {PAYMENT_METHODS.map((m) => (
-                        <option key={m} value={m}>
-                          {m.replace("_", " ")}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min={0}
-                      value={row.amountPaisa === 0 ? "" : String(row.amountPaisa)}
-                      onChange={(e) =>
-                        updateRow(row.id, { amountPaisa: parseInt(e.target.value || "0", 10) || 0 })
-                      }
-                      placeholder="Amount (paisa)"
-                      aria-label="Amount in paisa"
-                      className="min-w-0 flex-1 rounded border bg-background px-2 py-1.5 text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={row.referenceNo}
-                      onChange={(e) => updateRow(row.id, { referenceNo: e.target.value })}
-                      placeholder="Ref# (optional)"
-                      aria-label="Reference number"
-                      className="min-w-0 flex-1 rounded border bg-background px-2 py-1.5 text-sm"
-                    />
-                    {index === 0 && remainingPaisa > 0 && (
-                      <button
-                        type="button"
-                        data-testid="fill-full-amount-button"
-                        onClick={() => updateRow(row.id, { amountPaisa: remainingPaisa })}
-                        className="whitespace-nowrap rounded border px-2 py-1.5 text-xs text-primary hover:bg-primary/5"
-                      >
-                        Full amount
-                      </button>
-                    )}
-                    {rows.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeRow(row.id)}
-                        aria-label="Remove tender"
-                        className="px-1 text-lg text-muted-foreground hover:text-destructive"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
+                      <div className="flex flex-wrap items-end gap-2">
+                        <label className="flex flex-none flex-col gap-1 text-xs text-muted-foreground">
+                          Method
+                          <select
+                            value={row.method}
+                            onChange={(e) =>
+                              updateRow(row.id, { method: e.target.value as PaymentMethod })
+                            }
+                            aria-label="Payment method"
+                            className="h-11 w-36 rounded-lg border bg-background px-2 text-sm text-foreground"
+                          >
+                            {PAYMENT_METHODS.map((m) => (
+                              <option key={m} value={m}>
+                                {m.replace("_", " ")}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+
+                        {/*
+                          type="text" + inputMode="decimal", NOT type="number". A number input
+                          reports `.value === ""` for the intermediate "3456." keystroke, which is
+                          how the old parseInt handler turned a typed Rs 3,456.80 into Rs 345.60.
+                          inputMode still raises the numeric keypad on the till's touchscreen.
+                        */}
+                        <label className="flex min-w-[8.5rem] flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                          Amount (Rs)
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            value={row.amountText}
+                            onChange={(e) => updateRow(row.id, { amountText: e.target.value })}
+                            placeholder="0.00"
+                            aria-label="Amount (Rs)"
+                            aria-invalid={reading.amountInvalid || undefined}
+                            className={cn(
+                              "h-11 rounded-lg border bg-background px-2 text-right font-mono text-sm tabular-nums text-foreground",
+                              reading.amountInvalid && "border-destructive",
+                            )}
+                          />
+                        </label>
+
+                        <label className="flex min-w-[8rem] flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                          Ref# (optional)
+                          <input
+                            type="text"
+                            value={row.referenceNo}
+                            onChange={(e) => updateRow(row.id, { referenceNo: e.target.value })}
+                            placeholder="Card / slip no."
+                            aria-label="Reference number"
+                            className="h-11 rounded-lg border bg-background px-2 text-sm text-foreground"
+                          />
+                        </label>
+
+                        {index === 0 && remainingPaisa > 0 && (
+                          <button
+                            type="button"
+                            data-testid="fill-full-amount-button"
+                            onClick={() =>
+                              updateRow(row.id, { amountText: paisaToRupeeInput(remainingPaisa) })
+                            }
+                            className="h-11 whitespace-nowrap rounded-lg border px-3 text-xs font-medium text-primary hover:bg-primary/5"
+                          >
+                            Full amount
+                          </button>
+                        )}
+                        {rows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeRow(row.id)}
+                            aria-label="Remove tender"
+                            className="h-11 px-2 text-lg text-muted-foreground hover:text-destructive"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      {reading.amountInvalid && (
+                        <p
+                          data-testid="amount-invalid-message"
+                          aria-live="polite"
+                          className="text-xs text-destructive"
+                        >
+                          Enter the amount in rupees, like 3456.80.
+                        </p>
+                      )}
+
+                      {/*
+                        Tendered + change, CASH only. A card has no drawer: printing a change line
+                        under one invites "where is my change?" at the counter (the same reasoning
+                        receipt-document.tsx applies when it suppresses Tendered/Change at zero).
+                      */}
+                      {isCash && (
+                        <div className="flex flex-col gap-2 border-t pt-3">
+                          <div className="flex flex-wrap items-end gap-2">
+                            <label className="flex min-w-[8.5rem] flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                              Tendered (Rs)
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                value={row.tenderedText}
+                                onChange={(e) =>
+                                  updateRow(row.id, { tenderedText: e.target.value })
+                                }
+                                placeholder="What the guest handed over"
+                                aria-label="Tendered (Rs)"
+                                aria-invalid={reading.tenderedInvalid || undefined}
+                                className={cn(
+                                  "h-11 rounded-lg border bg-background px-2 text-right font-mono text-sm tabular-nums text-foreground",
+                                  reading.tenderedInvalid && "border-destructive",
+                                )}
+                              />
+                            </label>
+                            <div className="flex flex-none flex-col items-end gap-1">
+                              <span className="text-xs text-muted-foreground">Change due</span>
+                              <span
+                                data-testid="change-due-value"
+                                data-paisa={reading.changePaisa}
+                                className="flex h-11 items-center"
+                              >
+                                <MoneyDisplay
+                                  paisa={reading.changePaisa}
+                                  className={cn(
+                                    "font-mono text-lg font-semibold",
+                                    reading.changePaisa > 0 ? "text-success" : "text-muted-foreground",
+                                  )}
+                                />
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="mr-1 text-xs text-muted-foreground">Quick tender</span>
+                            {CASH_DENOMINATIONS.map((d) => (
+                              <button
+                                key={d.paisa}
+                                type="button"
+                                data-testid={`denom-${d.paisa}`}
+                                onClick={() => addDenomination(row.id, d.paisa)}
+                                className="h-9 min-w-[3.25rem] rounded-lg border px-2 font-mono text-xs font-medium tabular-nums hover:bg-accent hover:text-accent-foreground active:scale-95"
+                              >
+                                +{d.label}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              data-testid="denom-exact"
+                              onClick={() =>
+                                updateRow(row.id, {
+                                  tenderedText:
+                                    reading.amountPaisa === null
+                                      ? ""
+                                      : paisaToRupeeInput(reading.amountPaisa),
+                                })
+                              }
+                              className="h-9 rounded-lg border px-2 text-xs font-medium hover:bg-accent hover:text-accent-foreground active:scale-95"
+                            >
+                              Exact
+                            </button>
+                            {row.tenderedText !== "" && (
+                              <button
+                                type="button"
+                                data-testid="denom-clear"
+                                onClick={() => updateRow(row.id, { tenderedText: "" })}
+                                className="h-9 rounded-lg px-2 text-xs text-muted-foreground underline hover:text-foreground"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+
+                          {reading.tenderedInvalid && (
+                            <p
+                              data-testid="tendered-invalid-message"
+                              aria-live="polite"
+                              className="text-xs text-destructive"
+                            >
+                              Enter what the guest handed over, in rupees.
+                            </p>
+                          )}
+                          {reading.shortPaisa > 0 && (
+                            <p
+                              data-testid="tender-short-message"
+                              aria-live="polite"
+                              className="text-xs text-destructive"
+                            >
+                              Tendered is {formatPaisa(reading.shortPaisa)} short of the amount.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <button
                 type="button"
+                data-testid="add-tender-button"
                 onClick={addRow}
                 className="self-start text-sm text-primary underline"
               >
@@ -555,7 +826,32 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
 
               <div className="flex items-center justify-between border-t pt-2 text-sm">
                 <span className="text-muted-foreground">Tender total</span>
-                <MoneyDisplay paisa={tenderTotalPaisa} className="font-semibold" />
+                <span data-testid="tender-total-value" data-paisa={tenderTotalPaisa}>
+                  <MoneyDisplay paisa={tenderTotalPaisa} className="font-semibold" />
+                </span>
+              </div>
+              {changeDueTotalPaisa > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Change due</span>
+                  <span data-testid="change-due-total" data-paisa={changeDueTotalPaisa}>
+                    <MoneyDisplay paisa={changeDueTotalPaisa} className="font-semibold text-success" />
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Balance after this tender</span>
+                <span
+                  data-testid="balance-after-tender-value"
+                  data-paisa={Math.max(0, remainingPaisa - tenderTotalPaisa)}
+                >
+                  <MoneyDisplay
+                    paisa={Math.max(0, remainingPaisa - tenderTotalPaisa)}
+                    className={cn(
+                      "font-semibold",
+                      remainingPaisa - tenderTotalPaisa > 0 ? "text-destructive" : "text-success",
+                    )}
+                  />
+                </span>
               </div>
               {tenderTotalPaisa > remainingPaisa && (
                 <p className="text-xs text-destructive">

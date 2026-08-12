@@ -111,3 +111,73 @@ export function toMoney(paisa: number): Money {
 export function toInstant(iso: string): Date {
   return new Date(iso);
 }
+
+// ── Rupee entry: the OTHER direction of the money boundary (S1-05) ─────────────────────────────
+//
+// `formatPaisa` is the single site where paisa becomes something a person reads. This is the
+// single site where something a person TYPED becomes paisa. It lives here, beside its inverse, so
+// there is exactly one rounding rule in the frontend and no screen can invent a second one.
+//
+// Why it exists at all: the Charge screen used to ask the cashier for paisa
+// (`aria-label="Amount in paisa"`, `placeholder="Amount (paisa)"`) on a `type="number"` input
+// whose handler was `parseInt(e.target.value)`. Typing a bill as it is printed — `3456.80` —
+// produced `34560` in the box and a Rs 345.60 tender against a Rs 3,456.80 check: a silent
+// ten-fold under-collection with no error anywhere. The `type="number"` element blanks its own
+// `.value` on the intermediate `"3456."` keystroke, `parseInt` then read `0`, and the digits that
+// followed landed against an emptied field. Nothing about that is recoverable by validation; the
+// unit the cashier is asked for has to change.
+
+/** The most paisa this parser will return — beyond it, integer arithmetic in JS stops being exact. */
+const MAX_SAFE_PAISA = BigInt(Number.MAX_SAFE_INTEGER);
+
+/**
+ * Parse a rupee amount a human typed into exact integer paisa, HALF_UP, without ever touching a
+ * binary float.
+ *
+ * Accepts what people actually type at a till: `3456.80`, `3,456.80`, `Rs 3456.8`, `.5`, `12`,
+ * with or without surrounding space. Returns `null` — never a silently-wrong number — for
+ * anything else, including a negative amount, an empty box and `1e3`. A caller that gets `null`
+ * must refuse to submit, not fall back to zero.
+ *
+ * Rounding is HALF_UP on the third decimal place, matching `PercentOfPaisa` on the JVM side:
+ * `12.345` → `1235`, `12.344` → `1234`. Only the first discarded digit can decide HALF_UP, so no
+ * further digits are consulted. The whole computation runs on digit strings and `BigInt`, so
+ * `parseRupeesToPaisa("0.29")` is 29 and not the 28.999999999999996 a float would give.
+ */
+export function parseRupeesToPaisa(input: string): number | null {
+  if (typeof input !== "string") return null;
+  // Strip what a keyboard, a locale or a paste from another screen adds. `\s` already covers the
+  // NBSP and narrow-NBSP that `Intl.NumberFormat` emits as its group separator, so a figure copied
+  // straight off this app's own display parses back; `,` covers the ASCII grouping people type.
+  const cleaned = input.replace(/[\s,]/g, "").replace(/^(?:rs\.?|pkr|₨)/i, "");
+  if (cleaned === "") return null;
+
+  const match = /^(\d*)(?:\.(\d*))?$/.exec(cleaned);
+  if (!match) return null;
+  const whole = match[1] ?? "";
+  const frac = match[2] ?? "";
+  // "." alone is not an amount, and neither is "" — both would otherwise read as zero.
+  if (whole === "" && frac === "") return null;
+
+  const paisaDigits = (frac + "00").slice(0, 2);
+  let paisa = BigInt(whole || "0") * 100n + BigInt(paisaDigits);
+  // HALF_UP: the discarded remainder is >= 0.5 of a paisa exactly when its leading digit is >= 5.
+  if (frac.length > 2 && frac.charCodeAt(2) - 48 >= 5) paisa += 1n;
+
+  if (paisa > MAX_SAFE_PAISA) return null;
+  return Number(paisa);
+}
+
+/**
+ * Render integer paisa as the plain rupee string that belongs INSIDE a text box — `3456.80`, not
+ * `Rs 3,456.80`.
+ *
+ * Deliberately not `formatPaisa`: a grouped, currency-prefixed string put back into an input is a
+ * string the user then has to edit around, and it round-trips through {@link parseRupeesToPaisa}
+ * only by the grace of that function's cleanup. This is the value; `formatPaisa` is the label.
+ */
+export function paisaToRupeeInput(paisa: number): string {
+  const negative = paisa < 0;
+  const abs = BigInt(Math.trunc(Math.abs(paisa)));
+  return `${negative ? "-" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}`;
+}
