@@ -13,6 +13,7 @@ import io.restaurantos.shared.event.payload.PosEventContract;
 import io.restaurantos.pos.event.PosEventPayloads;
 import io.restaurantos.pos.event.PosVoidRefundPayloads;
 import io.restaurantos.pos.exception.PosExceptions;
+import io.restaurantos.pos.feign.CrmCustomerSearchClient;
 import io.restaurantos.pos.feign.CrmPromotionClient;
 import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.*;
@@ -56,6 +57,15 @@ public class OrderServiceImpl implements OrderService {
     private static final String DEFAULT_KDS_STATION = "DEFAULT";
     private static final String VIEW_ALL_PERMISSION = "pos.order.view.all";
     /**
+     * Cap on the customer ids a single Order Management search may resolve (S0-05). The ids
+     * become an {@code IN (…)} predicate, so an uncapped resolve would let a one-character term
+     * build a predicate the width of the tenant's customer book.
+     */
+    private static final int CUSTOMER_MATCH_LIMIT = 50;
+
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(OrderServiceImpl.class);
+    /**
      * Marks an ORDER-scoped discount as machine-applied by the CRM promotion engine, so re-running
      * the evaluation replaces it instead of stacking. {@code OrderDiscount} has no reason column;
      * the type discriminator carries the provenance, alongside the manual FLAT/PERCENT values.
@@ -74,6 +84,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderPricingCalculator pricingCalculator;
     private final OrderStateMachine stateMachine;
     private final CrmPromotionClient crmPromotionClient;
+    /** S0-05: resolves a search term to customer ids; crm-service owns phones and names. */
+    private final CrmCustomerSearchClient crmCustomerSearchClient;
     private final TenantContext tenantContext;
     private final EventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
@@ -98,6 +110,7 @@ public class OrderServiceImpl implements OrderService {
                             OrderPricingCalculator pricingCalculator,
                             OrderStateMachine stateMachine,
                             CrmPromotionClient crmPromotionClient,
+                            CrmCustomerSearchClient crmCustomerSearchClient,
                             TenantContext tenantContext,
                             EventPublisher eventPublisher,
                             IdempotencyService idempotencyService,
@@ -132,6 +145,7 @@ public class OrderServiceImpl implements OrderService {
         this.pricingCalculator = pricingCalculator;
         this.stateMachine = stateMachine;
         this.crmPromotionClient = crmPromotionClient;
+        this.crmCustomerSearchClient = crmCustomerSearchClient;
         this.tenantContext = tenantContext;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
@@ -686,7 +700,15 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, Pageable pageable) {
+    public Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses,
+                                                    Pageable pageable) {
+        return listOrderSummaries(branchId, statuses, null, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, String q,
+                                                    Pageable pageable) {
         // branchId is a request parameter (matches the rest of this controller's existing
         // convention), but it must never widen scope beyond the caller's verified JWT branch
         // (T-07.1d-01 — a client-supplied branchId could otherwise leak cross-branch orders).
@@ -696,31 +718,61 @@ public class OrderServiceImpl implements OrderService {
             throw new PermissionDeniedException("Cannot list orders for a different branch");
         }
 
+        UUID tenantId = tenantContext.requireTenantId();
+        String term = (q == null || q.isBlank()) ? null : q.trim();
+
         // Default (no explicit status filter) = ALL non-terminal statuses EXCLUDING DRAFT
         // (POS-16: a client-only cart never persists a DB order, so DRAFT rows are stale
         // abandoned carts, not active orders — they must never surface in Order Management).
         // A caller can still explicitly request DRAFT or a terminal status (e.g. [CLOSED])
         // via the statuses param; only the empty-filter DEFAULT excludes them.
-        List<OrderStatus> statusEnums = (statuses == null || statuses.isEmpty())
-                ? Arrays.stream(OrderStatus.values())
-                        .filter(s -> !isTerminal(s) && s != OrderStatus.DRAFT)
-                        .collect(Collectors.toList())
-                : statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
-
-        // Own-vs-all-branch visibility (SECURITY — T-07.1d-01): silently scope to the
-        // caller's own orders unless they hold the all-branch view permission. Never a
-        // client-controllable filter.
-        Page<Order> orders = posAuthorizationService.hasPermission(VIEW_ALL_PERMISSION)
-                ? orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
-                : orderRepository.findByBranchIdAndStatusInAndCashierId(
-                        branchId, statusEnums, tenantContext.getUserId().orElse(null), pageable);
+        //
+        // S0-05: a SEARCH with no explicit statuses spans every status instead. Someone typing
+        // an order number has already named the one row they want; answering "No active orders"
+        // because that check was voided is the page pretending the order does not exist.
+        List<OrderStatus> statusEnums;
+        if (statuses != null && !statuses.isEmpty()) {
+            statusEnums = statuses.stream().map(OrderStatus::valueOf).collect(Collectors.toList());
+        } else if (term != null) {
+            statusEnums = Arrays.asList(OrderStatus.values());
+        } else {
+            statusEnums = Arrays.stream(OrderStatus.values())
+                    .filter(s -> !isTerminal(s) && s != OrderStatus.DRAFT)
+                    .collect(Collectors.toList());
+        }
 
         // ALL tables, not just active ones — an order placed at a table that has since been
         // retired must still show its name in the order list, or the row reads "—" and the
         // manager cannot tell which table the money came from.
+        //
+        // Loaded BEFORE the order query, not after: a search matches on table NAME, and this map
+        // is where the names live.
         Map<UUID, String> tableNames = tableRepository
-                .findAllByTenantAndBranch(tenantContext.requireTenantId(), branchId).stream()
+                .findAllByTenantAndBranch(tenantId, branchId).stream()
                 .collect(Collectors.toMap(DiningTable::getId, DiningTable::getTableNumber));
+
+        // Own-vs-all-branch visibility (SECURITY — T-07.1d-01): silently scope to the
+        // caller's own orders unless they hold the all-branch view permission. Never a
+        // client-controllable filter. The searched variants below carry the same rule — search
+        // must not be the hole a cashier reads a colleague's checks through.
+        boolean viewAll = posAuthorizationService.hasPermission(VIEW_ALL_PERMISSION);
+        UUID callerId = tenantContext.getUserId().orElse(null);
+
+        Page<Order> orders;
+        if (term == null) {
+            orders = viewAll
+                    ? orderRepository.findByBranchIdAndStatusIn(branchId, statusEnums, pageable)
+                    : orderRepository.findByBranchIdAndStatusInAndCashierId(
+                            branchId, statusEnums, callerId, pageable);
+        } else {
+            Collection<UUID> tableIds = matchingTableIds(tableNames, term);
+            Collection<UUID> customerIds = matchingCustomerIds(term, tenantId);
+            orders = viewAll
+                    ? orderRepository.searchByTenantAndBranch(
+                            tenantId, branchId, statusEnums, term, tableIds, customerIds, pageable)
+                    : orderRepository.searchByTenantAndBranchAndCashierId(
+                            tenantId, branchId, statusEnums, term, tableIds, customerIds, callerId, pageable);
+        }
 
         // Batched payment sums for the WHOLE page in one query (N+1 avoidance, POS-24) — never
         // call orderPaymentRepository.sumAmountByOrderId per row.
@@ -735,29 +787,84 @@ public class OrderServiceImpl implements OrderService {
         return orders.map(order -> toSummaryDto(order, tableNames, paidByOrderId));
     }
 
+    /**
+     * Never-matching id for an empty {@code IN (…)} list. JPQL has no portable empty-IN, and the
+     * search predicate ORs three clauses — dropping one when it has no candidates would mean
+     * building the query string by hand.
+     */
+    private static final UUID NO_MATCH = UUID.fromString("00000000-0000-0000-0000-000000000000");
+
+    /** Table ids whose NAME contains the term, case-insensitively (e.g. "t1" finds table T1). */
+    private static Collection<UUID> matchingTableIds(Map<UUID, String> tableNames, String term) {
+        String needle = term.toLowerCase(Locale.ROOT);
+        List<UUID> ids = tableNames.entrySet().stream()
+                .filter(e -> e.getValue() != null && e.getValue().toLowerCase(Locale.ROOT).contains(needle))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        return ids.isEmpty() ? List.of(NO_MATCH) : ids;
+    }
+
+    /**
+     * Customer ids matching the term by phone prefix or name, resolved from crm-service.
+     *
+     * <p>A CRM outage must NOT take the whole search down with it: order-number and table
+     * matching are answered entirely from pos_db and stay correct without CRM. So the failure
+     * is logged at WARN and degrades to "no customer matches" rather than 500ing a manager who
+     * was only looking for a check number. The log line is the honest part — this returns fewer
+     * rows than it should, and silence about that is how a degraded search becomes a permanent
+     * one nobody notices.
+     */
+    private Collection<UUID> matchingCustomerIds(String term, UUID tenantId) {
+        try {
+            List<UUID> ids = crmCustomerSearchClient.searchCustomerIds(term, CUSTOMER_MATCH_LIMIT, tenantId);
+            if (ids != null && !ids.isEmpty()) {
+                return ids;
+            }
+        } catch (RuntimeException e) {
+            log.warn("Order search could not reach crm-service to resolve customers for \"{}\" — "
+                    + "results exclude customer phone/name matches", term, e);
+        }
+        return List.of(NO_MATCH);
+    }
+
     @Override
     public OrderDto voidOrder(UUID orderId, VoidOrderRequest request, String idempotencyKey) {
         // Idempotency: return early if already completed
         Optional<String> stored = idempotencyService.getCompletedResponse(idempotencyKey);
         UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
         if (stored.isPresent()) {
-            Order order = orderRepository.findById(orderId)
-                    .filter(o -> tenantId.equals(o.getTenantId()))
-                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
             return orderMapper.toDto(order);
+        }
+
+        // ── MONEY (S0-01): a void must never outrun a payment ────────────────────────────
+        // A void cancels a BILL. It moves no money and writes no reversing row, so voiding an
+        // order that has been paid deleted the order from Order Management, from all seven
+        // status filters and from search while its order_payments row stayed live in the
+        // database — cash in the drawer, nothing on any report. Three gates all failed to
+        // notice: this method never read a payment total, OrderStateMachine permitted
+        // X -> VOIDED from every non-terminal state, and refund was CLOSED-only (a paid but
+        // unserved order is SENT_TO_KDS, never CLOSED, so the operator's ONLY working button
+        // was the destructive one).
+        //
+        // The policy is decided here, once, and it is the strict one: ANY recorded payment
+        // refuses the void. Not "fully paid" — a partial tender is money in the drawer too,
+        // and a void would strand it exactly the same way. Refund is the path that has a
+        // reversing money row, and RefundServiceImpl now accepts every paid order, not only
+        // CLOSED ones, so refusing here never leaves the operator without an action.
+        //
+        // Checked BEFORE the idempotency key is claimed: a refusal must stay retryable, and a
+        // claimed-but-never-completed key makes the next attempt return "success" (the
+        // !claimed branch below) without voiding anything.
+        long amountPaidPaisa = orderPaymentRepository.sumAmountByOrderId(orderId);
+        if (amountPaidPaisa > 0) {
+            throw new PosExceptions.OrderHasPaymentsException(order.getOrderNo(), amountPaidPaisa);
         }
 
         boolean claimed = idempotencyService.checkAndLock(idempotencyKey, request.reason(), 86400);
         if (!claimed) {
-            Order order = orderRepository.findById(orderId)
-                    .filter(o -> tenantId.equals(o.getTenantId()))
-                    .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
             return orderMapper.toDto(order);
         }
-
-        Order order = orderRepository.findById(orderId)
-                .filter(o -> tenantId.equals(o.getTenantId()))
-                .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
 
         // OPA authorization: void.own if creator+OPEN, void.any otherwise
         posAuthorizationService.authorizeVoid(
@@ -921,10 +1028,7 @@ public class OrderServiceImpl implements OrderService {
         // lingering there until the whole order closes (mirrors the ORDER_ITEM_CANCELLED path).
         // markItemServed rejects PENDING (never-fired) lines above, so a served line was always
         // fired to the kitchen — there is always a KDS line to update, hence no wasFired guard.
-        var servedPayload = new PosEventPayloads.OrderItemServedPayload(
-                saved.getId(), tenantId, saved.getBranchId(), itemId);
-        eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_SERVED_KEY, ORDER_ITEM_SERVED_TYPE,
-                saved.getBranchId(), servedPayload);
+        publishItemServed(saved, tenantId, itemId);
 
         // POS-23: serving the last line of an already-fully-paid order closes it — the single
         // maybeCloseOrder seam is a no-op unless paymentStatus==PAID && derivedStatus==SERVED.
@@ -932,6 +1036,103 @@ public class OrderServiceImpl implements OrderService {
             dto = maybeCloseOrder(orderId);
         }
         return dto;
+    }
+
+    /**
+     * S0-06: the ONE operator-reachable step from "the guest has paid" to a terminal order.
+     *
+     * <p><b>Why this exists.</b> {@code maybeCloseOrder} closes only when the order is
+     * {@code PAID} <i>and</i> {@code derivedStatus == SERVED}, and SERVED was reachable only by
+     * pressing Mark Served on every line individually — controls that live on the terminal's
+     * order panel and the order drawer, neither of which is on the path a cashier walks after
+     * taking the money. The observable consequence was that the NORMAL end state of a settled
+     * check was an open, still-voidable ticket sitting at {@code SENT_TO_KDS / PAID}.
+     *
+     * <p><b>What it does.</b> Serves every active (non-CANCELLED) line in ONE transaction,
+     * publishing the same per-line {@code ORDER_ITEM_SERVED} the single-line path publishes so
+     * the KDS clears identically, then delegates to {@code maybeCloseOrder}. It deliberately
+     * does NOT close the order itself: {@code performClose} keeps exactly one caller, so the
+     * Paid-AND-Served rule, the period-lock check and the single {@code ORDER_CLOSED} publish
+     * cannot be bypassed by this path. An order that is served but not fully paid simply stays
+     * open — which is the correct answer, not a failure.
+     *
+     * <p><b>Refusals</b> (409 {@code StateInvalidException}, deliberately loud rather than a
+     * silent partial success — a control that appears to do nothing is the defect this closes):
+     * <ul>
+     *   <li>the order is VOIDED or REFUNDED — those are different end states, and asking to
+     *       serve one is a real mistake worth naming;</li>
+     *   <li>any active line is still PENDING — it was never fired, so it cannot have been
+     *       served, and serving the rest would leave the order PARTIALLY_SERVED and open.</li>
+     * </ul>
+     *
+     * <p><b>Already CLOSED is NOT a refusal.</b> CLOSED is precisely the state this operation
+     * exists to reach, so arriving there twice — a double-tap, or a second terminal racing the
+     * first — is success, and it returns the order unchanged. Throwing would paint a red error
+     * under a button that had just done exactly what the cashier asked.
+     */
+    @Override
+    public OrderDto markAllItemsServed(UUID orderId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (order.getStatus() == OrderStatus.CLOSED) {
+            return orderMapper.toDto(order);
+        }
+        if (isTerminal(order.getStatus())) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve an order that is already " + order.getStatus() + ": " + orderId);
+        }
+
+        List<OrderItem> active = order.getItems().stream()
+                .filter(i -> i.getItemStatus() != OrderItemStatus.CANCELLED)
+                .toList();
+
+        if (active.isEmpty()) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve an order with no active items: " + orderId);
+        }
+
+        List<UUID> unfired = active.stream()
+                .filter(i -> i.getItemStatus() == OrderItemStatus.PENDING)
+                .map(OrderItem::getId)
+                .toList();
+        if (!unfired.isEmpty()) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve items that have not been fired to the kitchen: " + unfired);
+        }
+
+        List<UUID> newlyServed = new ArrayList<>();
+        for (OrderItem item : active) {
+            if (item.getItemStatus() != OrderItemStatus.SERVED) {
+                item.setItemStatus(OrderItemStatus.SERVED);
+                newlyServed.add(item.getId());
+            }
+        }
+
+        order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
+        Order saved = orderRepository.save(order);
+
+        for (UUID servedItemId : newlyServed) {
+            publishItemServed(saved, tenantId, servedItemId);
+        }
+
+        // Same seam, same rule as the single-line path — closing is a consequence of Paid AND
+        // Served, never a direct instruction from the caller.
+        return maybeCloseOrder(orderId);
+    }
+
+    /**
+     * The one ORDER_ITEM_SERVED publish in this class — shared by the single-line
+     * {@code markItemServed} and the whole-check {@code markAllItemsServed} so the KDS sees the
+     * identical event either way, and a future change to the payload cannot drift between them.
+     */
+    private void publishItemServed(Order order, UUID tenantId, UUID itemId) {
+        var servedPayload = new PosEventPayloads.OrderItemServedPayload(
+                order.getId(), tenantId, order.getBranchId(), itemId);
+        eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_SERVED_KEY, ORDER_ITEM_SERVED_TYPE,
+                order.getBranchId(), servedPayload);
     }
 
     @Override

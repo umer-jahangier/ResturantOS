@@ -39,7 +39,32 @@ public interface OrderService {
      * scoped to their own orders, never a client-controllable filter. {@code branchId} MUST be
      * the caller's JWT branch.
      */
+    /**
+     * The unsearched listing. Declared here and implemented in {@code OrderServiceImpl} rather
+     * than written as an interface {@code default} that delegates: a default method carries no
+     * {@code @Transactional} of its own, and its call to the annotated sibling is a
+     * self-invocation on the target that the proxy never sees — so the summary rows would be
+     * built with no Hibernate session and every one of them would throw
+     * {@code LazyInitializationException} on {@code order.getItems()}. Caught here by
+     * {@code OrderSummaryDtoIT}, which is exactly what that suite is for.
+     */
     Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, Pageable pageable);
+
+    /**
+     * The same list, narrowed by a free-text search term (S0-05).
+     *
+     * <p>{@code q} matches an order number (substring, case-insensitive), a table name, or the
+     * attached customer's phone/name — the three things a manager actually has to hand when they
+     * go looking for a check. It is answered HERE and not in the browser: the page can only ever
+     * filter what it has already fetched, which is one truncated page of one status scope, so a
+     * client-side search cannot reach a voided check, a closed one, or anything past row 20.
+     *
+     * <p>A non-blank {@code q} with no explicit {@code statuses} searches EVERY status, including
+     * DRAFT and the terminal ones the default listing deliberately hides. That asymmetry is the
+     * point: hiding a voided order from the default list is right (it is not active work), hiding
+     * it from someone typing its number is not.
+     */
+    Page<OrderSummaryDto> listOrderSummaries(UUID branchId, List<String> statuses, String q, Pageable pageable);
 
     /**
      * The single seam (POS-23) that closes an order as a derived consequence of settlement
@@ -55,6 +80,19 @@ public interface OrderService {
 
     OrderDto voidOrder(UUID orderId, VoidOrderRequest request, String idempotencyKey);
     OrderDto markItemServed(UUID orderId, UUID itemId);
+
+    /**
+     * S0-06: serves every active line of {@code orderId} in one transaction and then runs the
+     * {@code maybeCloseOrder} seam — the operator-reachable step from "the guest has paid" to a
+     * terminal order. It never closes the order itself, so the Paid-AND-Served rule, the
+     * period-lock check and the single ORDER_CLOSED publish stay where they are; an order that
+     * is served but not fully paid stays open, which is correct.
+     *
+     * <p>Refuses (409) when the order is already terminal, has no active lines, or still has a
+     * line that was never fired to the kitchen — loudly, because a control that silently does
+     * nothing is precisely the defect this closes.
+     */
+    OrderDto markAllItemsServed(UUID orderId);
     OrderDto cancelItem(UUID orderId, UUID itemId);
     OrderDto updateInstructions(UUID orderId, UpdateInstructionsRequest request);
 

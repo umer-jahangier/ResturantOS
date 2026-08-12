@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,4 +34,22 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID> 
     Page<CustomerEntity> search(@Param("tenantId") UUID tenantId,
                                 @Param("q") String q,
                                 Pageable pageable);
+
+    /**
+     * The ids alone for the same match rule as {@link #search} — the POS order search's
+     * "which customers does this phone belong to?" leg (S0-05).
+     *
+     * <p>Ids rather than whole customers on purpose: pos-service only needs them to build an
+     * {@code o.customerId IN (…)} predicate, and shipping names/emails/birthdays across a service
+     * boundary for that would be handing PII to a caller with no use for it.
+     */
+    @Query("""
+            SELECT c.id FROM CustomerEntity c
+             WHERE c.tenantId = :tenantId
+               AND (LOWER(c.name) LIKE LOWER(CONCAT('%', :q, '%'))
+                    OR c.phone LIKE CONCAT(:q, '%'))
+            """)
+    List<UUID> searchIds(@Param("tenantId") UUID tenantId,
+                         @Param("q") String q,
+                         Pageable pageable);
 }

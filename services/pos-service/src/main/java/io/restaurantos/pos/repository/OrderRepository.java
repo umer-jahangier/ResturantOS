@@ -72,6 +72,77 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
             Pageable pageable);
 
     /**
+     * S0-05 — server-side Order Management search.
+     *
+     * <p>Until this existed, the search box was a {@code source.filter(...)} over the rows the
+     * page had already fetched, so it could only ever find an order that was both on the current
+     * page AND in the currently-selected status scope. Typing the number of a check you had just
+     * voided returned "No active orders" — the row was never in the array being filtered.
+     *
+     * <p>Matching is deliberately three-way and OR'd:
+     * <ul>
+     *   <li><b>order number</b> — substring, case-insensitive, so {@code 0026} finds
+     *       {@code ORD-20260812-0026} (nobody types the prefix);</li>
+     *   <li><b>table</b> — by id, because table NAMES live in {@code dining_tables} and joining
+     *       them here would make this query branch-shaped; the caller already loads the branch's
+     *       table-name map to build each row and resolves the matching ids from it;</li>
+     *   <li><b>customer</b> — by id, resolved by the caller from crm-service, which owns phones
+     *       and names. pos-service holds no copy of the customer book.</li>
+     * </ul>
+     *
+     * <p>{@code tableIds}/{@code customerIds} must never be empty — an empty JPQL {@code IN} is
+     * not portable. The caller substitutes a sentinel UUID that matches nothing.
+     *
+     * <p>Tenant is a predicate here, not an assumption: pos_db is owned by the application role,
+     * so RLS is inert on this connection (see {@link #findByTenantIdAndBranchIdAndStatusIn}).
+     */
+    @Query("""
+            SELECT o FROM Order o
+             WHERE o.tenantId = :tenantId
+               AND o.branchId = :branchId
+               AND o.status IN :statuses
+               AND (UPPER(o.orderNo) LIKE UPPER(CONCAT('%', :q, '%'))
+                    OR o.tableId IN :tableIds
+                    OR o.customerId IN :customerIds)
+             ORDER BY o.createdAt DESC
+            """)
+    Page<Order> searchByTenantAndBranch(
+            @Param("tenantId") UUID tenantId,
+            @Param("branchId") UUID branchId,
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("q") String q,
+            @Param("tableIds") Collection<UUID> tableIds,
+            @Param("customerIds") Collection<UUID> customerIds,
+            Pageable pageable);
+
+    /**
+     * {@link #searchByTenantAndBranch} additionally scoped to one creator — the same
+     * own-vs-all-branch rule the unsearched listing already applies (POS-09). Search must not
+     * become the hole through which a cashier without {@code pos.order.view.all} reads a
+     * colleague's checks.
+     */
+    @Query("""
+            SELECT o FROM Order o
+             WHERE o.tenantId = :tenantId
+               AND o.branchId = :branchId
+               AND o.status IN :statuses
+               AND o.cashierId = :cashierId
+               AND (UPPER(o.orderNo) LIKE UPPER(CONCAT('%', :q, '%'))
+                    OR o.tableId IN :tableIds
+                    OR o.customerId IN :customerIds)
+             ORDER BY o.createdAt DESC
+            """)
+    Page<Order> searchByTenantAndBranchAndCashierId(
+            @Param("tenantId") UUID tenantId,
+            @Param("branchId") UUID branchId,
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("q") String q,
+            @Param("tableIds") Collection<UUID> tableIds,
+            @Param("customerIds") Collection<UUID> customerIds,
+            @Param("cashierId") UUID cashierId,
+            Pageable pageable);
+
+    /**
      * The current (most-recent) non-terminal order bound to a table (POS-10). "Non-terminal"
      * = not in the caller-supplied {@code excludedStatuses} set (CLOSED/VOIDED/REFUNDED at the
      * call site). Ordered newest-first and {@link Limit}-capped so this READ path never throws

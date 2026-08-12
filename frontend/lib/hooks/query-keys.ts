@@ -56,8 +56,12 @@ export const queryKeys = {
       ["pos", branchId, "tables", tableId, "active-order"] as const,
     orders: (branchId: string, statuses?: string[]) =>
       ["pos", branchId, "orders", statuses] as const,
-    orderSummaries: (branchId: string, statuses?: string[]) =>
-      ["pos", branchId, "order-summaries", statuses] as const,
+    // `q` (S0-05) is part of the key: a search is a DIFFERENT server query, not a view of
+    // the unsearched one. Sharing a key would serve the last search's rows to the next term.
+    // It stays last so the existing prefix-match invalidations (["pos", branchId,
+    // "order-summaries"]) keep clearing every variant.
+    orderSummaries: (branchId: string, statuses?: string[], q?: string) =>
+      ["pos", branchId, "order-summaries", statuses, q ?? null] as const,
     order: (branchId: string, id: string) => ["pos", branchId, "orders", id] as const,
     orderPayments: (branchId: string, orderId: string) =>
       ["pos", branchId, "orders", orderId, "payments"] as const,

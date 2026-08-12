@@ -46,8 +46,13 @@ public class OrderController {
     public ResponseEntity<ApiResponse<List<OrderSummaryDto>>> listOrders(
             @RequestParam UUID branchId,
             @RequestParam(required = false) List<String> status,
+            // S0-05: free-text search — order number, table name, or the attached customer's
+            // phone/name. Answered by the service across EVERY status when no explicit `status`
+            // is given, because the row someone is searching for is very often the one the
+            // default listing hides (a void, a closed check, or row 34 of a 20-row page).
+            @RequestParam(required = false) String q,
             Pageable pageable) {
-        Page<OrderSummaryDto> page = orderService.listOrderSummaries(branchId, status, pageable);
+        Page<OrderSummaryDto> page = orderService.listOrderSummaries(branchId, status, q, pageable);
         // S0-04: attach WHY and BY WHOM for the VOIDED/REFUNDED rows on this page. A no-op (no
         // extra query at all) for a page of live orders, which is why it sits here as a second
         // pass rather than inside the row builder on the till's hot list path.
@@ -145,6 +150,18 @@ public class OrderController {
             @PathVariable UUID id,
             @PathVariable UUID itemId) {
         return ResponseEntity.ok(ApiResponse.ok(orderService.markItemServed(id, itemId)));
+    }
+
+    /**
+     * S0-06 — "Mark served &amp; close" from the settlement screen. Same permission as the
+     * per-line serve endpoint above ({@code pos.order.update}): this is the same domain act on
+     * every line at once, so it is deliberately NOT a new or wider permission — the cashier who
+     * may serve line 1 and line 2 individually may serve both in one call.
+     */
+    @PreAuthorize("hasAuthority('pos.order.update')")
+    @PostMapping("/{id}/serve-all")
+    public ResponseEntity<ApiResponse<OrderDto>> markAllItemsServed(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.markAllItemsServed(id)));
     }
 
     @PreAuthorize("hasAuthority('pos.order.update')")

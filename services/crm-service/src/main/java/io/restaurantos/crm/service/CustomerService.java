@@ -13,11 +13,14 @@ import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.shared.tenant.TenantGucHelper;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -99,6 +102,29 @@ public class CustomerService {
                 .collect(Collectors.toMap(LoyaltyAccountEntity::getCustomerId, a -> a));
 
         return page.map(c -> toSummary(c, loyalty.get(c.getId())));
+    }
+
+    /**
+     * S0-05 — the ids of every customer in this tenant matching {@code q} by phone prefix or
+     * name, capped at {@code limit}.
+     *
+     * <p>Exists so pos-service's Order Management search can answer "find the check for
+     * 0300…" without pos-service holding a copy of the customer book. The cap is not
+     * cosmetic: the caller turns this into an {@code IN (…)} predicate, so an uncapped
+     * result would let a one-character query build a predicate the width of the tenant.
+     * A caller that hits the cap has typed something too broad to be a customer lookup and
+     * gets the first {@code limit} matches, deterministically ordered.
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> searchIds(String q, int limit) {
+        ensureGuc();
+        if (q == null || q.isBlank()) {
+            return List.of();
+        }
+        return customerRepo.searchIds(
+                tenantContext.requireTenantId(),
+                q.trim(),
+                PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.ASC, "id")));
     }
 
     @Transactional(readOnly = true)

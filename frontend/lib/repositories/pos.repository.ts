@@ -77,6 +77,14 @@ import type {
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
 // adapts to domain models. Never exposes raw API types to Layer-3 or above.
 
+/**
+ * Rows per request when loading the till's menu. Comfortably larger than a real restaurant's
+ * whole card, so the common case is one round trip; `getMenuItems` pages past it regardless.
+ */
+const MENU_PAGE_SIZE = 200;
+/** Bound on that loop — 2,000 active items is far beyond any menu, and stops a runaway. */
+const MENU_MAX_PAGES = 10;
+
 export const PosRepository = {
   // ── Menu ──────────────────────────────────────────────────────────────────
 
@@ -87,9 +95,54 @@ export const PosRepository = {
     );
   },
 
+  /**
+   * The order-taking menu, WHOLE.
+   *
+   * <p>This used to be a single `get` with `{categoryId, branchId}` and no `size`, against an
+   * endpoint that takes a Spring `Pageable` — default page size 20. A tenant whose menu ran past
+   * 20 active items sold about twenty of them: the rest never reached the grid, and the till's
+   * search filters client-side over what was already fetched, so searching for one of the missing
+   * items returned "No items match your search". Nothing on screen said a single item was missing,
+   * because the endpoint returned bare rows with no total.
+   *
+   * <p>The endpoint now publishes `meta`, and this walks it to the end. A menu grid is not a paged
+   * table — a cashier cannot sell from page 2 of a list they were never told exists — so the
+   * paging happens here, once, and the grid receives the complete menu. `MENU_PAGE_SIZE` is a
+   * transport detail, not a cap on the menu: whatever it is, the loop keeps going until `meta`
+   * says nothing follows.
+   */
   async getMenuItems(params: { categoryId?: string; branchId?: string }): Promise<MenuItem[]> {
-    const raw = await get<unknown[]>("/api/v1/pos/menu/items", params as Record<string, unknown>);
-    return (Array.isArray(raw) ? raw : []).map((r) => adaptMenuItem(apiMenuItemSchema.parse(r)));
+    const items: MenuItem[] = [];
+    let page = 0;
+    let totalCount = 0;
+
+    for (;;) {
+      const result = await getPaginated<unknown>("/api/v1/pos/menu/items", {
+        ...params,
+        page,
+        size: MENU_PAGE_SIZE,
+      });
+      for (const r of result.data) items.push(adaptMenuItem(apiMenuItemSchema.parse(r)));
+
+      totalCount = result.meta?.totalCount ?? items.length;
+      const nextCursor = result.meta?.page?.nextCursor;
+      // Belt and braces: stop on the cursor, but also stop if a page came back empty or the
+      // count is already satisfied, so a backend that mis-reports `nextCursor` cannot spin here.
+      if (!nextCursor || result.data.length === 0 || items.length >= totalCount) break;
+      page += 1;
+      if (page >= MENU_MAX_PAGES) break;
+    }
+
+    // Reaching here short means the menu exceeded MENU_PAGE_SIZE * MENU_MAX_PAGES. Say so loudly.
+    // A silently short grid is the defect this exists to remove; re-introducing it at a higher
+    // number would be worse for being harder to notice.
+    if (items.length < totalCount) {
+      console.error(
+        `Menu truncated: ${items.length} of ${totalCount} items loaded for the till. ` +
+          `Raise MENU_PAGE_SIZE/MENU_MAX_PAGES — the grid must show every sellable item.`,
+      );
+    }
+    return items;
   },
 
   async getMenuItem(id: string): Promise<MenuItem> {
@@ -335,6 +388,15 @@ export const PosRepository = {
   async listOrderSummaries(params: {
     branchId: string;
     status?: string[];
+    /**
+     * S0-05 free-text search — order number, table name, or the attached customer's
+     * phone/name, matched SERVER-side across every status when `status` is omitted. Sent as
+     * `q` so the search reaches rows this page never fetched; filtering the fetched array
+     * instead is what made a voided check unfindable by its own number.
+     */
+    q?: string;
+    /** Rows per page. Omitted, the server's Pageable default (20) applies. */
+    size?: number;
   }): Promise<PaginatedResult<OrderSummary>> {
     const result = await getPaginated<unknown>(
       "/api/v1/pos/orders",
@@ -408,6 +470,21 @@ export const PosRepository = {
     const raw = await post<undefined, unknown>(
       `/api/v1/pos/orders/${orderId}/items/${itemId}/serve`,
     );
+    return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  /**
+   * S0-06 — serves every remaining line of the check in ONE call, which is what lets the
+   * server's Paid-AND-Served rule close it.
+   *
+   * <p>Not a convenience wrapper around N `markItemServed` calls: those are N transactions and
+   * N chances to stop halfway, leaving the order PARTIALLY_SERVED and still open — the exact
+   * state this repair exists to eliminate. The server does it atomically and closes as a
+   * consequence. Returns the order in whatever state that left it (CLOSED when fully paid,
+   * still open with every line SERVED when it is not).
+   */
+  async serveAllItems(orderId: string): Promise<Order> {
+    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/serve-all`);
     return adaptOrder(apiOrderSchema.parse(raw));
   },
 
