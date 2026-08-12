@@ -132,8 +132,16 @@ describe("ReceiptDocumentView", () => {
    * A breakdown line with no label and no percentage still has to say what the money IS. Rendering
    * the label alone would print a bare amount against an empty phrase — a number on a bill with
    * nothing naming it.
+   *
+   * <p><b>D-4 — this assertion used to demand the defect.</b> Its last line read, verbatim:
+   *
+   * <pre>expect(rows.filter((r) => r === "Tax")).toHaveLength(2); // the breakdown line and the total</pre>
+   *
+   * A guest's bill saying "Tax" twice, with the same amount beside it both times, was not an
+   * accident nobody had looked at — it was written down, counted, and locked in place by a passing
+   * test. The fallback is still right and still asserted; the SECOND copy is the bug.
    */
-  it("falls back to the word Tax when a breakdown line carries neither label nor rate", () => {
+  it("says the word Tax exactly once when one unlabelled line is the whole tax", () => {
     render(
       <ReceiptDocumentView
         document={docFrom({
@@ -151,7 +159,73 @@ describe("ReceiptDocumentView", () => {
     const rows = Array.from(
       screen.getByTestId("receipt-root").querySelectorAll(".receipt-row"),
     ).map((r) => r.querySelector(".receipt-row-label")?.textContent?.trim());
-    expect(rows.filter((r) => r === "Tax")).toHaveLength(2); // the breakdown line and the total
+
+    expect(rows.filter((r) => r === "Tax"))
+      .toHaveLength(1);
+    // And the money is still named — a line that fell back to nothing would also pass a count.
+    expect(screen.getByTestId("receipt-root")).toHaveTextContent("Rs 345.75");
+  });
+
+  /**
+   * D-4. A real bill on 2026-08-12 read:
+   *
+   *     Sales Tax (16.00%)          Rs   230.67
+   *     Tax                         Rs   230.67
+   *
+   * Two lines, one amount, one immediately under the other, on a customer-facing document. The
+   * total was right — 2,339.00 - 308.90 + 101.51 + 230.67 = 2,362.28 — so no money was wrong. But
+   * a guest counting their own bill finds Rs 230.67 charged twice and says so, and the till has
+   * nothing to answer with.
+   *
+   * <p>Falsified by removing the `taxBreakdown.length !== 1` guard from receipt-document.tsx:
+   * "Rs 230.67" is painted twice and this fails on the count.
+   */
+  it("prints a single-rate tax once, with its name and its percentage", () => {
+    const doc = docFrom({
+      taxBreakdown: [
+        {
+          rateCode: "GST-16",
+          label: "Sales Tax",
+          ratePercent: "16.00",
+          amount: { paisa: 23067, formatted: "Rs 230.67" },
+        },
+      ],
+    });
+    render(<ReceiptDocumentView document={doc} />);
+    const paper = screen.getByTestId("receipt-root").textContent ?? "";
+
+    expect(paper).toContain("Sales Tax (16.00%)");
+    expect(paper.split("Rs 230.67").length - 1).toBe(1);
+
+    // The BARE "Tax" row — the duplicate itself. Asserted on the LABEL, because the fixture's own
+    // totals.tax differs from this override and an amount-only count passes against the unguarded
+    // renderer. (It did: the first version of this test stayed green through the falsification,
+    // and only the sibling assertion below caught it. The print-agent twin had the same hole.)
+    const rows = Array.from(
+      screen.getByTestId("receipt-root").querySelectorAll(".receipt-row"),
+    ).map((r) => r.querySelector(".receipt-row-label")?.textContent?.trim());
+    expect(rows.filter((r) => r === "Tax")).toHaveLength(0);
+  });
+
+  /**
+   * The other half of the same rule, so the fix cannot be "delete the total row". With several
+   * rates a summing row does real work: a guest should not have to add three percentages together
+   * themselves. The golden fixture carries two buckets, which is what makes this the live case.
+   */
+  it("keeps the Tax total when the breakdown has several rates to sum", () => {
+    const doc = docFrom();
+    render(<ReceiptDocumentView document={doc} />);
+    const root = screen.getByTestId("receipt-root");
+
+    expect(doc.taxBreakdown.length).toBeGreaterThan(1);
+    expect(root).toHaveTextContent("Sales Tax (16.00%)");
+    expect(root).toHaveTextContent("ICT Services (5.00%)");
+
+    const rows = Array.from(root.querySelectorAll(".receipt-row")).map((r) =>
+      r.querySelector(".receipt-row-label")?.textContent?.trim(),
+    );
+    expect(rows.filter((r) => r === "Tax"))
+      .toHaveLength(1);
   });
 
   it("prints tendered and change for a cash tender, and neither for a card", () => {

@@ -307,10 +307,20 @@ public class ReceiptDocumentAssembler {
      * rescued only the UNCLASSIFIED case, which is why the defect was read as an {@code [OTHER]}
      * problem when every classified item was worse.
      *
-     * <p>A per-code display name — the golden fixture's "ICT Services" — is a TENANT setting, and
-     * the screen that would hold it does not exist yet (no sales-tax configuration exists anywhere
-     * in the product). Until it does, one honest phrase on every line beats reaching for the ledger
-     * code, and the PERCENTAGE is what distinguishes one rate from another for the person paying.
+     * <p>It is the FALLBACK now, not the label (D-4). The screen that holds the per-class display
+     * name does exist — {@code /app/settings/tax} captions its Name field, on every rate row, with
+     * exactly <em>"Printed on the guest's bill."</em> — and {@code order_items.tax_class_name} has
+     * snapshotted that name since F16. This assembler ignored it and printed this phrase over the
+     * top, so a tenant who typed a name into a box that promised it would be printed did not get
+     * it printed. Worse, the tenant measured on 2026-08-12 had fourteen named classes, SEVEN of
+     * them at exactly 17%: a check carrying two different 17% taxes printed two identical lines
+     * with nothing to tell them apart.
+     *
+     * <p>This phrase is now used only where there genuinely is no name — a line taxed by the
+     * item's own legacy rate columns, which belong to no class, and pre-F16 lines whose class was
+     * never recorded. In those cases the percentage is what distinguishes one rate from another
+     * for the person paying, and inventing a name would put a phrase on a guest's bill that
+     * nobody in the building ever typed.
      */
     private static final String GUEST_TAX_LABEL = "Sales Tax";
 
@@ -333,7 +343,7 @@ public class ReceiptDocumentAssembler {
      * line looked odd enough to distrust; once the label became a plain phrase it would have read
      * as authoritative, so the two changes belong together.
      */
-    private record TaxBucket(String rateCode, String ratePercent) {}
+    private record TaxBucket(String rateCode, String ratePercent, String className) {}
 
     /**
      * Tax grouped by the rate code and rate THE LINE WAS CHARGED AT, with any residue attributed
@@ -366,6 +376,12 @@ public class ReceiptDocumentAssembler {
             }
             String code;
             String rate;
+            // D-4: the tenant's own name for this tax, snapshotted onto the line at add-item time
+            // (F16) and until now thrown away at print time. Null for a line taxed by the item's
+            // legacy rate columns, which belong to no class — see GUEST_TAX_LABEL.
+            String className = item.taxClassName() != null && !item.taxClassName().isBlank()
+                    ? item.taxClassName()
+                    : null;
             boolean snapshotted = item.taxRatePct() != null && item.taxRatePct().signum() != 0;
             if (snapshotted) {
                 code = item.taxRateCode() != null && !item.taxRateCode().isBlank()
@@ -382,8 +398,16 @@ public class ReceiptDocumentAssembler {
                         .orElse(UNCLASSIFIED_RATE_CODE);
                 rate = menuItem.map(m -> m.getTaxRatePct() == null ? null : m.getTaxRatePct().toPlainString())
                         .orElse(null);
+                // A pre-F16 line's class was never recorded, so there is no name to print. Do not
+                // reach for the live menu row's class: that is a statement about what the NEXT
+                // guest is charged, and using it here is the same defect F16 removed for the rate.
+                className = null;
             }
-            byBucket.computeIfAbsent(new TaxBucket(code, rate), k -> new long[1])[0] += item.taxPaisa();
+            // Keyed on the NAME as well as the code and the rate (D-4). The measured tenant had
+            // seven classes at 17%; collapsing them by rate would print one line summing taxes the
+            // guest was charged under different headings.
+            byBucket.computeIfAbsent(new TaxBucket(code, rate, className), k -> new long[1])[0]
+                    += item.taxPaisa();
         }
 
         long accounted = byBucket.values().stream().mapToLong(v -> v[0]).sum();
@@ -393,14 +417,14 @@ public class ReceiptDocumentAssembler {
             // the difference is visible rather than silently absorbed. The residue gets its OWN
             // bucket carrying no percentage: it is unattributable by definition, so it must not
             // borrow a rate from a line it did not come from.
-            byBucket.computeIfAbsent(new TaxBucket(UNCLASSIFIED_RATE_CODE, null), k -> new long[1])[0]
-                    += (orderTaxPaisa - accounted);
+            byBucket.computeIfAbsent(new TaxBucket(UNCLASSIFIED_RATE_CODE, null, null),
+                    k -> new long[1])[0] += (orderTaxPaisa - accounted);
         }
 
         List<PrintDocument.TaxLine> out = new ArrayList<>();
         byBucket.forEach((bucket, sum) -> out.add(new PrintDocument.TaxLine(
                 bucket.rateCode(),
-                GUEST_TAX_LABEL,
+                bucket.className() != null ? bucket.className() : GUEST_TAX_LABEL,
                 bucket.ratePercent(),
                 ReceiptAmount.of(sum[0]))));
         return out;
