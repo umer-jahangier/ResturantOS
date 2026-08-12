@@ -67,23 +67,6 @@ export function useUpdateItemStatus(branchId: string) {
 }
 
 /**
- * The stale-board query key.
- *
- * <p>It BELONGS in `lib/hooks/query-keys.ts` beside the other `queryKeys.kds.*` entries, and it is
- * here for a working-copy reason rather than a design one: that registry is currently held dirty by
- * three other in-flight changes (the F16 tax catalogue, the F20 service charge, the S6 modifier
- * keys), and this repository commits by explicit path — so committing the registry to publish one
- * line would take their uncommitted work with it. That has happened twice here already.
- *
- * <p>It keeps the `["kds", branchId, …]` prefix deliberately, so the existing subtree invalidation
- * (`invalidateQueries({ queryKey: ["kds", branchId] })`) still reaches it — a key that opted out of
- * the prefix would go stale after every bump and nothing would say so. Move it into the registry
- * when that file goes clean.
- */
-const staleBoardKey = (branchId: string, stationCode?: string) =>
-  ["kds", branchId, "stale", stationCode] as const;
-
-/**
  * What is on this board from a business day that has already closed (F17).
  *
  * `enabled` is caller-controlled so the board can poll it cheaply for the header badge and the
@@ -97,7 +80,7 @@ export function useStaleKdsTickets(
 ) {
   const { isAuthenticated } = useCurrentUser();
   return useQuery({
-    queryKey: staleBoardKey(branchId, stationCode),
+    queryKey: queryKeys.kds.stale(branchId, stationCode),
     queryFn: () => KdsRepository.getStaleTickets(branchId, stationCode),
     enabled: isAuthenticated && !!branchId && (options?.enabled ?? true),
     refetchInterval: options?.refetchInterval,

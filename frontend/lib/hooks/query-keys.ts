@@ -193,6 +193,9 @@ export const queryKeys = {
       ["kds", branchId, "tickets", stationCode, status] as const,
     ticketDetail: (branchId: string, ticketId: string) =>
       ["kds", branchId, "tickets", ticketId] as const,
+    /** What is on this board from a business day that has already closed (F17). */
+    stale: (branchId: string, stationCode?: string) =>
+      ["kds", branchId, "stale", stationCode] as const,
     stations: (branchId: string) => ["kds", branchId, "stations"] as const,
   },
   // 08.2: branch-scoped inventory master-data/recipe/stock namespace. Publishes the registry
