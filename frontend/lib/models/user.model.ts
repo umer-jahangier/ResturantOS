@@ -110,6 +110,60 @@ export interface ReplaceStationAssignmentPayload {
   stationCodes: string[];
 }
 
+// ── Menu-category scope (Program A) ─────────────────────────────────────────────────────────
+
+/** The menu categories a user may ring at one branch. Never present with an empty list. */
+export interface BranchMenuCategoryAssignment {
+  branchId: string;
+  categoryIds: string[];
+}
+
+/**
+ * A user's whole menu-category scope.
+ *
+ * <p>Modelled on {@link UserStationScope} down to the property name, and for a reason that is
+ * sharper here than it was there: `menu_categories` is ABSENT from the access token when the user
+ * has no rows, `pos.rego`'s unrestricted rule matches on that absence, and `MenuCategoryScope`
+ * collapses an empty collection back to `unrestricted()`. Four layers agree that no rows means the
+ * whole menu. A fifth that read `branches.length === 0` as "no access" would be the one that
+ * disagreed, on the screen where the disagreement is visible to an owner.
+ */
+export interface UserMenuCategoryScope {
+  /** True when the user has no assignment anywhere: they may ring every category at every branch. */
+  unrestrictedEverywhere: boolean;
+  branches: BranchMenuCategoryAssignment[];
+}
+
+/**
+ * The scope at one branch, as a union rather than a possibly-empty array.
+ *
+ * <p>The dangerous reading — "no ids" as "no categories" — is not reachable: the unrestricted arm
+ * has no `categoryIds` property to iterate, so a component must handle the two cases separately or
+ * fail to compile.
+ */
+export type BranchMenuCategoryScope =
+  | { unrestricted: true }
+  | { unrestricted: false; categoryIds: string[] };
+
+export function branchMenuCategoryScope(
+  scope: UserMenuCategoryScope | undefined,
+  branchId: string,
+): BranchMenuCategoryScope {
+  const found = scope?.branches.find((b) => b.branchId === branchId);
+  if (!found || found.categoryIds.length === 0) return { unrestricted: true };
+  return { unrestricted: false, categoryIds: found.categoryIds };
+}
+
+export interface ReplaceMenuCategoriesPayload {
+  branchId: string;
+  /**
+   * The FULL set this user may now ring at that branch. An empty array is legal and is the ONLY
+   * way to return someone to the whole menu — there is deliberately no other spelling of
+   * unrestricted anywhere in this stack.
+   */
+  categoryIds: string[];
+}
+
 /** A role the CALLER may assign — `GET /api/v1/roles` is already ceiling-filtered (13-07). */
 export interface AssignableRole {
   code: string;

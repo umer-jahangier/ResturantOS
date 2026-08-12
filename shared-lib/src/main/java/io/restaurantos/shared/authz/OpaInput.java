@@ -33,6 +33,13 @@ public record OpaInput(User user, Resource resource, String action, Environment 
      * asks whether cooked food exists, so pos-service derives it from the line statuses at
      * decision time and sends it. Absent for every non-void action, none of which read it.
      *
+     * <p>{@code categoryId} is the MENU CATEGORY of the item an {@code add_item} decision is about
+     * (Program A). It is a fact about the ITEM, which is why it belongs here — the matching
+     * allow-list is a fact about the PERSON and rides {@code User.attributes} instead, where it is
+     * token-derived and cannot be asserted by a caller. pos-service sets this from the
+     * {@code MenuItem} it has already resolved under a tenant predicate, never from the request
+     * body. Absent for every other action, none of which read it.
+     *
      * <p>Null on any of these is not zero and not false. Rego denies on a comparison against an
      * undefined value, so a caller that omits {@code amount_paid_paisa} or
      * {@code any_line_plated} is refused rather than waved through — the same fail-closed reading
@@ -44,7 +51,19 @@ public record OpaInput(User user, Resource resource, String action, Environment 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Resource(String type, UUID id, UUID tenantId, UUID branchId,
                            UUID createdBy, String status, Long amountPaisa, Long amountPaidPaisa,
-                           Boolean anyLinePlated) {
+                           Boolean anyLinePlated, UUID categoryId) {
+
+        /**
+         * The shape before the per-user menu-category boundary existed (Program A).
+         * {@code categoryId} is null, which {@code pos.rego}'s scoped {@code add_item} rule reads
+         * as deny — see the field's own note below.
+         */
+        public Resource(String type, UUID id, UUID tenantId, UUID branchId,
+                        UUID createdBy, String status, Long amountPaisa, Long amountPaidPaisa,
+                        Boolean anyLinePlated) {
+            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, amountPaidPaisa,
+                 anyLinePlated, null);
+        }
 
         /**
          * The void shape before the kitchen boundary existed. Retained for callers that decide
@@ -53,7 +72,8 @@ public record OpaInput(User user, Resource resource, String action, Environment 
          */
         public Resource(String type, UUID id, UUID tenantId, UUID branchId,
                         UUID createdBy, String status, Long amountPaisa, Long amountPaidPaisa) {
-            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, amountPaidPaisa, null);
+            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, amountPaidPaisa,
+                 null, null);
         }
 
         /**
@@ -64,7 +84,7 @@ public record OpaInput(User user, Resource resource, String action, Environment 
          */
         public Resource(String type, UUID id, UUID tenantId, UUID branchId,
                         UUID createdBy, String status, Long amountPaisa) {
-            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, null, null);
+            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, null, null, null);
         }
     }
 

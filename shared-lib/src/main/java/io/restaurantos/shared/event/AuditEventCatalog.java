@@ -76,6 +76,15 @@ public final class AuditEventCatalog {
             // to read VOID_CREATED / REFUND_CREATED, which nothing published.
             "ORDER_VOIDED",
             "ORDER_REFUNDED",
+            // D-2. Giving money away is the single most abusable action at a till, and until B3
+            // shipped it was impossible, so nothing here covered it. Measured 2026-08-12: of the
+            // 27 actions this vocabulary offered, none mentioned discount, comp, price or
+            // override — a manager could take 10% off any check in the building and the log had
+            // no way to say so. REMOVED is not decoration: applyDiscount replaces rather than
+            // stacks, so swapping "Rs 500 off" for "10% off" hands the guest back Rs 400 and used
+            // to leave no trace but a vanished row.
+            "ORDER_DISCOUNT_APPLIED",
+            "ORDER_DISCOUNT_REMOVED",
             "TILL_OPENED",
             "TILL_CLOSED",
             "TILL_REVIEWED",
@@ -155,6 +164,10 @@ public final class AuditEventCatalog {
     public static final Set<String> SECURITY_RELEVANT_FRAGMENTS = Set.of(
             "LOGIN", "PASSWORD", "ROLE_", "RBAC", "USER_", "PERMISSION", "IMPERSONAT",
             "VOID", "REFUND", "TILL", "PERIOD_CLOSED", "JOURNAL", "PAYROLL",
+            // D-2. So the NEXT price-moving event cannot ship unclassified the way the first one
+            // did. Deliberately the bare stem: DISCOUNT_OVERRIDDEN, ORDER_DISCOUNT_APPLIED and a
+            // future LINE_DISCOUNT_VOIDED all have to be argued about rather than forgotten.
+            "DISCOUNT", "COMP_", "PRICE_OVERRIDE",
             "PAYMENT", "PO_APPROVED", "PO_CLOSED", "INVOICE_MATCHED", "TENANT_"
     );
 }

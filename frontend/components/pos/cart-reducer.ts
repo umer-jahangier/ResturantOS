@@ -3,6 +3,9 @@
 // only on the explicit Send to Kitchen / Charge action (pos-terminal.tsx). Unit-tested
 // without a DOM (cart-reducer.test.ts).
 
+// Type-only, so this module stays runtime-free and DOM-free.
+import type { OrderType } from "@/lib/models/pos.model";
+
 /**
  * One chosen modifier, carried on the cart line (S6).
  *
@@ -197,4 +200,79 @@ export function cartTaxPaisa(lines: CartLine[]): number {
     if (basisPoints <= 0 || lineNet <= 0) return sum;
     return sum + Math.floor((lineNet * basisPoints + 5000) / 10000);
   }, 0);
+}
+
+
+/**
+ * The branch's service charge on the pre-send cart — the term missing from every dine-in quote
+ * (D-3).
+ *
+ * <h2>The defect</h2>
+ *
+ * <p>The panel a cashier reads to a guest BEFORE committing showed, on table AUD3547:
+ *
+ * <pre>
+ * Subtotal  Rs 2,259.00
+ * Tax       Rs   257.60
+ * Total     Rs 2,516.60
+ * </pre>
+ *
+ * <p>The check created one tap later was Rs 2,629.55 — `serviceChargePaisa 11295`,
+ * `serviceChargePct 5.0`. The charge lands at fire time, server-side, and the cart did not know it
+ * existed. Every dine-in guest in that restaurant was quoted 5% low, and the charge page a minute
+ * later showed it correctly, so two screens on the same check disagreed.
+ *
+ * <h2>Why this is computed here, having just argued the opposite for the discount preview</h2>
+ *
+ * <p>D-1 moved the discount preview onto the server precisely to avoid a second implementation of
+ * a pricing rule. The difference is that a discount preview HAS a server-side order to ask about
+ * and this does not: nothing exists on the server until Send or Charge, so there is no row to
+ * price and no endpoint that could answer without first creating one. The cart already prices tax
+ * locally for exactly this reason (see {@link cartTaxPaisa}); the service charge is one more term
+ * of the same pre-send estimate, not a new precedent.
+ *
+ * <p>What makes that acceptable is that the rule is SMALL and PINNED. Server-side it is
+ * {@code OrderPricingCalculator.serviceCharge}: {@code base * ratePct / 100}, HALF_UP to whole
+ * paisa, with a non-positive rate or base yielding zero. This is that, on integers, by the same
+ * basis-point trick {@link cartTaxPaisa} documents at length — a two-decimal rate such as 17.10 is
+ * not exactly representable in binary, and a product landing on a .5 boundary would otherwise
+ * round down where the server rounds up.
+ *
+ * <p><b>The base is the subtotal, and only because there are no discounts before Send.</b>
+ * Server-side the base is {@code subtotal - totalDiscount}, pre-tax. The moment a discount can be
+ * applied to a cart that has not been sent, this function is wrong and must take the discount as
+ * an argument. Stated rather than assumed, because it is the same assumption that makes the tax
+ * figure above safe and it is the one that will expire first.
+ *
+ * @param subtotalPaisa the cart's subtotal — {@link cartTotalPaisa}, never a tax-inclusive figure
+ * @param ratePct       the branch's rate, e.g. 5 meaning five percent
+ */
+export function cartServiceChargePaisa(subtotalPaisa: number, ratePct: number): number {
+  const basisPoints = Math.round(ratePct * 100);
+  if (basisPoints <= 0 || subtotalPaisa <= 0) return 0;
+  return Math.floor((subtotalPaisa * basisPoints + 5000) / 10000);
+}
+
+/**
+ * Whether the branch's policy reaches this order type at all.
+ *
+ * <p>Mirrors {@code BranchServiceCharge.appliesTo}, including that DELIVERY is always false there:
+ * the policy carries no delivery flag, so a delivery check takes no service charge whatever the
+ * branch has set. A disabled policy applies to nothing.
+ */
+export function serviceChargeAppliesTo(
+  policy: { enabled: boolean; dineIn: boolean; takeaway: boolean; pickup: boolean } | null,
+  orderType: OrderType,
+): boolean {
+  if (!policy || !policy.enabled) return false;
+  switch (orderType) {
+    case "DINE_IN":
+      return policy.dineIn;
+    case "TAKEAWAY":
+      return policy.takeaway;
+    case "PICKUP":
+      return policy.pickup;
+    case "DELIVERY":
+      return false;
+  }
 }

@@ -239,6 +239,37 @@ export function useApplyDiscount(orderId: string) {
 }
 
 /**
+ * What that discount would do to the bill, asked of the server (D-1).
+ *
+ * <h3>A query, not a mutation, even though it POSTs</h3>
+ *
+ * It writes nothing, and the operator types into the form continuously — so it wants a query's
+ * caching and de-duplication, keyed on the request itself. Two identical questions asked while a
+ * manager waffles over the reason field cost one round trip, and going back to "10%" after trying
+ * "15%" re-reads the first answer instantly instead of blanking the line.
+ *
+ * <p>`enabled` is the caller's gate: the panel passes `null` until the form is valid, so no
+ * request is sent for a half-typed amount and none is sent at all for input the client already
+ * knows the server will refuse.
+ *
+ * <p>`retry: false` because the refusals are the interesting answers. A 409 ("this check has
+ * already been paid in full") is the server telling the operator the rule, and retrying it three
+ * times only delays that sentence reaching the screen.
+ */
+export function usePreviewDiscount(orderId: string, payload: ApplyDiscountPayload | null) {
+  const { branchId } = useCurrentUser();
+  return useQuery({
+    queryKey: [...queryKeys.pos.order(branchId, orderId), "discount-preview", payload],
+    queryFn: () => PosRepository.previewDiscount(orderId, payload as ApplyDiscountPayload),
+    enabled: payload !== null,
+    retry: false,
+    // The check underneath can move (another line fired, a payment taken). A preview older than
+    // this is re-asked rather than shown, because a stale quote is the defect in a new costume.
+    staleTime: 10_000,
+  });
+}
+
+/**
  * Fires the order's currently-PENDING lines as an incrementing revision (POS-12). A fresh
  * `clientFireId` (crypto.randomUUID()) is generated per invocation and sent as the
  * Idempotency-Key header — the revision-aware CTA label/enable-state logic itself stays

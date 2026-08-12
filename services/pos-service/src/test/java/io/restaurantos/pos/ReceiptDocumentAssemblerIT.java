@@ -14,6 +14,8 @@ import io.restaurantos.pos.feign.UserBranchClient;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.repository.TaxClassRepository;
+import io.restaurantos.pos.domain.model.TaxClass;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.ReceiptDocumentAssembler;
@@ -59,6 +61,7 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
     @Autowired MenuItemRepository menuItemRepository;
     @Autowired MenuCategoryRepository menuCategoryRepository;
     @Autowired OrderRepository orderRepository;
+    @Autowired TaxClassRepository taxClassRepository;
     @Autowired TenantContext tenantContext;
 
     // Mocked on PosTestBase so this suite controls the printer registry rather than dialing a
@@ -511,6 +514,123 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
         long total = orderService.getOrder(order.id(), branchId).totalPaisa();
         paymentService.recordPayment(order.id(), method, total, null);
         return orderService.getOrder(order.id(), branchId);
+    }
+
+
+    // ══ D-4. The name the settings screen promised would be printed ═══════════════════════════
+
+    /** A named rate in the tenant's catalogue, as {@code /app/settings/tax} writes it. */
+    private UUID saveTaxClass(String code, String name, String ratePct) {
+        TaxClass taxClass = new TaxClass();
+        taxClass.setTenantId(tenantId);
+        taxClass.setCode(code);
+        taxClass.setName(name);
+        taxClass.setRatePct(new BigDecimal(ratePct));
+        return taxClassRepository.save(taxClass).getId();
+    }
+
+    private UUID saveItemInClass(MenuCategory cat, String name, long pricePaisa, UUID taxClassId) {
+        MenuItem item = new MenuItem();
+        item.setTenantId(tenantId);
+        item.setCategory(cat);
+        item.setName(name);
+        item.setBasePricePaisa(pricePaisa);
+        item.setTaxClassId(taxClassId);
+        return menuItemRepository.save(item).getId();
+    }
+
+    private PrintDocument billFor(UUID... menuItemIds) {
+        OrderDto order = orderService.createOrder(
+                new CreateOrderRequest(branchId, UUID.randomUUID(), null, null, 1, null, null));
+        for (UUID menuItemId : menuItemIds) {
+            orderService.addItem(order.id(),
+                    new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
+        }
+        OrderDto sent = orderService.sendToKds(order.id(), null);
+        for (OrderDto.OrderItemDto item : sent.items()) {
+            orderService.markItemServed(order.id(), item.id());
+        }
+        return assembler.assembleReceipt(order.id(), branchId).document();
+    }
+
+    /**
+     * D-4, second half. {@code /app/settings/tax} captions the Name field, on every rate row, with
+     * exactly "Printed on the guest's bill." The bill printed "Sales Tax".
+     *
+     * <p>Falsified by restoring {@code GUEST_TAX_LABEL} as the unconditional label in
+     * {@code buildTaxBreakdown}: this reports
+     * {@code expected: "Punjab Sales Tax on Services" but was: "Sales Tax"}.
+     */
+    @Test
+    @DisplayName("the tenant's own name for a tax is what the guest's bill prints")
+    void theTaxClassNameReachesThePaper() {
+        UUID punjab = saveTaxClass("PST-16", "Punjab Sales Tax on Services", "16.00");
+        UUID dish = saveItemInClass(category, "Chapli Kebab", 100_000L, punjab);
+
+        PrintDocument doc = billFor(dish);
+
+        assertThat(doc.taxBreakdown()).hasSize(1);
+        PrintDocument.TaxLine line = doc.taxBreakdown().get(0);
+        assertThat(line.label())
+                .as("the Name field says it is printed on the guest's bill, so it is")
+                .isEqualTo("Punjab Sales Tax on Services");
+        assertThat(line.ratePercent()).isEqualTo("16.00");
+        assertThat(line.amount().paisa())
+                .as("and it still has to be the money — a name on the wrong number is worse")
+                .isEqualTo(16_000L)
+                .isEqualTo(doc.totals().tax().paisa());
+    }
+
+    /**
+     * The sharpest case the walkthrough named: the measured tenant had fourteen named classes,
+     * SEVEN of them at exactly 17%. Keyed on rate alone, two of them collapse into one line that
+     * sums taxes the guest was charged under different headings — and the guest has no way to tell
+     * them apart.
+     *
+     * <p>Falsified by dropping {@code className} from {@code TaxBucket}: the breakdown comes back
+     * with ONE line at 17.00% for Rs 340.00, and the paper claims one tax where two were charged.
+     */
+    @Test
+    @DisplayName("two different taxes at the same rate print as two lines a guest can tell apart")
+    void twoClassesAtOneRateDoNotCollapse() {
+        UUID ropen = saveTaxClass("ROPEN-17", "ROPEN Standard 988362", "17.00");
+        UUID rx = saveTaxClass("RX-17", "RX Standard 758504", "17.00");
+        UUID dishA = saveItemInClass(category, "Nihari", 100_000L, ropen);
+        UUID dishB = saveItemInClass(category, "Haleem", 100_000L, rx);
+
+        PrintDocument doc = billFor(dishA, dishB);
+
+        assertThat(doc.taxBreakdown())
+                .as("two taxes were charged, so two lines are printed")
+                .hasSize(2);
+        assertThat(doc.taxBreakdown().stream().map(PrintDocument.TaxLine::label))
+                .containsExactlyInAnyOrder("ROPEN Standard 988362", "RX Standard 758504");
+        for (PrintDocument.TaxLine line : doc.taxBreakdown()) {
+            assertThat(line.ratePercent()).isEqualTo("17.00");
+            assertThat(line.amount().paisa()).isEqualTo(17_000L);
+        }
+        // The breakdown still sums to the order's tax exactly — splitting a bucket must not lose
+        // or invent a paisa.
+        assertThat(doc.taxBreakdown().stream().mapToLong(t -> t.amount().paisa()).sum())
+                .isEqualTo(doc.totals().tax().paisa())
+                .isEqualTo(34_000L);
+    }
+
+    /**
+     * A line taxed by the item's own legacy rate columns belongs to no class, so there is no name
+     * to print. It keeps the honest phrase rather than borrowing one — inventing "Custom rate"
+     * would put words on a guest's bill that nobody in the building typed.
+     */
+    @Test
+    @DisplayName("a classless rate still says what the money is")
+    void aLineWithNoTaxClassKeepsThePlainPhrase() {
+        UUID plain = saveItem(category, "Bottled water", 100_000L, "5.00", "ICT-05");
+
+        PrintDocument doc = billFor(plain);
+
+        assertThat(doc.taxBreakdown()).hasSize(1);
+        assertThat(doc.taxBreakdown().get(0).label()).isEqualTo("Sales Tax");
+        assertThat(doc.taxBreakdown().get(0).ratePercent()).isEqualTo("5.00");
     }
 
     private static List<ReceiptAmount> collectAmounts(PrintDocument doc) {

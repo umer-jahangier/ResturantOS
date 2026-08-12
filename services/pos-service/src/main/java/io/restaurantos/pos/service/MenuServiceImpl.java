@@ -1,5 +1,6 @@
 package io.restaurantos.pos.service;
 
+import io.restaurantos.pos.authz.MenuCategoryScope;
 import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.model.BranchMenuOverride;
 import io.restaurantos.pos.domain.model.MenuCategory;
@@ -94,9 +95,29 @@ public class MenuServiceImpl implements MenuService {
         this.menuLiveNotifier = menuLiveNotifier;
     }
 
+    /**
+     * The till's category strip, narrowed to what this operator may ring (Program A).
+     *
+     * <p>A FILTER, and only a filter — it stops a counter cashier being shown a Mains tab that would
+     * 403 the moment they touched it. The refusal is {@code PosAuthorizationService.authorizeAddItem}
+     * on the add-item path, and it holds for a caller that never loaded this list. See
+     * {@link io.restaurantos.pos.authz.MenuCategoryScope} for why both exist.
+     *
+     * <p>Applied in memory rather than as a query predicate, deliberately: the unrestricted case
+     * must not pay for a feature it does not use, and there is no {@code IN} clause to build for it.
+     * A tenant's category strip is tens of rows, not thousands — {@code findAllActiveOrderBySortOrder}
+     * already reads all of them for every till on every load.
+     *
+     * <p>{@code listCategoriesForAdmin} is deliberately NOT filtered. It is gated on
+     * {@code pos.menu.manage} and answers "what categories does this restaurant have", which is a
+     * catalogue question. Narrowing it would mean an administrator who happened to hold a scope
+     * could no longer see, or fix, the categories they were excluded from.
+     */
     @Override
     public List<MenuCategoryDto> listCategories() {
+        MenuCategoryScope scope = posAuthorizationService.resolveMenuCategoryScope();
         return categoryRepository.findAllActiveOrderBySortOrder().stream()
+                .filter(c -> scope.permits(c.getId()))
                 .map(this::toCategoryDto)
                 .toList();
     }
@@ -152,17 +173,62 @@ public class MenuServiceImpl implements MenuService {
     @Override
     public Page<MenuItemDto> listItems(UUID categoryId, UUID branchId, Pageable pageable) {
         requireOwnBranchIfPresent(branchId);
-        Page<MenuItem> page = categoryId != null
-                ? itemRepository.findByCategoryIdAndActiveTrue(categoryId, pageable)
-                : itemRepository.findByActiveTrue(pageable);
+
+        // Program A — the grid is narrowed to what this operator may ring. A FILTER: the refusal
+        // lives in pos.rego and PosAuthorizationService.authorizeAddItem, and it holds whether or
+        // not this list was ever loaded. An unrestricted caller — every user in the product today —
+        // takes exactly the two queries this method has always run.
+        MenuCategoryScope scope = posAuthorizationService.resolveMenuCategoryScope();
+
+        Page<MenuItem> page;
+        if (categoryId != null) {
+            // An explicitly-requested category outside the scope answers an EMPTY page rather than
+            // 403. This endpoint is a read of a list, and the operator asking is not doing anything
+            // wrong — the till simply has nothing to draw there. A 403 here would also leak which
+            // categories exist by which ones refuse rather than come back empty.
+            page = scope.permits(categoryId)
+                    ? itemRepository.findByCategoryIdAndActiveTrue(categoryId, pageable)
+                    : Page.empty(pageable);
+        } else if (scope.isUnrestricted()) {
+            page = itemRepository.findByActiveTrue(pageable);
+        } else {
+            // Sliced in the database, not filtered after the fact, so the page metadata this
+            // endpoint publishes stays true — see the repository method's note.
+            page = itemRepository.findByActiveTrueAndCategoryIdIn(
+                    scope.permittedCategoryIds(), pageable);
+        }
         return page.map(item -> toDto(item, branchId));
     }
 
+    /**
+     * One item by id — narrowed by the same scope that narrows the grid (Program A).
+     *
+     * <p>Closing an inconsistency an adversarial review found in the first cut of this feature:
+     * {@link #listCategories} and {@link #listItems} were scope-filtered and this was not, so a
+     * cashier confined to Drinks could still read a Mains item's name, price and branch override by
+     * asking for it by id. That was never a boundary breach — {@code authorizeAddItem} refuses the
+     * ring either way, and the refusal holds for a caller who never read anything — but a filter
+     * covering two of three read surfaces is one a later reader will reasonably assume covers all
+     * three.
+     *
+     * <p><b>Not found, not forbidden</b>, and for the reason {@code listItems} already gives one
+     * method up: answering 403 here would let a caller map the catalogue by which ids refuse and
+     * which come back empty. It is also the truthful answer from that operator's position — the
+     * item is not on their menu.
+     *
+     * <p>The scope is resolved AFTER the row is read, deliberately, so an id that does not exist
+     * and an id that is out of scope produce the same answer. Resolving first and short-circuiting
+     * would be marginally cheaper and would reintroduce the distinction.
+     */
     @Override
     public MenuItemDto getItem(UUID itemId, UUID branchId) {
         requireOwnBranchIfPresent(branchId);
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
+        MenuCategoryScope scope = posAuthorizationService.resolveMenuCategoryScope();
+        if (!scope.permits(item.getCategory() == null ? null : item.getCategory().getId())) {
+            throw new ResourceNotFoundException("Menu item not found: " + itemId);
+        }
         return toDto(item, branchId);
     }
 

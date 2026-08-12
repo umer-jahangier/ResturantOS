@@ -1,0 +1,77 @@
+{
+  "base": "http://localhost:3007",
+  "api": "http://localhost:8080",
+  "checks": [
+    {
+      "name": "the roster loads and lists the cashier",
+      "pass": true,
+      "detail": "row present"
+    },
+    {
+      "name": "the detail panel has a Menu sections section at all",
+      "pass": true,
+      "detail": "\"Menu sectionsCouldn't load this user's menu sections. No endpoint matches this pathTry again\""
+    },
+    {
+      "name": "a FAILED scope read is reported as a failure, not as 'the whole menu'",
+      "pass": true,
+      "detail": "queryError=true unrestrictedSentence=false"
+    },
+    {
+      "name": "the screen actually calls the new endpoint",
+      "pass": true,
+      "detail": "GET 404 /api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories | GET 404 /api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories"
+    },
+    {
+      "name": "the multi-select renders, sourced from the LIVE pos-service catalogue",
+      "pass": false,
+      "detail": "0 checkboxes: "
+    },
+    {
+      "name": "'no assignment = full menu' is spelled out in the UI copy",
+      "pass": false,
+      "detail": "no summary rendered"
+    },
+    {
+      "name": "the token-refresh delay is stated rather than left to be discovered",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "ticking TWO sections is possible and reported — 'assign multiple menu to a user'",
+      "pass": false,
+      "detail": "could not tick"
+    },
+    {
+      "name": "a Clear control restores the whole menu",
+      "pass": false,
+      "detail": "absent"
+    },
+    {
+      "name": "an unrestricted OWNER gets the switch, collapsed, saying 'whole menu'",
+      "pass": false,
+      "detail": "label=null panelOpen=false confinedNotice=false"
+    },
+    {
+      "name": "an UNASSIGNED cashier still sees the whole menu — the no-regression case",
+      "pass": false,
+      "detail": "rail= tiles=0 confinedNotice=false"
+    }
+  ],
+  "consoleErrors": {
+    "owner": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "cashier": []
+  },
+  "menuCategoryCalls": [
+    "GET 404 /api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories",
+    "GET 404 /api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories",
+    "GET 404 /api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories",
+    "GET 404 /api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories"
+  ]
+}

@@ -155,6 +155,59 @@ describe("the renderer", () => {
     expect(paper).not.toMatch(/\[[A-Z0-9][A-Z0-9_\-.]*\]/);
   });
 
+  /**
+   * D-4. This renderer produces the paper the guest actually walks out with, and it printed:
+   *
+   *     Sales Tax (16.00%)          Rs   230.67
+   *     Tax                         Rs   230.67
+   *
+   * Two lines, one amount, adjacent, on a customer-facing document. The total was right, so no
+   * money was wrong — but a guest counting their own bill finds Rs 230.67 charged twice.
+   *
+   * Falsified by removing the `taxBreakdown.length !== 1` guard from escpos-renderer.ts: the roll
+   * carries "Rs 230.67" on two rows and this fails on the count.
+   */
+  it("does not print a single-rate tax twice on the roll", () => {
+    const doc = receipt({
+      taxBreakdown: [
+        {
+          rateCode: "GST-16",
+          label: "Sales Tax",
+          ratePercent: "16.00",
+          amount: { paisa: 23067, formatted: "Rs 230.67" },
+        },
+      ],
+    });
+    const paper = render(doc, PRINTER_42).lines.map((l) => l.text);
+
+    expect(paper.join("\n")).toContain("Sales Tax (16.00%)");
+
+    // The BARE "Tax" row — the duplicate. Asserted on the label rather than on the amount,
+    // because the fixture's own totals.tax differs from this override, so counting the amount
+    // would pass against the unguarded renderer and prove nothing. (It did: the first version of
+    // this test stayed green through the falsification.)
+    const bareTaxRows = paper.filter((l) => /^Tax\s/.test(l.trim()));
+    expect(
+      bareTaxRows.length,
+      `the roll repeats the tax on ${bareTaxRows.length} row(s): ${bareTaxRows.join(" | ")}`,
+    ).toBe(0);
+    expect(paper.filter((l) => l.includes("Rs 230.67"))).toHaveLength(1);
+  });
+
+  /**
+   * The other half of the rule, so the fix cannot be "delete the total row". The golden fixture
+   * carries two rate buckets, and a guest should not have to add them up themselves.
+   */
+  it("keeps the Tax total on the roll when there are several rates to sum", () => {
+    const doc = receipt();
+    const paper = render(doc, PRINTER_42).lines.map((l) => l.text);
+
+    expect(doc.taxBreakdown.length).toBeGreaterThan(1);
+    const totalRows = paper.filter((l) => /^Tax\s/.test(l.trim()));
+    expect(totalRows).toHaveLength(1);
+    expect(totalRows[0]).toContain(doc.totals!.tax.formatted);
+  });
+
   // ── 5. Name and amount on one line; a long name wraps and the amount stays put ──────────────
   it("keeps an amount on the same line as its item, and on the FIRST line when the name wraps", () => {
     const shortName = render(receipt(), PRINTER_42);

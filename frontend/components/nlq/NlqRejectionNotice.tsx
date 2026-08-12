@@ -57,6 +57,28 @@ const REJECTION_COPY: Record<string, { title: string; message: string }> = {
     title: "This feature is temporarily unavailable",
     message: "The question service is temporarily unavailable. Please try again.",
   },
+  /**
+   * Program C. THE POINT OF THIS ENTRY IS THAT IT IS NOT "try again".
+   *
+   * A refused API key used to arrive as CLAUDE_UNAVAILABLE above, which told the owner to wait out
+   * a condition that would never clear on its own. The server now emits a distinct code precisely
+   * so this copy can name the cause and point at the screen that fixes it.
+   */
+  AI_CREDENTIAL_REJECTED: {
+    title: "Your AI provider refused the saved API key",
+    message:
+      "Questions can't be answered until the key is replaced — waiting won't fix it. An owner can update it in Settings → AI.",
+  },
+  AI_NOT_CONFIGURED: {
+    title: "No AI provider is set up yet",
+    message:
+      "This restaurant has no AI API key configured. An owner can add one in Settings → AI.",
+  },
+  AI_CREDENTIAL_STORAGE_UNAVAILABLE: {
+    title: "This feature is temporarily unavailable",
+    message:
+      "The server can't read the saved AI credential right now. This needs an administrator, not a retry.",
+  },
   QUOTA_SERVICE_UNAVAILABLE: {
     title: "This feature is temporarily unavailable",
     message: "The question service is temporarily unavailable. Please try again.",

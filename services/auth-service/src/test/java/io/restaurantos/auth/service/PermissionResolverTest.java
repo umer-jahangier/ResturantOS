@@ -1,8 +1,10 @@
 package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
+import io.restaurantos.auth.entity.UserMenuCategoryAssignmentEntity;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import io.restaurantos.auth.repository.UserMenuCategoryAssignmentRepository;
 import io.restaurantos.auth.repository.UserStationAssignmentRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +38,7 @@ class PermissionResolverTest {
     private static final UUID BRANCH_HIGH = UUID.fromString("b0000009-0000-4000-8000-000000000009");
 
     private UserBranchRoleRepository assignments;
+    private UserMenuCategoryAssignmentRepository menuCategories;
     private PermissionResolver resolver;
 
     @BeforeEach
@@ -49,7 +52,63 @@ class PermissionResolverTest {
         UserStationAssignmentRepository stations = mock(UserStationAssignmentRepository.class);
         when(stations.findByTenantIdAndUserIdAndBranchIdAndActiveTrue(any(), any(), any()))
                 .thenReturn(List.of());
-        resolver = new PermissionResolver(assignments, permissions, stations, mock(EntityManager.class));
+        // Same again for the menu-category scope (Program A): no rows, no key, whole menu.
+        menuCategories = mock(UserMenuCategoryAssignmentRepository.class);
+        when(menuCategories.findByTenantIdAndUserIdAndBranchIdAndActiveTrue(any(), any(), any()))
+                .thenReturn(List.of());
+        resolver = new PermissionResolver(assignments, permissions, stations, menuCategories,
+                mock(EntityManager.class));
+    }
+
+    // ── The menu-category claim (Program A) ───────────────────────────────────
+
+    /**
+     * No assignment, no key. NOT a key holding an empty list.
+     *
+     * <p>The single highest-blast-radius line in this feature. Every user in the product is in this
+     * state, and {@code pos.rego}'s unrestricted rule is reached by the key being ABSENT. If this
+     * ever starts emitting {@code "menu_categories": []}, a downstream reader that treats an empty
+     * list as an empty allow-list turns every till in the product into one that cannot ring —
+     * mid-service, on the day it deploys.
+     */
+    @Test
+    void aUserWithNoMenuCategoryAssignmentGetsNoClaimAtAll() {
+        UserBranchRoleEntity only = row("00000000-0000-4000-8000-000000000001", BRANCH_LOW, "CASHIER");
+        when(assignments.findByUserIdAndBranchIdAndActiveTrue(USER, BRANCH_LOW)).thenReturn(List.of(only));
+
+        assertThat(resolver.resolve(USER, BRANCH_LOW).attributes())
+                .as("absent is the ONLY encoding of 'may ring the whole menu' — an empty list is a "
+                        + "second spelling and the first reader to misread it stops the tills")
+                .doesNotContainKey("menu_categories");
+    }
+
+    /** An assigned user carries the ids as SORTED STRINGS — the shape rego compares against. */
+    @Test
+    void anAssignedUserCarriesSortedStringIdsUnderTheAgreedKey() {
+        UserBranchRoleEntity only = row("00000000-0000-4000-8000-000000000001", BRANCH_LOW, "CASHIER");
+        when(assignments.findByUserIdAndBranchIdAndActiveTrue(USER, BRANCH_LOW)).thenReturn(List.of(only));
+        when(menuCategories.findByTenantIdAndUserIdAndBranchIdAndActiveTrue(any(), any(), any()))
+                .thenReturn(List.of(
+                        categoryRow("d0000009-0000-4000-8000-000000000009"),
+                        categoryRow("d0000001-0000-4000-8000-000000000001"),
+                        // A duplicate row cannot exist under the unique constraint, but a resolver
+                        // that de-duplicates cannot be broken by one that later can.
+                        categoryRow("d0000001-0000-4000-8000-000000000001")));
+
+        // The LITERAL key, not the constant. Asserting the constant against itself proves nothing,
+        // and this string is the contract with pos.rego and with pos-service.
+        assertThat(resolver.resolve(USER, BRANCH_LOW).attributes())
+                .containsEntry("menu_categories", List.of(
+                        "d0000001-0000-4000-8000-000000000001",
+                        "d0000009-0000-4000-8000-000000000009"));
+    }
+
+    private UserMenuCategoryAssignmentEntity categoryRow(String categoryId) {
+        UserMenuCategoryAssignmentEntity row = new UserMenuCategoryAssignmentEntity();
+        row.setId(UUID.randomUUID());
+        row.setCategoryId(UUID.fromString(categoryId));
+        row.setActive(true);
+        return row;
     }
 
     // ── Resolving at a named branch ───────────────────────────────────────────

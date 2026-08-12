@@ -88,17 +88,30 @@ class KitchenRoleDeniedPosIT extends PosTestBase {
         openTillForCashier(branchId);
     }
 
-    private OrderDto createOpenOrder() {
+    /**
+     * A check with no lines on it — a DRAFT.
+     *
+     * <p>It used to ring a line, and it no longer can: Program A gave {@code addItem} its own policy
+     * call, and this suite stubs OPA to DENY every {@code pos} action for kitchen staff, so the
+     * fixture was refused before the test could get to what it was about. A draft is the right
+     * fixture anyway — {@code voidOrder} accepts DRAFT (it is in {@code cashier_voidable_statuses},
+     * and Order Management's Cancel control on a draft row posts to that same endpoint), so nothing
+     * the void assertions rest on has changed.
+     *
+     * <p>The line the fixture used to add is not lost — it is asserted directly by
+     * {@link #kitchen_staff_denied_add_item}, where it is a claim about the product rather than
+     * scaffolding.
+     */
+    private OrderDto createDraftOrder() {
         UUID clientOrderId = UUID.randomUUID();
         OrderDto order = orderService.createOrder(
                 new CreateOrderRequest(branchId, clientOrderId, null, null, 1, null, null));
-        orderService.addItem(order.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
         return orderService.getOrder(order.id(), branchId);
     }
 
     @Test
     void kitchen_staff_denied_void_operation() {
-        OrderDto order = createOpenOrder();
+        OrderDto order = createDraftOrder();
 
         assertThatThrownBy(() ->
                 orderService.voidOrder(order.id(), new VoidOrderRequest("Kitchen staff test"), UUID.randomUUID().toString()))
@@ -115,9 +128,27 @@ class KitchenRoleDeniedPosIT extends PosTestBase {
         assertThat(created).isNotNull();
 
         // But CANNOT void — OPA denies
-        orderService.addItem(created.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
         assertThatThrownBy(() ->
                 orderService.voidOrder(created.id(), new VoidOrderRequest("Denied"), UUID.randomUUID().toString()))
                 .isInstanceOf(PermissionDeniedException.class);
+    }
+
+    /**
+     * ...and cannot RING one either (Program A).
+     *
+     * <p>New behaviour, and it is a narrowing worth stating rather than absorbing into a fixture.
+     * Kitchen staff hold {@code pos.kds.view} and {@code pos.kds.update} and nothing on the order
+     * write path, so {@code POST /orders/{id}/items} has always refused them at the controller's
+     * {@code @PreAuthorize}. Until {@code addItem} evaluated a policy, the SERVICE method did not —
+     * so this suite could and did add lines as a cook. The two layers now agree.
+     */
+    @Test
+    void kitchen_staff_denied_add_item() {
+        OrderDto order = createDraftOrder();
+
+        assertThatThrownBy(() -> orderService.addItem(
+                order.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null)))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasMessageContaining("pos.order.add_item");
     }
 }

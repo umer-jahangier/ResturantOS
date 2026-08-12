@@ -468,3 +468,187 @@ test_split_bill_cross_branch_deny if {
         "action": "pos.order.split_bill",
     }
 }
+
+# ── pos.order.add_item — the per-user MENU CATEGORY boundary (Program A) ──────
+#
+# The rule pair has exactly two live branches — "carries no usable scope" and "carries one" — and
+# the whole risk sits in what counts as "usable". Seven degenerate token shapes must ALL degrade to
+# unrestricted, because every user in the product carries none of this claim today and a rule that
+# read one of those shapes as an empty allow-list would stop the tills. Each shape therefore gets
+# its own test rather than one test and an argument.
+
+drinks := "d0000001-0000-4000-8000-000000000001"
+food := "d0000002-0000-4000-8000-000000000002"
+desserts := "d0000003-0000-4000-8000-000000000003"
+
+# The permission the endpoint already requires. Named once, so a widening shows up as a diff here.
+add_item_perms := ["pos.order.update"]
+
+add_item_input(attrs, category_id) := {
+    "user": base_user_with_attrs(add_item_perms, attrs),
+    "resource": base_resource({"category_id": category_id}),
+    "action": "pos.order.add_item",
+}
+
+# ── the scoped path: a narrowed cashier ───────────────────────────────────────
+
+test_add_item_scoped_in_scope_allow if {
+    pos.allow with input as add_item_input({"menu_categories": [drinks, desserts]}, drinks)
+}
+
+test_add_item_scoped_second_entry_in_scope_allow if {
+    pos.allow with input as add_item_input({"menu_categories": [drinks, desserts]}, desserts)
+}
+
+# THE POINT OF THE WHOLE PROGRAM: a counter cashier scoped to drinks rings a food item.
+test_add_item_scoped_out_of_scope_deny if {
+    not pos.allow with input as add_item_input({"menu_categories": [drinks]}, food)
+}
+
+# A single-entry scope is a real scope, not a degenerate one.
+test_add_item_single_entry_scope_excludes_everything_else if {
+    not pos.allow with input as add_item_input({"menu_categories": [desserts]}, drinks)
+}
+
+# ── the unrestricted path: every degenerate shape degrades PERMISSIVE ─────────
+#
+# R2. Getting any single one of these backwards is a total POS outage, not a policy nit.
+
+# 1. attributes present, carrying no such key — the state of every user in the product today.
+test_add_item_no_claim_allow if {
+    pos.allow with input as add_item_input({}, food)
+}
+
+# 2. attributes carrying OTHER keys but not this one — e.g. a manager's approval limit.
+test_add_item_other_attributes_only_allow if {
+    pos.allow with input as add_item_input({"approval_limit_paisa": 50000}, food)
+}
+
+# 3. attributes explicitly JSON null. THIS is the case the naive negation gets backwards.
+test_add_item_null_attributes_allow if {
+    pos.allow with input as {
+        "user": {
+            "id": user_id,
+            "tenant_id": tenant,
+            "branch_id": branch,
+            "permissions": add_item_perms,
+            "attributes": null,
+        },
+        "resource": base_resource({"category_id": food}),
+        "action": "pos.order.add_item",
+    }
+}
+
+# 4. the attributes key absent from the user object entirely.
+test_add_item_absent_attributes_allow if {
+    pos.allow with input as {
+        "user": {
+            "id": user_id,
+            "tenant_id": tenant,
+            "branch_id": branch,
+            "permissions": add_item_perms,
+        },
+        "resource": base_resource({"category_id": food}),
+        "action": "pos.order.add_item",
+    }
+}
+
+# 5. the key present holding an EMPTY list. An empty allow-list has no legitimate meaning, and
+#    reading one as "permitted: nothing" is what turns a malformed token into a till that cannot
+#    ring. PermissionResolver never mints this shape; a hand-edited or half-migrated one can exist.
+test_add_item_empty_list_allow if {
+    pos.allow with input as add_item_input({"menu_categories": []}, food)
+}
+
+# 6. the key present holding something that is not a list at all.
+test_add_item_non_list_claim_allow if {
+    pos.allow with input as add_item_input({"menu_categories": drinks}, food)
+}
+
+# 7. the key present holding a list with no usable string in it.
+test_add_item_list_of_non_strings_allow if {
+    pos.allow with input as add_item_input({"menu_categories": [1, 2]}, food)
+}
+
+# A list that MIXES a usable entry with junk is RESTRICTED, not unrestricted: the junk is dropped
+# and the real entry still binds. The permissive degrade is only for tokens that say nothing usable
+# at all — otherwise one bad element in a list would silently unlock the whole menu.
+test_add_item_mixed_list_still_restricts if {
+    not pos.allow with input as add_item_input({"menu_categories": [drinks, 7]}, food)
+}
+
+test_add_item_mixed_list_honours_the_usable_entry if {
+    pos.allow with input as add_item_input({"menu_categories": [drinks, 7]}, drinks)
+}
+
+# ── fail-closed on a resource that cannot say what it is ──────────────────────
+#
+# authorization-service's 7-arg Resource constructor leaves category_id null, so its add_item
+# attempts deny for a scoped caller. Only pos-service's own call — which sets the category from the
+# MenuItem it just resolved under a tenant predicate — can allow one.
+
+test_add_item_scoped_absent_category_deny if {
+    not pos.allow with input as {
+        "user": base_user_with_attrs(add_item_perms, {"menu_categories": [drinks]}),
+        "resource": base_resource({}),
+        "action": "pos.order.add_item",
+    }
+}
+
+test_add_item_scoped_null_category_deny if {
+    not pos.allow with input as add_item_input({"menu_categories": [drinks]}, null)
+}
+
+# An UNRESTRICTED caller does not need to say what category it is ringing — there is nothing to
+# compare it against. This is what keeps the do-nothing default doing nothing.
+test_add_item_unrestricted_absent_category_allow if {
+    pos.allow with input as {
+        "user": base_user(add_item_perms),
+        "resource": base_resource({}),
+        "action": "pos.order.add_item",
+    }
+}
+
+# ── the guards this rule shares with every other rule in the module ───────────
+
+test_add_item_no_permission_deny if {
+    not pos.allow with input as {
+        "user": base_user_with_attrs(["pos.order.view"], {}),
+        "resource": base_resource({"category_id": food}),
+        "action": "pos.order.add_item",
+    }
+}
+
+test_add_item_cross_tenant_deny if {
+    not pos.allow with input as {
+        "user": base_user_with_attrs(add_item_perms, {}),
+        "resource": base_resource({"tenant_id": other_tenant, "category_id": food}),
+        "action": "pos.order.add_item",
+    }
+}
+
+test_add_item_cross_branch_deny if {
+    not pos.allow with input as {
+        "user": base_user_with_attrs(add_item_perms, {}),
+        "resource": base_resource({"branch_id": other_branch, "category_id": food}),
+        "action": "pos.order.add_item",
+    }
+}
+
+# The scope must not leak sideways into the other actions in this module: holding pos.order.update
+# and a category scope is not a void permission, and a scope is not a discount.
+test_add_item_scope_does_not_grant_void if {
+    not pos.allow with input as {
+        "user": base_user_with_attrs(["pos.order.update"], {"menu_categories": [drinks]}),
+        "resource": base_resource({"category_id": drinks}),
+        "action": "void",
+    }
+}
+
+test_add_item_permission_does_not_grant_other_actions if {
+    not pos.allow with input as {
+        "user": base_user_with_attrs(add_item_perms, {}),
+        "resource": base_resource({"category_id": drinks}),
+        "action": "pos.order.split_bill",
+    }
+}

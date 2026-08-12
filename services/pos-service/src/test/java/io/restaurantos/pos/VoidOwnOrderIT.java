@@ -49,6 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -181,6 +182,19 @@ class VoidOwnOrderIT extends PosTestBase {
     UUID cashierId;
     UUID menuItemId;
 
+    /**
+     * The permission {@code POST /orders/{id}/items} has always required via {@code @PreAuthorize},
+     * and which {@code pos.rego}'s {@code pos.order.add_item} rules now also name (Program A).
+     *
+     * <p>It appears in these fixtures because they build their checks by calling
+     * {@code orderService.addItem} directly, which bypasses the controller's {@code @PreAuthorize}.
+     * Until Program A wired an OPA call into {@code addItem}, that gap was invisible: the tests were
+     * modelling a caller the real endpoint would have refused at the door, and passing. Adding it
+     * withdraws nothing from what is under test here — every void assertion below still turns on the
+     * void permissions alone.
+     */
+    private static final String ADD_ITEM = "pos.order.update";
+
     @BeforeEach
     void setUp() {
         outboxRepository.deleteAll();
@@ -218,7 +232,7 @@ class VoidOwnOrderIT extends PosTestBase {
         item = menuItemRepository.save(item);
         menuItemId = item.getId();
 
-        setSecurityContext(cashierId, branchId, List.of("pos.order.void.own"), Map.of());
+        setSecurityContext(cashierId, branchId, List.of("pos.order.void.own", ADD_ITEM), Map.of());
 
         // Financial-integrity guard: the own-branch void tests create the cashier's order
         // first, which now requires an OPEN till for that cashier. (The cross-branch test
@@ -287,9 +301,7 @@ class VoidOwnOrderIT extends PosTestBase {
                 .count()).isEqualTo(1);
 
         // And the status the real policy said yes to was the fired one, not OPEN.
-        ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
-        verify(opaClient).evaluate(eq("pos"), captor.capture());
-        OpaInput sent = captor.getValue();
+        OpaInput sent = lastPosDecision();
         assertThat(sent.resource().status()).isEqualTo("SENT_TO_KDS");
         assertThat(sent.resource().createdBy()).isEqualTo(cashierId);
         assertThat(sent.resource().amountPaidPaisa()).isZero();
@@ -493,7 +505,7 @@ class VoidOwnOrderIT extends PosTestBase {
         OrderDto fired = createFiredOrderInBranch(branchId);
         kitchenItemStatusConsumer.applyItemStatus(fired.id(), fired.items().get(0).id(), "READY");
 
-        setSecurityContext(cashierId, branchId, List.of("pos.order.void.any"), Map.of());
+        setSecurityContext(cashierId, branchId, List.of("pos.order.void.any", ADD_ITEM), Map.of());
 
         OrderDto voided = orderService.voidOrder(
                 fired.id(), new VoidOrderRequest("Comped — kitchen error"),
@@ -511,9 +523,7 @@ class VoidOwnOrderIT extends PosTestBase {
                 order.id(), new VoidOrderRequest("Customer changed mind"), UUID.randomUUID().toString());
         assertThat(voided.status()).isEqualTo(OrderStatus.VOIDED);
 
-        ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
-        verify(opaClient).evaluate(eq("pos"), captor.capture());
-        OpaInput sentInput = captor.getValue();
+        OpaInput sentInput = lastPosDecision();
         assertThat(sentInput.resource().createdBy()).isEqualTo(cashierId);
         assertThat(sentInput.resource().status()).isEqualTo("OPEN");
         assertThat(sentInput.resource().branchId()).isEqualTo(branchId);
@@ -554,11 +564,11 @@ class VoidOwnOrderIT extends PosTestBase {
         // that branch; the mismatch under test is at VOID time, not at create time.
         UUID otherBranchId = UUID.randomUUID();
         UUID jwtBranchBefore = branchId;
-        setSecurityContext(cashierId, otherBranchId, List.of("pos.order.void.own"), Map.of());
+        setSecurityContext(cashierId, otherBranchId, List.of("pos.order.void.own", ADD_ITEM), Map.of());
         tenantContext.set(tenantId, otherBranchId, cashierId, null);
         OrderDto order = createOpenOrderInBranch(otherBranchId);
 
-        setSecurityContext(cashierId, jwtBranchBefore, List.of("pos.order.void.own"), Map.of());
+        setSecurityContext(cashierId, jwtBranchBefore, List.of("pos.order.void.own", ADD_ITEM), Map.of());
         tenantContext.set(tenantId, jwtBranchBefore, cashierId, null);
 
         // No stubbed decision: common.same_branch in the real bundle is what refuses this.
@@ -566,9 +576,7 @@ class VoidOwnOrderIT extends PosTestBase {
                 orderService.voidOrder(order.id(), new VoidOrderRequest("Test"), UUID.randomUUID().toString()))
                 .isInstanceOf(PermissionDeniedException.class);
 
-        ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
-        verify(opaClient).evaluate(eq("pos"), captor.capture());
-        OpaInput sentInput = captor.getValue();
+        OpaInput sentInput = lastPosDecision();
         assertThat(sentInput.resource().branchId()).isEqualTo(otherBranchId);
         assertThat(sentInput.user().branchId()).isEqualTo(branchId);
 
@@ -586,7 +594,9 @@ class VoidOwnOrderIT extends PosTestBase {
      */
     @Test
     void callerWithoutAnyVoidPermissionIsDenied() {
-        setSecurityContext(cashierId, branchId, List.of(), Map.of());
+        // The FIXTURE needs the add-item permission, because building a check now evaluates a
+        // policy. The caller under test then holds nothing at all.
+        setSecurityContext(cashierId, branchId, List.of(ADD_ITEM), Map.of());
         OrderDto order = createOpenOrderInBranch(branchId);
         setSecurityContext(cashierId, branchId, List.of(), Map.of());
 
@@ -594,8 +604,22 @@ class VoidOwnOrderIT extends PosTestBase {
                 orderService.voidOrder(order.id(), new VoidOrderRequest("Test"), UUID.randomUUID().toString()))
                 .isInstanceOf(PermissionDeniedException.class);
 
+        assertThat(lastPosDecision().user().permissions()).doesNotContain("pos.order.void.own");
+    }
+
+    /**
+     * The LAST {@code pos} decision the service asked for.
+     *
+     * <p>These assertions used to read {@code verify(opaClient).evaluate(...)}, an implicit
+     * {@code times(1)}, which was true only while {@code void} was the sole OPA-gated call in the
+     * flow. Program A added one to {@code addItem}, so every fixture that rings a line now makes an
+     * earlier decision and the strict verify fails on a count rather than on anything about voiding.
+     * Taking the last value keeps each assertion pointed at the decision the test is actually about.
+     */
+    private OpaInput lastPosDecision() {
         ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
-        verify(opaClient).evaluate(eq("pos"), captor.capture());
-        assertThat(captor.getValue().user().permissions()).doesNotContain("pos.order.void.own");
+        verify(opaClient, atLeastOnce()).evaluate(eq("pos"), captor.capture());
+        List<OpaInput> all = captor.getAllValues();
+        return all.get(all.size() - 1);
     }
 }

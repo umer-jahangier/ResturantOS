@@ -162,10 +162,31 @@ export function ReceiptDocumentView({ document }: { document: PrintDocument }) {
             </div>
           ))}
 
-          <div className="receipt-row">
-            <span className="receipt-row-label">Tax</span>
-            <span className="receipt-amount">{totals.tax.formatted}</span>
-          </div>
+          {/*
+            D-4 — the summary row, and ONLY when it is not a second printing of the line above it.
+
+            A real bill on 2026-08-12 read:
+
+              Sales Tax (16.00%)          Rs   230.67
+              Tax                         Rs   230.67
+
+            Two lines, one amount, one immediately under the other, on a customer-facing document.
+            The total was right, so no money was wrong — but a guest counting their own bill finds
+            Rs 230.67 charged twice and says so, and the till has nothing to answer with.
+
+            The rule: the breakdown already states the tax. When it states it on ONE line, that
+            line IS the total and repeating it is the defect. When it states it on several, a
+            summing row is doing real work — a guest should not have to add up three rates
+            themselves. When there is no breakdown at all (a zero-rated check, or a document whose
+            lines carry no attributable tax), the row is the only place the tax is named and must
+            stay: silence there would read as "no tax was charged", which is a different claim.
+          */}
+          {document.taxBreakdown.length !== 1 && (
+            <div className="receipt-row">
+              <span className="receipt-row-label">Tax</span>
+              <span className="receipt-amount">{totals.tax.formatted}</span>
+            </div>
+          )}
 
           <hr className="receipt-rule" />
           <div className="receipt-row receipt-grand-total">

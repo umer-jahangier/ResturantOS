@@ -139,6 +139,75 @@ public abstract class PosTestBase {
                 .thenReturn(new UserBranchClient.BranchStatus(null, true, false));
     }
 
+    /**
+     * "OPA allows it" — the ambient default for every suite that is not ABOUT authorization.
+     *
+     * <p>Needed from Program A onward because {@code OrderServiceImpl.addItem} now evaluates a
+     * policy ({@code pos.order.add_item}, the per-user menu-category boundary), and adding a line to
+     * a check is what almost every suite in this module does. An unstubbed Mockito mock returns
+     * {@code null} from {@code evaluate}, and {@code AuthorizationService.authorize} immediately
+     * calls {@code .allow()} on it — so without this, twenty ITs that have nothing to do with
+     * authorization fail with a {@code NullPointerException} inside the shared client.
+     *
+     * <p>Runs before any subclass {@code @BeforeEach} (JUnit 5 walks the hierarchy top-down), so a
+     * suite that wants REAL decisions simply re-stubs it — which is exactly what
+     * {@code VoidOwnOrderIT}, {@code VoidRefundOpaIT} and {@code MenuCategoryBoundaryIT} do, each
+     * pointing the mock at a live OPA container holding this repository's real {@code policies/}.
+     *
+     * <p><b>Read what this default does NOT prove, because it is a blind spot and not a small one.</b>
+     * A suite that inherits it is asserting behaviour on the assumption that policy said yes. It can
+     * therefore never catch a rule that wrongly denies, and it makes an OPA-gated path look
+     * unconditional. That is acceptable ONLY because the suites that own each boundary drive a real
+     * engine — a boundary whose only coverage is a suite inheriting this line is not covered at all,
+     * it is asserted by its own test fixture. Standing lesson 10-06-A: a test that mocks the thing
+     * that broke proves nothing.
+     */
+    @BeforeEach
+    void opaAllowsUnlessTheTestSaysOtherwise() {
+        Mockito.when(opaClient.evaluate(ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(new io.restaurantos.shared.authz.OpaDecision(true));
+    }
+
+    /**
+     * "Somebody is logged in" — a minimal authenticated principal for suites that never set one.
+     *
+     * <p>Nineteen ITs in this module call {@code orderService.addItem} without ever touching
+     * {@code SecurityContextHolder}. That worked because nothing on the add-item path read the
+     * principal; Program A's policy call does, through
+     * {@code AuthorizationService.authorize} → {@code getAuthentication().getPrincipal()}.
+     *
+     * <p>What it exposed is worse than the immediate NPE, and is the reason this is fixed here
+     * rather than in each suite. {@code SecurityContextHolder} is a THREAD-LOCAL and Failsafe runs a
+     * whole module in one fork, so a context set by an earlier test CLASS is still on the thread
+     * when a later one starts. Measured in a single run: {@code OrderLifecycleIT},
+     * {@code OrderRevisionIT} and {@code KitchenTicketAssemblerIT} all passed while
+     * {@code AssignTableIT} — which is no different in this respect — failed with
+     * {@code getAuthentication() is null}. Which suites pass therefore depended on execution order.
+     * That is a pre-existing latent flake this change surfaced, not one it introduced.
+     *
+     * <p><b>Only when there is none.</b> A suite that sets its own principal, in its own
+     * {@code @BeforeEach} or inside the test, still wins — JUnit walks the hierarchy top-down.
+     *
+     * <p><b>Exactly one permission</b>, the one the add-item endpoint already requires. Not a
+     * convenient bundle: {@code PosAuthorizationService.hasPermission} drives own-vs-all-branch
+     * view scoping off this same claim list, so a generous default here would silently widen what
+     * {@code listOrderSummaries} returns and quietly invalidate the suites that test it.
+     */
+    @BeforeEach
+    void someoneIsLoggedInUnlessTheTestSaysOtherwise() {
+        if (org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication() != null) {
+            return;
+        }
+        io.restaurantos.shared.security.JwtClaims claims = new io.restaurantos.shared.security.JwtClaims(
+                java.util.UUID.randomUUID(), java.util.UUID.randomUUID(), java.util.UUID.randomUUID(),
+                java.util.List.of("CASHIER"), java.util.List.of("pos.order.update"),
+                java.util.Map.of(), null);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        claims, null, java.util.List.of()));
+    }
+
     @Autowired
     protected TillService tillService;
 

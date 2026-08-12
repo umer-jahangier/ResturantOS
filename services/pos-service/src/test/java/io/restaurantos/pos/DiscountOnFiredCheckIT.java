@@ -190,15 +190,28 @@ class DiscountOnFiredCheckIT extends PosTestBase {
         openTillForCashier(branchId);
     }
 
+    /**
+     * {@code pos.order.update} — what {@code POST /orders/{id}/items} has always required via
+     * {@code @PreAuthorize}, and which {@code pos.rego}'s {@code pos.order.add_item} rules now also
+     * name (Program A).
+     *
+     * <p>Both personas below hold it, because both of them ring checks in the real product. It has
+     * to be spelled out here because these fixtures call {@code orderService.addItem} directly and
+     * so bypass the controller's {@code @PreAuthorize} — before Program A put a policy call on that
+     * path, a persona missing it looked fine. Nothing about the DISCOUNT assertions changes: the
+     * cashier still holds only {@code discount.line} and is still refused the whole-check override.
+     */
+    private static final String ADD_ITEM = "pos.order.update";
+
     private void asCashier() {
         setSecurityContext(cashierId, List.of("CASHIER"),
-                List.of("pos.order.discount.line"));
+                List.of("pos.order.discount.line", ADD_ITEM));
     }
 
     private void asManager(UUID managerId) {
         setSecurityContext(managerId, List.of("MANAGER"),
                 List.of("pos.order.discount.line", "pos.order.discount.order",
-                        "pos.order.discount.override"));
+                        "pos.order.discount.override", ADD_ITEM));
     }
 
     /**

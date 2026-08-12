@@ -2,7 +2,6 @@ package io.restaurantos.nlq.service;
 
 import io.restaurantos.nlq.audit.NlqQueryLogService;
 import io.restaurantos.nlq.cache.NlqResultCache;
-import io.restaurantos.nlq.claude.ClaudeClient;
 import io.restaurantos.nlq.claude.ClaudeUnavailableException;
 import io.restaurantos.nlq.claude.SchemaPromptBuilder;
 import io.restaurantos.nlq.dto.NlqQueryResponse;
@@ -10,9 +9,12 @@ import io.restaurantos.nlq.execution.ClickHouseReadOnlyExecutor;
 import io.restaurantos.nlq.execution.ExecutionResult;
 import io.restaurantos.nlq.execution.NlqRowCapExceededException;
 import io.restaurantos.nlq.execution.NlqTimeoutException;
+import io.restaurantos.nlq.llm.NlqLlmGateway;
+import io.restaurantos.nlq.provider.AiCredentialRejectedException;
 import io.restaurantos.nlq.quota.NlqQuotaService;
 import io.restaurantos.nlq.quota.QuotaExceededException;
 import io.restaurantos.nlq.quota.QuotaServiceUnavailableException;
+import io.restaurantos.nlq.settings.AiNotConfiguredException;
 import io.restaurantos.nlq.validation.NlqRejectedException;
 import io.restaurantos.nlq.validation.QueryContext;
 import io.restaurantos.nlq.validation.SqlValidationPipeline;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The NLQ orchestration — the ONLY code path from a natural-language question to ClickHouse.
@@ -52,19 +55,19 @@ public class NlqService {
     private final NlqQuotaService quotaService;
     private final NlqResultCache resultCache;
     private final SchemaPromptBuilder schemaPromptBuilder;
-    private final ClaudeClient claudeClient;
+    private final NlqLlmGateway llmGateway;
     private final SqlValidationPipeline sqlValidationPipeline;
     private final ClickHouseReadOnlyExecutor executor;
     private final NlqQueryLogService queryLogService;
 
     public NlqService(NlqQuotaService quotaService, NlqResultCache resultCache,
-                       SchemaPromptBuilder schemaPromptBuilder, ClaudeClient claudeClient,
+                       SchemaPromptBuilder schemaPromptBuilder, NlqLlmGateway llmGateway,
                        SqlValidationPipeline sqlValidationPipeline, ClickHouseReadOnlyExecutor executor,
                        NlqQueryLogService queryLogService) {
         this.quotaService = quotaService;
         this.resultCache = resultCache;
         this.schemaPromptBuilder = schemaPromptBuilder;
-        this.claudeClient = claudeClient;
+        this.llmGateway = llmGateway;
         this.sqlValidationPipeline = sqlValidationPipeline;
         this.executor = executor;
         this.queryLogService = queryLogService;
@@ -96,14 +99,25 @@ public class NlqService {
             return toResponse(question, hit.executedSql(), hit.rows(), hit.narrative(), true, 0L);
         }
 
-        // 3. Build the role-scoped schema prompt; call Claude for SQL.
+        // 3. Build the role-scoped schema prompt; call the tenant's AI provider for SQL.
         String rawSql;
         try {
             String schemaPrompt = schemaPromptBuilder.buildFor(ctx.roleCode());
-            rawSql = claudeClient.generateSql(question, schemaPrompt);
+            rawSql = llmGateway.generateSql(ctx.tenantId(), question, schemaPrompt);
         } catch (ClaudeUnavailableException ex) {
             quotaService.rollback(ctx.tenantId(), ctx.userId());
-            queryLogService.log(ctx, question, null, null, "CLAUDE_UNAVAILABLE", null, null, false);
+            // A REFUSED credential and a provider OUTAGE both fail closed here, identically and on
+            // purpose — no SQL was generated, so nothing can execute. They are distinguished only
+            // in the audit code, because the human remedies differ: an outage is waited out, a
+            // refused key has to be replaced by someone.
+            String code = (ex instanceof AiCredentialRejectedException)
+                    ? "AI_CREDENTIAL_REJECTED"
+                    : "CLAUDE_UNAVAILABLE";
+            queryLogService.log(ctx, question, null, null, code, null, null, false);
+            throw ex;
+        } catch (AiNotConfiguredException ex) {
+            quotaService.rollback(ctx.tenantId(), ctx.userId());
+            queryLogService.log(ctx, question, null, null, "AI_NOT_CONFIGURED", null, null, false);
             throw ex;
         }
 
@@ -134,7 +148,7 @@ public class NlqService {
         // 6. Narrate — best-effort. A narration failure returns the rows with a null narrative,
         //    it never fails the overall request. An EMPTY result is not narrated at all: there is
         //    nothing to describe, and it avoids spending a second Claude call on "no rows".
-        String narrative = result.rows().isEmpty() ? null : tryNarrate(question, result.rows());
+        String narrative = result.rows().isEmpty() ? null : tryNarrate(ctx.tenantId(), question, result.rows());
 
         // 7. Cache (60s) and audit the success.
         resultCache.put(cacheKey, new NlqResultCache.CachedResult(result.rows(), safeSql, narrative));
@@ -145,9 +159,9 @@ public class NlqService {
         return toResponse(question, safeSql, result.rows(), narrative, false, result.elapsedMs());
     }
 
-    private String tryNarrate(String question, List<Map<String, Object>> rows) {
+    private String tryNarrate(UUID tenantId, String question, List<Map<String, Object>> rows) {
         try {
-            return claudeClient.narrate(question, rows);
+            return llmGateway.narrate(tenantId, question, rows);
         } catch (RuntimeException ex) {
             log.warn("[nlq-service] Narration failed — returning rows with a null narrative", ex);
             return null;

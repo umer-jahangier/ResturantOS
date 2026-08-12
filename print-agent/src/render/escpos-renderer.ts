@@ -201,7 +201,25 @@ function renderCustomerReceipt(
     for (const tax of document.taxBreakdown) {
       writeLines(out, amountRow(taxLabel(tax), tax.amount.formatted, cols));
     }
-    writeLines(out, amountRow("Tax", totals.tax.formatted, cols));
+    // D-4 — the summary row, and ONLY when it is not a second printing of the line above it.
+    //
+    // This renderer produces the paper the guest actually walks out with, and it printed:
+    //
+    //   Sales Tax (16.00%)          Rs   230.67
+    //   Tax                         Rs   230.67
+    //
+    // Two lines, one amount, adjacent, on a customer-facing document. The total was right, so no
+    // money was wrong — but a guest counting their own bill finds Rs 230.67 charged twice.
+    //
+    // The breakdown already states the tax. On ONE line that line IS the total and repeating it
+    // is the defect; on several a summing row does real work; with none the row is the only place
+    // the tax is named and must stay, because silence there reads as "no tax was charged".
+    //
+    // Kept deliberately identical to receipt-document.tsx: the browser preview and the paper are
+    // two renderings of one document, and a guest comparing them must not find two bills.
+    if (document.taxBreakdown.length !== 1) {
+      writeLines(out, amountRow("Tax", totals.tax.formatted, cols));
+    }
     writeLine(out, divider(cols));
     out.push(emphasis(true));
     out.push(textSize(SIZE_DOUBLE, SIZE_DOUBLE));

@@ -4,6 +4,7 @@ import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.ApplyDiscountRequest;
 import io.restaurantos.pos.dto.AssignTableRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
+import io.restaurantos.pos.dto.DiscountPreviewDto;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.dto.OrderSummaryDto;
 import io.restaurantos.pos.dto.UpdateInstructionsRequest;
@@ -19,6 +20,15 @@ public interface OrderService {
     OrderDto addItem(UUID orderId, AddOrderItemRequest request);
     OrderDto removeItem(UUID orderId, UUID itemId);
     OrderDto applyDiscount(UUID orderId, ApplyDiscountRequest request);
+
+    /**
+     * What {@link #applyDiscount} WOULD do to this check, priced and thrown away (D-1).
+     *
+     * <p>Same validation, same clamp, same {@code recomputeOrderTotals} — nothing written. Exists
+     * because the discount panel used to answer this in the browser by subtracting the discount
+     * from a tax-INCLUSIVE total, and was out by the tax relief on every check.
+     */
+    DiscountPreviewDto previewDiscount(UUID orderId, ApplyDiscountRequest request);
 
     /**
      * Asks crm-service which promotions this order qualifies for and records the result as one

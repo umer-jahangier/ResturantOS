@@ -11,6 +11,7 @@ import io.restaurantos.pos.domain.enums.TillStatus;
 import io.restaurantos.pos.domain.model.*;
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.shared.event.payload.PosEventContract;
+import io.restaurantos.pos.event.PosDiscountPayloads;
 import io.restaurantos.pos.event.PosEventPayloads;
 import io.restaurantos.pos.event.PosVoidRefundPayloads;
 import io.restaurantos.pos.exception.PosExceptions;
@@ -52,6 +53,17 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_CLOSED_TYPE = "ORDER_CLOSED";
     private static final String ORDER_VOIDED_KEY = "pos.order.voided";
     private static final String ORDER_VOIDED_TYPE = "ORDER_VOIDED";
+    /**
+     * D-2. Named exactly as {@code AuditEventCatalog.MUST_AUDIT} names them —
+     * {@code AuditAllowListClosureTest} compares the two vocabularies over the repository tree and
+     * fails the build if either side moves without the other, which is the mechanism that caught
+     * {@code VOID_CREATED} sitting in the allow-list while pos-service published
+     * {@code ORDER_VOIDED}.
+     */
+    private static final String ORDER_DISCOUNT_APPLIED_KEY = "pos.order.discount_applied";
+    private static final String ORDER_DISCOUNT_APPLIED_TYPE = "ORDER_DISCOUNT_APPLIED";
+    private static final String ORDER_DISCOUNT_REMOVED_KEY = "pos.order.discount_removed";
+    private static final String ORDER_DISCOUNT_REMOVED_TYPE = "ORDER_DISCOUNT_REMOVED";
     private static final String ORDER_ITEM_CANCELLED_KEY = "pos.order.item_cancelled";
     private static final String ORDER_ITEM_CANCELLED_TYPE = "ORDER_ITEM_CANCELLED";
     private static final String ORDER_ITEM_SERVED_KEY = "pos.order.item_served";
@@ -124,6 +136,15 @@ public class OrderServiceImpl implements OrderService {
      * costs a guest their discount.
      */
     private final StaffNameDirectory staffNameDirectory;
+    /**
+     * D-1: used by {@link #previewDiscount} alone, to detach the aggregate it priced.
+     *
+     * <p>Field-injected rather than constructor-injected because this class's constructor already
+     * takes seventeen collaborators and an {@code EntityManager} is not one of them in spirit — it
+     * is the escape hatch a single read-only method needs, not a dependency the order service has.
+     */
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
     /**
      * F20: the branch's service-charge policy, read on the PRICING path. Its
      * {@code policyFor} is the only method used here and it performs no authorization check —
@@ -352,6 +373,26 @@ public class OrderServiceImpl implements OrderService {
         // (V11) now blocks this at the database; the predicate below is the second line.
         MenuItem menuItem = menuItemRepository.findByIdAndTenantId(request.menuItemId(), tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + request.menuItemId()));
+
+        // SECURITY (per-user menu scope, Program A): the HARD boundary. A counter cashier assigned
+        // only the bar's categories is REFUSED a food item here, with pos.rego's add_item rules
+        // deciding it — not an `if` in this method, and not the grid, which only chooses what to
+        // draw. The user asked for the server to refuse and said explicitly that hiding the tile
+        // was not enough.
+        //
+        // PLACED HERE, AND THE POSITION IS THE POINT. After findByIdAndTenantId, because the
+        // category must come from the item the CATALOGUE resolved — a category read off
+        // AddOrderItemRequest would let a caller nominate one it holds and ring an item from one it
+        // does not. And before the first field of `item` is set, so a refusal leaves no half-built
+        // line and no work to unwind.
+        //
+        // A user with no assignment is unaffected: the claim is absent from their token, pos.rego's
+        // unrestricted rule matches, and this is one OPA round trip that always says yes. That is
+        // every user in the product on the day this ships.
+        posAuthorizationService.authorizeAddItem(
+                order.getId(), tenantId, order.getBranchId(), order.getCashierId(),
+                order.getStatus() == null ? null : order.getStatus().name(),
+                menuItem.getCategory() == null ? null : menuItem.getCategory().getId());
 
         // SECURITY (branch isolation): resolve branch-override pricing from the ORDER's own
         // (server-derived, createOrder-validated) branch rather than the client-supplied
@@ -630,6 +671,161 @@ public class OrderServiceImpl implements OrderService {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
 
+        StagedDiscount staged = stageDiscount(order, request, tenantId);
+        OrderDiscount discount = staged.discount();
+
+        // WHO, stamped here and not in stageDiscount, because the preview path shares that method
+        // and must not spend a call to user-service on a keystroke. The pricing never reads these
+        // two fields, so stamping them after it has run changes nothing about the money.
+        UUID appliedBy = tenantContext.getUserId().orElse(null);
+        discount.setAppliedBy(appliedBy);
+        discount.setAppliedByName(staffNameDirectory.resolve(tenantId, appliedBy));
+
+        Order saved = orderRepository.save(order);
+
+        // ── D-2: say so, where an owner who is not on the floor can read it ──────────────────
+        //
+        // Published AFTER the save and INSIDE this transaction, which is what the outbox buys:
+        // the event_outbox row commits with the discount or neither exists. The actor is not in
+        // the payload — DomainEventPublisher stamps it on the envelope from the verified JWT,
+        // which is the source AuditIngestionService trusts.
+        //
+        // Removals first, applies second, so the pair reads in the order the money moved.
+        for (OrderDiscount gone : staged.displaced()) {
+            eventPublisher.publish(POS_EXCHANGE, ORDER_DISCOUNT_REMOVED_KEY,
+                    ORDER_DISCOUNT_REMOVED_TYPE, saved.getBranchId(),
+                    new PosDiscountPayloads.OrderDiscountRemovedPayload(
+                            orderId, saved.getOrderNo(), gone.getScope(), gone.getOrderItemId(),
+                            gone.getType(), gone.getValue(), gone.getAmountPaisa(),
+                            gone.getReason(),
+                            "Replaced by a new discount at the same scope"));
+        }
+        eventPublisher.publish(POS_EXCHANGE, ORDER_DISCOUNT_APPLIED_KEY,
+                ORDER_DISCOUNT_APPLIED_TYPE, saved.getBranchId(),
+                new PosDiscountPayloads.OrderDiscountAppliedPayload(
+                        orderId, saved.getOrderNo(), discount.getScope(),
+                        discount.getOrderItemId(), discountedLineName(saved, discount),
+                        discount.getType(), discount.getValue(), discount.getAmountPaisa(),
+                        saved.getTotalPaisa(), discount.getReason()));
+
+        return orderMapper.toDto(saved);
+    }
+
+    /**
+     * The dish a LINE discount came off, by name, or null for a whole-check one.
+     *
+     * <p>In the payload so the audit log reads without a join into {@code order_items} — an
+     * auditor scanning a day of concessions wants "Mutton Karahi" and not a line UUID. Null rather
+     * than a placeholder when the line cannot be found: an invented name in an append-only record
+     * is worse than an absent one.
+     */
+    private static String discountedLineName(Order order, OrderDiscount discount) {
+        if (discount.getOrderItemId() == null) {
+            return null;
+        }
+        return order.getItems().stream()
+                .filter(i -> discount.getOrderItemId().equals(i.getId()))
+                .map(OrderItem::getItemNameSnapshot)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * The same discount, priced but never written (D-1).
+     *
+     * <h2>Why this endpoint exists at all</h2>
+     *
+     * <p>Because the discount panel used to answer this question itself, in the browser, by
+     * subtracting the discount from {@code order.totalPaisa} — a tax-INCLUSIVE figure — and
+     * printing the difference. That asserts that taking money off a bill leaves the tax alone,
+     * which is the opposite of what {@link #recomputeOrderTotals} does. Measured on
+     * {@code ORD-20260812-0443}: previewed <em>"new total Rs 1,802.00"</em>, applied Rs 1,774.80.
+     * See {@link DiscountPreviewDto} for the full measurement and for why the answer is not simply
+     * better arithmetic on the client.
+     *
+     * <h2>How it cannot drift from apply</h2>
+     *
+     * <p>It runs {@link #stageDiscount} — the identical method {@link #applyDiscount} runs, which
+     * validates, clamps, replaces and calls {@link #recomputeOrderTotals}. There is no second
+     * pricing path to keep in step, which is the whole point: a preview computed by any other means
+     * is a second implementation of a tax rule, and this repository has already watched two
+     * implementations of a tax rule drift.
+     *
+     * <p>It therefore also REFUSES identically. A discount that would take the bill below what has
+     * already been tendered, a check that is closed, a reason under three characters, a percentage
+     * over 100 — every one of those throws here exactly as it throws on apply, so the panel names
+     * the obstacle before the manager commits rather than after.
+     *
+     * <h2>Why nothing reaches the database</h2>
+     *
+     * <p>{@code stageDiscount} mutates the managed aggregate: it adds an {@code OrderDiscount} to a
+     * cascaded collection, removes the rows it replaces, and stamps discount, tax, tax base and
+     * line total onto every line. That mutation is real, and if it reached a flush it would be a
+     * discount nobody applied. Two independent things stop it:
+     *
+     * <ol>
+     *   <li>{@code readOnly = true} puts the Hibernate session in {@code FlushMode.MANUAL}, so no
+     *       automatic flush happens at commit, and marks the JDBC connection read-only, so a flush
+     *       introduced by some future change fails at the driver rather than writing;</li>
+     *   <li>{@link jakarta.persistence.EntityManager#clear()} detaches the mutated aggregate
+     *       outright, so there is nothing dirty left to flush and nothing later in the request can
+     *       see the staged state.</li>
+     * </ol>
+     *
+     * <p><b>Measured, not assumed:</b> {@code aPreviewWritesNothing} was run against three
+     * mutilations of this method. With {@code readOnly} dropped it still passed; with
+     * {@code clear()} dropped it still passed; with BOTH dropped it failed
+     * ({@code [three previews, no discount on the check] expected: 0 but was: 1}). So either guard
+     * alone is sufficient today and the pair is deliberate redundancy — but the test can only catch
+     * the loss of both at once. Anyone removing one of them is removing a belt or braces and the
+     * suite will not object; removing both is caught.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public DiscountPreviewDto previewDiscount(UUID orderId, ApplyDiscountRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        long previousTax = order.getTaxPaisa();
+        long previousServiceCharge = order.getServiceChargePaisa();
+        long previousTotal = order.getTotalPaisa();
+
+        // The displaced rows are discarded here: nothing was really replaced, because nothing is
+        // really saved. Only the apply path announces a removal.
+        OrderDiscount staged = stageDiscount(order, request, tenantId).discount();
+
+        DiscountPreviewDto preview = new DiscountPreviewDto(
+                staged.getAmountPaisa(),
+                order.getSubtotalPaisa(),
+                order.getDiscountPaisa(),
+                order.getTaxPaisa(),
+                order.getServiceChargePaisa(),
+                order.getTotalPaisa(),
+                previousTax,
+                previousServiceCharge,
+                previousTotal);
+
+        // Detach the whole staged aggregate. See the javadoc above: readOnly already stops the
+        // flush, and this stops the mutated entities from being visible to anything else at all.
+        entityManager.clear();
+        return preview;
+    }
+
+    /**
+     * Validate, authorize, clamp, replace and PRICE one discount onto the in-memory order — the one
+     * path {@link #applyDiscount} and {@link #previewDiscount} both run.
+     *
+     * <p>Everything here mutates {@code order} and nothing here saves it. The caller decides
+     * whether the mutation becomes a row: apply saves, preview runs in a read-only transaction and
+     * clears the persistence context. Splitting it any other way — a "pricing" helper that returns
+     * an amount and a separate recompute — is what would let the preview and the apply answer
+     * differently again.
+     *
+     * @return the staged discount and the rows it displaced
+     */
+    private StagedDiscount stageDiscount(Order order, ApplyDiscountRequest request, UUID tenantId) {
+        UUID orderId = order.getId();
+
         assertDiscountable(order);
 
         // Also enforced by @NotBlank/@Size on the DTO, which is what turns a bad API call into a
@@ -714,14 +910,27 @@ public class OrderServiceImpl implements OrderService {
         // take back an offer the guest had earned with nothing on screen saying so. Pinned by
         // aManagersDiscountReplacesTheManagersPreviousOneAndLeavesThePromotionAlone; do not
         // "simplify" this predicate to drop the source test without re-opening that decision.
+        //
+        // The displaced rows are CAPTURED rather than merely dropped (D-2). Replacing "Rs 500 off"
+        // with "10% off" hands the guest back Rs 400, and before this the only trace of that was
+        // the disappearance of a row nobody was watching. Each one is announced as
+        // ORDER_DISCOUNT_REMOVED by the apply path; the preview path throws the list away.
+        List<OrderDiscount> displaced = new ArrayList<>();
         if (orderScope) {
-            order.getDiscounts().removeIf(d -> "ORDER".equals(d.getScope())
-                    && !PROMOTION_DISCOUNT_SOURCE.equals(d.getSource()));
+            for (OrderDiscount d : order.getDiscounts()) {
+                if ("ORDER".equals(d.getScope()) && !PROMOTION_DISCOUNT_SOURCE.equals(d.getSource())) {
+                    displaced.add(d);
+                }
+            }
         } else {
             UUID itemId = request.orderItemId();
-            order.getDiscounts().removeIf(d -> "LINE".equals(d.getScope())
-                    && itemId.equals(d.getOrderItemId()));
+            for (OrderDiscount d : order.getDiscounts()) {
+                if ("LINE".equals(d.getScope()) && itemId.equals(d.getOrderItemId())) {
+                    displaced.add(d);
+                }
+            }
         }
+        order.getDiscounts().removeAll(displaced);
 
         long amountPaisa = computeDiscountAmount(request, order, line);
 
@@ -735,16 +944,14 @@ public class OrderServiceImpl implements OrderService {
         discount.setAmountPaisa(amountPaisa);
         discount.setOrderItemId(orderScope ? null : request.orderItemId());
         discount.setReason(reason);
-        UUID appliedBy = tenantContext.getUserId().orElse(null);
-        discount.setAppliedBy(appliedBy);
-        discount.setAppliedByName(staffNameDirectory.resolve(tenantId, appliedBy));
         order.getDiscounts().add(discount);
 
         recomputeOrderTotals(order);
 
         // Priced last, checked last: a partly-tendered check must not be discounted below what the
         // guest has already handed over. The figures are named because "not allowed" tells a
-        // cashier nothing they can act on.
+        // cashier nothing they can act on. Thrown on the PREVIEW path too, which is the point of
+        // sharing this method — the panel refuses before the manager commits, not after.
         long paidPaisa = orderPaymentRepository.sumAmountByOrderId(orderId);
         if (paidPaisa > 0 && order.getTotalPaisa() < paidPaisa) {
             throw new io.restaurantos.shared.exception.StateInvalidException(
@@ -753,8 +960,18 @@ public class OrderServiceImpl implements OrderService {
                             + " already paid. Refund the difference instead.");
         }
 
-        return orderMapper.toDto(orderRepository.save(order));
+        return new StagedDiscount(discount, displaced);
     }
+
+    /**
+     * One priced discount and whatever it pushed off the check.
+     *
+     * @param discount  the new row, its {@code amountPaisa} already clamped to real headroom
+     * @param displaced the MANUAL rows at the same scope that this one replaces — see
+     *                  {@code PosDiscountPayloads.OrderDiscountRemovedPayload} for why the
+     *                  replacement is money movement and has to be announced
+     */
+    private record StagedDiscount(OrderDiscount discount, List<OrderDiscount> displaced) {}
 
     /**
      * The states in which a check may still be discounted: everything from the moment it has

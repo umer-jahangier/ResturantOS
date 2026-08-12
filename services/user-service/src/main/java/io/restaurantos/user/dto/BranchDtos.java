@@ -96,6 +96,27 @@ public final class BranchDtos {
     /** A user's active station codes at one branch. A branch with none simply does not appear. */
     public record StationAssignment(UUID branchId, java.util.List<String> stationCodes) {}
 
+    /**
+     * What a user's ringable menu categories should now be, at one branch (Program A).
+     *
+     * <p>The wire twin of auth-service's {@code MenuCategoryAssignmentRequest}, and shaped exactly
+     * like {@link StationAssignmentRequest} beside it because it is the same kind of decision made
+     * in the same form: which screens this person watches, and which sections of the menu they may
+     * sell from.
+     *
+     * <p>An empty {@code categoryIds} clears the branch and returns the user to the WHOLE menu. It
+     * is not a degenerate request — it is the only spelling of "unrestricted" anywhere in this
+     * stack, and it is the state every user in the product is in today. Do not reject it, and do
+     * not give it a second spelling.
+     */
+    public record MenuCategoryAssignmentRequest(
+        @NotNull UUID branchId,
+        @NotNull java.util.List<UUID> categoryIds
+    ) {}
+
+    /** A user's active category ids at one branch. A branch with none simply does not appear. */
+    public record MenuCategoryAssignment(UUID branchId, java.util.List<UUID> categoryIds) {}
+
     /** Used by the provisioning saga (FD-1 step 4) via POST /internal/users/branches. */
     public record InternalCreateBranchRequest(
         @NotNull UUID tenantId,

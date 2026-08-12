@@ -23,6 +23,7 @@ import {
   type CreateDiningTableInput,
   apiDiningTableSchema,
   apiOrderSchema,
+  apiDiscountPreviewSchema,
   apiOrderSummarySchema,
   apiTableDetailSchema,
   apiUpdateInstructionsSchema,
@@ -67,6 +68,7 @@ import type {
   CreateOrderPayload,
   AddItemPayload,
   ApplyDiscountPayload,
+  DiscountPreview,
   UpdateInstructionsPayload,
   OpenTillPayload,
   CloseTillPayload,
@@ -440,6 +442,28 @@ export const PosRepository = {
       payload,
     );
     return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  /**
+   * What that discount would do, before it is done (D-1). Writes nothing.
+   *
+   * Same payload as `applyDiscount` above, deliberately: the two routes take one request shape so
+   * they cannot be asked different questions. The server runs the identical pricing path and
+   * throws back the identical refusals, so a preview that 4xx's is the apply telling the operator
+   * the rule before they commit rather than after.
+   *
+   * No adapter: the wire shape IS the domain shape here — nine paisa integers, no renaming, no
+   * derivation. An adapter would be a place for a second copy of the arithmetic to grow.
+   */
+  async previewDiscount(
+    orderId: string,
+    payload: ApplyDiscountPayload,
+  ): Promise<DiscountPreview> {
+    const raw = await post<ApplyDiscountPayload, unknown>(
+      `/api/v1/pos/orders/${orderId}/discounts/preview`,
+      payload,
+    );
+    return apiDiscountPreviewSchema.parse(raw);
   },
 
   /**

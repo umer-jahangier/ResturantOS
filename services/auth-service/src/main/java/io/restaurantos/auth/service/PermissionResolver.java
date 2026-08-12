@@ -1,9 +1,11 @@
 package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.entity.UserBranchRoleEntity;
+import io.restaurantos.auth.entity.UserMenuCategoryAssignmentEntity;
 import io.restaurantos.auth.entity.UserStationAssignmentEntity;
 import io.restaurantos.auth.repository.RolePermissionRepository;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
+import io.restaurantos.auth.repository.UserMenuCategoryAssignmentRepository;
 import io.restaurantos.auth.repository.UserStationAssignmentRepository;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
@@ -33,18 +35,43 @@ public class PermissionResolver {
      */
     public static final String STATION_SCOPE_CLAIM = "stations";
 
+    /**
+     * The {@code attributes} key carrying a user's MENU CATEGORY scope — what they may RING
+     * (Program A). Value is a sorted {@code List<String>} of pos_db {@code menu_categories.id}
+     * UUIDs, rendered as strings.
+     *
+     * <p>Read by {@code pos.rego}'s {@code pos.order.add_item} rules straight off the verified
+     * token, and by pos-service's {@code MenuCategoryScope} to narrow the grid. Written from the
+     * user-admin form.
+     *
+     * <p>Strings rather than UUID objects, deliberately. This value is serialised into a JWT and
+     * compared inside Rego against {@code input.resource.category_id}, which arrives as a JSON
+     * string because that is how Jackson writes a {@code UUID}. Two spellings of the same id would
+     * compare unequal in the policy and silently deny a permitted item — which reads on the till as
+     * "the boundary is broken" rather than as a type bug.
+     *
+     * <p>The spelling of the KEY is the contract between auth-service, pos.rego and pos-service. It
+     * is declared once, here, so a rename cannot leave a producer and a consumer disagreeing
+     * silently — which in this case would not throw. It would simply un-scope every confined
+     * cashier in the product and hand them the whole menu back.
+     */
+    public static final String MENU_CATEGORY_SCOPE_CLAIM = "menu_categories";
+
     private final UserBranchRoleRepository userBranchRoleRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final UserStationAssignmentRepository userStationAssignmentRepository;
+    private final UserMenuCategoryAssignmentRepository userMenuCategoryAssignmentRepository;
     private final EntityManager entityManager;
 
     public PermissionResolver(UserBranchRoleRepository userBranchRoleRepository,
                               RolePermissionRepository rolePermissionRepository,
                               UserStationAssignmentRepository userStationAssignmentRepository,
+                              UserMenuCategoryAssignmentRepository userMenuCategoryAssignmentRepository,
                               EntityManager entityManager) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.userStationAssignmentRepository = userStationAssignmentRepository;
+        this.userMenuCategoryAssignmentRepository = userMenuCategoryAssignmentRepository;
         this.entityManager = entityManager;
     }
 
@@ -160,6 +187,7 @@ public class PermissionResolver {
             attributes.put("approval_limit_paisa", assignment.getApprovalLimitPaisa());
         }
         putStationScope(attributes, assignment);
+        putMenuCategoryScope(attributes, assignment);
         return new ResolvedBranchAuth(assignment.getBranchId(), roles, permissions, attributes);
     }
 
@@ -200,5 +228,58 @@ public class PermissionResolver {
             return;
         }
         attributes.put(STATION_SCOPE_CLAIM, codes);
+    }
+
+    /**
+     * The menu categories this user may RING at the branch being resolved (Program A).
+     *
+     * <p>Rides {@code attributes} for the same reason the station scope does, and this one has to:
+     * the allow-list is a fact about the PERSON, and the only part of an OPA input that is
+     * trustworthy is the part built from verified {@link io.restaurantos.shared.security.JwtClaims}.
+     * shared-lib's {@code AuthorizationService} and authorization-service's {@code AuthorizeService}
+     * both build {@code input.user} from the token and {@code input.resource} from the request. An
+     * allow-list carried on the resource would be fail-OPEN by construction — send a wider list,
+     * walk through — so it must ride here or the boundary is decoration.
+     *
+     * <p>All three minting paths carry it for free (login, refresh, branch switch), because each of
+     * them passes {@code resolved.attributes()} to the signer and each arrives here rather than
+     * copying claims off a previous token.
+     *
+     * <p><b>Absent means the WHOLE MENU, and absent is the ONLY encoding of it.</b> A user with no
+     * assignment gets no key at all — not a key holding an empty list. This is the same asymmetry
+     * {@link #putStationScope} documents and it matters more here, because the consequence of
+     * getting it wrong is not a blank screen but a till that cannot ring: every user in the product
+     * today is unassigned, so the do-nothing state has to be the permissive one. {@code pos.rego}
+     * makes the matching promise from the other side and pins each degenerate shape — empty list, a
+     * bare string, a list of non-strings — with its own test, because a rule that read any of them
+     * as "permitted: nothing" would stop the restaurant taking orders.
+     *
+     * <p>There is a second-order benefit worth stating because it bounds a real risk: the PERMISSIVE
+     * case costs zero bytes. 51 categories exist on the live tenant, so a waiter "assigned
+     * everything" through a select-all would carry roughly 1.9 KB of UUIDs in every request header,
+     * for the same effect that assigning nothing achieves for free. Unrestricted is the empty
+     * assignment; the admin screen must present it that way rather than offering a select-all.
+     *
+     * <p>Stringified and sorted: stringified so the value compares equal to the JSON string Jackson
+     * writes for {@code input.resource.category_id} inside Rego, sorted so two tokens minted for the
+     * same user are byte-comparable and a test can assert on the claim without ordering flake.
+     */
+    private void putMenuCategoryScope(Map<String, Object> attributes, UserBranchRoleEntity assignment) {
+        List<String> categoryIds = userMenuCategoryAssignmentRepository
+            .findByTenantIdAndUserIdAndBranchIdAndActiveTrue(
+                assignment.getTenantId(), assignment.getUserId(), assignment.getBranchId())
+            .stream()
+            .map(UserMenuCategoryAssignmentEntity::getCategoryId)
+            .filter(java.util.Objects::nonNull)
+            .map(UUID::toString)
+            .distinct()
+            .sorted()
+            .toList();
+        if (categoryIds.isEmpty()) {
+            // Deliberately nothing. See the javadoc: an absent key is what "may ring the whole
+            // menu" means, and it is the state every existing user is in.
+            return;
+        }
+        attributes.put(MENU_CATEGORY_SCOPE_CLAIM, categoryIds);
     }
 }

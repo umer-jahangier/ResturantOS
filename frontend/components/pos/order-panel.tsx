@@ -21,6 +21,8 @@ import {
   cartLineKey,
   cartTotalPaisa,
   cartTaxPaisa,
+  cartServiceChargePaisa,
+  serviceChargeAppliesTo,
   lineSubtotalPaisa,
   modifierIdsOf,
   type CartLine,
@@ -33,6 +35,9 @@ import {
   useSendToKds,
 } from "@/lib/hooks/pos/use-orders";
 import { useQueuedOps } from "@/lib/hooks/pos/use-queued-ops";
+import { useServiceChargePolicy } from "@/lib/hooks/pos/use-service-charge";
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
+import { formatServiceChargeRate } from "@/lib/models/service-charge.model";
 import { getOrderDisplayStatus, type Order, type OrderType } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -159,7 +164,27 @@ function PreSendCart({
   const canSend = cart.length > 0 && !isPersisting;
   const subtotal = cartTotalPaisa(cart);
   const estTax = cartTaxPaisa(cart);
-  const estTotal = subtotal + estTax;
+
+  /*
+    D-3 — the service charge the check WILL carry, before it is created.
+
+    Measured on table AUD3547: this panel read Subtotal Rs 2,259.00, Tax Rs 257.60,
+    Total Rs 2,516.60, and the check created one tap later was Rs 2,629.55 —
+    serviceChargePaisa 11295 at 5%. The charge is applied server-side at fire time and this
+    panel did not know it existed, so every dine-in guest in the building was quoted 5% low
+    while the charge page a minute later showed the figure correctly.
+
+    Read over the branch's existing policy endpoint, which is gated on `pos.menu.view` — a
+    permission any cashier who can load the menu already holds, so this costs no new grant.
+  */
+  const { branchId } = useCurrentUser();
+  const { data: serviceChargePolicy } = useServiceChargePolicy(branchId);
+  const chargeApplies = serviceChargeAppliesTo(serviceChargePolicy ?? null, orderType);
+  const estServiceCharge = chargeApplies
+    ? cartServiceChargePaisa(subtotal, serviceChargePolicy!.ratePct)
+    : 0;
+
+  const estTotal = subtotal + estTax + estServiceCharge;
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -223,6 +248,24 @@ function PreSendCart({
               <MoneyDisplay paisa={estTax} className="font-mono" />
             </span>
           </div>
+          {/*
+            Shown ONLY when the branch actually charges it on this channel, and captioned with the
+            branch's own wording and rate (D-3). A row that always appeared, at Rs 0.00, is the
+            defect F20 removed from the printed bill — it teaches a cashier to stop reading the
+            line. Switching the order type to takeaway makes it disappear here for the same reason
+            it disappears from the check: the policy is per channel.
+          */}
+          {estServiceCharge > 0 && (
+            <div className="flex justify-between text-muted-foreground">
+              <span data-testid="cart-service-charge-label">
+                {serviceChargePolicy!.label || "Service charge"} (
+                {formatServiceChargeRate(serviceChargePolicy!.ratePct)})
+              </span>
+              <span data-testid="cart-service-charge">
+                <MoneyDisplay paisa={estServiceCharge} className="font-mono" />
+              </span>
+            </div>
+          )}
           <div className="flex justify-between font-semibold text-base pt-1 border-t">
             <span>Total</span>
             <span data-testid="cart-total">

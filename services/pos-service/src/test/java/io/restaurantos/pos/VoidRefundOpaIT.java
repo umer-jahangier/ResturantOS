@@ -20,6 +20,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -103,7 +104,20 @@ class VoidRefundOpaIT extends PosTestBase {
         OrderDto order = orderService.createOrder(
                 new CreateOrderRequest(branchId, clientOrderId, null, null, 1, null, null));
         orderService.addItem(order.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
-        return orderService.getOrder(order.id(), branchId);
+        OrderDto built = orderService.getOrder(order.id(), branchId);
+
+        // Program A gave addItem its own policy call (pos.order.add_item, the menu-category
+        // boundary), so building the fixture now makes a `pos` decision of its own. Every
+        // assertion below counts or captures `pos` decisions to say something about VOIDING,
+        // REFUNDING or DISCOUNTING — and would otherwise be reading the fixture's decision
+        // instead. Most sharply: lineScopeDiscount_doesNotConsultThePolicy asserts never(), and
+        // that guard means "the DISCOUNT did not consult the policy", not "nothing ever did".
+        //
+        // clearInvocations, not reset: the stubbing must survive, only the call history is
+        // discarded. reset() here would silently un-stub PosTestBase's ambient allow and every
+        // later addItem would NPE inside the shared client.
+        Mockito.clearInvocations(opaClient);
+        return built;
     }
 
     private OrderDto createClosedOrder() {

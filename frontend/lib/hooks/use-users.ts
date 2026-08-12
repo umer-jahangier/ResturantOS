@@ -7,6 +7,7 @@ import { formatUserFacingError } from "@/lib/errors";
 import type {
   AssignBranchRolePayload,
   CreateUserPayload,
+  ReplaceMenuCategoriesPayload,
   ReplaceStationAssignmentPayload,
   UpdateUserPayload,
 } from "@/lib/models/user.model";
@@ -37,6 +38,8 @@ export const userKeys = {
   assignableRoles: () => ["users", "assignable-roles"] as const,
   /** 28-11. A CHILD of `detail` so invalidating the detail refreshes the scope with it. */
   stations: (userId: string) => ["users", "detail", userId, "stations"] as const,
+  /** Program A. A child of `detail` for the same reason `stations` is. */
+  menuCategories: (userId: string) => ["users", "detail", userId, "menu-categories"] as const,
 };
 
 export function useUsers(params: UserListParams) {
@@ -218,6 +221,46 @@ export function useReplaceUserStations() {
       userId: string;
       payload: ReplaceStationAssignmentPayload;
     }) => UserRepository.replaceStationAssignments(userId, payload),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * A user's menu-category scope (Program A) — which sections of the menu they may ring.
+ *
+ * <p>`enabled` is driven by the userId alone, as `useUserStations` is and for the same reason: the
+ * read is gated on `rbac.user.manage` server-side and both surfaces that call it are already
+ * behind that authority.
+ */
+export function useUserMenuCategories(userId: string | null) {
+  return useQuery({
+    queryKey: userKeys.menuCategories(userId ?? ""),
+    queryFn: () => UserRepository.getMenuCategoryAssignments(userId as string),
+    enabled: Boolean(userId),
+  });
+}
+
+/**
+ * Replace one branch's category set.
+ *
+ * <p>Invalidates the whole `["users"]` prefix — covering `userKeys.menuCategories` and
+ * `userKeys.detail` both — for the reason every other write here does.
+ *
+ * <p><b>Only the admin's own panel is immediate.</b> The scope rides `attributes.menu_categories`
+ * on the TARGET user's access token, which lives 900 seconds; a cashier already signed in keeps
+ * their current menu until their session refreshes. Any screen calling this has to say so, or an
+ * owner concludes the save did nothing and does it three more times.
+ */
+export function useReplaceUserMenuCategories() {
+  const invalidate = useInvalidateUsers();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: ReplaceMenuCategoriesPayload;
+    }) => UserRepository.replaceMenuCategoryAssignments(userId, payload),
     onSuccess: invalidate,
   });
 }

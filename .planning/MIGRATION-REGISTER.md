@@ -84,11 +84,12 @@ No contention observed yet. The same rule applies — claim here first.
 
 | Service | Tool | Highest known | Notes |
 |---|---|---|---|
+| **nlq-service** | Flyway | **V3** | `V3__nlq_tenant_ai_settings.sql` claimed 2026-08-12 (worktree `wf_d71278c5-e6b-4`, per-tenant AI provider + key). Live `nlq_db` holds only 1, 2 — **NOT yet applied, needs a quiet window.** See the nlq V3 double-claim below. |
 | kitchen-service | Flyway | — | |
 | finance-service | Flyway | — | |
 | inventory-service | Flyway | — | |
 | purchasing-service | Flyway | — | |
-| auth-service | Liquibase | 090+ | changeset ids, not versions; same rule |
+| auth-service | Liquibase | **095** | **094 WAS DOUBLE-CLAIMED — see below.** `094-user-menu-category-assignments.xml` (per-user POS menu scope) and `095-nlq-ai-settings-permission.xml` (per-tenant AI settings permission, renumbered from 094). Highest on disk before both: `093-pos-service-charge-manage-permission.xml` — the old "090+" entry here was stale, which is part of how the collision happened. Neither is applied: the shared auth_db is at 093, verified in `databasechangelog`. Both are additive (a table + its RLS policy; a permission row), so both run on the next auth-service start with no quiet window. |
 | user-service | Liquibase | 013 | |
 | hr-service | Liquibase | 035 | |
 | audit-service | Liquibase | **030** | `030-audit-events-rls.xml` applied. Partitioned: policy must be per-partition AND applied at creation — a parent-only policy leaks and its test stays green. |
@@ -96,6 +97,31 @@ No contention observed yet. The same rule applies — claim here first.
 | platform-admin-service | Liquibase | **040** | `040-platform-db-rls-posture.xml` claimed 2026-08-12 (`main`, platform_db RLS posture). Existing: 010, 020, 030, seeds 900/901/910. RLS is DELIBERATELY ABSENT here — read that file's header before adding any policy; a `tenant_isolation` policy makes the console read 0 rows. |
 | file-service | Liquibase | — | |
 | **ClickHouse** | `deploy/clickhouse/` | **V005** | `V005__discount_source.sql` held by `eloquent-napier-4baf6b`. A shared resource with the identical inference trap — claim here. |
+
+### THE nlq-service V3 DOUBLE-CLAIM — needs a coordinator ruling, not a local decision
+
+`V3` for nlq-service exists **twice in git** and neither copy has ever been applied:
+
+```
+this worktree (wf_d71278c5-e6b-4)   V3__nlq_tenant_ai_settings.sql   (per-tenant AI provider + key)
+origin/Mufazzal @ d11d4ae5           V3__tenant_ai_config.sql         (same feature, 2026-08-06, unmerged)
+live nlq_db                          version 2                        (neither applied)
+```
+
+Both migrations implement the **same feature**. They are alternatives, not a sequence.
+
+**V3 was taken here deliberately rather than V4.** Taking V4 and leaving a gap recreates the V28
+hazard exactly: if V4 is applied to the shared `nlq_db` and Mufazzal's V3 is merged later, Flyway
+(`out-of-order` unset ⇒ false) refuses to start nlq-service for everyone. A gap below the applied
+maximum is the failure mode, not the fix.
+
+**Coordinator action required:** formally void `origin/Mufazzal`'s `V3__tenant_ai_config.sql`. That
+branch predates phase-13 by six days and its access control denies every caller — all four of its
+endpoints use `hasAnyAuthority('ROLE_OWNER','ROLE_TENANT_ADMIN')` while `JwtAuthenticationFilter`
+adds no `ROLE_` prefix, so the screen 403s the owner it was built for. It is prior art, not a merge
+candidate.
+
+**Neither V3 has been applied. A quiet window is required before applying this one.**
 
 ## Renumbering is not finished until someone rebuilds with `clean`
 

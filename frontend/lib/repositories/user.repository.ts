@@ -7,6 +7,8 @@ import {
   apiAssignBranchRoleRequestSchema,
   apiBranchRoleWriteResultSchema,
   apiCreatedUserSchema,
+  apiMenuCategoryAssignmentSchema,
+  apiReplaceMenuCategoriesRequestSchema,
   apiReplaceStationsRequestSchema,
   apiStationAssignmentSchema,
   apiUserDetailSchema,
@@ -19,6 +21,7 @@ import {
   adaptCreatedUser,
   adaptTenantUser,
   adaptTenantUserDetail,
+  adaptUserMenuCategoryScope,
   adaptUserStationScope,
 } from "@/lib/adapters/user.adapter";
 import type {
@@ -27,10 +30,12 @@ import type {
   BranchRoleWriteResult,
   CreateUserPayload,
   OneTimePassword,
+  ReplaceMenuCategoriesPayload,
   ReplaceStationAssignmentPayload,
   TenantUser,
   TenantUserDetail,
   UpdateUserPayload,
+  UserMenuCategoryScope,
   UserStationScope,
 } from "@/lib/models/user.model";
 import { z } from "zod";
@@ -247,6 +252,46 @@ export const UserRepository = {
     const body = apiReplaceStationsRequestSchema.parse(payload);
     const raw = await put<typeof body, unknown[]>(`/api/v1/users/${userId}/stations`, body);
     return adaptUserStationScope(z.array(apiStationAssignmentSchema).parse(raw ?? []));
+  },
+
+  /**
+   * `GET /api/v1/users/{id}/menu-categories` — which menu sections this user may ring, per branch.
+   *
+   * <p>Gated on `rbac.user.manage` (the read code) with the write below on `rbac.role.manage`,
+   * exactly as the station pair splits, because the two pickers sit in one dialog and gating them
+   * differently would permit an administrator who can bind a person to a kitchen screen but not to
+   * a section of the menu.
+   *
+   * <p>A branch with no assignment is ABSENT from the response, and the adapter turns "no branches
+   * at all" into a named `unrestrictedEverywhere`. That is not a nicety: no rows means the user
+   * rings the WHOLE menu, auth-service omits the JWT claim entirely for them, and `pos.rego`'s
+   * unrestricted rule matches on that absence. Every user in the product is in that state today.
+   */
+  async getMenuCategoryAssignments(userId: string): Promise<UserMenuCategoryScope> {
+    const raw = await get<unknown[]>(`/api/v1/users/${userId}/menu-categories`);
+    return adaptUserMenuCategoryScope(z.array(apiMenuCategoryAssignmentSchema).parse(raw ?? []));
+  },
+
+  /**
+   * `PUT /api/v1/users/{id}/menu-categories` — replace semantics, gated on `rbac.role.manage`.
+   *
+   * <p>The body states what the user's categories now ARE at that branch; sending it twice leaves
+   * the same rows. An empty `categoryIds` is a legal request and is the only way to return a user
+   * to the whole menu — unchecking every box has no additive spelling, which is why this is a PUT.
+   *
+   * <p>Category ids are NOT validated against pos-service on either side of the wire: auth-service
+   * has no route into `pos_db` and deliberately does not grow one. That makes it load-bearing that
+   * this client sources its picker from pos-service's own catalogue and clears the selection when
+   * the branch changes — an id from elsewhere would be accepted and would confine the user to a
+   * section that produces no items, which looks like an empty till rather than like a mistake.
+   */
+  async replaceMenuCategoryAssignments(
+    userId: string,
+    payload: ReplaceMenuCategoriesPayload,
+  ): Promise<UserMenuCategoryScope> {
+    const body = apiReplaceMenuCategoriesRequestSchema.parse(payload);
+    const raw = await put<typeof body, unknown[]>(`/api/v1/users/${userId}/menu-categories`, body);
+    return adaptUserMenuCategoryScope(z.array(apiMenuCategoryAssignmentSchema).parse(raw ?? []));
   },
 
   /**

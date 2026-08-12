@@ -11,6 +11,7 @@ import {
   Clock,
   Contact,
   HandCoins,
+  KeyRound,
   LayoutDashboard,
   LineChart,
   MonitorSmartphone,
@@ -340,6 +341,26 @@ export const navGroups: NavGroup[] = [
         icon: HandCoins,
         permission: "pos.menu.view",
         feature: "FEATURE_POS",
+      },
+      {
+        // Program C: the restaurant's OWN AI provider + API key. Until this shipped, nlq-service
+        // read one fleet-wide key from deploy config, so every tenant's questions billed to a
+        // single Anthropic account with no per-tenant attribution, quota or isolation.
+        //
+        // Gated on the MANAGE code, not a view code — deliberately unlike Service Charge above.
+        // That screen admits a branch MANAGER read-only because the charge is on every bill they
+        // hand a guest; there is nothing here a manager has to defend to anyone, so read access
+        // would only widen who can see the billing posture and the masked credential.
+        //
+        // FEATURE_NLQ, so a tenant without the feature is not offered the screen that configures
+        // it. The gateway applies the same feature gate to /api/v1/nlq/settings/ai — but NOT the
+        // NLQ quota, which was narrowed to /api/v1/nlq/query so an owner who has exhausted their
+        // allowance can still reach this page and install their own key.
+        label: "AI",
+        href: "/app/settings/ai",
+        icon: KeyRound,
+        permission: "nlq.settings.manage",
+        feature: "FEATURE_NLQ",
       },
     ],
   },
