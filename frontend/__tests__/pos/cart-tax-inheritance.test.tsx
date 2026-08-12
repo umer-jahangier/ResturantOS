@@ -106,6 +106,12 @@ function mockMenu() {
     http.get("*/api/v1/pos/tables", () =>
       HttpResponse.json({ data: [], meta: null, warnings: [] }),
     ),
+    // S6: the terminal opens the modifier dialog when the catalogue is UNKNOWN, not only when a
+    // dish has options — a deliberate fail-visible choice on its part. An EMPTY catalogue is a
+    // different answer from an unloaded one, and this test is about tax, so it states the former.
+    http.get("*/api/v1/pos/menu/modifier-groups", () =>
+      HttpResponse.json({ data: [], meta: null, warnings: [] }),
+    ),
   );
 }
 
@@ -113,9 +119,12 @@ function renderTerminal() {
   seedSession({ branchId: BRANCH_ID, permissions: ["pos.menu.view", "pos.order.create"] });
   mockMenu();
   const Wrapper = createQueryWrapper();
+  // No `branchId` prop: PosTerminal reads the branch from the session (useCurrentUser), which
+  // `seedSession` above supplies. Passing one would typecheck-fail and, worse, would let this
+  // test pass against a terminal that had stopped reading the signed-in branch at all.
   return render(
     <Wrapper>
-      <PosTerminal branchId={BRANCH_ID} />
+      <PosTerminal />
     </Wrapper>,
   );
 }
