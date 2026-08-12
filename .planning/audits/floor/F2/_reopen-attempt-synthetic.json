@@ -1,0 +1,213 @@
+{
+  "stage": "synthetic",
+  "startedAt": "2026-08-12T11:35:36.175Z",
+  "verdicts": [
+    {
+      "name": "[synthetic] DINE_IN with NO table renders Dine-in, never Takeaway",
+      "pass": false,
+      "detail": "SYN-0001 | Takeaway"
+    },
+    {
+      "name": "[synthetic] DINE_IN at a table renders BOTH the type and the table",
+      "pass": false,
+      "detail": "SYN-0002 | Z-9"
+    },
+    {
+      "name": "[synthetic] a real TAKEAWAY still reads Takeaway (positive control — survives a revert)",
+      "pass": true,
+      "detail": "SYN-0003 | Takeaway"
+    },
+    {
+      "name": "[synthetic] DELIVERY and PICKUP render their own words, not Takeaway",
+      "pass": false,
+      "detail": "SYN-0004 | Takeaway | SYN-0005 | Takeaway"
+    },
+    {
+      "name": "[synthetic] a resolved cashier name is printed verbatim",
+      "pass": false,
+      "detail": "\"deadbeef\""
+    },
+    {
+      "name": "[synthetic] an UNRESOLVED cashier degrades to the id, never to a blank (positive control)",
+      "pass": true,
+      "detail": "\"abcdef12\""
+    },
+    {
+      "name": "[synthetic] a one-item check says \"1 item\", never \"1 Items\"",
+      "pass": false,
+      "detail": "\"1 Items\""
+    },
+    {
+      "name": "[synthetic] two numbers carry two DIFFERENT nouns",
+      "pass": false,
+      "detail": "\"4 Items / 3 Items / 4 Qty\""
+    },
+    {
+      "name": "[synthetic] a VOIDED check whose food never left DRAFT offers neither Cancel nor Continue",
+      "pass": false,
+      "detail": "[\"Cancel\",\"Continue\"]"
+    },
+    {
+      "name": "[synthetic] a LIVE draft DOES still offer Cancel and Continue (positive control)",
+      "pass": true,
+      "detail": "[\"Assign Table\",\"Cancel\",\"Continue\"]"
+    },
+    {
+      "name": "[synthetic] a REFUNDED check offers neither Cancel nor Continue, and no Assign Table",
+      "pass": true,
+      "detail": "[\"Open\"]"
+    },
+    {
+      "name": "a response with no `type` surfaces as an ERROR — never as a guessed Takeaway and never as \"No active orders\"",
+      "pass": false,
+      "detail": "alerts=[] text=\"Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE G\""
+    },
+    {
+      "name": "a FAILED order read says the read failed — it never claims \"No active orders\"",
+      "pass": false,
+      "detail": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHAS"
+    },
+    {
+      "name": "the list recovers on Retry — real rows come back and no alert remains",
+      "pass": true,
+      "detail": "{\"rows\":20,\"alerts\":[]}"
+    }
+  ],
+  "notes": {
+    "pos-service": "UP before scoring (attempt 1)",
+    "synthetic": {
+      "SYN-0001": {
+        "orderCell": "SYN-0001 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0002": {
+        "orderCell": "SYN-0002 | Z-9",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Open"
+        ]
+      },
+      "SYN-0003": {
+        "orderCell": "SYN-0003 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0004": {
+        "orderCell": "SYN-0004 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0005": {
+        "orderCell": "SYN-0005 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0006": {
+        "orderCell": "SYN-0006 | Takeaway",
+        "cashier": "abcdef12",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0007": {
+        "orderCell": "SYN-0007 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "1 Items",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0008": {
+        "orderCell": "SYN-0008 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "4 Items / 3 Items / 4 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Open"
+        ]
+      },
+      "SYN-0009": {
+        "orderCell": "SYN-0009 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Cancel",
+          "Continue"
+        ]
+      },
+      "SYN-0010": {
+        "orderCell": "SYN-0010 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Assign Table",
+          "Cancel",
+          "Continue"
+        ]
+      },
+      "SYN-0011": {
+        "orderCell": "SYN-0011 | Takeaway",
+        "cashier": "deadbeef",
+        "items": "3 Items / 2 Items / 3 Qty",
+        "settlement": null,
+        "settlementOverflow": [],
+        "actionButtons": [
+          "Open"
+        ]
+      }
+    },
+    "syntheticConsole": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ]
+  }
+}

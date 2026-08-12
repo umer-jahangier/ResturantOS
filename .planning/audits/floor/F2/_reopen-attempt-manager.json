@@ -1,0 +1,236 @@
+{
+  "stage": "manager",
+  "startedAt": "2026-08-12T11:50:35.758Z",
+  "verdicts": [
+    {
+      "name": "Order/Type reads \"Dine-in · RO-9154\" — dineInAtTable",
+      "pass": true,
+      "detail": "server type=DINE_IN table=RO-9154 → screen \"ORD-20260812-0421 | Dine-in · RO-9154\""
+    },
+    {
+      "name": "Order/Type reads \"Dine-in\" — dineInNoTable",
+      "pass": true,
+      "detail": "server type=DINE_IN table=none → screen \"ORD-20260812-0423 | Dine-in\""
+    },
+    {
+      "name": "an untabled DINE_IN is NOT called Takeaway",
+      "pass": true,
+      "detail": "screen \"ORD-20260812-0423 | Dine-in\""
+    },
+    {
+      "name": "Order/Type reads \"Takeaway\" — takeaway",
+      "pass": true,
+      "detail": "server type=TAKEAWAY table=none → screen \"ORD-20260812-0425 | Takeaway\""
+    },
+    {
+      "name": "Server/Cashier prints names, never an 8-char hex fragment (Active)",
+      "pass": true,
+      "detail": "20 rows, hex fragments=0; distinct=[\"Terrace Cashier\",\"Terrace Manager\",\"Terrace Waiter\"]"
+    },
+    {
+      "name": "Items cell never says \"1 Items\" and never uses one noun twice",
+      "pass": true,
+      "detail": "sample=[\"1 item\",\"3 items / 2 lines\",\"3 items / 1 line\",\"2 items\",\"3 items\",\"4 items\",\"2 items / 1 line\"]"
+    },
+    {
+      "name": "the corrected rows SURVIVE a full page reload",
+      "pass": true,
+      "detail": "dineInAtTable:\"ORD-20260812-0421 | Dine-in · RO-9154\" / Terrace Manager ; dineInNoTable:\"ORD-20260812-0423 | Dine-in\" / Terrace Manager ; takeaway:\"ORD-20260812-0425 | Takeaway\" / Terrace Manager"
+    },
+    {
+      "name": "no chip anywhere shows an 8-char hex in Server/Cashier",
+      "pass": true,
+      "detail": "{\"IN_PROGRESS\":\"17r/0hex\",\"PARTIALLY_SERVED\":\"0r/0hex\",\"SERVED\":\"1r/0hex\",\"CLOSED\":\"20r/0hex\",\"PAID\":\"3r/0hex\",\"VOIDED\":\"20r/0hex\",\"REFUNDED\":\"18r/0hex\"}"
+    },
+    {
+      "name": "every row under every chip carries a type word",
+      "pass": true,
+      "detail": "{\"IN_PROGRESS\":\"17r/0untyped\",\"PARTIALLY_SERVED\":\"0r/0untyped\",\"SERVED\":\"1r/0untyped\",\"CLOSED\":\"20r/0untyped\",\"PAID\":\"3r/0untyped\",\"VOIDED\":\"20r/0untyped\",\"REFUNDED\":\"18r/0untyped\"}"
+    },
+    {
+      "name": "no chip anywhere renders \"1 items\"",
+      "pass": true,
+      "detail": "{\"IN_PROGRESS\":0,\"PARTIALLY_SERVED\":0,\"SERVED\":0,\"CLOSED\":0,\"PAID\":0,\"VOIDED\":0,\"REFUNDED\":0}"
+    },
+    {
+      "name": "no terminal chip (Closed/Voided/Refunded) offers Cancel or Continue on any row",
+      "pass": true,
+      "detail": "{\"CLOSED\":[\"Open\"],\"VOIDED\":[\"Open\"],\"REFUNDED\":[\"Open\"]}"
+    },
+    {
+      "name": "no console errors on the manager's drive that are not a sibling agent's pos-service restart",
+      "pass": false,
+      "detail": "real=[\"WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED\",\"WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED\",\"WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED\",\"WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED\"] ; infra(503/ws)=14"
+    }
+  ],
+  "notes": {
+    "pos-service": "UP before scoring (attempt 1)",
+    "freshTable": "RO-9154",
+    "draft not created": "draftDineInNoTable: no NEW DINE_IN order of mine appeared (fire=false)",
+    "rung": {
+      "dineInAtTable": {
+        "orderNo": "ORD-20260812-0421",
+        "orderId": "4e1a9f68-696b-4c22-b423-1e5ff1b47946",
+        "tableName": "RO-9154",
+        "serverType": "DINE_IN",
+        "serverCashier": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+        "serverCashierName": "Terrace Manager",
+        "serverStatus": "SENT_TO_KDS",
+        "itemQuantity": 3,
+        "distinctItemCount": 2
+      },
+      "dineInNoTable": {
+        "orderNo": "ORD-20260812-0423",
+        "orderId": "224807da-505e-4e59-a014-ba63d04c9f1b",
+        "tableName": null,
+        "serverType": "DINE_IN",
+        "serverCashier": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+        "serverCashierName": "Terrace Manager",
+        "serverStatus": "SENT_TO_KDS",
+        "itemQuantity": 3,
+        "distinctItemCount": 2
+      },
+      "takeaway": {
+        "orderNo": "ORD-20260812-0425",
+        "orderId": "157a933f-46cf-4bff-a1df-dc9ebed480b1",
+        "tableName": null,
+        "serverType": "TAKEAWAY",
+        "serverCashier": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+        "serverCashierName": "Terrace Manager",
+        "serverStatus": "SENT_TO_KDS",
+        "itemQuantity": 3,
+        "distinctItemCount": 2
+      }
+    },
+    "active list state": {
+      "rows": 20,
+      "alerts": []
+    },
+    "headers": [
+      "Order / Type",
+      "Status",
+      "Payment",
+      "Server/Cashier",
+      "Items",
+      "Total",
+      "Age",
+      ""
+    ],
+    "draft verdicts": "skipped here — built and scored in the `draft` stage instead",
+    "chips": {
+      "IN_PROGRESS": {
+        "rows": 17,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [
+          "Assign Table",
+          "Open"
+        ],
+        "sampleCashiers": [
+          "Terrace Manager",
+          "Terrace Cashier"
+        ]
+      },
+      "PARTIALLY_SERVED": {
+        "rows": 0,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [],
+        "sampleCashiers": []
+      },
+      "SERVED": {
+        "rows": 1,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [
+          "Assign Table",
+          "Open"
+        ],
+        "sampleCashiers": [
+          "Terrace Waiter"
+        ]
+      },
+      "CLOSED": {
+        "rows": 20,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [
+          "Open"
+        ],
+        "sampleCashiers": [
+          "Terrace Cashier",
+          "Terrace Manager",
+          "Shift Cashier 984155"
+        ]
+      },
+      "PAID": {
+        "rows": 3,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [
+          "Assign Table",
+          "Open"
+        ],
+        "sampleCashiers": [
+          "Terrace Cashier"
+        ]
+      },
+      "VOIDED": {
+        "rows": 20,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [
+          "Open"
+        ],
+        "sampleCashiers": [
+          "Terrace Manager",
+          "Terrace Waiter",
+          "Terrace Cashier"
+        ]
+      },
+      "REFUNDED": {
+        "rows": 18,
+        "hex": 0,
+        "typesMissing": 0,
+        "bad1Items": 0,
+        "trouble": false,
+        "buttons": [
+          "Open"
+        ],
+        "sampleCashiers": [
+          "Terrace Manager",
+          "Terrace Cashier",
+          "Terrace Waiter"
+        ]
+      }
+    },
+    "REFUNDED chip": "18 rows scored",
+    "consoleErrors": {
+      "real": [
+        "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+        "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+        "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+        "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+        "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+        "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=7kgns-ATVr4HX3Ac8hEJQ' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+      ],
+      "infraCount": 14,
+      "infraSample": [
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+        "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+      ]
+    }
+  }
+}

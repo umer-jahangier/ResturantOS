@@ -1,0 +1,94 @@
+{
+  "stage": "personas",
+  "startedAt": "2026-08-12T11:47:40.799Z",
+  "verdicts": [
+    {
+      "name": "cashier@terrace.local: Server/Cashier is a name, not a hex fragment",
+      "pass": true,
+      "detail": "19 rows, hex=0, distinct=[\"Terrace Cashier\"]"
+    },
+    {
+      "name": "cashier@terrace.local: every row carries a type word",
+      "pass": true,
+      "detail": "19 rows, untyped=0"
+    },
+    {
+      "name": "cashier@terrace.local: still cannot read the public user directory (no permission was widened)",
+      "pass": true,
+      "detail": "GET /api/v1/users → 403"
+    },
+    {
+      "name": "waiter@terrace.local: Server/Cashier is a name, not a hex fragment",
+      "pass": true,
+      "detail": "15 rows, hex=0, distinct=[\"Terrace Waiter\"]"
+    },
+    {
+      "name": "waiter@terrace.local: every row carries a type word",
+      "pass": true,
+      "detail": "15 rows, untyped=0"
+    },
+    {
+      "name": "waiter@terrace.local: still cannot read the public user directory (no permission was widened)",
+      "pass": true,
+      "detail": "GET /api/v1/users → 403"
+    },
+    {
+      "name": "Control Bistro cannot read a Floating Terrace order by id, on either branch scope",
+      "pass": true,
+      "detail": "[{\"label\":\"dineInAtTable\",\"orderNo\":\"ORD-20260812-0393\",\"ownBranch\":404,\"terraceBranch\":403,\"anyRow\":false},{\"label\":\"dineInNoTable\",\"orderNo\":\"ORD-20260812-0395\",\"ownBranch\":404,\"terraceBranch\":403,\"anyRow\":false},{\"label\":\"takeaway\",\"orderNo\":\"ORD-20260812-0397\",\"ownBranch\":404,\"terraceBranch\":403,\"anyRow\":false}]"
+    },
+    {
+      "name": "Control Bistro's order list carries no Floating Terrace staff name",
+      "pass": true,
+      "detail": "0 rows; names=[]"
+    },
+    {
+      "name": "Control Bistro's order list contains none of my Floating Terrace checks",
+      "pass": true,
+      "detail": "looked for ORD-20260812-0393, ORD-20260812-0395, ORD-20260812-0397"
+    }
+  ],
+  "notes": {
+    "pos-service": "UP before scoring (attempt 1)",
+    "terraceBranchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "cashier@terrace.local-console": [
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+      "WebSocket connection to 'ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03?token=eyJraWQiOiJkZXYta2V5LTEiLCJhbGciOiJSUzI1NiJ9.eyJqdGkiOiI4OTQ2MzViNi1kYWUyLTQ4ZTItYTY4MS0zOWU3ZjQyMDMxOTEiLCJzdWIiOiJlYjJlZTY3ZS05ZmMwLTRlZDUtYmI1Yi1jZDYzMjFlMDJiYTEiLCJ0ZW5hbnRfaWQiOiJkMTA4Yz",
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+    ],
+    "waiter@terrace.local-console": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=VBqISFknIByqnWB44dK11' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+      "WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=VBqISFknIByqnWB44dK11' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ],
+    "crossTenantDirect": [
+      {
+        "label": "dineInAtTable",
+        "orderNo": "ORD-20260812-0393",
+        "ownBranch": 404,
+        "terraceBranch": 403,
+        "anyRow": false
+      },
+      {
+        "label": "dineInNoTable",
+        "orderNo": "ORD-20260812-0395",
+        "ownBranch": 404,
+        "terraceBranch": 403,
+        "anyRow": false
+      },
+      {
+        "label": "takeaway",
+        "orderNo": "ORD-20260812-0397",
+        "ownBranch": 404,
+        "terraceBranch": 403,
+        "anyRow": false
+      }
+    ]
+  }
+}

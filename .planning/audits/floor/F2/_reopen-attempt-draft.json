@@ -1,0 +1,43 @@
+{
+  "stage": "draft",
+  "startedAt": "2026-08-12T11:45:14.348Z",
+  "verdicts": [
+    {
+      "name": "a live, unfired DINE_IN draft with no table reads Dine-in — not Takeaway",
+      "pass": true,
+      "detail": "\"ORD-20260812-0417 | Dine-in\""
+    },
+    {
+      "name": "a live draft still offers Cancel AND Continue — the re-gating did not over-correct",
+      "pass": true,
+      "detail": "[\"Assign Table\",\"Cancel\",\"Continue\"]"
+    },
+    {
+      "name": "a live draft's Server/Cashier is a name, not a hex fragment",
+      "pass": true,
+      "detail": "\"Terrace Manager\""
+    },
+    {
+      "name": "Cancel on a live draft voids it, and the row then offers neither Cancel nor Continue",
+      "pass": true,
+      "detail": "\"ORD-20260812-0417 | Dine-in\" buttons=[\"Draft cancelled\",\"Open\"]"
+    }
+  ],
+  "notes": {
+    "pos-service": "UP before scoring (attempt 1)",
+    "draft build": {
+      "created": 201,
+      "added": 200,
+      "addedBody": "ok",
+      "draftId": "d61cfe30-571c-478d-846f-4e762728cf27"
+    },
+    "live draft": {
+      "orderId": "d61cfe30-571c-478d-846f-4e762728cf27",
+      "orderNo": "ORD-20260812-0417",
+      "derivedStatus": "DRAFT",
+      "settlementStatus": "OPEN",
+      "type": "DINE_IN",
+      "cashierName": "Terrace Manager"
+    }
+  }
+}

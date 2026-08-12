@@ -1,0 +1,66 @@
+{
+  "stage": "void",
+  "startedAt": "2026-08-12T11:27:54.335Z",
+  "verdicts": [
+    {
+      "name": "SEARCH finds the check and types it correctly",
+      "pass": true,
+      "detail": "\"ORD-20260812-0395 | Dine-in\" / Terrace Manager"
+    },
+    {
+      "name": "the void stored the reason UNCLIPPED — every character asked for is on the server",
+      "pass": true,
+      "detail": "asked 344 chars, stored 344"
+    },
+    {
+      "name": "the voided check offers neither Cancel nor Continue",
+      "pass": true,
+      "detail": "[\"Open\"]"
+    },
+    {
+      "name": "the voided check still reads \"Dine-in\" on the Voided chip (a void does not erase the type)",
+      "pass": true,
+      "detail": "\"ORD-20260812-0395 | Dine-in\""
+    },
+    {
+      "name": "the voided row's Server/Cashier is a name, beside a settlement byline naming the actor",
+      "pass": true,
+      "detail": "cashier=\"Terrace Manager\" settlement=\"F2 re-open attempt — the table of eight sent back the whole order after the kitchen fired \""
+    },
+    {
+      "name": "the full void reason opens from the KEYBOARD and is readable in full, wrapped",
+      "pass": true,
+      "detail": "popover text 383 chars, reason 344"
+    },
+    {
+      "name": "the popover text is genuinely wrapped, not merely re-clipped (computed style)",
+      "pass": true,
+      "detail": "{\"whiteSpace\":\"normal\",\"scrollW\":286,\"clientW\":286}"
+    },
+    {
+      "name": "after a RELOAD the void reason, the byline and the type all survive",
+      "pass": true,
+      "detail": "row=\"ORD-20260812-0395 | Dine-in\" popover=383 chars"
+    },
+    {
+      "name": "the byline names the manager who voided, not a hex fragment",
+      "pass": true,
+      "detail": "by Terrace Manager · Aug 12, 04:28 PM"
+    }
+  ],
+  "notes": {
+    "pos-service": "UP before scoring (attempt 1)",
+    "void target": "ORD-20260812-0395",
+    "void stored on the server": {
+      "found": true,
+      "settlementStatus": "VOIDED",
+      "type": "DINE_IN",
+      "tableName": null,
+      "cashierName": "Terrace Manager",
+      "byName": "Terrace Manager",
+      "asked": 344,
+      "stored": 344
+    },
+    "voidConsole": []
+  }
+}
