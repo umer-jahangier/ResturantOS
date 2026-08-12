@@ -244,14 +244,37 @@ public record PrintDocument(
         }
     }
 
-    /** {@code subtotal - discount + serviceCharge + tax == grandTotal}, asserted in the tests. */
+    /**
+     * {@code subtotal - discount + serviceCharge + tax == grandTotal}, asserted in the tests.
+     *
+     * <p>{@code serviceChargeLabel} and {@code serviceChargeRatePercent} (F20) are the branch's own
+     * wording and the rate the check was charged at, snapshotted onto the order. Both are null when
+     * the branch takes no service charge, and a renderer must then print NO service-charge row at
+     * all — {@code Service charge Rs 0.00} appeared on every bill this product ever produced, for a
+     * charge no restaurant could set.
+     *
+     * <p>{@code serviceCharge} itself stays non-null and stays in the arithmetic, because the
+     * invariant above is what the assembler and the print-agent both check before printing. Zero is
+     * a true amount; the decision not to SAY it belongs to the renderer.
+     *
+     * @param serviceChargeRatePercent the rate as a STRING, e.g. {@code "5.00"} — never a
+     *                                 floating-point type, for the reason {@link TaxLine} gives
+     */
     public record Totals(
             ReceiptAmount subtotal,
             ReceiptAmount discount,
             ReceiptAmount serviceCharge,
+            String serviceChargeLabel,
+            String serviceChargeRatePercent,
             ReceiptAmount tax,
             ReceiptAmount grandTotal
-    ) {}
+    ) {
+        /** The pre-F20 shape: an unnamed, un-rated service charge. Kept source-compatible. */
+        public Totals(ReceiptAmount subtotal, ReceiptAmount discount, ReceiptAmount serviceCharge,
+                      ReceiptAmount tax, ReceiptAmount grandTotal) {
+            this(subtotal, discount, serviceCharge, null, null, tax, grandTotal);
+        }
+    }
 
     /**
      * @param ratePercent the rate as a STRING, e.g. {@code "16.00"} — never a floating-point type.
@@ -261,17 +284,28 @@ public record PrintDocument(
 
     /**
      * @param amountApplied  the amount applied to the bill — this is what settles the total
-     * @param amountTendered what the customer handed over; equal to {@code amountApplied} for a
-     *                       card
+     * @param tip            money taken ON TOP of the bill for the staff (F20). Never part of
+     *                       {@code amountApplied} and never part of the grand total; it is the
+     *                       difference the guest sees between the bill and what left their card.
+     *                       Zero on almost every tender, and a renderer prints nothing for zero
+     * @param amountTendered what the customer handed over — {@code amountApplied + tip + change}.
+     *                       Equal to {@code amountApplied} for an untipped card
      * @param change         what came back out of the drawer
      */
     public record Tender(
             String method,
             ReceiptAmount amountApplied,
+            ReceiptAmount tip,
             ReceiptAmount amountTendered,
             ReceiptAmount change,
             String referenceNo
-    ) {}
+    ) {
+        /** The pre-F20 shape: an untipped tender. Kept source-compatible. */
+        public Tender(String method, ReceiptAmount amountApplied, ReceiptAmount amountTendered,
+                      ReceiptAmount change, String referenceNo) {
+            this(method, amountApplied, ReceiptAmount.of(0L), amountTendered, change, referenceNo);
+        }
+    }
 
     /**
      * The FBR region (D-26-03). EVERY field is nullable and stays that way until Phase 27 fills

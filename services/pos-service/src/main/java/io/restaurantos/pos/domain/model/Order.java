@@ -68,6 +68,21 @@ public class Order extends TenantAuditableEntity {
     @Column(name = "service_charge_paisa", nullable = false)
     private long serviceChargePaisa = 0L;
 
+    /**
+     * The rate this check was actually charged at, frozen by the last recompute (F20).
+     *
+     * <p>Snapshotted for the same reason {@code OrderItem.taxRatePct} is: a bill reprinted after
+     * the branch changes its policy must describe the money the guest paid, not the policy in
+     * force on the day of the reprint. Zero means no service charge applied, and the receipt then
+     * prints no service-charge line at all rather than a Rs 0.00 the restaurant cannot influence.
+     */
+    @Column(name = "service_charge_pct", nullable = false, precision = 5, scale = 2)
+    private java.math.BigDecimal serviceChargePct = java.math.BigDecimal.ZERO;
+
+    /** The branch's wording at the time of sale ("Service charge", "Service fee"). Null when none. */
+    @Column(name = "service_charge_label", length = 60)
+    private String serviceChargeLabel;
+
     @Column(name = "total_paisa", nullable = false)
     private long totalPaisa = 0L;
 

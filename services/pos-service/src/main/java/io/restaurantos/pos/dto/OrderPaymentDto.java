@@ -25,6 +25,12 @@ public record OrderPaymentDto(
         UUID id,
         String method,
         long amountPaisa,
+        /**
+         * Money taken on top of the bill for the staff (F20). Separate from {@code amountPaisa} on
+         * the wire for the same reason it is separate in the database: a caller summing
+         * {@code amountPaisa} is asking what settled the bill, and a tip settles none of it.
+         */
+        long tipPaisa,
         long tenderedPaisa,
         long changePaisa,
         String referenceNo,
@@ -40,6 +46,7 @@ public record OrderPaymentDto(
                 payment.getId(),
                 payment.getMethod().name(),
                 payment.getAmountPaisa(),
+                payment.getTipPaisa(),
                 payment.getTenderedPaisa(),
                 payment.getChangePaisa(),
                 payment.getReferenceNo(),
@@ -63,6 +70,10 @@ public record OrderPaymentDto(
                 refund.getId(),
                 method.name(),
                 -refund.getRefundPaisa(),
+                // A refund reverses the BILL. It never claws a tip back out of the staff's
+                // liability — that is a different decision, made by a person, and the product does
+                // not have it. Always zero here rather than apportioned.
+                0L,
                 -refund.getRefundPaisa(),
                 0L,
                 refund.getReason(),

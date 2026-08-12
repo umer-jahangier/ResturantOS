@@ -55,7 +55,13 @@ public class PaymentController {
             Long tenderedPaisa,
             String referenceNo,
             /** Required for CHARGE_TO_ACCOUNT, ignored otherwise — which house account to bill. */
-            UUID customerAccountId
+            UUID customerAccountId,
+            /**
+             * A tip, in paisa, taken ON TOP of {@code amountPaisa} (F20). Optional — omit it or
+             * send 0 for the ordinary tender. It never settles any part of the bill and never
+             * reaches sales revenue; see {@code PaymentService.recordPayment}.
+             */
+            Long tipPaisa
     ) {}
 
     @PreAuthorize("hasAuthority('pos.order.close')")
@@ -64,7 +70,8 @@ public class PaymentController {
             @PathVariable UUID id,
             @Valid @RequestBody RecordPaymentRequest request) {
         long total = paymentService.recordPayment(id, request.method(), request.amountPaisa(),
-                request.tenderedPaisa(), request.referenceNo(), request.customerAccountId());
+                request.tenderedPaisa(), request.referenceNo(), request.customerAccountId(),
+                request.tipPaisa() != null ? request.tipPaisa() : 0L);
         return ResponseEntity.ok(ApiResponse.ok(total));
     }
 

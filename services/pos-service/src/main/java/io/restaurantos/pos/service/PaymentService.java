@@ -21,15 +21,27 @@ public interface PaymentService {
      * over-applied: ORDER_CLOSED carries the applied amounts and finance debits them, so an
      * over-application makes the revenue journal entry unbalanceable.
      *
+     * <p>{@code tipPaisa} is money taken ON TOP of the bill for the staff (F20). It is never
+     * applied to the balance, never part of {@code orders.totalPaisa}, and never revenue — finance
+     * credits it to a Tips Payable liability. It IS counted into the drawer at till close, because
+     * the cash is physically there.
+     *
      * @return the updated sum of APPLIED payments for the order
      */
     long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa, Long tenderedPaisa,
-                       String referenceNo, UUID customerAccountId);
+                       String referenceNo, UUID customerAccountId, long tipPaisa);
+
+    /** No tip — the overwhelming majority of tenders, and every pre-F20 caller. */
+    default long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa,
+                               Long tenderedPaisa, String referenceNo, UUID customerAccountId) {
+        return recordPayment(orderId, method, amountPaisa, tenderedPaisa, referenceNo,
+                customerAccountId, 0L);
+    }
 
     /** Every tender except CHARGE_TO_ACCOUNT, which needs a house account to bill. */
     default long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa,
                                Long tenderedPaisa, String referenceNo) {
-        return recordPayment(orderId, method, amountPaisa, tenderedPaisa, referenceNo, null);
+        return recordPayment(orderId, method, amountPaisa, tenderedPaisa, referenceNo, null, 0L);
     }
 
     /** Exact-tender convenience — {@code tenderedPaisa == amountPaisa}. */

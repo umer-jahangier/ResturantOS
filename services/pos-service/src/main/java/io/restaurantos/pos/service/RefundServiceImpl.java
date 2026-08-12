@@ -282,6 +282,8 @@ public class RefundServiceImpl implements RefundService {
                 order.getTaxPaisa(),
                 order.getDiscountPaisa(),
                 order.getServiceChargePaisa(),
+                order.getServiceChargePct(),
+                order.getServiceChargeLabel(),
                 order.getTotalPaisa(),
                 order.getNotes(),
                 order.getOpenedAt(),

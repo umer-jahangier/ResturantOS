@@ -117,6 +117,14 @@ public class AutoPostingRecipeEngine {
      * <p>Undiscounted orders are untouched by construction: at {@code discount == 0} the old
      * {@code subtotal - discount} and the new {@code subtotal} are the same number and no discount
      * line is emitted. This changes only the orders that previously failed outright.
+     *
+     * <p><b>Tips (F20) sit OUTSIDE the money invariant, on both sides at once.</b>
+     * {@code totalPaisa} is what the guest owed and a tip is not owed, so it cannot appear there;
+     * but the money is genuinely in the drawer, so it cannot be left out of the tender debit
+     * either. The entry therefore grows by one matched pair — {@code + tip} on the tender's debit,
+     * {@code + tip} credited to TIPS_PAYABLE — and balances for exactly the same reason it did
+     * before. The tip never reaches 4100: it is the staff's money the restaurant is holding, and
+     * booking it as sales would overstate income and tax money the business never earned.
      */
     public void postOrderRevenue(EventEnvelope<PosEventContract.OrderClosedPayload> envelope) {
         PosEventContract.OrderClosedPayload p = envelope.payload();
@@ -140,6 +148,15 @@ public class AutoPostingRecipeEngine {
         }
         if (p.taxPaisa() > 0) {
             lines.add(line(tag("OUTPUT_TAX"), "Output tax", 0, p.taxPaisa()));
+        }
+        // F20. The tender debits above already include the tip (see addPaymentDebits), because
+        // that money is physically in the drawer / on the card slip. This is the matching credit,
+        // and it is a LIABILITY, not revenue: a tip is the staff's money that the restaurant is
+        // holding. Crediting 4100 instead would overstate income and levy income tax on money the
+        // business never earned. Omitted entirely at zero, like every other optional line here.
+        long tips = totalTips(p);
+        if (tips > 0) {
+            lines.add(line(tag("TIPS_PAYABLE"), "Tips payable", 0, tips));
         }
 
         post(SOURCE_ORDER_REVENUE, p.orderId(), envelope,
@@ -611,7 +628,12 @@ public class AutoPostingRecipeEngine {
         }
 
         for (PosEventContract.PaymentEntry payment : payload.payments()) {
-            if (payment.amountPaisa() <= 0) {
+            // F20: the tender's debit is what the guest actually parted with — the applied amount
+            // PLUS the tip. The tip is credited to TIPS_PAYABLE by the caller, so the entry
+            // balances; debiting only amountPaisa while crediting the tip would leave it short by
+            // exactly the tip and the deferred trigger would reject the whole entry.
+            long debit = payment.amountPaisa() + payment.tipPaisa();
+            if (debit <= 0) {
                 continue;
             }
             String method = payment.method() != null ? payment.method() : "CASH";
@@ -621,8 +643,23 @@ public class AutoPostingRecipeEngine {
                 case "VOUCHER" -> "VOUCHER_LIABILITY";
                 default -> "CASH";
             };
-            lines.add(line(tag(accountTag), method + " payment", payment.amountPaisa(), 0));
+            lines.add(line(tag(accountTag), method + " payment", debit, 0));
         }
+    }
+
+    /**
+     * Every tip on this check, summed. Zero for the overwhelming majority of orders and for every
+     * ORDER_CLOSED published before F20 — {@code PaymentEntry}'s legacy constructor defaults the
+     * field, so a replayed old event posts exactly what it posted before.
+     */
+    private static long totalTips(PosEventContract.OrderClosedPayload payload) {
+        if (payload.payments() == null) {
+            return 0L;
+        }
+        return payload.payments().stream()
+                .mapToLong(PosEventContract.PaymentEntry::tipPaisa)
+                .filter(t -> t > 0)
+                .sum();
     }
 
     private String tag(String systemTag) {

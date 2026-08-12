@@ -14,6 +14,7 @@ import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.pos.support.BranchBusinessDay;
+import io.restaurantos.shared.exception.FieldValidationException;
 import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -72,7 +73,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public long recordPayment(UUID orderId, PaymentMethod method, long amountPaisa, Long tenderedPaisa,
-                              String referenceNo, UUID customerAccountId) {
+                              String referenceNo, UUID customerAccountId, long tipPaisa) {
         UUID tenantId = tenantContext.requireTenantId();
 
         Order order = orderRepository.findById(orderId)
@@ -89,6 +90,26 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (amountPaisa <= 0) {
             throw new IllegalArgumentException("Payment amount must be positive: " + amountPaisa);
+        }
+
+        // F20. A negative tip is not a discount by another name — it would take money OFF a
+        // liability owed to staff and, at till close, make the drawer short by the same figure
+        // with a payment row that looks ordinary. Refused with the field named so the charge
+        // screen can bind it.
+        if (tipPaisa < 0) {
+            throw new FieldValidationException("TIP_NEGATIVE", "tipPaisa",
+                    "A tip cannot be negative. Leave it blank to take no tip.");
+        }
+        // A tip is only meaningful on a tender that moves money now. CHARGE_TO_ACCOUNT bills a
+        // house account later and LOYALTY_POINTS spends a liability the guest already owns —
+        // neither puts cash in the drawer or on the card slip, so a tip on one would be a
+        // liability to staff funded by nothing.
+        if (tipPaisa > 0
+                && (method == PaymentMethod.CHARGE_TO_ACCOUNT || method == PaymentMethod.LOYALTY_POINTS)) {
+            throw new FieldValidationException("TIP_TENDER_UNSUPPORTED", "tipPaisa",
+                    "A tip cannot be taken on a " + method.name().toLowerCase().replace('_', ' ')
+                            + " tender, because no money changes hands now. Take the tip on cash "
+                            + "or card.");
         }
 
         // NO CASH WITHOUT AN OPEN DRAWER (D-30). This is the single point where the POS till
@@ -154,9 +175,13 @@ public class PaymentServiceImpl implements PaymentService {
             throw new PosExceptions.PaymentExceedsBalanceException(method.name(), amountPaisa, outstanding);
         }
 
-        // Tender defaults to the requested amount; it can never be less than what was applied.
-        long tendered = Math.max(tenderedPaisa != null ? tenderedPaisa : amountPaisa, applied);
-        long change = tendered - applied;
+        // Tender defaults to the requested amount PLUS the tip: a Rs 900 card tender with a Rs 50
+        // tip is Rs 950 off the guest's card, and the slip has to say so. It can never be less
+        // than applied + tip — ck_order_payments_tender_covers_applied refuses that row, and the
+        // three numbers describe one physical handover.
+        long tendered = Math.max(tenderedPaisa != null ? tenderedPaisa : amountPaisa + tipPaisa,
+                applied + tipPaisa);
+        long change = tendered - applied - tipPaisa;
 
         // CHARGE_TO_ACCOUNT is the one tender whose validity is decided outside pos-service: the
         // receivable and its balanced journal entry (DR 1200 / CR revenue) are finance's to create.
@@ -174,6 +199,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setOrderId(orderId);
         payment.setMethod(method);
         payment.setAmountPaisa(applied);
+        payment.setTipPaisa(tipPaisa);
         payment.setTenderedPaisa(tendered);
         payment.setChangePaisa(change);
         payment.setReferenceNo(referenceNo);

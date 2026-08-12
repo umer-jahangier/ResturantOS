@@ -106,14 +106,32 @@ public final class PosEventContract {
      * {@code amountPaisa} is the amount APPLIED to the bill, never the amount handed over.
      * {@code tenderedPaisa} and {@code changePaisa} carry the cash-drawer reality for the till
      * reconciliation and are informational to the ledger.
+     *
+     * <p>{@code tipPaisa} (F20) is money taken ON TOP of the bill, for the staff. It is NOT part
+     * of {@code amountPaisa} and therefore not part of {@code totalPaisa} — the money invariant
+     * above is unchanged by it. finance debits {@code amountPaisa + tipPaisa} to the tender's
+     * account (the cash is in the drawer, the card slip is for the larger figure) and credits the
+     * tip to a Tips Payable LIABILITY, never to revenue. {@code tendered == amount + tip + change}.
      */
     public record PaymentEntry(
             String method,
             long amountPaisa,
+            long tipPaisa,
             long tenderedPaisa,
             long changePaisa,
             String referenceNo
-    ) {}
+    ) {
+        /**
+         * The pre-F20 shape, kept so that adding {@code tipPaisa} was not a breaking change for
+         * anything that builds this entry without one — every consumer's IT fixture, and any
+         * producer that has not been rebuilt. Defaults to no tip, which is what every payment
+         * written before F20 actually was.
+         */
+        public PaymentEntry(String method, long amountPaisa, long tenderedPaisa,
+                            long changePaisa, String referenceNo) {
+            this(method, amountPaisa, 0L, tenderedPaisa, changePaisa, referenceNo);
+        }
+    }
 
     public record ItemEntry(
             UUID menuItemId,

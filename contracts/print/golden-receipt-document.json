@@ -77,6 +77,8 @@
       "paisa" : 22706,
       "formatted" : "Rs 227.06"
     },
+    "serviceChargeLabel" : null,
+    "serviceChargeRatePercent" : null,
     "tax" : {
       "paisa" : 34575,
       "formatted" : "Rs 345.75"
@@ -109,6 +111,10 @@
       "paisa" : 200000,
       "formatted" : "Rs 2,000.00"
     },
+    "tip" : {
+      "paisa" : 0,
+      "formatted" : "Rs 0.00"
+    },
     "amountTendered" : {
       "paisa" : 200000,
       "formatted" : "Rs 2,000.00"
@@ -123,6 +129,10 @@
     "amountApplied" : {
       "paisa" : 84347,
       "formatted" : "Rs 843.47"
+    },
+    "tip" : {
+      "paisa" : 0,
+      "formatted" : "Rs 0.00"
     },
     "amountTendered" : {
       "paisa" : 100000,

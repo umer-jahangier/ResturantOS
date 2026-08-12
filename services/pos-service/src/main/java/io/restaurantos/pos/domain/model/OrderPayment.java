@@ -37,7 +37,21 @@ public class OrderPayment extends TenantAuditableEntity {
     @Column(name = "tendered_paisa", nullable = false)
     private long tenderedPaisa;
 
-    /** {@code tenderedPaisa - amountPaisa}. Cash back to the customer; always 0 for non-cash. */
+    /**
+     * Money taken ON TOP of the bill, for the staff (F20).
+     *
+     * <p>Deliberately NOT part of {@link #amountPaisa}, and therefore not part of
+     * {@code orders.totalPaisa}: the order total is what the guest owes the restaurant, and a tip
+     * is not owed and is not the restaurant's. Folding it in would credit staff money to sales
+     * revenue and tax it as such. finance credits it to a Tips Payable LIABILITY instead.
+     *
+     * <p>It IS part of {@link #tenderedPaisa}, because the guest physically handed it over, and it
+     * IS part of the drawer at till close for the same reason.
+     */
+    @Column(name = "tip_paisa", nullable = false)
+    private long tipPaisa;
+
+    /** {@code tenderedPaisa - amountPaisa - tipPaisa}. Cash back to the customer; 0 for non-cash. */
     @Column(name = "change_paisa", nullable = false)
     private long changePaisa;
 
@@ -58,8 +72,8 @@ public class OrderPayment extends TenantAuditableEntity {
      */
     @PrePersist
     void defaultTenderToAppliedAmount() {
-        if (tenderedPaisa < amountPaisa) {
-            tenderedPaisa = amountPaisa;
+        if (tenderedPaisa < amountPaisa + tipPaisa) {
+            tenderedPaisa = amountPaisa + tipPaisa;
             changePaisa = 0L;
         }
     }

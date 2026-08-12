@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      F20. `pos.service_charge.manage` — may this person decide that every dine-in bill at this
+      branch grows by a percentage.
+
+      ══ What the screen is ══
+
+      /app/settings/service-charge is a branch's service-charge policy: on or off, a percentage, a
+      label the guest reads on the paper, and which channels it applies to. pos-service computes
+      the charge from it inside the order transaction and snapshots the rate onto the order.
+
+      Before F20 there was no such screen and no such endpoint. The 2026-08-12 walkthrough
+      recorded `Service charge Rs 0.00` printed on the charge page AND on every guest's receipt,
+      with a charge-page probe of {tip:false, wallet:false, qr:false, houseAccount:false,
+      rounding:false} and `service_charge_paisa` non-zero on 0 of 195 orders. The column, the DTO
+      field, the receipt line and finance's 4910 credit had all existed since V1 — nothing could
+      ever make the number move.
+
+      ══ Why this is NOT pos.menu.manage, and NOT pos.tax.manage ══
+
+      The three decisions only look alike.
+
+        pos.menu.manage    - "this curry is Rs 1,450". Menu work, done a dozen times a week, and
+          MANAGER holds it (changeset 041). It re-prices ONE dish.
+
+        pos.tax.manage     - "standard rate is 17%". A statutory fact about the business
+          (changeset 091). A service charge is not a tax: it is the restaurant's own money,
+          credited to its own revenue account 4910, and calling it a tax to reuse a permission
+          would put a commercial decision behind a fiscal gate.
+
+        pos.service_charge.manage - "every dine-in bill here grows by 5%". It re-prices every
+          check in the building at once, including checks already open, it is what the guest
+          argues with the manager about, and there is no reason code and no per-check record of
+          who decided it. That belongs with the person who owns the pricing.
+
+      Phase 19b established this precedent when it split pos.tables.admin from pos.tables.manage,
+      28-04 repeated it for pos.terminals.admin and 091 for pos.tax.manage: verbs that share a
+      noun and nothing else do not share a permission.
+
+      ══ Who holds it ══
+
+      OWNER and TENANT_ADMIN - the same two personas /app/settings already admits (a branch
+      MANAGER is refused there today), and the same holder set changesets 089, 090 and 091 chose
+      for the same reason. If it turns out a branch manager needs it, the fix is another explicit
+      grant argued on its own, not a widening of what this code means.
+
+      MANAGER is deliberately left able to READ the policy: ServiceChargeServiceImpl.get() gates
+      on pos.menu.view, because the charge appears on every bill they hand a guest and a manager
+      who cannot look up the rate is being asked to defend a number the product hides from them.
+
+      This widens nothing. Before this changeset no role could set a service charge, because no
+      screen and no endpoint existed that could.
+
+      ══ Why the grant is explicit ══
+
+      Same reason 055, 059, 082, 083, 085, 088, 089, 090 and 091 each give: the blanket "grant
+      every pos.* permission to OWNER" statements in changeset 041 are point-in-time and
+      retro-grant nothing added after they ran. A permission that no role holds does not fail at
+      startup, does not break a test, and produces a clean confident 403 for every user including
+      OWNER - which is indistinguishable from a deliberate denial. The verification changeSet
+      below RAISEs rather than warns for exactly that reason.
+    -->
+
+    <changeSet id="auth-1.0.0-093-pos-service-charge-manage" author="restaurantos-agent" runOnChange="false">
+        <comment>pos.service_charge.manage — set a branch's service-charge percentage; held by OWNER and TENANT_ADMIN</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.service_charge.manage', 'pos', 'Set the service-charge percentage every check at a branch is billed')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.service_charge.manage'),
+              ('TENANT_ADMIN', 'pos.service_charge.manage')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'pos.service_charge.manage';
+                DELETE FROM permissions WHERE code = 'pos.service_charge.manage';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-093-verify-pos-service-charge-manage" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if pos.service_charge.manage exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'pos.service_charge.manage';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'pos.service_charge.manage is defined but granted to no role. pos-service refuses every write to /api/v1/pos/branches/{id}/service-charge without it, so the service-charge screen would render an access refusal for every user on every tenant including OWNER - as an ordinary-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

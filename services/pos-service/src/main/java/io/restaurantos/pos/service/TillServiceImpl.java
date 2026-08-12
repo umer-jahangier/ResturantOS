@@ -242,10 +242,14 @@ public class TillServiceImpl implements TillService {
                 .map(io.restaurantos.pos.domain.model.Order::getId)
                 .toList();
 
+        // F20: `+ tipPaisa`. A cash tip is physically in the drawer — the guest put it there — so
+        // an expected closing that counted only what settled the bill would report every tipped
+        // check as an overage and teach the cashier to ignore the variance. The tip is still not
+        // revenue; it is money the restaurant is holding, and finance books it as a liability.
         long cashPaymentsTotal = orderRepository.findByTillSessionId(tillId).stream()
                 .flatMap(order -> paymentRepository.findByOrderId(order.getId()).stream())
                 .filter(payment -> PaymentMethod.CASH.equals(payment.getMethod()))
-                .mapToLong(p -> p.getAmountPaisa())
+                .mapToLong(p -> p.getAmountPaisa() + p.getTipPaisa())
                 .sum();
 
         long expectedClosing =
@@ -329,11 +333,14 @@ public class TillServiceImpl implements TillService {
         for (io.restaurantos.pos.domain.model.Order order : orders) {
             long paid = 0L;
             for (var payment : paymentRepository.findByOrderId(order.getId())) {
+                // `paid` is what settled the BILL — the figure the order line compares against
+                // order.totalPaisa — so a tip must never enter it. The drawer figures below DO
+                // include it, because the note is in the drawer. Same split as closeTill.
                 paid += payment.getAmountPaisa();
                 if (PaymentMethod.CASH.equals(payment.getMethod())) {
-                    cash += payment.getAmountPaisa();
+                    cash += payment.getAmountPaisa() + payment.getTipPaisa();
                 } else {
-                    nonCash += payment.getAmountPaisa();
+                    nonCash += payment.getAmountPaisa() + payment.getTipPaisa();
                 }
             }
             lines.add(new TillReconciliationDto.TillOrderLine(

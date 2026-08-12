@@ -66,6 +66,11 @@ public final class PakistanRestaurantCoaTemplate {
             // because each entry balanced on its own.
             account(tenantId, "2310", "Income Tax Withheld Payable", AccountType.LIABILITY, "2000", true, "PAYE_PAYABLE"),
             account(tenantId, "2320", "EOBI Payable",         AccountType.LIABILITY, "2000", true,  "EOBI_PAYABLE"),
+            // F20. A tip is the STAFF's money, held by the restaurant until it is handed on. It
+            // is not revenue and it is not the restaurant's to keep, so it is recognised as a
+            // liability the moment it is taken — never credited to 4100 alongside the sale, which
+            // would both overstate income and put income tax on money the business never earned.
+            account(tenantId, "2330", "Tips Payable",         AccountType.LIABILITY, "2000", true,  "TIPS_PAYABLE"),
             account(tenantId, "2400", "Accrued Liabilities",  AccountType.LIABILITY, "2000", false, null),
             // Loyalty points and vouchers are obligations to the customer, not accruals. Before
             // V8 the loyalty recipe debited 2400 directly and nothing ever credited it, so the
