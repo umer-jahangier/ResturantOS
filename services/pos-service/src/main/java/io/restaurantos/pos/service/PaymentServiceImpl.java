@@ -13,6 +13,7 @@ import io.restaurantos.pos.repository.OrderPaymentRepository;
 import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.TillSessionRepository;
+import io.restaurantos.pos.support.BranchBusinessDay;
 import io.restaurantos.shared.exception.StateInvalidException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +37,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderService orderService;
     private final TillSessionRepository tillSessionRepository;
     private final FinanceArClient financeArClient;
+    private final PrintDispatchService printDispatchService;
+    /** The ONE answer to "which trading day is this?" — see BranchBusinessDay (S0-C). */
+    private final BranchBusinessDay branchBusinessDay;
 
     public PaymentServiceImpl(OrderRepository orderRepository,
                               OrderPaymentRepository paymentRepository,
@@ -44,7 +47,18 @@ public class PaymentServiceImpl implements PaymentService {
                               TenantContext tenantContext,
                               OrderService orderService,
                               TillSessionRepository tillSessionRepository,
-                              FinanceArClient financeArClient) {
+                              FinanceArClient financeArClient,
+                              // @Lazy for the same real cycle OrderServiceImpl documents:
+                              //   PaymentServiceImpl -> PrintDispatchService -> PrintJobServiceImpl
+                              //     -> ReceiptDocumentAssembler -> PaymentService
+                              // The assembler reads this service's payment rows to print the tender
+                              // lines, which is 26-03's edge and is on the receipt READ path. A
+                              // proxy here encodes the right constraint — printing depends on
+                              // settlement, not the other way round — and it is dereferenced only
+                              // AFTER the payment transaction commits, never during startup.
+                              @org.springframework.context.annotation.Lazy
+                              PrintDispatchService printDispatchService,
+                              BranchBusinessDay branchBusinessDay) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.refundRepository = refundRepository;
@@ -52,6 +66,8 @@ public class PaymentServiceImpl implements PaymentService {
         this.orderService = orderService;
         this.tillSessionRepository = tillSessionRepository;
         this.financeArClient = financeArClient;
+        this.printDispatchService = printDispatchService;
+        this.branchBusinessDay = branchBusinessDay;
     }
 
     @Override
@@ -164,6 +180,30 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setRecordedAt(Instant.now());
         paymentRepository.save(payment);
 
+        // ── The bill belongs to the TENDER (§3-3) ────────────────────────────────────────
+        // The receipt dispatch used to hang off the close and nothing else. A check paid at
+        // 02:59 and marked served at 03:15 therefore had its ORIGINAL receipt stamped 03:15:
+        // the cashier counted out the change with no paper in the machine, and a guest who paid
+        // and left before the kitchen bumped the last line got no bill at all — the close never
+        // came while they were still in the room.
+        //
+        // The trigger is settlement IN FULL, not any payment. A half-paid check is not a
+        // transaction the guest walks away from, and printing a bill for it would put a document
+        // in someone's hand that says less than they owe.
+        //
+        // Registered BEFORE maybeCloseOrder so that on a check which is already served — where
+        // both seams fire after this same commit — the original is attributed to the tender.
+        // Both carry PrintDispatchService.automaticReceiptKey(orderId), so the second one is a
+        // replay: one bill, one sheet of paper, issued when the money changed hands.
+        //
+        // Nothing about printing may reach the money path: dispatchReceiptAfterCommit registers
+        // an after-commit callback whose body is guarded, so a broken printer cannot refuse a
+        // tender the guest has already handed over.
+        boolean settledInFull = applied == outstanding;
+        if (settledInFull) {
+            printDispatchService.dispatchReceiptAfterCommit(orderId, order.getBranchId());
+        }
+
         // POS-23: recording a payment persists it and derives paymentStatus, but never closes
         // the order directly — maybeCloseOrder is the single seam that closes ONLY when the
         // order is fully Paid AND fully Served (a payment on an unserved order stays open).
@@ -182,9 +222,14 @@ public class PaymentServiceImpl implements PaymentService {
         if (customerAccountId == null) {
             throw new PosExceptions.CustomerAccountRequiredException();
         }
-        LocalDate chargeDate = order.getOpenedAt() != null
-                ? order.getOpenedAt().atOffset(ZoneOffset.UTC).toLocalDate()
-                : LocalDate.now();
+        // S0-C: the trading day this order belongs to on the BRANCH's clock, not the UTC calendar
+        // date of `openedAt`. finance dates the AR charge — and therefore the customer's statement
+        // and its ageing bucket — from this, so a UTC cut here put a breakfast account sale a day
+        // before the revenue entry for the same order. The instant is unchanged (still `openedAt`,
+        // the service the charge belongs to); only the rule that turns it into a date is.
+        LocalDate chargeDate = branchBusinessDay.dateOf(
+                order.getOpenedAt() != null ? order.getOpenedAt() : Instant.now(),
+                order.getBranchId());
         try {
             financeArClient.charge(order.getTenantId(), new FinanceArClient.ArChargeRequest(
                     order.getBranchId(),

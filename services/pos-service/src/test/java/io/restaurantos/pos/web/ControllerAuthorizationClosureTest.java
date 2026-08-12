@@ -52,6 +52,10 @@ class ControllerAuthorizationClosureTest {
             // POST and it is gated. Added here rather than left out, because the whole point of
             // this test is that an ungated endpoint is the absence of a line nobody reviews.
             PrintJobController.class,
+            // §3-3: the READ half of printing — which documents an order has produced and when.
+            // Its own controller for the reason MenuRoutingController records above, and listed
+            // here for the reason everything else is.
+            OrderBillHistoryController.class,
             // 26-11: enrolling an agent decides what may print on a branch's printers, which is a
             // branch-administration decision. Gated on branch.manage, like 26-02's registry.
             PrintAgentAdminController.class,
@@ -104,7 +108,7 @@ class ControllerAuthorizationClosureTest {
     /** Guards against the list above silently going stale if a controller is added or renamed. */
     @Test
     void theControllerListCoversEveryControllerInThePackage() {
-        assertThat(CONTROLLERS).hasSize(10);
+        assertThat(CONTROLLERS).hasSize(11);
         for (Class<?> controller : CONTROLLERS) {
             assertThat(controller.getPackageName()).isEqualTo(getClass().getPackageName());
         }

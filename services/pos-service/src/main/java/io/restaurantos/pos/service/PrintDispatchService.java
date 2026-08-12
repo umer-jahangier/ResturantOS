@@ -142,7 +142,22 @@ public class PrintDispatchService {
         });
     }
 
-    /** As above, for the customer receipt on the close seam. */
+    /**
+     * As above, for the customer receipt.
+     *
+     * <p>Registered from TWO seams, and the order of the two is the whole of finding §3-3:
+     *
+     * <ul>
+     *   <li>the <b>settlement</b> seam ({@code PaymentServiceImpl.recordPayment}, the moment the
+     *       last paisa of the bill is tendered) — this is the one that produces the guest's
+     *       paper; and</li>
+     *   <li>the <b>close</b> seam ({@code OrderServiceImpl.performClose}), kept as the backstop
+     *       for a check that reaches CLOSED without a settlement dispatch having run.</li>
+     * </ul>
+     *
+     * <p>Both carry the SAME order-scoped idempotency key, so whichever fires first issues the
+     * original and the other is a replay that writes nothing. See {@link #automaticReceiptKey}.
+     */
     public void dispatchReceiptAfterCommit(UUID orderId, UUID branchId) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             guarded(() -> dispatchReceipt(orderId, branchId), "receipt", orderId);
@@ -215,7 +230,28 @@ public class PrintDispatchService {
     }
 
     /**
-     * The customer receipt, enqueued for the agent on close.
+     * The idempotency key for the receipt this product issues BY ITSELF, as opposed to one a
+     * cashier asked for by pressing Print bill.
+     *
+     * <p>Order-scoped rather than seam-scoped, and that is the fix for finding §3-3. It shipped as
+     * {@code "dispatch:close:" + orderId}, which named the close as the thing that produces a bill
+     * — and so a check that was paid at 02:59 and marked served at 03:15 had its ORIGINAL receipt
+     * stamped 03:15. The guest was handed their change sixteen minutes before any paper existed,
+     * and a guest who paid and walked out before the kitchen bumped the last line got none at all.
+     *
+     * <p>With one key per ORDER, the settlement dispatch issues the bill and the close dispatch
+     * replays it: {@code PrintJobServiceImpl.issueReceipt} returns the stored issue verbatim on a
+     * key it has already seen, writing no row and allocating no sequence. So the close cannot
+     * produce a second original — and it cannot produce a second sheet of paper either, which it
+     * would if the two seams kept separate keys. Nobody is standing at the pass waiting for a
+     * duplicate bill; the guest already has theirs.
+     */
+    public static String automaticReceiptKey(UUID orderId) {
+        return "dispatch:receipt:" + orderId;
+    }
+
+    /**
+     * The customer receipt, enqueued for the agent.
      *
      * <p>Enqueues NOTHING when the branch has no receipt printer. That branch prints through the
      * browser (D-26-01) and a stream of unroutable rows would be noise rather than signal — which
@@ -229,7 +265,7 @@ public class PrintDispatchService {
         if (receiptPrinterFor(registry) == null) {
             return;
         }
-        printJobService.enqueueReceipt(orderId, branchId, "dispatch:close:" + orderId);
+        printJobService.enqueueReceipt(orderId, branchId, automaticReceiptKey(orderId));
     }
 
     // ── The branch printer registry ──────────────────────────────────────────────────────────
