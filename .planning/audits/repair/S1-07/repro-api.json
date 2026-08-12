@@ -1,0 +1,75 @@
+{
+  "probe": "s1-07-repro-api",
+  "steps": [
+    {
+      "k": "1-login",
+      "v": {
+        "status": 200,
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "cookies": [
+          "refresh_token"
+        ]
+      }
+    },
+    {
+      "k": "2-branches-raw",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":[{\"id\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"name\":\"Floating Terrace HQ\",\"isHq\":true,\"roleCode\":\"MANAGER\"},{\"id\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"name\":\"Floating Terrace — Rooftop\",\"isHq\":false,\"roleCode\":\"MANAGER\"}],\"meta\":null,\"warnings\":[]}"
+      }
+    },
+    {
+      "k": "2-branches",
+      "v": [
+        {
+          "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "name": "Floating Terrace HQ"
+        },
+        {
+          "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+          "name": "Floating Terrace — Rooftop"
+        }
+      ]
+    },
+    {
+      "k": "2-target",
+      "v": {
+        "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "name": "Floating Terrace — Rooftop",
+        "loginBranch": "Floating Terrace HQ"
+      }
+    },
+    {
+      "k": "3-switch",
+      "v": {
+        "status": 200,
+        "branch_id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "branch": "Floating Terrace — Rooftop",
+        "setCookieOnSwitch": "none",
+        "CLAIM_CHANGED": true
+      }
+    },
+    {
+      "k": "4-refresh-after-switch",
+      "v": {
+        "status": 200,
+        "branch_id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+        "branch": "Floating Terrace — Rooftop",
+        "VERDICT": "SURVIVED — refresh re-minted the switched branch"
+      }
+    },
+    {
+      "k": "5-switch-back-then-refresh",
+      "v": {
+        "switchBack": {
+          "status": 200,
+          "branch": "Floating Terrace HQ"
+        },
+        "refresh": {
+          "status": 200,
+          "branch": "Floating Terrace HQ"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "proof": "s1-07-branch-switch-survives-reload",
+  "steps": [
+    {
+      "k": "1-login",
+      "v": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "k": "1-branches",
+      "v": {
+        "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03": "Floating Terrace HQ",
+        "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba": "Floating Terrace — Rooftop"
+      }
+    },
+    {
+      "k": "2-label-at-login",
+      "v": "Floating Terrace HQ"
+    },
+    {
+      "k": "2-branch-at-login",
+      "v": {
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "name": "Floating Terrace HQ"
+      }
+    },
+    {
+      "k": "3-after-switch",
+      "v": {
+        "label": "Floating Terrace — Rooftop"
+      }
+    },
+    {
+      "k": "token:after-F5",
+      "v": {
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "sub": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322"
+      }
+    },
+    {
+      "k": "4-after-F5",
+      "v": {
+        "label": "Floating Terrace HQ",
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "branchName": "Floating Terrace HQ",
+        "VERDICT": "REVERTED"
+      }
+    },
+    {
+      "k": "5-/app/pos",
+      "v": {
+        "label": "Floating Terrace HQ",
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "branchName": "Floating Terrace HQ",
+        "alerts": []
+      }
+    },
+    {
+      "k": "5-/app/dashboard",
+      "v": {
+        "label": "Floating Terrace HQ",
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "branchName": "Floating Terrace HQ",
+        "alerts": []
+      }
+    },
+    {
+      "k": "6-after-reopening-the-browser",
+      "v": {
+        "url": "http://localhost:3000/app/dashboard",
+        "label": "Floating Terrace HQ",
+        "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "branchName": "Floating Terrace HQ",
+        "VERDICT": "REVERTED"
+      }
+    }
+  ],
+  "fatal": "Error: branch label never changed from \"Floating Terrace HQ\" after selecting \"Floating Terrace HQ\""
+}

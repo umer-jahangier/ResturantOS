@@ -1,0 +1,40 @@
+{
+  "probe": "s1-07-session-isolation",
+  "steps": [
+    {
+      "k": "0-setup",
+      "v": {
+        "loginBranch": "Floating Terrace HQ",
+        "target": "Floating Terrace — Rooftop"
+      }
+    },
+    {
+      "k": "1-session-A-switches",
+      "v": {
+        "status": 200
+      }
+    },
+    {
+      "k": "2-session-A-reload",
+      "v": {
+        "branch": "Floating Terrace — Rooftop",
+        "expected": "Floating Terrace — Rooftop"
+      }
+    },
+    {
+      "k": "2-session-B-reload",
+      "v": {
+        "branch": "Floating Terrace HQ",
+        "expected": "Floating Terrace HQ"
+      }
+    },
+    {
+      "k": "VERDICT",
+      "v": {
+        "aMoved": true,
+        "bUntouched": true,
+        "ok": "per-session: A moved, B did not"
+      }
+    }
+  ]
+}

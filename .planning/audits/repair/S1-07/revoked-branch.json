@@ -1,0 +1,47 @@
+{
+  "probe": "s1-07-revoked-active-branch",
+  "steps": [
+    {
+      "k": "1-grant-rooftop-to-waiter",
+      "v": {
+        "status": 200,
+        "body": "{\"data\":{\"id\":\"6f61fbc7-6564-4f51-95af-7606886a8227\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"userId\":\"666aefca-b5a2-4b07-a690-4ea3da88ff5d\",\"branchId\":\"c2d74ade-7ff8-4167-8cd0-131bfbdf4fba\",\"roleCode\":\"CASHIER\",\"approvalLimitPaisa\":null,\"active\":true,\"primary\":false,\"displacedRoleCode\":null},\"meta\":null,\"warnings\":[]}"
+      }
+    },
+    {
+      "k": "2-waiter-login-branch",
+      "v": "Floating Terrace HQ"
+    },
+    {
+      "k": "3-switch-to-rooftop",
+      "v": {
+        "status": 200
+      }
+    },
+    {
+      "k": "4-revoke-the-rooftop-grant",
+      "v": {
+        "status": 204,
+        "body": ""
+      }
+    },
+    {
+      "k": "5-reload-with-a-revoked-active-branch",
+      "v": {
+        "status": 401,
+        "body": "{\"error\":{\"code\":\"UNAUTHENTICATED\",\"message\":\"Session branch is no longer assigned to this user\",\"details\":[],\"traceId\":\"unknown\"}}"
+      }
+    },
+    {
+      "k": "RESTORE-final-assignments",
+      "v": [
+        {
+          "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+          "roleCode": "WAITER",
+          "primary": true,
+          "approvalLimitPaisa": null
+        }
+      ]
+    }
+  ]
+}
