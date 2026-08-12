@@ -1,5 +1,7 @@
 package io.restaurantos.pos;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
@@ -16,7 +18,6 @@ import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.RefundService;
-import io.restaurantos.pos.web.OrderController;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.event.OutboxRepository;
@@ -25,14 +26,18 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -42,6 +47,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * S0-04 — a voided or refunded order must be reachable, and must say why and by whom.
@@ -53,7 +60,7 @@ import static org.mockito.Mockito.when;
  * row with no reason and no actor — {@code void_reason} was never projected into the summary, and
  * the actor was never persisted at all (it lived only inside the ORDER_VOIDED event payload).
  *
- * <p><b>Why this test drives the CONTROLLER and not the service.</b> The settlement provenance is
+ * <p><b>Why this test drives the HTTP ROUTE and not the service.</b> The settlement provenance is
  * attached by {@link io.restaurantos.pos.service.OrderSettlementDetailService} as a second pass
  * over the page, deliberately outside the hot row-building path. A test that called
  * {@code OrderService.listOrderSummaries} would assert on the un-enriched row and pass whether or
@@ -61,7 +68,8 @@ import static org.mockito.Mockito.when;
  */
 class SettledOrderVisibilityIT extends PosTestBase {
 
-    @Autowired OrderController orderController;
+    @Autowired WebApplicationContext webApplicationContext;
+    @Autowired ObjectMapper objectMapper;
     @Autowired OrderService orderService;
     @Autowired PaymentService paymentService;
     @Autowired RefundService refundService;
@@ -72,6 +80,8 @@ class SettledOrderVisibilityIT extends PosTestBase {
 
     @MockitoBean AuthUserDirectoryClient authUserDirectoryClient;
 
+    MockMvc mockMvc;
+
     UUID tenantId;
     UUID branchId;
     UUID cashierId;
@@ -79,6 +89,11 @@ class SettledOrderVisibilityIT extends PosTestBase {
 
     @BeforeEach
     void setUp() {
+        // No security filter chain added on purpose: there is no JWT to mint here, and the gate
+        // being asserted is method security, which reads the SecurityContextHolder this test
+        // populates directly (see setSecurityContext). PrintJobClaimIT adds the real chain because
+        // the filter IS its subject; here it would only be a second authentication to fake.
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         outboxRepository.deleteAll();
         tenantId = UUID.randomUUID();
         branchId = UUID.randomUUID();
@@ -146,10 +161,31 @@ class SettledOrderVisibilityIT extends PosTestBase {
         return orderService.getOrder(order.id(), branchId);
     }
 
-    /** What the Order Management screen actually calls, including the settlement-detail pass. */
-    private List<OrderSummaryDto> list(List<String> statuses) {
-        return orderController.listOrders(branchId, statuses, null, PageRequest.of(0, 50))
-                .getBody().data();
+    /**
+     * The exact request Order Management issues — over MVC, not as a Java call.
+     *
+     * <p>Going through the route rather than through {@code orderController.listOrders(...)} is
+     * deliberate twice over: it exercises the {@code @PreAuthorize} gate, the feature-flag aspect
+     * and the JSON the browser actually parses, and it does not pin this test to that method's
+     * PARAMETER LIST, which concurrent work on search is re-signing. A test that breaks because a
+     * sibling change added a query parameter is a test that will be "fixed" by deleting it.
+     */
+    private List<OrderSummaryDto> list(List<String> statuses) throws Exception {
+        MockHttpServletRequestBuilder request = get("/api/v1/pos/orders")
+                .param("branchId", branchId.toString())
+                .param("size", "50");
+        if (statuses != null) {
+            statuses.forEach(s -> request.param("status", s));
+        }
+        String json = mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode data = objectMapper.readTree(json).get("data");
+        List<OrderSummaryDto> rows = new ArrayList<>();
+        for (JsonNode row : data) {
+            rows.add(objectMapper.treeToValue(row, OrderSummaryDto.class));
+        }
+        return rows;
     }
 
     private OrderSummaryDto rowFor(List<OrderSummaryDto> rows, UUID orderId) {
@@ -157,7 +193,7 @@ class SettledOrderVisibilityIT extends PosTestBase {
     }
 
     @Test
-    void voidedOrder_isListableByStatus_andCarriesReasonAndActor() {
+    void voidedOrder_isListableByStatus_andCarriesReasonAndActor() throws Exception {
         OrderDto order = openOrderWithOneItem();
         orderService.voidOrder(order.id(),
                 new VoidOrderRequest("Guest walked out before service"), UUID.randomUUID().toString());
@@ -186,7 +222,7 @@ class SettledOrderVisibilityIT extends PosTestBase {
     }
 
     @Test
-    void refundedOrder_isListableByStatus_andCarriesReasonAndActor() {
+    void refundedOrder_isListableByStatus_andCarriesReasonAndActor() throws Exception {
         OrderDto closed = closeViaServeAndPay(orderService, paymentService, openOrderWithOneItem(), branchId);
         assertThat(closed.status()).isEqualTo(OrderStatus.CLOSED);
 
@@ -214,7 +250,7 @@ class SettledOrderVisibilityIT extends PosTestBase {
      * would be a worse defect than the one being fixed.
      */
     @Test
-    void directoryOutage_costsTheNameAndNotTheRow() {
+    void directoryOutage_costsTheNameAndNotTheRow() throws Exception {
         OrderDto order = openOrderWithOneItem();
         orderService.voidOrder(order.id(),
                 new VoidOrderRequest("Till error"), UUID.randomUUID().toString());
@@ -231,7 +267,7 @@ class SettledOrderVisibilityIT extends PosTestBase {
 
     /** A live order costs nothing: no settlement block, and no lookup issued for it. */
     @Test
-    void liveOrder_carriesNoSettlementBlock() {
+    void liveOrder_carriesNoSettlementBlock() throws Exception {
         OrderDto order = openOrderWithOneItem();
         OrderSummaryDto row = rowFor(list(null), order.id());
         assertThat(row).isNotNull();

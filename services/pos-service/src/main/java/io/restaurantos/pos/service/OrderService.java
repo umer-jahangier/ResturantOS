@@ -55,20 +55,6 @@ public interface OrderService {
 
     OrderDto voidOrder(UUID orderId, VoidOrderRequest request, String idempotencyKey);
     OrderDto markItemServed(UUID orderId, UUID itemId);
-
-    /**
-     * S0-06: serves every active line of {@code orderId} in one transaction and then runs the
-     * {@code maybeCloseOrder} seam — the operator-reachable step from "the guest has paid" to a
-     * terminal order. It never closes the order itself, so the Paid-AND-Served rule, the
-     * period-lock check and the single ORDER_CLOSED publish stay where they are; an order that
-     * is served but not fully paid stays open, which is correct.
-     *
-     * <p>Refuses (409) when the order is VOIDED/REFUNDED, has no active lines, or still has a
-     * line that was never fired to the kitchen — loudly, because a control that silently does
-     * nothing is precisely the defect this closes. Already CLOSED is a no-op, not a refusal:
-     * that is the state this operation exists to reach.
-     */
-    OrderDto markAllItemsServed(UUID orderId);
     OrderDto cancelItem(UUID orderId, UUID itemId);
     OrderDto updateInstructions(UUID orderId, UpdateInstructionsRequest request);
 
