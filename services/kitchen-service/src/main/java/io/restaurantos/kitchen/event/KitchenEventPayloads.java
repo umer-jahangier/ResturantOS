@@ -3,6 +3,7 @@ package io.restaurantos.kitchen.event;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +25,34 @@ public final class KitchenEventPayloads {
             String newStatus,
             int revisionNo,
             String station
+    ) {}
+
+    /**
+     * {@code KDS_STALE_TICKETS_CLEARED} — a person took a board's expired tickets off it (F17).
+     *
+     * <p>Consumed only by audit-service, off the {@code #}-bound {@code audit.all-events.queue}, so
+     * there is no producer/consumer field-parity contract to keep here. What matters instead is that
+     * the payload is enough to RECONSTRUCT the decision months later without the kitchen database:
+     * which board, which boundary was applied and on which zone, how many tickets and lines went,
+     * how old the oldest was, and their ids so the rows can be read back.
+     *
+     * <p>{@code clearedBy} duplicates the envelope's {@code actorId}. That is not redundancy for its
+     * own sake — {@code AuditIngestionService} falls back to payload keys for messages published
+     * before the envelope carried an actor, and an audit row that cannot say who is the exact
+     * failure the audit catalogue was written to stop.
+     */
+    public record StaleTicketsClearedPayload(
+            UUID branchId,
+            String stationCode,
+            String branchTimezone,
+            LocalDate currentBusinessDate,
+            Instant clearedBefore,
+            int ticketCount,
+            int itemCount,
+            Instant oldestReceivedAt,
+            Instant clearedAt,
+            UUID clearedBy,
+            List<UUID> ticketIds
     ) {}
 
     // ─── Consume side (ORDER_SENT_TO_KDS from pos.topic) ──────────────────────

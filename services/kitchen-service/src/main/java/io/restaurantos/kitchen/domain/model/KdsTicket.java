@@ -67,6 +67,21 @@ public class KdsTicket extends TenantAuditableEntity {
     @Column(name = "ready_at")
     private Instant readyAt;
 
+    /**
+     * When a person cleared this ticket off the board (F17). Null for every ticket that left
+     * the board by being served, cancelled or voided — those are different facts and are
+     * carried by {@link #status}.
+     */
+    @Column(name = "cleared_at")
+    private Instant clearedAt;
+
+    /**
+     * Who cleared it, from the verified JWT. A convenience for the kitchen's own cleared list;
+     * the authority on who cleared what is the {@code KDS_STALE_TICKETS_CLEARED} audit event.
+     */
+    @Column(name = "cleared_by")
+    private UUID clearedBy;
+
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<KdsTicketItem> items = new ArrayList<>();
 }

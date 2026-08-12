@@ -291,6 +291,7 @@ public class TicketServiceImpl implements TicketService {
                 ticket.getOrderNotes(), ticket.getTableNumber(), ticket.getOrderType(),
                 ticket.getStationCode(), ticket.getStatus(),
                 ticket.isPriority(), ticket.getReceivedAt(), ticket.getStartedAt(), ticket.getReadyAt(),
+                ticket.getClearedAt(),
                 itemDtos
         );
     }

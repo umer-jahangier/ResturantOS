@@ -6,9 +6,12 @@ import io.restaurantos.kitchen.domain.enums.TicketItemStatus;
 import io.restaurantos.kitchen.domain.enums.TicketStatus;
 import io.restaurantos.kitchen.domain.model.KdsStation;
 import io.restaurantos.kitchen.domain.model.StationType;
+import io.restaurantos.kitchen.dto.ClearStaleResult;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
+import io.restaurantos.kitchen.dto.StaleBoardSummary;
 import io.restaurantos.kitchen.repository.KdsStationRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
+import io.restaurantos.kitchen.service.StaleTicketService;
 import io.restaurantos.kitchen.service.StationRegistryService;
 import io.restaurantos.kitchen.service.TicketService;
 import io.restaurantos.kitchen.service.TicketServiceImpl;
@@ -36,17 +39,20 @@ public class KdsController {
     private final KdsStationRepository stationRepository;
     private final TicketServiceImpl ticketService;
     private final StationRegistryService stationRegistry;
+    private final StaleTicketService staleTicketService;
 
     public KdsController(KdsAuthorizationService authz,
                           KdsTicketRepository ticketRepository,
                           KdsStationRepository stationRepository,
                           TicketServiceImpl ticketService,
-                          StationRegistryService stationRegistry) {
+                          StationRegistryService stationRegistry,
+                          StaleTicketService staleTicketService) {
         this.authz = authz;
         this.ticketRepository = ticketRepository;
         this.stationRepository = stationRepository;
         this.ticketService = ticketService;
         this.stationRegistry = stationRegistry;
+        this.staleTicketService = staleTicketService;
     }
 
     /**
@@ -177,6 +183,69 @@ public class KdsController {
         }
         return ResponseEntity.ok(ApiResponse.ok(ticket));
     }
+
+    /**
+     * What is on this board from a business day that has already CLOSED (F17) — the numbers the
+     * confirmation dialog is built from. Nothing is written.
+     *
+     * <p>Requires {@code pos.kds.view}: it is a read of the caller's own board, and a cook who may
+     * look at the board may look at what is old on it.
+     *
+     * <p>Station scope is applied exactly as the ticket list applies it — an EMPTY summary for a
+     * station the caller does not work, never a 403, so this endpoint cannot be used to enumerate
+     * which stations a branch has.
+     */
+    @GetMapping("/tickets/stale")
+    public ResponseEntity<ApiResponse<StaleBoardSummary>> getStaleTickets(
+            @RequestParam UUID branchId,
+            @RequestParam(required = false) String stationCode,
+            @AuthenticationPrincipal JwtClaims claims) {
+
+        authz.authorizeView(claims.tenantId(), branchId);
+        StationScope scope = authz.resolveStationScope();
+        if (stationCode != null && !scope.permits(stationCode)) {
+            return ResponseEntity.ok(ApiResponse.ok(
+                    staleTicketService.preview(claims.tenantId(), branchId, NO_SUCH_STATION)));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                staleTicketService.preview(claims.tenantId(), branchId, stationCode)));
+    }
+
+    /**
+     * Clear this board's expired tickets (F17).
+     *
+     * <p>Takes NO cutoff and NO ticket list from the client. The boundary is recomputed here from the
+     * branch's own time zone and the query is re-run, because a client-supplied cutoff is a
+     * client-supplied answer to "which of my tickets may you take away" — and because the preview
+     * the cook read may be seconds old.
+     *
+     * <p>Requires {@code pos.kds.update} — the permission the cook already holds to bump an item.
+     * See {@link StaleTicketService} for why that is the right code and not a widened one; the short
+     * version is that the operation cannot reach the current business day's work by construction,
+     * and the person who needs a clean board at 07:00 is the cook standing in front of it.
+     *
+     * <p>A caller whose station scope excludes {@code stationCode} clears NOTHING and is told so with
+     * a zero count — the same shape as the list endpoint's empty page, for the same reason.
+     */
+    @PostMapping("/tickets/clear-stale")
+    public ResponseEntity<ApiResponse<ClearStaleResult>> clearStaleTickets(
+            @RequestParam UUID branchId,
+            @RequestParam(required = false) String stationCode,
+            @AuthenticationPrincipal JwtClaims claims) {
+
+        authz.authorizeUpdate(claims.tenantId(), branchId);
+        StationScope scope = authz.resolveStationScope();
+        String target = (stationCode != null && !scope.permits(stationCode)) ? NO_SUCH_STATION : stationCode;
+        return ResponseEntity.ok(ApiResponse.ok(
+                staleTicketService.clearStale(claims.tenantId(), branchId, target)));
+    }
+
+    /**
+     * A station code no branch can have, used to make a scope-denied request return an EMPTY result
+     * through the ordinary query rather than through a special case in the service. A second code
+     * path for "you may not see this" is a second code path that can be wrong.
+     */
+    private static final String NO_SUCH_STATION = " __scope_denied__";
 
     /**
      * List active stations for a branch, from the branch's REGISTRY.

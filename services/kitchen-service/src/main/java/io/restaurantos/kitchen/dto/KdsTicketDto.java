@@ -20,6 +20,8 @@ public record KdsTicketDto(
         Instant receivedAt,
         Instant startedAt,
         Instant readyAt,
+        /** Set only on a ticket a person cleared off the board (F17); null on every other. */
+        Instant clearedAt,
         List<ItemDto> items
 ) {
     public record ItemDto(

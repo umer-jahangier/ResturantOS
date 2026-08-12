@@ -83,6 +83,20 @@ restaurantos:
   # a branch with no projected stations answers 503 rather than "no stations configured".
   pos:
     uri: ${POS_SERVICE_URI:http://127.0.0.1:8084}
+  # Source of truth for the BRANCH's IANA time zone, which is what the KDS "clear old tickets"
+  # control cuts its business-day boundary on (F17). user-service owns branches. Point this wrong
+  # and UserBranchClient logs a WARN naming the URL it tried, the preview falls back to
+  # business-day.default-timezone and SAYS SO on screen, and the CLEAR refuses outright with a 503
+  # rather than deciding what "yesterday" means on a zone nobody chose.
+  user:
+    uri: ${USER_SERVICE_URI:http://127.0.0.1:8082}
+  business-day:
+    # The SAME two properties pos-service and reporting-service read. A tenant that moves its
+    # trading-day boundary must move it for all three or the kitchen, the ledger and the reports
+    # start disagreeing about which day a thing happened on — which has already happened here once.
+    offset-hours: ${BUSINESS_DAY_OFFSET_HOURS:4}
+    default-timezone: ${BUSINESS_DAY_DEFAULT_TIMEZONE:Asia/Karachi}
+    branch-timezone-cache-ttl-hours: ${BRANCH_TIMEZONE_CACHE_TTL_HOURS:24}
   jwks:
     uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
   opa:

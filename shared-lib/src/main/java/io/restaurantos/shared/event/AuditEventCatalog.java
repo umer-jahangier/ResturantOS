@@ -80,6 +80,14 @@ public final class AuditEventCatalog {
             "TILL_CLOSED",
             "TILL_REVIEWED",
 
+            // ── The kitchen board (kitchen-service) ──────────────────────────────────
+            // A bulk state change a cook makes to a wall display, and the only operation in the
+            // kitchen that takes work off a board without the POS asking. It touches no money, but
+            // "who cleared last night's board, and what was on it" is a question a manager asks the
+            // morning after a disputed check, and the kitchen's own cleared_by column is a
+            // convenience rather than an append-only record.
+            "KDS_STALE_TICKETS_CLEARED",
+
             // ── The ledger (finance-service) ─────────────────────────────────────────
             "PERIOD_CLOSED",
             "JOURNAL_POSTED",

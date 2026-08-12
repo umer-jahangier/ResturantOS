@@ -122,6 +122,15 @@ public class TicketRoutingService {
         if (ticket.getStatus() == TicketStatus.READY) {
             ticket.setStatus(TicketStatus.PENDING);
             ticket.setReadyAt(null);
+        } else if (ticket.getStatus() == TicketStatus.CLEARED) {
+            // A ticket a cook cleared off the board (F17) that has since been fired again: the new
+            // line is live work and must be visible, so the ticket comes BACK. Without this, a
+            // cleared board would swallow a late add on an old check silently — the clear would
+            // stop being a board-hygiene action and start being a way to lose an order.
+            ticket.setStatus(TicketStatus.PENDING);
+            ticket.setReadyAt(null);
+            ticket.setClearedAt(null);
+            ticket.setClearedBy(null);
         }
 
         // Backfill the canonical station id on a ticket created before this line carried one
