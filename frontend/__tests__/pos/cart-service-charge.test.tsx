@@ -110,6 +110,7 @@ function renderCart(orderType: OrderType = "DINE_IN") {
       onSendToKitchen={vi.fn()}
       onSaveAsDraft={vi.fn()}
       onChargeNow={vi.fn()}
+      onClearNewOrder={vi.fn()}
     />,
     { wrapper: createQueryWrapper() },
   );
