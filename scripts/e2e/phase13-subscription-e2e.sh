@@ -139,8 +139,15 @@ purge_everything() {
       DELETE FROM accounting_periods WHERE tenant_id = '${tid}';
       DELETE FROM chart_of_accounts WHERE tenant_id = '${tid}';
     " | finance_sql > /dev/null 2>&1 || true
+    # impersonation_log is NOT cleaned up, deliberately. It is the accountability record of
+    # platform staff assuming tenant users' identities, and since 040-platform-db-rls-posture.xml
+    # it is append-only at the database: trg_impersonation_log_immutable refuses DELETE for every
+    # role including the owner this script connects as. A DELETE here would raise, and because
+    # platform_sql runs with ON_ERROR_STOP=1 it would abort the four deletes BELOW it — silently
+    # leaving every throwaway tenant, its features and its usage rows behind while the block's
+    # trailing '|| true' reported success. Rows kept here are harmless: S10 selects by the
+    # freshly-provisioned ${TENANT_ID}, so no previous run's rows are in scope.
     printf '%s\n' "
-      DELETE FROM impersonation_log WHERE tenant_id = '${tid}';
       DELETE FROM event_outbox WHERE tenant_id = '${tid}';
       DELETE FROM tenant_features WHERE tenant_id = '${tid}';
       DELETE FROM usage_records WHERE tenant_id = '${tid}';

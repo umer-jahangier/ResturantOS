@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      ════════════════════════════════════════════════════════════════════════════════════════════
+      THE platform_db RLS POSTURE — A DECISION, NOT AN OMISSION
+      ════════════════════════════════════════════════════════════════════════════════════════════
+
+      Measured live 2026-08-12 against the running restaurantos-postgres (PostgreSQL 18.4):
+
+          relname            | rls | forced | policies
+          impersonation_log  |  f  |   f    |    0
+          tenant_features    |  f  |   f    |    0
+          usage_records      |  f  |   f    |    0
+          event_outbox       |  f  |   f    |    0
+
+      Three of those carry a tenant_id column, and every other tenant-scoped database in this
+      product FORCEs RLS on exactly that column. platform_db does not, on any table, anywhere.
+
+      That reads like the audit_events gap that 030-audit-events-rls.xml closed. IT IS NOT THE
+      SAME THING, and applying the same fix here breaks the product. What follows is the trace
+      that establishes that, the measurement that proves it, and the one thing that IS wrong.
+
+      ── WHY RLS IS THE WRONG CONTROL HERE ────────────────────────────────────────────────────────
+
+      A tenant_isolation policy answers the question "which tenant is this connection acting for?"
+      by reading app.current_tenant_id. The SuperAdmin console has no answer to that question, by
+      construction:
+
+        * JwtSigningService.signPlatformToken mints a control-plane token with the platform user's
+          id as the subject and NO tenant_id claim at all. PlatformAdminController's own comment
+          says so explicitly — the absent tenant claim is what makes a platform principal
+          distinguishable from a tenant one.
+        * TenantAwareDataSource therefore writes app.current_tenant_id = '' (EMPTY, not unset) on
+          every connection checkout the console makes, deliberately, so a pooled connection can
+          never inherit a previous borrower's tenant.
+        * The fleet-standard predicate maps that empty string to NULL via NULLIF and fails CLOSED.
+
+      So the policy would not scope the console down to one tenant. It would scope it down to
+      ZERO. Measured rather than reasoned — the fleet's exact policy text applied to a copy of
+      tenant_features in the rls_probe database, tables owned by a NOSUPERUSER role, read by a
+      separate NOSUPERUSER NOBYPASSRLS runtime role, GUC set to '' as TenantAwareDataSource sets
+      it:
+
+          before:  SELECT count(*)  ->  2      (both tenants, which is the console's job)
+          after:   SELECT count(*)  ->  0
+          write:   ERROR: new row violates row-level security policy for table
+                          "tenant_features_probe"
+
+      Against production numbers that is GET /api/v1/platform/tenants/{id}/features returning an
+      empty map for all 402 tenant_features rows across 21 tenants, and PATCH .../features/{code}
+      raising 42501 on every call. The feature-flag console would go blank and read as "no tenant
+      has any feature enabled" — a fail-closed control-plane failure that looks exactly like a
+      product decision. GET /tenants (findAll) is cross-tenant by definition and is the console's
+      primary screen.
+
+      Cross-tenant read is not a leak here. It is the job. platform-admin-service exists to look
+      at every tenant at once.
+
+      ── WHAT ACTUALLY ENFORCES ISOLATION, AND WHETHER IT HOLDS ───────────────────────────────────
+
+      Isolation for platform_db is BY DATABASE and BY ROLE, not by policy. Both halves were
+      measured, not assumed:
+
+        1. No tenant service role can read platform_db. CONNECT is PUBLIC on every database in
+           this cluster (PostgreSQL's default), so has_database_privilege is a useless probe and
+           was not trusted. The table ACLs were read instead, and then the reach was executed:
+
+               platform_db relacl on tenants / impersonation_log:
+                   {platform_admin=arwdDxtm/platform_admin, platform_user=arwdDxtm/platform_admin}
+                   — no other grantee, no PUBLIC entry
+
+               SET ROLE pos_user;  SELECT count(*) FROM tenants;
+                   ERROR:  permission denied for table tenants
+               SET ROLE auth_user; SELECT count(*) FROM impersonation_log;
+                   ERROR:  permission denied for table impersonation_log
+
+        2. The platform roles cannot reach tenant data either. Counted across all 14 tenant
+           databases (audit, auth, crm, file, finance, hr, inventory, kitchen, nlq, notification,
+           pos, purchasing, reporting, user):
+
+               grants held by platform_user or platform_admin  ->  0, in every one
+
+        3. There is no cross-database bridge. platform_db has exactly one extension installed —
+           plpgsql. No postgres_fdw, no dblink. A connection to platform_db cannot address another
+           database's tables at all.
+
+        4. At the API layer PlatformAdminController is @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+           at the CLASS level, and the internal twin sits behind a constant-time X-Internal-Service
+           secret check. A tenant user's token, however valid, is not a platform principal.
+
+      A per-tenant restriction would have to apply to a role that can reach platform_db AND ought
+      to see only one tenant. There is no such role. platform_admin is Liquibase and the table
+      owner; platform_user is the console. Both are legitimately cross-tenant. THE ANSWER TO THE
+      QUESTION IS THAT NO ROLE REACHING platform_db SHOULD BE TENANT-RESTRICTED.
+
+      ── SO: RLS STAYS OFF, ON PURPOSE ────────────────────────────────────────────────────────────
+
+      Recorded in three places so it cannot be mistaken for an oversight: this header, a
+      COMMENT ON TABLE on each of the three tenant_id-bearing tables (visible to any DBA typing
+      \d+ in psql, which is where the question actually gets asked), and PlatformDbIsolationIT,
+      which asserts the absence as a NEGATIVE CONTROL and says so in its own class javadoc.
+
+      DO NOT "fix" this by enabling RLS. If a future requirement genuinely needs platform_db
+      partitioned by tenant, the mechanism is NOT app.current_tenant_id — the console has no
+      tenant. It would need a different GUC carrying the operator's permitted tenant SET, and a
+      policy written against that. Enabling the fleet-standard policy makes the console read zero
+      rows; that is measured above, not predicted.
+
+      event_outbox is noted and deliberately untouched: it is unforced in ALL 15 databases, which
+      is a fleet-wide convention and a fleet-wide question, not this table's problem.
+
+      ════════════════════════════════════════════════════════════════════════════════════════════
+      WHAT *IS* WRONG: impersonation_log is not an audit trail, it is a table
+      ════════════════════════════════════════════════════════════════════════════════════════════
+
+      impersonation_log is the accountability record of platform staff assuming tenant users'
+      identities — the row an abuse review reads to answer "who went into this restaurant's data,
+      when, as whom, and why". Tenant isolation is the wrong worry for it. Immutability is the
+      right one, and it had none. Measured live, as platform_user, the role the console's own
+      datasource connects as (transaction rolled back, live count still 0):
+
+          INSERT INTO impersonation_log (...) 'PROBE: went looking at a tenant's payroll'
+              -> INSERT 0 1
+          UPDATE impersonation_log SET reason='routine support', target_user_id=gen_random_uuid()
+              -> UPDATE 1          (the operator rewrites what they did and to whom)
+          DELETE FROM impersonation_log WHERE reason='routine support'
+              -> DELETE 1          (the operator erases the record entirely)
+          TRUNCATE impersonation_log
+              -> TRUNCATE TABLE    (the operator erases the whole trail in one statement)
+
+          triggers on impersonation_log: 0
+          grants to platform_user:       DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE,
+                                         UPDATE  — i.e. everything
+
+      The subject of the record could choose its contents. That is not an accountability trail; it
+      is a note the accountable party is free to edit. And nothing in the application needs any of
+      it: the ONLY write path is ImpersonationService.impersonate(), which calls save() on a fresh
+      entity — insert, once, never updated. impact(ImpersonationLogEntity, upstream) returns 4
+      direct dependents, all inside this service, none of which mutate. TenantLifecycleService
+      .purge() does not delete these rows either; it flips the tenant's status and nothing more.
+
+      Two layers, matching what 010/011 do for audit_events and what trg_je_immutable does for
+      POSTED journal entries.
+
+      ── The read half, stated because it is the other half of the finding ────────────────────────
+
+      There is NO read path. ImpersonationLogRepository.findByTenantIdOrderByStartedAtDesc has
+      zero callers; no controller exposes it; no frontend route fetches it. The trail is
+      write-only from the product's point of view and can only be read with a psql session. That
+      is a real gap in the abuse-review story — an accountability record nobody can read is only
+      marginally better than one that is not written — but it is a MISSING FEATURE, not a broken
+      control, so it is reported rather than built here. Making the rows unforgeable first is the
+      right order: a reader added on top of a mutable table would display whatever the last
+      operator decided it should say.
+    -->
+
+    <changeSet id="040-001-platform-db-rls-posture-comment" author="restaurantos-agent">
+        <!--
+          The decision, in the database itself. A DBA answering "why does platform_db have no RLS
+          when everything else does?" types \d+ in psql long before they find this file, and an
+          unexplained absence is what gets "fixed" at 2am.
+        -->
+        <sql>
+            COMMENT ON TABLE impersonation_log IS
+            'Accountability record of platform staff impersonating tenant users. NO RLS BY DESIGN: platform-admin-service is a cross-tenant SuperAdmin console whose token carries no tenant_id, so app.current_tenant_id is always empty and the fleet tenant_isolation policy would match ZERO rows. Isolation here is by database and role, not by policy — no tenant role holds any grant in platform_db. APPEND-ONLY, enforced by trg_impersonation_log_immutable + trg_impersonation_log_no_truncate. NOTE: the accompanying REVOKE from platform_user is INERT — platform_user inherits platform_admin (pg_auth_members), so has_table_privilege still reports DELETE; the triggers are the only enforcing layer. See 040-platform-db-rls-posture.xml.';
+        </sql>
+        <sql>
+            COMMENT ON TABLE tenant_features IS
+            'Per-tenant feature overrides, read and written cross-tenant by the SuperAdmin console. NO RLS BY DESIGN — see 040-platform-db-rls-posture.xml. tenant_id is a plain FK to tenants(id), not a row-security boundary; a tenant_isolation policy here returns 0 of 402 rows to the console and 42501 on every write (measured).';
+        </sql>
+        <sql>
+            COMMENT ON TABLE usage_records IS
+            'Per-tenant usage telemetry, aggregated cross-tenant by the SuperAdmin console. NO RLS BY DESIGN — see 040-platform-db-rls-posture.xml. tenant_id is a plain FK, not a row-security boundary.';
+        </sql>
+
+        <rollback>
+            <sql>COMMENT ON TABLE impersonation_log IS NULL;</sql>
+            <sql>COMMENT ON TABLE tenant_features IS NULL;</sql>
+            <sql>COMMENT ON TABLE usage_records IS NULL;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="040-002-impersonation-log-append-only-grants" author="restaurantos-agent">
+        <!--
+          Layer 1 — least privilege on the runtime role. READ THE WARNING BELOW: ON THIS CLUSTER
+          THIS REVOKE IS CURRENTLY INERT. It is kept because it is correct and becomes load-bearing
+          the day the ownership topology is fixed; it is NOT a second enforcing layer today, and
+          documenting it as one would be exactly the "control that exists and enforces nothing"
+          this repository keeps finding.
+
+          ⚠ MEASURED LIVE, AFTER APPLYING THIS CHANGESET TO platform_db:
+
+              information_schema.role_table_grants  ->  INSERT, REFERENCES, SELECT, TRIGGER
+              has_table_privilege('platform_user',
+                  'impersonation_log', 'DELETE')    ->  TRUE
+
+          The catalogue view a reviewer would check says the privilege is gone. The effective
+          privilege is unchanged. The reason:
+
+              SELECT ... FROM pg_auth_members  ->  platform_user INHERITS platform_admin
+
+          deploy/init/02b-ensure-runtime-roles.sql issues GRANT platform_admin TO platform_user
+          deliberately, to reconcile a real problem: the tables are owned by platform_admin on
+          machines where that role was created by hand, while the service and Liquibase both
+          connect as platform_user, so every migration that ALTERs an existing table would fail.
+          Membership restores the ALTER privilege without rewriting ownership of a live database.
+
+          The side effect is that platform_user holds every privilege platform_admin holds,
+          including ownership of this table — so a REVOKE of a direct grant changes the ACL and
+          changes nothing else. And on a CLEAN machine, where 02b is a documented no-op,
+          platform_user OWNS the tables outright, which is inert for the same reason. There is no
+          deployment shape in which this REVOKE alone protects the row.
+
+          That is precisely why layer 2 below is a TRIGGER and not a grant. A trigger fires for the
+          owner, for an inheriting member, and for Liquibase.
+
+          Two consequences worth carrying out of this file, because they outlive this table:
+
+            * Least privilege is not currently enforceable anywhere in platform_db. Any grant-based
+              control on any table here has the same hole.
+            * If anyone ever does add RLS to platform_db against the decision recorded above, plain
+              ENABLE ROW LEVEL SECURITY would be COMPLETELY INERT — PostgreSQL exempts a table's
+              owner from its own policies unless FORCE is set, and the runtime role is the owner.
+              That is the identical defect that shipped 33 tables with inert RLS across 16 tenants
+              in this product.
+
+          Mechanics: guarded on the role existing. In production deploy/init/02-create-roles.sql
+          creates platform_user; under Testcontainers the container superuser is the only role
+          present, and a REVOKE naming a role that does not exist is an ERROR, not a no-op — it
+          would abort Liquibase and fail every IT in this service at context startup.
+
+          When the "end impersonation session" endpoint that ended_at was designed for is finally
+          built, the grant it needs is COLUMN-scoped and nothing wider:
+
+              GRANT UPDATE (ended_at) ON impersonation_log TO platform_user;
+
+          Layer 2 already permits exactly that transition and nothing else, so the two agree.
+        -->
+        <sql splitStatements="false">
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'platform_user') THEN
+                    REVOKE UPDATE, DELETE, TRUNCATE ON impersonation_log FROM platform_user;
+                END IF;
+            END $$;
+        </sql>
+        <sql>REVOKE UPDATE, DELETE, TRUNCATE ON impersonation_log FROM PUBLIC;</sql>
+
+        <rollback>
+            <sql splitStatements="false">
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'platform_user') THEN
+                        GRANT UPDATE, DELETE, TRUNCATE ON impersonation_log TO platform_user;
+                    END IF;
+                END $$;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="040-003-impersonation-log-immutability-trigger" author="restaurantos-agent">
+        <!--
+          Layer 2 — the trigger, which fires for EVERY role including the table owner and the
+          migration tool. This is the layer that makes the record survive the people it holds
+          accountable; a control that stops only the role already stopped by GRANT is decoration.
+          Same reasoning, and the same shape, as audit-service's 011 and finance's trg_je_immutable.
+
+          DELETE is refused outright. UPDATE is refused with EXACTLY ONE carve-out: closing an open
+          session, i.e. ended_at going NULL -> NOT NULL with every other column byte-identical. The
+          carve-out exists so that the endpoint ended_at was added for can be built WITHOUT deleting
+          this control to do it — a guard whose first encounter with a real feature is to be removed
+          protects nothing. IS NOT DISTINCT FROM is used for the nullable columns because
+          NULL = NULL is NULL, and a plain = there would silently fall through to the RAISE.
+
+          A row-level trigger does not see TRUNCATE at all — TRUNCATE bypasses row triggers
+          entirely, which is why the probe above got "TRUNCATE TABLE" back while holding only
+          table grants. It needs its own statement-level trigger, below. Leaving it out would
+          produce a table that is immutable row by row and erasable in one statement.
+
+          Retention: there is deliberately no deletion path, and this table is not partitioned, so
+          it has no archival equivalent of AuditArchivalService's DETACH. Purging rows requires a
+          credentialed superuser session that drops these triggers first — visible, deliberate, and
+          exactly as awkward as erasing an accountability trail should be. That is the same trade
+          audit_events makes.
+        -->
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION prevent_impersonation_log_rewrite() RETURNS trigger AS $$
+            BEGIN
+                IF TG_OP = 'DELETE' THEN
+                    RAISE EXCEPTION
+                        'IMPERSONATION_LOG_IMMUTABLE: impersonation records cannot be deleted — this is the accountability trail for platform staff acting as tenant users';
+                END IF;
+
+                IF OLD.ended_at IS NULL
+                   AND NEW.ended_at IS NOT NULL
+                   AND NEW.id               =  OLD.id
+                   AND NEW.platform_user_id =  OLD.platform_user_id
+                   AND NEW.tenant_id        =  OLD.tenant_id
+                   AND NEW.target_user_id   =  OLD.target_user_id
+                   AND NEW.started_at       =  OLD.started_at
+                   AND NEW.expires_at IS NOT DISTINCT FROM OLD.expires_at
+                   AND NEW.reason     IS NOT DISTINCT FROM OLD.reason
+                THEN
+                    RETURN NEW;
+                END IF;
+
+                RAISE EXCEPTION
+                    'IMPERSONATION_LOG_IMMUTABLE: the only permitted update is closing an open session (ended_at NULL -> NOT NULL, every other column unchanged)';
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION prevent_impersonation_log_truncate() RETURNS trigger AS $$
+            BEGIN
+                RAISE EXCEPTION
+                    'IMPERSONATION_LOG_IMMUTABLE: impersonation_log cannot be truncated — a row-level trigger does not see TRUNCATE, so this statement-level one exists to stop the whole trail being erased in one statement';
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+
+        <!--
+          DROP before CREATE so re-running against a partially-applied database is a no-op rather
+          than a duplicate-object error. CREATE OR REPLACE TRIGGER exists in PostgreSQL 14+ but
+          DROP IF EXISTS is what the rest of this repository's changesets use.
+        -->
+        <sql>DROP TRIGGER IF EXISTS trg_impersonation_log_immutable ON impersonation_log;</sql>
+        <sql splitStatements="false">
+            CREATE TRIGGER trg_impersonation_log_immutable
+                BEFORE UPDATE OR DELETE ON impersonation_log
+                FOR EACH ROW EXECUTE FUNCTION prevent_impersonation_log_rewrite();
+        </sql>
+
+        <sql>DROP TRIGGER IF EXISTS trg_impersonation_log_no_truncate ON impersonation_log;</sql>
+        <sql splitStatements="false">
+            CREATE TRIGGER trg_impersonation_log_no_truncate
+                BEFORE TRUNCATE ON impersonation_log
+                FOR EACH STATEMENT EXECUTE FUNCTION prevent_impersonation_log_truncate();
+        </sql>
+
+        <rollback>
+            <sql>DROP TRIGGER IF EXISTS trg_impersonation_log_immutable ON impersonation_log;</sql>
+            <sql>DROP TRIGGER IF EXISTS trg_impersonation_log_no_truncate ON impersonation_log;</sql>
+            <sql>DROP FUNCTION IF EXISTS prevent_impersonation_log_rewrite();</sql>
+            <sql>DROP FUNCTION IF EXISTS prevent_impersonation_log_truncate();</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

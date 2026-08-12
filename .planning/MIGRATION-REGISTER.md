@@ -66,7 +66,8 @@ No contention observed yet. The same rule applies — claim here first.
 | hr-service | Liquibase | 035 | |
 | audit-service | Liquibase | **030** | `030-audit-events-rls.xml` applied. Partitioned: policy must be per-partition AND applied at creation — a parent-only policy leaks and its test stays green. |
 | crm-service | Liquibase | — | |
-| platform-admin, file | Liquibase | — | |
+| platform-admin-service | Liquibase | **040** | `040-platform-db-rls-posture.xml` claimed 2026-08-12 (`main`, platform_db RLS posture). Existing: 010, 020, 030, seeds 900/901/910. RLS is DELIBERATELY ABSENT here — read that file's header before adding any policy; a `tenant_isolation` policy makes the console read 0 rows. |
+| file-service | Liquibase | — | |
 | **ClickHouse** | `deploy/clickhouse/` | **V005** | `V005__discount_source.sql` held by `eloquent-napier-4baf6b`. A shared resource with the identical inference trap — claim here. |
 
 ## Renumbering is not finished until someone rebuilds with `clean`

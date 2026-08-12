@@ -11,6 +11,12 @@
          tenants.renews_at. MUST stay ahead of the seed changesets below: 901 inserts
          tenant_features rows, and Liquibase applies includes in declaration order. -->
     <include file="db/changelog/v1.0.0/030-tenant-feature-override-flag.xml"/>
+    <!-- 040 records the platform_db RLS POSTURE — a deliberate absence, not an omission — and makes
+         impersonation_log append-only. It adds NO policy and enables NO row security: read its
+         header before touching RLS here, it measures what the fleet-standard policy would do to
+         the console (0 rows read, 42501 on write). Placed before the seeds only for ordering
+         hygiene; it touches no seeded row. -->
+    <include file="db/changelog/v1.0.0/040-platform-db-rls-posture.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-platform-users.xml"/>
     <include file="db/changelog/v1.0.0/901-seed-demo-tenant.xml"/>
     <!-- 910 rotates the SuperAdmin credential (D-03). MUST stay after 900: it deactivates the row
