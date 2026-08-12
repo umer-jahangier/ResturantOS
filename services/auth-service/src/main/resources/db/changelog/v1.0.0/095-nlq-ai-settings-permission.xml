@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Program C. `nlq.settings.manage` — may this person set the restaurant's own AI provider and
+      API key.
+
+      ══ What the screen is ══
+
+      /app/settings/ai lets a tenant supply their OWN AI API key. Until now nlq-service read ONE
+      fleet-wide key from deploy config (`restaurantos.nlq.anthropic.api-key`), so every tenant's
+      NLQ traffic billed to a single Anthropic account with no per-tenant attribution, quota or
+      isolation. That is a multi-tenancy defect, not merely an absent feature.
+
+      ══ Why this is NOT nlq.query.run ══
+
+      `nlq.query.run` (changeset 046) is "ask a question", held by OWNER, TENANT_ADMIN, MANAGER and
+      ACCOUNTANT. This is "hand the platform a credential that bills to our account, and decide
+      whose account every question in this restaurant is charged to from now on". They share a
+      noun and nothing else — the precedent for splitting on exactly that is 091 (pos.tax.manage),
+      093 (pos.service_charge.manage) and 19b (pos.tables.admin).
+
+      ══ Why a PERMISSION and not a role check ══
+
+      An earlier attempt at this feature (origin/Mufazzal @ d11d4ae5) guarded its endpoints with
+      @PreAuthorize("hasAnyAuthority('ROLE_OWNER','ROLE_TENANT_ADMIN')"). Shared-lib's
+      JwtAuthenticationFilter builds authorities from the raw `roles` and `permissions` claims with
+      SimpleGrantedAuthority::new and NEVER adds a ROLE_ prefix, so a real owner's token carries
+      OWNER, never ROLE_OWNER — and hasAnyAuthority is an exact string match. Every endpoint on
+      that branch 403s the owner it was built for: a complete settings surface that reads correctly
+      and cannot run.
+
+      A permission also lets changeset 092's tenant custom roles be granted this; a hard-coded role
+      list never can.
+
+      ══ Who holds it ══
+
+      OWNER and TENANT_ADMIN only — the same two personas /app/settings already admits, and the
+      same holder set 089, 090, 091 and 093 chose.
+
+      MANAGER is deliberately excluded, including from the READ. Unlike the service charge (093),
+      where a manager must be able to look up a number printed on every guest's bill, there is
+      nothing here a manager needs to explain to anyone: the screen shows a provider, a key state,
+      and the last four characters of a credential. Excluding them keeps the masked hint and the
+      billing posture inside the two roles that own the commercial relationship.
+
+      This widens nothing: before this changeset no role could set an AI key, because no endpoint
+      existed that could.
+
+      ══ Why the grant is explicit ══
+
+      Same reason 055, 059, 082, 083, 085, 088, 089, 090, 091 and 093 each give: changeset 036's
+      blanket "grant every permission to OWNER / TENANT_ADMIN" statements are runOnChange="false"
+      and ran ONCE at initial database creation. They do NOT retroactively pick up a permission
+      added later. A permission that no role holds does not fail at startup, does not break a test,
+      and produces a clean confident 403 for every user including OWNER — indistinguishable from a
+      deliberate denial. Hence the verification changeSet below, which RAISEs rather than warns.
+    -->
+
+    <changeSet id="auth-1.0.0-095-nlq-ai-settings-manage" author="restaurantos-agent" runOnChange="false">
+        <comment>nlq.settings.manage — set the tenant's own AI provider and API key; held by OWNER and TENANT_ADMIN</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('nlq.settings.manage', 'nlq', 'Set this restaurant''s own AI provider and API key for natural-language queries')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'nlq.settings.manage'),
+              ('TENANT_ADMIN', 'nlq.settings.manage')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'nlq.settings.manage';
+                DELETE FROM permissions WHERE code = 'nlq.settings.manage';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-095-verify-nlq-ai-settings-manage" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if nlq.settings.manage exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'nlq.settings.manage';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'nlq.settings.manage is defined but granted to no role. nlq-service refuses every call to /api/v1/nlq/settings/ai without it, so the Settings -> AI screen would render an access refusal for every user on every tenant including OWNER - as an ordinary-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

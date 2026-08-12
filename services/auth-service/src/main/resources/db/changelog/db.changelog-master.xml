@@ -176,4 +176,12 @@
          absence at every layer — V15 forbids a `sells_all` flag by name and 086 gives the reason. -->
     <include file="db/changelog/v1.0.0/094-user-menu-category-assignments.xml"/>
 
+    <!-- 094: nlq.settings.manage. A tenant supplying their OWN AI provider + API key is a
+         different decision from running a query (046's nlq.query.run): it decides whose account
+         every question in the restaurant bills to. A PERMISSION rather than a role check, because
+         shared-lib's JwtAuthenticationFilter never emits a ROLE_ prefix — an earlier attempt at
+         this feature used hasAnyAuthority('ROLE_OWNER',…) and 403'd every caller including the
+         owner. Explicit and verified for the reason 088-093 give. -->
+    <include file="db/changelog/v1.0.0/095-nlq-ai-settings-permission.xml"/>
+
 </databaseChangeLog>

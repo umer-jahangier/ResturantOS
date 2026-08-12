@@ -78,8 +78,25 @@ public class RouteFeatureMap {
      * Returns {@code true} for routes that consume a per-tenant quota.
      * Currently only NLQ has a quota; the counter is owned by the NLQ service
      * and the gateway reads-only to enforce the limit (seam documented in SUMMARY).
+     *
+     * <h3>Why this matches the QUERY path and not the whole {@code /api/v1/nlq/} prefix</h3>
+     *
+     * <p>It used to be {@code startsWith("/api/v1/nlq/")}, which was harmless only because
+     * {@code /api/v1/nlq/query} was the sole endpoint under it. Program C adds
+     * {@code /api/v1/nlq/settings/ai} — the screen where a tenant supplies their OWN API key — and
+     * under the old prefix:
+     *
+     * <blockquote>a tenant who had burned their monthly NLQ allowance would get a 429 on the very
+     * screen whose purpose is to stop them consuming the platform's allowance.</blockquote>
+     *
+     * <p>A quota is a spend cap on generated queries. Reading or changing configuration spends
+     * nothing, so it must not be metered. All seven quota tests in {@code FeatureFlagFilterIT}
+     * already target {@code /api/v1/nlq/query}, so narrowing this breaks none of them.
+     *
+     * <p>The {@code FEATURE_NLQ} gate from {@link #featureFor} still applies to the settings path —
+     * a tenant without the NLQ feature has no business configuring it. Only the QUOTA is narrowed.
      */
     public boolean isQuotaBearing(String path) {
-        return path.startsWith("/api/v1/nlq/");
+        return path.startsWith("/api/v1/nlq/query");
     }
 }

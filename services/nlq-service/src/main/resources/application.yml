@@ -59,6 +59,37 @@ management:
 restaurantos:
   internal:
     secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret}
+  # ── Field encryption for the per-tenant AI API key ──────────────────────────────
+  #
+  # NOTE THE ABSENCE of a `restaurantos.encryption.key` block here, and do not "helpfully" add one
+  # by copying auth-service:128 or hr-service:75. Both write
+  #
+  #     encryption:
+  #       key: ${FIELD_ENCRYPTION_KEY:}
+  #
+  # and that shape is a STARTUP CRASH whenever the environment variable is unset. The empty default
+  # makes the property PRESENT-but-blank, so shared-lib's
+  # @ConditionalOnProperty("restaurantos.encryption.key") matches, EncryptionAutoConfiguration runs,
+  # and `new SecretKeySpec(Base64.decode(""), "AES")` throws `IllegalArgumentException: Empty key`
+  # — the context never comes up. Measured here on 2026-08-12: adding that block took all 14
+  # NlqServiceIT tests from green to "Failed to load ApplicationContext".
+  #
+  # It is invisible on the live fleet only because deploy/.env sets FIELD_ENCRYPTION_KEY and
+  # scripts/local-service-env.sh `set -a`-sources it. auth-service and hr-service are one unset
+  # variable away from the same crash; that is pre-existing and is reported, not fixed here.
+  #
+  # nlq-service therefore builds its own EncryptionService inside AiKeyCipher from a value it
+  # checks for blankness first. Consequences of an unset key, by design:
+  #   * startup logs a WARN naming the variable — it does NOT refuse to boot, because nlq-service
+  #     runs in production without it today and refusing would take NLQ from every tenant who never
+  #     set a key;
+  #   * the settings WRITE path returns a named 503 AI_CREDENTIAL_STORAGE_UNAVAILABLE;
+  #   * the resolver treats it as "no tenant key" and uses the platform key, so queries keep working.
+  #
+  # ROTATION HAZARD: once any tenant saves a key, FIELD_ENCRYPTION_KEY is load-bearing for
+  # nlq-service. Rotating it invalidates every stored credential and there is no re-encrypt tooling
+  # anywhere in this repo (hr-service and purchasing-service carry the identical latent risk).
+  ai-encryption-key: ${FIELD_ENCRYPTION_KEY:}
   # Source of truth for @RequiresFeature checks — shared-lib resolves a feature-flag cache miss
   # from platform-admin (which owns tenant_features). Without it every gated endpoint 403s.
   platform-admin:
@@ -81,6 +112,11 @@ restaurantos:
       # would hard-fail the API. Do not reintroduce dated IDs here.
       model-sql: ${ANTHROPIC_MODEL_SQL:claude-sonnet-4-6}
       model-narrative: ${ANTHROPIC_MODEL_NARRATIVE:claude-haiku-4-5}
+    # How many times an hour one tenant may save an AI key. The save performs a live probe against
+    # the provider, which is the only tenant-input-driven OUTBOUND request in this service — an
+    # egress oracle and a credential-stuffing harness if left uncapped. 10/hour is far above honest
+    # use (an owner pastes a key once) and far below useful for abuse. See AiSettingsProbeRateLimiter.
+    ai-settings-probe-hourly-limit: ${NLQ_AI_SETTINGS_PROBE_HOURLY_LIMIT:10}
     monthly-quota-default: ${NLQ_MONTHLY_QUOTA_DEFAULT:500}
     user-hourly-limit: ${NLQ_USER_HOURLY_LIMIT:30}
     max-result-rows: ${NLQ_MAX_RESULT_ROWS:10000}

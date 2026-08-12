@@ -3,7 +3,7 @@ package io.restaurantos.nlq.service;
 import io.restaurantos.nlq.NlqServiceApplication;
 import io.restaurantos.nlq.audit.NlqQueryLogEntity;
 import io.restaurantos.nlq.audit.NlqQueryLogRepository;
-import io.restaurantos.nlq.claude.ClaudeClient;
+import io.restaurantos.nlq.llm.NlqLlmGateway;
 import io.restaurantos.nlq.claude.ClaudeUnavailableException;
 import io.restaurantos.nlq.dto.NlqQueryResponse;
 import io.restaurantos.nlq.execution.NlqRowCapExceededException;
@@ -50,7 +50,7 @@ import static org.mockito.Mockito.when;
 /**
  * The real proof for plan 12-07 / NLQ-01 / NLQ-02: a Testcontainers Postgres (nlq_db) + Redis
  * (quota + cache) + ClickHouse (real {@code nlq_readonly} user, applied from the actual
- * {@code deploy/clickhouse/V001}/{@code V002} files on disk) — {@link ClaudeClient} is
+ * {@code deploy/clickhouse/V001}/{@code V002} files on disk) — {@link NlqLlmGateway} is
  * {@code @MockitoBean}-stubbed so the test supplies "generated" SQL directly, which is exactly
  * the threat model: Claude's output is untrusted either way, so a stub returning hostile SQL is a
  * faithful simulation of a compromised or hallucinating model.
@@ -179,7 +179,7 @@ class NlqServiceIT {
         r.add("restaurantos.nlq.user-hourly-limit", () -> String.valueOf(TEST_HOURLY_LIMIT));
         r.add("restaurantos.nlq.monthly-quota-default", () -> String.valueOf(TEST_MONTHLY_LIMIT));
         r.add("restaurantos.nlq.cache-ttl-seconds", () -> "60");
-        // No real Anthropic key needed — ClaudeClient itself is @MockitoBean-replaced below.
+        // No real Anthropic key needed — NlqLlmGateway itself is @MockitoBean-replaced below.
         r.add("restaurantos.nlq.anthropic.api-key", () -> "unused-in-this-it");
 
         r.add("eureka.client.enabled", () -> "false");
@@ -189,7 +189,7 @@ class NlqServiceIT {
     }
 
     @MockitoBean
-    private ClaudeClient claudeClient;
+    private NlqLlmGateway llmGateway;
 
     @Autowired
     private NlqService nlqService;
@@ -256,9 +256,9 @@ class NlqServiceIT {
         seedOrderFact(tenantId, branchId, "ORD-1", 10000L);
         seedOrderFact(tenantId, branchId, "ORD-2", 20000L);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
-        when(claudeClient.narrate(anyString(), anyList())).thenReturn("Two orders were found.");
+        when(llmGateway.narrate(any(), anyString(), anyList())).thenReturn("Two orders were found.");
 
         NlqQueryResponse response = nlqService.query("What are my recent orders?", ctx);
 
@@ -287,7 +287,7 @@ class NlqServiceIT {
 
         // A UNION is an unprovable shape (12-04-SUMMARY: the tenant predicate cannot be proven
         // present on every arm by re-parse) — the second arm is deliberately unfiltered.
-        when(claudeClient.generateSql(anyString(), anyString())).thenReturn(
+        when(llmGateway.generateSql(any(), anyString(), anyString())).thenReturn(
                 "SELECT order_no, total_paisa FROM sales_order_facts "
                         + "UNION SELECT order_no, total_paisa FROM sales_order_facts");
 
@@ -318,9 +318,9 @@ class NlqServiceIT {
         seedOrderFact(tenantId, branch1, "BRANCH1-ORDER", 10000L);
         seedOrderFact(tenantId, branch2, "BRANCH2-ORDER", 20000L);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
-        when(claudeClient.narrate(anyString(), anyList())).thenReturn(null);
+        when(llmGateway.narrate(any(), anyString(), anyList())).thenReturn(null);
 
         NlqQueryResponse response = nlqService.query("show me my branch's orders", ctx);
 
@@ -339,7 +339,7 @@ class NlqServiceIT {
         QueryContext ctx = ctx(tenantId, null, "MANAGER", false, userId);
         seedTenantContext(ctx);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
 
         assertThatThrownBy(() -> nlqService.query("show me everything", ctx))
@@ -358,7 +358,7 @@ class NlqServiceIT {
         QueryContext ctx = ctx(tenantId, branchId, "MANAGER", false, userId);
         seedTenantContext(ctx);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("DROP TABLE sales_order_facts");
 
         assertThatThrownBy(() -> nlqService.query("delete all my sales data", ctx))
@@ -386,7 +386,7 @@ class NlqServiceIT {
 
         long before = countClickHouseRows("sales_order_facts");
 
-        when(claudeClient.generateSql(anyString(), anyString())).thenReturn(
+        when(llmGateway.generateSql(any(), anyString(), anyString())).thenReturn(
                 "INSERT INTO sales_order_facts (tenant_id) VALUES ('" + tenantId + "')");
 
         assertThatThrownBy(() -> nlqService.query("add a fake order", ctx))
@@ -408,7 +408,7 @@ class NlqServiceIT {
         QueryContext ctx = ctx(tenantId, branchId, "MANAGER", false, userId);
         seedTenantContext(ctx);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT customer_id FROM sales_order_facts");
 
         assertThatThrownBy(() -> nlqService.query("who are my customers", ctx))
@@ -427,7 +427,7 @@ class NlqServiceIT {
         QueryContext ctx = ctx(tenantId, branchId, "MANAGER", false, userId);
         seedTenantContext(ctx);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT * FROM system.users");
 
         assertThatThrownBy(() -> nlqService.query("show me all users", ctx))
@@ -453,7 +453,7 @@ class NlqServiceIT {
             seedOrderFact(tenantId, branchId, "ROWCAP-" + i, 1000L);
         }
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
 
         assertThatThrownBy(() -> nlqService.query("list every order", ctx))
@@ -477,14 +477,14 @@ class NlqServiceIT {
         QueryContext ctx = ctx(tenantId, branchId, "MANAGER", false, userId);
         seedTenantContext(ctx);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no FROM sales_order_facts");
 
         // Exhaust the hourly limit (2) with distinct, successful (non-cached) requests.
         for (int i = 0; i < TEST_HOURLY_LIMIT; i++) {
             nlqService.query("quota question " + i, ctx);
         }
-        verify(claudeClient, times((int) TEST_HOURLY_LIMIT)).generateSql(anyString(), anyString());
+        verify(llmGateway, times((int) TEST_HOURLY_LIMIT)).generateSql(any(), anyString(), anyString());
 
         assertThatThrownBy(() -> nlqService.query("one too many", ctx))
                 .isInstanceOf(QuotaExceededException.class)
@@ -492,8 +492,8 @@ class NlqServiceIT {
                         .isEqualTo(QuotaExceededException.Quota.HOURLY_USER));
 
         // The rejected request never reached Claude — still exactly TEST_HOURLY_LIMIT calls.
-        verify(claudeClient, times((int) TEST_HOURLY_LIMIT)).generateSql(anyString(), anyString());
-        verify(claudeClient, never()).narrate(anyString(), anyList());
+        verify(llmGateway, times((int) TEST_HOURLY_LIMIT)).generateSql(any(), anyString(), anyString());
+        verify(llmGateway, never()).narrate(any(), anyString(), anyList());
     }
 
     // ── Test 10: a repeated question inside 60s is exactly one Claude call ──────
@@ -508,7 +508,7 @@ class NlqServiceIT {
 
         seedOrderFact(tenantId, branchId, "CACHE-ORDER", 5000L);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
 
         String question = "how much did I make on cache orders";
@@ -518,7 +518,7 @@ class NlqServiceIT {
         assertThat(first.cacheHit()).isFalse();
         assertThat(second.cacheHit()).isTrue();
         assertThat(second.rows()).isEqualTo(first.rows());
-        verify(claudeClient, times(1)).generateSql(anyString(), anyString());
+        verify(llmGateway, times(1)).generateSql(any(), anyString(), anyString());
 
         List<NlqQueryLogEntity> logs = queryLogRepository.findAll().stream()
                 .filter(e -> tenantId.equals(e.getTenantId())).toList();
@@ -539,7 +539,7 @@ class NlqServiceIT {
 
         seedOrderFact(tenantId, branchId, "IMPERSONATED-ORDER", 5000L);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
 
         nlqService.query("impersonated question", ctx);
@@ -569,7 +569,7 @@ class NlqServiceIT {
         seedTenantContext(ctxB);
         seedOrderFact(tenantB, branchB, "TENANT-B-ORDER", 22222L);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenReturn("SELECT order_no, total_paisa FROM sales_order_facts");
 
         String question = "cross tenant cache poisoning probe";
@@ -582,7 +582,7 @@ class NlqServiceIT {
 
         assertThat(responseA.cacheHit()).isFalse();
         assertThat(responseB.cacheHit()).isFalse();
-        verify(claudeClient, times(2)).generateSql(anyString(), anyString());
+        verify(llmGateway, times(2)).generateSql(any(), anyString(), anyString());
 
         List<String> tenantBOrderNos = responseB.rows().stream()
                 .map(row -> String.valueOf(row.get("order_no"))).toList();
@@ -599,7 +599,7 @@ class NlqServiceIT {
         QueryContext ctx = ctx(tenantId, branchId, "MANAGER", false, userId);
         seedTenantContext(ctx);
 
-        when(claudeClient.generateSql(anyString(), anyString()))
+        when(llmGateway.generateSql(any(), anyString(), anyString()))
                 .thenThrow(new ClaudeUnavailableException("simulated outage"));
 
         assertThatThrownBy(() -> nlqService.query("anything", ctx))
