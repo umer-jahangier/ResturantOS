@@ -39,7 +39,7 @@
             ALTER TABLE users ENABLE ROW LEVEL SECURITY;
             ALTER TABLE users FORCE ROW LEVEL SECURITY;
             CREATE POLICY tenant_isolation ON users
-                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
             GRANT SELECT, INSERT, UPDATE, DELETE ON users TO auth_user;
         </sql>
         <rollback>

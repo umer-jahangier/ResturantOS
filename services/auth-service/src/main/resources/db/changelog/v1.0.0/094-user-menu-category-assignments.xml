@@ -132,7 +132,7 @@
             ALTER TABLE user_menu_category_assignments ENABLE ROW LEVEL SECURITY;
             ALTER TABLE user_menu_category_assignments FORCE ROW LEVEL SECURITY;
             CREATE POLICY tenant_isolation ON user_menu_category_assignments
-                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
             GRANT SELECT, INSERT, UPDATE, DELETE ON user_menu_category_assignments TO auth_user;
         </sql>
         <rollback>

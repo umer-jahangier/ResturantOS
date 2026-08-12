@@ -34,7 +34,11 @@ CREATE TABLE nlq_tenant_ai_settings (
     api_key_last4        VARCHAR(4),
 
     -- sha256(key) hex. Never returned by the API — it is a server-side equality probe only.
-    api_key_fingerprint  CHAR(64),
+    -- VARCHAR, not CHAR. Postgres CHAR(n) is blank-padded, so a fingerprint read back would
+    -- carry trailing spaces and an equality check against a freshly-computed digest would
+    -- fail — the exact question this column exists to answer. It also made Hibernate refuse
+    -- to start: it maps String to varchar and found bpchar.
+    api_key_fingerprint  VARCHAR(64),
 
     -- UNSET   : no tenant key, using the platform key
     -- UNVERIFIED: saved, but the save-time probe could not reach the provider (outage) —
