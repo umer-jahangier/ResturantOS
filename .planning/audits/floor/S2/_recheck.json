@@ -1,0 +1,18 @@
+{
+  "ownerRevokeWithinCeiling": 204,
+  "assignmentsAfterOwnerRevoke": [
+    "CASHIER"
+  ],
+  "adminRevokeAboveCeiling": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED"
+  },
+  "assignmentsAfterRefusedRevoke": [
+    "CASHIER",
+    "OWNER"
+  ],
+  "managerRevoke": {
+    "status": 403,
+    "code": "PERMISSION_DENIED"
+  }
+}
