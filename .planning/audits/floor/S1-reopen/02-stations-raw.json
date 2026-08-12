@@ -1,0 +1,83 @@
+[
+  {
+    "id": "789ce266-5808-48ec-a39a-9c7755961b44",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "BAR",
+    "name": "Main bar",
+    "active": true,
+    "stationType": "BAR",
+    "displayFamily": "BAR"
+  },
+  {
+    "id": "775962d1-5f0a-451c-acda-a69599351c80",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "GRILL",
+    "name": "Hot line",
+    "active": true,
+    "stationType": "KITCHEN",
+    "displayFamily": "KITCHEN"
+  },
+  {
+    "id": "092b2622-253a-46c9-87b9-52e71334c6ca",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "DGB28334",
+    "name": "Diag Bar 28334",
+    "active": true,
+    "stationType": "BAR",
+    "displayFamily": "BAR"
+  },
+  {
+    "id": "ea8b3cfe-a84b-4af5-a5c5-fed05c0b2911",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "DGS43431",
+    "name": "Diag Dessert 43431",
+    "active": true,
+    "stationType": "DESSERT",
+    "displayFamily": "KITCHEN"
+  },
+  {
+    "id": "96b4f3b0-ee4c-4fa5-994e-00c13ecdaeda",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "DGS20334",
+    "name": "Diag Dessert 20334",
+    "active": true,
+    "stationType": "DESSERT",
+    "displayFamily": "KITCHEN"
+  },
+  {
+    "id": "53086ba0-6f16-412f-b409-fb65eb898c76",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "PANTRY1",
+    "name": "Cold prep",
+    "active": true,
+    "stationType": "PANTRY",
+    "displayFamily": "KITCHEN"
+  },
+  {
+    "id": "5f0f5e2c-c6c8-47e8-b4a4-d3e9268896fc",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "EXPO7",
+    "name": "Pass counter",
+    "active": false,
+    "stationType": "EXPO",
+    "displayFamily": "EXPO"
+  },
+  {
+    "id": "57d96c9d-6687-4faa-86b4-e1a6304d2eda",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "FRY9",
+    "name": "Fry station",
+    "active": false,
+    "stationType": "KITCHEN",
+    "displayFamily": "KITCHEN"
+  },
+  {
+    "id": "16dd6abb-392c-4de6-8e34-609c7d48e608",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "code": "SALAD3",
+    "name": "Garde manger",
+    "active": false,
+    "stationType": "PANTRY",
+    "displayFamily": "KITCHEN"
+  }
+]

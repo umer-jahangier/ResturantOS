@@ -1,0 +1,93 @@
+{
+  "crossBranch": {
+    "readRooftop": {
+      "status": 403,
+      "body": "{\"detail\":\"Cannot read station routing for a different branch\",\"instance\":\"/api/v1/pos/menu/routing\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+    },
+    "writeRooftopCategory": {
+      "status": 403,
+      "body": "{\"detail\":\"Cannot access menu pricing for a different branch\",\"instance\":\"/api/v1/pos/menu/categories/6cc887fb-2453-449b-9144-259d8d3a9281/station\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\""
+    },
+    "writeRooftopItem": {
+      "status": 403,
+      "body": "{\"detail\":\"Cannot access menu pricing for a different branch\",\"instance\":\"/api/v1/pos/menu/items/0fc28f38-8170-47fb-b0c6-e96f68c5423f/station\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+    }
+  },
+  "bogusStation": {
+    "status": 404,
+    "body": "{\"detail\":\"Station not found for this branch: 00000000-0000-0000-0000-000000000001\",\"instance\":\"/api/v1/pos/menu/categories/6cc887fb-2453-449b-9144-259d8d3a9281/station\",\"status\":404,\"title\":\"NOT_FOUND\",\"type\":\"urn:resta"
+  },
+  "hqAfter": {
+    "drinks": {
+      "categoryId": "6cc887fb-2453-449b-9144-259d8d3a9281",
+      "categoryName": "Drinks",
+      "sortOrder": 2,
+      "active": true,
+      "stationId": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "stationCode": "BAR",
+      "stationName": "Main bar"
+    },
+    "pinacolada": {
+      "itemId": "0fc28f38-8170-47fb-b0c6-e96f68c5423f",
+      "itemName": "Pinacolada",
+      "categoryId": "6cc887fb-2453-449b-9144-259d8d3a9281",
+      "categoryName": "Drinks",
+      "active": true,
+      "stationId": null,
+      "effectiveStationId": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "effectiveStationCode": "BAR",
+      "effectiveStationName": "Main bar",
+      "source": "CATEGORY"
+    },
+    "samosa": {
+      "itemId": "18011d87-31ff-4cc2-a600-4ffd366cd2b2",
+      "itemName": "Chicken Samosa",
+      "categoryId": "5258fa35-679b-40c4-b1ec-f1d66f848d1a",
+      "categoryName": "Starters",
+      "active": true,
+      "stationId": "775962d1-5f0a-451c-acda-a69599351c80",
+      "effectiveStationId": "775962d1-5f0a-451c-acda-a69599351c80",
+      "effectiveStationCode": "GRILL",
+      "effectiveStationName": "Hot line",
+      "source": "ITEM"
+    }
+  },
+  "controlTokenObtained": true,
+  "crossTenant": {
+    "readTerraceRouting": {
+      "status": 403,
+      "body": "{\"detail\":\"Cannot read station routing for a different branch\",\"instance\":\"/api/v1/pos/menu/routing\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+    },
+    "writeTerraceCategory": {
+      "status": 403,
+      "body": "{\"detail\":\"Cannot access menu pricing for a different branch\",\"instance\":\"/api/v1/pos/menu/categories/6cc887fb-2453-449b-9144-259d8d3a9281/station\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+    },
+    "writeTerraceItem": {
+      "status": 403,
+      "body": "{\"detail\":\"Cannot access menu pricing for a different branch\",\"instance\":\"/api/v1/pos/menu/items/0fc28f38-8170-47fb-b0c6-e96f68c5423f/station\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:forbidden\"}"
+    }
+  },
+  "hqAfterCrossTenant": {
+    "drinks": {
+      "categoryId": "6cc887fb-2453-449b-9144-259d8d3a9281",
+      "categoryName": "Drinks",
+      "sortOrder": 2,
+      "active": true,
+      "stationId": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "stationCode": "BAR",
+      "stationName": "Main bar"
+    },
+    "pinacolada": {
+      "itemId": "0fc28f38-8170-47fb-b0c6-e96f68c5423f",
+      "itemName": "Pinacolada",
+      "categoryId": "6cc887fb-2453-449b-9144-259d8d3a9281",
+      "categoryName": "Drinks",
+      "active": true,
+      "stationId": null,
+      "effectiveStationId": "789ce266-5808-48ec-a39a-9c7755961b44",
+      "effectiveStationCode": "BAR",
+      "effectiveStationName": "Main bar",
+      "source": "CATEGORY"
+    }
+  }
+}

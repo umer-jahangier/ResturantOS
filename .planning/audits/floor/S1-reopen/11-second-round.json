@@ -1,0 +1,22 @@
+{
+  "orderNo": "ORD-20260812-0418",
+  "lines": [],
+  "boards": {
+    "BAR": {
+      "h1": "Main bar",
+      "alerts": [],
+      "mine": [
+        "1 ORD-20260812-0418 00:19 DINE-IN No table 1× Pinacolada"
+      ],
+      "hasOrder": true
+    },
+    "GRILL": {
+      "h1": "Hot line",
+      "alerts": [],
+      "mine": [
+        "1 ORD-20260812-0418 00:40 DINE-IN No table 1× Chicken Karahi"
+      ],
+      "hasOrder": true
+    }
+  }
+}

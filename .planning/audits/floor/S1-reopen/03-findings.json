@@ -1,0 +1,115 @@
+{
+  "categorySelectOptions": [
+    {
+      "label": "Not routed — DEFAULT board",
+      "value": ""
+    },
+    {
+      "label": "Main bar (BAR)",
+      "value": "789ce266-5808-48ec-a39a-9c7755961b44"
+    },
+    {
+      "label": "Hot line (GRILL)",
+      "value": "775962d1-5f0a-451c-acda-a69599351c80"
+    },
+    {
+      "label": "Diag Bar 28334 (DGB28334)",
+      "value": "092b2622-253a-46c9-87b9-52e71334c6ca"
+    },
+    {
+      "label": "Diag Dessert 43431 (DGS43431)",
+      "value": "ea8b3cfe-a84b-4af5-a5c5-fed05c0b2911"
+    },
+    {
+      "label": "Diag Dessert 20334 (DGS20334)",
+      "value": "96b4f3b0-ee4c-4fa5-994e-00c13ecdaeda"
+    },
+    {
+      "label": "Cold prep (PANTRY1)",
+      "value": "53086ba0-6f16-412f-b409-fb65eb898c76"
+    }
+  ],
+  "clear": {
+    "toasts": [
+      "Drinks is no longer routed — its tickets go to the DEFAULT board"
+    ],
+    "puts": [
+      {
+        "m": "PUT",
+        "s": 204,
+        "u": "http://localhost:8080/api/v1/pos/menu/categories/6cc887fb-2453-449b-9144-259d8d3a9281/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "pinacolada": {
+      "effective": "BAR",
+      "source": "CATEGORY",
+      "text": "Fires to BAR · From the category",
+      "selected": "Follow category — Main bar (BAR)"
+    }
+  },
+  "setCategory": {
+    "toasts": [
+      "Drinks now fires to Main bar (BAR)"
+    ],
+    "puts": [
+      {
+        "m": "PUT",
+        "s": 204,
+        "u": "http://localhost:8080/api/v1/pos/menu/categories/6cc887fb-2453-449b-9144-259d8d3a9281/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "pinacolada": {
+      "effective": "BAR",
+      "source": "CATEGORY",
+      "text": "Fires to BAR · From the category",
+      "selected": "Follow category — Main bar (BAR)"
+    }
+  },
+  "setItem": {
+    "toasts": [
+      "Chicken Samosa now fires to Hot line (GRILL)"
+    ],
+    "puts": [
+      {
+        "m": "PUT",
+        "s": 200,
+        "u": "http://localhost:8080/api/v1/pos/menu/items/18011d87-31ff-4cc2-a600-4ffd366cd2b2/station?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ],
+    "row": {
+      "effective": "PANTRY1",
+      "source": "CATEGORY",
+      "text": "Fires to PANTRY1 · From the category",
+      "selected": "Follow category — Cold prep (PANTRY1)"
+    }
+  },
+  "afterReload": {
+    "drinksCategory": {
+      "selected": "Main bar (BAR)"
+    },
+    "pinacolada": {
+      "effective": "BAR",
+      "source": "CATEGORY",
+      "text": "Fires to BAR · From the category",
+      "selected": "Follow category — Main bar (BAR)"
+    },
+    "freshLime": {
+      "effective": "BAR",
+      "source": "CATEGORY",
+      "text": "Fires to BAR · From the category",
+      "selected": "Follow category — Main bar (BAR)"
+    },
+    "chickenSamosa": {
+      "effective": "GRILL",
+      "source": "ITEM",
+      "text": "Fires to GRILL · Set for this item",
+      "selected": "Hot line (GRILL)"
+    },
+    "otherStarter": {
+      "effective": "PANTRY1",
+      "source": "CATEGORY",
+      "text": "Fires to PANTRY1 · From the category",
+      "selected": "Follow category — Cold prep (PANTRY1)"
+    }
+  }
+}

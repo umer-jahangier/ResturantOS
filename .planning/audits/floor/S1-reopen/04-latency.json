@@ -1,0 +1,42 @@
+{
+  "initialTimings": [
+    {
+      "status": 200,
+      "ms": 2810
+    }
+  ],
+  "clearTrail": [
+    {
+      "sec": 1,
+      "effective": "GRILL",
+      "source": "ITEM",
+      "selected": "Hot line (GRILL)"
+    },
+    {
+      "sec": 2,
+      "effective": "GRILL",
+      "source": "ITEM",
+      "selected": "Hot line (GRILL)"
+    },
+    {
+      "sec": 3,
+      "effective": "PANTRY1",
+      "source": "CATEGORY",
+      "selected": "Follow category — Cold prep (PANTRY1)"
+    }
+  ],
+  "settledAfterMs": 3091,
+  "refetchTimings": [
+    {
+      "status": 200,
+      "ms": 2437
+    }
+  ],
+  "reSetSettledMs": 3065,
+  "reSetTimings": [
+    {
+      "status": 200,
+      "ms": 2665
+    }
+  ]
+}

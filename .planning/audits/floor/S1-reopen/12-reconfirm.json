@@ -1,0 +1,45 @@
+{
+  "page": {
+    "clickableFromSidebar": 1,
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/menu/routing"
+  },
+  "head": {
+    "h1": "Station Routing",
+    "summary": null,
+    "alerts": []
+  },
+  "rows": {
+    "pinacolada": null,
+    "freshLime": null,
+    "chickenSamosa": null,
+    "auditItem": null
+  },
+  "boards": {
+    "BAR": {
+      "h1": "Main bar",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "has0415": true,
+      "has0418": true
+    },
+    "GRILL": {
+      "h1": "Hot line",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "has0415": true,
+      "has0418": true
+    },
+    "DEFAULT": {
+      "h1": "DEFAULT",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "has0415": true,
+      "has0418": false
+    }
+  }
+}

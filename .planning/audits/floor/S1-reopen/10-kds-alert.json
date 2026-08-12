@@ -1,0 +1,32 @@
+{
+  "kitchen": {
+    "/app/kitchen/BAR": {
+      "alerts": [],
+      "failedRequests": []
+    },
+    "/app/dashboard": {
+      "alerts": [],
+      "failedRequests": []
+    }
+  },
+  "cashier": {
+    "/app/kitchen/BAR": {
+      "alerts": [],
+      "failedRequests": []
+    },
+    "/app/dashboard": {
+      "alerts": [],
+      "failedRequests": []
+    }
+  },
+  "owner": {
+    "/app/menu/routing": {
+      "alerts": [],
+      "failedRequests": []
+    },
+    "/app/kitchen/BAR": {
+      "alerts": [],
+      "failedRequests": []
+    }
+  }
+}

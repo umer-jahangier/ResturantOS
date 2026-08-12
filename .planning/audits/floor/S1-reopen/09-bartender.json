@@ -1,0 +1,40 @@
+{
+  "email": "reopen.bar.880091@terrace.local",
+  "order": "ORD-20260812-0415",
+  "stationRows": [
+    "Main bar Bar — Bar screen",
+    "Hot line Kitchen — Kitchen screen",
+    "Diag Bar 28334 Bar — Bar screen",
+    "Diag Dessert 43431 Dessert — Kitchen screen",
+    "Diag Dessert 20334 Dessert — Kitchen screen",
+    "Cold prep Pantry — Kitchen screen"
+  ],
+  "summary": "They will see Main bar only.",
+  "index": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/kitchen/BAR",
+    "tiles": [],
+    "noActive": false,
+    "h1": "Main bar"
+  },
+  "board": {
+    "clickedTile": false,
+    "url": "http://localhost:3000/app/kitchen/BAR",
+    "h1": "Main bar",
+    "cardCount": 3,
+    "mine": [
+      "1 ORD-20260812-0415 07:15 DINE-IN No table 1× Pinacolada"
+    ],
+    "noActive": false,
+    "mentionsPinacolada": true,
+    "mentionsSamosa": false,
+    "alerts": []
+  },
+  "grill": {
+    "h1": null,
+    "cardCount": 0,
+    "mentionsSamosa": false,
+    "excerpt": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen GRILL Floating Terrace HQ Search… ⌘K C No such station This branch has no active station with the code \"GRILL\", or it is not one of yours. Check the code, or pick a board from all stations. All stations"
+  }
+}

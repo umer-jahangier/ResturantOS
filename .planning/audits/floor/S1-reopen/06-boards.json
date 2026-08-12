@@ -1,0 +1,107 @@
+{
+  "order": {
+    "orderNo": "ORD-20260812-0415",
+    "lines": []
+  },
+  "stationIndex": {
+    "url": "http://localhost:3000/app/kitchen",
+    "trouble": {
+      "bad": [],
+      "alerts": [
+        "Could not load branches."
+      ],
+      "url": "http://localhost:3000/app/kitchen"
+    },
+    "text": "Floating Terrace Could not load branches. Retry OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen Search… ⌘K D Kitchen — Stations The Pass — every check, whole Diag Dessert 43431 DGS43431 0 0 tickets 0 items Clear TICKETS BY STAGE 0 NEW 0 STARTED 0 PREPARING 0 READY Diag Dessert 20334 DGS20334 0 0 tickets 0 items Clear TICKETS BY STAGE 0 NEW 0 STARTED 0 PREPARING 0 READY Cold prep PANTRY1 69 69 tickets 115 items Oldest 9h 49m TICKETS BY STAGE 63 NEW 7 STARTED 0 PREPARING 1 READY DEFAULT DEFAULT 38 38 tickets 41 items Oldest 12h 14m TICKETS BY STAGE 22 NEW 6 STARTED 6 PREPARING 4 READY Main bar BAR 3 3 tickets 3 items Oldest 12h 14m TICKETS BY STAGE 2 NEW 0 STARTED 0 PREPARING 1 READY Hot line GRILL 3 3 tickets 3 items Oldest 44m TICKETS BY STAGE 2 NEW 0 STARTED 0 PREPARING 1 READY Diag Bar 28334 DGB28334 0 0 tickets 0 items Clear TICKETS BY STAGE 0 NEW 0 STARTED 0 PREPARING "
+  },
+  "boards": {
+    "BAR": {
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "Could not load branches."
+        ],
+        "url": "http://localhost:3000/app/kitchen/BAR"
+      },
+      "h1": "Main bar",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "cardCount": 0,
+      "hasOrder": true,
+      "mentions": {
+        "Pinacolada": true,
+        "Chicken Samosa": false,
+        "RX Beta 582578": false
+      },
+      "noStations": false,
+      "excerpt": "Floating Terrace Could not load branches. Retry OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen BAR Search… ⌘K D Main bar 3 tickets · 3 items Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 READY COLUMN All stations LIVE NEW 2 1 ORD-20260812-0415 01:07 DINE-IN No table 1× Pinacolada Pinacolada → Started 2 ORD-20260812-0032 12:14:29 LATE DINE-IN No table 1× Pinacolada Pinacolada → Started STARTED 0 Nothing here PREPARING 0 Nothing here READY"
+    },
+    "GRILL": {
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "Could not load branches."
+        ],
+        "url": "http://localhost:3000/app/kitchen/GRILL"
+      },
+      "h1": "Hot line",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "cardCount": 0,
+      "hasOrder": true,
+      "mentions": {
+        "Pinacolada": false,
+        "Chicken Samosa": true,
+        "RX Beta 582578": false
+      },
+      "noStations": false,
+      "excerpt": "Floating Terrace Could not load branches. Retry OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen GRILL Search… ⌘K D Hot line 3 tickets · 3 items Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 READY COLUMN All stations LIVE NEW 2 1 ORD-20260812-0415 01:14 DINE-IN No table 1× Chicken Samosa Chicken Samosa → Started 2 ORD-20260812-0367 45:10 LATE TAKEAWAY No table 1× Butter Naan Butter Naan → Started STARTED 0 Nothing here PREPARING 0 Nothing "
+    },
+    "DEFAULT": {
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "Could not load branches."
+        ],
+        "url": "http://localhost:3000/app/kitchen/DEFAULT"
+      },
+      "h1": "DEFAULT",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "cardCount": 0,
+      "hasOrder": true,
+      "mentions": {
+        "Pinacolada": false,
+        "Chicken Samosa": false,
+        "RX Beta 582578": true
+      },
+      "noStations": false,
+      "excerpt": "Floating Terrace Could not load branches. Retry OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen DEFAULT Search… ⌘K D DEFAULT 38 tickets · 41 items Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 1 / 4 READY COLUMN All stations LIVE NEW 22 1 ORD-20260812-0415 01:22 DINE-IN No table 1× RX Beta 582578 RX Beta 582578 → Started 2 ORD-20260812-0413 04:19 DINE-IN No table 1× RX Alpha 758504 R 1× RX Delta 758504 1× RX Gamma 758504 1× RX Beta 758504"
+    },
+    "PANTRY1": {
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "Could not load branches."
+        ],
+        "url": "http://localhost:3000/app/kitchen/PANTRY1"
+      },
+      "h1": "Cold prep",
+      "alerts": [
+        "Could not load branches."
+      ],
+      "cardCount": 0,
+      "hasOrder": false,
+      "mentions": {
+        "Pinacolada": false,
+        "Chicken Samosa": true,
+        "RX Beta 582578": false
+      },
+      "noStations": false,
+      "excerpt": "Floating Terrace Could not load branches. Retry OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Kitchen PANTRY1 Search… ⌘K D Cold prep 68 tickets · 113 items Diag Dessert 43431 Diag Dessert 20334 Cold prep DEFAULT Main bar Hot line Diag Bar 28334 1 / 7 READY COLUMN All stations LIVE NEW 62 1 ORD-20260812-0412 04:45 TAKEAWAY No table 1× Audit Item 52235 Extra cheese, Hot 1× Audit Item 60568 Audit Item 52235 → Started Audit Item 60568 → Started 2 ORD-20260812-0410 05:49 TAKEAWAY No table 1×"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "detail": "Invalid UUID string: null",
+  "instance": "/api/v1/pos/menu/routing",
+  "status": 422,
+  "title": "VALIDATION_FAILED",
+  "type": "urn:restaurantos:pos:validation-failed"
+}

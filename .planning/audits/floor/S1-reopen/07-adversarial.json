@@ -1,0 +1,81 @@
+{
+  "personas": {
+    "cashier": {
+      "inSidebar": 0,
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+        ],
+        "url": "http://localhost:3000/app/menu/routing"
+      },
+      "h1": "Station Routing",
+      "selects": 0,
+      "enabledSelects": 0,
+      "denied": false,
+      "alerts": [
+        "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+      ],
+      "excerpt": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Menu Routing Floating Terrace HQ Search… ⌘K E Station Routing Where each dish is made. Route a whole category — “all drinks go to the bar” — and override single it",
+      "apiWriteStatus": 403,
+      "apiWriteBody": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"c2194cbd-607a-4140-9c1a-6145ac28a106\"}}"
+    },
+    "waiter": {
+      "inSidebar": 0,
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+        ],
+        "url": "http://localhost:3000/app/menu/routing"
+      },
+      "h1": "Station Routing",
+      "selects": 0,
+      "enabledSelects": 0,
+      "denied": false,
+      "alerts": [
+        "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+      ],
+      "excerpt": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display MENU Service Charge Collapse App Menu Routing Floating Terrace HQ Search… ⌘K 6 Station Routing Where each dish is made. Route a whole category — “all drinks go to the bar” — and override single ite",
+      "apiWriteStatus": 403,
+      "apiWriteBody": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"fb3739de-f044-43ac-aa89-f9af832e6f3c\"}}"
+    },
+    "kitchen": {
+      "inSidebar": 0,
+      "trouble": {
+        "bad": [],
+        "alerts": [
+          "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+        ],
+        "url": "http://localhost:3000/app/menu/routing"
+      },
+      "h1": "Station Routing",
+      "selects": 0,
+      "enabledSelects": 0,
+      "denied": false,
+      "alerts": [
+        "You don't have access to menuYour signed-in role may not perform this action. An owner or administrator can change your role."
+      ],
+      "excerpt": "Floating Terrace OVERVIEW Dashboard ORDERS Kitchen Display Collapse App Menu Routing Floating Terrace HQ Search… ⌘K D Station Routing Where each dish is made. Route a whole category — “all drinks go to the bar” — and override single items where the rule does n",
+      "apiWriteStatus": 403,
+      "apiWriteBody": "{\"error\":{\"code\":\"PERMISSION_DENIED\",\"message\":\"You do not have permission to perform this action\",\"details\":[],\"traceId\":\"29e09c93-d256-4143-a01a-15bd32d178de\"}}"
+    },
+    "manager": {
+      "inSidebar": 1,
+      "trouble": {
+        "bad": [],
+        "alerts": [],
+        "url": "http://localhost:3000/app/menu/routing"
+      },
+      "h1": "Station Routing",
+      "selects": 74,
+      "enabledSelects": 74,
+      "denied": false,
+      "alerts": [],
+      "excerpt": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTIN",
+      "apiWriteStatus": 204,
+      "apiWriteBody": "null"
+    }
+  },
+  "error": "login failed for owner@control.local — timeout — url http://localhost:3000/login"
+}
