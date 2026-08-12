@@ -1,0 +1,12 @@
+{
+  "at": "2026-08-12T11:45:02.886Z",
+  "failures": [],
+  "notes": [
+    "role cards before: 11",
+    "in-use refusal shown: true",
+    "refusal counts: still assigned to 2 people",
+    "role cards after creating the throwaway: 12",
+    "unheld delete copy: names that nobody holds it",
+    "role cards after deleting it: 11"
+  ]
+}

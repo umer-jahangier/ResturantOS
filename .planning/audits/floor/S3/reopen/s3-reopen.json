@@ -1,0 +1,25 @@
+{
+  "at": "2026-08-12T11:41:43.345Z",
+  "failures": [
+    "/app/roles did NOT refuse the holder, who was never given its permission"
+  ],
+  "notes": [
+    "owner sidebar has /app/roles: true",
+    "CASHIER: 14 codes under [\"CRM\",\"POS\"]",
+    "builder counter: 4 of 78 selected",
+    "role survives reload: true",
+    "role \"Floor Captain\" offered by the assign select",
+    "holder sidebar: [\"/app/dashboard\",\"/app/pos\",\"/app/tables\",\"/app/settings/service-charge\",\"/app/dashboard\",\"/app/pos\"]",
+    "holder token status 200, roles [\"FLOOR_CAPTAIN\"], permissions [\"pos.menu.view\",\"pos.order.create\",\"pos.order.view\",\"pos.tables.admin\"]",
+    "/app/users as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Users | Floating Terrace — Ro",
+    "/app/finance/accounts as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Finance | Accounts | Floating T",
+    "/app/inventory as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Inventory | Floating Terrace ",
+    "/app/roles as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Roles | Floating Terrace — Ro",
+    "holder token AFTER edit: [\"pos.menu.view\",\"pos.order.create\",\"pos.order.view\"]",
+    "holder sidebar after edit: [\"/app/dashboard\",\"/app/pos\",\"/app/settings/service-charge\",\"/app/dashboard\",\"/app/pos\"]",
+    "/app/tables after edit → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Service Charge | Collapse | App | Tables | Floating Terrace — Rooftop | Search… | ⌘K | A | Tables | ",
+    "admin withheld banner: true",
+    "ceiling refusal shown on the form: true",
+    "cashier on /app/roles → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Service Charge | PEOPLE | Customers | Collapse | App | Roles | Floating Terrace HQ | Search… | ⌘K | E | Roles | What each"
+  ]
+}
