@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -140,6 +141,7 @@ class DiscountOnFiredCheckIT extends PosTestBase {
     @Autowired MenuCategoryRepository menuCategoryRepository;
     @Autowired OrderRepository orderRepository;
     @Autowired TenantContext tenantContext;
+    @Autowired JdbcTemplate jdbcTemplate;
 
     UUID tenantId;
     UUID branchId;
@@ -398,6 +400,237 @@ class DiscountOnFiredCheckIT extends PosTestBase {
                 .hasMessageContaining("Refund")
                 .as("a refusal must not leak the status enum at the operator")
                 .hasMessageNotContaining("CLOSED");
+    }
+
+    // ── (6) the value is BOUNDED, not merely positive ─────────────────────────────────────
+
+    /**
+     * A percentage over 100 is refused, and 100 itself is not.
+     *
+     * <p>Measured on 2026-08-12 as the Terrace cashier, on ORD-20260812-0356:
+     * {@code {"scope":"LINE","type":"PERCENT","value":500}} answered <b>200 OK</b> and persisted
+     * {@code value=500, amountPaisa=8000} — the whole line. The money was never at risk, because
+     * {@code OrderPricingCalculator.effectiveDiscount} caps the amount at the line's headroom and
+     * the bill cannot go negative. What was wrong is the <em>record</em>: the stored {@code value},
+     * the guest-facing bill line and the Discount Summary report's "Discount Value" column all
+     * stated a 500% discount, and the charge page printed
+     * "500% off Butter Naan … −Rs 80.00" at a guest.
+     *
+     * <p>The screen already refused it — {@code discount-panel.tsx} disables submit with
+     * "A percentage cannot be more than 100." So the UI was the strong gate and the API the weak
+     * one, which is the inverse of the arrangement this codebase wants. The refusal below is
+     * therefore worded the same as the screen's: an operator who hits it through either door reads
+     * one sentence, not two.
+     *
+     * <h2>Falsification</h2>
+     *
+     * <p>Against the pre-fix service this fails on the FIRST iteration with
+     * {@code Expecting code to raise a throwable} — 500% is accepted, priced, and written. The
+     * {@code hasSize(0)} read-back is the second half: it proves the row never reached Postgres,
+     * not merely that the caller saw an exception.
+     *
+     * <p>The 100% leg is the guard against fixing this with {@code >=}: comping a line in full is
+     * a legitimate, everyday thing to do, and a bound that refused it would be a new defect.
+     */
+    @Test
+    void aPercentageOverOneHundredIsRefused() {
+        OrderDto fired = firedCheckOfTwoPlates();
+        UUID lineId = fired.items().get(0).id();
+
+        for (String tooMuch : new String[]{"500", "101", "100.01"}) {
+            assertThatThrownBy(() -> orderService.applyDiscount(fired.id(), new ApplyDiscountRequest(
+                    "LINE", lineId, "PERCENT", new BigDecimal(tooMuch), "Five hundred percent, re-verified")))
+                    .as("PERCENT %s must be refused", tooMuch)
+                    .isInstanceOf(FieldValidationException.class)
+                    .hasMessageContaining("cannot be more than 100");
+        }
+
+        Persisted untouched = readBack(fired.id());
+        assertThat(untouched.discounts())
+                .as("a refused percentage must not have reached the table")
+                .isEmpty();
+        assertThat(untouched.totalPaisa()).isEqualTo(90_000L);
+
+        // 100 is the ceiling, not a refusal — comping a line in full is an everyday thing to do.
+        OrderDto comped = orderService.applyDiscount(fired.id(), new ApplyDiscountRequest(
+                "LINE", lineId, "PERCENT", new BigDecimal("100"), "Comped, dish sent back"));
+        assertThat(comped.discountPaisa()).isEqualTo(90_000L);
+        assertThat(comped.totalPaisa()).isZero();
+        assertThat(readBack(fired.id()).discounts().get(0).amountPaisa()).isEqualTo(90_000L);
+    }
+
+    /**
+     * Zero and negative, at both types.
+     *
+     * <p>{@code @Positive} on the DTO already refuses these — but only on the {@code @Valid}
+     * controller argument. This suite calls {@link OrderService} directly, as would an internal
+     * endpoint, a batch job or a listener, and every one of those doors bypasses bean validation
+     * entirely. That is the same reason {@code reason} is checked twice, and the reason a
+     * negative discount — which would ADD money to the bill and print as a discount — has to be
+     * refused by the service rather than by an annotation nobody on this path reads.
+     *
+     * <p>Against the pre-fix service every iteration fails with no exception raised.
+     */
+    @Test
+    void aDiscountOfZeroOrLessIsRefused() {
+        OrderDto fired = firedCheckOfTwoPlates();
+        UUID lineId = fired.items().get(0).id();
+
+        for (String type : new String[]{"PERCENT", "FLAT"}) {
+            for (String notPositive : new String[]{"0", "0.00", "-5"}) {
+                assertThatThrownBy(() -> orderService.applyDiscount(fired.id(),
+                        new ApplyDiscountRequest("LINE", lineId, type, new BigDecimal(notPositive),
+                                "Fat-fingered the keypad")))
+                        .as("%s %s must be refused", type, notPositive)
+                        .isInstanceOf(FieldValidationException.class)
+                        .hasMessageContaining("more than zero");
+            }
+        }
+
+        Persisted untouched = readBack(fired.id());
+        assertThat(untouched.discounts()).isEmpty();
+        assertThat(untouched.totalPaisa()).isEqualTo(90_000L);
+    }
+
+    /**
+     * A FLAT discount is bounded by what is actually left, at both scopes.
+     *
+     * <p>The bound is not a number written beside the clamp — it is the clamp: the service refuses
+     * exactly what {@code OrderPricingCalculator.effectiveDiscount} would have silently reduced. So
+     * Rs 900.01 against a Rs 900.00 line is refused by one paisa, and Rs 900.00 exactly is allowed,
+     * without either figure being restated anywhere in the service.
+     *
+     * <p>Against the pre-fix service every leg fails with no exception raised: the oversized amount
+     * was accepted, clamped to the headroom, and persisted at its face value, so the row and the
+     * printed bill disagreed about how much came off.
+     */
+    @Test
+    void aFlatDiscountLargerThanWhatIsLeftIsRefused() {
+        OrderDto fired = firedCheckOfTwoPlates();
+        UUID lineId = fired.items().get(0).id();
+
+        // The line holds Rs 900.00 (2 × Rs 450.00). One paisa more is one paisa too many.
+        assertThatThrownBy(() -> orderService.applyDiscount(fired.id(), new ApplyDiscountRequest(
+                "LINE", lineId, "FLAT", new BigDecimal("900.01"), "Comped, whole dish sent back")))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("more than the");
+
+        // The whole-check scope is bounded by the check, and is the manager's to give.
+        UUID managerId = UUID.randomUUID();
+        asManager(managerId);
+        assertThatThrownBy(() -> orderService.applyDiscount(fired.id(), new ApplyDiscountRequest(
+                "ORDER", null, "FLAT", new BigDecimal("900.01"), "Regular of twenty years")))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("more than the");
+
+        assertThat(readBack(fired.id()).discounts())
+                .as("neither refusal may have written a row")
+                .isEmpty();
+
+        // Exactly the headroom is not "more than" the headroom — the boundary is inclusive.
+        OrderDto whole = orderService.applyDiscount(fired.id(), new ApplyDiscountRequest(
+                "ORDER", null, "FLAT", new BigDecimal("900.00"), "Regular of twenty years"));
+        assertThat(whole.totalPaisa()).isZero();
+        assertThat(readBack(fired.id()).discounts().get(0).amountPaisa()).isEqualTo(90_000L);
+    }
+
+    // ── (7) the database's own bound, and what it means for the promotion engine ──────────
+
+    /**
+     * V29's CHECK, read back from the catalogue and evaluated against the exact shapes the
+     * promotion engine produces.
+     *
+     * <h2>Why this test exists at all</h2>
+     *
+     * <p>{@code applyPromotions} is the one other path that writes an {@code order_discounts} row,
+     * and it writes {@code value = BigDecimal.valueOf(capped)} where {@code capped} is PAISA — not
+     * rupees, not a percentage. That has never corrupted anything only because the row cannot be
+     * inserted at all today: it sets {@code type = "PROMOTION"}, which V1's own
+     * {@code CHECK (type IN ('FLAT','PERCENT'))} rejects at flush. A sibling change is giving
+     * promotions a real {@code type} and a {@code source} column, and the moment it lands those
+     * rows become insertable for the first time.
+     *
+     * <p>V29 is {@code NOT VALID}, so it never re-checks rows already in the table — but a
+     * promotion row is a NEW write and is checked immediately. So the two changes meet here, and
+     * this is much cheaper to find now than at a till.
+     *
+     * <p>The predicate is fetched from {@code pg_constraint} rather than restated here, so this
+     * test cannot drift from the migration: if someone weakens the CHECK, these assertions start
+     * exercising the weakened one and the PERCENT case fails loudly. Interpolating it into the
+     * query is safe — it is our own DDL coming back out of the catalogue, not input.
+     */
+    @Test
+    void theDatabasesOwnBoundIsWhatThePromotionEngineWillMeet() {
+        String def = jdbcTemplate.queryForObject(
+                "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+                        + "WHERE conname = 'order_discounts_value_bounded'", String.class);
+        assertThat(def)
+                .as("V29's constraint is not on the table — every assertion below would be vacuous")
+                .isNotNull()
+                .startsWith("CHECK ");
+
+        // The suffix is load-bearing and deliberate: NOT VALID is why this migration cannot fail
+        // on creation against a database holding rows nobody has inspected. If someone later
+        // validates it, that has to be a decision taken with the data in front of them, not a
+        // quiet edit here — so assert it rather than merely tolerate it.
+        assertThat(def)
+                .as("V29 must stay NOT VALID until the pre-existing rows are repaired by hand")
+                .endsWith(" NOT VALID");
+
+        String predicate = def.substring("CHECK ".length(), def.length() - " NOT VALID".length());
+
+        // A FLAT row carrying a paisa-sized figure is accepted: only PERCENT is capped at 100.
+        // This is what a promotion labelled FLAT will look like, and V29 deliberately does not
+        // refuse it — the rupees-vs-paisa unit confusion is the sibling's to fix, not a bound.
+        assertThat(bound(predicate, "FLAT", "10000")).isTrue();
+
+        // THE TRAP. A promotion labelled PERCENT while still writing paisa into `value` is
+        // refused at INSERT, not clamped later. 10000 is not a percentage.
+        assertThat(bound(predicate, "PERCENT", "10000"))
+                .as("a PERCENT row carrying paisa must be refused by the database")
+                .isFalse();
+
+        // The boundary, inclusive — a 100% comp is a real thing and must survive.
+        assertThat(bound(predicate, "PERCENT", "100")).isTrue();
+        assertThat(bound(predicate, "PERCENT", "100.01")).isFalse();
+
+        // Zero and negative are refused at both types. This is a property of the bound, and it is
+        // NOT a promotion safety net — see below.
+        assertThat(bound(predicate, "FLAT", "0")).isFalse();
+        assertThat(bound(predicate, "PERCENT", "0")).isFalse();
+        assertThat(bound(predicate, "FLAT", "-5")).isFalse();
+
+        // WHAT THIS CONSTRAINT CANNOT SEE, recorded so that nobody reads the assertions above as
+        // wider cover than they are.
+        //
+        // An earlier reading of this had it that a promotion against a zero-subtotal check writes
+        // `value = 0` and is caught here. That was true of the code at the time and is NOT true
+        // now: the promotion path was changed to carry the UNCAPPED offer in `value`, on purpose,
+        // so a reader can see an offer was worth more than the check it landed on. The row that
+        // reaches the table on a zero-subtotal check is therefore
+        //
+        //     value = 150.0000     amountPaisa = 0
+        //
+        // which satisfies every constraint on this table — `value > 0` happily — and still prints
+        // "Automatic promotion (customer's qualifying offer) — Rs 0.00" at a guest. A false line
+        // where no rule is broken and no money moves, which is a harder case than the 200% row
+        // that started all this: that one at least violated something.
+        //
+        // Only a guard in applyPromotions can refuse it, and one exists (`capped <= 0` returns
+        // before any row is built), covered by anOfferAgainstAnEmptyCheckWritesNoRowAtAll. The
+        // point of writing this down is that believing the constraint covers that shape is what
+        // would stop anyone looking at it.
+        assertThat(bound(predicate, "FLAT", "150"))
+                .as("an uncapped promotion value on a zero-subtotal check passes this bound — "
+                        + "the guard in applyPromotions is what refuses it, not the database")
+                .isTrue();
+    }
+
+    /** Evaluates the table's real CHECK predicate against one (type, value) pair. */
+    private boolean bound(String predicate, String type, String value) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT " + predicate + " FROM (SELECT CAST(? AS VARCHAR) AS type, "
+                        + "CAST(? AS NUMERIC) AS value) s", Boolean.class, type, value));
     }
 
     /** The full amount, tendered, WITHOUT serving — so the check stays open and is fully paid. */
