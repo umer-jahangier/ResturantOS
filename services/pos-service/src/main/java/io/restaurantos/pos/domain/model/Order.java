@@ -89,6 +89,16 @@ public class Order extends TenantAuditableEntity {
     @Column(name = "void_reason")
     private String voidReason;
 
+    /**
+     * Who voided this order (S0-04, V21). Written only by {@code OrderServiceImpl.voidOrder}.
+     *
+     * <p>Deliberately NOT {@code updatedBy}: that is the last writer of the row for any reason,
+     * so reading it as "the voider" is a coincidence, not a fact. This column is the fact, and it
+     * is what Order Management's Voided filter shows next to the reason.
+     */
+    @Column(name = "voided_by")
+    private UUID voidedBy;
+
     @Column(name = "client_order_id", nullable = false, unique = true)
     private UUID clientOrderId;
 

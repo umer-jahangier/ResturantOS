@@ -2,6 +2,7 @@ package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.pos.service.OrderService;
+import io.restaurantos.pos.service.OrderSettlementDetailService;
 import io.restaurantos.pos.service.RefundService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.api.PageMeta;
@@ -24,10 +25,14 @@ public class OrderController {
 
     private final OrderService orderService;
     private final RefundService refundService;
+    private final OrderSettlementDetailService orderSettlementDetailService;
 
-    public OrderController(OrderService orderService, RefundService refundService) {
+    public OrderController(OrderService orderService,
+                           RefundService refundService,
+                           OrderSettlementDetailService orderSettlementDetailService) {
         this.orderService = orderService;
         this.refundService = refundService;
+        this.orderSettlementDetailService = orderSettlementDetailService;
     }
 
     @PreAuthorize("hasAuthority('pos.order.create')")
@@ -43,7 +48,11 @@ public class OrderController {
             @RequestParam(required = false) List<String> status,
             Pageable pageable) {
         Page<OrderSummaryDto> page = orderService.listOrderSummaries(branchId, status, pageable);
-        return ResponseEntity.ok(ApiResponse.paginated(page.getContent(), new PageMeta(
+        // S0-04: attach WHY and BY WHOM for the VOIDED/REFUNDED rows on this page. A no-op (no
+        // extra query at all) for a page of live orders, which is why it sits here as a second
+        // pass rather than inside the row builder on the till's hot list path.
+        List<OrderSummaryDto> rows = orderSettlementDetailService.withSettlementDetail(page.getContent());
+        return ResponseEntity.ok(ApiResponse.paginated(rows, new PageMeta(
                 new PageMeta.Page(
                         String.valueOf(page.getNumber()),
                         page.hasNext() ? String.valueOf(page.getNumber() + 1) : null,

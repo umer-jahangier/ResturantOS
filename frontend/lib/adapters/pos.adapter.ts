@@ -211,6 +211,14 @@ export function adaptOrderSummary(raw: ApiOrderSummary): OrderSummary {
     amountPaidPaisa: raw.amountPaidPaisa,
     itemQuantity: raw.itemQuantity,
     distinctItemCount: raw.distinctItemCount,
+    settlement: raw.settlement
+      ? {
+          reason: raw.settlement.reason ?? null,
+          byUserId: raw.settlement.byUserId ?? null,
+          byName: raw.settlement.byName ?? null,
+          at: raw.settlement.at ?? null,
+        }
+      : null,
   };
 }
 

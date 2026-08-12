@@ -203,6 +203,26 @@ export interface OrderSummary {
   itemQuantity: number;
   /** Distinct non-CANCELLED line count — optional secondary text alongside `itemQuantity`. */
   distinctItemCount: number;
+  /**
+   * Why this order is terminal and who made it so (S0-04). Null on every live order, and on a
+   * terminal order the platform never recorded a reason for.
+   */
+  settlement: OrderSettlementDetail | null;
+}
+
+/**
+ * The provenance of a VOIDED/REFUNDED order — the answer to "who did this, and why".
+ *
+ * `byName` is resolved server-side from the staff directory and is decoration: it can be null
+ * while `byUserId` is set (directory unreachable). Render the id then, never a blank — a void
+ * with no attributable actor is exactly what this gap was about.
+ */
+export interface OrderSettlementDetail {
+  reason: string | null;
+  byUserId: string | null;
+  byName: string | null;
+  /** ISO-8601 instant of the void/refund. */
+  at: string | null;
 }
 
 /** PATCH /orders/{id}/table (assign-table, POS-24) request body. */

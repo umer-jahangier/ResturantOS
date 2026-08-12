@@ -768,6 +768,10 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.VOIDED);
         order.setVoidReason(request.reason());
         order.setVoidedAt(Instant.now());
+        // S0-04: persist the actor. Until V21 the voider existed ONLY inside the ORDER_VOIDED
+        // event payload built 10 lines below — nothing could read it back, so "who voided this
+        // order" had no answer on any screen. Same value, same source, now also on the row.
+        order.setVoidedBy(tenantContext.getUserId().orElse(null));
 
         // Release table — terminal order status routes syncStatusForOrder to AVAILABLE.
         tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),

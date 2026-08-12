@@ -298,6 +298,21 @@ export const apiOrderSummarySchema = z.object({
   amountPaidPaisa: z.number().int().nonnegative(),
   itemQuantity: z.number().int().nonnegative(),
   distinctItemCount: z.number().int().nonnegative(),
+  // S0-04: why this order is terminal and who made it so. Present ONLY on VOIDED/REFUNDED rows
+  // (the server attaches it in a second pass and leaves live rows untouched), which is why the
+  // whole object is nullable rather than its fields being individually optional.
+  //
+  // `byName` is decoration and can be null even when `byUserId` is not — the server resolves the
+  // name from auth-service and degrades to the raw id rather than failing the list.
+  settlement: z
+    .object({
+      reason: z.string().nullable().optional(),
+      byUserId: z.string().uuid().nullable().optional(),
+      byName: z.string().nullable().optional(),
+      at: z.string().nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type ApiOrderSummary = z.infer<typeof apiOrderSummarySchema>;
