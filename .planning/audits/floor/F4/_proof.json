@@ -1,0 +1,172 @@
+{
+  "sidebarEntriesMatchingAudit": [
+    {
+      "t": "Audit log",
+      "h": "/app/settings/audit"
+    }
+  ],
+  "urlAfterClickingTheNavEntry": "http://localhost:3000/app/settings/audit",
+  "auditScreenTrouble": {
+    "bad": [],
+    "alerts": []
+  },
+  "auditScreenHeader": {
+    "h1": "Audit log",
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "summary": "Showing 1–50 of 3,954 events",
+    "rows": 50,
+    "headers": [
+      "When",
+      "Event",
+      "Who",
+      "What",
+      "Reason",
+      ""
+    ]
+  },
+  "managerSidebarAuditEntries": [],
+  "orderRungAndVoidedByTheManager": {
+    "no": "ORD-20260812-0231",
+    "outcome": {
+      "err": null,
+      "alerts": []
+    },
+    "attempts": 1,
+    "reason": "F4 proof — audit log readability check 05:03:52"
+  },
+  "theVoidOnScreen": {
+    "found": true,
+    "cells": [
+      "12 Aug 2026, 10:04:34 am",
+      "Order voided ORDER_VOIDED",
+      "Terrace Manager",
+      "ORDER d71d67c0-b0b0-4bc1-9aff-3d775118117f",
+      "F4 proof — audit log readability check 05:03:52",
+      "Details"
+    ],
+    "when": "12 Aug 2026, 10:04:34 am",
+    "detailTestId": "audit-detail-9401"
+  },
+  "voidDetailPanel": "Order voided 12 Aug 2026, 10:04:34 am · by Terrace Manager (fefd7187-dbe2-4c12-a532-3c1cc8f3d322) Close reason F4 proof — audit log readability check 05:03:52 orderId d71d67c0-b0b0-4bc1-9aff-3d775118117f voidedBy fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+  "timestampZoneCheck": {
+    "storedUtc": "2026-08-12T05:04:34.621218Z",
+    "branchName": "Floating Terrace HQ",
+    "branchZone": "Asia/Karachi",
+    "browserZone": "Asia/Karachi",
+    "utcHhmmss": "05:04:34",
+    "branchHhmmss": "10:04:34",
+    "browserHhmmss": "10:04:34",
+    "rendered": "12 Aug 2026, 10:04:34 am",
+    "actorNameFromApi": "Terrace Manager"
+  },
+  "sameRowReadFromANewYorkBrowser": {
+    "browserZone": "America/New_York",
+    "zoneNote": "Times are shown in Asia/Karachi — this branch's time zone. Dates you pick above are whole days in that zone.",
+    "rendered": "12 Aug 2026, 10:04:34 am"
+  },
+  "rowsUnderActionFilterORDER_VOIDED": {
+    "count": 50,
+    "allOrderVoided": true,
+    "distinctEvents": [
+      "Order voided ORDER_VOIDED"
+    ]
+  },
+  "rowsUnderResourceTypeORDER": {
+    "count": 50,
+    "allORDER": true,
+    "anyUserLogin": false,
+    "distinctWhat": [
+      "ORDER"
+    ],
+    "distinctEvents": [
+      "ORDER_VOIDED"
+    ]
+  },
+  "summaryUnderResourceTypeORDER": "Showing 1–50 of 132 events",
+  "page1": {
+    "summary": "Showing 1–50 of 3,978 events",
+    "page": "Page 1",
+    "firstRowWhen": "12 Aug 2026, 10:05:19 am",
+    "prevDisabled": true
+  },
+  "page2": {
+    "summary": "Showing 51–100 of 3,982 events",
+    "page": "Page 2",
+    "firstRowWhen": "12 Aug 2026, 10:01:49 am",
+    "prevDisabled": false
+  },
+  "page2ShowsDifferentRows": true,
+  "backwardsRange": {
+    "text": "From is 2026-08-12, which is after To (2026-08-01). No day can be in both, so this range has not been applied — the list below still shows the last range that could match. Move one of the two dates.",
+    "role": "alert",
+    "fromInvalid": "true",
+    "toInvalid": "true",
+    "stillHasRows": 50
+  },
+  "cashierSidebarAuditEntries": [],
+  "cashierRefusal": {
+    "heading": "You cannot read the audit log",
+    "body": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Settings Audit Floating Terrace HQ Search… ⌘K E You cannot read the audit log Reading it needs the audit.log.view permission, which an owner or a tenant administrator holds. It is deliberately not given to managers or cashiers: the log records their own voids and sign-ins, and someone who can read it can see whether anyone is looking. Ask an owner if you need something from it. Back to dashboard",
+    "namesThePermission": true,
+    "tables": 0,
+    "anyEventRows": 0,
+    "saysEmpty": false
+  },
+  "layout-390-light": {
+    "bodyScrollW": 390,
+    "viewportW": 390,
+    "tablesVisible": 0,
+    "cardList": 50,
+    "rows": 50,
+    "bg": "oklch(1 0 195)",
+    "fg": "oklch(0.168 0.006 195)"
+  },
+  "layout-390-dark": {
+    "bodyScrollW": 390,
+    "viewportW": 390,
+    "tablesVisible": 0,
+    "cardList": 50,
+    "rows": 50,
+    "bg": "oklch(0.132 0.006 195)",
+    "fg": "oklch(0.985 0.002 195)"
+  },
+  "layout-768-light": {
+    "bodyScrollW": 768,
+    "viewportW": 768,
+    "tablesVisible": 1,
+    "cardList": 50,
+    "rows": 50,
+    "bg": "oklch(1 0 195)",
+    "fg": "oklch(0.168 0.006 195)"
+  },
+  "layout-768-dark": {
+    "bodyScrollW": 768,
+    "viewportW": 768,
+    "tablesVisible": 1,
+    "cardList": 50,
+    "rows": 50,
+    "bg": "oklch(0.132 0.006 195)",
+    "fg": "oklch(0.985 0.002 195)"
+  },
+  "layout-1440-light": {
+    "bodyScrollW": 1440,
+    "viewportW": 1440,
+    "tablesVisible": 1,
+    "cardList": 50,
+    "rows": 50,
+    "bg": "oklch(1 0 195)",
+    "fg": "oklch(0.168 0.006 195)"
+  },
+  "layout-1440-dark": {
+    "bodyScrollW": 1440,
+    "viewportW": 1440,
+    "tablesVisible": 1,
+    "cardList": 50,
+    "rows": 50,
+    "bg": "oklch(0.132 0.006 195)",
+    "fg": "oklch(0.985 0.002 195)"
+  },
+  "ownerConsoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}
