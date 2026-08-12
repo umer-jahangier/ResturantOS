@@ -1,0 +1,16 @@
+{
+  "newCashier": {
+    "slug": "floating-terrace",
+    "email": "f11.final.664573@terrace.local",
+    "fullName": "F11 Final 664573",
+    "newPassword": "(see frontend/e2e/floor/f11/05-final-reproof.mjs)"
+  },
+  "stripBefore": "No active till Open Till",
+  "cashierUserId": "4fdc85ef-b1fc-4276-aedd-c998230e9786",
+  "summary": "Counting Rs 5,000.00 into F11 Final 664573's drawer.",
+  "toast": "Till opened for F11 Final 664573 with a Rs 5,000.00 float.",
+  "stripAfter": "Till OPEN Float: Rs 5,000.00 Cash: Rs 5,000.00 Orders: 0 Close Till",
+  "ownTillRow": "[{\"id\":\"7d01d1ff-6a1c-4d18-9530-8979ddd0e6a1\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"cashierId\":\"4fdc85ef-b1fc-4276-aedd-c998230e9786\",\"openingFloatPaisa\":500000,\"expectedClosingPaisa\":null,\"declaredClosingPaisa\":null,\"variancePaisa\":null,\"status\":\"OPEN\",\"openedAt\":\"2026-08-12T05:31:56.2",
+  "refusalStatus": 403,
+  "refusalDetail": "You cannot open a till for Terrace Manager. Counting a float into another employee's drawer requires the pos.till.open.other permission \u2014 ask a manager to open it for them."
+}
