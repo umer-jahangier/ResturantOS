@@ -52,32 +52,31 @@ being careful.**
 | V31 | hash legacy idempotency fingerprints | `practical-borg-3dc2b3` (void reason length) | **claimed 2026-08-12** — renumbered from V28, above the V29/V30 already in the code |
 | V32+ | — | free | |
 
-### THE V28 GAP — a live hazard, not bookkeeping
+### THE V28 GAP — RESOLVED 2026-08-12, kept because the reasoning generalises
 
-As of 2026-08-12, `main`/`prod`/`phase-13-access-repair` carry **V27, V29 and V30 but NOT V28**.
-V28 (`V28__hash_legacy_idempotency_fingerprints.sql`) is a **pos-service** migration and it is the
-only thing still sitting on the one unmerged branch, `claude/practical-borg-3dc2b3`.
+**This hazard is closed. Nothing here needs acting on.** It is retained because the next out-of-order
+migration will look exactly like it.
 
-**Flyway `out-of-order` is not configured anywhere in this repo, so it defaults to FALSE.** Spring
-Boot also defaults `validate-on-migrate` to true. So the sequence matters:
+**What it was.** For a few hours `main`/`prod`/`phase-13-access-repair` carried V27, V29 and V30 but
+not V28, which sat on an unmerged branch. Flyway `out-of-order` is configured **nowhere** in this
+repo so it defaults to FALSE, and Spring Boot defaults `validate-on-migrate` to true — so:
 
 ```
-live pos_db today          = version 27      (V29 and V30 are in the code, NOT yet applied)
-next restart on a main jar = applies 29, 30  -> schema reaches 30
-merging practical-borg later then introduces V28, BELOW the applied maximum
-  -> validation fails, and pos-service refuses to start for everyone
+live pos_db was at         = version 27      (V29 and V30 in the code, NOT yet applied)
+next restart on a main jar -> applies 29, 30 -> schema reaches 30
+merging V28 after that     -> a version BELOW the applied maximum
+                           -> validation fails, pos-service will not start for anyone
 ```
 
-**There is still a window, and it closes at the next pos-service restart.** Two safe routes:
+**How it was closed.** Route 2: **V28 was renumbered to V31** before merging, so the sequence on the
+branch is 27 → 29 → 30 → 31 and every one is above the applied maximum of 27. The owning session
+verified `flyway_schema_history` themselves — `max(version) = 27`, so V28 had genuinely never been
+applied and the "never renumber an applied version" rule above did not bite — and re-ran the
+pos-service ITs after a `clean`, which is the step the stale-`target/` trap below exists to force.
 
-1. **Merge `claude/practical-borg-3dc2b3` BEFORE the fleet next restarts**, so 28, 29 and 30 all
-   apply together in order. Task #37 carries the conflict resolutions.
-2. **Renumber V28 → V31 when merging.** Safe here *specifically because V28 has never been applied*
-   — the live database is at 27 — so the "never renumber an applied version" rule above does not
-   bite. Verify against `flyway_schema_history` before assuming that is still true, and rebuild with
-   `clean` afterwards (see the stale-`target/` trap below).
-
-Do not simply merge it after a restart and hope. That is the one ordering that breaks the service.
+**The generalisable part:** a version gap is only safe while it is *above* what the database has
+applied. The window closes the moment a deploy applies anything past the gap, and it closes silently.
+Check `flyway_schema_history` — do not reason about it from the files on the branch.
 
 ## Other services
 
