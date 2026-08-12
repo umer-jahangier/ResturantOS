@@ -190,10 +190,23 @@ public class PlatformAdminController {
         return ResponseEntity.ok(ApiResponse.ok(TenantResponse.from(t)));
     }
 
-    @DeleteMapping("/tenants/{tenantId}")
-    public ResponseEntity<Void> purgeTenant(@PathVariable UUID tenantId) {
-        lifecycleService.purge(tenantId);
-        return ResponseEntity.noContent().build();
+    /**
+     * Closes a cancelled tenant permanently. <b>Nothing is deleted.</b>
+     *
+     * <p>Was {@code DELETE /tenants/{tenantId}} answering {@code 204 No Content} — the two loudest
+     * "it is gone" signals HTTP has — for an operation that only sets a status column. A caller
+     * integrating against that contract would reasonably have reported an erasure to a customer.
+     *
+     * <p>Now a POST that returns the tenant, exactly like {@code /cancel} beside it, so the response
+     * shows the resource still existing in its new status. Safe to change: no frontend or e2e caller
+     * used the DELETE, and no tenant has ever reached PURGED (platform_db holds 3 tenants, all
+     * ACTIVE). If real erasure is built later it deserves its own endpoint and its own irreversible
+     * confirmation — see {@code .planning/decisions/D-TENANT-ERASURE.md}.
+     */
+    @PostMapping("/tenants/{tenantId}/close")
+    public ResponseEntity<ApiResponse<TenantResponse>> closeTenantPermanently(@PathVariable UUID tenantId) {
+        TenantEntity t = lifecycleService.closePermanently(tenantId);
+        return ResponseEntity.ok(ApiResponse.ok(TenantResponse.from(t)));
     }
 
     // --- Feature flags ---
