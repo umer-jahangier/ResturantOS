@@ -1501,6 +1501,43 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto cancelItem(UUID orderId, UUID itemId) {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
+
+        // A settled check is not editable — the same terminal guard every other order-mutating
+        // method here applies (addItem, updateInstructions, assignTable; removeItem is stricter
+        // still at OPEN-only). This method was the one that never got it: it guarded the ITEM
+        // state machine and never the ORDER one, refusing a SERVED line and nothing else. Two
+        // lines got through:
+        //
+        //   • a not-yet-served line on a VOIDED check — voidOrder refuses only on recorded
+        //     payments, it never requires the lines be SERVED, so a PENDING/SENT/READY line
+        //     survives the void and still looked cancellable; and
+        //   • an already-CANCELLED line on a CLOSED check — a cancelled line is excluded from
+        //     the all-lines-SERVED close condition, so it is still CANCELLED after close and
+        //     re-cancelling it passes the SERVED check above, changes nothing, and saves anyway.
+        //
+        // Either way control reached recomputeOrderTotals + save and restated the money on a
+        // historical order. That is not a no-op: since V27 the recompute reads the tenant's
+        // TaxBase and re-derives every line's tax from the discounted base, so the figures it
+        // writes back can genuinely differ from the ones the check was settled at. Meanwhile the
+        // ORDER_CLOSED event has already been published and the ClickHouse sales_order_facts row
+        // built from it is frozen — so DailyTakingsService and TransactionRegisterRepository,
+        // which read pos_db live, would move while FbrTaxSummaryService, which reads the facts,
+        // would not. Two systems of record disagreeing about one settled check. Neither path
+        // re-checks the finance period lock (only performClose calls assertPeriodOpen) nor is
+        // idempotency-gated, so there was no audit trail of the restatement either.
+        //
+        // Refuses in the guest's language, not the state machine's (cf. assertDiscountable).
+        if (isTerminal(order.getStatus())) {
+            String why = switch (order.getStatus()) {
+                case CLOSED -> "This check is closed and its sale has been posted. "
+                        + "Refund the guest instead of cancelling a line on it.";
+                case VOIDED -> "This check was voided, so there is nothing left to cancel.";
+                case REFUNDED -> "This check was refunded, so there is nothing left to cancel.";
+                default -> "This check can no longer be changed in its current state.";
+            };
+            throw new io.restaurantos.shared.exception.StateInvalidException(why);
+        }
+
         OrderItem item = findItemInOrder(order, itemId);
 
         if (item.getItemStatus() == OrderItemStatus.SERVED) {
