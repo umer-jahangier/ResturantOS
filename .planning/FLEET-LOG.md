@@ -268,6 +268,28 @@ Every session points at one Postgres, one RabbitMQ, one service fleet on fixed p
 - `TESTCONTAINERS_RYUK_DISABLED` is already set by the parent pom for **failsafe**, not for
   surefire-run ITs or shared-lib's own suite.
 
+## 5a. `pkill -f <jar>` from a worktree kills the LIVE fleet
+
+Every worktree builds `platform-admin-service-1.0.0.jar` at **the same basename**. `pkill -f` matches
+the whole command line, so an agent tidying up *its own* service in *its own* worktree also kills the
+one serving the user on :8096 — and the shared gateway with it. This happened twice in one afternoon:
+the gateway was killed at 18:19:53, restarted, and killed again minutes later by a still-running
+agent.
+
+It is the same root cause as the false-STALE bug in `check-stale-jars.sh` (§2), from a new angle:
+there, a *shell* that merely named the jar got matched; here, a *different worktree's identical jar*
+does. The fix is the same one `scripts/run-dev-services.sh` uses — match on the **executable** and on
+the **absolute path**, never the bare basename:
+
+```bash
+for pid in $(pgrep -f "$(pwd)/target/${n}-1\.0\.0\.jar"); do
+  [ "$(ps -p "$pid" -o comm= | sed 's|.*/||')" = java ] && kill "$pid"
+done
+```
+
+**Better still: an agent in a worktree should not stop shared services at all.** The stack on :8080
+and :3000 belongs to the user. If a worktree needs its own service, give it a different port.
+
 ## 6. A migration cannot always see the rows it exists to migrate
 
 Liquibase/Flyway runs as the table **owner** on a connection with **no** `app.current_tenant_id`.
