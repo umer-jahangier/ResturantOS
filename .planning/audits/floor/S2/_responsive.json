@@ -1,0 +1,154 @@
+{
+  "fixture": {
+    "email": "s2.resp.1786515058906@terrace.local",
+    "hq": "Floating Terrace HQ",
+    "rooftop": "Floating Terrace — Rooftop"
+  },
+  "geometry": {
+    "390-light": {
+      "rows": [
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace HQ",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(39.0482 63.3495 48.4033)",
+          "buttonHeight": 28
+        },
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace — Rooftop",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(39.0482 63.3495 48.4033)",
+          "buttonHeight": 28
+        }
+      ],
+      "documentOverflowsX": false
+    },
+    "390-dark": {
+      "rows": [
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace HQ",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(68.3405 49.0426 30.8669)",
+          "buttonHeight": 28
+        },
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace — Rooftop",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(68.3405 49.0426 30.8669)",
+          "buttonHeight": 28
+        }
+      ],
+      "documentOverflowsX": false
+    },
+    "768-light": {
+      "rows": [
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace HQ",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(39.0482 63.3495 48.4033)",
+          "buttonHeight": 28
+        },
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace — Rooftop",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(39.0482 63.3495 48.4033)",
+          "buttonHeight": 28
+        }
+      ],
+      "documentOverflowsX": false
+    },
+    "768-dark": {
+      "rows": [
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace HQ",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(68.3405 49.0426 30.8669)",
+          "buttonHeight": 28
+        },
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace — Rooftop",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(68.3405 49.0426 30.8669)",
+          "buttonHeight": 28
+        }
+      ],
+      "documentOverflowsX": false
+    },
+    "1440-light": {
+      "rows": [
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace HQ",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(39.0482 63.3495 48.4033)",
+          "buttonHeight": 28
+        },
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace — Rooftop",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(39.0482 63.3495 48.4033)",
+          "buttonHeight": 28
+        }
+      ],
+      "documentOverflowsX": false
+    },
+    "1440-dark": {
+      "rows": [
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace HQ",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(68.3405 49.0426 30.8669)",
+          "buttonHeight": 28
+        },
+        {
+          "rowOverflows": false,
+          "branchName": "Floating Terrace — Rooftop",
+          "branchNameClipped": false,
+          "buttonWithinRow": true,
+          "buttonLabelClipped": false,
+          "buttonColor": "lab(68.3405 49.0426 30.8669)",
+          "buttonHeight": 28
+        }
+      ],
+      "documentOverflowsX": false
+    }
+  },
+  "VERDICT_problems": [],
+  "VERDICT": "PASS at 390/768/1440 in both themes",
+  "destructiveColorResolvesPerTheme": {
+    "light": "lab(39.0482 63.3495 48.4033)",
+    "dark": "lab(68.3405 49.0426 30.8669)",
+    "differsBetweenThemes": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "A_rosterOnly_390": {
+    "viewport": 390,
+    "bodyScrollWidth": 390,
+    "docScrollWidth": 390,
+    "offenders": []
+  },
+  "B_dashboard_390": {
+    "viewport": 390,
+    "bodyScrollWidth": 390,
+    "docScrollWidth": 390,
+    "offenders": []
+  },
+  "C_panelWithRevoke_390": {
+    "viewport": 390,
+    "bodyScrollWidth": 390,
+    "docScrollWidth": 390,
+    "offenders": []
+  }
+}

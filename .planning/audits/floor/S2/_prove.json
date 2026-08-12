@@ -1,0 +1,84 @@
+{
+  "usersPageTrouble": {
+    "bad": [],
+    "alerts": []
+  },
+  "branches": {
+    "hq": "Gulberg Terrace 13056 — Garden",
+    "rooftop": "Floating Terrace — Rooftop"
+  },
+  "createdSubject": {
+    "status": 201,
+    "subjectId": "4bc9bae5-ad24-4904-b1c7-01f2852ca0c9",
+    "email": "s2.revoke.1786515557376@terrace.local"
+  },
+  "grantedRooftopMANAGER": 200,
+  "REGISTER_PROBE_after": {
+    "foundRolesBlock": true,
+    "rolesBlockText": "Roles by branch Gulberg Terrace 13056 — Garden No approval authority primary CASHIER Revoke Floating Terrace — Rooftop Approves up to Rs 5,000.00 MANAGER Revoke",
+    "buttonsInsideRolesBlock": [
+      "Revoke CASHIER at Gulberg Terrace 13056 — Garden",
+      "Revoke MANAGER at Floating Terrace — Rooftop"
+    ],
+    "anyRevokeText": true
+  },
+  "revokeButtonCount": 1,
+  "confirmationText": "Revoke MANAGER at Floating Terrace — Rooftop? S2 Revoke Subject loses every permission that role carries at Floating Terrace — Rooftop, including access to that branch's orders, tills and reports. Their roles at other branches are untouched. If they are signed in right now, it applies the next time their session refreshes. Cancel Revoke role Close",
+  "confirmationNamesRoleAndBranch": {
+    "namesRole": true,
+    "namesBranch": true
+  },
+  "successToast": [
+    "MANAGER revoked at Floating Terrace — Rooftop for s2.revoke.1786515557376@terrace.local."
+  ],
+  "rolesBlockAfterReload": "Roles by branch Gulberg Terrace 13056 — Garden No approval authority primary CASHIER Revoke",
+  "serverAssignmentsAfterRevoke": [
+    {
+      "branch": "Gulberg Terrace 13056 — Garden",
+      "roleCode": "CASHIER"
+    }
+  ],
+  "subjectLandedAt": "http://localhost:3000/login",
+  "subjectAfterChangeAt": "http://localhost:3000/app/dashboard",
+  "subjectBranchesMine": {
+    "status": 200,
+    "branches": []
+  },
+  "subjectSeesRooftopAnywhereOnScreen": false,
+  "subjectReadsRooftopBranchData": {
+    "status": 403,
+    "code": "PERMISSION_DENIED"
+  },
+  "subjectSwitchToRooftop": {
+    "status": 403,
+    "code": "BRANCH_ACCESS_DENIED"
+  },
+  "ownerGrantsOWNERatRooftop": 200,
+  "CEILING_adminAssignOWNER": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED"
+  },
+  "CEILING_adminRevokeOWNER": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED",
+    "message": "You cannot revoke the role OWNER: it grants 1 permission(s) you do not hold yourself. Ask an administrator who holds them."
+  },
+  "CEILING_assignmentsAfterRefusedRevoke": [
+    "CASHIER",
+    "OWNER"
+  ],
+  "adminSeesRevokeControl": 1,
+  "CEILING_uiRefusal": {
+    "dialogStillOpen": true,
+    "alertInDialog": "You cannot revoke the role OWNER: it grants 1 permission(s) you do not hold yourself. Ask an administrator who holds them."
+  },
+  "CEILING_managerRevoke": {
+    "status": 403,
+    "code": "PERMISSION_DENIED"
+  },
+  "revokeControlComputedStyle": {
+    "color": "lab(39.0482 63.3495 48.4033)",
+    "width": 84,
+    "height": 28
+  }
+}

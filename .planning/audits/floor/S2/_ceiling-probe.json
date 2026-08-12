@@ -1,0 +1,28 @@
+{
+  "branches": {
+    "rooftop": "Floating Terrace — Rooftop",
+    "hq": "Floating Terrace HQ"
+  },
+  "createFixtureStatus": 201,
+  "fixtureId": "300ba63e-e9d2-4f26-9c50-88f3ac9dddd0",
+  "ownerGrantsOWNERatRooftop": 200,
+  "A_managerRevokeStatus": 403,
+  "A_managerRevokeBody": {
+    "error": {
+      "code": "PERMISSION_DENIED",
+      "message": "You do not have permission to perform this action",
+      "details": [],
+      "traceId": "b31f7eee-adf7-44dc-acd6-a7aba5d969c2"
+    }
+  },
+  "B_adminASSIGNownerStatus": 403,
+  "B_adminASSIGNownerBody": "ROLE_CEILING_EXCEEDED",
+  "B_adminREVOKEownerStatus": 204,
+  "B_adminREVOKEownerBody": null,
+  "B_assignmentsAfterAdminRevoke": [
+    "CASHIER"
+  ],
+  "C_revokeRoleNotHeldStatus": 204,
+  "C_revokeRoleNotHeldBody": null,
+  "D_adminOwnBranches": 200
+}

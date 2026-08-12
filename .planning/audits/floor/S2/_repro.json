@@ -1,0 +1,84 @@
+{
+  "usersPageTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/users"
+  },
+  "branchesStatus": 200,
+  "branches": [
+    {
+      "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+      "name": "Floating Terrace — Rooftop"
+    },
+    {
+      "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "name": "Floating Terrace HQ"
+    }
+  ],
+  "rosterCount": 1,
+  "target": {
+    "id": "666aefca-b5a2-4b07-a690-4ea3da88ff5d",
+    "email": "waiter@terrace.local"
+  },
+  "secondBranch": {
+    "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+    "name": "Floating Terrace — Rooftop"
+  },
+  "assignSecondBranchStatus": 200,
+  "probe": {
+    "foundRolesBlock": false,
+    "rolesBlockText": "",
+    "buttonsInsideRolesBlock": [],
+    "anyRevokeText": false,
+    "panelButtons": [
+      "Collapse",
+      "Search…⌘K",
+      "6",
+      "Add user",
+      "Terrace Accountantaccountant@terrace.local2FAActiveAug 12, 2026",
+      "Terrace Adminadmin@terrace.local2FAActiveAug 12, 2026",
+      "Audit Proofaudit-proof-1786067329@terrace.localPassword reset pendingActiveNever signed in",
+      "Audit Proof 2audit-proof2-1786067566@terrace.localPassword reset pendingDeactivatedNever signed in",
+      "Bar Tender 6299bartend6299@terrace.localActiveAug 12, 2026",
+      "Asha the bartenderbartender+1786478284947@terrace.localActiveAug 12, 2026",
+      "Diag Bartender 37730bartender37730@terrace.localPassword reset pendingActiveNever signed in",
+      "Diag Bartender 76991bartender76991@terrace.localActiveAug 12, 2026",
+      "Ashabartender.proof@terrace.localPassword reset pendingActiveNever signed in",
+      "Terrace Cashiercashier@terrace.localActiveAug 12, 2026",
+      "Bartender 983693dgbar2983693@terrace.localPassword reset pendingActiveNever signed in",
+      "Bartender 047416dgbar3047416@terrace.localPassword reset pendingActiveNever signed in",
+      "Bartender 084761dgbar3084761@terrace.localPassword reset pendingActiveNever signed in",
+      "Bartender 136331dgbar3136331@terrace.localActiveAug 12, 2026",
+      "Bartender 568687dgbar3568687@terrace.localPassword reset pendingActiveNever signed in",
+      "Diag 854137dgbar854137@terrace.localPassword reset pendingActiveNever signed in",
+      "Diag 854137dggrill854137@terrace.localActiveAug 12, 2026",
+      "Diag Bar 710443diagbar710443@terrace.localPassword reset pendingActiveAug 12, 2026",
+      "Diag Bar 710443diaggrill710443@terrace.localPassword reset pendingActiveAug 12, 2026",
+      "F11 Cashier 807971f11.cashier.807971@terrace.localActiveAug 12, 2026",
+      "F11 Final 326886f11.final.326886@terrace.localActiveAug 12, 2026",
+      "F11 Final 453158f11.final.453158@terrace.localActiveAug 12, 2026",
+      "F11 Final 664573f11.final.664573@terrace.localActiveAug 12, 2026",
+      "F12 Hire 152838f12.hire.152838@terrace.localActiveAug 12, 2026",
+      "F12 Hire 251194f12.hire.251194@terrace.localActiveAug 12, 2026",
+      "Previous",
+      "Next"
+    ]
+  },
+  "deleteWithParamsStatus": 204,
+  "deleteWithParamsBody": null,
+  "deleteWithoutParamsStatus": 400,
+  "deleteWithoutParamsBody": {
+    "error": {
+      "code": "BAD_REQUEST",
+      "message": "Required request parameter 'branchId' is missing",
+      "details": [],
+      "traceId": "f3d4d231-7b6e-4f69-947b-a51ad4f3a5fe"
+    }
+  },
+  "assignmentsAfterDelete": [
+    {
+      "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "roleCode": "WAITER"
+    }
+  ]
+}
