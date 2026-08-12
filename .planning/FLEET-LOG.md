@@ -73,10 +73,16 @@ Each of these produced a confident, wrong answer:
   so all 18 modules inherit it. Nine were missing it, covering **79 IT files**: shared-lib, gateway,
   audit, auth, authorization, crm, file, hr and user. Verified the way the fix has to be verified —
   `mvn -pl services/auth-service verify -Dit.test=AuthInternalBranchRoleIT` with
-  `TESTCONTAINERS_RYUK_DISABLED` **stripped from the environment** (`env -u`): `Tests run: 19,
-  Failures: 0, Errors: 0`, Testcontainers logged *"Ryuk has been disabled"*, and zero
-  mount-source-path errors. The eight per-module entries are now redundant but were left alone
-  rather than churned in the same change.
+  `TESTCONTAINERS_RYUK_DISABLED` **stripped from the environment** (`env -u`), on **two independent
+  modules**, because one module passing proves inheritance only for that module:
+
+  ```
+  auth-service  AuthInternalBranchRoleIT   Tests run: 19, Failures: 0, Errors: 0
+  file-service  RlsNullSafeGucIT           Tests run:  2, Failures: 0, Errors: 0
+  ```
+
+  Both logged *"Ryuk has been disabled"* with zero mount-source-path errors. The eight per-module
+  entries are now redundant but were left alone rather than churned in the same change.
 
   **A third decorative form exists**, in `AuditImmutabilityIT`, `AuditConsumerIT` and
   `AuditReadPathIT`: `r.add("TESTCONTAINERS_RYUK_DISABLED", () -> "true")` inside a
