@@ -227,5 +227,20 @@
     "closedAt": "2026-08-12T04:54:30.254018Z",
     "note": "B2 — counted to the expected figure; drawer cleared by the cashier alone",
     "reviewStatus": "PENDING_REVIEW"
+  },
+  "recheck": {
+    "orderNo": "ORD-20260812-0235",
+    "net": [
+      {
+        "m": "POST",
+        "s": 200,
+        "u": "/api/v1/pos/orders/a6903734-11ff-492e-90fb-19431c1f486a/void"
+      }
+    ],
+    "outcome": {
+      "err": null,
+      "panelStillOpen": false
+    },
+    "row": "ORD-20260812-0235 Dine-in · T2 Voided Unpaid Terrace Cashier 2 items Rs 998.00 Guest left before the food went out by Terrace Cashier · Aug 12, 10:05 AM <1m Open ORD-20260812-0212 Dine-in · B3-161 Voided Unpaid Terrace Cashier 2 items Rs 998"
   }
 }

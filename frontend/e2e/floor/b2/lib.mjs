@@ -127,7 +127,10 @@ export async function pageTrouble(page) {
 }
 
 export async function go(page, route, { waitMs = 4000, allowTrouble = false } = {}) {
-  await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
+  // 90s, not Playwright's 30s default: this is a Next dev server that other agents are editing
+  // live, and a route recompile routinely blocks longer than 30s. A nav timeout there is a
+  // toolchain event, not a product finding, and must not be scored as one.
+  await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForTimeout(waitMs);
   const t = await pageTrouble(page);
   if (t.bad.length && !allowTrouble) {
@@ -203,7 +206,14 @@ export function log(...a) { console.log(...a); }
  * `type` is "dine_in" or "takeaway".
  */
 export async function ringAndFire(page, { type = "dine_in", tiles = 2, label = "x" } = {}) {
-  const trouble = await go(page, "/app/pos", { waitMs: 8000 });
+  let trouble = await go(page, "/app/pos", { waitMs: 8000 });
+  // A session that lapsed mid-run bounces to /login, and every subsequent selector miss then
+  // reads as a missing feature. Say so, and sign back in, rather than scoring the login page.
+  if (page.url().includes("/login")) {
+    log("  ! session lapsed — signing back in");
+    await login(page, PEOPLE.cashier);
+    trouble = await go(page, "/app/pos", { waitMs: 8000 });
+  }
   if (trouble.bad?.length || trouble.alerts?.length) {
     await shot(page, `${label}-terminal-trouble`);
     log(`  ! /app/pos: ${JSON.stringify(trouble)}`);
@@ -284,6 +294,12 @@ export async function orderRow(page, orderNo, token) {
 /** Order Management: search for an order number, return its id from the open-order testid. */
 export async function openInOrderManagement(page, orderNo) {
   await go(page, "/app/pos", { waitMs: 7000 });
+  if (page.url().includes("/login")) {
+    log("  ! session lapsed — signing back in");
+    await login(page, PEOPLE.cashier);
+    await go(page, "/app/pos", { waitMs: 7000 });
+  }
+  await page.getByText("Order Management", { exact: true }).waitFor({ timeout: 60000 });
   await page.getByText("Order Management", { exact: true }).click();
   await page.waitForTimeout(4000);
   await page.locator("[data-testid=order-management-search]").first().fill(orderNo);
