@@ -147,6 +147,18 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.ok(orderService.markItemServed(id, itemId)));
     }
 
+    /**
+     * S0-06 — "Mark served &amp; close" from the settlement screen. Same permission as the
+     * per-line serve endpoint above ({@code pos.order.update}): this is the same domain act on
+     * every line at once, so it is deliberately NOT a new or wider permission — the cashier who
+     * may serve line 1 and line 2 individually may serve both in one call.
+     */
+    @PreAuthorize("hasAuthority('pos.order.update')")
+    @PostMapping("/{id}/serve-all")
+    public ResponseEntity<ApiResponse<OrderDto>> markAllItemsServed(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(orderService.markAllItemsServed(id)));
+    }
+
     @PreAuthorize("hasAuthority('pos.order.update')")
     @PostMapping("/{id}/items/{itemId}/cancel")
     public ResponseEntity<ApiResponse<OrderDto>> cancelItem(

@@ -921,10 +921,7 @@ public class OrderServiceImpl implements OrderService {
         // lingering there until the whole order closes (mirrors the ORDER_ITEM_CANCELLED path).
         // markItemServed rejects PENDING (never-fired) lines above, so a served line was always
         // fired to the kitchen — there is always a KDS line to update, hence no wasFired guard.
-        var servedPayload = new PosEventPayloads.OrderItemServedPayload(
-                saved.getId(), tenantId, saved.getBranchId(), itemId);
-        eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_SERVED_KEY, ORDER_ITEM_SERVED_TYPE,
-                saved.getBranchId(), servedPayload);
+        publishItemServed(saved, tenantId, itemId);
 
         // POS-23: serving the last line of an already-fully-paid order closes it — the single
         // maybeCloseOrder seam is a no-op unless paymentStatus==PAID && derivedStatus==SERVED.
@@ -932,6 +929,104 @@ public class OrderServiceImpl implements OrderService {
             dto = maybeCloseOrder(orderId);
         }
         return dto;
+    }
+
+
+    /**
+     * S0-06: the ONE operator-reachable step from "the guest has paid" to a terminal order.
+     *
+     * <p><b>Why this exists.</b> {@code maybeCloseOrder} closes only when the order is
+     * {@code PAID} <i>and</i> {@code derivedStatus == SERVED}, and SERVED was reachable only by
+     * pressing Mark Served on every line individually — controls that live on the terminal's
+     * order panel and the order drawer, neither of which is on the path a cashier walks after
+     * taking the money. The observable consequence was that the NORMAL end state of a settled
+     * check was an open, still-voidable ticket sitting at {@code SENT_TO_KDS / PAID}.
+     *
+     * <p><b>What it does.</b> Serves every active (non-CANCELLED) line in ONE transaction,
+     * publishing the same per-line {@code ORDER_ITEM_SERVED} the single-line path publishes so
+     * the KDS clears identically, then delegates to {@code maybeCloseOrder}. It deliberately
+     * does NOT close the order itself: {@code performClose} keeps exactly one caller, so the
+     * Paid-AND-Served rule, the period-lock check and the single {@code ORDER_CLOSED} publish
+     * cannot be bypassed by this path. An order that is served but not fully paid simply stays
+     * open — which is the correct answer, not a failure.
+     *
+     * <p><b>Refusals</b> (409 {@code StateInvalidException}, deliberately loud rather than a
+     * silent partial success — a control that appears to do nothing is the defect this closes):
+     * <ul>
+     *   <li>the order is VOIDED or REFUNDED — those are different end states, and asking to
+     *       serve one is a real mistake worth naming;</li>
+     *   <li>any active line is still PENDING — it was never fired, so it cannot have been
+     *       served, and serving the rest would leave the order PARTIALLY_SERVED and open.</li>
+     * </ul>
+     *
+     * <p><b>Already CLOSED is NOT a refusal.</b> CLOSED is precisely the state this operation
+     * exists to reach, so arriving there twice — a double-tap, or a second terminal racing the
+     * first — is success, and it returns the order unchanged. Throwing would paint a red error
+     * under a button that had just done exactly what the cashier asked.
+     */
+    @Override
+    public OrderDto markAllItemsServed(UUID orderId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        Order order = findOrderForTenant(orderId, tenantId);
+
+        if (order.getStatus() == OrderStatus.CLOSED) {
+            return orderMapper.toDto(order);
+        }
+        if (isTerminal(order.getStatus())) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve an order that is already " + order.getStatus() + ": " + orderId);
+        }
+
+        List<OrderItem> active = order.getItems().stream()
+                .filter(i -> i.getItemStatus() != OrderItemStatus.CANCELLED)
+                .toList();
+
+        if (active.isEmpty()) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve an order with no active items: " + orderId);
+        }
+
+        List<UUID> unfired = active.stream()
+                .filter(i -> i.getItemStatus() == OrderItemStatus.PENDING)
+                .map(OrderItem::getId)
+                .toList();
+        if (!unfired.isEmpty()) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "Cannot serve items that have not been fired to the kitchen: " + unfired);
+        }
+
+        List<UUID> newlyServed = new ArrayList<>();
+        for (OrderItem item : active) {
+            if (item.getItemStatus() != OrderItemStatus.SERVED) {
+                item.setItemStatus(OrderItemStatus.SERVED);
+                newlyServed.add(item.getId());
+            }
+        }
+
+        order.setDerivedStatus(orderStatusDerivationService.derive(order.getItems()));
+        tableService.syncStatusForOrder(order.getTableId(), order.getBranchId(),
+                order.getStatus(), order.getDerivedStatus());
+        Order saved = orderRepository.save(order);
+
+        for (UUID servedItemId : newlyServed) {
+            publishItemServed(saved, tenantId, servedItemId);
+        }
+
+        // Same seam, same rule as the single-line path — closing is a consequence of Paid AND
+        // Served, never a direct instruction from the caller.
+        return maybeCloseOrder(orderId);
+    }
+
+    /**
+     * The one ORDER_ITEM_SERVED publish in this class — shared by the single-line
+     * {@code markItemServed} and the whole-check {@code markAllItemsServed} so the KDS sees the
+     * identical event either way, and a future change to the payload cannot drift between them.
+     */
+    private void publishItemServed(Order order, UUID tenantId, UUID itemId) {
+        var servedPayload = new PosEventPayloads.OrderItemServedPayload(
+                order.getId(), tenantId, order.getBranchId(), itemId);
+        eventPublisher.publish(POS_EXCHANGE, ORDER_ITEM_SERVED_KEY, ORDER_ITEM_SERVED_TYPE,
+                order.getBranchId(), servedPayload);
     }
 
     @Override

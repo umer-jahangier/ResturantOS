@@ -412,6 +412,21 @@ export const PosRepository = {
   },
 
   /**
+   * S0-06 — serves every remaining line of the check in ONE call, which is what lets the
+   * server's Paid-AND-Served rule close it.
+   *
+   * <p>Not a convenience wrapper around N `markItemServed` calls: those are N transactions and
+   * N chances to stop halfway, leaving the order PARTIALLY_SERVED and still open — the exact
+   * state this repair exists to eliminate. The server does it atomically and closes as a
+   * consequence. Returns the order in whatever state that left it (CLOSED when fully paid,
+   * still open with every line SERVED when it is not).
+   */
+  async serveAllItems(orderId: string): Promise<Order> {
+    const raw = await post<undefined, unknown>(`/api/v1/pos/orders/${orderId}/serve-all`);
+    return adaptOrder(apiOrderSchema.parse(raw));
+  },
+
+  /**
    * Cancels a single line — cashier-initiated, from Order Detail/OrderPanel only (not
    * the KDS). Distinct from `removeItem`'s hard DELETE: this soft-cancels a line even
    * after it was SENT+, keeping it visible with the CANCELLED treatment rather than

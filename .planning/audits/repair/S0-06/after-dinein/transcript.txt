@@ -1,0 +1,51 @@
+login cashier@terrace.local -> http://localhost:3000/app/dashboard
+  [shot] 01-pos-terminal.png
+selectable tables: 1
+table selected: UIQ3028
+ringing: ["Audit Item 52235","Audit Item 60568"]
+  [shot] 02-cart-two-items.png
+  [shot] 03-after-send-to-kitchen.png
+charge url: http://localhost:3000/app/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/charge
+orderId: b3fae224-b1f7-4388-afde-c42b6fd24033
+orderNo: Order #ORD-20260812-0048
+  [shot] 04-charge-page.png
+  [shot] 05-after-full-cash.png
+buttons on charge page after full payment: ["Collapse","Search…\n⌘K","E","Back","Print bill","Mark served & close order"]
+close-order-button present: 1
+close-order-button label: Mark served & close order
+close-order-button enabled: true
+  [shot] 06-after-close.png
+charge page after close: closedChip= 1 errors= []
+charge page headline: Floating Terrace |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS |  | PEOPLE |  | Customers | Collapse
+  [shot] 07-order-management-closed-filter.png
+--- drawer as cashier ---
+Order #ORD-20260812-0048 | Closed | Table UIQ3028 · 1 cover(s) | 1 revision | Audit Item 52235 | ×1 | Rs 499.00 | Served | Audit Item 60568 | ×1 | Rs 499.00 | Served | + Add note | Paid ✓
+VERDICT(cashier): voidOrder=0 refundOrder=0 chargeNow=0 paidChip=1
+  [shot] 08-drawer-cashier.png
+login manager@terrace.local -> http://localhost:3000/login
+FAILED: login failed for manager@terrace.local
+  [shot] 99-failure.png
+
+--- pos order API calls ---
+   200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   201 POST /api/v1/pos/orders
+   200 POST /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/items
+   200 POST /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/items
+   200 POST /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/send-to-kds
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 POST /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 POST /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/serve-all
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 GET /api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&status%5B%5D=CLOSED
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+   200 GET /api/v1/pos/orders/b3fae224-b1f7-4388-afde-c42b6fd24033/payments

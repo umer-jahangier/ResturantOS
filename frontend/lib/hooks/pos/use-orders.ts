@@ -273,6 +273,29 @@ export function useUpdateInstructions(orderId: string) {
 }
 
 /**
+ * S0-06 — "Mark served & close order", the settlement screen's terminal step.
+ *
+ * <p>Deliberately NOT offline-capable and deliberately not optimistic: closing an order is the
+ * event finance posts revenue from, and the server decides whether it happens (it closes only
+ * when the check is also fully paid). The screen must show the server's answer, not a hopeful
+ * one. Invalidates the same keys as `useMarkServed` plus the order LIST, because a close moves
+ * the row out of every active filter and into Closed.
+ */
+export function useServeAllItems(orderId: string) {
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: () => PosRepository.serveAllItems(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+    },
+  });
+}
+
+/**
  * Marks a single line SERVED (cashier/server-side action, never from the KDS — the
  * kitchen has no visibility once food leaves the pass). Server-authoritative, not
  * offline-critical per UI-SPEC — no outbox path.
