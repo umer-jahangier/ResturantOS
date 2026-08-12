@@ -107,6 +107,38 @@ public class AuthProvisioningInternalController {
     }
 
     /**
+     * Undo {@link #provisionAdmin} — the saga's compensating step, in a system context.
+     *
+     * <p>It soft-deactivates the branch-role assignment that provision-admin created, which is what
+     * makes the half-built account unusable: {@code PermissionResolver} refuses a login with no
+     * active branch assignment. The user row itself is left in place on purpose, so a failed
+     * provisioning is still readable afterwards.
+     *
+     * <p><b>Why this is a second door rather than the one on {@link AuthInternalController}.</b>
+     * That door now requires {@code X-Acting-User-Id} and bounds the revoke by that human's own
+     * authority, because a revoke without a ceiling let a tenant admin strip every OWNER in a
+     * tenant. This caller has no acting human at all — it is undoing a grant it made itself,
+     * seconds earlier, before any human in the tenant exists — and there is no honest value it
+     * could put in that header. The alternatives were both worse: sending the target's OWN id makes
+     * the ceiling check pass vacuously and writes the D-34 lie into the audit trail, and making the
+     * header optional on the shared door reopens the hole for anything that reaches the internal
+     * port. Two doors with two honestly stated contracts is the smaller cost, and it mirrors the
+     * split the assign path already has between {@code assignAsActingUser} and {@code assign}.
+     *
+     * <p>Idempotent: revoking an absent or already-inactive assignment is a no-op and still answers
+     * 204, so a retried compensation cannot fail on its second run.
+     */
+    @DeleteMapping("/tenants/{tenantId}/provision-admin")
+    public ResponseEntity<Void> unprovisionAdmin(
+            @PathVariable UUID tenantId,
+            @RequestParam UUID userId,
+            @RequestParam UUID branchId,
+            @RequestParam String roleCode) {
+        provisioningAdminService.revokeProvisionedAdminRole(tenantId, userId, branchId, roleCode);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Issues a short-lived service JWT (TTL 300s) for server-initiated internal calls (Doc 4 §4.1).
      */
     @PostMapping("/service-token")

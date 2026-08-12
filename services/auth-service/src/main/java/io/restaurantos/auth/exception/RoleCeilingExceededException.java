@@ -26,6 +26,27 @@ public class RoleCeilingExceededException extends RestaurantOsException {
                 + permissionsBeyondCeiling + " permission(s) you do not hold yourself");
     }
 
+    /**
+     * The same refusal, worded for the verb the caller actually used (S2).
+     *
+     * <p>"You cannot assign the role OWNER" is a confusing thing to read after pressing Revoke, and
+     * on this path the message is the whole of what the administrator has to act on.
+     *
+     * <p><b>It is deliberately short.</b> The frontend's {@code formatUserFacingError} replaces any
+     * server message over 160 characters with "Something went wrong. Please try again." — a cap
+     * that exists to keep raw Zod and JSON dumps off the screen. A first draft of this sentence ran
+     * to 171 characters and was measured live reaching the confirmation dialog as exactly that
+     * generic string, which is worse than useless here: it tells an owner nothing about why the
+     * role they tried to remove is still there. Keep any future edit inside the budget.
+     */
+    public static RoleCeilingExceededException forRevoke(String roleCode,
+                                                         int permissionsBeyondCeiling) {
+        return new RoleCeilingExceededException(
+            "You cannot revoke the role " + roleCode + ": it grants "
+                + permissionsBeyondCeiling + " permission(s) you do not hold yourself. "
+                + "Ask an administrator who holds them.");
+    }
+
     public RoleCeilingExceededException(String message) {
         super("ROLE_CEILING_EXCEEDED", message);
     }

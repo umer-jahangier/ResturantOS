@@ -92,14 +92,37 @@ public class AuthInternalController {
 
     /**
      * Revoke (soft-deactivate) a branch-role for a user.
+     *
+     * <p><b>Breaking change, deliberate, and the same one 13-11 made to the assign path above.</b>
+     * {@code X-Acting-User-Id} is now REQUIRED here too, and the acting user's own authority bounds
+     * which role may be revoked. Before this, revoke was the one privilege-bearing write on this
+     * controller that named nobody and checked nothing: measured live against the running stack, a
+     * TENANT_ADMIN assigning OWNER was answered {@code 403 ROLE_CEILING_EXCEEDED} and the SAME
+     * admin revoking OWNER from the SAME account was answered {@code 204} with the row going
+     * inactive. A ceiling that stops you creating an OWNER but not destroying every OWNER is not a
+     * ceiling — and the destruction is the irreversible direction, because nobody below the ceiling
+     * can grant the role back.
+     *
+     * <p>The provisioning saga's compensating revoke does NOT come through here. It is a genuine
+     * system context with no acting human, so it has its own door —
+     * {@code DELETE /internal/auth/tenants/{tenantId}/provision-admin} — rather than being let
+     * through this one by omitting a header. See {@link ActingUserRequiredException} for why an
+     * identity header that disables a check when omitted is worse than no header at all.
+     *
+     * @param actingUserId who is asking; their own permissions bound what this request may revoke
      */
     @DeleteMapping("/users/{userId}/branch-roles")
     public ResponseEntity<Void> revokeBranchRole(
             @PathVariable UUID userId,
             @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestHeader(value = ACTING_USER_HEADER, required = false) UUID actingUserId,
             @RequestParam UUID branchId,
             @RequestParam String roleCode) {
-        branchRoleAdminService.revoke(tenantId, userId, branchId, roleCode);
+        if (actingUserId == null) {
+            throw new ActingUserRequiredException(
+                "DELETE /internal/auth/users/{userId}/branch-roles");
+        }
+        branchRoleAdminService.revokeAsActingUser(tenantId, actingUserId, userId, branchId, roleCode);
         return ResponseEntity.noContent().build();
     }
 

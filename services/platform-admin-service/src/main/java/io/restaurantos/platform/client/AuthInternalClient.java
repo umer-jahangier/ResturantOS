@@ -55,14 +55,22 @@ public interface AuthInternalClient {
                                           @RequestBody ProvisionAdminRequest request);
 
     /**
-     * Revoke (soft-deactivate) a branch-role assignment. The saga's compensating action for
-     * {@link #provisionAdmin}: an admin stripped of its only assignment cannot resolve permissions
-     * and cannot log in. Idempotent on the producer side ({@code revoke} is a no-op when the row is
-     * absent), so a retried compensation cannot fail on its second run.
+     * Undo {@link #provisionAdmin} — the saga's compensating action. An admin stripped of its only
+     * assignment cannot resolve permissions and cannot log in. Idempotent on the producer side
+     * ({@code revoke} is a no-op when the row is absent), so a retried compensation cannot fail on
+     * its second run.
+     *
+     * <p><b>It used to call {@code DELETE /internal/auth/users/{userId}/branch-roles}</b>, the same
+     * door user-service uses for a human pressing Revoke. S2 made that door require
+     * {@code X-Acting-User-Id} and bound the revoke by that human's own role ceiling, because
+     * without it a tenant admin could strip every OWNER in a tenant irreversibly. This caller has
+     * no acting human — it is undoing a grant auth-service made itself, moments earlier, before any
+     * human in the tenant exists — so it moved to the system-context door beside the operation it
+     * compensates rather than being let through the human one by omitting a header.
      */
-    @DeleteMapping("/internal/auth/users/{userId}/branch-roles")
-    void revokeBranchRole(@PathVariable UUID userId,
-                          @RequestHeader("X-Tenant-Id") UUID tenantId,
+    @DeleteMapping("/internal/auth/tenants/{tenantId}/provision-admin")
+    void unprovisionAdmin(@PathVariable UUID tenantId,
+                          @RequestParam UUID userId,
                           @RequestParam UUID branchId,
                           @RequestParam String roleCode);
 

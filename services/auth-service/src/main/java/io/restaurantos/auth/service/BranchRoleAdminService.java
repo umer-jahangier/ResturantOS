@@ -253,11 +253,69 @@ public class BranchRoleAdminService {
     }
 
     /**
+     * Revoke a role on behalf of a named human, refusing any role above that human's own authority.
+     *
+     * <p><b>This is the entry point every networked caller reaches</b>, and it is the half of the
+     * ceiling that was missing. {@link #assignAsActingUser} has refused a grant above the caller's
+     * own permissions since 13-11; revoke had no ceiling at all, and the asymmetry was measured
+     * live rather than argued: a TENANT_ADMIN assigning OWNER was answered
+     * <b>403 ROLE_CEILING_EXCEEDED</b> while the same admin revoking OWNER from the same account
+     * was answered <b>204</b> and the row went inactive
+     * ({@code .planning/audits/floor/S2/_ceiling-probe.json}).
+     *
+     * <p><b>Why "you may revoke only what you could grant" is the right rule.</b> A role's
+     * permissions ARE the authority it carries, and the ceiling's whole statement is that a caller
+     * may not act on authority they do not themselves hold. Bounding only the grant makes the
+     * ceiling decorative: the tenant admin who cannot create an OWNER can instead delete every
+     * OWNER in the tenant, and the damage does not undo — nobody below the ceiling can grant OWNER
+     * back, so the account that holds {@code rbac.manage} is gone for good and the restaurant is
+     * locked out of its own product. {@link RoleCeiling#requireMayAdminister} already made exactly
+     * this argument for deactivating and renaming a user ("a TENANT_ADMIN who can deactivate the
+     * OWNER can lock the only holder of {@code rbac.manage} out of their own tenant"); this applies
+     * the rule that already exists to the one write that escaped it.
+     *
+     * <p>{@link RoleCeiling#requireAssignable} is reused rather than a second predicate written,
+     * for the reason that class records: a rule with two implementations is a rule with two
+     * behaviours. The refusal is worded for revocation because "you cannot assign" is a confusing
+     * thing to read after pressing Revoke.
+     *
+     * <p>Ordering matches the assign path and is load-bearing for the same reason: the tenant GUC
+     * first, because the ceiling reads {@code user_branch_roles} under FORCE ROW LEVEL SECURITY and
+     * without it a legitimate OWNER resolves to the empty permission set; then the check; then the
+     * write, so a refused revocation cannot have already deactivated the row.
+     *
+     * @param actingUserId the human on whose behalf this is done, asserted by the calling service
+     *                     from a verified JWT — never taken from a client-supplied header
+     * @throws io.restaurantos.auth.exception.UnknownRoleCodeException if the code is not in the catalog (400)
+     * @throws io.restaurantos.auth.exception.RoleCeilingExceededException if the role exceeds the
+     *         acting user's own permissions (403)
+     */
+    @Transactional
+    public void revokeAsActingUser(UUID tenantId, UUID actingUserId, UUID userId,
+                                   UUID branchId, String roleCode) {
+        setTenantGuc(tenantId);
+        roleCeiling.requireRevocable(actingUserId, roleCode);
+        revoke(tenantId, actingUserId, userId, branchId, roleCode);
+    }
+
+    /**
      * Soft-deactivate the branch-role assignment (active=false).
      * A hard-delete is avoided so audit history is preserved.
+     *
+     * <p><b>Unbounded by design, and therefore not reachable by a human.</b> It applies no role
+     * ceiling, exactly as {@link #assign(UUID, UUID, BranchRoleAssignRequest)} applies none: the
+     * only caller is the provisioning saga's compensating step, undoing the OWNER assignment it
+     * made moments earlier in a system context where there is no acting human at all. Every
+     * networked caller acting for a person goes through {@link #revokeAsActingUser}. Adding a
+     * second caller here is how the hole this method's sibling just closed comes back.
      */
     @Transactional
     public void revoke(UUID tenantId, UUID userId, UUID branchId, String roleCode) {
+        revoke(tenantId, null, userId, branchId, roleCode);
+    }
+
+    private void revoke(UUID tenantId, UUID actingUserId, UUID userId, UUID branchId,
+                        String roleCode) {
         setTenantGuc(tenantId);
         userBranchRoleRepository
             .findByUserIdAndBranchIdAndRoleCode(userId, branchId, roleCode)
@@ -271,12 +329,17 @@ public class BranchRoleAdminService {
                 // Re-revoking an already-inactive assignment changes nothing and recording it
                 // would put rows in the trail that describe no change in what anyone can do.
                 if (wasActive) {
-                    // The acting user is whatever the verified context holds, and is frequently
-                    // null on this path: AuthInternalClient.revokeBranchRole sends no
-                    // X-Acting-User-Id, unlike every other write. Recorded honestly as null
-                    // rather than substituted with the target's own id — see RoleRevokedPayload
-                    // and follow-up W-15-02.
-                    events.roleRevoked(tenantId, tenantContext.getUserId().orElse(null),
+                    // The acting user now arrives EXPLICITLY from the caller, as it does on the
+                    // assign path — /internal/auth/** carries no JWT, so TenantContext.getUserId()
+                    // is empty here and every revocation used to be recorded with a null actor
+                    // (the W-15-02 follow-up this closes). It falls back to the context, and then
+                    // to null on the provisioning path where there genuinely is no acting human:
+                    // recorded honestly rather than substituted with the target's own id, which is
+                    // the D-34 defect that put every user in impersonation_logs down as their own
+                    // impersonator. A privilege revocation that cannot say who performed it is the
+                    // one audit row that most needs to.
+                    events.roleRevoked(tenantId,
+                        actingUserId != null ? actingUserId : tenantContext.getUserId().orElse(null),
                         userId, branchId, roleCode);
                 }
             });

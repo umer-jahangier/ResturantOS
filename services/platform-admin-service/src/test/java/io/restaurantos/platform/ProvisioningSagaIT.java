@@ -359,11 +359,23 @@ class ProvisioningSagaIT extends BasePlatformIT {
 
             // 1. the admin's only branch-role is revoked — the account can no longer resolve
             //    permissions, which is what "deactivated" means for a login.
+            //
+            //    Through the SYSTEM-CONTEXT door, `DELETE /internal/auth/tenants/{id}/provision-
+            //    admin`, and not the human one. S2 made the human door require X-Acting-User-Id and
+            //    bound the revoke by that human's own role ceiling; this compensation is undoing a
+            //    grant auth-service made itself, seconds earlier, before any human in the tenant
+            //    exists, so there is no honest value it could put in that header. The tenant id
+            //    moved from a header into the path because that is what identifies which
+            //    provision-admin is being undone.
             WIREMOCK.verify(1, WireMock.deleteRequestedFor(
-                    WireMock.urlPathEqualTo("/internal/auth/users/" + adminUserId + "/branch-roles"))
+                    WireMock.urlPathEqualTo(
+                        "/internal/auth/tenants/" + tenants.get(0).getId() + "/provision-admin"))
+                .withQueryParam("userId", WireMock.equalTo(adminUserId.toString()))
                 .withQueryParam("branchId", WireMock.equalTo(branchId.toString()))
-                .withQueryParam("roleCode", WireMock.equalTo("OWNER"))
-                .withHeader("X-Tenant-Id", WireMock.equalTo(tenants.get(0).getId().toString())));
+                .withQueryParam("roleCode", WireMock.equalTo("OWNER")));
+            // ...and never through the door a human uses, which would now refuse it anyway.
+            WIREMOCK.verify(0, WireMock.deleteRequestedFor(
+                WireMock.urlPathMatching("/internal/auth/users/.*/branch-roles")));
             // 2. the auth tenant row is marked non-loginable
             WIREMOCK.verify(1, WireMock.patchRequestedFor(WireMock.urlPathEqualTo(
                     "/internal/auth/tenants/" + tenants.get(0).getId() + "/status"))

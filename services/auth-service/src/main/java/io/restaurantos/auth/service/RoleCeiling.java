@@ -99,16 +99,61 @@ public class RoleCeiling {
      */
     @Transactional
     public void requireAssignable(UUID actingUserId, String roleCode) {
+        int beyond = permissionsBeyondCeiling(actingUserId, roleCode);
+        if (beyond > 0) {
+            throw new RoleCeilingExceededException(roleCode.trim(), beyond);
+        }
+    }
+
+    /**
+     * How many of {@code roleCode}'s permissions the acting user lacks — 0 when the role is within
+     * their ceiling. Shared by both verbs so the comparison exists once.
+     *
+     * <p>Ordering inside is load-bearing: the code is validated FIRST, because an unknown role has
+     * no permission rows at all and would otherwise sail through the subset test and be reported as
+     * an authorization success rather than as the typo it is.
+     */
+    private int permissionsBeyondCeiling(UUID actingUserId, String roleCode) {
         roleCatalog.requireKnown(roleCode);
 
         List<String> rolePermissions = permissionsOfRole(roleCode);
         Set<String> callerPermissions = permissionsOfActingUser(actingUserId);
 
         if (permits(callerPermissions, rolePermissions)) {
-            return;
+            return 0;
         }
-        int beyond = (int) rolePermissions.stream().filter(code -> !callerPermissions.contains(code)).count();
-        throw new RoleCeilingExceededException(roleCode.trim(), beyond);
+        return (int) rolePermissions.stream().filter(code -> !callerPermissions.contains(code)).count();
+    }
+
+    /**
+     * Refuses unless {@code actingUserId} may REVOKE {@code roleCode} — the same ceiling, the same
+     * comparison, worded for the other verb.
+     *
+     * <p>The rule is identical on purpose: a role's permissions are the authority it carries, and
+     * destroying authority you do not hold is the same overreach as granting it. Bounding only the
+     * grant leaves the ceiling decorative — measured on the running stack before this existed, a
+     * TENANT_ADMIN was refused 403 when assigning OWNER and answered 204 when revoking it, and no
+     * one below the ceiling can grant OWNER back, so the tenant loses its only holder of
+     * {@code rbac.manage} irreversibly.
+     *
+     * <p>It shares {@link #permissionsBeyondCeiling} with {@link #requireAssignable} rather than
+     * re-deriving the comparison, so there is exactly one implementation of "may this caller act on
+     * this role" and the two verbs cannot drift apart. Only the REFUSAL is re-worded — see
+     * {@link RoleCeilingExceededException#forRevoke}, which also records why that sentence has a
+     * hard length budget.
+     *
+     * <p>Must be called inside a transaction whose tenant GUC is already set, for the reasons
+     * {@link #requireAssignable} records.
+     *
+     * @throws io.restaurantos.auth.exception.UnknownRoleCodeException if the code is not in the catalog (400)
+     * @throws RoleCeilingExceededException if the role grants anything the acting user lacks (403)
+     */
+    @Transactional
+    public void requireRevocable(UUID actingUserId, String roleCode) {
+        int beyond = permissionsBeyondCeiling(actingUserId, roleCode);
+        if (beyond > 0) {
+            throw RoleCeilingExceededException.forRevoke(roleCode.trim(), beyond);
+        }
     }
 
     /**

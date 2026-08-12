@@ -302,6 +302,174 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
         return count != null && count == 1L;
     }
 
+    // ── The role ceiling on the REVOKE path (S2) ──────────────────────────────
+    //
+    // 13-11 closed the ceiling on assign and left revoke naming nobody and checking nothing. The
+    // asymmetry was measured against the running dev stack before this change, not argued:
+    //     POST   .../branch-roles {"roleCode":"OWNER"} as TENANT_ADMIN → 403 ROLE_CEILING_EXCEEDED
+    //     DELETE .../branch-roles?roleCode=OWNER      as TENANT_ADMIN → 204, row went inactive
+    // (.planning/audits/floor/S2/_ceiling-probe.json). A ceiling that stops you creating an OWNER
+    // but not destroying every OWNER is not a ceiling, and destruction is the irreversible
+    // direction: nobody below the ceiling can grant the role back, so the tenant loses its only
+    // holder of rbac.manage for good. S2 puts a BUTTON on this endpoint, which is what turned a
+    // latent hole into a one-click one.
+
+    /**
+     * A revoke that does not say who is asking is refused, and the assignment survives it.
+     *
+     * <p>The distinct code matters for the same reason it does on assign: {@code
+     * INTERNAL_AUTH_REQUIRED} would mean the shared secret was missing, and it was not.
+     */
+    @Test
+    void revokeBranchRole_withoutAnActingUser_isRefusedAndTheRoleSurvives() {
+        UUID target = TestFixtures.KITCHEN_STAFF_USER_ID;
+        // Its OWN branch, not MAIN_BRANCH_ID. When this test was first watched failing — the point
+        // of writing it — the unguarded revoke SUCCEEDED and stripped the shared fixture's role at
+        // the main branch, which then failed an unrelated assign test 200 lines up. A test whose
+        // pre-fix behaviour damages another test's fixture reports the wrong defect.
+        UUID branch = UUID.fromString("b0000030-0000-4000-8000-000000000030");
+
+        ResponseEntity<String> granted = exchangePost(
+            "/internal/auth/users/" + target + "/branch-roles",
+            Map.of("branchId", branch.toString(), "roleCode", "KITCHEN_STAFF"),
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+        assertThat(granted.getStatusCode().value()).isEqualTo(200);
+
+        // The control: there must be live authority here for a refusal to mean anything.
+        assertThat(activeRoleCount(target, branch, "KITCHEN_STAFF"))
+            .as("the fixture must really hold this role before we try to take it away")
+            .isEqualTo(1L);
+
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/users/" + target + "/branch-roles"
+                + "?branchId=" + branch + "&roleCode=KITCHEN_STAFF",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("ACTING_USER_REQUIRED");
+        assertThat(response.getBody()).doesNotContain("INTERNAL_AUTH_REQUIRED");
+        assertThat(activeRoleCount(target, branch, "KITCHEN_STAFF"))
+            .as("a refused revocation must not have deactivated the row")
+            .isEqualTo(1L);
+    }
+
+    /**
+     * The finding itself: a caller who could not GRANT a role may not TAKE IT AWAY either.
+     *
+     * <p>The acting user is the seeded CASHIER, who plainly holds none of the administration
+     * permissions OWNER carries, so the refusal cannot be an artefact of two roles that happen to
+     * be close. The target is given OWNER by the OWNER first, so the authority being defended is
+     * real and live rather than a row that was never written.
+     */
+    @Test
+    void revokeBranchRole_aboveTheActingUsersOwnCeiling_isRefusedAndTheRoleSurvives() {
+        UUID target = TestFixtures.MANAGER_USER_ID;
+        UUID branch = UUID.fromString("b0000031-0000-4000-8000-000000000031");
+
+        ResponseEntity<String> granted = exchangePost(
+            "/internal/auth/users/" + target + "/branch-roles",
+            Map.of("branchId", branch.toString(), "roleCode", "OWNER"),
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+        assertThat(granted.getStatusCode().value()).isEqualTo(200);
+        assertThat(activeRoleCount(target, branch, "OWNER")).isEqualTo(1L);
+
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/users/" + target + "/branch-roles"
+                + "?branchId=" + branch + "&roleCode=OWNER",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.CASHIER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody()).contains("ROLE_CEILING_EXCEEDED");
+        // Worded for the verb the caller actually used. "You cannot assign the role OWNER" is a
+        // confusing thing to read after pressing Revoke, and the message is what an administrator
+        // has to act on.
+        assertThat(response.getBody()).contains("revoke").contains("OWNER");
+        // Still never names the withheld permission codes — see RoleCeilingExceededException.
+        assertThat(response.getBody()).doesNotContain("rbac.manage");
+
+        assertThat(activeRoleCount(target, branch, "OWNER"))
+            .as("the role must survive a refused revocation")
+            .isEqualTo(1L);
+    }
+
+    /**
+     * The positive control, without which the test above passes against a revoke that refuses
+     * everything — including a revoke that is simply broken.
+     *
+     * <p>OWNER holds the whole permission catalogue (changeset 057), so an owner revoking OWNER is
+     * within their own ceiling and the row must genuinely go inactive.
+     */
+    @Test
+    void revokeBranchRole_withinTheActingUsersCeiling_actuallyRevokes() {
+        UUID target = TestFixtures.MANAGER_USER_ID;
+        UUID branch = UUID.fromString("b0000032-0000-4000-8000-000000000032");
+
+        ResponseEntity<String> granted = exchangePost(
+            "/internal/auth/users/" + target + "/branch-roles",
+            Map.of("branchId", branch.toString(), "roleCode", "OWNER"),
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+        assertThat(granted.getStatusCode().value()).isEqualTo(200);
+        assertThat(activeRoleCount(target, branch, "OWNER")).isEqualTo(1L);
+
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/users/" + target + "/branch-roles"
+                + "?branchId=" + branch + "&roleCode=OWNER",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(204);
+        assertThat(activeRoleCount(target, branch, "OWNER"))
+            .as("the row must actually go inactive — this is the control for the refusals above")
+            .isZero();
+    }
+
+    /**
+     * An unknown role code is 400, not 403 — the ordering the ceiling fixes on assign, pinned here
+     * too. An unknown code has no permission rows, so a subset test alone passes it vacuously and
+     * would report a typo as an authorization success.
+     */
+    @Test
+    void revokeBranchRole_withAnUnknownRoleCode_isReportedAsUnknownNotAsCeiling() {
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/users/" + TestFixtures.KITCHEN_STAFF_USER_ID + "/branch-roles"
+                + "?branchId=" + TestFixtures.MAIN_BRANCH_ID + "&roleCode=NOT_A_REAL_ROLE",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.CASHIER_USER_ID);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).contains("UNKNOWN_ROLE_CODE");
+    }
+
+    /**
+     * The provisioning saga's compensating door still works without an acting user, because there
+     * genuinely is none — it is undoing a grant auth-service made itself. Without this the ceiling
+     * above would have silently broken tenant-provisioning rollback, leaving a usable OWNER account
+     * inside a PROVISIONING_FAILED tenant.
+     */
+    @Test
+    void unprovisionAdmin_needsNoActingUser_andRevokes() {
+        UUID target = TestFixtures.MANAGER_USER_ID;
+        UUID branch = UUID.fromString("b0000033-0000-4000-8000-000000000033");
+
+        exchangePost("/internal/auth/users/" + target + "/branch-roles",
+            Map.of("branchId", branch.toString(), "roleCode", "OWNER"),
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+        assertThat(activeRoleCount(target, branch, "OWNER")).isEqualTo(1L);
+
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/tenants/" + TestFixtures.DEMO_TENANT_ID + "/provision-admin"
+                + "?userId=" + target + "&branchId=" + branch + "&roleCode=OWNER",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(204);
+        assertThat(activeRoleCount(target, branch, "OWNER")).isZero();
+
+        // Idempotent: a saga compensation may run twice and the second run must not fail.
+        ResponseEntity<String> replay = exchangeDelete(
+            "/internal/auth/tenants/" + TestFixtures.DEMO_TENANT_ID + "/provision-admin"
+                + "?userId=" + target + "&branchId=" + branch + "&roleCode=OWNER",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, null);
+        assertThat(replay.getStatusCode().value()).isEqualTo(204);
+    }
+
     private long activeRoleCount(UUID userId, UUID branchId, String roleCode) {
         return ((Number) entityManager.createNativeQuery(
                 "SELECT COUNT(*) FROM user_branch_roles "
@@ -410,6 +578,25 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
             .uri(uri)
             .contentType(MediaType.APPLICATION_JSON)
             .body(body);
+        if (headerName != null) {
+            spec = spec.header(headerName, headerValue);
+        }
+        if (headerName != null && "X-Internal-Service".equals(headerName)) {
+            spec = spec.header("X-Tenant-Id", TestFixtures.DEMO_TENANT_ID.toString());
+            if (actingUserId != null) {
+                spec = spec.header("X-Acting-User-Id", actingUserId.toString());
+            }
+        }
+        return spec.exchange((request, response) -> toResponseEntity(response));
+    }
+
+    /**
+     * DELETE with an explicitly chosen acting user — {@code null} means the header is omitted
+     * entirely, which is the case the revoke tests above have to be able to express.
+     */
+    protected ResponseEntity<String> exchangeDelete(String uri, String headerName,
+                                                    String headerValue, UUID actingUserId) {
+        var spec = rest.delete().uri(uri);
         if (headerName != null) {
             spec = spec.header(headerName, headerValue);
         }

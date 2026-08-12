@@ -397,9 +397,20 @@ public abstract class BasePlatformIT {
                     + "\"status\":\"PROVISIONING_FAILED\",\"loginAllowed\":false}}")));
     }
 
+    /**
+     * The saga's compensating revoke — {@code DELETE /internal/auth/tenants/{id}/provision-admin}.
+     *
+     * <p>It used to be {@code DELETE /internal/auth/users/{id}/branch-roles}, the same door
+     * user-service uses for a human pressing Revoke. S2 made that door require
+     * {@code X-Acting-User-Id} and bound the revoke by that human's own role ceiling — without it a
+     * tenant admin who cannot create an OWNER could destroy every OWNER in a tenant, irreversibly.
+     * This caller has no acting human, so it moved to the system-context door beside the operation
+     * it compensates rather than being let through the human one by omitting a header.
+     */
     protected void stubAuthRevokeBranchRole() {
-        WIREMOCK.stubFor(WireMock.delete(WireMock.urlPathMatching("/internal/auth/users/.*/branch-roles"))
-            .willReturn(WireMock.aResponse().withStatus(204)));
+        WIREMOCK.stubFor(
+            WireMock.delete(WireMock.urlPathMatching("/internal/auth/tenants/.*/provision-admin"))
+                .willReturn(WireMock.aResponse().withStatus(204)));
     }
 
     /**

@@ -138,6 +138,27 @@ public class ProvisioningAdminService {
     }
 
     /**
+     * Undo {@link #provisionAdmin}'s branch-role assignment — the saga's compensating step.
+     *
+     * <p>It exists so the compensation does not have to reach the human-facing revoke door, which
+     * now requires an acting user and bounds the revoke by that human's own authority. Here there
+     * is no acting human: this is undoing a grant this service made itself, seconds earlier, before
+     * any human in the tenant exists. It calls the unbounded, ceiling-free
+     * {@code BranchRoleAdminService.revoke} for the same reason {@code provisionAdmin} above calls
+     * the unbounded {@code assign} — a system context is the one place where no ceiling is the
+     * honest answer, and keeping it behind its own named method keeps it from being reachable by
+     * accident.
+     *
+     * <p>Idempotent, because a saga compensation may run twice: revoking an absent or
+     * already-inactive assignment writes nothing and raises nothing.
+     */
+    @Transactional
+    public void revokeProvisionedAdminRole(UUID tenantId, UUID userId, UUID branchId,
+                                           String roleCode) {
+        branchRoleAdminService.revoke(tenantId, userId, branchId, roleCode);
+    }
+
+    /**
      * Issues a service JWT for server-initiated internal calls (Doc 4 §4.1).
      * TTL defaults to 5 minutes; the token has roles=["INTERNAL_SERVICE"].
      */

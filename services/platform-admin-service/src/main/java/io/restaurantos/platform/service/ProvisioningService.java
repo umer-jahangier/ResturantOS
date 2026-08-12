@@ -253,7 +253,7 @@ public class ProvisioningService {
             String tempPassword = adminData.tempPassword();
             UUID adminUserId = adminData.userId();
             compensation.add(new CompensationStep(KIND_ADMIN_USER, adminUserId.toString(),
-                () -> authClient.revokeBranchRole(adminUserId, tenantId, branchId, OWNER_ROLE_CODE)));
+                () -> authClient.unprovisionAdmin(tenantId, adminUserId, branchId, OWNER_ROLE_CODE)));
 
             // Step 6: seed Chart of Accounts (required — a failure here must abort the saga,
             // same as Steps 3-5; the guard is an emergency kill-switch, not a license to swallow a

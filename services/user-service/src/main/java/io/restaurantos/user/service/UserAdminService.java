@@ -167,10 +167,18 @@ public class UserAdminService {
 
     /**
      * Revoke a branch-role from a user — delegates to auth-service.
+     *
+     * <p>Forwards the CALLER's identity, exactly as {@link #assignRole} does. auth-service refuses
+     * to revoke a role whose permission set exceeds the acting user's own — the half of the ceiling
+     * that was missing until S2, and the more dangerous half: a tenant admin cannot create an OWNER
+     * but could destroy every OWNER in the tenant, and nobody below the ceiling can grant the role
+     * back. The header is an identity, not a claim of authority; the permission set behind it is
+     * recomputed server-side.
      */
     public void revokeRole(UUID userId, UUID branchId, String roleCode) {
         UUID tenantId = tenantContext.requireTenantId();
-        authInternalClient.revokeBranchRole(userId, tenantId, branchId, roleCode);
+        UUID actingUserId = requireActingUser("revoke a role");
+        authInternalClient.revokeBranchRole(userId, tenantId, actingUserId, branchId, roleCode);
     }
 
     // ── Station assignments (28-01) ──────────────────────────────────────────────────────────

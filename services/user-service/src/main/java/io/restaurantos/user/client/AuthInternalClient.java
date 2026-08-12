@@ -48,11 +48,24 @@ public interface AuthInternalClient {
     /**
      * Revoke (soft-deactivate) a branch-role for a user.
      * Corresponds to DELETE /internal/auth/users/{userId}/branch-roles.
+     *
+     * <p>Carries the CALLER's identity, for the same reason {@link #assignBranchRole} does and with
+     * the same rule applied: auth-service refuses to revoke a role whose permission set exceeds the
+     * acting user's own, recomputing that set server-side rather than trusting anything sent here.
+     * This header used to be absent on this one call — the {@code BranchRoleAdminService} comment
+     * that noted "sends no X-Acting-User-Id, unlike every other write" was describing a missing
+     * authorization check, not a quirk: a TENANT_ADMIN who was refused 403 when assigning OWNER was
+     * answered 204 when revoking it.
+     *
+     * <p>The value is the subject of the verified JWT, taken from {@code TenantContext}; it is
+     * never read from the request, and the gateway's {@code StripInternalHeaderFilter} deletes this
+     * header from every inbound request so a client cannot supply one.
      */
     @DeleteMapping("/internal/auth/users/{userId}/branch-roles")
     void revokeBranchRole(
         @PathVariable("userId") UUID userId,
         @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestHeader("X-Acting-User-Id") UUID actingUserId,
         @RequestParam("branchId") UUID branchId,
         @RequestParam("roleCode") String roleCode
     );
