@@ -1,0 +1,10 @@
+{
+  "hire": "f12.state.337752@terrace.local",
+  "messages": [
+    "Use at least 12 characters",
+    "Passwords do not match"
+  ],
+  "alertText": "Could not change password That link has expired or the current password is wrong. Sign in again to get a new link.",
+  "notice": "Password changed. Sign in with your new password.",
+  "failures": []
+}

@@ -266,7 +266,19 @@ describe("LoginForm — email-first (16a-01)", () => {
     expect(slugsSent).toEqual([undefined, "beta-bistro"]);
   });
 
-  it("sends the user to the forced-change screen on 403 PASSWORD_CHANGE_REQUIRED", async () => {
+  /**
+   * F12 — the forced change happens IN PLACE, and the single-use token never enters a URL.
+   *
+   * The old behaviour was `router.push("/login/change-password?token=…&email=…")`. That put a live
+   * single-use credential and the user's address into browser history, into the `Referer` of every
+   * subsequent request from that page, and into every proxy and gateway access log on the way. The
+   * walkthrough caught a new hire meeting it on their first minute in the product.
+   *
+   * This asserts the user-visible consequence, not the component's props: the change form appears
+   * without a navigation, the token still reaches the endpoint that needs it, and the flow finishes.
+   */
+  it("changes a forced password in place, never putting the token or email in a URL", async () => {
+    const forcedBodies: Array<Record<string, unknown>> = [];
     server.use(
       http.post("*/api/v1/auth/login", () =>
         HttpResponse.json(
@@ -284,24 +296,107 @@ describe("LoginForm — email-first (16a-01)", () => {
           { status: 403 },
         ),
       ),
+      http.post("*/api/v1/auth/change-password/forced", async ({ request }) => {
+        forcedBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ data: null });
+      }),
     );
 
     const user = userEvent.setup();
     renderLoginForm(null);
 
     await user.type(screen.getByLabelText(/email/i), "fresh@demo.test");
-    await user.type(screen.getByLabelText(/password/i), "temp-password");
+    await user.type(screen.getByLabelText(/^password$/i), "temp-password");
     await user.click(screen.getByRole("button", { name: /^sign in$/i }));
 
-    // 403, not 401, precisely so the client does NOT re-prompt for the password in a loop. Before
-    // this plan there was no screen at this destination at all and every provisioned account —
-    // including the first admin of every new tenant — dead-ended here.
-    await waitFor(() =>
-      expect(pushMock).toHaveBeenCalledWith(expect.stringContaining("/login/change-password")),
+    // 403, not 401, precisely so the client does NOT re-prompt for the password in a loop.
+    // The screen it needs is now rendered here rather than at another URL.
+    expect(await screen.findByTestId("forced-password-change")).toBeInTheDocument();
+    expect(screen.getByText(/fresh@demo\.test/)).toBeInTheDocument();
+
+    // The whole point: NOTHING navigated. No history entry, no Referer, no proxy log line.
+    expect(pushMock).not.toHaveBeenCalled();
+
+    // The password that just verified is carried in memory, so a new hire does not retype the
+    // one-time password they were handed. It is a real, editable field — not a hidden input.
+    const current = screen.getByLabelText(/current password/i);
+    expect(current).toHaveValue("temp-password");
+
+    await user.type(screen.getByLabelText(/^new password$/i), "Chosen#Password1");
+    await user.type(screen.getByLabelText(/confirm new password/i), "Chosen#Password1");
+    await user.click(screen.getByRole("button", { name: /^change password$/i }));
+
+    // The single-use token still reaches the endpoint that spends it — it was never needed in a URL.
+    await waitFor(() => expect(forcedBodies).toHaveLength(1));
+    expect(forcedBodies[0]).toMatchObject({
+      changeToken: "tok-123",
+      currentPassword: "temp-password",
+      newPassword: "Chosen#Password1",
+    });
+
+    // Back on the credential form, with the address kept — it was in memory, not in the query
+    // string, so there is nothing to read it back out of.
+    expect(await screen.findByText(/sign in with your new password/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText(/email/i)).toHaveValue("fresh@demo.test"));
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * F12 — a 401 from the PUBLIC forced-change endpoint is a wrong credential, not a dead session.
+   *
+   * The api-client's 401 interceptor only exempted `/login` and `/refresh`, so a new hire who
+   * mistyped their one-time password had the client attempt a token refresh on their behalf and
+   * then hard-navigate to `/login?reason=session_expired` — telling them a session they never had
+   * had ended, and destroying the in-memory change token in the process. The panel's own refusal
+   * message existed in the source the whole time and had never been rendered.
+   *
+   * `window.location` cannot be navigated in jsdom, so the assertion is on the MECHANISM that
+   * precedes it and is observable: no refresh is attempted, and the panel stays up with the error.
+   */
+  it("treats a 401 from the public change endpoint as a bad credential, not an expired session", async () => {
+    let refreshCalls = 0;
+    server.use(
+      http.post("*/api/v1/auth/login", () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: "PASSWORD_CHANGE_REQUIRED",
+              message: "Password change required",
+              details: [{ field: "changeToken", issue: "tok-123" }],
+              traceId: "t",
+            },
+          },
+          { status: 403 },
+        ),
+      ),
+      http.post("*/api/v1/auth/refresh", () => {
+        refreshCalls += 1;
+        return authError("UNAUTHENTICATED", "Authentication failed", 401);
+      }),
+      http.post("*/api/v1/auth/change-password/forced", () =>
+        authError("UNAUTHENTICATED", "Invalid credentials", 401),
+      ),
     );
-    // The change token has to survive the redirect — it is single-use, minted by the refusal, and
-    // the screen cannot succeed without it.
-    expect(String(pushMock.mock.calls[0]?.[0])).toContain("token=tok-123");
+
+    const user = userEvent.setup();
+    renderLoginForm(null);
+
+    await user.type(screen.getByLabelText(/email/i), "fresh@demo.test");
+    await user.type(screen.getByLabelText(/^password$/i), "wrong-temp-password");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await screen.findByTestId("forced-password-change");
+    await user.type(screen.getByLabelText(/^new password$/i), "Chosen#Password1");
+    await user.type(screen.getByLabelText(/confirm new password/i), "Chosen#Password1");
+    await user.click(screen.getByRole("button", { name: /^change password$/i }));
+
+    // The panel says what actually happened, and is still there to be corrected.
+    expect(await screen.findByText(/expired or the current password is wrong/i)).toBeInTheDocument();
+    expect(screen.getByTestId("forced-password-change")).toBeInTheDocument();
+
+    // No refresh was attempted. A refresh here is the first step of the false "session expired"
+    // bounce — there is no session to refresh, because this endpoint is reached without one.
+    expect(refreshCalls).toBe(0);
   });
 
   it("still honours a tenant hint, prefilled and clearable rather than imposed", async () => {

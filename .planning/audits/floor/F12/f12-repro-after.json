@@ -1,0 +1,38 @@
+{
+  "newHire": "f12.hire.841199@terrace.local",
+  "urls": [
+    {
+      "how": "framenavigated",
+      "url": "http://localhost:3000/login"
+    },
+    {
+      "how": "framenavigated",
+      "url": "http://localhost:3000/login"
+    }
+  ],
+  "steps": [
+    {
+      "label": "login",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "referrer": "",
+      "historyLength": 2
+    },
+    {
+      "label": "after-first-signin",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "referrer": "",
+      "historyLength": 2
+    },
+    {
+      "label": "after-change",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "referrer": "",
+      "historyLength": 2
+    }
+  ],
+  "leaked": [],
+  "leakedCount": 0
+}

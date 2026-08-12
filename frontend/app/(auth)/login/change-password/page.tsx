@@ -1,35 +1,30 @@
-import { ForcedPasswordChangeForm } from "@/components/auth/forced-password-change-form";
-import { sanitizeReturnPath } from "@/lib/auth/step-up";
+import { redirect } from "next/navigation";
 
 /**
- * URL: `/login/change-password` — where a `403 PASSWORD_CHANGE_REQUIRED` lands.
+ * `/login/change-password` — kept as a redirect, and deliberately inert.
  *
- * <b>This screen did not exist before 16a-01, and its absence was a live dead end.</b> 13-08 built
- * `POST /api/v1/auth/change-password/forced` and made it public at the gateway; 13-06 and 13-11 set
- * `must_change_password` on every provisioned and every created account. So every newly provisioned
- * user — including the first admin of every new tenant — hit a 403 the browser had no screen for.
- * They could not sign in, and nothing in the UI told them why or what to do.
+ * <h3>What this route used to be, and why it is not that any more (F12)</h3>
  *
- * The `?token=` is the single-use change token auth-service put in the refusal's `details`. It is
- * useless on its own: the endpoint demands the current password as well, which is why carrying it
- * in a URL is acceptable here and why this page still asks for that password rather than trying to
- * smuggle it through the redirect.
+ * 16a-01 built this as the screen a `403 PASSWORD_CHANGE_REQUIRED` lands on, and the only way to
+ * get the single-use change token here was the query string: `?token=…&email=…`. That URL is
+ * written to browser history, sent as the `Referer` of the next request the page makes, and logged
+ * verbatim by every proxy and gateway between the browser and the API. The full-shift walkthrough
+ * caught a new hire meeting it on their first minute in the product.
+ *
+ * The forced change now happens inside the login form itself, where the token is a prop in memory
+ * and the address bar never moves off `/login` — see `components/auth/forced-password-change-form.tsx`.
+ *
+ * <h3>Why a redirect rather than a deleted file</h3>
+ *
+ * Old links exist: in the history of anyone who onboarded before this change, in proxy logs, and in
+ * the phase records that quote the URL. A 404 would tell those users nothing. This sends them to
+ * the one place that can actually help — signing in again mints a fresh token, which is cheap,
+ * because a change token is only ever issued to someone who has just supplied the correct password.
+ *
+ * <b>It must never grow a `searchParams` argument again.</b> Reading `?token=` here would restore
+ * the exact leak this page was emptied to close, and forwarding the query onto `/login` would carry
+ * it into the next history entry as well. The redirect is unconditional and parameterless on purpose.
  */
-interface PageProps {
-  searchParams: Promise<{ token?: string; email?: string; tenant?: string; next?: string }>;
-}
-
-export default async function ForcedPasswordChangePage({ searchParams }: PageProps) {
-  const params = await searchParams;
-
-  return (
-    <ForcedPasswordChangeForm
-      changeToken={params.token ?? null}
-      email={params.email ?? null}
-      tenantSlug={params.tenant ?? null}
-      // Sanitised here rather than at the redirect, for the same reason the login page does it:
-      // `next` is whatever the URL said, and an off-site value must never reach the router.
-      returnPath={sanitizeReturnPath(params.next)}
-    />
-  );
+export default function ForcedPasswordChangePage(): never {
+  redirect("/login");
 }

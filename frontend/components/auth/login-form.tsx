@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TotpEnrollment } from "@/components/auth/totp-enrollment";
+import { ForcedPasswordChangeForm } from "@/components/auth/forced-password-change-form";
 
 /**
  * ONE login form, for everyone.
@@ -97,6 +98,27 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
     password: string;
     tenantSlug: string;
   } | null>(null);
+  /**
+   * Non-null only after a 403 PASSWORD_CHANGE_REQUIRED (D-17, F12).
+   *
+   * Holds the single-use change token the refusal minted, in memory, for exactly the reason the
+   * enrolment state above holds the password: the alternative was `router.push` to
+   * `/login/change-password?token=…&email=…`, which wrote a live credential and the user's address
+   * into browser history, into the `Referer` of the next request, and into every proxy log between
+   * the browser and the gateway. The forced-change form renders here instead, so the address bar
+   * never moves off `/login` and nothing is written down anywhere.
+   *
+   * Leaving the page discards it, which is correct — a change token is only ever minted for
+   * someone who has just supplied the correct password, so another one costs one sign-in.
+   */
+  const [changing, setChanging] = useState<{
+    changeToken: string;
+    email: string;
+    /** The password that just verified; prefilled into the form's "current password". */
+    currentPassword: string;
+  } | null>(null);
+  /** A non-error notice, e.g. after the forced change succeeded. */
+  const [notice, setNotice] = useState<string | null>(null);
   /** The advanced "I know my restaurant identifier" disclosure. Never shown by default. */
   const [showTenantField, setShowTenantField] = useState(false);
 
@@ -131,6 +153,7 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
 
   function submit(values: LoginFormValues, tenantOverride?: string) {
     setFormError(null);
+    setNotice(null);
 
     const slug = (tenantOverride ?? values.tenantSlug ?? "").trim();
     const totpCode = values.totpCode?.trim();
@@ -180,11 +203,20 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
             // natural response to a 401) would loop forever, which is why auth-service uses 403.
             const changeToken = error.fieldErrors.find((f) => f.field === "changeToken")?.issue;
             if (changeToken) {
-              router.push(
-                `/login/change-password?token=${encodeURIComponent(changeToken)}` +
-                  `&email=${encodeURIComponent(values.email)}` +
-                  (slug ? `&tenant=${encodeURIComponent(slug)}` : ""),
-              );
+              // F12: the change token stays in memory and the URL does not move. It used to be
+              // pushed to `/login/change-password?token=…&email=…`, which put a live single-use
+              // credential and the user's email address in browser history, in the Referer header
+              // of the next request, and in every proxy access log on the way to the gateway. The
+              // forced-change form renders below instead. Nothing else about the flow changes: the
+              // same token goes to the same endpoint with the same current password.
+              setTotpRequired(false);
+              setFormError(null);
+              setNotice(null);
+              setChanging({
+                changeToken,
+                email: values.email,
+                currentPassword: values.password,
+              });
               return;
             }
             setFormError("Your password must be changed before you can sign in.");
@@ -265,6 +297,24 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
 
   const restaurantLabel = tenantBrandName ?? tenantSlug;
 
+  /**
+   * The one non-error line above the form, resolved here rather than as three sibling paragraphs.
+   *
+   * `notice` wins because it describes something that just happened in this tab (the password
+   * change), whereas the two `reason` hints describe how the user arrived; if both are true, the
+   * newer fact is the one worth saying. The step-up wording stays distinct from `session_expired`
+   * on purpose: nothing expired that the user did wrong, and telling them their session ended when
+   * it did not invites a support call.
+   */
+  const statusNote = notice
+    ? notice
+    : reason === "session_expired"
+      ? "Your session expired. Please sign in again."
+      : reason === STEP_UP_LOGIN_REASON
+        ? "That action needs a fresh authenticator code. Sign in again to continue — you’ll be " +
+          "asked for your code, then taken back to where you were."
+        : null;
+
   return (
     /*
      * Phase 34: glass + depth-3 + an entrance. ONLY the surface around the form changed.
@@ -290,25 +340,30 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
         className="h-1 w-full bg-linear-to-r from-primary-400 via-primary-600 to-primary-800"
       />
       <div className="flex flex-col gap-4 p-6">
+        {/* The heading follows the STEP, not the route — the forced change and TOTP enrolment both
+          happen here now, and a panel titled "Enter your email and password to continue" above a
+          new-password form is a screen that lies about what it is asking for. */}
         <div className="grid gap-1">
           <h1 className="font-heading text-lg leading-snug font-medium">
-            {restaurantLabel ? `Sign in to ${restaurantLabel}` : "Sign in to RestaurantOS"}
+            {changing
+              ? "Choose a new password"
+              : restaurantLabel
+                ? `Sign in to ${restaurantLabel}`
+                : "Sign in to RestaurantOS"}
           </h1>
-          <p className="text-sm text-muted-foreground">Enter your email and password to continue</p>
+          <p className="text-sm text-muted-foreground">
+            {changing
+              ? `${changing.email} must set its own password before signing in.`
+              : "Enter your email and password to continue"}
+          </p>
         </div>
         <div>
-          {reason === "session_expired" ? (
+          {/* ONE status line, three sources. They are mutually exclusive in practice and were three
+            separate paragraphs carrying identical classes, which is three places to drift and three
+            entries against the type-scale gate for one visual element. */}
+          {statusNote ? (
             <p className="mb-4 text-sm text-muted-foreground" role="status">
-              Your session expired. Please sign in again.
-            </p>
-          ) : null}
-
-          {/* Distinct from session_expired on purpose: nothing expired that the user did wrong,
-            and telling them their session ended when it did not invites a support call. */}
-          {reason === STEP_UP_LOGIN_REASON ? (
-            <p className="mb-4 text-sm text-muted-foreground" role="status">
-              That action needs a fresh authenticator code. Sign in again to continue — you&apos;ll
-              be asked for your code, then taken back to where you were.
+              {statusNote}
             </p>
           ) : null}
 
@@ -319,7 +374,36 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
             </Alert>
           ) : null}
 
-          {enrolling ? (
+          {changing ? (
+            /*
+             * F12: the forced password change happens HERE, not at `/login/change-password?token=…`.
+             * The single-use token is in `changing`, in memory, and never reaches the address bar.
+             */
+            <ForcedPasswordChangeForm
+              changeToken={changing.changeToken}
+              currentPassword={changing.currentPassword}
+              onCancel={() => {
+                setChanging(null);
+                form.setValue("password", "");
+              }}
+              onChanged={() => {
+                // The change endpoint issues no token and sets no refresh cookie (13-08), so the
+                // user signs in properly with the password they just chose. Their email is kept —
+                // it was never in the URL, so there is nothing to read it back out of.
+                const emailUsed = changing.email;
+                setChanging(null);
+                form.reset({
+                  email: emailUsed,
+                  password: "",
+                  totpCode: "",
+                  tenantSlug: form.getValues("tenantSlug") ?? "",
+                });
+                toast.success("Password changed. Sign in with your new password.");
+                setNotice("Password changed. Sign in with your new password.");
+                window.setTimeout(() => form.setFocus("password"), 0);
+              }}
+            />
+          ) : enrolling ? (
             <TotpEnrollment
               email={enrolling.email}
               password={enrolling.password}

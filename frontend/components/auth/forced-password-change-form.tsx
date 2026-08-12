@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { toast } from "sonner";
 
 import { createZodResolver } from "@/lib/forms/zod-resolver";
 import { useForcedPasswordChange } from "@/lib/hooks/auth/use-forced-password-change";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -22,12 +19,28 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 /**
- * The forced-password-change screen (D-17's missing half).
+ * The forced-password-change step (D-17's missing half).
  *
- * Reached only from a `403 PASSWORD_CHANGE_REQUIRED`, carrying the single-use change token that
- * refusal supplied. On success it sends the user back to `/login` to sign in with the password they
- * just chose — deliberately NOT straight into the app: the change endpoint issues no token and no
- * refresh cookie (13-08), and pretending otherwise would mean inventing a session the user has not
+ * <h3>Why this is a panel and no longer a page (F12)</h3>
+ *
+ * It used to live at `/login/change-password`, and the only way to get the single-use change token
+ * there was `?token=…&email=…`. A URL is the worst carrier a credential can have: it is written to
+ * browser history, sent as the `Referer` of the next request the page makes, and recorded verbatim
+ * by every proxy, CDN and access log between the browser and the gateway. The walkthrough caught a
+ * new hire meeting exactly that on their first minute in the product.
+ *
+ * So the token never enters a URL. This renders INSIDE the login form, in the same slot as
+ * `TotpEnrollment`, and receives the token as a prop from the component that was handed it — the
+ * refusal handler. That is the same reasoning `login-form.tsx` already records for keeping the
+ * password in form state during TOTP enrolment: a URL, `sessionStorage` and a global store are all
+ * worse homes for a live credential than the React state it is already in.
+ *
+ * Leaving the page discards the token, which is correct: a change token is only ever minted for
+ * someone who has just proved the current password, so getting another one costs one sign-in.
+ *
+ * On success the caller decides what happens next. This component neither routes nor sets a
+ * session: `POST /api/v1/auth/change-password/forced` issues no access token and sets no refresh
+ * cookie (13-08), and pretending otherwise would mean inventing a session the user has not
  * authenticated for.
  */
 
@@ -47,61 +60,52 @@ const schema = z
 type Values = z.infer<typeof schema>;
 
 interface Props {
-  /** From `?token=`. Null when the page was opened directly, which is not a usable state. */
-  changeToken: string | null;
-  email: string | null;
-  tenantSlug: string | null;
-  returnPath: string | null;
+  /**
+   * The single-use change token from the 403's `details`. Required, and passed in memory — there
+   * is deliberately no way for this component to read one out of the URL.
+   */
+  changeToken: string;
+  /**
+   * The password the user just signed in with. It verified — the 403 is thrown only after the
+   * comparison succeeds — so prefilling it is not a guess, and it saves a new hire retyping a
+   * 16-character one-time password they were handed on paper. The field stays visible and editable
+   * because the user, not this component, is the authority on what they typed.
+   */
+  currentPassword?: string;
+  /** Called after the server has accepted the new password. */
+  onChanged: () => void;
+  /** Called when the user backs out; the caller is expected to discard the token. */
+  onCancel: () => void;
 }
 
-export function ForcedPasswordChangeForm({ changeToken, email, tenantSlug, returnPath }: Props) {
-  const router = useRouter();
+export function ForcedPasswordChangeForm({
+  changeToken,
+  currentPassword,
+  onChanged,
+  onCancel,
+}: Props) {
   const change = useForcedPasswordChange();
   const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm<Values>({
     resolver: createZodResolver(schema),
-    defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
+    defaultValues: {
+      currentPassword: currentPassword ?? "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
-
-  if (!changeToken) {
-    // Arriving here without a token means the refusal that mints one never happened. Say so
-    // plainly rather than rendering a form that cannot succeed.
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Nothing to change here</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <p className="text-sm text-muted-foreground">
-            This page is only reachable from a sign-in that requires a password change. Start at the
-            sign-in screen.
-          </p>
-          <Button type="button" onClick={() => router.push("/login")}>
-            Back to sign in
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   function onSubmit(values: Values) {
     setFormError(null);
     change.mutate(
       {
-        changeToken: changeToken!,
+        changeToken,
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       },
       {
-        onSuccess: () => {
-          toast.success("Password changed. Sign in with your new password.");
-          const query = new URLSearchParams();
-          if (tenantSlug) query.set("tenant", tenantSlug);
-          if (returnPath) query.set("next", returnPath);
-          const suffix = query.toString();
-          router.push(suffix ? `/login?${suffix}` : "/login");
-        },
+        onSuccess: () => onChanged(),
         onError: (error) => {
           if (error.isPasswordReuse()) {
             const message = "Choose a password you have not used before.";
@@ -128,70 +132,63 @@ export function ForcedPasswordChangeForm({ changeToken, email, tenantSlug, retur
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Choose a new password</CardTitle>
-        <CardDescription>
-          {email
-            ? `${email} must set its own password before signing in.`
-            : "This account must set its own password before signing in."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {formError ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Could not change password</AlertTitle>
-            <AlertDescription>{formError}</AlertDescription>
-          </Alert>
-        ) : null}
+    <div className="grid gap-4" data-testid="forced-password-change">
+      {formError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not change password</AlertTitle>
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
+      ) : null}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
-            <FormField
-              control={form.control}
-              name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current password</FormLabel>
-                  <FormControl>
-                    <Input type="password" autoComplete="current-password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New password</FormLabel>
-                  <FormControl>
-                    <Input type="password" autoComplete="new-password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm new password</FormLabel>
-                  <FormControl>
-                    <Input type="password" autoComplete="new-password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={change.isPending} className="w-full">
-              {change.isPending ? "Saving…" : "Change password"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
+          <FormField
+            control={form.control}
+            name="currentPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Current password</FormLabel>
+                <FormControl>
+                  <Input type="password" autoComplete="current-password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="newPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>New password</FormLabel>
+                <FormControl>
+                  <Input type="password" autoComplete="new-password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm new password</FormLabel>
+                <FormControl>
+                  <Input type="password" autoComplete="new-password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={change.isPending} className="w-full">
+            {change.isPending ? "Saving…" : "Change password"}
+          </Button>
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={change.isPending}>
+            Back to sign in
+          </Button>
+        </form>
+      </Form>
+    </div>
   );
 }

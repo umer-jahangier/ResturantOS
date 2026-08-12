@@ -1,0 +1,60 @@
+{
+  "newHire": "f12.hire.557712@terrace.local",
+  "urls": [
+    "http://localhost:3000/login",
+    "http://localhost:3000/login",
+    "http://localhost:3000/app/dashboard",
+    "http://localhost:3000/login",
+    "http://localhost:3000/login",
+    "http://localhost:3000/login"
+  ],
+  "steps": [
+    {
+      "label": "1-login",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "hash": "",
+      "referrer": "",
+      "historyLength": 2
+    },
+    {
+      "label": "2-forced-change-panel",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "hash": "",
+      "referrer": "",
+      "historyLength": 2
+    },
+    {
+      "label": "3-after-change",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "hash": "",
+      "referrer": "",
+      "historyLength": 2
+    },
+    {
+      "label": "4-signed-in",
+      "href": "http://localhost:3000/app/dashboard",
+      "search": "",
+      "hash": "",
+      "referrer": "",
+      "historyLength": 3
+    },
+    {
+      "label": "5-stale-link",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "hash": "",
+      "referrer": "",
+      "historyLength": 4
+    }
+  ],
+  "leaked": [],
+  "replay": {
+    "status": 401,
+    "code": "UNAUTHENTICATED",
+    "message": "Invalid credentials"
+  },
+  "failures": []
+}

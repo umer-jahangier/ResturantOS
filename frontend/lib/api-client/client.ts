@@ -26,9 +26,41 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * The endpoints where a 401 means "that credential is wrong", NOT "your session expired".
+ *
+ * <p>Every one of these is in the gateway's {@code JwtGlobalFilter.PUBLIC_PATHS}: the caller holds
+ * no token and cannot obtain one until the call succeeds. Refreshing on their behalf is impossible
+ * (there is nothing to refresh) and bouncing them to {@code /login?reason=session_expired} tells a
+ * new hire their session ended when they never had one — and destroys the page state that held
+ * their in-memory change token or their live password.
+ *
+ * <p><b>Found by driving it (F12).</b> Only {@code /login} and {@code /refresh} were listed, so a
+ * wrong one-time password on the forced-change panel answered 401, the interceptor tried a refresh,
+ * failed, and hard-navigated to the sign-in screen with "Your session expired." The panel's own
+ * refusal message — "That link has expired or the current password is wrong" — had never once been
+ * seen by a user, because the navigation always won.
+ *
+ * <p><b>{@code /change-password/forced} is listed in full, never as {@code /change-password}.</b>
+ * The bare prefix would also match the AUTHENTICATED self-service endpoint at
+ * {@code POST /api/v1/auth/change-password}, where a 401 genuinely does mean the session went away
+ * and the refresh-then-redirect is the right answer. The gateway's list carries the same warning
+ * for the same reason.
+ */
+const CREDENTIAL_ENDPOINTS = [
+  "/api/v1/auth/login",
+  "/api/v1/auth/refresh",
+  "/api/v1/auth/change-password/forced",
+  // Covers /2fa/bootstrap and /2fa/bootstrap/verify — first-time TOTP enrolment, which happens
+  // before the account can sign in at all.
+  "/api/v1/auth/2fa/bootstrap",
+  "/api/v1/auth/reset-password",
+  "/api/v1/platform/auth/login",
+];
+
 function isAuthEndpoint(url: string | undefined): boolean {
   if (!url) return false;
-  return url.includes("/api/v1/auth/login") || url.includes("/api/v1/auth/refresh");
+  return CREDENTIAL_ENDPOINTS.some((path) => url.includes(path));
 }
 
 // Response interceptor: refresh-on-401 (once), then retry; otherwise redirect to
