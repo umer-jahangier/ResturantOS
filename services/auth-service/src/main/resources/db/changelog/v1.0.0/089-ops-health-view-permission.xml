@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      S1-09. `ops.health.view` — may this person see whether the SOFTWARE is running.
+
+      ══ What the screen is ══
+
+      /app/settings/health lists every service the gateway routes to, whether it answered its
+      health probe in the last few seconds, and when it was last reachable. It contains no
+      restaurant data of any kind: no orders, no money, no customers, no staff. It answers exactly
+      one question, and it is a question the product previously had no way to ask —
+      "is it broken, or is it me?"
+
+      The 2026-08-12 register recorded a manager getting `503 SERVICE_UNAVAILABLE` on the till, the
+      kitchen board, the customer file and payroll simultaneously, and noted that "the product's
+      only explanation is a generic error". There was no health route anywhere under
+      frontend/app/(tenant)/app/ — the directory held crm, dashboard, finance, hr, inventory,
+      kitchen, menu, nlq, pos, profile, purchasing, reports, settings, stations, tables, terminals
+      and users, and nothing else. An operator's only recourse was to ask a developer to run `ps`.
+
+      ══ Who holds it, and why not everyone ══
+
+      OWNER and TENANT_ADMIN. These are the two people who telephone support, and /app/settings is
+      already their surface — a branch MANAGER is refused there today (measured live: "Access
+      denied" on /app/settings as manager@terrace.local), so putting the screen under settings and
+      granting it to settings' own holders keeps one story rather than inventing a second.
+
+      A cashier is NOT granted it, and that is a scoping decision rather than an information one:
+      the POS terminal now tells whoever is standing at it, in plain language, that the ordering
+      service is unreachable and what still works. The person at the till learns what they need
+      from the till. The fleet-wide list — every service, its route prefixes, its instance count —
+      is an administrator's view of the deployment, and there is no reason to put the shape of the
+      estate in front of everyone who can ring up a coffee.
+
+      Not MANAGER either, for now. If it turns out the branch manager is the one who needs this at
+      8pm on a Saturday, the fix is another explicit grant here, argued on its own — not a widening
+      of what the code means.
+
+      ══ Why the grant is explicit ══
+
+      Same reason 055, 059, 082, 083, 085 and 088 each give: every blanket "grant the whole
+      catalogue to OWNER" changeset in this changelog is point-in-time and retro-grants nothing
+      added after it ran. A permission that no role holds does not fail at startup, does not break
+      a test, and produces a clean confident 403 for every user including OWNER — which is
+      indistinguishable from a deliberate denial. That is the exact defect class
+      PermissionCatalogClosureTest exists to catch, and it is why the verification changeSet below
+      RAISEs rather than warns.
+    -->
+
+    <changeSet id="auth-1.0.0-089-ops-health-view" author="restaurantos-agent" runOnChange="false">
+        <comment>ops.health.view — read the operator service-health screen; held by OWNER and TENANT_ADMIN</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('ops.health.view', 'ops', 'View which services are running and when each was last reachable (no restaurant data)')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'ops.health.view'),
+              ('TENANT_ADMIN', 'ops.health.view')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'ops.health.view';
+                DELETE FROM permissions WHERE code = 'ops.health.view';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-089-verify-ops-health-view" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if ops.health.view exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'ops.health.view';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'ops.health.view is defined but granted to no role. The gateway''s FleetHealthController refuses GET /api/v1/ops/health without it, so the operator health screen would render an access refusal for every user on every tenant including OWNER - and it would do so as an ordinary-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>
