@@ -23,7 +23,7 @@ import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.TenantContext;
-import io.restaurantos.shared.time.BusinessDay;
+import io.restaurantos.pos.support.BranchBusinessDay;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -99,6 +99,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     /** 26-07. Reached ONLY through its two after-commit registration methods. */
     private final PrintDispatchService printDispatchService;
+    /** The ONE answer to "which trading day is this?" in this service (S0-C). */
+    private final BranchBusinessDay branchBusinessDay;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -134,7 +136,8 @@ public class OrderServiceImpl implements OrderService {
                             // constraint it encodes ("printing depends on orders, not the other
                             // way round") is the right one.
                             @org.springframework.context.annotation.Lazy
-                            PrintDispatchService printDispatchService) {
+                            PrintDispatchService printDispatchService,
+                            BranchBusinessDay branchBusinessDay) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -159,6 +162,7 @@ public class OrderServiceImpl implements OrderService {
         this.orderMapper = orderMapper;
         this.stationRoutingResolver = stationRoutingResolver;
         this.printDispatchService = printDispatchService;
+        this.branchBusinessDay = branchBusinessDay;
     }
 
     // tableRepository is retained solely for listOrderSummaries' table-name lookup
@@ -953,7 +957,13 @@ public class OrderServiceImpl implements OrderService {
         // the period POS validates and the period finance posts into cannot disagree. An order
         // opened 23:00 and closed 00:30 used to be checked against yesterday and posted to today.
         Instant closedAt = Instant.now();
-        LocalDate businessDate = BusinessDay.of(closedAt);
+        //
+        // S0-C: it is cut on THIS BRANCH'S wall clock, not on UTC. The UTC variant this line used
+        // to call put the trading-day boundary at 09:00 local for Asia/Karachi instead of 04:00,
+        // so every breakfast sale was period-checked against yesterday and — because finance
+        // copies this exact date onto the journal entry — posted to yesterday's ledger too, while
+        // the payment list, the till session and the order number all read today.
+        LocalDate businessDate = branchBusinessDay.dateOf(closedAt, order.getBranchId());
         FinancePeriodClient.assertPeriodOpen(financePeriodClient, tenantId, order.getBranchId(), businessDate);
 
         stateMachine.assertTransition(order.getStatus(), OrderStatus.CLOSED);
@@ -1373,19 +1383,35 @@ public class OrderServiceImpl implements OrderService {
         return pricingCalculator.effectiveDiscount(amount, base);
     }
 
+    /**
+     * {@code ORD-YYYYMMDD-NNNN}, where {@code YYYYMMDD} is the TRADING DAY on the branch's own
+     * clock — the same day the sale will appear under on Takings and in the ledger.
+     *
+     * <p>It used to be a bare {@code LocalDate.now()}: no zone, so the date on the face of the
+     * ticket was the JVM host's calendar date (UTC in a container, the developer's zone on a
+     * laptop) rather than the restaurant's; and no {@code −4h} offset, so the 01:00 orders of a
+     * late service were numbered onto the next day while every other record filed them under the
+     * night they belonged to. The column this keys, {@code order_sequences.business_date}, is
+     * named for a rule it was not applying.
+     *
+     * <p>{@code LocalDate.now()} was also evaluated THREE times here — for the printed label, for
+     * the row lookup and for the row it creates. A call that straddled the boundary could label an
+     * order with one day and count it against another's sequence. It is resolved once now.
+     */
     private String generateOrderNo(UUID tenantId, UUID branchId) {
-        String today = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
-        OrderSequence seq = sequenceRepository.findForUpdate(tenantId, branchId, LocalDate.now())
+        LocalDate businessDate = branchBusinessDay.currentDate(branchId);
+        String label = businessDate.format(DateTimeFormatter.BASIC_ISO_DATE);
+        OrderSequence seq = sequenceRepository.findForUpdate(tenantId, branchId, businessDate)
                 .orElseGet(() -> {
                     OrderSequence newSeq = new OrderSequence();
                     newSeq.setTenantId(tenantId);
                     newSeq.setBranchId(branchId);
-                    newSeq.setBusinessDate(LocalDate.now());
+                    newSeq.setBusinessDate(businessDate);
                     newSeq.setLastSeq(0);
                     return newSeq;
                 });
         seq.setLastSeq(seq.getLastSeq() + 1);
         sequenceRepository.save(seq);
-        return String.format("ORD-%s-%04d", today, seq.getLastSeq());
+        return String.format("ORD-%s-%04d", label, seq.getLastSeq());
     }
 }

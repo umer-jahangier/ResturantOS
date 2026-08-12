@@ -102,7 +102,7 @@ class PrintJobIssuanceIT extends PosTestBase {
                         null, List.of()));
         when(userBranchClient.getBranch(any(), any())).thenReturn(new UserBranchClient.BranchDetail(
                 branchId, "Floating Terrace", null, "+92 51 234 5678",
-                "7000007-8", "17-00-9999-000-11", REGISTRY));
+                "7000007-8", "17-00-9999-000-11", REGISTRY, "Asia/Karachi"));
 
         openTillForCashier(branchId);
     }

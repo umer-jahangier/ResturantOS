@@ -136,7 +136,7 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
                 branchId, "Floating Terrace",
                 "{\"line1\":\"Street 12, F-7 Markaz\",\"city\":\"Islamabad\"}",
                 "+92 51 234 5678", "7000007-8", "17-00-9999-000-11",
-                receiptConfigJson));
+                receiptConfigJson, "Asia/Karachi"));
     }
 
     // ══ 1 & 2. The totals ARE the order's totals, to the paisa ════════════════════════════════

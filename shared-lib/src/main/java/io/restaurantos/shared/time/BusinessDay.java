@@ -41,10 +41,11 @@ public final class BusinessDay {
 
     /**
      * @deprecated UTC is not any restaurant's trading day. Use {@link #of(Instant, ZoneId)} with the
-     *     BRANCH's zone. Kept only so this commit does not have to land inside two other in-flight
-     *     changes to {@code OrderServiceImpl}; it has no callers left in pos-service and must not
-     *     gain one. Delete it, so that a service which cannot say which zone it means fails to
-     *     compile rather than answering "UTC" on the owner's behalf.
+     *     BRANCH's zone. No PRODUCTION code calls it any more — pos-service was the only caller and
+     *     now goes through {@code BranchBusinessDay}. Six test fixtures in reporting-service and
+     *     inventory-service still construct payloads with it (they only need A date, not the right
+     *     one); rewrite those and delete this, so that a service which cannot say which zone it
+     *     means fails to compile rather than answering "UTC" on the owner's behalf.
      */
     @Deprecated(forRemoval = true)
     public static LocalDate of(Instant at) {
