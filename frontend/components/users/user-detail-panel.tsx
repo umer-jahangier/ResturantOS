@@ -18,9 +18,11 @@ import {
   useReactivateUser,
   useRevokeBranchRole,
   useUserDetail,
+  useUserMenuCategories,
   useUserStations,
 } from "@/lib/hooks/use-users";
 import { useStations } from "@/lib/hooks/pos/use-station-admin";
+import { useMenuCategoriesAdmin } from "@/lib/hooks/pos/use-menu-admin";
 import { useTenantBranches } from "@/lib/hooks/use-tenant-settings";
 import { formatUserFacingError } from "@/lib/errors";
 import { formatPaisa } from "@/lib/adapters/shared";
@@ -64,6 +66,8 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
   const branches = useTenantBranches(Boolean(userId));
   const stationScope = useUserStations(userId);
   const stations = useStations();
+  const menuScope = useUserMenuCategories(userId);
+  const menuCategories = useMenuCategoriesAdmin();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
   const revoke = useRevokeBranchRole();
@@ -101,6 +105,11 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
   // a code from another branch falls back to itself rather than being hidden.
   const stationName = (code: string) =>
     stations.data?.find((s) => s.code === code)?.name ?? code;
+  // Same fallback, same reason: the id is what is stored and the name is what an owner recognises.
+  // A category deleted out from under an assignment renders as its id rather than vanishing —
+  // a scope entry that is invisible here is one nobody knows to clear.
+  const menuCategoryName = (categoryId: string) =>
+    menuCategories.data?.find((c) => c.id === categoryId)?.name ?? categoryId;
 
   // Deactivating yourself revokes your own sessions mid-click. The API permits it; offering it is
   // still a trap, so the control is withheld and the reason is stated where the control would be.
@@ -254,6 +263,53 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                         <span className="min-w-0 flex-1 truncate">{branchName(b.branchId)}</span>
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {b.stationCodes.map((code) => stationName(code)).join(", ")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/*
+                Program A. Same shape and same rule as the station block above, and the sentence
+                matters more here: this is the boundary the owner asked for, and the state it is in
+                for every user in the product today is "no rows". Rendering that as a blank region
+                or the word "none" would present the permissive default as a lockout, on the one
+                screen where an owner would act on it.
+
+                It is a READ-ONLY report — the write lives in the Edit dialog, behind
+                `rbac.role.manage`, while this panel is behind `rbac.user.manage`. A tenant admin
+                holds both, but the split is what stops a narrower custom role from being able to
+                confine a cashier just because it can look one up.
+              */}
+              <section className="space-y-2" data-testid="user-menu-category-scope">
+                <h3 className="text-body font-medium">Menu sections</h3>
+                {menuScope.isError ? (
+                  <QueryErrorNotice
+                    what="this user's menu sections"
+                    error={menuScope.error}
+                    onRetry={() => void menuScope.refetch()}
+                    isRetrying={menuScope.isFetching}
+                  />
+                ) : menuScope.isPending ? (
+                  <p className="text-body text-muted-foreground">Loading…</p>
+                ) : menuScope.data?.unrestrictedEverywhere ? (
+                  <p
+                    data-testid="user-menu-category-unrestricted"
+                    className="text-body text-muted-foreground"
+                  >
+                    Can ring the whole menu, in every branch they work.
+                  </p>
+                ) : (
+                  <ul className="divide-y rounded-md border">
+                    {(menuScope.data?.branches ?? []).map((b) => (
+                      <li
+                        key={b.branchId}
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-body"
+                      >
+                        <span className="min-w-0 flex-1 truncate">{branchName(b.branchId)}</span>
+                        <span className="shrink-0 text-small text-muted-foreground">
+                          {b.categoryIds.map((id) => menuCategoryName(id)).join(", ")}
                         </span>
                       </li>
                     ))}

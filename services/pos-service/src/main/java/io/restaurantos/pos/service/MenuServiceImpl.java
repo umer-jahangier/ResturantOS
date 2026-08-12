@@ -200,11 +200,35 @@ public class MenuServiceImpl implements MenuService {
         return page.map(item -> toDto(item, branchId));
     }
 
+    /**
+     * One item by id — narrowed by the same scope that narrows the grid (Program A).
+     *
+     * <p>Closing an inconsistency an adversarial review found in the first cut of this feature:
+     * {@link #listCategories} and {@link #listItems} were scope-filtered and this was not, so a
+     * cashier confined to Drinks could still read a Mains item's name, price and branch override by
+     * asking for it by id. That was never a boundary breach — {@code authorizeAddItem} refuses the
+     * ring either way, and the refusal holds for a caller who never read anything — but a filter
+     * covering two of three read surfaces is one a later reader will reasonably assume covers all
+     * three.
+     *
+     * <p><b>Not found, not forbidden</b>, and for the reason {@code listItems} already gives one
+     * method up: answering 403 here would let a caller map the catalogue by which ids refuse and
+     * which come back empty. It is also the truthful answer from that operator's position — the
+     * item is not on their menu.
+     *
+     * <p>The scope is resolved AFTER the row is read, deliberately, so an id that does not exist
+     * and an id that is out of scope produce the same answer. Resolving first and short-circuiting
+     * would be marginally cheaper and would reintroduce the distinction.
+     */
     @Override
     public MenuItemDto getItem(UUID itemId, UUID branchId) {
         requireOwnBranchIfPresent(branchId);
         MenuItem item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found: " + itemId));
+        MenuCategoryScope scope = posAuthorizationService.resolveMenuCategoryScope();
+        if (!scope.permits(item.getCategory() == null ? null : item.getCategory().getId())) {
+            throw new ResourceNotFoundException("Menu item not found: " + itemId);
+        }
         return toDto(item, branchId);
     }
 

@@ -202,6 +202,38 @@ public class UserAdminService {
         return authInternalClient.listStations(userId, tenantId);
     }
 
+    // ── Menu-category assignments (Program A) ────────────────────────────────────────────────
+
+    /**
+     * Replace a user's ringable menu categories at one branch — delegates to auth-service.
+     *
+     * <p><b>The tenant comes from the verified JWT and is never in the path or the body.</b> That is
+     * what puts the RLS GUC on auth-service's connection, and it is also the tenant boundary: a
+     * caller cannot name a foreign tenant's user, because there is nowhere in this call to put one.
+     * auth-service answers a user id belonging to another tenant with 404.
+     *
+     * <p>Gated upstream by the same permission that gates role and station assignment. The three
+     * decisions live in one form; splitting the gate would permit an administrator who can bind a
+     * person to a kitchen screen but not to a section of the menu, which has no operator meaning.
+     */
+    public List<BranchDtos.MenuCategoryAssignment> replaceMenuCategories(
+            UUID userId, BranchDtos.MenuCategoryAssignmentRequest request) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.replaceMenuCategories(userId, tenantId, request);
+    }
+
+    /**
+     * A user's active menu-category assignments, grouped by branch — read-through to auth-service.
+     *
+     * <p>An empty list means the user rings the WHOLE menu, everywhere. It does not mean they may
+     * ring nothing, and no branch is ever returned carrying an empty {@code categoryIds}: absence is
+     * the only encoding of unrestricted at every layer of this feature.
+     */
+    public List<BranchDtos.MenuCategoryAssignment> listMenuCategories(UUID userId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return authInternalClient.listMenuCategories(userId, tenantId);
+    }
+
     /**
      * Fetch computed permissions for a user at a branch — read-through to auth-service.
      * Used for JWT-feeding lookups; auth-service is authoritative.

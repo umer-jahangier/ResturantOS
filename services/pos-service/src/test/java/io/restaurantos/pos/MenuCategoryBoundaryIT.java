@@ -17,6 +17,7 @@ import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.shared.authz.DefaultOpaClient;
 import io.restaurantos.shared.authz.OpaClient;
 import io.restaurantos.shared.exception.PermissionDeniedException;
+import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -427,6 +428,41 @@ class MenuCategoryBoundaryIT extends PosTestBase {
                 .extracting(MenuItemDto::id)
                 .as("the control: the permitted category still returns its items")
                 .contains(drinkItemId);
+    }
+
+    /**
+     * The single-item read is narrowed too — the hole an adversarial review of the first cut found.
+     *
+     * <p>{@code listCategories} and {@code listItems} were filtered and {@code getItem} was not, so
+     * a cashier confined to Drinks could read a Mains item's name, price and branch override by
+     * asking for it by id. Never a boundary breach — {@code cashierScopedToDrinksIsRefusedAFoodItem}
+     * above proves the ring is still refused — but a filter that covers two of three read surfaces
+     * is one a later reader assumes covers all three.
+     *
+     * <p>Both directions are asserted. A test that only proved the refusal would also pass against a
+     * {@code getItem} that threw for everyone, which is a till with no item detail at all.
+     */
+    @Test
+    void theSingleItemReadIsNarrowedByTheSameScopeAsTheGrid() {
+        scopedTo(drinksCategoryId);
+
+        assertThatThrownBy(() -> menuService.getItem(foodItemId, branchId))
+                .as("an out-of-scope item is NOT FOUND for this operator — not forbidden, which "
+                        + "would let them map the catalogue by which ids refuse")
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        assertThat(menuService.getItem(drinkItemId, branchId).id())
+                .as("the control: an item inside the scope still reads")
+                .isEqualTo(drinkItemId);
+    }
+
+    /** The no-regression case: an unassigned operator — everyone, today — reads any item. */
+    @Test
+    void theSingleItemReadIsUnchangedForAnOperatorWithNoAssignment() {
+        unrestricted();
+
+        assertThat(menuService.getItem(foodItemId, branchId).id()).isEqualTo(foodItemId);
+        assertThat(menuService.getItem(drinkItemId, branchId).id()).isEqualTo(drinkItemId);
     }
 
     // ── (4) the contract between two services, and between two controls ───────────────────

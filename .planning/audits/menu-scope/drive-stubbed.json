@@ -1,0 +1,94 @@
+{
+  "base": "http://localhost:3007",
+  "api": "http://localhost:8080",
+  "stubbed": [
+    "GET|PUT /api/v1/users/*/menu-categories (undeployed on this fleet)",
+    "GET /api/v1/pos/tills (so the grid renders without opening a live till)"
+  ],
+  "checks": [
+    {
+      "name": "a user with NO assignment reads as 'the whole menu', not as a blank or a lockout",
+      "pass": true,
+      "detail": "Can ring the whole menu, in every branch they work."
+    },
+    {
+      "name": "the multi-select is populated from the LIVE pos-service catalogue",
+      "pass": true,
+      "detail": "13 sections offered: Diag Cat 785508 / Starters / Diag Cat 683566 / RX Cat 758504 R"
+    },
+    {
+      "name": "'no assignment = the WHOLE menu' is spelled out in the UI copy",
+      "pass": true,
+      "detail": "No sections selected — they can ring the WHOLE menu at Floating Terrace HQ. That is the default, and it is what every user has today."
+    },
+    {
+      "name": "the access-token delay is stated, not left to be discovered",
+      "pass": true,
+      "detail": "If they are already signed in, the change reaches them when their session next refreshes — within 15 minutes, or straight away if "
+    },
+    {
+      "name": "TWO sections can be assigned to one user — 'assign multiple menu to a user'",
+      "pass": true,
+      "detail": "They can ring Diag Cat 785508 and ROPEN Bare 988362 only at Floating Terrace HQ. Everything else is refused by the server, not just hidden."
+    },
+    {
+      "name": "the restricted summary says the server refuses the rest, not that it hides it",
+      "pass": true,
+      "detail": "They can ring Diag Cat 785508 and ROPEN Bare 988362 only at Floating Terrace HQ. Everything else is refused by the server, not just hidden."
+    },
+    {
+      "name": "a Clear control offers the whole menu back",
+      "pass": true,
+      "detail": "present"
+    },
+    {
+      "name": "saving PUTs to the right path with the right shape",
+      "pass": true,
+      "detail": "{\"url\":\"/api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories\",\"body\":{\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"categoryIds\":[\"1ca6d129-3491-4bd7-9737-7deabbc83ddf\",\"4da56c79-c0b8-4a2c-b142-863938e88d04\"]}}"
+    },
+    {
+      "name": "the panel reads the new scope back and stops saying 'whole menu'",
+      "pass": true,
+      "detail": "Menu sectionsFloating Terrace HQDiag Cat 785508, ROPEN Bare 988362"
+    },
+    {
+      "name": "an unrestricted OWNER gets the switch, COLLAPSED, saying 'whole menu'",
+      "pass": true,
+      "detail": "label=\"Working: whole menu\" panelOpen=false"
+    },
+    {
+      "name": "the switch offers the operator's own sections",
+      "pass": true,
+      "detail": "13 offered"
+    },
+    {
+      "name": "it says IN WORDS that it changes nothing on the server — the claim that must not drift",
+      "pass": true,
+      "detail": "This changes what YOUR screen shows and nothing else. It changes nothing on the server and nothing for anyone else — you can still ring the whole menu. To actually confine someone, assign their menu s"
+    },
+    {
+      "name": "previewing one section narrows the rail and names what is showing",
+      "pass": true,
+      "detail": "label=\"Working: Diag Cat 683566\" buttons 92 -> 20 back=true"
+    }
+  ],
+  "puts": [
+    {
+      "url": "/api/v1/users/eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1/menu-categories",
+      "body": {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "categoryIds": [
+          "1ca6d129-3491-4bd7-9737-7deabbc83ddf",
+          "4da56c79-c0b8-4a2c-b142-863938e88d04"
+        ]
+      }
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

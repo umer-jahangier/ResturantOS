@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { MenuItemImage } from "@/components/menu/MenuItemImage";
+import { MenuScopeSwitch } from "@/components/pos/menu-scope-switch";
 import { cartLineKey, type CartLine } from "@/components/pos/cart-reducer";
 import type { MenuItem } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,12 @@ interface MenuGridProps {
 export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGridProps) {
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
+  /*
+   * The admin's own switch (Program A). A VIEW state, held here and nowhere else: it is not
+   * persisted, not sent, and not a permission. `null` means "not previewing" — see
+   * `MenuScopeSwitch`'s comment for why an admin is not granted every category instead.
+   */
+  const [scopePreview, setScopePreview] = useState<string[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   // UI-SPEC §3: pure client-side filter over the currently-loaded category, 150ms
   // debounced (no server round-trip per keystroke — menu is ≤ ~60 items at this scale).
@@ -66,8 +73,18 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
   const categoriesLoading = categoriesQuery.isLoading;
   const itemsLoading = itemsQuery.isLoading;
 
-  const activeCategories = categories.filter((c) => c.active);
-  const activeItems = items.filter((i) => i.active);
+  const serverCategories = categories.filter((c) => c.active);
+  // What the RAIL offers. The server already narrowed `categories` to this operator's scope; the
+  // preview narrows the view further, on this screen only.
+  const activeCategories = scopePreview
+    ? serverCategories.filter((c) => scopePreview.includes(c.id))
+    : serverCategories;
+  // The items are narrowed too, not just the pills. With "All" selected the server hands back
+  // every item this operator may see, so filtering the rail alone would leave a preview that
+  // renamed the tabs and changed nothing underneath them.
+  const activeItems = items.filter(
+    (i) => i.active && (!scopePreview || (i.categoryId !== null && scopePreview.includes(i.categoryId))),
+  );
   const trimmedQuery = debouncedSearch.trim().toLowerCase();
   const filteredItems = trimmedQuery
     ? activeItems.filter((i) => i.name.toLowerCase().includes(trimmedQuery))
@@ -135,6 +152,24 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
           </button>
         )}
       </div>
+
+      {/*
+        The admin's own switch, ABOVE the rail rather than inside it, because the rail answers
+        "which section am I looking at" and this answers "which sections exist for me right now" —
+        two questions one row of pills cannot ask at once without the second looking like a
+        multi-select version of the first.
+      */}
+      <MenuScopeSwitch
+        categories={serverCategories}
+        preview={scopePreview}
+        onPreviewChange={(next) => {
+          setScopePreview(next);
+          // The selected tab may no longer be on the rail. Dropping to "All" is the only choice
+          // that cannot leave the grid pinned to a category the operator can no longer see —
+          // which reads as an empty menu with no way back.
+          setActiveCategoryId(undefined);
+        }}
+      />
 
       {/* Category pills + Clear All (extreme right, pre-send cart only) */}
       <div className="flex items-center gap-2 px-1">

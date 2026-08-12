@@ -4,6 +4,7 @@ import type {
   ApiBranchRoleWriteResult,
   ApiCreatedUser,
   ApiRoleEntry,
+  ApiMenuCategoryAssignment,
   ApiStationAssignment,
   ApiUserDetail,
   ApiUserSummary,
@@ -15,6 +16,7 @@ import type {
   OneTimePassword,
   TenantUser,
   TenantUserDetail,
+  UserMenuCategoryScope,
   UserStationScope,
 } from "@/lib/models/user.model";
 
@@ -103,6 +105,25 @@ export function adaptUserStationScope(api: ApiStationAssignment[]): UserStationS
   const branches = api
     .filter((a) => a.stationCodes.length > 0)
     .map((a) => ({ branchId: a.branchId, stationCodes: a.stationCodes }));
+  return { unrestrictedEverywhere: branches.length === 0, branches };
+}
+
+/**
+ * The menu-category scope, with the unrestricted state named rather than inferred (Program A).
+ *
+ * <p>A branch whose list came back empty is DROPPED rather than kept as an empty row, exactly as
+ * {@link adaptUserStationScope} drops one. auth-service's `MenuCategoryAssignmentResponse` never
+ * produces an empty `categoryIds`; if one ever arrives it means "unrestricted at that branch", and
+ * keeping it would let a `branches.length` check downstream report a restriction that does not
+ * exist — on this feature that reads as "this cashier may sell nothing", which is the one wrong
+ * answer an owner would act on.
+ */
+export function adaptUserMenuCategoryScope(
+  api: ApiMenuCategoryAssignment[],
+): UserMenuCategoryScope {
+  const branches = api
+    .filter((a) => a.categoryIds.length > 0)
+    .map((a) => ({ branchId: a.branchId, categoryIds: a.categoryIds }));
   return { unrestrictedEverywhere: branches.length === 0, branches };
 }
 

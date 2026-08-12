@@ -26,18 +26,22 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RoleSelect } from "@/components/users/role-select";
 import { OneTimePasswordPanel } from "@/components/users/one-time-password-panel";
 import { StationAssignmentField } from "@/components/users/station-assignment-field";
+import { MenuCategoryAssignmentField } from "@/components/users/menu-category-assignment-field";
 import {
   useCreateUser,
+  useReplaceUserMenuCategories,
   useReplaceUserStations,
   useUpdateUser,
+  useUserMenuCategories,
   useUserStations,
 } from "@/lib/hooks/use-users";
 import { useTenantBranches } from "@/lib/hooks/use-tenant-settings";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { branchStationScope } from "@/lib/models/user.model";
+import { branchMenuCategoryScope, branchStationScope } from "@/lib/models/user.model";
 import { formatUserFacingError } from "@/lib/errors";
 import type { OneTimePassword, TenantUser } from "@/lib/models/user.model";
 
@@ -97,9 +101,11 @@ export function CreateUserDialog({
 }) {
   const create = useCreateUser();
   const replaceStations = useReplaceUserStations();
+  const replaceMenuCategories = useReplaceUserMenuCategories();
   const branches = useTenantBranches(open);
   const [result, setResult] = useState<OneTimePassword | null>(null);
   const [stationCodes, setStationCodes] = useState<string[]>([]);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
 
   const form = useForm<CreateValues>({
     resolver: createZodResolver(createSchema),
@@ -117,6 +123,7 @@ export function CreateUserDialog({
     setResult(null);
     form.reset();
     setStationCodes([]);
+    setCategoryIds([]);
     create.reset();
   }
 
@@ -145,6 +152,21 @@ export function CreateUserDialog({
                 onError: (error) =>
                   toast.error(
                     `The account was created, but its stations were not saved: ${formatUserFacingError(error)}`,
+                  ),
+              },
+            );
+          }
+          // A third call, and a third endpoint, for the same reason: `POST /api/v1/users` has no
+          // menu-category field either. Skipped when nothing was ticked — unrestricted is the
+          // do-nothing default all the way to the wire, so an empty replace would write rows
+          // nobody asked for and would then have to delete them again.
+          if (values.branchId && categoryIds.length > 0) {
+            replaceMenuCategories.mutate(
+              { userId: created.userId, payload: { branchId: values.branchId, categoryIds } },
+              {
+                onError: (error) =>
+                  toast.error(
+                    `The account was created, but its menu sections were not saved: ${formatUserFacingError(error)}`,
                   ),
               },
             );
@@ -302,6 +324,22 @@ export function CreateUserDialog({
                 </div>
               ) : null}
 
+              {/* Menu sections sit with the stations for the same reason the stations sit with the
+                  role: they are the three decisions an admin makes about where a person works, and
+                  the owner asked for this one to be settable "as I told you, completely
+                  manageable". Gated on a branch for the same reason too — the assignment row is
+                  (user, branch, category), so a scope without a branch cannot be stored. */}
+              {branchId ? (
+                <div className="space-y-1.5">
+                  <p className="text-body font-medium">Menu sections they can ring</p>
+                  <MenuCategoryAssignmentField
+                    branchLabel={branchLabel}
+                    value={categoryIds}
+                    onChange={setCategoryIds}
+                  />
+                </div>
+              ) : null}
+
               <p className="text-xs text-muted-foreground">
                 Leave both blank to create the account now and assign a role later. Until a role is
                 assigned the account exists but cannot sign in.
@@ -334,9 +372,11 @@ export function EditUserDialog({
 }) {
   const update = useUpdateUser();
   const replaceStations = useReplaceUserStations();
+  const replaceMenuCategories = useReplaceUserMenuCategories();
   const { branchId: signedInBranchId } = useCurrentUser();
   const branches = useTenantBranches(open);
   const scope = useUserStations(open && user ? user.id : null);
+  const menuScope = useUserMenuCategories(open && user ? user.id : null);
 
   const form = useForm<EditValues>({
     resolver: createZodResolver(editSchema),
@@ -353,43 +393,80 @@ export function EditUserDialog({
   const stationCodes = pendingCodes ?? serverCodes;
   const stationsTouched = pendingCodes !== null;
 
+  // Same read-through-until-touched discipline for the menu scope, and the stakes are higher here
+  // than they are for stations: an editor that opened empty and was then saved would send an empty
+  // categoryIds, which is not a no-op — it is the documented way to CLEAR a restriction. A cashier
+  // deliberately confined to the bar would silently regain the whole menu because someone fixed a
+  // typo in their surname.
+  const [pendingCategoryIds, setPendingCategoryIds] = useState<string[] | null>(null);
+  const loadedMenuScope = branchMenuCategoryScope(menuScope.data, signedInBranchId);
+  const serverCategoryIds = loadedMenuScope.unrestricted ? EMPTY_CODES : loadedMenuScope.categoryIds;
+  const categoryIds = pendingCategoryIds ?? serverCategoryIds;
+  const menuCategoriesTouched = pendingCategoryIds !== null;
+
+  const saving = update.isPending || replaceStations.isPending || replaceMenuCategories.isPending;
+
   if (!user) return null;
 
   const branchLabel =
     branches.data?.find((b) => b.id === signedInBranchId)?.name ?? "this branch";
 
-  function onSubmit(values: EditValues) {
+  /**
+   * Three endpoints, run in order, each reported by name.
+   *
+   * <p>Sequential rather than parallel so a failure names the step that failed AND the steps that
+   * already landed: an admin who is told "the name saved, the stations did not" edits one thing,
+   * where an admin told "something went wrong" re-runs the whole form. The two scope writes are
+   * skipped unless the admin actually touched them — see `stationsTouched` / `menuCategoriesTouched`
+   * and the state comment above them.
+   */
+  async function onSubmit(values: EditValues) {
     if (!user) return;
-    update.mutate(
-      { userId: user.id, payload: { fullName: values.fullName.trim() } },
-      {
-        onSuccess: () => {
-          // Only written when the admin actually changed the selection. A profile edit that
-          // silently re-wrote a station scope would be a second write path nobody asked for, and
-          // this dialog can only ever see ONE branch's stations (see the field's javadoc) — so
-          // an unconditional write would be an unconditional write of a partial view.
-          if (!stationsTouched) {
-            toast.success("Profile updated");
-            onOpenChange(false);
-            return;
-          }
-          replaceStations.mutate(
-            { userId: user.id, payload: { branchId: signedInBranchId, stationCodes } },
-            {
-              onSuccess: () => {
-                toast.success("Profile and stations updated");
-                onOpenChange(false);
-              },
-              onError: (error) =>
-                toast.error(
-                  `The name was saved, but the stations were not: ${formatUserFacingError(error)}`,
-                ),
-            },
-          );
-        },
-        onError: (error) => toast.error(formatUserFacingError(error)),
-      },
-    );
+    const saved: string[] = [];
+    try {
+      await update.mutateAsync({ userId: user.id, payload: { fullName: values.fullName.trim() } });
+      saved.push("Profile");
+    } catch (error) {
+      toast.error(formatUserFacingError(error));
+      return;
+    }
+
+    // Only written when the admin actually changed the selection. A profile edit that silently
+    // re-wrote a station scope would be a second write path nobody asked for, and this dialog can
+    // only ever see ONE branch's stations (see the field's javadoc) — so an unconditional write
+    // would be an unconditional write of a partial view.
+    if (stationsTouched) {
+      try {
+        await replaceStations.mutateAsync({
+          userId: user.id,
+          payload: { branchId: signedInBranchId, stationCodes },
+        });
+        saved.push("stations");
+      } catch (error) {
+        toast.error(
+          `${saved.join(" and ")} saved, but the stations were not: ${formatUserFacingError(error)}`,
+        );
+        return;
+      }
+    }
+
+    if (menuCategoriesTouched) {
+      try {
+        await replaceMenuCategories.mutateAsync({
+          userId: user.id,
+          payload: { branchId: signedInBranchId, categoryIds },
+        });
+        saved.push("menu sections");
+      } catch (error) {
+        toast.error(
+          `${saved.join(" and ")} saved, but the menu sections were not: ${formatUserFacingError(error)}`,
+        );
+        return;
+      }
+    }
+
+    toast.success(`${saved.join(" and ")} updated`);
+    onOpenChange(false);
   }
 
   return (
@@ -429,12 +506,35 @@ export function EditUserDialog({
               />
             </div>
 
+            <div className="space-y-1.5">
+              <p className="text-body font-medium">Menu sections they can ring at {branchLabel}</p>
+              {menuScope.isPending ? (
+                <Skeleton className="h-16 w-full" />
+              ) : menuScope.isError ? (
+                // The current scope must be READ before it can be edited. Rendering the picker over
+                // a failed read would show every box unticked — indistinguishable from "no
+                // restriction" — and saving it would clear a boundary the admin never saw.
+                <QueryErrorNotice
+                  what="this user's menu sections"
+                  error={menuScope.error}
+                  onRetry={() => void menuScope.refetch()}
+                  isRetrying={menuScope.isFetching}
+                />
+              ) : (
+                <MenuCategoryAssignmentField
+                  branchLabel={branchLabel}
+                  value={categoryIds}
+                  onChange={setPendingCategoryIds}
+                />
+              )}
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={update.isPending || replaceStations.isPending}>
-                {update.isPending || replaceStations.isPending ? "Saving…" : "Save changes"}
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save changes"}
               </Button>
             </DialogFooter>
           </form>

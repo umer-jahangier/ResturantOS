@@ -29,6 +29,8 @@ import java.util.UUID;
  *   DELETE /api/v1/users/{userId}/branch-roles revoke one
  *   PUT    /api/v1/users/{userId}/stations     set which stations they work at a branch
  *   GET    /api/v1/users/{userId}/stations     read them back
+ *   PUT    /api/v1/users/{userId}/menu-categories  set which menu sections they may ring
+ *   GET    /api/v1/users/{userId}/menu-categories  read them back
  * </pre>
  *
  * <p>All writes DELEGATE to auth-service (system of record for {@code users} and
@@ -237,6 +239,58 @@ public class UserAdminController {
     public ResponseEntity<ApiResponse<List<BranchDtos.StationAssignment>>> listStations(
             @PathVariable UUID userId) {
         return ResponseEntity.ok(ApiResponse.ok(userAdminService.listStations(userId)));
+    }
+
+    // ── Menu-category assignments (Program A) ────────────────────────────────
+
+    /**
+     * Set which menu categories a user may ring at a branch — the owner's "a cashier on the counter
+     * should have a boundary" made administrable.
+     *
+     * <p>PUT for the same reason the station write is a PUT: the body states what the user's
+     * categories now ARE at that branch, sending it twice leaves the same rows, and unchecking a box
+     * has no additive spelling. An empty {@code categoryIds} is legal and is the ONLY way to return
+     * a user to the whole menu.
+     *
+     * <h3>Gating: {@link #ROLE_ADMIN} for the write, {@link #USER_ADMIN} for the read</h3>
+     *
+     * <p>Copied from the station pair immediately above rather than reasoned out afresh, on purpose.
+     * Both are "which slice of the restaurant does this person work", both are edited in the same
+     * dialog, and a third gate for a third checkbox in one form is how an administrator ends up able
+     * to save half of it. Inventing a new permission code would also have been strictly worse than
+     * reusing one: a code no changeset seeds is held by nobody, and the screen would 403 for OWNER.
+     *
+     * <p>It is NOT gated on {@code pos.menu.manage}. That permission governs the menu CATALOGUE —
+     * what dishes exist and what they cost — and this is a decision about a PERSON, taken on the
+     * user-administration screen by someone who may never touch a price. MANAGER holds
+     * {@code pos.menu.manage} and deliberately does not hold {@code rbac.role.manage}; gating this
+     * on the menu code would hand every branch manager the ability to confine their colleagues.
+     *
+     * <p>Nothing here is widened relative to what already exists: this endpoint's authority is
+     * exactly {@code PUT /{userId}/stations}'s authority, and the underlying auth-service write has
+     * no gate of its own beyond the internal-service credential (it is on
+     * {@code /internal/auth/**}), so this controller IS the permission boundary for the feature.
+     */
+    @PreAuthorize(ROLE_ADMIN)
+    @PutMapping("/{userId}/menu-categories")
+    public ResponseEntity<ApiResponse<List<BranchDtos.MenuCategoryAssignment>>> replaceMenuCategories(
+            @PathVariable UUID userId,
+            @Valid @RequestBody BranchDtos.MenuCategoryAssignmentRequest request) {
+        return ResponseEntity.ok(
+            ApiResponse.ok(userAdminService.replaceMenuCategories(userId, request)));
+    }
+
+    /**
+     * A user's current menu-category scope, grouped by branch.
+     *
+     * <p>An empty array means the whole menu, everywhere — not "no access". A branch is never
+     * returned with an empty {@code categoryIds}.
+     */
+    @PreAuthorize(USER_ADMIN)
+    @GetMapping("/{userId}/menu-categories")
+    public ResponseEntity<ApiResponse<List<BranchDtos.MenuCategoryAssignment>>> listMenuCategories(
+            @PathVariable UUID userId) {
+        return ResponseEntity.ok(ApiResponse.ok(userAdminService.listMenuCategories(userId)));
     }
 
     /**

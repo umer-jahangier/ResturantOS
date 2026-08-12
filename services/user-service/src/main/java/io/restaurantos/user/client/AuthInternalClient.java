@@ -106,6 +106,33 @@ public interface AuthInternalClient {
     );
 
     /**
+     * Replace a user's ringable menu categories at one branch (Program A).
+     *
+     * <p>Corresponds to PUT /internal/auth/users/{userId}/menu-categories. auth-service is the
+     * system of record for {@code user_menu_category_assignments} and mints the
+     * {@code attributes.menu_categories} claim from it; user-service never writes that table.
+     *
+     * <p>No {@code X-Acting-User-Id}, for the same reason the station write gives and the
+     * auth-service endpoint's own javadoc repeats: that header exists so auth-service can apply the
+     * ROLE CEILING, and a menu scope has no ceiling to apply. It NARROWS what the target may sell;
+     * the narrowest possible assignment is strictly less authority than the unrestricted default
+     * every user already holds, so there is no privilege to compare against an assigner's own.
+     */
+    @PutMapping("/internal/auth/users/{userId}/menu-categories")
+    List<BranchDtos.MenuCategoryAssignment> replaceMenuCategories(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId,
+        @RequestBody BranchDtos.MenuCategoryAssignmentRequest request
+    );
+
+    /** A user's active menu-category assignments, grouped by branch. Absent branch = whole menu. */
+    @GetMapping("/internal/auth/users/{userId}/menu-categories")
+    List<BranchDtos.MenuCategoryAssignment> listMenuCategories(
+        @PathVariable("userId") UUID userId,
+        @RequestHeader("X-Tenant-Id") UUID tenantId
+    );
+
+    /**
      * Compute permissions for a user at a branch (optional branchId).
      * Corresponds to GET /internal/auth/users/{userId}/permissions.
      *

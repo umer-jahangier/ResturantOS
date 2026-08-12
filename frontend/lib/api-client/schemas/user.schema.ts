@@ -190,3 +190,34 @@ export const apiReplaceStationsRequestSchema = z.object({
   branchId: z.string().uuid(),
   stationCodes: z.array(z.string()),
 });
+
+// ── Menu-category assignment (Program A) ──────────────────────────────────────────────────
+
+/**
+ * Mirrors `BranchDtos.MenuCategoryAssignment` — the categories a user may ring at one branch.
+ *
+ * <p>Same absence rule as the station schema above, and it matters more here: a branch with no
+ * assignment does not appear, and `categoryIds` is never returned empty. "No rows" means the user
+ * rings the WHOLE menu — the state every user in the product is in today. A consumer that reads an
+ * empty array as "may sell nothing" would render the universal default as a lockout.
+ *
+ * <p>`uuid()` on the ids rather than a bare string, unlike station CODES which are operator-typed
+ * free text. Category ids are server-minted UUIDs with one spelling; anything else on this wire is
+ * a bug worth failing on rather than rendering as an unmatchable checkbox.
+ */
+export const apiMenuCategoryAssignmentSchema = z.object({
+  branchId: z.string().uuid(),
+  categoryIds: z.array(z.string().uuid()),
+});
+
+export type ApiMenuCategoryAssignment = z.infer<typeof apiMenuCategoryAssignmentSchema>;
+
+/**
+ * Mirrors `BranchDtos.MenuCategoryAssignmentRequest`. Validated on the way OUT for the same reason
+ * the station request is: this body states what the user's categories now ARE, so a malformed one
+ * silently widens a scope to the whole menu or narrows it to a section nobody meant.
+ */
+export const apiReplaceMenuCategoriesRequestSchema = z.object({
+  branchId: z.string().uuid(),
+  categoryIds: z.array(z.string().uuid()),
+});
