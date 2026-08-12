@@ -317,6 +317,19 @@ public class BranchRoleAdminService {
     private void revoke(UUID tenantId, UUID actingUserId, UUID userId, UUID branchId,
                         String roleCode) {
         setTenantGuc(tenantId);
+        // The same guard the assign path has had since 13-12, on the verb that escaped it. Without
+        // it revoke answered 204 for ANOTHER TENANT'S user while GET and POST on the same id both
+        // answered 404 — measured live through the gateway, Control Bistro's OWNER against a
+        // Floating Terrace user. Nothing leaked and nothing was written (RLS hides the row, so the
+        // ifPresent body never ran and the victim's assignments survived); the defect is that the
+        // caller was TOLD a privilege revocation succeeded when it had not and could not. An API
+        // that reports success for an operation it did not perform is the version of this that
+        // costs an administrator their belief that revoking a role does anything.
+        //
+        // This draws the line at "this user is not mine" (404), NOT at "no such assignment" — a
+        // revoke of a role the user simply does not hold is legitimately idempotent and stays 204,
+        // which is what the compensating saga door and every retried revocation depend on.
+        requireUserInTenant(tenantId, userId);
         userBranchRoleRepository
             .findByUserIdAndBranchIdAndRoleCode(userId, branchId, roleCode)
             .ifPresent(e -> {

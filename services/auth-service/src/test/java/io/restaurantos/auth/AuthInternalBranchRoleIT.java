@@ -470,6 +470,86 @@ class AuthInternalBranchRoleIT extends BaseIntegrationTest {
         assertThat(replay.getStatusCode().value()).isEqualTo(204);
     }
 
+    /**
+     * A user id belonging to ANOTHER tenant is 404 on revoke, exactly as it already is on assign.
+     *
+     * <p>Measured live through the gateway before this guard existed — Control Bistro's OWNER
+     * against a Floating Terrace user, reproduced three times — the three verbs disagreed:
+     * <pre>
+     *   GET    /api/v1/users/{id}                → 404
+     *   POST   /api/v1/users/{id}/branch-roles   → 404 NOT_FOUND
+     *   DELETE /api/v1/users/{id}/branch-roles   → 204   ← reports success
+     * </pre>
+     *
+     * <p><b>This is an API-honesty defect, not a leak and not a write.</b> RLS hides the foreign row
+     * so {@code revoke}'s {@code ifPresent} body never ran, and the victim's assignments survived
+     * every attempt — confirmed by reading them back over HTTP as their legitimate owner. What was
+     * broken is that the caller was told a privilege revocation had succeeded when it had not and
+     * could not. An administrator who revokes a role, is answered 204, and moves on has been handed
+     * a false belief about who can do what in their restaurant.
+     *
+     * <p>Same missing-guard-on-one-verb shape as 13-12 one level up: {@code assign} called
+     * {@code requireUserInTenant} and {@code revoke} never did.
+     *
+     * <p>Like its assign counterpart this cannot prove the RLS POLICY — Testcontainers' Postgres
+     * user is a SUPERUSER and the policy is inert here. It proves the half CI can assert: the tenant
+     * predicate in {@code findByIdForTenant}.
+     */
+    @Test
+    void revokeBranchRole_forAnotherTenantsUser_isNotFound() {
+        UUID neighbourTenant = UUID.fromString("a0000097-0000-4000-8000-000000000097");
+        UUID neighbourUser = UUID.fromString("c0000097-0000-4000-8000-000000000097");
+        seedNeighbourUser(neighbourTenant, neighbourUser);
+
+        // The control. Without it "the revoke was refused" is satisfied by a user that was never
+        // seeded, and the test would pass against a completely broken fixture.
+        assertThat(neighbourUserExists(neighbourUser))
+            .as("the neighbouring tenant's user must really exist for this to mean anything")
+            .isTrue();
+
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/users/" + neighbourUser + "/branch-roles"
+                + "?branchId=" + TestFixtures.MAIN_BRANCH_ID + "&roleCode=CASHIER",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+
+        assertThat(response.getStatusCode().value())
+            .as("a foreign tenant's user must answer 404 on revoke, as it does on assign and GET")
+            .isEqualTo(404);
+        assertThat(response.getBody()).contains("NOT_FOUND");
+    }
+
+    /**
+     * The other half of the distinction, and the reason the guard goes on the USER and not on the
+     * assignment row: a role the user simply does not hold is still 204.
+     *
+     * <p>Revoking something already absent is legitimately idempotent — the compensating saga door
+     * and every retried revocation depend on it, and {@link #unprovisionAdmin_needsNoActingUser_andRevokes}
+     * asserts the replay explicitly. Without this test the 404 above is satisfied by a revoke that
+     * simply started answering 404 whenever it found no row, which would break that replay and turn
+     * a harmless retry into a saga failure.
+     *
+     * <p>The target is this tenant's own MANAGER at this tenant's own MAIN branch, so the only thing
+     * missing is the assignment itself — not the user, and not the branch.
+     */
+    @Test
+    void revokeBranchRole_forOwnTenantsUserWithoutThatRole_staysNoContent() {
+        UUID target = TestFixtures.MANAGER_USER_ID;
+
+        // The control: the role must genuinely be absent, or this measures nothing.
+        assertThat(activeRoleCount(target, TestFixtures.MAIN_BRANCH_ID, "CASHIER"))
+            .as("the fixture must NOT hold this role for the idempotent case to be the case under test")
+            .isZero();
+
+        ResponseEntity<String> response = exchangeDelete(
+            "/internal/auth/users/" + target + "/branch-roles"
+                + "?branchId=" + TestFixtures.MAIN_BRANCH_ID + "&roleCode=CASHIER",
+            InternalServiceFilter.HEADER, INTERNAL_SECRET, TestFixtures.OWNER_USER_ID);
+
+        assertThat(response.getStatusCode().value())
+            .as("'this user is mine and holds no such role' is idempotent, not an error")
+            .isEqualTo(204);
+    }
+
     private long activeRoleCount(UUID userId, UUID branchId, String roleCode) {
         return ((Number) entityManager.createNativeQuery(
                 "SELECT COUNT(*) FROM user_branch_roles "
