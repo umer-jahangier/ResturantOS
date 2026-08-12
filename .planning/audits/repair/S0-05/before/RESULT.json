@@ -1,0 +1,30 @@
+{
+  "fixture": {
+    "voidedNo": "0026",
+    "closedNo": "0025",
+    "phone": "03009824573"
+  },
+  "results": {
+    "voided": {
+      "term": "0026",
+      "rows": [],
+      "emptyState": 1,
+      "netlog": [],
+      "serverHits": []
+    },
+    "closed": {
+      "term": "0025",
+      "rows": [],
+      "emptyState": 1,
+      "netlog": [],
+      "serverHits": []
+    },
+    "phone": {
+      "term": "03009824573",
+      "rows": [],
+      "emptyState": 1,
+      "netlog": [],
+      "serverHits": []
+    }
+  }
+}

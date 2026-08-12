@@ -1,0 +1,11 @@
+fixture voided=0026 closed=0025 phone=03009824573 (undefined)
+signed in as manager
+role=alert on order management: 1
+ALL chip, empty search -> 20 rows rendered
+  shot -> 01-all-chip-baseline.png
+search "0026" -> rows=0 emptyState=1 posOrdersRequests=0 withQueryParam=0
+  shot -> 02-search-voided.png
+search "0025" -> rows=0 emptyState=1 posOrdersRequests=0 withQueryParam=0
+  shot -> 03-search-closed.png
+search "03009824573" -> rows=0 emptyState=1 posOrdersRequests=0 withQueryParam=0
+  shot -> 04-search-phone.png
