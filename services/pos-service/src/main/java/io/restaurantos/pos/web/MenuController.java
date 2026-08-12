@@ -8,6 +8,7 @@ import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemDto;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.api.ApiResponse;
+import io.restaurantos.shared.api.PageMeta;
 import io.restaurantos.shared.feature.RequiresFeature;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -72,6 +73,17 @@ public class MenuController {
         return ResponseEntity.ok(ApiResponse.ok(menuService.setCategoryActive(id, false)));
     }
 
+    /**
+     * Order-taking menu listing (the till's grid).
+     *
+     * <p>This used to answer with {@code ApiResponse.ok(page.getContent())} — the page's contents
+     * and nothing else. With Spring's default page size of 20 and no {@code size} sent by the
+     * till, a tenant whose menu ran past 20 active items got the first 20 and <em>no way to learn
+     * that</em>: no total, no next cursor, no warning. The cashier saw a full-looking grid and the
+     * rest of the menu was unsellable and unsearchable. Returning {@code meta} is what makes a
+     * short answer detectable, and it is the same envelope {@code OrderController.listOrders}
+     * already uses, so the shared {@code getPaginated} client helper reads it unchanged.
+     */
     @PreAuthorize("hasAuthority('pos.menu.view')")
     @GetMapping("/items")
     public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItems(
@@ -79,7 +91,12 @@ public class MenuController {
             @RequestParam(required = false) UUID branchId,
             Pageable pageable) {
         Page<MenuItemDto> page = menuService.listItems(categoryId, branchId, pageable);
-        return ResponseEntity.ok(ApiResponse.ok(page.getContent()));
+        return ResponseEntity.ok(ApiResponse.paginated(page.getContent(), new PageMeta(
+                new PageMeta.Page(
+                        String.valueOf(page.getNumber()),
+                        page.hasNext() ? String.valueOf(page.getNumber() + 1) : null,
+                        page.getSize()),
+                page.getTotalElements())));
     }
 
     /** Admin listing — includes inactive items. See {@code listCategoriesForAdmin}'s note on

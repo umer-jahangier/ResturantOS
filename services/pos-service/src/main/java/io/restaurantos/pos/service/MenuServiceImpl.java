@@ -109,20 +109,24 @@ public class MenuServiceImpl implements MenuService {
         return items.stream().map(item -> toDto(item, null)).toList();
     }
 
+    /**
+     * Order-taking menu listing — the till's grid.
+     *
+     * <p>Both branches now return a page whose metadata describes what was actually returned.
+     * The category branch used to read every row and hand it to
+     * {@code PageableExecutionUtils.getPage}, which does not slice: a 30-item category answered
+     * "page 0, size 20" with 30 rows and {@code hasNext=true}, so metadata and body disagreed in
+     * one direction while the uncategorised branch (a real {@code Page}) truncated at 20 in the
+     * other. The controller discarded the metadata in both cases, which is why neither was
+     * visible. A caller can now page to the end and know when it has reached it.
+     */
     @Override
     public Page<MenuItemDto> listItems(UUID categoryId, UUID branchId, Pageable pageable) {
         requireOwnBranchIfPresent(branchId);
-        if (categoryId != null) {
-            List<MenuItem> items = itemRepository.findByCategoryIdAndActiveTrue(categoryId);
-            return org.springframework.data.support.PageableExecutionUtils.getPage(
-                    items.stream()
-                         .map(item -> toDto(item, branchId))
-                         .toList(),
-                    pageable,
-                    items::size);
-        }
-        return itemRepository.findByActiveTrue(pageable)
-                             .map(item -> toDto(item, branchId));
+        Page<MenuItem> page = categoryId != null
+                ? itemRepository.findByCategoryIdAndActiveTrue(categoryId, pageable)
+                : itemRepository.findByActiveTrue(pageable);
+        return page.map(item -> toDto(item, branchId));
     }
 
     @Override

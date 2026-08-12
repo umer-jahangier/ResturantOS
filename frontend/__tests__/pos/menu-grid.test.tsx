@@ -262,3 +262,30 @@ describe("MenuGrid selection highlighting", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+/**
+ * S1-03. The grid used to render whatever it had been given and say nothing about it — which is
+ * how a 30-item menu could show 20 tiles and look complete. The count is the cashier's only
+ * on-screen answer to "is this all of it?", so it is asserted rather than assumed.
+ */
+describe("MenuGrid item count", () => {
+  afterEach(() => clearSession());
+
+  it("states how many items the grid is showing", async () => {
+    renderGrid();
+
+    expect(await screen.findByTestId("menu-item-count")).toHaveTextContent("3 items");
+  });
+
+  it("states how many of them a search matched", async () => {
+    renderGrid();
+    const user = userEvent.setup();
+
+    await screen.findByText("Cheeseburger");
+    await user.type(screen.getByLabelText("Search menu"), "Chicken");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("menu-item-count")).toHaveTextContent("1 of 3 items match");
+    });
+  });
+});

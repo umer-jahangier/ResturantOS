@@ -169,6 +169,20 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
         </DialogContent>
       </Dialog>
 
+      {/*
+        How many tiles the cashier is looking at. Small, but it is the difference between a grid
+        that is complete and a grid that merely looks complete: this screen used to render the
+        first 20 items of any longer menu with nothing on it to say so, and the cashier's only
+        clue was an item they knew existed refusing to be found. A count cannot be silently wrong.
+      */}
+      {!itemsLoading && activeItems.length > 0 && (
+        <p className="px-1 text-xs text-muted-foreground" data-testid="menu-item-count">
+          {trimmedQuery
+            ? `${filteredItems.length} of ${activeItems.length} items match`
+            : `${activeItems.length} items`}
+        </p>
+      )}
+
       {/* Menu item grid — 2/3/4 col responsive, min 100x100 touch cards */}
       <div className="flex-1 overflow-y-auto">
         {itemsLoading ? (

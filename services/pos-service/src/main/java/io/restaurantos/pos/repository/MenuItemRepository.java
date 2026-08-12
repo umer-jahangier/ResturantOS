@@ -15,8 +15,18 @@ import java.util.UUID;
 @Repository
 public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
 
+    /**
+     * Order-taking listing for one category, genuinely paged.
+     *
+     * <p>The unpaged sibling this replaced returned every row and was then wrapped in a
+     * {@code PageImpl} carrying the CALLER's page size — so a 30-item category answered a
+     * "page 0, size 20" request with 30 rows and metadata claiming a second page existed,
+     * and page 1 returned the same 30 rows again. A client that trusted the metadata would
+     * have shown every item twice. Slicing in the database is what makes the page metadata
+     * this endpoint now publishes true.
+     */
     @Query("SELECT i FROM MenuItem i WHERE i.category.id = :categoryId AND i.active = true ORDER BY i.name ASC")
-    List<MenuItem> findByCategoryIdAndActiveTrue(@Param("categoryId") UUID categoryId);
+    Page<MenuItem> findByCategoryIdAndActiveTrue(@Param("categoryId") UUID categoryId, Pageable pageable);
 
     @Query("SELECT i FROM MenuItem i WHERE i.active = true ORDER BY i.name ASC")
     Page<MenuItem> findByActiveTrue(Pageable pageable);
