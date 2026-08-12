@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useSessionStore } from "@/lib/auth/session";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { wsUrl } from "@/lib/hooks/ws-base-url";
@@ -19,6 +20,37 @@ interface UsePosOrdersSocketResult {
 
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
+
+/**
+ * The one frame on this socket that is not an OrderDto — pos-service's
+ * {@link MenuChangedFrame}, sent tenant-wide after a menu write commits.
+ */
+interface MenuChangedFrame {
+  event: "menu.changed";
+  change: string;
+  itemId: string | null;
+  itemName: string | null;
+  active: boolean | null;
+}
+
+function isMenuChangedFrame(raw: unknown): raw is MenuChangedFrame {
+  return (
+    typeof raw === "object" &&
+    raw !== null &&
+    (raw as { event?: unknown }).event === "menu.changed"
+  );
+}
+
+/** Only a deactivation/deletion that names the item earns a toast — a price edit does not. */
+function frameSaysUnavailable(
+  frame: MenuChangedFrame,
+): frame is MenuChangedFrame & { itemName: string } {
+  return (
+    typeof frame.itemName === "string" &&
+    frame.itemName.length > 0 &&
+    (frame.change === "item.deactivated" || frame.change === "item.deleted")
+  );
+}
 
 /**
  * Maintains a WebSocket to the pos-service branch order stream
@@ -62,6 +94,36 @@ export function usePosOrdersSocket({
       ws.onmessage = (event) => {
         try {
           const raw = JSON.parse(event.data as string) as unknown;
+
+          // ── menu.changed ────────────────────────────────────────────────────────────
+          // The 86 path (register S1 #13). pos-service pushes this to every terminal of the
+          // tenant once a menu write COMMITS. Discriminated on `event`, which an OrderDto
+          // never has — note it deliberately is NOT `type`, because an OrderDto *does* carry
+          // a `type` (DINE_IN/TAKEAWAY) and a future OrderType could collide with a string
+          // chosen here.
+          //
+          // The response is an invalidation, not a patch: what a till may sell is item.active
+          // AND category.active AND the branch override AND the caller's permissions, and
+          // GET /menu/items is the only thing that computes all four. Re-reading it is the
+          // whole point; hand-patching the cache from the frame would reintroduce the class of
+          // bug this repo is full of — a screen that agrees with a message instead of with the
+          // server. The prefix ["pos", branchId, "menu-items"] also covers the admin key
+          // (…, "admin", categoryId) and every per-category variant, so a manager's own Menu
+          // Items list refreshes from another manager's edit too.
+          if (isMenuChangedFrame(raw)) {
+            queryClient.invalidateQueries({ queryKey: ["pos", branchId, "menu-items"] });
+            queryClient.invalidateQueries({ queryKey: ["pos", branchId, "menu-categories"] });
+            // A tile that silently vanishes under a cashier's finger is its own hazard — they
+            // are mid-tap on a 100px grid that just reflowed. Say what left, once, and only
+            // for the case that costs money: an item going unavailable.
+            if (frameSaysUnavailable(raw)) {
+              toast.warning(`${raw.itemName} is no longer available`, {
+                description: "It was removed from the menu — the tile is gone from your grid.",
+              });
+            }
+            return;
+          }
+
           const order: Order = adaptOrder(apiOrderSchema.parse(raw));
           // Seed the order-detail cache so an open drawer / terminal updates live…
           queryClient.setQueryData<Order>(queryKeys.pos.order(branchId, order.id), order);

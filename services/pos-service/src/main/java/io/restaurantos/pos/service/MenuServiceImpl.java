@@ -21,6 +21,8 @@ import io.restaurantos.pos.domain.model.MenuCategoryStationRoute;
 import io.restaurantos.pos.repository.MenuItemStationRouteRepository;
 import io.restaurantos.pos.repository.MenuCategoryStationRouteRepository;
 import io.restaurantos.pos.repository.StationRepository;
+import io.restaurantos.pos.ws.MenuChangedFrame;
+import io.restaurantos.pos.ws.MenuLiveNotifier;
 import io.restaurantos.shared.event.EventPublisher;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
@@ -56,6 +58,7 @@ public class MenuServiceImpl implements MenuService {
     private final MenuItemStationRouteRepository itemStationRoutes;
     private final MenuCategoryStationRouteRepository categoryStationRoutes;
     private final StationRoutingResolver stationRoutingResolver;
+    private final MenuLiveNotifier menuLiveNotifier;
 
     public MenuServiceImpl(MenuCategoryRepository categoryRepository,
                            MenuItemRepository itemRepository,
@@ -67,7 +70,8 @@ public class MenuServiceImpl implements MenuService {
                            MenuItemImageService menuItemImageService,
                            MenuItemStationRouteRepository itemStationRoutes,
                            MenuCategoryStationRouteRepository categoryStationRoutes,
-                           StationRoutingResolver stationRoutingResolver) {
+                           StationRoutingResolver stationRoutingResolver,
+                           MenuLiveNotifier menuLiveNotifier) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
         this.overrideRepository = overrideRepository;
@@ -79,6 +83,7 @@ public class MenuServiceImpl implements MenuService {
         this.itemStationRoutes = itemStationRoutes;
         this.categoryStationRoutes = categoryStationRoutes;
         this.stationRoutingResolver = stationRoutingResolver;
+        this.menuLiveNotifier = menuLiveNotifier;
     }
 
     @Override
@@ -244,6 +249,7 @@ public class MenuServiceImpl implements MenuService {
 
         MenuItem saved = itemRepository.save(item);
         publishUpserted(saved);
+        announceMenuChange(saved, MenuChangedFrame.ITEM_CREATED);
         return toDto(saved, null);
     }
 
@@ -287,6 +293,9 @@ public class MenuServiceImpl implements MenuService {
         // logged and never fails the menu edit.
         menuItemImageService.releaseIfReplaced(tenantId, previousImageFileId, saved.getImageFileId());
         publishUpserted(saved);
+        // A rename or a price change is just as urgent on an open till as a deactivation is:
+        // a cashier ringing yesterday's price is a money defect, not a cosmetic one.
+        announceMenuChange(saved, MenuChangedFrame.ITEM_UPDATED);
         return toDto(saved, null);
     }
 
@@ -299,6 +308,13 @@ public class MenuServiceImpl implements MenuService {
         item.setActive(active);
         MenuItem saved = itemRepository.save(item);
         publishUpserted(saved);
+        // THE 86 SEAM (register S1 #13). This is the call the whole gap came down to: the
+        // event above has always gone to RabbitMQ for the kitchen's read model, and the till
+        // has always held an open WebSocket, and nothing ever joined the two — so the only
+        // cache that learned an item had been pulled was the browser tab that pulled it.
+        announceMenuChange(saved, active
+                ? MenuChangedFrame.ITEM_ACTIVATED
+                : MenuChangedFrame.ITEM_DEACTIVATED);
         return toDto(saved, null);
     }
 
@@ -332,6 +348,7 @@ public class MenuServiceImpl implements MenuService {
         itemRepository.save(item);
         eventPublisher.publish(POS_EXCHANGE, MENU_ITEM_DELETED_KEY, MENU_ITEM_DELETED_TYPE, null,
                 new MenuItemDeletedPayload(item.getId()));
+        announceMenuChange(item, MenuChangedFrame.ITEM_DELETED);
     }
 
     @Override
@@ -356,7 +373,9 @@ public class MenuServiceImpl implements MenuService {
             category.setSortOrder(request.sortOrder());
         }
         category.setActive(true);
-        return toCategoryDto(categoryRepository.save(category));
+        MenuCategory saved = categoryRepository.save(category);
+        announceCategoryChange();
+        return toCategoryDto(saved);
     }
 
     @Override
@@ -370,7 +389,9 @@ public class MenuServiceImpl implements MenuService {
         if (request.sortOrder() != null) {
             category.setSortOrder(request.sortOrder());
         }
-        return toCategoryDto(categoryRepository.save(category));
+        MenuCategory saved = categoryRepository.save(category);
+        announceCategoryChange();
+        return toCategoryDto(saved);
     }
 
     @Override
@@ -380,7 +401,31 @@ public class MenuServiceImpl implements MenuService {
         MenuCategory category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu category not found: " + categoryId));
         category.setActive(active);
-        return toCategoryDto(categoryRepository.save(category));
+        MenuCategory saved = categoryRepository.save(category);
+        // Deactivating a whole category is the fastest 86 in the product ("no desserts
+        // tonight") and hides every item under it from the grid — so it needs the same live
+        // reach as an item toggle, or the till keeps offering a section that is gone.
+        announceCategoryChange();
+        return toCategoryDto(saved);
+    }
+
+    /**
+     * Tell every terminal of this tenant that the sellable menu just moved.
+     *
+     * <p>Deliberately tenant-wide and deliberately payload-free: see {@link MenuChangedFrame}.
+     * Deliberately AFTER COMMIT: see {@link MenuLiveNotifier}. The tenant is read from the
+     * ROW, not from {@code TenantContext} — by the time the callback runs the request thread's
+     * context may already have been cleared, and a null tenant here is a silent no-broadcast.
+     */
+    private void announceMenuChange(MenuItem item, String change) {
+        menuLiveNotifier.notifyAfterCommit(item.getTenantId(),
+                MenuChangedFrame.item(item.getTenantId(), change, item.getId(), item.getName(),
+                        item.isActive()));
+    }
+
+    private void announceCategoryChange() {
+        UUID tenantId = tenantContext.requireTenantId();
+        menuLiveNotifier.notifyAfterCommit(tenantId, MenuChangedFrame.category(tenantId));
     }
 
     /**

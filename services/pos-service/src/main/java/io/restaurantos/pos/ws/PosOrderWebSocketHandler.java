@@ -53,6 +53,15 @@ public class PosOrderWebSocketHandler extends TextWebSocketHandler {
     // Key: branchId (string) -> list of active WS sessions subscribed to that branch.
     private final Map<String, List<WebSocketSession>> subscribers = new ConcurrentHashMap<>();
 
+    // Key: tenantId (string) -> the same sessions, indexed the other way.
+    //
+    // Menu items and categories are TENANT-scoped rows (MenuItem.tenantId; there is no
+    // branch column), so "86 the naan" is a tenant-wide fact and every branch's terminals
+    // need it — a branch-only index would leave the rooftop till selling an item the main
+    // kitchen has run out of. Orders stay branch-indexed because an order IS branch-scoped
+    // and cross-branch order visibility would be a leak.
+    private final Map<String, List<WebSocketSession>> tenantSubscribers = new ConcurrentHashMap<>();
+
     public PosOrderWebSocketHandler(JwksKeyProvider jwksKeyProvider, ObjectMapper objectMapper) {
         this.jwksKeyProvider = jwksKeyProvider;
         this.objectMapper = objectMapper;
@@ -67,14 +76,18 @@ public class PosOrderWebSocketHandler extends TextWebSocketHandler {
         }
 
         String token = extractToken(session.getUri());
-        if (!validateJwt(token, branchId)) {
+        String tenantId = validateJwtAndReadTenant(token, branchId);
+        if (tenantId == null) {
             closeWithPolicy(session);
             return;
         }
 
         session.getAttributes().put("subscriptionKey", branchId);
+        session.getAttributes().put("tenantKey", tenantId);
         subscribers.computeIfAbsent(branchId, k -> new CopyOnWriteArrayList<>()).add(session);
-        log.debug("POS order WebSocket connected: session={} branchId={}", session.getId(), branchId);
+        tenantSubscribers.computeIfAbsent(tenantId, k -> new CopyOnWriteArrayList<>()).add(session);
+        log.debug("POS order WebSocket connected: session={} branchId={} tenantId={}",
+                session.getId(), branchId, tenantId);
     }
 
     @Override
@@ -82,6 +95,15 @@ public class PosOrderWebSocketHandler extends TextWebSocketHandler {
         String key = (String) session.getAttributes().get("subscriptionKey");
         if (key != null) {
             List<WebSocketSession> sessions = subscribers.get(key);
+            if (sessions != null) {
+                sessions.remove(session);
+            }
+        }
+        // Both indexes hold the SAME session object; missing this removal would leak a closed
+        // session per reconnect and the menu broadcast would walk a growing list of dead ones.
+        String tenantKey = (String) session.getAttributes().get("tenantKey");
+        if (tenantKey != null) {
+            List<WebSocketSession> sessions = tenantSubscribers.get(tenantKey);
             if (sessions != null) {
                 sessions.remove(session);
             }
@@ -120,6 +142,57 @@ public class PosOrderWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Pushes a {@link MenuChangedFrame} to EVERY terminal of the tenant, on every branch.
+     *
+     * <p>This is the missing half of "86 an item and have it disappear from the tills"
+     * (register S1 #13). The transport, the auth and the per-branch subscription all already
+     * existed and were already open on the cashier's terminal; what did not exist was any
+     * message on it that said the menu had changed, so a deactivation reached only the React
+     * Query cache of the tab that performed it. Measured before the fix: manager deactivates
+     * "Butter Naan", cashier's open till still shows it tappable at +2/+5/+10/+20s and drops
+     * it only on F5.
+     *
+     * <p>Called from {@code MenuLiveNotifier} AFTER the menu transaction commits — never from
+     * inside it. Pushing pre-commit would race the terminal's re-read against the very write
+     * that triggered it and could re-cache the OLD menu, which is a worse failure than the one
+     * being fixed because it looks like it worked.
+     *
+     * <p><b>Single-instance scope, stated plainly:</b> like {@link #notifyOrderUpdate}, this
+     * reaches only sockets held by THIS JVM. With more than one pos-service replica behind the
+     * gateway, terminals parked on another replica keep the old menu until their next read.
+     * Fixing that needs a fanout exchange with a per-instance queue and belongs to whichever
+     * change first runs pos-service at more than one replica; it is not a property this method
+     * silently pretends to have.
+     */
+    public void notifyMenuChanged(UUID tenantId, MenuChangedFrame frame) {
+        if (tenantId == null || frame == null) {
+            return;
+        }
+        List<WebSocketSession> sessions =
+                tenantSubscribers.getOrDefault(tenantId.toString(), Collections.emptyList());
+        if (sessions.isEmpty()) {
+            return;
+        }
+        try {
+            TextMessage message = new TextMessage(objectMapper.writeValueAsString(frame));
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    try {
+                        session.sendMessage(message);
+                    } catch (IOException e) {
+                        log.warn("Failed to send POS menu-changed frame to session {}: {}",
+                                session.getId(), e.getMessage());
+                    }
+                }
+            }
+            log.debug("POS menu-changed pushed: tenantId={} change={} sessions={}",
+                    tenantId, frame.change(), sessions.size());
+        } catch (IOException e) {
+            log.error("Failed to serialize MenuChangedFrame for POS WebSocket push", e);
+        }
+    }
+
     private String extractBranchId(URI uri) {
         if (uri == null) return null;
         // Expected: /api/v1/pos/ws/orders/{branchId}
@@ -143,10 +216,19 @@ public class PosOrderWebSocketHandler extends TextWebSocketHandler {
         return null;
     }
 
+    /**
+     * Validates the handshake token and, on success, returns the session's {@code tenant_id}.
+     *
+     * <p>Returns null for EVERY failure — bad signature, expired, missing permission, branch
+     * mismatch, and now also a token with no tenant. That last one is a deliberate rejection
+     * rather than a tolerated null: an untenanted session cannot be placed in the tenant index,
+     * so it would silently never receive a menu update while looking perfectly connected. A
+     * socket that cannot be addressed correctly is refused rather than half-subscribed.
+     */
     @SuppressWarnings("unchecked")
-    private boolean validateJwt(String token, String pathBranchId) {
+    private String validateJwtAndReadTenant(String token, String pathBranchId) {
         if (token == null || token.isBlank()) {
-            return false;
+            return null;
         }
         try {
             String kid = JwtClaims.peekKid(token);
@@ -160,17 +242,22 @@ public class PosOrderWebSocketHandler extends TextWebSocketHandler {
 
             List<String> permissions = claims.get("permissions", List.class);
             if (permissions == null || !permissions.contains(VIEW_PERMISSION)) {
-                return false;
+                return null;
             }
 
             // Branch isolation: the token's branch MUST match the branch this socket is
             // subscribing to. A terminal authenticated for branch A must not receive
             // branch B's order stream, even with a valid pos.order.view token.
             String tokenBranchId = claims.get("branch_id", String.class);
-            return tokenBranchId != null && tokenBranchId.equals(pathBranchId);
+            if (tokenBranchId == null || !tokenBranchId.equals(pathBranchId)) {
+                return null;
+            }
+
+            String tenantId = claims.get("tenant_id", String.class);
+            return (tenantId == null || tenantId.isBlank()) ? null : tenantId;
         } catch (Exception e) {
             log.debug("POS WebSocket JWT validation failed: {}", e.getMessage());
-            return false;
+            return null;
         }
     }
 

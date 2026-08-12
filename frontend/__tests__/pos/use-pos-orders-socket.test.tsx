@@ -16,6 +16,15 @@ import type { Order } from "@/lib/models/pos.model";
 const BRANCH_ID = "11111111-1111-4111-8111-111111111111";
 const ORDER_ID = "22222222-2222-4222-8222-222222222222";
 
+const toastWarning = vi.fn();
+vi.mock("sonner", () => ({
+  toast: {
+    warning: (...args: unknown[]) => toastWarning(...args),
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 // Minimal fake WebSocket capturing handlers so the test can drive open/message frames.
 class FakeWebSocket {
   static last: FakeWebSocket | null = null;
@@ -84,6 +93,7 @@ function makeWrapper(client: QueryClient) {
 describe("usePosOrdersSocket", () => {
   beforeEach(() => {
     FakeWebSocket.last = null;
+    toastWarning.mockClear();
     vi.stubGlobal("WebSocket", FakeWebSocket as unknown as typeof WebSocket);
     useSessionStore.setState({
       session: {
@@ -137,6 +147,101 @@ describe("usePosOrdersSocket", () => {
 
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["pos", BRANCH_ID, "order-summaries"],
+    });
+  });
+
+  // ── menu.changed: the 86 path (register S1 #13) ──────────────────────────────────────────
+  //
+  // Measured before the fix, in Chromium: manager deactivates "Butter Naan", the cashier's
+  // already-open till still shows it TAPPABLE at +2/+5/+10/+20s (40 tiles the whole time) and
+  // drops it only on F5 (39 tiles). The socket was open the entire time and carried nothing
+  // about the menu. Evidence: .planning/audits/repair/S1-08/before/.
+  describe("menu.changed frames", () => {
+    const menuFrame = {
+      event: "menu.changed",
+      tenantId: "t",
+      change: "item.deactivated",
+      itemId: "66666666-6666-4666-8666-666666666666",
+      itemName: "Butter Naan",
+      active: false,
+      at: "2026-08-12T10:00:00Z",
+    };
+
+    it("invalidates the till's menu queries so an open terminal re-reads the menu", () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const invalidateSpy = vi.spyOn(client, "invalidateQueries");
+
+      renderHook(() => usePosOrdersSocket({ branchId: BRANCH_ID }), {
+        wrapper: makeWrapper(client),
+      });
+
+      act(() => {
+        FakeWebSocket.last!.onmessage?.({ data: JSON.stringify(menuFrame) });
+      });
+
+      // Prefix keys, deliberately: they also cover the per-category variants
+      // (["pos", b, "menu-items", categoryId]) and the admin listings
+      // (["pos", b, "menu-items", "admin", categoryId]). Invalidating only the exact
+      // active-category key would leave every other category stale on the same terminal.
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["pos", BRANCH_ID, "menu-items"],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["pos", BRANCH_ID, "menu-categories"],
+      });
+    });
+
+    it("does not mistake a menu frame for an order and corrupt the order cache", () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const setSpy = vi.spyOn(client, "setQueryData");
+
+      renderHook(() => usePosOrdersSocket({ branchId: BRANCH_ID }), {
+        wrapper: makeWrapper(client),
+      });
+
+      act(() => {
+        FakeWebSocket.last!.onmessage?.({ data: JSON.stringify(menuFrame) });
+      });
+
+      expect(setSpy).not.toHaveBeenCalled();
+    });
+
+    it("still treats an OrderDto as an order even though OrderDto has its own `type` field", () => {
+      // The discriminator is `event`, NOT `type` — an OrderDto carries type: "DINE_IN", and
+      // picking `type` would have made the two frame shapes one enum value away from colliding.
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+      renderHook(() => usePosOrdersSocket({ branchId: BRANCH_ID }), {
+        wrapper: makeWrapper(client),
+      });
+
+      act(() => {
+        FakeWebSocket.last!.onmessage?.({ data: JSON.stringify(wirePayload) });
+      });
+
+      expect(client.getQueryData<Order>(queryKeys.pos.order(BRANCH_ID, ORDER_ID))).toBeDefined();
+    });
+
+    it("tells the cashier when an item goes unavailable, and stays quiet on a price edit", () => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      renderHook(() => usePosOrdersSocket({ branchId: BRANCH_ID }), {
+        wrapper: makeWrapper(client),
+      });
+
+      act(() => {
+        FakeWebSocket.last!.onmessage?.({ data: JSON.stringify(menuFrame) });
+      });
+      // A 100px tile vanishing under a finger mid-tap is its own hazard; the cashier is told
+      // once, by name.
+      expect(toastWarning).toHaveBeenCalledTimes(1);
+      expect(toastWarning.mock.calls[0]?.[0]).toContain("Butter Naan");
+
+      act(() => {
+        FakeWebSocket.last!.onmessage?.({
+          data: JSON.stringify({ ...menuFrame, change: "item.updated", active: true }),
+        });
+      });
+      expect(toastWarning).toHaveBeenCalledTimes(1);
     });
   });
 
