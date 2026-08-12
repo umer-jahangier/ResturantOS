@@ -8,6 +8,7 @@ import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -186,7 +187,7 @@ class TillOwnershipGuardIT extends PosTestBase {
         // ...and must ALSO be refused by the branch-wide path, which returns strictly more (every
         // till in the branch, including the one just denied). Without this the guard above is
         // decorative: the same cashier asks ?branchId=<own> instead and gets the colleague's row.
-        assertThatThrownBy(() -> tillService.listTillsForBranch(branchId))
+        assertThatThrownBy(() -> tillService.listTillsForBranch(branchId, Pageable.unpaged()))
                 .isInstanceOf(PermissionDeniedException.class);
 
         assertThat(victimTill.cashierId()).isEqualTo(victimCashierId);
@@ -199,12 +200,14 @@ class TillOwnershipGuardIT extends PosTestBase {
         // The live till-review page gates on pos.order.view.all, so a manager holding it must keep
         // working — closing the leak must not break cash-up.
         actAs(otherCashierId, "pos.order.view.all");
-        List<TillSessionDto> viaIncumbent = tillService.listTillsForBranch(branchId);
+        List<TillSessionDto> viaIncumbent =
+                tillService.listTillsForBranch(branchId, Pageable.unpaged()).getContent();
         assertThat(viaIncumbent).extracting(TillSessionDto::id).contains(victimTill.id());
 
         // And the intended end-state permission works on its own.
         actAs(otherCashierId, "pos.till.review");
-        List<TillSessionDto> viaTillReview = tillService.listTillsForBranch(branchId);
+        List<TillSessionDto> viaTillReview =
+                tillService.listTillsForBranch(branchId, Pageable.unpaged()).getContent();
         assertThat(viaTillReview).extracting(TillSessionDto::id).contains(victimTill.id());
     }
 
