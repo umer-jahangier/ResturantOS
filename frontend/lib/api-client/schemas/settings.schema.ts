@@ -60,3 +60,22 @@ export const apiUpdateBranchSchema = z.object({
   timezone: z.string().optional(),
   openedOn: z.string().optional(),
 });
+
+/**
+ * `POST /api/v1/branches` — the wire shape of a new branch.
+ *
+ * <p>Deliberately NOT `apiUpdateBranchSchema.partial()`: create and update accept different things
+ * and mean different things by an absent key. `name` is required here (the server's
+ * `@NotBlank`), `isActive` is absent because a branch is created active and the server ignores an
+ * attempt to say otherwise, and `isHq` is absent because HQ is decided when the tenant is
+ * provisioned — offering it would let a second HQ be created through a screen with no concept of
+ * what that would mean.
+ */
+export const apiCreateBranchSchema = z.object({
+  name: z.string().min(1).max(150),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  timezone: z.string().optional(),
+  openedOn: z.string().optional(),
+});

@@ -1,7 +1,15 @@
-import { get, put } from "@/lib/api-client/request";
-import { apiBranchSchema, apiUpdateBranchSchema } from "@/lib/api-client/schemas/settings.schema";
+import { get, post, put } from "@/lib/api-client/request";
+import {
+  apiBranchSchema,
+  apiCreateBranchSchema,
+  apiUpdateBranchSchema,
+} from "@/lib/api-client/schemas/settings.schema";
 import { adaptBranchSettings } from "@/lib/adapters/settings.adapter";
-import type { BranchSettings, BranchSettingsPatch } from "@/lib/models/tenant-settings.model";
+import type {
+  BranchDraft,
+  BranchSettings,
+  BranchSettingsPatch,
+} from "@/lib/models/tenant-settings.model";
 import { z } from "zod";
 
 /**
@@ -24,6 +32,20 @@ export const SettingsRepository = {
   async listBranches(): Promise<BranchSettings[]> {
     const raw = await get<unknown>("/api/v1/branches");
     return z.array(apiBranchSchema).parse(raw).map(adaptBranchSettings);
+  },
+
+  /**
+   * `POST /api/v1/branches` — add a branch. Gated on `rbac.manage | branch.manage`.
+   *
+   * <p>The server does one thing beyond the insert that this method's callers depend on: it puts
+   * the creating administrator on the new branch with their own role. Without that the branch is
+   * created and is invisible in the branch switcher, which is the only way anyone reaches a
+   * branch's data. See `BranchService.create`.
+   */
+  async createBranch(draft: BranchDraft): Promise<BranchSettings> {
+    const body = apiCreateBranchSchema.parse(draft);
+    const raw = await post<unknown, unknown>("/api/v1/branches", body);
+    return adaptBranchSettings(apiBranchSchema.parse(raw));
   },
 
   /**

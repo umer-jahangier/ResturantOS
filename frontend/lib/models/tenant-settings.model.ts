@@ -33,3 +33,19 @@ export type BranchSettingsPatch = Partial<
     "name" | "isActive" | "address" | "phone" | "email" | "timezone" | "openedOn"
   >
 >;
+
+/**
+ * A branch being created. `name` is the only thing the server insists on.
+ *
+ * <p>No `isActive` and no `isHq`: a new branch is active, and HQ is settled when the tenant is
+ * provisioned. Neither is a decision this screen is entitled to make, so neither is offered.
+ */
+export interface BranchDraft {
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  timezone?: string;
+  /** ISO date (`YYYY-MM-DD`). */
+  openedOn?: string;
+}
