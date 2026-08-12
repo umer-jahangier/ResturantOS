@@ -1,0 +1,104 @@
+[
+  {
+    "size": "390",
+    "theme": "light",
+    "terminal": {
+      "gridWidth": 358,
+      "bodyScrollsSideways": false
+    },
+    "open": true,
+    "bodyScrollsSideways": false,
+    "dialogWidth": 390,
+    "viewport": 390,
+    "minOptionHeight": 44,
+    "optionCount": 4,
+    "background": "oklch(1 0 195)",
+    "color": "oklch(0.168 0.006 195)",
+    "blockedMessageVisible": true
+  },
+  {
+    "size": "390",
+    "theme": "dark",
+    "terminal": {
+      "gridWidth": 358,
+      "bodyScrollsSideways": false
+    },
+    "open": true,
+    "bodyScrollsSideways": false,
+    "dialogWidth": 390,
+    "viewport": 390,
+    "minOptionHeight": 44,
+    "optionCount": 4,
+    "background": "oklch(0.168 0.006 195)",
+    "color": "oklch(0.985 0.002 195)",
+    "blockedMessageVisible": true
+  },
+  {
+    "size": "768",
+    "theme": "light",
+    "terminal": {
+      "gridWidth": 480,
+      "bodyScrollsSideways": false
+    },
+    "open": true,
+    "bodyScrollsSideways": false,
+    "dialogWidth": 384,
+    "viewport": 768,
+    "minOptionHeight": 44,
+    "optionCount": 4,
+    "background": "oklch(1 0 195)",
+    "color": "oklch(0.168 0.006 195)",
+    "blockedMessageVisible": true
+  },
+  {
+    "size": "768",
+    "theme": "dark",
+    "terminal": {
+      "gridWidth": 480,
+      "bodyScrollsSideways": false
+    },
+    "open": true,
+    "bodyScrollsSideways": false,
+    "dialogWidth": 384,
+    "viewport": 768,
+    "minOptionHeight": 44,
+    "optionCount": 4,
+    "background": "oklch(0.168 0.006 195)",
+    "color": "oklch(0.985 0.002 195)",
+    "blockedMessageVisible": true
+  },
+  {
+    "size": "1440",
+    "theme": "light",
+    "terminal": {
+      "gridWidth": 815,
+      "bodyScrollsSideways": false
+    },
+    "open": true,
+    "bodyScrollsSideways": false,
+    "dialogWidth": 384,
+    "viewport": 1440,
+    "minOptionHeight": 44,
+    "optionCount": 4,
+    "background": "oklch(1 0 195)",
+    "color": "oklch(0.168 0.006 195)",
+    "blockedMessageVisible": true
+  },
+  {
+    "size": "1440",
+    "theme": "dark",
+    "terminal": {
+      "gridWidth": 815,
+      "bodyScrollsSideways": false
+    },
+    "open": true,
+    "bodyScrollsSideways": false,
+    "dialogWidth": 384,
+    "viewport": 1440,
+    "minOptionHeight": 44,
+    "optionCount": 4,
+    "background": "oklch(0.168 0.006 195)",
+    "color": "oklch(0.985 0.002 195)",
+    "blockedMessageVisible": true
+  }
+]
