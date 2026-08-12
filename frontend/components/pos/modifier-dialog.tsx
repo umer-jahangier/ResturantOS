@@ -216,18 +216,24 @@ export function ModifierDialog({
                           data-testid={`modifier-option-${option.id}`}
                           onClick={() => toggle(group, option.id)}
                           className={cn(
-                            "flex min-h-11 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors active:scale-[0.98]",
+                            // `items-start` + a wrapping name, NOT `truncate`. A till button
+                            // reading "Extra ch…" beside another reading "Extra ra…" is two
+                            // buttons a cashier cannot tell apart at a glance, which is a
+                            // mis-punch on the guest's bill. Two lines is cheaper than that.
+                            "flex min-h-11 items-start justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors active:scale-[0.98]",
                             on
                               ? "border-primary bg-primary/10 ring-1 ring-primary"
                               : "bg-card hover:border-primary hover:bg-accent",
                           )}
                         >
-                          <span className="flex min-w-0 items-center gap-2">
-                            {on && <Check className="size-3.5 shrink-0" aria-hidden="true" />}
-                            <span className="truncate text-sm">{option.name}</span>
+                          <span className="flex min-w-0 flex-1 items-start gap-2">
+                            {on && (
+                              <Check className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                            )}
+                            <span className="text-sm break-words">{option.name}</span>
                           </span>
                           {option.priceDeltaPaisa !== 0 && (
-                            <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                            <span className="mt-0.5 shrink-0 font-mono text-xs whitespace-nowrap text-muted-foreground">
                               {option.priceDeltaPaisa > 0 ? "+" : "−"}
                               <MoneyDisplay
                                 paisa={Math.abs(option.priceDeltaPaisa)}

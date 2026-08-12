@@ -64,7 +64,7 @@
     "modifierCaption": "Extra cheese +Rs 150.00 · Hot",
     "panelText": null
   },
-  "orderNo": "ORD-20260812-0327",
+  "orderNo": "ORD-20260812-0346",
   "persistedLine": {
     "item": "Audit Item 52235",
     "unitPricePaisa": 49900,
@@ -89,25 +89,25 @@
   "firedStation": "PANTRY1",
   "kdsTicket": {
     "found": true,
-    "text": "1 ORD-20260812-0327 00:15 DINE-IN No table 1× Audit Item 52235 Extra cheese, Hot",
+    "text": "1 ORD-20260812-0346 00:15 DINE-IN No table 1× Audit Item 52235 Extra cheese, Hot",
     "modifiers": [
       "Extra cheese, Hot"
     ]
   },
   "kdsShowsUuid": false,
-  "chargeScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K E Back Order #ORD-20260812-0327 In Progress Unpaid Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 11:52 AM Items Audit Item 52235 ×1 Rs 649.00 Sent Bill Subtotal Rs 649.00 Discounts Rs 0.00 Apply a discount Service charge (5.00%) Rs 32.45 Taxes Rs 0.00 Total Rs 681.45 Amount paid Rs 0.00 Remaining balance Rs 681.45 Payment History No payments yet Take Payment Method CASH CARD BANK TRANSFER VOUCHER Amount (Rs) Ref# (optional) Full amount Tip (Rs) — optional Tendered (Rs) Change due Rs 0.00 Quick tender +50 +100 +500 +1,000 +5,000 Exact + Ad",
+  "chargeScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K E Back Order #ORD-20260812-0346 In Progress Unpaid Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 12:04 PM Items Audit Item 52235 ×1 Rs 649.00 Sent Bill Subtotal Rs 649.00 Discounts Rs 0.00 Apply a discount Service charge (5.00%) Rs 32.45 Taxes Rs 0.00 Total Rs 681.45 Amount paid Rs 0.00 Remaining balance Rs 681.45 Payment History No payments yet Take Payment Method CASH CARD BANK TRANSFER VOUCHER Amount (Rs) Ref# (optional) Full amount Tip (Rs) — optional Tendered (Rs) Change due Rs 0.00 Quick tender +50 +100 +500 +1,000 +5,000 Exact + Ad",
   "paymentStatus": 200,
   "receipt": {
     "error": {
       "code": "NOT_FOUND",
       "message": "No endpoint matches this path",
       "details": [],
-      "traceId": "7ecedf78-917a-4e9d-bbad-3799a5414bc7"
+      "traceId": "2260c686-7110-46c4-a9dd-b4377c4070c5"
     }
   },
-  "receiptScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Orders Order Receipt Floating Terrace HQ Search… ⌘K E Back Print a browser copy Printed on audit-receipt F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued. *** REPRINT #2 *** Originally issued 2026-08-12T06:52:58.136Z Floating Terrace HQ 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad +92 21 4628872 Order ORD-20260812-0327 Issued 2026-08-12T06:53:01.059Z 1 x Audit Item 52235 Rs 649.00 + Extra cheese + Hot Subtotal Rs 649.00 Discount Rs 0.00 Service charge (5.00%) Rs 32.45 Tax Rs 0.00 TOTAL Rs 681.45 CASH Rs 681.45",
+  "receiptScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Orders Order Receipt Floating Terrace HQ Search… ⌘K E Back Print a browser copy Printed on audit-receipt F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued. *** REPRINT #2 *** Originally issued 2026-08-12T07:04:37.828Z Floating Terrace HQ 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad +92 21 4628872 Order ORD-20260812-0346 Issued 2026-08-12T07:04:40.688Z 1 x Audit Item 52235 Rs 649.00 + Extra cheese + Hot Subtotal Rs 649.00 Discount Rs 0.00 Service charge (5.00%) Rs 32.45 Tax Rs 0.00 TOTAL Rs 681.45 CASH Rs 681.45",
   "journalStatus": 200,
-  "journal": "[{\"id\":\"474b5a92-9f48-4679-ba36-234dfe75b186\",\"entryNo\":\"JE-2027-000305\",\"periodId\":\"d5a01de9-ee35-46f4-9545-ba0c72f14741\",\"entryDate\":\"2026-08-12\",\"description\":\"Order revenue ORD-20260812-0327\",\"sourceType\":\"ORDER_REVENUE\",\"sourceId\":\"9ee2cbf8-97cd-4f89-a98b-2d9ba698e876\",\"status\":\"POSTED\",\"postedBy\":null,\"reversal\":false,\"reversalOfJe\":null,\"reversedByJe\":null,\"totalDebitPaisa\":68145,\"totalCreditPaisa\":68145,\"lines\":[{\"id\":\"573ffe93-c159-4028-823a-6274d4737339\",\"accountCode\":\"1010\",\"description\":\"CASH payment\",\"debitPaisa\":68145,\"creditPaisa\":0},{\"id\":\"26afc8e0-aa49-4706-9684-4758caf0a2d3\",\"accountCode\":\"4100\",\"description\":\"Sales revenue\",\"debitPaisa\":0,\"creditPaisa\":64900},{\"id\":\"1bfa36f9-b7a8-4714-b6fd-f886ed68411e\",\"accountCode\":\"4910\",\"description\":\"Service charge\",\"debitPaisa\":0,\"creditPaisa\":3245}],\"sourceReference\":{\"state\":\"RESOLVED\",\"sourceType\":\"ORDER_REVENUE\",\"sourceId\":\"9",
+  "journal": "[{\"id\":\"66870a7b-f003-4ace-90bc-f00bd752a47f\",\"entryNo\":\"JE-2027-000309\",\"periodId\":\"d5a01de9-ee35-46f4-9545-ba0c72f14741\",\"entryDate\":\"2026-08-12\",\"description\":\"Order revenue ORD-20260812-0346\",\"sourceType\":\"ORDER_REVENUE\",\"sourceId\":\"5b17a7f7-5416-48e3-a0ef-a3cbfbe2adad\",\"status\":\"POSTED\",\"postedBy\":null,\"reversal\":false,\"reversalOfJe\":null,\"reversedByJe\":null,\"totalDebitPaisa\":68145,\"totalCreditPaisa\":68145,\"lines\":[{\"id\":\"e1c00260-565e-4b15-8889-b552de021c20\",\"accountCode\":\"1010\",\"description\":\"CASH payment\",\"debitPaisa\":68145,\"creditPaisa\":0},{\"id\":\"51256571-445c-4ccc-8132-5bcc66e2b503\",\"accountCode\":\"4100\",\"description\":\"Sales revenue\",\"debitPaisa\":0,\"creditPaisa\":64900},{\"id\":\"2f716555-7382-4f26-9026-43bc202f10ea\",\"accountCode\":\"4910\",\"description\":\"Service charge\",\"debitPaisa\":0,\"creditPaisa\":3245}],\"sourceReference\":{\"state\":\"RESOLVED\",\"sourceType\":\"ORDER_REVENUE\",\"sourceId\":\"5",
   "expectedLineTotal": 64900,
   "receiptNamesTheModifier": true,
   "receiptShowsLineTotal": true,
