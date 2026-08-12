@@ -253,6 +253,9 @@ export function adaptOrderPayment(raw: ApiOrderPaymentRecord): OrderPayment {
     changePaisa: raw.changePaisa ?? 0,
     referenceNo: raw.referenceNo ?? null,
     recordedAt: raw.recordedAt,
+    // S0-01. A server that predates the refund-reversal rows only ever returns tenders, so the
+    // absent-field default is PAYMENT and never a guess from the sign of the amount.
+    kind: raw.kind ?? "PAYMENT",
   };
 }
 

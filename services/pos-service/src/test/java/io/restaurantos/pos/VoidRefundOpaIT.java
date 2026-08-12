@@ -265,8 +265,12 @@ class VoidRefundOpaIT extends PosTestBase {
         when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(true));
         setSecurityContext(cashierId, List.of("pos.order.refund"), Map.of("approval_limit_paisa", 10000));
 
+        // S0-01: this used to refund 5000 of an 8000 bill while calling the scope "FULL", and
+        // asserted the order went REFUNDED — i.e. it pinned a terminal, un-refundable order with
+        // 3000 paisa of the customer's money never returned. "Full" is now DERIVED from money
+        // taken vs money given back, so a full reversal is the bill's own 8000.
         OrderDto refunded = refundService.refund(closed.id(),
-                new RefundRequest(5000L, "Item defective", "FULL"),
+                new RefundRequest(closed.totalPaisa(), "Item defective", "FULL"),
                 UUID.randomUUID().toString());
         assertThat(refunded.status()).isEqualTo(OrderStatus.REFUNDED);
 

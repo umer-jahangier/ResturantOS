@@ -91,6 +91,26 @@ public class PosExceptions {
         }
     }
 
+    /**
+     * A void was attempted on an order that has money recorded against it (S0-01).
+     *
+     * <p>A void cancels a bill; it does not move money. Voiding a paid order therefore deleted
+     * the order from every operator screen while its {@code order_payments} row survived — the
+     * cash was in the drawer and on no report. The policy is now: <b>any payment at all means
+     * the void is refused and a refund is the only path</b>, because a refund is the operation
+     * that has a reversing money row.
+     *
+     * <p>The detail names the amount and the alternative, because the operator holding the cash
+     * has to be told what to do instead, not merely that they cannot do this.
+     */
+    public static class OrderHasPaymentsException extends RuntimeException {
+        public OrderHasPaymentsException(String orderNo, long amountPaidPaisa) {
+            super("Order " + orderNo + " has " + amountPaidPaisa
+                    + " paisa recorded against it and cannot be voided. "
+                    + "Use Refund — a void leaves the payment in place with no reversing entry.");
+        }
+    }
+
     /** CHARGE_TO_ACCOUNT was selected without naming which house account to bill. */
     public static class CustomerAccountRequiredException extends RuntimeException {
         public CustomerAccountRequiredException() {

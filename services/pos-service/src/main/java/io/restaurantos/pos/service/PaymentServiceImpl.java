@@ -10,6 +10,7 @@ import io.restaurantos.pos.dto.OrderPaymentDto;
 import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.feign.FinanceArClient;
 import io.restaurantos.pos.repository.OrderPaymentRepository;
+import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.shared.exception.StateInvalidException;
@@ -20,9 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -30,6 +32,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
+    private final OrderRefundRepository refundRepository;
     private final TenantContext tenantContext;
     private final OrderService orderService;
     private final TillSessionRepository tillSessionRepository;
@@ -37,12 +40,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     public PaymentServiceImpl(OrderRepository orderRepository,
                               OrderPaymentRepository paymentRepository,
+                              OrderRefundRepository refundRepository,
                               TenantContext tenantContext,
                               OrderService orderService,
                               TillSessionRepository tillSessionRepository,
                               FinanceArClient financeArClient) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
+        this.refundRepository = refundRepository;
         this.tenantContext = tenantContext;
         this.orderService = orderService;
         this.tillSessionRepository = tillSessionRepository;
@@ -206,8 +211,16 @@ public class PaymentServiceImpl implements PaymentService {
                 .filter(o -> tenantId.equals(o.getTenantId()))
                 .orElseThrow(() -> new PosExceptions.OrderNotFoundException(orderId.toString()));
 
-        return paymentRepository.findByOrderId(orderId).stream()
-                .map(OrderPaymentDto::from)
-                .collect(Collectors.toList());
+        // S0-01: tenders AND their reversals, oldest first. Returning payments alone meant a
+        // refunded order and a voided-but-paid order looked identical here — a live tender and
+        // nothing giving it back. A refund comes through as a negative row (see
+        // OrderPaymentDto.reversalOf), so every existing caller's `sum(amountPaisa)` becomes the
+        // NET held against the order for free.
+        List<OrderPaymentDto> rows = new ArrayList<>();
+        paymentRepository.findByOrderId(orderId).forEach(p -> rows.add(OrderPaymentDto.from(p)));
+        refundRepository.findByOrderId(orderId).forEach(r -> rows.add(OrderPaymentDto.reversalOf(r)));
+        rows.sort(Comparator.comparing(
+                OrderPaymentDto::recordedAt, Comparator.nullsLast(Comparator.naturalOrder())));
+        return rows;
     }
 }

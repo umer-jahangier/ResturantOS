@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { MoneyDisplay } from "@/components/ui/money-display";
-import { useVoidOrder, useRefundOrder } from "@/lib/hooks/pos/use-payments";
+import { useVoidOrder, useRefundOrder, useOrderPayments } from "@/lib/hooks/pos/use-payments";
 import type { Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -50,8 +50,33 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
   const voidMutation = useVoidOrder(order.id);
   const refundMutation = useRefundOrder(order.id);
 
-  const canVoidOwn = order.status === "OPEN" || order.status === "SENT_TO_KDS";
-  const canRefund = order.status === "CLOSED";
+  /*
+   * S0-01 — the two triggers are decided by MONEY, not by status alone.
+   *
+   * They used to be pure status checks (`canVoidOwn = OPEN || SENT_TO_KDS`,
+   * `canRefund = CLOSED`) despite being named as though a permission were involved. An order
+   * only becomes CLOSED once it is fully Paid AND fully Served, so the ordinary settled check —
+   * cash taken, food still on the pass, status SENT_TO_KDS — showed Void and hid Refund. Three
+   * clicks then deleted the order from every screen while its payment row survived.
+   *
+   * `amountPaidPaisa` is the server's own history summed, and refunds come back as NEGATIVE
+   * rows, so a fully-reversed order nets to zero and reads correctly as "nothing held" without
+   * this component knowing anything about refund records.
+   */
+  const { data: payments = [], isLoading: paymentsLoading } = useOrderPayments(order.id);
+  const amountPaidPaisa = payments.reduce((acc, p) => acc + p.amountPaisa, 0);
+  const hasMoneyOnIt = amountPaidPaisa > 0;
+
+  // Unchanged status set — a void is still only offered on a live, un-settled ticket. What is
+  // new is that money on the ticket withdraws it, and the operator is told why.
+  const voidableStatus = order.status === "OPEN" || order.status === "SENT_TO_KDS";
+  const canVoidOwn = voidableStatus && !hasMoneyOnIt && !paymentsLoading;
+  // Refund wherever money was actually taken and the order has not already been settled away.
+  // Deliberately NOT `status === "CLOSED"`: that is the gate that made this unreachable.
+  const canRefund = hasMoneyOnIt && order.status !== "VOIDED" && order.status !== "REFUNDED";
+  // The explanatory line that replaces the Void button on a paid ticket. Without it the trigger
+  // would simply be missing and the operator would be left guessing.
+  const showPaidInsteadOfVoid = voidableStatus && hasMoneyOnIt;
 
   const closePanel = () => {
     setOpen(false);
@@ -71,8 +96,12 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
 
   const handleRefund = async () => {
     if (!refundReason.trim()) return;
+    // A FULL refund reverses what was TAKEN, not what was billed. Sending `order.totalPaisa`
+    // made a legitimate full reversal of a partly-settled check fail the server's cap.
     const refundPaisa =
-      refundScope === "FULL" ? order.totalPaisa : Math.round(parseFloat(refundAmount || "0") * 100);
+      refundScope === "FULL"
+        ? amountPaidPaisa
+        : Math.round(parseFloat(refundAmount || "0") * 100);
     if (refundPaisa <= 0) return;
     const idempotencyKey = generateKey();
     await refundMutation.mutateAsync({
@@ -83,9 +112,9 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
     onDone?.();
   };
 
-  const hasAnyPermission = canVoidOwn || canRefund;
+  const hasAnyAction = canVoidOwn || canRefund || showPaidInsteadOfVoid;
 
-  if (!hasAnyPermission) return null;
+  if (!hasAnyAction) return null;
 
   if (open) {
     return (
@@ -148,10 +177,15 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               </button>
             </div>
             {voidMutation.isError && (
-              <p className="text-xs text-destructive">
+              <p data-testid="void-error" className="text-xs text-destructive">
                 {voidMutation.error?.status === 403
                   ? "You don't have permission to void this order."
-                  : "Failed to void. Please try again."}
+                  : voidMutation.error?.status === 409
+                    ? // S0-01: the server refuses a void once money is on the order. Say so
+                      // exactly, and name the operation that does work — a generic "try again"
+                      // would invite the operator to keep hammering a button that cannot succeed.
+                      "This order has been paid — use Refund. A void would leave the payment in place."
+                    : "Failed to void. Please try again."}
               </p>
             )}
           </>
@@ -172,6 +206,16 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
                 </label>
               ))}
             </div>
+
+            <p className="text-sm text-muted-foreground">
+              Collected on this order:{" "}
+              <MoneyDisplay
+                paisa={amountPaidPaisa}
+                className="font-medium text-foreground"
+                data-testid="refundable-amount"
+              />
+              . A full refund reverses every tender recorded against it.
+            </p>
 
             {refundScope === "PARTIAL" && (
               <label className="text-sm">
@@ -222,7 +266,9 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
               </button>
             </div>
             {refundMutation.isError && (
-              <p className="text-xs text-destructive">Failed to refund. Please try again.</p>
+              <p data-testid="refund-error" className="text-xs text-destructive">
+                Failed to refund. Please try again.
+              </p>
             )}
           </>
         )}
@@ -231,7 +277,7 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <PermissionGuard require={["pos.order.void.own", "pos.order.void.any"]} mode="any">
         {canVoidOwn && (
           <button
@@ -246,6 +292,21 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
           </button>
         )}
       </PermissionGuard>
+
+      {/*
+        S0-01: an absent control with no explanation is how the operator ends up hunting for a
+        way to cancel and finding a destructive one. Say the reason, in place, where the Void
+        button was. Not permission-guarded — it states a fact about the ORDER, and hiding it
+        from someone without void rights would only make the missing button more mysterious.
+      */}
+      {showPaidInsteadOfVoid && (
+        <span
+          data-testid="void-blocked-paid-notice"
+          className="text-xs text-muted-foreground"
+        >
+          Paid — void unavailable. Use Refund.
+        </span>
+      )}
 
       <PermissionGuard require="pos.order.refund">
         {canRefund && (

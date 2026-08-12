@@ -120,6 +120,19 @@ public class PosGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
 
+    /**
+     * 409, not 422: the request is well-formed and the caller is authorised — the ORDER is in a
+     * state (money taken) where a void is not a legal operation. Same class of refusal as
+     * ORDER_ALREADY_PAID, and the frontend branches on the 409 to swap Void for Refund.
+     */
+    @ExceptionHandler(PosExceptions.OrderHasPaymentsException.class)
+    public ResponseEntity<ProblemDetail> handleOrderHasPayments(PosExceptions.OrderHasPaymentsException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("ORDER_HAS_PAYMENTS");
+        pd.setType(URI.create("urn:restaurantos:pos:order-has-payments"));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
     @ExceptionHandler(PosExceptions.ChargeToAccountRefusedException.class)
     public ResponseEntity<ProblemDetail> handleChargeRefused(PosExceptions.ChargeToAccountRefusedException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());

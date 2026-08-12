@@ -424,16 +424,33 @@ export const apiCloseOrderSchema = z.object({
 // shape with no id/recordedAt) — this is the persisted, INCOMING read model.
 export const apiOrderPaymentRecordSchema = z.object({
   id: z.string().uuid(),
-  method: z.enum(["CASH", "CARD", "LOYALTY_POINTS", "BANK_TRANSFER", "VOUCHER"]),
-  // What was APPLIED to the bill. The server caps this at the outstanding balance, so the
+  method: z.enum([
+    "CASH",
+    "CARD",
+    "LOYALTY_POINTS",
+    "BANK_TRANSFER",
+    "VOUCHER",
+    "CHARGE_TO_ACCOUNT",
+  ]),
+  // What was APPLIED to the bill. The server caps a TENDER at the outstanding balance, so the
   // applied amounts always sum to the order total — the invariant finance's revenue journal
-  // entry depends on. `tenderedPaisa` is what the customer handed over and `changePaisa` the
-  // difference; both are optional so a payment row written before the V10 migration still parses.
-  amountPaisa: z.number().int().nonnegative(),
-  tenderedPaisa: z.number().int().nonnegative().optional(),
+  // entry depends on.
+  //
+  // S0-01: SIGNED, and no longer `.nonnegative()`. The endpoint now returns refunds alongside
+  // tenders, and a refund is a reversing row with a NEGATIVE amount — that is what makes
+  // `payments.reduce(sum)` the NET money held against the order rather than a figure that keeps
+  // claiming a refunded bill was paid. A `.nonnegative()` here would have thrown the whole
+  // history away at parse time the first time anyone refunded anything.
+  amountPaisa: z.number().int(),
+  tenderedPaisa: z.number().int().optional(),
   changePaisa: z.number().int().nonnegative().optional(),
   referenceNo: z.string().nullable().optional(),
   recordedAt: z.string(),
+  /**
+   * PAYMENT (a tender taken) or REFUND (money given back). Optional and defaulted for
+   * back-compat with a pos-service that predates S0-01 — every row it returns is a tender.
+   */
+  kind: z.enum(["PAYMENT", "REFUND"]).optional(),
 });
 
 export type ApiOrderPaymentRecord = z.infer<typeof apiOrderPaymentRecordSchema>;

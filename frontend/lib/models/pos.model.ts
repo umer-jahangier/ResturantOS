@@ -393,17 +393,32 @@ export interface RefundOrderPayload {
 export type PaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID" | "REFUNDED";
 
 /** A single persisted payment row (GET /orders/{id}/payments history read model). */
+/** A tender taken, or the reversing row a refund writes against it (S0-01). */
+export type OrderPaymentKind = "PAYMENT" | "REFUND";
+
 export interface OrderPayment {
   id: string;
-  /** Amount applied to the bill. Never exceeds the outstanding balance. */
+  /**
+   * SIGNED money row. Positive for a tender applied to the bill (never above the outstanding
+   * balance); NEGATIVE for a refund reversing one. Summing the list therefore gives the NET
+   * amount held against the order, which is what every caller already wanted.
+   */
   amountPaisa: number;
   method: PaymentMethod;
   /** What the customer handed over — equals amountPaisa for exact and non-cash tenders. */
   tenderedPaisa: number;
   /** tenderedPaisa - amountPaisa. Cash back to the customer; always 0 for non-cash. */
   changePaisa: number;
+  /** Reference on a tender; the operator's stated reason on a refund reversal. */
   referenceNo: string | null;
   recordedAt: string;
+  /**
+   * Optional for the same reason `tenderedPaisa`/`changePaisa` are optional on the wire schema:
+   * rows from a producer that predates the field carry none, and the absence means PAYMENT.
+   * `adaptOrderPayment` always populates it, so anything that came through the repository layer
+   * has it — never infer the kind from the sign of `amountPaisa`.
+   */
+  kind?: OrderPaymentKind;
 }
 
 /** POST /orders/{id}/payments request body — records ONE tender at a time. */

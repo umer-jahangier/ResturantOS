@@ -1,5 +1,6 @@
 package io.restaurantos.pos.domain.model;
 
+import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.shared.entity.TenantAuditableEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -31,4 +32,16 @@ public class OrderRefund extends TenantAuditableEntity {
 
     @Column(name = "scope", nullable = false, length = 20)
     private String scope = "FULL";
+
+    /**
+     * The tender this row reverses (S0-01, V20). One {@code OrderRefund} row is written per
+     * ORIGINAL payment method the refund consumes, so a Rs 500 refund against a CASH 300 +
+     * CARD 200 bill writes two rows, not one — which is what lets the till subtract only the
+     * cash that actually left the drawer.
+     *
+     * <p>NULL only on rows written before V20; readers treat NULL as CASH (see the migration).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "method", length = 30)
+    private PaymentMethod method;
 }

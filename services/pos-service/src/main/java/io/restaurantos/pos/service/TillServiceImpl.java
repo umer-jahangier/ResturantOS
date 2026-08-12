@@ -9,7 +9,9 @@ import io.restaurantos.pos.dto.OpenTillRequest;
 import io.restaurantos.pos.dto.TillReconciliationDto;
 import io.restaurantos.pos.dto.TillSessionDto;
 import io.restaurantos.pos.exception.PosExceptions;
+import io.restaurantos.pos.domain.model.OrderRefund;
 import io.restaurantos.pos.repository.OrderPaymentRepository;
+import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.shared.event.EventPublisher;
@@ -43,19 +45,44 @@ public class TillServiceImpl implements TillService {
     private final TillSessionRepository tillSessionRepository;
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
+    private final OrderRefundRepository refundRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
 
     public TillServiceImpl(TillSessionRepository tillSessionRepository,
                            OrderRepository orderRepository,
                            OrderPaymentRepository paymentRepository,
+                           OrderRefundRepository refundRepository,
                            EventPublisher eventPublisher,
                            TenantContext tenantContext) {
         this.tillSessionRepository = tillSessionRepository;
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
+        this.refundRepository = refundRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+    }
+
+    /**
+     * Cash that left the drawer as refunds against {@code orderIds} (S0-01).
+     *
+     * <p>Expected closing cash was {@code openingFloat + cashPayments} and stopped there. That was
+     * survivable only while refunds were unreachable — they were gated on CLOSED, which a
+     * paid-but-unserved check never reaches. Now that a refund is the ONLY way to undo a paid
+     * order, every refund would otherwise show up as a shortage in the cashier's count: the money
+     * is genuinely gone from the drawer and the expected figure still counted it.
+     *
+     * <p>A NULL method is a pre-V20 row of unknown tender; treated as CASH, per the migration's
+     * note on which direction is safe.
+     */
+    private long cashRefundedFor(List<UUID> orderIds) {
+        if (orderIds.isEmpty()) {
+            return 0L;
+        }
+        return refundRepository.findByOrderIdIn(orderIds).stream()
+                .filter(r -> r.getMethod() == null || PaymentMethod.CASH.equals(r.getMethod()))
+                .mapToLong(OrderRefund::getRefundPaisa)
+                .sum();
     }
 
     @Override
@@ -107,13 +134,18 @@ public class TillServiceImpl implements TillService {
             throw new PosExceptions.TillHasOpenOrdersException(tillId.toString());
         }
 
+        List<UUID> tillOrderIds = orderRepository.findByTillSessionId(tillId).stream()
+                .map(io.restaurantos.pos.domain.model.Order::getId)
+                .toList();
+
         long cashPaymentsTotal = orderRepository.findByTillSessionId(tillId).stream()
                 .flatMap(order -> paymentRepository.findByOrderId(order.getId()).stream())
                 .filter(payment -> PaymentMethod.CASH.equals(payment.getMethod()))
                 .mapToLong(p -> p.getAmountPaisa())
                 .sum();
 
-        long expectedClosing = session.getOpeningFloatPaisa() + cashPaymentsTotal;
+        long expectedClosing =
+                session.getOpeningFloatPaisa() + cashPaymentsTotal - cashRefundedFor(tillOrderIds);
 
         session.setExpectedClosingPaisa(expectedClosing);
         session.setDeclaredClosingPaisa(request.declaredClosingPaisa());
@@ -205,9 +237,13 @@ public class TillServiceImpl implements TillService {
                     order.getTotalPaisa(), paid));
         }
 
-        long liveExpectedCash = session.getOpeningFloatPaisa() + cash;
+        // Same subtraction as closeTill — the live bar and the close screen must never disagree
+        // about how much cash is supposed to be in the drawer.
+        long cashRefunded = cashRefundedFor(
+                orders.stream().map(io.restaurantos.pos.domain.model.Order::getId).toList());
+        long liveExpectedCash = session.getOpeningFloatPaisa() + cash - cashRefunded;
         return new TillReconciliationDto(
-                toDto(session), orders.size(), cash, nonCash, liveExpectedCash, lines);
+                toDto(session), orders.size(), cash - cashRefunded, nonCash, liveExpectedCash, lines);
     }
 
     /**
