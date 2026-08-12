@@ -419,6 +419,69 @@ class AuditReadFiltersIT {
                 .doesNotContain("PAYROLL_APPROVED");
     }
 
+    /**
+     * The default window is bounded, so the facets scan cannot grow without limit.
+     *
+     * <p>{@code getFacets} defaulted {@code from}/{@code to} to {@code Instant.EPOCH}..{@code now()},
+     * which is a {@code SELECT DISTINCT} over every attached partition — 84 of them at the seven-year
+     * retention — twice, on every first load of the audit screen. No index can serve it:
+     * {@code idx_audit_events_tenant_occurred} carries the tenant but not {@code action}, and
+     * {@code idx_audit_events_action} carries {@code action} but cannot prune to a tenant, so the
+     * planner reads every row the tenant has ever written and deduplicates it. At 4,010 rows that is
+     * instant; the table only grows, and the query gets slower every day it works.
+     */
+    @Test
+    @DisplayName("with no dates given, facets cover the default window and not all of history")
+    void facetsAreBoundedToTheDefaultWindow() {
+        insert("ORDER_VOIDED", "ORDER", minutesAgo(30));
+        insert("PAYROLL_APPROVED", "PAYROLL", daysAgo(200));
+
+        AuditFacetsView facets = controller.getFacets(null, null, null).data();
+
+        assertThat(facets.actions())
+                .as("a row inside the default window is still offered")
+                .contains("ORDER_VOIDED");
+        assertThat(facets.actions())
+                .as("""
+                    a row 200 days old is outside the default window the grid reads, so offering it
+                    would be offering a filter that returns an empty log
+                    """)
+                .doesNotContain("PAYROLL_APPROVED");
+    }
+
+    /**
+     * The property the whole design turns on, asserted directly rather than implied.
+     *
+     * <p>With facets over window F and the grid over window G, an offered option returns rows iff
+     * {@code F ⊆ G}. Before this change F = G = all-time, so the property held trivially and this
+     * test could not have failed; bounding the windows is exactly the change that could break it, by
+     * moving one and not the other. It is a regression guard, not a demonstration — it must stay
+     * green, and if it ever reddens it means the two defaults have drifted apart and the screen has
+     * started offering filters that can only ever return "no events match".
+     */
+    @Test
+    @DisplayName("every action the facets offer returns at least one row from the same default grid")
+    void everyOfferedFacetReturnsRowsInTheGrid() {
+        insert("ORDER_VOIDED", "ORDER", minutesAgo(30));
+        insert("USER_LOGIN_SUCCEEDED", "USER", daysAgo(45));
+        insert("JOURNAL_POSTED", "JOURNAL", daysAgo(89));
+        insert("PAYROLL_APPROVED", "PAYROLL", daysAgo(200));
+
+        AuditFacetsView facets = controller.getFacets(null, null, null).data();
+
+        assertThat(facets.actions()).isNotEmpty();
+        for (String action : facets.actions()) {
+            assertThat(controller.getEvents(action, null, null, null, null, 0, 50).data())
+                    .as("the screen offers \"%s\", so selecting it must not empty the log", action)
+                    .isNotEmpty();
+        }
+        for (String resourceType : facets.resourceTypes()) {
+            assertThat(controller.getEvents(null, resourceType, null, null, null, 0, 50).data())
+                    .as("the screen offers \"%s\", so selecting it must not empty the log", resourceType)
+                    .isNotEmpty();
+        }
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     /**
@@ -458,6 +521,18 @@ class AuditReadFiltersIT {
      */
     private static Instant minutesAgo(int minutes) {
         return Instant.now().minusSeconds(minutes * 60L);
+    }
+
+    /**
+     * An instant some days back, for rows either side of the default window.
+     *
+     * <p>Relative for the same reason as {@link #minutesAgo(int)}, with one extra constraint: it must
+     * land in a partition that exists. {@code 010b-initial-partitions} creates 2026-01 through
+     * 2027-01, so a value here is bounded by how far back that reaches, not only by the window under
+     * test. 200 days is comfortably outside a 90-day window and comfortably inside the partitions.
+     */
+    private static Instant daysAgo(int days) {
+        return Instant.now().minusSeconds(days * 86_400L);
     }
 
     private void insert(String action, String resourceType, Instant occurredAt) {
