@@ -44,6 +44,10 @@ export interface AuditEvent {
 export interface AuditFacets {
   actions: string[];
   resourceTypes: string[];
+  /** First day the vocabulary was read from, `YYYY-MM-DD`. `null` if the server did not say. */
+  windowFrom: string | null;
+  /** Last day the vocabulary was read from, `YYYY-MM-DD`. `null` if the server did not say. */
+  windowTo: string | null;
 }
 
 /** What the audit list is being narrowed by. Every field optional; all of them omitted is "everything". */

@@ -45,6 +45,12 @@ export type ApiAuditEvent = z.infer<typeof apiAuditEventSchema>;
 export const apiAuditFacetsSchema = z.object({
   actions: z.array(z.string()).nullable().optional(),
   resourceTypes: z.array(z.string()).nullable().optional(),
+  // The window the vocabulary above was read from, `YYYY-MM-DD`, cut on the request's zone. The
+  // server bounds a dateless request to a recent window rather than reading all seven years, so the
+  // screen has to be able to say which days it is showing. Optional like its siblings: a server
+  // predating this field leaves the disclosure off rather than rendering "undefined".
+  windowFrom: z.string().nullable().optional(),
+  windowTo: z.string().nullable().optional(),
 });
 
 export type ApiAuditFacets = z.infer<typeof apiAuditFacetsSchema>;

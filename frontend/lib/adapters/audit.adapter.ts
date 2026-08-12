@@ -82,5 +82,10 @@ export function adaptAuditFacets(api: ApiAuditFacets): AuditFacets {
   return {
     actions: api.actions ?? [],
     resourceTypes: api.resourceTypes ?? [],
+    // `null` rather than a computed fallback. The window is the server's to state; guessing it here
+    // would put a second copy of the 90-day default in the client, and the day the two disagree the
+    // screen would confidently name dates it did not read.
+    windowFrom: api.windowFrom ?? null,
+    windowTo: api.windowTo ?? null,
   };
 }

@@ -65,6 +65,11 @@ const BRANCH = {
 const FACETS = {
   actions: ["ORDER_VOIDED", "USER_LOGIN_SUCCEEDED"],
   resourceTypes: ["ORDER", "USER"],
+  // The window those two lists were read from. The server bounds a dateless request to the last 90
+  // days rather than reading the whole seven-year record, and returns the days it used so the
+  // screen can name them instead of recomputing them from a second copy of the constant.
+  windowFrom: "2026-05-14",
+  windowTo: "2026-08-12",
 };
 
 /**
@@ -134,6 +139,19 @@ function branchInZone(timezone: string) {
   });
 }
 
+/**
+ * A facets response from a server that does not send the window — the shape this screen met before
+ * the field existed, and the shape it meets during a rolling deploy.
+ */
+function facetsWithoutWindow() {
+  const { windowFrom: _from, windowTo: _to, ...withoutWindow } = FACETS;
+  transport.get.mockImplementation((url: string) => {
+    if (url.startsWith("/api/v1/branches/")) return Promise.resolve(BRANCH);
+    if (url === "/api/v1/audit/facets") return Promise.resolve(withoutWindow);
+    throw new Error(`unexpected GET ${url}`);
+  });
+}
+
 beforeEach(() => {
   transport.get.mockImplementation((url: string) => {
     if (url.startsWith("/api/v1/branches/")) return Promise.resolve(BRANCH);
@@ -187,6 +205,46 @@ describe("the audit log can actually be read", () => {
     const when = within(table).getByTestId(`audit-when-${VOID_ROW.id}`).textContent!;
     expect(when).toContain("11 Aug 2026");
     expect(when).toContain("11:16");
+  });
+
+  /**
+   * The screen reads the last 90 days by default, so it has to SAY it reads the last 90 days.
+   *
+   * <p>The bound exists because a dateless facets request was a DISTINCT scan over every attached
+   * partition — 84 of them at the seven-year retention — on every first load. The bound is cheap;
+   * the risk it introduces is entirely about what the reader concludes. Shown 90 days of a
+   * seven-year record with nothing saying so, an owner concludes that IS the record, which is the
+   * same false impression as a filter option that can only return an empty log, arriving by a
+   * different route. So the dates are named, "retained and searchable" says nothing was deleted,
+   * and widening is one click.
+   */
+  it("names the window it is showing and offers to widen it", async () => {
+    renderScreen();
+
+    const note = await screen.findByTestId("audit-window-note");
+    // The dates a person would write, not a relative phrase that makes the reader compute.
+    expect(note.textContent).toContain("14 May");
+    expect(note.textContent).toContain("12 Aug 2026");
+    expect(note.textContent).toContain("the last 90 days");
+    // The half that says nothing is missing, only unfetched.
+    expect(note.textContent).toMatch(/retained and searchable/i);
+    expect(screen.getByTestId("audit-search-all-time")).toBeTruthy();
+  });
+
+  /**
+   * The dates are the SERVER's, never recomputed here.
+   *
+   * <p>A client that works the window out for itself holds a second copy of the 90-day default, and
+   * the day the two drift the screen names a range it did not read — which is this whole change's
+   * own bug class, relocated from facets-vs-grid to client-vs-server. A server that says nothing
+   * must therefore produce no claim at all rather than a locally-invented one.
+   */
+  it("says nothing about the window when the server did not state one", async () => {
+    facetsWithoutWindow();
+    renderScreen();
+
+    await screen.findByRole("table", { name: "Audit log" });
+    expect(screen.queryByTestId("audit-window-note")).toBeNull();
   });
 
   it("states the total, not just the page", async () => {

@@ -49,6 +49,43 @@ import { cn } from "@/lib/utils";
 const PAGE_SIZES = [25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 50;
 
+/**
+ * The `from` the "Search all time" affordance applies — earlier than any row can be.
+ *
+ * <p>Not the retention period computed from today. The server detaches partitions past retention,
+ * so a range reaching further back than the data simply matches what is still attached; naming an
+ * early date is therefore exactly equivalent to "everything there is", without this file holding a
+ * second copy of a retention constant that belongs to the server.
+ */
+const ALL_TIME_FROM = "2000-01-01";
+
+/**
+ * "14 May – 12 Aug 2026" — the window, as a person would write it.
+ *
+ * <p>The year appears on the left only when the range crosses one, so the common case stays short
+ * without ever being ambiguous about which year is being read.
+ *
+ * <p><b>{@code en-GB}, not the viewer's locale</b> — the same pin the row timestamps use below. The
+ * first version of this took the browser's default and rendered "May 14 – Aug 12, 2026" on a US
+ * machine while the table three inches beneath it said "12 Aug 2026", because that formatter is
+ * pinned and this one was not. Two date formats on one screen is exactly the kind of small
+ * incoherence that makes a reader doubt a compliance record, and it is invisible to anyone
+ * developing in the same locale as the format they forgot to pin.
+ */
+function formatWindow(from: string, to: string): string {
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const fmt = (d: Date, withYear: boolean) =>
+    new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      ...(withYear ? { year: "numeric" } : {}),
+    }).format(d);
+  return `${fmt(start, !sameYear)} – ${fmt(end, true)}`;
+}
+
 /** `Intl` refuses an unknown zone by throwing; the caller must not take the page down with it. */
 function formatInZone(instant: Date, zone: string | null): string {
   if (instant.getTime() === 0) return "—";
@@ -344,6 +381,44 @@ export function AuditLog() {
             <strong>From</strong> is {draftFrom}, which is after <strong>To</strong> ({draftTo}). No
             day can be in both, so this range has not been applied — the list below still shows the
             last range that could match. Move one of the two dates.
+          </p>
+        )}
+
+        {/*
+          The window this screen is reading, named in dates rather than in a relative phrase.
+
+          The server bounds a dateless request to a recent window instead of reading the whole
+          seven-year record — without this line a reader would see 90 days and conclude that IS the
+          record, which is the same false impression as a filter option that returns nothing, just
+          arriving by a different route. So it states the days, says the rest is still there, and
+          puts widening one click away. "Retained and searchable" is the load-bearing half: it tells
+          the reader nothing was deleted, only not fetched.
+
+          Dates come from the facets response, never computed here. Working them out locally would
+          put a second copy of the server's default window in this file, and the day the two drifted
+          the screen would confidently name a range it had not read.
+        */}
+        {facetsQuery.data?.windowFrom && facetsQuery.data?.windowTo && (
+          <p className="mt-3 text-sm text-muted-foreground" data-testid="audit-window-note">
+            Showing{" "}
+            <strong>{formatWindow(facetsQuery.data.windowFrom, facetsQuery.data.windowTo)}</strong>
+            {!appliedFrom && !appliedTo && " (the last 90 days)"}. Older entries are retained and
+            searchable.{" "}
+            {draftFrom !== ALL_TIME_FROM && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 align-baseline"
+                data-testid="audit-search-all-time"
+                onClick={() => {
+                  setDraftFrom(ALL_TIME_FROM);
+                  setDraftTo("");
+                }}
+              >
+                Search all time
+              </Button>
+            )}
           </p>
         )}
 

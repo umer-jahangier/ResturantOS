@@ -99,6 +99,31 @@ public class AuditQueryController {
     private static final int MAX_PAGE_SIZE = 200;
     private static final int DEFAULT_PAGE_SIZE = 50;
 
+    /**
+     * How far back the screen reads when the caller names no dates.
+     *
+     * <p><b>One constant, deliberately, and used by both endpoints through the same helper.</b> The
+     * grid and the filter dropdowns must read the SAME window or the screen starts lying. Writing it
+     * formally: with facets over window F and the grid over window G, an offered option returns rows
+     * iff {@code F ⊆ G}. Two separate defaults would hold that property only for as long as two call
+     * sites happened to agree, and the day they diverge the dropdown offers a filter whose only
+     * possible result is "no events match" — which on an audit log reads as "your trail has a hole
+     * in it", the one impression this screen must never give. Because {@link #startOfDay} is the
+     * single place a default can come from, {@code F = G} is structural here rather than maintained.
+     *
+     * <p>Ninety days rather than thirty because the failure mode that matters is an ABSENT category,
+     * not a slow query: an action whose last occurrence falls outside the window drops out of the
+     * dropdown, and an absent option on an audit screen reads as "that never happened here". A
+     * shorter window omits more. A quarter also matches the cadence an owner already reviews the
+     * business on, and widening is one click.
+     *
+     * <p>This is a default, not a cap. Any range the reader explicitly asks for is honoured however
+     * far back it goes — the log stays readable for the full seven-year retention. What changes is
+     * that a scan of every partition is now something a person requested, rather than something
+     * every first load of the screen pays for silently.
+     */
+    private static final int DEFAULT_WINDOW_DAYS = 90;
+
     private final AuditEventRepository auditEventRepository;
     private final AuditActorDirectory auditActorDirectory;
     private final TenantContext tenantContext;
@@ -115,8 +140,13 @@ public class AuditQueryController {
      * {@code GET /api/v1/audit/events?action=&resourceType=&from=&to=&zone=&page=&size=}
      *
      * <p>Newest first. {@code from}/{@code to} are inclusive dates cut in {@code zone} (UTC when
-     * omitted). Omitting both reads from the epoch to now, which the partition pruning on
-     * {@code occurred_at} keeps cheap for the common "what happened recently" case.
+     * omitted). Omitting them reads the last {@value #DEFAULT_WINDOW_DAYS} days — see
+     * {@link #DEFAULT_WINDOW_DAYS} for why that is bounded and why the same bound serves
+     * {@link #getFacets}. A caller wanting more says so, and gets it.
+     *
+     * <p>The screen must state the window it is showing. A reader given 90 days of a seven-year
+     * record with nothing saying so concludes that is the whole record, which is the same false
+     * impression as an empty filter option arriving by a different route.
      */
     @GetMapping("/events")
     @PreAuthorize("hasAuthority('audit.log.view')")
@@ -135,8 +165,8 @@ public class AuditQueryController {
         UUID tenantId = tenantContext.requireTenantId();
 
         ZoneId cutZone = resolveZone(zone);
-        Instant fromInstant = startOfDay(from, cutZone);
-        Instant toInstant = endOfDay(to, cutZone);
+        Instant fromInstant = startOfDay(resolveFrom(from, cutZone), cutZone);
+        Instant toInstant = endOfDay(resolveTo(to, cutZone), cutZone);
 
         String actionFilter = blankToNull(action);
         String resourceTypeFilter = blankToNull(resourceType);
@@ -194,12 +224,18 @@ public class AuditQueryController {
 
         UUID tenantId = tenantContext.requireTenantId();
         ZoneId cutZone = resolveZone(zone);
-        Instant fromInstant = startOfDay(from, cutZone);
-        Instant toInstant = endOfDay(to, cutZone);
+        LocalDate windowFrom = resolveFrom(from, cutZone);
+        LocalDate windowTo = resolveTo(to, cutZone);
+        Instant fromInstant = startOfDay(windowFrom, cutZone);
+        Instant toInstant = endOfDay(windowTo, cutZone);
 
+        // The window travels WITH the vocabulary it produced. The screen has to name the dates it is
+        // showing, and the only way it can be wrong about them is by working them out for itself
+        // from a second copy of DEFAULT_WINDOW_DAYS that has drifted from this one.
         return ApiResponse.ok(new AuditFacetsView(
                 auditEventRepository.findDistinctActions(tenantId, fromInstant, toInstant),
-                auditEventRepository.findDistinctResourceTypes(tenantId, fromInstant, toInstant)));
+                auditEventRepository.findDistinctResourceTypes(tenantId, fromInstant, toInstant),
+                windowFrom, windowTo));
     }
 
     // ── the four query shapes ──────────────────────────────────────────────────
@@ -294,12 +330,53 @@ public class AuditQueryController {
         }
     }
 
-    private static Instant startOfDay(LocalDate from, ZoneId zone) {
-        return from != null ? from.atStartOfDay(zone).toInstant() : Instant.EPOCH;
+    /**
+     * The dates the window actually spans — the caller's, or the default.
+     *
+     * <p>Resolved to {@code LocalDate} BEFORE being turned into instants so that the dates the
+     * screen prints and the dates the query runs on are the same values, not two computations of
+     * the same intent. The screen must state its window ("Showing 14 May – 12 Aug 2026"), and the
+     * only way it can be wrong about that is if it works the window out for itself.
+     */
+    private static LocalDate resolveFrom(LocalDate from, ZoneId zone) {
+        return from != null ? from : LocalDate.now(zone).minusDays(DEFAULT_WINDOW_DAYS);
     }
 
-    private static Instant endOfDay(LocalDate to, ZoneId zone) {
-        return to != null ? to.plusDays(1).atStartOfDay(zone).toInstant() : Instant.now();
+    /** The upper bound date — the caller's, or today in {@code zone}. */
+    private static LocalDate resolveTo(LocalDate to, ZoneId zone) {
+        return to != null ? to : LocalDate.now(zone);
+    }
+
+    /**
+     * The lower bound, cut at midnight in {@code zone} — the caller's date, or the default window.
+     *
+     * <p>The default was {@link Instant#EPOCH}, which made every dateless call a scan of every
+     * attached partition: 84 of them at the seven-year retention, and no index can serve it.
+     * {@code idx_audit_events_tenant_occurred} leads on {@code tenant_id} but does not carry
+     * {@code action}, and {@code idx_audit_events_action} carries {@code action} but cannot prune to
+     * a tenant, so {@code SELECT DISTINCT action} read every row the tenant had ever written and
+     * deduplicated it — twice per load of the audit screen, plus a {@code COUNT} over the same rows
+     * from {@link #countMatching} on every page load AND every page change. Measured at 4,010 rows
+     * that was instant; the table only grows, and the query got slower every day it worked.
+     *
+     * <p>The default is cut in {@code zone} like every other boundary here, so "the last 90 days"
+     * means 90 whole local days and not 90×24 hours ending at whatever time the page was opened —
+     * the same reason {@code zone} exists at all.
+     */
+    private static Instant startOfDay(LocalDate resolvedFrom, ZoneId zone) {
+        return resolvedFrom.atStartOfDay(zone).toInstant();
+    }
+
+    /**
+     * The upper bound: midnight at the END of the resolved day, in {@code zone}.
+     *
+     * <p>Was {@code Instant.now()} when {@code to} was omitted. Now it is the end of today in
+     * {@code zone}, so the window is a whole number of local days at both ends and the range the
+     * screen prints is the range the query ran. {@code occurred_at} is never in the future, so the
+     * few hours between "now" and local midnight select nothing extra.
+     */
+    private static Instant endOfDay(LocalDate resolvedTo, ZoneId zone) {
+        return resolvedTo.plusDays(1).atStartOfDay(zone).toInstant();
     }
 
     private static String blankToNull(String value) {
