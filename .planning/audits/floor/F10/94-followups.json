@@ -1,0 +1,70 @@
+{
+  "noMatch": {
+    "saysNoEntryMatches": true,
+    "saysNoJournalEntries": false,
+    "saysWholeBranch": true,
+    "main": "Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Journal Entries Tab to navigate rows, Enter to open New Entry 0 entries match “ORD-19990101-0001” No entry matches “ORD-19990101-0001” The search covers every entry for this branch, not just the ones listed — so this really is no match. Check the order number, or try part of it.",
+    "alerts": []
+  },
+  "searchRows": [
+    [
+      "JE-2027-000320",
+      "2026-08-12",
+      "Order revenue ORD-20260812-0362",
+      "POSTED",
+      "Rs 1,128.95",
+      "Rs 1,128.95"
+    ]
+  ],
+  "byRecipe": {
+    "Order revenue": {
+      "status": 200,
+      "total": 111,
+      "fetched": 111,
+      "uuidDescribed": 77,
+      "sample": [
+        "Order revenue ORD-20260812-0362",
+        "Order revenue ORD-20260812-0366",
+        "Order revenue ORD-20260812-0363"
+      ]
+    },
+    "Order COGS": {
+      "status": 200,
+      "total": 25,
+      "fetched": 25,
+      "uuidDescribed": 25,
+      "sample": [
+        "Order COGS e7b2b2ea-c819-4149-8bc2-8396709a124e",
+        "Order COGS 98efbd18-4bd2-4a1d-b2df-bc29fad9008c",
+        "Order COGS 78a9ec19-3ad5-42e3-bd58-784deda64877"
+      ]
+    },
+    "Order refund": {
+      "status": 200,
+      "total": 18,
+      "fetched": 18,
+      "uuidDescribed": 18,
+      "sample": [
+        "Order refund 143c1453-e876-41fe-8da8-d3fdfa4edee9",
+        "Order refund c3f89fc4-24a7-4916-8166-8c418e815894",
+        "Order refund 96cb6884-7e8c-45ca-8cb8-7e909581b106"
+      ]
+    },
+    "Reversal of": {
+      "status": 200,
+      "total": 1,
+      "fetched": 1,
+      "uuidDescribed": 0,
+      "sample": [
+        "Reversal of JE-2027-000001"
+      ]
+    },
+    "Shift close": {
+      "status": 200,
+      "total": 0,
+      "fetched": 0,
+      "uuidDescribed": 0,
+      "sample": []
+    }
+  }
+}

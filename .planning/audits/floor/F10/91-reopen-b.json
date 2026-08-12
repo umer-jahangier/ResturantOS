@@ -1,0 +1,177 @@
+{
+  "orderNo": "ORD-20260812-0362",
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "orderId": "e7b2b2ea-c819-4149-8bc2-8396709a124e",
+  "orderStatusBefore": null,
+  "closed": true,
+  "unfiltered": {
+    "count": "Showing 50 of 319 entries",
+    "n": 50,
+    "first": [
+      "REV-2027-000203",
+      "2026-08-12",
+      "Reversal of JE-2027-000001",
+      "POSTED",
+      "Rs 290.00",
+      "Rs 290.00"
+    ],
+    "alerts": []
+  },
+  "myRow": [
+    "JE-2027-000320",
+    "2026-08-12",
+    "Order revenue ORD-20260812-0362",
+    "POSTED",
+    "Rs 1,128.95",
+    "Rs 1,128.95"
+  ],
+  "drcr": {
+    "dr": "Rs 1,128.95",
+    "cr": "Rs 1,128.95"
+  },
+  "afterReload": {
+    "count": "Showing 50 of 319 entries",
+    "has": true
+  },
+  "searchExact": {
+    "count": "1 entry matches “ORD-20260812-0362”",
+    "n": 1,
+    "rows": [
+      [
+        "JE-2027-000320",
+        "2026-08-12",
+        "Order revenue ORD-20260812-0362",
+        "POSTED",
+        "Rs 1,128.95",
+        "Rs 1,128.95"
+      ]
+    ]
+  },
+  "searchLower": {
+    "count": "1 entry matches “ord-20260812-0362”",
+    "n": 1
+  },
+  "searchPartial": {
+    "count": "2 entries match “0362”",
+    "n": 2,
+    "mine": true
+  },
+  "entryNo": "JE-2027-000320",
+  "searchByEntryNo": {
+    "count": "1 entry matches “JE-2027-000320”",
+    "n": 1,
+    "mine": true
+  },
+  "searchPercent": {
+    "count": "0 entries match “%”",
+    "n": 0
+  },
+  "searchNoMatch": {
+    "snip": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branches Appearance Users Roles Audit log Service health Collapse App Finance Journal Entries Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses ",
+    "alerts": []
+  },
+  "detail": {
+    "url": "http://localhost:3000/app/finance/journal-entries/af5546fe-f8d0-45fd-b54a-0b92b76198ea",
+    "namesOrder": true,
+    "text": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Sales Tax Service Charge FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE HR Customers REPORTING Reports Realtime Dashboard Ask (NLQ) SETTINGS General Branches Appearance Users Roles Audit log Service health Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 6 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide JE-2027-000320 2026-08-12 · Order revenue ORD-20260812-0362 Reverse STATUS POSTED TOTAL DEBIT Rs 1,128.95 TOTAL CREDIT Rs 1,128.95 Account Description ",
+    "alerts": []
+  },
+  "dateOrderOk": true,
+  "pagination": {
+    "p1": 50,
+    "p2": 50,
+    "dupes": [],
+    "p1First": "REV-2027-000203",
+    "p2First": "JE-2027-000271",
+    "p1Last": "JE-2027-000272",
+    "backFirst": "REV-2027-000203"
+  },
+  "bySource": {
+    "status": 200,
+    "rows": [
+      "JE-2027-000320 ORDER_REVENUE :: Order revenue ORD-20260812-0362",
+      "JE-2027-000321 ORDER_COGS :: Order COGS e7b2b2ea-c819-4149-8bc2-8396709a124e"
+    ]
+  },
+  "uuidNamedSiblings": [
+    "JE-2027-000321 ORDER_COGS :: Order COGS e7b2b2ea-c819-4149-8bc2-8396709a124e"
+  ],
+  "sweep": {
+    "status": 200,
+    "total": 154,
+    "n": 154,
+    "uuidDescribed": 120,
+    "sampleUuid": [
+      "Order COGS e7b2b2ea-c819-4149-8bc2-8396709a124e",
+      "Order COGS 98efbd18-4bd2-4a1d-b2df-bc29fad9008c",
+      "Order COGS 78a9ec19-3ad5-42e3-bd58-784deda64877",
+      "Order COGS fca5f520-a755-40ea-964e-b4f179e0193d",
+      "Order COGS e6fe0e41-886d-4178-88e4-3b8875de6fee",
+      "Order COGS a4295e44-03d1-44de-ab59-7b6a18b6dfcd"
+    ],
+    "sampleNamed": [
+      "Order revenue ORD-20260812-0362",
+      "Order revenue ORD-20260812-0366",
+      "Order revenue ORD-20260812-0363",
+      "Order revenue ORD-20260812-0361"
+    ]
+  },
+  "cashierScreen": {
+    "bad": [
+      "access-denied"
+    ],
+    "alerts": [],
+    "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Finance Journal Entries Floating Terrace HQ Search… ⌘K E Access denied You do not have permission to view this page. Back to dashboard"
+  },
+  "cashierApi": {
+    "status": 403,
+    "code": "PERMISSION_DENIED",
+    "n": 0
+  },
+  "controlUnfiltered": {
+    "count": "Showing 8 of 8 entries",
+    "n": 8,
+    "bad": []
+  },
+  "controlSearch": {
+    "count": "0 entries match “ORD-20260812-0362”",
+    "n": 0,
+    "snip": "Control Bistro (isolation test tenant) OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing REPORTING Reports Realtime Dashboard Coll"
+  },
+  "controlApi": {
+    "status": 200,
+    "n": 0,
+    "rows": []
+  },
+  "pass": [
+    "the UNFILTERED first page carries a row naming ORD-20260812-0362",
+    "its description is exactly \"Order revenue ORD-20260812-0362\"",
+    "no UUID anywhere in that row",
+    "no [role=alert] on the ledger screen",
+    "the screen says how much of the ledger it shows (Showing 50 of 319 entries)",
+    "debits equal credits on my row (Rs 1,128.95 / Rs 1,128.95)",
+    "after a full reload the row is still named by the order number",
+    "exactly one search box with an accessible name",
+    "the exact order number finds the row",
+    "and every returned row is about that order",
+    "case-insensitive: the lowercased order number still finds it",
+    "a partial order number (last 4 digits) still finds the row",
+    "searching the entry number JE-2027-000320 finds the same row",
+    "a bare '%' is text, not a wildcard matching the whole ledger",
+    "and does NOT claim the ledger is empty",
+    "the row opens a real entry page",
+    "the entry page names the order number too",
+    "no error state on the entry page",
+    "page 1 is sorted newest-first by date",
+    "Next actually loads a second page",
+    "page 2 repeats none of page 1's entry numbers",
+    "Previous returns to the same page 1",
+    "the ?q= endpoint refuses a cashier (got 403)",
+    "and returns no ledger rows to a cashier",
+    "Control Bistro finds NO row for a Floating Terrace order",
+    "and the ?q= endpoint returns them nothing either"
+  ],
+  "failures": [
+    "a no-match term says \"No entry matches …\""
+  ]
+}
