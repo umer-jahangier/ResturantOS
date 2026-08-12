@@ -17,7 +17,34 @@ import java.util.UUID;
 @Repository
 public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID> {
 
-    Page<JournalEntry> findByPeriodIdAndBranchId(UUID periodId, UUID branchId, Pageable pageable);
+    /**
+     * A branch's ledger: entries booked to {@code branchId}, PLUS tenant-level entries
+     * ({@code branch_id IS NULL}) such as month-end accruals and corporate adjustments.
+     *
+     * <p>The plain {@code branchId = :branchId} predicate this replaced could never match a NULL
+     * branch, so once tenant-level entries became postable they were invisible in every listing —
+     * posted and then unreadable through the API. Including them is also the accounting-correct
+     * reading: a branch view that silently omits allocated adjustments misstates that branch.
+     * Tenant-level rows belong to the tenant rather than to a sibling branch, so this widens no
+     * one's visibility across branches, and RLS still confines everything to the tenant.
+     */
+    @Query("""
+           select je from JournalEntry je
+           where je.period.id = :periodId
+             and (je.branchId = :branchId or je.branchId is null)
+           """)
+    Page<JournalEntry> findByPeriodIdVisibleToBranch(
+            @Param("periodId") UUID periodId, @Param("branchId") UUID branchId, Pageable pageable);
+
+    /** Date-range counterpart of {@link #findByPeriodIdVisibleToBranch}; same visibility rule. */
+    @Query("""
+           select je from JournalEntry je
+           where je.entryDate between :from and :to
+             and (je.branchId = :branchId or je.branchId is null)
+           """)
+    Page<JournalEntry> findByEntryDateBetweenVisibleToBranch(
+            @Param("from") LocalDate from, @Param("to") LocalDate to,
+            @Param("branchId") UUID branchId, Pageable pageable);
 
     Page<JournalEntry> findByEntryDateBetweenAndBranchId(
             LocalDate from, LocalDate to, UUID branchId, Pageable pageable);
@@ -76,7 +103,7 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, UUID
      * Without it, typing a bare {@code %} matched the entire ledger, which looks like a search that
      * ignored what you asked for.
      */
-    @Query("SELECT je FROM JournalEntry je WHERE je.branchId = :branchId "
+    @Query("SELECT je FROM JournalEntry je WHERE (je.branchId = :branchId OR je.branchId IS NULL) "
             + "AND (LOWER(je.description) LIKE LOWER(CONCAT('%', :term, '%')) ESCAPE '\\' "
             + "  OR LOWER(je.entryNo) LIKE LOWER(CONCAT('%', :term, '%')) ESCAPE '\\')")
     Page<JournalEntry> searchByBranch(@Param("branchId") UUID branchId,

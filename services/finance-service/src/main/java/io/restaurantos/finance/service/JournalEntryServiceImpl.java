@@ -89,9 +89,50 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         TenantGucHelper.apply(entityManager, tenantContext);
     }
 
+    /**
+     * Branch for a branch-scoped READ. The listing queries are anchored on a branch, so they
+     * cannot run without one. See {@link #resolveBranchForNewEntry} for the write path, where a
+     * branch is optional.
+     *
+     * <p>Deliberately still throws for a session with no branch, rather than falling back to a
+     * tenant-wide listing. No interactive user has a branch-less session: {@code
+     * PermissionResolver.selectDefaultBranch} always resolves one and throws "User has no active
+     * branch assignments" otherwise, so a null branch here means a service-to-service context,
+     * which has no business paging the ledger. Silently promoting that to "show every branch"
+     * would invent a cross-branch capability no real caller needs and hand it to machine contexts
+     * by default. A genuine tenant-wide finance view should be an explicit, permission-gated
+     * scope, not an accident of a null claim.
+     */
     private UUID requireBranchId(UUID requestedBranchId) {
         UUID contextBranchId = tenantContext.getBranchId()
                 .orElseThrow(() -> new IllegalStateException("Branch context required"));
+        if (requestedBranchId != null && !requestedBranchId.equals(contextBranchId)) {
+            throw new IllegalStateException("Branch mismatch with active session");
+        }
+        return contextBranchId;
+    }
+
+    /**
+     * Branch for a NEW journal entry, which may legitimately have none.
+     *
+     * <p>A journal entry is not inherently branch-scoped: month-end accruals and corporate
+     * adjustments belong to the tenant, not to any one restaurant. Every layer already says so —
+     * {@code journal_entries.branch_id} is nullable directly beneath a {@code tenant_id NOT NULL},
+     * {@code JournalEntry} declares {@code @Column(name = "branch_id")} with no
+     * {@code nullable = false}, and {@code CreateJeRequest.branchId} carries no {@code @NotNull}
+     * while {@code entryDate} and {@code lines} do. Only this service disagreed: routing creates
+     * through {@link #requireBranchId} demanded a session branch and made that nullable column
+     * unreachable, so a tenant-level entry could not be posted at all.
+     *
+     * <p>Isolation is unchanged and still fail-closed. An explicit branch must match the session's,
+     * and a caller with no branch in context may not name one, so this cannot write into a branch
+     * the caller does not belong to. The only new behaviour is that no branch anywhere yields a
+     * tenant-level entry instead of an exception.
+     *
+     * @return the branch to record, or null for a tenant-level entry
+     */
+    private UUID resolveBranchForNewEntry(UUID requestedBranchId) {
+        UUID contextBranchId = tenantContext.getBranchId().orElse(null);
         if (requestedBranchId != null && !requestedBranchId.equals(contextBranchId)) {
             throw new IllegalStateException("Branch mismatch with active session");
         }
@@ -151,7 +192,12 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         }
 
         validateAccountCodes(currentTenantId, req);
-        UUID branchId = requireBranchId(req.branchId());
+        // Same seam as enforcePolicy, for the same reason. An interactive create takes its branch
+        // from the session (optional — null means a tenant-level entry). The internal auto-posting
+        // path arrives with a TENANT-ONLY context and the CALLER names the branch, because POS
+        // knows which branch its sale belongs to; matching that against a session branch which
+        // deliberately does not exist would reject every automatic posting.
+        UUID branchId = enforcePolicy ? resolveBranchForNewEntry(req.branchId()) : req.branchId();
         if (enforcePolicy) {
             authorization.authorizePostJournal(null, currentTenantId, branchId);
         }
@@ -325,7 +371,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         ensureTenantGuc();
         UUID branchId = requireBranchId(null);
         authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
-        return jeRepo.findByPeriodIdAndBranchId(periodId, branchId, newestFirst(pageable))
+        return jeRepo.findByPeriodIdVisibleToBranch(periodId, branchId, newestFirst(pageable))
                 .map(mapper::toDto);
     }
 
@@ -335,7 +381,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         ensureTenantGuc();
         UUID branchId = requireBranchId(null);
         authorization.authorizeViewJournal(null, tenantContext.requireTenantId(), branchId);
-        return jeRepo.findByEntryDateBetweenAndBranchId(from, to, branchId, newestFirst(pageable))
+        return jeRepo.findByEntryDateBetweenVisibleToBranch(from, to, branchId, newestFirst(pageable))
                 .map(mapper::toDto);
     }
 

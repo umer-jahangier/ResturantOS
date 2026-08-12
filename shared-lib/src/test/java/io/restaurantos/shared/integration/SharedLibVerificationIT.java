@@ -2,6 +2,7 @@ package io.restaurantos.shared.integration;
 
 import io.restaurantos.shared.event.EventEnvelope;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.shared.event.OutboxEntry;
 import io.restaurantos.shared.event.OutboxRelay;
 import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.feature.FeatureFlagService;
@@ -304,7 +305,159 @@ class SharedLibVerificationIT extends BaseIntegrationTest {
             .isInstanceOf(io.restaurantos.shared.exception.IdempotencyConflictException.class);
     }
 
+    /**
+     * A publish the broker refuses must NEVER be recorded as delivered.
+     *
+     * <p>basic.publish is fire-and-forget, so before publisher confirms were wired the relay's
+     * {@code send()} returned normally for an exchange that does not exist, the broker answered
+     * 404 on the channel, and the row was still stamped SENT — the event was gone and nothing in
+     * the system knew. This test fails against that implementation (status would be SENT).
+     */
+    @Test
+    void sc5_relayLeavesRowPendingWhenTheBrokerRefusesIt() {
+        UUID branchId = TestFixtures.testBranchId();
+        String deadExchange = "no-such-exchange-" + UUID.randomUUID();
+
+        transactionTemplate.executeWithoutResult(tx ->
+            eventPublisher.publish(deadExchange, "poison.key", "POISON_EVENT", branchId,
+                new TestPayload("undeliverable")));
+
+        try {
+            outboxRelay.relay();
+
+            OutboxEntry poison = outboxEntryOfType("POISON_EVENT");
+            assertThat(poison.getStatus())
+                .as("a message the broker discarded must not be recorded as delivered")
+                .isEqualTo("PENDING");
+            assertThat(poison.getSentAt())
+                .as("sentAt must stay null for an event that was never sent")
+                .isNull();
+        } finally {
+            // Otherwise the @Scheduled relay retries this row every second for the rest of the
+            // run — which is the intended production behaviour, just not wanted in a test suite.
+            deleteOutboxEntriesOfType("POISON_EVENT");
+        }
+    }
+
+    /**
+     * One undeliverable row must not take its neighbours down with it.
+     *
+     * <p>The 404 for a nonexistent exchange closes the channel it was published on. When the whole
+     * batch shared one cached channel, a correctly-addressed message relayed alongside a poison
+     * row was destroyed too — and also marked SENT. Publishing each row in its own invoke scope
+     * contains that. This test fails against the shared-channel implementation: the good message
+     * never arrives.
+     */
+    @Test
+    void sc5_poisonRowDoesNotDestroyAGoodMessageInTheSameBatch() {
+        UUID branchId = TestFixtures.testBranchId();
+        String deadExchange = "no-such-exchange-" + UUID.randomUUID();
+        String queueName = "sc5-collateral-" + UUID.randomUUID();
+
+        RabbitAdmin admin = new RabbitAdmin(rabbitTemplate.getConnectionFactory());
+        admin.declareQueue(new org.springframework.amqp.core.Queue(queueName, false, false, false));
+        admin.declareBinding(new org.springframework.amqp.core.Binding(
+            queueName,
+            org.springframework.amqp.core.Binding.DestinationType.QUEUE,
+            "amq.topic", "sc5.collateral", null));
+
+        try {
+            // Poison first so it is relayed first (findTop200...OrderByCreatedAtAsc).
+            transactionTemplate.executeWithoutResult(tx ->
+                eventPublisher.publish(deadExchange, "poison.key", "COLLATERAL_POISON", branchId,
+                    new TestPayload("undeliverable")));
+            transactionTemplate.executeWithoutResult(tx ->
+                eventPublisher.publish("amq.topic", "sc5.collateral", "COLLATERAL_GOOD", branchId,
+                    new TestPayload("must-still-arrive")));
+
+            outboxRelay.relay();
+
+            Awaitility.await()
+                .atMost(20, TimeUnit.SECONDS)
+                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    Message msg = rabbitTemplate.receive(queueName, 1000);
+                    assertThat(msg)
+                        .as("a poison row in the same batch must not destroy this message")
+                        .isNotNull();
+                    assertThat(new String(msg.getBody(), java.nio.charset.StandardCharsets.UTF_8))
+                        .contains("COLLATERAL_GOOD");
+                });
+
+            assertThat(outboxEntryOfType("COLLATERAL_GOOD").getStatus()).isEqualTo("SENT");
+            assertThat(outboxEntryOfType("COLLATERAL_POISON").getStatus()).isEqualTo("PENDING");
+        } finally {
+            deleteOutboxEntriesOfType("COLLATERAL_POISON");
+            admin.deleteQueue(queueName);
+        }
+    }
+
+    /**
+     * request_hash is VARCHAR(64) and callers hand in unbounded free text — a POS void reason
+     * is capped at 500 characters and written by the operator. checkAndLock must digest the
+     * payload rather than store it verbatim, or an ordinary explanatory sentence overflows the
+     * column and aborts the caller's whole transaction with Postgres 22001.
+     */
+    @Test
+    void sc5_longRequestPayloadIsDigestedToFitTheColumn() {
+        String key = "long-payload-key-" + UUID.randomUUID();
+        String payload = "x".repeat(500);
+
+        boolean claimed = transactionTemplate.execute(tx ->
+            idempotencyService.checkAndLock(key, payload, 86400));
+        assertThat(claimed).isTrue();
+
+        String stored = transactionTemplate.execute(tx -> (String) entityManager
+            .createNativeQuery("SELECT request_hash FROM idempotency_keys WHERE idem_key = :k")
+            .setParameter("k", key)
+            .getSingleResult());
+
+        assertThat(stored)
+            .as("payload must be stored as a SHA-256 hex digest, not verbatim")
+            .hasSize(64)
+            .matches("[0-9a-f]{64}")
+            .isNotEqualTo(payload);
+
+        // Replaying the same key with the same payload still dedupes.
+        boolean replay = transactionTemplate.execute(tx ->
+            idempotencyService.checkAndLock(key, payload, 86400));
+        assertThat(replay).isFalse();
+    }
+
+    /**
+     * Digesting must not blunt conflict detection. These two payloads are identical for their
+     * first 64 characters, so any "fix" that merely truncated to the column width would treat
+     * a genuinely different request as a replay and silently return the wrong result.
+     */
+    @Test
+    void sc5_conflictDetectedWhenPayloadsDivergeBeyondColumnWidth() {
+        String key = "divergent-key-" + UUID.randomUUID();
+        String shared = "y".repeat(64);
+
+        transactionTemplate.executeWithoutResult(tx ->
+            idempotencyService.checkAndLock(key, shared + "-first-request", 86400));
+
+        assertThatThrownBy(() ->
+            transactionTemplate.executeWithoutResult(tx ->
+                idempotencyService.checkAndLock(key, shared + "-second-request", 86400)))
+            .isInstanceOf(io.restaurantos.shared.exception.IdempotencyConflictException.class);
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private OutboxEntry outboxEntryOfType(String eventType) {
+        return outboxRepository.findAll().stream()
+            .filter(e -> eventType.equals(e.getEventType()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No outbox entry of type " + eventType));
+    }
+
+    private void deleteOutboxEntriesOfType(String eventType) {
+        transactionTemplate.executeWithoutResult(tx ->
+            outboxRepository.deleteAll(outboxRepository.findAll().stream()
+                .filter(e -> eventType.equals(e.getEventType()))
+                .toList()));
+    }
 
     record TestPayload(String value) {}
 }

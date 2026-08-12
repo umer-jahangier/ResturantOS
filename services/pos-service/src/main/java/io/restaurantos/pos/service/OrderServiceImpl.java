@@ -1163,7 +1163,7 @@ public class OrderServiceImpl implements OrderService {
             throw new PosExceptions.OrderHasPaymentsException(order.getOrderNo(), amountPaidPaisa);
         }
 
-        // F2: the reason is HASHED, not passed through.
+        // F2: the reason is HASHED — now by IdempotencyService, not here.
         //
         // This line read `checkAndLock(idempotencyKey, request.reason(), 86400)`. The parameter is
         // named `requestHash` and its column is `idempotency_keys.request_hash VARCHAR(64)` — a
@@ -1183,11 +1183,16 @@ public class OrderServiceImpl implements OrderService {
         //
         // Hashing preserves the idempotency contract exactly (same key + same request ⇒ same
         // digest ⇒ the retry is recognised) and makes the column's width correct by construction
-        // rather than by luck. The identical mistake is still live one file over, at
-        // RefundServiceImpl:94 — `request.reason() + request.refundPaisa()` — and is reported
-        // rather than fixed here because that file is held open by another change.
+        // rather than by luck.
+        //
+        // The digest has since MOVED INTO DefaultIdempotencyService, so the raw reason is passed
+        // here and hashed exactly once, in one place. That closes the sibling this comment used to
+        // report as still live — RefundServiceImpl's `request.reason() + request.refundPaisa()` —
+        // along with every future caller, none of which can now get the width wrong. Hashing here
+        // as well would only double-digest and leave the next reader thinking the library stores
+        // the value raw.
         boolean claimed = idempotencyService.checkAndLock(
-                idempotencyKey, sha256Hex(request.reason()), 86400);
+                idempotencyKey, request.reason(), 86400);
         if (!claimed) {
             return orderMapper.toDto(order);
         }
@@ -1696,20 +1701,6 @@ public class OrderServiceImpl implements OrderService {
      * with the first one's response instead of being performed. Truncation would have made the
      * crash go away and replaced it with a silent wrong answer on a money path.
      */
-    private static String sha256Hex(String value) {
-        try {
-            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest((value == null ? "" : value).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(64);
-            for (byte b : digest) {
-                sb.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
-            }
-            return sb.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            // SHA-256 is mandatory in every JRE; this cannot happen and must not be swallowed.
-            throw new IllegalStateException("SHA-256 unavailable", e);
-        }
-    }
 
     private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames, Map<UUID, Long> paidByOrderId) {
         long amountPaidPaisa = paidByOrderId.getOrDefault(order.getId(), 0L);

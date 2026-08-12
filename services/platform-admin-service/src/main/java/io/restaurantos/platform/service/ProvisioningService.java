@@ -161,13 +161,17 @@ public class ProvisioningService {
     @Transactional(noRollbackFor = ProvisioningException.class)
     public ProvisionResult provision(String idempotencyKey, String brandName, String adminEmail, String tier) {
         // Idempotency guard
-        String hash = hash(brandName + adminEmail + tier);
+        // Passed raw — IdempotencyService digests it before storage, so the local SHA-256
+        // helper this used to call was redundant. Removing it leaves the stored value
+        // byte-identical to what the helper produced (same algorithm, same lowercase hex),
+        // so rows written before that change still compare equal.
+        String requestPayload = brandName + adminEmail + tier;
         var existing = idempotencyService.getCompletedResponse(idempotencyKey);
         if (existing.isPresent()) {
             return ProvisionResult.fromJson(existing.get())
                 .withTempPassword(readTempPassword(idempotencyKey));
         }
-        if (!idempotencyService.checkAndLock(idempotencyKey, hash, (int) IDEMPOTENCY_TTL_SECONDS)) {
+        if (!idempotencyService.checkAndLock(idempotencyKey, requestPayload, (int) IDEMPOTENCY_TTL_SECONDS)) {
             throw new IllegalStateException("Idempotency key in-flight: " + idempotencyKey);
         }
 
@@ -383,7 +387,7 @@ public class ProvisioningService {
         // stored result of the attempt that failed.
         String key = "retry:" + tenantId + ":" + System.currentTimeMillis();
         idempotencyService.checkAndLock(key,
-            hash(tenant.getBrandName() + adminEmail + tenant.getTier().name()),
+            tenant.getBrandName() + adminEmail + tenant.getTier().name(),
             (int) IDEMPOTENCY_TTL_SECONDS);
         log.info("[saga][retry] re-driving tenant={} slug={} tier={}",
             tenantId, tenant.getSlug(), tenant.getTier());
@@ -454,17 +458,6 @@ public class ProvisioningService {
         return data;
     }
 
-    private String hash(String input) {
-        try {
-            var md = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            var sb = new StringBuilder();
-            for (byte b : digest) sb.append(String.format("%02x", b));
-            return sb.toString();
-        } catch (Exception e) {
-            return String.valueOf(input.hashCode());
-        }
-    }
 
     @FunctionalInterface
     interface CompensationAction {

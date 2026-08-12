@@ -27,7 +27,10 @@ import io.restaurantos.shared.tenant.*;
 import jakarta.persistence.EntityManager;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -244,5 +247,40 @@ public class SharedAutoConfiguration implements WebMvcConfigurer {
     @Bean
     public OutboxRelay outboxRelay(OutboxRepository repo, RabbitTemplate rabbitTemplate) {
         return new OutboxRelay(repo, rabbitTemplate);
+    }
+
+    /**
+     * Guarantees the precondition {@link OutboxRelay} depends on: publisher confirms must be on,
+     * or the relay cannot tell a delivered event from a discarded one and would go back to
+     * marking rows SENT on faith.
+     *
+     * <p>Confirms are off by default in Spring Boot, and leaving each of the nine services that
+     * own an event_outbox to remember {@code spring.rabbitmq.publisher-confirm-type} means the
+     * delivery guarantee silently evaporates the first time someone forgets. shared-lib owns the
+     * outbox, so shared-lib turns it on.
+     *
+     * <p>SIMPLE rather than CORRELATED: the relay confirms synchronously per message via
+     * {@code waitForConfirms}, which is exactly what SIMPLE is for. An application that has
+     * deliberately chosen CORRELATED (for async callbacks of its own) already satisfies
+     * {@code waitForConfirms}, so its setting is left untouched — this only fills in NONE.
+     *
+     * <p>Applied before initialization so it lands before any connection is opened.
+     */
+    @Bean
+    static BeanPostProcessor outboxPublisherConfirmsEnforcer() {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessBeforeInitialization(Object bean, String beanName) {
+                if (bean instanceof CachingConnectionFactory ccf
+                        && !ccf.isPublisherConfirms()
+                        && !ccf.isSimplePublisherConfirms()) {
+                    ccf.setPublisherConfirmType(CachingConnectionFactory.ConfirmType.SIMPLE);
+                    LoggerFactory.getLogger(SharedAutoConfiguration.class).info(
+                        "Enabled SIMPLE publisher confirms on '{}' — required by OutboxRelay to "
+                        + "mark rows SENT only after the broker acks them.", beanName);
+                }
+                return bean;
+            }
+        };
     }
 }

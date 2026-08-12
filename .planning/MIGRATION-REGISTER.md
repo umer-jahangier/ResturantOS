@@ -46,10 +46,11 @@ being careful.**
 | V25 | modifier catalogue | main | applied |
 | V26 | print agent devices | main | applied |
 | V27 | tenant tax policy | main | **applied to shared `pos_db`** — do not renumber |
-| V28 | hash legacy idempotency fingerprints | `practical-borg-3dc2b3` (void reason length) | **claimed, NOT merged — see the gap warning below** |
+| V28 | *(vacated)* | — | **released — was never applied; renumbered to V31 on merge, per route 2 below** |
 | V29 | order discount value bounded | `wizardly-lamport-e131f3` (PERCENT/FLAT bound) | claimed |
 | V30 | order discount source (MANUAL/PROMOTION) | `eloquent-napier-4baf6b` (promotions) | **assigned 2026-08-12** — reassigned from V27, then from V28 after BOTH collided |
-| V31+ | — | free | |
+| V31 | hash legacy idempotency fingerprints | `practical-borg-3dc2b3` (void reason length) | **claimed 2026-08-12** — renumbered from V28, above the V29/V30 already in the code |
+| V32+ | — | free | |
 
 ### THE V28 GAP — a live hazard, not bookkeeping
 
