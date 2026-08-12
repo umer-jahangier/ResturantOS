@@ -1,0 +1,55 @@
+{
+  "paymentsAfterCharge": [
+    {
+      "id": "a8962698-3b66-429b-b665-565b697003ee",
+      "method": "CASH",
+      "amountPaisa": 49900,
+      "tenderedPaisa": 49900,
+      "changePaisa": 0,
+      "referenceNo": null,
+      "recordedAt": "2026-08-12T00:51:57.126091Z",
+      "kind": "PAYMENT"
+    }
+  ],
+  "statusAfterCharge": "SENT_TO_KDS",
+  "settlementOnPaidOrder": {
+    "voidTriggerPresent": false,
+    "refundTriggerPresent": true,
+    "refundTriggerEnabled": true,
+    "paidNotice": "Paid — void unavailable. Use Refund.",
+    "paidChip": false,
+    "bodyMentionsRefunded": false
+  },
+  "statusAfterRefund": "REFUNDED",
+  "paymentsAfterRefund": [
+    {
+      "id": "a8962698-3b66-429b-b665-565b697003ee",
+      "method": "CASH",
+      "amountPaisa": 49900,
+      "tenderedPaisa": 49900,
+      "changePaisa": 0,
+      "referenceNo": null,
+      "recordedAt": "2026-08-12T00:51:57.126091Z",
+      "kind": "PAYMENT"
+    },
+    {
+      "id": "51954442-5388-4aa8-b50f-c5a50b5665a3",
+      "method": "CASH",
+      "amountPaisa": -49900,
+      "tenderedPaisa": -49900,
+      "changePaisa": 0,
+      "referenceNo": "S0-01 proof — guest left, cash returned",
+      "recordedAt": "2026-08-12T00:52:15.531427Z",
+      "kind": "REFUND"
+    }
+  ],
+  "directVoid": {
+    "status": 409,
+    "body": "{\"detail\":\"Order ORD-20260812-0080 has 49900 paisa recorded against it and cannot be voided. Use Refund — a void leaves the payment in place with no reversing entry.\",\"instance\":\"/api/v1/pos/orders/4754a97b-3f8c-444c-9048-8dc0611a2b95/void\",\"status\":409,\"title\":\"ORDER_HAS_PAYMENTS\",\"type\":\"urn:restaurantos:pos:order-has-payments\"}"
+  },
+  "directVoidOrderStatus": "SENT_TO_KDS",
+  "orderNo": "ORD-20260812-0075",
+  "orderId": "d1d1515f-ca38-48fa-a7a3-4b63bcc57264",
+  "orderNo2": "ORD-20260812-0080",
+  "orderId2": "4754a97b-3f8c-444c-9048-8dc0611a2b95"
+}
