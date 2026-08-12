@@ -7,8 +7,12 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { PaymentStatusBadge } from "@/components/pos/payment-status-badge";
+import { DiscountPanel } from "@/components/pos/discount-panel";
 import { useOrder, useTables, useSendToKds, useServeAllItems } from "@/lib/hooks/pos/use-orders";
 import { useOrderPayments, useRecordPayment } from "@/lib/hooks/pos/use-payments";
+import { BillIssuedStrip } from "@/components/pos/bill-issued-strip";
+import { useOrderPrintHistory } from "@/lib/hooks/pos/use-order-bill";
+import { billIssues, originalBill } from "@/lib/models/order-bill.model";
 import {
   getOrderDisplayStatus,
   derivePaymentStatus,
@@ -215,6 +219,9 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const recordPayment = useRecordPayment(orderId);
   const sendToKds = useSendToKds(orderId);
   const serveAll = useServeAllItems(orderId);
+  // §3-3: what paper this check has actually produced. A pure GET — asking must never be what
+  // creates a bill, which is why this is not `useIssueReceipt`.
+  const billHistory = useOrderPrintHistory(orderId);
 
   const [rows, setRows] = useState<TenderRow[]>([newTenderRow()]);
   const [recordError, setRecordError] = useState<string | null>(null);
@@ -280,6 +287,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
     ? (tables.find((t) => t.id === order.tableId)?.tableName ?? null)
     : null;
 
+  // The ORIGINAL bill — the paper the guest was handed — and how many copies followed it.
+  const bill = originalBill(billHistory.data ?? []);
+  const reprintCount = billIssues(billHistory.data ?? []).filter((i) => i.issueSeq > 1).length;
+
   const addRow = () => setRows((prev) => [...prev, newTenderRow()]);
   const updateRow = (id: string, patch: Partial<Omit<TenderRow, "id">>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -321,6 +332,12 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
       }
       toast.success(toSubmit.length > 1 ? "Payments recorded" : "Payment recorded");
       setRows([newTenderRow()]);
+
+      // §3-3: settling in full dispatches the bill after the payment transaction commits — which
+      // has already happened by the time this promise resolves, because the after-commit callback
+      // runs inside the request. Re-read rather than assume: the strip must report what the server
+      // did, not what this screen expected it to do.
+      void billHistory.refetch();
 
       // Charge-Now pay-then-fire (#4): if this payment fully covers the order AND the order was
       // never sent to the kitchen (sentToKdsAt == null → the pre-send Charge Now path), fire its
@@ -460,6 +477,16 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           <h2 className="text-sm font-semibold">Bill</h2>
           <MoneyRow label="Subtotal" paisa={order.subtotalPaisa} />
           <MoneyRow label="Discounts" paisa={-order.discountPaisa} />
+          {/*
+            B3 — the control the Discounts line above never had.
+
+            Sited directly under the figure it changes, because that is the line the cashier and
+            the guest are both looking at when the question is asked. It is not on the terminal:
+            a discount is decided when the bill is presented, and by then the terminal has moved
+            on to the next table. `DiscountPanel` renders nothing at all on a settled or written-
+            off check, and nothing for a persona holding neither discount permission.
+          */}
+          <DiscountPanel order={order} />
           <MoneyRow label="Service charge" paisa={order.serviceChargePaisa} />
           <MoneyRow label="Taxes" paisa={order.taxPaisa} />
           <div className="my-1 border-t" />
@@ -487,19 +514,28 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
             it must not be triggered as a side effect of rendering this screen.
           */}
           {amountPaidPaisa > 0 && (
-            <button
-              type="button"
-              data-testid="print-bill-button"
-              onClick={() => router.push(`/app/pos/orders/${orderId}/receipt`)}
-              className={cn(
-                "mt-2 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl",
-                "border text-sm font-medium transition-all",
-                "hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
-              )}
-            >
-              <Printer className="size-4" aria-hidden="true" />
-              Print bill
-            </button>
+            <>
+              <BillIssuedStrip
+                isLoading={billHistory.isLoading}
+                isError={billHistory.isError}
+                onRetry={() => void billHistory.refetch()}
+                bill={bill}
+                reprintCount={reprintCount}
+              />
+              <button
+                type="button"
+                data-testid="print-bill-button"
+                onClick={() => router.push(`/app/pos/orders/${orderId}/receipt`)}
+                className={cn(
+                  "mt-2 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl",
+                  "border text-sm font-medium transition-all",
+                  "hover:bg-accent hover:text-accent-foreground active:scale-[0.98]",
+                )}
+              >
+                <Printer className="size-4" aria-hidden="true" />
+                {bill ? "Print another copy" : "Print bill"}
+              </button>
+            </>
           )}
         </section>
       </div>

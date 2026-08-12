@@ -1,5 +1,6 @@
 package io.restaurantos.reporting.etl;
 
+import io.restaurantos.reporting.event.ReportingEventPayloads.DiscountEntry;
 import io.restaurantos.reporting.event.ReportingEventPayloads.ItemEntry;
 import io.restaurantos.reporting.event.ReportingEventPayloads.OrderClosedPayload;
 import io.restaurantos.shared.event.EventEnvelope;
@@ -36,6 +37,15 @@ public class SalesFactWriter {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
+    /** B3 — one row per discount on the check. See deploy/clickhouse/V004__discount_facts.sql. */
+    private static final String INSERT_DISCOUNT_SQL = """
+            INSERT INTO clickhouse_analytics.sales_discount_facts
+                (tenant_id, branch_id, business_date, order_id, discount_no, order_no, scope,
+                 order_item_id, item_name, discount_type, discount_value, amount_paisa, reason,
+                 applied_by, applied_by_name, closed_at, event_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+
     private final JdbcTemplate clickHouseJdbcTemplate;
 
     public SalesFactWriter(@Qualifier("clickHouseJdbcTemplate") JdbcTemplate clickHouseJdbcTemplate) {
@@ -65,6 +75,8 @@ public class SalesFactWriter {
                 payload.cashierId(),
                 closedAt,
                 env.eventId());
+
+        writeDiscounts(env, businessDate, closedAt);
 
         List<ItemEntry> items = payload.items();
         if (items == null || items.isEmpty()) {
@@ -98,5 +110,52 @@ public class SalesFactWriter {
             });
         }
         clickHouseJdbcTemplate.batchUpdate(INSERT_ITEM_SQL, batchArgs);
+    }
+
+    /**
+     * One row per discount on the closed check (B3).
+     *
+     * <p>The discount grain is the whole point: {@code sales_order_facts.discount_paisa} already
+     * carried the sum, and a sum cannot be reviewed. These rows carry the reason and the person,
+     * which is what turns "Rs 950 of discounts yesterday" into something an owner can act on.
+     *
+     * <p>Absent or empty {@code discounts} writes nothing and is not an error — that is every
+     * check that was sold at full price, and every ORDER_CLOSED published before pos-service
+     * carried the field.
+     */
+    private void writeDiscounts(EventEnvelope<OrderClosedPayload> env, LocalDate businessDate,
+                                OffsetDateTime closedAt) {
+        List<DiscountEntry> discounts = env.payload().discounts();
+        if (discounts == null || discounts.isEmpty()) {
+            return;
+        }
+
+        List<Object[]> batchArgs = new ArrayList<>(discounts.size());
+        for (int discountNo = 0; discountNo < discounts.size(); discountNo++) {
+            DiscountEntry d = discounts.get(discountNo);
+            batchArgs.add(new Object[]{
+                    env.tenantId(),
+                    env.branchId(),
+                    businessDate,
+                    env.payload().orderId(),
+                    discountNo,
+                    env.payload().orderNo(),
+                    d.scope(),
+                    d.orderItemId(),
+                    d.itemName(),
+                    d.type(),
+                    d.value(),
+                    d.amountPaisa(),
+                    // The column is non-nullable String: a discount with no reason at all is a
+                    // row from before reasons were required, and it says so rather than being
+                    // rendered as an empty cell a reader would take for "none given".
+                    d.reason() == null || d.reason().isBlank() ? "Not recorded" : d.reason(),
+                    d.appliedBy(),
+                    d.appliedByName(),
+                    closedAt,
+                    env.eventId()
+            });
+        }
+        clickHouseJdbcTemplate.batchUpdate(INSERT_DISCOUNT_SQL, batchArgs);
     }
 }

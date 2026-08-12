@@ -101,6 +101,12 @@ public class OrderServiceImpl implements OrderService {
     private final PrintDispatchService printDispatchService;
     /** The ONE answer to "which trading day is this?" in this service (S0-C). */
     private final BranchBusinessDay branchBusinessDay;
+    /**
+     * B3: snapshots WHO applied a discount, as a name. Fail-soft by construction — it returns
+     * null rather than throwing, so an auth-service outage costs the report a name and never
+     * costs a guest their discount.
+     */
+    private final StaffNameDirectory staffNameDirectory;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -137,7 +143,8 @@ public class OrderServiceImpl implements OrderService {
                             // way round") is the right one.
                             @org.springframework.context.annotation.Lazy
                             PrintDispatchService printDispatchService,
-                            BranchBusinessDay branchBusinessDay) {
+                            BranchBusinessDay branchBusinessDay,
+                            StaffNameDirectory staffNameDirectory) {
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -163,6 +170,7 @@ public class OrderServiceImpl implements OrderService {
         this.stationRoutingResolver = stationRoutingResolver;
         this.printDispatchService = printDispatchService;
         this.branchBusinessDay = branchBusinessDay;
+        this.staffNameDirectory = staffNameDirectory;
     }
 
     // tableRepository is retained solely for listOrderSummaries' table-name lookup
@@ -453,32 +461,120 @@ public class OrderServiceImpl implements OrderService {
         long capped = Math.min(result.discountPaisa(), order.getSubtotalPaisa());
         discount.setAmountPaisa(capped);
         discount.setValue(BigDecimal.valueOf(capped));
+        // B3: `reason` is NOT NULL since V22 and this is the one other path that writes a
+        // discount row. The engine's reason is the engine itself — an automatic discount was
+        // still a decision, and the Discount Summary must be able to tell it from a manager's.
+        discount.setReason("Automatic promotion (customer's qualifying offer)");
         order.getDiscounts().add(discount);
 
         recomputeOrderTotals(order);
         return orderMapper.toDto(orderRepository.save(order));
     }
 
+    /**
+     * Apply a discount to one line, or to the whole check (B3).
+     *
+     * <h2>WHEN a discount may be given, and why the old rule was the wrong one</h2>
+     *
+     * <p>This method used to refuse anything that was not {@code OPEN}. A discount in a restaurant
+     * is decided when the bill is presented, which is by definition <em>after</em> the food has
+     * been fired — so the only discountable check under that rule was one nobody had cooked yet,
+     * and every real request ("we waited 40 minutes", "the biryani was cold") answered
+     * {@code 409 Cannot apply discount to order in status: SENT_TO_KDS}. Measured on both the
+     * cashier and the manager, at both scopes, on 2026-08-12.
+     *
+     * <p>The rule that replaces it is the one the trade actually uses: a check is discountable
+     * while it is still <em>live</em> — anything from OPEN through SERVED — and stops being
+     * discountable the moment it is settled or written off. Concretely:
+     *
+     * <ul>
+     *   <li>DRAFT is refused because there is nothing on it to discount yet.</li>
+     *   <li>CLOSED / VOIDED / REFUNDED are refused because the money has already been accounted
+     *       for; reducing the total afterwards would silently contradict a journal entry that
+     *       finance has already posted. The correct instrument after settlement is a refund.</li>
+     *   <li>A check already paid in full is refused for the same reason, even though it may still
+     *       be technically open (POS-23 closes only on paid AND served). The guest has handed the
+     *       money over; taking the bill down now means giving some back, which is a refund.</li>
+     *   <li>A partly-paid check whose new total would fall <em>below</em> what has already been
+     *       tendered is refused after pricing, naming both figures.</li>
+     * </ul>
+     *
+     * <h2>WHO may give which discount</h2>
+     *
+     * <p>A CASHIER holds {@code pos.order.discount.line} and not {@code pos.order.discount.override}.
+     * That split is deliberate and is kept: the person in front of the guest can take a line off,
+     * and taking a percentage off the whole check is a manager's decision. So ORDER scope — and
+     * only ORDER scope — is put through the policy. The UI states which is which up front rather
+     * than offering both and 403-ing afterwards.
+     *
+     * <h2>Replace, never stack</h2>
+     *
+     * <p>A second discount at the same scope <em>replaces</em> the first rather than adding to it,
+     * exactly as {@link #applyPromotions} already does. Stacking is how a double-tap becomes 20%
+     * off; and "the discount on this line is 10%" is what a cashier believes they are saying.
+     * Correcting a mistake is therefore re-applying, which needs no separate control and no
+     * separate permission.
+     */
     @Override
     public OrderDto applyDiscount(UUID orderId, ApplyDiscountRequest request) {
         UUID tenantId = tenantContext.requireTenantId();
         Order order = findOrderForTenant(orderId, tenantId);
 
-        if (order.getStatus() != OrderStatus.OPEN) {
-            throw new io.restaurantos.shared.exception.StateInvalidException(
-                    "Cannot apply discount to order in status: " + order.getStatus());
+        assertDiscountable(order);
+
+        // Also enforced by @NotBlank/@Size on the DTO, which is what turns a bad API call into a
+        // 400 with a field path. Repeated here because bean validation only runs on the
+        // @Valid-annotated controller argument: every other caller of this service — a future
+        // internal endpoint, a batch job, a test — would otherwise write a reasonless discount
+        // straight past the rule, and `reason` is NOT NULL in the schema, so the failure would
+        // surface as a constraint violation nobody can read.
+        String reason = request.reason() == null ? "" : request.reason().trim();
+        if (reason.length() < 3) {
+            throw new io.restaurantos.shared.exception.FieldValidationException(
+                    "DISCOUNT_REASON_REQUIRED", "reason",
+                    "Say why the discount is being given — at least 3 characters.");
+        }
+
+        boolean orderScope = "ORDER".equals(request.scope());
+        if (!orderScope && request.orderItemId() == null) {
+            throw new io.restaurantos.shared.exception.FieldValidationException(
+                    "DISCOUNT_LINE_REQUIRED", "orderItemId",
+                    "Choose which item on the check the discount comes off.");
         }
 
         // pos.rego's pos.order.discount.override rule. Scoped to whole-order discounts — see
         // PosAuthorizationService.authorizeDiscountOverride for why a line discount is not gated
         // by it (doing so would refuse cashiers a discount they can legitimately apply today).
-        if ("ORDER".equals(request.scope())) {
+        if (orderScope) {
             posAuthorizationService.authorizeDiscountOverride(
                     orderId, tenantId, order.getBranchId(),
                     order.getCashierId(), order.getStatus().name());
         }
 
-        long amountPaisa = computeDiscountAmount(request, order);
+        OrderItem line = null;
+        if (!orderScope) {
+            line = order.getItems().stream()
+                    .filter(i -> i.getId().equals(request.orderItemId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Order item not found: " + request.orderItemId()));
+            if (line.getItemStatus() == OrderItemStatus.CANCELLED) {
+                throw new io.restaurantos.shared.exception.StateInvalidException(
+                        "That line was cancelled, so it is not on the bill and cannot be discounted.");
+            }
+        }
+
+        // Replace, never stack — see the class comment on this method.
+        if (orderScope) {
+            order.getDiscounts().removeIf(d -> "ORDER".equals(d.getScope())
+                    && !PROMOTION_DISCOUNT_TYPE.equals(d.getType()));
+        } else {
+            UUID itemId = request.orderItemId();
+            order.getDiscounts().removeIf(d -> "LINE".equals(d.getScope())
+                    && itemId.equals(d.getOrderItemId()));
+        }
+
+        long amountPaisa = computeDiscountAmount(request, order, line);
 
         OrderDiscount discount = new OrderDiscount();
         discount.setTenantId(tenantId);
@@ -487,12 +583,64 @@ public class OrderServiceImpl implements OrderService {
         discount.setType(request.type());
         discount.setValue(request.value());
         discount.setAmountPaisa(amountPaisa);
-        discount.setOrderItemId(request.orderItemId());
-        discount.setAppliedBy(tenantContext.getUserId().orElse(null));
+        discount.setOrderItemId(orderScope ? null : request.orderItemId());
+        discount.setReason(reason);
+        UUID appliedBy = tenantContext.getUserId().orElse(null);
+        discount.setAppliedBy(appliedBy);
+        discount.setAppliedByName(staffNameDirectory.resolve(tenantId, appliedBy));
         order.getDiscounts().add(discount);
 
         recomputeOrderTotals(order);
+
+        // Priced last, checked last: a partly-tendered check must not be discounted below what the
+        // guest has already handed over. The figures are named because "not allowed" tells a
+        // cashier nothing they can act on.
+        long paidPaisa = orderPaymentRepository.sumAmountByOrderId(orderId);
+        if (paidPaisa > 0 && order.getTotalPaisa() < paidPaisa) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "That discount would take the bill to " + rupees(order.getTotalPaisa())
+                            + ", below the " + rupees(paidPaisa)
+                            + " already paid. Refund the difference instead.");
+        }
+
         return orderMapper.toDto(orderRepository.save(order));
+    }
+
+    /**
+     * The states in which a check may still be discounted: everything from the moment it has
+     * something on it until the moment it is settled or written off. See {@link #applyDiscount}.
+     */
+    private static final Set<OrderStatus> DISCOUNTABLE_STATUSES = EnumSet.of(
+            OrderStatus.OPEN,
+            OrderStatus.SENT_TO_KDS,
+            OrderStatus.PARTIAL_READY,
+            OrderStatus.READY,
+            OrderStatus.SERVED);
+
+    /** Refuses in the guest's language, not the state machine's. */
+    private void assertDiscountable(Order order) {
+        if (!DISCOUNTABLE_STATUSES.contains(order.getStatus())) {
+            String why = switch (order.getStatus()) {
+                case DRAFT -> "There is nothing on this check yet — add an item before discounting it.";
+                case CLOSED -> "This check is closed and its sale has been posted. "
+                        + "Refund the guest instead of discounting it.";
+                case VOIDED -> "This check was voided, so there is nothing left to discount.";
+                case REFUNDED -> "This check was refunded, so there is nothing left to discount.";
+                default -> "This check cannot be discounted in its current state.";
+            };
+            throw new io.restaurantos.shared.exception.StateInvalidException(why);
+        }
+        long paidPaisa = orderPaymentRepository.sumAmountByOrderId(order.getId());
+        if (paidPaisa > 0 && paidPaisa >= order.getTotalPaisa()) {
+            throw new io.restaurantos.shared.exception.StateInvalidException(
+                    "This check has already been paid in full (" + rupees(paidPaisa)
+                            + "). Refund the guest instead of discounting it.");
+        }
+    }
+
+    /** Paisa as the rupees a human reads, for refusals a cashier has to act on. */
+    private static String rupees(long paisa) {
+        return "Rs " + BigDecimal.valueOf(paisa, 2).toPlainString();
     }
 
     @Override
@@ -865,7 +1013,31 @@ public class OrderServiceImpl implements OrderService {
             throw new PosExceptions.OrderHasPaymentsException(order.getOrderNo(), amountPaidPaisa);
         }
 
-        boolean claimed = idempotencyService.checkAndLock(idempotencyKey, request.reason(), 86400);
+        // F2: the reason is HASHED, not passed through.
+        //
+        // This line read `checkAndLock(idempotencyKey, request.reason(), 86400)`. The parameter is
+        // named `requestHash` and its column is `idempotency_keys.request_hash VARCHAR(64)` — a
+        // width chosen for a SHA-256 hex digest — while `VoidOrderRequest.reason` is validated at
+        // `@Size(max = 500)`. So every void whose reason ran past 64 characters died in the
+        // database, and the operator was told nothing they could act on. Measured live on
+        // 2026-08-12 with a 149-character reason, as manager@terrace.local:
+        //
+        //   POST /api/v1/pos/orders/{id}/void → 409
+        //   {"error":{"code":"CONFLICT","message":"This conflicts with existing data", …}}
+        //   pos-service: SQLState 22001 — ERROR: value too long for type character varying(64)
+        //   on screen:   "Failed to void. Please try again."
+        //
+        // "Please try again" was advice that could never work: the same reason fails identically
+        // every time. And the reason a manager writes when they void a check is a sentence, not a
+        // word — the walkthrough's own examples run to 57 characters before anyone is trying.
+        //
+        // Hashing preserves the idempotency contract exactly (same key + same request ⇒ same
+        // digest ⇒ the retry is recognised) and makes the column's width correct by construction
+        // rather than by luck. The identical mistake is still live one file over, at
+        // RefundServiceImpl:94 — `request.reason() + request.refundPaisa()` — and is reported
+        // rather than fixed here because that file is held open by another change.
+        boolean claimed = idempotencyService.checkAndLock(
+                idempotencyKey, sha256Hex(request.reason()), 86400);
         if (!claimed) {
             return orderMapper.toDto(order);
         }
@@ -956,13 +1128,13 @@ public class OrderServiceImpl implements OrderService {
         // same date is then checked against the accounting period AND stamped on ORDER_CLOSED, so
         // the period POS validates and the period finance posts into cannot disagree. An order
         // opened 23:00 and closed 00:30 used to be checked against yesterday and posted to today.
-        Instant closedAt = Instant.now();
         //
         // S0-C: it is cut on THIS BRANCH'S wall clock, not on UTC. The UTC variant this line used
         // to call put the trading-day boundary at 09:00 local for Asia/Karachi instead of 04:00,
         // so every breakfast sale was period-checked against yesterday and — because finance
         // copies this exact date onto the journal entry — posted to yesterday's ledger too, while
         // the payment list, the till session and the order number all read today.
+        Instant closedAt = Instant.now();
         LocalDate businessDate = branchBusinessDay.dateOf(closedAt, order.getBranchId());
         FinancePeriodClient.assertPeriodOpen(financePeriodClient, tenantId, order.getBranchId(), businessDate);
 
@@ -985,6 +1157,25 @@ public class OrderServiceImpl implements OrderService {
                         item.getLineTotalPaisa()))
                 .collect(Collectors.toList());
 
+        // B3: the discounts travel WITH the close, not as a later lookup. reporting's ETL is the
+        // only consumer today and it writes them to their own fact table, which is what turns the
+        // Discount Summary report from a column of daily totals into a list an owner can act on.
+        Map<UUID, String> itemNamesById = order.getItems().stream()
+                .collect(Collectors.toMap(OrderItem::getId, OrderItem::getItemNameSnapshot,
+                        (a, b) -> a));
+        List<PosEventContract.DiscountEntry> discountEntries = order.getDiscounts().stream()
+                .map(d -> new PosEventContract.DiscountEntry(
+                        d.getScope(),
+                        d.getOrderItemId(),
+                        d.getOrderItemId() == null ? null : itemNamesById.get(d.getOrderItemId()),
+                        d.getType(),
+                        d.getValue(),
+                        d.getAmountPaisa(),
+                        d.getReason(),
+                        d.getAppliedBy(),
+                        d.getAppliedByName()))
+                .collect(Collectors.toList());
+
         Order finalOrder = order;
         var payload = new PosEventContract.OrderClosedPayload(
                 finalOrder.getId(),
@@ -1000,6 +1191,7 @@ public class OrderServiceImpl implements OrderService {
                 itemEntries,
                 finalOrder.getTillSessionId(),
                 finalOrder.getCashierId(),
+                discountEntries,
                 closedAt,
                 businessDate
         );
@@ -1287,6 +1479,30 @@ public class OrderServiceImpl implements OrderService {
         return status == OrderStatus.CLOSED || status == OrderStatus.VOIDED || status == OrderStatus.REFUNDED;
     }
 
+    /**
+     * A request fingerprint that fits {@code idempotency_keys.request_hash VARCHAR(64)} whatever
+     * the operator typed — 64 hex characters, always (F2).
+     *
+     * <p>Deliberately NOT a substring of the reason: two voids whose reasons differ only after the
+     * 64th character would then look like the same request, and the second one would be answered
+     * with the first one's response instead of being performed. Truncation would have made the
+     * crash go away and replaced it with a silent wrong answer on a money path.
+     */
+    private static String sha256Hex(String value) {
+        try {
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((value == null ? "" : value).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : digest) {
+                sb.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            // SHA-256 is mandatory in every JRE; this cannot happen and must not be swallowed.
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
     private OrderSummaryDto toSummaryDto(Order order, Map<UUID, String> tableNames, Map<UUID, Long> paidByOrderId) {
         long amountPaidPaisa = paidByOrderId.getOrDefault(order.getId(), 0L);
         PaymentStatus paymentStatus = paymentStatusDerivationService.derive(
@@ -1307,6 +1523,11 @@ public class OrderServiceImpl implements OrderService {
                 order.getOrderNo(),
                 order.getTableId(),
                 order.getTableId() != null ? tableNames.get(order.getTableId()) : null,
+                // F2: the row's own order type. Free — it is a column of the order already loaded
+                // here. Without it the client had nothing to render but the table name, so it
+                // guessed `tableName ?? "Takeaway"` and called every tableless DINE_IN check a
+                // takeaway (measured: 10/10 rows on 2026-08-12).
+                order.getType(),
                 order.getDerivedStatus(),
                 order.getCashierId(),
                 order.getCoverCount(),
@@ -1320,7 +1541,41 @@ public class OrderServiceImpl implements OrderService {
         );
     }
 
+    /**
+     * The order's four money fields, recomputed from its lines and its discount rows.
+     *
+     * <h2>B3 — a LINE-scope discount used to be worth nothing</h2>
+     *
+     * <p>This method summed exactly two things: {@code OrderItem.discountPaisa} (set at
+     * add-item time, from the menu) and the {@code OrderDiscount} rows whose scope is
+     * {@code "ORDER"}. A {@code LINE}-scope {@code OrderDiscount} — the row
+     * {@link #applyDiscount} writes when a cashier takes 10% off one dish — matched neither, so
+     * it was priced, persisted, returned in the response, and moved the bill by exactly zero
+     * paisa. Structurally present, behaviourally absent, and invisible because a cashier who
+     * cannot reach the control never sees the total fail to move.
+     *
+     * <p>Line-scope rows are now summed per item and capped at what is left of that line after
+     * the menu-level discount — so no line can go below zero however many discounts land on it,
+     * and a discount attached to a CANCELLED line contributes nothing (the line is not on the
+     * bill, so neither is its discount).
+     *
+     * <p>Tax is deliberately NOT recomputed here. It is the per-line figure stamped at add-item
+     * time, and the customer receipt asserts {@code Σ lineTax == order.taxPaisa} before it will
+     * print. Re-basing tax on the discounted amount is a real question with a real answer, but it
+     * is a change to what the ledger owes FBR and belongs with the tax work, not smuggled in
+     * behind a discount button.
+     */
     private void recomputeOrderTotals(Order order) {
+        // LINE-scope discount rows, totalled per item id. Applied per line below so each one is
+        // capped against its own line rather than against the order.
+        Map<UUID, Long> lineScopeByItem = new HashMap<>();
+        for (OrderDiscount d : order.getDiscounts()) {
+            if (!"LINE".equals(d.getScope()) || d.getOrderItemId() == null) {
+                continue;
+            }
+            lineScopeByItem.merge(d.getOrderItemId(), d.getAmountPaisa(), Long::sum);
+        }
+
         long subtotal = 0L;
         long lineDiscounts = 0L;
         long tax = 0L;
@@ -1333,8 +1588,14 @@ public class OrderServiceImpl implements OrderService {
                 continue;
             }
             long itemSubtotal = item.getUnitPriceSnapshot() * item.getQuantity();
+            long itemDiscount = item.getDiscountPaisa();
+            // Whatever is left of this line after the menu-level discount is the most any
+            // line-scope discount can take off it.
+            long headroom = Math.max(0L, itemSubtotal - itemDiscount);
+            itemDiscount += Math.min(lineScopeByItem.getOrDefault(item.getId(), 0L), headroom);
+
             subtotal += itemSubtotal;
-            lineDiscounts += item.getDiscountPaisa();
+            lineDiscounts += itemDiscount;
             tax += item.getTaxPaisa();
         }
 
@@ -1354,27 +1615,72 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalPaisa(total);
     }
 
-    private long computeDiscountAmount(ApplyDiscountRequest request, Order order) {
-        if ("FLAT".equals(request.type())) {
-            long flat = request.value().multiply(BigDecimal.valueOf(100)).longValue();
-            if ("LINE".equals(request.scope()) && request.orderItemId() != null) {
-                OrderItem lineItem = order.getItems().stream()
-                        .filter(i -> i.getId().equals(request.orderItemId()))
-                        .findFirst()
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                "Order item not found: " + request.orderItemId()));
-                return pricingCalculator.effectiveDiscount(flat, lineItem.getLineTotalPaisa());
+    /**
+     * What is still discountable on one line: its menu price less every discount already on it.
+     * A percentage is taken of this, never of {@code lineTotalPaisa} — that figure is
+     * tax-INCLUSIVE, so "10% off" priced against it charged the guest 10% of the tax as well.
+     */
+    private long lineDiscountBase(Order order, OrderItem item) {
+        long gross = item.getUnitPriceSnapshot() * item.getQuantity();
+        long already = item.getDiscountPaisa() + order.getDiscounts().stream()
+                .filter(d -> "LINE".equals(d.getScope()) && item.getId().equals(d.getOrderItemId()))
+                .mapToLong(OrderDiscount::getAmountPaisa)
+                .sum();
+        return Math.max(0L, gross - already);
+    }
+
+    /**
+     * What is still discountable on the whole check: the subtotal less every line discount and
+     * every order-level discount already applied. Pricing an order-level percentage against the
+     * gross subtotal while a line discount was already on the bill overstated it, and the
+     * overstatement was then silently clipped by {@link #recomputeOrderTotals} — so the stored
+     * {@code amount_paisa} disagreed with the money actually taken off, which is the figure the
+     * Discount Summary report reads.
+     */
+    private long orderDiscountBase(Order order) {
+        long subtotal = 0L;
+        long lineDiscounts = 0L;
+        for (OrderItem item : order.getItems()) {
+            if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
+                continue;
             }
-            return pricingCalculator.effectiveDiscount(flat, order.getSubtotalPaisa());
+            long gross = item.getUnitPriceSnapshot() * item.getQuantity();
+            long already = item.getDiscountPaisa() + order.getDiscounts().stream()
+                    .filter(d -> "LINE".equals(d.getScope()) && item.getId().equals(d.getOrderItemId()))
+                    .mapToLong(OrderDiscount::getAmountPaisa)
+                    .sum();
+            subtotal += gross;
+            lineDiscounts += Math.min(already, gross);
+        }
+        long orderLevel = order.getDiscounts().stream()
+                .filter(d -> "ORDER".equals(d.getScope()))
+                .mapToLong(OrderDiscount::getAmountPaisa)
+                .sum();
+        return Math.max(0L, subtotal - lineDiscounts - orderLevel);
+    }
+
+    /**
+     * The paisa this discount is worth, capped at what is still discountable.
+     *
+     * <p>{@code line} is the already-resolved order item for LINE scope, and null for ORDER
+     * scope — resolved by the caller so a missing line is a 404 before any policy runs, not a
+     * silent fall-through to pricing the whole check (which is what the old lookup did whenever
+     * {@code orderItemId} was absent).
+     *
+     * <p>{@code value} is RUPEES for FLAT and PERCENT for PERCENT; the ×100 and the HALF_UP
+     * rounding to whole paisa both happen here, once, through BigDecimal — never a float.
+     */
+    private long computeDiscountAmount(ApplyDiscountRequest request, Order order, OrderItem line) {
+        long base = line != null ? lineDiscountBase(order, line) : orderDiscountBase(order);
+
+        if ("FLAT".equals(request.type())) {
+            long flat = request.value()
+                    .multiply(BigDecimal.valueOf(100))
+                    .setScale(0, java.math.RoundingMode.HALF_UP)
+                    .longValue();
+            return pricingCalculator.effectiveDiscount(flat, base);
         }
         // PERCENT
-        long base = "LINE".equals(request.scope()) && request.orderItemId() != null
-                ? order.getItems().stream()
-                        .filter(i -> i.getId().equals(request.orderItemId()))
-                        .mapToLong(OrderItem::getLineTotalPaisa)
-                        .findFirst()
-                        .orElse(0L)
-                : order.getSubtotalPaisa();
         long amount = request.value()
                 .divide(BigDecimal.valueOf(100), 10, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(base))

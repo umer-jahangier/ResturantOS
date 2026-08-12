@@ -137,7 +137,7 @@ class OrderLifecycleIT extends PosTestBase {
         // Apply a discount way larger than the item price (850 PKR = 85000 paisa)
         // BigDecimal 9999 PKR = 999900 paisa
         ApplyDiscountRequest hugeDiscount = new ApplyDiscountRequest(
-                "LINE", actualItemId, "FLAT", new BigDecimal("9999.00"));
+                "LINE", actualItemId, "FLAT", new BigDecimal("9999.00"), "Comped, whole dish sent back");
         OrderDto discounted = orderService.applyDiscount(withItem.id(), hugeDiscount);
 
         // Line total should be clamped to 0 (not negative)

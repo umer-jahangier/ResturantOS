@@ -32,6 +32,7 @@ import type {
   Station,
   StationType,
   StationDisplayFamily,
+  OrderDiscount,
 } from "@/lib/models/pos.model";
 
 export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
@@ -166,6 +167,27 @@ export function adaptOrderItem(raw: ApiOrderItem): OrderItem {
   };
 }
 
+/**
+ * One discount, ready to render. `reason` and the actor are carried all the way to the screen
+ * on purpose: a "Discounts Rs 99.80" line nobody can question is how a discount control becomes
+ * a hole in the till.
+ */
+export function adaptOrderDiscount(raw: ApiOrder["discounts"][number]): OrderDiscount {
+  return {
+    id: raw.id,
+    scope: raw.scope,
+    orderItemId: raw.orderItemId ?? null,
+    itemName: raw.itemName ?? null,
+    type: raw.type,
+    value: raw.value === null || raw.value === undefined ? null : Number(raw.value),
+    amountPaisa: raw.amountPaisa,
+    reason: raw.reason ?? null,
+    appliedBy: raw.appliedBy ?? null,
+    appliedByName: raw.appliedByName ?? null,
+    appliedAt: raw.appliedAt ?? null,
+  };
+}
+
 export function adaptOrder(raw: ApiOrder): Order {
   return {
     id: raw.id,
@@ -192,6 +214,7 @@ export function adaptOrder(raw: ApiOrder): Order {
     clientOrderId: raw.clientOrderId,
     version: raw.version,
     items: raw.items.map(adaptOrderItem),
+    discounts: (raw.discounts ?? []).map(adaptOrderDiscount),
   };
 }
 

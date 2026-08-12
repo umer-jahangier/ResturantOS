@@ -127,18 +127,32 @@ public class ReportCatalog {
                 sql);
     }
 
+    /**
+     * Every discount given away, with the reason and the person who authorised it (B3).
+     *
+     * <p>This report used to read {@code sales_order_facts} and group by day, so the most it
+     * could ever say was "Rs 950 of discounts on the 10th". That is a number an owner can
+     * <em>notice</em> and cannot <em>review</em>: no reason, no actor, no check, and a full comp
+     * indistinguishable from a hundred small ones. Discount grain, from
+     * {@code sales_discount_facts}, is the whole point of the screen.
+     *
+     * <p>Ordered newest-first because the discount a manager wants to look at is almost always
+     * one from the shift that just ended.
+     */
     private static ReportDefinition discountSummary() {
         String sql = """
-                SELECT business_date, sum(discount_paisa) AS discount_paisa,
-                       sum(subtotal_paisa) AS subtotal_paisa
-                FROM clickhouse_analytics.sales_order_facts
+                SELECT business_date, order_no, scope, item_name, discount_type,
+                       discount_value, amount_paisa, reason,
+                       coalesce(applied_by_name, toString(applied_by)) AS applied_by,
+                       closed_at
+                FROM clickhouse_analytics.sales_discount_facts
                 WHERE tenant_id = ? AND branch_id = ? AND business_date BETWEEN ? AND ?
-                GROUP BY business_date
-                ORDER BY business_date
+                ORDER BY closed_at DESC, order_no, discount_no
                 LIMIT 10000
                 """;
         return define("discount-summary", "Discount Summary", "sales",
-                List.of("business_date", "discount_paisa", "subtotal_paisa"),
+                List.of("business_date", "order_no", "scope", "item_name", "discount_type",
+                        "discount_value", "amount_paisa", "reason", "applied_by", "closed_at"),
                 sql);
     }
 

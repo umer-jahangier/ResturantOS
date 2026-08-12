@@ -130,7 +130,7 @@ class VoidRefundOpaIT extends PosTestBase {
         when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(false));
 
         assertThatThrownBy(() -> orderService.applyDiscount(order.id(),
-                new ApplyDiscountRequest("ORDER", null, "FLAT", BigDecimal.TEN)))
+                new ApplyDiscountRequest("ORDER", null, "FLAT", BigDecimal.TEN, "Regular customer")))
                 .isInstanceOf(PermissionDeniedException.class);
 
         ArgumentCaptor<OpaInput> captor = ArgumentCaptor.forClass(OpaInput.class);
@@ -151,7 +151,7 @@ class VoidRefundOpaIT extends PosTestBase {
         when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(true));
 
         assertThat(orderService.applyDiscount(order.id(),
-                new ApplyDiscountRequest("ORDER", null, "FLAT", BigDecimal.TEN)))
+                new ApplyDiscountRequest("ORDER", null, "FLAT", BigDecimal.TEN, "Regular customer")))
                 .isNotNull();
     }
 
@@ -169,7 +169,7 @@ class VoidRefundOpaIT extends PosTestBase {
         when(opaClient.evaluate(eq("pos"), any())).thenReturn(new OpaDecision(false));
 
         assertThat(orderService.applyDiscount(order.id(),
-                new ApplyDiscountRequest("LINE", lineId, "FLAT", BigDecimal.ONE)))
+                new ApplyDiscountRequest("LINE", lineId, "FLAT", BigDecimal.ONE, "Dish arrived cold")))
                 .isNotNull();
 
         verify(opaClient, never()).evaluate(eq("pos"), any());

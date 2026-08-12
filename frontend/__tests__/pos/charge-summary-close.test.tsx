@@ -100,6 +100,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
         modifiers: [],
       },
     ],
+    discounts: [],
     ...overrides,
   };
 }

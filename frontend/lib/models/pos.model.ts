@@ -142,6 +142,31 @@ export interface OrderItem {
   modifiers: OrderItemModifier[];
 }
 
+/**
+ * One discount taken off a check (B3).
+ *
+ * `amountPaisa` is what came OFF; `value` is what was ASKED for (rupees for FLAT, percent for
+ * PERCENT). They diverge when the discount was bigger than what was left of the line, and a
+ * screen showing only one of them cannot explain the other.
+ */
+export interface OrderDiscount {
+  id: string;
+  scope: "LINE" | "ORDER";
+  orderItemId: string | null;
+  /** The line's name, resolved server-side, so no screen has to hold an item lookup. */
+  itemName: string | null;
+  /** FLAT or PERCENT — or PROMOTION for the automatic engine's own rows. */
+  type: string;
+  value: number | null;
+  amountPaisa: number;
+  /** Why. Null only on rows written before a reason was required. */
+  reason: string | null;
+  appliedBy: string | null;
+  /** Display name at the time. Null when the staff directory was unreachable. */
+  appliedByName: string | null;
+  appliedAt: string | null;
+}
+
 export interface Order {
   id: string;
   branchId: string;
@@ -164,6 +189,8 @@ export interface Order {
   clientOrderId: string;
   version: number;
   items: OrderItem[];
+  /** Every discount on the check, individually. Empty on most checks. */
+  discounts: OrderDiscount[];
 }
 
 /**
@@ -352,7 +379,13 @@ export interface ApplyDiscountPayload {
   scope: "LINE" | "ORDER";
   orderItemId?: string;
   type: "FLAT" | "PERCENT";
+  /** Rupees for FLAT, percent for PERCENT. Never paisa — the server does the ×100. */
   value: number;
+  /**
+   * Why the money is being given away. REQUIRED — the server refuses anything shorter than
+   * three characters, and the control refuses to submit before it does.
+   */
+  reason: string;
 }
 
 export interface OpenTillPayload {

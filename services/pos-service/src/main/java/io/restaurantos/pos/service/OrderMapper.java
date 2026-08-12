@@ -1,10 +1,13 @@
 package io.restaurantos.pos.service;
 
 import io.restaurantos.pos.domain.model.Order;
+import io.restaurantos.pos.domain.model.OrderItem;
 import io.restaurantos.pos.dto.OrderDto;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +47,29 @@ public class OrderMapper {
                 ))
                 .collect(Collectors.toList());
 
+        // B3: item names are resolved here rather than by the reader, so the charge page and the
+        // report both print "10% off Chicken Karahi" instead of a uuid. Keyed off the SAME item
+        // list above, so a discount attached to a line that no longer exists reads as null and
+        // is never silently attached to whatever line happens to sit at that index.
+        Map<UUID, String> itemNames = order.getItems().stream()
+                .collect(Collectors.toMap(OrderItem::getId, OrderItem::getItemNameSnapshot,
+                        (a, b) -> a));
+
+        List<OrderDto.OrderDiscountDto> discountDtos = order.getDiscounts().stream()
+                .map(d -> new OrderDto.OrderDiscountDto(
+                        d.getId(),
+                        d.getScope(),
+                        d.getOrderItemId(),
+                        d.getOrderItemId() == null ? null : itemNames.get(d.getOrderItemId()),
+                        d.getType(),
+                        d.getValue(),
+                        d.getAmountPaisa(),
+                        d.getReason(),
+                        d.getAppliedBy(),
+                        d.getAppliedByName(),
+                        d.getCreatedAt()))
+                .collect(Collectors.toList());
+
         return new OrderDto(
                 order.getId(),
                 order.getBranchId(),
@@ -65,7 +91,8 @@ public class OrderMapper {
                 order.getSentToKdsAt(),
                 order.getClientOrderId(),
                 order.getVersion(),
-                itemDtos
+                itemDtos,
+                discountDtos
         );
     }
 }

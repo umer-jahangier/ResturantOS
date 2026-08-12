@@ -222,6 +222,27 @@ export type ApiOrderItem = z.infer<typeof apiOrderItemSchema>;
 // DerivedOrderStatus exactly (DRAFT|IN_PROGRESS|PARTIALLY_SERVED|SERVED only — CLOSED/
 // VOIDED/REFUNDED live solely on `status`; combine via pos.model's
 // getOrderDisplayStatus() for UI rendering).
+/**
+ * One discount on a check (B3). `.optional()` on the whole array in apiOrderSchema, and
+ * nullable on every decoration here, because a pos-service that predates this field must not
+ * fail the parse and blank the charge page — the same rule derivedStatus already follows.
+ */
+export const apiOrderDiscountSchema = z.object({
+  id: z.string().uuid(),
+  scope: z.enum(["LINE", "ORDER"]),
+  orderItemId: z.string().uuid().nullable().optional(),
+  itemName: z.string().nullable().optional(),
+  type: z.string(),
+  value: z.union([z.number(), z.string()]).nullable().optional(),
+  amountPaisa: z.number().int().nonnegative(),
+  reason: z.string().nullable().optional(),
+  appliedBy: z.string().uuid().nullable().optional(),
+  appliedByName: z.string().nullable().optional(),
+  appliedAt: z.string().nullable().optional(),
+});
+
+export type ApiOrderDiscount = z.infer<typeof apiOrderDiscountSchema>;
+
 export const apiOrderSchema = z.object({
   id: z.string().uuid(),
   branchId: z.string().uuid(),
@@ -260,6 +281,7 @@ export const apiOrderSchema = z.object({
   clientOrderId: z.string().uuid(),
   version: z.number().int(),
   items: z.array(apiOrderItemSchema).default([]),
+  discounts: z.array(apiOrderDiscountSchema).default([]),
 });
 
 export type ApiOrder = z.infer<typeof apiOrderSchema>;

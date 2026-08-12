@@ -498,5 +498,7 @@ function buildOfflineOrderStub(
     clientOrderId,
     version: 0,
     items: [],
+    // An order that has not reached the server has no discounts on it by construction.
+    discounts: [],
   };
 }

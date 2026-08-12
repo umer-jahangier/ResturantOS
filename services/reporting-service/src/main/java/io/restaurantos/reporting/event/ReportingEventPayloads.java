@@ -34,6 +34,19 @@ public final class ReportingEventPayloads {
             List<ItemEntry> items,
             UUID tillSessionId,
             UUID cashierId,
+            /**
+             * Every discount on the check, individually (B3). Mirrors
+             * {@code PosEventContract.DiscountEntry}.
+             *
+             * <p>{@code discountPaisa} above is their sum; it is what the day-grain totals are
+             * built from and it has not changed. This list is what the Discount Summary report
+             * needs to stop being a column of numbers: without a reason and an actor per
+             * discount, "Rs 950 of discounts yesterday" cannot be reviewed, only noticed.
+             *
+             * <p>Null on events published before pos-service carried the field — the ETL reads it
+             * as "no discounts recorded" and writes no rows, which is exactly true.
+             */
+            List<DiscountEntry> discounts,
             Instant closedAt,
             /**
              * The trading day this sale belongs to, decided ONCE by pos-service and carried on the
@@ -53,6 +66,36 @@ public final class ReportingEventPayloads {
              * <p>A consumer downstream of pos must READ this, never re-derive it.
              */
             LocalDate businessDate
+    ) {
+        /**
+         * The pre-B3 arity, so every fixture that built this payload before discounts existed
+         * still compiles and still means what it meant. Empty list, never null.
+         */
+        public OrderClosedPayload(UUID orderId, String orderNo, String type, UUID customerId,
+                                  long subtotalPaisa, long discountPaisa, long serviceChargePaisa,
+                                  long taxPaisa, long totalPaisa, List<PaymentEntry> payments,
+                                  List<ItemEntry> items, UUID tillSessionId, UUID cashierId,
+                                  Instant closedAt, LocalDate businessDate) {
+            this(orderId, orderNo, type, customerId, subtotalPaisa, discountPaisa,
+                    serviceChargePaisa, taxPaisa, totalPaisa, payments, items, tillSessionId,
+                    cashierId, List.of(), closedAt, businessDate);
+        }
+    }
+
+    /**
+     * One discount off a closed check — scope, what was asked for, what came off, why, and who.
+     * Mirrors {@code PosEventContract.DiscountEntry} field-for-field.
+     */
+    public record DiscountEntry(
+            String scope,
+            UUID orderItemId,
+            String itemName,
+            String type,
+            java.math.BigDecimal value,
+            long amountPaisa,
+            String reason,
+            UUID appliedBy,
+            String appliedByName
     ) {}
 
     public record PaymentEntry(

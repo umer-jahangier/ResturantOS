@@ -54,6 +54,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     clientOrderId: "c0000001-0000-4000-8000-000000000001",
     version: 0,
     items: [],
+    discounts: [],
     ...overrides,
   };
 }

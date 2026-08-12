@@ -30,7 +30,18 @@ public record OrderDto(
         Instant sentToKdsAt,
         UUID clientOrderId,
         long version,
-        List<OrderItemDto> items
+        List<OrderItemDto> items,
+
+        /**
+         * Every discount on this check, individually (B3).
+         *
+         * <p>{@code discountPaisa} above is their sum and is all the bill needs. This list is
+         * what makes the discount <em>reviewable</em>: without it the charge page could show
+         * "Discounts Rs 99.80" and nobody — not the cashier, not the manager standing behind
+         * them, not the owner the next morning — could see what that 99.80 was for or who
+         * authorised it. Empty on the overwhelming majority of checks.
+         */
+        List<OrderDiscountDto> discounts
 ) {
     // Wire field kept named kdsStatus (type OrderItemStatus, the 7-value lifecycle) rather
     // than renamed to itemStatus — plan 07.1-01's decision, avoiding a second JSON-contract
@@ -57,5 +68,32 @@ public record OrderDto(
             UUID modifierId,
             String modifierNameSnapshot,
             long priceDeltaPaisa
+    ) {}
+
+    /**
+     * One discount, with the two facts that make it auditable.
+     *
+     * @param scope           LINE or ORDER
+     * @param orderItemId     which line, for a LINE discount; null for ORDER
+     * @param itemName        that line's name, so a reader does not have to resolve an id
+     * @param type            FLAT or PERCENT (PROMOTION for the automatic engine's own rows)
+     * @param value           rupees for FLAT, percent for PERCENT — what was ASKED for
+     * @param amountPaisa     what actually came off the bill, after capping — what was GIVEN
+     * @param reason          why. Never blank on a row written since V22
+     * @param appliedBy       user id of whoever applied it
+     * @param appliedByName   their display name at the time, or null if it could not be resolved
+     */
+    public record OrderDiscountDto(
+            UUID id,
+            String scope,
+            UUID orderItemId,
+            String itemName,
+            String type,
+            java.math.BigDecimal value,
+            long amountPaisa,
+            String reason,
+            UUID appliedBy,
+            String appliedByName,
+            Instant appliedAt
     ) {}
 }

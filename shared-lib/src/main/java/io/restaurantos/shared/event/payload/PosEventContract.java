@@ -59,6 +59,21 @@ public final class PosEventContract {
             List<ItemEntry> items,
             UUID tillSessionId,
             UUID cashierId,
+            /**
+             * Every discount on this check, individually, with its reason and the person who
+             * authorised it (B3).
+             *
+             * <p>{@code discountPaisa} above is the sum and is what finance posts to
+             * contra-revenue; that has not changed. This list exists because the sum is not an
+             * answer to the question an owner asks the morning after — <em>why</em> did we give
+             * Rs 950 away, and who said so? Without it the Discount Summary report could only
+             * ever be a column of totals, and the amount could not be told apart from a comp.
+             *
+             * <p>Nullable on the wire for the same reason every other addition here is: an
+             * ORDER_CLOSED published by a service that predates this field must still be
+             * consumable. Readers treat null as "no discounts recorded", never as an error.
+             */
+            List<DiscountEntry> discounts,
             Instant closedAt,
             /**
              * The trading day this sale belongs to, resolved by pos-service from {@code closedAt}
@@ -68,7 +83,24 @@ public final class PosEventContract {
              * the period the entry lands in can never disagree.
              */
             LocalDate businessDate
-    ) {}
+    ) {
+        /**
+         * The pre-B3 shape, kept so that adding {@code discounts} was not a breaking change for
+         * anything that builds this payload without one — every consumer's IT fixture, and any
+         * producer that has not been rebuilt. Defaults to an empty list, never null: "no
+         * discounts were recorded" is a fact a reader can iterate, whereas null is a fact a
+         * reader has to remember to check for.
+         */
+        public OrderClosedPayload(UUID orderId, String orderNo, String type, UUID customerId,
+                                  long subtotalPaisa, long discountPaisa, long serviceChargePaisa,
+                                  long taxPaisa, long totalPaisa, List<PaymentEntry> payments,
+                                  List<ItemEntry> items, UUID tillSessionId, UUID cashierId,
+                                  Instant closedAt, LocalDate businessDate) {
+            this(orderId, orderNo, type, customerId, subtotalPaisa, discountPaisa,
+                    serviceChargePaisa, taxPaisa, totalPaisa, payments, items, tillSessionId,
+                    cashierId, List.of(), closedAt, businessDate);
+        }
+    }
 
     /**
      * {@code amountPaisa} is the amount APPLIED to the bill, never the amount handed over.
@@ -89,6 +121,34 @@ public final class PosEventContract {
             int qty,
             long unitPricePaisa,
             long lineTotalPaisa
+    ) {}
+
+    /**
+     * One discount taken off this check.
+     *
+     * <p>{@code valuePct} and {@code amountPaisa} are two different facts and both are carried:
+     * what was ASKED for ("10%", or a flat rupee figure) and what actually came OFF after
+     * capping. They diverge whenever a discount is larger than what is left of the line, and a
+     * report that shows only one of them cannot explain the other.
+     *
+     * @param scope         LINE or ORDER
+     * @param itemName      the line's name for a LINE discount; null for a whole-check discount
+     * @param type          FLAT, PERCENT, or PROMOTION for the automatic engine's own rows
+     * @param amountPaisa   what came off the bill, in paisa. Positive
+     * @param reason        why it was given. Never blank for a discount applied since V22
+     * @param appliedBy     the user id that authorised it
+     * @param appliedByName their display name at the time, or null if it was not resolvable
+     */
+    public record DiscountEntry(
+            String scope,
+            UUID orderItemId,
+            String itemName,
+            String type,
+            java.math.BigDecimal value,
+            long amountPaisa,
+            String reason,
+            UUID appliedBy,
+            String appliedByName
     ) {}
 
     /**

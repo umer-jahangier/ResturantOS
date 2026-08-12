@@ -481,7 +481,8 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
         orderService.addItem(order.id(), new AddOrderItemRequest(karahiId, branchId, 1, null, null));
         orderService.addItem(order.id(), new AddOrderItemRequest(waterId, branchId, 2, null, null));
         orderService.applyDiscount(order.id(),
-                new ApplyDiscountRequest("ORDER", null, "FLAT", new BigDecimal("100.00")));
+                new ApplyDiscountRequest("ORDER", null, "FLAT", new BigDecimal("100.00"),
+                        "Long wait on the mains"));
 
         OrderDto sent = orderService.sendToKds(order.id(), null);
         for (OrderDto.OrderItemDto item : sent.items()) {

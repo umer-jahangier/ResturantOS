@@ -288,6 +288,9 @@ public class RefundServiceImpl implements RefundService {
                 order.getSentToKdsAt(),
                 order.getClientOrderId(),
                 order.getVersion(),
+                java.util.List.of(),
+                // Items are already empty here (this projection is the refund acknowledgement,
+                // not the check); discounts follow the same rule for the same reason.
                 java.util.List.of()
         );
     }
