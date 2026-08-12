@@ -53,7 +53,9 @@ public class TillController {
             @RequestParam(required = false) UUID branchId,
             @RequestParam(required = false) String status) {
         // branchId → admin till-review history (all sessions, newest first); otherwise the
-        // legacy cashier-scoped lookup (used by the active-till bar).
+        // cashier-scoped lookup (used by the active-till bar). The cashier-scoped branch is
+        // self-only: an omitted cashierId means the caller, and a foreign one is refused
+        // unless the caller holds pos.till.review (see TillService#listTills).
         List<TillSessionDto> dtos = branchId != null
                 ? tillService.listTillsForBranch(branchId)
                 : tillService.listTills(cashierId, status);

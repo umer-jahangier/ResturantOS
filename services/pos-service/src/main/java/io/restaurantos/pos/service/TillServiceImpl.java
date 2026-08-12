@@ -1,5 +1,6 @@
 package io.restaurantos.pos.service;
 
+import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.pos.domain.enums.TillStatus;
@@ -38,22 +39,33 @@ public class TillServiceImpl implements TillService {
     private static final Set<OrderStatus> TERMINAL_STATUSES = EnumSet.of(
             OrderStatus.CLOSED, OrderStatus.VOIDED, OrderStatus.REFUNDED);
 
+    /**
+     * Permission that allows reading a till session belonging to SOMEONE ELSE via the
+     * cashier-scoped lookup. Managers/owners reviewing tills normally go through the
+     * branch-scoped {@link #listTillsForBranch} path instead; this covers the narrower
+     * "look up one named cashier's till" case.
+     */
+    private static final String TILL_REVIEW_PERMISSION = "pos.till.review";
+
     private final TillSessionRepository tillSessionRepository;
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
+    private final PosAuthorizationService posAuthorizationService;
 
     public TillServiceImpl(TillSessionRepository tillSessionRepository,
                            OrderRepository orderRepository,
                            OrderPaymentRepository paymentRepository,
                            EventPublisher eventPublisher,
-                           TenantContext tenantContext) {
+                           TenantContext tenantContext,
+                           PosAuthorizationService posAuthorizationService) {
         this.tillSessionRepository = tillSessionRepository;
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+        this.posAuthorizationService = posAuthorizationService;
     }
 
     @Override
@@ -149,19 +161,32 @@ public class TillServiceImpl implements TillService {
     @Override
     @Transactional(readOnly = true)
     public List<TillSessionDto> listTills(UUID cashierId, String status) {
-        if (status != null && cashierId != null) {
-            TillStatus tillStatus = TillStatus.valueOf(status);
-            return tillSessionRepository.findByCashierIdAndStatus(cashierId, tillStatus)
-                    .map(s -> List.of(toDto(s)))
-                    .orElse(List.of());
+        UUID tenantId = tenantContext.requireTenantId();
+        UUID callerId = tenantContext.getUserId()
+                .orElseThrow(() -> new PermissionDeniedException("User context required"));
+
+        // SECURITY (till ownership): `cashierId` is client-supplied and used to be passed straight
+        // to the repository, so ANY authenticated principal in the tenant could read a colleague's
+        // till session — opening float, expected/declared closing and variance — just by knowing
+        // their user id. RLS is tenant-only and does not scope by subject, so guard here.
+        //
+        // This is an identity lookup, not a filter: silently substituting the caller would answer
+        // a question about Alice with Bob's row. So default a missing cashierId to the caller (the
+        // POS active-till bar only ever wants its OWN till and no longer sends one) and refuse a
+        // foreign id outright, mirroring listTillsForBranch's cross-branch guard below. Managers
+        // reviewing tills use the branch-scoped `?branchId=` path, which is separately gated.
+        UUID targetCashierId = cashierId != null ? cashierId : callerId;
+        if (!callerId.equals(targetCashierId)
+                && !posAuthorizationService.hasPermission(TILL_REVIEW_PERMISSION)) {
+            throw new PermissionDeniedException("Cannot read another user's till session");
         }
-        if (cashierId != null) {
-            TillStatus open = TillStatus.OPEN;
-            return tillSessionRepository.findByCashierIdAndStatus(cashierId, open)
-                    .map(s -> List.of(toDto(s)))
-                    .orElse(List.of());
-        }
-        return List.of();
+
+        TillStatus tillStatus = status != null ? TillStatus.valueOf(status) : TillStatus.OPEN;
+        return tillSessionRepository.findByCashierIdAndStatus(targetCashierId, tillStatus)
+                // Defense-in-depth: the query carries no tenant predicate of its own (RLS only).
+                .filter(s -> tenantId.equals(s.getTenantId()))
+                .map(s -> List.of(toDto(s)))
+                .orElse(List.of());
     }
 
     @Override

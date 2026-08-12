@@ -21,16 +21,21 @@ export function useTillSession(tillId: string | null | undefined) {
 
 /**
  * The current cashier's OPEN till session, if any (POS-14: page-level TillSessionBar
- * per UI-SPEC §3 — till state is session-scoped, not order/tab-scoped). Till sessions
- * are cashier-scoped, so this lists by `cashierId=currentUser, status=OPEN` and takes
- * the single result (a cashier can have at most one OPEN till at a time).
+ * per UI-SPEC §3 — till state is session-scoped, not order/tab-scoped). A cashier has at
+ * most one OPEN till, so this takes the single result.
+ *
+ * Deliberately sends NO cashierId: the endpoint resolves an omitted cashierId to the
+ * caller's own JWT subject, and refuses a foreign one. Passing our own id would be
+ * redundant (the server ignores the client's opinion of who it is) and would keep alive
+ * the client-controlled identity parameter that allowed cross-cashier till reads.
+ * The userId still scopes the CACHE KEY so one browser profile can't serve another's till.
  */
 export function useActiveTill() {
   const { userId, isAuthenticated } = useCurrentUser();
   return useQuery({
     queryKey: queryKeys.pos.activeTill(userId),
     queryFn: async () => {
-      const tills = await PosRepository.listTills({ cashierId: userId, status: "OPEN" });
+      const tills = await PosRepository.listTills({ status: "OPEN" });
       return tills[0] ?? null;
     },
     enabled: isAuthenticated && !!userId,
