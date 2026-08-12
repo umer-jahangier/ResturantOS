@@ -98,10 +98,36 @@ export function ReceiptDocumentView({ document }: { document: PrintDocument }) {
             <span className="receipt-row-label">Discount</span>
             <span className="receipt-amount">{totals.discount.formatted}</span>
           </div>
-          <div className="receipt-row">
-            <span className="receipt-row-label">Service charge</span>
-            <span className="receipt-amount">{totals.serviceCharge.formatted}</span>
-          </div>
+          {/*
+            F20 — the line that used to print `Service charge Rs 0.00` on EVERY guest's bill.
+
+            The rule is "label OR money", and each half earns its place:
+
+              - a non-null label means the branch HAS a service charge on this check, so the row
+                prints even at Rs 0.00 — a fully-comped 5% check genuinely owes nothing and the
+                guest is still entitled to the line that says so;
+              - a non-zero amount prints regardless, so money can never silently vanish off a
+                bill. A document written before F20 added the snapshot carries an amount and no
+                caption, and "Service charge" is then the honest default.
+
+            What is gone is the third case, which was every bill this product ever produced: no
+            label AND no money, printing `Service charge Rs 0.00`.
+
+            The percentage is printed beside the label for the same reason the tax rows print
+            theirs: a guest reading "Service charge Rs 49.90" asks "of what?", and the paper is
+            the only thing still in their hand when they do.
+          */}
+          {totals.serviceChargeLabel || totals.serviceCharge.paisa !== 0 ? (
+            <div className="receipt-row" data-testid="receipt-service-charge-row">
+              <span className="receipt-row-label">
+                {totals.serviceChargeLabel ?? "Service charge"}
+                {totals.serviceChargeRatePercent
+                  ? ` (${totals.serviceChargeRatePercent}%)`
+                  : ""}
+              </span>
+              <span className="receipt-amount">{totals.serviceCharge.formatted}</span>
+            </div>
+          ) : null}
 
           {/*
             The phrase and the percentage. NOT `tax.rateCode` — F6.
@@ -158,6 +184,19 @@ export function ReceiptDocumentView({ document }: { document: PrintDocument }) {
                 <span className="receipt-row-label">{tender.method}</span>
                 <span className="receipt-amount">{tender.amountApplied.formatted}</span>
               </div>
+              {/*
+                F20 — the tip, on its own line under the tender that carried it, and only when
+                there is one. It is deliberately NOT folded into the amount above: that figure is
+                what settled the bill and it has to keep summing to the grand total, which is the
+                identity this whole document is checked against. A guest looking at a Rs 998 bill
+                and a Rs 1,048 card slip is owed the sentence that explains the difference.
+              */}
+              {tender.tip.paisa > 0 ? (
+                <div className="receipt-row" data-testid="receipt-tip-row">
+                  <span className="receipt-row-label">Tip</span>
+                  <span className="receipt-amount">{tender.tip.formatted}</span>
+                </div>
+              ) : null}
               {/*
                 Tendered and change are printed only when there IS change — a card tender has
                 neither, and printing "Change Rs 0.00" under a card payment invites the question

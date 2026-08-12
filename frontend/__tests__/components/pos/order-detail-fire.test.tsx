@@ -40,6 +40,8 @@ function rawOrder(overrides: Partial<Record<string, unknown>> = {}) {
     taxPaisa: 4500,
     discountPaisa: 0,
     serviceChargePaisa: 0,
+    serviceChargePct: 0,
+    serviceChargeLabel: null,
     totalPaisa: 94500,
     notes: null,
     openedAt: "2026-07-12T10:00:00Z",

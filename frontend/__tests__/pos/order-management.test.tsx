@@ -184,6 +184,8 @@ describe("OrderManagement", () => {
             taxPaisa: 2000,
             discountPaisa: 0,
             serviceChargePaisa: 0,
+            serviceChargePct: 0,
+            serviceChargeLabel: null,
             totalPaisa: 50000,
             notes: null,
             openedAt: new Date().toISOString(),

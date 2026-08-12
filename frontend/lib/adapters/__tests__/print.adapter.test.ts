@@ -200,13 +200,26 @@ describe("print document wire contract", () => {
       ["lineTotal", "modifiers", "name", "note", "quantity", "stationCode", "unitPrice"].sort(),
     );
     expect(Object.keys(doc.totals ?? {}).sort()).toEqual(
-      ["discount", "grandTotal", "serviceCharge", "subtotal", "tax"].sort(),
+      [
+        "discount",
+        "grandTotal",
+        "serviceCharge",
+        // F20 — the branch's own wording and the rate, both null on this fixture because it is a
+        // pre-F20 document. The renderers fall back to "Service charge" so its Rs 227.06 still
+        // reaches the paper; what they no longer do is print the row when there is neither.
+        "serviceChargeLabel",
+        "serviceChargeRatePercent",
+        "subtotal",
+        "tax",
+      ].sort(),
     );
     expect(Object.keys(doc.taxBreakdown[0] ?? {}).sort()).toEqual(
       ["amount", "label", "ratePercent", "rateCode"].sort(),
     );
     expect(Object.keys(doc.tenders[0] ?? {}).sort()).toEqual(
-      ["amountApplied", "amountTendered", "change", "method", "referenceNo"].sort(),
+      // F20 — `tip` is declared on every tender and defaults to a real Rs 0.00 on a document that
+      // predates it, so no renderer has to hold a null check.
+      ["amountApplied", "amountTendered", "change", "method", "referenceNo", "tip"].sort(),
     );
     expect(Object.keys(doc.fiscal ?? {}).sort()).toEqual(
       ["fbrInvoiceNumber", "logoAssetId", "noticeLine", "qrPayload", "qrSizeMm"].sort(),

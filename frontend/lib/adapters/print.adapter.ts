@@ -76,6 +76,10 @@ export function adaptPrintTotals(raw: ApiPrintTotals): PrintTotals {
     subtotal: adaptPrintAmount(raw.subtotal),
     discount: adaptPrintAmount(raw.discount),
     serviceCharge: adaptPrintAmount(raw.serviceCharge),
+    // F20. `?? null` collapses "the key was absent" (pre-F20 server) and "the key was null" (this
+    // branch takes no service charge) onto the one reading the renderer acts on: print no row.
+    serviceChargeLabel: raw.serviceChargeLabel ?? null,
+    serviceChargeRatePercent: raw.serviceChargeRatePercent ?? null,
     tax: adaptPrintAmount(raw.tax),
     grandTotal: adaptPrintAmount(raw.grandTotal),
   };
@@ -94,6 +98,9 @@ export function adaptPrintTender(raw: ApiPrintTender): PrintTender {
   return {
     method: raw.method,
     amountApplied: adaptPrintAmount(raw.amountApplied),
+    // F20. A pre-F20 tender carried no tip, which is a real zero and not an unknown — so it
+    // becomes a real ReceiptAmount here rather than a null every renderer would have to guard.
+    tip: raw.tip ? adaptPrintAmount(raw.tip) : { paisa: 0, formatted: "Rs 0.00" },
     amountTendered: adaptPrintAmount(raw.amountTendered),
     change: adaptPrintAmount(raw.change),
     referenceNo: raw.referenceNo,

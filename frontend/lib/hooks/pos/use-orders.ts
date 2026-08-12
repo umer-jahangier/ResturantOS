@@ -491,6 +491,12 @@ function buildOfflineOrderStub(
     taxPaisa: 0,
     discountPaisa: 0,
     serviceChargePaisa: 0,
+    // F20. An offline stub cannot know the branch's service-charge policy — the rate lives in
+    // pos_db and is applied inside the order transaction. Zero and no label is the honest answer
+    // and is also what the stub's own zero total says; the real figures arrive when the queued
+    // order reaches the server, which is the only place that may compute them.
+    serviceChargePct: 0,
+    serviceChargeLabel: null,
     totalPaisa: 0,
     notes: payload.notes ?? null,
     openedAt: null,

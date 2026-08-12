@@ -111,6 +111,20 @@ export const apiPrintTotalsSchema = z.strictObject({
   subtotal: apiReceiptAmountSchema,
   discount: apiReceiptAmountSchema,
   serviceCharge: apiReceiptAmountSchema,
+  /**
+   * F20 — the branch's own wording for its service charge, and the rate the check was charged at.
+   * BOTH null when the branch takes no service charge, and the renderer must then print no
+   * service-charge row at all: `Service charge Rs 0.00` appeared on every bill this product ever
+   * produced, for a charge no restaurant could set.
+   *
+   * `.nullish()` rather than `.nullable()` because the schema is STRICT and a pos-service that
+   * predates F20 omits the keys entirely — a strict reader would throw and blank the bill.
+   *
+   * `serviceChargeRatePercent` is a STRING on the wire, exactly as `ratePercent` below: a rate is
+   * printed, not computed with, and no floating-point type belongs in a print document.
+   */
+  serviceChargeLabel: z.string().nullish(),
+  serviceChargeRatePercent: z.string().nullish(),
   tax: apiReceiptAmountSchema,
   grandTotal: apiReceiptAmountSchema,
 });
@@ -127,6 +141,12 @@ export const apiPrintTaxLineSchema = z.strictObject({
 export const apiPrintTenderSchema = z.strictObject({
   method: z.string().nullable(),
   amountApplied: apiReceiptAmountSchema,
+  /**
+   * F20 — money taken ON TOP of the bill for the staff. Never part of `amountApplied` and never
+   * part of the grand total. `.optional()` for a pos-service that predates the field; the adapter
+   * defaults it to a real zero amount so no renderer has to hold a null check.
+   */
+  tip: apiReceiptAmountSchema.optional(),
   amountTendered: apiReceiptAmountSchema,
   change: apiReceiptAmountSchema,
   referenceNo: z.string().nullable(),

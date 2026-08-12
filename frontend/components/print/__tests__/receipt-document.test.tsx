@@ -183,6 +183,82 @@ describe("ReceiptDocumentView", () => {
     expect(cardRoot).not.toHaveTextContent("Tendered");
   });
 
+  /**
+   * F20 — the walkthrough's §3 #23, on the paper the guest keeps.
+   *
+   * `Service charge Rs 0.00` printed on EVERY receipt this product ever produced, for a charge no
+   * restaurant could set (`service_charge_paisa` non-zero on 0 of 195 live orders). The row is now
+   * printed on "label OR money" and omitted only when there is neither.
+   *
+   * Falsification: restore the unconditional
+   * `<div className="receipt-row"><span>Service charge</span>…</div>` and the first case below
+   * fails on the exact string the walkthrough photographed.
+   */
+  it("prints NO service-charge row when the branch takes none and the amount is zero", () => {
+    const raw = docFrom();
+    const noCharge = {
+      ...raw,
+      totals: {
+        ...raw.totals!,
+        serviceCharge: { paisa: 0, formatted: "Rs 0.00" },
+        serviceChargeLabel: null,
+        serviceChargeRatePercent: null,
+      },
+    };
+    const { container } = render(<ReceiptDocumentView document={noCharge} />);
+    const root = within(container).getByTestId("receipt-root");
+    expect(within(container).queryByTestId("receipt-service-charge-row")).toBeNull();
+    expect(root.textContent ?? "").not.toMatch(/service charge/i);
+  });
+
+  it("prints the branch's own wording and rate, and still prints the row at Rs 0.00 when the branch does charge", () => {
+    const raw = docFrom();
+    const comped = {
+      ...raw,
+      totals: {
+        ...raw.totals!,
+        serviceCharge: { paisa: 0, formatted: "Rs 0.00" },
+        serviceChargeLabel: "Service fee",
+        serviceChargeRatePercent: "5.00",
+      },
+    };
+    const { container } = render(<ReceiptDocumentView document={comped} />);
+    const row = within(container).getByTestId("receipt-service-charge-row");
+    expect(row).toHaveTextContent("Service fee (5.00%)");
+    expect(row).toHaveTextContent("Rs 0.00");
+  });
+
+  it("prints a tip on its own line, beside the tender, and never inside the amount applied", () => {
+    const raw = docFrom();
+    const tipped = {
+      ...raw,
+      tenders: [
+        {
+          method: "CARD",
+          amountApplied: { paisa: 284347, formatted: "Rs 2,843.47" },
+          tip: { paisa: 20000, formatted: "Rs 200.00" },
+          amountTendered: { paisa: 304347, formatted: "Rs 3,043.47" },
+          change: { paisa: 0, formatted: "Rs 0.00" },
+          referenceNo: "VISA-4421",
+        },
+      ],
+    };
+    const { container } = render(<ReceiptDocumentView document={tipped} />);
+    const tipRow = within(container).getByTestId("receipt-tip-row");
+    expect(tipRow).toHaveTextContent("Tip");
+    expect(tipRow).toHaveTextContent("Rs 200.00");
+
+    // The grand total is untouched by the tip — the identity the whole document is checked
+    // against, and the reason a tip can never be folded into `amountApplied`.
+    const root = within(container).getByTestId("receipt-root");
+    expect(root).toHaveTextContent("Rs 2,843.47");
+  });
+
+  it("prints no tip line on an untipped tender", () => {
+    const { container } = render(<ReceiptDocumentView document={docFrom()} />);
+    expect(within(container).queryByTestId("receipt-tip-row")).toBeNull();
+  });
+
   it("bands a reprint with its sequence and the original issue time; a first issue has no band", () => {
     expect(screen.queryByTestId("reprint-band")).toBeNull();
     render(<ReceiptDocumentView document={docFrom()} />);

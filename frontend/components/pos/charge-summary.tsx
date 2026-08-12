@@ -18,6 +18,7 @@ import {
   derivePaymentStatus,
   type PaymentMethod,
 } from "@/lib/models/pos.model";
+import { formatServiceChargeRate } from "@/lib/models/service-charge.model";
 import { formatPaisa, paisaToRupeeInput, parseRupeesToPaisa } from "@/lib/adapters/shared";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +77,12 @@ interface TenderRow {
   amountText: string;
   /** RUPEES handed over. CASH only — every other method is hidden AND ignored. */
   tenderedText: string;
+  /**
+   * RUPEES of tip, taken ON TOP of {@link amountText} (F20). Rupees and raw text for exactly the
+   * reasons the two fields above are: nobody reads a tip in paisa, and `type="number"` swallows
+   * the digits after a decimal point key by key.
+   */
+  tipText: string;
   referenceNo: string;
 }
 
@@ -89,10 +96,25 @@ interface TenderReading {
   /** null when the cashier has not said what was handed over (or the method has no drawer). */
   tenderedPaisa: number | null;
   tenderedInvalid: boolean;
-  /** tendered − amount, floored at 0. */
+  /** The tip, in paisa. 0 when the box is empty; null-invalid is reported separately. */
+  tipPaisa: number;
+  tipInvalid: boolean;
+  /** tendered − amount − tip, floored at 0. */
   changePaisa: number;
-  /** amount − tendered, floored at 0: the guest has not handed over enough. */
+  /** amount + tip − tendered, floored at 0: the guest has not handed over enough. */
   shortPaisa: number;
+}
+
+/**
+ * Which tenders can carry a tip (F20).
+ *
+ * <p>Not every one. LOYALTY_POINTS spends a liability the guest already owns and
+ * CHARGE_TO_ACCOUNT bills a house account later — neither puts money in the drawer or on a card
+ * slip now, so a tip on one would be a liability to staff funded by nothing. The server refuses
+ * both with a 422 naming the field; this hides the box so the cashier never types into it.
+ */
+function methodAcceptsTip(method: PaymentMethod): boolean {
+  return method !== "LOYALTY_POINTS" && method !== "CHARGE_TO_ACCOUNT";
 }
 
 function readTender(row: TenderRow): TenderReading {
@@ -100,12 +122,23 @@ function readTender(row: TenderRow): TenderReading {
   const isCash = row.method === "CASH";
   const tenderedBlank = row.tenderedText.trim() === "";
   const tenderedPaisa = !isCash || tenderedBlank ? null : parseRupeesToPaisa(row.tenderedText);
-  const delta = amountPaisa !== null && tenderedPaisa !== null ? tenderedPaisa - amountPaisa : 0;
+  // A tip on a method that cannot carry one is not merely hidden, it is not READ — otherwise
+  // switching the method after typing a tip would still send it and earn a 422.
+  const tipBlank = row.tipText.trim() === "";
+  const tipRead =
+    !methodAcceptsTip(row.method) || tipBlank ? null : parseRupeesToPaisa(row.tipText);
+  const tipPaisa = tipRead ?? 0;
+  // The guest hands over the bill AND the tip. Change is what is left after both, which is what
+  // the server computes (`tendered - applied - tip`) and what the drawer will actually contain.
+  const delta =
+    amountPaisa !== null && tenderedPaisa !== null ? tenderedPaisa - amountPaisa - tipPaisa : 0;
   return {
     amountPaisa,
     amountInvalid: amountPaisa === null,
     tenderedPaisa,
     tenderedInvalid: isCash && !tenderedBlank && tenderedPaisa === null,
+    tipPaisa,
+    tipInvalid: methodAcceptsTip(row.method) && !tipBlank && tipRead === null,
     changePaisa: Math.max(0, delta),
     shortPaisa: Math.max(0, -delta),
   };
@@ -129,7 +162,14 @@ function generateKey() {
 }
 
 function newTenderRow(amountText = ""): TenderRow {
-  return { id: generateKey(), method: "CASH", amountText, tenderedText: "", referenceNo: "" };
+  return {
+    id: generateKey(),
+    method: "CASH",
+    amountText,
+    tenderedText: "",
+    tipText: "",
+    referenceNo: "",
+  };
 }
 
 function formatOrderTime(value: string | null): string {
@@ -269,7 +309,10 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const tenderTotalPaisa = readings.reduce((acc, r) => acc + (r.amountPaisa ?? 0), 0);
   const changeDueTotalPaisa = readings.reduce((acc, r) => acc + r.changePaisa, 0);
   const hasValidTenders = readings.some((r) => (r.amountPaisa ?? 0) > 0);
-  const anyUnparseable = readings.some((r) => r.amountInvalid || r.tenderedInvalid);
+  const anyUnparseable = readings.some((r) => r.amountInvalid || r.tenderedInvalid || r.tipInvalid);
+  // F20. Shown beside the total so the cashier can read back the whole figure the guest is about
+  // to part with — the bill and the tip are two numbers and the card machine only asks for one.
+  const tipTotalPaisa = readings.reduce((acc, r) => acc + r.tipPaisa, 0);
   // A cash row whose tendered is BELOW its applied amount is a mis-key, not an under-payment: the
   // server would silently raise the tender to the applied amount (PaymentServiceImpl clamps with
   // Math.max), and the drawer would then be reconciled against money that was never handed over.
@@ -327,6 +370,9 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           ...(row.method === "CASH" && reading.tenderedPaisa !== null
             ? { tenderedPaisa: reading.tenderedPaisa }
             : {}),
+          // F20. Sent only when there is one, so an ordinary tender's request body is byte-for-byte
+          // what it was before this feature existed.
+          ...(reading.tipPaisa > 0 ? { tipPaisa: reading.tipPaisa } : {}),
           referenceNo: row.referenceNo || null,
         });
       }
@@ -487,7 +533,29 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
             off check, and nothing for a persona holding neither discount permission.
           */}
           <DiscountPanel order={order} />
-          <MoneyRow label="Service charge" paisa={order.serviceChargePaisa} />
+          {/*
+            F20 — the line that used to print `Service charge Rs 0.00` on every check ever rung.
+
+            The rule is "label OR money". A non-null label means the branch HAS a service charge
+            on this check, so the row shows even at Rs 0.00 — a fully-comped 5% check genuinely
+            owes nothing and the guest is still entitled to the line that says so. A non-zero
+            amount shows regardless, so money can never silently vanish off a bill. What is gone
+            is the third case, which was every check ever rung: no label AND no money.
+
+            The percentage is printed beside the label because "Service charge Rs 49.90" invites
+            "of what?" from the person paying, and the cashier standing in front of them needs the
+            answer on the same screen.
+          */}
+          {(order.serviceChargeLabel || order.serviceChargePaisa !== 0) && (
+            <MoneyRow
+              label={
+                order.serviceChargePct > 0
+                  ? `${order.serviceChargeLabel ?? "Service charge"} (${formatServiceChargeRate(order.serviceChargePct)})`
+                  : (order.serviceChargeLabel ?? "Service charge")
+              }
+              paisa={order.serviceChargePaisa}
+            />
+          )}
           <MoneyRow label="Taxes" paisa={order.taxPaisa} />
           <div className="my-1 border-t" />
           <MoneyRow label="Total" paisa={order.totalPaisa} bold />
@@ -579,6 +647,22 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                           : ""}
                         {formatOrderTime(payment.recordedAt)}
                       </span>
+                      {/*
+                        F20 — the tip, on its own line under the tender that carried it. It is NOT
+                        added into the amount on the right: that column is what settled the bill,
+                        it is summed into "Amount paid" above, and a tip settles none of the bill.
+                        Showing them added together would make a Rs 998 check look Rs 1,048 paid
+                        and the remaining balance wrong by the tip.
+                      */}
+                      {payment.tipPaisa > 0 && (
+                        <span
+                          data-testid="payment-history-tip"
+                          data-paisa={payment.tipPaisa}
+                          className="text-xs text-muted-foreground"
+                        >
+                          Tip {formatPaisa(payment.tipPaisa)} — held for staff, not part of the bill
+                        </span>
+                      )}
                     </div>
                     <MoneyDisplay
                       paisa={payment.amountPaisa}
@@ -742,6 +826,66 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                       )}
 
                       {/*
+                        F20 — the tip. Sited under the amount, ABOVE the cash-only tendered block,
+                        because a tip is asked for on card as often as on cash and the guest says
+                        it at the moment the amount is agreed.
+
+                        It is deliberately NOT a row of percentage quick-keys. A percentage of the
+                        bill is a service charge and the restaurant sets that once, on the settings
+                        screen; a tip is a number the guest says out loud, and offering "10% / 15% /
+                        20%" on a Pakistani till would be the product nudging a guest on the
+                        cashier's behalf.
+                      */}
+                      {methodAcceptsTip(row.method) && (
+                        <div className="flex flex-wrap items-end gap-2">
+                          <label className="flex min-w-[8.5rem] flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                            Tip (Rs) — optional
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              value={row.tipText}
+                              onChange={(e) => updateRow(row.id, { tipText: e.target.value })}
+                              placeholder="For the staff, on top of the bill"
+                              aria-label="Tip (Rs)"
+                              aria-invalid={reading.tipInvalid || undefined}
+                              data-testid="tip-input"
+                              className={cn(
+                                "h-11 rounded-lg border bg-background px-2 text-right font-mono text-sm tabular-nums text-foreground",
+                                reading.tipInvalid && "border-destructive",
+                              )}
+                            />
+                          </label>
+                          {reading.tipPaisa > 0 && (
+                            <div className="flex flex-none flex-col items-end gap-1">
+                              <span className="text-xs text-muted-foreground">
+                                {row.method === "CASH" ? "Into the drawer" : "Off the card"}
+                              </span>
+                              <span
+                                data-testid="tender-plus-tip-value"
+                                data-paisa={(reading.amountPaisa ?? 0) + reading.tipPaisa}
+                                className="flex h-11 items-center"
+                              >
+                                <MoneyDisplay
+                                  paisa={(reading.amountPaisa ?? 0) + reading.tipPaisa}
+                                  className="font-mono text-lg font-semibold"
+                                />
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {reading.tipInvalid && (
+                        <p
+                          data-testid="tip-invalid-message"
+                          aria-live="polite"
+                          className="text-xs text-destructive"
+                        >
+                          Enter the tip in rupees, like 50 or 50.00. Leave it blank for no tip.
+                        </p>
+                      )}
+
+                      {/*
                         Tendered + change, CASH only. A card has no drawer: printing a change line
                         under one invites "where is my change?" at the counter (the same reasoning
                         receipt-document.tsx applies when it suppresses Tendered/Change at zero).
@@ -866,6 +1010,16 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
                   <MoneyDisplay paisa={tenderTotalPaisa} className="font-semibold" />
                 </span>
               </div>
+              {tipTotalPaisa > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Tip (not part of the bill)
+                  </span>
+                  <span data-testid="tip-total-value" data-paisa={tipTotalPaisa}>
+                    <MoneyDisplay paisa={tipTotalPaisa} className="font-semibold" />
+                  </span>
+                </div>
+              )}
               {changeDueTotalPaisa > 0 && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Change due</span>

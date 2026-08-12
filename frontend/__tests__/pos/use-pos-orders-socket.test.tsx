@@ -58,6 +58,8 @@ const wirePayload = {
   taxPaisa: 0,
   discountPaisa: 0,
   serviceChargePaisa: 0,
+  serviceChargePct: 0,
+  serviceChargeLabel: null,
   totalPaisa: 1000,
   notes: null,
   openedAt: null,

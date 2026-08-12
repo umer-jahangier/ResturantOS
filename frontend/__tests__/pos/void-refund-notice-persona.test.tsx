@@ -71,6 +71,8 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     taxPaisa: 0,
     discountPaisa: 0,
     serviceChargePaisa: 0,
+    serviceChargePct: 0,
+    serviceChargeLabel: null,
     totalPaisa: TOTAL_PAISA,
     notes: null,
     openedAt: "2026-08-12T05:01:45Z",

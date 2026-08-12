@@ -36,6 +36,8 @@ const rawOrder = {
   taxPaisa: 4250,
   discountPaisa: 0,
   serviceChargePaisa: 0,
+  serviceChargePct: 0,
+  serviceChargeLabel: null,
   totalPaisa: 89250,
   notes: null,
   openedAt: "2026-06-30T00:00:00Z",

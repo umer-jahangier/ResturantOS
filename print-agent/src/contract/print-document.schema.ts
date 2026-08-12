@@ -60,6 +60,15 @@ export interface PrintTotals {
   subtotal: ReceiptAmount;
   discount: ReceiptAmount;
   serviceCharge: ReceiptAmount;
+  /**
+   * F20 — the branch's own wording for its service charge, and the rate the check was charged at.
+   * BOTH null when the branch takes no service charge, and the renderer then prints no
+   * service-charge row at all: `Service charge Rs 0.00` came out of this printer on every bill
+   * this product ever produced, for a charge no restaurant could set.
+   */
+  serviceChargeLabel: string | null;
+  /** A string, e.g. `"5.00"` — printed, never computed with. */
+  serviceChargeRatePercent: string | null;
   tax: ReceiptAmount;
   grandTotal: ReceiptAmount;
 }
@@ -74,6 +83,8 @@ export interface PrintTaxLine {
 export interface PrintTender {
   method: string | null;
   amountApplied: ReceiptAmount;
+  /** F20 — money taken on top of the bill for the staff. Zero on almost every tender. */
+  tip: ReceiptAmount;
   amountTendered: ReceiptAmount;
   change: ReceiptAmount;
   referenceNo: string | null;
@@ -393,6 +404,14 @@ function parseTotals(raw: unknown): PrintTotals {
     subtotal: amount(o.subtotal, "$.totals.subtotal"),
     discount: amount(o.discount, "$.totals.discount"),
     serviceCharge: amount(o.serviceCharge, "$.totals.serviceCharge"),
+    // F20. `?? null` before the strict reader: a pos-service that predates the field omits the
+    // key entirely, and this parser is the thing standing between a stale server and a printer
+    // that produces nothing at all. Absent and null both mean "no service charge on this bill".
+    serviceChargeLabel: nullableStr(o.serviceChargeLabel ?? null, "$.totals.serviceChargeLabel"),
+    serviceChargeRatePercent: nullableStr(
+      o.serviceChargeRatePercent ?? null,
+      "$.totals.serviceChargeRatePercent",
+    ),
     tax: amount(o.tax, "$.totals.tax"),
     grandTotal: amount(o.grandTotal, "$.totals.grandTotal"),
   };
@@ -413,6 +432,11 @@ function parseTender(raw: unknown, path: string): PrintTender {
   return {
     method: nullableStr(o.method, `${path}.method`),
     amountApplied: amount(o.amountApplied, `${path}.amountApplied`),
+    // F20. A pre-F20 tender carried no tip, which is a real zero and not an unknown.
+    tip:
+      o.tip === undefined || o.tip === null
+        ? { paisa: 0, formatted: "Rs 0.00" }
+        : amount(o.tip, `${path}.tip`),
     amountTendered: amount(o.amountTendered, `${path}.amountTendered`),
     change: amount(o.change, `${path}.change`),
     referenceNo: nullableStr(o.referenceNo, `${path}.referenceNo`),

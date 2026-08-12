@@ -52,6 +52,8 @@ function parkedOrder(overrides: Record<string, unknown> = {}) {
     taxPaisa: 3250,
     discountPaisa: 0,
     serviceChargePaisa: 0,
+    serviceChargePct: 0,
+    serviceChargeLabel: null,
     totalPaisa: 68250,
     notes: null,
     openedAt: "2026-08-12T10:00:00Z",

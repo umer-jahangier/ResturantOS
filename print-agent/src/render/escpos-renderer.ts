@@ -185,7 +185,19 @@ function renderCustomerReceipt(
     writeLines(out, amountRow("Subtotal", totals.subtotal.formatted, cols));
     // 26-12 will suppress zero rows; the decision and the fiscal caveat live in that plan.
     writeLines(out, amountRow("Discount", totals.discount.formatted, cols));
-    writeLines(out, amountRow("Service charge", totals.serviceCharge.formatted, cols));
+    // F20. "Label OR money", and each half earns its place: a non-null label means this branch
+    // HAS a service charge on this check, so a fully-comped 5% check still prints the Rs 0.00 line
+    // that explains itself; a non-zero amount prints regardless, so money can never vanish off a
+    // bill (a pre-F20 document carries an amount and no caption). What is gone is the third case,
+    // which was every bill this printer ever produced: no label AND no money.
+    if (totals.serviceChargeLabel !== null || totals.serviceCharge.paisa !== 0) {
+      const scName = totals.serviceChargeLabel ?? "Service charge";
+      const scLabel =
+        totals.serviceChargeRatePercent !== null
+          ? `${scName} (${totals.serviceChargeRatePercent}%)`
+          : scName;
+      writeLines(out, amountRow(scLabel, totals.serviceCharge.formatted, cols));
+    }
     for (const tax of document.taxBreakdown) {
       writeLines(out, amountRow(taxLabel(tax), tax.amount.formatted, cols));
     }
@@ -202,6 +214,12 @@ function renderCustomerReceipt(
     writeLine(out, divider(cols));
     for (const tender of document.tenders) {
       writeLines(out, amountRow(tender.method ?? "TENDER", tender.amountApplied.formatted, cols));
+      // F20. On its own line, never folded into the amount above: that figure settles the bill
+      // and must keep summing to the grand total. A guest holding a Rs 998 bill and a Rs 1,048
+      // card slip is owed the line that explains the difference.
+      if (tender.tip.paisa > 0) {
+        writeLines(out, amountRow("Tip", tender.tip.formatted, cols));
+      }
       if (tender.change.paisa > 0) {
         writeLines(out, amountRow("Tendered", tender.amountTendered.formatted, cols));
         writeLines(out, amountRow("Change", tender.change.formatted, cols));

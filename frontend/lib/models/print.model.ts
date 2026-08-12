@@ -58,6 +58,13 @@ export interface PrintTotals {
   subtotal: PrintAmount;
   discount: PrintAmount;
   serviceCharge: PrintAmount;
+  /**
+   * F20 — the branch's own wording, and the rate. BOTH null when the branch takes no service
+   * charge, and the renderer must then print no service-charge row at all.
+   */
+  serviceChargeLabel: string | null;
+  /** A string, e.g. `"5.00"` — printed, never computed with. */
+  serviceChargeRatePercent: string | null;
   tax: PrintAmount;
   grandTotal: PrintAmount;
 }
@@ -74,7 +81,9 @@ export interface PrintTender {
   method: string | null;
   /** What settled the bill. The tenders applied sum to the grand total. */
   amountApplied: PrintAmount;
-  /** What the customer handed over — equal to `amountApplied` for a card. */
+  /** F20 — money taken on top of the bill for the staff. Zero on almost every tender. */
+  tip: PrintAmount;
+  /** What the customer handed over — `amountApplied + tip + change`. */
   amountTendered: PrintAmount;
   change: PrintAmount;
   referenceNo: string | null;

@@ -77,11 +77,17 @@ describe("the port-9100 transport", () => {
     const allowed = new Set<string>();
     DOCUMENT.lines.forEach((l) => allowed.add(l.lineTotal.formatted));
     if (DOCUMENT.totals) {
-      for (const a of Object.values(DOCUMENT.totals)) allowed.add(a.formatted);
+      // F20 added two STRING fields to totals (the service charge's label and rate), so this can
+      // no longer assume every value is a ReceiptAmount. Filtered by shape rather than by name so
+      // the next amount added to the record is picked up without editing this line.
+      for (const a of Object.values(DOCUMENT.totals)) {
+        if (a && typeof a === "object" && "formatted" in a) allowed.add(a.formatted);
+      }
     }
     DOCUMENT.taxBreakdown.forEach((t) => allowed.add(t.amount.formatted));
     DOCUMENT.tenders.forEach((t) => {
       allowed.add(t.amountApplied.formatted);
+      allowed.add(t.tip.formatted);
       allowed.add(t.amountTendered.formatted);
       allowed.add(t.change.formatted);
     });
