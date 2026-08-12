@@ -1,0 +1,92 @@
+{
+  "posTrouble": [],
+  "cartTotals": {
+    "tax": "Rs 450.50",
+    "total": "Rs 3,350.50",
+    "saysEst": false,
+    "saysEstimated": false,
+    "subtotalRow": "Rs 2,900.00"
+  },
+  "orderIdFromTillTraffic": "17283d13-8104-46b0-8622-b70f65dd448f",
+  "cashierBranch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "orderOnServer": {
+    "orderNo": "ORD-20260812-0281",
+    "subtotal": "Rs 2,900.00",
+    "tax": "Rs 450.50",
+    "total": "Rs 3,350.50",
+    "lines": [
+      {
+        "n": "ryani 166428",
+        "qty": 2,
+        "rate": 17,
+        "code": "SR-STD-17-166428",
+        "cls": "Standard rate",
+        "tax": "Rs 289.00"
+      },
+      {
+        "n": " Lime 166428",
+        "qty": 1,
+        "rate": 0,
+        "code": "ZR-EXEMPT-166428",
+        "cls": "Zero-rated",
+        "tax": "Rs 0.00"
+      },
+      {
+        "n": "arahi 166428",
+        "qty": 1,
+        "rate": 17,
+        "code": "SR-STD-17-166428",
+        "cls": "Standard rate",
+        "tax": "Rs 161.50"
+      }
+    ]
+  },
+  "chargeTrouble": [],
+  "chargePageTax": {
+    "tax": "Rs 450.50",
+    "total": "Rs 2,900.00",
+    "raw": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Orders Order Charge Floating Terrace HQ Search… ⌘K E Back Order #ORD-20260812-0281 In Progress Unpaid Dine-in · Customer: — · Cashier: eb2ee67e · Aug 12, 2026, 11:08 AM Items F16 Biryani 166428 ×2 Rs 1,989.00 Sent F16 Lime 166428 ×1 Rs 250.00 Sent F16 Karahi 166428 ×1 Rs 1,111.50 Sent Bill Subtotal Rs 2,90"
+  },
+  "closedOrder": {
+    "status": "CLOSED",
+    "subtotal": "Rs 2,900.00",
+    "tax": "Rs 450.50",
+    "total": "Rs 3,350.50"
+  },
+  "receiptTrouble": [],
+  "billTaxLines": [
+    "SubtotalRs 2,900.00",
+    "Sales Tax (17.00%)Rs 450.50",
+    "TaxRs 450.50",
+    "TOTALRs 3,350.50"
+  ],
+  "journalTrouble": [],
+  "journalRows": [
+    "JE-2027-0002922026-08-12Order revenue ORD-20260812-0281POSTEDRs 3,350.50Rs 3,350.50"
+  ],
+  "journalEntryHeader": {
+    "id": "f8e11ffa-6329-44f8-a4d9-27c767723af9"
+  },
+  "journalLines": [
+    {
+      "account": "1010",
+      "dr": "Rs 3,350.50",
+      "cr": "Rs 0.00"
+    },
+    {
+      "account": "4100",
+      "dr": "Rs 0.00",
+      "cr": "Rs 2,900.00"
+    },
+    {
+      "account": "2200",
+      "dr": "Rs 0.00",
+      "cr": "Rs 450.50"
+    }
+  ],
+  "journalBalanced": {
+    "debits": "Rs 3,350.50",
+    "credits": "Rs 3,350.50",
+    "equal": true
+  }
+}

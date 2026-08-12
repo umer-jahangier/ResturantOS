@@ -1,0 +1,68 @@
+{
+  "390-light": {
+    "sidewaysScroll": false,
+    "rowWidth": 326,
+    "inputWidth": 300,
+    "rowsOnOneLine": false,
+    "bodyBg": "oklch(1 0 195)",
+    "bodyColor": "oklch(0.168 0.006 195)",
+    "rowBorder": "oklch(0.928 0.006 195)",
+    "rowCount": 2,
+    "alerts": []
+  },
+  "768-light": {
+    "sidewaysScroll": false,
+    "rowWidth": 448,
+    "inputWidth": 119,
+    "rowsOnOneLine": true,
+    "bodyBg": "oklch(1 0 195)",
+    "bodyColor": "oklch(0.168 0.006 195)",
+    "rowBorder": "oklch(0.928 0.006 195)",
+    "rowCount": 2,
+    "alerts": []
+  },
+  "1440-light": {
+    "sidewaysScroll": false,
+    "rowWidth": 1104,
+    "inputWidth": 392,
+    "rowsOnOneLine": true,
+    "bodyBg": "oklch(1 0 195)",
+    "bodyColor": "oklch(0.168 0.006 195)",
+    "rowBorder": "oklch(0.928 0.006 195)",
+    "rowCount": 2,
+    "alerts": []
+  },
+  "390-dark": {
+    "sidewaysScroll": false,
+    "rowWidth": 326,
+    "inputWidth": 300,
+    "rowsOnOneLine": false,
+    "bodyBg": "oklch(0.132 0.006 195)",
+    "bodyColor": "oklch(0.985 0.002 195)",
+    "rowBorder": "oklch(0.302 0.008 195)",
+    "rowCount": 2,
+    "alerts": []
+  },
+  "768-dark": {
+    "sidewaysScroll": false,
+    "rowWidth": 448,
+    "inputWidth": 119,
+    "rowsOnOneLine": true,
+    "bodyBg": "oklch(0.132 0.006 195)",
+    "bodyColor": "oklch(0.985 0.002 195)",
+    "rowBorder": "oklch(0.302 0.008 195)",
+    "rowCount": 2,
+    "alerts": []
+  },
+  "1440-dark": {
+    "sidewaysScroll": false,
+    "rowWidth": 1104,
+    "inputWidth": 392,
+    "rowsOnOneLine": true,
+    "bodyBg": "oklch(0.132 0.006 195)",
+    "bodyColor": "oklch(0.985 0.002 195)",
+    "rowBorder": "oklch(0.302 0.008 195)",
+    "rowCount": 2,
+    "alerts": []
+  }
+}
