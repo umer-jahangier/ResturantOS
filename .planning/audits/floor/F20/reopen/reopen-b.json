@@ -1,0 +1,86 @@
+{
+  "order": {
+    "orderNo": "ORD-20260812-0411",
+    "status": "CLOSED",
+    "type": "DINE_IN",
+    "subtotal": 99800,
+    "discount": 10000,
+    "tax": 0,
+    "sc": 4490,
+    "scPct": 5,
+    "scLabel": "Service charge",
+    "total": 94290
+  },
+  "payments": [
+    {
+      "m": "CASH",
+      "amt": 94290,
+      "tip": 6000,
+      "tendered": 120000,
+      "change": 19710
+    }
+  ],
+  "till": {
+    "none": true,
+    "note": "order carries no tillSessionId"
+  },
+  "journal": {
+    "status": 200,
+    "entries": [
+      {
+        "entryNo": "JE-2027-000358",
+        "st": "POSTED",
+        "dr": 110290,
+        "cr": 110290,
+        "balanced": true,
+        "lines": [
+          {
+            "code": "1010",
+            "desc": "CASH payment",
+            "d": 100290,
+            "c": 0
+          },
+          {
+            "code": "4920",
+            "desc": "Discount",
+            "d": 10000,
+            "c": 0
+          },
+          {
+            "code": "4100",
+            "desc": "Sales revenue",
+            "d": 0,
+            "c": 99800
+          },
+          {
+            "code": "4910",
+            "desc": "Service charge",
+            "d": 0,
+            "c": 4490
+          },
+          {
+            "code": "2330",
+            "desc": "Tips payable",
+            "d": 0,
+            "c": 6000
+          }
+        ]
+      }
+    ]
+  },
+  "journal-attribution": {
+    "cr4910": 4490,
+    "wantSc": 4490,
+    "cr2330": 6000,
+    "wantTip": 6000,
+    "cr4100": 99800,
+    "wantNetSales": 89800,
+    "balanced": true
+  },
+  "charge-page-bill": {
+    "serviceChargeTestId": null,
+    "serviceChargePaisaAttr": null,
+    "serviceChargeText": null,
+    "billText": "Bill | Subtotal | Rs 998.00 | Discounts | Rs 100.00 | Off Audit Item 52235 | re-open audit: re-base the service charge · Terrace Cashier | -Rs 100.00 | Service charge (5.00%) | Rs 44.90 | Taxes | Rs 0.00 | Total | Rs 942.90 | Amount paid | Rs 942.90 | Remaining balance | Rs 0.00 | Bill issued Aug 12, 2026, 4:31 PM | Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost. | Print another copy"
+  }
+}

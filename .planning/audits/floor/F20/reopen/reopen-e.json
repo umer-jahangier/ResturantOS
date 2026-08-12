@@ -1,0 +1,98 @@
+{
+  "E1-bill": {
+    "trouble": {
+      "bad": [],
+      "alerts": [],
+      "url": "http://localhost:3000/app/pos/orders/af087e09-9f60-4082-a500-b7e5b2727512/receipt"
+    },
+    "text": "Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Service Charge | PEOPLE | Customers | Collapse | Orders | Order | Receipt | Floating Terrace HQ | Search… | ⌘K | E | Back | Print a browser copy | Printed on audit-receipt | F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued. | *** REPRINT #7 *** | Originally issued 2026-08-12T11:31:29.005Z | Floating Terrace HQ | 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad | +92 21 4628872 | Order | ORD-20260812-0411 | Issued | 2026-08-12T11:45:03.872Z | 2 x Audit Item 52235 | Rs 998.00 | + Hot | Subtotal | Rs 998.00 | Discount | Rs 100.00 | Service charge (5.00%) | Rs 44.90 | Tax | Rs 0.00 | TOTAL | Rs 942.90 | CASH | Rs 942.90 | Tip | Rs 60.00 | Tendered | Rs 1,200.00 | Change | Rs 197.10"
+  },
+  "E2-before": {
+    "status": "CLOSED",
+    "total": 94290,
+    "sc": 4490,
+    "payments": [
+      {
+        "m": "CASH",
+        "amt": 94290,
+        "tip": 6000,
+        "kind": "PAYMENT"
+      }
+    ]
+  },
+  "E2-refund-over-the-bill": {
+    "status": 409,
+    "code": null,
+    "message": ""
+  },
+  "E2-refund-partial": {
+    "status": 200,
+    "body": {
+      "id": "af087e09-9f60-4082-a500-b7e5b2727512",
+      "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "orderNo": "ORD-20260812-0411",
+      "type": "DINE_IN",
+      "status": "CLOSED",
+      "derivedStatus": "SERVED",
+      "tableId": null,
+      "coverCount": 1,
+      "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+      "customerId": null,
+      "subtotalPaisa": 99800,
+      "taxPaisa": 0,
+      "discountPaisa": 10000,
+      "serviceChargePaisa": 4490,
+      "serviceChargePct": 5,
+      "serviceChargeLabel": "Service charge",
+      "totalPaisa": 94290,
+      "notes": null,
+      "openedAt": "2026-08-12T11:31:07.226124Z",
+      "sentToKdsAt": "2026-08-12T11:31:07.404461Z",
+      "clientOrderId": "8dea9aa2-fe8d-4e25-9979-5a61471efc35",
+      "version": 4,
+      "items": [],
+      "discounts": []
+    }
+  },
+  "E2-refund-journal": {
+    "status": 200,
+    "entries": [
+      {
+        "entryNo": "JE-2027-000361",
+        "st": "POSTED",
+        "dr": 20000,
+        "cr": 20000,
+        "balanced": true,
+        "lines": [
+          {
+            "code": "4930",
+            "desc": "Sales refund",
+            "d": 20000,
+            "c": 0
+          },
+          {
+            "code": "1010",
+            "desc": "Cash refund",
+            "d": 0,
+            "c": 20000
+          }
+        ]
+      }
+    ]
+  },
+  "E3-till-after-refund": {
+    "status": 200,
+    "cashCollectedPaisa": 444716,
+    "liveExpectedCashPaisa": 944716
+  },
+  "E3-order-after": {
+    "status": "CLOSED",
+    "total": 94290,
+    "sc": 4490,
+    "scPct": 5,
+    "scLabel": "Service charge"
+  },
+  "E3-bill-after-refund": {
+    "text": "Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Service Charge | PEOPLE | Customers | Collapse | Orders | Order | Receipt | Floating Terrace HQ | Search… | ⌘K | E | Back | Print a browser copy | Printed on audit-receipt | F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued. | *** REPRINT #8 *** | Originally issued 2026-08-12T11:31:29.005Z | Floating Terrace HQ | 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad | +92 21 4628872 | Order | ORD-20260812-0411 | Issued | 2026-08-12T11:45:34.277Z | 2 x Audit Item 52235 | Rs 998.00 | + Hot | Subtotal | Rs 998.00 | Discount | Rs 100.00 | Service charge (5.00%) | Rs 44.90 | Tax | Rs 0.00 | TOTAL | Rs 942.90 | CASH | Rs 942.90 | Tip | Rs 60.00 | Tendered | Rs 1,200.00 | Change | Rs 197.10"
+  }
+}

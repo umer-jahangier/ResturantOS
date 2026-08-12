@@ -1,0 +1,81 @@
+{
+  "charge-page-before-payment": {
+    "orderNo": "ORD-20260812-0420",
+    "billRows": {
+      "Subtotal": "Rs 998.00",
+      "Discounts": "Rs 0.00",
+      "Service charge (5.00%)": "Rs 49.90",
+      "Taxes": "Rs 0.00",
+      "Total": "Rs 1,047.90",
+      "Amount paid": "Rs 0.00",
+      "Remaining balance": "Rs 1,047.90"
+    },
+    "server": {
+      "subtotal": 99800,
+      "sc": 4990,
+      "pct": 5,
+      "label": "Service charge",
+      "tax": 0,
+      "total": 104790
+    },
+    "screenSc": "Rs 49.90",
+    "serverScFormatted": "Rs 49.90",
+    "agrees": true,
+    "identity": true
+  },
+  "before-submit": {
+    "offTheCard": "116790",
+    "tipTotal": "12000"
+  },
+  "payments": [
+    {
+      "m": "CARD",
+      "amt": 104790,
+      "tip": 12000,
+      "tendered": 116790,
+      "change": 0
+    }
+  ],
+  "after-payment-screen": {
+    "amountPaid": "Rs 1,047.90",
+    "remaining": "Rs 0.00",
+    "tipLine": "Tip Rs 120.00 — held for staff, not part of the bill"
+  },
+  "bill": {
+    "text": "way to get paper. Add a receipt printer at Settings → Printers to print without a dialog. | Order | ORD-20260812-0420 | Issued | 2026-08-12T11:51:13.351Z | 2 x Audit Item 52235 | Rs 998.00 | + Hot | Subtotal | Rs 998.00 | Discount | Rs 0.00 | Service charge (5.00%) | Rs 49.90 | Tax | Rs 0.00 | TOTAL | Rs 1,047.90 | CARD | Rs 1,047.90 | Tip | Rs 120.00 | Printer configuration unavailable - drawer and cut not commanded"
+  },
+  "status": "CLOSED",
+  "journal": {
+    "entryNo": "JE-2027-000363",
+    "st": "POSTED",
+    "dr": 116790,
+    "cr": 116790,
+    "balanced": true,
+    "lines": [
+      {
+        "code": "1110",
+        "desc": "CARD payment",
+        "d": 116790,
+        "c": 0
+      },
+      {
+        "code": "4100",
+        "desc": "Sales revenue",
+        "d": 0,
+        "c": 99800
+      },
+      {
+        "code": "4910",
+        "desc": "Service charge",
+        "d": 0,
+        "c": 4990
+      },
+      {
+        "code": "2330",
+        "desc": "Tips payable",
+        "d": 0,
+        "c": 12000
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "takings-api": {
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "No endpoint matches this path",
+        "details": [],
+        "traceId": "eef522e2-2217-4aba-b9f2-382e71a2d84c"
+      }
+    }
+  },
+  "takings-screen-trouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings"
+  },
+  "takings-screen-text": {
+    "text": "Floating Terrace | Floating Terrace HQ | OVERVIEW | Dashboard | ORDERS | POS | Kitchen Display | Till Review | MENU | Inventory | Menu Items | Tables | Stations | Station Routing | POS Terminals | Printers | Sales Tax | Service Charge | FINANCE | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | PURCHASING | Purchasing | PEOPLE | HR | Customers | REPORTING | Reports | Realtime Dashboard | Ask (NLQ) | SETTINGS | General | Branches | Appearance | Users | Roles | Audit log | Service health | Collapse | App | Finance | Takings | Floating Terrace HQ | Search… | ⌘K | 6 | Takings | Transactions | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging | House Accounts | AR Aging | Guide | Takings | The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. | Business date | 107 orders closed on this trading day | The day's money | GROSS SALES | Rs 113,197.00 | Full menu price of everything sold, before any discount. | DISCOUNTS | Rs 662.30 | Given away. Shown here rather than netted into a smaller sales figure. | COMPS | Not known | Comps are not recorded separately from discounts. orders.discount_paisa is one column, and a full comp appears in it as a discount equal to the subtotal. Splitting them would require a field POS does not capture. | NET SALES | Rs 112,534.70 | Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line. | TAX | Rs 8,531.01 | Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales. | SERVICE CHARGE | Rs 1,134.01 | Added to the bill on top of net sales. Shown on its own, not folded into it. | TOTAL BILLED | Rs 122,199.72 | What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against. | Gross sales − discounts = net sales. Net sales + tax + service charge = total billed. | How it came in | Dated by when the money arrived, not by when its bill was finalised — so this is what the drawers and the card terminals took today, whether or not those orders are closed. | TENDER\tPAYMENTS\tAMOUNT\tOF WHICH ON OPEN ORDERS | Card\t12\tRs 11,527.85\t— | Cash\t144\tRs 131,365.07\tRs 20,693.20(36) | Rs 20,693.20 of today's cash is against 34 orders that are not closed yet. | This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross, net sales or total billed: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice. | What each till counted | Every till is listed on its own. Variances are never added together — two drawers out by opposite amounts is two problems, and one total of zero would hide both. | TILL\tSTATE\tOPENING FLOAT\tEXPECTED CASH\tCOUNTED CASH\tVARIA"
+  },
+  "takings-mentions-tip": {
+    "anyTipWord": false
+  }
+}

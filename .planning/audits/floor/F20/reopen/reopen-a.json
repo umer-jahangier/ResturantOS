@@ -1,0 +1,210 @@
+{
+  "steps": {
+    "branch": {
+      "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "count": 4
+    },
+    "A1-live-state-found": {
+      "status": 200,
+      "body": {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "enabled": true,
+        "ratePct": 5,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      }
+    },
+    "A1-screen-trouble": {
+      "bad": [],
+      "alerts": [],
+      "url": "http://localhost:3000/app/settings/service-charge"
+    },
+    "A1-after-reload": {
+      "enabled": true,
+      "rate": "5",
+      "label": "Service charge",
+      "dineIn": true,
+      "takeaway": false,
+      "pickup": false
+    },
+    "B-takeaway-order": {
+      "orderNo": "ORD-20260812-0409",
+      "orderId": "69557376-8b95-4466-bddc-c947b7316390"
+    },
+    "B-takeaway-charge-page": {
+      "billText": "Bill | Subtotal | Rs 499.00 | Discounts | Rs 0.00 | Apply a discount | Taxes | Rs 0.00 | Total | Rs 499.00 | Amount paid | Rs 0.00 | Remaining balance | Rs 499.00",
+      "rows": {
+        "Subtotal": "Rs 499.00",
+        "Discounts": "Rs 0.00",
+        "Taxes": "Rs 0.00",
+        "Total": "Rs 499.00",
+        "Amount paid": "Rs 0.00",
+        "Remaining balance": "Rs 499.00"
+      },
+      "serviceChargeCaption": null,
+      "serviceChargeValue": null,
+      "anyServiceChargeTextInBill": false,
+      "tipInputPresent": true
+    },
+    "B-takeaway-server": {
+      "type": "TAKEAWAY",
+      "subtotalPaisa": 49900,
+      "serviceChargePaisa": 0,
+      "serviceChargePct": 0,
+      "serviceChargeLabel": null,
+      "totalPaisa": 49900
+    },
+    "C-policy-now": {
+      "status": 200,
+      "body": {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "enabled": true,
+        "ratePct": 5,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": true,
+        "pickup": false,
+        "canManage": true
+      }
+    },
+    "C-takeaway-now-charged": {
+      "orderNo": "ORD-20260812-0410",
+      "caption": "Service charge (5.00%)",
+      "value": "Rs 24.95",
+      "serverSc": 2495,
+      "subtotal": 49900,
+      "total": 52395
+    },
+    "D-order": {
+      "orderNo": "ORD-20260812-0411",
+      "orderId": "af087e09-9f60-4082-a500-b7e5b2727512"
+    },
+    "D-before-discount": {
+      "caption": "Service charge (5.00%)",
+      "value": "Rs 49.90",
+      "subtotal": 99800,
+      "sc": 4990,
+      "tax": 0,
+      "total": 104790,
+      "expectedSc": 4990
+    },
+    "D-discount-submit-state": {
+      "disabled": false,
+      "err": null,
+      "preview": "Takes Rs 100.00 off — new total Rs 947.90."
+    },
+    "D-after-discount": {
+      "screenCaption": "re-open audit: re-base the service charge · Terrace Cashier",
+      "screenValue": "-Rs 100.00",
+      "subtotal": 99800,
+      "discount": 10000,
+      "sc": 4490,
+      "tax": 0,
+      "total": 94290,
+      "expectedSc": 4490,
+      "scMatchesNetOfDiscount": true,
+      "totalIdentity": true,
+      "screenAgreesWithServer": false
+    },
+    "E-till-before": {
+      "tillId": "10a629cc-f1d7-4e10-a91a-9e6082b8220b",
+      "status": 200,
+      "live": 725050
+    },
+    "E-pre-submit": {
+      "total": 94290,
+      "tipPaisa": 6000,
+      "tenderedPaisa": 120000,
+      "changeDue": "19710",
+      "changeDueTotal": "19710",
+      "tenderPlusTip": "100290",
+      "tipTotal": "6000",
+      "tenderTotal": "94290",
+      "balanceAfter": "0",
+      "short": false,
+      "expectedChange": 19710
+    },
+    "E-server-payments": [
+      {
+        "method": "CASH",
+        "amountPaisa": 94290,
+        "tipPaisa": 6000,
+        "tenderedPaisa": 120000,
+        "changePaisa": 19710,
+        "identity": true
+      }
+    ],
+    "E-after-payment-screen": {
+      "amountPaid": "Rs 942.90",
+      "remaining": "Rs 0.00",
+      "tipLine": "Tip Rs 60.00 — held for staff, not part of the bill",
+      "tipPaisa": "6000"
+    },
+    "E-till-after": {
+      "status": 200,
+      "liveExpectedCashPaisa": 725050,
+      "deltaCash": 0,
+      "wantDelta": 80580
+    },
+    "F-close": {
+      "closeStatus": "Closed (Payment completed)",
+      "status": "CLOSED"
+    },
+    "F-journal": {
+      "entryNo": "REV-2027-000203",
+      "status": "POSTED",
+      "dr": 29000,
+      "cr": 29000,
+      "balanced": true,
+      "lines": [
+        {
+          "code": "1010",
+          "d": 0,
+          "c": 29000
+        },
+        {
+          "code": "4100",
+          "d": 25000,
+          "c": 0
+        },
+        {
+          "code": "2200",
+          "d": 4000,
+          "c": 0
+        }
+      ]
+    },
+    "F-attribution": {
+      "cr4910": 0,
+      "wantSc": 4490,
+      "cr2330": 0,
+      "wantTip": 6000
+    }
+  },
+  "breaks": [
+    {
+      "what": "screen and server disagree on the service charge",
+      "detail": {
+        "screen": "-Rs 100.00",
+        "server": 4490
+      }
+    },
+    {
+      "what": "4910 credit != the order's service charge",
+      "detail": {
+        "cr4910": 0,
+        "want": 4490
+      }
+    },
+    {
+      "what": "2330 credit != the tip",
+      "detail": {
+        "cr2330": 0,
+        "want": 6000
+      }
+    }
+  ]
+}
