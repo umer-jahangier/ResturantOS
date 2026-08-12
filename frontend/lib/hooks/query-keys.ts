@@ -261,4 +261,16 @@ export const queryKeys = {
     // and the REST snapshot must agree on ONE key, not two competing states.
     dashboardTiles: (branchId: string) => ["reporting", branchId, "dashboard-tiles"] as const,
   },
+  nlq: {
+    /**
+     * The tenant's AI provider + credential state (Program C).
+     *
+     * Deliberately NOT branch-keyed. An API key is a commercial relationship between the
+     * restaurant group and the AI provider — one account, one bill — so keying it per branch
+     * would refetch the same row on every branch switch and imply a per-branch answer the server
+     * does not have. Same reasoning as `pos.taxClasses`, and the mirror image of
+     * `pos.serviceCharge`, which IS branch-keyed because one dining room really can differ.
+     */
+    aiSettings: () => ["nlq", "ai-settings"] as const,
+  },
 } as const;
