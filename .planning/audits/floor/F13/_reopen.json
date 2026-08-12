@@ -1,0 +1,346 @@
+{
+  "fails": [
+    "the other tenant cannot read this order :: 400"
+  ],
+  "notes": {
+    "cashierPosPerms": [
+      "pos.menu.view",
+      "pos.order.close",
+      "pos.order.create",
+      "pos.order.discount.line",
+      "pos.order.send_to_kds",
+      "pos.order.update",
+      "pos.order.view",
+      "pos.order.void.own",
+      "pos.tables.manage",
+      "pos.till.close",
+      "pos.till.open"
+    ],
+    "cashierFullPaid": {
+      "first": {
+        "notice": "Paid — void unavailable. A manager must refund this check.",
+        "buttons": [
+          {
+            "text": "1 revision",
+            "aria": "1 revision"
+          },
+          {
+            "text": "",
+            "aria": "Refresh order details"
+          },
+          {
+            "text": "",
+            "aria": "Close order details"
+          },
+          {
+            "text": "Mark Served",
+            "aria": "Mark Audit Item 52235 served"
+          },
+          {
+            "text": "Cancel",
+            "aria": null
+          },
+          {
+            "text": "Mark Served",
+            "aria": "Mark Audit Item 60568 served"
+          },
+          {
+            "text": "Cancel",
+            "aria": null
+          },
+          {
+            "text": "+ Add note",
+            "aria": null
+          },
+          {
+            "text": "Full Menu",
+            "aria": null
+          },
+          {
+            "text": "CHARGE NOW",
+            "aria": null
+          },
+          {
+            "text": "Reprint kitchen ticket",
+            "aria": null
+          }
+        ],
+        "refundTrigger": false,
+        "voidTrigger": false
+      },
+      "reload": {
+        "notice": "Paid — void unavailable. A manager must refund this check.",
+        "buttons": [
+          {
+            "text": "1 revision",
+            "aria": "1 revision"
+          },
+          {
+            "text": "",
+            "aria": "Refresh order details"
+          },
+          {
+            "text": "",
+            "aria": "Close order details"
+          },
+          {
+            "text": "Mark Served",
+            "aria": "Mark Audit Item 52235 served"
+          },
+          {
+            "text": "Cancel",
+            "aria": null
+          },
+          {
+            "text": "Mark Served",
+            "aria": "Mark Audit Item 60568 served"
+          },
+          {
+            "text": "Cancel",
+            "aria": null
+          },
+          {
+            "text": "+ Add note",
+            "aria": null
+          },
+          {
+            "text": "Full Menu",
+            "aria": null
+          },
+          {
+            "text": "CHARGE NOW",
+            "aria": null
+          },
+          {
+            "text": "Reprint kitchen ticket",
+            "aria": null
+          }
+        ],
+        "refundTrigger": false,
+        "voidTrigger": false
+      },
+      "orderNo": "ORD-20260812-0339"
+    },
+    "orderDetailRoute": {
+      "url": "http://localhost:3000/app/pos/orders/95d56f9a-4a80-4ad7-9dff-a0532d6cefe1",
+      "notice": null,
+      "refund": false,
+      "body": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard"
+    },
+    "cashierPartial": {
+      "probe": {
+        "notice": "Paid — void unavailable. A manager must refund this check.",
+        "buttons": [
+          {
+            "text": "1 revision",
+            "aria": "1 revision"
+          },
+          {
+            "text": "",
+            "aria": "Refresh order details"
+          },
+          {
+            "text": "",
+            "aria": "Close order details"
+          },
+          {
+            "text": "Mark Served",
+            "aria": "Mark Audit Item 52235 served"
+          },
+          {
+            "text": "Cancel",
+            "aria": null
+          },
+          {
+            "text": "Mark Served",
+            "aria": "Mark Audit Item 60568 served"
+          },
+          {
+            "text": "Cancel",
+            "aria": null
+          },
+          {
+            "text": "+ Add note",
+            "aria": null
+          },
+          {
+            "text": "Full Menu",
+            "aria": null
+          },
+          {
+            "text": "CHARGE NOW",
+            "aria": null
+          },
+          {
+            "text": "Reprint kitchen ticket",
+            "aria": null
+          }
+        ],
+        "refundTrigger": false,
+        "voidTrigger": false
+      },
+      "paidPaisa": 49900,
+      "totalPaisa": 99800,
+      "orderNo": "ORD-20260812-0342"
+    },
+    "waiterPerms": [
+      "pos.kds.view",
+      "pos.menu.view",
+      "pos.order.create",
+      "pos.order.send_to_kds",
+      "pos.order.update",
+      "pos.order.view",
+      "pos.tables.manage"
+    ],
+    "waiter": {
+      "notice": null,
+      "refundTrigger": null,
+      "note": "row not found"
+    },
+    "manager": {
+      "notice": "Paid — void unavailable. Use Refund.",
+      "buttons": [
+        {
+          "text": "1 revision",
+          "aria": "1 revision"
+        },
+        {
+          "text": "",
+          "aria": "Refresh order details"
+        },
+        {
+          "text": "",
+          "aria": "Close order details"
+        },
+        {
+          "text": "Mark Served",
+          "aria": "Mark Audit Item 52235 served"
+        },
+        {
+          "text": "Cancel",
+          "aria": null
+        },
+        {
+          "text": "Mark Served",
+          "aria": "Mark Audit Item 60568 served"
+        },
+        {
+          "text": "Cancel",
+          "aria": null
+        },
+        {
+          "text": "+ Add note",
+          "aria": null
+        },
+        {
+          "text": "Full Menu",
+          "aria": null
+        },
+        {
+          "text": "CHARGE NOW",
+          "aria": null
+        },
+        {
+          "text": "Refund",
+          "aria": "Refund order"
+        },
+        {
+          "text": "Reprint kitchen ticket",
+          "aria": null
+        }
+      ],
+      "refundTrigger": true,
+      "voidTrigger": false
+    },
+    "managerPartial": {
+      "notice": "Paid — void unavailable. Use Refund.",
+      "buttons": [
+        {
+          "text": "1 revision",
+          "aria": "1 revision"
+        },
+        {
+          "text": "",
+          "aria": "Refresh order details"
+        },
+        {
+          "text": "",
+          "aria": "Close order details"
+        },
+        {
+          "text": "Mark Served",
+          "aria": "Mark Audit Item 52235 served"
+        },
+        {
+          "text": "Cancel",
+          "aria": null
+        },
+        {
+          "text": "Mark Served",
+          "aria": "Mark Audit Item 60568 served"
+        },
+        {
+          "text": "Cancel",
+          "aria": null
+        },
+        {
+          "text": "+ Add note",
+          "aria": null
+        },
+        {
+          "text": "Full Menu",
+          "aria": null
+        },
+        {
+          "text": "CHARGE NOW",
+          "aria": null
+        },
+        {
+          "text": "Refund",
+          "aria": "Refund order"
+        },
+        {
+          "text": "Reprint kitchen ticket",
+          "aria": null
+        }
+      ],
+      "refundTrigger": true,
+      "voidTrigger": false
+    },
+    "cashierClosed": {
+      "probe": {
+        "notice": "Paid — a manager must refund this check.",
+        "buttons": [
+          {
+            "text": "1 revision",
+            "aria": "1 revision"
+          },
+          {
+            "text": "",
+            "aria": "Refresh order details"
+          },
+          {
+            "text": "",
+            "aria": "Close order details"
+          },
+          {
+            "text": "+ Add note",
+            "aria": null
+          },
+          {
+            "text": "Reprint kitchen ticket",
+            "aria": null
+          }
+        ],
+        "refundTrigger": false,
+        "voidTrigger": false
+      },
+      "settlementStatus": null,
+      "drawerText": "Order #ORD-20260812-0339 Closed TAKEAWAY · 1 cover(s) 1 revision Audit Item 52235 ×1 Rs 499.00 Served Audit Item 60568 ×1 Rs 499.00 Served + Add note Paid ✓ Paid — a manager must refund this check. Reprint kitchen ticket"
+    },
+    "crossTenant": {
+      "order": 400,
+      "payments": 404
+    }
+  }
+}
