@@ -39,6 +39,7 @@ const FIGURE_KEY_TO_FIELD: Record<string, keyof DailyTakings | "dayCashVariance"
   "service charge": "serviceCharge",
   net: "net",
   "net sales": "net",
+  "total billed": "totalBilled",
 };
 
 function unknown(figureKey: string, reason: string): Extract<MoneyFigure, { state: "UNKNOWN" }> {
@@ -162,7 +163,13 @@ export function adaptDailyTakings(raw: any): DailyTakings {
         ),
     tax: figure("tax", raw.taxPaisa),
     serviceCharge: figure("serviceCharge", raw.serviceChargePaisa),
+    // `netSalesPaisa` is gross − discounts, tax EXCLUDED, and `totalBilledPaisa` is the bill
+    // total. They were ONE field before F5 — the bill total under the name of net — which is why
+    // the screen showed a net larger than its own gross. Both are carried through untouched; the
+    // adapter still does no arithmetic, so if the server ever regresses, the screen shows the
+    // regression instead of hiding it behind a re-derivation here.
     net: figure("net", raw.netSalesPaisa),
+    totalBilled: figure("totalBilled", raw.totalBilledPaisa),
     orderCount: Number(raw.orderCount ?? 0),
     byTender: (raw.byTender ?? []).map(adaptTenderLine),
     tills: (raw.tills ?? []).map(adaptTillReconciliation),

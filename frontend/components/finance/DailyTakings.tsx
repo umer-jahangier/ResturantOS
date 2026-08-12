@@ -158,15 +158,37 @@ function TakingsBody({
             hint="Fully comped items."
             figure={takings.comps}
           />
-          <FigureTile label="Tax" figure={takings.tax} />
-          <FigureTile label="Service charge" figure={takings.serviceCharge} />
           <FigureTile
             label="Net sales"
-            hint="What the bills actually came to. Stated by the server, not worked out here."
+            hint="Gross sales less discounts. Tax and service charge are NOT in this figure — this is the revenue line."
             figure={takings.net}
+          />
+          <FigureTile
+            label="Tax"
+            hint="Charged on top of net sales and owed onward to the tax authority. Not revenue, and not inside net sales."
+            figure={takings.tax}
+          />
+          <FigureTile
+            label="Service charge"
+            hint="Added to the bill on top of net sales. Shown on its own, not folded into it."
+            figure={takings.serviceCharge}
+          />
+          <FigureTile
+            label="Total billed"
+            hint="What the bills actually came to: net sales plus tax plus service charge. This is the figure the tender split below reconciles against."
+            figure={takings.totalBilled}
             emphasis
           />
         </div>
+        {/* The identity is printed rather than left to be worked out. Before F5 this screen had one
+            tile carrying the bill total under the word "net", so NET SALES read Rs 45,966.40 above
+            a GROSS SALES of Rs 43,350.00 and an accountant reading it over-stated revenue by the
+            whole output-tax line. Saying how the six tiles relate is what stops that reading from
+            being available at all. It is a SENTENCE, not a computation — no number in it is
+            derived on this page. */}
+        <p className="text-label text-muted-foreground" data-testid="takings-identity">
+          Gross sales − discounts = net sales. Net sales + tax + service charge = total billed.
+        </p>
       </section>
 
       <section aria-labelledby="tender-heading" className="space-y-3">
@@ -273,9 +295,9 @@ function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
           </p>
           <p className="mt-1 text-label">
             This money is part of the tender split above and is already in the drawer, so expect
-            the count to include it. It is NOT in gross or net sales: a bill becomes a sale when it
-            is closed, which may be tomorrow. Close those orders and the figures move — the cash
-            does not get counted twice.
+            the count to include it. It is NOT in gross, net sales or total billed: a bill becomes
+            a sale when it is closed, which may be tomorrow. Close those orders and the figures
+            move — the cash does not get counted twice.
           </p>
         </>
       ) : (

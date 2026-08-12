@@ -117,10 +117,28 @@ export interface DailyTakings {
   gross: MoneyFigure;
   discounts: MoneyFigure;
   comps: MoneyFigure;
+
+  /**
+   * NET SALES — `gross − discounts`, with tax and service charge OUTSIDE it. The revenue line.
+   *
+   * This field used to carry the BILL TOTAL, because the server sent the bill total under the name
+   * `netSalesPaisa`. The screen therefore showed NET SALES Rs 45,966.40 above GROSS SALES
+   * Rs 43,350.00 — a "net" figure larger than the gross it came out of, because output tax had
+   * been added into it. Tax is money owed to the tax authority; it is not revenue and it is not
+   * inside net. The bill total now has its own field, `totalBilled`, and its own tile.
+   *
+   * Stated by the server; NEVER re-derived here (T-32-12-E).
+   */
+  net: MoneyFigure;
   tax: MoneyFigure;
   serviceCharge: MoneyFigure;
-  /** What the bills came to. Stated by the server; NEVER re-derived here (T-32-12-E). */
-  net: MoneyFigure;
+  /**
+   * TOTAL BILLED — `net + tax + service charge`, i.e. what the bills actually came to.
+   *
+   * This is the figure that reconciles against the tender split below. Stated by the server, like
+   * everything else here: the screen does not add three tiles together to make a fourth.
+   */
+  totalBilled: MoneyFigure;
   /** Orders CLOSED on this trading day — NOT the number of orders that took money. */
   orderCount: number;
 

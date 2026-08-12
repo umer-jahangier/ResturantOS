@@ -20,9 +20,10 @@ const LIVE_2026_08_06 = {
   branchId: null,
   grossSalesPaisa: 3339000,
   discountsPaisa: 0,
+  netSalesPaisa: 3339000,
   taxPaisa: 534240,
   serviceChargePaisa: 0,
-  netSalesPaisa: 3873240,
+  totalBilledPaisa: 3873240,
   orderCount: 26,
   byTender: [
     { method: "CARD", amountPaisa: 1006880, paymentCount: 8 },
@@ -91,9 +92,10 @@ const LIVE_OPEN_ORDER_CASH = {
   branchId: null,
   grossSalesPaisa: 0,
   discountsPaisa: 0,
+  netSalesPaisa: 0,
   taxPaisa: 0,
   serviceChargePaisa: 0,
-  netSalesPaisa: 0,
+  totalBilledPaisa: 0,
   orderCount: 0,
   byTender: [
     {
@@ -122,12 +124,21 @@ describe("takings adapter — the union assembled from the live wire shape", () 
   it("keeps a stated amount as KNOWN, in paisa, untouched", () => {
     const t = adaptDailyTakings(LIVE_2026_08_06);
     expect(t.gross).toEqual({ state: "KNOWN", paisa: 3339000 });
-    expect(t.net).toEqual({ state: "KNOWN", paisa: 3873240 });
+    expect(t.net).toEqual({ state: "KNOWN", paisa: 3339000 });
+    expect(t.totalBilled).toEqual({ state: "KNOWN", paisa: 3873240 });
   });
 
-  it("does no arithmetic: net is the server's number, not gross − discounts + tax", () => {
+  it("carries net sales and total billed as TWO figures, not one", () => {
+    // F5. They were one field — the bill total under the name `netSalesPaisa` — so the screen
+    // rendered NET SALES above GROSS SALES and an accountant reading it over-stated revenue by
+    // the entire output-tax line. Two names, two numbers, and the tax lives in exactly one.
+    const t = adaptDailyTakings(LIVE_2026_08_06);
+    expect(t.net).not.toEqual(t.totalBilled);
+  });
+
+  it("does no arithmetic: net is the server's number, not gross − discounts", () => {
     const t = adaptDailyTakings({ ...LIVE_2026_08_06, netSalesPaisa: 99 });
-    // A derived net would be 3,873,240. The adapter renders what it was told, even when absurd —
+    // A derived net would be 3,339,000. The adapter renders what it was told, even when absurd —
     // that is what makes a server-side defect visible instead of quietly patched over.
     expect(t.net).toEqual({ state: "KNOWN", paisa: 99 });
   });
@@ -433,9 +444,10 @@ describe("DailyTakings — a failed request is never a day with no sales", () =>
         branchId: null,
         grossSalesPaisa: 0,
         discountsPaisa: 0,
+        netSalesPaisa: 0,
         taxPaisa: 0,
         serviceChargePaisa: 0,
-        netSalesPaisa: 0,
+        totalBilledPaisa: 0,
         orderCount: 0,
         byTender: [],
         tills: [],
@@ -457,7 +469,8 @@ describe("DailyTakings — a failed request is never a day with no sales", () =>
     };
     render(<DailyTakings />);
     expect(screen.getByTestId("figure-tile-gross-sales")).toHaveTextContent("Rs 33,390.00");
-    expect(screen.getByTestId("figure-tile-net-sales")).toHaveTextContent("Rs 38,732.40");
+    expect(screen.getByTestId("figure-tile-net-sales")).toHaveTextContent("Rs 33,390.00");
+    expect(screen.getByTestId("figure-tile-total-billed")).toHaveTextContent("Rs 38,732.40");
     // Comps is the one figure the schema cannot state. It says so, in place of a number.
     expect(
       within(screen.getByTestId("figure-tile-comps")).getByTestId("unknown-figure"),
@@ -465,6 +478,110 @@ describe("DailyTakings — a failed request is never a day with no sales", () =>
     expect(screen.getByTestId("tender-row-CASH")).toBeInTheDocument();
     expect(screen.getAllByTestId(/^till-row-/)).toHaveLength(2);
     expect(screen.getByTestId("takings-date")).toHaveValue("2026-08-06");
+  });
+});
+
+/**
+ * F5 — a tile labelled "net" that reads LARGER than the gross tile above it.
+ *
+ * The figures below are the real response for business date 2026-08-11 on the Floating Terrace
+ * tenant, the day the walkthrough caught this: GROSS Rs 43,350.00, DISCOUNTS Rs 950.00,
+ * TAX Rs 3,566.40 — and NET SALES Rs 45,966.40, because "net" carried `SUM(orders.total_paisa)`.
+ *
+ * These assertions are made against the RENDERED PAGE, by reading the money out of each tile the
+ * way the person cashing up reads it. Asserting the component's props instead would have passed
+ * throughout the defect: the props were faithfully the number the server sent, and the number the
+ * server sent was the wrong one for the word above it.
+ */
+describe("DailyTakings — no figure called 'net' may exceed gross (F5)", () => {
+  const LIVE_2026_08_11_DISCOUNTED_AND_TAXED = {
+    ...LIVE_2026_08_06,
+    businessDate: "2026-08-11",
+    grossSalesPaisa: 4335000,
+    discountsPaisa: 95000,
+    netSalesPaisa: 4240000, // 43,350.00 − 950.00
+    taxPaisa: 356640,
+    serviceChargePaisa: 0,
+    totalBilledPaisa: 4596640, // 42,400.00 + 3,566.40
+    orderCount: 33,
+  };
+
+  /** The money a human would read off a tile, in paisa. Text in, number out — no props. */
+  function renderedPaisa(testId: string): number {
+    const text = screen.getByTestId(testId).textContent ?? "";
+    const match = text.match(/Rs\s*([\d,]+\.\d{2})/);
+    if (!match) throw new Error(`no money rendered in ${testId}: "${text}"`);
+    return Math.round(Number(match[1]!.replace(/,/g, "")) * 100);
+  }
+
+  async function renderDiscountedTaxedDay() {
+    const { DailyTakings } = await import("@/components/finance/DailyTakings");
+    takingsQuery.current = {
+      isError: false,
+      isPending: false,
+      refetch: vi.fn(),
+      data: adaptDailyTakings(LIVE_2026_08_11_DISCOUNTED_AND_TAXED),
+    };
+    render(<DailyTakings />);
+  }
+
+  it("shows net sales as gross less discounts, smaller than gross", async () => {
+    await renderDiscountedTaxedDay();
+
+    const gross = renderedPaisa("figure-tile-gross-sales");
+    const discounts = renderedPaisa("figure-tile-discounts");
+    const net = renderedPaisa("figure-tile-net-sales");
+
+    expect(gross).toBe(4335000);
+    expect(discounts).toBe(95000);
+    expect(net).toBe(gross - discounts);
+    expect(net).toBeLessThan(gross);
+  });
+
+  it("keeps tax out of net sales and shows it on its own tile", async () => {
+    await renderDiscountedTaxedDay();
+
+    const net = renderedPaisa("figure-tile-net-sales");
+    const tax = renderedPaisa("figure-tile-tax");
+
+    expect(tax).toBe(356640);
+    // The pre-F5 screen rendered exactly this sum under the word "net".
+    expect(net).not.toBe(4335000 - 95000 + 356640);
+  });
+
+  it("gives the bill total its own tile, correctly named, and reconciles the six", async () => {
+    await renderDiscountedTaxedDay();
+
+    const net = renderedPaisa("figure-tile-net-sales");
+    const tax = renderedPaisa("figure-tile-tax");
+    const service = renderedPaisa("figure-tile-service-charge");
+    const totalBilled = renderedPaisa("figure-tile-total-billed");
+
+    expect(totalBilled).toBe(4596640);
+    expect(totalBilled).toBe(net + tax + service);
+    // The old bug in one line: this number is bigger than gross, and it must not be called net.
+    expect(totalBilled).toBeGreaterThan(renderedPaisa("figure-tile-gross-sales"));
+    expect(screen.getByTestId("figure-tile-total-billed")).toHaveTextContent(/total billed/i);
+  });
+
+  it("captions each tile with what that tile's own figure means", async () => {
+    await renderDiscountedTaxedDay();
+
+    // "What the bills actually came to" described a TOTAL and sat under the word "net". Whichever
+    // way the defect is fixed, the sentence has to describe the number directly above it.
+    expect(screen.getByTestId("figure-tile-net-sales")).toHaveTextContent(
+      /gross sales less discounts/i,
+    );
+    expect(screen.getByTestId("figure-tile-net-sales")).toHaveTextContent(
+      /not in this figure|revenue line/i,
+    );
+    expect(screen.getByTestId("figure-tile-tax")).toHaveTextContent(/not inside net sales/i);
+    expect(screen.getByTestId("figure-tile-total-billed")).toHaveTextContent(
+      /what the bills actually came to/i,
+    );
+    expect(screen.getByTestId("takings-identity")).toHaveTextContent(
+      "Gross sales − discounts = net sales. Net sales + tax + service charge = total billed.",
+    );
   });
 });
 
@@ -501,8 +618,9 @@ describe("DailyTakings — cash on an open order (S0-02)", () => {
     expect(panel).toHaveAttribute("data-unclosed-cash-paisa", "7700");
     expect(panel).toHaveTextContent("Rs 77.00");
     expect(panel).toHaveTextContent(/1 order that is not closed yet/i);
-    // It must also say the money is NOT in gross/net, or the two bases look like a contradiction.
-    expect(panel).toHaveTextContent(/not in gross or net sales/i);
+    // It must also say the money is NOT in gross/net/total, or the two bases look like a
+    // contradiction — and it has to name all three tiles, not the two that existed before F5.
+    expect(panel).toHaveTextContent(/not in gross, net sales or total billed/i);
   });
 
   it("says so plainly when nothing is being held against an open bill", async () => {
