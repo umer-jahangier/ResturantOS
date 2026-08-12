@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChefHat, Clock, Layers, Timer } from "lucide-react";
+import { ChefHat, Clock, ConciergeBell, Layers, Timer } from "lucide-react";
 
 import { useKdsStations, useKdsTickets } from "@/lib/hooks/kds/use-kds-tickets";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
@@ -163,7 +163,28 @@ export function StationPicker({ branchId }: StationPickerProps) {
 
   return (
     <div data-surface="kds" className="min-h-screen bg-kds-surface p-6 text-kds-text">
-      <h1 className={cn("mb-6 font-bold text-kds-text", T_H1)}>Kitchen — Stations</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h1 className={cn("font-bold text-kds-text", T_H1)}>Kitchen — Stations</h1>
+        {/*
+          THE PASS (F18). This is the only way into it from a kitchen screen, and it is here
+          rather than in the sidebar deliberately: the expeditor works from the kitchen's own
+          home screen, and every tile beside this button shows ONE station's queue — which is
+          exactly the thing the pass exists to be the opposite of. The tiles answer "how much
+          work is at PANTRY1"; this answers "is table H1 ready to go".
+        */}
+        <button
+          type="button"
+          onClick={() => router.push("/app/kitchen/expo")}
+          data-testid="kds-open-pass"
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg border border-white/25 bg-kds-card px-4 py-2.5 font-bold tracking-wide text-kds-text",
+            T_LABEL,
+          )}
+        >
+          <ConciergeBell className="size-4" aria-hidden="true" />
+          The Pass — every check, whole
+        </button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {activeStations.map((station) => (
           <StationTile
