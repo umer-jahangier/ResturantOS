@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Row-level security for audit_events — the last tenant-scoped table in the product that had
+      none. Measured live against audit_db before this changeset:
+
+          relname                | rls | forced | policies
+          audit_events           |  f  |   f    |    0
+          audit_events_2026_01   |  f  |   f    |    0     (and all 13 other partitions)
+
+      Every other tenant-scoped service FORCEs RLS on its tenant tables. The audit log — which
+      holds every login, void, refund, role change and password reset for every tenant — did not.
+
+      Tenant isolation here was defended at exactly one layer: AuditQueryController takes tenantId
+      from the verified JWT and declares no tenant parameter, so no caller can influence it. That
+      is a genuinely strong structural control and it is why this was a gap rather than a live
+      leak. It is also the only one, and it does not extend to AuditInternalController (which takes
+      a tenant as a query parameter, gated on a shared secret) nor to anything that reaches the
+      table outside this service.
+
+      ── The partitioning problem, measured rather than assumed ──────────────────────────────────
+
+      audit_events is PARTITION BY RANGE (occurred_at). The obvious implementation — enable and
+      FORCE on the parent, one policy on the parent — is WRONG, and silently so. Probed on this
+      project's actual PostgreSQL 18.4:
+
+        * A policy on the parent does not appear on the partition's catalog row at all:
+          parent relrowsecurity=t/relforcerowsecurity=t, partition f/f, zero rows in pg_policies
+          for the partition.
+        * It is applied only to queries that name the PARENT. A query naming the PARTITION
+          directly gets no policy whatsoever. With the parent fully protected, a NOSUPERUSER role
+          that owns the tables ran `SELECT count(*) FROM ev_p1` and received BOTH tenants' rows —
+          2 of 2 — while `SELECT count(*) FROM ev` correctly returned 1.
+        * A partition created AFTER the parent is enabled and forced inherits nothing:
+          relrowsecurity=f, relforcerowsecurity=f, zero policies. So a parent-only control would
+          appear to work for exactly as long as nobody created next month's partition.
+
+      So the control has to be applied to the parent AND to every partition individually, AND to
+      every partition created in the future. All three are below. The parent policy is not
+      redundant: it is what covers queries through audit_events itself, which is every query the
+      application actually issues.
+
+      One consequence worth stating because it is load-bearing for this table: because each
+      partition carries its own ENABLE + FORCE + policy, a partition stays protected after
+      AuditArchivalService DETACHes it. That service detaches rather than drops, keeping up to 84
+      months of history as standalone tables; had the control lived only on the parent, every
+      detach would have produced an unprotected standalone table holding seven-year-old audit
+      records for every tenant. Verified: after DETACH the partition kept rls=t, forced=t and its
+      policy, and the owning NOSUPERUSER role saw 0 foreign rows and its own 2.
+
+      ── READ THIS BEFORE WRITING ANY FUTURE MIGRATION ON audit_events ───────────────────────────
+
+      From this changeset onward, a data step and a DDL step in the same migration SEE DIFFERENT
+      DATABASES.
+
+      Liquibase runs as the table OWNER on a connection with no app.current_tenant_id set. Under
+      FORCE ROW LEVEL SECURITY the owner is subject to the policy like anyone else, so a SELECT or
+      UPDATE issued by a migration matches ZERO ROWS — silently, with no error and no warning.
+      ALTER TABLE is not filtered by RLS and still applies to every row. So:
+
+          UPDATE audit_events SET x = ... ;             (touches nothing, reports success)
+          ALTER TABLE audit_events ADD CONSTRAINT ...;  (applies to rows the UPDATE never saw)
+
+      That is not hypothetical in this repository. pos-service's V22__order_discount_reason.sql
+      records the wreck in its own header: the repair silently no-oped, the constraint then
+      rejected the very rows it was meant to have fixed, and the service would not boot
+      (SQL State 23502, "contains null values").
+
+      What to do instead:
+
+        * Order matters absolutely. Any backfill or normalisation must run BEFORE the statement
+          that enables FORCE — not after it, and not in a later changeset.
+        * Need a constraint over existing rows? Add it NOT VALID. New writes are checked by every
+          path, pre-existing rows are neither checked nor silently restated, and it cannot fail on
+          creation whatever an unseen customer database holds. Then finish it OPERATIONALLY: set
+          the tenant GUC per tenant on a credentialed connection, repair, and VALIDATE CONSTRAINT
+          (which takes only SHARE UPDATE EXCLUSIVE and is safe against a live system).
+        * Do NOT wrap the data step in DISABLE ROW LEVEL SECURITY or NO FORCE. Suppressing a
+          protection to get work done is the antipattern that already produced one security
+          finding in this codebase, and on THIS table it would also mean a migration could rewrite
+          audit history that the append-only trigger exists to make unrewritable.
+
+      This changeset itself contains no data steps at all — only DDL, grants and a function
+      replacement — which is why it is safe in the presence of the rule it is documenting.
+
+      ── Why this cannot break ingestion ─────────────────────────────────────────────────────────
+
+      An audit pipeline that silently stops recording is worse than one with a missing policy, and
+      a WITH CHECK policy refuses every insert made without app.current_tenant_id set. The write
+      path was traced before this was written: AllEventsConsumer delegates to
+      TenantAwareMessageProcessor.process(), which is @Transactional and calls
+      TenantGucHelper.apply() — a transaction-local set_config on the connection already bound to
+      the open transaction — BEFORE the handler runs any DML. AuditIngestionService.ingest() joins
+      that same transaction (propagation REQUIRED), so its persist() runs on the same connection
+      that carries the GUC. The GUC value is envelope.tenantId(), which is also the value written
+      to the tenant_id column, so the WITH CHECK predicate compares a value against itself.
+    -->
+
+    <changeSet id="audit-1.0.0-030a-audit-events-rls-parent" author="restaurantos-agent">
+        <sql>ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;</sql>
+
+        <!--
+          FORCE, not merely ENABLE. PostgreSQL exempts a table's OWNER from its own policies
+          unless FORCE is set, so ENABLE alone yields a policy that is present in the catalog,
+          visible in pg_policies, and completely inert for the role that owns the table. That
+          exact defect shipped 33 inert tables across 16 tenants in this product and no test
+          caught it. It matters here specifically because create_audit_partition() below runs
+          SECURITY DEFINER and therefore creates partitions owned by the same role Liquibase
+          runs as — and because the test harness's own role owns these tables outright.
+        -->
+        <sql>ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;</sql>
+
+        <!--
+          The predicate is the one every other service in this product uses, character for
+          character, so that a reader who knows one knows all of them:
+
+              tenant_id = (NULLIF(current_setting('app.current_tenant_id', true), ''))::uuid
+
+          The two details that make it safe. current_setting(..., true) returns NULL instead of
+          raising when the GUC was never set on this session. NULLIF(...,'') maps the empty
+          string to NULL as well, which matters because TenantAwareDataSource writes an EMPTY
+          value — not no value — on every checkout made without a tenant, precisely so that a
+          pooled connection can never inherit the previous borrower's tenant. Both cases produce
+          `tenant_id = NULL`, which is NULL, which is not true: no rows readable and no rows
+          insertable. The policy fails CLOSED.
+        -->
+        <sql splitStatements="false">
+            CREATE POLICY tenant_isolation ON audit_events
+                USING (tenant_id = (NULLIF(current_setting('app.current_tenant_id', true), ''))::uuid);
+        </sql>
+
+        <rollback>
+            <sql>DROP POLICY IF EXISTS tenant_isolation ON audit_events;</sql>
+            <sql>ALTER TABLE audit_events NO FORCE ROW LEVEL SECURITY;</sql>
+            <sql>ALTER TABLE audit_events DISABLE ROW LEVEL SECURITY;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="audit-1.0.0-030b-audit-events-rls-existing-partitions" author="restaurantos-agent">
+        <!--
+          Every partition that exists right now, discovered through pg_inherits rather than
+          listed. 010b enumerated 13 partition names by hand and create_audit_partition() has
+          been adding more since; a hardcoded list would silently stop covering the newest
+          partition, which is the one every recent-events query reads and every ingest writes.
+          Same reasoning as 013b, and the same shape.
+
+          Guarded on pg_policies so that re-running against a partially-applied database is a
+          no-op rather than a duplicate-object error.
+        -->
+        <sql splitStatements="false">
+            DO $$
+            DECLARE
+                part RECORD;
+            BEGIN
+                FOR part IN
+                    SELECT c.relname
+                    FROM pg_inherits i
+                    JOIN pg_class c ON c.oid = i.inhrelid
+                    JOIN pg_class p ON p.oid = i.inhparent
+                    WHERE p.relname = 'audit_events'
+                LOOP
+                    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', part.relname);
+                    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', part.relname);
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_policies
+                        WHERE schemaname = 'public'
+                          AND tablename = part.relname
+                          AND policyname = 'tenant_isolation'
+                    ) THEN
+                        EXECUTE format(
+                            'CREATE POLICY tenant_isolation ON %I USING (tenant_id = (NULLIF(current_setting(''app.current_tenant_id'', true), ''''))::uuid)',
+                            part.relname
+                        );
+                    END IF;
+                END LOOP;
+            END $$;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="false">
+                DO $$
+                DECLARE
+                    part RECORD;
+                BEGIN
+                    FOR part IN
+                        SELECT c.relname
+                        FROM pg_inherits i
+                        JOIN pg_class c ON c.oid = i.inhrelid
+                        JOIN pg_class p ON p.oid = i.inhparent
+                        WHERE p.relname = 'audit_events'
+                    LOOP
+                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', part.relname);
+                        EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', part.relname);
+                        EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY', part.relname);
+                    END LOOP;
+                END $$;
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="audit-1.0.0-030c-future-partitions-protected" author="restaurantos-agent">
+        <!--
+          Future partitions. Without this the gap returns next month, on a date nobody is
+          watching, and returns silently: a new partition would be created with no RLS at all,
+          and every audit row written from that month onward would sit in a table any tenant
+          could read directly. This is the single most important part of this changeset —
+          measured above, a partition created after the parent is protected inherits NOTHING.
+
+          Two changes to the function, on top of the 013c version it replaces (which granted
+          INSERT and SELECT and is preserved verbatim below).
+
+          1. It applies ENABLE + FORCE + the tenant_isolation policy to each partition it
+             creates, immediately after creating it and inside the same statement batch, so
+             there is no window in which the partition exists unprotected.
+
+          2. It becomes SECURITY DEFINER, with search_path pinned. This is not incidental — it
+             fixes a second, pre-existing defect that this changeset would otherwise trip over.
+             AuditArchivalService calls create_audit_partition() on the RUNTIME datasource, i.e.
+             as audit_writer, and measured live:
+
+                 SELECT has_schema_privilege('audit_writer','public','CREATE');  ->  f
+
+             audit_writer cannot create tables at all, so the monthly job's CREATE TABLE has been
+             failing since PostgreSQL 15 stopped granting CREATE on public to PUBLIC. Partitions
+             exist today only because 010b created them through Liquibase, and they run out after
+             2027-01. CREATE POLICY and ALTER TABLE ... FORCE additionally require OWNERSHIP,
+             which audit_writer would not have either. SECURITY DEFINER makes the function run as
+             its owner — the role Liquibase runs as, which owns the parent and every existing
+             partition — so partition creation, the grants and the RLS all succeed and every
+             partition keeps a single consistent owner.
+
+             search_path is pinned to 'public, pg_temp' because a SECURITY DEFINER function that
+             inherits the caller's search_path lets the caller shadow the objects it references.
+             pg_temp is placed last for the same reason.
+        -->
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION create_audit_partition(month_start DATE) RETURNS VOID AS $$
+            DECLARE
+                partition_name TEXT;
+                month_end      DATE;
+            BEGIN
+                partition_name := 'audit_events_' || to_char(month_start, 'YYYY_MM');
+                month_end      := month_start + INTERVAL '1 month';
+
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE c.relname = partition_name
+                      AND n.nspname = 'public'
+                ) THEN
+                    EXECUTE format(
+                        'CREATE TABLE %I PARTITION OF audit_events FOR VALUES FROM (%L) TO (%L)',
+                        partition_name, month_start, month_end
+                    );
+                    -- INSERT and SELECT, and deliberately not UPDATE or DELETE (013c).
+                    EXECUTE format('GRANT INSERT, SELECT ON %I TO audit_writer', partition_name);
+
+                    -- Tenant isolation, applied to the partition itself. A policy on the parent
+                    -- does not cover a query that names the partition directly.
+                    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', partition_name);
+                    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', partition_name);
+                    EXECUTE format(
+                        'CREATE POLICY tenant_isolation ON %I USING (tenant_id = (NULLIF(current_setting(''app.current_tenant_id'', true), ''''))::uuid)',
+                        partition_name
+                    );
+                END IF;
+            END;
+            $$ LANGUAGE plpgsql
+               SECURITY DEFINER
+               SET search_path = public, pg_temp;
+        </sql>
+
+        <!--
+          EXECUTE on a SECURITY DEFINER function defaults to PUBLIC, which would let any role in
+          the database create partitions. Only the runtime user needs it.
+        -->
+        <sql>REVOKE ALL ON FUNCTION create_audit_partition(DATE) FROM PUBLIC;</sql>
+        <sql>GRANT EXECUTE ON FUNCTION create_audit_partition(DATE) TO audit_writer;</sql>
+
+        <rollback>
+            <sql>SELECT 1;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

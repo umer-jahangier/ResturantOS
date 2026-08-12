@@ -10,5 +10,6 @@
     <include file="db/changelog/v1.0.0/012-audit-partitioning.xml"/>
     <include file="db/changelog/v1.0.0/013-audit-readable-and-attributable.xml"/>
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
+    <include file="db/changelog/v1.0.0/030-audit-events-rls.xml"/>
 
 </databaseChangeLog>

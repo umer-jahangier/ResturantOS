@@ -188,6 +188,26 @@ class AuditReadPathIT {
      * production {@code JwtAuthenticationFilter} derives both from one verified token, which is why
      * they cannot disagree there.
      */
+    /**
+     * Puts a tenant on the context, and therefore on the next JDBC connection checked out.
+     *
+     * <p>Needed since audit_events became FORCE ROW LEVEL SECURITY (changeset 030) by the tests
+     * that reach the service or repository WITHOUT going through the controller. The controller
+     * path already has a tenant — {@link #authenticateWith} sets one, standing in for
+     * {@code JwtAuthenticationFilter} — but a direct call to {@code AuditIngestionService.ingest}
+     * or to the repository does not, and {@code TenantAwareDataSource} writes an EMPTY
+     * {@code app.current_tenant_id} on a checkout made with no context. The policy then reads and
+     * writes nothing, which is the intended fail-closed behaviour and shows up here as an empty
+     * result or "new row violates row-level security policy".
+     *
+     * <p>In production nothing calls {@code ingest} bare: {@code AllEventsConsumer} always routes
+     * through {@code TenantAwareMessageProcessor}, which sets exactly this. So this makes the
+     * tests match the real call graph rather than working around the policy.
+     */
+    private void asTenant(UUID tenantId) {
+        tenantContext.set(tenantId, null, UUID.randomUUID(), null);
+    }
+
     private void authenticateWith(UUID tenantId, String... authorities) {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("tester", "n/a",
@@ -330,6 +350,7 @@ class AuditReadPathIT {
     @DisplayName("a SELECT through the repository succeeds as audit_writer")
     void repositoryReadSucceeds() {
         insertRow(TENANT_A, "ORDER_VOIDED", null);
+        asTenant(TENANT_A);
 
         List<AuditEventEntity> rows = auditEventRepository.findByTenantIdAndOccurredAtBetween(
                 TENANT_A, Instant.now().minusSeconds(300), Instant.now().plusSeconds(300),
@@ -416,6 +437,7 @@ class AuditReadPathIT {
         UUID realAdmin = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
 
+        asTenant(TENANT_A);
         auditIngestionService.ingest(new EventEnvelope<>(
                 UUID.randomUUID(), "ORDER_VOIDED", TENANT_A, null,
                 Instant.now(), UUID.randomUUID(), 1, "pos-service",
@@ -461,6 +483,7 @@ class AuditReadPathIT {
         prePhase13Payload.put("token", "RAWTOKEN_MUST_NOT_PERSIST");
         prePhase13Payload.put("tokenId", "8b1c9e00-0000-4000-8000-000000000001");
 
+        asTenant(TENANT_A);
         auditIngestionService.ingest(new EventEnvelope<>(
                 UUID.randomUUID(), "PASSWORD_RESET_REQUESTED", TENANT_A, null,
                 Instant.now(), UUID.randomUUID(), 1, "auth-service",
@@ -536,6 +559,22 @@ class AuditReadPathIT {
      */
     private long insertRow(UUID tenantId, String action, UUID impersonatedBy, UUID userId) {
         return transactionTemplate.execute(status -> {
+            // audit_events is FORCE ROW LEVEL SECURITY since changeset 030, and this fixture used
+            // to write rows the way nothing in production writes them: on a connection carrying no
+            // app.current_tenant_id, which the tenant_isolation policy correctly refuses with
+            // "new row violates row-level security policy". The real write path does not have that
+            // problem because TenantAwareMessageProcessor sets the GUC — transaction-locally, on
+            // the connection already bound to the open transaction — before the handler runs any
+            // DML. This mirrors that exactly (see TenantGucHelper), which makes the fixture a
+            // closer reproduction of production than it was, not a concession to the policy.
+            //
+            // is_local = true, so it reverts at commit and cannot leak into the read assertions
+            // that follow. It is set from the ROW's tenant rather than the ambient TenantContext
+            // because this helper is also how tenant B's rows are seeded for the cross-tenant test.
+            entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
+                    .setParameter("tid", tenantId.toString())
+                    .getSingleResult();
+
             AuditEventEntity entity = AuditEventEntity.builder()
                     .occurredAt(Instant.now())
                     .tenantId(tenantId)
