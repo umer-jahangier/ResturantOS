@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.restaurantos.authz.AuthorizationServiceApplication;
+import io.restaurantos.shared.testsupport.OpaPolicyBundle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.containers.BindMode;
+import org.testcontainers.utility.MountableFile;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.nio.charset.StandardCharsets;
@@ -53,11 +54,17 @@ public abstract class BaseIntegrationTest {
     static final RabbitMQContainer RABBIT =
         new RabbitMQContainer(DockerImageName.parse("rabbitmq:4.3-management"));
 
+    /**
+     * The bundle is <b>copied</b> into the container, never bind-mounted. A bind mount resolves to an
+     * empty {@code /policies} from any host path the Docker VM does not share, and an OPA holding no
+     * policy denies everything while answering {@code /health} with 200 — which would turn this
+     * suite's deny assertions green for the wrong reason. See {@link OpaPolicyBundle}.
+     */
     static final GenericContainer<?> OPA =
         new GenericContainer<>(DockerImageName.parse("openpolicyagent/opa:1.17.1"))
             .withCommand("run", "--server", "--addr=0.0.0.0:8181", "/policies")
             .withExposedPorts(8181)
-            .withFileSystemBind(policiesDir().toString(), "/policies", BindMode.READ_ONLY)
+            .withCopyFileToContainer(MountableFile.forHostPath(policiesDir()), "/policies")
             .waitingFor(Wait.forHttp("/health").forPort(8181));
 
     private static Path policiesDir() {
@@ -82,6 +89,9 @@ public abstract class BaseIntegrationTest {
         REDIS.start();
         RABBIT.start();
         OPA.start();
+        // Positive control. Proves the engine actually holds the bundle before any test is allowed to
+        // trust a decision from it; here rather than in an IT so it cannot be forgotten by one added later.
+        OpaPolicyBundle.assertActuallyLoaded(opaBaseUrl(), "restaurantos/pos.rego");
         awaitPostgresReady();
     }
 

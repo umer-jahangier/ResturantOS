@@ -4,6 +4,7 @@ import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.feature.FeatureFlagService;
 import io.restaurantos.shared.idempotency.IdempotencyKeyRepository;
 import io.restaurantos.shared.security.JwtClaims;
+import io.restaurantos.shared.testsupport.OpaPolicyBundle;
 import io.restaurantos.shared.testsupport.TestContainerPorts;
 import io.restaurantos.shared.tenant.TenantContext;
 import io.restaurantos.shared.tenant.ThreadLocalTenantContext;
@@ -20,11 +21,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.MountableFile;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -87,14 +88,27 @@ public abstract class HrTestBase {
     // suite went 45 errors -> 45 green, 62s -> 13s. The shared helper binds 0.0.0.0 deliberately;
     // do not "tidy" it to loopback, which breaks colima host-override runs.
 
+    /**
+     * The bundle is <b>copied</b> into the container, never bind-mounted. A bind mount resolves to an
+     * empty {@code /policies} from any host path the Docker VM does not share, and an OPA holding no
+     * policy denies everything while answering {@code /health} with 200. That would quietly invert
+     * this class's central invariant — see {@link #ALL_HR_PERMISSIONS}: every {@code hr.*} code is
+     * granted precisely so a deny can only come from tenant/branch scoping, and an empty bundle makes
+     * every deny come from the absence of any rule instead, while the suite stays green. See
+     * {@link OpaPolicyBundle}.
+     */
     @SuppressWarnings("resource")
     static final GenericContainer<?> OPA =
             new GenericContainer<>(DockerImageName.parse("openpolicyagent/opa:1.17.1"))
                     .withCommand("run", "--server", "--addr=0.0.0.0:8181", "/policies")
                     .withExposedPorts(8181)
-                    .withFileSystemBind(policiesDir().toString(), "/policies", BindMode.READ_ONLY)
+                    .withCopyFileToContainer(MountableFile.forHostPath(policiesDir()), "/policies")
                     .withCreateContainerCmdModifier(TestContainerPorts.claimingHostPortsFor(8181))
                     .waitingFor(Wait.forHttp("/health").forPort(8181));
+
+    static String opaBaseUrl() {
+        return "http://" + OPA.getHost() + ":" + OPA.getMappedPort(8181);
+    }
 
     private static Path policiesDir() {
         Path cwd = Path.of(System.getProperty("user.dir")).toAbsolutePath();
@@ -122,6 +136,9 @@ public abstract class HrTestBase {
         System.setProperty("TESTCONTAINERS_RYUK_DISABLED", "true");
         postgres.start();
         OPA.start();
+        // Positive control. Proves the engine actually holds the bundle before any test is allowed to
+        // trust a decision from it; here rather than in an IT so it cannot be forgotten by one added later.
+        OpaPolicyBundle.assertActuallyLoaded(opaBaseUrl(), "restaurantos/hr.rego");
     }
 
     @DynamicPropertySource
@@ -162,8 +179,7 @@ public abstract class HrTestBase {
         // Activates SharedAutoConfiguration's OpaClient + AuthorizationService beans, which
         // HrAuthorizationService requires. Without it the context fails to start — deliberately:
         // a deployment that forgets OPA_URL must not come up silently unenforced.
-        registry.add("restaurantos.opa.url",
-                () -> "http://" + OPA.getHost() + ":" + OPA.getMappedPort(8181));
+        registry.add("restaurantos.opa.url", HrTestBase::opaBaseUrl);
     }
 
     /**
