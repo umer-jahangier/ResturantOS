@@ -117,6 +117,25 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
     /** The password that just verified; prefilled into the form's "current password". */
     currentPassword: string;
   } | null>(null);
+  /**
+   * True from the instant a forced change succeeds until the sign-in it triggers resolves (F19).
+   *
+   * The walkthrough found a new hire finishing the forced change and being handed an empty password
+   * box: "After setting their password they are bounced to `/login` and must type the password they
+   * set ten seconds earlier." They had typed it twice already, and this component was holding it.
+   *
+   * So the change now hands the password back and this component signs in with it, through the very
+   * same `submit` every other login uses. That routing is the point, not a convenience: the TOTP
+   * step-up gate lives in `AuthServiceImpl.loginToTenant`, deliberately AFTER the forced-change
+   * gate, and nowhere else. Making `/change-password/forced` mint a session instead would hand a
+   * token to an `rbac.manage` / `finance.period.close` / `hr.payroll.approve` holder without ever
+   * asking for a second factor. Re-entering the login keeps every downstream branch — TOTP
+   * required, TOTP enrolment required, tenant selection, lockout — exactly as it already is.
+   *
+   * This flag exists so the interval is a state the user can see. Without it the credentials form
+   * flashes back with a filled password box, which is the very screen the finding is about.
+   */
+  const [finishing, setFinishing] = useState(false);
   /** A non-error notice, e.g. after the forced change succeeded. */
   const [notice, setNotice] = useState<string | null>(null);
   /** The advanced "I know my restaurant identifier" disclosure. Never shown by default. */
@@ -151,9 +170,22 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
     return sanitizeReturnPath(returnPath) ?? "/app/dashboard";
   }
 
-  function submit(values: LoginFormValues, tenantOverride?: string) {
+  /**
+   * @param opts.afterPasswordChange this submit is the automatic sign-in that follows a forced
+   *        password change (F19). Two things depend on it, and both are about a user who cannot go
+   *        back: the status line saying the password WAS saved must survive, and a failure must be
+   *        worded in terms of what actually happened. Without either, a refusal reads as "the change
+   *        did not work" and sends the user back to a one-time password that no longer exists.
+   */
+  function submit(
+    values: LoginFormValues,
+    tenantOverride?: string,
+    opts?: { afterPasswordChange?: boolean },
+  ) {
     setFormError(null);
-    setNotice(null);
+    if (!opts?.afterPasswordChange) {
+      setNotice(null);
+    }
 
     const slug = (tenantOverride ?? values.tenantSlug ?? "").trim();
     const totpCode = values.totpCode?.trim();
@@ -175,6 +207,12 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
         // `error` is typed as the live `ApiError` via the useLogin mutation —
         // we never import the api-client class directly (FE-08 boundary).
         onError: (error) => {
+          // Whatever this turns out to be, the automatic sign-in that follows a forced change is
+          // over: from here the user answers a challenge or a failure themselves, and every branch
+          // below renders something they have to act on. Clearing it in one place rather than in
+          // each branch is what stops a future branch from stranding them on "Signing you in…".
+          setFinishing(false);
+
           if (error.isTotpRequired()) {
             // FD-2 O→P→Q→R: reveal the TOTP field, KEEP email/password, resubmit. The password is
             // still in form state and is re-sent with the code — losing it here would make every
@@ -276,11 +314,31 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
             // the same status and the same body for all of them. Saying anything more specific here
             // would manufacture, in the client, the account-enumeration oracle the server carefully
             // does not have.
-            setFormError("Invalid email or password.");
+            //
+            // The one exception discloses nothing: after a forced change we KNOW whose account it
+            // is and that the password was accepted a moment ago, so "invalid email or password"
+            // would be the client inventing a fact. Naming the real situation costs no secret.
+            setFormError(
+              opts?.afterPasswordChange
+                ? "Your password was changed, but signing in with it was refused. " +
+                    "Press Sign in to try again."
+                : "Invalid email or password.",
+            );
             return;
           }
 
-          setFormError(error.message || "Something went wrong. Please try again.");
+          // The unrecognised case — a 5xx, a dropped connection, a gateway that is not there.
+          // `error.message` for those is whatever the transport produced ("Request failed with
+          // status code 500"), which DESIGN-BRIEF §27 forbids showing. It is tolerable on an
+          // ordinary sign-in, where the user knows nothing has changed and can simply try again;
+          // it is not tolerable here, where the user has just changed their password, cannot go
+          // back to the one they were given, and needs to be told plainly that the change stuck.
+          setFormError(
+            opts?.afterPasswordChange
+              ? "Your password was changed, but we could not sign you in just now. " +
+                  "Press Sign in to try again."
+              : error.message || "Something went wrong. Please try again.",
+          );
         },
       },
     );
@@ -306,9 +364,14 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
    * on purpose: nothing expired that the user did wrong, and telling them their session ended when
    * it did not invites a support call.
    */
-  const statusNote = notice
-    ? notice
-    : reason === "session_expired"
+  const statusNote = finishing
+    ? // The "Signing you in" panel says this in its own words; a second line saying it again is
+      // noise on the one screen that must be unambiguous. It comes back the moment the sign-in
+      // fails, because then it is the only thing telling the user their password was saved.
+      null
+    : notice
+      ? notice
+      : reason === "session_expired"
       ? "Your session expired. Please sign in again."
       : reason === STEP_UP_LOGIN_REASON
         ? "That action needs a fresh authenticator code. Sign in again to continue — you’ll be " +
@@ -347,14 +410,18 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
           <h1 className="font-heading text-lg leading-snug font-medium">
             {changing
               ? "Choose a new password"
-              : restaurantLabel
-                ? `Sign in to ${restaurantLabel}`
-                : "Sign in to RestaurantOS"}
+              : finishing
+                ? "Signing you in"
+                : restaurantLabel
+                  ? `Sign in to ${restaurantLabel}`
+                  : "Sign in to RestaurantOS"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {changing
               ? `${changing.email} must set its own password before signing in.`
-              : "Enter your email and password to continue"}
+              : finishing
+                ? "Your new password is saved."
+                : "Enter your email and password to continue"}
           </p>
         </div>
         <div>
@@ -386,23 +453,54 @@ export function LoginForm({ tenantSlug, tenantBrandName, reason, returnPath }: L
                 setChanging(null);
                 form.setValue("password", "");
               }}
-              onChanged={() => {
-                // The change endpoint issues no token and sets no refresh cookie (13-08), so the
-                // user signs in properly with the password they just chose. Their email is kept —
-                // it was never in the URL, so there is nothing to read it back out of.
+              onChanged={(newPassword) => {
+                // F19. The change endpoint issues no token and sets no refresh cookie (13-08), so
+                // a sign-in still has to happen — but the user has just typed the password twice
+                // and this component is holding it, so THIS component performs the sign-in.
+                //
+                // It goes through the ordinary `submit`, not a special path, because the login
+                // endpoint is where the TOTP step-up gate lives and where every other refusal is
+                // already handled. A hire whose role needs a second factor is challenged for it
+                // here, which is exactly what would have happened had they retyped the password.
                 const emailUsed = changing.email;
-                setChanging(null);
-                form.reset({
+                const slugUsed = form.getValues("tenantSlug") ?? "";
+                const values: LoginFormValues = {
                   email: emailUsed,
-                  password: "",
+                  password: newPassword,
                   totpCode: "",
-                  tenantSlug: form.getValues("tenantSlug") ?? "",
-                });
-                toast.success("Password changed. Sign in with your new password.");
-                setNotice("Password changed. Sign in with your new password.");
-                window.setTimeout(() => form.setFocus("password"), 0);
+                  tenantSlug: slugUsed,
+                };
+                setChanging(null);
+                setFinishing(true);
+                // The form is kept in step with what is being submitted, so that if the sign-in is
+                // refused the user is looking at a form that already holds their real credential
+                // rather than a blank one.
+                form.reset(values);
+                toast.success("Password changed.");
+                setNotice("Your new password is saved.");
+                submit(values, undefined, { afterPasswordChange: true });
               }}
             />
+          ) : finishing ? (
+            /*
+             * F19: the interval between "password saved" and "you are in the app", rendered.
+             *
+             * Nothing here is decorative. Without it the credentials form re-appears for the length
+             * of one round trip with the password box filled — which is indistinguishable, in a
+             * screenshot and to a person, from being asked to sign in again. That is the finding.
+             *
+             * It is a live region because it replaces the control the user just pressed: a screen
+             * reader that was on the "Change password" button is told what happened instead of
+             * being dropped into silence.
+             */
+            <div
+              className="grid gap-2 py-4"
+              data-testid="finishing-sign-in"
+              role="status"
+              aria-live="polite"
+            >
+              <p className="text-sm text-muted-foreground">Taking you into the app…</p>
+            </div>
           ) : enrolling ? (
             <TotpEnrollment
               email={enrolling.email}

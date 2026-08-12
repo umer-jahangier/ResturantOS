@@ -279,9 +279,15 @@ describe("LoginForm — email-first (16a-01)", () => {
    */
   it("changes a forced password in place, never putting the token or email in a URL", async () => {
     const forcedBodies: Array<Record<string, unknown>> = [];
+    let changed = false;
     server.use(
-      http.post("*/api/v1/auth/login", () =>
-        HttpResponse.json(
+      // The gate is the flag on the account, and the change clears it (PasswordChangeService), so
+      // the SAME endpoint refuses the one-time password and then accepts the chosen one. Returning
+      // nothing once it is cleared falls through to the default handler, which mints a session the
+      // way production does — better than a hand-rolled one that could drift from the contract.
+      http.post("*/api/v1/auth/login", () => {
+        if (changed) return undefined;
+        return HttpResponse.json(
           {
             error: {
               code: "PASSWORD_CHANGE_REQUIRED",
@@ -294,10 +300,11 @@ describe("LoginForm — email-first (16a-01)", () => {
             },
           },
           { status: 403 },
-        ),
-      ),
+        );
+      }),
       http.post("*/api/v1/auth/change-password/forced", async ({ request }) => {
         forcedBodies.push((await request.json()) as Record<string, unknown>);
+        changed = true;
         return HttpResponse.json({ data: null });
       }),
     );
@@ -334,11 +341,213 @@ describe("LoginForm — email-first (16a-01)", () => {
       newPassword: "Chosen#Password1",
     });
 
-    // Back on the credential form, with the address kept — it was in memory, not in the query
-    // string, so there is nothing to read it back out of.
-    expect(await screen.findByText(/sign in with your new password/i)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(/email/i)).toHaveValue("fresh@demo.test"));
+    // F19 changed what happens next. This assertion used to read "Back on the credential form" and
+    // pinned `screen.getByLabelText(/email/i)` still being on screen — i.e. it pinned the walkthrough
+    // finding as the expected behaviour. The flow finishes in the app now; the F12 property this
+    // test exists for (nothing navigated to a token-bearing URL) is unchanged and asserted above.
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/app/dashboard"));
+  });
+
+  /**
+   * F19 — a new hire who sets their password lands in the app, signed in.
+   *
+   * Walkthrough §0: "After setting their password they are bounced to `/login` and must type the
+   * password they set ten seconds earlier." Driving it in Chromium reproduced exactly that: after
+   * the change the panel read "Password changed. Sign in with your new password.", one
+   * `input[type=password]` was on screen, a "Sign in" button was on screen, and `POST /auth/refresh`
+   * answered 401 — no session at all.
+   *
+   * Everything asserted below is what a person sees or is asked for. The one non-visible assertion
+   * is the password the login carried, and it is the whole point: the sign-in must spend the
+   * password the user CHOSE, not the one-time password that got them here.
+   */
+  it("signs a new hire in with the password they just chose, without asking for it again", async () => {
+    const loginBodies: Array<Record<string, unknown>> = [];
+    let changed = false;
+    server.use(
+      http.post("*/api/v1/auth/login", async ({ request }) => {
+        // `.clone()`, because falling through leaves the body for the default handler to read.
+        loginBodies.push((await request.clone().json()) as Record<string, unknown>);
+        // The gate is the flag on the account, and the change clears it — so the same endpoint
+        // refuses the one-time password and accepts the chosen one, exactly as auth-service does.
+        // Falling through to the default handler for the success is deliberate: the session it
+        // mints is the shape `apiLoginSchema` actually parses, so this test cannot pass against a
+        // response production never sends.
+        if (changed) return undefined;
+        return HttpResponse.json(
+          {
+            error: {
+              code: "PASSWORD_CHANGE_REQUIRED",
+              message: "Password change required",
+              details: [{ field: "changeToken", issue: "tok-f19" }],
+              traceId: "t",
+            },
+          },
+          { status: 403 },
+        );
+      }),
+      http.post("*/api/v1/auth/change-password/forced", () => {
+        changed = true;
+        return HttpResponse.json({ data: null });
+      }),
+    );
+
+    const user = userEvent.setup();
+    renderLoginForm(null);
+
+    await user.type(screen.getByLabelText(/email/i), "newhire@demo.test");
+    await user.type(screen.getByLabelText(/^password$/i), "OneTime#Handed1");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await screen.findByTestId("forced-password-change");
+    await user.type(screen.getByLabelText(/^new password$/i), "Chosen#Password1");
+    await user.type(screen.getByLabelText(/confirm new password/i), "Chosen#Password1");
+    await user.click(screen.getByRole("button", { name: /^change password$/i }));
+
+    // THE FINDING: they end up in the application, not back at a credential prompt.
+    await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/app/dashboard"));
+
+    // Nothing on screen asks for a credential a second time.
+    expect(screen.queryByLabelText(/^password$/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^sign in$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/sign in with your new password/i)).not.toBeInTheDocument();
+
+    // Two logins, and the second spent the password the USER chose. If it re-sent the one-time
+    // password the flow would loop back into the forced-change panel forever.
+    expect(loginBodies).toHaveLength(2);
+    expect(loginBodies[0]).toMatchObject({ password: "OneTime#Handed1" });
+    expect(loginBodies[1]).toMatchObject({
+      email: "newhire@demo.test",
+      password: "Chosen#Password1",
+    });
+  });
+
+  /**
+   * F19 — the automatic sign-in goes through the LOGIN endpoint, so the TOTP step-up gate still
+   * bites.
+   *
+   * This is the test that says why the fix is on this side of the wire. The alternative — having
+   * `POST /change-password/forced` mint a session — would have handed a token to an account holding
+   * `rbac.manage` / `finance.period.close` / `hr.payroll.approve` without ever asking for a second
+   * factor, because `enforceTotpStepUp` lives in `AuthServiceImpl.loginToTenant` and nowhere else.
+   *
+   * So: a step-up account completes a forced change and is challenged for its code, with the
+   * password change plainly acknowledged so it cannot be misread as a failed change.
+   */
+  it("still challenges a step-up account for its code after a forced change", async () => {
+    let changed = false;
+    server.use(
+      // Once the change has landed, this falls through to the DEFAULT handler, which challenges
+      // `owner@demo.test` for a code because it is in the mock's step-up set — the same list, for
+      // the same reason, as `requiresTotpStepUp` in AuthServiceImpl. Nothing about the step-up is
+      // stubbed here; it is the ordinary login path meeting the ordinary gate.
+      http.post("*/api/v1/auth/login", () => {
+        if (changed) return undefined;
+        return HttpResponse.json(
+          {
+            error: {
+              code: "PASSWORD_CHANGE_REQUIRED",
+              message: "Password change required",
+              details: [{ field: "changeToken", issue: "tok-f19b" }],
+              traceId: "t",
+            },
+          },
+          { status: 403 },
+        );
+      }),
+      http.post("*/api/v1/auth/change-password/forced", () => {
+        changed = true;
+        return HttpResponse.json({ data: null });
+      }),
+    );
+
+    const user = userEvent.setup();
+    renderLoginForm(null);
+
+    await user.type(screen.getByLabelText(/email/i), "owner@demo.test");
+    await user.type(screen.getByLabelText(/^password$/i), "OneTime#Handed1");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await screen.findByTestId("forced-password-change");
+    await user.type(screen.getByLabelText(/^new password$/i), "Chosen#Password1");
+    await user.type(screen.getByLabelText(/confirm new password/i), "Chosen#Password1");
+    await user.click(screen.getByRole("button", { name: /^change password$/i }));
+
+    // Challenged, not signed in.
+    expect(await screen.findByLabelText(/authenticator code/i)).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
+
+    // And told, in the same breath, that the password change itself succeeded — otherwise the
+    // challenge reads as "the change was rejected" and the user goes back to a one-time password
+    // that no longer works.
+    expect(screen.getByText(/your new password is saved/i)).toBeInTheDocument();
+
+    // The password field still holds the chosen password, so the code is the only thing left to
+    // type. It is not blanked and re-requested.
+    expect(screen.getByLabelText(/^password$/i)).toHaveValue("Chosen#Password1");
+  });
+
+  /**
+   * F19 — when the automatic sign-in fails, the user is told the change SUCCEEDED, and can retry.
+   *
+   * This is the failure mode the fix could have introduced. A user whose password change worked and
+   * whose sign-in then hit a 503 must not be shown a bare "Request failed with status code 503"
+   * (DESIGN-BRIEF §27) next to an empty form: the one-time password they arrived with is dead, so
+   * "try again with what you had" is not available to them. They need to know the new password is
+   * the real one, and to have it still in the box.
+   */
+  it("says the password was saved, and keeps it, when the automatic sign-in fails", async () => {
+    let changed = false;
+    server.use(
+      http.post("*/api/v1/auth/login", () => {
+        if (changed) {
+          return HttpResponse.json(
+            { error: { code: "SERVICE_UNAVAILABLE", message: "upstream", details: [], traceId: "t" } },
+            { status: 503 },
+          );
+        }
+        return HttpResponse.json(
+          {
+            error: {
+              code: "PASSWORD_CHANGE_REQUIRED",
+              message: "Password change required",
+              details: [{ field: "changeToken", issue: "tok-f19c" }],
+              traceId: "t",
+            },
+          },
+          { status: 403 },
+        );
+      }),
+      http.post("*/api/v1/auth/change-password/forced", () => {
+        changed = true;
+        return HttpResponse.json({ data: null });
+      }),
+    );
+
+    const user = userEvent.setup();
+    renderLoginForm(null);
+
+    await user.type(screen.getByLabelText(/email/i), "newhire@demo.test");
+    await user.type(screen.getByLabelText(/^password$/i), "OneTime#Handed1");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await screen.findByTestId("forced-password-change");
+    await user.type(screen.getByLabelText(/^new password$/i), "Chosen#Password1");
+    await user.type(screen.getByLabelText(/confirm new password/i), "Chosen#Password1");
+    await user.click(screen.getByRole("button", { name: /^change password$/i }));
+
+    // What happened, in words, with the retry named. Not the transport's sentence.
+    expect(
+      await screen.findByText(/your password was changed, but we could not sign you in/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/status code/i)).not.toBeInTheDocument();
+
+    // And the status line that says the change itself stuck.
+    expect(screen.getByText(/your new password is saved/i)).toBeInTheDocument();
+
+    // Entered data preserved: the retry is one click, not a retype.
+    expect(screen.getByLabelText(/^password$/i)).toHaveValue("Chosen#Password1");
+    expect(screen.getByLabelText(/email/i)).toHaveValue("newhire@demo.test");
   });
 
   /**

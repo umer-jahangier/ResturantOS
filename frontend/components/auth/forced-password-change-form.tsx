@@ -38,10 +38,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
  * Leaving the page discards the token, which is correct: a change token is only ever minted for
  * someone who has just proved the current password, so getting another one costs one sign-in.
  *
- * On success the caller decides what happens next. This component neither routes nor sets a
- * session: `POST /api/v1/auth/change-password/forced` issues no access token and sets no refresh
- * cookie (13-08), and pretending otherwise would mean inventing a session the user has not
- * authenticated for.
+ * <h3>Why `onChanged` hands the new password back (F19)</h3>
+ *
+ * `POST /api/v1/auth/change-password/forced` issues no access token and sets no refresh cookie
+ * (13-08) — it changes a password and nothing else — so this component cannot and must not
+ * fabricate a session. But the caller needs one, and the walkthrough caught what happens when the
+ * credential is dropped on the floor here: the new hire was handed back an empty password box and
+ * told to retype the password they had chosen ten seconds earlier.
+ *
+ * So the password travels UP, in an argument, to the component that owns the sign-in. Same
+ * reasoning as the token travelling DOWN in a prop: a live credential belongs in the React state of
+ * the flow that is using it, not in a URL, `sessionStorage` or a store. The caller signs in with it
+ * through the ordinary login endpoint, which is the only place the TOTP step-up gate lives.
  */
 
 const schema = z
@@ -72,8 +80,14 @@ interface Props {
    * because the user, not this component, is the authority on what they typed.
    */
   currentPassword?: string;
-  /** Called after the server has accepted the new password. */
-  onChanged: () => void;
+  /**
+   * Called after the server has accepted the new password, WITH that password (F19).
+   *
+   * The caller signs in with it immediately, so the user is never asked to type it a second time.
+   * It is passed rather than re-read because this form's state is destroyed the moment the caller
+   * unmounts it, which it does as soon as this fires.
+   */
+  onChanged: (newPassword: string) => void;
   /** Called when the user backs out; the caller is expected to discard the token. */
   onCancel: () => void;
 }
@@ -105,7 +119,7 @@ export function ForcedPasswordChangeForm({
         newPassword: values.newPassword,
       },
       {
-        onSuccess: () => onChanged(),
+        onSuccess: () => onChanged(values.newPassword),
         onError: (error) => {
           if (error.isPasswordReuse()) {
             const message = "Choose a password you have not used before.";
