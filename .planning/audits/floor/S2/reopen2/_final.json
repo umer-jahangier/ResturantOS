@@ -1,0 +1,75 @@
+{
+  "subject": {
+    "email": "s2fin.msq1ovsx@terrace.local",
+    "id": "d283d85a-1967-4ffc-807f-baa4302b9328",
+    "created": 201
+  },
+  "subjectRoles": [
+    "OWNER"
+  ],
+  "TENANT_ADMIN revokes OWNER": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED",
+    "msgLen": 122
+  },
+  "crossTenant": {
+    "READ": 404,
+    "ASSIGN": 404,
+    "REVOKE": 204
+  },
+  "subjectRolesAfterEverything": [
+    "OWNER"
+  ],
+  "OWNER revokes OWNER": 204,
+  "_results": [
+    {
+      "name": "ceiling refuses a tenant admin revoking OWNER (public route)",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "the OWNER role survives the refusal",
+      "pass": true
+    },
+    {
+      "name": "refusal fits the 160-char dialog budget",
+      "pass": true,
+      "detail": {
+        "len": 122
+      }
+    },
+    {
+      "name": "cross-tenant READ 404s",
+      "pass": true,
+      "detail": 404
+    },
+    {
+      "name": "cross-tenant ASSIGN 404s",
+      "pass": true,
+      "detail": 404
+    },
+    {
+      "name": "cross-tenant REVOKE is refused like its siblings",
+      "pass": false,
+      "detail": 204
+    },
+    {
+      "name": "NOTHING was actually removed by any refused call",
+      "pass": true,
+      "detail": [
+        "OWNER"
+      ]
+    },
+    {
+      "name": "the positive control holds: a caller AT the ceiling succeeds (204)",
+      "pass": true,
+      "detail": 204
+    },
+    {
+      "name": "and it actually removed the row",
+      "pass": true
+    }
+  ]
+}

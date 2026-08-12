@@ -1,0 +1,212 @@
+{
+  "subjectFromDrive": {
+    "email": "s2ro.msq0u1i2@terrace.local",
+    "id": "ff120052-633d-47d5-9b79-b016f70e755f",
+    "hq": "Floating Terrace HQ",
+    "second": "Reopen Branch 28265 — Annexe"
+  },
+  "victimCreated": {
+    "status": 201,
+    "id": "fc95aa39-94d1-4203-8577-766ecbb7de08"
+  },
+  "victimGrantSecond": 200,
+  "victimPromotedToOWNER": {
+    "status": 200
+  },
+  "adminHasRbacManage": false,
+  "ADMIN assign OWNER (public route)": {
+    "status": 403,
+    "code": "ROLE_CEILING_EXCEEDED"
+  },
+  "ADMIN revoke OWNER (public route)": {
+    "status": 403,
+    "body": "{\"error\":{\"code\":\"ROLE_CEILING_EXCEEDED\",\"message\":\"You cannot revoke the role OWNER: it grants 1 permission(s) you do not hold yourself. Ask an administrator who holds them.\",\"details\":[],\"traceId\":\"9a0be0c0-1557-4db5-ba0a-e5ce33d0455e\"}}"
+  },
+  "victimRolesAfterAdminRevokeAttempt": [
+    "OWNER",
+    "MANAGER"
+  ],
+  "refusalMessage": "You cannot revoke the role OWNER: it grants 1 permission(s) you do not hold yourself. Ask an administrator who holds them.",
+  "refusalMessageLength": 122,
+  "manager revoke (server)": {
+    "status": 403,
+    "code": "PERMISSION_DENIED"
+  },
+  "manager sees on /app/users": {
+    "text": "Floating Terrace\nFloating Terrace HQ\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\nService Charge\n\nFINANCE\n\nGuide\nTakings\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboa",
+    "revokeButtons": []
+  },
+  "cashier revoke (server)": {
+    "status": 403,
+    "code": "PERMISSION_DENIED"
+  },
+  "cashier sees on /app/users": {
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\n\nMENU\n\nService Charge\n\nPEOPLE\n\nCustomers\nCollapse\nApp\nUsers\nFloating Terrace HQ\nSearch…\n⌘K\nE\nAccess denied\n\nYou do not have permission to view this page.\n\nBack to dashboard",
+    "revokeButtons": []
+  },
+  "victimRolesAfterWrongPersonas": [
+    "CASHIER",
+    "MANAGER"
+  ],
+  "Control Bistro READS Floating Terrace user": {
+    "status": 404
+  },
+  "Control Bistro REVOKES Floating Terrace role": {
+    "status": 204,
+    "body": "null"
+  },
+  "crossTenantReadLeak": 404,
+  "revoke unknown role code": {
+    "status": 400,
+    "code": "UNKNOWN_ROLE_CODE"
+  },
+  "revoke a role the user does not hold": {
+    "status": 204
+  },
+  "revoke at a branch id that is not this tenant's": {
+    "status": 204
+  },
+  "revoke with NO query params (the pre-fix client)": {
+    "status": 400,
+    "msg": "Required request parameter 'branchId' is missing"
+  },
+  "victimRolesBeforeLastRevoke": [
+    "CASHIER"
+  ],
+  "lastRoleDialogText": "Revoke CASHIER at Floating Terrace HQ? s2adj.msq0xsng@terrace.local loses every permission that role carries at Floating Terrace HQ, including access to that branch's orders, tills and reports. It is their only role, so the account will no longer be able to sign in until another role is assigned. If they are signed in right now, it applies the next time their session refreshes. Cancel Revoke role Close",
+  "victimRolesAfterLastRevoke": [],
+  "strandedAccountLoginLanded": false,
+  "strandedAccountUrl": "http://localhost:3000/login",
+  "strandedAccountScreen": "Choose a new password s2adj.msq0xsng@terrace.local must set its own password before signing in. Current password New password Confirm new password Change password Back to sign in",
+  "_results": [
+    {
+      "name": "the role ceiling REFUSES a tenant admin revoking OWNER on the PUBLIC route the button drives",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "and the OWNER assignment SURVIVES the refusal",
+      "pass": true,
+      "detail": [
+        "OWNER",
+        "MANAGER"
+      ]
+    },
+    {
+      "name": "assign and revoke agree — a role you cannot grant is a role you cannot destroy",
+      "pass": true,
+      "detail": {
+        "assign": 403,
+        "revoke": 403
+      }
+    },
+    {
+      "name": "the refusal sentence fits the 160-char budget the dialog can render",
+      "pass": true,
+      "detail": {
+        "len": 122
+      }
+    },
+    {
+      "name": "a manager is REFUSED the revoke server-side",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "a manager is offered no revoke control",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "a cashier is REFUSED the revoke server-side",
+      "pass": true,
+      "detail": {
+        "status": 403
+      }
+    },
+    {
+      "name": "a cashier is offered no revoke control",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "no wrong-persona attempt removed anything",
+      "pass": true,
+      "detail": [
+        "CASHIER",
+        "MANAGER"
+      ]
+    },
+    {
+      "name": "another tenant's OWNER cannot revoke this tenant's role",
+      "pass": false,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "and nothing was removed by the cross-tenant attempt",
+      "pass": true,
+      "detail": [
+        "CASHIER",
+        "MANAGER"
+      ]
+    },
+    {
+      "name": "another tenant's OWNER cannot READ this tenant's user either",
+      "pass": true,
+      "detail": {
+        "status": 404
+      }
+    },
+    {
+      "name": "an unknown role code is a 400, not a silent 204",
+      "pass": true,
+      "detail": {
+        "status": 400
+      }
+    },
+    {
+      "name": "revoking a role the user never held removes nothing",
+      "pass": true,
+      "detail": [
+        "CASHIER",
+        "MANAGER"
+      ]
+    },
+    {
+      "name": "the parameterless call the old client sent is still a 400 — the fix was the client, not a loosened server",
+      "pass": true,
+      "detail": {
+        "status": 400
+      }
+    },
+    {
+      "name": "the last remaining role still offers a Revoke control",
+      "pass": true
+    },
+    {
+      "name": "the dialog WARNS that this is their only role and the account can no longer sign in",
+      "pass": true,
+      "detail": "Revoke CASHIER at Floating Terrace HQ? s2adj.msq0xsng@terrace.local loses every permission that role carries at Floating Terrace HQ, including access to that branch's orders, tills and reports. It is their only role, so the account will no longer be able to si"
+    },
+    {
+      "name": "the last role is actually gone",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "the dialog's promise holds: an account with no roles cannot get into the app",
+      "pass": true,
+      "detail": {
+        "landed": false,
+        "url": "http://localhost:3000/login",
+        "screen": "Choose a new password s2adj.msq0xsng@terrace.local must set its own password before signing in. Current password New password Confirm new password Change password Back to sign in"
+      }
+    }
+  ]
+}

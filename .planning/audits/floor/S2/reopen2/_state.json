@@ -1,0 +1,17 @@
+{
+  "subject": "s2ro.msq0u1i2@terrace.local",
+  "subjectId": "ff120052-633d-47d5-9b79-b016f70e755f",
+  "tempPassword": "Mt%hV*fvJA6Yjr#P",
+  "hq": {
+    "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "name": "Floating Terrace HQ",
+    "isHq": true,
+    "roleCode": "OWNER"
+  },
+  "second": {
+    "id": "2e57509d-c773-4a67-980c-512bc054327b",
+    "name": "Reopen Branch 28265 — Annexe",
+    "isHq": false,
+    "roleCode": "OWNER"
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "branches": {
+    "hq": "Floating Terrace HQ",
+    "second": "Reopen Branch 28265 — Annexe"
+  },
+  "subject": {
+    "email": "s2sub.msq1bz8m@terrace.local",
+    "id": "c8670fcb-1697-4a25-92e4-0473415c2af0",
+    "status": 201
+  },
+  "grantSecond": 200,
+  "subjectAfterFirstSignIn": "Choose a new password\n\ns2sub.msq1bz8m@terrace.local must set its own password before signing in.\n\nCurrent password\nNew password\nConfirm new password\nChange password\nBack to sign in",
+  "passwordFieldsOnForcedChange": 3,
+  "subjectSignedIn": true,
+  "subjectBranchesBEFORErevoke": [
+    "Floating Terrace HQ",
+    "Reopen Branch 28265 — Annexe"
+  ],
+  "subjectSwitchToSecondBEFORE": 200,
+  "subjectSignedInAfterRevoke": true,
+  "subjectBranchesAFTERrevoke": [
+    "Floating Terrace HQ"
+  ],
+  "subjectSwitchToSecondAFTER": {
+    "status": 403,
+    "code": "BRANCH_ACCESS_DENIED"
+  },
+  "subjectREADSlostBranch": {
+    "status": 200
+  },
+  "subjectScreenAfterRevoke": {
+    "mentionsLostBranch": false,
+    "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K C Where is my till, and what is still open? This shift MY TILL — You have no open till. Open one from the POS before taking payment. MY OPEN ORDERS 0 Still to be "
+  },
+  "crossTenant_READ": 404,
+  "crossTenant_ASSIGN": {
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  "crossTenant_REVOKE": {
+    "status": 204,
+    "body": "null"
+  },
+  "subjectRolesAfterCrossTenantAttempt": [
+    "CASHIER"
+  ],
+  "_results": [
+    {
+      "name": "the subject can sign in while they hold roles at two branches",
+      "pass": true
+    },
+    {
+      "name": "BEFORE the revoke the subject reaches BOTH branches",
+      "pass": true,
+      "detail": [
+        "Floating Terrace HQ",
+        "Reopen Branch 28265 — Annexe"
+      ]
+    },
+    {
+      "name": "BEFORE the revoke the subject can switch INTO the second branch",
+      "pass": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "the Revoke control is on the second-branch row",
+      "pass": true
+    },
+    {
+      "name": "AFTER the revoke the subject no longer sees the branch they lost",
+      "pass": true,
+      "detail": [
+        "Floating Terrace HQ"
+      ]
+    },
+    {
+      "name": "and STILL sees the branch they kept — the revoke removed one row, not all of them",
+      "pass": true,
+      "detail": [
+        "Floating Terrace HQ"
+      ]
+    },
+    {
+      "name": "the subject is REFUSED switching into the branch they lost",
+      "pass": true,
+      "detail": {
+        "status": 403,
+        "code": "BRANCH_ACCESS_DENIED"
+      }
+    },
+    {
+      "name": "…and that refusal is NOT vacuous: the same call SUCCEEDED before the revoke",
+      "pass": true,
+      "detail": {
+        "before": 200,
+        "after": 403
+      }
+    },
+    {
+      "name": "the subject cannot READ the lost branch's record either",
+      "pass": false,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "the lost branch appears nowhere on the subject's own screen",
+      "pass": true,
+      "detail": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K C Where is my till, an"
+    },
+    {
+      "name": "cross-tenant READ is a 404 (the documented contract)",
+      "pass": true,
+      "detail": {
+        "status": 404
+      }
+    },
+    {
+      "name": "cross-tenant ASSIGN is refused",
+      "pass": true,
+      "detail": {
+        "status": 404
+      }
+    },
+    {
+      "name": "cross-tenant REVOKE is refused the same way its siblings are",
+      "pass": false,
+      "detail": {
+        "status": 204
+      }
+    },
+    {
+      "name": "whatever it ANSWERED, the cross-tenant call changed nothing",
+      "pass": true,
+      "detail": [
+        "CASHIER"
+      ]
+    }
+  ]
+}
