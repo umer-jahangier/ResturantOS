@@ -91,7 +91,12 @@ export function emptyKdsCounts(): KdsStationCounts {
  * the renderer asks, rather than a second opinion about it.
  */
 export function isBoardTicket(ticket: KdsTicket): boolean {
-  if (ticket.status === "SERVED" || ticket.status === "CANCELLED") return false;
+  // CLEARED (F17) joins SERVED/CANCELLED as terminal-for-the-board. A cleared ticket keeps its
+  // ITEM statuses — PENDING lines and all — so leaving it out of this line would let one back
+  // onto the board, and into every count, the moment anything put it in the cache.
+  if (ticket.status === "SERVED" || ticket.status === "CANCELLED" || ticket.status === "CLEARED") {
+    return false;
+  }
   return ticket.items.some((item) => mapItemStatusToColumn(item.status) !== null);
 }
 

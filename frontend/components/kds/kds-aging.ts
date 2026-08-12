@@ -125,6 +125,28 @@ export function getAgingTreatment(
  * reads as noise, and a board that shows noise for its most alarming state is worse than
  * one that shows nothing.
  */
+/**
+ * The same age in PROSE, for the places a sentence is being read rather than a card scanned:
+ * `"4 min"`, `"3h 52m"`, `"5d 3h"`.
+ *
+ * {@link formatAge} is a timer on a ticket face and stays exactly that — `mm:ss` counting up, read
+ * at two metres. It is unusable in a sentence: the F17 confirmation has to say how old the oldest
+ * ticket is, and "Oldest 123:35:12" is a number nobody can convert under time pressure into "five
+ * days". Two formatters because there are genuinely two jobs, not because one was forgotten.
+ */
+export function formatAgeLong(ageMs: number): string {
+  const totalMinutes = Math.max(0, Math.floor(ageMs / 60_000));
+  if (totalMinutes < 60) return `${totalMinutes} min`;
+  const totalHours = Math.floor(totalMinutes / 60);
+  if (totalHours < 24) {
+    const minutes = totalMinutes % 60;
+    return minutes === 0 ? `${totalHours}h` : `${totalHours}h ${minutes}m`;
+  }
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  return hours === 0 ? `${days}d` : `${days}d ${hours}h`;
+}
+
 export function formatAge(ageMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(ageMs / 1000));
   const seconds = totalSeconds % 60;

@@ -34,11 +34,18 @@ export const apiKdsTicketSchema = z.object({
   orderId: z.string().uuid(),
   orderNo: z.string().nullable().optional(),
   stationCode: z.string(),
-  status: z.enum(["PENDING", "COOKING", "READY", "SERVED", "CANCELLED"]),
+  // CLEARED (F17): a cook took this ticket off the board because the business day it was
+  // received on had already closed. Terminal for the ACTIVE board — which asks the server for
+  // PENDING,COOKING,READY — but a distinct fact from SERVED (nobody handed the food over) and
+  // from CANCELLED (the order was not voided). It MUST be listed here: the cleared list reads
+  // these tickets back, and an unknown enum value fails the whole page's parse, not one row.
+  status: z.enum(["PENDING", "COOKING", "READY", "SERVED", "CANCELLED", "CLEARED"]),
   priority: z.boolean(),
   receivedAt: z.string().datetime({ offset: true }),
   startedAt: z.string().datetime({ offset: true }).nullable().optional(),
   readyAt: z.string().datetime({ offset: true }).nullable().optional(),
+  // When a person cleared it (F17). Null on every ticket that left the board any other way.
+  clearedAt: z.string().datetime({ offset: true }).nullable().optional(),
   orderNotes: z.string().nullable().optional(),
   // Table number, propagated order->event->KdsTicket->KdsTicketDto (07.3-05, KDS-04).
   // Optional/nullable defensively (same convention as orderNotes above) even though
@@ -73,3 +80,57 @@ export const apiKdsTicketPageSchema = z.object({
 });
 
 export type ApiKdsTicketPage = z.infer<typeof apiKdsTicketPageSchema>;
+
+// ── F17: what is on this board from a business day that has already closed ────
+//
+// `currentBusinessDayStartedAt` and `branchTimezone` are on the wire because the screen
+// PRINTS them. A boundary the cook cannot see is a boundary they cannot check, and this
+// product has already shipped one trading day cut in UTC while the settings screen promised
+// the branch's own zone — the failure was invisible precisely because no screen said which
+// boundary it had used.
+
+export const apiStaleTicketSchema = z.object({
+  id: z.string().uuid(),
+  orderNo: z.string().nullable().optional(),
+  stationCode: z.string(),
+  tableNumber: z.string().nullable().optional(),
+  orderType: z.string().nullable().optional(),
+  status: z.enum(["PENDING", "COOKING", "READY", "SERVED", "CANCELLED", "CLEARED"]),
+  receivedAt: z.string().datetime({ offset: true }),
+  businessDate: z.string(),
+  itemCount: z.number().int().nonnegative(),
+});
+
+export const apiStaleBoardSummarySchema = z.object({
+  branchId: z.string().uuid(),
+  stationCode: z.string().nullable().optional(),
+  branchTimezone: z.string(),
+  businessDayOffsetHours: z.number().int(),
+  currentBusinessDate: z.string(),
+  currentBusinessDayStartedAt: z.string().datetime({ offset: true }),
+  ticketCount: z.number().int().nonnegative(),
+  itemCount: z.number().int().nonnegative(),
+  finishedTicketCount: z.number().int().nonnegative(),
+  oldestReceivedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  days: z.array(
+    z.object({ businessDate: z.string(), ticketCount: z.number().int().nonnegative() }),
+  ),
+  tickets: z.array(apiStaleTicketSchema),
+});
+
+export type ApiStaleBoardSummary = z.infer<typeof apiStaleBoardSummarySchema>;
+
+export const apiClearStaleResultSchema = z.object({
+  branchId: z.string().uuid(),
+  stationCode: z.string().nullable().optional(),
+  branchTimezone: z.string(),
+  currentBusinessDate: z.string(),
+  currentBusinessDayStartedAt: z.string().datetime({ offset: true }),
+  clearedTicketCount: z.number().int().nonnegative(),
+  clearedItemCount: z.number().int().nonnegative(),
+  oldestClearedReceivedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  clearedAt: z.string().datetime({ offset: true }),
+  clearedTicketIds: z.array(z.string().uuid()),
+});
+
+export type ApiClearStaleResult = z.infer<typeof apiClearStaleResultSchema>;

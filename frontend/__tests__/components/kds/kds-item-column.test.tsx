@@ -51,6 +51,7 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     receivedAt: new Date(Date.now() - 5 * 60_000),
     startedAt: null,
     readyAt: null,
+    clearedAt: null,
     orderNotes: null,
     tableNumber: "12",
     orderType: null,

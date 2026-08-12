@@ -16,6 +16,7 @@ function makeTicket(overrides: Partial<KdsTicket> = {}): KdsTicket {
     receivedAt: new Date("2026-07-11T10:00:00Z"),
     startedAt: null,
     readyAt: null,
+    clearedAt: null,
     orderNotes: null,
     tableNumber: null,
     orderType: null,

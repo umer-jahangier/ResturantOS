@@ -1,7 +1,23 @@
 import { apiClient } from "@/lib/api-client/client";
-import { apiKdsTicketSchema, apiKdsStationSchema } from "@/lib/api-client/schemas/kds.schema";
-import { adaptKdsTicket, adaptKdsStation } from "@/lib/adapters/kds.adapter";
-import type { KdsTicket, KdsStation, KdsItemStatus } from "@/lib/models/kds.model";
+import {
+  apiKdsTicketSchema,
+  apiKdsStationSchema,
+  apiStaleBoardSummarySchema,
+  apiClearStaleResultSchema,
+} from "@/lib/api-client/schemas/kds.schema";
+import {
+  adaptKdsTicket,
+  adaptKdsStation,
+  adaptStaleBoardSummary,
+  adaptClearStaleResult,
+} from "@/lib/adapters/kds.adapter";
+import type {
+  KdsTicket,
+  KdsStation,
+  KdsItemStatus,
+  KdsStaleBoardSummary,
+  KdsClearStaleResult,
+} from "@/lib/models/kds.model";
 
 // Layer-2 KDS repository. Calls the kitchen-service API, parses via Zod,
 // adapts to domain models. Never exposes raw API types to Layer-3 or above.
@@ -97,6 +113,48 @@ export const KdsRepository = {
       { params: { branchId } },
     );
     return adaptKdsTicket(apiKdsTicketSchema.parse(response.data.data));
+  },
+
+  // ── Ageing tickets off the board (F17) ─────────────────────────────────────
+
+  /**
+   * What WOULD be cleared from this board, without clearing it — the numbers the confirmation
+   * is built from. `ApiResponse`-wrapped (`.data.data`), unlike the bare-JSON ticket reads.
+   */
+  async getStaleTickets(branchId: string, stationCode?: string): Promise<KdsStaleBoardSummary> {
+    const params: Record<string, string> = { branchId };
+    if (stationCode) params.stationCode = stationCode;
+    const response = await apiClient.get<{ data: unknown }>("/api/v1/kitchen/kds/tickets/stale", {
+      params,
+    });
+    return adaptStaleBoardSummary(apiStaleBoardSummarySchema.parse(response.data.data));
+  },
+
+  /**
+   * Clear the board's expired tickets.
+   *
+   * No cutoff and no ticket list is sent. The server recomputes the boundary from the branch's own
+   * time zone and re-runs the query, because a client-supplied cutoff would be a client-supplied
+   * answer to "which of my tickets may you take away" — and because the preview the cook read may
+   * be a few seconds old.
+   */
+  async clearStaleTickets(branchId: string, stationCode?: string): Promise<KdsClearStaleResult> {
+    const params: Record<string, string> = { branchId };
+    if (stationCode) params.stationCode = stationCode;
+    const response = await apiClient.post<{ data: unknown }>(
+      "/api/v1/kitchen/kds/tickets/clear-stale",
+      {},
+      { params },
+    );
+    return adaptClearStaleResult(apiClearStaleResultSchema.parse(response.data.data));
+  },
+
+  /**
+   * The tickets that HAVE been cleared off this board — proof they were taken off it and not
+   * deleted. Same endpoint as the board, asked for the other side of the status filter.
+   */
+  async getClearedTickets(branchId: string, stationCode?: string): Promise<KdsTicket[]> {
+    return KdsRepository.getTickets(branchId, stationCode, "CLEARED");
   },
 
   // ── Stations ───────────────────────────────────────────────────────────────

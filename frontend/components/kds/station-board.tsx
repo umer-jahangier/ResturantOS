@@ -23,6 +23,7 @@ import {
   mapItemStatusToColumn,
   type KdsColumnKey,
 } from "@/components/kds/kds-item-column";
+import { KdsClearStale } from "@/components/kds/kds-clear-stale";
 import { T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { ZoneProvider } from "@/components/providers/zone-provider";
@@ -206,7 +207,15 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
   // until the order is served/closed — the ORDER_CLOSED consumer flips them to SERVED, which
   // (with CANCELLED) is what drops them off the board.
   const activeTickets = useMemo(
-    () => sortKdsTickets(tickets.filter((t) => t.status !== "SERVED" && t.status !== "CANCELLED")),
+    // CLEARED joins the terminal set (F17): a ticket a cook aged off the board must not come back
+    // through the WebSocket cache, which is the one path that can hand this component a ticket the
+    // server's PENDING,COOKING,READY filter never returned.
+    () =>
+      sortKdsTickets(
+        tickets.filter(
+          (t) => t.status !== "SERVED" && t.status !== "CANCELLED" && t.status !== "CLEARED",
+        ),
+      ),
     [tickets],
   );
 
@@ -604,7 +613,10 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
             <SearchX className="size-9 text-kds-muted" aria-hidden="true" />
           </div>
           <div className="flex max-w-xl flex-col gap-1">
-            <p data-testid="kds-station-unknown-title" className={cn("font-bold text-kds-text", T_H1)}>
+            <p
+              data-testid="kds-station-unknown-title"
+              className={cn("font-bold text-kds-text", T_H1)}
+            >
               No such station
             </p>
             <p className={cn("text-kds-muted", T_SMALL)}>
@@ -737,6 +749,18 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
                 <LayoutGrid className="size-3.5" aria-hidden="true" />
                 All stations
               </button>
+              {/*
+                F17 — the way back to a clean board. Renders ONLY when this board is carrying
+                tickets from a trading day that has already closed, so on an ordinary service it
+                is not here at all and on the morning after a screen died it is, with the count
+                on its face. Nothing ever aged a ticket off a board before this: measured
+                2026-08-12 on DEFAULT, ten tickets from 2026-08-07 at the head of a 1/7 board.
+              */}
+              <KdsClearStale
+                branchId={branchId}
+                stationCode={stationCode}
+                stationLabel={station?.name ?? stationCode}
+              />
               {/* Connection state carries an ICON and a WORD, never a coloured dot alone. */}
               <span
                 data-testid="kds-connection"
