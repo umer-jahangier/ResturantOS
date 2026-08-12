@@ -1,0 +1,499 @@
+{
+  "error": "locator.waitFor: Timeout 25000ms exceeded.\nCall log:\n  - waiting for locator('tr:has-text(\"ORD-20260812-0338\")').first() to be visible\n",
+  "label": "reopen",
+  "at": "2026-08-12T06:57:09.759Z",
+  "surfaces": {
+    "A_terminal_order_panel": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Void",
+        "accName": "Void order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Void order\"",
+          "contents=\"Void\" (superseded)"
+        ],
+        "ariaLabel": "Void order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byVisibleTextSubstring": 1,
+          "byVisibleTextExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "labelInNameViolationsOnScreen": [
+        {
+          "visibleText": "Floating Terrace HQ",
+          "accName": "Switch branch",
+          "nameFrom": "attribute",
+          "testid": null
+        },
+        {
+          "visibleText": "Search\u2026\u2318K",
+          "accName": "Open command palette",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ],
+      "onScreenButtonCount": 91
+    },
+    "B_drawer_voidable": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Void",
+        "accName": "Void order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Void order\"",
+          "contents=\"Void\" (superseded)"
+        ],
+        "ariaLabel": "Void order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byVisibleTextSubstring": 1,
+          "byVisibleTextExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "labelInNameViolationsOnScreen": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ],
+      "onScreenButtonCount": 52
+    },
+    "D_void_panel_open": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Confirm Void",
+        "accName": "Confirm Void",
+        "nameFrom": "contents",
+        "nameSources": [
+          "contents=\"Confirm Void\""
+        ],
+        "ariaLabel": null,
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byVisibleTextSubstring": 1,
+          "byVisibleTextExact": 1,
+          "anchoredRegex": 1
+        }
+      },
+      "labelInNameViolationsOnScreen": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ],
+      "onScreenButtonCount": 53,
+      "allPanelButtons": [
+        {
+          "visibleText": "Floating Terrace HQ",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Dashboard",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "POS",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Kitchen Display",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Till Review",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Inventory",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Menu Items",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Tables",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Stations",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Station Routing",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "POS Terminals",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Printers",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Service Charge",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Guide",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Takings",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Purchasing",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Customers",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Reports",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Realtime Dashboard",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Ask (NLQ)",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Collapse",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Search\u2026\u2318K",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "F",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Close Till",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "POS Terminal",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Floor View",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Order Management",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Active",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Draft",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "In Progress",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Partially Served",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Served",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Closed",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Paid",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Voided",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Refunded",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "My Orders",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "All Branch",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Refresh",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Assign Table",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "Open",
+          "accName": null,
+          "contains": false
+        },
+        {
+          "visibleText": "1 revision",
+          "accName": "1 revision",
+          "contains": true
+        },
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "contains": false
+        },
+        {
+          "visibleText": "Cancel",
+          "accName": "Cancel",
+          "contains": true
+        },
+        {
+          "visibleText": "+ Add note",
+          "accName": "+ Add note",
+          "contains": true
+        },
+        {
+          "visibleText": "Full Menu",
+          "accName": "Full Menu",
+          "contains": true
+        },
+        {
+          "visibleText": "CHARGE NOW",
+          "accName": "CHARGE NOW",
+          "contains": true
+        },
+        {
+          "visibleText": "Cancel",
+          "accName": "Cancel",
+          "contains": true
+        },
+        {
+          "visibleText": "Confirm Void",
+          "accName": "Confirm Void",
+          "contains": true
+        },
+        {
+          "visibleText": "Reprint kitchen ticket",
+          "accName": "Reprint kitchen ticket",
+          "contains": true
+        }
+      ]
+    },
+    "E_after_reload": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Void",
+        "accName": "Void order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Void order\"",
+          "contents=\"Void\" (superseded)"
+        ],
+        "ariaLabel": "Void order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byVisibleTextSubstring": 1,
+          "byVisibleTextExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "labelInNameViolationsOnScreen": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ],
+      "onScreenButtonCount": 52
+    },
+    "F_drawer_refundable": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Refund",
+        "accName": "Refund order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Refund order\"",
+          "contents=\"Refund\" (superseded)"
+        ],
+        "ariaLabel": "Refund order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byVisibleTextSubstring": 1,
+          "byVisibleTextExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "labelInNameViolationsOnScreen": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ],
+      "onScreenButtonCount": 52
+    }
+  },
+  "notes": [
+    "menu tile opened a modifier sheet \u2014 required option chosen before adding"
+  ],
+  "orderNo": "ORD-20260812-0338",
+  "shots": [
+    "reopen-01-A-terminal-order-panel.png",
+    "reopen-02-B-drawer-voidable.png",
+    "reopen-03-C-void-panel-opened-by-printed-word.png",
+    "reopen-04-E-after-reload.png",
+    "reopen-05-F-after-payment.png",
+    "reopen-06-F-drawer-refundable.png",
+    "reopen-07-F-refund-panel-by-printed-word.png"
+  ],
+  "orderId": "483c756a-b913-486b-8bec-d8bf1bf90b91",
+  "voidClick": {
+    "query": "getByRole('button', { name: /Void/i })",
+    "matches": 1,
+    "exactMatches": 0,
+    "panelOpened": 1,
+    "confirmVoidVisible": 1
+  },
+  "reloadedOrderId": "483c756a-b913-486b-8bec-d8bf1bf90b91",
+  "chargePageHealth": {
+    "alerts": [],
+    "badCopy": false
+  },
+  "chargePrefill": "",
+  "chargeAmountAfterFill": "523.95",
+  "refundClick": {
+    "query": "getByRole('button', { name: /Refund/i })",
+    "matches": 1,
+    "exactMatches": 0,
+    "panelOpened": 1
+  },
+  "mainRunEndedAt": "step G (cashier) \u2014 the manager's order is not in the CASHIER's order list at all, so the row lookup timed out. Re-run separately; see cashierProbe below. Every F14 measurement (A-F) completed before this.",
+  "cashierProbe": {
+    "how": "cashier@terrace.local, own PAID order ORD-20260812-0320, Order Management -> Open",
+    "orderRowsVisible": "the manager's ORD-20260812-0338 is NOT listed for the cashier (0 hits); the cashier's own orders are",
+    "voidTriggerVisible": false,
+    "refundTriggerVisible": false,
+    "chargeNowVisible": true,
+    "notice": "Paid \u2014 void unavailable. A manager must refund this check.",
+    "alerts": [],
+    "verdict": "no permission widened \u2014 the cashier still cannot void or refund, and is told who can"
+  },
+  "falsification": {
+    "how": "re-injected aria-label=\"Charge order\" onto the CHARGE NOW button, ran the fixer's test, then restored the file byte-exact (md5 472de9daa2d86578b5f4f36466f85431, git diff HEAD empty)",
+    "result": "Tests 2 failed | 2 passed (4) \u2014 'CHARGE NOW is findable by the words printed on it' and the whole-row sweep both failed. The test is not theatre.",
+    "afterRestore": "npx vitest run __tests__/pos/ -> 34 files / 244 tests passed"
+  },
+  "residualLabelInNameFailuresFound": [
+    {
+      "where": "components/pos/order-table-detail-drawer.tsx:330 \u2014 same drawer, one row above the Void trigger",
+      "visible": "Mark Served",
+      "accName": "Mark Audit Item 52235 served",
+      "note": "aria-label overrides the contents; 'Mark Served' is not a substring of the announced name"
+    },
+    {
+      "where": "components/shared/top-bar.tsx \u2014 branch switcher, present on every screen",
+      "visible": "Floating Terrace HQ",
+      "accName": "Switch branch",
+      "note": "shares no words with the glass"
+    },
+    {
+      "where": "components/shared/top-bar.tsx \u2014 global search, present on every screen",
+      "visible": "Search\u2026 \u2318K",
+      "accName": "Open command palette",
+      "note": "already flagged by the fixer as a new gap"
+    }
+  ]
+}
