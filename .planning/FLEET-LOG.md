@@ -74,6 +74,17 @@ Each of these produced a confident, wrong answer:
   you the no-match safety net, so read per-class counts out of `target/surefire-reports/*.txt`
   rather than trusting the aggregate. Confirmed independently by two sessions. For ITs, surefire
   excludes `**/*IT.java` entirely: use `mvn -pl <module> verify -Dit.test=…`.
+- **`-Dit.test='ClassA+ClassB'` matches NOTHING.** `+` separates METHODS; classes are
+  comma-separated. On its own that would fail loudly — but `-Dfailsafe.failIfNoSpecifiedTests=false`
+  is *required* (or `-am` lets shared-lib's failsafe kill the reactor first), and it turns "matched
+  nothing" into **BUILD SUCCESS**. *The flag that unblocks the build is the flag that hides the
+  empty run.*
+- **In a FRESH WORKTREE there is no `frontend/node_modules`.** `npx tsc` / `npx vitest` then fetch a
+  bare toolchain, resolve nothing, and a grep-filtered typecheck comes back **"clean" having checked
+  nothing**. Install first — the repo's lockfile is `pnpm-lock.yaml`, so `pnpm install`; `npm ci`
+  fails on a lock mismatch.
+- **The ONLY safe check that a suite ran is a positive `Tests run: N` line naming the class you
+  care about.** Not the exit code, not `BUILD SUCCESS`, not the absence of red.
 - **An absence assertion written as `waitFor(() => expect(queryByRole(…)).not.toBeInTheDocument())`
   is vacuous.** It returns on the FIRST frame, where the element is absent for an unrelated reason
   (a loading flag still true). A six-case test written this way passed with the guard deleted. Wait
