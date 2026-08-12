@@ -1,0 +1,142 @@
+{
+ "paymentRows": [
+  {
+   "kind": "PAYMENT",
+   "method": "CASH",
+   "amountPaisa": 9280,
+   "tipPaisa": 7500,
+   "tenderedPaisa": 46800,
+   "changePaisa": 30020
+  },
+  {
+   "kind": "REFUND",
+   "method": "CASH",
+   "amountPaisa": -5000,
+   "tipPaisa": 0,
+   "tenderedPaisa": -5000,
+   "changePaisa": 0
+  }
+ ],
+ "onScreen": {
+  "historyText": "CASH Aug 12, 2026, 3:48 PM Tip Rs 75.00 — held for staff, not part of the bill Rs 92.80 Refund · CASH Reason: F1 re-open — Rs 50 back out of the drawer mid-shift · Aug 12, 2026, 4:02 PM -Rs 50.00",
+  "tips": [
+   "Tip Rs 75.00 — held for staff, not part of the bill"
+  ],
+  "refundRows": [
+   "Refund · CASH Reason: F1 re-open — Rs 50 back out of the drawer mid-shift · Aug 12, 2026, 4:02 PM -Rs 50.00"
+  ]
+ },
+ "screenMatchesRows": {
+  "paymentAmountOnScreen": true,
+  "tipOnScreen": true,
+  "refundOnScreen": true
+ },
+ "journalEntries": [
+  {
+   "ref": "fc257ef5",
+   "status": "POSTED",
+   "debitPaisa": 29000,
+   "creditPaisa": 29000,
+   "balanced": true
+  },
+  {
+   "ref": "22d2655e",
+   "status": "POSTED",
+   "debitPaisa": 72900,
+   "creditPaisa": 72900,
+   "balanced": true
+  },
+  {
+   "ref": "5e63ef5c",
+   "status": "POSTED",
+   "debitPaisa": 5000,
+   "creditPaisa": 5000,
+   "balanced": true
+  },
+  {
+   "ref": "6810261b",
+   "status": "POSTED",
+   "debitPaisa": 250000,
+   "creditPaisa": 250000,
+   "balanced": true
+  },
+  {
+   "ref": "af5546fe",
+   "status": "POSTED",
+   "debitPaisa": 112895,
+   "creditPaisa": 112895,
+   "balanced": true
+  },
+  {
+   "ref": "a0d245cc",
+   "status": "POSTED",
+   "debitPaisa": 125000,
+   "creditPaisa": 125000,
+   "balanced": true
+  },
+  {
+   "ref": "98f91234",
+   "status": "POSTED",
+   "debitPaisa": 62075,
+   "creditPaisa": 62075,
+   "balanced": true
+  },
+  {
+   "ref": "acb7b870",
+   "status": "POSTED",
+   "debitPaisa": 9280,
+   "creditPaisa": 9280,
+   "balanced": true
+  },
+  {
+   "ref": "e508f640",
+   "status": "POSTED",
+   "debitPaisa": 16780,
+   "creditPaisa": 16780,
+   "balanced": true
+  },
+  {
+   "ref": "b9c02c77",
+   "status": "POSTED",
+   "debitPaisa": 125050,
+   "creditPaisa": 125050,
+   "balanced": true
+  },
+  {
+   "ref": "c660bc2b",
+   "status": "POSTED",
+   "debitPaisa": 49900,
+   "creditPaisa": 49900,
+   "balanced": true
+  },
+  {
+   "ref": "8938372e",
+   "status": "POSTED",
+   "debitPaisa": 125000,
+   "creditPaisa": 125000,
+   "balanced": true
+  },
+  {
+   "ref": "53b2a453",
+   "status": "POSTED",
+   "debitPaisa": 78900,
+   "creditPaisa": 78900,
+   "balanced": true
+  },
+  {
+   "ref": "73ecb4ee",
+   "status": "POSTED",
+   "debitPaisa": 125000,
+   "creditPaisa": 125000,
+   "balanced": true
+  },
+  {
+   "ref": "89a3af8d",
+   "status": "POSTED",
+   "debitPaisa": 78900,
+   "creditPaisa": 78900,
+   "balanced": true
+  }
+ ],
+ "allBalanced": true
+}

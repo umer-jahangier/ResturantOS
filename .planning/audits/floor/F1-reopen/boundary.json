@@ -1,0 +1,16 @@
+{
+ "otherTillId": "ae93ba15-bcc8-4c7a-b955-c30c5673b558",
+ "colleagueRecon": {
+  "status": 200,
+  "liveExpected": 4862559
+ },
+ "crossTenant": {
+  "who": "cashier@control.local",
+  "status": 404,
+  "body": "{\"detail\":\"Till session not found: 61ab4a24-363b-4a21-bf0f-f8ba87befc6d\",\"instance\":\"/api/v1/pos/tills/61ab4a24-363b-4a21-bf0f-f8ba87befc6d/reconciliation\",\"status\":404,\"title\":\"NOT_FOUND\",\"type\":\"urn:restaurantos:pos:no"
+ },
+ "ownScreen": {
+  "mentionsOtherTill": false,
+  "barText": "No active till Open Till"
+ }
+}

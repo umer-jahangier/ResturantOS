@@ -1,0 +1,113 @@
+{
+ "tillId": "61ab4a24-363b-4a21-bf0f-f8ba87befc6d",
+ "reload_3000": {
+  "barText": "Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till",
+  "hasClose": true,
+  "hasOpen": false,
+  "unavailable": false,
+  "panelOpen": false,
+  "pageHead": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K B Point of sale Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till POS "
+ },
+ "reload_6000": {
+  "barText": "Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till",
+  "hasClose": true,
+  "hasOpen": false,
+  "unavailable": false,
+  "panelOpen": false,
+  "pageHead": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K B Point of sale Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till POS "
+ },
+ "reload_10000": {
+  "barText": "Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till",
+  "hasClose": true,
+  "hasOpen": false,
+  "unavailable": false,
+  "panelOpen": false,
+  "pageHead": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K B Point of sale Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till POS "
+ },
+ "reload_16000": {
+  "barText": "Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till",
+  "hasClose": true,
+  "hasOpen": false,
+  "unavailable": false,
+  "panelOpen": false,
+  "pageHead": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K B Point of sale Till OPEN Float: Rs 4,317.50 Cash: Rs 4,485.30 Orders: 2 Close Till POS "
+ },
+ "afterReloadPanel": {
+  "panelText": "Close Till Session Opening float: Rs 4,317.50 Cash taken (net of refunds): Rs 167.80 Expected cash: Rs 4,485.30 Declared Cash Count (PKR) Note for manager review (optional) Cancel Close Till",
+  "expectedText": "Rs 4,485.30",
+  "varianceText": null,
+  "varianceIs": null,
+  "confirmDisabled": true
+ },
+ "reconCashier": {
+  "status": 200,
+  "orders": 2
+ },
+ "reconManager": {
+  "status": 200,
+  "orders": 2,
+  "body": null
+ },
+ "reconKitchen": 403,
+ "refund": {
+  "status": 200,
+  "err": null
+ },
+ "expectedBeforeRefund": 448530,
+ "expectedAfterRefund": 443530,
+ "afterRefund": {
+  "strip": "Rs 4,435.30",
+  "expectedText": "Rs 4,435.30",
+  "panelText": "Close Till Session Opening float: Rs 4,317.50 Cash taken (net of refunds): Rs 117.80 Expected cash: Rs 4,435.30 Declared Cash Count (PKR) Note for manager review (optional) Cancel Close Till"
+ },
+ "finalPreview": {
+  "text": "Rs 200.00 short",
+  "tone": "destructive",
+  "expectedText": "Rs 4,435.30"
+ },
+ "vp390": {
+  "overflow": false,
+  "expected": "Rs 4,435.30",
+  "variance": "Rs 200.00 short"
+ },
+ "vp768": {
+  "overflow": false,
+  "expected": "Rs 4,435.30",
+  "variance": "Rs 200.00 short"
+ },
+ "dark": {
+  "text": "Rs 200.00 short",
+  "tone": "destructive"
+ },
+ "closeError": null,
+ "persisted": {
+  "status": "CLOSED",
+  "expectedPaisa": 443530,
+  "declaredPaisa": 423530,
+  "variancePaisa": -20000
+ },
+ "shownExpectedPaisa": 443530,
+ "agree": true,
+ "barAfterClose": {
+  "noActiveTill": true,
+  "hasOpen": true
+ },
+ "managerRow": {
+  "headers": [
+   "OPENED",
+   "CLOSED",
+   "CASHIER",
+   "STATUS",
+   "REVIEW",
+   "FLOAT",
+   "EXPECTED",
+   "DECLARED",
+   "VARIANCE",
+   "ACTIONS",
+   ""
+  ],
+  "row": null,
+  "firstRow": "8/12/2026, 3:47:42 PM 8/12/2026, 4:02:26 PM bc0d9897 CLOSED PENDING REVIEW Rs 4,317.50 Rs 4,435.30 Rs 4,235.30 -Rs 200.00 Approve Flag Note Details",
+  "rowCount": 18
+ }
+}

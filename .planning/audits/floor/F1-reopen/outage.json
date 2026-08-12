@@ -1,0 +1,24 @@
+{
+ "outage": {
+  "rowPresent": true,
+  "expectedText": "Unavailable — could not read this till's totals. Try again",
+  "hasRetry": true,
+  "varianceText": null,
+  "panelText": "Close Till Session Opening float: Rs 2,750.25 Expected cash: Unavailable — could not read this till's totals. Try again Declared Cash Count (PKR) Note for manager review (optional) Cancel Close Till"
+ },
+ "outageTyped": {
+  "rowPresent": true,
+  "expectedText": "Unavailable — could not read this till's totals. Try again",
+  "hasRetry": true,
+  "varianceText": "Variance cannot be checked until the expected cash figure loads.",
+  "panelText": "Close Till Session Opening float: Rs 2,750.25 Expected cash: Unavailable — could not read this till's totals. Try again Declared Cash Count (PKR) Note for manager review (optional) Variance cannot be checked until the expected cash figure loads. Cancel Close Till"
+ },
+ "outageSubmit": false,
+ "recovered": {
+  "rowPresent": true,
+  "expectedText": "Rs 2,750.25",
+  "hasRetry": false,
+  "varianceText": "Rs 150.25 short",
+  "panelText": "Close Till Session Opening float: Rs 2,750.25 Cash taken (net of refunds): Rs 0.00 Expected cash: Rs 2,750.25 Declared Cash Count (PKR) Note for manager review (optional) Variance: Rs 150.25 short Cancel Close Till"
+ }
+}

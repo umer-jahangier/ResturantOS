@@ -1,0 +1,21 @@
+{
+ "tillId": "61ab4a24-363b-4a21-bf0f-f8ba87befc6d",
+ "openingFloatPaisa": 431750,
+ "expectedBeforePaisa": 431750,
+ "orderA": {
+  "no": "ORD-20260812-0361",
+  "totalPaisa": 9280
+ },
+ "chargeAError": null,
+ "deltaAPaisa": 16780,
+ "expectedDeltaAPaisa": 16780,
+ "orderB": {
+  "no": "ORD-20260812-0363",
+  "totalPaisa": 9280
+ },
+ "chargeBError": null,
+ "deltaBPaisa": 0,
+ "nonCashPaisa": 9280,
+ "recomputedNoRefundsPaisa": 448530,
+ "serverLivePaisa": 448530
+}
