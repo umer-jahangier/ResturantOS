@@ -312,6 +312,8 @@ export function adaptTillSession(raw: ApiTillSession): TillSession {
     id: raw.id,
     branchId: raw.branchId,
     cashierId: raw.cashierId,
+    // F21. Absent or null both mean "no name to show"; the row renders the id instead.
+    cashierName: raw.cashierName ?? null,
     openingFloatPaisa: raw.openingFloatPaisa,
     expectedClosingPaisa: raw.expectedClosingPaisa ?? null,
     declaredClosingPaisa: raw.declaredClosingPaisa ?? null,
