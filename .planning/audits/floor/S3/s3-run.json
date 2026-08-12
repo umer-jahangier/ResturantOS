@@ -1,0 +1,20 @@
+{
+  "failures": [],
+  "notes": [
+    "owner sidebar hrefs: [\"/app/dashboard\",\"/app/pos\",\"/app/kitchen\",\"/app/pos/tills\",\"/app/inventory\",\"/app/menu/items\",\"/app/tables\",\"/app/stations\",\"/app/menu/routing\",\"/app/terminals\",\"/app/settings/printers\",\"/app/settings/tax\",\"/app/settings/service-charge\",\"/app/finance/guide\",\"/app/finance/takings\",\"/app/finance/accounts\",\"/app/finance/journal-entries\",\"/app/finance/gl\",\"/app/finance/periods\",\"/app/finance/expenses\",\"/app/finance/ap-aging\",\"/app/purchasing\",\"/app/hr\",\"/app/crm\",\"/app/reports\",\"/app/dashboard/realtime\",\"/app/nlq\",\"/app/settings\",\"/app/branches\",\"/settings/appearance\",\"/app/users\",\"/app/roles\",\"/app/settings/audit\",\"/app/settings/health\",\"/app/dashboard\",\"/app/pos\",\"/app/inventory\",\"/app/finance/accounts\",\"/app/settings\"]",
+    "CASHIER modules: [\"CRM\",\"POS\"]",
+    "CASHIER codes (14): [\"crm.customer.manage\",\"crm.customer.view\",\"crm.promotion.view\",\"pos.menu.view\",\"pos.order.close\",\"pos.order.create\",\"pos.order.discount.line\",\"pos.order.send_to_kds\",\"pos.order.update\",\"pos.order.view\",\"pos.order.void.own\",\"pos.tables.manage\",\"pos.till.close\",\"pos.till.open\"]",
+    "builder counter after ticking: 6 of 78 selected",
+    "picked branch \"Floating Terrace — Rooftop\" in select #0",
+    "picked role \"Head Waiter\" in select #1",
+    "one-time password candidate length: 16",
+    "holder headwaiter.s3.856352@terrace.local created with a one-time password",
+    "holder sidebar (v1): [\"/app/dashboard\",\"/app/pos\",\"/app/tables\",\"/app/settings/service-charge\",\"/app/dashboard\",\"/app/pos\"]",
+    "/app/users as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Users | Floating Terrace — Rooftop | Search… | ⌘K | 3 | A",
+    "/app/finance/accounts as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Finance | Accounts | Floating Terrace — Rooftop | Sea",
+    "/app/inventory as holder → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Tables | Service Charge | Collapse | App | Inventory | Floating Terrace — Rooftop | Search… | ⌘K",
+    "holder sidebar (v2, after the edit): [\"/app/dashboard\",\"/app/pos\",\"/app/settings/service-charge\",\"/app/dashboard\",\"/app/pos\"]",
+    "/app/tables after the edit → Floating Terrace | OVERVIEW | Dashboard | ORDERS | POS | MENU | Service Charge | Collapse | App | Tables | Floating Terrace — Rooftop | Search… | ⌘K | 3 | Tables | Your dining tables.",
+    "ceiling refusal text present: true"
+  ]
+}
