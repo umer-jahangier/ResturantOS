@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { seedSession, clearSession } from "@/__tests__/utils/auth-fixtures";
 import { createQueryWrapper } from "@/__tests__/utils/query-wrapper";
 import { SettlementActions } from "@/components/pos/settlement-actions";
+import { ApiError } from "@/lib/errors/api-error";
 import type { Order } from "@/lib/models/pos.model";
 
 /*
@@ -27,12 +29,19 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
 }));
 
-const { getPaymentsMock } = vi.hoisted(() => ({ getPaymentsMock: vi.fn() }));
+const { getPaymentsMock, voidOrderMock } = vi.hoisted(() => ({
+  getPaymentsMock: vi.fn(),
+  voidOrderMock: vi.fn(),
+}));
 vi.mock("@/lib/repositories/pos.repository", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/repositories/pos.repository")>();
   return {
     ...actual,
-    PosRepository: { ...actual.PosRepository, getPayments: getPaymentsMock },
+    PosRepository: {
+      ...actual.PosRepository,
+      getPayments: getPaymentsMock,
+      voidOrder: voidOrderMock,
+    },
   };
 });
 
@@ -180,6 +189,105 @@ describe("F13 — the paid-check notice names who can refund", () => {
   it("keeps the refund control behind pos.order.refund for the cashier role", async () => {
     renderAs(CASHIER_PERMISSIONS, makeOrder());
     await notice();
+    expect(CASHIER_PERMISSIONS).not.toContain("pos.order.refund");
+    expect(refundButton()).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * F13-B — the SAME sentence, in the void-409 error branch 110 lines below the notice.
+ *
+ * The notice was made persona-aware; this branch was not, and it is reached by an ordinary
+ * two-person shift, not a contrivance. Re-driven in Chromium on ORD-20260812-0412 (takeaway,
+ * Rs 1,148.00): the cashier fires the check while it is unpaid — Void is genuinely on offer —
+ * the manager takes the money on another till, and the cashier's tab, never reloaded, still
+ * shows the Void they now press. The server refuses with 409 and the drawer printed:
+ *
+ *   voidError      "This order has been paid — use Refund. A void would leave the payment in place."
+ *   refundTrigger  false
+ *
+ * (evidence: .planning/audits/floor/F13/r7c-cashier-void-409.png)
+ *
+ * Note WHY the pairing below has to be asserted in the same render: while the panel is open it
+ * REPLACES the trigger row, so the error and the buttons are never on screen together. The
+ * sentence therefore cannot be justified by "the button is right there" — it can only be
+ * justified by the reader being ABLE to refund at all, which is what `pos.order.refund` says.
+ */
+describe("F13-B — the void-409 error names who can refund", () => {
+  /**
+   * The stale [] is the defect's precondition, not a shortcut: this tab's payments query
+   * answered before the money landed, which is exactly why it is still offering Void.
+   */
+  beforeEach(() => {
+    getPaymentsMock.mockResolvedValue([]);
+    voidOrderMock.mockRejectedValue(
+      new ApiError({
+        code: "ORDER_ALREADY_PAID",
+        message: "Order has payments recorded against it",
+        status: 409,
+        traceId: null,
+        fieldErrors: [],
+      }),
+    );
+  });
+  afterEach(() => {
+    clearSession();
+    getPaymentsMock.mockReset();
+    voidOrderMock.mockReset();
+  });
+
+  /** Clicks the real path: Void → reason → Confirm Void → server 409. Returns what is printed. */
+  async function pressVoidAndReadTheRefusal(permissions: string[]): Promise<string> {
+    const user = userEvent.setup();
+    renderAs(permissions, makeOrder());
+
+    await user.click(await screen.findByRole("button", { name: /void order/i }));
+    await user.type(
+      await screen.findByPlaceholderText(/customer left without ordering/i),
+      "Guest changed their mind",
+    );
+    await user.click(screen.getByRole("button", { name: /confirm void/i }));
+
+    const node = await screen.findByTestId("void-error");
+    await waitFor(() => expect(voidOrderMock).toHaveBeenCalled());
+    return node.textContent ?? "";
+  }
+
+  describe("a cashier, who does not hold pos.order.refund", () => {
+    it("is not told to press Refund, because Refund is nowhere on their screen", async () => {
+      const text = await pressVoidAndReadTheRefusal(CASHIER_PERMISSIONS);
+
+      // The pairing. Asserting the copy alone would pass while the button is still missing.
+      expect(refundButton()).not.toBeInTheDocument();
+      expect(text).not.toMatch(/use refund/i);
+    });
+
+    it("is told that a manager refunds it", async () => {
+      const text = await pressVoidAndReadTheRefusal(CASHIER_PERMISSIONS);
+      expect(text).toMatch(/manager/i);
+      expect(refundButton()).not.toBeInTheDocument();
+    });
+
+    it("still learns why the void was refused — money is on the check", async () => {
+      const text = await pressVoidAndReadTheRefusal(CASHIER_PERMISSIONS);
+      expect(text).toMatch(/paid/i);
+      // The reason a void is wrong here, not just that it failed: the payment would survive it.
+      expect(text).toMatch(/payment in place/i);
+    });
+  });
+
+  describe("a manager, who does hold pos.order.refund", () => {
+    it("keeps the instruction, because Refund is a thing they can actually do", async () => {
+      const text = await pressVoidAndReadTheRefusal(MANAGER_PERMISSIONS);
+      expect(text).toMatch(/use refund/i);
+      // Nobody is sent to find themselves.
+      expect(text).not.toMatch(/manager/i);
+      expect(MANAGER_PERMISSIONS).toContain("pos.order.refund");
+    });
+  });
+
+  it("does not widen pos.order.refund to make the sentence true", async () => {
+    await pressVoidAndReadTheRefusal(CASHIER_PERMISSIONS);
     expect(CASHIER_PERMISSIONS).not.toContain("pos.order.refund");
     expect(refundButton()).not.toBeInTheDocument();
   });

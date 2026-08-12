@@ -126,7 +126,26 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
   const handleVoid = async () => {
     if (!voidReason.trim()) return;
     const idempotencyKey = generateKey();
-    await voidMutation.mutateAsync({ payload: { reason: voidReason }, idempotencyKey });
+    /*
+     * F13-B — the refusal is DISPLAYED, so it must not also ESCAPE.
+     *
+     * `mutateAsync` rejects on a 409, and the caller is `onClick={() => void handleVoid()}` —
+     * `void` marks the promise as deliberately un-awaited, it does not handle a rejection. So
+     * every refused void threw an ApiError out to `window.onunhandledrejection` on top of
+     * rendering it, which is what puts the Next dev overlay's error badge on the 409 screenshot.
+     * `voidMutation.error` already carries it to the `void-error` paragraph below; the escape
+     * added nothing and made this path untestable — a Vitest run whose assertions all pass still
+     * exits 1 on the stray rejection, and a permanently-red gate is a gate someone deletes.
+     *
+     * Behaviour is otherwise unchanged: on failure the panel stays open with the message, exactly
+     * as when the throw propagated. (`handleRefund` below still leaks the same way — reported, not
+     * fixed here: it needs its own reproduction and its own test.)
+     */
+    try {
+      await voidMutation.mutateAsync({ payload: { reason: voidReason }, idempotencyKey });
+    } catch {
+      return;
+    }
     closePanel();
     onDone?.();
   };
@@ -221,7 +240,22 @@ export function VoidRefundDialog({ order, onDone }: VoidRefundDialogProps) {
                     ? // S0-01: the server refuses a void once money is on the order. Say so
                       // exactly, and name the operation that does work — a generic "try again"
                       // would invite the operator to keep hammering a button that cannot succeed.
-                      "This order has been paid — use Refund. A void would leave the payment in place."
+                      //
+                      // F13-B: and name it to the RIGHT reader. This branch kept the one sentence
+                      // F13 was raised about ("use Refund") for everyone, 110 lines below the
+                      // notice that was fixed. It is reached without contrivance: the cashier
+                      // opens an unpaid fired check — Void genuinely on offer — the money is
+                      // taken elsewhere, their tab never reloads, they press Void, 409. Driven in
+                      // Chromium on ORD-20260812-0412: `refundTrigger: false` on that screen.
+                      //
+                      // While this panel is open it REPLACES the trigger row, so the Refund
+                      // button is not beside this sentence for ANY reader. What the wording can
+                      // honestly turn on is therefore not what is visible but what the reader is
+                      // able to do at all — `readerCanRefund`, the same REFUND_PERMISSION check
+                      // the notice uses. The permission itself is not widened.
+                      readerCanRefund
+                      ? "This order has been paid — use Refund. A void would leave the payment in place."
+                      : "This order has been paid — a manager must refund this check. A void would leave the payment in place."
                     : "Failed to void. Please try again."}
               </p>
             )}
