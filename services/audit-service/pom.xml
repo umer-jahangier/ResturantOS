@@ -64,6 +64,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
+        <!--
+          F4: the audit screen prints WHO, and audit_events stores only a user id. Names live in
+          auth_db and are resolved over `/internal/auth/users/{id}` exactly as pos-service resolves
+          the actor on a voided order (AuthUserDirectoryClient there, AuditActorDirectory here).
+          Nine other services already carry this dependency; audit-service is now the tenth.
+        -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

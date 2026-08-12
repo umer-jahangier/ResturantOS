@@ -215,7 +215,7 @@ class AuditReadPathIT {
     void permissionIsEnforced() {
         authenticateWith(TENANT_A, "pos.order.void.any", "hr.employee.view");
 
-        assertThatThrownBy(() -> auditQueryController.getEvents(null, null, null, 0, 50))
+        assertThatThrownBy(() -> auditQueryController.getEvents(null, null, null, null, null, 0, 50))
                 .as("holding unrelated permissions must not open the audit log")
                 .isInstanceOf(AccessDeniedException.class);
     }
@@ -226,7 +226,7 @@ class AuditReadPathIT {
         SecurityContextHolder.clearContext();
         tenantContext.set(TENANT_A, null, UUID.randomUUID(), null);
 
-        assertThatThrownBy(() -> auditQueryController.getEvents(null, null, null, 0, 50))
+        assertThatThrownBy(() -> auditQueryController.getEvents(null, null, null, null, null, 0, 50))
                 .isInstanceOf(AuthenticationException.class);
     }
 
@@ -353,7 +353,7 @@ class AuditReadPathIT {
         // A request arriving with tenant A's verified token, held by someone entitled to read.
         authenticateWith(TENANT_A, "audit.log.view");
         List<AuditEventView> asTenantA =
-                auditQueryController.getEvents(null, null, null, 0, 200).data();
+                auditQueryController.getEvents(null, null, null, null, null, 0, 200).data();
 
         assertThat(asTenantA)
                 .as("tenant A must see its own rows").isNotEmpty();
@@ -371,7 +371,7 @@ class AuditReadPathIT {
         tenantContext.clear();
         authenticateWith(TENANT_B, "audit.log.view");
         List<AuditEventView> asTenantB =
-                auditQueryController.getEvents(null, null, null, 0, 200).data();
+                auditQueryController.getEvents(null, null, null, null, null, 0, 200).data();
         assertThat(asTenantB).isNotEmpty();
         assertThat(asTenantB).map(AuditEventView::id)
                 .as("B's result set must be disjoint from A's")
@@ -423,7 +423,7 @@ class AuditReadPathIT {
                 actedAs, realAdmin));
 
         authenticateWith(TENANT_A, "audit.log.view");
-        AuditEventView row = auditQueryController.getEvents("ORDER_VOIDED", null, null, 0, 200)
+        AuditEventView row = auditQueryController.getEvents("ORDER_VOIDED", null, null, null, null, 0, 200)
                 .data().stream()
                 .filter(v -> orderId.toString().equals(v.resourceId()))
                 .findFirst().orElseThrow();
