@@ -1,0 +1,197 @@
+{
+  "rung": {
+    "dineInAtTableTableTile": "T2 Available",
+    "dineInAtTable": "ORD-20260812-0237",
+    "dineInNoTable": "ORD-20260812-0238",
+    "takeaway": "ORD-20260812-0241"
+  },
+  "longReason": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill",
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "serverRows": [
+    {
+      "orderNo": "ORD-20260812-0241",
+      "type": "TAKEAWAY",
+      "tableName": null,
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    },
+    {
+      "orderNo": "ORD-20260812-0238",
+      "type": "DINE_IN",
+      "tableName": null,
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    },
+    {
+      "orderNo": "ORD-20260812-0237",
+      "type": "DINE_IN",
+      "tableName": "T2",
+      "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "cashierName": "Terrace Manager",
+      "itemQuantity": 3,
+      "distinctItemCount": 2
+    }
+  ],
+  "headers": [
+    "Order / Type",
+    "Status",
+    "Payment",
+    "Server/Cashier",
+    "Items",
+    "Total",
+    "Age",
+    ""
+  ],
+  "seenActive": {
+    "ORD-20260812-0241": {
+      "orderCell": "ORD-20260812-0241 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines"
+    },
+    "ORD-20260812-0238": {
+      "orderCell": "ORD-20260812-0238 | Dine-in",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines"
+    },
+    "ORD-20260812-0237": {
+      "orderCell": "ORD-20260812-0237 | Dine-in · T2",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines"
+    }
+  },
+  "cashierCells": [
+    {
+      "no": "ORD-20260812-0241",
+      "cashier": "Terrace Manager"
+    },
+    {
+      "no": "ORD-20260812-0240",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0239",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0238",
+      "cashier": "Terrace Manager"
+    },
+    {
+      "no": "ORD-20260812-0237",
+      "cashier": "Terrace Manager"
+    },
+    {
+      "no": "ORD-20260812-0236",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0234",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0233",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0232",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0230",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0229",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0228",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0227",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0226",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0225",
+      "cashier": "F11 Cashier 807971"
+    },
+    {
+      "no": "ORD-20260812-0224",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0223",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0222",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0221",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0220",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0219",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0218",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0217",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0216",
+      "cashier": "Terrace Cashier"
+    },
+    {
+      "no": "ORD-20260812-0215",
+      "cashier": "Terrace Cashier"
+    }
+  ],
+  "alertsAfterVoid": [],
+  "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"status-filter-VOIDED\"]')\n",
+  "verdicts": [
+    {
+      "name": "untabled DINE_IN reads Dine-in, not Takeaway",
+      "pass": true,
+      "detail": "\"ORD-20260812-0238 | Dine-in\""
+    },
+    {
+      "name": "tabled DINE_IN reads Dine-in AND still shows the table",
+      "pass": true,
+      "detail": "\"ORD-20260812-0237 | Dine-in · T2\" (server tableName=\"T2\") "
+    },
+    {
+      "name": "real TAKEAWAY still reads Takeaway",
+      "pass": true,
+      "detail": "\"ORD-20260812-0241 | Takeaway\""
+    },
+    {
+      "name": "Server/Cashier prints a name on every row, never an 8-char hex fragment",
+      "pass": true,
+      "detail": "25 rows on screen, 0 still hex; mine reads \"Terrace Manager\""
+    },
+    {
+      "name": "Items cell states one count, or two clearly distinct labels",
+      "pass": true,
+      "detail": "[\"3 items / 2 lines\",\"3 items / 2 lines\",\"3 items / 2 lines\"]"
+    }
+  ]
+}

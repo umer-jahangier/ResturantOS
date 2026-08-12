@@ -1,0 +1,90 @@
+{
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "repro": {
+    "screenRows": [
+      {
+        "orderCell": "ORD-20260812-0162 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0161 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0155 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0152 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0147 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0146 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0145 | Takeaway",
+        "cashierCell": "fefd7187"
+      },
+      {
+        "orderCell": "ORD-20260812-0144 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0143 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      },
+      {
+        "orderCell": "ORD-20260812-0142 | Takeaway",
+        "cashierCell": "fefd7187"
+      },
+      {
+        "orderCell": "ORD-20260812-0141 | Takeaway",
+        "cashierCell": "fefd7187"
+      },
+      {
+        "orderCell": "ORD-20260812-0139 | Takeaway",
+        "cashierCell": "eb2ee67e"
+      }
+    ],
+    "detail": [],
+    "headers": [
+      "Order / Table",
+      "Status",
+      "Payment",
+      "Server/Cashier",
+      "Items",
+      "Total",
+      "Age",
+      ""
+    ]
+  },
+  "rung": {
+    "dineInAtTableTable": "T1 Available",
+    "dineInAtTable": "ORD-20260812-0180",
+    "dineInNoTable": "ORD-20260812-0181",
+    "takeaway": "ORD-20260812-0182"
+  },
+  "seenActive": {
+    "ORD-20260812-0182": {
+      "orderCell": "ORD-20260812-0182 | Takeaway",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines"
+    },
+    "ORD-20260812-0181": {
+      "orderCell": "ORD-20260812-0181 | Dine-in",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines"
+    },
+    "ORD-20260812-0180": {
+      "orderCell": "ORD-20260812-0180 | Dine-in · T1",
+      "cashier": "Terrace Manager",
+      "items": "3 items / 2 lines"
+    }
+  },
+  "longReason": "F2 proof — the guest was quoted the wrong price on the board, refused the check at the pass and left before service, so the whole thing is coming off"
+}

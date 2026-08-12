@@ -1,0 +1,83 @@
+{
+  "target": "ORD-20260812-0238",
+  "longReason": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill",
+  "verdicts": [
+    {
+      "name": "the void landed, with the whole reason intact",
+      "pass": true,
+      "detail": "181 chars asked, 181 chars stored"
+    },
+    {
+      "name": "the voided row still reads Dine-in (not Takeaway)",
+      "pass": true,
+      "detail": "\"ORD-20260812-0238 | Dine-in\""
+    },
+    {
+      "name": "the voided row offers neither Cancel nor Continue",
+      "pass": true,
+      "detail": "[\"Open\"]"
+    },
+    {
+      "name": "Server/Cashier prints the same string the Voided column prints for that actor",
+      "pass": true,
+      "detail": "Server/Cashier=\"Terrace Manager\"  Voided byline=\"Terrace Manager\""
+    },
+    {
+      "name": "the long void reason is readable in full by a press, wrapped, not clipped",
+      "pass": true,
+      "detail": "popover carries the 181-char reason=true, clipped=false, whiteSpace=normal"
+    }
+  ],
+  "serverBefore": "(not in the active list)",
+  "serverVoidedRow": {
+    "orderNo": "ORD-20260812-0238",
+    "type": "DINE_IN",
+    "settlementStatus": "VOIDED",
+    "cashierName": "Terrace Manager",
+    "cashierId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+    "settlement": {
+      "reason": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill",
+      "byUserId": "fefd7187-dbe2-4c12-a532-3c1cc8f3d322",
+      "byName": "Terrace Manager",
+      "at": "2026-08-12T05:07:55.867519Z"
+    }
+  },
+  "voidedHeaders": [
+    "Order / Type",
+    "Status",
+    "Payment",
+    "Server/Cashier",
+    "Items",
+    "Total",
+    "Voided",
+    "Age",
+    ""
+  ],
+  "voidedRow": {
+    "order": "ORD-20260812-0238 | Dine-in",
+    "cashier": "Terrace Manager",
+    "settlement": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill | by Terrace Manager · Aug 12, 10:07 AM",
+    "actionButtons": [
+      "Open"
+    ]
+  },
+  "reasonControl": {
+    "text": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill",
+    "scrollWidth": 1171,
+    "clientWidth": 352,
+    "whiteSpace": "nowrap",
+    "title": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill",
+    "ariaLabel": "Read the full reason for order ORD-20260812-0238",
+    "testid": "settlement-reason-827e9b7a-7bf0-40b6-add9-874a59c0670e"
+  },
+  "reasonPopover": {
+    "text": "F2 audit — the guest was quoted the wrong price on the specials board, refused the check at the pass and walked out before anything was served, so the whole thing comes off the bill\n\nby Terrace Manager · Aug 12, 10:07 AM",
+    "whiteSpace": "normal",
+    "clipped": false
+  },
+  "bodyScrollsHorizontally@390": false,
+  "bodyScrollsHorizontally@768": false,
+  "bodyScrollsHorizontally@1440": false,
+  "pageErrorsFinal": [],
+  "consoleErrorsFinal": []
+}
