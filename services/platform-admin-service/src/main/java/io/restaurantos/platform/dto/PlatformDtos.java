@@ -413,10 +413,13 @@ public final class PlatformDtos {
      * about the product. See {@link ImpersonationStatus}.
      *
      * @param tenantSlug      resolved from {@code platform_db.tenants}, same database, one batched
-     *                        read per page. Null only if the tenant row is gone (a PURGED tenant's
-     *                        registration is deleted; the impersonation record is not, and must
-     *                        still be readable — the accountability record outliving the tenant is
-     *                        the point of an immutable log).
+     *                        read per page. Null only if the tenant row is genuinely absent. NOT,
+     *                        as this said until 2026-08-13, because a PURGED tenant's registration
+     *                        is deleted — it is not deleted; {@code closePermanently} only sets a
+     *                        status, so a PURGED tenant resolves its slug like any other. The
+     *                        nullability is for a row that really is missing (created outside
+     *                        provisioning, or a restore that missed one), and an accountability log
+     *                        must render what it knows rather than fail over a missing name.
      * @param adminEmail      resolved from {@code platform_db.platform_users}, likewise. Null if
      *                        that account has since been deleted; {@code adminUserId} still names it.
      * @param targetUserId    the impersonated tenant user. <b>Deliberately not resolved to a name.</b>

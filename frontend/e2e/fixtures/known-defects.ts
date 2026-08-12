@@ -147,9 +147,14 @@ export const DEFECTS = {
     id: "E2E-D5",
     title: "A tenant-lifecycle precondition violation returns 500, not 409",
     impact:
-      "Calling DELETE /api/v1/platform/tenants/{id} on a tenant that is not CANCELLED " +
-      "returns `500 INTERNAL_ERROR` with the message 'An unexpected error occurred'. The " +
-      "precondition is CORRECT — cancel must precede purge — but the caller is told nothing " +
+      "FIXED 2026-08-13. requireStatus and cancel now throw StateInvalidException, which " +
+      "shared-lib maps to 409 STATE_INVALID, and the message names the operation, the current " +
+      "status and the required one. The endpoint also moved: DELETE /api/v1/platform/tenants/{id} " +
+      "is now POST /api/v1/platform/tenants/{id}/close, because the old verb and its 204 claimed " +
+      "an erasure that never happened (see .planning/decisions/D-TENANT-ERASURE.md). " +
+      "ORIGINAL REPORT: calling DELETE on a tenant that is not CANCELLED " +
+      "returned `500 INTERNAL_ERROR` with the message 'An unexpected error occurred'. The " +
+      "precondition is CORRECT — cancel must precede close — but the caller was told nothing " +
       "about it. A client cannot distinguish 'you called these in the wrong order' from 'the " +
       "server is broken', so the only way to learn the required sequence is to read the " +
       "service source. It also means a real 500 in this endpoint is indistinguishable from " +

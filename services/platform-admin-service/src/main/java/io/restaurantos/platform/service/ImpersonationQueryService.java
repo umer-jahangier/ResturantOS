@@ -192,10 +192,19 @@ public class ImpersonationQueryService {
     /**
      * Tenant rows for a page, in one read.
      *
-     * <p>{@code findAllById} silently omits ids it cannot find, which is the wanted behaviour: a
-     * PURGED tenant's registration row is deleted and its impersonation records are not, so the
-     * lookup misses and the record renders with a null slug beside a real tenant id. The
-     * accountability record outliving the tenant it refers to is the point of an immutable log.
+     * <p>{@code findAllById} silently omits ids it cannot find, and that tolerance is still wanted —
+     * but NOT for the reason this comment used to give. It said a PURGED tenant's registration row
+     * is deleted, so the lookup misses. <b>It is not deleted.</b> {@code closePermanently} only sets
+     * a status, so a PURGED tenant resolves here exactly like any other and renders its real slug.
+     * That comment was written from the class javadoc's claim of a hard delete, which was never true
+     * — an example of a false statement propagating into a second component's reasoning before
+     * anyone tested it.
+     *
+     * <p>The tolerance earns its place on the honest ground: this is a cross-database join done in
+     * application code, so a row can be genuinely absent (a tenant created outside provisioning, a
+     * restore that missed a row), and an accountability log must render what it knows rather than
+     * fail because a name is missing. If real erasure is ever built, this becomes load-bearing for
+     * the reason originally stated — see {@code .planning/decisions/D-TENANT-ERASURE.md}.
      */
     private Map<UUID, TenantEntity> resolveTenants(List<ImpersonationLogEntity> rows) {
         Set<UUID> ids = new LinkedHashSet<>();
