@@ -179,6 +179,42 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
+                    <!-- Ryuk, the Testcontainers resource-reaper sidecar, cannot start under colima:
+                         it reaches its own container over the loopback port-forward colima publishes
+                         incorrectly. Without this every IT in this module errors with "Container
+                         startup failed for image testcontainers/ryuk:0.12.0" before a single test
+                         runs. Containers are reaped by the JVM shutdown hook instead.
+
+                         This is the ONLY mechanism that works, and it has to be per-module — there is
+                         no parent-pom entry; pos, kitchen, finance, purchasing and platform-admin
+                         each carry their own copy. auth-service never got one, which is the whole
+                         reason this suite needed TESTCONTAINERS_RYUK_DISABLED exported in the
+                         developer's shell to pass.
+
+                         Measured here, one IT class, same commit, JDK 25:
+                           env var exported in the shell ................ 0 Ryuk attempts, 4/4 pass
+                           this <environmentVariables> entry ............ 0 Ryuk attempts, 4/4 pass
+                           System.setProperty in the base class ......... 1 Ryuk attempt,  4/4 ERROR
+                           mvn -Dryuk.disabled=true ..................... 1 Ryuk attempt,  4/4 ERROR
+                           testcontainers.properties on the classpath ... 1 Ryuk attempt,  4/4 ERROR
+
+                         The third row is worth knowing: PosTestBase, HrTestBase, KitchenTestBase,
+                         FinanceTestBase, AutoPostingITBase and the audit ITs all carry that
+                         System.setProperty line. It is a no-op — Testcontainers resolves
+                         ryuk.disabled from the environment and from ~/.testcontainers.properties,
+                         never from a system property of that name. Those modules are green because
+                         of their pom entry, not the Java line. Do not copy the Java line here.
+
+                         (~/.testcontainers.properties on this machine already sets ryuk.disabled=true
+                         and is ALSO not honoured by the failsafe fork — the failing rows above ran
+                         with that file in place.)
+
+                         host.override is deliberately NOT set here: it is the colima VM address,
+                         specific to one machine, so it stays in the developer's environment where a
+                         Linux CI runner cannot inherit a wrong value. -->
+                    <environmentVariables>
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>

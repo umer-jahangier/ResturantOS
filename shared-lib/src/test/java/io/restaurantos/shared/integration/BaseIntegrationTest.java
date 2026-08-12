@@ -50,6 +50,10 @@ public abstract class BaseIntegrationTest {
         new RabbitMQContainer(DockerImageName.parse("rabbitmq:4.1-management"));
 
     static {
+        // Ryuk must be disabled for these to start at all under colima — that is done by this
+        // module's failsafe <environmentVariables> entry in shared-lib/pom.xml, NOT here. Setting
+        // TESTCONTAINERS_RYUK_DISABLED as a system property in this block does not work; see the
+        // pom for the measurements.
         POSTGRES.start();
         REDIS.start();
         RABBIT.start();

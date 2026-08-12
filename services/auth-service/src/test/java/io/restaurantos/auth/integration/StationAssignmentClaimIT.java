@@ -51,34 +51,94 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     private static final UUID BRANCH2_ROW = UUID.fromString("e0000005-0000-4000-8000-000000000005");
     private static final UUID LATE_ROW = UUID.fromString("e0000006-0000-4000-8000-000000000006");
 
+    /**
+     * The cook this class OWNS, rather than the seeded cashier it used to borrow.
+     *
+     * <h2>Why this class stopped using {@code COOK_ID}</h2>
+     *
+     * <p>Every test here writes to its subject: it assigns stations, clears them, and one of them
+     * ({@link #approvalLimitAttribute_survivesAlongsideTheStationList()}) rewrites the subject's
+     * approval limit. Pointed at the shared seeded cashier, all of that outlived the class. The
+     * {@code @BeforeEach} below cleaned the station rows, which protected THIS class from whatever
+     * ran before it and protected nobody from this class — cleanup that runs before each test
+     * leaves the last test's writes standing for every class that follows.
+     *
+     * <p>Measured: {@code AuthLoginIT.loginSuccess_issuesJwtRefreshCookieAndLoginEvent} nine
+     * classes later read the cashier's attributes as
+     * {@code {"approval_limit_paisa"=250000, "stations"=["BAR","PASS"]}} where the seed says
+     * {@code 5000000} and no stations at all. Both halves of that are this class's leftovers. It
+     * passed when the classes happened to run the other way round, which is not a gate.
+     *
+     * <p>The rule this restores is the one the suite needs generally: <b>no IT class mutates a row
+     * it did not create</b>. Owning the user is what makes the writes above safe, and it costs
+     * nothing in coverage — none of these behaviours are about the cashier specifically, only about
+     * a user who has stations.
+     */
+    private static final UUID COOK_ID = UUID.fromString("c0000051-0000-4000-8000-000000000051");
+    private static final UUID COOK_MAIN_ROLE_ID = UUID.fromString("d0000051-0000-4000-8000-000000000051");
+    private static final UUID COOK_BRANCH2_ROLE_ID = UUID.fromString("d0000052-0000-4000-8000-000000000052");
+    private static final String COOK_EMAIL = "station-cook@demo.local";
+    private static final String COOK_PASSWORD = "Sc7!vwmtBn3%";
+
     @Autowired private UserStationAssignmentRepository stationAssignmentRepository;
     @Autowired private UserBranchRoleRepository userBranchRoleRepository;
+    @Autowired private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
-    void cleanAssignmentsAndEnsureBranchTwo() {
+    void seedTheCookThisClassOwns() {
         inTenantTx(() -> {
-            stationAssignmentRepository.deleteAll(
-                stationAssignmentRepository.findByTenantIdAndUserIdAndBranchId(
-                    TestFixtures.demoTenantId(), TestFixtures.cashierUserId(), TestFixtures.mainBranchId()));
-            stationAssignmentRepository.deleteAll(
-                stationAssignmentRepository.findByTenantIdAndUserIdAndBranchId(
-                    TestFixtures.demoTenantId(), TestFixtures.cashierUserId(), TestFixtures.branch2Id()));
+            // ON CONFLICT DO NOTHING: the row survives between tests in the same fork, and the
+            // password hash minted on the first pass stays valid for every later login.
+            entityManager.createNativeQuery("""
+                    INSERT INTO users (id, tenant_id, email, password_hash, full_name, totp_enabled,
+                                       is_active, failed_login_count, created_at, updated_at, version,
+                                       must_change_password)
+                    VALUES (:id, :tid, :email, :hash, 'Station Cook', false, true, 0, now(), now(), 0, false)
+                    ON CONFLICT (id) DO NOTHING
+                    """)
+                .setParameter("id", COOK_ID)
+                .setParameter("tid", TestFixtures.demoTenantId())
+                .setParameter("email", COOK_EMAIL)
+                .setParameter("hash", passwordEncoder.encode(COOK_PASSWORD))
+                .executeUpdate();
 
-            if (userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(
-                    TestFixtures.cashierUserId(), TestFixtures.branch2Id()).isEmpty()) {
-                UserBranchRoleEntity assignment = new UserBranchRoleEntity();
-                assignment.setId(UUID.fromString("d0000007-0000-4000-8000-000000000007"));
-                assignment.setTenantId(TestFixtures.demoTenantId());
-                assignment.setUserId(TestFixtures.cashierUserId());
-                assignment.setBranchId(TestFixtures.branch2Id());
-                assignment.setRoleCode("CASHIER");
-                assignment.setActive(true);
-                userBranchRoleRepository.save(assignment);
-            }
+            // CASHIER at both branches: the role code only has to be one that logs in and carries
+            // no station scope of its own, so that what these tests assert about the claim is
+            // produced by the station rows below and nothing else.
+            ensureActiveRole(COOK_MAIN_ROLE_ID, TestFixtures.mainBranchId());
+            ensureActiveRole(COOK_BRANCH2_ROLE_ID, TestFixtures.branch2Id());
+
+            // Still cleaned per-test, because these tests assert exact station sets against each
+            // other. The difference from before is that the rows belong to this class.
+            stationAssignmentRepository.deleteAll(
+                stationAssignmentRepository.findByTenantIdAndUserIdAndBranchId(
+                    TestFixtures.demoTenantId(), COOK_ID, TestFixtures.mainBranchId()));
+            stationAssignmentRepository.deleteAll(
+                stationAssignmentRepository.findByTenantIdAndUserIdAndBranchId(
+                    TestFixtures.demoTenantId(), COOK_ID, TestFixtures.branch2Id()));
             return null;
         });
+    }
+
+    /**
+     * Restores the cook's role at one branch to a known state — active, CASHIER, no approval limit
+     * — creating it the first time. Re-asserted every test because
+     * {@link #approvalLimitAttribute_survivesAlongsideTheStationList()} writes a limit onto it and
+     * the tests that follow must not inherit that.
+     */
+    private void ensureActiveRole(UUID roleRowId, UUID branchId) {
+        UserBranchRoleEntity assignment = userBranchRoleRepository.findById(roleRowId)
+            .orElseGet(UserBranchRoleEntity::new);
+        assignment.setId(roleRowId);
+        assignment.setTenantId(TestFixtures.demoTenantId());
+        assignment.setUserId(COOK_ID);
+        assignment.setBranchId(branchId);
+        assignment.setRoleCode("CASHIER");
+        assignment.setActive(true);
+        assignment.setApprovalLimitPaisa(null);
+        userBranchRoleRepository.save(assignment);
     }
 
     // ── Behaviour 1 ──────────────────────────────────────────────────────────────────────────
@@ -88,14 +148,14 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         givenStation(PASS, TestFixtures.mainBranchId(), "PASS", true);
         givenStation(BAR, TestFixtures.mainBranchId(), "BAR", true);
 
-        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR", "PASS");
+        assertThat(stationsIn(loginAsTheCook())).containsExactly("BAR", "PASS");
     }
 
     // ── Behaviour 2 — the one every existing user depends on ─────────────────────────────────
 
     @Test
     void unassignedUser_hasNoStationKeyAtAll_notAnEmptyList() throws Exception {
-        Claims claims = parseJwt(loginAsCashier());
+        Claims claims = parseJwt(loginAsTheCook());
 
         Map<String, Object> attributes = attributesOf(claims);
         assertThat(attributes)
@@ -111,7 +171,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     void assignmentAtAnotherBranch_doesNotLeakIntoThisBranchesToken() throws Exception {
         givenStation(OTHER_BRANCH_ROW, TestFixtures.branch2Id(), "BAR", true);
 
-        assertThat(attributesOf(parseJwt(loginAsCashier())))
+        assertThat(attributesOf(parseJwt(loginAsTheCook())))
             .doesNotContainKey(PermissionResolver.STATION_SCOPE_CLAIM);
     }
 
@@ -122,7 +182,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         givenStation(BAR, TestFixtures.mainBranchId(), "BAR", true);
         givenStation(RETIRED_ROW, TestFixtures.mainBranchId(), "GRILL", false);
 
-        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR");
+        assertThat(stationsIn(loginAsTheCook())).containsExactly("BAR");
     }
 
     // ── Behaviour 5 ──────────────────────────────────────────────────────────────────────────
@@ -131,7 +191,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     void loginMintsTheAttribute() throws Exception {
         givenStation(BAR, TestFixtures.mainBranchId(), "BAR", true);
 
-        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR");
+        assertThat(stationsIn(loginAsTheCook())).containsExactly("BAR");
     }
 
     // ── Behaviour 6 ──────────────────────────────────────────────────────────────────────────
@@ -165,7 +225,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         givenStation(BAR, TestFixtures.mainBranchId(), "BAR", true);
         givenStation(BRANCH2_ROW, TestFixtures.branch2Id(), "GRILL", true);
 
-        String accessToken = loginAsCashier();
+        String accessToken = loginAsTheCook();
         assertThat(stationsIn(accessToken)).containsExactly("BAR");
 
         var switched = rest.post()
@@ -190,13 +250,13 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         inTenantTx(() -> {
             UserBranchRoleEntity role = userBranchRoleRepository
                 .findByUserIdAndBranchIdAndActiveTrue(
-                    TestFixtures.cashierUserId(), TestFixtures.mainBranchId())
+                    COOK_ID, TestFixtures.mainBranchId())
                 .getFirst();
             role.setApprovalLimitPaisa(2_500_00L);
             return userBranchRoleRepository.save(role);
         });
 
-        Map<String, Object> attributes = attributesOf(parseJwt(loginAsCashier()));
+        Map<String, Object> attributes = attributesOf(parseJwt(loginAsTheCook()));
         assertThat(attributes).containsEntry("approval_limit_paisa", 250000);
         assertThat(attributes).containsKey(PermissionResolver.STATION_SCOPE_CLAIM);
     }
@@ -222,12 +282,12 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     @Test
     void replacingWithAnEmptySet_returnsTheUserToUnrestricted() throws Exception {
         putStations(TestFixtures.mainBranchId(), List.of("BAR"));
-        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR");
+        assertThat(stationsIn(loginAsTheCook())).containsExactly("BAR");
 
         putStations(TestFixtures.mainBranchId(), List.of());
 
         assertThat(activeCodesAtMainBranch()).isEmpty();
-        assertThat(attributesOf(parseJwt(loginAsCashier())))
+        assertThat(attributesOf(parseJwt(loginAsTheCook())))
             .as("cleared means unrestricted, and unrestricted means no key")
             .doesNotContainKey(PermissionResolver.STATION_SCOPE_CLAIM);
     }
@@ -239,7 +299,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
 
         List<UserStationAssignmentEntity> rows = inTenantTx(() ->
             stationAssignmentRepository.findByTenantIdAndUserIdAndBranchId(
-                TestFixtures.demoTenantId(), TestFixtures.cashierUserId(), TestFixtures.mainBranchId()));
+                TestFixtures.demoTenantId(), COOK_ID, TestFixtures.mainBranchId()));
         assertThat(rows).hasSize(2);
         assertThat(activeCodesAtMainBranch()).containsExactly("BAR", "PASS");
     }
@@ -275,7 +335,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     @Test
     void aRequestWithStationCodesButNoBranch_isRefusedAsAValidationError() {
         var response = rest.put()
-            .uri("/internal/auth/users/" + TestFixtures.cashierUserId() + "/stations")
+            .uri("/internal/auth/users/" + COOK_ID + "/stations")
             .header(INTERNAL_HEADER, INTERNAL_SECRET)
             .header("X-Tenant-Id", TestFixtures.demoTenantId().toString())
             .contentType(MediaType.APPLICATION_JSON)
@@ -295,7 +355,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         putStations(TestFixtures.branch2Id(), List.of("GRILL"));
 
         String body = rest.get()
-            .uri("/internal/auth/users/" + TestFixtures.cashierUserId() + "/stations")
+            .uri("/internal/auth/users/" + COOK_ID + "/stations")
             .header(INTERNAL_HEADER, INTERNAL_SECRET)
             .header("X-Tenant-Id", TestFixtures.demoTenantId().toString())
             .retrieve()
@@ -313,13 +373,13 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     void assigningOverHttpThenLoggingIn_yieldsATokenCarryingExactlyThoseCodes() throws Exception {
         putStations(TestFixtures.mainBranchId(), List.of("PASS", "BAR"));
 
-        assertThat(stationsIn(loginAsCashier())).containsExactly("BAR", "PASS");
+        assertThat(stationsIn(loginAsTheCook())).containsExactly("BAR", "PASS");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────────────────
 
     private void putStations(UUID branchId, List<String> codes) {
-        var response = putStationsRaw(TestFixtures.cashierUserId(), branchId, codes);
+        var response = putStationsRaw(COOK_ID, branchId, codes);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -341,7 +401,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
     private List<String> activeCodesAtMainBranch() {
         return inTenantTx(() -> stationAssignmentRepository
             .findByTenantIdAndUserIdAndBranchIdAndActiveTrue(
-                TestFixtures.demoTenantId(), TestFixtures.cashierUserId(), TestFixtures.mainBranchId())
+                TestFixtures.demoTenantId(), COOK_ID, TestFixtures.mainBranchId())
             .stream()
             .map(UserStationAssignmentEntity::getStationCode)
             .sorted()
@@ -363,7 +423,7 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
             UserStationAssignmentEntity row = new UserStationAssignmentEntity();
             row.setId(id);
             row.setTenantId(TestFixtures.demoTenantId());
-            row.setUserId(TestFixtures.cashierUserId());
+            row.setUserId(COOK_ID);
             row.setBranchId(branchId);
             row.setStationCode(code);
             row.setActive(active);
@@ -384,15 +444,14 @@ class StationAssignmentClaimIT extends BaseIntegrationTest {
         var login = rest.post()
             .uri("/api/v1/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(TestFixtures.loginBody(
-                TestFixtures.CASHIER_EMAIL, TestFixtures.CASHIER_PASSWORD, TestFixtures.DEMO_SLUG))
+            .body(TestFixtures.loginBody(COOK_EMAIL, COOK_PASSWORD, TestFixtures.DEMO_SLUG))
             .retrieve()
             .toEntity(String.class);
         assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
         return login;
     }
 
-    private String loginAsCashier() {
+    private String loginAsTheCook() {
         return accessTokenOf(postLogin());
     }
 
