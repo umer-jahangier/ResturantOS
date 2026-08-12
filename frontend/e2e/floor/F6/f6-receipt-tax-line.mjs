@@ -20,6 +20,8 @@ import { resolve } from "node:path";
 const BASE = "http://localhost:3000";
 const API = "http://localhost:8080";
 const TAG = process.argv[2] ?? "run";
+/** Optional scenario filter — "A" or "B" — so one check can be re-proved without re-ringing both. */
+const ONLY = process.argv[3] ?? null;
 const OUT = resolve(process.cwd(), `../.planning/audits/floor/F6`);
 mkdirSync(OUT, { recursive: true });
 
@@ -78,16 +80,67 @@ async function signIn(page) {
   await page.locator('input[name="email"], input#email').first().fill(CASHIER.email);
   await page.locator('input[name="password"], input#password').first().fill(CASHIER.password);
   await page.locator('button[type="submit"]').first().click();
-  await page.waitForTimeout(6000);
-  if (page.url().includes("/login")) throw new Error("cashier login failed");
+  // Polled, and the page's own message is quoted on failure. A 6 s sleep reported "login failed"
+  // on a machine where the gateway answered 200 to the same credentials a second later.
+  const deadline = Date.now() + 45_000;
+  while (Date.now() < deadline && page.url().includes("/login")) {
+    await page.waitForTimeout(1500);
+  }
+  if (page.url().includes("/login")) {
+    const said = await page.evaluate(() => ({
+      alerts: Array.from(document.querySelectorAll('[role="alert"]')).map((n) => n.innerText.trim().slice(0, 200)),
+      text: (document.body.innerText || "").replace(/\s+/g, " ").slice(0, 400),
+    }));
+    throw new Error(`cashier login failed — the page said ${JSON.stringify(said)}`);
+  }
   log(`  ✓ signed in as ${CASHIER.email}`);
+}
+
+/**
+ * A cashier cannot ring anything on a closed till, and the terminal says so rather than showing
+ * the menu. Another agent's close-till harness shuts this one mid-run, so counting a float and
+ * opening the drawer is part of the journey here — exactly as it is at 11 a.m.
+ */
+async function ensureTillOpen(page) {
+  if (!(await page.locator("[data-testid=pos-till-closed-notice]").count())) return;
+  log("  · the till is closed — counting the float and opening it");
+  await page.locator("[data-testid=open-till-button]").first().click();
+  await page.locator("[data-testid=open-till-panel]").waitFor({ timeout: 15000 });
+  await page.locator('[data-testid=open-till-panel] input[type=number]').first().fill("5000");
+  await page.locator("[data-testid=open-till-confirm-button]").click();
+  await page.waitForTimeout(5000);
+  const err = await page.evaluate(
+    () => document.querySelector("[data-testid=open-till-error]")?.textContent?.trim() ?? null,
+  );
+  if (err) throw new Error(`could not open the till: ${err}`);
+  await page.waitForTimeout(2000);
 }
 
 /** Ring the named dishes onto a TAKEAWAY check and fire it. Returns the order number. */
 async function ringAndFire(page, dishes, label) {
   log(`\n=== ${label}: ring ${dishes.join(" + ")} ===`);
+  // Waited for, not slept at: the terminal's first paint is behind a menu fetch, and a fixed
+  // 8 s wait timed this out twice on a machine with ten agents on it.
   await go(page, "/app/pos", 8000);
-  await page.locator("[data-testid=order-type-takeaway]").click();
+  await ensureTillOpen(page);
+  const takeaway = page.locator("[data-testid=order-type-takeaway]");
+  const ready = await takeaway
+    .waitFor({ timeout: 60_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!ready) {
+    // Never report "the control is missing" from a timeout alone — say what the screen showed.
+    await shot(page, `${label}-00-terminal-not-ready`);
+    const seen = await page.evaluate(() => ({
+      url: location.href,
+      alerts: Array.from(document.querySelectorAll('[role="alert"]')).map((n) => n.innerText.trim().slice(0, 200)),
+      testids: Array.from(document.querySelectorAll("[data-testid]")).map((n) => n.getAttribute("data-testid")).slice(0, 25),
+      text: (document.body.innerText || "").replace(/\s+/g, " ").slice(0, 500),
+    }));
+    record({ step: `${label}.terminal-not-ready`, seen });
+    throw new Error(`${label}: the POS terminal never offered a TAKEAWAY control — ${JSON.stringify(seen).slice(0, 500)}`);
+  }
+  await takeaway.click();
   await page.waitForTimeout(800);
 
   const search = page.getByLabel("Search menu").first();
@@ -132,44 +185,103 @@ async function ringAndFire(page, dishes, label) {
   return after.nos[after.nos.length - 1];
 }
 
+/**
+ * Order Management, searched for one order number.
+ *
+ * <p>Polled rather than slept: this list is fetched, and a fixed wait scored a slow read as "the
+ * order does not exist" once already. If it truly never arrives the page's own error state is
+ * reported, so an outage cannot be mistaken for a missing row.
+ */
 async function findOrderId(page, no) {
-  await go(page, "/app/pos", 8000);
-  await page.getByText("Order Management", { exact: true }).click();
-  await page.waitForTimeout(4500);
-  await page.locator("[data-testid=order-management-search]").first().fill(no);
-  await page.waitForTimeout(4500);
-  return page.evaluate(
-    () =>
-      document
-        .querySelector('[data-testid^="open-order-"]')
-        ?.getAttribute("data-testid")
-        ?.replace("open-order-", "") ?? null,
-  );
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await go(page, "/app/pos", 8000);
+    await page.getByText("Order Management", { exact: true }).click();
+    await page.waitForTimeout(4000);
+    await page.locator("[data-testid=order-management-search]").first().fill(no);
+
+    const deadline = Date.now() + 25_000;
+    while (Date.now() < deadline) {
+      // The button in the row that carries THIS order number. Taking the first open-order button
+      // on the page reads the unfiltered list while the search is still in flight, and that
+      // silently returned a stranger's order — a receipt for the wrong check would have been
+      // scored as proof.
+      const id = await page.evaluate((wanted) => {
+        for (const btn of document.querySelectorAll('[data-testid^="open-order-"]')) {
+          const row = btn.closest("tr") ?? btn.closest("[role=row]") ?? btn.parentElement;
+          if (row && (row.textContent ?? "").includes(wanted)) {
+            return btn.getAttribute("data-testid").replace("open-order-", "");
+          }
+        }
+        return null;
+      }, no);
+      if (id) return id;
+      await page.waitForTimeout(1000);
+    }
+    const trouble = await pageTrouble(page);
+    log(`    ! ${no} not listed on attempt ${attempt}: ${JSON.stringify(trouble)}`);
+  }
+  return null;
 }
 
+/**
+ * Take the cash. Retried, because a service restarting elsewhere on this machine returns 503 and
+ * the screen says "Failed to record payment" — which is an OUTAGE, not a settlement that refused.
+ * Reporting a receipt for a check that was never paid would not answer what was asked.
+ */
 async function settleCash(page, orderId, label) {
   log(`\n=== ${label}: take the cash ===`);
-  await go(page, `/app/pos/orders/${orderId}/charge`, 6500);
-  const fill = page.locator("[data-testid=fill-full-amount-button]");
-  if (await fill.count()) {
-    await fill.first().click();
-    await page.waitForTimeout(800);
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    await go(page, `/app/pos/orders/${orderId}/charge`, 6500);
+    const fill = page.locator("[data-testid=fill-full-amount-button]");
+    if (await fill.count()) {
+      await fill.first().click();
+      await page.waitForTimeout(800);
+    }
+    const tendered = page.locator('[aria-label="Tendered (Rs)"]').first();
+    if (await tendered.count()) {
+      await tendered.fill("3000");
+      await page.waitForTimeout(900);
+    }
+    if (attempt === 1) await shot(page, `${label}-02-charge`);
+    // Already settled? A 503 can land on the RESPONSE of a payment the server already wrote, so
+    // "the screen said it failed" is not the same as "the money was not taken". The button goes
+    // away, or goes disabled, once there is no balance left — either way, do not pay twice.
+    const settledAlready = await page.evaluate(() => {
+      const b = document.querySelector("[data-testid=record-payment-button]");
+      const rows = document.querySelectorAll("[data-testid=payment-history-rows] > *").length;
+      return { absent: !b, disabled: !!b?.disabled, rows };
+    });
+    if (settledAlready.absent || (settledAlready.disabled && settledAlready.rows > 0)) {
+      record({ step: `${label}.paid`, alreadySettled: settledAlready });
+      await shot(page, `${label}-03-after-payment`);
+      return { settled: true, ...settledAlready };
+    }
+    const button = page.locator("[data-testid=record-payment-button]");
+    if (settledAlready.disabled) {
+      log("    ! Record Payment is disabled with no tender rows — waiting for the form to arm");
+      await page.waitForTimeout(4000);
+      continue;
+    }
+    await button.click();
+    await page.waitForTimeout(7000);
+    const outcome = await page.evaluate(() => ({
+      err: document.querySelector("[data-testid=record-payment-error]")?.textContent?.trim() ?? null,
+      paid: document.querySelector("[data-testid=paid-chip]")?.textContent?.trim() ?? null,
+      rows: Array.from(document.querySelectorAll("[data-testid=payment-history-rows] > *")).map((n) =>
+        n.innerText.replace(/\s+/g, " ").trim(),
+      ),
+      recordStillOffered: !!document.querySelector("[data-testid=record-payment-button]"),
+    }));
+    record({ step: `${label}.paid`, attempt, outcome });
+    if (!outcome.err && outcome.rows.length > 0) {
+      await shot(page, `${label}-03-after-payment`);
+      return { settled: true, ...outcome };
+    }
+    log(`    ! payment attempt ${attempt} did not settle — retrying`);
+    await page.waitForTimeout(6000);
   }
-  const tendered = page.locator('[aria-label="Tendered (Rs)"]').first();
-  if (await tendered.count()) {
-    await tendered.fill("3000");
-    await page.waitForTimeout(900);
-  }
-  await shot(page, `${label}-02-charge`);
-  await page.locator("[data-testid=record-payment-button]").click();
-  await page.waitForTimeout(7000);
-  const paid = await page.evaluate(() => ({
-    err: document.querySelector("[data-testid=record-payment-error]")?.textContent?.trim() ?? null,
-    paid: document.querySelector("[data-testid=paid-chip]")?.textContent?.trim() ?? null,
-  }));
-  record({ step: `${label}.paid`, paid });
   await shot(page, `${label}-03-after-payment`);
-  return paid;
+  throw new Error(`${label}: could not settle order ${orderId} — the stack refused four times`);
 }
 
 /**
@@ -178,10 +290,24 @@ async function settleCash(page, orderId, label) {
  */
 async function readReceipt(page, orderId, label) {
   log(`\n=== ${label}: open the bill the guest is handed ===`);
-  const trouble = await go(page, `/app/pos/orders/${orderId}/receipt`, 8000);
-  record({ step: `${label}.receipt.trouble`, trouble });
-
-  await page.locator("[data-testid=receipt-root]").waitFor({ timeout: 20000 });
+  // Retried on the page's own alert. "The printable bill is unavailable right now" is an error
+  // state, and an error state photographs exactly like a page with no tax line on it.
+  let trouble = null;
+  let rendered = false;
+  for (let attempt = 1; attempt <= 4 && !rendered; attempt += 1) {
+    trouble = await go(page, `/app/pos/orders/${orderId}/receipt`, 8000);
+    rendered = await page
+      .locator("[data-testid=receipt-root]")
+      .waitFor({ timeout: 20000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!rendered) {
+      log(`    ! the bill did not render on attempt ${attempt}: ${JSON.stringify(trouble)}`);
+      await page.waitForTimeout(6000);
+    }
+  }
+  record({ step: `${label}.receipt.trouble`, trouble, rendered });
+  if (!rendered) throw new Error(`${label}: the receipt page never rendered a bill`);
   await page.waitForTimeout(600);
 
   const measured = await page.evaluate(() => {
@@ -209,29 +335,11 @@ async function readReceipt(page, orderId, label) {
     bracketedTokensOnPaper: bracketed,
   });
 
-  // What the server actually issued, so the seam between server and renderer is measured.
-  const issued = await page.evaluate(async (id) => {
-    const r = await fetch("http://localhost:8080/api/v1/auth/refresh", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    const j = await r.json().catch(() => null);
-    const tok = j?.accessToken ?? j?.data?.accessToken ?? null;
-    const p = await fetch(`http://localhost:8080/api/v1/pos/orders/${id}/print-jobs`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID(),
-        Authorization: `Bearer ${tok}`,
-      },
-      body: JSON.stringify({ kind: "RECEIPT" }),
-    });
-    const body = await p.json().catch(() => null);
-    return { status: p.status, taxBreakdown: body?.data?.document?.taxBreakdown ?? null };
-  }, orderId);
+  // What the SERVER issued, taken off the page's own print-jobs response rather than a probe of
+  // my own — same request, same bearer, same document the screen is rendering. This is the seam:
+  // the label must already be a phrase before it reaches any renderer.
+  const issued = page.__issued ?? null;
+  page.__issued = null;
   record({ step: `${label}.server.taxBreakdown`, issued });
 
   await shot(page, `${label}-04-receipt`);
@@ -249,22 +357,57 @@ const page = await ctx.newPage();
 page.on("console", (m) => {
   if (m.type() === "error") log("    console.error:", m.text().slice(0, 200));
 });
+// The document the SERVER issued, captured off the screen's own request.
+page.on("response", async (r) => {
+  if (!/\/print-jobs$/.test(new URL(r.url()).pathname) || r.request().method() !== "POST") return;
+  try {
+    const body = await r.json();
+    const breakdown = body?.data?.document?.taxBreakdown;
+    if (breakdown) page.__issued = { status: r.status(), taxBreakdown: breakdown };
+  } catch {
+    /* a non-JSON body is an outage, and the alert probe already reports those */
+  }
+});
 
 try {
   await signIn(page);
 
   const results = {};
-  for (const [label, dishes] of [
+  const scenarios = [
     ["A-mixed", ["Seekh Kebab", "Butter Naan", "Pinacolada"]],
     ["B-single", ["Seekh Kebab"]],
-  ]) {
-    const no = await ringAndFire(page, dishes, label);
-    log(`  order = ${no}`);
-    const orderId = await findOrderId(page, no);
-    log(`  orderId = ${orderId}`);
-    if (!orderId) throw new Error(`could not resolve an order id for ${no}`);
-    await settleCash(page, orderId, label);
-    results[label] = { no, orderId, ...(await readReceipt(page, orderId, label)) };
+  ].filter(([label]) => !ONLY || label.startsWith(ONLY));
+
+  for (const [label, dishes] of scenarios) {
+    // Re-rung on interference. Nine other agents drive this same tenant, and one of them voided
+    // a check out from under this run between firing it and tendering it — the charge page then
+    // reads `Voided` with a Rs 0.00 balance and no payment can be taken. That is somebody else's
+    // harness, not a defect in the bill, so ring a fresh check rather than reporting a failure.
+    let lastError = null;
+    for (let ring = 1; ring <= 3; ring += 1) {
+      try {
+        const no = await ringAndFire(page, dishes, label);
+        log(`  order = ${no}`);
+        const orderId = await findOrderId(page, no);
+        log(`  orderId = ${orderId}`);
+        if (!orderId) throw new Error(`could not resolve an order id for ${no}`);
+        await settleCash(page, orderId, label);
+        results[label] = { no, orderId, ...(await readReceipt(page, orderId, label)) };
+        lastError = null;
+        break;
+      } catch (e) {
+        lastError = e;
+        log(`    ! ${label} ring ${ring} did not complete: ${e.message.slice(0, 200)}`);
+        // A restart elsewhere on this machine invalidates the session mid-journey. Sign in again
+        // rather than reporting the till as unreachable.
+        if (page.url().includes("/login")) {
+          log("    · session expired — signing in again");
+          await signIn(page);
+        }
+        await page.waitForTimeout(5000);
+      }
+    }
+    if (lastError) throw lastError;
   }
 
   // ── verdict ────────────────────────────────────────────────────────────────
