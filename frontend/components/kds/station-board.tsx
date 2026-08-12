@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutGrid, Radio, RotateCcw } from "lucide-react";
+import { ChevronDown, LayoutGrid, Radio, RotateCcw, SearchX } from "lucide-react";
 
 import {
   useKdsTickets,
@@ -19,10 +19,12 @@ import {
   fragmentKey,
   getNextItemStatus,
   groupTicketsByColumn,
+  mapItemStatusToColumn,
   type KdsColumnKey,
 } from "@/components/kds/kds-item-column";
 import { T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import type { KdsTicket } from "@/lib/models/kds.model";
 import { cn } from "@/lib/utils";
@@ -49,8 +51,55 @@ interface StationBoardProps {
   stationCode: string;
 }
 
-/** Fragments per page, board-wide. Sized so four columns fit a 1080p wall screen. */
-const PAGE_SIZE = 16;
+/**
+ * The jump keys a bump bar sends, in board order — `1`–`9` then `0` for the tenth (§7.2).
+ * Exported so a test can assert the page never outgrows them.
+ */
+export const KDS_JUMP_KEYS: readonly string[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+
+/**
+ * Fragments per page, board-wide.
+ *
+ * This is NOT a layout constant. It is exactly the number of jump keys, and that identity is
+ * the whole point: §7.2 requires that **every ticket carries a visible position number**,
+ * because the number IS what makes number-key jump work, and a bump bar has no other way to
+ * reach a card. When the page could hold more fragments than there are keys — it held sixteen
+ * against ten keys — the surplus cards rendered with `pos:""`: visible, unreachable, and
+ * indistinguishable at a glance from a card whose number you simply cannot read from 2 m.
+ * Tying the two together makes an unnumbered card structurally impossible rather than
+ * something to remember, which is why `positionOf` below can no longer return `undefined`
+ * for a card that is on the page.
+ */
+const PAGE_SIZE = KDS_JUMP_KEYS.length;
+
+/**
+ * Interleaves per-column fragment lists so a page is FAIR across columns.
+ *
+ * The board used to build one flat list by concatenating whole columns in
+ * New→Started→Preparing→Ready order and slicing it into pages. That made "page 1 is entirely
+ * New" a structural certainty the moment New held a page's worth of work, so a cook bumping a
+ * ticket watched it leave the screen and the three progress columns in front of them stayed
+ * permanently empty. Measured live before this fix: `p1 NEW 16 / STARTED 0 / PREPARING 0 /
+ * READY 0`, `p2` identical, all the started work stranded on `p3`.
+ *
+ * Taking one fragment from each column in turn — rank 1 of every column, then rank 2, and so
+ * on — means page 1 always holds the HEAD of every queue, which is exactly what a cook acts
+ * on, and a bumped ticket re-enters at rank 1 of its new column and therefore stays on page 1.
+ * A bigger `PAGE_SIZE` would not have fixed this; it only moves the cliff.
+ *
+ * Exported for station-board-paging.test.ts.
+ */
+export function interleaveColumns<T>(columns: readonly (readonly T[])[]): T[] {
+  const out: T[] = [];
+  const depth = columns.reduce((max, c) => Math.max(max, c.length), 0);
+  for (let rank = 0; rank < depth; rank += 1) {
+    for (const column of columns) {
+      const fragment = column[rank];
+      if (fragment !== undefined) out.push(fragment);
+    }
+  }
+  return out;
+}
 
 /** How long `R` can still recall the last bumped ticket (§7.2). */
 const RECALL_WINDOW_MS = 60_000;
@@ -171,31 +220,79 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
   );
 
   /**
-   * The board's traversal order: top→bottom within a column, then left→right (§7.2).
-   * Flattened once here so `↑`/`↓`, the position numbers and paging all read the SAME
-   * sequence — three orderings computed separately is three orderings that drift.
+   * Every open fragment, bucketed by column and each bucket in board sort order.
+   * `activeTickets` is already sorted, and `groupTicketsByColumn` preserves that order,
+   * so a bucket's index IS the fragment's rank in its own queue.
    */
-  const allFragments = useMemo(() => {
-    const out: BoardFragmentRef[] = [];
+  const fragmentsByColumn = useMemo(() => {
+    const map = new Map<KdsColumnKey, BoardFragmentRef[]>();
     for (const column of visibleColumns) {
-      for (const { ticket, items } of groupTicketsByColumn(activeTickets, column)) {
-        out.push({
+      map.set(
+        column,
+        groupTicketsByColumn(activeTickets, column).map(({ ticket, items }) => ({
           column,
           ticket,
           itemIds: items.map((i) => i.id),
           itemStatuses: items.map((i) => ({ id: i.id, status: i.status })),
-        });
-      }
+        })),
+      );
     }
-    return out;
+    return map;
   }, [activeTickets, visibleColumns]);
 
-  const pageCount = Math.max(1, Math.ceil(allFragments.length / PAGE_SIZE));
-  const safePage = Math.min(page, pageCount - 1);
-  const pageFragments = useMemo(
-    () => allFragments.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE),
-    [allFragments, safePage],
+  const allFragments = useMemo(
+    () => visibleColumns.flatMap((c) => fragmentsByColumn.get(c) ?? []),
+    [fragmentsByColumn, visibleColumns],
   );
+
+  /**
+   * Which fragments this page holds — chosen round-robin across columns so no column can be
+   * starved by a busier one (see `interleaveColumns`). SELECTION is round-robin; ORDER within
+   * the page is not — see `pageFragments`.
+   */
+  const pagedFragments = useMemo(
+    () => interleaveColumns(visibleColumns.map((c) => fragmentsByColumn.get(c) ?? [])),
+    [fragmentsByColumn, visibleColumns],
+  );
+
+  const pageCount = Math.max(1, Math.ceil(pagedFragments.length / PAGE_SIZE));
+
+  /**
+   * The page the board is actually showing — DERIVED, like focus, and for the same reason.
+   *
+   * Normally it is the page the cook last turned to. But when focus is on a fragment that is
+   * not on that page, the board FOLLOWS the fragment. That case has exactly one cause: a bump
+   * just moved the focused fragment into another column, and that column's own sort put it
+   * beyond this page.
+   *
+   * A fair page layout is not enough on its own here, and measuring it is what proved that: with
+   * fair paging alone, two of four consecutive mouse bumps still landed off the cook's page,
+   * because Started was twelve deep and the bumped ticket sorted fifth in it. Fair paging
+   * guarantees a column is never STARVED; only following the focus guarantees the cook sees the
+   * result of the key they just pressed. "It worked, on a page behind you" is the whole defect.
+   *
+   * `page` stays the cook's own choice and is never written from here — deriving instead of
+   * repairing means there is no frame in which the board shows a page that has no focus on it.
+   */
+  const focusedIndex = focusedKey
+    ? pagedFragments.findIndex((f) => fragmentKey(f.column, f.ticket.id) === focusedKey)
+    : -1;
+  const safePage =
+    focusedIndex >= 0 ? Math.floor(focusedIndex / PAGE_SIZE) : Math.min(page, pageCount - 1);
+
+  /**
+   * The page, back in the board's reading order: top→bottom within a column, then
+   * left→right (§7.2). Round-robin decides WHICH ten fragments the cook sees; it must not
+   * decide the order they are numbered and traversed in, or `↑`/`↓` would zig-zag across
+   * columns and the position numbers would run 1,2,3,4 across the top row. `Array.sort` is
+   * stable, so sorting the slice by column index leaves each column's own rank order intact.
+   */
+  const pageFragments = useMemo(() => {
+    const slice = pagedFragments.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+    const rankOf = (c: KdsColumnKey) => visibleColumns.indexOf(c);
+    return slice.sort((a, b) => rankOf(a.column) - rankOf(b.column));
+  }, [pagedFragments, safePage, visibleColumns]);
+
   const pageKeys = useMemo(
     () => pageFragments.map((f) => fragmentKey(f.column, f.ticket.id)),
     [pageFragments],
@@ -212,12 +309,19 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
     return map;
   }, [pageFragments]);
 
-  /** 1–9 then 0 for the tenth. Past that a ticket has no number and no jump key. */
+  /**
+   * The number printed on the card, and the key that jumps to it: 1–9 then 0 for the tenth.
+   *
+   * `PAGE_SIZE === KDS_JUMP_KEYS.length`, so every fragment ON the page has one. The
+   * `undefined` arm is now reachable only for a key that is not on this page at all — which
+   * is a caller error, not a card the cook can see. It used to be reachable for the 11th
+   * through 16th card of every page, and that is precisely the `pos:""` the audit measured.
+   */
   const positionOf = useCallback(
     (key: string): number | undefined => {
       const index = pageKeys.indexOf(key);
-      if (index < 0 || index > 9) return undefined;
-      return index === 9 ? 0 : index + 1;
+      if (index < 0 || index >= KDS_JUMP_KEYS.length) return undefined;
+      return Number(KDS_JUMP_KEYS[index]);
     },
     [pageKeys],
   );
@@ -265,6 +369,12 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
       setBumpError(null);
       setBumpingKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
       setLastBumped({ ticketId: fragment.ticket.id, at: Date.now() });
+      // Focus moves to where the ticket is GOING, not where it was. Every item of a fragment
+      // is in one column by construction, so they all land in the same next one. The board
+      // follows this key (see `safePage`), which is what makes a bump visible to the cook
+      // even when the destination column is deeper than a page.
+      const destination = mapItemStatusToColumn(moves[0]!.next);
+      if (destination) setFocusedKey(fragmentKey(destination, fragment.ticket.id));
 
       for (const move of moves) {
         updateItemStatus.mutate(
@@ -344,14 +454,17 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
           event.preventDefault();
           moveFocus(-1);
           return;
+        // Stepping from `safePage`, not from `page`: after a bump the board may be following
+        // focus onto a page the cook never chose, and a functional `p => p + 1` would step
+        // from the page they last chose instead of the one in front of them.
         case "PageDown":
           event.preventDefault();
-          setPage((p) => Math.min(pageCount - 1, p + 1));
+          setPage(Math.min(pageCount - 1, safePage + 1));
           setFocusedKey(null);
           return;
         case "PageUp":
           event.preventDefault();
-          setPage((p) => Math.max(0, p - 1));
+          setPage(Math.max(0, safePage - 1));
           setFocusedKey(null);
           return;
         case "Enter":
@@ -387,12 +500,12 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
         setShowReady((v) => !v);
         return;
       }
-      if (/^[0-9]$/.test(event.key)) {
-        const index = event.key === "0" ? 9 : Number(event.key) - 1;
-        if (index < pageKeys.length) {
-          event.preventDefault();
-          setFocusedKey(pageKeys[index] ?? null);
-        }
+      // The jump keys read from the SAME table the position badges are printed from, so a
+      // key can never address a slot the board did not draw a number on.
+      const jumpIndex = KDS_JUMP_KEYS.indexOf(event.key);
+      if (jumpIndex >= 0 && jumpIndex < pageKeys.length) {
+        event.preventDefault();
+        setFocusedKey(pageKeys[jumpIndex] ?? null);
       }
     }
 
@@ -407,11 +520,81 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
     pageKeys,
     recallLast,
     router,
+    safePage,
     stationCode,
   ]);
 
   const failed = ticketsQuery.isError ? ticketsQuery : stationsQuery.isError ? stationsQuery : null;
   const isPending = ticketsQuery.isPending || stationsQuery.isPending;
+
+  /*
+   * A URL segment that names no station this caller can open.
+   *
+   * `/app/kitchen/NOPE123` used to render a fully healthy-looking board: `<h1>NOPE123</h1>`,
+   * "0 tickets", and a green LIVE badge — because the route passed the raw path segment straight
+   * to the ticket query, which answers an empty page for any code, and the WebSocket subscribes to
+   * any code too. A typo was therefore indistinguishable from a real, quiet station, on a screen
+   * whose entire job is to tell a cook whether there is work.
+   *
+   * Ordering is the whole of the correctness here, and it is the same rule the error notice below
+   * follows: FAILED first, then PENDING, and only then "not in the list". Asking "is this code in
+   * the list?" while the list is still loading, or after the list request has FAILED, would turn a
+   * kitchen-service outage into a confident "no such station" — trading one lie for a worse one.
+   *
+   * The PENDING arm returns EARLY, above the header, rather than falling through to the header's
+   * own `station?.name ?? stationCode` fallback. Otherwise the first paint of `/app/kitchen/NOPE123`
+   * is the exact defective screen — heading "NOPE123", "0 tickets", a green LIVE badge — for as
+   * long as the station list takes, and a wall display that flashes the wrong answer before the
+   * right one has told the cook the wrong answer.
+   */
+  const stationUnknown = !failed && !stationsQuery.isPending && !station;
+
+  if (!failed && stationsQuery.isPending) {
+    return (
+      <ZoneProvider zone="operational" asChild>
+        <div
+          data-surface="kds"
+          data-zone="operational"
+          data-testid="kds-station-resolving"
+          className="flex min-h-screen items-center justify-center bg-kds-surface text-kds-muted"
+        >
+          <p className={T_H1}>Loading station…</p>
+        </div>
+      </ZoneProvider>
+    );
+  }
+
+  if (stationUnknown) {
+    return (
+      <ZoneProvider zone="operational" asChild>
+        <div
+          data-surface="kds"
+          data-zone="operational"
+          data-testid="kds-station-unknown"
+          className="flex min-h-screen flex-col items-center justify-center gap-4 bg-kds-surface p-6 text-center text-kds-text"
+        >
+          <EmptyState
+            icon={SearchX}
+            title="No such station"
+            description={`This branch has no active station with the code "${stationCode}", or it is not one of yours. Check the code, or pick a board from all stations.`}
+            className="text-kds-text"
+          />
+          <button
+            type="button"
+            onClick={() => router.push("/app/kitchen")}
+            data-testid="kds-unknown-all-stations"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md border border-white/20 px-3 py-2 font-semibold text-kds-text",
+              T_LABEL,
+            )}
+          >
+            <LayoutGrid className="size-3.5" aria-hidden="true" />
+            All stations
+          </button>
+        </div>
+      </ZoneProvider>
+    );
+  }
 
   return (
     <KdsClockProvider>
@@ -545,6 +728,13 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
                   key={column}
                   column={column}
                   tickets={pageTicketsByColumn.get(column) ?? []}
+                  /*
+                   * The column header counts the WHOLE queue, not this page's slice of it.
+                   * Showing the slice was the second half of the same lie: "Started 0" on a
+                   * board with five started tickets reads as "nothing is in progress", which
+                   * is the one thing a cook must never be told wrongly.
+                   */
+                  totalCount={(fragmentsByColumn.get(column) ?? []).length}
                   branchId={branchId}
                   canUpdate={canUpdate}
                   escalationThresholdSeconds={station?.escalationThresholdSeconds}

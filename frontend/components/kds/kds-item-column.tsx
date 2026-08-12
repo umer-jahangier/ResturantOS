@@ -112,6 +112,13 @@ interface KdsItemColumnProps {
    * `motion-safe:` so a cook who has asked their OS for reduced motion just sees it go.
    */
   collapsingKeys?: string[];
+  /**
+   * How many fragments this column holds in TOTAL, across every page — not just the ones
+   * `tickets` carries for the current page. The header count reads from this, so a cook
+   * looking at "Started 5" while two of them are on the next page still knows five things
+   * are in progress. Defaults to the rendered count when the caller does not page.
+   */
+  totalCount?: number;
   /** Board-wide 1–9/0 position number for a fragment, or undefined past the tenth. */
   positionOf?: (key: string) => number | undefined;
   /** Lets the board hold a DOM ref per fragment for `scrollIntoView` on focus movement. */
@@ -138,6 +145,7 @@ export function KdsItemColumn({
   escalationThresholdSeconds,
   focusedKey,
   collapsingKeys,
+  totalCount,
   positionOf,
   registerFragmentRef,
   onFocusFragment,
@@ -145,6 +153,8 @@ export function KdsItemColumn({
   const router = useRouter();
   const updateItemStatus = useUpdateItemStatus(branchId);
   const fragments = useMemo(() => groupTicketsByColumn(tickets, column), [tickets, column]);
+  const total = totalCount ?? fragments.length;
+  const overflow = Math.max(0, total - fragments.length);
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid={`kds-column-${column}`}>
@@ -159,7 +169,7 @@ export function KdsItemColumn({
           className={cn("font-bold tabular-nums text-kds-muted", T_SMALL)}
           data-testid={`kds-column-count-${column}`}
         >
-          {fragments.length}
+          {total}
         </span>
       </div>
 
@@ -175,12 +185,17 @@ export function KdsItemColumn({
             const key = fragmentKey(column, ticket.id);
             const isFocused = focusedKey === key;
             const isCollapsing = collapsingKeys?.includes(key) ?? false;
+            const position = positionOf?.(key);
             return (
               <li key={ticket.id}>
                 <div
                   ref={(el) => registerFragmentRef?.(key, el)}
                   data-testid={`kds-fragment-${column}-${ticket.id}`}
                   data-fragment-key={key}
+                  // The jump key that reaches this card, on the wrapper as well as printed on
+                  // the face — so "is every visible card reachable?" is one DOM query, and a
+                  // regression that silently un-numbers a card cannot hide behind a screenshot.
+                  data-position={position === undefined ? "" : String(position)}
                   data-collapsing={isCollapsing ? "true" : undefined}
                   className={cn(
                     /*
@@ -216,7 +231,7 @@ export function KdsItemColumn({
                     <KdsTicketCard
                       ticket={ticket}
                       items={items}
-                      positionNumber={positionOf?.(key)}
+                      positionNumber={position}
                       isFocused={isFocused}
                       escalationThresholdSeconds={escalationThresholdSeconds}
                     />
@@ -233,7 +248,11 @@ export function KdsItemColumn({
                             type="button"
                             data-testid={`column-move-${item.id}`}
                             onClick={() => {
-                              onFocusFragment?.(key);
+                              // Focus follows the item to where it is GOING, not where it
+                              // was. The board pages to whatever holds the focused fragment,
+                              // so this is what puts the cook's own bump back in front of
+                              // them when the destination column is more than a page deep.
+                              onFocusFragment?.(fragmentKey(nextColumn, ticket.id));
                               updateItemStatus.mutate({
                                 ticketId: ticket.id,
                                 itemId: item.id,
@@ -255,6 +274,23 @@ export function KdsItemColumn({
               </li>
             );
           })
+        )}
+        {/*
+          The depth of the queue that is not on this page. Without it, a column showing three
+          of its twelve is a column that LOOKS three deep, and the cook's only clue that nine
+          more exist would be a page indicator in the far corner of the header.
+
+          Deliberately not "PgDn": paging is fair across columns, so a column's remaining
+          fragments can sit on a page either side of this one. Naming a direction would be
+          right about half the time, which on this screen is worse than naming none.
+        */}
+        {overflow > 0 && (
+          <li
+            data-testid={`kds-column-more-${column}`}
+            className={cn("py-2 text-center font-semibold text-kds-muted", T_LABEL)}
+          >
+            +{overflow} on other pages
+          </li>
         )}
       </ul>
     </div>
