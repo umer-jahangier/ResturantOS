@@ -1,0 +1,7 @@
+{
+  "phase": "before",
+  "startedAt": "2026-08-12T04:02:35.657Z",
+  "table": "TAKEAWAY (no table free)",
+  "error": "Error: no order came back from /api/v1/pos/orders",
+  "finishedAt": "2026-08-12T04:03:04.484Z"
+}

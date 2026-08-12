@@ -1,0 +1,77 @@
+{
+  "phase": "after",
+  "startedAt": "2026-08-12T04:40:51.789Z",
+  "table": "B3-161 Available",
+  "orderId": "baab9682-0f8c-48a8-ba32-cc1167b8f8af",
+  "orderNo": "ORD-20260812-0200",
+  "paymentClickedAt": "2026-08-12T04:41:27.649Z",
+  "afterPay": {
+    "blocked": "This order is fully paid — no further tenders can be recorded.",
+    "closeCta": "Mark served & close order",
+    "printBill": "Print another copy",
+    "billIssued": "Bill issued Aug 12, 2026, 9:41 AM Sent to audit-receipt. Check Settings → Printers if no paper appears — the job is kept and retried, not lost.",
+    "status": "In Progress",
+    "alerts": []
+  },
+  "payments": [
+    {
+      "id": "a94dd454-bd34-4380-b8ed-686fd7621cca",
+      "method": "CASH",
+      "amountPaisa": 99800,
+      "tenderedPaisa": 99800,
+      "changePaisa": 0,
+      "referenceNo": null,
+      "recordedAt": "2026-08-12T04:41:27.684875Z",
+      "kind": "PAYMENT"
+    }
+  ],
+  "orderStatusAtTender": null,
+  "derivedStatusAtTender": null,
+  "printJobsEndpointStatus": 200,
+  "receiptsAtTender": [
+    {
+      "printJobId": "b93bb4a1-6955-4452-a437-f4a681bbe031",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T04:41:27.733022Z",
+      "originalIssuedAt": null
+    }
+  ],
+  "tenderToBillMs": 49,
+  "billAtTender": {
+    "url": "http://localhost:3000/app/pos/orders/baab9682-0f8c-48a8-ba32-cc1167b8f8af/receipt",
+    "reprintBanner": "*** REPRINT #2 ***",
+    "originallyIssued": "Originally issued 2026-08-12T04:41:27.733Z",
+    "total": "Rs 998.00",
+    "thermalNotice": null,
+    "alerts": []
+  },
+  "receiptsAfterClose": [
+    {
+      "printJobId": "b93bb4a1-6955-4452-a437-f4a681bbe031",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 1,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T04:41:27.733022Z",
+      "originalIssuedAt": null
+    },
+    {
+      "printJobId": "9aa7ad5a-8f0f-4978-9386-83481d0cd765",
+      "documentType": "CUSTOMER_RECEIPT",
+      "targetPrinterId": "audit-receipt",
+      "issueSeq": 2,
+      "status": "PRINTED",
+      "issuedAt": "2026-08-12T04:41:34.103875Z",
+      "originalIssuedAt": "2026-08-12T04:41:27.733022Z"
+    }
+  ],
+  "billAfterClose": {
+    "reprintBanner": "*** REPRINT #3 ***",
+    "originallyIssued": "Originally issued 2026-08-12T04:41:27.733Z",
+    "total": "Rs 998.00"
+  },
+  "finishedAt": "2026-08-12T04:41:57.090Z"
+}
