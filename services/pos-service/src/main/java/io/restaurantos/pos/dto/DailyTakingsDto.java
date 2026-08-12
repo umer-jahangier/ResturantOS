@@ -8,10 +8,16 @@ import java.util.UUID;
 /**
  * What a restaurant owner looks at first, every evening (37-09, D-37-02).
  *
- * <p>Gross sales, discounts, tax, service charge and net for a trading day, split by tender, set
- * against what each till actually counted. <b>A cash variance is shown AS a variance and is never
- * silently absorbed</b> — that is the whole point of the screen, and absorbing it is how a short
- * drawer becomes invisible.
+ * <p>Gross sales, discounts, net sales, tax, service charge and the total billed for a trading day,
+ * split by tender, set against what each till actually counted. <b>A cash variance is shown AS a
+ * variance and is never silently absorbed</b> — that is the whole point of the screen, and
+ * absorbing it is how a short drawer becomes invisible.
+ *
+ * <h2>NET SALES AND TOTAL BILLED ARE DIFFERENT FIGURES</h2>
+ *
+ * <p>{@code gross − discounts = net sales}. {@code net sales + tax + service charge = total
+ * billed}. Net sales is the revenue line; tax is a liability owed onward and never sits inside it.
+ * Collapsing the two onto one field, under the name of the smaller one, was the F5 defect.
  *
  * <p>The trading day is {@code (t − 4h)} in UTC, the SAME rule pos-service applies when it checks
  * the accounting period and stamps the ORDER_CLOSED event, so this screen and the general ledger
@@ -50,10 +56,36 @@ public record DailyTakingsDto(
         /** The full menu price of everything sold, before any discount. Dated by {@code closed_at}. */
         long grossSalesPaisa,
         long discountsPaisa,
+
+        /**
+         * <b>Net sales, as a restaurant P&amp;L means it: gross − discounts, tax EXCLUDED.</b>
+         *
+         * <p>This field used to carry {@code SUM(orders.total_paisa)} — the bill total — and the
+         * screen labelled it "Net sales". The result was a takings page where NET SALES
+         * (Rs 45,966.40) was <i>larger</i> than GROSS SALES (Rs 43,350.00), because tax had been
+         * added into the figure the word "net" promises to have taken things out of. An accountant
+         * reading that mis-states revenue by the whole output-tax liability, and output tax is not
+         * revenue at all — it is money collected on the tax authority's behalf and owed onward.
+         *
+         * <p>The invariant that makes the screen readable, and which
+         * {@code DailyTakingsNetSalesIT} asserts: {@code netSalesPaisa ≤ grossSalesPaisa}, always.
+         */
+        long netSalesPaisa,
+
         long taxPaisa,
         long serviceChargePaisa,
-        /** What the bills actually came to: gross − discounts + tax + service charge. */
-        long netSalesPaisa,
+
+        /**
+         * What the bills actually came to: {@code net + tax + service charge}, i.e.
+         * {@code SUM(orders.total_paisa)}.
+         *
+         * <p>This is the figure that reconciles against the tender split and the drawer, and it is
+         * the number that was previously mislabelled {@code netSalesPaisa}. It is stated as its own
+         * field rather than left to a reader to add up, because a screen that makes someone do
+         * arithmetic on money is a screen someone will do it wrong on.
+         */
+        long totalBilledPaisa,
+
         /** Orders CLOSED on this trading day. Not the number of orders that took money. */
         int orderCount,
 
