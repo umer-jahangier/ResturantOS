@@ -1,0 +1,112 @@
+{
+  "cashier_screen": {
+    "trouble": [
+      "access-denied"
+    ],
+    "url": "http://localhost:3000/app/settings/tax"
+  },
+  "cashier_navHasSalesTax": false,
+  "cashier_listClasses": {
+    "status": 200,
+    "count": 14,
+    "sawTerraceCode": true
+  },
+  "cashier_createClass": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "cashier_updateTerraceClassById": {
+    "status": 400,
+    "err": "VALIDATION_FAILED"
+  },
+  "cashier_deleteTerraceClassById": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "cashier_classifyDish": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "manager_screen": {
+    "trouble": [
+      "access-denied"
+    ],
+    "url": "http://localhost:3000/app/settings/tax"
+  },
+  "manager_navHasSalesTax": false,
+  "manager_listClasses": {
+    "status": 200,
+    "count": 14,
+    "sawTerraceCode": true
+  },
+  "manager_createClass": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "manager_updateTerraceClassById": {
+    "status": 400,
+    "err": "VALIDATION_FAILED"
+  },
+  "manager_deleteTerraceClassById": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "manager_classifyDish": {
+    "status": 200,
+    "err": null
+  },
+  "manager_classifyDishResult": {
+    "rate": 0,
+    "code": "RX-ZERO-758504"
+  },
+  "kitchen_screen": {
+    "trouble": [
+      "access-denied"
+    ],
+    "url": "http://localhost:3000/app/settings/tax"
+  },
+  "kitchen_navHasSalesTax": false,
+  "kitchen_listClasses": {
+    "status": 403,
+    "count": null,
+    "sawTerraceCode": null
+  },
+  "kitchen_createClass": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "kitchen_updateTerraceClassById": {
+    "status": 400,
+    "err": "VALIDATION_FAILED"
+  },
+  "kitchen_deleteTerraceClassById": {
+    "status": 403,
+    "err": "PERMISSION_DENIED"
+  },
+  "kitchen_classifyDish": {
+    "status": 400,
+    "err": "VALIDATION_FAILED"
+  },
+  "tenantB_screen": {
+    "trouble": [],
+    "url": "http://localhost:3000/app/settings/tax"
+  },
+  "tenantB_navHasSalesTax": true,
+  "tenantB_listClasses": {
+    "status": 200,
+    "count": 0,
+    "sawTerraceCode": false
+  },
+  "tenantB_createClass": {
+    "status": 200,
+    "err": null
+  },
+  "tenantB_updateTerraceClassById": {
+    "status": 400,
+    "err": "VALIDATION_FAILED"
+  },
+  "tenantB_deleteTerraceClassById": {
+    "status": 404,
+    "err": null
+  }
+}

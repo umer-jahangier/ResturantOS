@@ -1,0 +1,166 @@
+{
+  "closedOrder": {
+    "no": "ORD-20260812-0414",
+    "status": "CLOSED",
+    "subtotal": 113300,
+    "discount": 0,
+    "svc": 5665,
+    "tax": 15861,
+    "total": 134826
+  },
+  "closedLines": [
+    {
+      "n": "RX Alpha R",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "label": "RX Standard 758504",
+      "tax": 8500
+    },
+    {
+      "n": "RX Beta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "label": "RX Standard 758504",
+      "tax": 5661
+    },
+    {
+      "n": "RX Delta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "label": "RX Standard 758504",
+      "tax": 1700
+    },
+    {
+      "n": "RX Gamma",
+      "rate": 0,
+      "code": "RX-ZERO-758504",
+      "label": "RX Zero 758504",
+      "tax": 0
+    }
+  ],
+  "lineTaxSum": 15861,
+  "printedDocBefore": {
+    "tax": [
+      {
+        "code": "RX-STD-758504",
+        "pct": "17.00",
+        "amt": "Rs 158.61"
+      }
+    ],
+    "totals": {
+      "sub": "Rs 1,133.00",
+      "svc": "Rs 56.65",
+      "tax": "Rs 158.61"
+    }
+  },
+  "reRate": 200,
+  "menuNow": [
+    {
+      "n": "RX Alpha R",
+      "rate": 3
+    },
+    {
+      "n": "RX Beta",
+      "rate": 3
+    },
+    {
+      "n": "RX Delta",
+      "rate": 3
+    },
+    {
+      "n": "RX Gamma",
+      "rate": 0
+    }
+  ],
+  "closedOrderAfter": {
+    "tax": 15861,
+    "total": 134826
+  },
+  "closedLinesAfter": [
+    {
+      "n": "RX Alpha R",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "label": "RX Standard 758504",
+      "tax": 8500
+    },
+    {
+      "n": "RX Beta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "label": "RX Standard 758504",
+      "tax": 5661
+    },
+    {
+      "n": "RX Delta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "label": "RX Standard 758504",
+      "tax": 1700
+    },
+    {
+      "n": "RX Gamma",
+      "rate": 0,
+      "code": "RX-ZERO-758504",
+      "label": "RX Zero 758504",
+      "tax": 0
+    }
+  ],
+  "printedDocAfter": {
+    "tax": [
+      {
+        "code": "RX-STD-758504",
+        "pct": "17.00",
+        "amt": "Rs 158.61"
+      }
+    ],
+    "totals": {
+      "sub": "Rs 1,133.00",
+      "svc": "Rs 56.65",
+      "tax": "Rs 158.61"
+    }
+  },
+  "billOnScreenWhileMenuIs3": "Subtotal Rs 1,133.00 Discount Rs 0.00 Service charge (5.00%) Rs 56.65 Sales Tax (17.00%) Rs 158.61 Tax Rs 158.61 TOTAL Rs 1,348.26 CASH Rs 1,348.26",
+  "restore": 200,
+  "jeProbes": [
+    {
+      "q": "?search=ORD-20260812-0414&si",
+      "status": 200,
+      "n": 25
+    }
+  ],
+  "jeFound": {
+    "id": "67b82530-5f6e-463e-8e26-45e57427dd80",
+    "ref": "Order revenue ORD-20260812-0414"
+  },
+  "journal": {
+    "status": "POSTED",
+    "lines": [
+      {
+        "acct": "1010",
+        "dr": 134826,
+        "cr": 0
+      },
+      {
+        "acct": "4100",
+        "dr": 0,
+        "cr": 113300
+      },
+      {
+        "acct": "4910",
+        "dr": 0,
+        "cr": 5665
+      },
+      {
+        "acct": "2200",
+        "dr": 0,
+        "cr": 15861
+      }
+    ],
+    "drTotal": 134826,
+    "crTotal": 134826,
+    "balanced": true
+  },
+  "NO": "ORD-20260812-0414",
+  "ORDER": "f3bf9d67-8d9d-4b17-a79f-58b9d41f8b0f"
+}

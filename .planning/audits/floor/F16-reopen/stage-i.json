@@ -1,0 +1,53 @@
+{
+  "menuItemCount": 61,
+  "bySource": {
+    "?": 61
+  },
+  "legacyRatedCount": 7,
+  "legacyRated": [
+    {
+      "n": "Butter Naan",
+      "own": 16,
+      "eff": 16,
+      "code": null
+    },
+    {
+      "n": "Chicken Karahi",
+      "own": 16,
+      "eff": 16,
+      "code": null
+    },
+    {
+      "n": "Chicken Samosa",
+      "own": 16,
+      "eff": 16,
+      "code": null
+    },
+    {
+      "n": "Fresh Lime",
+      "own": 16,
+      "eff": 16,
+      "code": null
+    },
+    {
+      "n": "Mutton Biryani",
+      "own": 16,
+      "eff": 16,
+      "code": null
+    },
+    {
+      "n": "ROPEN Legacy 988362",
+      "own": 13.5,
+      "eff": 17,
+      "code": "RO-STD-988362"
+    },
+    {
+      "n": "Seekh Kebab",
+      "own": 17,
+      "eff": 17,
+      "code": "SR-STD-17"
+    }
+  ],
+  "REGRESSION_legacyRateSilentlyZeroed": [],
+  "nullEffectiveRate": []
+}

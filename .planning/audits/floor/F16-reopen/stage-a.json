@@ -1,0 +1,212 @@
+{
+  "routeTrouble": [],
+  "h1": "Sales tax",
+  "codesOnScreenAfterReload": [
+    "RX-STD-758504",
+    "RX Standard 758504",
+    "RX-ZERO-758504",
+    "RX Zero 758504"
+  ],
+  "classes": [
+    {
+      "code": "RX-STD-758504",
+      "rate": 17
+    },
+    {
+      "code": "RX-ZERO-758504",
+      "rate": 0
+    }
+  ],
+  "categoryCreated": {
+    "status": 200,
+    "id": "3ce565c8-49b2-4ea4-8ab6-f0234d0a8857"
+  },
+  "dishes": [
+    {
+      "n": "RX Alpha",
+      "s": 200
+    },
+    {
+      "n": "RX Beta",
+      "s": 200
+    },
+    {
+      "n": "RX Gamma",
+      "s": 200
+    }
+  ],
+  "beforeRule": [
+    {
+      "name": "RX Alpha",
+      "rate": 0,
+      "code": null,
+      "src": "NONE",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 50000
+    },
+    {
+      "name": "RX Beta",
+      "rate": 0,
+      "code": null,
+      "src": "NONE",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 30000
+    },
+    {
+      "name": "RX Gamma",
+      "rate": 0,
+      "code": null,
+      "src": "NONE",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 20000
+    }
+  ],
+  "categoryTaxSelectPresent": 1,
+  "categoryTaxOptions": [
+    "No tax rule — items use their own rate",
+    "Reopen standard 440128 — 17.00%",
+    "ROPEN Standard — 17.00%",
+    "ROPEN Standard 988362 — 17.00%",
+    "RX Standard 582578 — 17.00%",
+    "RX Standard 671362 — 17.00%",
+    "RX Standard 758504 — 17.00%",
+    "Standard rate — 17.00%",
+    "Reopen zero 440128 — 0.00%",
+    "ROPEN Zero — 0.00%",
+    "ROPEN Zero 988362 — 0.00%",
+    "RX Zero 582578 — 0.00%",
+    "RX Zero 671362 — 0.00%",
+    "RX Zero 758504 — 0.00%",
+    "Zero-rated — 0.00%"
+  ],
+  "afterCategoryRule": [
+    {
+      "name": "RX Alpha",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "src": "CATEGORY",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 50000
+    },
+    {
+      "name": "RX Beta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "src": "CATEGORY",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 30000
+    },
+    {
+      "name": "RX Gamma",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "src": "CATEGORY",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 20000
+    }
+  ],
+  "deltaCreated": 200,
+  "deltaInherits": {
+    "name": "RX Delta",
+    "rate": 17,
+    "code": "RX-STD-758504",
+    "src": "CATEGORY",
+    "own": null,
+    "legacy": 0,
+    "desc": "orig-desc",
+    "price": 10000
+  },
+  "itemTaxSelect": {
+    "testid": "item-tax-class",
+    "id": "_r_5d_-form-item",
+    "selected": "Follow RX Cat 758504 — RX Standard 758504 17.00%",
+    "opts": [
+      "Follow RX Cat 758504 — RX Standard 758504 17.00%",
+      "Reopen standard 440128 — 17.00%",
+      "ROPEN Standard — 17.00%",
+      "ROPEN Standard 988362 — 17.00%",
+      "RX Standard 582578 — 17.00%",
+      "RX Standard 671362 — 17.00%"
+    ]
+  },
+  "afterOverride": [
+    {
+      "name": "RX Alpha",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "src": "CATEGORY",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 50000
+    },
+    {
+      "name": "RX Beta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "src": "CATEGORY",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 30000
+    },
+    {
+      "name": "RX Delta",
+      "rate": 17,
+      "code": "RX-STD-758504",
+      "src": "CATEGORY",
+      "own": null,
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 10000
+    },
+    {
+      "name": "RX Gamma",
+      "rate": 0,
+      "code": "RX-ZERO-758504",
+      "src": "ITEM",
+      "own": "set",
+      "legacy": 0,
+      "desc": "orig-desc",
+      "price": 20000
+    }
+  ],
+  "S": "758504",
+  "CAT": "3ce565c8-49b2-4ea4-8ab6-f0234d0a8857",
+  "STD": {
+    "id": "6f1a4a38-f1c1-42cc-ad67-63f8e9a07c84",
+    "code": "RX-STD-758504",
+    "name": "RX Standard 758504",
+    "ratePct": 17,
+    "active": true,
+    "categoryCount": 0,
+    "itemCount": 0
+  },
+  "ZERO": {
+    "id": "1dfcc5c5-0554-4d66-8851-85e2457bd36e",
+    "code": "RX-ZERO-758504",
+    "name": "RX Zero 758504",
+    "ratePct": 0,
+    "active": true,
+    "categoryCount": 0,
+    "itemCount": 0
+  },
+  "ids": {
+    "alpha": "a0be3407-924f-48f3-8d00-3f2c133c16e1",
+    "beta": "7397aebe-089f-4b88-9ca8-c0c1cc37b785",
+    "gamma": "30e25a9e-0398-4d74-b715-d867fb9a9f79",
+    "delta": "4621e007-4c0c-4c60-9e36-89755883e894"
+  }
+}

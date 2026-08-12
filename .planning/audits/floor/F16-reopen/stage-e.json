@@ -1,0 +1,67 @@
+{
+  "orderBefore": {
+    "lines": []
+  },
+  "printJobCount": 3,
+  "reRate": {
+    "status": 200,
+    "now": 5
+  },
+  "menuAfterReRate": [
+    {
+      "n": "RX Alpha R",
+      "rate": 5,
+      "code": "RX-STD-758504"
+    },
+    {
+      "n": "RX Beta",
+      "rate": 5,
+      "code": "RX-STD-758504"
+    },
+    {
+      "n": "RX Delta",
+      "rate": 5,
+      "code": "RX-STD-758504"
+    },
+    {
+      "n": "RX Gamma",
+      "rate": 0,
+      "code": "RX-ZERO-758504"
+    }
+  ],
+  "orderAfterReRate": {
+    "lines": []
+  },
+  "reissueStatus": 400,
+  "reprintTaxLines": [],
+  "reprintTotals": "{}",
+  "reprintOnScreen": "Subtotal Rs 1,133.00 Discount Rs 0.00 Service charge (5.00%) Rs 56.65 Sales Tax (17.00%) Rs 158.61 Tax Rs 158.61 TOTAL Rs 1,348.26 CASH Rs 1,348.26",
+  "restored": {
+    "status": 200,
+    "now": 17
+  },
+  "journalFound": 5,
+  "journal": {
+    "status": "POSTED",
+    "lines": [
+      {
+        "acct": "1010",
+        "dr": 0,
+        "cr": 29000
+      },
+      {
+        "acct": "4100",
+        "dr": 25000,
+        "cr": 0
+      },
+      {
+        "acct": "2200",
+        "dr": 4000,
+        "cr": 0
+      }
+    ],
+    "drTotal": 29000,
+    "crTotal": 29000,
+    "balanced": true
+  }
+}

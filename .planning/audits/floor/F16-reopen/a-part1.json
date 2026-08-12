@@ -1,0 +1,59 @@
+{
+  "routeTrouble": [],
+  "h1": "Sales tax",
+  "afterReloadRows": [],
+  "classesApi": {
+    "status": 200,
+    "mine": [
+      {
+        "code": "RO-STD-440128",
+        "rate": 17
+      },
+      {
+        "code": "RO-ZERO-440128",
+        "rate": 0
+      }
+    ]
+  },
+  "categoryCreated": 404,
+  "itemsCreated": [
+    404,
+    404,
+    404
+  ],
+  "categoryEditOpened": false,
+  "dialogSelects": [],
+  "S": "440128",
+  "STD": {
+    "id": "a388019d-52be-4676-9346-4db006c67caf",
+    "code": "RO-STD-440128",
+    "name": "Reopen standard 440128",
+    "ratePct": 17,
+    "active": true,
+    "categoryCount": 0,
+    "itemCount": 0
+  },
+  "ZERO": {
+    "id": "a6ab4f6c-ff6f-4082-9206-d65e2fb3e3db",
+    "code": "RO-ZERO-440128",
+    "name": "Reopen zero 440128",
+    "ratePct": 0,
+    "active": true,
+    "categoryCount": 0,
+    "itemCount": 0
+  },
+  "items": [
+    {
+      "n": "RO Alpha",
+      "status": 404
+    },
+    {
+      "n": "RO Beta",
+      "status": 404
+    },
+    {
+      "n": "RO Gamma",
+      "status": 404
+    }
+  ]
+}

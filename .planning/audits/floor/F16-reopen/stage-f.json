@@ -1,0 +1,17 @@
+{
+  "orderStatus": 400,
+  "orderKeys": [
+    "error"
+  ],
+  "orderSummary": {
+    "no": null
+  },
+  "orderLines": [],
+  "printJobs": [
+    {},
+    {},
+    {},
+    {}
+  ],
+  "journalMatchedByOrderNumber": "NOT FOUND"
+}
