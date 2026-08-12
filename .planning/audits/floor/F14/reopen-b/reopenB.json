@@ -1,0 +1,595 @@
+{
+  "label": "reopenB",
+  "at": "2026-08-12T11:20:21.938Z",
+  "surfaces": {
+    "A_terminal_panel": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Void",
+        "accName": "Void order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Void order\"",
+          "contents=\"Void\" (superseded)"
+        ],
+        "ariaLabel": "Void order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byPrintedWordSubstring": 1,
+          "byPrintedWordExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "onScreenButtons": 89,
+      "otherViolations": [
+        {
+          "visibleText": "Floating Terrace HQ",
+          "accName": "Switch branch",
+          "nameFrom": "attribute",
+          "testid": null
+        },
+        {
+          "visibleText": "Search…⌘K",
+          "accName": "Open command palette",
+          "nameFrom": "attribute",
+          "testid": null
+        },
+        {
+          "visibleText": "Audit Item 52235Rs 499.00",
+          "accName": "Audit Item 52235 Audit Item 52235 Rs 499.00",
+          "nameFrom": "contents",
+          "testid": "menu-item-first"
+        },
+        {
+          "visibleText": "Audit Item 60568Rs 499.00",
+          "accName": "Audit Item 60568 Audit Item 60568 Rs 499.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Butter NaanRs 80.00",
+          "accName": "Butter Naan Butter Naan Rs 80.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Chicken KarahiRs 1,450.00",
+          "accName": "Chicken Karahi Chicken Karahi Rs 1,450.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Chicken SamosaRs 250.00",
+          "accName": "Chicken Samosa Chicken Samosa Rs 250.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "F16 Biryani 166428Rs 850.00",
+          "accName": "F16 Biryani 166428 F16 Biryani 166428 Rs 850.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "F16 Karahi 166428Rs 950.00",
+          "accName": "F16 Karahi 166428 Rs 950.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "F16 Lime 166428Rs 250.00",
+          "accName": "F16 Lime 166428 Rs 250.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "F16 Naan 166428Rs 120.00",
+          "accName": "F16 Naan 166428 Rs 120.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Fresh LimeRs 220.00",
+          "accName": "Fresh Lime Rs 220.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Mutton BiryaniRs 1,250.00",
+          "accName": "Mutton Biryani Rs 1,250.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Photo Dish 50585Rs 725.00",
+          "accName": "Photo Dish 50585 Photo Dish 50585 Rs 725.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "PinacoladaRs 700.00",
+          "accName": "Pinacolada Rs 700.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Alpha 844185Rs 1,000.00",
+          "accName": "ROPEN Alpha 844185 Rs 1,000.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Alpha 988362Rs 1,000.00",
+          "accName": "ROPEN Alpha 988362 Rs 1,000.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Bravo 844185Rs 500.00",
+          "accName": "ROPEN Bravo 844185 Rs 500.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Bravo 988362Rs 500.00",
+          "accName": "ROPEN Bravo 988362 Rs 500.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Charlie 844185Rs 200.00",
+          "accName": "ROPEN Charlie 844185 Rs 200.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Charlie 988362Rs 200.00",
+          "accName": "ROPEN Charlie 988362 Rs 200.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Delta 844185Rs 300.00",
+          "accName": "ROPEN Delta 844185 Rs 300.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Delta 988362Rs 300.00",
+          "accName": "ROPEN Delta 988362 Rs 300.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ROPEN Legacy 988362Rs 100.00",
+          "accName": "ROPEN Legacy 988362 Rs 100.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "RX Alpha 582578Rs 500.00",
+          "accName": "RX Alpha 582578 Rs 500.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "RX Beta 582578Rs 300.00",
+          "accName": "RX Beta 582578 Rs 300.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "RX Delta 582578Rs 100.00",
+          "accName": "RX Delta 582578 Rs 100.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "RX Gamma 582578Rs 200.00",
+          "accName": "RX Gamma 582578 Rs 200.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "Seekh KebabRs 450.00",
+          "accName": "Seekh Kebab Rs 450.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-01Rs 101.00",
+          "accName": "ZZ-01 Rs 101.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-02Rs 102.00",
+          "accName": "ZZ-02 Rs 102.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-03Rs 103.00",
+          "accName": "ZZ-03 Rs 103.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-04Rs 104.00",
+          "accName": "ZZ-04 Rs 104.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-05Rs 105.00",
+          "accName": "ZZ-05 Rs 105.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-06Rs 106.00",
+          "accName": "ZZ-06 Rs 106.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-07Rs 107.00",
+          "accName": "ZZ-07 Rs 107.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-08Rs 108.00",
+          "accName": "ZZ-08 Rs 108.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-09Rs 109.00",
+          "accName": "ZZ-09 Rs 109.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-10Rs 110.00",
+          "accName": "ZZ-10 Rs 110.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-11Rs 111.00",
+          "accName": "ZZ-11 Rs 111.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-12Rs 112.00",
+          "accName": "ZZ-12 Rs 112.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-13Rs 113.00",
+          "accName": "ZZ-13 Rs 113.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-14Rs 114.00",
+          "accName": "ZZ-14 Rs 114.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-15Rs 115.00",
+          "accName": "ZZ-15 Rs 115.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-16Rs 116.00",
+          "accName": "ZZ-16 Rs 116.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-17Rs 117.00",
+          "accName": "ZZ-17 Rs 117.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-18Rs 118.00",
+          "accName": "ZZ-18 Rs 118.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-19Rs 119.00",
+          "accName": "ZZ-19 Rs 119.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-20Rs 120.00",
+          "accName": "ZZ-20 Rs 120.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-21Rs 121.00",
+          "accName": "ZZ-21 Rs 121.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-22Rs 122.00",
+          "accName": "ZZ-22 Rs 122.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-23Rs 123.00",
+          "accName": "ZZ-23 Rs 123.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-24Rs 124.00",
+          "accName": "ZZ-24 Rs 124.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-25Rs 125.00",
+          "accName": "ZZ-25 Rs 125.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-26Rs 126.00",
+          "accName": "ZZ-26 Rs 126.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-27Rs 127.00",
+          "accName": "ZZ-27 Rs 127.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-28Rs 128.00",
+          "accName": "ZZ-28 Rs 128.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-29Rs 129.00",
+          "accName": "ZZ-29 Rs 129.00",
+          "nameFrom": "contents",
+          "testid": null
+        },
+        {
+          "visibleText": "ZZ-30Rs 130.00",
+          "accName": "ZZ-30 Rs 130.00",
+          "nameFrom": "contents",
+          "testid": null
+        }
+      ]
+    },
+    "B_drawer_voidable": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Void",
+        "accName": "Void order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Void order\"",
+          "contents=\"Void\" (superseded)"
+        ],
+        "ariaLabel": "Void order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byPrintedWordSubstring": 1,
+          "byPrintedWordExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "onScreenButtons": 33,
+      "otherViolations": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ]
+    },
+    "F_drawer_refundable": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "Refund",
+        "accName": "Refund order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Refund order\"",
+          "contents=\"Refund\" (superseded)"
+        ],
+        "ariaLabel": "Refund order",
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byPrintedWordSubstring": 1,
+          "byPrintedWordExact": 0,
+          "anchoredRegex": 0
+        }
+      },
+      "onScreenButtons": 33,
+      "otherViolations": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ]
+    },
+    "J_drawer_charge": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "trigger": {
+        "visibleText": "CHARGE NOW",
+        "accName": "CHARGE NOW",
+        "nameFrom": "contents",
+        "nameSources": [
+          "contents=\"CHARGE NOW\""
+        ],
+        "ariaLabel": null,
+        "contains": true,
+        "startsWith": true,
+        "roleQueries": {
+          "doneMeansRegex": 1,
+          "byPrintedWordSubstring": 1,
+          "byPrintedWordExact": 1,
+          "anchoredRegex": 1
+        }
+      },
+      "onScreenButtons": 33,
+      "otherViolations": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ],
+      "chargeTestid": "charge-now-button"
+    }
+  },
+  "actions": {
+    "void": {
+      "serverBefore": {
+        "httpStatus": 200,
+        "status": "SENT_TO_KDS",
+        "totalPaisa": 76545
+      },
+      "triggersFoundByPrintedWord": 1,
+      "panelOpened": 1,
+      "confirmFoundByPrintedWord": 1,
+      "serverAfter": {
+        "httpStatus": 200,
+        "status": "VOIDED",
+        "totalPaisa": 76545
+      },
+      "rowTextAfterReload": "ORD-20260812-0399\nDine-in\n\t\nVoided\n\t\nUnpaid\n\tTerrace Manager\t\n1 item\n\tRs 765.45\t<1m\t\nOpen",
+      "serverAfterReload": {
+        "httpStatus": 200,
+        "status": "VOIDED",
+        "totalPaisa": 76545
+      }
+    },
+    "refund": {
+      "serverAfterPayment": {
+        "httpStatus": 200,
+        "status": "SENT_TO_KDS",
+        "totalPaisa": 76545
+      },
+      "triggersFoundByPrintedWord": 1,
+      "panelOpened": 1,
+      "confirmFoundByPrintedWord": 1,
+      "serverAfter": {
+        "httpStatus": 200,
+        "status": "REFUNDED",
+        "totalPaisa": 76545
+      },
+      "rowTextAfterReload": "ORD-20260812-0400\nDine-in\n\t\nRefunded\n\t\nRefunded\n\tTerrace Manager\t\n1 item\n\tRs 765.45\t1m\t\nOpen",
+      "serverAfterReload": {
+        "httpStatus": 200,
+        "status": "REFUNDED",
+        "totalPaisa": 76545
+      }
+    },
+    "charge": {
+      "foundByPrintedWord": 1,
+      "landedOnChargePage": true,
+      "url": "http://localhost:3000/app/pos/orders/595b2034-f598-4a38-b951-e66eba445931/charge"
+    }
+  },
+  "sweeps": {
+    "cashierDrawer": {
+      "health": {
+        "alerts": [],
+        "badCopy": false
+      },
+      "void": {
+        "visibleText": "Void",
+        "accName": "Void order",
+        "nameFrom": "attribute",
+        "nameSources": [
+          "attribute[aria-label]=\"Void order\"",
+          "contents=\"Void\" (superseded)"
+        ],
+        "ariaLabel": "Void order",
+        "contains": true,
+        "startsWith": true
+      },
+      "charge": {
+        "visibleText": "CHARGE NOW",
+        "accName": "CHARGE NOW",
+        "nameFrom": "contents",
+        "nameSources": [
+          "contents=\"CHARGE NOW\""
+        ],
+        "ariaLabel": null,
+        "contains": true,
+        "startsWith": true
+      },
+      "refund": null,
+      "violations": [
+        {
+          "visibleText": "Mark Served",
+          "accName": "Mark Audit Item 52235 served",
+          "nameFrom": "attribute",
+          "testid": null
+        }
+      ]
+    }
+  },
+  "orderNoA": "ORD-20260812-0399",
+  "shots": [
+    "reopenB-01-A-terminal-panel.png",
+    "reopenB-02-B-drawer-voidable.png",
+    "reopenB-03-C-void-panel-by-printed-word.png",
+    "reopenB-04-D-after-confirm-void.png",
+    "reopenB-05-E-after-reload.png",
+    "reopenB-06-F-drawer-refundable.png",
+    "reopenB-07-G-refund-panel-by-printed-word.png",
+    "reopenB-08-H-after-confirm-refund.png",
+    "reopenB-09-I-refund-after-reload.png",
+    "reopenB-10-J-drawer-charge.png",
+    "reopenB-11-K-charge-page-by-name.png"
+  ],
+  "orderIdA": "54744a54-04b4-45c2-8062-2b1e57b2cbdc",
+  "orderNoB": "ORD-20260812-0400",
+  "orderIdB": "9f9f37e8-e1d3-4e4e-85d9-59e45ed71eee",
+  "orderNoC": "ORD-20260812-0402",
+  "orderIdC": "595b2034-f598-4a38-b951-e66eba445931",
+  "cashierOrderNo": "ORD-20260812-0403"
+}
