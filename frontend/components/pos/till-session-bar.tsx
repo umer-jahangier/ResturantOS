@@ -77,7 +77,11 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
   const closeTillMutation = useCloseTill();
   // Live reconciliation (orders + accumulating cash) for the OPEN till — so the bar shows the
   // cash actually collected instead of 0 until close.
-  const { data: recon } = useTillReconciliation(
+  const {
+    data: recon,
+    isPending: reconPending,
+    refetch: refetchRecon,
+  } = useTillReconciliation(
     activeTill && activeTill.status === "OPEN" ? activeTill.id : null,
   );
 
@@ -89,13 +93,57 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
     setOpeningFloat("");
   };
 
+  /**
+   * What the drawer SHOULD hold at this instant.
+   *
+   * <p>`activeTill.expectedClosingPaisa` is written by `TillServiceImpl.closeTill` — i.e. only
+   * DURING the close — so on an OPEN till it is structurally NULL, and reading it alone left the
+   * cashier counting blind at the one moment the number matters (walkthrough §3 #1: the panel said
+   * only "Opening float: Rs 5,000.00" while the strip one line above already read
+   * "Cash: Rs 6,682.60"). The reconciliation endpoint computes the identical expression live —
+   * `openingFloat + cash − cash refunds`, character for character the same as closeTill's — and
+   * documents `liveExpectedCashPaisa` as always computed. So: the persisted figure once it is
+   * frozen, the live one until then.
+   */
+  const expectedCashPaisa =
+    activeTill?.expectedClosingPaisa ?? recon?.liveExpectedCashPaisa ?? null;
+
+  // Validation as the cashier types. An empty box used to submit `parseFloat("0")` — a silent
+  // declaration of Rs 0.00 against a full drawer, which posts a shift-sized shortage nobody typed.
+  const declaredTrimmed = declaredCash.trim();
+  const declaredPaisa =
+    declaredTrimmed === "" ? null : Math.round(Number.parseFloat(declaredTrimmed) * 100);
+  const declaredError =
+    declaredPaisa === null
+      ? null
+      : !Number.isFinite(declaredPaisa)
+        ? "Declared Cash Count must be a number, e.g. 6682.60"
+        : declaredPaisa < 0
+          ? "Declared Cash Count cannot be negative — enter what you counted in the drawer"
+          : null;
+  const declaredValid = declaredPaisa !== null && declaredError === null;
+
+  /** Counted − expected. Negative is money missing from the drawer. */
+  const previewVariance =
+    declaredValid && expectedCashPaisa !== null ? declaredPaisa - expectedCashPaisa : null;
+  /*
+   * A shortage is money that is GONE, so it is destructive at any size — the cashier is signing
+   * for it. An overage is a discrepancy but not a loss, so it warns. Only an exact match is calm.
+   * The words "short"/"over"/"Balanced" carry the same signal without relying on colour.
+   */
+  const varianceTone =
+    previewVariance === null || previewVariance === 0
+      ? "text-success"
+      : previewVariance < 0
+        ? "text-destructive"
+        : "text-warning";
+
   const handleCloseTill = async () => {
-    if (!activeTill) return;
-    const paisa = Math.round(parseFloat(declaredCash || "0") * 100);
+    if (!activeTill || !declaredValid) return;
     const idempotencyKey = generateKey();
     await closeTillMutation.mutateAsync({
       tillId: activeTill.id,
-      payload: { declaredClosingPaisa: paisa, note: closeNote.trim() || undefined },
+      payload: { declaredClosingPaisa: declaredPaisa, note: closeNote.trim() || undefined },
       idempotencyKey,
     });
     setShowCloseModal(false);
@@ -248,18 +296,44 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
         >
           <h2 className="font-semibold">Close Till Session</h2>
 
+          {/*
+           * The sum the cashier is being asked to check, written out: float + cash taken =
+           * expected. The Expected row is ALWAYS rendered — a missing row reads as "there is no
+           * such number", which is the lie this panel used to tell.
+           */}
           <div className="text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Opening float:</span>
               <MoneyDisplay paisa={activeTill.openingFloatPaisa} />
             </div>
-            {activeTill.expectedClosingPaisa !== null &&
-              activeTill.expectedClosingPaisa !== undefined && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Expected cash:</span>
-                  <MoneyDisplay paisa={activeTill.expectedClosingPaisa} />
-                </div>
-              )}
+            {recon && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Cash taken (net of refunds):</span>
+                <MoneyDisplay paisa={recon.cashCollectedPaisa} />
+              </div>
+            )}
+            <div className="flex justify-between gap-3 border-t border-border/60 pt-1">
+              <span className="text-muted-foreground">Expected cash:</span>
+              <span data-testid="close-till-expected" className="text-right">
+                {expectedCashPaisa !== null ? (
+                  <MoneyDisplay paisa={expectedCashPaisa} />
+                ) : reconPending ? (
+                  <span className="text-muted-foreground">Working it out…</span>
+                ) : (
+                  <span className="text-destructive">
+                    Unavailable — could not read this till&apos;s totals.{" "}
+                    <button
+                      type="button"
+                      data-testid="close-till-expected-retry"
+                      onClick={() => void refetchRecon()}
+                      className="font-medium underline underline-offset-2"
+                    >
+                      Try again
+                    </button>
+                  </span>
+                )}
+              </span>
+            </div>
           </div>
 
           <label className="text-sm">
@@ -270,10 +344,21 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
               step="0.01"
               value={declaredCash}
               onChange={(e) => setDeclaredCash(e.target.value)}
+              aria-invalid={declaredError !== null}
+              aria-describedby={declaredError ? "close-till-declared-error" : undefined}
               className="mt-1 w-full max-w-xs rounded border px-3 py-2 text-sm"
               placeholder="e.g. 12500.00"
             />
           </label>
+          {declaredError && (
+            <p
+              id="close-till-declared-error"
+              data-testid="close-till-declared-error"
+              className="text-xs text-destructive"
+            >
+              {declaredError}
+            </p>
+          )}
 
           <label className="text-sm">
             Note for manager review (optional)
@@ -288,28 +373,31 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             />
           </label>
 
-          {/* Variance preview */}
-          {activeTill.expectedClosingPaisa !== null && declaredCash && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">Variance: </span>
-              <span
-                className={cn(
-                  "font-medium",
-                  Math.abs(
-                    Math.round(parseFloat(declaredCash) * 100) -
-                      (activeTill.expectedClosingPaisa ?? 0),
-                  ) > varianceThreshold
-                    ? "text-destructive"
-                    : "text-success",
-                )}
-              >
-                <MoneyDisplay
-                  paisa={Math.abs(
-                    Math.round(parseFloat(declaredCash) * 100) -
-                      (activeTill.expectedClosingPaisa ?? 0),
-                  )}
-                />
-              </span>
+          {/* Variance preview — live, before anything is submitted. */}
+          {declaredValid && (
+            <div className="text-sm" role="status" aria-live="polite">
+              {previewVariance === null ? (
+                <span data-testid="close-till-variance" className="font-medium text-warning">
+                  Variance cannot be checked until the expected cash figure loads.
+                </span>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">Variance: </span>
+                  <span
+                    data-testid="close-till-variance"
+                    className={cn("font-medium", varianceTone)}
+                  >
+                    {previewVariance === 0 ? (
+                      "Balanced — your count matches the drawer"
+                    ) : (
+                      <>
+                        <MoneyDisplay paisa={Math.abs(previewVariance)} />{" "}
+                        {previewVariance < 0 ? "short" : "over"}
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
             </div>
           )}
 
@@ -323,7 +411,7 @@ export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBa
             <button
               data-testid="close-till-confirm-button"
               onClick={() => void handleCloseTill()}
-              disabled={closeTillMutation.isPending}
+              disabled={closeTillMutation.isPending || !declaredValid}
               className="min-h-11 text-pos px-4 py-2 rounded-md bg-secondary text-secondary-foreground font-medium hover:opacity-90 disabled:opacity-50"
             >
               {closeTillMutation.isPending ? "Closing…" : "Close Till"}
