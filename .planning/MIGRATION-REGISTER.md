@@ -64,7 +64,7 @@ No contention observed yet. The same rule applies — claim here first.
 | auth-service | Liquibase | 090+ | changeset ids, not versions; same rule |
 | user-service | Liquibase | 013 | |
 | hr-service | Liquibase | 035 | |
-| audit-service | Liquibase | — | RLS policy changeset in flight |
+| audit-service | Liquibase | **030** | `030-audit-events-rls.xml` applied. Partitioned: policy must be per-partition AND applied at creation — a parent-only policy leaks and its test stays green. |
 | crm-service | Liquibase | — | |
 | platform-admin, file | Liquibase | — | |
 
