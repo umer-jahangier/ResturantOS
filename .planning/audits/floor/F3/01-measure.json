@@ -1,0 +1,447 @@
+{
+  "at": "2026-08-12T04:06:04.418Z",
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "picker": [
+    {
+      "code": "DGS43431",
+      "badge": "0",
+      "text": "Diag Dessert 43431 | DGS43431 | 0 | 0 tickets | 0 items | Clear | TICKETS BY STAGE | 0 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY",
+      "cols": {
+        "NEW": "0",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      }
+    },
+    {
+      "code": "DGS20334",
+      "badge": "0",
+      "text": "Diag Dessert 20334 | DGS20334 | 0 | 0 tickets | 0 items | Clear | TICKETS BY STAGE | 0 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY",
+      "cols": {
+        "NEW": "0",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      }
+    },
+    {
+      "code": "PANTRY1",
+      "badge": "18",
+      "text": "Cold prep | PANTRY1 | 18 | 18 tickets | 22 items | Oldest 2h 27m | TICKETS BY STAGE | 18 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY",
+      "cols": {
+        "NEW": "18",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      }
+    },
+    {
+      "code": "DEFAULT",
+      "badge": "109",
+      "text": "DEFAULT | DEFAULT | 109 | 109 tickets | 135 items | Oldest 121h 4m | TICKETS BY STAGE | 77 | NEW | 18 | STARTED | 10 | PREPARING | 7 | READY",
+      "cols": {
+        "NEW": "77",
+        "STARTED": "18",
+        "PREPARING": "10",
+        "READY": "7"
+      }
+    },
+    {
+      "code": "BAR",
+      "badge": "4",
+      "text": "Main bar | BAR | 4 | 4 tickets | 4 items | Oldest 4h 43m | TICKETS BY STAGE | 4 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY",
+      "cols": {
+        "NEW": "4",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      }
+    },
+    {
+      "code": "GRILL",
+      "badge": "6",
+      "text": "Hot line | GRILL | 6 | 6 tickets | 6 items | Oldest 3h 27m | TICKETS BY STAGE | 6 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY",
+      "cols": {
+        "NEW": "6",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      }
+    },
+    {
+      "code": "DGB28334",
+      "badge": "0",
+      "text": "Diag Bar 28334 | DGB28334 | 0 | 0 tickets | 0 items | Clear | TICKETS BY STAGE | 0 | NEW | 0 | STARTED | 0 | PREPARING | 0 | READY",
+      "cols": {
+        "NEW": "0",
+        "STARTED": "0",
+        "PREPARING": "0",
+        "READY": "0"
+      }
+    }
+  ],
+  "boards": {
+    "DGS43431": {
+      "h1": "Diag Dessert 43431",
+      "count": "0 tickets",
+      "page": null,
+      "cols": {
+        "NEW": "0",
+        "NEW_header": "NEW 0",
+        "STARTED": "0",
+        "STARTED_header": "STARTED 0",
+        "PREPARING": "0",
+        "PREPARING_header": "PREPARING 0",
+        "READY": "0",
+        "READY_header": "READY 0"
+      },
+      "cards": 0
+    },
+    "DGS20334": {
+      "h1": "Diag Dessert 20334",
+      "count": "0 tickets",
+      "page": null,
+      "cols": {
+        "NEW": "0",
+        "NEW_header": "NEW 0",
+        "STARTED": "0",
+        "STARTED_header": "STARTED 0",
+        "PREPARING": "0",
+        "PREPARING_header": "PREPARING 0",
+        "READY": "0",
+        "READY_header": "READY 0"
+      },
+      "cards": 0
+    },
+    "PANTRY1": {
+      "h1": "Cold prep",
+      "count": "18 tickets",
+      "page": "1 / 2",
+      "cols": {
+        "NEW": "18",
+        "NEW_header": "NEW 18",
+        "STARTED": "0",
+        "STARTED_header": "STARTED 0",
+        "PREPARING": "0",
+        "PREPARING_header": "PREPARING 0",
+        "READY": "0",
+        "READY_header": "READY 0"
+      },
+      "cards": 10
+    },
+    "DEFAULT": {
+      "h1": "DEFAULT",
+      "count": "109 tickets",
+      "page": "1 / 12",
+      "cols": {
+        "NEW": "77",
+        "NEW_header": "NEW 77",
+        "STARTED": "18",
+        "STARTED_header": "STARTED 18",
+        "PREPARING": "10",
+        "PREPARING_header": "PREPARING 10",
+        "READY": "7",
+        "READY_header": "READY 7"
+      },
+      "cards": 10
+    },
+    "BAR": {
+      "h1": "Main bar",
+      "count": "4 tickets",
+      "page": null,
+      "cols": {
+        "NEW": "4",
+        "NEW_header": "NEW 4",
+        "STARTED": "0",
+        "STARTED_header": "STARTED 0",
+        "PREPARING": "0",
+        "PREPARING_header": "PREPARING 0",
+        "READY": "0",
+        "READY_header": "READY 0"
+      },
+      "cards": 4
+    },
+    "GRILL": {
+      "h1": "Hot line",
+      "count": "6 tickets",
+      "page": null,
+      "cols": {
+        "NEW": "6",
+        "NEW_header": "NEW 6",
+        "STARTED": "0",
+        "STARTED_header": "STARTED 0",
+        "PREPARING": "0",
+        "PREPARING_header": "PREPARING 0",
+        "READY": "0",
+        "READY_header": "READY 0"
+      },
+      "cards": 6
+    },
+    "DGB28334": {
+      "h1": "Diag Bar 28334",
+      "count": "0 tickets",
+      "page": null,
+      "cols": {
+        "NEW": "0",
+        "NEW_header": "NEW 0",
+        "STARTED": "0",
+        "STARTED_header": "STARTED 0",
+        "PREPARING": "0",
+        "PREPARING_header": "PREPARING 0",
+        "READY": "0",
+        "READY_header": "READY 0"
+      },
+      "cards": 0
+    }
+  },
+  "truth": {
+    "DEFAULT": {
+      "tickets": 121,
+      "ticketsWithLiveItems": 109,
+      "liveItems": 135,
+      "fragments": 112,
+      "itemCols": {
+        "NEW": 98,
+        "STARTED": 20,
+        "PREPARING": 10,
+        "READY": 7
+      },
+      "fragCols": {
+        "NEW": 77,
+        "STARTED": 18,
+        "PREPARING": 10,
+        "READY": 7
+      },
+      "deadStatuses": {
+        "SERVED": 16
+      },
+      "zeroItemTickets": [
+        {
+          "id": "d71edeb3",
+          "orderNo": "ORD-20260807-0015",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "92843b44",
+          "orderNo": "ORD-20260807-0016",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED",
+            "SERVED"
+          ]
+        },
+        {
+          "id": "bf065da2",
+          "orderNo": "ORD-20260807-0017",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "4f9bca91",
+          "orderNo": "ORD-20260807-0018",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED",
+            "SERVED"
+          ]
+        },
+        {
+          "id": "016916cf",
+          "orderNo": "ORD-20260807-0019",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "d2780078",
+          "orderNo": "ORD-20260807-0001",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "f3113534",
+          "orderNo": "ORD-20260807-0008",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED",
+            "SERVED"
+          ]
+        },
+        {
+          "id": "a6f16394",
+          "orderNo": "ORD-20260807-0009",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "7b36c73c",
+          "orderNo": "ORD-20260807-0010",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED",
+            "SERVED"
+          ]
+        },
+        {
+          "id": "4e52826b",
+          "orderNo": "ORD-20260812-0004",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "ae7ef838",
+          "orderNo": "ORD-20260812-0021",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "f33550f3",
+          "orderNo": "ORD-20260812-0165",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        }
+      ]
+    },
+    "GRILL": {
+      "tickets": 7,
+      "ticketsWithLiveItems": 6,
+      "liveItems": 6,
+      "fragments": 6,
+      "itemCols": {
+        "NEW": 6,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "fragCols": {
+        "NEW": 6,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "deadStatuses": {
+        "SERVED": 1
+      },
+      "zeroItemTickets": [
+        {
+          "id": "80256b1f",
+          "orderNo": "ORD-20260807-0025",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        }
+      ]
+    },
+    "BAR": {
+      "tickets": 4,
+      "ticketsWithLiveItems": 4,
+      "liveItems": 4,
+      "fragments": 4,
+      "itemCols": {
+        "NEW": 4,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "fragCols": {
+        "NEW": 4,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "deadStatuses": {},
+      "zeroItemTickets": []
+    },
+    "PANTRY1": {
+      "tickets": 24,
+      "ticketsWithLiveItems": 18,
+      "liveItems": 22,
+      "fragments": 18,
+      "itemCols": {
+        "NEW": 22,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "fragCols": {
+        "NEW": 18,
+        "STARTED": 0,
+        "PREPARING": 0,
+        "READY": 0
+      },
+      "deadStatuses": {
+        "SERVED": 5,
+        "CANCELLED": 1
+      },
+      "zeroItemTickets": [
+        {
+          "id": "195bf9a7",
+          "orderNo": "ORD-20260812-0136",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "1fb8b122",
+          "orderNo": "ORD-20260812-0150",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "9385590e",
+          "orderNo": "ORD-20260812-0154",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "6894b99d",
+          "orderNo": "ORD-20260812-0159",
+          "status": "READY",
+          "itemStatuses": [
+            "CANCELLED"
+          ]
+        },
+        {
+          "id": "684e5fb1",
+          "orderNo": "ORD-20260812-0160",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        },
+        {
+          "id": "9ecf4115",
+          "orderNo": "ORD-20260812-0163",
+          "status": "READY",
+          "itemStatuses": [
+            "SERVED"
+          ]
+        }
+      ]
+    }
+  },
+  "wideTotalElements": 156,
+  "wideReturned": 156
+}

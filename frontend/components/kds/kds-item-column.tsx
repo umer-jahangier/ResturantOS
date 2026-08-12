@@ -165,9 +165,17 @@ export function KdsItemColumn({
         >
           {KDS_COLUMN_LABELS[column]}
         </h3>
+        {/*
+          TICKETS in this column, not items — the same figure the station picker's per-stage
+          split shows, from the same helper. The number stays bare on screen (four repetitions
+          of the word "tickets" is noise on a display read at two metres, and the board header
+          two lines up already names the unit) but it is spelled out for assistive tech, which
+          otherwise announces "New, 76" and leaves the unit to be guessed.
+        */}
         <span
           className={cn("font-bold tabular-nums text-kds-muted", T_SMALL)}
           data-testid={`kds-column-count-${column}`}
+          aria-label={`${total} ${total === 1 ? "ticket" : "tickets"}`}
         >
           {total}
         </span>

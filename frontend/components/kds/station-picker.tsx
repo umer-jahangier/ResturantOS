@@ -9,73 +9,31 @@ import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { cn } from "@/lib/utils";
 import { useKdsClock } from "@/lib/hooks/kds/use-kds-clock";
+import { KDS_COLUMN_LABELS, type KdsColumnKey } from "@/components/kds/kds-item-column";
 import {
-  mapItemStatusToColumn,
-  KDS_COLUMN_LABELS,
-  type KdsColumnKey,
-} from "@/components/kds/kds-item-column";
+  computeKdsCountsByStation,
+  emptyKdsCounts,
+  itemLabel,
+  ticketLabel,
+  type KdsStationCounts,
+} from "@/components/kds/kds-counts";
 import { getAgingState } from "@/components/kds/kds-aging";
-import type { KdsStation, KdsTicket } from "@/lib/models/kds.model";
+import type { KdsStation } from "@/lib/models/kds.model";
 
 interface StationPickerProps {
   branchId: string;
 }
 
-interface StationStats {
-  /** Active (non-terminal) tickets waiting at this station. */
-  queueDepth: number;
-  /** Total active items across those tickets. */
-  itemCount: number;
-  /** Age (ms) of the oldest active ticket, or null when the station is clear. */
-  oldestAgeMs: number | null;
-  /** Item counts per board column (New/Started/Preparing/Ready). */
-  columnCounts: Record<KdsColumnKey, number>;
-}
-
 const DEFAULT_ESCALATION_THRESHOLD_SECONDS = 900; // 15 min
 
-// Non-terminal = still on the board. Must match StationBoard's board filter
-// (`!== SERVED && !== CANCELLED`): a ticket flips to READY once all its items are
-// ready and STAYS on the board (in the Ready column) until the order is served/closed,
-// so READY tickets must be counted here too — otherwise the per-station Ready tally
-// (and queueDepth) systematically undercounts fully-ready tickets.
-function isActive(t: KdsTicket): boolean {
-  return t.status !== "SERVED" && t.status !== "CANCELLED";
-}
-
-function emptyColumnCounts(): Record<KdsColumnKey, number> {
-  return { NEW: 0, STARTED: 0, PREPARING: 0, READY: 0 };
-}
-
-/** Groups active tickets by station code into per-station stats (KDS main-screen). */
-function computeStationStats(tickets: KdsTicket[], now: number): Map<string, StationStats> {
-  const byStation = new Map<string, StationStats>();
-  for (const ticket of tickets) {
-    if (!isActive(ticket)) continue;
-    const prev = byStation.get(ticket.stationCode) ?? {
-      queueDepth: 0,
-      itemCount: 0,
-      oldestAgeMs: null,
-      columnCounts: emptyColumnCounts(),
-    };
-    const ageMs = now - ticket.receivedAt.getTime();
-    // Tally items into board columns (New/Started/Preparing/Ready); skip cancelled/unmapped.
-    let liveItems = 0;
-    for (const item of ticket.items) {
-      const col = mapItemStatusToColumn(item.status);
-      if (!col) continue;
-      prev.columnCounts[col] += 1;
-      liveItems += 1;
-    }
-    byStation.set(ticket.stationCode, {
-      queueDepth: prev.queueDepth + 1,
-      itemCount: prev.itemCount + liveItems,
-      oldestAgeMs: prev.oldestAgeMs === null ? ageMs : Math.max(prev.oldestAgeMs, ageMs),
-      columnCounts: prev.columnCounts,
-    });
-  }
-  return byStation;
-}
+/*
+ * The counting used to live here, and it disagreed with the board's counting under the
+ * same word. It said "120 tickets" on DEFAULT while the board said 111 and the truth was
+ * 108, because it counted every ticket whose STATUS was not SERVED/CANCELLED — including
+ * twelve whose every line had already been served on the POS and which the board therefore
+ * draws nothing for. `kds-counts.ts` now owns the derivation for both surfaces; see its
+ * header for the measurements.
+ */
 
 const COLUMN_ORDER: readonly KdsColumnKey[] = ["NEW", "STARTED", "PREPARING", "READY"];
 
@@ -122,7 +80,7 @@ export function StationPicker({ branchId }: StationPickerProps) {
   // than a `Date.now()` read during render — the latter is impure, and it made the
   // oldest-ticket age depend on whatever else happened to trigger a re-render.
   const now = useKdsClock();
-  const stats = useMemo(() => computeStationStats(tickets, now), [tickets, now]);
+  const stats = useMemo(() => computeKdsCountsByStation(tickets, now), [tickets, now]);
 
   useEffect(() => {
     if (singleStation) {
@@ -222,16 +180,15 @@ export function StationPicker({ branchId }: StationPickerProps) {
 
 interface StationTileProps {
   station: KdsStation;
-  stats: StationStats | undefined;
+  stats: KdsStationCounts | undefined;
   onOpen: () => void;
 }
 
 function StationTile({ station, stats, onOpen }: StationTileProps) {
-  const queueDepth = stats?.queueDepth ?? 0;
-  const itemCount = stats?.itemCount ?? 0;
-  const oldestAgeMs = stats?.oldestAgeMs ?? null;
+  const counts = stats ?? emptyKdsCounts();
+  const { ticketCount, itemCount, oldestAgeMs } = counts;
   const threshold = station.escalationThresholdSeconds || DEFAULT_ESCALATION_THRESHOLD_SECONDS;
-  const busy = queueDepth > 0;
+  const busy = ticketCount > 0;
 
   return (
     <button
@@ -259,19 +216,30 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
             busy ? "bg-white/15 text-kds-text" : "bg-white/5 text-kds-muted",
           )}
           data-testid={`station-queue-${station.code}`}
+          // The pill is the glance number, so it must not be a bare figure to a screen
+          // reader either. Sighted readers get the unit spelled out on the line below.
+          aria-label={`${ticketLabel(ticketCount)} at ${station.name}`}
         >
-          {queueDepth}
+          {ticketCount}
         </span>
       </div>
 
       <div className={cn("mt-4 flex items-center gap-4", T_SMALL)}>
-        <span className="inline-flex items-center gap-1.5 text-kds-muted" title="Tickets in queue">
+        <span
+          className="inline-flex items-center gap-1.5 text-kds-muted"
+          title="Checks on this station's board"
+          data-testid={`station-tickets-${station.code}`}
+        >
           <Layers className="size-4" aria-hidden="true" />
-          {queueDepth} {queueDepth === 1 ? "ticket" : "tickets"}
+          {ticketLabel(ticketCount)}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-kds-muted" title="Items to prepare">
+        <span
+          className="inline-flex items-center gap-1.5 text-kds-muted"
+          title="Dishes still to prepare"
+          data-testid={`station-items-${station.code}`}
+        >
           <ChefHat className="size-4" aria-hidden="true" />
-          {itemCount} {itemCount === 1 ? "item" : "items"}
+          {itemLabel(itemCount)}
         </span>
       </div>
 
@@ -299,6 +267,12 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
       {/*
         Per-status breakdown (New / Started / Preparing / Ready).
 
+        These used to be ITEM counts sitting directly opposite the board's CARD counts, which
+        is how the same station read `97 NEW` here and `76 NEW` one click later. They are now
+        the same cards the board's column headers count, from the same helper — and the
+        caption below says which, because four bare numbers under four stage names invite
+        exactly the inference that was wrong.
+
         `grid-cols-4` forced four columns into whatever width the card had — ~26px each at 1024px,
         against a `PREPARING` label that needs 63px at 11px uppercase. The label overflowed its
         cell and painted straight across its neighbour: the audit photographed `PREPARINGREADY` on
@@ -314,9 +288,15 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
         (`left + scrollWidth`) rather than box extent — box comparison reported 0 collisions
         against this very defect, because each box was dutifully 26px wide and 44px apart.
       */}
-      <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))] gap-1.5">
+      <p
+        className={cn("mt-3 uppercase tracking-wide text-kds-muted", T_LABEL)}
+        data-testid={`station-breakdown-caption-${station.code}`}
+      >
+        Tickets by stage
+      </p>
+      <div className="mt-1 grid grid-cols-[repeat(auto-fit,minmax(4.75rem,1fr))] gap-1.5">
         {COLUMN_ORDER.map((col) => {
-          const n = stats?.columnCounts[col] ?? 0;
+          const n = counts.columnTickets[col];
           return (
             <div
               key={col}
@@ -328,10 +308,17 @@ function StationTile({ station, stats, onOpen }: StationTileProps) {
                   "font-bold tabular-nums",
                   n > 0 ? "text-kds-text" : "text-kds-muted opacity-60",
                 )}
+                // A ticket with a started starter and an unstarted main is one ticket in two
+                // columns, so these deliberately sum to more than the tile's own total. Saying
+                // so out loud is cheaper than a cook adding them up and finding they do not.
+                aria-label={`${KDS_COLUMN_LABELS[col]}: ${ticketLabel(n)}`}
               >
                 {n}
               </div>
-              <div className={cn("uppercase tracking-wide text-kds-muted", T_LABEL)}>
+              <div
+                className={cn("uppercase tracking-wide text-kds-muted", T_LABEL)}
+                aria-hidden="true"
+              >
                 {KDS_COLUMN_LABELS[col]}
               </div>
             </div>

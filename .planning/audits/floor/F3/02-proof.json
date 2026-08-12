@@ -1,0 +1,564 @@
+{
+  "at": "2026-08-12T05:23:19.581Z",
+  "myOrderNo": "ORD-20260812-0251",
+  "results": [
+    {
+      "what": "DEFAULT tile headline == truth",
+      "a": "63 tickets",
+      "b": "63 tickets",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT tile items == truth",
+      "a": "66 items",
+      "b": "66 items",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT board headline == truth",
+      "a": "63 tickets",
+      "b": "63 tickets",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT board items == truth",
+      "a": "66 items",
+      "b": "66 items",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT NEW tile == truth",
+      "a": "41",
+      "b": "41",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT NEW board == truth",
+      "a": "41",
+      "b": "41",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT STARTED tile == truth",
+      "a": "10",
+      "b": "10",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT STARTED board == truth",
+      "a": "10",
+      "b": "10",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT PREPARING tile == truth",
+      "a": "6",
+      "b": "6",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT PREPARING board == truth",
+      "a": "6",
+      "b": "6",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT READY tile == truth",
+      "a": "6",
+      "b": "6",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT READY board == truth",
+      "a": "6",
+      "b": "6",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT tile headline == board headline (payload held still)",
+      "a": "63 tickets",
+      "b": "63 tickets",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT tile items == board items (payload held still)",
+      "a": "66 items",
+      "b": "66 items",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT NEW tile == board (payload held still)",
+      "a": "41",
+      "b": "41",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT STARTED tile == board (payload held still)",
+      "a": "10",
+      "b": "10",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT PREPARING tile == board (payload held still)",
+      "a": "6",
+      "b": "6",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT READY tile == board (payload held still)",
+      "a": "6",
+      "b": "6",
+      "ok": true
+    },
+    {
+      "what": "DEFAULT board headline is labelled",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "DEFAULT board items is labelled",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "DEFAULT tile split is captioned",
+      "a": "tickets by stage",
+      "b": "tickets by stage",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 tile headline == truth",
+      "a": "40 tickets",
+      "b": "40 tickets",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 tile items == truth",
+      "a": "66 items",
+      "b": "66 items",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 board headline == truth",
+      "a": "40 tickets",
+      "b": "40 tickets",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 board items == truth",
+      "a": "66 items",
+      "b": "66 items",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 NEW tile == truth",
+      "a": "40",
+      "b": "40",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 NEW board == truth",
+      "a": "40",
+      "b": "40",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 STARTED tile == truth",
+      "a": "4",
+      "b": "4",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 STARTED board == truth",
+      "a": "4",
+      "b": "4",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 PREPARING tile == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 PREPARING board == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 READY tile == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 READY board == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 tile headline == board headline (payload held still)",
+      "a": "40 tickets",
+      "b": "40 tickets",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 tile items == board items (payload held still)",
+      "a": "66 items",
+      "b": "66 items",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 NEW tile == board (payload held still)",
+      "a": "40",
+      "b": "40",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 STARTED tile == board (payload held still)",
+      "a": "4",
+      "b": "4",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 PREPARING tile == board (payload held still)",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 READY tile == board (payload held still)",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 board headline is labelled",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 board items is labelled",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "PANTRY1 tile split is captioned",
+      "a": "tickets by stage",
+      "b": "tickets by stage",
+      "ok": true
+    },
+    {
+      "what": "GRILL tile headline == truth",
+      "a": "3 tickets",
+      "b": "3 tickets",
+      "ok": true
+    },
+    {
+      "what": "GRILL tile items == truth",
+      "a": "4 items",
+      "b": "4 items",
+      "ok": true
+    },
+    {
+      "what": "GRILL board headline == truth",
+      "a": "3 tickets",
+      "b": "3 tickets",
+      "ok": true
+    },
+    {
+      "what": "GRILL board items == truth",
+      "a": "4 items",
+      "b": "4 items",
+      "ok": true
+    },
+    {
+      "what": "GRILL NEW tile == truth",
+      "a": "3",
+      "b": "3",
+      "ok": true
+    },
+    {
+      "what": "GRILL NEW board == truth",
+      "a": "3",
+      "b": "3",
+      "ok": true
+    },
+    {
+      "what": "GRILL STARTED tile == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL STARTED board == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL PREPARING tile == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL PREPARING board == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL READY tile == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL READY board == truth",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL tile headline == board headline (payload held still)",
+      "a": "3 tickets",
+      "b": "3 tickets",
+      "ok": true
+    },
+    {
+      "what": "GRILL tile items == board items (payload held still)",
+      "a": "4 items",
+      "b": "4 items",
+      "ok": true
+    },
+    {
+      "what": "GRILL NEW tile == board (payload held still)",
+      "a": "3",
+      "b": "3",
+      "ok": true
+    },
+    {
+      "what": "GRILL STARTED tile == board (payload held still)",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL PREPARING tile == board (payload held still)",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL READY tile == board (payload held still)",
+      "a": "0",
+      "b": "0",
+      "ok": true
+    },
+    {
+      "what": "GRILL board headline is labelled",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "GRILL board items is labelled",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "GRILL tile split is captioned",
+      "a": "tickets by stage",
+      "b": "tickets by stage",
+      "ok": true
+    },
+    {
+      "what": "at least one station was quiet enough for a direct tile-vs-board read",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "the picker caught up with the new check within one poll",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "my one check adds exactly one ticket",
+      "a": 1,
+      "b": 1,
+      "ok": true
+    },
+    {
+      "what": "…and its two lines add exactly two items",
+      "a": 2,
+      "b": 2,
+      "ok": true
+    },
+    {
+      "what": "the new check is on this board",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "board headline == payload after the fire",
+      "a": "43 tickets",
+      "b": "43 tickets",
+      "ok": true
+    },
+    {
+      "what": "board items == payload after the fire",
+      "a": "71 items",
+      "b": "71 items",
+      "ok": true
+    },
+    {
+      "what": "tile headline == payload after the fire",
+      "a": "43 tickets",
+      "b": "43 tickets",
+      "ok": true
+    },
+    {
+      "what": "tile items == payload after the fire",
+      "a": "71 items",
+      "b": "71 items",
+      "ok": true
+    },
+    {
+      "what": "tile still == board after the fire (payload held still)",
+      "a": "43 tickets",
+      "b": "43 tickets",
+      "ok": true
+    },
+    {
+      "what": "items still == items after the fire (payload held still)",
+      "a": "71 items",
+      "b": "71 items",
+      "ok": true
+    },
+    {
+      "what": "my one check now spans two board columns (two cards)",
+      "a": 2,
+      "b": 2,
+      "ok": true
+    },
+    {
+      "what": "bumping one line did not change my check's ticket contribution",
+      "a": 1,
+      "b": 1,
+      "ok": true
+    },
+    {
+      "what": "bumping one line did not change my check's item contribution",
+      "a": 2,
+      "b": 2,
+      "ok": true
+    },
+    {
+      "what": "board headline == payload after the bump",
+      "a": "43 tickets",
+      "b": "43 tickets",
+      "ok": true
+    },
+    {
+      "what": "board items == payload after the bump",
+      "a": "71 items",
+      "b": "71 items",
+      "ok": true
+    },
+    {
+      "what": "board headline unchanged by the bump (payload held still)",
+      "a": "43 tickets",
+      "b": "43 tickets",
+      "ok": true
+    },
+    {
+      "what": "board item count unchanged by the bump (payload held still)",
+      "a": "71 items",
+      "b": "71 items",
+      "ok": true
+    },
+    {
+      "what": "the picker settled after the bump",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "tile headline == payload after the bump",
+      "a": "43 tickets",
+      "b": "43 tickets",
+      "ok": true
+    },
+    {
+      "what": "tile items == payload after the bump",
+      "a": "71 items",
+      "b": "71 items",
+      "ok": true
+    },
+    {
+      "what": "390px — no horizontal page scroll",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "390px — ticket count on screen",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "390px — item count on screen",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "768px — no horizontal page scroll",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "768px — ticket count on screen",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "768px — item count on screen",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "1440px — no horizontal page scroll",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "1440px — ticket count on screen",
+      "a": true,
+      "b": true,
+      "ok": true
+    },
+    {
+      "what": "1440px — item count on screen",
+      "a": true,
+      "b": true,
+      "ok": true
+    }
+  ]
+}

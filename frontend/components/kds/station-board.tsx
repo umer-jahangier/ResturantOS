@@ -12,7 +12,8 @@ import {
 } from "@/lib/hooks/kds/use-kds-tickets";
 import { useKdsSocket } from "@/lib/hooks/kds/use-kds-socket";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
-import { KdsClockProvider } from "@/lib/hooks/kds/use-kds-clock";
+import { KdsClockProvider, useKdsClock } from "@/lib/hooks/kds/use-kds-clock";
+import { computeKdsCounts, itemLabel, ticketLabel } from "@/components/kds/kds-counts";
 import {
   KdsItemColumn,
   KDS_COLUMN_ORDER,
@@ -193,6 +194,10 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
 
   const tickets = useMemo(() => ticketsQuery.data ?? [], [ticketsQuery.data]);
   const stations = useMemo(() => stationsQuery.data ?? [], [stationsQuery.data]);
+  // Same shared clock the picker reads. `useKdsClock` works above its own provider
+  // (it falls back to the module-level store), which is what lets the header count
+  // be derived here rather than inside the provider subtree.
+  const now = useKdsClock();
 
   const station = stations.find((s) => s.code === stationCode);
   const activeStations = useMemo(() => stations.filter((s) => s.active), [stations]);
@@ -239,10 +244,21 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
     return map;
   }, [activeTickets, visibleColumns]);
 
-  const allFragments = useMemo(
-    () => visibleColumns.flatMap((c) => fragmentsByColumn.get(c) ?? []),
-    [fragmentsByColumn, visibleColumns],
-  );
+  /**
+   * The header's numbers, from the SAME helper the station picker reads.
+   *
+   * This line used to be `allFragments.length` — the flattened ticket×column FRAGMENT list —
+   * printed under the word "tickets". Two consequences, both measured live on 2026-08-12:
+   * the header disagreed with the picker tile that had just sent the cook here (DEFAULT
+   * 111 against 120), and **bumping one item of a two-item check changed the total**, because
+   * splitting a ticket across two columns creates a second fragment. A number that moves when
+   * nothing arrived and nothing left is worse than no number.
+   *
+   * Counted over `tickets`, not `visibleColumns`: hiding the Ready column is a view
+   * preference, and a station's queue depth must not depend on it — otherwise pressing `V`
+   * would "lose" tickets and the tile the cook came from would be wrong again.
+   */
+  const counts = useMemo(() => computeKdsCounts(tickets, now), [tickets, now]);
 
   /**
    * Which fragments this page holds — chosen round-robin across columns so no column can be
@@ -632,17 +648,54 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
           data-testid="kds-board"
           className="flex min-h-screen flex-col gap-3 bg-kds-surface p-3 text-kds-text"
         >
-          {/* ── 48px header (§7.2) ───────────────────────────────────────────── */}
-          <header className="flex h-12 shrink-0 items-center justify-between gap-3 rounded-lg border border-white/10 bg-kds-card px-3">
-            <div className="flex min-w-0 items-center gap-3">
+          {/*
+           * ── 48px header (§7.2) ─────────────────────────────────────────────
+           *
+           * `min-h-12` + `flex-wrap`, not `h-12`. On kitchen hardware (1440/1920) nothing
+           * wraps and the header is exactly the 48px §7.2 asks for. Below that it did not
+           * merely look tight — it PAINTED ON ITSELF. Measured on this board at 390px and
+           * 768px by painted extent (`left + scrollWidth`, not box extent, which reports
+           * every one of these as fine):
+           *
+           *   390px  "22 tickets" × "1 / 3", "22 tickets" × "READY COLUMN",
+           *          "33 items" × "READY COLUMN", the station <select> × "All stations",
+           *          the station <select> × "LIVE"
+           *   768px  "33 items" × "1 / 3", the <select> × "READY COLUMN" / "All stations"
+           *
+           * A fixed-height row cannot hold a station name, two counts, a station switcher,
+           * a page indicator and three controls at 390px, and `justify-between` resolves
+           * that by letting them slide over one another. Wrapping is the honest answer;
+           * nothing is hidden and nothing is dropped, the row just becomes two rows.
+           */}
+          <header className="flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg border border-white/10 bg-kds-card px-3 py-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className={cn("truncate font-bold tracking-wide text-kds-text", T_H1)}>
                 {station?.name ?? stationCode}
               </h1>
+              {/*
+                Two figures, each carrying its own unit, because "tickets" alone was the
+                ambiguity: the picker meant checks and the board meant cards. A cook reads
+                "108 tickets · 134 items" as "a hundred and eight checks, a hundred and
+                thirty-four dishes", and both figures are the ones the tile they just tapped
+                showed them.
+              */}
               <span
                 data-testid="kds-ticket-count"
                 className={cn("shrink-0 font-bold tabular-nums text-kds-muted", T_SMALL)}
               >
-                {allFragments.length} {allFragments.length === 1 ? "ticket" : "tickets"}
+                {ticketLabel(counts.ticketCount)}
+              </span>
+              <span
+                aria-hidden="true"
+                className={cn("shrink-0 text-kds-muted opacity-50", T_SMALL)}
+              >
+                ·
+              </span>
+              <span
+                data-testid="kds-item-count"
+                className={cn("shrink-0 font-bold tabular-nums text-kds-muted", T_SMALL)}
+              >
+                {itemLabel(counts.itemCount)}
               </span>
               <StationSwitcher
                 stations={activeStations}
@@ -650,7 +703,7 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
                 onSelect={(code) => router.push(`/app/kitchen/${code}`)}
               />
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
               {pageCount > 1 && (
                 <span
                   data-testid="kds-page-indicator"
@@ -749,8 +802,12 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
                    * Showing the slice was the second half of the same lie: "Started 0" on a
                    * board with five started tickets reads as "nothing is in progress", which
                    * is the one thing a cook must never be told wrongly.
+                   *
+                   * Read from the shared helper rather than from `fragmentsByColumn`, which is
+                   * the same number by construction — so the picker's per-stage split and this
+                   * one cannot drift apart again the way 97-NEW-here / 76-NEW-there did.
                    */
-                  totalCount={(fragmentsByColumn.get(column) ?? []).length}
+                  totalCount={counts.columnTickets[column]}
                   branchId={branchId}
                   canUpdate={canUpdate}
                   escalationThresholdSeconds={station?.escalationThresholdSeconds}
