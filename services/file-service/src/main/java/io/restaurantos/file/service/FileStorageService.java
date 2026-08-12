@@ -27,6 +27,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -170,6 +171,55 @@ public class FileStorageService {
         } catch (Exception e) {
             log.error("MinIO download failed for file {}: {}", meta.getObjectKey(), e.getMessage());
             throw new RuntimeException("File download from storage failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * The bytes of one file, already read out of MinIO.
+     *
+     * @param contentType the STORED content type — for an image upload that is the type sniffed
+     *                    from the file's own bytes, never the client's declared header
+     */
+    public record FileContent(byte[] bytes, String contentType, String sha256) {}
+
+    /**
+     * Reads a file's bytes for a NAMED tenant, for the service-to-service seam.
+     *
+     * <h2>Why this is not {@link #download}</h2>
+     *
+     * <p>{@code download} leans on RLS alone and streams. This one is called from
+     * {@code /internal/**}, where there is no user principal and the tenant arrives as a header,
+     * so it names the tenant in the query as well — the same belt-and-braces posture
+     * {@code InternalFileController.getMetadata} already takes. Under FORCE RLS a missing GUC
+     * yields zero rows rather than an error, and "not found because the plumbing was wrong" is
+     * indistinguishable from "not found because the tenant check worked" unless both are set.
+     *
+     * <p>It buffers rather than streaming because a Feign caller consumes the whole body anyway
+     * and the connection must be closed before this method returns; {@code maxBytes} is the
+     * ceiling that keeps that buffer bounded.
+     *
+     * @return empty when the file does not exist in {@code tenantId}, is soft-deleted, or is
+     *         larger than {@code maxBytes} — the caller cannot tell which, deliberately
+     */
+    public Optional<FileContent> readForTenant(UUID fileId, UUID tenantId, long maxBytes) {
+        Optional<FileMetadataEntity> found = fileMetadataRepository.findByIdAndTenantId(fileId, tenantId);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        FileMetadataEntity meta = found.get();
+        if (meta.getSizeBytes() > maxBytes) {
+            log.warn("Refusing internal read of file {} for tenant {}: {} bytes exceeds the {} byte ceiling",
+                    fileId, tenantId, meta.getSizeBytes(), maxBytes);
+            return Optional.empty();
+        }
+        try (InputStream stream = minioClient.getObject(
+                GetObjectArgs.builder().bucket(bucket).object(meta.getObjectKey()).build())) {
+            return Optional.of(new FileContent(
+                    stream.readAllBytes(), meta.getContentType(), meta.getSha256()));
+        } catch (Exception e) {
+            log.error("MinIO internal read failed for file {} ({}): {}",
+                    fileId, meta.getObjectKey(), e.getMessage());
+            throw new RuntimeException("File read from storage failed: " + e.getMessage(), e);
         }
     }
 

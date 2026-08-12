@@ -53,4 +53,24 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, UUID> {
      */
     @Query("SELECT i FROM MenuItem i WHERE i.id = :id AND i.tenantId = :tenantId")
     Optional<MenuItem> findByIdAndTenantId(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
+
+    /**
+     * Is this file id the picture of one of this tenant's menu items?
+     *
+     * <p>This is the whole authorisation for {@code GET /api/v1/pos/menu/images/{fileId}}, and it
+     * is why that route can be gated on {@code pos.menu.view} instead of on the tenant-wide
+     * {@code file.view} the cashier deliberately does not hold. The set of file ids it answers
+     * true for is exactly the set of pictures already on the menu the caller may read — an HR
+     * document or an invoice scan is not in it, whoever asks.
+     *
+     * <p>Deliberately NOT filtered on {@code active}: a deactivated dish still appears on the
+     * admin screen, and an image that vanishes the moment an item is archived would look like a
+     * broken upload rather than an archived dish.
+     */
+    @Query("""
+            SELECT COUNT(i) > 0 FROM MenuItem i
+            WHERE i.tenantId = :tenantId AND i.imageFileId = :imageFileId
+            """)
+    boolean existsByTenantIdAndImageFileId(@Param("tenantId") UUID tenantId,
+                                           @Param("imageFileId") UUID imageFileId);
 }

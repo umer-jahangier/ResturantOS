@@ -6,14 +6,17 @@ import io.restaurantos.pos.dto.MenuCategoryDto;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.CreateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemAdminDtos.UpdateMenuItemRequest;
 import io.restaurantos.pos.dto.MenuItemDto;
+import io.restaurantos.pos.service.MenuItemImageService;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.api.PageMeta;
 import io.restaurantos.shared.feature.RequiresFeature;
+import io.restaurantos.shared.tenant.TenantContext;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,9 +29,55 @@ import java.util.UUID;
 public class MenuController {
 
     private final MenuService menuService;
+    private final MenuItemImageService menuItemImageService;
+    private final TenantContext tenantContext;
 
-    public MenuController(MenuService menuService) {
+    public MenuController(MenuService menuService,
+                          MenuItemImageService menuItemImageService,
+                          TenantContext tenantContext) {
         this.menuService = menuService;
+        this.menuItemImageService = menuItemImageService;
+        this.tenantContext = tenantContext;
+    }
+
+    /**
+     * The bytes of a menu item's picture — the {@code imageUrl} every menu DTO carries.
+     *
+     * <h2>Why the picture is served here and not by file-service</h2>
+     *
+     * <p>Because of who works this screen. file-service's download route is gated on
+     * {@code file.view}, which reads EVERY file the tenant stores; the roles that hold it are
+     * OWNER, TENANT_ADMIN, MANAGER, ACCOUNTANT and INVENTORY_MANAGER. The cashier — the one
+     * person who looks at the till grid all day — holds {@code pos.menu.view} and nothing from
+     * the {@code file.*} family. Driven live on 2026-08-12: the cashier's own bearer against
+     * {@code /api/v1/files/{id}/download} answered {@code 403 PERMISSION_DENIED}. Any fix that
+     * only taught the grid to emit an {@code <img>} would have shipped forty failed pictures.
+     *
+     * <p>The two ways out were "give CASHIER {@code file.view}" and this. The first makes the
+     * screen work by handing every till a read of the payroll folder, which is not a trade
+     * anybody would make deliberately. So the picture is served under the permission that already
+     * governs the thing the picture is part of — the menu — and
+     * {@code MenuItemImageService.readMenuImage} will only answer for a file id that is the image
+     * of a menu item in the caller's own tenant.
+     *
+     * <h2>Caching</h2>
+     *
+     * <p>The path is keyed by FILE id, not item id, so replacing a dish's photograph changes the
+     * URL. That makes {@code immutable} an honest thing to say, and it is what keeps a
+     * touchscreen from re-fetching the whole grid every time the cashier taps a category pill.
+     *
+     * <p>{@code private} because the response is tenant data and must never enter a shared cache.
+     */
+    @PreAuthorize("hasAuthority('pos.menu.view')")
+    @GetMapping("/images/{fileId}")
+    public ResponseEntity<byte[]> menuImage(@PathVariable UUID fileId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        return menuItemImageService.readMenuImage(tenantId, fileId)
+                .map(image -> ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_TYPE, image.contentType())
+                        .header(HttpHeaders.CACHE_CONTROL, "private, max-age=31536000, immutable")
+                        .body(image.bytes()))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PreAuthorize("hasAuthority('pos.menu.view')")

@@ -3,6 +3,8 @@ package io.restaurantos.pos.feign;
 import io.restaurantos.pos.config.FeignClientConfig;
 import io.restaurantos.shared.api.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,6 +39,22 @@ public interface FileMetadataClient {
 
     @DeleteMapping("/internal/files/{id}")
     void release(@RequestHeader("X-Tenant-Id") UUID tenantId, @PathVariable("id") UUID id);
+
+    /**
+     * The bytes of a menu picture, for {@code GET /api/v1/pos/menu/images/{fileId}}.
+     *
+     * <p>Called only AFTER pos-service has confirmed the file id is the image of one of its own
+     * tenant's menu items — see {@code MenuItemRepository#existsByTenantIdAndImageFileId}. That
+     * ordering is the point: this seam carries no user identity, so the decision of whether the
+     * caller may see the picture has to be made on this side of it, against data pos-service owns.
+     *
+     * <p>Returns {@code ResponseEntity} rather than {@code byte[]} so the caller can echo the
+     * stored {@code Content-Type} back to the browser — sending the type file-service sniffed
+     * from the bytes, never one this service guessed from a filename.
+     */
+    @GetMapping(value = "/internal/files/{id}/content", produces = MediaType.ALL_VALUE)
+    ResponseEntity<byte[]> getContent(@RequestHeader("X-Tenant-Id") UUID tenantId,
+                                      @PathVariable("id") UUID id);
 
     /** Mirrors file-service's {@code FileDtos.FileMetaResponse}. */
     record FileMetaDto(

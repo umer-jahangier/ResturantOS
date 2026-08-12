@@ -71,8 +71,22 @@ public record MenuItemDto(
         String effectiveTaxLabel,
         String effectiveTaxSource
 ) {
-    /** The single place the download route is spelled out for menu images. */
+    /**
+     * The single place the download route is spelled out for menu images.
+     *
+     * <p>This used to point at {@code /api/v1/files/{id}/download}, which is gated on
+     * {@code file.view} — a tenant-wide read of every stored document. The cashier holds
+     * {@code pos.menu.view} and no {@code file.*} code at all, so the till's own persona was
+     * answered {@code 403 PERMISSION_DENIED} by the URL the till was being handed. Serving the
+     * picture from the menu's own controller puts the photograph under the same permission as
+     * the dish it belongs to; see {@code MenuController#menuImage} for why the alternative —
+     * granting CASHIER {@code file.view} — was the wrong trade.
+     *
+     * <p>Keyed by FILE id rather than item id on purpose: the URL then changes whenever the
+     * photograph does, which is what lets the response be cached {@code immutable} without a
+     * replaced picture going stale on a terminal.
+     */
     public static String imageUrlFor(UUID imageFileId) {
-        return imageFileId == null ? null : "/api/v1/files/" + imageFileId + "/download";
+        return imageFileId == null ? null : "/api/v1/pos/menu/images/" + imageFileId;
     }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { FileRepository } from "@/lib/repositories/file.repository";
@@ -50,78 +50,155 @@ interface AuthenticatedImage {
 }
 
 /**
+ * One picture, shared by every component currently asking for it.
+ *
+ * <p>`refs` is how many mounted components hold this entry. Only a zero-ref entry may be
+ * revoked, which is what makes the shared cache safe: an object URL is never pulled out from
+ * under an `<img>` that is still on screen.
+ */
+interface ImageEntry {
+  objectUrl: string | null;
+  bytes: number;
+  failed: boolean;
+  settled: boolean;
+  refs: number;
+  lastUsed: number;
+  listeners: Set<() => void>;
+}
+
+/**
+ * Budget for retained pictures. Menu images are capped at 2 MiB each by file-service, so the
+ * byte ceiling — not the count — is what usually binds. Both exist because either one alone
+ * lies: 48 tiny thumbnails cost nothing, and six 2 MiB photographs cost more than forty.
+ */
+const IMAGE_CACHE_MAX_ENTRIES = 48;
+const IMAGE_CACHE_MAX_BYTES = 32 * 1024 * 1024;
+
+const imageCache = new Map<string, ImageEntry>();
+
+function totalCachedBytes(): number {
+  let total = 0;
+  for (const entry of imageCache.values()) total += entry.bytes;
+  return total;
+}
+
+/** Revokes least-recently-used UNHELD entries until the cache is back inside its budget. */
+function trimImageCache(): void {
+  if (imageCache.size <= IMAGE_CACHE_MAX_ENTRIES && totalCachedBytes() <= IMAGE_CACHE_MAX_BYTES) {
+    return;
+  }
+  const evictable = Array.from(imageCache.entries())
+    .filter(([, e]) => e.refs === 0 && e.settled)
+    .sort((a, b) => a[1].lastUsed - b[1].lastUsed);
+
+  for (const [path, entry] of evictable) {
+    if (imageCache.size <= IMAGE_CACHE_MAX_ENTRIES && totalCachedBytes() <= IMAGE_CACHE_MAX_BYTES) {
+      return;
+    }
+    if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+    imageCache.delete(path);
+  }
+}
+
+/** Test seam — a shared module-level cache would otherwise leak state between test files. */
+export function __resetAuthenticatedImageCache(): void {
+  for (const entry of imageCache.values()) {
+    if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+  }
+  imageCache.clear();
+}
+
+/**
  * Renders a permission-gated file as an image.
  *
  * <h2>Why this is not just `<img src={imageUrl}>`</h2>
  *
- * <p>{@code GET /api/v1/files/{id}/download} requires {@code file.view}, which means an
- * {@code Authorization} header — and a browser image request does not send one. Pointing an
- * {@code <img>} straight at that path produces a 401 and a broken-image icon on every menu row,
- * which reads as "the upload failed" rather than "the request was unauthenticated".
+ * <p>A menu picture is served by {@code GET /api/v1/pos/menu/images/&#123;fileId&#125;}, gated on
+ * {@code pos.menu.view}, which means an {@code Authorization} header — and a browser image
+ * request does not send one. Pointing an {@code <img>} straight at that path produces a 401 and
+ * a broken-image icon on every tile, which reads as "the upload failed" rather than "the request
+ * was unauthenticated".
  *
  * <p>So the bytes go through the authenticated client and become an object URL.
  *
- * <h2>Why this uses useState/useEffect rather than useQuery</h2>
+ * <h2>Why the cache is shared rather than per-component</h2>
  *
- * <p>An object URL is a resource with an explicit lifetime, not a cacheable value: it pins its
- * blob in memory until {@link URL.revokeObjectURL} is called. Caching one in the query client
- * would hand out a URL whose blob may already have been revoked by an unmount elsewhere, and
- * caching one WITHOUT revoking leaks every image the user has ever scrolled past. Tying
- * creation and revocation to a single effect makes the lifetime exactly the component's.
+ * <p>This hook used to own one object URL per mounted component, created in an effect and
+ * revoked on unmount. Correct, and unusable on a till: the POS grid remounts its tiles on every
+ * category tap, so a forty-photograph menu re-fetched, re-decoded and re-blobbed forty images
+ * each time the cashier moved between Starters and Mains — mid-service, on a touchscreen.
+ *
+ * <p>The lifetime is now the CACHE's, refcounted, so switching category and switching back costs
+ * nothing and two tiles sharing a picture fetch it once. Revocation still happens — a zero-ref
+ * entry is evictable — but it happens when memory is actually needed rather than the instant a
+ * component blinks out of existence. {@link trimImageCache} never touches a held entry, so no
+ * `<img>` on screen can have its blob revoked underneath it.
  */
-/** What the last completed fetch produced, tagged with the path it was for. */
-interface ResolvedImage {
-  path: string;
-  objectUrl: string | null;
-  failed: boolean;
-}
-
 export function useAuthenticatedImage(downloadPath: string | null | undefined): AuthenticatedImage {
-  // ONE state, written only from async callbacks — never synchronously in the effect body.
-  // Loading is DERIVED (below) from "the resolved path is not the one being asked for" rather
-  // than stored, which is why no setState is needed to enter the loading state. That also makes
-  // the state machine unrepresentable-in-the-wrong-way: there is no ordering of setters that
-  // can leave `isLoading` true forever or show a stale image as if it were the current one.
-  const [resolved, setResolved] = useState<ResolvedImage | null>(null);
+  // Re-render trigger only. The truth lives in the module cache, so this state deliberately
+  // holds nothing — storing a copy of the entry here is how a component ends up rendering an
+  // object URL the cache has already replaced.
+  const [, bump] = useReducer((n: number) => n + 1, 0);
 
   useEffect(() => {
     if (!downloadPath) return;
 
-    let created: string | null = null;
-    // Guards the out-of-order resolve: if `downloadPath` changes while a fetch is in flight, the
-    // stale response must not overwrite the newer image — nor leak its blob.
-    let cancelled = false;
+    let entry = imageCache.get(downloadPath);
+    if (!entry) {
+      entry = {
+        objectUrl: null,
+        bytes: 0,
+        failed: false,
+        settled: false,
+        refs: 0,
+        lastUsed: Date.now(),
+        listeners: new Set(),
+      };
+      imageCache.set(downloadPath, entry);
+      const pending = entry;
+      FileRepository.fetchBlob(downloadPath)
+        .then((blob) => {
+          // The entry may have been evicted while the fetch was in flight (nothing held it).
+          // Creating an object URL for a cache slot nobody owns any more would leak its blob
+          // for the lifetime of the document, so check identity before minting one.
+          if (imageCache.get(downloadPath) !== pending) return;
+          pending.objectUrl = URL.createObjectURL(blob);
+          pending.bytes = blob.size;
+          pending.settled = true;
+          pending.listeners.forEach((l) => l());
+          trimImageCache();
+        })
+        .catch(() => {
+          if (imageCache.get(downloadPath) !== pending) return;
+          pending.failed = true;
+          pending.settled = true;
+          pending.listeners.forEach((l) => l());
+        });
+    }
 
-    FileRepository.fetchObjectUrl(downloadPath)
-      .then((url) => {
-        if (cancelled) {
-          URL.revokeObjectURL(url);
-          return;
-        }
-        created = url;
-        setResolved({ path: downloadPath, objectUrl: url, failed: false });
-      })
-      .catch(() => {
-        if (!cancelled) setResolved({ path: downloadPath, objectUrl: null, failed: true });
-      });
+    entry.refs += 1;
+    entry.lastUsed = Date.now();
+    entry.listeners.add(bump);
+    // A settled entry produces no further notification, so the subscriber that arrives after the
+    // fetch resolved has to read it now — otherwise a tile that mounts second renders a
+    // permanent skeleton over an image that is already in memory.
+    if (entry.settled) bump();
 
+    const held = entry;
     return () => {
-      cancelled = true;
-      if (created) URL.revokeObjectURL(created);
+      held.listeners.delete(bump);
+      held.refs -= 1;
+      held.lastUsed = Date.now();
+      trimImageCache();
     };
   }, [downloadPath]);
 
   if (!downloadPath) {
     return { objectUrl: null, isLoading: false, isError: false };
   }
-  // Only trust `resolved` when it belongs to the path currently being asked for.
-  const isCurrent = resolved?.path === downloadPath;
-  if (!isCurrent) {
+  const entry = imageCache.get(downloadPath);
+  if (!entry || !entry.settled) {
     return { objectUrl: null, isLoading: true, isError: false };
   }
-  return {
-    objectUrl: resolved.objectUrl,
-    isLoading: false,
-    isError: resolved.failed,
-  };
+  return { objectUrl: entry.objectUrl, isLoading: false, isError: entry.failed };
 }

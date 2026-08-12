@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
+import { MenuItemImage } from "@/components/menu/MenuItemImage";
 import { cartLineKey, type CartLine } from "@/components/pos/cart-reducer";
 import type { MenuItem } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,25 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
     ? activeItems.filter((i) => i.name.toLowerCase().includes(trimmedQuery))
     : activeItems;
 
+  /*
+   * S7. Does anything on screen have a photograph?
+   *
+   * <p>The picture was on the model and served by the API all along; this grid rendered neither.
+   * Measured on 2026-08-12 as the cashier: 44 tiles, ZERO `<img>` elements, including the item
+   * literally named "Photo Dish 50585" — and the same picture painting fine one screen away on
+   * /app/menu/items at its true 120×120.
+   *
+   * <p>Whether a tile gets a photo slot is decided for the WHOLE visible set, not per item. A
+   * restaurant photographs its menu gradually, so a per-item decision produces exactly the ragged
+   * grid the brief forbids: tall tiles beside short ones, the row height set by whichever dish
+   * happened to be shot first. Uniform means the cashier's thumb lands where they aimed.
+   *
+   * <p>And when nothing is photographed — the common case for a new tenant, and for a drinks
+   * category nobody shoots — no tile gets a slot at all, so the till does not spend a third of a
+   * touchscreen on 44 identical grey rectangles to say "no picture" 44 times.
+   */
+  const showImages = filteredItems.some((i) => !!i.imageUrl);
+
   // Plain (no modifier/notes) menu taps always land on the `menuItemId::::` cart
   // line — map menuItemId -> quantity so the grid can highlight/badge selected
   // items. Lines with modifiers/notes (added elsewhere) intentionally don't
@@ -79,7 +99,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
   const quantityByMenuItemId = useMemo(() => {
     const map = new Map<string, { key: string; quantity: number }>();
     for (const line of cart) {
-      if (line.modifierIds.length > 0 || line.notes) continue;
+      if (line.modifiers.length > 0 || line.notes) continue;
       map.set(line.menuItemId, {
         key: cartLineKey(line.menuItemId, [], null),
         quantity: line.quantity,
@@ -252,17 +272,40 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                     onClick={() => onItemSelect(item)}
                     aria-pressed={!!selected}
                     className={cn(
-                      "min-h-[100px] min-w-[100px] w-full rounded-xl border p-3 text-left transition-colors flex flex-col justify-between active:scale-95",
+                      "min-h-[100px] min-w-[100px] w-full overflow-hidden rounded-xl border text-left transition-colors flex flex-col active:scale-95",
+                      showImages ? "justify-start" : "justify-between p-3",
                       selected
                         ? "border-primary bg-primary/10 ring-1 ring-primary"
                         : "border bg-card hover:bg-accent hover:border-primary",
                     )}
                   >
-                    <span className="font-medium text-sm line-clamp-2">{item.name}</span>
-                    <MoneyDisplay
-                      paisa={item.basePricePaisa}
-                      className="text-sm text-muted-foreground font-mono"
-                    />
+                    {/*
+                      The photo sits ABOVE the words, never behind them. An overlaid caption needs
+                      a scrim to stay readable, and a scrim on a POS tile means a `filter` or
+                      `backdrop-filter` on an ancestor of the layout — which is precisely what
+                      breaks the receipt print path. Stacking costs one row of pixels and makes the
+                      name and price legible over every photograph, including a white plate.
+                    */}
+                    {showImages && (
+                      <MenuItemImage
+                        variant="cover"
+                        imageUrl={item.imageUrl}
+                        name={item.name}
+                        className="aspect-[4/3] w-full border-b"
+                      />
+                    )}
+                    <span
+                      className={cn(
+                        "flex flex-1 flex-col justify-between gap-0.5",
+                        showImages && "p-2.5",
+                      )}
+                    >
+                      <span className="font-medium text-sm line-clamp-2">{item.name}</span>
+                      <MoneyDisplay
+                        paisa={item.basePricePaisa}
+                        className="text-sm text-muted-foreground font-mono"
+                      />
+                    </span>
                   </button>
                   {selected && (
                     <>

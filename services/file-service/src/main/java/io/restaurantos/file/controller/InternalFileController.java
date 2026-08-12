@@ -8,6 +8,7 @@ import io.restaurantos.shared.api.ApiResponse;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,18 @@ import java.util.UUID;
 public class InternalFileController {
 
     private static final Logger log = LoggerFactory.getLogger(InternalFileController.class);
+
+    /**
+     * Ceiling on a single internal byte read. {@code ImageUploadPolicy.MAX_IMAGE_BYTES} is 2 MiB,
+     * so every menu picture is comfortably under this; the margin covers files stored before that
+     * policy existed. Its job is to keep the buffered read bounded — the only caller today
+     * consumes the whole body over Feign, so streaming would buy nothing and an unbounded read
+     * would let one row decide how much heap file-service needs.
+     */
+    static final long MAX_INTERNAL_CONTENT_BYTES = 8L * 1024 * 1024;
+
+    /** Lets a caller cache by content identity without a second metadata round trip. */
+    static final String CONTENT_SHA256_HEADER = "X-Content-Sha256";
 
     private final FileMetadataRepository fileMetadataRepository;
     private final FileStorageService fileStorageService;
@@ -86,6 +99,49 @@ public class InternalFileController {
                             meta.getSha256(),
                             "/api/v1/files/" + meta.getId() + "/download",
                             meta.getCreatedAt()))))
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        } finally {
+            tenantContext.clear();
+        }
+    }
+
+    /**
+     * Streams a file's BYTES to a calling service that has already decided the caller may see them.
+     *
+     * <h2>Why a service may read bytes a user could not read directly</h2>
+     *
+     * <p>{@code GET /api/v1/files/{id}/download} is gated on {@code file.view}, which is a
+     * TENANT-WIDE grant: it reads every file the tenant owns — HR documents, supplier invoice
+     * scans, contracts. OWNER, TENANT_ADMIN, MANAGER, ACCOUNTANT and INVENTORY_MANAGER hold it.
+     * A cashier does not, and should not.
+     *
+     * <p>But a cashier must see the photograph on a dish tile, and that photograph is a menu fact.
+     * Widening {@code file.view} to make the till render would hand every till in the estate a
+     * read of every document in the business — the wrong trade by a very long way. So the
+     * authority for a menu picture stays where the menu's authority already is: pos-service gates
+     * {@code GET /api/v1/pos/menu/images/{fileId}} on {@code pos.menu.view} and only after
+     * confirming that {@code fileId} is the image of one of ITS OWN tenant's menu items. This
+     * endpoint is what lets it then fetch the bytes.
+     *
+     * <p>The blast radius of that arrangement is exactly "the pictures on your own menu". It
+     * cannot reach a file that no menu item references, and {@code X-Tenant-Id} plus the
+     * tenant-named query below keep it inside one tenant.
+     *
+     * <p>404 — never 403 — for missing, soft-deleted, wrong-tenant and over-ceiling alike, for
+     * the same reason {@link #getMetadata} does: a distinguishable response is a probe.
+     */
+    @GetMapping("/{id}/content")
+    public ResponseEntity<byte[]> getContent(
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @PathVariable UUID id) {
+
+        tenantContext.set(tenantId, null, null, null);
+        try {
+            return fileStorageService.readForTenant(id, tenantId, MAX_INTERNAL_CONTENT_BYTES)
+                    .map(content -> ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_TYPE, content.contentType())
+                            .header(CONTENT_SHA256_HEADER, content.sha256() == null ? "" : content.sha256())
+                            .body(content.bytes()))
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
         } finally {
             tenantContext.clear();

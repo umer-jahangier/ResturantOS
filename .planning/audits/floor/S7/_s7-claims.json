@@ -1,0 +1,97 @@
+[
+  {
+    "name": "manager upload persists and the API derives the menu route",
+    "ok": true,
+    "detail": "imageUrl=/api/v1/pos/menu/images/30947187-408a-49d8-8b73-ae97ff19367c"
+  },
+  {
+    "name": "the manager's own list paints the photograph after a full reload",
+    "ok": true,
+    "detail": "{\"alt\":\"Butter Naan\",\"nw\":240,\"nh\":180}"
+  },
+  {
+    "name": "the cashier's own bearer fetches the picture (was 403 PERMISSION_DENIED)",
+    "ok": true,
+    "detail": "{\"status\":200,\"ct\":\"image/png\",\"cc\":\"private, max-age=31536000, immutable\"}"
+  },
+  {
+    "name": "the cashier still holds no tenant-wide file read",
+    "ok": true,
+    "detail": "GET /api/v1/files/{id}/download → 403"
+  },
+  {
+    "name": "the till grid renders the photograph on that dish's tile",
+    "ok": true,
+    "detail": "Butter Naan: {\"alt\":\"Butter Naan\",\"naturalWidth\":240,\"naturalHeight\":180,\"w\":191,\"h\":143,\"objectFit\":\"cover\",\"display\":\"flex\",\"visibility\":\"visible\",\"opacity\":\"1\"}"
+  },
+  {
+    "name": "the photograph is a thumb-sized target inside a thumb-sized tile",
+    "ok": true,
+    "detail": "img 191×143 in tile 193×207"
+  },
+  {
+    "name": "the picture is painted, not merely present",
+    "ok": true,
+    "detail": "display=flex visibility=visible opacity=1 object-fit=cover"
+  },
+  {
+    "name": "the name and price stay legible BESIDE the photograph, never over it",
+    "ok": true,
+    "detail": "overlaps=false font=14px colour=oklch(0.168 0.006 195) text=\"Butter Naan · Rs 80.00\""
+  },
+  {
+    "name": "a dish with no picture renders cleanly in the same grid",
+    "ok": true,
+    "detail": "Chicken Samosa: placeholder=true error=false img=false"
+  },
+  {
+    "name": "no tile is a broken image",
+    "ok": true,
+    "detail": "0 error glyphs across 44 tiles"
+  },
+  {
+    "name": "the grid is not ragged — every tile is the same height",
+    "ok": true,
+    "detail": "heights: [207]"
+  },
+  {
+    "name": "no layout shift as the photographs arrive",
+    "ok": true,
+    "detail": "44 tiles before / 44 after, 0 changed height"
+  },
+  {
+    "name": "tapping the photographed tile still adds the line",
+    "ok": true,
+    "detail": "directly; name on screen 2× (tile + cart line), empty-cart copy gone=true, Charge Now enabled=true, qty badge=1"
+  },
+  {
+    "name": "390px light: the photograph renders, the tile stays touchable, no sideways scroll",
+    "ok": true,
+    "detail": "tile 100×158, img 98×74, menu column 37px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
+  },
+  {
+    "name": "390px dark: the photograph renders, the tile stays touchable, no sideways scroll",
+    "ok": true,
+    "detail": "tile 100×158, img 98×74, menu column 37px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
+  },
+  {
+    "name": "768px light: the photograph renders, the tile stays touchable, no sideways scroll",
+    "ok": true,
+    "detail": "tile 100×158, img 98×74, menu column 159px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
+  },
+  {
+    "name": "768px dark: the photograph renders, the tile stays touchable, no sideways scroll",
+    "ok": true,
+    "detail": "tile 100×158, img 98×74, menu column 159px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
+  },
+  {
+    "name": "1440px light: the photograph renders, the tile stays touchable, no sideways scroll",
+    "ok": true,
+    "detail": "tile 193×207, img 191×143, menu column 815px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
+  },
+  {
+    "name": "1440px dark: the photograph renders, the tile stays touchable, no sideways scroll",
+    "ok": true,
+    "detail": "tile 193×207, img 191×143, menu column 815px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
+  }
+]

@@ -68,16 +68,17 @@ export const FileRepository = {
   },
 
   /**
-   * Fetches file bytes through the authenticated client and returns an object URL suitable for
-   * an `<img src>`.
+   * Fetches image bytes through the authenticated client.
    *
-   * <p>The caller OWNS the returned URL and must call {@link URL.revokeObjectURL} when the image
-   * unmounts or the source changes. An object URL pins its blob in memory for the lifetime of
-   * the document, so a menu screen that creates one per item on every render and never revokes
-   * leaks the whole catalogue's images. {@code useAuthenticatedImage} does the revoking.
+   * <p>Returns the {@code Blob} rather than an object URL, deliberately. An object URL is a
+   * document-lifetime resource that must be revoked exactly once by whoever owns its lifetime,
+   * and a repository — a stateless translation layer — is the wrong place to mint one: it would
+   * hand out a resource it cannot account for. {@code useAuthenticatedImage} creates and revokes
+   * the URL, and the blob's {@code size} is what lets its cache stay inside a memory budget
+   * instead of pinning every picture a till has ever scrolled past.
    */
-  async fetchObjectUrl(downloadPath: string): Promise<string> {
+  async fetchBlob(downloadPath: string): Promise<Blob> {
     const response = await apiClient.get<Blob>(downloadPath, { responseType: "blob" });
-    return URL.createObjectURL(response.data);
+    return response.data;
   },
 };
