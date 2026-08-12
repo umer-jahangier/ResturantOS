@@ -1,0 +1,89 @@
+{
+  "item": "Butter Naan",
+  "steps": {
+    "category": "Mains",
+    "orderNo": "ORD-20260812-0115",
+    "baseline": {
+      "tiles": 3,
+      "present": true
+    },
+    "afterDeactivate": [
+      {
+        "t": 1,
+        "present": false,
+        "tiles": 2
+      },
+      {
+        "t": 2,
+        "present": false,
+        "tiles": 2
+      },
+      {
+        "t": 5,
+        "present": false,
+        "tiles": 2
+      },
+      {
+        "t": 10,
+        "present": false,
+        "tiles": 2
+      },
+      {
+        "t": 20,
+        "present": false,
+        "tiles": 2
+      }
+    ],
+    "orderIntact": true,
+    "orderPricesOnScreen": [
+      "Rs 5,000.00",
+      "Rs 63,465.40",
+      "Rs 92.80",
+      "Rs 92.80"
+    ],
+    "kitchen": {
+      "summary": "ticket ORD-20260812-0115 on page 2 of 95 tickets; line \"Butter Naan\" present=true; card=\"1ORD-20260812-011501:19Dine-inNo table1×Butter Naan\"",
+      "ok": true,
+      "card": "1ORD-20260812-011501:19Dine-inNo table1×Butter Naan"
+    },
+    "afterReactivate": [
+      {
+        "t": 1,
+        "present": true,
+        "tiles": 3
+      },
+      {
+        "t": 2,
+        "present": true,
+        "tiles": 3
+      },
+      {
+        "t": 5,
+        "present": true,
+        "tiles": 3
+      },
+      {
+        "t": 10,
+        "present": true,
+        "tiles": 3
+      },
+      {
+        "t": 20,
+        "present": true,
+        "tiles": 3
+      }
+    ]
+  },
+  "posFrames": [
+    "{\"event\":\"menu.changed\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"change\":\"item.created\",\"itemId\":\"1419f004-c5f5-4d6a-bfea-2edb143ed048\",\"itemName\":\"Tax Probe 337392\",\"active\":true,\"at\":\"2026-08-12T01:32:19.008932Z\"}",
+    "{\"event\":\"menu.changed\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"change\":\"item.deactivated\",\"itemId\":\"0c28b005-d836-48dd-8113-75c5e9aba90d\",\"itemName\":\"Butter Naan\",\"active\":false,\"at\":\"2026-08-12T01:32:29.726616Z\"}",
+    "{\"event\":\"menu.changed\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"change\":\"item.updated\",\"itemId\":\"c496bf7b-e6e9-49ed-b08d-a45536520e90\",\"itemName\":\"Seekh Kebab\",\"active\":true,\"at\":\"2026-08-12T01:32:52.561984Z\"}",
+    "{\"event\":\"menu.changed\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"change\":\"item.deactivated\",\"itemId\":\"1419f004-c5f5-4d6a-bfea-2edb143ed048\",\"itemName\":\"Tax Probe 337392\",\"active\":false,\"at\":\"2026-08-12T01:32:52.628230Z\"}",
+    "{\"id\":\"05c0f0c7-8193-4168-9f96-64e62183dc42\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"orderNo\":\"ORD-20260812-0106\",\"type\":\"DINE_IN\",\"status\":\"SENT_TO_KDS\",\"derivedStatus\":\"IN_PROGRESS\",\"tableId\":null,\"coverCount\":1,\"cashierId\":\"fefd7187-dbe2-4c12-a532-3c1cc8f3d322\",\"customerId\":null,\"subtotalPaisa\":49900,\"taxPaisa\":0,\"discountPaisa\":0,\"serviceChargePaisa\":0,\"totalPaisa\":49900,\"notes\":null,\"openedAt\":\"2026-08-12T01:22:17.682623Z\",\"sentToKdsAt\":\"2026-08-12T01:22:17.747842Z\",\"clientOrderId\":\"c3e99897-076f-455e-b92e-93da33bc8a60\",\"version\":2,\"items\":[{\"id\":\"daef9deb-690d-4b01-b165-9c30f23d9418\",\"menuItemId\":\"ad563ce8-d9a9-429e-acd5-ceed3f84bb36\",\"itemNameSnapshot\":\"Audit Item 52235\",\"unitPriceSnapshot\":49900,\"quantity\":1,\"kdsStation\":null,\"kdsStatus\":\"PREPARING\",\"revisionNo\":1,\"firedAt\":\"2026-08-12T01:22:17.747842Z\",\"discountPaisa\":0,\"taxPaisa\":0,\"lineTotalPaisa\":49900,\"notes\":null,\"modifiers\":[]}]}",
+    "{\"event\":\"menu.changed\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"change\":\"item.activated\",\"itemId\":\"0c28b005-d836-48dd-8113-75c5e9aba90d\",\"itemName\":\"Butter Naan\",\"active\":true,\"at\":\"2026-08-12T01:33:42.037886Z\"}",
+    "{\"id\":\"c526a5ff-b34a-4b5a-a736-685d3b27853c\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"orderNo\":\"ORD-20260812-0105\",\"type\":\"DINE_IN\",\"status\":\"SENT_TO_KDS\",\"derivedStatus\":\"IN_PROGRESS\",\"tableId\":null,\"coverCount\":1,\"cashierId\":\"eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1\",\"customerId\":null,\"subtotalPaisa\":49900,\"taxPaisa\":0,\"discountPaisa\":0,\"serviceChargePaisa\":0,\"totalPaisa\":49900,\"notes\":null,\"openedAt\":\"2026-08-12T01:20:57.350508Z\",\"sentToKdsAt\":\"2026-08-12T01:20:57.408509Z\",\"clientOrderId\":\"91da619b-bcae-4efa-9990-50c86c5d2cc3\",\"version\":2,\"items\":[{\"id\":\"eec859b3-30ec-40fe-a598-d8f68367dbf6\",\"menuItemId\":\"ad563ce8-d9a9-429e-acd5-ceed3f84bb36\",\"itemNameSnapshot\":\"Audit Item 52235\",\"unitPriceSnapshot\":49900,\"quantity\":1,\"kdsStation\":null,\"kdsStatus\":\"PREPARING\",\"revisionNo\":1,\"firedAt\":\"2026-08-12T01:20:57.408509Z\",\"discountPaisa\":0,\"taxPaisa\":0,\"lineTotalPaisa\":49900,\"notes\":null,\"modifiers\":[]}]}",
+    "{\"event\":\"menu.changed\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"change\":\"item.updated\",\"itemId\":\"c496bf7b-e6e9-49ed-b08d-a45536520e90\",\"itemName\":\"Seekh Kebab\",\"active\":true,\"at\":\"2026-08-12T01:33:46.381453Z\"}"
+  ],
+  "posFrameCount": 10,
+  "verdict": "PASS"
+}

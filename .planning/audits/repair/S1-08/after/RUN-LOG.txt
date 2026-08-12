@@ -1,0 +1,36 @@
+== A: manager → /app/menu/items ==
+== B: cashier → /app/pos ==
+  [B] POS socket open: ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  [B] POS socket open: ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  B: till = already-open
+  B: category pill selected = "Mains"
+== B: ring one "Butter Naan" and Send to Kitchen ==
+  B: order = ORD-20260812-0115 
+  [B] POS socket open: ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  [B] POS socket open: ws://localhost:8080/api/v1/pos/ws/orders/34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.created","itemId":"1419f004-c5f5-4d6a-bfea-2edb143ed048","itemName":"Tax Probe 337392","active":true,"at":"2026-08-12T01:32:19.0089
+  B: category re-selected = "Mains" (last interaction with B)
+  B baseline: grid=true tiles=3 count="3 items" alerts=0 toasts=[] → target PRESENT(disabled=false ariaDisabled=null unavail=null pe=auto)
+== A: deactivate "Butter Naan" ==
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.deactivated","itemId":"0c28b005-d836-48dd-8113-75c5e9aba90d","itemName":"Butter Naan","active":false,"at":"2026-08-12T01:32:29.7266
+  A clicked: Deactivate
+== B: WATCHED, NOT TOUCHED ==
+  RESULT: tile GONE by +1s with no reload and no click
+== C: the open order while the item is 86'd ==
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.updated","itemId":"c496bf7b-e6e9-49ed-b08d-a45536520e90","itemName":"Seekh Kebab","active":true,"at":"2026-08-12T01:32:52.561984Z"}
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.deactivated","itemId":"1419f004-c5f5-4d6a-bfea-2edb143ed048","itemName":"Tax Probe 337392","active":false,"at":"2026-08-12T01:32:52
+  C: search "ORD-20260812-0115" → found=true rows=1 alerts=0
+  C: detail is order ORD-20260812-0115=true, shows "Butter Naan"=true, prices on screen=["Rs 5,000.00","Rs 63,465.40","Rs 92.80","Rs 92.80"]
+== D: kitchen board (manager — kitchen@ is scoped to PANTRY1 right now) ==
+  [B] POS frame: {"id":"05c0f0c7-8193-4168-9f96-64e62183dc42","branchId":"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03","orderNo":"ORD-20260812-0106","type":"DINE_IN","status":"SENT_TO_KDS","derivedStatus":"IN_PROGRESS","tableId":null,"coverCoun
+  D: ticket ORD-20260812-0115 on page 2 of 95 tickets; line "Butter Naan" present=true; card="1ORD-20260812-011501:19Dine-inNo table1×Butter Naan"
+== A: reactivate "Butter Naan" ==
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.activated","itemId":"0c28b005-d836-48dd-8113-75c5e9aba90d","itemName":"Butter Naan","active":true,"at":"2026-08-12T01:33:42.037886Z
+  [B] POS frame: {"id":"c526a5ff-b34a-4b5a-a736-685d3b27853c","branchId":"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03","orderNo":"ORD-20260812-0105","type":"DINE_IN","status":"SENT_TO_KDS","derivedStatus":"IN_PROGRESS","tableId":null,"coverCoun
+  A clicked: Reactivate
+== B: WATCHED, STILL NOT TOUCHED ==
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.updated","itemId":"c496bf7b-e6e9-49ed-b08d-a45536520e90","itemName":"Seekh Kebab","active":true,"at":"2026-08-12T01:33:46.381453Z"}
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.updated","itemId":"c496bf7b-e6e9-49ed-b08d-a45536520e90","itemName":"Seekh Kebab","active":true,"at":"2026-08-12T01:33:46.421885Z"}
+  [B] POS frame: {"event":"menu.changed","tenantId":"d108c2e6-a70d-49c8-acdc-37531fd752d8","change":"item.updated","itemId":"c496bf7b-e6e9-49ed-b08d-a45536520e90","itemName":"Seekh Kebab","active":true,"at":"2026-08-12T01:33:46.448919Z"}
+  RESULT: tile BACK by +1s with no reload and no click
+== VERDICT: PASS (POS frames seen on B: 10) ==

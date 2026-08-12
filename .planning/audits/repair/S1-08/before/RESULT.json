@@ -1,0 +1,69 @@
+{
+  "item": "Butter Naan",
+  "baseline": {
+    "n": 40,
+    "target": true
+  },
+  "deactivate": {
+    "clicked": "Deactivate",
+    "observed": [
+      {
+        "t": 2,
+        "present": true,
+        "n": 40
+      },
+      {
+        "t": 5,
+        "present": true,
+        "n": 40
+      },
+      {
+        "t": 10,
+        "present": true,
+        "n": 40
+      },
+      {
+        "t": 20,
+        "present": true,
+        "n": 40
+      }
+    ]
+  },
+  "afterManualReload": {
+    "n": 39,
+    "target": false
+  },
+  "reactivate": {
+    "clicked": "Reactivate",
+    "observed": [
+      {
+        "t": 2,
+        "present": false,
+        "n": 39
+      },
+      {
+        "t": 5,
+        "present": false,
+        "n": 39
+      },
+      {
+        "t": 10,
+        "present": false,
+        "n": 39
+      },
+      {
+        "t": 20,
+        "present": false,
+        "n": 39
+      }
+    ]
+  },
+  "wsFrameCount": 200,
+  "wsFrameSamples": [
+    "{\"type\":\"isrManifest\",\"data\":{\"/login\":false,\"/app/pos/orders/b2886f4d-1740-4c78-bbc6-492cf7ee64ee/charge\":true,\"/app/pos\":true,\"/app/kitchen/DEFAULT\":true,\"/app/menu/items\":true,\"/app/dashboard\":true",
+    "{\"type\":\"turbopack-connected\",\"data\":{\"sessionId\":1232259373567950}}",
+    "(binary)",
+    "(binary)",
+    "{\"type\":\"sync\",\"errors\":[],\"warnings\":[],\"hash\":\"\",\"versionInfo\":{\"staleness\":\"stale-minor\",\"expected\":\"16.3.0\",\"installed\":\"16.2.9\"},\"debug\":{},\"devIndicator\":{\"disabledUntil\":0},\"devToolsConfig\":{}}"
+  ]
+}
