@@ -2,12 +2,16 @@ package io.restaurantos.pos;
 
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
+import io.restaurantos.pos.domain.model.Modifier;
+import io.restaurantos.pos.domain.model.ModifierGroup;
 import io.restaurantos.pos.dto.AddOrderItemRequest;
 import io.restaurantos.pos.dto.CreateOrderRequest;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.feign.FinancePeriodClient;
 import io.restaurantos.pos.repository.MenuCategoryRepository;
 import io.restaurantos.pos.repository.MenuItemRepository;
+import io.restaurantos.pos.repository.ModifierGroupRepository;
+import io.restaurantos.pos.repository.ModifierRepository;
 import io.restaurantos.pos.service.KitchenTicketAssembler;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.shared.api.ApiResponse;
@@ -42,6 +46,8 @@ class KitchenTicketAssemblerIT extends PosTestBase {
     @Autowired KitchenTicketAssembler assembler;
     @Autowired MenuItemRepository menuItemRepository;
     @Autowired MenuCategoryRepository menuCategoryRepository;
+    @Autowired ModifierGroupRepository modifierGroupRepository;
+    @Autowired ModifierRepository modifierRepository;
     @Autowired TenantContext tenantContext;
 
     UUID tenantId;
@@ -192,18 +198,62 @@ class KitchenTicketAssemblerIT extends PosTestBase {
 
     // ══ 5. Modifiers travel with their line ═══════════════════════════════════════════════════
 
+    /**
+     * <h2>This test used to assert the defect (S6)</h2>
+     *
+     * <p>It read {@code UUID modifierId = UUID.randomUUID()}, put that on the line, and asserted
+     * only {@code hasSize(1)}. It could pass for exactly one reason: {@code addItem} accepted any
+     * UUID whatsoever and wrote {@code modifierNameSnapshot = modifierId.toString()}, so what
+     * "travelled with the line" was a hex string — printed on the chef's ticket, where nobody can
+     * cook it. A size assertion cannot tell "the modifier arrived" from "a stub arrived".
+     *
+     * <p>It now rings a REAL catalogue option and asserts the ticket carries its NAME. The size
+     * check stays because the routing claim in the title is still worth making.
+     */
     @Test
-    @DisplayName("modifiers travel on the line they belong to")
+    @DisplayName("modifiers travel on the line they belong to, by name")
     void modifiersTravelWithTheirLine() {
-        UUID modifierId = UUID.randomUUID();
+        ModifierGroup group = new ModifierGroup();
+        group.setTenantId(tenantId);
+        group.setMenuItem(menuItemRepository.findById(hotItemId).orElseThrow());
+        group.setName("Extras");
+        group.setRequired(false);
+        group.setMinSelect(0);
+        group.setMaxSelect(3);
+        group.setActive(true);
+        group = modifierGroupRepository.save(group);
+
+        Modifier option = new Modifier();
+        option.setTenantId(tenantId);
+        option.setModifierGroup(group);
+        option.setName("Extra cheese");
+        option.setPriceDeltaPaisa(15_000L);
+        option.setActive(true);
+        option = modifierRepository.save(option);
+
         OrderDto order = orderService.createOrder(
                 new CreateOrderRequest(branchId, UUID.randomUUID(), null, null, 3, null, null));
         orderService.addItem(order.id(),
-                new AddOrderItemRequest(hotItemId, branchId, 1, List.of(modifierId), null));
+                new AddOrderItemRequest(hotItemId, branchId, 1, List.of(option.getId()), null));
         OrderDto fired = orderService.sendToKds(order.id(), null);
 
         PrintDocument doc = assembler.assemble(order.id(), branchId, 1, idsOf(fired)).get(0).document();
-        assertThat(doc.lines().get(0).modifiers()).hasSize(1);
+        assertThat(doc.lines().get(0).modifiers()).containsExactly("Extra cheese");
+    }
+
+    /**
+     * And an id that names nothing is REFUSED rather than printed. This is the assertion the
+     * random-UUID version above was silently standing in for.
+     */
+    @Test
+    @DisplayName("a modifier id that is not on the dish never reaches the pass")
+    void anUnknownModifierIsRefusedNotPrinted() {
+        OrderDto order = orderService.createOrder(
+                new CreateOrderRequest(branchId, UUID.randomUUID(), null, null, 3, null, null));
+        assertThatThrownBy(() -> orderService.addItem(order.id(),
+                new AddOrderItemRequest(hotItemId, branchId, 1, List.of(UUID.randomUUID()), null)))
+                .isInstanceOf(io.restaurantos.shared.exception.FieldValidationException.class)
+                .hasMessageContaining("Chicken Karahi");
     }
 
     // ══ 6. NO MONEY, scanned generically ══════════════════════════════════════════════════════
