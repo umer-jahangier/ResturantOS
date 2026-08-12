@@ -70,6 +70,10 @@ public class TillController {
             Pageable pageable) {
         // branchId → admin till-review history (newest first, paginated); otherwise the
         // legacy cashier-scoped lookup (used by the active-till bar, never paginated).
+        //
+        // The cashier-scoped branch is SELF-ONLY: an omitted cashierId means the caller, and a
+        // foreign one is refused unless the caller holds pos.till.review — see
+        // TillService#listTills, which is where that boundary is actually enforced.
         if (branchId != null) {
             Page<TillSessionDto> page = tillService.listTillsForBranch(branchId, pageable);
             return ResponseEntity.ok(ApiResponse.paginated(page.getContent(), new PageMeta(
