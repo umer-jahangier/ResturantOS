@@ -34,7 +34,7 @@
             ALTER TABLE refresh_sessions ENABLE ROW LEVEL SECURITY;
             ALTER TABLE refresh_sessions FORCE ROW LEVEL SECURITY;
             CREATE POLICY tenant_isolation ON refresh_sessions
-                USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
             GRANT SELECT, INSERT, UPDATE, DELETE ON refresh_sessions TO auth_user;
         </sql>
         <rollback>
