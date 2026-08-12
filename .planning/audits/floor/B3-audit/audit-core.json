@@ -1,0 +1,229 @@
+{
+  "fails": [
+    {
+      "k": "total-did-not-drop-by-exact-paisa",
+      "v": {
+        "itemName": "Fresh Lime",
+        "itemGrossPaisa": 22000,
+        "expectedPaisa": 2200,
+        "serverDiscountPaisa": 2200,
+        "totalBefore": 202070,
+        "totalAfter": 199760,
+        "dropped": 2310,
+        "rows": [
+          {
+            "scope": "LINE",
+            "type": "PERCENT",
+            "amt": 2200,
+            "reason": "Kebab arrived cold",
+            "who": "Terrace Cashier"
+          }
+        ]
+      }
+    }
+  ],
+  "notes": [],
+  "managerDiscountPerms": [
+    "pos.order.discount.line",
+    "pos.order.discount.order",
+    "pos.order.discount.override"
+  ],
+  "cashierDiscountPerms": [
+    "pos.order.discount.line"
+  ],
+  "order": {
+    "orderNo": "ORD-20260812-0319",
+    "orderId": "e6fe0e41-886d-4178-88e4-3b8875de6fee",
+    "status": "SENT_TO_KDS",
+    "subtotalPaisa": 167000,
+    "discountPaisa": 0,
+    "taxPaisa": 26720,
+    "totalPaisa": 202070
+  },
+  "chargeBefore": {
+    "subtotal": "Rs 1,670.00",
+    "discounts": "Rs 0.00",
+    "taxes": "Rs 267.20",
+    "total": "Rs 2,020.70",
+    "remaining": "Rs 2,020.70",
+    "hasAddDiscountButton": true,
+    "appliedDiscounts": null,
+    "rawPermissionOnScreen": null,
+    "allControls": [
+      "Apply a discount"
+    ]
+  },
+  "reasonGate": {
+    "submitDisabled": true,
+    "validation": "Say why the discount is being given."
+  },
+  "forcedClickChangedTotal": false,
+  "apiNoReason": {
+    "status": 401,
+    "message": "Authentication required"
+  },
+  "preview": "Takes Rs 22.00 off — new total Rs 1,998.70.",
+  "lineDiscount": {
+    "itemName": "Fresh Lime",
+    "itemGrossPaisa": 22000,
+    "expectedPaisa": 2200,
+    "serverDiscountPaisa": 2200,
+    "totalBefore": 202070,
+    "totalAfter": 199760,
+    "dropped": 2310,
+    "rows": [
+      {
+        "scope": "LINE",
+        "type": "PERCENT",
+        "amt": 2200,
+        "reason": "Kebab arrived cold",
+        "who": "Terrace Cashier"
+      }
+    ]
+  },
+  "chargeAfterLine": {
+    "subtotal": "Rs 1,670.00",
+    "discounts": "Rs 22.00",
+    "taxes": "Rs 267.20",
+    "total": "Rs 1,997.60",
+    "remaining": "Rs 1,997.60",
+    "hasAddDiscountButton": true,
+    "appliedDiscounts": "10% off Fresh Lime Kebab arrived cold · Terrace Cashier -Rs 22.00",
+    "rawPermissionOnScreen": null,
+    "allControls": [
+      "Add another discount"
+    ]
+  },
+  "afterReload": {
+    "subtotal": "Rs 1,670.00",
+    "discounts": "Rs 22.00",
+    "taxes": "Rs 267.20",
+    "total": "Rs 1,997.60",
+    "remaining": "Rs 1,997.60",
+    "hasAddDiscountButton": true,
+    "appliedDiscounts": "10% off Fresh Lime Kebab arrived cold · Terrace Cashier -Rs 22.00",
+    "rawPermissionOnScreen": null,
+    "allControls": [
+      "Add another discount"
+    ]
+  },
+  "cashierWholeCheck": {
+    "message": "A discount on the whole check has to be approved by a manager. You can take an amount off an individual item; ask a manager to sign in for a whole-check discount.",
+    "submitDisabled": true,
+    "rawPermissionAnywhere": false,
+    "bodyMentionsManager": true
+  },
+  "cashierWholeCheckApi": {
+    "status": 403,
+    "message": "{\"detail\":\"Not permitted: pos.pos.order.discount.override\",\"instance\":\"/api/v1/pos/orders/e6fe0e41-886d-4178-88e4-3b8875de6fee/discounts\",\"status\":403,\"title\":\"FORBIDDEN\",\"type\":\"urn:restaurantos:pos:"
+  },
+  "waiterDiscountPerms": [],
+  "waiter": {
+    "perms": [],
+    "line": {
+      "status": 401,
+      "msg": "Authentication required"
+    },
+    "order": {
+      "status": 401,
+      "msg": "Authentication required"
+    }
+  },
+  "waiterScreen": {
+    "subtotal": null,
+    "discounts": null,
+    "taxes": null,
+    "total": null,
+    "remaining": null,
+    "hasAddDiscountButton": false,
+    "appliedDiscounts": null,
+    "rawPermissionOnScreen": null,
+    "allControls": []
+  },
+  "managerPreview": "Takes Rs 164.80 off — new total Rs 1,832.80.",
+  "wholeCheck": {
+    "netBeforePaisa": 164800,
+    "expectedOrderDiscountPaisa": 16480,
+    "subtotalPaisa": 167000,
+    "discountPaisa": 18680,
+    "taxPaisa": 26720,
+    "serviceChargePaisa": 7416,
+    "totalPaisa": 182456,
+    "rows": [
+      {
+        "scope": "LINE",
+        "amt": 2200,
+        "reason": "Kebab arrived cold",
+        "who": "Terrace Cashier"
+      },
+      {
+        "scope": "ORDER",
+        "amt": 16480,
+        "reason": "Regular of twenty years",
+        "who": "Terrace Manager"
+      }
+    ]
+  },
+  "moneyIdentityHolds": true,
+  "managerScreen": {
+    "subtotal": "Rs 1,670.00",
+    "discounts": "Rs 186.80",
+    "taxes": "Rs 267.20",
+    "total": "Rs 1,824.56",
+    "remaining": "Rs 1,824.56",
+    "hasAddDiscountButton": true,
+    "appliedDiscounts": "10% off Fresh Lime Kebab arrived cold · Terrace Cashier -Rs 22.00 10% off the whole check Regular of twenty years · Terrace Manager -Rs 164.80",
+    "rawPermissionOnScreen": null,
+    "allControls": [
+      "Add another discount"
+    ]
+  },
+  "actors": {
+    "line": "Terrace Cashier",
+    "order": "Terrace Manager"
+  },
+  "receiptDoc": {
+    "status": 404
+  },
+  "printedBill": {
+    "subtotal": null,
+    "discount": null,
+    "tax": "16.00",
+    "total": null,
+    "mentionsReason": false,
+    "raw": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Orders Order Receipt Floating Terrace HQ Search… ⌘K E Back Print a browser copy Printed on audit-receipt F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued. Floating Terrace HQ 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad +92 21 4628872 Order ORD-20260812-0319 Issued 2026-08-12T06:47:00.070Z 1 x Fresh Lime Rs 255.20 1 x Chicken Karahi Rs 1,682.00 Subtotal Rs 1,670.00 Discount Rs 186.80 Service charge (5.00%) Rs 74.16 Sales Tax (16.00%) Rs 267.20 Tax Rs 267.20 TOTAL Rs 1,824.56"
+  },
+  "settled": {
+    "status": "CLOSED",
+    "discountPaisa": 18680,
+    "totalPaisa": 182456,
+    "payments": [
+      {
+        "id": "ebeaf7bf-7a3d-4241-90d8-2507469250ad",
+        "method": "CASH",
+        "amountPaisa": 182456,
+        "tipPaisa": 0,
+        "tenderedPaisa": 182456,
+        "changePaisa": 0,
+        "referenceNo": null,
+        "recordedAt": "2026-08-12T06:47:16.622676Z",
+        "kind": "PAYMENT"
+      }
+    ]
+  },
+  "closedRefusal": {
+    "status": 409,
+    "message": "{\"detail\":\"This check is closed and its sale has been posted. Refund the guest instead of discounting it.\",\"instance\":\"/api/v1/pos/orders/e6fe0e41-886d-4178-88e4-3b8875de6fee/discounts\",\"status\":409,\""
+  },
+  "closedScreen": {
+    "subtotal": "Rs 1,670.00",
+    "discounts": "Rs 186.80",
+    "taxes": "Rs 267.20",
+    "total": "Rs 1,824.56",
+    "remaining": "Rs 0.00",
+    "hasAddDiscountButton": false,
+    "appliedDiscounts": "10% off Fresh Lime Kebab arrived cold · Terrace Cashier -Rs 22.00 10% off the whole check Regular of twenty years · Terrace Manager -Rs 164.80",
+    "rawPermissionOnScreen": null,
+    "allControls": []
+  }
+}

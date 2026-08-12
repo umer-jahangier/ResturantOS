@@ -1,0 +1,233 @@
+{
+  "fails": [
+    {
+      "k": "a-discount-cannot-be-taken-back-off",
+      "v": {
+        "blockText": "10% off Chicken Karahi replacing the flat amount · Terrace Cashier -Rs 145.00",
+        "buttonsInBlock": [],
+        "anyRemoveWordOnPage": false,
+        "deleteEndpoint": {
+          "status": 404,
+          "msg": "No endpoint matches this path"
+        },
+        "zeroDiscount": {
+          "status": 400,
+          "msg": "Request validation failed"
+        }
+      }
+    },
+    {
+      "k": "api-accepts-a-percentage-the-screen-refuses",
+      "v": {
+        "uiBlocked": {
+          "disabled": true,
+          "msg": "A percentage cannot be more than 100."
+        },
+        "apiStatus": 200,
+        "discountPaisa": 49900,
+        "storedValue": 200,
+        "lineGross": 49900,
+        "totalBefore": 49900,
+        "totalAfter": 0
+      }
+    }
+  ],
+  "notes": [],
+  "flatControlExists": true,
+  "flatPreview": "Takes Rs 50.00 off — new total Rs 1,970.70.",
+  "flatSubmitDisabled": false,
+  "flat": {
+    "discountPaisa": 5000,
+    "expected": 5000,
+    "totalBefore": 202070,
+    "totalAfter": 196820
+  },
+  "reapply": {
+    "status": 200,
+    "rowsOnLine": 1,
+    "amounts": [
+      14500
+    ],
+    "orderDiscountPaisa": 14500
+  },
+  "removal": {
+    "blockText": "10% off Chicken Karahi replacing the flat amount · Terrace Cashier -Rs 145.00",
+    "buttonsInBlock": [],
+    "anyRemoveWordOnPage": false,
+    "deleteEndpoint": {
+      "status": 404,
+      "msg": "No endpoint matches this path"
+    },
+    "zeroDiscount": {
+      "status": 400,
+      "msg": "Request validation failed"
+    }
+  },
+  "cashierZeroedCheck": {
+    "orderNo": "ORD-20260812-0331",
+    "lastStatus": 200,
+    "subtotal": 167000,
+    "discount": 167000,
+    "total": 26720,
+    "everyLineCompedByACashierWithoutAManager": true
+  },
+  "zeroedOrderId": "b138b09e-e4f1-4b1a-82b8-ee09c0b73dc6",
+  "percent200": {
+    "uiBlocked": {
+      "disabled": true,
+      "msg": "A percentage cannot be more than 100."
+    },
+    "apiStatus": 200,
+    "discountPaisa": 49900,
+    "storedValue": 200,
+    "lineGross": 49900,
+    "totalBefore": 49900,
+    "totalAfter": 0
+  },
+  "percent200OrderId": "6f6c6f5c-8084-43da-b6aa-01bbc4f0e155",
+  "personas": {
+    "waiter@terrace.local": {
+      "perms": [],
+      "line": {
+        "s": 403,
+        "m": "You do not have permission to perform this action"
+      },
+      "order": {
+        "s": 403,
+        "m": "You do not have permission to perform this action"
+      }
+    },
+    "kitchen@terrace.local": {
+      "perms": [],
+      "line": {
+        "s": 403,
+        "m": "You do not have permission to perform this action"
+      },
+      "order": {
+        "s": 403,
+        "m": "You do not have permission to perform this action"
+      }
+    }
+  },
+  "crossTenant": {
+    "read": {
+      "s": 403,
+      "m": "Cannot access resources for a different branch"
+    },
+    "write": {
+      "s": 404,
+      "m": "Order not found: 201f31b2-049b-4b96-b5d0-75e5acf45bae"
+    }
+  },
+  "c1Final": {
+    "orderNo": "ORD-20260812-0330",
+    "subtotal": 167000,
+    "discount": 14500,
+    "tax": 26720,
+    "sc": 7625,
+    "total": 186845,
+    "identity": true
+  },
+  "settle": {
+    "pay": 200,
+    "payMsg": null,
+    "close": 410,
+    "closeMsg": "{\"data\":null,\"meta\":null,\"warnings\":[{\"code\":\"ENDPOINT_RETIRED\",\"message\":\"POST /orders/{id}/close is retired. Record tenders via POST /api/"
+  },
+  "settled": {
+    "status": "SENT_TO_KDS",
+    "total": 186845,
+    "discount": 14500,
+    "paidPaisa": 186845
+  },
+  "takings": {
+    "gross": "Rs 77,971.00",
+    "discounts": "Rs 417.30",
+    "comps": null,
+    "net": "Rs 77,553.70",
+    "notKnown": true,
+    "raw": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Finance Takings Floating Terrace HQ Search… ⌘K F Takings Guide Takings The day's money, reconciled against what each till counted. Where a figure cannot be worked out, this screen says so and says why — it will not show you a zero it does not mean. Business date 63 orders closed on this trading day The day's money GROSS SALES Rs 77,971.00 Full menu price of everything sold, before any discount. DISCOUNTS Rs 417.30 Given away. Shown here rather than netted into a smaller sales figure. COMPS Not known Comps are not recorded separately from discounts. orders.discount_paisa is one colu"
+  },
+  "report": {
+    "headers": [
+      "Business Date",
+      "Order No",
+      "Scope",
+      "Item Name",
+      "Discount Type",
+      "Discount Value",
+      "Amount Paisa",
+      "Reason",
+      "Applied By",
+      "Closed At"
+    ],
+    "rows": [
+      [
+        "2026-08-11T19:00:00.000Z",
+        "ORD-20260812-0319",
+        "LINE",
+        "Fresh Lime",
+        "PERCENT",
+        "10",
+        "Rs 22.00",
+        "Kebab arrived cold",
+        "Terrace Cashier",
+        "2026-08-12T01:47:22.689Z"
+      ],
+      [
+        "2026-08-11T19:00:00.000Z",
+        "ORD-20260812-0319",
+        "ORDER",
+        "—",
+        "PERCENT",
+        "10",
+        "Rs 164.80",
+        "Regular of twenty years",
+        "Terrace Manager",
+        "2026-08-12T01:47:22.689Z"
+      ],
+      [
+        "2026-08-11T19:00:00.000Z",
+        "ORD-20260812-0197",
+        "LINE",
+        "Seekh Kebab",
+        "PERCENT",
+        "10",
+        "Rs 45.00",
+        "Kebab arrived cold",
+        "Terrace Cashier",
+        "2026-08-11T23:41:06.627Z"
+      ],
+      [
+        "2026-08-11T19:00:00.000Z",
+        "ORD-20260812-0197",
+        "ORDER",
+        "—",
+        "PERCENT",
+        "10",
+        "Rs 185.50",
+        "Regular of twenty years",
+        "Terrace Manager",
+        "2026-08-11T23:41:06.627Z"
+      ]
+    ],
+    "mentionsReason": true,
+    "text": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE Guide Takings PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Reports Discount Summary Floating Terrace HQ Search… ⌘K F ← All reports Discount Summary From To Business Date Order No Scope Item Name Discount Type Discount Value Amount Paisa Reason Applied By Closed At 2026-08-11T19:00:00.000Z ORD-20260812-0319 LINE Fresh Lime PERCENT 10 Rs 22.00 Kebab arrived cold Terrace Cashier 2026-08-12T01:47:22.689Z 2026-08-11T19:00:00.000Z ORD-20260812-0319 ORDER — PERCENT 10 Rs 164.80 Regular of twenty years Terrace Manager 2026-08-12T01:47:22.689Z 2026-08-11T19:00:00.000Z ORD-20260812-0197 LINE Seekh Kebab PERCENT 10 Rs 45.00 Kebab arrived cold Terrace"
+  },
+  "journal": {
+    "status": 403,
+    "sample": []
+  },
+  "consoleErrors": {
+    "cashier": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+      "Failed to load resource: the server responded with a status of 410 (Gone)"
+    ],
+    "manager": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "fails": [
+    {
+      "k": "journal-entry-total-differs-from-the-check",
+      "v": {
+        "je": 201136,
+        "pos": 182456
+      }
+    }
+  ],
+  "orderNo": "ORD-20260812-0319",
+  "pos": {
+    "orderNo": "ORD-20260812-0319",
+    "status": "CLOSED",
+    "subtotal": 167000,
+    "discount": 18680,
+    "tax": 26720,
+    "sc": 7416,
+    "total": 182456
+  },
+  "jeScreen": {
+    "mentionsOrder": true,
+    "denied": false,
+    "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse App Finance Journal Entries Floating Terrace HQ Search… ⌘K 9 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Journal Entries Tab to navigate rows, Enter to open New Entry Showing 50 of 305 entries Entry No Date Description Status Debit Credit REV-2027-000203 2026-08-12 Reversal of JE-2027-000001 POST"
+  },
+  "jeApi": {
+    "/api/v1/finance/journal-entries?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03&size=40": {
+      "status": 200,
+      "count": 40,
+      "hit": [
+        {
+          "desc": "Order revenue ORD-20260812-0319",
+          "status": "POSTED",
+          "d": 201136,
+          "c": 201136,
+          "id": "207d7893-69b3-4f56-acdb-454bb4c65008"
+        }
+      ]
+    },
+    "/api/v1/finance/journal-entries?size=40": {
+      "status": 200,
+      "count": 40,
+      "hit": [
+        {
+          "desc": "Order revenue ORD-20260812-0319",
+          "status": "POSTED",
+          "d": 201136,
+          "c": 201136,
+          "id": "207d7893-69b3-4f56-acdb-454bb4c65008"
+        }
+      ]
+    },
+    "/api/v1/finance/journal-entries/search?reference=ORD-20260812-0319": {
+      "status": 400,
+      "count": 0,
+      "hit": []
+    }
+  },
+  "entry": {
+    "id": "207d7893-69b3-4f56-acdb-454bb4c65008",
+    "status": "POSTED",
+    "lines": [
+      {
+        "account": "1010",
+        "d": 182456,
+        "c": 0,
+        "memo": "CASH payment"
+      },
+      {
+        "account": "4920",
+        "d": 18680,
+        "c": 0,
+        "memo": "Discount"
+      },
+      {
+        "account": "4100",
+        "d": 0,
+        "c": 167000,
+        "memo": "Sales revenue"
+      },
+      {
+        "account": "4910",
+        "d": 0,
+        "c": 7416,
+        "memo": "Service charge"
+      },
+      {
+        "account": "2200",
+        "d": 0,
+        "c": 26720,
+        "memo": "Output tax"
+      }
+    ],
+    "totalDebit": 201136,
+    "totalCredit": 201136,
+    "balanced": true,
+    "matchesPosTotal": false,
+    "anyLineEqualsDiscount": true
+  },
+  "entryScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 9 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide JE-2027-000302 2026-08-12 · Order revenue ORD-20260812-0319 Reverse STATUS POSTED TOTAL DEBIT Rs 2,011.36 TOTAL CREDIT Rs 2,011.36 Account Description Debit Credit 1010 CASH payment Rs 1,824.56 — 4920 Discount Rs 186.80 — 4100 Sales revenue — Rs 1,670.00 4910 Service charge — Rs 74.16 2200 Output tax — Rs 267.20"
+}
