@@ -1,0 +1,141 @@
+{
+  "receiptConfig.status": 200,
+  "receiptConfig": {
+    "config": {
+      "agent": {
+        "baseUrl": "http://127.0.0.1:7654",
+        "lanUrl": null
+      },
+      "printers": [
+        {
+          "id": "audit-receipt",
+          "terminalId": null,
+          "role": "RECEIPT",
+          "stationCode": null,
+          "transport": "SYSTEM",
+          "host": null,
+          "port": null,
+          "systemPrinterName": "STMicroelectronics_POS80_Printer_USB",
+          "widthMm": 80,
+          "columns": 42,
+          "columnsMeasured": false,
+          "codepage": "CP437",
+          "cut": "PARTIAL",
+          "drawerPin": null,
+          "drawerPulseMs": null
+        },
+        {
+          "id": "audit-kitchen-default",
+          "terminalId": null,
+          "role": "KITCHEN",
+          "stationCode": "DEFAULT",
+          "transport": "TCP",
+          "host": "127.0.0.1",
+          "port": 9101,
+          "systemPrinterName": null,
+          "widthMm": 80,
+          "columns": 42,
+          "columnsMeasured": false,
+          "codepage": "CP437",
+          "cut": "PARTIAL",
+          "drawerPin": null,
+          "drawerPulseMs": null
+        },
+        {
+          "id": "audit-kitchen-unassigned",
+          "terminalId": null,
+          "role": "KITCHEN",
+          "stationCode": "UNASSIGNED",
+          "transport": "TCP",
+          "host": "127.0.0.1",
+          "port": 9101,
+          "systemPrinterName": null,
+          "widthMm": 80,
+          "columns": 42,
+          "columnsMeasured": false,
+          "codepage": "CP437",
+          "cut": "PARTIAL",
+          "drawerPin": null,
+          "drawerPulseMs": null
+        },
+        {
+          "id": "audit-kitchen-pantry",
+          "terminalId": null,
+          "role": "KITCHEN",
+          "stationCode": "PANTRY1",
+          "transport": "TCP",
+          "host": "127.0.0.1",
+          "port": 9101,
+          "systemPrinterName": null,
+          "widthMm": 80,
+          "columns": 42,
+          "columnsMeasured": false,
+          "codepage": "CP437",
+          "cut": "PARTIAL",
+          "drawerPin": null,
+          "drawerPulseMs": null
+        },
+        {
+          "id": "grill-9105",
+          "terminalId": null,
+          "role": "KITCHEN",
+          "stationCode": "GRILL",
+          "transport": "TCP",
+          "host": "127.0.0.1",
+          "port": 9105,
+          "systemPrinterName": null,
+          "widthMm": 80,
+          "columns": 42,
+          "columnsMeasured": false,
+          "codepage": "CP437",
+          "cut": "PARTIAL",
+          "drawerPin": null,
+          "drawerPulseMs": null
+        }
+      ],
+      "header": null,
+      "footer": null,
+      "fbr": null,
+      "kitchenStations": [
+        "DEFAULT",
+        "UNASSIGNED",
+        "BAR",
+        "GRILL",
+        "DGB28334",
+        "DGS43431",
+        "DGS20334",
+        "PANTRY1",
+        "EXPO7"
+      ]
+    },
+    "completeness": {
+      "complete": false,
+      "unroutedStations": [
+        "BAR",
+        "DGB28334",
+        "DGS43431",
+        "DGS20334",
+        "EXPO7"
+      ],
+      "warnings": [
+        "Printer 'audit-receipt' has an UNMEASURED column count (42); run the calibration print before trusting the layout.",
+        "Printer 'audit-kitchen-default' has an UNMEASURED column count (42); run the calibration print before trusting the layout.",
+        "Printer 'audit-kitchen-unassigned' has an UNMEASURED column count (42); run the calibration print before trusting the layout.",
+        "Printer 'audit-kitchen-pantry' has an UNMEASURED column count (42); run the calibration print before trusting the layout.",
+        "Printer 'grill-9105' has an UNMEASURED column count (42); run the calibration print before trusting the layout."
+      ]
+    }
+  },
+  "stations.status": 200,
+  "stations": [
+    "BAR|Main bar",
+    "GRILL|Hot line",
+    "DGB28334|Diag Bar 28334",
+    "DGS43431|Diag Dessert 43431",
+    "DGS20334|Diag Dessert 20334",
+    "PANTRY1|Cold prep",
+    "EXPO7|Pass counter",
+    "FRY9|Fry station",
+    "SALAD3|Garde manger"
+  ]
+}

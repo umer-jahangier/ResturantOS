@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "name": "the till is back on the USB queue I found it on",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "my temporary BAR printer is gone",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "GRILL is still bound to 127.0.0.1:9105",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "printers": [
+    "audit-receipt|RECEIPT|null|SYSTEM|null:null|STMicroelectronics_POS80_Printer_USB",
+    "audit-kitchen-default|KITCHEN|DEFAULT|TCP|127.0.0.1:9101|null",
+    "audit-kitchen-unassigned|KITCHEN|UNASSIGNED|TCP|127.0.0.1:9101|null",
+    "audit-kitchen-pantry|KITCHEN|PANTRY1|TCP|127.0.0.1:9101|null",
+    "grill-9105|KITCHEN|GRILL|TCP|127.0.0.1:9105|null"
+  ]
+}

@@ -1,0 +1,266 @@
+{
+  "steps": [
+    {
+      "k": "branchId",
+      "v": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+    },
+    {
+      "k": "pageTrouble",
+      "v": {
+        "bad": [],
+        "alerts": [
+          "BAR, DGB28334, DGS43431, DGS20334, EXPO7 have no printer. Tickets for those stations will be recorded as unprintable and no paper will appear in the kitchen."
+        ],
+        "url": "http://localhost:3000/app/settings/printers"
+      }
+    },
+    {
+      "k": "receiptConfig.status",
+      "v": 404
+    },
+    {
+      "k": "registry",
+      "v": []
+    },
+    {
+      "k": "agents.status",
+      "v": 200
+    },
+    {
+      "k": "agents.total/live",
+      "v": {
+        "total": 19,
+        "live": 17
+      }
+    },
+    {
+      "k": "agents.withDevices",
+      "v": [
+        {
+          "label": "F8 live agent",
+          "lastSeenAt": "2026-08-12T11:42:44.634247Z",
+          "devicesReportedAt": "2026-08-12T11:42:44.634291Z",
+          "devices": [
+            "_80Series2|PRINTING",
+            "STMicroelectronics_POS80_Printer_USB|PRINTING"
+          ],
+          "unavailable": null
+        }
+      ]
+    },
+    {
+      "k": "health.status",
+      "v": 200
+    },
+    {
+      "k": "health.body",
+      "v": {
+        "windowHours": 24,
+        "printers": [
+          {
+            "printerId": "audit-kitchen-pantry",
+            "state": "PRINTING",
+            "waiting": 0,
+            "printed": 199,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-12T11:31:48.225935Z",
+            "lastPrintedAt": "2026-08-12T11:31:48.225935Z",
+            "lastError": null
+          },
+          {
+            "printerId": "audit-kitchen-unassigned",
+            "state": "PRINTING",
+            "waiting": 0,
+            "printed": 33,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-12T11:35:03.704154Z",
+            "lastPrintedAt": "2026-08-12T11:35:03.704154Z",
+            "lastError": null
+          },
+          {
+            "printerId": "audit-receipt",
+            "state": "PRINTING",
+            "waiting": 9,
+            "printed": 184,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-12T11:42:27.357480Z",
+            "lastPrintedAt": "2026-08-12T11:42:27.357480Z",
+            "lastError": null
+          },
+          {
+            "printerId": "front-counter-receipt",
+            "state": "WAITING",
+            "waiting": 1,
+            "printed": 8,
+            "failed": 3,
+            "lastAttemptAt": "2026-08-12T04:21:18.309469Z",
+            "lastPrintedAt": "2026-08-12T02:06:39.051161Z",
+            "lastError": null
+          },
+          {
+            "printerId": "grill-9102",
+            "state": "PRINTING",
+            "waiting": 0,
+            "printed": 29,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-12T06:41:25.146241Z",
+            "lastPrintedAt": "2026-08-12T06:41:25.146241Z",
+            "lastError": null
+          },
+          {
+            "printerId": "grill-9105",
+            "state": "PRINTING",
+            "waiting": 0,
+            "printed": 28,
+            "failed": 1,
+            "lastAttemptAt": "2026-08-12T11:35:03.704031Z",
+            "lastPrintedAt": "2026-08-12T11:35:03.704031Z",
+            "lastError": null
+          },
+          {
+            "printerId": "hot-pass-unrouted",
+            "state": "PRINTING",
+            "waiting": 6,
+            "printed": 20,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-12T01:47:23.490429Z",
+            "lastPrintedAt": "2026-08-12T01:47:23.490429Z",
+            "lastError": null
+          },
+          {
+            "printerId": "kitchen-grill",
+            "state": "PRINTING",
+            "waiting": 0,
+            "printed": 2,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-12T01:50:10.307903Z",
+            "lastPrintedAt": "2026-08-12T01:50:10.307903Z",
+            "lastError": null
+          },
+          {
+            "printerId": "kitchen-main",
+            "state": "FAILING",
+            "waiting": 0,
+            "printed": 34,
+            "failed": 51,
+            "lastAttemptAt": "2026-08-12T01:19:22.496688Z",
+            "lastPrintedAt": "2026-08-12T01:16:28.298808Z",
+            "lastError": "no printer \"kitchen-main\" is configured"
+          },
+          {
+            "printerId": "kitchen-pantry1",
+            "state": "FAILING",
+            "waiting": 0,
+            "printed": 13,
+            "failed": 4,
+            "lastAttemptAt": "2026-08-12T02:28:29.381733Z",
+            "lastPrintedAt": "2026-08-12T02:06:27.008019Z",
+            "lastError": "no printer \"kitchen-pantry1\" is configured"
+          },
+          {
+            "printerId": "kitchen-unassigned",
+            "state": "FAILING",
+            "waiting": 0,
+            "printed": 3,
+            "failed": 2,
+            "lastAttemptAt": "2026-08-12T02:28:29.382248Z",
+            "lastPrintedAt": "2026-08-12T01:50:10.307903Z",
+            "lastError": "no printer \"kitchen-unassigned\" is configured"
+          },
+          {
+            "printerId": "receipt-main",
+            "state": "PRINTING",
+            "waiting": 0,
+            "printed": 1,
+            "failed": 0,
+            "lastAttemptAt": "2026-08-11T22:13:00.168723Z",
+            "lastPrintedAt": "2026-08-11T22:13:00.168723Z",
+            "lastError": null
+          },
+          {
+            "printerId": "unassigned",
+            "state": "FAILING",
+            "waiting": 2,
+            "printed": 0,
+            "failed": 46,
+            "lastAttemptAt": "2026-08-12T11:35:02.232875Z",
+            "lastPrintedAt": null,
+            "lastError": "UNROUTABLE: no kitchen printer configured for station BAR"
+          }
+        ]
+      }
+    },
+    {
+      "k": "dom",
+      "v": {
+        "rowCount": 5,
+        "rows": [
+          {
+            "pid": "audit-receipt",
+            "transport": "SYSTEM",
+            "host": null,
+            "queueTag": "SELECT",
+            "queueValue": "STMicroelectronics_POS80_Printer_USB",
+            "queueOptions": [
+              "::Choose a printer the agent found…",
+              "_80Series2::_80Series2 — 80Series2 · on F8 live agent",
+              "STMicroelectronics_POS80_Printer_USB::STMicroelectronics_POS80_Printer_USB — STMicroelectronics POS80 Printer USB · on F8 live agent"
+            ],
+            "delivery": "Delivered"
+          },
+          {
+            "pid": "audit-kitchen-default",
+            "transport": "TCP",
+            "host": "127.0.0.1",
+            "queueTag": null,
+            "queueValue": null,
+            "queueOptions": null,
+            "delivery": "Not used today"
+          },
+          {
+            "pid": "audit-kitchen-unassigned",
+            "transport": "TCP",
+            "host": "127.0.0.1",
+            "queueTag": null,
+            "queueValue": null,
+            "queueOptions": null,
+            "delivery": "Delivered"
+          },
+          {
+            "pid": "audit-kitchen-pantry",
+            "transport": "TCP",
+            "host": "127.0.0.1",
+            "queueTag": null,
+            "queueValue": null,
+            "queueOptions": null,
+            "delivery": "Delivered"
+          },
+          {
+            "pid": "grill-9105",
+            "transport": "TCP",
+            "host": "127.0.0.1",
+            "queueTag": null,
+            "queueValue": null,
+            "queueOptions": null,
+            "delivery": "Delivered"
+          }
+        ],
+        "failingAlert": "",
+        "unrouted": "BAR, DGB28334, DGS43431, DGS20334, EXPO7 have no printer. Tickets for those stations will be recorded as unprintable and no paper will appear in the kitchen.",
+        "healthUnavailable": "",
+        "agentReach": "Not reachable from this browser\n\nNo print agent answered on this machine. Either it is not running here, or this browser refused the local-network request — check the address bar for a blocked-request icon. Jobs already queued are not lost: the agent collects them when it starts.",
+        "alerts": [
+          "BAR, DGB28334, DGS43431, DGS20334, EXPO7 have no printer. Tickets for those stations will be recorded as unprintable and no paper will appear in the kitchen."
+        ]
+      }
+    },
+    {
+      "k": "printCalls",
+      "v": {
+        "inPage": 0,
+        "recorded": 0,
+        "where": []
+      }
+    }
+  ]
+}

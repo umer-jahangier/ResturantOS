@@ -1,0 +1,109 @@
+{
+  "checks": [
+    {
+      "name": "the queue control is a native SELECT, not a text box",
+      "pass": true,
+      "detail": "tag=SELECT"
+    },
+    {
+      "name": "it offers both queues this machine really has",
+      "pass": true,
+      "detail": "[\"\",\"_80Series2\",\"STMicroelectronics_POS80_Printer_USB\"]"
+    },
+    {
+      "name": "selecting the other queue changes the control",
+      "pass": true,
+      "detail": "_80Series2"
+    },
+    {
+      "name": "the chosen queue PERSISTED across a reload, read back over HTTP",
+      "pass": true,
+      "detail": "{\"id\":\"audit-receipt\",\"role\":\"RECEIPT\",\"station\":null,\"transport\":\"SYSTEM\",\"host\":null,\"port\":null,\"queue\":\"_80Series2\"}"
+    },
+    {
+      "name": "and the reloaded screen shows it selected",
+      "pass": true,
+      "detail": "{\"pid\":\"audit-receipt\",\"transport\":\"SYSTEM\",\"station\":null,\"host\":null,\"port\":null,\"queueTag\":\"SELECT\",\"queueValue\":\"_80Series2\"}"
+    },
+    {
+      "name": "BAR was unrouted before I added anything",
+      "pass": false,
+      "detail": "[\"DGB28334\",\"DGS43431\",\"DGS20334\",\"EXPO7\"]"
+    },
+    {
+      "name": "harness completed",
+      "pass": false,
+      "detail": "Error: locator.fill: Error: strict mode violation: locator('#station-reopen-bar') resolved to 2 elements:\n    1) <input value=\"BAR\" maxlength=\"64\" data-slot=\"input\" aria-invalid=\"false\" placeholder=\"DEFAULT\" id=\"station-reopen-bar\" list=\"kitchen-station-codes\" class=\"h-8 w-full min-w-0 rounded-lg border border-border-interactive bg-transparent px-2.5 py-1 text-base transition-colors file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed disa…/> aka getByRole('combobox', { name: 'Station Station' })\n    2) <input maxlength=\"64\" value=\"DEFAULT\" data-slot=\"input\" aria-invalid=\"false\" placeholder=\"DEFAULT\" id=\"station-reopen-bar\" list=\"kitchen-station-codes\" class=\"h-8 w-full min-w-0 rounded-lg border border-border-interactive bg-transparent px-2.5 py-1 text-base transition-colors file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring disabled:pointer-events-none disabled:cursor-not-allowed …/> aka getByRole('combobox', { name: 'DEFAULT' })\n\nCall log:\n  - waiting for locator('#station-reopen-bar')\n"
+    }
+  ],
+  "before": {
+    "status": 200,
+    "printers": [
+      {
+        "id": "audit-receipt",
+        "role": "RECEIPT",
+        "station": null,
+        "transport": "SYSTEM",
+        "host": null,
+        "port": null,
+        "queue": "_80Series2"
+      },
+      {
+        "id": "audit-kitchen-default",
+        "role": "KITCHEN",
+        "station": "DEFAULT",
+        "transport": "TCP",
+        "host": "127.0.0.1",
+        "port": 9101,
+        "queue": null
+      },
+      {
+        "id": "audit-kitchen-unassigned",
+        "role": "KITCHEN",
+        "station": "UNASSIGNED",
+        "transport": "TCP",
+        "host": "127.0.0.1",
+        "port": 9101,
+        "queue": null
+      },
+      {
+        "id": "audit-kitchen-pantry",
+        "role": "KITCHEN",
+        "station": "PANTRY1",
+        "transport": "TCP",
+        "host": "127.0.0.1",
+        "port": 9101,
+        "queue": null
+      },
+      {
+        "id": "grill-9105",
+        "role": "KITCHEN",
+        "station": "GRILL",
+        "transport": "TCP",
+        "host": "127.0.0.1",
+        "port": 9105,
+        "queue": null
+      },
+      {
+        "id": "reopen-bar",
+        "role": "KITCHEN",
+        "station": "BAR",
+        "transport": "TCP",
+        "host": "127.0.0.1",
+        "port": 9106,
+        "queue": null
+      }
+    ],
+    "unrouted": [
+      "DGB28334",
+      "DGS43431",
+      "DGS20334",
+      "EXPO7"
+    ]
+  },
+  "saveState.a": {
+    "blocked": null,
+    "disabled": false
+  },
+  "newRowId": "kitchen-a78wbe"
+}

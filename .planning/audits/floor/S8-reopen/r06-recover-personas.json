@@ -1,0 +1,76 @@
+{
+  "checks": [
+    {
+      "name": "with the printer plugged back in but no ticket sent since, the screen STILL accuses GRILL",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "the restarted GRILL printer receives the next ticket",
+      "pass": true,
+      "detail": "576 → 864"
+    },
+    {
+      "name": "the accusation clears with NO clicks once a ticket actually printed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tenant B learns NOTHING about tenant A's printers",
+      "pass": true,
+      "detail": "no rows, no names"
+    }
+  ],
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "grillBytes": {
+    "before": 576,
+    "after": 864
+  },
+  "afterRecovery": {
+    "failing": "",
+    "grillDelivery": "Delivered"
+  },
+  "persona.manager": {
+    "healthStatus": 200,
+    "trouble": [],
+    "screen": {
+      "deniedText": false,
+      "pickers": 1,
+      "rows": 6,
+      "save": true
+    }
+  },
+  "persona.kitchen": {
+    "healthStatus": 403,
+    "trouble": [
+      "access-denied"
+    ],
+    "screen": {
+      "deniedText": true,
+      "pickers": 0,
+      "rows": 0,
+      "save": false
+    }
+  },
+  "persona.waiter": {
+    "healthStatus": 403,
+    "trouble": [
+      "access-denied"
+    ],
+    "screen": {
+      "deniedText": true,
+      "pickers": 0,
+      "rows": 0,
+      "save": false
+    }
+  },
+  "crossTenant": {
+    "healthStatus": 200,
+    "healthPrinters": 0,
+    "healthBody": "{\"data\":{\"windowHours\":24,\"printers\":[]},\"meta\":null,\"warnings\":[]}",
+    "cfgStatus": 404,
+    "cfgBody": "{\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"Branch not found: 34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"details\":[],\"traceId\":\"d1da961f-84b4-484e-b941-a6899281b9e1\"}}",
+    "agentsStatus": 200,
+    "agentsBody": "{\"data\":[],\"meta\":null,\"warnings\":[]}"
+  }
+}

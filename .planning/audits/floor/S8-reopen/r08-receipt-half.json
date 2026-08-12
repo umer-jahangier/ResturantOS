@@ -1,0 +1,56 @@
+{
+  "checks": [
+    {
+      "name": "the till printer now points at a dead port",
+      "pass": true,
+      "detail": "{\"id\":\"audit-receipt\",\"terminalId\":null,\"role\":\"RECEIPT\",\"stationCode\":null,\"transport\":\"TCP\",\"host\":\"127.0.0.1\",\"port\":9199,\"systemPrinterName\":null,\"widthMm\":80,\"columns\":42,\"columnsMeasured\":false,\"codepage\":\"CP437\",\"cut\":\"PARTIAL\",\"drawerPin\":null,\"drawerPulseMs\":null}"
+    },
+    {
+      "name": "the cashier's bill screen does NOT claim paper it never got",
+      "pass": true,
+      "detail": "{\"state\":\"IN_FLIGHT\",\"text\":\"Printing on audit-receipt… F8 live agent is connected and collecting this bill now. This notice will confirm when the agent reports it delivered.\"}"
+    },
+    {
+      "name": "the owner's screen names the TILL printer, not only kitchen stations",
+      "pass": true,
+      "detail": "The receipt printer cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9199: connection refused — nothing is listening. Check the printer is powered on and on this address. 11 jobs are"
+    },
+    {
+      "name": "and quotes the transport's own error for the till too",
+      "pass": true,
+      "detail": "The receipt printer cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9199: connection refused — nothing is listening. Check the printer is powered on and on this address. 11 jobs are still waiting."
+    }
+  ],
+  "brokenReceipt": {
+    "id": "audit-receipt",
+    "terminalId": null,
+    "role": "RECEIPT",
+    "stationCode": null,
+    "transport": "TCP",
+    "host": "127.0.0.1",
+    "port": 9199,
+    "systemPrinterName": null,
+    "widthMm": 80,
+    "columns": 42,
+    "columnsMeasured": false,
+    "codepage": "CP437",
+    "cut": "PARTIAL",
+    "drawerPin": null,
+    "drawerPulseMs": null
+  },
+  "orderNo": "ORD-20260812-0438",
+  "cashierNotice": {
+    "state": "IN_FLIGHT",
+    "text": "Printing on audit-receipt… F8 live agent is connected and collecting this bill now. This notice will confirm when the agent reports it delivered."
+  },
+  "cashierWindowPrint": {
+    "inPage": 0,
+    "recorded": 0,
+    "where": []
+  },
+  "ownerScreen": {
+    "failing": "The receipt printer cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9199: connection refused — nothing is listening. Check the printer is powered on and on this address. 11 jobs are still waiting.",
+    "receiptDelivery": "Cannot print"
+  },
+  "restored": true
+}

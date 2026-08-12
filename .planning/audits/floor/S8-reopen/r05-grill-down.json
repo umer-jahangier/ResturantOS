@@ -1,0 +1,88 @@
+{
+  "checks": [
+    {
+      "name": "before I break anything, GRILL is not accused",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "the GRILL printer is now switched off",
+      "pass": true,
+      "detail": "null"
+    },
+    {
+      "name": "the screen names the STATION that cannot print",
+      "pass": true,
+      "detail": "GRILL cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address. 1 job"
+    },
+    {
+      "name": "and quotes the transport's own error, not 'printing failed'",
+      "pass": true,
+      "detail": "GRILL cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address. 1 job is still waiting."
+    },
+    {
+      "name": "the row's own delivery badge stopped saying Delivered",
+      "pass": true,
+      "detail": "Cannot print"
+    },
+    {
+      "name": "while the machine beside it still reads Connected — the pair that is the whole point",
+      "pass": true,
+      "detail": "true"
+    },
+    {
+      "name": "the server agrees: grill-9105 is FAILING",
+      "pass": true,
+      "detail": "{\"printerId\":\"grill-9105\",\"state\":\"FAILING\",\"waiting\":1,\"printed\":31,\"failed\":2,\"lastAttemptAt\":\"2026-08-12T12:05:27.995378Z\",\"lastPrintedAt\":\"2026-08-12T12:00:10.002298Z\",\"lastError\":\"printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address.\"}"
+    }
+  ],
+  "grillPrinterPid": "92925",
+  "before": {
+    "failing": "",
+    "grillDelivery": "Delivered"
+  },
+  "stillListening": null,
+  "orderNo": "ORD-20260812-0431",
+  "after": {
+    "failing": "GRILL cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address. 1 job is still waiting.",
+    "perPrinter": [
+      {
+        "id": "grill-9105",
+        "text": "GRILL cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address. 1 job is still waiting."
+      }
+    ],
+    "agentRows": [
+      "CONNECTED",
+      "STALE",
+      "STALE",
+      "STALE",
+      "NEVER_STARTED",
+      "STALE",
+      "STALE",
+      "STALE",
+      "STALE",
+      "NEVER_STARTED",
+      "STALE",
+      "STALE",
+      "STALE",
+      "STALE",
+      "NEVER_STARTED",
+      "NEVER_STARTED",
+      "STALE",
+      "REVOKED",
+      "REVOKED"
+    ],
+    "bodyHasConnected": true,
+    "grillDelivery": "Cannot print"
+  },
+  "healthGrill": {
+    "printerId": "grill-9105",
+    "state": "FAILING",
+    "waiting": 1,
+    "printed": 31,
+    "failed": 2,
+    "lastAttemptAt": "2026-08-12T12:05:27.995378Z",
+    "lastPrintedAt": "2026-08-12T12:00:10.002298Z",
+    "lastError": "printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address."
+  }
+}
