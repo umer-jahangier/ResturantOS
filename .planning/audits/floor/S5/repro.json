@@ -1,0 +1,339 @@
+{
+  "routes": {
+    "/app/branches": {
+      "bad": [
+        "404"
+      ],
+      "alerts": [],
+      "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    },
+    "/app/settings/branches": {
+      "bad": [
+        "404"
+      ],
+      "alerts": [],
+      "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    },
+    "/app/branch": {
+      "bad": [
+        "404"
+      ],
+      "alerts": [],
+      "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    },
+    "/app/locations": {
+      "bad": [
+        "404"
+      ],
+      "alerts": [],
+      "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    },
+    "/app/admin/branches": {
+      "bad": [
+        "404"
+      ],
+      "alerts": [],
+      "body": "404\n\nThis page doesn't exist\n\nThe link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data.\n\nBack to dashboard"
+    }
+  },
+  "sidebar": [
+    {
+      "text": "Dashboard",
+      "href": "/app/dashboard"
+    },
+    {
+      "text": "POS",
+      "href": "/app/pos"
+    },
+    {
+      "text": "Kitchen Display",
+      "href": "/app/kitchen"
+    },
+    {
+      "text": "The Pass",
+      "href": "/app/kitchen/expo"
+    },
+    {
+      "text": "Till Review",
+      "href": "/app/pos/tills"
+    },
+    {
+      "text": "Inventory",
+      "href": "/app/inventory"
+    },
+    {
+      "text": "Menu Items",
+      "href": "/app/menu/items"
+    },
+    {
+      "text": "Tables",
+      "href": "/app/tables"
+    },
+    {
+      "text": "Stations",
+      "href": "/app/stations"
+    },
+    {
+      "text": "Station Routing",
+      "href": "/app/menu/routing"
+    },
+    {
+      "text": "POS Terminals",
+      "href": "/app/terminals"
+    },
+    {
+      "text": "Printers",
+      "href": "/app/settings/printers"
+    },
+    {
+      "text": "Guide",
+      "href": "/app/finance/guide"
+    },
+    {
+      "text": "Takings",
+      "href": "/app/finance/takings"
+    },
+    {
+      "text": "Accounts",
+      "href": "/app/finance/accounts"
+    },
+    {
+      "text": "Journal Entries",
+      "href": "/app/finance/journal-entries"
+    },
+    {
+      "text": "General Ledger",
+      "href": "/app/finance/gl"
+    },
+    {
+      "text": "Periods",
+      "href": "/app/finance/periods"
+    },
+    {
+      "text": "Expenses",
+      "href": "/app/finance/expenses"
+    },
+    {
+      "text": "AP Aging",
+      "href": "/app/finance/ap-aging"
+    },
+    {
+      "text": "Purchasing",
+      "href": "/app/purchasing"
+    },
+    {
+      "text": "HR",
+      "href": "/app/hr"
+    },
+    {
+      "text": "Customers",
+      "href": "/app/crm"
+    },
+    {
+      "text": "Reports",
+      "href": "/app/reports"
+    },
+    {
+      "text": "Realtime Dashboard",
+      "href": "/app/dashboard/realtime"
+    },
+    {
+      "text": "Ask (NLQ)",
+      "href": "/app/nlq"
+    },
+    {
+      "text": "General",
+      "href": "/app/settings"
+    },
+    {
+      "text": "Appearance",
+      "href": "/settings/appearance"
+    },
+    {
+      "text": "Users",
+      "href": "/app/users"
+    },
+    {
+      "text": "Audit log",
+      "href": "/app/settings/audit"
+    },
+    {
+      "text": "Service health",
+      "href": "/app/settings/health"
+    },
+    {
+      "text": "Dashboard",
+      "href": "/app/dashboard"
+    },
+    {
+      "text": "Orders",
+      "href": "/app/pos"
+    },
+    {
+      "text": "Menu",
+      "href": "/app/inventory"
+    },
+    {
+      "text": "Finance",
+      "href": "/app/finance/accounts"
+    },
+    {
+      "text": "Settings",
+      "href": "/app/settings"
+    }
+  ],
+  "switcher": {
+    "present": 0
+  },
+  "api": {
+    "token0": {
+      "jti": "08b92b9c-77f7-4637-8fb1-5dfc55eebc6e",
+      "sub": "61334688-6b5c-4926-ac82-e93208ba5324",
+      "tenant_id": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+      "branch_id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "roles": [
+        "OWNER"
+      ],
+      "permissions": [
+        "audit.log.view",
+        "branch.manage",
+        "crm.customer.manage",
+        "crm.customer.view",
+        "crm.promotion.manage",
+        "crm.promotion.view",
+        "file.manage",
+        "file.upload",
+        "file.view",
+        "finance.ar.manage",
+        "finance.ar.view",
+        "finance.coa.manage",
+        "finance.coa.view",
+        "finance.expense.approve",
+        "finance.journal.post",
+        "finance.journal.reverse",
+        "finance.journal.view",
+        "finance.period.close",
+        "finance.period.open",
+        "hr.attendance.manage",
+        "hr.attendance.view",
+        "hr.config.manage",
+        "hr.config.view",
+        "hr.employee.manage",
+        "hr.employee.view",
+        "hr.leave.approve",
+        "hr.leave.view",
+        "hr.payroll.approve",
+        "hr.payroll.run",
+        "hr.payroll.view",
+        "inventory.item.manage",
+        "inventory.item.view",
+        "nlq.query.run",
+        "ops.health.view",
+        "pos.kds.update",
+        "pos.kds.view",
+        "pos.menu.manage",
+        "pos.menu.view",
+        "pos.order.close",
+        "pos.order.create",
+        "pos.order.discount.line",
+        "pos.order.discount.order",
+        "pos.order.discount.override",
+        "pos.order.refund",
+        "pos.order.send_to_kds",
+        "pos.order.split_bill",
+        "pos.order.update",
+        "pos.order.view",
+        "pos.order.view.all",
+        "pos.order.void.any",
+        "pos.order.void.own",
+        "pos.printers.admin",
+        "pos.tables.admin",
+        "pos.tables.manage",
+        "pos.terminals.admin",
+        "pos.till.close",
+        "pos.till.open",
+        "pos.till.open.other",
+        "pos.till.reconcile.override",
+        "pos.till.review",
+        "rbac.manage",
+        "rbac.role.manage",
+        "rbac.user.manage",
+        "reporting.dashboard.view",
+        "reporting.report.fbr",
+        "reporting.report.view",
+        "vendor.grn.receive",
+        "vendor.invoice.book",
+        "vendor.invoice.override",
+        "vendor.manage",
+        "vendor.payment.create",
+        "vendor.po.approve",
+        "vendor.po.close",
+        "vendor.po.create",
+        "vendor.po.send",
+        "vendor.view"
+      ],
+      "attributes": {
+        "approval_limit_paisa": 100000000
+      },
+      "totp_verified": false,
+      "iat": 1786513005,
+      "exp": 1786513905
+    },
+    "list": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "c2d74ade-7ff8-4167-8cd0-131bfbdf4fba",
+            "tenantId": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+            "name": "Floating Terrace — Rooftop",
+            "isHq": false,
+            "isActive": true,
+            "address": null,
+            "fbrStrn": null,
+            "ntn": null,
+            "phone": null,
+            "email": null,
+            "timezone": "Asia/Karachi",
+            "currencyConfig": null,
+            "receiptConfig": null,
+            "openedOn": null
+          },
+          {
+            "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+            "tenantId": "d108c2e6-a70d-49c8-acdc-37531fd752d8",
+            "name": "Floating Terrace HQ",
+            "isHq": true,
+            "isActive": true,
+            "address": "\"12 Khayaban-e-Iqbal\"",
+            "fbrStrn": null,
+            "ntn": null,
+            "phone": "+92 21 4628872",
+            "email": "hq@floatingterrace.pk",
+            "timezone": "Asia/Karachi",
+            "currencyConfig": null,
+            "receiptConfig": "{\"fbr\": null, \"agent\": {\"lanUrl\": null, \"baseUrl\": \"http://127.0.0.1:7654\"}, \"footer\": null, \"header\": null, \"printers\": [{\"id\": \"audit-receipt\", \"cut\": \"PARTIAL\", \"host\": \"127.0.0.1\", \"port\": 9100, \"role\": \"RECEIPT\", \"columns\": 42, \"widthMm\": 80, \"codepage\": \"CP437\", \"drawerPin\": null, \"transport\": \"TCP\", \"terminalId\": null, \"stationCode\": null, \"drawerPulseMs\": null, \"columnsMeasured\": false, \"systemPrinterName\": null}, {\"id\": \"audit-kitchen-default\", \"cut\": \"PARTIAL\", \"host\": \"127.0.0.1\", \"port\": 9101, \"role\": \"KITCHEN\", \"columns\": 42, \"widthMm\": 80, \"codepage\": \"CP437\", \"drawerPin\": null, \"transport\": \"TCP\", \"terminalId\": null, \"stationCode\": \"DEFAULT\", \"drawerPulseMs\": null, \"columnsMeasured\": false, \"systemPrinterName\": null}, {\"id\": \"audit-kitchen-unassigned\", \"cut\": \"PARTIAL\", \"host\": \"127.0.0.1\", \"port\": 9101, \"role\": \"KITCHEN\", \"columns\": 42, \"widthMm\": 80, \"codepage\": \"CP437\", \"drawerPin\": null, \"transport\": \"TCP\", \"terminalId\": null, \"stationCode\": \"UNASSIGNED\", \"drawerPulseMs\": null, \"columnsMeasured\": false, \"systemPrinterName\": null}, {\"id\": \"audit-kitchen-pantry\", \"cut\": \"PARTIAL\", \"host\": \"127.0.0.1\", \"port\": 9101, \"role\": \"KITCHEN\", \"columns\": 42, \"widthMm\": 80, \"codepage\": \"CP437\", \"drawerPin\": null, \"transport\": \"TCP\", \"terminalId\": null, \"stationCode\": \"PANTRY1\", \"drawerPulseMs\": null, \"columnsMeasured\": false, \"systemPrinterName\": null}, {\"id\": \"grill-9102\", \"cut\": \"PARTIAL\", \"host\": \"127.0.0.1\", \"port\": 9102, \"role\": \"KITCHEN\", \"columns\": 42, \"widthMm\": 80, \"codepage\": \"CP437\", \"drawerPin\": null, \"transport\": \"TCP\", \"terminalId\": null, \"stationCode\": \"GRILL\", \"drawerPulseMs\": null, \"columnsMeasured\": false, \"systemPrinterName\": null}], \"kitchenStations\": [\"DEFAULT\", \"UNASSIGNED\", \"BAR\", \"GRILL\", \"DGB28334\", \"DGS43431\", \"DGS20334\", \"PANTRY1\", \"EXPO7\"]}",
+            "openedOn": "2024-01-15"
+          }
+        ],
+        "meta": null,
+        "warnings": []
+      }
+    },
+    "mine": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+            "name": "Floating Terrace HQ",
+            "isHq": true,
+            "roleCode": "OWNER"
+          }
+        ],
+        "meta": null,
+        "warnings": []
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "hq — trouble": []
+  },
+  {
+    "hq — GET /pos/orders calls": [
+      {
+        "u": "/api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "tokenBranch": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+      }
+    ]
+  },
+  {
+    "hq — what the screen says": "Point of sale | No active till | Open Till | POS Terminal | Floor View | Order Management | Live | Active | Draft | In Progress | Partially Served | Served | Closed | Paid | Voided | Refunded | Active shows live orders only. Settled checks are under Closed, Voided and Refunded. | My Orders | All Branch | Refresh | ORDER / TYPE\tSTATUS\tPAYMENT\tSERVER/CASHIER\tITEMS\tTOTAL\tAGE\t | ORD-20260812-0285 | Dine-in | \t | In Progress | \t | Unpaid | \tTerrace Cashier\t | 1 item | \tRs 649.00\t5m\t | Assign Table | Open | ORD-20260812-0284 | Dine-in | \t | In Progress | \t | Unpaid | \tTerrace Manager\t | 3 items | 2 "
+  },
+  {
+    "switcher now reads": "Data Scope 85715"
+  },
+  {
+    "new-branch — trouble": []
+  },
+  {
+    "new-branch — GET /pos/orders calls": [
+      {
+        "u": "/api/v1/pos/orders?branchId=213d1a4f-c17a-4bf8-bff5-ce9806bd96a4",
+        "tokenBranch": "213d1a4f-c17a-4bf8-bff5-ce9806bd96a4"
+      }
+    ]
+  },
+  {
+    "new-branch — what the screen says": "Point of sale | No active till | Open Till | POS Terminal | Floor View | Order Management | Live | Active | Draft | In Progress | Partially Served | Served | Closed | Paid | Voided | Refunded | Active shows live orders only. Settled checks are under Closed, Voided and Refunded. | My Orders | All Branch | Refresh | No active orders | Orders opened from the floor or terminal appear here until they're closed. | Go to POS"
+  },
+  {
+    "HQ and the new branch queried different branchIds": {
+      "hq": "/api/v1/pos/orders?branchId=34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "fresh": "/api/v1/pos/orders?branchId=213d1a4f-c17a-4bf8-bff5-ce9806bd96a4",
+      "different": true
+    }
+  },
+  {
+    "the two screens say different things": true
+  },
+  {
+    "cleaned up": "Data Scope 85715"
+  }
+]

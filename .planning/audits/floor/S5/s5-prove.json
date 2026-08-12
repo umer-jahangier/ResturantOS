@@ -1,0 +1,205 @@
+[
+  {
+    "step": "sidebar entries matching /app/branches",
+    "detail": 1
+  },
+  {
+    "step": "branches listed on arrival",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop"
+    ]
+  },
+  {
+    "step": "email aria-invalid while typing",
+    "detail": "true"
+  },
+  {
+    "step": "message under the email box",
+    "detail": "That is not an email address — it needs an @ and a domain, like manager@yourrestaurant.pk"
+  },
+  {
+    "step": "POST /api/v1/branches",
+    "detail": [
+      {
+        "status": 201,
+        "body": "{\"data\":{\"id\":\"70fffc3d-6597-4057-bae7-c4788d702d8b\",\"tenantId\":\"d108c2e6-a70d-49c8-acdc-37531fd752d8\",\"name\":\"Gulberg Terrace 13056\",\"isHq\":false,\"isActive\":true,\"address\":\"5 MM Alam Road, Gulberg III, Lahore\",\"fbrStrn\":null,\"ntn\":null,\"phone\":null,\"email\":null,\"timezone\":\"Asia/Dubai\",\"currencyConf"
+      }
+    ]
+  },
+  {
+    "step": "anything shouting on screen",
+    "detail": [
+      "Added Gulberg Terrace 13056. You can now switch to it."
+    ]
+  },
+  {
+    "step": "console errors",
+    "detail": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ]
+  },
+  {
+    "step": "after create, rows",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Gulberg Terrace 13056"
+    ]
+  },
+  {
+    "step": "after RELOAD, rows",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Gulberg Terrace 13056"
+    ]
+  },
+  {
+    "step": "the new row reads",
+    "detail": "Gulberg Terrace 13056 |  | 5 MM Alam Road, Gulberg III, Lahore |  | Asia/Dubai"
+  },
+  {
+    "step": "after rename + RELOAD, rows",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Gulberg Terrace 13056 — Garden"
+    ]
+  },
+  {
+    "step": "switcher present",
+    "detail": true
+  },
+  {
+    "step": "switcher label before switch",
+    "detail": "Floating Terrace HQ"
+  },
+  {
+    "step": "live token branch_id BEFORE switch",
+    "detail": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03"
+  },
+  {
+    "step": "switcher options",
+    "detail": [
+      "Floating Terrace HQ",
+      "Gulberg Terrace 13056 — Garden"
+    ]
+  },
+  {
+    "step": "switcher label after switch",
+    "detail": "Gulberg Terrace 13056 — Garden"
+  },
+  {
+    "step": "live token branch_id AFTER switch",
+    "detail": "70fffc3d-6597-4057-bae7-c4788d702d8b"
+  },
+  {
+    "step": "switcher label after RELOAD",
+    "detail": "Gulberg Terrace 13056 — Garden"
+  },
+  {
+    "step": "live token branch_id after RELOAD",
+    "detail": "70fffc3d-6597-4057-bae7-c4788d702d8b"
+  },
+  {
+    "step": "takings page trouble",
+    "detail": []
+  },
+  {
+    "step": "takings branch on the wire",
+    "detail": "70fffc3d-6597-4057-bae7-c4788d702d8b"
+  },
+  {
+    "step": "takings body head",
+    "detail": "Floating Terrace | Gulberg Terrace 13056 — Garden |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS | Kitchen Display | Till Review |  | MENU |  | Inventory | Menu Items | Tables | Stations | Station Routing | POS Terminals | Printers | Sales Tax | Service Charge |  | FINANCE |  | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging |  | PURCHASING |  | Purchasing |  | PEOPLE |  | HR | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NL"
+  },
+  {
+    "step": "order management trouble",
+    "detail": []
+  },
+  {
+    "step": "order management branch on the wire",
+    "detail": "70fffc3d-6597-4057-bae7-c4788d702d8b"
+  },
+  {
+    "step": "order management body head",
+    "detail": "Floating Terrace | Gulberg Terrace 13056 — Garden |  | OVERVIEW |  | Dashboard |  | ORDERS |  | POS | Kitchen Display | Till Review |  | MENU |  | Inventory | Menu Items | Tables | Stations | Station Routing | POS Terminals | Printers | Sales Tax | Service Charge |  | FINANCE |  | Guide | Takings | Accounts | Journal Entries | General Ledger | Periods | Expenses | AP Aging |  | PURCHASING |  | Purchasing |  | PEOPLE |  | HR | Customers |  | REPORTING |  | Reports | Realtime Dashboard | Ask (NL"
+  },
+  {
+    "step": "switched back to",
+    "detail": "Floating Terrace HQ"
+  },
+  {
+    "step": "confirmation copy",
+    "detail": "Stop trading at Gulberg Terrace 13056 — Garden? |  | It leaves everyone's branch switcher, so nobody can take an order or start a till there. Nothing is deleted — its orders, takings and ledger stay exactly as they are, and you can bring it back from “Show deactivated”. |  | Cancel | Deactivate bran"
+  },
+  {
+    "step": "rows after deactivate",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop"
+    ]
+  },
+  {
+    "step": "switcher present after deactivate + reload",
+    "detail": false
+  },
+  {
+    "step": "rows after deactivate + reload",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop"
+    ]
+  },
+  {
+    "step": "rows with Show deactivated ticked",
+    "detail": [
+      "Floating Terrace HQ",
+      "Floating Terrace — Rooftop",
+      "Gulberg Terrace 13056 — Garden"
+    ]
+  },
+  {
+    "step": "viewport 390 light",
+    "detail": {
+      "horizontalOverflow": false,
+      "bodyBackground": "oklch(1 0 195)"
+    }
+  },
+  {
+    "step": "viewport 390 dark",
+    "detail": {
+      "horizontalOverflow": false,
+      "bodyBackground": "oklch(0.132 0.006 195)"
+    }
+  },
+  {
+    "step": "viewport 768 light",
+    "detail": {
+      "horizontalOverflow": false,
+      "bodyBackground": "oklch(1 0 195)"
+    }
+  },
+  {
+    "step": "viewport 768 dark",
+    "detail": {
+      "horizontalOverflow": false,
+      "bodyBackground": "oklch(0.132 0.006 195)"
+    }
+  },
+  {
+    "step": "viewport 1440 light",
+    "detail": {
+      "horizontalOverflow": false,
+      "bodyBackground": "oklch(1 0 195)"
+    }
+  },
+  {
+    "step": "viewport 1440 dark",
+    "detail": {
+      "horizontalOverflow": false,
+      "bodyBackground": "oklch(0.132 0.006 195)"
+    }
+  }
+]
