@@ -1,6 +1,7 @@
 package io.restaurantos.pos.domain.model;
 
 import io.restaurantos.pos.domain.enums.OrderItemStatus;
+import io.restaurantos.pos.domain.enums.TaxBase;
 import io.restaurantos.shared.entity.TenantAuditableEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -81,6 +82,23 @@ public class OrderItem extends TenantAuditableEntity {
 
     @Column(name = "tax_class_name", length = 120)
     private String taxClassName;
+
+    /**
+     * Which rule priced {@link #taxPaisa} — the discounted line, or the gross one (V27).
+     *
+     * <p>A snapshot for the same reason {@link #taxRatePct} beside it is one, and the reason is
+     * stronger: the rate answers "how much", this answers "of what". A bill reconciled against a
+     * return six weeks later needs both, and the tenant's policy may have changed in between.
+     *
+     * <p>{@code GROSS} on every row written before V27 — not a default, a statement of fact. Tax
+     * was the figure stamped once at add-item time on the undiscounted line, and no discount ever
+     * moved it, because the only caller of {@code OrderPricingCalculator.computeItemLine} passes a
+     * hard-coded zero discount and every later discount arrives as an {@code order_discounts} row
+     * that never re-enters the calculator.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tax_base", nullable = false, length = 10)
+    private TaxBase taxBase = TaxBase.NET;
 
     @Column(name = "line_total_paisa", nullable = false)
     private long lineTotalPaisa = 0L;
