@@ -61,7 +61,7 @@ class MenuUpdateReplacesFieldsIT extends PosTestBase {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(claims, null, List.of()));
         MenuCategoryDto category = menuService.createCategory(
-                new CreateMenuCategoryRequest("Starters", null, 1));
+                new CreateMenuCategoryRequest("Starters", null, 1, null));
         categoryId = category.id();
     }
 
@@ -69,7 +69,7 @@ class MenuUpdateReplacesFieldsIT extends PosTestBase {
     private MenuItemDto seededTaxedItem() {
         return menuService.createItem(new CreateMenuItemRequest(
                 categoryId, "Seekh Kebab", "Seekh Kebab — Floating Terrace", 45000L,
-                new BigDecimal("17.00"), "SR-STD-17", null));
+                new BigDecimal("17.00"), "SR-STD-17", null, null));
     }
 
     @Test
@@ -82,7 +82,7 @@ class MenuUpdateReplacesFieldsIT extends PosTestBase {
         // makes mandatory rather than merely conventional.
         MenuItemDto updated = menuService.updateItem(seeded.id(), new UpdateMenuItemRequest(
                 categoryId, "Seekh Kebab", "Seekh Kebab — typo fixed", 45000L,
-                new BigDecimal("17.00"), "SR-STD-17", null));
+                new BigDecimal("17.00"), "SR-STD-17", null, null));
 
         assertThat(updated.description()).isEqualTo("Seekh Kebab — typo fixed");
         assertThat(updated.taxRateCode()).isEqualTo("SR-STD-17");
@@ -99,7 +99,7 @@ class MenuUpdateReplacesFieldsIT extends PosTestBase {
 
         MenuItemDto updated = menuService.updateItem(seeded.id(), new UpdateMenuItemRequest(
                 categoryId, "Seekh Kebab", "Seekh Kebab — Floating Terrace", 45000L,
-                new BigDecimal("17.00"), null, null));
+                new BigDecimal("17.00"), null, null, null));
 
         // The other half of the contract. A fix that made the code un-erasable would be a
         // different defect, not a repair — an item CAN legitimately stop being classified.
@@ -115,7 +115,7 @@ class MenuUpdateReplacesFieldsIT extends PosTestBase {
 
         MenuItemDto updated = menuService.updateItem(seeded.id(), new UpdateMenuItemRequest(
                 categoryId, "Seekh Kebab", "Seekh Kebab — Floating Terrace", 45000L,
-                null, "SR-STD-17", null));
+                null, "SR-STD-17", null, null));
 
         // taxRatePct is the LEAVE-UNCHANGED group. This is what saved the rate from the S0 #4
         // wipe while the code beside it was destroyed, and removing this guard would turn every
@@ -134,7 +134,7 @@ class MenuUpdateReplacesFieldsIT extends PosTestBase {
         // documented semantics of this endpoint and this test says so out loud, so that nobody
         // "fixes" S0 #4 here and leaves clients unable to clear a classification at all.
         MenuItemDto updated = menuService.updateItem(seeded.id(), new UpdateMenuItemRequest(
-                categoryId, "Seekh Kebab", "Seekh Kebab — typo fixed", 45000L, null, null, null));
+                categoryId, "Seekh Kebab", "Seekh Kebab — typo fixed", 45000L, null, null, null, null));
 
         assertThat(updated.taxRateCode()).isNull();
         assertThat(updated.taxRatePct()).isEqualByComparingTo("17.00");

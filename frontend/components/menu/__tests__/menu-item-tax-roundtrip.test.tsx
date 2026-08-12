@@ -21,6 +21,16 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
  * These assertions are on the BODY PUT ON THE WIRE, not on a mutation argument, because the wire
  * is the seam that broke. The last test is the other half of the contract: removal on purpose
  * must still work, or the fix has traded a silent wipe for an unremovable field.
+ *
+ * <h2>F16 kept every one of these and added a fourth field to the same PUT</h2>
+ *
+ * The item dialog now leads with a Sales tax SELECT — follow the category, a named class, or
+ * "a rate just for this item" — and the rate/code pair appears only under that last choice. This
+ * fixture is deliberately the pre-F16 shape: a per-item 17% / SR-STD-17 with NO `taxClassId` and
+ * NO `effectiveTaxSource`, exactly what a pos-service that has not been redeployed still sends.
+ * The dialog has to read that as a custom rate from the item's own two columns; deciding it from
+ * the server's caption would let a missing caption present a live 17% as "follows the category"
+ * and clear it on the next save — S0-03, committed a second time by its own fix.
  */
 
 const CAT_STARTERS = "c1000001-0000-4000-8000-000000000001";
@@ -48,6 +58,12 @@ const taxedItem = {
 
 function mockEndpoints(onPut: (body: unknown) => void) {
   server.use(
+    // F16: the item dialog reads the tenant's rate catalogue to build its Sales tax select.
+    // Returned EMPTY on purpose here — this fixture is the pre-F16 tenant, which has no classes
+    // and whose dishes carry per-item rates. The dialog must still show and preserve that rate.
+    http.get("*/api/v1/pos/tax-classes", () =>
+      HttpResponse.json({ data: [], meta: null, warnings: [] }),
+    ),
     http.get("*/api/v1/pos/menu/categories/admin", () =>
       HttpResponse.json({ data: rawCategoriesAdmin, meta: null, warnings: [] }),
     ),
@@ -120,6 +136,9 @@ describe("Menu item edit — tax classification round-trip (S0-03)", () => {
       taxRatePct: 17,
       taxRateCode: "SR-STD-17",
       imageFileId: null,
+      // F16: null and PRESENT. The dish is on its own rate, so it names no class — but the key
+      // travels, because pos-service reads an absent taxClassId exactly as it reads null.
+      taxClassId: null,
     });
   });
 
@@ -128,6 +147,9 @@ describe("Menu item edit — tax classification round-trip (S0-03)", () => {
     const user = userEvent.setup();
     const dialog = await openEditDialog(user);
 
+    // The select opens ON the custom rate, unprompted — the fields are only reachable that way,
+    // so if this reads anything else the two boxes below are not on screen at all.
+    expect(within(dialog).getByRole("combobox", { name: "Sales tax" })).toHaveValue("CUSTOM");
     expect(within(dialog).getByRole("textbox", { name: "Tax rate (%)" })).toHaveValue("17");
     expect(within(dialog).getByRole("textbox", { name: "Tax code" })).toHaveValue("SR-STD-17");
   });
@@ -146,7 +168,30 @@ describe("Menu item edit — tax classification round-trip (S0-03)", () => {
     await waitFor(() => expect(putBody).not.toBeNull());
     // null, not omitted: pos-service reads an ABSENT key the same way it reads null, so a
     // deliberate removal has to be expressible as a value on the wire.
-    expect(putBody).toMatchObject({ taxRateCode: null, taxRatePct: 17 });
+    expect(putBody).toMatchObject({ taxRateCode: null, taxRatePct: 17, taxClassId: null });
     expect(putBody).toHaveProperty("taxRateCode");
+  });
+
+  /**
+   * F16's own half of the same contract: moving a dish OFF its custom rate and onto the category
+   * must clear both columns on the wire.
+   *
+   * <p>Leaving a stale 17.00% behind a dish that now reads "follows Starters" is not harmless —
+   * it is a rate that re-appears, silently, the day somebody clears the class again, and it would
+   * make the item's own row disagree with what the till charges.
+   */
+  it("switchingFromACustomRateToTheCategoryClearsBothColumns", async () => {
+    let putBody: Record<string, unknown> | null = null;
+    renderPage((b) => {
+      putBody = b as Record<string, unknown>;
+    });
+    const user = userEvent.setup();
+    const dialog = await openEditDialog(user);
+
+    await user.selectOptions(within(dialog).getByRole("combobox", { name: "Sales tax" }), "");
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(putBody).not.toBeNull());
+    expect(putBody).toMatchObject({ taxRatePct: 0, taxRateCode: null, taxClassId: null });
   });
 });

@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,29 @@ public class OrderItem extends TenantAuditableEntity {
 
     @Column(name = "tax_paisa", nullable = false)
     private long taxPaisa = 0L;
+
+    /**
+     * The tax rate, code and class name this line was CHARGED at, frozen at add-item time (F16).
+     *
+     * <p>Snapshots for the same reason {@link #unitPriceSnapshot} and {@link #itemNameSnapshot}
+     * are: the bill has to keep saying what the guest actually paid. Before these existed, the
+     * receipt's tax breakdown re-read the live {@code menu_items} row at print time, so a reprint
+     * after a rate change attributed old money to a new rate, and an item since re-classified
+     * moved its tax into a bucket it had never paid into.
+     *
+     * <p>A row with {@code taxPaisa > 0} and {@code taxRatePct == 0} is a PRE-F16 line: it was
+     * written before the snapshot existed and its rate is genuinely unknown. That combination is
+     * impossible for a new line — the tax is computed FROM the rate — which is what makes it a
+     * safe discriminator for the receipt assembler's legacy fallback.
+     */
+    @Column(name = "tax_rate_pct", nullable = false, precision = 5, scale = 2)
+    private BigDecimal taxRatePct = BigDecimal.ZERO;
+
+    @Column(name = "tax_rate_code", length = 40)
+    private String taxRateCode;
+
+    @Column(name = "tax_class_name", length = 120)
+    private String taxClassName;
 
     @Column(name = "line_total_paisa", nullable = false)
     private long lineTotalPaisa = 0L;

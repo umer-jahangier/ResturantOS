@@ -5,6 +5,9 @@ import { CloudOff, MessageSquare, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
+// The SHARED formatter, and the only way money is ever rendered — the caption below prints a
+// delta inline inside a sentence, where a <MoneyDisplay> element cannot go.
+import { formatPaisa } from "@/lib/adapters/shared";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   RevisionBadge,
@@ -18,6 +21,8 @@ import {
   cartLineKey,
   cartTotalPaisa,
   cartTaxPaisa,
+  lineSubtotalPaisa,
+  modifierIdsOf,
   type CartLine,
 } from "@/components/pos/cart-reducer";
 import {
@@ -176,7 +181,7 @@ function PreSendCart({
           />
         ) : (
           cart.map((line) => {
-            const key = cartLineKey(line.menuItemId, line.modifierIds, line.notes);
+            const key = cartLineKey(line.menuItemId, modifierIdsOf(line), line.notes);
             return (
               <CartLineRow
                 key={key}
@@ -198,16 +203,34 @@ function PreSendCart({
             <span>Subtotal</span>
             <MoneyDisplay paisa={subtotal} className="font-mono" />
           </div>
+          {/*
+            F16 — "(est.)" is gone, and it had to earn that.
+
+            The hedge was never really about arithmetic. The cart priced tax from the menu item's
+            own `taxRatePct` column, which most items do not carry, so the number was a guess:
+            the walkthrough's Rs 1,657.00 check showed Rs 25.60 of tax — 1.5% — because two of
+            its lines had a per-item rate and the rest had none.
+
+            It now prices from `effectiveTaxRatePct`, the rate the server resolved and the rate
+            the server will charge, through integer arithmetic that is HALF_UP by construction
+            (see cartTaxPaisa). There are no discounts before Send, so this figure is the order's
+            figure. Saying "estimated" over a number that is exact teaches a cashier to distrust
+            the screen, and a cashier who distrusts the screen stops reading it.
+          */}
           <div className="flex justify-between text-muted-foreground">
-            <span>Tax (est.)</span>
-            <MoneyDisplay paisa={estTax} className="font-mono" />
+            <span>Tax</span>
+            <span data-testid="cart-tax">
+              <MoneyDisplay paisa={estTax} className="font-mono" />
+            </span>
           </div>
           <div className="flex justify-between font-semibold text-base pt-1 border-t">
-            <span>Total (est.)</span>
-            <MoneyDisplay paisa={estTotal} className="font-mono" />
+            <span>Total</span>
+            <span data-testid="cart-total">
+              <MoneyDisplay paisa={estTotal} className="font-mono" />
+            </span>
           </div>
           <p className="text-[10px] text-muted-foreground">
-            Estimated — final tax &amp; any discounts confirmed on the order.
+            Any discount is applied to the order after it is sent.
           </p>
         </div>
       )}
@@ -262,6 +285,20 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
     <div className="px-4 py-2 flex items-center gap-2">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{line.name}</p>
+        {/* S6 — the chosen modifiers, by NAME, under the dish. Without this the cashier can see
+            that a line costs more than the menu price and has no way to find out why, and cannot
+            tell two otherwise-identical lines apart before sending them to the kitchen. */}
+        {line.modifiers.length > 0 && (
+          <p className="text-xs text-muted-foreground" data-testid="cart-line-modifiers">
+            {line.modifiers
+              .map((m) =>
+                m.priceDeltaPaisa === 0
+                  ? m.name
+                  : `${m.name} ${m.priceDeltaPaisa > 0 ? "+" : "−"}${formatPaisa(Math.abs(m.priceDeltaPaisa))}`,
+              )
+              .join(" · ")}
+          </p>
+        )}
         {line.notes && <p className="text-xs text-muted-foreground italic">Note: {line.notes}</p>}
       </div>
 
@@ -288,8 +325,12 @@ function CartLineRow({ line, lineKey, onIncrement, onDecrement, onRemove }: Cart
         </button>
       </div>
 
+      {/* S6: the line total INCLUDES the modifier deltas — one definition, shared with the cart
+          subtotal and with the server's own `OrderPricingCalculator.lineSubtotal`. It read
+          `unitPricePaisa * quantity` here, which would have shown the plain dish price beside a
+          cart total that already carried the extras. */}
       <MoneyDisplay
-        paisa={line.unitPricePaisa * line.quantity}
+        paisa={lineSubtotalPaisa(line)}
         className="text-sm font-mono w-20 text-right"
       />
 

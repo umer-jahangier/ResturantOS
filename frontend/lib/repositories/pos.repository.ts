@@ -14,10 +14,12 @@ import {
   createMenuItemInputSchema,
   updateMenuItemInputSchema,
   createMenuCategoryInputSchema,
+  updateMenuCategoryInputSchema,
   createDiningTableInputSchema,
   type CreateMenuItemInput,
   type UpdateMenuItemInput,
   type CreateMenuCategoryInput,
+  type UpdateMenuCategoryInput,
   type CreateDiningTableInput,
   apiDiningTableSchema,
   apiOrderSchema,
@@ -214,10 +216,16 @@ export const PosRepository = {
     return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
   },
 
-  /** Same request shape as create (`CreateMenuCategoryInput` — no `active` field either way);
-   * activate/deactivate own their own endpoints below rather than folding state in here. */
-  async updateMenuCategory(id: string, payload: CreateMenuCategoryInput): Promise<MenuCategory> {
-    const body = createMenuCategoryInputSchema.parse(payload);
+  /**
+   * Activate/deactivate own their own endpoints below rather than folding state in here — there
+   * is still no `active` field on this request.
+   *
+   * <p>`UpdateMenuCategoryInput`, not `CreateMenuCategoryInput` (F16): PUT is a REPLACE and an
+   * omitted `taxClassId` CLEARS the category's tax rule, so a rename that forgot the field would
+   * silently un-tax every dish under it. Requiring it makes that fail to compile.
+   */
+  async updateMenuCategory(id: string, payload: UpdateMenuCategoryInput): Promise<MenuCategory> {
+    const body = updateMenuCategoryInputSchema.parse(payload);
     const raw = await put<typeof body, unknown>(`/api/v1/pos/menu/categories/${id}`, body);
     return adaptMenuCategory(apiMenuCategorySchema.parse(raw));
   },

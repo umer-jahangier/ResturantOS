@@ -1,6 +1,8 @@
 // Domain types for POS module. Money expressed as number paisa (BIGINT on wire).
 // No raw API types leak here — adapters translate from api-client schemas.
 
+import type { TaxSource } from "@/lib/models/tax-class.model";
+
 export type OrderStatus =
   | "DRAFT"
   | "OPEN"
@@ -83,6 +85,31 @@ export interface MenuItem {
   /** Derived server-side from `imageFileId` — render this, never build the URL client-side. */
   imageUrl: string | null;
   active: boolean;
+
+  /**
+   * The item's tax-class OVERRIDE, or null when it follows its category (F16).
+   *
+   * Null here is NOT "zero-rated" — it is "inherit". Round-tripped on update for the same reason
+   * `taxRateCode` and `imageFileId` are: PUT is a replace and the backend reads an absent key as
+   * REMOVE, so an edit that forgets this field puts the dish back on its category's rule without
+   * anybody asking.
+   */
+  taxClassId: string | null;
+
+  /**
+   * What this item is ACTUALLY taxed at — resolved server-side, not derived here.
+   *
+   * `effectiveTaxRatePct` is the number the till prices the cart with. `taxRatePct` above is only
+   * the item's own legacy custom rate, which is the LAST step of that resolution and is 0.00 on
+   * most rows: reading it directly is what taxed a Rs 1,657.00 check at 1.5%.
+   *
+   * `effectiveTaxLabel` is the class's human name ("Standard rate") or null when no class
+   * answered. `effectiveTaxSource` says where the answer came from, for a caption only.
+   */
+  effectiveTaxRatePct: number;
+  effectiveTaxRateCode: string | null;
+  effectiveTaxLabel: string | null;
+  effectiveTaxSource: TaxSource;
 }
 
 export interface MenuCategory {
@@ -91,6 +118,11 @@ export interface MenuCategory {
   description: string | null;
   sortOrder: number;
   active: boolean;
+  /** The tax class every item in this category inherits, or null for no rule (F16). */
+  taxClassId: string | null;
+  /** That class's name and rate, carried so the screen need not join two lists. */
+  taxClassName: string | null;
+  taxClassRatePct: number | null;
 }
 
 export interface DiningTable {
@@ -204,6 +236,16 @@ export interface Order {
   taxPaisa: number;
   discountPaisa: number;
   serviceChargePaisa: number;
+  /**
+   * F20 — the rate this check was charged at, snapshotted server-side. `0` means the branch takes
+   * no service charge, and the screen must then render NO service-charge row: `Service charge
+   * Rs 0.00` printed on every bill this product ever produced, for a charge no restaurant could
+   * set. Never a float near money — it is only ever displayed; the paisa were computed by the
+   * server via BigDecimal HALF_UP.
+   */
+  serviceChargePct: number;
+  /** The branch's own wording for it ("Service charge", "Service fee"). Null when there is none. */
+  serviceChargeLabel: string | null;
   totalPaisa: number;
   notes: string | null;
   openedAt: string | null;
@@ -470,9 +512,14 @@ export interface OrderPayment {
    */
   amountPaisa: number;
   method: PaymentMethod;
-  /** What the customer handed over — equals amountPaisa for exact and non-cash tenders. */
+  /**
+   * F20 — money taken ON TOP of the bill, for the staff. Never part of `amountPaisa`, so summing
+   * the list still answers "what settled the bill". Zero on almost every row.
+   */
+  tipPaisa: number;
+  /** What the customer handed over — `amountPaisa + tipPaisa + changePaisa`. */
   tenderedPaisa: number;
-  /** tenderedPaisa - amountPaisa. Cash back to the customer; always 0 for non-cash. */
+  /** tenderedPaisa - amountPaisa - tipPaisa. Cash back to the customer; 0 for non-cash. */
   changePaisa: number;
   /** Reference on a tender; the operator's stated reason on a refund reversal. */
   referenceNo: string | null;
@@ -499,6 +546,12 @@ export interface RecordPaymentPayload {
   tenderedPaisa?: number | null;
   /** Required when `method` is CHARGE_TO_ACCOUNT — which house account to bill. */
   customerAccountId?: string | null;
+  /**
+   * F20 — a tip, in paisa, taken ON TOP of `amountPaisa`. It settles no part of the bill and
+   * never reaches sales revenue; finance credits it to a Tips Payable liability. Refused (422) on
+   * CHARGE_TO_ACCOUNT and LOYALTY_POINTS, where no money changes hands now.
+   */
+  tipPaisa?: number | null;
   referenceNo?: string | null;
 }
 

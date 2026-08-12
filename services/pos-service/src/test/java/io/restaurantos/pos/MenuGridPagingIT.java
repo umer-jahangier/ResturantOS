@@ -90,12 +90,12 @@ class MenuGridPagingIT extends PosTestBase {
 
         authenticateAs(List.of("pos.menu.manage", "pos.menu.view"));
         MenuCategoryDto category = menuService.createCategory(
-                new CreateMenuCategoryRequest("ZZ Paging", "S1-03 probe", 99));
+                new CreateMenuCategoryRequest("ZZ Paging", "S1-03 probe", 99, null));
         categoryId = category.id();
         for (int n = 1; n <= ITEM_COUNT; n++) {
             menuService.createItem(new CreateMenuItemRequest(
                     categoryId, String.format("ZZ-%02d", n), "paging probe " + n,
-                    10_000L + n * 100L, null, null, null));
+                    10_000L + n * 100L, null, null, null, null));
         }
 
         // The till is a cashier's screen: everything below is asserted with a cashier's authority.

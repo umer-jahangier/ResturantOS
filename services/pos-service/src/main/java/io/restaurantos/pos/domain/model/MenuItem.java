@@ -37,6 +37,18 @@ public class MenuItem extends TenantAuditableEntity {
     @Column(name = "tax_rate_code")
     private String taxRateCode;
 
+    /**
+     * This item's tax-class OVERRIDE (F16). NULL means INHERIT THE CATEGORY'S — it does not mean
+     * zero-rated, and confusing the two is how a menu ends up taxing 1.5% of a check.
+     *
+     * <p>{@link #taxRatePct} and {@link #taxRateCode} above are the LAST step of the resolution
+     * order, not a parallel one: they are the custom rate of an item that belongs to no class,
+     * which is what every row in every existing tenant is on the day F16 ships. See
+     * {@link io.restaurantos.pos.service.TaxClassResolver}.
+     */
+    @Column(name = "tax_class_id")
+    private UUID taxClassId;
+
     @Column(name = "kds_station")
     private String kdsStation;
 

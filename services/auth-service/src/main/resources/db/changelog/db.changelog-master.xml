@@ -142,5 +142,29 @@
          that already review somebody else's till. Explicit and verified for the reason 085, 088 and
          089 give. -->
     <include file="db/changelog/v1.0.0/090-pos-till-open-other-permission.xml"/>
+    <!-- F16: pos.tax.manage — the tenant's sales-tax catalogue. There was no tax screen anywhere
+         in the product (measured: /app/settings/tax, /settings/taxes, /finance/tax and /menu/tax
+         all 404 for the OWNER), so a Rs 1,657.00 check was taxed 1.5% — only two of its lines had
+         ever been given a rate. Deciding a dish is standard-rated stays `pos.menu.manage`, which
+         MANAGER holds; deciding that standard rate MEANS 17% is a statutory fact about the
+         business that mis-states the return rather than one bill, so it gets its own code held by
+         OWNER and TENANT_ADMIN. Same split 083 made for tables and 085 for terminals; explicit and
+         verified for the reason 088, 089 and 090 give. -->
+    <include file="db/changelog/v1.0.0/091-pos-tax-manage-permission.xml"/>
+    <!-- S3: tenant-scoped custom roles. `roles` could already hold a tenant's own row;
+         `role_permissions` could not, so two tenants defining the same role code would have shared
+         one set of grants. Adds the tenant column, the matching FORCE RLS policy, and the write
+         grants the role builder needs. No existing row changes: every seeded grant stays
+         tenant_id NULL, which is what "platform-defined, every tenant sees it" means here. -->
+    <include file="db/changelog/v1.0.0/092-tenant-custom-roles.xml"/>
+    <!-- F20: pos.service_charge.manage - a branch's service-charge percentage. `Service charge
+         Rs 0.00` printed on the charge page and on every guest's receipt while nothing in the
+         product could make the figure move (measured: service_charge_paisa non-zero on 0 of 195
+         orders). Pricing one dish stays `pos.menu.manage`, which MANAGER holds; deciding that
+         every check in the building grows by 5% - with no reason code and no per-check record of
+         who said so - gets its own code held by OWNER and TENANT_ADMIN. Same split 083 made for
+         tables, 085 for terminals and 091 for tax; explicit and verified for the reason 088, 089,
+         090 and 091 give. -->
+    <include file="db/changelog/v1.0.0/093-pos-service-charge-manage-permission.xml"/>
 
 </databaseChangeLog>

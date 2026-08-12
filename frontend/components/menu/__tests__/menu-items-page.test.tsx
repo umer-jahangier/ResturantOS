@@ -129,7 +129,11 @@ describe("Menu Items page", () => {
     await user.type(within(dialog).getByRole("textbox", { name: "Name" }), "Drinks");
     await user.click(within(dialog).getByRole("button", { name: "Add category" }));
 
-    await waitFor(() => expect(posted).toEqual({ name: "Drinks" }));
+    // `taxClassId: null` travels EXPLICITLY on create too (F16), for the reason `imageFileId`
+    // does: the backend reads an absent key as "no rule", and a client that omits the field on
+    // create and then omits it again on update is one omission away from clearing a whole
+    // section's rate on a rename.
+    await waitFor(() => expect(posted).toEqual({ name: "Drinks", taxClassId: null }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Added Drinks"));
   });
 
@@ -186,6 +190,10 @@ describe("Menu Items page", () => {
         taxRatePct: 0,
         taxRateCode: null,
         imageFileId: null,
+        // F16: a new dish FOLLOWS ITS CATEGORY. `null` is that answer, stated rather than
+        // omitted, and it is the right default — the state this feature exists to end was 40
+        // items of which 33 carried no rate because every one had to be given one by hand.
+        taxClassId: null,
       }),
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Added Biryani"));
@@ -229,7 +237,15 @@ describe("Menu Items page", () => {
     await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
 
     await waitFor(() =>
-      expect(putBody).toEqual({ name: "Main Courses", description: "renamed", sortOrder: 1 }),
+      expect(putBody).toEqual({
+        name: "Main Courses",
+        description: "renamed",
+        sortOrder: 1,
+        // F16: PUT is a REPLACE, so the rename has to RESTATE the category's tax rule. This
+        // category has none, and `null` says so — an omitted key would say the same thing to the
+        // server, which is precisely why the field is required in the type and asserted here.
+        taxClassId: null,
+      }),
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Updated Main Courses"));
   });

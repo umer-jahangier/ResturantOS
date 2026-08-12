@@ -78,6 +78,9 @@ public class OrderServiceImpl implements OrderService {
     private final StationRepository stationRepository;
     /** The ONE place that decides where a menu item goes at a branch (28-05). */
     private final StationRoutingResolver stationRoutingResolver;
+    private final TaxClassResolver taxClassResolver;
+    /** The ONE place a client-supplied modifier id becomes a named, priced line row (S6). */
+    private final ModifierSelectionResolver modifierSelectionResolver;
     private final BranchMenuOverrideRepository overrideRepository;
     private final DiningTableRepository tableRepository;
     private final OrderPaymentRepository orderPaymentRepository;
@@ -107,6 +110,12 @@ public class OrderServiceImpl implements OrderService {
      * costs a guest their discount.
      */
     private final StaffNameDirectory staffNameDirectory;
+    /**
+     * F20: the branch's service-charge policy, read on the PRICING path. Its
+     * {@code policyFor} is the only method used here and it performs no authorization check —
+     * a cashier holds none of the settings permissions and must still get the right total.
+     */
+    private final ServiceChargeService serviceChargeService;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -131,6 +140,8 @@ public class OrderServiceImpl implements OrderService {
                             TableService tableService,
                             OrderMapper orderMapper,
                             StationRoutingResolver stationRoutingResolver,
+                            TaxClassResolver taxClassResolver,
+                            ModifierSelectionResolver modifierSelectionResolver,
                             // @Lazy cuts a real cycle, at the ONE edge this plan adds:
                             //   OrderServiceImpl -> PrintDispatchService -> PrintJobServiceImpl
                             //     -> ReceiptDocumentAssembler -> OrderService
@@ -144,7 +155,9 @@ public class OrderServiceImpl implements OrderService {
                             @org.springframework.context.annotation.Lazy
                             PrintDispatchService printDispatchService,
                             BranchBusinessDay branchBusinessDay,
-                            StaffNameDirectory staffNameDirectory) {
+                            StaffNameDirectory staffNameDirectory,
+                            ServiceChargeService serviceChargeService) {
+        this.serviceChargeService = serviceChargeService;
         this.orderRepository = orderRepository;
         this.sequenceRepository = sequenceRepository;
         this.menuItemRepository = menuItemRepository;
@@ -168,6 +181,8 @@ public class OrderServiceImpl implements OrderService {
         this.tableService = tableService;
         this.orderMapper = orderMapper;
         this.stationRoutingResolver = stationRoutingResolver;
+        this.taxClassResolver = taxClassResolver;
+        this.modifierSelectionResolver = modifierSelectionResolver;
         this.printDispatchService = printDispatchService;
         this.branchBusinessDay = branchBusinessDay;
         this.staffNameDirectory = staffNameDirectory;
@@ -337,22 +352,43 @@ public class OrderServiceImpl implements OrderService {
                 .orElse(null));
         item.setNotes(request.notes());
 
-        // Add modifiers if requested
+        // S6 — modifiers, resolved against the real catalogue instead of stubbed.
+        //
+        // What stood here set `modifierNameSnapshot` to `modifierId.toString()` and
+        // `priceDeltaPaisa` to 0L unconditionally, under the comment "for simplicity use a direct
+        // lookup". There was no lookup. Both of those fields are PRINTED: KitchenTicketAssembler
+        // puts the name snapshot on the chef's ticket and ReceiptDocumentAssembler puts it on the
+        // guest's bill, and the delta feeds `pricingCalculator.lineSubtotal` two calls below. So
+        // "extra cheese" reached the pass as a hex string and reached the till at zero — the
+        // kitchen cooked the wrong dish and the restaurant gave the topping away.
+        //
+        // The resolver is also where the FORCED/min/max rules are enforced. They live on the
+        // server rather than only in the configure dialog because the dialog is not the only
+        // caller: Order Management's Quick Add, an offline till draining its outbox, and anything
+        // speaking to this endpoint directly all arrive here. A rule enforced only in a dialog is
+        // a rule that is true only while the dialog is open.
         List<Long> modifierDeltas = new ArrayList<>();
-        if (request.modifierIds() != null) {
-            for (UUID modifierId : request.modifierIds()) {
-                // Load modifier from item's groups — for simplicity use a direct lookup
-                // We store snapshot data so we need the modifier entity
-                OrderItemModifier oim = new OrderItemModifier();
-                oim.setTenantId(tenantId);
-                oim.setOrderItem(item);
-                oim.setModifierId(modifierId);
-                oim.setModifierNameSnapshot(modifierId.toString());
-                oim.setPriceDeltaPaisa(0L);
-                item.getModifiers().add(oim);
-                modifierDeltas.add(0L);
-            }
+        for (var resolved : modifierSelectionResolver.resolve(
+                tenantId, menuItem.getId(), menuItem.getName(), request.modifierIds())) {
+            OrderItemModifier oim = new OrderItemModifier();
+            oim.setTenantId(tenantId);
+            oim.setOrderItem(item);
+            oim.setModifierId(resolved.modifierId());
+            // SNAPSHOT, at add-item time, for the same reason `unitPriceSnapshot`, the two routing
+            // keys and the tax rate on this line are: re-pricing "Extra cheese" next month must
+            // not change what last month's bill says the guest paid.
+            oim.setModifierNameSnapshot(resolved.name());
+            oim.setPriceDeltaPaisa(resolved.priceDeltaPaisa());
+            item.getModifiers().add(oim);
+            modifierDeltas.add(resolved.priceDeltaPaisa());
         }
+
+        // F16 — the rate this line is charged at comes from the ONE resolver: the item's own tax
+        // class, else its category's, else the item's legacy rate columns, else zero. It is NOT
+        // `menuItem.getTaxRatePct()`, which is only the last of those four and which is 0.00 on
+        // most rows in most tenants — reading it directly is what taxed a Rs 1,657.00 check at
+        // 1.5%, because only the lines that had been given a per-item rate carried one.
+        var resolvedTax = taxClassResolver.resolve(tenantId, menuItem);
 
         // Compute line pricing
         var lineResult = pricingCalculator.computeItemLine(
@@ -360,11 +396,19 @@ public class OrderServiceImpl implements OrderService {
                 modifierDeltas,
                 request.quantity(),
                 0L,
-                menuItem.getTaxRatePct());
+                resolvedTax.ratePct());
 
         item.setDiscountPaisa(lineResult.discountPaisa());
         item.setTaxPaisa(lineResult.taxPaisa());
         item.setLineTotalPaisa(lineResult.lineTotalPaisa());
+        // SNAPSHOT, at add-item time, exactly like unitPriceSnapshot and the two routing keys
+        // above — and for the same reason. Before this, the receipt's tax breakdown re-read the
+        // LIVE menu_items row at print time: reprint a bill after a rate change and old money was
+        // attributed to a new rate. The bill now says what the guest was actually charged, and
+        // keeps saying it.
+        item.setTaxRatePct(resolvedTax.ratePct());
+        item.setTaxRateCode(resolvedTax.rateCode());
+        item.setTaxClassName(resolvedTax.label());
 
         order.getItems().add(item);
 
@@ -1106,8 +1150,12 @@ public class OrderServiceImpl implements OrderService {
         }
 
         List<PosEventContract.PaymentEntry> paymentEntries = orderPaymentRepository.findByOrderId(orderId).stream()
+                // F20: the tip rides alongside the applied amount, never inside it. finance debits
+                // amount + tip to the tender's account and credits the tip to a liability; folding
+                // it into amountPaisa would both unbalance the entry (totalPaisa excludes it) and
+                // book staff money as sales revenue.
                 .map(p -> new PosEventContract.PaymentEntry(p.getMethod().name(), p.getAmountPaisa(),
-                        p.getTenderedPaisa(), p.getChangePaisa(), p.getReferenceNo()))
+                        p.getTipPaisa(), p.getTenderedPaisa(), p.getChangePaisa(), p.getReferenceNo()))
                 .collect(Collectors.toList());
 
         Order closed = performClose(order, paymentEntries);
@@ -1564,6 +1612,24 @@ public class OrderServiceImpl implements OrderService {
      * print. Re-basing tax on the discounted amount is a real question with a real answer, but it
      * is a change to what the ledger owes FBR and belongs with the tax work, not smuggled in
      * behind a discount button.
+     *
+     * <h2>F20 — the service charge is computed HERE, and nowhere else</h2>
+     *
+     * <p>{@code order.serviceChargePaisa} has existed since V1 and was read by DailyTakingsService,
+     * by ORDER_CLOSED, by finance's revenue recipe and by the printed bill. Nothing ever assigned
+     * it: measured live, it was 0 on all 195 orders in pos_db, while every screen dutifully printed
+     * {@code Service charge Rs 0.00}. This is the assignment.
+     *
+     * <p>It is recomputed on every mutation rather than added once, because its base moves: adding
+     * a dish, cancelling a line and taking a discount all change what the percentage is a
+     * percentage OF. Doing it anywhere else — at close, at settle, in a separate endpoint — would
+     * mean the cart's total and the charge screen's total could disagree, which is the one thing a
+     * cashier holding a guest's money must never see.
+     *
+     * <p>The policy is read from pos-service's own {@code branch_service_charge} row inside this
+     * transaction, never from user-service: {@code UserBranchClient} is deliberately fail-soft, and
+     * a pricing input that can silently degrade to "no charge" during a network blip would produce
+     * two different totals for two identical checks with nothing on screen saying why.
      */
     private void recomputeOrderTotals(Order order) {
         // LINE-scope discount rows, totalled per item id. Applied per line below so each one is
@@ -1587,7 +1653,13 @@ public class OrderServiceImpl implements OrderService {
             if (item.getItemStatus() == OrderItemStatus.CANCELLED) {
                 continue;
             }
-            long itemSubtotal = item.getUnitPriceSnapshot() * item.getQuantity();
+            // S6: through the calculator, NOT `unitPriceSnapshot * quantity` inline. This line
+            // used to do its own arithmetic and left the modifier deltas out of it. That agreed
+            // with the line's own `lineTotalPaisa` only for as long as every delta was the zero
+            // the addItem stub wrote; the moment a modifier carried a real price the two diverged,
+            // and the order header disagreed with its own lines — the screen, the printed bill and
+            // the journal entry differing by the price of the extras on the same check.
+            long itemSubtotal = pricingCalculator.lineSubtotal(item);
             long itemDiscount = item.getDiscountPaisa();
             // Whatever is left of this line after the menu-level discount is the most any
             // line-scope discount can take off it.
@@ -1607,12 +1679,49 @@ public class OrderServiceImpl implements OrderService {
         long totalDiscount = lineDiscounts + Math.min(orderLevelDiscount, subtotal - lineDiscounts);
         if (totalDiscount < 0) totalDiscount = 0L;
 
+        applyServiceCharge(order, subtotal - totalDiscount);
+
         long total = Math.max(0L, subtotal - totalDiscount + tax + order.getServiceChargePaisa());
 
         order.setSubtotalPaisa(subtotal);
         order.setDiscountPaisa(totalDiscount);
         order.setTaxPaisa(tax);
         order.setTotalPaisa(total);
+    }
+
+    /**
+     * Stamp the branch's service charge, its rate and its wording onto the order (F20).
+     *
+     * <p>Three fields move together or none of them do. A {@code serviceChargePaisa} with no
+     * {@code serviceChargePct} beside it is an amount the bill cannot explain, and a rate with no
+     * label is a percentage with nothing naming it — both were live defects on the tax side before
+     * V23 snapshotted the same three facts onto the order line.
+     *
+     * <p><b>A branch with no policy, a disabled policy, or a policy that does not cover this
+     * channel all land on the same place: zero, no rate, no label.</b> That is what makes the
+     * receipt able to omit the line entirely rather than print {@code Rs 0.00}. It also means
+     * switching the charge off is retroactive for OPEN checks the next time anything on them
+     * changes, which is correct — an open check has not been presented yet, and a guest should not
+     * be billed for a policy the restaurant has withdrawn.
+     *
+     * @param netBasePaisa subtotal less every discount, before tax. See
+     *                     {@code OrderPricingCalculator.serviceCharge} for why that is the base
+     */
+    private void applyServiceCharge(Order order, long netBasePaisa) {
+        BranchServiceCharge policy = serviceChargeService.policyFor(order.getBranchId())
+                .filter(p -> p.appliesTo(order.getType()))
+                .orElse(null);
+
+        if (policy == null) {
+            order.setServiceChargePaisa(0L);
+            order.setServiceChargePct(BigDecimal.ZERO);
+            order.setServiceChargeLabel(null);
+            return;
+        }
+
+        order.setServiceChargePaisa(pricingCalculator.serviceCharge(netBasePaisa, policy.getRatePct()));
+        order.setServiceChargePct(policy.getRatePct());
+        order.setServiceChargeLabel(policy.getLabel());
     }
 
     /**

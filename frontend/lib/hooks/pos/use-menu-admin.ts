@@ -8,6 +8,7 @@ import type { MenuCategory, MenuItem } from "@/lib/models/pos.model";
 import type {
   CreateMenuCategoryInput,
   CreateMenuItemInput,
+  UpdateMenuCategoryInput,
   UpdateMenuItemInput,
 } from "@/lib/api-client/schemas/pos.schema";
 // Type-only import — permitted from a lib/hooks/** file (the ESLint layer-boundary rule only
@@ -58,7 +59,10 @@ export function useCreateMenuCategory() {
 export function useUpdateMenuCategory() {
   const qc = useQueryClient();
   const { branchId } = useCurrentUser();
-  return useMutation<MenuCategory, ApiError, { id: string; input: CreateMenuCategoryInput }>({
+  // UpdateMenuCategoryInput, not CreateMenuCategoryInput (F16): PUT replaces, so the caller must
+  // state the tax class rather than leaving it out and having the server clear the whole
+  // category's rule on an unrelated rename.
+  return useMutation<MenuCategory, ApiError, { id: string; input: UpdateMenuCategoryInput }>({
     mutationFn: ({ id, input }) => PosRepository.updateMenuCategory(id, input),
     onSuccess: () => invalidateMenuQueries(qc, branchId),
   });

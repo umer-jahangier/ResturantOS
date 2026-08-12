@@ -25,7 +25,12 @@ public class MenuItemAdminDtos {
             @NotNull @PositiveOrZero Long basePricePaisa,
             BigDecimal taxRatePct,
             String taxRateCode,
-            UUID imageFileId
+            UUID imageFileId,
+            /**
+             * Tax-class OVERRIDE for this one dish (F16). Null = inherit the category's class,
+             * which is what a new item should almost always do.
+             */
+            UUID taxClassId
     ) {}
 
     /**
@@ -60,7 +65,13 @@ public class MenuItemAdminDtos {
             @NotNull @PositiveOrZero Long basePricePaisa,
             BigDecimal taxRatePct,
             String taxRateCode,
-            UUID imageFileId
+            UUID imageFileId,
+            /**
+             * Tax-class OVERRIDE (F16). REMOVE-on-null, like the two fields above it: null puts
+             * the item back on its category's rule. It does NOT mean zero-rated, and the item
+             * dialog says so in those words rather than leaving a blank select to be guessed at.
+             */
+            UUID taxClassId
     ) {}
 
     private MenuItemAdminDtos() {}

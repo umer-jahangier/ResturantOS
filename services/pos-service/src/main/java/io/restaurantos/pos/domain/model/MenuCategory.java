@@ -31,6 +31,16 @@ public class MenuCategory extends TenantAuditableEntity {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
+    /**
+     * The sales-tax class every item in this category inherits (F16). NULL = no category rule.
+     *
+     * <p>A raw id rather than a {@code @ManyToOne}: nothing here ever needs to walk to the class,
+     * and {@link io.restaurantos.pos.service.TaxClassResolver} loads it once per resolution
+     * instead of pulling a proxy through every category read on the till's menu grid.
+     */
+    @Column(name = "tax_class_id")
+    private UUID taxClassId;
+
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MenuItem> items = new ArrayList<>();
 }

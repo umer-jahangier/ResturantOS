@@ -10,11 +10,13 @@ import {
   ChefHat,
   Clock,
   Contact,
+  HandCoins,
   LayoutDashboard,
   LineChart,
   MonitorSmartphone,
   MonitorSpeaker,
   Palette,
+  Percent,
   Printer,
   Receipt,
   Route,
@@ -304,6 +306,41 @@ export const navGroups: NavGroup[] = [
         permissionMode: "any",
         feature: "FEATURE_POS",
       },
+      {
+        // F16: the tenant's sales-tax rates. The walkthrough drove /app/settings/tax,
+        // /app/settings/taxes, /app/finance/tax and /app/menu/tax as OWNER and got a 404 from
+        // every one, with `hrefs matching tax/fiscal: []` across a 35-item sidebar — so the only
+        // way to set a rate was one dish at a time, and a Rs 1,657.00 check went out taxed 1.5%.
+        //
+        // Sits under MENU rather than beside the branch-identity page because that is where the
+        // decision is USED: a rate here is applied to a menu category two entries above. Gated on
+        // `pos.tax.manage` (auth changelog 091) — a nav entry to a screen whose every control 403s
+        // is worse than no entry, and a branch MANAGER still classifies dishes from Menu Items.
+        label: "Sales Tax",
+        href: "/app/settings/tax",
+        icon: Percent,
+        permission: "pos.tax.manage",
+        feature: "FEATURE_POS",
+      },
+      {
+        // F20: what this branch adds to a check for table service. `orders.service_charge_paisa`
+        // has existed since the first POS migration and is summed by Takings, carried on
+        // ORDER_CLOSED, credited to account 4910 and printed on the bill — and nothing in the
+        // product could ever make it non-zero (measured: 0 of 195 orders), so every guest's
+        // receipt read `Service charge Rs 0.00`.
+        //
+        // Sits directly under Sales Tax because the two are the questions an owner asks in the
+        // same sitting, and because the distinction between them — a tax is the government's, a
+        // service charge is yours — is easiest to hold when they are adjacent. Gated on
+        // `pos.menu.view` rather than the manage code: the READ is open to a branch MANAGER on
+        // purpose (the charge is on every bill they hand a guest), and the screen renders itself
+        // read-only from the server's own `canManage`.
+        label: "Service Charge",
+        href: "/app/settings/service-charge",
+        icon: HandCoins,
+        permission: "pos.menu.view",
+        feature: "FEATURE_POS",
+      },
     ],
   },
   {
@@ -465,6 +502,25 @@ export const navGroups: NavGroup[] = [
         permissionMode: "any",
       },
       {
+        // S5: the tenant's trading locations. `/app/branches`, `/app/settings/branches`,
+        // `/app/branch`, `/app/locations` and `/app/admin/branches` were ALL "This page doesn't
+        // exist" — driven as OWNER and as TENANT_ADMIN, so not a permissions artefact — and this
+        // 35-entry sidebar contained no href matching `branch`. A group could not add its second
+        // site from the product while POST/PUT /api/v1/branches had been live since phase 13.
+        //
+        // Sits directly under General because the two are the same decision at two scales:
+        // General edits the branch you are standing on, this one edits the set of them.
+        //
+        // Gated on `rbac.manage | branch.manage` — the exact expression BranchController's write
+        // endpoints @PreAuthorize. OWNER holds the first, TENANT_ADMIN deliberately holds only the
+        // second (13-02), and requiring both would hide the screen from the role it exists for.
+        label: "Branches",
+        href: "/app/branches",
+        icon: Building2,
+        permission: ["rbac.manage", "branch.manage"],
+        permissionMode: "any",
+      },
+      {
         // Tenant appearance/branding is an admin-tier configuration surface.
         label: "Appearance",
         href: "/settings/appearance",
@@ -483,6 +539,28 @@ export const navGroups: NavGroup[] = [
         href: "/app/users",
         icon: Users,
         permission: ["rbac.manage", "rbac.user.manage"],
+        permissionMode: "any",
+      },
+      {
+        // S3: what each role is allowed to do. `/app/roles` and `/app/settings/roles` were both
+        // "This page doesn't exist" — driven as OWNER, so not a permissions artefact — and this
+        // sidebar contained no href matching `role`. The only role surface in the product was the
+        // Users → Assign role dialog: two selects, zero checkboxes, over a fixed list of eight,
+        // with no way for anyone to see what any of those eight actually granted.
+        //
+        // Sits directly beneath Users because it is the other half of the same errand: Users says
+        // who works here, Roles says what each kind of them may do.
+        //
+        // Gated on `rbac.manage | rbac.user.manage | rbac.role.manage`, matching the READ the page
+        // opens with — `GET /api/v1/roles` and `GET /api/v1/permissions` are both gated on
+        // `hasAnyAuthority('rbac.manage','rbac.user.manage')`, and a caller holding only
+        // `rbac.role.manage` still needs the screen to grant with. The narrower WRITE gate
+        // (`rbac.manage | rbac.role.manage`) is applied inside the page, so a reader gets the
+        // catalogue without a "New role" button that would 403.
+        label: "Roles",
+        href: "/app/roles",
+        icon: ShieldCheck,
+        permission: ["rbac.manage", "rbac.user.manage", "rbac.role.manage"],
         permissionMode: "any",
       },
       {

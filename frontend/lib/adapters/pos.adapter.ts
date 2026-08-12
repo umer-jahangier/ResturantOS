@@ -1,6 +1,8 @@
 // Layer-2 adapters: raw API shapes → domain models.
 // The adapter layer is the only code that touches field name mapping between wire format and domain.
 
+import { adaptTaxSource } from "@/lib/adapters/tax-class.adapter";
+
 import type {
   ApiMenuItem,
   ApiMenuCategory,
@@ -49,6 +51,17 @@ export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
     active: raw.active,
     imageFileId: raw.imageFileId ?? null,
     imageUrl: raw.imageUrl ?? null,
+    taxClassId: raw.taxClassId ?? null,
+    // F16. The fallback is the item's OWN legacy rate, not zero: a pos-service that predates
+    // F16 sends no `effectiveTaxRatePct`, and every one of its items is priced from
+    // `taxRatePct`. Defaulting to 0 there would silently stop charging tax against an older
+    // backend — the failure this whole item exists to end, caused by the client this time.
+    effectiveTaxRatePct:
+      raw.effectiveTaxRatePct ??
+      (typeof raw.taxRatePct === "number" ? raw.taxRatePct : Number(raw.taxRatePct)),
+    effectiveTaxRateCode: raw.effectiveTaxRateCode ?? raw.taxRateCode ?? null,
+    effectiveTaxLabel: raw.effectiveTaxLabel ?? null,
+    effectiveTaxSource: adaptTaxSource(raw.effectiveTaxSource),
   };
 }
 
@@ -59,6 +72,9 @@ export function adaptMenuCategory(raw: ApiMenuCategory): MenuCategory {
     description: raw.description ?? null,
     sortOrder: raw.sortOrder,
     active: raw.active,
+    taxClassId: raw.taxClassId ?? null,
+    taxClassName: raw.taxClassName ?? null,
+    taxClassRatePct: raw.taxClassRatePct ?? null,
   };
 }
 
@@ -207,6 +223,11 @@ export function adaptOrder(raw: ApiOrder): Order {
     taxPaisa: raw.taxPaisa,
     discountPaisa: raw.discountPaisa,
     serviceChargePaisa: raw.serviceChargePaisa,
+    // F20. A pos-service that predates the snapshot sends neither field; the honest reading of
+    // that absence is "no service charge on this check", which is also what every order written
+    // before F20 actually was. Number() because Jackson may serialise a BigDecimal either way.
+    serviceChargePct: raw.serviceChargePct == null ? 0 : Number(raw.serviceChargePct),
+    serviceChargeLabel: raw.serviceChargeLabel ?? null,
     totalPaisa: raw.totalPaisa,
     notes: raw.notes ?? null,
     openedAt: raw.openedAt ?? null,
@@ -272,6 +293,8 @@ export function adaptOrderPayment(raw: ApiOrderPaymentRecord): OrderPayment {
     id: raw.id,
     method: raw.method,
     amountPaisa: raw.amountPaisa,
+    // F20. Rows written before the tip column carry no tip, which is what they were.
+    tipPaisa: raw.tipPaisa ?? 0,
     // Rows written before the V10 migration carry neither field; treat them as exact tender,
     // which is what they were.
     tenderedPaisa: raw.tenderedPaisa ?? raw.amountPaisa,

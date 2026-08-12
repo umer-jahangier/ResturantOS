@@ -18,18 +18,23 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/shared/field-help";
+import { useTaxClasses } from "@/lib/hooks/pos/use-tax-classes";
 
 const categoryFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   sortOrder: z.string().optional(),
+  // Empty string means "no tax rule on this category" — a real, expressible choice, not a
+  // validation failure. Its items then fall back to whatever rate they carry themselves.
+  taxClassId: z.string().optional(),
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
-const EMPTY: CategoryFormValues = { name: "", description: "", sortOrder: "" };
+const EMPTY: CategoryFormValues = { name: "", description: "", sortOrder: "", taxClassId: "" };
 
 function defaultsFor(category: MenuCategory | undefined): CategoryFormValues {
   if (!category) return EMPTY;
@@ -37,6 +42,10 @@ function defaultsFor(category: MenuCategory | undefined): CategoryFormValues {
     name: category.name,
     description: category.description ?? "",
     sortOrder: String(category.sortOrder),
+    // Round-trips. PUT is a REPLACE, so a rename that failed to send this would clear the rule
+    // for every dish in the section — S0-03's shape, one level up. `UpdateMenuCategoryInput`
+    // makes the field required so that cannot compile, and this is where the value comes from.
+    taxClassId: category.taxClassId ?? "",
   };
 }
 
@@ -60,6 +69,7 @@ export function MenuCategoryFormDialog({
 }: MenuCategoryFormDialogProps) {
   const createCategory = useCreateMenuCategory();
   const updateCategory = useUpdateMenuCategory();
+  const taxClasses = useTaxClasses();
   const isEdit = category !== undefined;
   const isPending = createCategory.isPending || updateCategory.isPending;
 
@@ -78,6 +88,10 @@ export function MenuCategoryFormDialog({
       name: values.name.trim(),
       description: values.description?.trim() || undefined,
       sortOrder: values.sortOrder?.trim() ? Number(values.sortOrder) : undefined,
+      // `null`, never `undefined`: the backend reads an absent taxClassId exactly as it reads
+      // null — CLEAR THE RULE — so "the manager chose no rate" and "the form forgot the field"
+      // have to stop being the same request.
+      taxClassId: values.taxClassId ? values.taxClassId : null,
     };
 
     if (isEdit) {
@@ -168,6 +182,45 @@ export function MenuCategoryFormDialog({
                   </FieldLabel>
                   <FormControl>
                     <Input inputMode="numeric" placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/*
+              F16 — THE control this whole feature exists for. One choice here reaches every dish
+              in the section, including the ones added next month, because the rate is INHERITED
+              at read time rather than copied onto the items now.
+            */}
+            <FormField
+              control={form.control}
+              name="taxClassId"
+              render={({ field }) => (
+                <FormItem>
+                  <FieldLabel help="Every item in this category is taxed at this rate unless the item overrides it. Set the rates themselves under Settings → Sales Tax.">
+                    Sales tax
+                  </FieldLabel>
+                  <FormControl>
+                    <Select
+                      aria-label="Sales tax"
+                      data-testid="category-tax-class"
+                      value={field.value ?? ""}
+                      onValueChange={field.onChange}
+                      isLoading={taxClasses.isPending}
+                      error={taxClasses.isError}
+                      onRetry={() => taxClasses.refetch()}
+                      options={[
+                        // Not a placeholder: choosing it is a real decision, so it must be
+                        // selectable. A disabled placeholder would make "no tax rule" unreachable
+                        // once a rule had been set.
+                        { value: "", label: "No tax rule — items use their own rate" },
+                        ...(taxClasses.data ?? []).map((t) => ({
+                          value: t.id,
+                          label: `${t.name} — ${t.ratePct.toFixed(2)}%${t.active ? "" : " (retired)"}`,
+                        })),
+                      ]}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

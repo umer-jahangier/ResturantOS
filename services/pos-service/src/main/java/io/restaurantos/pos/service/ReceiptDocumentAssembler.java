@@ -142,6 +142,12 @@ public class ReceiptDocumentAssembler {
                         ReceiptAmount.of(order.subtotalPaisa()),
                         ReceiptAmount.of(order.discountPaisa()),
                         ReceiptAmount.of(order.serviceChargePaisa()),
+                        // F20. Both null when the branch takes no service charge, which is what
+                        // lets the renderers omit the row entirely instead of printing
+                        // "Service charge Rs 0.00" — the line that appeared on every bill this
+                        // product ever produced, for a charge no restaurant could set.
+                        serviceChargeLabelOf(order),
+                        serviceChargeRateOf(order),
                         ReceiptAmount.of(order.taxPaisa()),
                         ReceiptAmount.of(order.totalPaisa())),
                 taxBreakdown,
@@ -222,6 +228,7 @@ public class ReceiptDocumentAssembler {
         document.taxBreakdown().forEach(tl -> amounts.add(tl.amount()));
         document.tenders().forEach(tender -> {
             amounts.add(tender.amountApplied());
+            amounts.add(tender.tip());
             amounts.add(tender.amountTendered());
             amounts.add(tender.change());
         });
@@ -255,9 +262,38 @@ public class ReceiptDocumentAssembler {
         return new PrintDocument.Tender(
                 payment.method(),
                 ReceiptAmount.of(payment.amountPaisa()),
+                ReceiptAmount.of(payment.tipPaisa()),
                 ReceiptAmount.of(payment.tenderedPaisa()),
                 ReceiptAmount.of(payment.changePaisa()),
                 payment.referenceNo());
+    }
+
+    /**
+     * The branch's wording for its service charge, or null when there was none (F20).
+     *
+     * <p>Null — rather than a fallback to the word "Service charge" — is load-bearing. It is the
+     * ONLY thing that tells a renderer "this bill has no service charge on it" apart from an
+     * amount that happens to be zero, and the two must be told apart: a 5% charge on a fully
+     * comped check is genuinely Rs 0.00 and should still say so.
+     */
+    private static String serviceChargeLabelOf(OrderDto order) {
+        if (order.serviceChargeLabel() == null || order.serviceChargeLabel().isBlank()) {
+            return null;
+        }
+        return order.serviceChargeLabel();
+    }
+
+    /**
+     * The rate as a printable string, or null. A string for the reason every rate on this document
+     * is one: it is printed, never computed with, and {@code toPlainString} is the only rendering
+     * that cannot introduce an exponent or a lost trailing zero.
+     */
+    private static String serviceChargeRateOf(OrderDto order) {
+        java.math.BigDecimal pct = order.serviceChargePct();
+        if (pct == null || pct.signum() <= 0 || serviceChargeLabelOf(order) == null) {
+            return null;
+        }
+        return pct.toPlainString();
     }
 
     /**
@@ -300,14 +336,24 @@ public class ReceiptDocumentAssembler {
     private record TaxBucket(String rateCode, String ratePercent) {}
 
     /**
-     * Tax grouped by the menu item's own rate code and rate, with any residue attributed to an
-     * unclassified line so the breakdown ALWAYS sums to the order's tax exactly. A breakdown that
-     * does not add up to the printed tax total is the same defect class as a total that does not
-     * add up to the lines.
+     * Tax grouped by the rate code and rate THE LINE WAS CHARGED AT, with any residue attributed
+     * to an unclassified line so the breakdown ALWAYS sums to the order's tax exactly. A breakdown
+     * that does not add up to the printed tax total is the same defect class as a total that does
+     * not add up to the lines.
      *
-     * <p>Looked up one item at a time through the tenant-predicated finder rather than
-     * {@code findAllById}: orders have single-digit line counts, and 26-CONTEXT wants the tenant in
-     * the query rather than only in the policy.
+     * <h2>F16 — this reads the line's own snapshot, not the live menu row</h2>
+     *
+     * <p>It used to load {@code menu_items} at PRINT time and take the rate and code from there.
+     * That is the wrong row: a bill is a statement of what the guest was charged, and the menu is a
+     * statement of what the next guest will be charged. Reprint a three-week-old receipt after a
+     * rate change and the paper attributed the old money to the new rate; re-classify a dish and
+     * its historical tax silently moved into a bucket it had never paid into. Neither would show up
+     * as an error — the amounts still summed, against the wrong headings.
+     *
+     * <p>Lines written BEFORE F16 carry {@code taxRatePct == 0} with real tax on them, which is
+     * impossible for a new line (the tax is computed FROM the rate). Those, and only those, fall
+     * back to the live menu row — the behaviour they have always had, so no existing bill in any
+     * tenant changes the day this ships. New lines never take that path.
      */
     private List<PrintDocument.TaxLine> buildTaxBreakdown(List<OrderDto.OrderItemDto> billable,
                                                           long orderTaxPaisa,
@@ -318,12 +364,25 @@ public class ReceiptDocumentAssembler {
             if (item.taxPaisa() == 0L) {
                 continue;
             }
-            Optional<MenuItem> menuItem =
-                    menuItemRepository.findByIdAndTenantId(item.menuItemId(), tenantId);
-            String code = menuItem.map(MenuItem::getTaxRateCode).filter(c -> c != null && !c.isBlank())
-                    .orElse(UNCLASSIFIED_RATE_CODE);
-            String rate = menuItem.map(m -> m.getTaxRatePct() == null ? null : m.getTaxRatePct().toPlainString())
-                    .orElse(null);
+            String code;
+            String rate;
+            boolean snapshotted = item.taxRatePct() != null && item.taxRatePct().signum() != 0;
+            if (snapshotted) {
+                code = item.taxRateCode() != null && !item.taxRateCode().isBlank()
+                        ? item.taxRateCode()
+                        : UNCLASSIFIED_RATE_CODE;
+                rate = item.taxRatePct().toPlainString();
+            } else {
+                // Pre-F16 line. Looked up one item at a time through the tenant-predicated finder
+                // rather than findAllById: orders have single-digit line counts, and 26-CONTEXT
+                // wants the tenant in the query rather than only in the policy.
+                Optional<MenuItem> menuItem =
+                        menuItemRepository.findByIdAndTenantId(item.menuItemId(), tenantId);
+                code = menuItem.map(MenuItem::getTaxRateCode).filter(c -> c != null && !c.isBlank())
+                        .orElse(UNCLASSIFIED_RATE_CODE);
+                rate = menuItem.map(m -> m.getTaxRatePct() == null ? null : m.getTaxRatePct().toPlainString())
+                        .orElse(null);
+            }
             byBucket.computeIfAbsent(new TaxBucket(code, rate), k -> new long[1])[0] += item.taxPaisa();
         }
 
@@ -449,31 +508,14 @@ public class ReceiptDocumentAssembler {
     }
 
     /**
-     * {@code branches.address} is a jsonb column with no schema this service can rely on — it may
-     * be an object, an array or a bare string. Every shape becomes lines; none of them becomes an
-     * exception, because a malformed address must not stop a customer getting a bill.
+     * The branch's address, as the lines to print.
+     *
+     * <p>S4: this used to parse the value as JSON, because {@code branches.address} was a jsonb
+     * column. It is TEXT as of user-service changeset 021, and parsing plain text as JSON silently
+     * DELETED any address beginning with a digit — see {@link BranchAddressLines}, which owns the
+     * behaviour and the test that proves it.
      */
-    private List<String> addressLines(String addressJson) {
-        if (addressJson == null || addressJson.isBlank()) {
-            return List.of();
-        }
-        try {
-            JsonNode node = objectMapper.readTree(addressJson);
-            List<String> lines = new ArrayList<>();
-            if (node.isTextual()) {
-                lines.add(node.asText());
-            } else if (node.isArray()) {
-                node.forEach(child -> lines.add(child.asText()));
-            } else if (node.isObject()) {
-                node.properties().forEach(entry -> {
-                    if (entry.getValue().isTextual() && !entry.getValue().asText().isBlank()) {
-                        lines.add(entry.getValue().asText());
-                    }
-                });
-            }
-            return List.copyOf(lines);
-        } catch (Exception e) {
-            return List.of(addressJson);
-        }
+    private List<String> addressLines(String address) {
+        return BranchAddressLines.of(address);
     }
 }

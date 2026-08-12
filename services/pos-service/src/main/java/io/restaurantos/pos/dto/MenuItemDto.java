@@ -42,7 +42,34 @@ public record MenuItemDto(
          */
         UUID effectiveStationId,
         String effectiveStationCode,
-        String effectiveStationName
+        String effectiveStationName,
+
+        /**
+         * This item's tax-class OVERRIDE, or null when it follows its category (F16).
+         *
+         * <p>Null here is NOT "zero-rated" — it is "inherit". The two are different answers with
+         * the same shape, which is why the four {@code effectiveTax*} fields below exist rather
+         * than leaving a client to work it out.
+         */
+        UUID taxClassId,
+
+        /**
+         * What this item is ACTUALLY taxed at, resolved server-side by {@code TaxClassResolver}:
+         * item class → category class → the item's own legacy rate → zero.
+         *
+         * <p>Sent rather than left to the client for the same reason {@code effectiveStationCode}
+         * is: a second copy of a resolution order in TypeScript is a second answer, and the two
+         * disagree the first time a step is added. The till reads {@code effectiveTaxRatePct} and
+         * nothing else when it prices a cart — it never reads {@code taxRatePct}.
+         *
+         * <p>{@code effectiveTaxLabel} is null when no class answered; the receipt renders "Tax".
+         * {@code effectiveTaxSource} is one of ITEM / CATEGORY / ITEM_CUSTOM / NONE and is a
+         * caption, never a control.
+         */
+        BigDecimal effectiveTaxRatePct,
+        String effectiveTaxRateCode,
+        String effectiveTaxLabel,
+        String effectiveTaxSource
 ) {
     /** The single place the download route is spelled out for menu images. */
     public static String imageUrlFor(UUID imageFileId) {

@@ -24,6 +24,21 @@ public record OrderDto(
         long taxPaisa,
         long discountPaisa,
         long serviceChargePaisa,
+
+        /**
+         * The service-charge SNAPSHOT (F20): the rate this check was charged at and the branch's
+         * own wording for it.
+         *
+         * <p>On the wire so the charge screen can say <em>"Service charge (5%)"</em> rather than a
+         * bare amount, and so it can tell "this branch takes no service charge" apart from "this
+         * branch takes 5% and the bill happens to be zero". {@code serviceChargePct} of 0 with
+         * {@code serviceChargeLabel} null is the first case, and readers must then render NO
+         * service-charge line at all — the {@code Service charge Rs 0.00} that printed on every
+         * bill in the product's life is what this field exists to remove.
+         */
+        java.math.BigDecimal serviceChargePct,
+        String serviceChargeLabel,
+
         long totalPaisa,
         String notes,
         Instant openedAt,
@@ -60,7 +75,23 @@ public record OrderDto(
             long taxPaisa,
             long lineTotalPaisa,
             String notes,
-            List<ModifierDto> modifiers
+            List<ModifierDto> modifiers,
+
+            /**
+             * The tax SNAPSHOT this line was charged at (F16): the rate, the fiscal code, and the
+             * human name of the class at the time of sale.
+             *
+             * <p>On the wire so the charge screen and the receipt say the same words as the cart
+             * did, and so a reprint of an old bill still describes the rate the guest actually
+             * paid rather than whatever the menu says today.
+             *
+             * <p>{@code taxRatePct} is {@code 0} with {@code taxPaisa > 0} only on lines written
+             * before F16 — the tax is real, the rate was never recorded, and readers must render
+             * that as unclassified rather than as 0%.
+             */
+            java.math.BigDecimal taxRatePct,
+            String taxRateCode,
+            String taxClassName
     ) {}
 
     public record ModifierDto(

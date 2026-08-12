@@ -28,6 +28,19 @@ export const apiMenuItemSchema = z.object({
   // place. Both optional — an item saved before this phase carries neither.
   imageFileId: z.string().uuid().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
+  // ── F16: tax classes ──────────────────────────────────────────────────────────────────────
+  // `taxClassId` is the item's OVERRIDE — null means INHERIT THE CATEGORY, not zero-rated.
+  // The four `effectiveTax*` fields are what the item is ACTUALLY taxed at, resolved server-side
+  // (item class -> category class -> the legacy per-item rate above -> zero). The till prices a
+  // cart from `effectiveTaxRatePct` and never from `taxRatePct`: a second copy of that
+  // resolution order in TypeScript would be a second answer.
+  //
+  // All five are `.optional()` so a response from a pos-service that predates F16 still parses.
+  taxClassId: z.string().uuid().nullable().optional(),
+  effectiveTaxRatePct: z.string().or(z.number()).transform(Number).nullable().optional(),
+  effectiveTaxRateCode: z.string().nullable().optional(),
+  effectiveTaxLabel: z.string().nullable().optional(),
+  effectiveTaxSource: z.string().nullable().optional(),
 });
 
 export type ApiMenuItem = z.infer<typeof apiMenuItemSchema>;
@@ -38,6 +51,11 @@ export const apiMenuCategorySchema = z.object({
   description: z.string().nullable().optional(),
   sortOrder: z.number().int(),
   active: z.boolean(),
+  // F16: the tax class every item in this category inherits, with its name and rate carried
+  // alongside so the menu screen can print "Standard rate 17%" without joining two lists.
+  taxClassId: z.string().uuid().nullable().optional(),
+  taxClassName: z.string().nullable().optional(),
+  taxClassRatePct: z.string().or(z.number()).transform(Number).nullable().optional(),
 });
 
 export type ApiMenuCategory = z.infer<typeof apiMenuCategorySchema>;
@@ -50,8 +68,22 @@ export const createMenuCategoryInputSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   sortOrder: z.number().int().optional(),
+  // `.nullable()` and always sent — the same reason `imageFileId` is. On update the backend
+  // reads null as CLEAR THE RULE and an omitted key identically, so "this category has no tax
+  // rule" is only expressible if null can travel.
+  taxClassId: z.string().uuid().nullable().optional(),
 });
 export type CreateMenuCategoryInput = z.infer<typeof createMenuCategoryInputSchema>;
+
+/**
+ * Category UPDATE is a REPLACE too, and `taxClassId` is REQUIRED here for the reason
+ * `updateMenuItemInputSchema` makes `taxRateCode` required: omitting it clears the whole
+ * category's tax rule, silently, on an unrelated rename. That is S0-03's shape, one level up.
+ */
+export const updateMenuCategoryInputSchema = createMenuCategoryInputSchema.extend({
+  taxClassId: z.string().uuid().nullable(),
+});
+export type UpdateMenuCategoryInput = z.infer<typeof updateMenuCategoryInputSchema>;
 
 export const createMenuItemInputSchema = z.object({
   categoryId: z.string().uuid(),
@@ -67,6 +99,8 @@ export const createMenuItemInputSchema = z.object({
   // categoryId; an `undefined` here would be dropped by JSON.stringify and silently mean
   // "remove" as well, so sending null keeps intent and wire in agreement.
   imageFileId: z.string().uuid().nullable().optional(),
+  // F16 override. Null = follow the category, which is what a new dish should almost always do.
+  taxClassId: z.string().uuid().nullable().optional(),
 });
 export type CreateMenuItemInput = z.infer<typeof createMenuItemInputSchema>;
 
@@ -89,6 +123,10 @@ export const updateMenuItemInputSchema = createMenuItemInputSchema.extend({
   taxRatePct: z.number(),
   taxRateCode: z.string().nullable(),
   imageFileId: z.string().uuid().nullable(),
+  // F16 joins the required-but-nullable group. It is a fourth tax-shaped field on the same PUT,
+  // which is exactly how S0-03 got in — so it is required from the day it is added rather than
+  // after somebody's classification is destroyed by an omitted key.
+  taxClassId: z.string().uuid().nullable(),
 });
 export type UpdateMenuItemInput = z.infer<typeof updateMenuItemInputSchema>;
 
@@ -274,6 +312,17 @@ export const apiOrderSchema = z.object({
   taxPaisa: z.number().int().nonnegative(),
   discountPaisa: z.number().int().nonnegative(),
   serviceChargePaisa: z.number().int().nonnegative(),
+  /**
+   * F20 — the service-charge SNAPSHOT: the rate this check was charged at and the branch's own
+   * wording for it. Optional and nullable because a pos-service that predates F20 sends neither,
+   * and a strict reader here would blank the charge page rather than degrade one caption.
+   *
+   * `serviceChargePct === 0` with a null label is "this branch takes no service charge", and the
+   * screen must then render NO service-charge row at all. `Service charge Rs 0.00` printed on
+   * every bill this product ever produced, for a charge no restaurant could set.
+   */
+  serviceChargePct: z.union([z.number(), z.string()]).nullable().optional(),
+  serviceChargeLabel: z.string().nullable().optional(),
   totalPaisa: z.number().int().nonnegative(),
   notes: z.string().nullable().optional(),
   openedAt: z.string().nullable().optional(),
@@ -473,6 +522,12 @@ export const apiOrderPaymentRecordSchema = z.object({
   // claiming a refunded bill was paid. A `.nonnegative()` here would have thrown the whole
   // history away at parse time the first time anyone refunded anything.
   amountPaisa: z.number().int(),
+  /**
+   * F20 — money taken ON TOP of the bill, for the staff. Never part of `amountPaisa`, so every
+   * existing caller's `payments.reduce(sum)` keeps answering "what settled the bill" and not
+   * "what left the guest's card". Optional for a pos-service that predates F20.
+   */
+  tipPaisa: z.number().int().optional(),
   tenderedPaisa: z.number().int().optional(),
   changePaisa: z.number().int().nonnegative().optional(),
   referenceNo: z.string().nullable().optional(),

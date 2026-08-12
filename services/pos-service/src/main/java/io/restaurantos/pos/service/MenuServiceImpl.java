@@ -21,6 +21,8 @@ import io.restaurantos.pos.domain.model.MenuCategoryStationRoute;
 import io.restaurantos.pos.repository.MenuItemStationRouteRepository;
 import io.restaurantos.pos.repository.MenuCategoryStationRouteRepository;
 import io.restaurantos.pos.repository.StationRepository;
+import io.restaurantos.pos.repository.TaxClassRepository;
+import io.restaurantos.pos.domain.model.TaxClass;
 import io.restaurantos.pos.ws.MenuChangedFrame;
 import io.restaurantos.pos.ws.MenuLiveNotifier;
 import io.restaurantos.shared.event.EventPublisher;
@@ -58,6 +60,8 @@ public class MenuServiceImpl implements MenuService {
     private final MenuItemStationRouteRepository itemStationRoutes;
     private final MenuCategoryStationRouteRepository categoryStationRoutes;
     private final StationRoutingResolver stationRoutingResolver;
+    private final TaxClassResolver taxClassResolver;
+    private final TaxClassRepository taxClassRepository;
     private final MenuLiveNotifier menuLiveNotifier;
 
     public MenuServiceImpl(MenuCategoryRepository categoryRepository,
@@ -71,6 +75,8 @@ public class MenuServiceImpl implements MenuService {
                            MenuItemStationRouteRepository itemStationRoutes,
                            MenuCategoryStationRouteRepository categoryStationRoutes,
                            StationRoutingResolver stationRoutingResolver,
+                           TaxClassResolver taxClassResolver,
+                           TaxClassRepository taxClassRepository,
                            MenuLiveNotifier menuLiveNotifier) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
@@ -83,6 +89,8 @@ public class MenuServiceImpl implements MenuService {
         this.itemStationRoutes = itemStationRoutes;
         this.categoryStationRoutes = categoryStationRoutes;
         this.stationRoutingResolver = stationRoutingResolver;
+        this.taxClassResolver = taxClassResolver;
+        this.taxClassRepository = taxClassRepository;
         this.menuLiveNotifier = menuLiveNotifier;
     }
 
@@ -102,7 +110,23 @@ public class MenuServiceImpl implements MenuService {
     }
 
     private MenuCategoryDto toCategoryDto(MenuCategory c) {
-        return new MenuCategoryDto(c.getId(), c.getName(), c.getDescription(), c.getSortOrder(), c.isActive());
+        // The class's name and rate travel with the category so the Menu screen can print
+        // "Standard rate 17%" beside a section without a second round trip and without joining
+        // two lists client-side. A dangling id (class hard-deleted out from under it) renders as
+        // "no rule" rather than as an error — the same degrade-to-caption call adaptItemRoute
+        // makes for an unrecognised routing source.
+        TaxClass taxClass = c.getTaxClassId() == null ? null
+                : taxClassRepository.findByIdAndTenantIdAndDeletedAtIsNull(c.getTaxClassId(), c.getTenantId())
+                        .orElse(null);
+        return new MenuCategoryDto(
+                c.getId(),
+                c.getName(),
+                c.getDescription(),
+                c.getSortOrder(),
+                c.isActive(),
+                taxClass == null ? null : taxClass.getId(),
+                taxClass == null ? null : taxClass.getName(),
+                taxClass == null ? null : taxClass.getRatePct());
     }
 
     @Override
@@ -244,6 +268,7 @@ public class MenuServiceImpl implements MenuService {
             item.setTaxRatePct(request.taxRatePct());
         }
         item.setTaxRateCode(request.taxRateCode());
+        item.setTaxClassId(requireOwnTaxClass(tenantId, request.taxClassId()));
         item.setImageFileId(request.imageFileId());
         item.setActive(true);
 
@@ -285,6 +310,10 @@ public class MenuServiceImpl implements MenuService {
         // javadoc. Kept that way deliberately: on a PUT, clearing a field has to be expressible,
         // and the caller's obligation is to send every field. MenuUpdateReplacesFieldsIT pins it.
         item.setTaxRateCode(request.taxRateCode());
+        // REMOVE-on-null, deliberately, and documented as such on UpdateMenuItemRequest: null
+        // puts the item back on its category's rule. The frontend's schema makes the field
+        // required-but-nullable so an omitted key cannot compile.
+        item.setTaxClassId(requireOwnTaxClass(tenantId, request.taxClassId()));
         item.setImageFileId(request.imageFileId());
 
         MenuItem saved = itemRepository.save(item);
@@ -372,6 +401,7 @@ public class MenuServiceImpl implements MenuService {
         if (request.sortOrder() != null) {
             category.setSortOrder(request.sortOrder());
         }
+        category.setTaxClassId(requireOwnTaxClass(category.getTenantId(), request.taxClassId()));
         category.setActive(true);
         MenuCategory saved = categoryRepository.save(category);
         announceCategoryChange();
@@ -389,6 +419,8 @@ public class MenuServiceImpl implements MenuService {
         if (request.sortOrder() != null) {
             category.setSortOrder(request.sortOrder());
         }
+        // REPLACE-on-null: null clears the category's tax rule. See UpdateMenuCategoryRequest.
+        category.setTaxClassId(requireOwnTaxClass(category.getTenantId(), request.taxClassId()));
         MenuCategory saved = categoryRepository.save(category);
         announceCategoryChange();
         return toCategoryDto(saved);
@@ -491,6 +523,27 @@ public class MenuServiceImpl implements MenuService {
         categoryStationRoutes.save(route);
     }
 
+    /**
+     * Resolve a supplied tax-class id INSIDE the caller's tenant, or refuse (F16).
+     *
+     * <p>Null passes through as null — that is a legitimate "clear the class" and the caller's
+     * javadoc says so. A non-null id that does not resolve is a 404 rather than a silent null:
+     * quietly dropping an unrecognised class would un-tax a whole category and report success,
+     * which is the exact shape of failure this feature exists to end.
+     *
+     * <p>The tenant predicate is not decoration. Without it a client could name another tenant's
+     * class id and have this service store the reference — FORCE RLS would then make the row
+     * unreadable at resolution time and the category would silently fall back to zero.
+     */
+    private UUID requireOwnTaxClass(UUID tenantId, UUID taxClassId) {
+        if (taxClassId == null) {
+            return null;
+        }
+        return taxClassRepository.findByIdAndTenantIdAndDeletedAtIsNull(taxClassId, tenantId)
+                .map(TaxClass::getId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tax class not found: " + taxClassId));
+    }
+
     private MenuItemDto toDto(MenuItem item, UUID branchId) {
         Long overridePrice = null;
         if (branchId != null) {
@@ -506,6 +559,12 @@ public class MenuServiceImpl implements MenuService {
         Optional<Station> effective = branchId != null
                 ? stationRoutingResolver.resolve(item.getTenantId(), branchId, item)
                 : Optional.empty();
+
+        // What this item is ACTUALLY taxed at (F16). Unlike the station above this is resolved
+        // unconditionally, with no branch: a sales-tax rate is a jurisdiction fact for the tenant,
+        // so there is no branch under which the answer is unknown — and the admin listing, which
+        // passes no branch, is the screen that most needs it.
+        TaxClassResolver.ResolvedTax tax = taxClassResolver.resolve(item.getTenantId(), item);
 
         return new MenuItemDto(
                 item.getId(),
@@ -524,7 +583,12 @@ public class MenuServiceImpl implements MenuService {
                 MenuItemDto.imageUrlFor(item.getImageFileId()),
                 effective.map(Station::getId).orElse(null),
                 effective.map(Station::getCode).orElse(null),
-                effective.map(Station::getName).orElse(null)
+                effective.map(Station::getName).orElse(null),
+                item.getTaxClassId(),
+                tax.ratePct(),
+                tax.rateCode(),
+                tax.label(),
+                tax.source().name()
         );
     }
 }

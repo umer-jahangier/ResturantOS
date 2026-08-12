@@ -21,9 +21,13 @@ import {
   clearCart,
   decrementLine,
   incrementLine,
+  modifierIdsOf,
   removeLine,
   type CartLine,
+  type CartModifier,
 } from "@/components/pos/cart-reducer";
+import { ModifierDialog } from "@/components/pos/modifier-dialog";
+import { useModifierGroupsByItem } from "@/lib/hooks/pos/use-modifiers";
 import type { MenuItem, Order, OrderType } from "@/lib/models/pos.model";
 
 /**
@@ -140,6 +144,18 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
   const isPersisting = createOrder.isPending || addItem.isPending || fireToKitchen.isPending;
 
   /**
+   * The modifier catalogue, indexed by dish (S6) — loaded ONCE beside the menu.
+   *
+   * <p>Held whole, never destructured to a default of `[]`: a failed read has no trustworthy
+   * answer, and treating it as "this dish has no options" would ring a forced group's dish with no
+   * choice on it. `handleItemSelect` opens the dialog in that case and the dialog says what
+   * happened.
+   */
+  const modifierIndex = useModifierGroupsByItem();
+  /** The dish whose configure dialog is open, or null. */
+  const [configuringItem, setConfiguringItem] = useState<MenuItem | null>(null);
+
+  /**
    * Menu tap, and which of the terminal's two modes is live decides where it lands.
    *
    * <p><b>Composing</b> — cart-only, NEVER a network call (POS-16/D-01). No DRAFT order
@@ -153,15 +169,20 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
    * check and in no error — it simply evaporated. That is the second half of S0-09: a
    * resumed order the cashier cannot actually add to is not a resumed order.
    */
-  const handleItemSelect = useCallback(
-    (item: MenuItem) => {
+  const commitItem = useCallback(
+    (item: MenuItem, modifiers: CartModifier[]) => {
       if (!orderId) {
         setCart((prev) =>
           addLine(prev, {
             menuItemId: item.id,
             name: item.name,
             unitPricePaisa: item.basePricePaisa,
-            taxRatePct: item.taxRatePct,
+            // F16: the rate the SERVER resolved (item class -> category class -> legacy column),
+            // not the item's own legacy column. Reading `item.taxRatePct` here priced a cart at
+            // 0% for every dish whose rate lives on its category — which, after this feature
+            // ships, is most of them.
+            taxRatePct: item.effectiveTaxRatePct,
+            modifiers,
           }),
         );
         return;
@@ -178,7 +199,14 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
           try {
             await addItem.mutateAsync({
               orderId,
-              payload: { menuItemId: item.id, branchId, quantity: 1 },
+              payload: {
+                menuItemId: item.id,
+                branchId,
+                quantity: 1,
+                ...(modifiers.length > 0
+                  ? { modifierIds: modifiers.map((m) => m.id) }
+                  : {}),
+              },
             });
             toast.success(`${item.name} added`);
           } catch (error) {
@@ -187,6 +215,30 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
         });
     },
     [orderId, addItem, branchId],
+  );
+
+  /**
+   * Menu tap (S6). A dish that carries modifier groups opens the configure dialog; a dish that
+   * carries none goes straight to the cart, exactly as it always has.
+   *
+   * <p>The catalogue was loaded ONCE with the menu, so this branch is a Map lookup and not a
+   * network round trip — the difference between a till that responds to a finger and one that
+   * pauses on every tap. The dialog is still opened when the catalogue read is in flight or has
+   * FAILED, because "we do not know whether this dish has a forced spice level" is not the same
+   * answer as "it has none", and the second is the one that puts an unconfigured plate on the pass.
+   * The dialog renders the loading and the failure honestly (GA-001).
+   */
+  const handleItemSelect = useCallback(
+    (item: MenuItem) => {
+      const known = modifierIndex.byItem?.get(item.id);
+      const catalogueUnknown = modifierIndex.byItem === undefined;
+      if (catalogueUnknown || (known && known.some((g) => g.active))) {
+        setConfiguringItem(item);
+        return;
+      }
+      commitItem(item, []);
+    },
+    [commitItem, modifierIndex.byItem],
   );
 
   const handleIncrement = useCallback((key: string) => {
@@ -248,7 +300,8 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
     for (const line of cart) {
       // Resume, never repeat: a line the previous attempt already got onto this order
       // must not be added again (see the persistedOrderRef note above).
-      const key = cartLineKey(line.menuItemId, line.modifierIds, line.notes);
+      const modifierIds = modifierIdsOf(line);
+      const key = cartLineKey(line.menuItemId, modifierIds, line.notes);
       if (persistedLineKeysRef.current.has(key)) continue;
       const afterLine = await addItem.mutateAsync({
         orderId: newOrder.id,
@@ -256,7 +309,7 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
           menuItemId: line.menuItemId,
           branchId,
           quantity: line.quantity,
-          ...(line.modifierIds.length > 0 ? { modifierIds: line.modifierIds } : {}),
+          ...(modifierIds.length > 0 ? { modifierIds } : {}),
           ...(line.notes ? { notes: line.notes } : {}),
         },
       });
@@ -445,6 +498,28 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
           )}
         </div>
       </div>
+
+      {/* S6 — tap-to-configure. Mounted once here rather than inside MenuGrid so the dialog
+          survives a category switch, and so the terminal (which owns the cart and the bound
+          order) is the one thing that decides where a configured line lands. */}
+      <ModifierDialog
+        item={configuringItem}
+        groups={
+          configuringItem
+            ? (modifierIndex.byItem?.get(configuringItem.id) ?? [])
+            : []
+        }
+        isLoading={modifierIndex.isLoading}
+        isError={modifierIndex.isError}
+        error={modifierIndex.error}
+        isRetrying={modifierIndex.isFetching}
+        onRetry={modifierIndex.refetch}
+        onCancel={() => setConfiguringItem(null)}
+        onConfirm={(modifiers) => {
+          if (configuringItem) commitItem(configuringItem, modifiers);
+          setConfiguringItem(null);
+        }}
+      />
     </div>
   );
 }

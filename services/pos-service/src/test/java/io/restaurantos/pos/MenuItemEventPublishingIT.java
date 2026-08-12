@@ -73,7 +73,7 @@ class MenuItemEventPublishingIT extends PosTestBase {
     }
 
     private CreateMenuItemRequest newCreateRequest(String name) {
-        return new CreateMenuItemRequest(categoryId, name, "desc", 15000L, new BigDecimal("5.00"), "STD", null);
+        return new CreateMenuItemRequest(categoryId, name, "desc", 15000L, new BigDecimal("5.00"), "STD", null, null);
     }
 
     private long countUpserted() {
@@ -100,7 +100,7 @@ class MenuItemEventPublishingIT extends PosTestBase {
         MenuItemDto created = menuService.createItem(newCreateRequest("Karahi"));
 
         menuService.updateItem(created.id(),
-                new UpdateMenuItemRequest(null, "Karahi Deluxe", "desc", 16000L, new BigDecimal("5.00"), "STD", null));
+                new UpdateMenuItemRequest(null, "Karahi Deluxe", "desc", 16000L, new BigDecimal("5.00"), "STD", null, null));
 
         assertThat(countUpserted()).isEqualTo(2);
     }

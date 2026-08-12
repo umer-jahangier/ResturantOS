@@ -57,9 +57,39 @@ export const queryKeys = {
     promotions: () => ["crm", "promotions"] as const,
   },
   pos: {
+    /**
+     * The tenant's sales-tax catalogue (F16). Deliberately NOT branch-keyed: a sales-tax rate is
+     * a jurisdiction fact for the tenant, and keying it by branch would refetch the same rows on
+     * every branch switch and imply a per-branch answer the server does not have.
+     */
+    taxClasses: () => ["pos", "tax-classes"] as const,
+    /**
+     * A branch's service-charge policy (F20). Branch-keyed, unlike the tax catalogue above and
+     * for the mirror-image reason: a service charge pays for table service in ONE dining room,
+     * so a rooftop with waiters and a takeaway counter in the same tenant must be able to hold
+     * different answers.
+     */
+    serviceCharge: (branchId: string) => ["pos", branchId, "service-charge"] as const,
     menuCategories: (branchId: string) => ["pos", branchId, "menu-categories"] as const,
     menuItems: (branchId: string, categoryId?: string) =>
       ["pos", branchId, "menu-items", categoryId] as const,
+    /**
+     * The modifier CATALOGUE (S6). Two keys, because they are two different answers.
+     *
+     * `modifierCatalogue` is the till's read — every ACTIVE group in the tenant, loaded once
+     * beside the menu so a tap opens the configure dialog with no network round trip inside it.
+     * NOT branch-keyed: a dish's spice levels are a tenant fact, like its tax class and unlike
+     * its price, which a branch may override.
+     *
+     * `modifierGroupsAdmin` is the manage screen's read for ONE dish and includes RETIRED groups
+     * and retired options. It is deliberately a separate key rather than a view of the first:
+     * sharing one would let a manager's admin response — retired rows and all — be served to the
+     * till, offering a cashier an option the restaurant has withdrawn. The same reasoning
+     * `tablesAdmin` records one block below.
+     */
+    modifierCatalogue: () => ["pos", "modifier-catalogue"] as const,
+    modifierGroupsAdmin: (menuItemId: string) =>
+      ["pos", "modifier-groups", "admin", menuItemId] as const,
     menuCategoriesAdmin: (branchId: string) =>
       ["pos", branchId, "menu-categories", "admin"] as const,
     menuItemsAdmin: (branchId: string, categoryId?: string) =>

@@ -43,7 +43,10 @@ public class OrderMapper {
                                         m.getModifierId(),
                                         m.getModifierNameSnapshot(),
                                         m.getPriceDeltaPaisa()))
-                                .collect(Collectors.toList())
+                                .collect(Collectors.toList()),
+                        item.getTaxRatePct(),
+                        item.getTaxRateCode(),
+                        item.getTaxClassName()
                 ))
                 .collect(Collectors.toList());
 
@@ -85,6 +88,8 @@ public class OrderMapper {
                 order.getTaxPaisa(),
                 order.getDiscountPaisa(),
                 order.getServiceChargePaisa(),
+                order.getServiceChargePct(),
+                order.getServiceChargeLabel(),
                 order.getTotalPaisa(),
                 order.getNotes(),
                 order.getOpenedAt(),

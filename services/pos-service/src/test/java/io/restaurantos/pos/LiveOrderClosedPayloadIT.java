@@ -97,7 +97,7 @@ class LiveOrderClosedPayloadIT extends PosTestBase {
         category = menuCategoryRepository.save(category);
 
         MenuItemDto createdItem = menuService.createItem(new CreateMenuItemRequest(
-                category.getId(), "Karahi", null, 20000L, null, null, null));
+                category.getId(), "Karahi", null, 20000L, null, null, null, null));
         UUID menuItemId = createdItem.id();
 
         OrderDto order = orderService.createOrder(

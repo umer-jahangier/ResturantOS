@@ -85,7 +85,7 @@ class MenuChangeReachesTerminalsIT extends PosTestBase {
     private MenuItemDto createNaan() {
         return menuService.createItem(new CreateMenuItemRequest(
                 categoryId, "Butter Naan " + UUID.randomUUID(), "tandoori", 15000L,
-                new BigDecimal("0.00"), null, null));
+                new BigDecimal("0.00"), null, null, null));
     }
 
     // ── THE gap ──────────────────────────────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ class MenuChangeReachesTerminalsIT extends PosTestBase {
 
     @Test
     void deactivatingAWholeCategory_announcesIt() {
-        var dessert = menuService.createCategory(new CreateMenuCategoryRequest("Desserts", "sweet", 9));
+        var dessert = menuService.createCategory(new CreateMenuCategoryRequest("Desserts", "sweet", 9, null));
         clearInvocations(webSocketHandler);
 
         menuService.setCategoryActive(dessert.id(), false);

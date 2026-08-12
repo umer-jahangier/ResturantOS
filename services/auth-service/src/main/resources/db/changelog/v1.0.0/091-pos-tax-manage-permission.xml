@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      F16. `pos.tax.manage` — may this person decide what "standard rate" MEANS.
+
+      ══ What the screen is ══
+
+      /app/settings/tax is the tenant's catalogue of sales-tax rates: a code the tax authority
+      recognises, a name a person recognises, and a percentage. A menu CATEGORY names one as its
+      default and every item in it inherits; one item may override. Nothing else in the product
+      sets a rate across more than a single dish.
+
+      Before F16 there was no such screen. The 2026-08-12 walkthrough recorded /app/settings/tax,
+      /app/settings/taxes, /app/finance/tax and /app/menu/tax all rendering "This page doesn't
+      exist" for the OWNER, and the owner sidebar carrying no tax entry at all. The consequence was
+      in that day's own bill: a Rs 1,657.00 dine-in subtotal taxed Rs 25.60 - 1.5% - because two
+      Butter Naans carried a rate and no other line on the check did.
+
+      ══ Why this is NOT pos.menu.manage ══
+
+      The two decisions only look alike.
+
+        pos.menu.manage - "this curry is standard-rated". Menu work. Done a dozen times a week by
+          whoever adds dishes; MANAGER holds it (changeset 041) and keeps it. It also already
+          governs the per-item custom rate, which has been editable in the item dialog since S0-03.
+
+        pos.tax.manage  - "standard rate is 17%". Not menu work. It is a statutory fact about the
+          business; when it is wrong it is wrong for every dish at once, and what it mis-states is
+          the tax return rather than one bill. That belongs with the person who signs the return.
+
+      Phase 19b established this precedent when it split pos.tables.admin from pos.tables.manage,
+      and 28-04 repeated it for pos.terminals.admin: verbs that share a noun and nothing else do
+      not share a permission. Reusing pos.menu.manage here would have handed every branch manager
+      the tenant's fiscal configuration as a side effect of being allowed to add a dish.
+
+      This widens nothing. Before this changeset no role could set a rate except one item at a
+      time, because no screen existed that could.
+
+      ══ Who holds it ══
+
+      OWNER and TENANT_ADMIN - the same two personas /app/settings already admits (a branch MANAGER
+      is refused there today), and the same holder set changesets 089 and 090 chose for the same
+      reason. If it turns out a branch manager needs it, the fix is another explicit grant argued
+      on its own, not a widening of what this code means.
+
+      MANAGER is deliberately left able to READ the catalogue: TaxClassServiceImpl.list() gates on
+      pos.menu.view, because the Menu Items screen already shows them every item's rate and hiding
+      the catalogue behind those rates would leave them looking at a "Standard rate" caption with
+      no way to find out what it stands for.
+
+      ══ Why the grant is explicit ══
+
+      Same reason 055, 059, 082, 083, 085, 088, 089 and 090 each give: the blanket "grant every
+      pos.* permission to OWNER" statements in changeset 041 are point-in-time and retro-grant
+      nothing added after they ran. A permission that no role holds does not fail at startup, does
+      not break a test, and produces a clean confident 403 for every user including OWNER - which
+      is indistinguishable from a deliberate denial. The verification changeSet below RAISEs rather
+      than warns for exactly that reason.
+    -->
+
+    <changeSet id="auth-1.0.0-091-pos-tax-manage" author="restaurantos-agent" runOnChange="false">
+        <comment>pos.tax.manage — define and re-rate the tenant's sales-tax classes; held by OWNER and TENANT_ADMIN</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.tax.manage', 'pos', 'Define, re-rate and retire the sales-tax classes the whole menu is priced against')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.tax.manage'),
+              ('TENANT_ADMIN', 'pos.tax.manage')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'pos.tax.manage';
+                DELETE FROM permissions WHERE code = 'pos.tax.manage';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="auth-1.0.0-091-verify-pos-tax-manage" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if pos.tax.manage exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'pos.tax.manage';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'pos.tax.manage is defined but granted to no role. pos-service refuses every write to /api/v1/pos/tax-classes without it, so the sales-tax screen would render an access refusal for every user on every tenant including OWNER - as an ordinary-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

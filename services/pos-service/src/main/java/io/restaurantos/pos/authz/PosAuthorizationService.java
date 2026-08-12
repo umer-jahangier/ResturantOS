@@ -124,6 +124,75 @@ public class PosAuthorizationService {
     }
 
     /**
+     * Menu READ gate. Held by everyone who works a till — the same code the menu grid uses.
+     */
+    public void requireMenuView() {
+        if (!hasPermission("pos.menu.view")) {
+            throw new PermissionDeniedException("Requires pos.menu.view");
+        }
+    }
+
+    /**
+     * SALES-TAX CATALOGUE gate — define, re-rate, retire the rates the whole menu is priced
+     * against (F16).
+     *
+     * <p>Its own code, not {@code pos.menu.manage}, and the split is on the merits rather than on
+     * convenience. Deciding that a dish is standard-rated is menu work: a manager classifying a new
+     * curry does it a dozen times a week, and {@code pos.menu.manage} — which MANAGER holds —
+     * already governs it, both for assigning a class and for the per-item custom rate that has been
+     * editable since S0-03. Deciding that "standard rate" MEANS 17% is not menu work: it is a
+     * statutory fact about the business, it is wrong for every dish at once when it is wrong, and
+     * it mis-states the tax return rather than one bill. That belongs with the person who signs the
+     * return.
+     *
+     * <p>Held by OWNER and TENANT_ADMIN — the same two personas {@code /app/settings} already
+     * admits, and the same holder set changesets 089 and 090 chose for the same reason. This is not
+     * a widening of anything: before F16 there was no screen at all, and no role could set a rate
+     * except one item at a time.
+     *
+     * <p>Phase 19b established the precedent (see {@link #requireTablesAdmin}) — verbs that share a
+     * noun and nothing else do not share a permission.
+     */
+    public void requireTaxManage() {
+        if (!hasPermission("pos.tax.manage")) {
+            throw new PermissionDeniedException("Requires pos.tax.manage");
+        }
+    }
+
+    /**
+     * SERVICE-CHARGE gate — decide that every dine-in bill at this branch grows by a percentage
+     * (F20).
+     *
+     * <p>Its own code, for the same reason {@link #requireTaxManage} has one. The neighbouring
+     * codes are each wrong on their own terms:
+     *
+     * <ul>
+     *   <li>{@code pos.menu.manage} prices ONE dish and is held by MANAGER. A service charge
+     *       re-prices every check in the building at once, including checks already open.</li>
+     *   <li>{@code pos.tax.manage} is the statutory rate. A service charge is not a tax — it is
+     *       the restaurant's own money, credited to its own revenue account, and calling it a tax
+     *       to reuse a permission would put a commercial decision behind a fiscal one.</li>
+     *   <li>{@code pos.order.discount.*} moves money on one check with a reason attached. This
+     *       moves it on all of them, silently, until somebody changes it back.</li>
+     * </ul>
+     *
+     * <p>Held by OWNER and TENANT_ADMIN — the same two personas {@code /app/settings} already
+     * admits and the same holder set changeset 091 chose. A branch MANAGER is deliberately left
+     * able to READ the policy ({@code ServiceChargeServiceImpl.get} gates on
+     * {@code pos.menu.view}): the charge is on every bill they hand a guest, and a manager who
+     * cannot look up the rate is being asked to defend a number the product hides from them.
+     *
+     * <p>This widens nothing. Before F20 no role could set a service charge, because no screen and
+     * no endpoint existed that could — measured live: {@code service_charge_paisa} was 0 on all
+     * 195 orders in pos_db.
+     */
+    public void requireServiceChargeManage() {
+        if (!hasPermission("pos.service_charge.manage")) {
+            throw new PermissionDeniedException("Requires pos.service_charge.manage");
+        }
+    }
+
+    /**
      * Dining-table CATALOGUE gate — create, rename, re-capacity, retire, reactivate (19b-01).
      *
      * <p>Deliberately NOT {@code pos.tables.manage}, which already exists and which

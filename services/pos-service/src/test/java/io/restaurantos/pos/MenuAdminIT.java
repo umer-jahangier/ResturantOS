@@ -72,7 +72,7 @@ class MenuAdminIT extends PosTestBase {
     @Test
     void createCategory_appearsInBothTheLiveAndAdminListings() {
         MenuCategoryDto created = menuService.createCategory(
-                new CreateMenuCategoryRequest("Starters", "Small plates", 1));
+                new CreateMenuCategoryRequest("Starters", "Small plates", 1, null));
 
         assertThat(created.name()).isEqualTo("Starters");
         assertThat(created.active()).isTrue();
@@ -83,7 +83,7 @@ class MenuAdminIT extends PosTestBase {
     @Test
     void deactivatingACategoryHidesItFromTheLiveListingButNotTheAdminOne() {
         MenuCategoryDto created = menuService.createCategory(
-                new CreateMenuCategoryRequest("Seasonal", null, 2));
+                new CreateMenuCategoryRequest("Seasonal", null, 2, null));
 
         MenuCategoryDto deactivated = menuService.setCategoryActive(created.id(), false);
 
@@ -94,7 +94,7 @@ class MenuAdminIT extends PosTestBase {
 
     @Test
     void reactivatingACategoryBringsItBackToTheLiveListing() {
-        MenuCategoryDto created = menuService.createCategory(new CreateMenuCategoryRequest("Drinks", null, 3));
+        MenuCategoryDto created = menuService.createCategory(new CreateMenuCategoryRequest("Drinks", null, 3, null));
         menuService.setCategoryActive(created.id(), false);
 
         MenuCategoryDto reactivated = menuService.setCategoryActive(created.id(), true);
@@ -105,10 +105,10 @@ class MenuAdminIT extends PosTestBase {
 
     @Test
     void updatingACategoryRenamesItWithoutTouchingActiveState() {
-        MenuCategoryDto created = menuService.createCategory(new CreateMenuCategoryRequest("Beverages", "old", 4));
+        MenuCategoryDto created = menuService.createCategory(new CreateMenuCategoryRequest("Beverages", "old", 4, null));
 
         MenuCategoryDto updated = menuService.updateCategory(created.id(),
-                new UpdateMenuCategoryRequest("Drinks & Beverages", "new description", 5));
+                new UpdateMenuCategoryRequest("Drinks & Beverages", "new description", 5, null));
 
         assertThat(updated.name()).isEqualTo("Drinks & Beverages");
         assertThat(updated.description()).isEqualTo("new description");
@@ -123,11 +123,11 @@ class MenuAdminIT extends PosTestBase {
 
     @Test
     void updatingACategoryWithoutPosMenuManageIsDenied() {
-        MenuCategoryDto created = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1));
+        MenuCategoryDto created = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1, null));
         authenticateAs(List.of("pos.order.view"));
 
         assertThatThrownBy(() -> menuService.updateCategory(created.id(),
-                new UpdateMenuCategoryRequest("Renamed", null, 1)))
+                new UpdateMenuCategoryRequest("Renamed", null, 1, null)))
                 .isInstanceOf(PermissionDeniedException.class);
     }
 
@@ -137,26 +137,26 @@ class MenuAdminIT extends PosTestBase {
     void creatingACategoryWithoutPosMenuManageIsDenied() {
         authenticateAs(List.of("pos.order.view"));
 
-        assertThatThrownBy(() -> menuService.createCategory(new CreateMenuCategoryRequest("Nope", null, 1)))
+        assertThatThrownBy(() -> menuService.createCategory(new CreateMenuCategoryRequest("Nope", null, 1, null)))
                 .isInstanceOf(PermissionDeniedException.class);
     }
 
     @Test
     void creatingAnItemWithoutPosMenuManageIsDenied() {
-        MenuCategoryDto category = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1));
+        MenuCategoryDto category = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1, null));
         authenticateAs(List.of("pos.order.view"));
 
         assertThatThrownBy(() -> menuService.createItem(
-                new CreateMenuItemRequest(category.id(), "Karahi", null, 15000L, null, null, null)))
+                new CreateMenuItemRequest(category.id(), "Karahi", null, 15000L, null, null, null, null)))
                 .isInstanceOf(PermissionDeniedException.class);
     }
 
     @Test
     void deactivatingAnItemWithoutPosMenuManageIsDenied() {
         authenticateAs(List.of("pos.menu.manage"));
-        MenuCategoryDto category = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1));
+        MenuCategoryDto category = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1, null));
         MenuItemDto item = menuService.createItem(
-                new CreateMenuItemRequest(category.id(), "Karahi", null, 15000L, null, null, null));
+                new CreateMenuItemRequest(category.id(), "Karahi", null, 15000L, null, null, null, null));
 
         authenticateAs(List.of("pos.order.view"));
 
@@ -168,11 +168,11 @@ class MenuAdminIT extends PosTestBase {
 
     @Test
     void listItemsForAdmin_includesDeactivatedItemsScopedToOneCategory() {
-        MenuCategoryDto category = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1));
+        MenuCategoryDto category = menuService.createCategory(new CreateMenuCategoryRequest("Mains", null, 1, null));
         MenuItemDto live = menuService.createItem(
-                new CreateMenuItemRequest(category.id(), "Karahi", null, 15000L, null, null, null));
+                new CreateMenuItemRequest(category.id(), "Karahi", null, 15000L, null, null, null, null));
         MenuItemDto toDeactivate = menuService.createItem(
-                new CreateMenuItemRequest(category.id(), "Nihari", null, 18000L, null, null, null));
+                new CreateMenuItemRequest(category.id(), "Nihari", null, 18000L, null, null, null, null));
         menuService.setActive(toDeactivate.id(), false);
 
         List<MenuItemDto> adminList = menuService.listItemsForAdmin(category.id());
@@ -188,10 +188,10 @@ class MenuAdminIT extends PosTestBase {
     @Test
     void creatingACategoryThenAnItemUnderItIsOneCoherentFlow() {
         MenuCategoryDto category = menuService.createCategory(
-                new CreateMenuCategoryRequest("New Arrivals", "Just added", 5));
+                new CreateMenuCategoryRequest("New Arrivals", "Just added", 5, null));
 
         MenuItemDto item = menuService.createItem(new CreateMenuItemRequest(
-                category.id(), "Chicken Karahi", "Spicy", 65000L, new BigDecimal("5.00"), "STD", null));
+                category.id(), "Chicken Karahi", "Spicy", 65000L, new BigDecimal("5.00"), "STD", null, null));
 
         assertThat(item.categoryId()).isEqualTo(category.id());
         assertThat(item.categoryName()).isEqualTo("New Arrivals");
