@@ -248,7 +248,10 @@ class DiscountedOrderRevenuePostingIT extends AutoPostingITBase {
                         List.of(new PosEventContract.PaymentEntry("CASH", total, total, 0L, null)),
                         List.of(new PosEventContract.ItemEntry(
                                 UUID.randomUUID(), "Nihari", 1, subtotal, subtotal)),
-                        null, null, Instant.now(), BusinessDay.of(Instant.now())));
+                        // BusinessDay lost its UTC-assuming of(Instant) overload; UTC is what this
+                        // fixture used to pass, so its meaning is unchanged.
+                        null, null, Instant.now(),
+                        BusinessDay.of(Instant.now(), java.time.ZoneOffset.UTC)));
 
         rabbitTemplate.send("pos.topic", PosEventContract.ORDER_CLOSED_KEY,
                 new org.springframework.amqp.core.Message(objectMapper.writeValueAsBytes(envelope)));
