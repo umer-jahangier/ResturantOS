@@ -48,7 +48,7 @@ being careful.**
 | V27 | tenant tax policy | main | **applied to shared `pos_db`** — do not renumber |
 | V28 | hash legacy idempotency fingerprints | `practical-borg-3dc2b3` (void reason length) | claimed |
 | V29 | order discount value bounded | `wizardly-lamport-e131f3` (PERCENT/FLAT bound) | claimed |
-| V30 | order discount source (MANUAL/PROMOTION) | `eloquent-napier-4baf6b` (promotions) | **assigned 2026-08-12** |
+| V30 | order discount source (MANUAL/PROMOTION) | `eloquent-napier-4baf6b` (promotions) | **assigned 2026-08-12** — reassigned from V27, then from V28 after BOTH collided |
 | V31+ | — | free | |
 
 ## Other services
@@ -67,6 +67,26 @@ No contention observed yet. The same rule applies — claim here first.
 | audit-service | Liquibase | — | RLS policy changeset in flight |
 | crm-service | Liquibase | — | |
 | platform-admin, file | Liquibase | — | |
+
+## Renumbering is not finished until someone rebuilds with `clean`
+
+`mvn package` does not clean. After renaming a migration, `target/classes/db/migration/` still holds
+the **old filename**, and the packaged jar ships **both**. Flyway then finds the old version with a
+checksum that does not match the one recorded in the shared database and refuses to boot — the exact
+failure the renumber was performed to prevent, arriving through the back door of a stale build
+directory.
+
+Caught on 2026-08-12 by the promotions session, on its own jar, before handing it over:
+
+```
+target/classes/db/migration/  ->  V27__order_discount_source.sql  (stale, renamed away)
+                                  V28__order_discount_source.sql  (new)
+jar contained BOTH
+```
+
+**After any rename, rebuild with `clean` and verify the jar's contents**, e.g.
+`unzip -l <jar> | grep -oE 'V[0-9]+__[a-z_]+\.sql' | sort -V`. Confirm the old name is absent, not
+merely that the new one is present.
 
 ## Two traps worth knowing before you write one
 
