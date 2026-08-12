@@ -1,0 +1,105 @@
+{
+  "order": {
+    "orderId": "3b03493c-9ff9-4242-86f7-9ebf569c32b6",
+    "orderNo": "ORD-20260812-0260",
+    "tableId": null,
+    "tableName": null,
+    "type": "DINE_IN",
+    "derivedStatus": "IN_PROGRESS",
+    "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+    "cashierName": "Terrace Cashier",
+    "coverCount": 1,
+    "totalPaisa": 99800,
+    "openedAt": "2026-08-12T05:33:32.978554Z",
+    "settlementStatus": "SENT_TO_KDS",
+    "paymentStatus": "UNPAID",
+    "amountPaidPaisa": 0,
+    "itemQuantity": 2,
+    "distinctItemCount": 2,
+    "settlement": null
+  },
+  "terminalProbe": {
+    "serviceChargeText": null,
+    "tipText": null,
+    "controls": []
+  },
+  "chargeProbe": {
+    "subtotal": "Rs 998.00",
+    "discounts": "Rs 0.00",
+    "serviceCharge": "Rs 0.00",
+    "taxes": "Rs 0.00",
+    "total": "Rs 998.00",
+    "serviceChargeLinePresent": true,
+    "tipControls": []
+  },
+  "cashierRoutes": {
+    "/app/settings": {
+      "bad": [
+        "access-denied"
+      ],
+      "hasServiceCharge": false,
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Settings Floating Terrace HQ Search… ⌘K E Access denied You do "
+    },
+    "/app/settings/service-charge": {
+      "bad": [
+        "404"
+      ],
+      "hasServiceCharge": false,
+      "head": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to "
+    },
+    "/app/settings/pos": {
+      "bad": [
+        "404"
+      ],
+      "hasServiceCharge": false,
+      "head": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to "
+    },
+    "/app/settings/charges": {
+      "bad": [
+        "404"
+      ],
+      "hasServiceCharge": false,
+      "head": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to "
+    },
+    "/app/terminals": {
+      "bad": [
+        "load-failure text"
+      ],
+      "hasServiceCharge": false,
+      "head": "This page couldn’t load Reload to try again, or go back. Reload Back"
+    }
+  },
+  "ownerRoutes": {
+    "/app/settings": {
+      "bad": [],
+      "hasServiceCharge": false,
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display The Pass Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Jour"
+    },
+    "/app/settings/service-charge": {
+      "bad": [
+        "404"
+      ],
+      "hasServiceCharge": false,
+      "head": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard"
+    },
+    "/app/settings/pos": {
+      "bad": [
+        "404"
+      ],
+      "hasServiceCharge": false,
+      "head": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard"
+    },
+    "/app/settings/charges": {
+      "bad": [
+        "404"
+      ],
+      "hasServiceCharge": false,
+      "head": "404 This page doesn't exist The link may be out of date, or the screen may not be built yet. Nothing has gone wrong with your data. Back to dashboard"
+    },
+    "/app/terminals": {
+      "bad": [],
+      "hasServiceCharge": false,
+      "head": "Floating Terrace OVERVIEW Dashboard ORDERS POS Kitchen Display The Pass Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers FINANCE Guide Takings Accounts Jour"
+    }
+  }
+}

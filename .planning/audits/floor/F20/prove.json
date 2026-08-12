@@ -1,0 +1,171 @@
+{
+  "steps": {
+    "A-before": {
+      "enabled": true,
+      "rate": "5",
+      "label": "Service charge",
+      "preview": "10000",
+      "readOnlyNotice": false,
+      "saveDisabled": false,
+      "inNav": true
+    },
+    "A-preview-on-a-2000-check": {
+      "paisa": "10000"
+    },
+    "A-persisted": {
+      "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+      "status": 200,
+      "body": {
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "enabled": true,
+        "ratePct": 5,
+        "label": "Service charge",
+        "dineIn": true,
+        "takeaway": false,
+        "pickup": false,
+        "canManage": true
+      }
+    },
+    "B-order": {
+      "orderNo": "ORD-20260812-0301",
+      "orderId": "761c161b-3ea5-4fcd-b909-2442c10977d8",
+      "totalPaisa": 104790
+    },
+    "B-charge-page": {
+      "billRows": {
+        "Subtotal": "Rs 998.00",
+        "Discounts": "Rs 0.00",
+        "Service charge (5.00%)": "Rs 49.90",
+        "Taxes": "Rs 0.00",
+        "Total": "Rs 1,047.90",
+        "Amount paid": "Rs 0.00",
+        "Remaining balance": "Rs 1,047.90"
+      },
+      "serviceChargeCaption": "Service charge (5.00%)",
+      "serviceChargeValue": "Rs 49.90",
+      "tipInputPresent": true
+    },
+    "B-server-order": {
+      "subtotalPaisa": 99800,
+      "serviceChargePaisa": 4990,
+      "serviceChargePct": 5,
+      "serviceChargeLabel": "Service charge",
+      "taxPaisa": 0,
+      "totalPaisa": 104790,
+      "invariantHolds": true
+    },
+    "C-before-submit": {
+      "offTheCard": "114790",
+      "tipTotal": "10000",
+      "caption": "Off the card"
+    },
+    "C-after-payment": {
+      "amountPaid": "Rs 1,047.90",
+      "remaining": "Rs 0.00",
+      "tipLine": "Tip Rs 100.00 — held for staff, not part of the bill",
+      "tipPaisa": "10000"
+    },
+    "C-server-payments": [
+      {
+        "method": "CARD",
+        "amountPaisa": 104790,
+        "tipPaisa": 10000,
+        "tenderedPaisa": 114790,
+        "changePaisa": 0
+      }
+    ],
+    "D-bill": {
+      "rendered": true,
+      "serviceChargeRow": "Service charge (5.00%)Rs 49.90",
+      "tipRow": "TipRs 100.00",
+      "text": "*** REPRINT #2 ***Originally issued 2026-08-12T06:33:49.717ZFloating Terrace HQ12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad+92 21 4628872OrderORD-20260812-0301Issued2026-08-12T06:33:56.921Z2 x Audit Item 52235Rs 998.00+ HotSubtotalRs 998.00DiscountRs 0.00Service charge (5.00%)Rs 49.90TaxRs 0.00TOTALRs 1,047.90CARDRs 1,047.90TipRs 100.00"
+    },
+    "E-order-status": {
+      "status": "CLOSED"
+    },
+    "E-journal-entries": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "9c897527-bef5-4c65-8532-231f5b9f5c2f",
+            "entryNo": "JE-2027-000298",
+            "periodId": "d5a01de9-ee35-46f4-9545-ba0c72f14741",
+            "entryDate": "2026-08-12",
+            "description": "Order revenue ORD-20260812-0301",
+            "sourceType": "ORDER_REVENUE",
+            "sourceId": "761c161b-3ea5-4fcd-b909-2442c10977d8",
+            "status": "POSTED",
+            "postedBy": null,
+            "reversal": false,
+            "reversalOfJe": null,
+            "reversedByJe": null,
+            "totalDebitPaisa": 114790,
+            "totalCreditPaisa": 114790,
+            "lines": [
+              {
+                "id": "f4095fac-ba3b-44b8-9fce-8f538dad1d0a",
+                "accountCode": "1110",
+                "description": "CARD payment",
+                "debitPaisa": 114790,
+                "creditPaisa": 0
+              },
+              {
+                "id": "58be527a-8946-412b-ba37-913ca6974418",
+                "accountCode": "4100",
+                "description": "Sales revenue",
+                "debitPaisa": 0,
+                "creditPaisa": 99800
+              },
+              {
+                "id": "342a3709-5ad8-4187-8ebe-ff83bb3d1a81",
+                "accountCode": "4910",
+                "description": "Service charge",
+                "debitPaisa": 0,
+                "creditPaisa": 4990
+              },
+              {
+                "id": "c2a5ccc2-8fc4-4e72-8c3d-77fd429ee0bf",
+                "accountCode": "2330",
+                "description": "Tips payable",
+                "debitPaisa": 0,
+                "creditPaisa": 10000
+              }
+            ],
+            "sourceReference": {
+              "state": "RESOLVED",
+              "sourceType": "ORDER_REVENUE",
+              "sourceId": "761c161b-3ea5-4fcd-b909-2442c10977d8",
+              "orderNo": "ORD-20260812-0301",
+              "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+              "cashierId": "eb2ee67e-9fc0-4ed5-bb5b-cd6321e02ba1",
+              "closedAt": "2026-08-12T06:34:08.011059Z",
+              "reason": null
+            }
+          }
+        ],
+        "meta": null,
+        "warnings": []
+      }
+    },
+    "F-no-service-charge-line": {
+      "orderNo": "ORD-20260812-0302",
+      "billSectionFound": true,
+      "anyServiceChargeTextInBill": false,
+      "bill": "Bill Subtotal Rs 499.00 Discounts Rs 0.00 Apply a discount Taxes Rs 0.00 Total Rs 499.00 Amount paid Rs 0.00 Remaining balance Rs 499.00"
+    },
+    "F-bill-no-service-charge": {
+      "rendered": true,
+      "serviceChargeRow": false,
+      "anyServiceChargeText": false
+    },
+    "H-manager": {
+      "trouble": [],
+      "bodyHead": "Floating Terrace Floating Terrace HQ OVERVIEW Dashboard ORDERS POS Kitchen Display Till Review MENU Inventory Menu Items Tables Stations Station Routing POS Terminals Printers Service Charge FINANCE G",
+      "readOnlyNotice": "You can see this branch's service charge but not change it. Changing it re-prices every check in the building, so it is held by an owner or a tenant administrator.",
+      "rate": "5",
+      "rateDisabled": true,
+      "saveDisabled": true
+    }
+  }
+}
