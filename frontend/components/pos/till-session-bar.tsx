@@ -9,6 +9,16 @@ import { cn } from "@/lib/utils";
 
 interface TillSessionBarProps {
   activeTill: TillSession | null | undefined;
+  /**
+   * The till READ failed — as opposed to resolving to "no open till" (S1-09).
+   *
+   * <p>`activeTill` is `undefined` in both cases, which is exactly why this has to be a separate
+   * prop: without it the bar rendered the amber "No active till / Open Till" strip while
+   * pos-service was stopped, telling a cashier their drawer was closed and offering them a button
+   * that could only fail. Photographed on 2026-08-12 above a correct outage alert — the page
+   * saying two contradictory things at once.
+   */
+  readFailed?: boolean;
 }
 
 function generateKey() {
@@ -55,7 +65,7 @@ function getTillErrorMessage(
   return fallback;
 }
 
-export function TillSessionBar({ activeTill }: TillSessionBarProps) {
+export function TillSessionBar({ activeTill, readFailed = false }: TillSessionBarProps) {
   const [openingFloat, setOpeningFloat] = useState("");
   const [declaredCash, setDeclaredCash] = useState("");
   const [closeNote, setCloseNote] = useState("");
@@ -96,6 +106,28 @@ export function TillSessionBar({ activeTill }: TillSessionBarProps) {
   const variance = activeTill?.variancePaisa;
   const variancePositive = variance !== null && variance !== undefined && variance >= 0;
   const varianceThreshold = 50000; // 500 PKR
+
+  /*
+   * Checked BEFORE the "no till" branch, the same precedence QueryBoundary enforces everywhere
+   * else: a failed read has no trustworthy answer, so "your till is closed" is not a statement
+   * that can honestly be made yet. No Open Till button here — it posts to the service that is
+   * not answering, and offering it would be the product suggesting a remedy it knows will fail.
+   */
+  if (readFailed) {
+    return (
+      <div className="border-b border-destructive/30">
+        <div
+          role="status"
+          data-testid="till-status-unavailable"
+          className="flex items-center gap-2 bg-destructive/10 px-3 py-2"
+        >
+          <span className="text-small font-medium text-destructive">
+            Till status unavailable — the till service is not answering
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (!activeTill || activeTill.status === "CLOSED") {
     return (

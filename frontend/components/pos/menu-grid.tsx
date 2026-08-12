@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { cartLineKey, type CartLine } from "@/components/pos/cart-reducer";
 import type { MenuItem } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
@@ -40,8 +41,29 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
   // UI-SPEC §3: pure client-side filter over the currently-loaded category, 150ms
   // debounced (no server round-trip per keystroke — menu is ≤ ~60 items at this scale).
   const debouncedSearch = useDebouncedValue(searchQuery, 150);
-  const { data: categories = [], isLoading: categoriesLoading } = useMenuCategories();
-  const { data: items = [], isLoading: itemsLoading } = useMenuItems(activeCategoryId);
+  /*
+   * S1-09. These two reads used to be destructured as `{ data: items = [], isLoading }` with
+   * `isError` never taken at all — GA-001 bug shape 2, verbatim. With pos-service stopped, both
+   * queries rejected with a gateway 503, `items` fell back to `[]` one line later, `itemsLoading`
+   * went false, and the grid rendered the sentence "No items available" in the product's own
+   * confident voice. Driven live on 2026-08-12: four 503s on the network tab, zero `[role=alert]`
+   * anywhere on the page. A cashier reads that as "the owner has not added the menu yet".
+   *
+   * The queries are now held whole so the error cannot be dropped on the way to the render, and
+   * the failure branch is checked BEFORE the empty branch, which is the only ordering in which
+   * "there are no items" is an honest thing to say.
+   */
+  const categoriesQuery = useMenuCategories();
+  const itemsQuery = useMenuItems(activeCategoryId);
+  const categories = categoriesQuery.data ?? [];
+  const items = itemsQuery.data ?? [];
+  // `isLoading` (= isPending && isFetching), NOT `isPending`. A DISABLED TanStack v5 query reports
+  // isPending forever, and this grid's two reads are gated on `isAuthenticated && !!branchId` —
+  // reading isPending here would pin a permanent skeleton over the whole menu the moment a branch
+  // id is briefly absent. Same trap `table-floor-view.tsx` records; the only change in this commit
+  // is that the ERROR is no longer discarded, not how loading is decided.
+  const categoriesLoading = categoriesQuery.isLoading;
+  const itemsLoading = itemsQuery.isLoading;
 
   const activeCategories = categories.filter((c) => c.active);
   const activeItems = items.filter((i) => i.active);
@@ -185,7 +207,27 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
 
       {/* Menu item grid — 2/3/4 col responsive, min 100x100 touch cards */}
       <div className="flex-1 overflow-y-auto">
-        {itemsLoading ? (
+        {itemsQuery.isError || categoriesQuery.isError ? (
+          /*
+           * Error before empty, and before loading. A failed read has no trustworthy `data`, so
+           * "there are no items" is not a question that can honestly be asked yet — the whole
+           * lesson of GA-001. `stillWorks` is the sentence that decides what the cashier does in
+           * the next thirty seconds: whether they turn the queue away or walk to the pass.
+           */
+          <div className="p-1">
+            <QueryErrorNotice
+              what="the menu"
+              moduleLabel="POS"
+              error={itemsQuery.error ?? categoriesQuery.error}
+              stillWorks="Tickets already sent to the kitchen are unaffected, and the kitchen display keeps working."
+              isRetrying={itemsQuery.isFetching || categoriesQuery.isFetching}
+              onRetry={() => {
+                void itemsQuery.refetch();
+                void categoriesQuery.refetch();
+              }}
+            />
+          </div>
+        ) : itemsLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />

@@ -163,7 +163,12 @@ describe("the role picker offers exactly what the ceiling allows — no more, an
 
     renderWithQuery(<RoleSelect id="r" value="" onChange={() => {}} />);
 
-    await waitFor(() => expect(screen.getByTestId("query-error")).toBeInTheDocument());
+    // S1-09: a 503 from the role catalogue means auth-service is not answering, and that now
+    // renders the outage copy rather than the generic "couldn't load" — which is the point, since
+    // an administrator who reads "the role catalogue is unavailable" knows to check the fleet and
+    // one who reads "something went wrong" does not. What this test protects is unchanged: a
+    // failure must be visible, and the picker must not be rendered empty.
+    await waitFor(() => expect(screen.getByTestId("query-service-outage")).toBeInTheDocument());
     // An empty `<select>` would say "you may assign no roles". The truth is "we could not ask".
     expect(screen.queryByTestId("role-select")).not.toBeInTheDocument();
   });

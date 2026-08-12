@@ -231,8 +231,39 @@ describe("TableFloorView", () => {
     );
 
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
-    expect(screen.getByRole("alert")).toHaveTextContent(/Couldn't load the floor plan/i);
+    // S1-09 split the 503 out of the generic failure sentence. The stub here is a 503 — the
+    // status a stopped pos-service actually produces at the gateway — so this now lands on the
+    // outage copy, which says the SOFTWARE is not answering rather than that the read failed.
+    // The assertion below is unchanged in what it protects: a failure is never an absence of
+    // tables. The generic branch keeps its own case, immediately after this one.
+    expect(screen.getByTestId("query-service-outage")).toHaveTextContent(
+      /the floor plan is unavailable right now/i,
+    );
     // The specific lie: a failure must never be reported as an absence of tables.
+    expect(screen.queryByText(/No active tables at this branch/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * The other half of the same rule, and the reason the case above was split rather than
+   * rewritten: a 500 is NOT an outage. Nothing is down, one request went wrong, and the generic
+   * "Couldn't load the floor plan" is the honest sentence for it. Without this, S1-09's new
+   * branch could have swallowed every failure into outage copy and no test would have noticed.
+   */
+  it("a 500 keeps the generic failure sentence — it is not an outage", async () => {
+    server.use(
+      http.get("*/api/v1/pos/tables", () => new HttpResponse(null, { status: 500 })),
+    );
+    seedSession({ branchId: BRANCH_ID, permissions: ["pos.order.close"] });
+    const Wrapper = createQueryWrapper();
+    render(
+      <Wrapper>
+        <TableFloorView />
+      </Wrapper>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("query-error")).toBeInTheDocument());
+    expect(screen.getByTestId("query-error")).toHaveTextContent(/Couldn't load the floor plan/i);
+    expect(screen.queryByTestId("query-service-outage")).not.toBeInTheDocument();
     expect(screen.queryByText(/No active tables at this branch/)).not.toBeInTheDocument();
   });
 });

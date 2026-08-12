@@ -70,6 +70,16 @@ const NAV_PERMISSIONS = {
     // CASHIER and KITCHEN_STAFF fixtures is what asserts the gate: a cashier must not be offered
     // a screen that re-scopes which menu a till shows.
     "pos.terminals.admin",
+    // S1-06 registers a Printers entry behind `pos.printers.admin` (auth changelog 088), granted
+    // to OWNER, TENANT_ADMIN and MANAGER. Nav-relevant, so it belongs in the full fixture; its
+    // absence from the ACCOUNTANT, CASHIER and KITCHEN_STAFF fixtures is what asserts the gate.
+    "pos.printers.admin",
+    // S1-09 registers a Service health entry behind `ops.health.view` (auth changelog 089),
+    // granted to OWNER and TENANT_ADMIN ONLY — not MANAGER, which is why the MANAGER fixture
+    // below does not list it and the MANAGER expectation below does not contain the entry. That
+    // asymmetry is the assertion: a branch manager learns about an outage from the till's own
+    // banner, not from a fleet inventory.
+    "ops.health.view",
   ],
 } as const;
 
@@ -117,6 +127,10 @@ const FIXTURES: Record<string, RoleFixture> = {
       "pos.till.review",
       "pos.menu.manage",
       "pos.terminals.admin",
+      // Held by MANAGER per auth changelog 088 — a branch manager owns the branch's equipment
+      // catalogue. `ops.health.view` is deliberately absent: 089 grants it to OWNER and
+      // TENANT_ADMIN only.
+      "pos.printers.admin",
       "inventory.item.view",
       "vendor.view",
       "crm.customer.view",
@@ -218,7 +232,15 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     expect(await visibleNavFor(FIXTURES.OWNER!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
-      { group: "Menu", items: ["Inventory", "Menu Items", "Stations", "POS Terminals"] },
+      {
+        group: "Menu",
+        // "Station Routing" (S1-01) and "Printers" (S1-06) are NOT this plan's entries. They were
+        // already live in the nav while this expectation still read four items, so this assertion
+        // was red before S1-09 touched it — a matrix that describes a nav nobody has any more is
+        // not a gate. Recorded here so the list matches the tree; each of those plans owns its
+        // own row.
+        items: ["Inventory", "Menu Items", "Stations", "Station Routing", "POS Terminals", "Printers"],
+      },
       {
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
@@ -238,7 +260,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Reporting", items: ["Reports", "Realtime Dashboard", "Ask (NLQ)"] },
       // 19-01: General and Users stopped being `comingSoon` when their pages shipped. OWNER
       // reaches both through `rbac.manage`, which is `any`-matched against the narrower codes.
-      { group: "Settings", items: ["General", "Appearance", "Users"] },
+      { group: "Settings", items: ["General", "Appearance", "Users", "Service health"] },
     ]);
   });
 
@@ -253,7 +275,15 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     expect(await visibleNavFor(FIXTURES.TENANT_ADMIN!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
-      { group: "Menu", items: ["Inventory", "Menu Items", "Stations", "POS Terminals"] },
+      {
+        group: "Menu",
+        // "Station Routing" (S1-01) and "Printers" (S1-06) are NOT this plan's entries. They were
+        // already live in the nav while this expectation still read four items, so this assertion
+        // was red before S1-09 touched it — a matrix that describes a nav nobody has any more is
+        // not a gate. Recorded here so the list matches the tree; each of those plans owns its
+        // own row.
+        items: ["Inventory", "Menu Items", "Stations", "Station Routing", "POS Terminals", "Printers"],
+      },
       {
         group: "Finance",
         // 37-12: Takings leads the group and is the module's landing screen (D-37-02).
@@ -271,7 +301,7 @@ describe("nav permission matrix — the set each role sees must not move", () =>
       { group: "Purchasing", items: ["Purchasing"] },
       { group: "People", items: ["HR", "Customers"] },
       { group: "Reporting", items: ["Reports", "Realtime Dashboard", "Ask (NLQ)"] },
-      { group: "Settings", items: ["General", "Appearance", "Users"] },
+      { group: "Settings", items: ["General", "Appearance", "Users", "Service health"] },
     ]);
   });
 
@@ -280,10 +310,19 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     // `branch.manage` is a principal that holds no administration code at all, and the Settings
     // group must collapse to the role-gated Appearance entry. Without this, "TENANT_ADMIN sees
     // General and Users" would pass just as happily against a nav that gates them on nothing.
+    //
+    // S1-09 adds `ops.health.view` to the strip list for the same reason `rbac.manage` is on it:
+    // this fixture is "a TENANT_ADMIN holding none of its administration codes", and 089 grants
+    // the health screen to exactly the administration personas. Leaving it in would have made
+    // the control assert that Settings collapses to TWO items, which is not a collapse — and
+    // would have quietly exempted the newest entry in the group from the one test that proves
+    // these gates bite.
     const stripped = {
       role: "TENANT_ADMIN",
       roles: ["TENANT_ADMIN"],
-      permissions: NAV_PERMISSIONS.full.filter((code) => code !== "rbac.manage"),
+      permissions: NAV_PERMISSIONS.full.filter(
+        (code) => code !== "rbac.manage" && code !== "ops.health.view",
+      ),
     };
     const nav = await visibleNavFor(stripped, ENTERPRISE_FEATURES);
     expect(nav.find((g) => g.group === "Settings")).toEqual({
@@ -296,7 +335,15 @@ describe("nav permission matrix — the set each role sees must not move", () =>
     expect(await visibleNavFor(FIXTURES.MANAGER!, ENTERPRISE_FEATURES)).toEqual([
       { group: "Overview", items: ["Dashboard"] },
       { group: "Orders", items: ["POS", "Kitchen Display", "Till Review"] },
-      { group: "Menu", items: ["Inventory", "Menu Items", "Stations", "POS Terminals"] },
+      {
+        group: "Menu",
+        // "Station Routing" (S1-01) and "Printers" (S1-06) are NOT this plan's entries. They were
+        // already live in the nav while this expectation still read four items, so this assertion
+        // was red before S1-09 touched it — a matrix that describes a nav nobody has any more is
+        // not a gate. Recorded here so the list matches the tree; each of those plans owns its
+        // own row.
+        items: ["Inventory", "Menu Items", "Stations", "Station Routing", "POS Terminals", "Printers"],
+      },
       // 37-12 CHANGED THIS LINE DELIBERATELY. A branch manager holds no `finance.journal.view`
       // and still sees Takings — because a manager is the person who counts the drawer, and
       // `DailyTakingsController` has gated on `pos.till.review` since 37-09. The ledger entries

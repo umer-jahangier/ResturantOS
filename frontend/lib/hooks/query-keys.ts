@@ -15,6 +15,13 @@ export const queryKeys = {
   branches: {
     mine: () => ["branches", "mine"] as const,
   },
+  // S1-09: fleet health. Deliberately NOT branch-scoped and not tenant-scoped — which services
+  // are answering is a fact about the deployment, and there is no per-branch version of it. A
+  // branch switch must not invalidate it, because the operator watching a service come back up
+  // is watching one thing and must not have it reset underneath them.
+  ops: {
+    fleetHealth: () => ["ops", "fleet-health"] as const,
+  },
   // 37-11: the transaction register. Branch-scoped like the rest of the money keys, so a branch
   // switch invalidates it cleanly rather than showing the previous branch's takings.
   transactions: {

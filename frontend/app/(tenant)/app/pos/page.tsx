@@ -9,6 +9,7 @@ import type { FullMenuTarget } from "@/components/pos/order-table-detail-drawer"
 import { TillSessionBar } from "@/components/pos/till-session-bar";
 import { OrderManagement } from "@/components/pos/order-management";
 import { PosConnectionBadge } from "@/components/pos/pos-connection-badge";
+import { QueryErrorNotice } from "@/components/ui/query-boundary";
 import { useActiveTill } from "@/lib/hooks/pos/use-till";
 import { usePosOrdersSocket } from "@/lib/hooks/pos/use-pos-orders-socket";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -45,13 +46,24 @@ export default function PosPage() {
     setView("terminal");
   };
 
-  const { data: activeTill, isLoading: tillLoading } = useActiveTill();
+  const tillQuery = useActiveTill();
+  const activeTill = tillQuery.data;
+  const tillLoading = tillQuery.isLoading;
   // Financial-integrity gate (mirrors the server-authoritative NO_OPEN_TILL guard in
   // OrderServiceImpl.createOrder): a cashier must not even be able to START an order
   // without an OPEN till. Only block on a CONFIRMED absence (query resolved to null) —
   // never while the till query is still loading, so a momentary undefined doesn't flash
   // the notice. The backend remains the source of truth; this is defense-in-depth UX.
-  const tillClosed = !tillLoading && !activeTill;
+  //
+  // S1-09: `!tillQuery.isError` is the load-bearing clause. Without it a FAILED till read was
+  // indistinguishable from a resolved absence — `data` is undefined either way — so with
+  // pos-service stopped the whole terminal rendered "Your till is closed. Open your till from the
+  // bar above… Orders can't be created without an open drawer." That is not merely unhelpful: it
+  // is a confident wrong diagnosis that sends the cashier to press Open Till, which then also
+  // fails, on a screen carrying zero [role=alert]. Measured live on 2026-08-12 with four gateway
+  // 503s on the network tab and that sentence on screen.
+  const tillClosed = !tillLoading && !tillQuery.isError && !activeTill;
+  const tillUnavailable = tillQuery.isError;
 
   // One branch-level order WebSocket for the whole POS surface (persists across tab
   // switches). Pushes live kitchen→pos order updates into the TanStack cache; the per-order
@@ -93,7 +105,7 @@ export default function PosPage() {
 
           {/* Till session — page-level chrome, session-scoped (not per-tab/per-order),
               visible identically across every tab (UI-SPEC §3). */}
-          <TillSessionBar activeTill={activeTill} />
+          <TillSessionBar activeTill={activeTill} readFailed={tillUnavailable} />
 
           {/* View tabs */}
           <div className="flex items-center gap-1 px-4 pt-3 border-b bg-background shrink-0">
@@ -118,7 +130,26 @@ export default function PosPage() {
           {/* Content */}
           <div className="flex-1 overflow-hidden">
             {view === "terminal" &&
-              (tillClosed ? (
+              (tillUnavailable ? (
+                /*
+                 * The till read FAILED. Not "no till" — no answer. The distinction is the whole of
+                 * S1-09 on this screen, and the copy says out loud both what is unavailable and
+                 * what still works, because a cashier who believes the entire product is dead
+                 * sends the queue away.
+                 */
+                <div className="flex h-full items-start justify-center overflow-auto p-6">
+                  <div className="w-full max-w-xl">
+                    <QueryErrorNotice
+                      what="the till"
+                      moduleLabel="POS"
+                      error={tillQuery.error}
+                      stillWorks="Orders already sent to the kitchen are unaffected, and the kitchen display keeps working. Do not take cash against a check you cannot see here."
+                      isRetrying={tillQuery.isFetching}
+                      onRetry={() => void tillQuery.refetch()}
+                    />
+                  </div>
+                </div>
+              ) : tillClosed ? (
                 <div
                   data-testid="pos-till-closed-notice"
                   className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center"

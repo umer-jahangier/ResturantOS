@@ -112,9 +112,38 @@ export class ApiError extends Error {
   isQuotaExceeded(): boolean {
     return this.code === "QUOTA_EXCEEDED";
   }
+  /**
+   * 503 — the service behind this call is not answering (S1-09).
+   *
+   * <p>Emitted by the gateway's `FallbackController` when an upstream's circuit breaker is open or
+   * the connection was refused outright, and by a service's own deliberate "I am unavailable"
+   * responses. It is the ONE failure whose remedy is neither "check your input" nor "ask for
+   * access" nor "try again in a second" — the software is partly down, and the person reading it
+   * needs to be told that in those words rather than shown an empty screen.
+   *
+   * <p>Matched on the code AND on the bare status. A 503 that arrives with no parseable envelope —
+   * an nginx page, a load balancer's own error, a connection dropped mid-body — is the same
+   * situation to the reader, and classifying it on the envelope alone would let the most total
+   * outages fall through to the generic message.
+   */
+  isServiceUnavailable(): boolean {
+    return this.code === "SERVICE_UNAVAILABLE" || this.status === 503;
+  }
   isValidationFailed(): boolean {
     return this.code === "VALIDATION_FAILED";
   }
+}
+
+/**
+ * True when a thrown value is a 503 from a service that is not answering (S1-09).
+ *
+ * <p>A free function beside {@link accessRefusalKind} for the same reason that one exists: callers
+ * must be able to classify a failure without first proving it is an {@link ApiError}, and a
+ * predicate that silently returns false for a non-ApiError is how a whole category of failure
+ * quietly rejoins the generic bucket.
+ */
+export function isServiceOutage(error: unknown): boolean {
+  return error instanceof ApiError && error.isServiceUnavailable();
 }
 
 /** Which kind of 403 a thrown value is, or `null` when it is not a refusal at all. */

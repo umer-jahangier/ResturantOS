@@ -2,8 +2,16 @@
 
 import * as React from "react";
 
-import { accessRefusalKind, accessRefusalMessage, formatUserFacingError } from "@/lib/errors";
+import Link from "next/link";
+
+import {
+  accessRefusalKind,
+  accessRefusalMessage,
+  formatUserFacingError,
+  isServiceOutage,
+} from "@/lib/errors";
 import { Button } from "@/components/ui/button";
+import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { cn } from "@/lib/utils";
 
 /**
@@ -76,6 +84,17 @@ interface QueryErrorNoticeProps {
    * enabled") but is worth passing properly on any screen that has a module name.
    */
   moduleLabel?: string;
+  /**
+   * One sentence naming what a person CAN still do while this service is down. Rendered only in
+   * the 503 state (S1-09), because it is only true there — a 403 or a parse failure does not leave
+   * a neighbouring capability working.
+   *
+   * <p>Optional, and the notice reads correctly without it. It is worth writing on any screen
+   * where the honest answer is not "nothing": a cashier told "the till is down" will send the
+   * queue away, and a cashier told "the till is down, the kitchen board is still running" will
+   * go and check the pass.
+   */
+  stillWorks?: string;
 }
 
 /**
@@ -120,6 +139,103 @@ function AccessRefusalNotice({
 }
 
 /**
+ * A 503, told apart from every other failure (S1-09).
+ *
+ * <h3>Why this is its own state</h3>
+ *
+ * "Couldn't load the menu. This module is temporarily unavailable. Try again in a moment." is the
+ * sentence the product used to show when a whole service was stopped, and every word of it is
+ * wrong in the way that matters: it implies a blip, it implies retrying now will help, and it
+ * gives the reader nothing to say when they telephone for help. The 2026-08-12 register recorded a
+ * manager taking that message on the till, the kitchen board, the customer file and payroll at the
+ * same moment and having no way to learn that five separate services were simply not running.
+ *
+ * <p>So an outage gets its own copy, and it does three things the generic notice cannot:
+ *
+ * <ul>
+ *   <li>names what is unavailable in the reader's words, and says the SOFTWARE is not answering
+ *       rather than that something went wrong with what they did;</li>
+ *   <li>says what still works — the single most useful sentence during a partial outage, because
+ *       the alternative is a manager assuming the whole product is dead and sending staff home;</li>
+ *   <li>points an owner or administrator at the health screen, where they can see which services
+ *       are down and how long they have been. Only if they hold the permission: an operator link
+ *       that leads to an access-denied page is worse than no link.</li>
+ * </ul>
+ *
+ * <p>The retry button STAYS. Unlike a 403 — where retrying a refusal is the product pretending a
+ * structural problem is transient — a 503 genuinely does clear the moment the service comes back,
+ * and pressing it is exactly what the operator should do after a restart.
+ */
+function ServiceOutageNotice({
+  what,
+  stillWorks,
+  onRetry,
+  isRetrying,
+  className,
+}: {
+  what: string;
+  stillWorks?: string;
+  onRetry?: () => void;
+  isRetrying?: boolean;
+  className?: string;
+}) {
+  const { permissions } = useCurrentUser();
+  const canSeeHealth = permissions.includes("ops.health.view");
+
+  return (
+    <div
+      role="alert"
+      data-testid="query-service-outage"
+      className={cn(
+        // Same weight as the generic failure, deliberately. An outage is not a gentler event than
+        // a load error and must not be styled as one — 34-05 forbids lowering the salience of a
+        // failure, and this is the most consequential failure the product has.
+        // `text-small`, not Tailwind's `text-sm`: gate G1 requires a new call site to use the
+        // contract role. The neighbouring notices below still carry their baselined `text-sm`
+        // and are converged by their own screen plan, not smuggled into this one.
+        "space-y-2 rounded-lg border border-destructive/30 bg-destructive/15 p-4 text-small text-destructive shadow-depth-1",
+        className,
+      )}
+    >
+      <p className="font-medium">{capitalise(what)} is unavailable right now.</p>
+      <p>
+        The part of RestaurantOS that handles {what} is not answering. This is not something you
+        did, and nothing you have entered has been lost.
+        {stillWorks ? ` ${stillWorks}` : ""}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        {onRetry && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            disabled={isRetrying}
+            data-testid="query-error-retry"
+          >
+            {isRetrying ? "Retrying…" : "Try again"}
+          </Button>
+        )}
+        {canSeeHealth && (
+          <Link
+            href="/app/settings/health"
+            data-testid="query-outage-health-link"
+            className="text-small font-medium underline underline-offset-4"
+          >
+            See which services are down
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function capitalise(text: string): string {
+  const first = text.charAt(0);
+  return first === "" ? text : first.toUpperCase() + text.slice(1);
+}
+
+/**
  * The visible failure state. Exported on its own for the handful of screens whose success branch
  * is too entangled to wrap (a table that must keep its header, a panel inside a dialog).
  */
@@ -130,6 +246,7 @@ export function QueryErrorNotice({
   isRetrying,
   className,
   moduleLabel,
+  stillWorks,
 }: QueryErrorNoticeProps) {
   // Checked FIRST, for the same reason error is checked before empty: a refusal has no
   // trustworthy failure story to tell, and "couldn't load" is not what happened.
@@ -137,6 +254,20 @@ export function QueryErrorNotice({
   if (refusal) {
     return (
       <AccessRefusalNotice kind={refusal} moduleLabel={moduleLabel ?? what} className={className} />
+    );
+  }
+  // Then the outage, before the generic sentence — for the same reason again. "Couldn't load the
+  // menu, try again in a moment" is not what happened when pos-service is not running, and a
+  // reader who acts on it will press Try again until the queue gives up.
+  if (isServiceOutage(error)) {
+    return (
+      <ServiceOutageNotice
+        what={what}
+        stillWorks={stillWorks}
+        onRetry={onRetry}
+        isRetrying={isRetrying}
+        className={className}
+      />
     );
   }
   return (
@@ -196,6 +327,8 @@ interface QueryBoundaryProps {
   hideRetry?: boolean;
   /** The module in the reader's words — "Purchasing". Only used by the two 403 states. */
   moduleLabel?: string;
+  /** What still works while this service is down. Only used by the 503 state — see above. */
+  stillWorks?: string;
   className?: string;
   children: React.ReactNode;
 }
@@ -208,6 +341,7 @@ export function QueryBoundary({
   loading,
   hideRetry,
   moduleLabel,
+  stillWorks,
   className,
   children,
 }: QueryBoundaryProps) {
@@ -219,6 +353,7 @@ export function QueryBoundary({
       <QueryErrorNotice
         what={what}
         moduleLabel={moduleLabel}
+        stillWorks={stillWorks}
         error={failed.error}
         isRetrying={queries.some((q) => q.isFetching)}
         onRetry={

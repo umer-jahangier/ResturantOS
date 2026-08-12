@@ -7,5 +7,6 @@ export {
   type AccessRefusalKind,
   accessRefusalKind,
   accessRefusalMessage,
+  isServiceOutage,
 } from "./api-error";
 export { formatUserFacingError } from "./user-facing";
