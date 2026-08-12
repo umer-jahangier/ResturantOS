@@ -138,11 +138,21 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
 
       {/* Category pills + Clear All (extreme right, pre-send cart only) */}
       <div className="flex items-center gap-2 px-1">
-        <div className="flex flex-1 flex-wrap gap-2">
+        {/*
+          One scrolling row on a phone, wrapped on a till (S6).
+
+          <p>It wrapped at every width. On a 390px screen this tenant's nine categories became
+          THREE rows of pills — ~130px — and together with the till strip, the three tabs and the
+          search box that pushed the first menu tile to y=520 on an 844px screen, below the order
+          panel. Measured, not estimated: the cashier could not tap a dish at all, and therefore
+          could not reach the configure dialog behind it. A category row is a rail, not a
+          paragraph; a till with forty categories should scroll it, not grow a wall.
+        */}
+        <div className="flex flex-1 gap-2 overflow-x-auto lg:flex-wrap lg:overflow-x-visible">
           <button
             onClick={() => setActiveCategoryId(undefined)}
             className={cn(
-              "min-h-11 px-4 py-2 rounded-full text-pos font-medium transition-colors",
+              "min-h-11 shrink-0 px-4 py-2 rounded-full text-pos font-medium transition-colors",
               !activeCategoryId
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-muted/80",
@@ -158,7 +168,7 @@ export function MenuGrid({ onItemSelect, cart, onRemove, onClearCart }: MenuGrid
                 key={cat.id}
                 onClick={() => setActiveCategoryId(cat.id)}
                 className={cn(
-                  "min-h-11 px-4 py-2 rounded-full text-pos font-medium transition-colors",
+                  "min-h-11 shrink-0 px-4 py-2 rounded-full text-pos font-medium transition-colors",
                   activeCategoryId === cat.id
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",

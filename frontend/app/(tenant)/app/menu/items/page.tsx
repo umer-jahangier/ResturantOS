@@ -16,6 +16,7 @@ import type { MenuCategory, MenuItem } from "@/lib/models/pos.model";
 import { MenuCategoryFormDialog } from "@/components/menu/MenuCategoryFormDialog";
 import { MenuItemFormDialog } from "@/components/menu/MenuItemFormDialog";
 import { MenuItemImage } from "@/components/menu/MenuItemImage";
+import { ModifierManagerDialog } from "@/components/menu/ModifierManagerDialog";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -58,6 +59,8 @@ export default function MenuItemsPage() {
 
   const [categoryTarget, setCategoryTarget] = useState<CategoryFormTarget | null>(null);
   const [itemTarget, setItemTarget] = useState<ItemFormTarget | null>(null);
+  /** The dish whose modifier groups are being managed (S6), or null. */
+  const [modifierTarget, setModifierTarget] = useState<MenuItem | null>(null);
 
   const allCategories = categories ?? [];
   const visibleCategories = showInactive ? allCategories : allCategories.filter((c) => c.active);
@@ -254,6 +257,15 @@ export default function MenuItemsPage() {
                               >
                                 Edit
                               </DropdownMenuItem>
+                              {/* S6 — the route to the modifier catalogue. There was no screen
+                                  anywhere in the product that could create one, which is why the
+                                  entities had sat unused since V1. */}
+                              <DropdownMenuItem
+                                data-testid={`manage-options-${item.id}`}
+                                onSelect={() => setModifierTarget(item)}
+                              >
+                                Options &amp; add-ons
+                              </DropdownMenuItem>
                               <DropdownMenuItem onSelect={() => handleToggleItem(item)}>
                                 {item.active ? "Deactivate" : "Reactivate"}
                               </DropdownMenuItem>
@@ -298,6 +310,14 @@ export default function MenuItemsPage() {
         open={itemTarget !== null}
         onOpenChange={(next) => {
           if (!next) setItemTarget(null);
+        }}
+      />
+
+      <ModifierManagerDialog
+        key={modifierTarget ? `modifiers-${modifierTarget.id}` : "modifiers-idle"}
+        item={modifierTarget}
+        onOpenChange={(next) => {
+          if (!next) setModifierTarget(null);
         }}
       />
     </div>

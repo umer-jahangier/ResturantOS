@@ -132,8 +132,19 @@ function nextItemId(order: FakeOrder): string {
   return `e1000001-0000-4000-8000-${String(order.items.length + 1).padStart(12, "0")}`;
 }
 
+/**
+ * The modifier catalogue this terminal now loads beside the menu (S6). Empty by default, which
+ * is what an ordinary tenant has and what keeps the tap-adds-straight-to-the-cart path below
+ * honest — before this handler existed the read simply FAILED in these fixtures, and the tests
+ * were passing through the terminal's outage branch rather than its normal one.
+ */
+let rawModifierGroups: unknown[] = [];
+
 function mockPosEndpoints() {
   server.use(
+    http.get("*/api/v1/pos/menu/modifier-groups", () =>
+      HttpResponse.json({ data: rawModifierGroups, meta: null, warnings: [] }),
+    ),
     http.get("*/api/v1/pos/menu/categories", () =>
       HttpResponse.json({ data: rawCategories, meta: null, warnings: [] }),
     ),
@@ -246,7 +257,10 @@ function renderTerminal(tableId?: string | null) {
 }
 
 describe("PosTerminal", () => {
-  afterEach(() => clearSession());
+  afterEach(() => {
+    clearSession();
+    rawModifierGroups = [];
+  });
 
   it("tapping a menu item builds a local cart with NO network call (no DRAFT order)", async () => {
     renderTerminal();
@@ -431,5 +445,56 @@ describe("PosTerminal", () => {
     // Second click landed after the button was already disabled (isPersisting) or
     // after orderId was already set — either way, at most one order is created.
     expect(createOrderCallCount).toBe(1);
+  });
+
+  /**
+   * S6 — the WIRING. The dialog's own behaviour is proved in `modifier-dialog.test.tsx`; this is
+   * the assertion that the terminal actually opens it, which that file explicitly says it cannot
+   * make. Delete the `<ModifierDialog/>` mount, or the `known.some(g => g.active)` branch in
+   * `handleItemSelect`, and this fails with the line silently in the cart instead.
+   */
+  it("a dish that carries a forced group opens the configure dialog instead of ringing it", async () => {
+    rawModifierGroups = [
+      {
+        id: "aaaaaaaa-0000-4000-8000-000000000001",
+        menuItemId: "a1000001-0000-4000-8000-000000000001",
+        name: "Spice level",
+        required: true,
+        minSelect: 1,
+        maxSelect: 1,
+        sortOrder: 0,
+        active: true,
+        optionCount: 1,
+        options: [
+          {
+            id: "bbbbbbbb-0000-4000-8000-000000000001",
+            groupId: "aaaaaaaa-0000-4000-8000-000000000001",
+            name: "Hot",
+            priceDeltaPaisa: 0,
+            sortOrder: 0,
+            active: true,
+          },
+        ],
+      },
+    ];
+    renderTerminal();
+    const user = userEvent.setup();
+
+    const menuGrid = within(await screen.findByTestId("menu-grid"));
+    await user.click(menuGrid.getByText("Cheeseburger").closest("button") as HTMLElement);
+
+    const dialog = await screen.findByTestId("modifier-dialog");
+    expect(within(dialog).getByText(/Required — choose exactly 1 option/)).toBeInTheDocument();
+    // Nothing has been rung: the cart is still empty and no order was created.
+    expect(screen.queryByTestId("cart-line-modifiers")).not.toBeInTheDocument();
+    expect(createOrderCallCount).toBe(0);
+
+    await user.click(within(dialog).getByTestId("modifier-option-bbbbbbbb-0000-4000-8000-000000000001"));
+    await user.click(within(dialog).getByTestId("modifier-dialog-add"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cart-line-modifiers")).toHaveTextContent("Hot");
+    });
+    expect(createOrderCallCount).toBe(0);
   });
 });

@@ -223,22 +223,34 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
    *
    * <p>The catalogue was loaded ONCE with the menu, so this branch is a Map lookup and not a
    * network round trip — the difference between a till that responds to a finger and one that
-   * pauses on every tap. The dialog is still opened when the catalogue read is in flight or has
-   * FAILED, because "we do not know whether this dish has a forced spice level" is not the same
-   * answer as "it has none", and the second is the one that puts an unconfigured plate on the pass.
-   * The dialog renders the loading and the failure honestly (GA-001).
+   * pauses on every tap.
+   *
+   * <h3>The three states, and why the failed one still rings</h3>
+   *
+   * <ul>
+   *   <li><b>Known, has groups</b> → the dialog, enforced.</li>
+   *   <li><b>Known, no groups</b> → straight to the cart, exactly as before this feature.</li>
+   *   <li><b>Still loading</b> → the dialog, which shows a skeleton and fills in. The tap is
+   *       honoured rather than dropped, and the window is sub-second.</li>
+   *   <li><b>The read FAILED</b> → straight to the cart. Not a shortcut: the catalogue is served
+   *       by pos-service, the same service {@code addItem} goes to, so a failed catalogue read
+   *       means the till cannot ring anything at all — and opening a modal on every tap of the
+   *       ninety percent of dishes that have no options would make the outage worse rather than
+   *       safer. The guard that matters is {@code ModifierSelectionResolver} on the server, which
+   *       refuses a forced group with nothing chosen no matter which client asks.</li>
+   * </ul>
    */
   const handleItemSelect = useCallback(
     (item: MenuItem) => {
       const known = modifierIndex.byItem?.get(item.id);
-      const catalogueUnknown = modifierIndex.byItem === undefined;
-      if (catalogueUnknown || (known && known.some((g) => g.active))) {
+      const stillLoading = modifierIndex.byItem === undefined && !modifierIndex.isError;
+      if (stillLoading || (known && known.some((g) => g.active))) {
         setConfiguringItem(item);
         return;
       }
       commitItem(item, []);
     },
-    [commitItem, modifierIndex.byItem],
+    [commitItem, modifierIndex.byItem, modifierIndex.isError],
   );
 
   const handleIncrement = useCallback((key: string) => {
@@ -451,9 +463,29 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
       {sendFailure && (
         <SendFailureBanner failure={sendFailure} onDismiss={() => setSendFailure(null)} />
       )}
-      <div className="flex min-h-0 flex-1 gap-0 overflow-hidden">
-        {/* Left: Menu grid — 2/3 width */}
-        <div className="flex-1 overflow-hidden border-r">
+      {/*
+        Two columns on a till, STACKED on a phone.
+
+        <p>It was `flex` with a `flex-1` grid beside a fixed `w-80` panel at every width. On a
+        390px screen that leaves the entire menu <b>37px wide</b> — measured, not estimated
+        (`.planning/audits/floor/S6/s6-responsive.json`, `terminal.gridWidth`). Every tile is a
+        sliver its own container swallows the tap on, so the menu is not merely cramped, it is
+        inoperable: a cashier on a phone cannot ring anything at all, and the configure dialog
+        behind those tiles cannot be reached.
+
+        <p>Below `lg` the panel goes full-width underneath and is capped at 32vh so the MENU keeps
+        the screen. 32 rather than a comfortable half is measured, not chosen: the page chrome on a
+        390x844 phone (till strip, three tabs, search, wrapped category pills) already consumes
+        ~520px, so a taller panel pushes the first tile below the fold and the cashier cannot tap
+        the dish at all. The panel's own list still scrolls inside that cap. `lg` rather than `md` because a 768px tablet held in portrait is
+        the other size a till is actually used at, and two columns there leaves the grid 159px —
+        75px tiles, under the 100px minimum a thumb needs. Deliberately no
+        transform/filter/backdrop-filter anywhere on this ancestor chain — those break the receipt
+        print path.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden lg:flex-row">
+        {/* Menu grid — full width on a phone, the wide column on a till */}
+        <div className="min-h-0 flex-1 overflow-hidden border-b lg:border-b-0 lg:border-r">
           <MenuGrid
             onItemSelect={handleItemSelect}
             cart={cart}
@@ -462,8 +494,8 @@ export function PosTerminal({ tableId, orderId: resumeOrderId }: PosTerminalProp
           />
         </div>
 
-        {/* Right: Order panel — fixed width */}
-        <div className="w-80 flex-shrink-0 overflow-hidden flex flex-col">
+        {/* Order panel — under the menu on a phone, a fixed column on a till */}
+        <div className="flex max-h-[32vh] w-full min-h-0 shrink-0 flex-col overflow-hidden lg:max-h-none lg:w-80">
           <div className="border-b p-3">
             <CustomerPicker
               value={customer}

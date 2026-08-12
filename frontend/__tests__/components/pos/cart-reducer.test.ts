@@ -6,12 +6,20 @@ import {
   clearCart,
   cartLineKey,
   cartTotalPaisa,
+  cartTaxPaisa,
+  lineSubtotalPaisa,
+  modifierIdsOf,
   type CartLine,
 } from "@/components/pos/cart-reducer";
 
 const BURGER_ID = "a1000001-0000-4000-8000-000000000001";
 const CHEESE_ID = "m1000001-0000-4000-8000-000000000001";
 const BACON_ID = "m1000001-0000-4000-8000-000000000002";
+
+// S6: a cart line carries the chosen modifier's NAME and PRICE, not just its id — the panel
+// renders "Extra cheese +Rs 150" under the dish and the subtotal includes the delta.
+const CHEESE = { id: CHEESE_ID, name: "Extra cheese", priceDeltaPaisa: 15000 };
+const BACON = { id: BACON_ID, name: "Bacon", priceDeltaPaisa: 20000 };
 
 describe("cart-reducer", () => {
   it("merges repeated taps of the same item (no modifiers, no notes) into one line, qty 2", () => {
@@ -29,13 +37,13 @@ describe("cart-reducer", () => {
       menuItemId: BURGER_ID,
       name: "Burger",
       unitPricePaisa: 45000,
-      modifierIds: [CHEESE_ID],
+      modifiers: [CHEESE],
     });
     cart = addLine(cart, {
       menuItemId: BURGER_ID,
       name: "Burger",
       unitPricePaisa: 45000,
-      modifierIds: [],
+      modifiers: [],
     });
 
     expect(cart).toHaveLength(2);
@@ -71,13 +79,13 @@ describe("cart-reducer", () => {
       menuItemId: BURGER_ID,
       name: "Burger",
       unitPricePaisa: 45000,
-      modifierIds: [CHEESE_ID, BACON_ID],
+      modifiers: [CHEESE, BACON],
     });
     cart = addLine(cart, {
       menuItemId: BURGER_ID,
       name: "Burger",
       unitPricePaisa: 45000,
-      modifierIds: [BACON_ID, CHEESE_ID],
+      modifiers: [BACON, CHEESE],
     });
 
     expect(cart).toHaveLength(1);
@@ -119,5 +127,45 @@ describe("cart-reducer", () => {
     });
 
     expect(cartTotalPaisa(cart)).toBe(45000 * 2 + 20000);
+  });
+
+  /**
+   * S6, and the reason the cart line had to grow a price at all.
+   *
+   * <p>Before this, a line could only carry modifier IDS, so the subtotal was the bare dish price
+   * however many paid add-ons were on it: two cheesy burgers rang at Rs 900.00 on the screen and
+   * Rs 1,200.00 on the bill the moment the server re-priced them. It fails against a
+   * `cartTotalPaisa` that reads `unitPricePaisa * quantity`.
+   */
+  it("cart subtotal and tax include the modifier deltas, to the paisa", () => {
+    let cart: CartLine[] = [];
+    cart = addLine(cart, {
+      menuItemId: BURGER_ID,
+      name: "Burger",
+      unitPricePaisa: 45000,
+      taxRatePct: 17,
+      modifiers: [CHEESE],
+      quantity: 2,
+    });
+
+    // (Rs 450.00 + Rs 150.00) × 2 = Rs 1,200.00, NOT Rs 900.00.
+    expect(cartTotalPaisa(cart)).toBe((45000 + 15000) * 2);
+    // 17% of the SAME base, HALF_UP on integers — the figure the server will compute.
+    expect(cartTaxPaisa(cart)).toBe(Math.floor((120000 * 1700 + 5000) / 10000));
+  });
+
+  /** One definition of "what one of these costs", shared with the line row and the server. */
+  it("lineSubtotalPaisa is quantity × (unit price + deltas)", () => {
+    const line: CartLine = {
+      menuItemId: BURGER_ID,
+      name: "Burger",
+      unitPricePaisa: 45000,
+      taxRatePct: 0,
+      quantity: 3,
+      modifiers: [CHEESE, { id: BACON_ID, name: "No bacon", priceDeltaPaisa: -5000 }],
+      notes: null,
+    };
+    expect(lineSubtotalPaisa(line)).toBe((45000 + 15000 - 5000) * 3);
+    expect(modifierIdsOf(line)).toEqual([CHEESE_ID, BACON_ID]);
   });
 });
