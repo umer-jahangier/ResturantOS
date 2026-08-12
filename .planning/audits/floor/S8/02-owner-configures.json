@@ -1,0 +1,79 @@
+{
+  "connectedAgents": 1,
+  "pickerTag": "SELECT",
+  "pickerOptions": [
+    {
+      "value": "_80Series2",
+      "label": "_80Series2 — 80Series2 · on F8 live agent"
+    },
+    {
+      "value": "STMicroelectronics_POS80_Printer_USB",
+      "label": "STMicroelectronics_POS80_Printer_USB — STMicroelectronics POS80 Printer USB · on F8 live agent"
+    }
+  ],
+  "chosenUsbPrinter": "STMicroelectronics_POS80_Printer_USB",
+  "badPort": {
+    "errors": [
+      "A port is a whole number between 1 and 65535. Thermal printers almost always listen on 9100."
+    ],
+    "saveDisabled": true
+  },
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "storedPrinters": [
+    {
+      "id": "audit-receipt",
+      "role": "RECEIPT",
+      "stationCode": null,
+      "transport": "SYSTEM",
+      "host": null,
+      "port": null,
+      "systemPrinterName": "STMicroelectronics_POS80_Printer_USB"
+    },
+    {
+      "id": "audit-kitchen-default",
+      "role": "KITCHEN",
+      "stationCode": "DEFAULT",
+      "transport": "TCP",
+      "host": "127.0.0.1",
+      "port": 9101,
+      "systemPrinterName": null
+    },
+    {
+      "id": "audit-kitchen-unassigned",
+      "role": "KITCHEN",
+      "stationCode": "UNASSIGNED",
+      "transport": "TCP",
+      "host": "127.0.0.1",
+      "port": 9101,
+      "systemPrinterName": null
+    },
+    {
+      "id": "audit-kitchen-pantry",
+      "role": "KITCHEN",
+      "stationCode": "PANTRY1",
+      "transport": "TCP",
+      "host": "127.0.0.1",
+      "port": 9101,
+      "systemPrinterName": null
+    },
+    {
+      "id": "grill-9105",
+      "role": "KITCHEN",
+      "stationCode": "GRILL",
+      "transport": "TCP",
+      "host": "127.0.0.1",
+      "port": 9105,
+      "systemPrinterName": null
+    }
+  ],
+  "agentsWithDevices": [
+    {
+      "label": "F8 live agent",
+      "devices": [
+        "_80Series2",
+        "STMicroelectronics_POS80_Printer_USB"
+      ],
+      "reportedAt": "2026-08-12T06:59:29.235910Z"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "grillBytesBefore": 288,
+  "orderNo": "ORD-20260812-0320",
+  "grillBytesAfterFire": 576,
+  "orderId": "2fb302fa-90ed-43dc-9dcc-8b9eb7e46345",
+  "receipt": {
+    "state": "ON_PAPER",
+    "printer": "audit-receipt",
+    "text": "Printed on audit-receipt F8 live agent took this bill and reported it delivered to the printer. No browser print dialog was opened. If the paper is blank or jammed, print another copy below — this one is already recorded as issued."
+  },
+  "windowPrint": {
+    "inPage": 0,
+    "recorded": 0,
+    "where": []
+  },
+  "healthStatus": 403,
+  "health": {
+    "error": {
+      "code": "PERMISSION_DENIED",
+      "message": "You do not have permission to perform this action",
+      "details": [],
+      "traceId": "b42398e0-098c-4417-a9a3-64ade82c338f"
+    }
+  }
+}

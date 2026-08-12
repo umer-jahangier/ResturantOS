@@ -1,0 +1,120 @@
+{
+  "controls": [
+    {
+      "tag": "SELECT",
+      "type": null,
+      "id": "role-receipt-5fi558",
+      "label": "What it prints",
+      "placeholder": null,
+      "list": null,
+      "options": [
+        "RECEIPT=Receipt — the customer's bill",
+        "KITCHEN=Kitchen — station tickets"
+      ]
+    },
+    {
+      "tag": "INPUT",
+      "type": null,
+      "id": "name-receipt-5fi558",
+      "label": "Name",
+      "placeholder": null,
+      "list": null,
+      "options": null
+    },
+    {
+      "tag": "SELECT",
+      "type": null,
+      "id": "transport-receipt-5fi558",
+      "label": "How it is attached",
+      "placeholder": null,
+      "list": null,
+      "options": [
+        "TCP=Network (raw TCP, usually port 9100)",
+        "SYSTEM=USB / operating-system print queue"
+      ]
+    },
+    {
+      "tag": "INPUT",
+      "type": null,
+      "id": "queue-receipt-5fi558",
+      "label": "Print queue name",
+      "placeholder": "TM_T88VI",
+      "list": null,
+      "options": null
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "id": "width-receipt-5fi558",
+      "label": "Paper width (mm)",
+      "placeholder": null,
+      "list": null,
+      "options": null
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "id": "columns-receipt-5fi558",
+      "label": "Characters per line",
+      "placeholder": null,
+      "list": null,
+      "options": null
+    },
+    {
+      "tag": "SELECT",
+      "type": null,
+      "id": "cut-receipt-5fi558",
+      "label": "Cutter",
+      "placeholder": null,
+      "list": null,
+      "options": [
+        "PARTIAL=Partial cut",
+        "FULL=Full cut",
+        "NONE=No cutter"
+      ]
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "id": "",
+      "label": "",
+      "placeholder": null,
+      "list": null,
+      "options": null
+    }
+  ],
+  "queueControl": {
+    "tag": "INPUT",
+    "type": null,
+    "id": "queue-receipt-5fi558",
+    "label": "Print queue name",
+    "placeholder": "TM_T88VI",
+    "list": null,
+    "options": null
+  },
+  "queueIsFreeText": true,
+  "datalists": [
+    {
+      "id": "kitchen-station-codes",
+      "options": [
+        "UNASSIGNED",
+        "BAR",
+        "GRILL",
+        "DGB28334",
+        "DGS43431",
+        "DGS20334",
+        "PANTRY1",
+        "DEFAULT",
+        "UNASSIGNED",
+        "BAR",
+        "GRILL",
+        "DGB28334",
+        "DGS43431",
+        "DGS20334",
+        "PANTRY1",
+        "EXPO7"
+      ]
+    }
+  ],
+  "bodyMentionsDiscovered": false
+}

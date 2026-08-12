@@ -1,0 +1,170 @@
+{
+  "orderNo": "ORD-20260812-0321",
+  "health": {
+    "windowHours": 24,
+    "printers": [
+      {
+        "printerId": "audit-kitchen-pantry",
+        "state": "PRINTING",
+        "waiting": 0,
+        "printed": 132,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-12T06:48:15.160474Z",
+        "lastPrintedAt": "2026-08-12T06:48:15.160474Z",
+        "lastError": null
+      },
+      {
+        "printerId": "audit-kitchen-unassigned",
+        "state": "PRINTING",
+        "waiting": 0,
+        "printed": 21,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-12T06:45:59.929696Z",
+        "lastPrintedAt": "2026-08-12T06:45:59.929696Z",
+        "lastError": null
+      },
+      {
+        "printerId": "audit-receipt",
+        "state": "PRINTING",
+        "waiting": 9,
+        "printed": 109,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-12T06:48:18.205197Z",
+        "lastPrintedAt": "2026-08-12T06:48:18.205197Z",
+        "lastError": null
+      },
+      {
+        "printerId": "front-counter-receipt",
+        "state": "WAITING",
+        "waiting": 1,
+        "printed": 8,
+        "failed": 3,
+        "lastAttemptAt": "2026-08-12T04:21:18.309469Z",
+        "lastPrintedAt": "2026-08-12T02:06:39.051161Z",
+        "lastError": null
+      },
+      {
+        "printerId": "grill-9102",
+        "state": "PRINTING",
+        "waiting": 0,
+        "printed": 29,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-12T06:41:25.146241Z",
+        "lastPrintedAt": "2026-08-12T06:41:25.146241Z",
+        "lastError": null
+      },
+      {
+        "printerId": "grill-9105",
+        "state": "FAILING",
+        "waiting": 1,
+        "printed": 2,
+        "failed": 1,
+        "lastAttemptAt": "2026-08-12T06:48:54.196945Z",
+        "lastPrintedAt": "2026-08-12T06:46:14.941573Z",
+        "lastError": "printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address."
+      },
+      {
+        "printerId": "hot-pass-unrouted",
+        "state": "PRINTING",
+        "waiting": 6,
+        "printed": 20,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-12T01:47:23.490429Z",
+        "lastPrintedAt": "2026-08-12T01:47:23.490429Z",
+        "lastError": null
+      },
+      {
+        "printerId": "kitchen-grill",
+        "state": "PRINTING",
+        "waiting": 0,
+        "printed": 2,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-12T01:50:10.307903Z",
+        "lastPrintedAt": "2026-08-12T01:50:10.307903Z",
+        "lastError": null
+      },
+      {
+        "printerId": "kitchen-main",
+        "state": "FAILING",
+        "waiting": 0,
+        "printed": 34,
+        "failed": 51,
+        "lastAttemptAt": "2026-08-12T01:19:22.496688Z",
+        "lastPrintedAt": "2026-08-12T01:16:28.298808Z",
+        "lastError": "no printer \"kitchen-main\" is configured"
+      },
+      {
+        "printerId": "kitchen-pantry1",
+        "state": "FAILING",
+        "waiting": 0,
+        "printed": 13,
+        "failed": 4,
+        "lastAttemptAt": "2026-08-12T02:28:29.381733Z",
+        "lastPrintedAt": "2026-08-12T02:06:27.008019Z",
+        "lastError": "no printer \"kitchen-pantry1\" is configured"
+      },
+      {
+        "printerId": "kitchen-unassigned",
+        "state": "FAILING",
+        "waiting": 0,
+        "printed": 3,
+        "failed": 2,
+        "lastAttemptAt": "2026-08-12T02:28:29.382248Z",
+        "lastPrintedAt": "2026-08-12T01:50:10.307903Z",
+        "lastError": "no printer \"kitchen-unassigned\" is configured"
+      },
+      {
+        "printerId": "receipt-main",
+        "state": "PRINTING",
+        "waiting": 0,
+        "printed": 1,
+        "failed": 0,
+        "lastAttemptAt": "2026-08-11T22:13:00.168723Z",
+        "lastPrintedAt": "2026-08-11T22:13:00.168723Z",
+        "lastError": null
+      },
+      {
+        "printerId": "unassigned",
+        "state": "FAILING",
+        "waiting": 2,
+        "printed": 0,
+        "failed": 34,
+        "lastAttemptAt": "2026-08-12T06:45:58.765401Z",
+        "lastPrintedAt": null,
+        "lastError": "UNROUTABLE: no kitchen printer configured for station BAR"
+      }
+    ]
+  },
+  "screen": {
+    "failingRole": "alert",
+    "failingText": "GRILL cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address.. 1 job is still waiting.",
+    "rows": [
+      {
+        "id": "audit-receipt",
+        "delivery": "PRINTING",
+        "badge": "Delivered"
+      },
+      {
+        "id": "audit-kitchen-default",
+        "delivery": "UNKNOWN",
+        "badge": "Not used today"
+      },
+      {
+        "id": "audit-kitchen-unassigned",
+        "delivery": "PRINTING",
+        "badge": "Delivered"
+      },
+      {
+        "id": "audit-kitchen-pantry",
+        "delivery": "PRINTING",
+        "badge": "Delivered"
+      },
+      {
+        "id": "grill-9105",
+        "delivery": "FAILING",
+        "badge": "Cannot print"
+      }
+    ],
+    "connectedAgents": 1
+  }
+}

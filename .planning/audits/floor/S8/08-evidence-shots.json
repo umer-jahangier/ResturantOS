@@ -1,0 +1,21 @@
+{
+  "picker": {
+    "tag": "SELECT",
+    "value": "STMicroelectronics_POS80_Printer_USB",
+    "options": [
+      "Choose a printer the agent found…",
+      "_80Series2 — 80Series2 · on F8 live agent",
+      "STMicroelectronics_POS80_Printer_USB — STMicroelectronics POS80 Printer USB · on F8 live agent"
+    ]
+  },
+  "orderDown": "ORD-20260812-0343",
+  "failingAlert": {
+    "role": "alert",
+    "text": "GRILL cannot print. The last job sent to this printer failed just now — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address. 1 job is still waiting."
+  },
+  "grillBytesOnRecovery": 864,
+  "afterRecovery": {
+    "stillAccusing": null,
+    "grillState": "PRINTING"
+  }
+}

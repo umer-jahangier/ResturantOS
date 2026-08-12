@@ -1,0 +1,12 @@
+{
+  "grillBytesBefore": 0,
+  "orderNo": "ORD-20260812-0341",
+  "grillBytesAfter": 288,
+  "screen": {
+    "failingText": null,
+    "grill": {
+      "state": "PRINTING",
+      "badge": "Delivered"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "whileDown": {
+    "failingRole": "alert",
+    "failingText": "GRILL cannot print. The last job sent to this printer failed 6 minutes ago — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address.",
+    "grillRow": {
+      "id": "grill-9105",
+      "state": "FAILING",
+      "badge": "Cannot print",
+      "detail": "Cannot print The last job sent to this printer failed 6 minutes ago — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address."
+    }
+  },
+  "restartedPid": 81337,
+  "afterRecovery": {
+    "failingRole": "alert",
+    "failingText": "GRILL cannot print. The last job sent to this printer failed 8 minutes ago — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address.",
+    "grillRow": {
+      "id": "grill-9105",
+      "state": "FAILING",
+      "badge": "Cannot print",
+      "detail": "Cannot print The last job sent to this printer failed 8 minutes ago — printer at 127.0.0.1:9105: connection refused — nothing is listening. Check the printer is powered on and on this address."
+    }
+  }
+}

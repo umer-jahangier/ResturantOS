@@ -1,0 +1,146 @@
+[
+  {
+    "docScrollWidth": 390,
+    "clientWidth": 390,
+    "rootTheme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased light",
+    "picker": {
+      "color": "oklch(0.168 0.006 195)",
+      "background": "rgba(0, 0, 0, 0)",
+      "fontSize": "16px",
+      "width": 300,
+      "visible": true
+    },
+    "alert": null,
+    "badge": {
+      "color": "lab(45.4963 -42.9888 29.3045)",
+      "background": "oklab(0.514998 -0.122557 0.071913 / 0.1)",
+      "fontSize": "11px",
+      "width": 67,
+      "visible": true
+    },
+    "badgeText": "Delivered",
+    "theme": "light",
+    "size": "390",
+    "horizontalScroll": false
+  },
+  {
+    "docScrollWidth": 768,
+    "clientWidth": 768,
+    "rootTheme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased light",
+    "picker": {
+      "color": "oklch(0.168 0.006 195)",
+      "background": "rgba(0, 0, 0, 0)",
+      "fontSize": "14px",
+      "width": 422,
+      "visible": true
+    },
+    "alert": null,
+    "badge": {
+      "color": "lab(45.4963 -42.9888 29.3045)",
+      "background": "oklab(0.514998 -0.122557 0.071913 / 0.1)",
+      "fontSize": "11px",
+      "width": 67,
+      "visible": true
+    },
+    "badgeText": "Delivered",
+    "theme": "light",
+    "size": "768",
+    "horizontalScroll": false
+  },
+  {
+    "docScrollWidth": 1440,
+    "clientWidth": 1440,
+    "rootTheme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased light",
+    "picker": {
+      "color": "oklch(0.168 0.006 195)",
+      "background": "rgba(0, 0, 0, 0)",
+      "fontSize": "14px",
+      "width": 715,
+      "visible": true
+    },
+    "alert": null,
+    "badge": {
+      "color": "lab(45.4963 -42.9888 29.3045)",
+      "background": "oklab(0.514998 -0.122557 0.071913 / 0.1)",
+      "fontSize": "11px",
+      "width": 67,
+      "visible": true
+    },
+    "badgeText": "Delivered",
+    "theme": "light",
+    "size": "1440",
+    "horizontalScroll": false
+  },
+  {
+    "docScrollWidth": 390,
+    "clientWidth": 390,
+    "rootTheme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased dark",
+    "picker": {
+      "color": "oklch(0.985 0.002 195)",
+      "background": "oklch(0.226 0.007 195)",
+      "fontSize": "16px",
+      "width": 300,
+      "visible": true
+    },
+    "alert": null,
+    "badge": {
+      "color": "lab(71.5038 -38.9602 25.8822)",
+      "background": "oklab(0.739997 -0.112555 0.0660489 / 0.1)",
+      "fontSize": "11px",
+      "width": 67,
+      "visible": true
+    },
+    "badgeText": "Delivered",
+    "theme": "dark",
+    "size": "390",
+    "horizontalScroll": false
+  },
+  {
+    "docScrollWidth": 768,
+    "clientWidth": 768,
+    "rootTheme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased dark",
+    "picker": {
+      "color": "oklch(0.985 0.002 195)",
+      "background": "oklch(0.226 0.007 195)",
+      "fontSize": "14px",
+      "width": 422,
+      "visible": true
+    },
+    "alert": null,
+    "badge": {
+      "color": "lab(71.5038 -38.9602 25.8822)",
+      "background": "oklab(0.739997 -0.112555 0.0660489 / 0.1)",
+      "fontSize": "11px",
+      "width": 67,
+      "visible": true
+    },
+    "badgeText": "Delivered",
+    "theme": "dark",
+    "size": "768",
+    "horizontalScroll": false
+  },
+  {
+    "docScrollWidth": 1440,
+    "clientWidth": 1440,
+    "rootTheme": "geist_a71539c9-module__T19VSG__variable geist_mono_8d43a2aa-module__8Li5zG__variable h-full antialiased dark",
+    "picker": {
+      "color": "oklch(0.985 0.002 195)",
+      "background": "oklch(0.226 0.007 195)",
+      "fontSize": "14px",
+      "width": 715,
+      "visible": true
+    },
+    "alert": null,
+    "badge": {
+      "color": "lab(71.5038 -38.9602 25.8822)",
+      "background": "oklab(0.739997 -0.112555 0.0660489 / 0.1)",
+      "fontSize": "11px",
+      "width": 67,
+      "visible": true
+    },
+    "badgeText": "Delivered",
+    "theme": "dark",
+    "size": "1440",
+    "horizontalScroll": false
+  }
+]
