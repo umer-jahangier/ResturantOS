@@ -1,0 +1,19 @@
+{
+  "clock": {
+    "utc": "2026-08-12T04:55:13.347Z",
+    "karachi": "12/08/2026, 09:55:13",
+    "newYork": "12/08/2026, 00:55:13"
+  },
+  "orderNumbersOnScreen": [
+    "ORD-20260811-0018"
+  ],
+  "order": {
+    "orderNo": "ORD-20260811-0018",
+    "orderId": "85fdc4cc-99c1-4565-a8e8-5b13491d5c86"
+  },
+  "takingsDefault": {
+    "dateBox": "2026-08-11",
+    "orderLine": "56 orders closed on this trading day",
+    "cashRow": "Cash 89 Rs 91,175.30 Rs 14,989.00(28)"
+  }
+}

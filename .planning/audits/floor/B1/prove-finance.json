@@ -1,0 +1,84 @@
+{
+  "clock": {
+    "utc": "2026-08-12T04:59:35.849Z",
+    "karachi": "12/08/2026, 09:59:35"
+  },
+  "transactionsTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/transactions"
+  },
+  "transactionRows": {
+    "matching": [],
+    "firstFew": [],
+    "bodyHasOrder": false
+  },
+  "journalTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries"
+  },
+  "journalRows": [
+    "Entry No Date Description Status Debit Credit",
+    "JE-2027-000286 2026-08-12 Order revenue ORD-20260812-0210 POSTED Rs 998.00 Rs 998.00",
+    "JE-2027-000285 2026-08-12 Order revenue ORD-20260812-0199 POSTED Rs 92.80 Rs 92.80",
+    "JE-2027-000284 2026-08-12 Order revenue ORD-20260812-0203 POSTED Rs 1,319.30 Rs 1,319.30",
+    "JE-2027-000283 2026-08-12 Order revenue ORD-20260812-0204 POSTED Rs 92.80 Rs 92.80",
+    "JE-2027-000282 2026-08-12 Order revenue ORD-20260812-0193 POSTED Rs 998.00 Rs 998.00",
+    "JE-2027-000281 2026-08-12 Order revenue ORD-20260812-0202 POSTED Rs 998.00 Rs 998.00",
+    "JE-2027-000280 2026-08-12 Order revenue ORD-20260812-0201 POSTED Rs 998.00 Rs 998.00",
+    "JE-2027-000279 2026-08-12 Order revenue ORD-20260812-0200 POSTED Rs 998.00 Rs 998.00",
+    "JE-2027-000277 2026-08-12 Order revenue ORD-20260812-0197 POSTED Rs 2,208.50 Rs 2,208.50",
+    "JE-2027-000274 2026-08-12 Order revenue 429c02b8-40b2-41de-8f9d-dfbfd3f35a5c POSTED Rs 92.80 Rs 92.80",
+    "JE-2027-000273 2026-08-12 Order revenue c138c4fc-133b-47eb-9fa6-b87bbd86d3fb POSTED Rs 3,456.80 Rs 3,456.80",
+    "JE-2027-000266 2026-08-12 Order revenue 3d3f8c98-1d2a-4d4a-a1dc-fbf3603531fa POSTED Rs 3,456.80 Rs 3,456.80",
+    "JE-2027-000265 2026-08-12 Order revenue 0b4fe38d-f975-4737-8815-869b04b91ec6 POSTED Rs 3,456.80 Rs 3,456.80",
+    "JE-2027-000264 2026-08-12 Order revenue 983c95dc-e629-482d-a77f-a1dadae3ecec POSTED Rs 3,456.80 Rs 3,456.80"
+  ],
+  "takingsDefault": {
+    "asked": "(default)",
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings",
+    "dateBox": "2026-08-12",
+    "orderLine": "46 orders closed on this trading day",
+    "cashRow": "Cash 76 Rs 70,429.10 Rs 14,033.80(27)",
+    "tenderRows": [
+      "Card 5 Rs 6,385.20 —",
+      "Cash 76 Rs 70,429.10 Rs 14,033.80(27)",
+      "Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00",
+      "Cashier bc0d9897 Opened 8/12/26, 9:02 AM · closed 8/12/26, 9:03 AM Short Rs 5,000.00 Rs 5,499.00 Rs 5,299.00 -Rs 200.00"
+    ],
+    "trouble": []
+  },
+  "takings?date=2026-08-11": {
+    "asked": "?date=2026-08-11",
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-11",
+    "dateBox": "2026-08-11",
+    "orderLine": "10 orders closed on this trading day",
+    "cashRow": "Cash 13 Rs 20,746.20 Rs 955.20(1)",
+    "tenderRows": [
+      "Cash 13 Rs 20,746.20 Rs 955.20(1)",
+      "Cashier fefd7187 Opened 8/11/26, 5:52 PM · not closed Still open Rs 5,000.00 Not known Not known Not known"
+    ],
+    "trouble": []
+  },
+  "takings?date=2026-08-12": {
+    "asked": "?date=2026-08-12",
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/takings?date=2026-08-12",
+    "dateBox": "2026-08-12",
+    "orderLine": "46 orders closed on this trading day",
+    "cashRow": "Cash 76 Rs 70,429.10 Rs 14,033.80(27)",
+    "tenderRows": [
+      "Card 5 Rs 6,385.20 —",
+      "Cash 76 Rs 70,429.10 Rs 14,033.80(27)",
+      "Cashier bc0d9897 Opened 8/12/26, 7:50 AM · closed 8/12/26, 8:16 AM Matched Rs 5,000.00 Rs 6,682.60 Rs 6,682.60 Rs 0.00",
+      "Cashier bc0d9897 Opened 8/12/26, 9:02 AM · closed 8/12/26, 9:03 AM Short Rs 5,000.00 Rs 5,499.00 Rs 5,299.00 -Rs 200.00"
+    ],
+    "trouble": []
+  }
+}

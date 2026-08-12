@@ -1,0 +1,32 @@
+{
+  "settingsTrouble_America/New_York": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/settings"
+  },
+  "zoneFieldPresent_America/New_York": true,
+  "zoneBefore_America/New_York": "Asia/Karachi",
+  "saveResult_America/New_York": {
+    "alerts": [
+      "Saved at 9:53:42 AM",
+      ""
+    ],
+    "fieldNow": "America/New_York"
+  },
+  "branchReadBack_America/New_York": [],
+  "settingsTrouble_Asia/Karachi": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/settings"
+  },
+  "zoneFieldPresent_Asia/Karachi": true,
+  "zoneBefore_Asia/Karachi": "America/New_York",
+  "saveResult_Asia/Karachi": {
+    "alerts": [
+      "Saved at 9:57:11 AM",
+      ""
+    ],
+    "fieldNow": "Asia/Karachi"
+  },
+  "branchReadBack_Asia/Karachi": []
+}
