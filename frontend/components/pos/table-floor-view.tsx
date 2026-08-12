@@ -4,7 +4,10 @@ import { useState } from "react";
 import { CheckCircle2, Sparkles, Utensils } from "lucide-react";
 import { useTables } from "@/lib/hooks/pos/use-orders";
 import { useTableDetail } from "@/lib/hooks/pos/use-tables";
-import { OrderTableDetailDrawer } from "@/components/pos/order-table-detail-drawer";
+import {
+  OrderTableDetailDrawer,
+  type FullMenuTarget,
+} from "@/components/pos/order-table-detail-drawer";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { QueryBoundary } from "@/components/ui/query-boundary";
 import type { DiningTable, TableStatus } from "@/lib/models/pos.model";
@@ -18,6 +21,14 @@ interface TableFloorViewProps {
    * this — they open the shared Order/Table Detail drawer locally instead (below).
    */
   onTableSelect?: (table: DiningTable) => void;
+  /**
+   * "Full Menu →" out of the OCCUPIED/NEEDS_BUSSING detail drawer. This was NOT forwarded
+   * before, so the drawer's own Full Menu button was a no-op on the floor tab — an
+   * optional-chained callback that was never supplied, i.e. a button that did nothing at
+   * all when tapped. Forwarding it lets a waiter resume the table's live order in the
+   * terminal (S0-09).
+   */
+  onFullMenu?: (target: FullMenuTarget) => void;
 }
 
 const STATE_CONFIG: Record<
@@ -72,7 +83,7 @@ const STATE_CONFIG: Record<
  * `QueryBoundary` handles both: it checks `isError` first, and its `isBusy` prefers `isPending`.
  * Using it here is not a style change, it is the fix.
  */
-export function TableFloorView({ onTableSelect }: TableFloorViewProps) {
+export function TableFloorView({ onTableSelect, onFullMenu }: TableFloorViewProps) {
   const tablesQuery = useTables();
   const tables = tablesQuery.data ?? [];
   // OCCUPIED/NEEDS_BUSSING tap target — the SAME shared drawer used by Order Management
@@ -131,6 +142,10 @@ export function TableFloorView({ onTableSelect }: TableFloorViewProps) {
         }}
         tableId={detailTable?.id ?? null}
         tableName={detailTable?.tableName ?? null}
+        onFullMenu={(target) => {
+          setDetailTable(null);
+          onFullMenu?.(target);
+        }}
       />
     </>
   );

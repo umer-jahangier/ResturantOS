@@ -52,11 +52,27 @@ interface OrderTableDetailDrawerProps {
   tableName?: string | null;
   /**
    * "Full Menu →" escape hatch (UI-SPEC §2 Assumption 5): switches the page to the
-   * Terminal tab, optionally preloaded with a tableId. Table-centric callers get a real
-   * tableId; order-centric callers pass the order's own `tableId` if it has one
-   * (TAKEAWAY/DELIVERY orders have none — Full Menu still switches tabs, just unbound).
+   * Terminal tab, bound to the order this drawer is showing.
+   *
+   * <p>It used to hand over a bare `tableId` and nothing else. That silently abandoned
+   * the bill (S0-09): the terminal opened on an empty cart with no order number, so a
+   * cashier recalling a parked order rang the same party a second time and the guest
+   * got two checks. The order id is the thing that identifies the party — a table id
+   * cannot stand in for it, because TAKEAWAY/DELIVERY orders have no table at all and a
+   * table can be reseated between orders. `tableId` is still carried so an
+   * order-less "Go to POS" jump can pre-bind a table for the NEXT order.
    */
-  onFullMenu?: (tableId: string | null) => void;
+  onFullMenu?: (target: FullMenuTarget) => void;
+}
+
+/**
+ * What "Full Menu →" hands to the terminal. `orderId` non-null means RESUME that
+ * server-side order (the terminal hydrates from it and appends to it); null means start
+ * a fresh cart, optionally pre-bound to `tableId`.
+ */
+export interface FullMenuTarget {
+  orderId: string | null;
+  tableId: string | null;
 }
 
 const SETTLED_STATUSES: ReadonlySet<Order["status"]> = new Set(["CLOSED", "VOIDED", "REFUNDED"]);
@@ -106,6 +122,14 @@ export function OrderTableDetailDrawer({
     const firingCount = pendingItems.length;
     try {
       const updated = await sendToKds.mutateAsync();
+      if (!updated) {
+        // Queued in the outbox, not fired — the line is down (S0-07). Announcing "sent
+        // to kitchen" here would be the same lie the terminal used to tell.
+        toast.info(
+          `Queued — ${firingCount} item(s) reach the kitchen as soon as the connection returns.`,
+        );
+        return;
+      }
       const newRevisionNo = Math.max(0, ...updated.items.map((i) => i.revisionNo));
       toast.success(`Rev ${newRevisionNo} sent to kitchen — ${firingCount} item(s)`);
     } catch {
@@ -443,7 +467,7 @@ interface QuickAddSearchProps {
   orderId: string;
   branchId: string;
   tableId: string | null;
-  onFullMenu?: (tableId: string | null) => void;
+  onFullMenu?: (target: FullMenuTarget) => void;
 }
 
 function QuickAddSearch({ orderId, branchId, tableId, onFullMenu }: QuickAddSearchProps) {
@@ -479,7 +503,8 @@ function QuickAddSearch({ orderId, branchId, tableId, onFullMenu }: QuickAddSear
         </label>
         <button
           type="button"
-          onClick={() => onFullMenu?.(tableId)}
+          onClick={() => onFullMenu?.({ orderId, tableId })}
+          data-testid="drawer-full-menu"
           className="inline-flex items-center gap-1 text-xs text-primary underline"
         >
           Full Menu <ArrowRight className="size-3" aria-hidden="true" />

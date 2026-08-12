@@ -5,8 +5,10 @@ import { FeatureGuard } from "@/components/shared/feature-guard";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { PosTerminal } from "@/components/pos/pos-terminal";
 import { TableFloorView } from "@/components/pos/table-floor-view";
+import type { FullMenuTarget } from "@/components/pos/order-table-detail-drawer";
 import { TillSessionBar } from "@/components/pos/till-session-bar";
 import { OrderManagement } from "@/components/pos/order-management";
+import { PosConnectionBadge } from "@/components/pos/pos-connection-badge";
 import { useActiveTill } from "@/lib/hooks/pos/use-till";
 import { usePosOrdersSocket } from "@/lib/hooks/pos/use-pos-orders-socket";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -21,12 +23,27 @@ const TABS: { id: PosView; label: string }[] = [
 
 export default function PosPage() {
   const [view, setView] = useState<PosView>("terminal");
-  // Lifted to page level (UI-SPEC §1/§3): the floor view sets it (tap AVAILABLE table,
-  // wired fully in plan 10), the terminal reads it to bind createOrder (wired in plan
-  // 08). Remounting PosTerminal on a table change resets its in-progress order context
-  // — the exact tableId->createOrder binding itself is plan 08's file (pos-terminal.tsx
-  // isn't owned by this plan).
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  /**
+   * What the Terminal tab is currently bound to (UI-SPEC §1/§3).
+   *
+   * `tableId` — the floor view sets it on an AVAILABLE tap so the NEXT order is created
+   * against that table. `orderId` — "Full Menu →" sets it so the terminal RESUMES an
+   * order that already exists on the server instead of opening a blank cart. Before
+   * this, only `tableId` crossed the seam and a recalled bill was silently abandoned
+   * (S0-09): the cashier rang the same party a second time and the guest got two checks.
+   *
+   * `PosTerminal` is remounted on any change of binding (`key` below), which is what
+   * resets its in-progress cart — an order id must never leak from one party to the next.
+   */
+  const [terminalBinding, setTerminalBinding] = useState<FullMenuTarget>({
+    orderId: null,
+    tableId: null,
+  });
+
+  const openInTerminal = (target: FullMenuTarget) => {
+    setTerminalBinding(target);
+    setView("terminal");
+  };
 
   const { data: activeTill, isLoading: tillLoading } = useActiveTill();
   // Financial-integrity gate (mirrors the server-authoritative NO_OPEN_TILL guard in
@@ -93,20 +110,9 @@ export default function PosPage() {
                 {tab.label}
               </button>
             ))}
-            {/* Live/Polling indicator — green when the branch order socket is connected
-                (kitchen updates arrive live), amber when falling back to the 15s poll. */}
-            <span
-              data-testid="pos-live-indicator"
-              className={`ml-auto mb-2 inline-flex items-center gap-1.5 text-small font-medium ${
-                isConnected ? "text-success" : "text-warning"
-              }`}
-              title={isConnected ? "Live — kitchen updates in real time" : "Polling — reconnecting"}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${isConnected ? "bg-success" : "bg-warning"}`}
-              />
-              {isConnected ? "Live" : "Polling"}
-            </span>
+            {/* Offline / Live / Polling. Connectivity outranks socket state — a
+                WebSocket keeps claiming it is open after the network drops (S0-07). */}
+            <PosConnectionBadge isConnected={isConnected} />
           </div>
 
           {/* Content */}
@@ -124,31 +130,34 @@ export default function PosPage() {
                   </p>
                 </div>
               ) : (
-                <PosTerminal key={selectedTableId ?? "unbound"} tableId={selectedTableId} />
+                <PosTerminal
+                  key={terminalBinding.orderId ?? terminalBinding.tableId ?? "unbound"}
+                  orderId={terminalBinding.orderId}
+                  tableId={terminalBinding.tableId}
+                />
               ))}
             {view === "floor" && (
               <TableFloorView
                 onTableSelect={(table) => {
-                  setSelectedTableId(table.id);
                   // Only an AVAILABLE tap switches to the terminal to start a new order
-                  // (UI-SPEC §2). OCCUPIED/NEEDS_BUSSING open the Table Detail drawer —
-                  // built in plan 10, which owns table-floor-view.tsx.
+                  // (UI-SPEC §2) — and it is a NEW order, so no orderId is carried.
+                  // OCCUPIED/NEEDS_BUSSING open the Table Detail drawer instead.
                   if (table.status === "AVAILABLE") {
-                    setView("terminal");
+                    openInTerminal({ orderId: null, tableId: table.id });
+                  } else {
+                    setTerminalBinding((prev) => ({ ...prev, tableId: table.id }));
                   }
                 }}
+                // "Full Menu →" from a live table's drawer resumes THAT table's order.
+                onFullMenu={openInTerminal}
               />
             )}
             {view === "orders" && (
               <OrderManagement
-                onFullMenu={(tableId) => {
-                  // "Full Menu →" (drawer) / "Go to POS" (empty state) escape hatch —
-                  // preload the Terminal tab with the order's table when it has one
-                  // (TAKEAWAY/DELIVERY orders have none; the tab still switches, just
-                  // unbound — createOrder's own tableId binding is plan 08's scope).
-                  setSelectedTableId(tableId);
-                  setView("terminal");
-                }}
+                // "Full Menu →" (drawer) carries the order being viewed, so the terminal
+                // resumes it. "Go to POS" (empty state) carries neither and just opens a
+                // fresh cart.
+                onFullMenu={openInTerminal}
               />
             )}
           </div>
