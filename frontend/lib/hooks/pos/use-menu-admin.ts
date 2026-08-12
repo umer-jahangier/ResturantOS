@@ -8,6 +8,7 @@ import type { MenuCategory, MenuItem } from "@/lib/models/pos.model";
 import type {
   CreateMenuCategoryInput,
   CreateMenuItemInput,
+  UpdateMenuItemInput,
 } from "@/lib/api-client/schemas/pos.schema";
 // Type-only import — permitted from a lib/hooks/** file (the ESLint layer-boundary rule only
 // blocks components/**); mirrors use-inventory.ts's exact justification for this import.
@@ -93,7 +94,9 @@ export function useCreateMenuItem() {
 export function useUpdateMenuItem() {
   const qc = useQueryClient();
   const { branchId } = useCurrentUser();
-  return useMutation<MenuItem, ApiError, { id: string; input: CreateMenuItemInput }>({
+  // UpdateMenuItemInput, not CreateMenuItemInput: PUT replaces, so the caller must state the
+  // tax code and the picture rather than leaving them out and having the server remove them.
+  return useMutation<MenuItem, ApiError, { id: string; input: UpdateMenuItemInput }>({
     mutationFn: ({ id, input }) => PosRepository.updateMenuItem(id, input),
     onSuccess: () => invalidateMenuQueries(qc, branchId),
   });

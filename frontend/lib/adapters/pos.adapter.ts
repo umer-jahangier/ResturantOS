@@ -43,6 +43,7 @@ export function adaptMenuItem(raw: ApiMenuItem): MenuItem {
     description: raw.description ?? null,
     basePricePaisa: raw.basePricePaisa,
     taxRatePct: typeof raw.taxRatePct === "number" ? raw.taxRatePct : Number(raw.taxRatePct),
+    taxRateCode: raw.taxRateCode ?? null,
     kdsStation: raw.kdsStation ?? null,
     active: raw.active,
     imageFileId: raw.imageFileId ?? null,

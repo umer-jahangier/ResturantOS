@@ -12,9 +12,11 @@ import {
   apiMenuItemSchema,
   apiMenuCategorySchema,
   createMenuItemInputSchema,
+  updateMenuItemInputSchema,
   createMenuCategoryInputSchema,
   createDiningTableInputSchema,
   type CreateMenuItemInput,
+  type UpdateMenuItemInput,
   type CreateMenuCategoryInput,
   type CreateDiningTableInput,
   apiDiningTableSchema,
@@ -122,9 +124,14 @@ export const PosRepository = {
   /** Unlike create, {@code categoryId} is REQUIRED here even though the backend's
    * UpdateMenuItemRequest treats it as optional ("omit to leave unchanged") — this repository
    * always sends the item's current or newly-chosen category explicitly, so there is one
-   * behavior to reason about rather than two. */
-  async updateMenuItem(id: string, payload: CreateMenuItemInput): Promise<MenuItem> {
-    const body = createMenuItemInputSchema.parse(payload);
+   * behavior to reason about rather than two.
+   *
+   * The same reasoning is why the payload type is `UpdateMenuItemInput` and not
+   * `CreateMenuItemInput`: `taxRateCode` and `imageFileId` are REMOVE-on-absent server-side, so
+   * on this path they are required rather than optional and a wipe-by-omission fails to parse
+   * here instead of succeeding silently in the database (S0-03). */
+  async updateMenuItem(id: string, payload: UpdateMenuItemInput): Promise<MenuItem> {
+    const body = updateMenuItemInputSchema.parse(payload);
     const raw = await put<typeof body, unknown>(`/api/v1/pos/menu/items/${id}`, body);
     return adaptMenuItem(apiMenuItemSchema.parse(raw));
   },

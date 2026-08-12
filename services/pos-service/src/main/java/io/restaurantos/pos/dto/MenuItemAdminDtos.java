@@ -29,17 +29,29 @@ public class MenuItemAdminDtos {
     ) {}
 
     /**
-     * {@code categoryId} is optional here — omitting it leaves the item's current category
-     * unchanged (unlike create, where it is required).
+     * <h2>Three different null meanings live in this record. Read this before writing a client.</h2>
      *
-     * <p><strong>{@code imageFileId} does NOT follow that rule: null means REMOVE the picture,
-     * not "leave it alone".</strong> A field where absent and null mean different things cannot
-     * be expressed in a record (Jackson maps both to null), and of the two possible readings
-     * this is the one that makes "remove the image" expressible at all. It is safe because the
-     * repository layer already sends every field explicitly on update — see
-     * {@code PosRepository.updateMenuItem}, which documents that same convention for
-     * {@code categoryId} — so a price-only edit round-trips the existing id rather than omitting
-     * it. Any other client must do likewise.
+     * <p><strong>LEAVE UNCHANGED:</strong> {@code categoryId} and {@code taxRatePct}. Omitting
+     * either keeps the item's current value (unlike create, where {@code categoryId} is
+     * required). Both are null-guarded in {@code MenuServiceImpl.updateItem}.
+     *
+     * <p><strong>REMOVE:</strong> {@code taxRateCode} and {@code imageFileId}. Null clears the
+     * field — it does not mean "leave it alone" — and because Jackson maps an ABSENT key and an
+     * explicit null to the same thing in a record, omitting either of these erases it too.
+     *
+     * <p>That asymmetry cost a real bug (register S0 #4): the Menu Items edit dialog sent
+     * {@code {categoryId,name,description,basePricePaisa,imageFileId}}, so correcting a typo in
+     * an item's description silently destroyed its fiscal classification —
+     * {@code taxRateCode 'SR-STD-17' -> null} — while {@code taxRatePct} survived at 17.00
+     * purely because it happens to sit in the other group. Nothing on screen said so.
+     *
+     * <p>The rule for every client, therefore: <strong>PUT is a REPLACE — send every field on
+     * every update, including the ones you are not changing.</strong> The frontend enforces this
+     * in its type system rather than by convention: {@code updateMenuItemInputSchema} makes
+     * {@code taxRatePct}, {@code taxRateCode} and {@code imageFileId} REQUIRED (nullable, so a
+     * deliberate removal is still expressible), which is what makes wipe-by-omission fail to
+     * compile instead of failing silently in the database. {@code MenuUpdateReplacesFieldsIT}
+     * pins both halves — round-trip preserves, explicit null removes.
      */
     public record UpdateMenuItemRequest(
             UUID categoryId,

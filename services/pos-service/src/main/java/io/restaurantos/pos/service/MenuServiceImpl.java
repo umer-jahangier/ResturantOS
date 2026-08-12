@@ -265,11 +265,16 @@ public class MenuServiceImpl implements MenuService {
         item.setName(request.name());
         item.setDescription(request.description());
         item.setBasePricePaisa(request.basePricePaisa());
+        // Null-guarded: absent taxRatePct means LEAVE UNCHANGED. Note this is the opposite of
+        // the two setters below, which is precisely the asymmetry that produced register S0 #4 —
+        // UpdateMenuItemRequest's javadoc now names all three fields and their three meanings.
         if (request.taxRatePct() != null) {
             item.setTaxRatePct(request.taxRatePct());
         }
+        // Both of these are REMOVE-on-null, not "unchanged" — see UpdateMenuItemRequest's
+        // javadoc. Kept that way deliberately: on a PUT, clearing a field has to be expressible,
+        // and the caller's obligation is to send every field. MenuUpdateReplacesFieldsIT pins it.
         item.setTaxRateCode(request.taxRateCode());
-        // null here means REMOVE, not "unchanged" — see UpdateMenuItemRequest's javadoc.
         item.setImageFileId(request.imageFileId());
 
         MenuItem saved = itemRepository.save(item);

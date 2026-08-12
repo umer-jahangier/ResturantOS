@@ -175,11 +175,16 @@ describe("Menu Items page", () => {
     // UPDATE as "remove the picture", so the form always sends the key rather than omitting it —
     // otherwise a price-only edit would silently delete an item's photo. Create is asserted here
     // because it is where the convention would most easily drift back to omission.
+    // `taxRatePct: 0` / `taxRateCode: null` join it for the same reason (S0-03): the dialog now
+    // carries a tax rate and a tax code, and it states them on every save rather than omitting
+    // them — an omitted taxRateCode is how a description-only EDIT used to erase 'SR-STD-17'.
     await waitFor(() =>
       expect(posted).toEqual({
         categoryId: CAT_MAINS,
         name: "Biryani",
         basePricePaisa: 55000,
+        taxRatePct: 0,
+        taxRateCode: null,
         imageFileId: null,
       }),
     );

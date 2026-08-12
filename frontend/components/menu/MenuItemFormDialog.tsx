@@ -34,6 +34,17 @@ const itemFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
   priceRupees: z.string().refine((v) => v.trim() !== "" && Number(v) >= 0, "Enter a price"),
+  // Blank is legal and means 0% — an item can genuinely be zero-rated. What is NOT legal is a
+  // value that is not a number, or one outside 0–100, which would reach the ledger as a rate.
+  taxRatePct: z
+    .string()
+    .refine(
+      (v) => v.trim() === "" || (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 100),
+      "Enter a tax rate between 0 and 100",
+    ),
+  // Free text on purpose: fiscal codes are set by the tax authority, not by this product, and a
+  // fixed list would be wrong in every jurisdiction but one. Blank means "no classification".
+  taxRateCode: z.string().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -43,13 +54,24 @@ function defaultsFor(
   defaultCategoryId: string | undefined,
 ): ItemFormValues {
   if (!item) {
-    return { categoryId: defaultCategoryId ?? "", name: "", description: "", priceRupees: "" };
+    return {
+      categoryId: defaultCategoryId ?? "",
+      name: "",
+      description: "",
+      priceRupees: "",
+      taxRatePct: "",
+      taxRateCode: "",
+    };
   }
   return {
     categoryId: item.categoryId ?? "",
     name: item.name,
     description: item.description ?? "",
     priceRupees: (item.basePricePaisa / 100).toString(),
+    // Both round-trip. Until S0-03 the dialog held neither, so every save replaced the item's
+    // fiscal classification with nothing and said so nowhere.
+    taxRatePct: item.taxRatePct.toString(),
+    taxRateCode: item.taxRateCode ?? "",
   };
 }
 
@@ -121,6 +143,13 @@ export function MenuItemFormDialog({
       name: values.name.trim(),
       description: values.description?.trim() || undefined,
       basePricePaisa: Math.round(Number(values.priceRupees) * 100),
+      // Blank rate means zero-rated, not "leave whatever was there" — the field is on screen, so
+      // what it shows is what gets saved.
+      taxRatePct: values.taxRatePct.trim() === "" ? 0 : Number(values.taxRatePct),
+      // `null`, never `undefined`. The backend reads an absent taxRateCode exactly as it reads
+      // null — REMOVE — so an emptied field has to travel as an explicit null for "the manager
+      // cleared this" and "the form forgot to send it" to stop being the same request (S0-03).
+      taxRateCode: values.taxRateCode?.trim() ? values.taxRateCode.trim() : null,
       // Always sent, never omitted: the backend treats a missing/null imageFileId as REMOVE.
       // On a price-only edit this round-trips the item's existing id, which is what keeps the
       // picture attached. Sending `undefined` would drop the key and silently clear it.
@@ -244,6 +273,44 @@ export function MenuItemFormDialog({
                 </FormItem>
               )}
             />
+
+            {/* Tax classification. Two fields, one row: the rate is what the bill charges and
+                the code is what the tax return files it under, and they are only ever read
+                together. Before S0-03 neither was on this dialog at all, so every save silently
+                replaced the item's code with nothing. */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="taxRatePct"
+                render={({ field }) => (
+                  <FormItem>
+                    <FieldLabel help="Sales tax charged on this item, as a percentage. Leave blank for zero-rated items.">
+                      Tax rate (%)
+                    </FieldLabel>
+                    <FormControl>
+                      <Input inputMode="decimal" placeholder="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="taxRateCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FieldLabel help="Your tax authority's classification code for this item, e.g. SR-STD-17. Clear it to remove the classification.">
+                      Tax code
+                    </FieldLabel>
+                    <FormControl>
+                      <Input placeholder="SR-STD-17" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Outside the <Form> field machinery on purpose — the upload has already happened
                 by the time this form is submitted, so what this control produces is an id, not

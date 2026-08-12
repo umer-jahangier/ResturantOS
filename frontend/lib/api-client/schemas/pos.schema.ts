@@ -16,6 +16,11 @@ export const apiMenuItemSchema = z.object({
   description: z.string().nullable().optional(),
   basePricePaisa: z.number().int().nonnegative(),
   taxRatePct: z.string().or(z.number()).transform(Number),
+  // S0-03: the wire has always carried this — the fiscal classification an item is filed under
+  // ("SR-STD-17"). It was never parsed, so it could not reach the domain model, so the edit
+  // dialog could not send it back, and a PUT (where an absent key means REMOVE) wiped it on a
+  // description-only edit. Parsing it is the first of the four layers that had to change.
+  taxRateCode: z.string().nullable().optional(),
   kdsStation: z.string().nullable().optional(),
   active: z.boolean(),
   // 19b: menu-item pictures. `imageFileId` is the file-service id that round-trips on update;
@@ -54,7 +59,7 @@ export const createMenuItemInputSchema = z.object({
   description: z.string().optional(),
   basePricePaisa: z.number().int().nonnegative(),
   taxRatePct: z.number().optional(),
-  taxRateCode: z.string().optional(),
+  taxRateCode: z.string().nullable().optional(),
   // `.nullable()` and NOT `.optional()` alone — deliberate. On update the backend reads null as
   // REMOVE THE PICTURE and an omitted field the same way, so "remove" is only expressible if
   // null can be sent. The form always supplies this key explicitly (null when there is no
@@ -64,6 +69,28 @@ export const createMenuItemInputSchema = z.object({
   imageFileId: z.string().uuid().nullable().optional(),
 });
 export type CreateMenuItemInput = z.infer<typeof createMenuItemInputSchema>;
+
+/**
+ * UPDATE is a REPLACE, and its own type says so.
+ *
+ * PUT /pos/menu/items/{id} does not merge: `MenuServiceImpl.updateItem` assigns every field it
+ * is given, and for `taxRateCode` and `imageFileId` an absent key reads exactly like null —
+ * REMOVE. Reusing `createMenuItemInputSchema` here (which is what shipped) made those three
+ * fields optional on the update path too, so a caller could build a legal payload that silently
+ * destroyed an item's fiscal classification. That is S0-03: a description-only edit sent
+ * `{categoryId,name,description,basePricePaisa,imageFileId}` and `SR-STD-17` became null.
+ *
+ * Making the replace-semantics fields REQUIRED is the structural half of the fix — wipe-by-
+ * omission stops being representable, in TypeScript at compile time and in zod at the repository
+ * boundary, rather than being merely discouraged by a comment. `null` is still accepted and
+ * still means remove, so deliberate removal survives.
+ */
+export const updateMenuItemInputSchema = createMenuItemInputSchema.extend({
+  taxRatePct: z.number(),
+  taxRateCode: z.string().nullable(),
+  imageFileId: z.string().uuid().nullable(),
+});
+export type UpdateMenuItemInput = z.infer<typeof updateMenuItemInputSchema>;
 
 // NEEDS_BUSSING added — backend TableStatus enum now has 3 values (07.1-PATTERNS.md).
 // Widening this enum is a Rule-1 correctness fix: without it, any table returned

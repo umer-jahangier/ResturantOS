@@ -46,6 +46,15 @@ export interface MenuItem {
   description: string | null;
   basePricePaisa: number;
   taxRatePct: number;
+  /**
+   * The item's fiscal classification code ("SR-STD-17"), or null if it has none.
+   *
+   * Round-tripped on update, for the same reason `imageFileId` is: PUT is a replace, and the
+   * backend reads an absent `taxRateCode` as REMOVE. This field was missing from the model
+   * (while the wire carried it all along), which is why the edit dialog could not send back the
+   * classification it was about to overwrite — S0-03.
+   */
+  taxRateCode: string | null;
   kdsStation: string | null;
   /** file-service id for the item's picture. Round-tripped on update; null means no picture. */
   imageFileId: string | null;
