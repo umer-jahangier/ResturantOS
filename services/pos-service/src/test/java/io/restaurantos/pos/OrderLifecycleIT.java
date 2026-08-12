@@ -10,6 +10,7 @@ import io.restaurantos.pos.repository.MenuItemRepository;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.shared.event.OutboxEntry;
 import io.restaurantos.shared.event.OutboxRepository;
+import io.restaurantos.shared.exception.FieldValidationException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,25 +124,63 @@ class OrderLifecycleIT extends PosTestBase {
                 .isInstanceOf(PosExceptions.ZeroValueOrderException.class);
     }
 
+    /**
+     * A FLAT discount larger than the line is REFUSED, not quietly clamped.
+     *
+     * <p>This test used to send {@code FLAT 9999.00} at an Rs 850 line and assert only that the
+     * total did not go negative. It passed — and it passed for the wrong reason. The service
+     * accepted the request, {@code OrderPricingCalculator.effectiveDiscount} reduced the amount to
+     * the Rs 850 that was actually there, and the row was persisted with {@code value=9999}. The
+     * money was right and the record was false: the guest's bill line and the Discount Summary
+     * report's "Discount Value" column both went on to state Rs 9,999 off a line that moved by
+     * Rs 850 — the same defect as the measured "500% off Butter Naan", one type along.
+     *
+     * <p>The clamp is unchanged and is NOT what this asserts. It still guards the rows already in
+     * the database and any future writer that does not come through {@code applyDiscount}, and its
+     * own never-negative invariant is asserted directly, at the calculator, in
+     * {@code OrderPricingCalculatorUnitTest} — deliberately not duplicated here.
+     *
+     * <p>Comping a whole dish is unaffected: {@code PERCENT 100} does it exactly, which is the
+     * route the till itself takes, since {@code discount-panel.tsx} has always refused an
+     * over-large FLAT before submit.
+     */
     @Test
-    void discountExceedingSubtotal_clampsLineTotalToZero() {
+    void discountExceedingSubtotal_isRefused() {
         UUID clientOrderId = UUID.randomUUID();
         OrderDto order = orderService.createOrder(new CreateOrderRequest(
                 branchId, clientOrderId, null, null, 1, null, null));
         orderService.addItem(order.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
 
-        UUID itemId = order.id(); // We need to find the item id
         OrderDto withItem = orderService.getOrder(order.id(), branchId);
         UUID actualItemId = withItem.items().get(0).id();
+        long before = withItem.totalPaisa();
 
-        // Apply a discount way larger than the item price (850 PKR = 85000 paisa)
-        // BigDecimal 9999 PKR = 999900 paisa
-        ApplyDiscountRequest hugeDiscount = new ApplyDiscountRequest(
-                "LINE", actualItemId, "FLAT", new BigDecimal("9999.00"), "Comped, whole dish sent back");
-        OrderDto discounted = orderService.applyDiscount(withItem.id(), hugeDiscount);
+        // Rs 9,999.00 asked of a line that holds Rs 850.00.
+        assertThatThrownBy(() -> orderService.applyDiscount(withItem.id(), new ApplyDiscountRequest(
+                "LINE", actualItemId, "FLAT", new BigDecimal("9999.00"), "Comped, whole dish sent back")))
+                .isInstanceOf(FieldValidationException.class)
+                .hasMessageContaining("more than the");
 
-        // Line total should be clamped to 0 (not negative)
-        assertThat(discounted.totalPaisa()).isGreaterThanOrEqualTo(0L);
+        // Refused, so the bill is exactly as it was — not half-discounted.
+        assertThat(orderService.getOrder(order.id(), branchId).totalPaisa()).isEqualTo(before);
+
+        // And the legitimate way to take the whole line off still works, to the paisa: the entire
+        // Rs 850.00 of the line comes off, which is what the refused FLAT was reaching for.
+        OrderDto comped = orderService.applyDiscount(withItem.id(), new ApplyDiscountRequest(
+                "LINE", actualItemId, "PERCENT", new BigDecimal("100"), "Comped, whole dish sent back"));
+        assertThat(comped.discountPaisa()).isEqualTo(85_000L);
+
+        // Only the invariant, on purpose. When this test was written a fully comped line still
+        // left Rs 42.50 of tax on the bill, because a LINE-scope discount row reduced the total
+        // without ever reaching the per-line net that lineTax is computed from. That has since
+        // been ruled on and fixed — tax is charged on the line NET of its share of every discount
+        // (.planning/decisions/D-TAX-DISCOUNT.md), so this total is now zero.
+        //
+        // The exact figure is deliberately NOT restated here: it belongs to the tax rule, not to
+        // the bound this test is about, and DiscountedTaxBaseIT.aFullyCompedLineIsTaxedOnNothing
+        // already pins it. Asserting it twice would mean this test starts failing for a reason it
+        // was never written to detect.
+        assertThat(comped.totalPaisa()).isGreaterThanOrEqualTo(0L);
     }
 
     @Test

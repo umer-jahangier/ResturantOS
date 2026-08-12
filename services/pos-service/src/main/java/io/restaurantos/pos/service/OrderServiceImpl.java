@@ -73,6 +73,9 @@ public class OrderServiceImpl implements OrderService {
      */
     private static final String PROMOTION_DISCOUNT_TYPE = "PROMOTION";
 
+    /** The ceiling on a PERCENT discount. 100 is allowed — comping a line in full is routine. */
+    private static final BigDecimal MAX_DISCOUNT_PERCENT = new BigDecimal("100");
+
     private final OrderRepository orderRepository;
     private final OrderSequenceRepository sequenceRepository;
     private final MenuItemRepository menuItemRepository;
@@ -588,6 +591,32 @@ public class OrderServiceImpl implements OrderService {
             throw new io.restaurantos.shared.exception.FieldValidationException(
                     "DISCOUNT_REASON_REQUIRED", "reason",
                     "Say why the discount is being given — at least 3 characters.");
+        }
+
+        // The value is BOUNDED, not merely positive. @Positive on the DTO stopped 0 and −5 at the
+        // HTTP door and nothing else, so PERCENT 500 was accepted, priced and written: measured
+        // 2026-08-12 on ORD-20260812-0356, 200 OK, value=500, amountPaisa=8000. The money was never
+        // at risk — effectiveDiscount caps the amount at the line's headroom and the bill cannot go
+        // negative — but the persisted value, the guest's bill line and the Discount Summary
+        // report's "Discount Value" column then all read "500% off Butter Naan". The record and the
+        // paper lied about a figure the business is audited on, which is the whole defect.
+        //
+        // Checked here rather than declared on the DTO for two reasons. The ceiling is CROSS-FIELD
+        // — 100 is the limit when type is PERCENT and means nothing when it is FLAT — which no
+        // single-field constraint can express. And, exactly as with `reason` above, bean validation
+        // runs only on the @Valid controller argument, so every other caller would walk straight
+        // past an annotation. The wording is the screen's own (discount-panel.tsx), so an operator
+        // who meets this through either door reads one sentence rather than two.
+        BigDecimal value = request.value();
+        if (value == null || value.signum() <= 0) {
+            throw new io.restaurantos.shared.exception.FieldValidationException(
+                    "DISCOUNT_VALUE_RANGE", "value",
+                    "The discount has to be more than zero.");
+        }
+        if ("PERCENT".equals(request.type()) && value.compareTo(MAX_DISCOUNT_PERCENT) > 0) {
+            throw new io.restaurantos.shared.exception.FieldValidationException(
+                    "DISCOUNT_VALUE_RANGE", "value",
+                    "A percentage cannot be more than 100.");
         }
 
         boolean orderScope = "ORDER".equals(request.scope());
@@ -1903,33 +1932,65 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * The paisa this discount is worth, capped at what is still discountable.
+     * The paisa this discount is worth — REFUSING, rather than quietly capping, anything that asks
+     * for more than is still discountable.
      *
      * <p>{@code line} is the already-resolved order item for LINE scope, and null for ORDER
      * scope — resolved by the caller so a missing line is a 404 before any policy runs, not a
      * silent fall-through to pricing the whole check (which is what the old lookup did whenever
      * {@code orderItemId} was absent).
-     *
-     * <p>{@code value} is RUPEES for FLAT and PERCENT for PERCENT; the ×100 and the HALF_UP
-     * rounding to whole paisa both happen here, once, through BigDecimal — never a float.
      */
     private long computeDiscountAmount(ApplyDiscountRequest request, Order order, OrderItem line) {
         long base = line != null ? lineDiscountBase(order, line) : orderDiscountBase(order);
+        long requested = requestedDiscountPaisa(request, base);
+        long effective = pricingCalculator.effectiveDiscount(requested, base);
 
+        // REFUSE EXACTLY WHAT THE CLAMP WOULD HAVE REDUCED.
+        //
+        // The bound is deliberately expressed as "did the clamp bite?" rather than as its own
+        // arithmetic beside the clamp. A second copy of this computation is how the two drift, and
+        // "headroom" is not a fixed idea — whether a discount is priced against the gross or the
+        // taxed amount is still being decided elsewhere. Written this way the validator inherits
+        // whatever the calculator decides: if the clamp's definition of headroom changes, the
+        // refusal changes with it, in one place, and the two can never disagree.
+        //
+        // What this closes: a FLAT of Rs 9,999 on an Rs 850 line was accepted, clamped to Rs 850,
+        // and PERSISTED as value=9999. The money was right and the record was false — the bill line
+        // and the Discount Summary report's "Discount Value" column both then read Rs 9,999 off a
+        // line that moved by Rs 850. Refusing here means the stored value is always the money that
+        // actually came off. The clamp itself STAYS: it still guards the rows already in the
+        // database and any future path that writes a discount without coming through here.
+        if (effective < requested) {
+            throw new io.restaurantos.shared.exception.FieldValidationException(
+                    "DISCOUNT_VALUE_RANGE", "value",
+                    "That is more than the " + rupees(base) + " left on "
+                            + (line != null ? "that item" : "this check") + ".");
+        }
+        return effective;
+    }
+
+    /**
+     * The paisa a discount asks for, BEFORE any clamp — the figure the operator typed, converted.
+     *
+     * <p>{@code value} is RUPEES for FLAT and PERCENT for PERCENT; the ×100 and the HALF_UP
+     * rounding to whole paisa both happen here, once, through BigDecimal — never a float.
+     *
+     * <p>Kept separate from the clamp so the caller can compare the two. That comparison IS the
+     * bound.
+     */
+    private long requestedDiscountPaisa(ApplyDiscountRequest request, long base) {
         if ("FLAT".equals(request.type())) {
-            long flat = request.value()
+            return request.value()
                     .multiply(BigDecimal.valueOf(100))
                     .setScale(0, java.math.RoundingMode.HALF_UP)
                     .longValue();
-            return pricingCalculator.effectiveDiscount(flat, base);
         }
         // PERCENT
-        long amount = request.value()
+        return request.value()
                 .divide(BigDecimal.valueOf(100), 10, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(base))
                 .setScale(0, java.math.RoundingMode.HALF_UP)
                 .longValue();
-        return pricingCalculator.effectiveDiscount(amount, base);
     }
 
     /**

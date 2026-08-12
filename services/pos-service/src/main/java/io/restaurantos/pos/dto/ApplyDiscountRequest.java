@@ -35,6 +35,20 @@ import java.util.UUID;
  * was priced against the whole order, was stored, contributed NOTHING to the total (only
  * {@code LINE}/{@code ORDER} rows are summed), and finally failed the table's own CHECK
  * constraint as a 500. A closed set is checked at the boundary, once.
+ *
+ * <h2>Why {@code value}'s ceiling is NOT here</h2>
+ *
+ * <p>{@code @Positive} is a floor and nothing else, so {@code PERCENT 500} was accepted, priced and
+ * persisted — 200 OK, {@code value=500} — and the bill line, the receipt and the Discount Summary
+ * report all went on to state a 500% discount. The money was safe throughout, because
+ * {@code OrderPricingCalculator.effectiveDiscount} caps the amount at the line's headroom; it was
+ * the record and the paper that were wrong.
+ *
+ * <p>The ceiling is enforced in {@code OrderServiceImpl.applyDiscount} rather than declared here,
+ * because it is CROSS-FIELD — 100 is the limit when {@code type} is PERCENT and means nothing when
+ * it is FLAT — and because bean validation reaches only the {@code @Valid} controller argument,
+ * while the rule has to hold for every caller of the service. Same reasoning, and same
+ * {@code FieldValidationException} shape, as the {@code reason} rule above.
  */
 public record ApplyDiscountRequest(
         @NotNull @Pattern(regexp = "LINE|ORDER", message = "scope must be LINE or ORDER")
