@@ -76,6 +76,13 @@ restaurantos:
   # from platform-admin (which owns tenant_features). Without it every gated endpoint 403s.
   platform-admin:
     uri: ${PLATFORM_ADMIN_URI:http://127.0.0.1:8096}
+  # Source of truth for the branch's STATION REGISTRY. pos-service owns station CRUD
+  # (/app/stations); kds_stations is a projection of it, refreshed by StationRegistryService over
+  # /internal/stations. Point this wrong and the KDS silently falls back to showing only stations
+  # that have already received a ticket — PosStationClient logs a WARN naming the URL it tried, and
+  # a branch with no projected stations answers 503 rather than "no stations configured".
+  pos:
+    uri: ${POS_SERVICE_URI:http://127.0.0.1:8084}
   jwks:
     uri: ${JWKS_URI:http://auth-service:8081/.well-known/jwks.json}
   opa:

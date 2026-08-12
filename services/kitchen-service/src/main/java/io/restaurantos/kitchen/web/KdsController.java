@@ -9,6 +9,7 @@ import io.restaurantos.kitchen.domain.model.StationType;
 import io.restaurantos.kitchen.dto.KdsTicketDto;
 import io.restaurantos.kitchen.repository.KdsStationRepository;
 import io.restaurantos.kitchen.repository.KdsTicketRepository;
+import io.restaurantos.kitchen.service.StationRegistryService;
 import io.restaurantos.kitchen.service.TicketService;
 import io.restaurantos.kitchen.service.TicketServiceImpl;
 import io.restaurantos.shared.api.ApiResponse;
@@ -17,6 +18,7 @@ import io.restaurantos.shared.feature.RequiresFeature;
 import io.restaurantos.shared.security.JwtClaims;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -33,15 +35,18 @@ public class KdsController {
     private final KdsTicketRepository ticketRepository;
     private final KdsStationRepository stationRepository;
     private final TicketServiceImpl ticketService;
+    private final StationRegistryService stationRegistry;
 
     public KdsController(KdsAuthorizationService authz,
                           KdsTicketRepository ticketRepository,
                           KdsStationRepository stationRepository,
-                          TicketServiceImpl ticketService) {
+                          TicketServiceImpl ticketService,
+                          StationRegistryService stationRegistry) {
         this.authz = authz;
         this.ticketRepository = ticketRepository;
         this.stationRepository = stationRepository;
         this.ticketService = ticketService;
+        this.stationRegistry = stationRegistry;
     }
 
     /**
@@ -174,11 +179,26 @@ public class KdsController {
     }
 
     /**
-     * List active stations for a branch. Auto-seed-on-miss (KDS-04, mirrors finance 07.2's
-     * period auto-seed pattern): a branch with zero station rows gets a DEFAULT station seeded
-     * on the spot so the board is never empty, rather than showing "No active stations
-     * configured".
-     * Requires pos.kds.view permission (OPA evaluated).
+     * List active stations for a branch, from the branch's REGISTRY.
+     *
+     * <h3>What changed and why the old behaviour was a defect</h3>
+     *
+     * <p>This used to auto-seed a {@code DEFAULT} row whenever the query came back empty, "so the
+     * board is never empty". It was the wrong answer to the right worry. The list was empty because
+     * {@code kds_stations} had exactly one writer — the ticket-routing path — so a station existed
+     * on the KDS only once its first ticket had landed. An admin who created PANTRY1 got no pantry
+     * board, the pantry cook got "No active stations configured", and the auto-seed then invented a
+     * station that exists in no registry anywhere so the screen would look healthy while being
+     * wrong. Measured at branch F-7: pos held BAR, GRILL, DGB28334, DGS43431, DGS20334; this
+     * endpoint returned DEFAULT, GRILL, BAR.
+     *
+     * <p>So the registry is now synced from pos-service (which owns station CRUD) BEFORE the read,
+     * and the auto-seed is gone. A branch that genuinely has no stations now says so, which is
+     * true and actionable — the admin creates one at {@code /app/stations}. A branch whose
+     * registry could not be READ says {@code 503}, which is also true, and is emphatically not the
+     * same sentence as "you have no stations".
+     *
+     * <p>Requires pos.kds.view permission (OPA evaluated).
      */
     @GetMapping("/stations")
     public ResponseEntity<List<KdsStation>> getStations(
@@ -188,6 +208,12 @@ public class KdsController {
 
         authz.authorizeView(claims.tenantId(), branchId);
 
+        // Registry sync FIRST, so a station created seconds ago at /app/stations is on this
+        // response — the whole point. Never fatal: an unreachable pos-service leaves the existing
+        // projection in place and the kitchen keeps the board it had.
+        StationRegistryService.SyncOutcome outcome =
+                stationRegistry.syncBranch(claims.tenantId(), branchId);
+
         // Unfiltered is the default and is byte-identical to what this endpoint has always
         // returned, so the existing board is unaffected. No feature flag: /api/v1/kitchen/ already
         // gates on FEATURE_KDS and FEATURE_KDS is on for every tier — a code no tier grants
@@ -196,24 +222,18 @@ public class KdsController {
                 ? stationRepository.findByBranchIdAndActiveTrueAndStationType(branchId, stationType)
                 : stationRepository.findByBranchIdAndActiveTrue(branchId);
 
-        if (stations.isEmpty()) {
-            KdsStation defaultStation = new KdsStation();
-            defaultStation.setTenantId(claims.tenantId());
-            defaultStation.setBranchId(branchId);
-            defaultStation.setCode("DEFAULT");
-            defaultStation.setName("DEFAULT");
-            defaultStation.setActive(true);
-            // The auto-seeded fallback is a KITCHEN station, which is what it has always
-            // effectively been. Auto-seed-on-empty behaviour is otherwise unchanged.
-            defaultStation.setStationType(StationType.DEFAULT);
-            defaultStation.setEscalationThresholdSeconds(900);
-            stations = List.of(stationRepository.save(defaultStation));
+        if (stations.isEmpty() && outcome == StationRegistryService.SyncOutcome.REGISTRY_UNAVAILABLE) {
+            // The one case that must NOT render as an empty board: we have no projected stations
+            // AND we could not read the registry, so we do not know whether this branch has none
+            // or whether pos-service is restarting. 503 makes the KDS show its error state with a
+            // retry instead of telling a kitchen, in the product's confident voice, that it has no
+            // stations. GA-001, on the kitchen's front door.
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
 
-        // Narrowed to the caller's own stations (28-07, D-28-02) — AFTER the auto-seed, and the
+        // Narrowed to the caller's own stations (28-07, D-28-02) — AFTER the registry sync, and the
         // order is load-bearing. Filtering first would make a bartender at a branch with only
-        // kitchen stations look like a branch with NO stations, and the seed would then create a
-        // spurious DEFAULT row in the tenant's database every time they opened the screen.
+        // kitchen stations look like a branch with NO stations.
         //
         // An unassigned caller keeps the whole list, which is what every user in the product has
         // today.

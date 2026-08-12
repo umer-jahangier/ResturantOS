@@ -32,12 +32,24 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Verifies DEFAULT-station seeding (KDS-04) and end-to-end tableNumber propagation:
- * - GET /stations for a branch with zero station rows auto-seeds and returns a single
- *   DEFAULT station (so the board is never empty)
+ * Verifies DEFAULT-station creation on the ROUTING path and end-to-end tableNumber propagation:
  * - routing a ticket to station "DEFAULT" when no station row exists creates the DEFAULT
  *   station row idempotently (no duplicate on a second route)
  * - the payload's tableNumber lands on the persisted ticket and the DTO
+ *
+ * <p><b>What this class used to assert, and why that assertion was deleted (S1 #17).</b> It had a
+ * test called {@code getStations_freshBranch_autoSeedsDefaultStation} that pinned the read path's
+ * auto-seed: {@code GET /stations} on a branch with no rows minted a DEFAULT station "so the board
+ * is never empty". That test was green the entire time the KDS was showing three stations at a
+ * branch that had five — because the seed's job was to make an EMPTY list look healthy, and it did
+ * that job perfectly. The read path no longer invents stations; it syncs the registry pos-service
+ * owns, and {@link StationRegistryIT} asserts that instead, including the case this test covered
+ * (a fresh branch) with its two honest outcomes: an empty registry returns an empty list, an
+ * unreadable one returns 503.
+ *
+ * <p>The DEFAULT row itself is NOT gone and is not deprecated — it is where an item with no station
+ * still lands, and the two tests below are exactly the ones that guard it. It is created by the
+ * code that needs it (routing), not by the code that reads the list.
  */
 @Transactional
 class KdsStationSeedTableNumberIT extends KitchenTestBase {
@@ -76,9 +88,21 @@ class KdsStationSeedTableNumberIT extends KitchenTestBase {
         when(valueOps.get(any())).thenReturn("true");
     }
 
+    /**
+     * A ticket routed to DEFAULT makes the DEFAULT board appear — and then the READ path shows it,
+     * without inventing anything. This is the half of the old auto-seed test that was actually
+     * true, kept and made explicit: the row exists because a ticket needed it, not because
+     * somebody opened a screen.
+     */
     @Test
-    void getStations_freshBranch_autoSeedsDefaultStation() {
+    void getStations_afterRoutingToDefault_showsTheDefaultBoard() {
         assertThat(stationRepository.findByBranchIdAndActiveTrue(branchId)).isEmpty();
+
+        OrderSentToKdsPayload payload = new OrderSentToKdsPayload(
+                orderId, tenantId, branchId, "ORD-STATION-000",
+                List.of(new OrderSentToKdsItem(UUID.randomUUID(), UUID.randomUUID(), "Sauce", 1, null, List.of(), null)),
+                1, null, null);
+        ticketRoutingService.route(payload, "ORD-STATION-000");
 
         // null stationType is the unfiltered form — byte-identical to what this call has always
         // done. The type filter added in 28-02 is additive and defaults to off.

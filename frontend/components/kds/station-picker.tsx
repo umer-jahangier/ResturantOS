@@ -14,7 +14,6 @@ import {
   KDS_COLUMN_LABELS,
   type KdsColumnKey,
 } from "@/components/kds/kds-item-column";
-import { EmptyState } from "@/components/ui/empty-state";
 import { getAgingState } from "@/components/kds/kds-aging";
 import type { KdsStation, KdsTicket } from "@/lib/models/kds.model";
 
@@ -168,13 +167,38 @@ export function StationPicker({ branchId }: StationPickerProps) {
     return (
       <div
         data-surface="kds"
-        className="flex min-h-screen items-center justify-center bg-kds-surface"
+        data-testid="kds-no-stations"
+        className="flex min-h-screen flex-col items-center justify-center gap-4 bg-kds-surface p-6 text-center"
       >
-        <EmptyState
-          icon={ChefHat}
-          title="No active stations configured"
-          className="text-kds-text"
-        />
+        {/*
+          This sentence used to be a lie by omission. kds_stations was written only by the
+          ticket-routing path, so a station an admin had genuinely created did not appear here
+          until its first ticket landed — and this screen said "none configured" about a branch
+          that had five. The station list is now synced from pos-service's registry before every
+          read, so reaching this state means the branch really has no stations, and the one useful
+          thing to say is where to make one.
+
+          Built on the kds tokens rather than the shared <EmptyState>, whose title is
+          `text-foreground` and whose icon disc is `bg-surface-2` — both follow the office
+          manager's light/dark preference, while this surface is permanently dark (§3.7). Through
+          EmptyState this text rendered near-black on a near-black board: present in the DOM,
+          unreadable on the wall.
+        */}
+        <div
+          aria-hidden="true"
+          className="flex size-20 items-center justify-center rounded-full bg-kds-card"
+        >
+          <ChefHat className="size-9 text-kds-muted" aria-hidden="true" />
+        </div>
+        <div className="flex max-w-xl flex-col gap-1">
+          <p data-testid="kds-no-stations-title" className={cn("font-bold text-kds-text", T_H1)}>
+            No active stations configured
+          </p>
+          <p className={cn("text-kds-muted", T_SMALL)}>
+            An administrator creates one under Menu → Stations. Once it exists it appears here
+            straight away — it does not have to wait for its first ticket.
+          </p>
+        </div>
       </div>
     );
   }

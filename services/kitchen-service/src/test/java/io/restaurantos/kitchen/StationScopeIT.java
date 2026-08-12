@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -216,23 +217,31 @@ class StationScopeIT extends KitchenTestBase {
         assertThat(stationCodes()).containsExactlyInAnyOrder("BAR", "GRILL");
     }
 
+    /**
+     * Was {@code theAutoSeedStillFiresForABranchWithNoStations_...}, which asserted that a branch
+     * with no stations got a DEFAULT row minted on the spot "so the board is never empty". S1 #17:
+     * that seed was the thing making a real gap look healthy, and it has been replaced by a
+     * registry sync from pos-service. The worry the old test encoded — never render "no stations
+     * configured" when the truth is "we could not find out" — is not dropped, it is answered
+     * honestly: 503, so the board shows its error state with a retry.
+     */
     @Test
-    void theAutoSeedStillFiresForABranchWithNoStations_andIsVisibleToAnUnassignedUser() {
+    void aBranchWithNoStations_andAnUnreadableRegistry_refusesRatherThanRenderingAnEmptyBoard() {
         authenticateWithAttributes(Map.of());
 
-        assertThat(stationCodes())
-                .as("a board that says 'no stations configured' when the real answer is 'nobody "
-                        + "has set this up yet' is the same defect class as an error rendered as "
-                        + "an empty state")
-                .containsExactly("DEFAULT");
+        // PosStationClient is a @MockitoBean in KitchenTestBase whose default answer for an
+        // Optional-returning method is Optional.empty() — i.e. "pos-service could not be read".
+        assertThat(kdsController.getStations(branchId, null, currentClaims()).getStatusCode())
+                .as("an error rendered as an empty state is the defect; an error rendered as an "
+                        + "error is the fix")
+                .isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     @Test
-    void aScopedUserAtABranchOfOnlyOtherStations_doesNotTriggerASpuriousDefaultSeed() {
-        // The scope filter runs AFTER the auto-seed, and the ordering is load-bearing. Filtering
-        // first would make a bartender at a kitchen-only branch look like a branch with NO
-        // stations, and the seed would then write a DEFAULT row into the tenant's database every
-        // time they opened the screen.
+    void aScopedUserAtABranchOfOnlyOtherStations_seesAnEmptyListWithoutDisturbingTheRegistry() {
+        // The scope filter runs AFTER the registry sync, and the ordering is load-bearing.
+        // Filtering first would make a bartender at a kitchen-only branch look like a branch with
+        // NO stations, which is a different sentence with a different remedy.
         fireTicket("GRILL", "Biryani");
         authenticateWithAttributes(Map.of("stations", List.of("BAR")));
 

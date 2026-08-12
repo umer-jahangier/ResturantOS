@@ -1,5 +1,6 @@
 package io.restaurantos.kitchen;
 
+import io.restaurantos.kitchen.client.PosStationClient;
 import io.restaurantos.shared.authz.OpaClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
@@ -77,4 +78,16 @@ public abstract class KitchenTestBase {
 
     @MockitoBean
     protected OpaClient opaClient;
+
+    /**
+     * The station registry seam to pos-service.
+     *
+     * <p>Mocked here rather than pointed at a stub server so every existing IT keeps the exact
+     * behaviour it had: Mockito's default answer for an {@code Optional}-returning method is
+     * {@code Optional.empty()}, which {@code StationRegistryService} reads as "registry
+     * unreachable" and therefore leaves the projection exactly as ticket routing built it. A test
+     * that wants a registry stubs this bean itself.
+     */
+    @MockitoBean
+    protected PosStationClient posStationClient;
 }

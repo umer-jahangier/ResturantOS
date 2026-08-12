@@ -24,7 +24,6 @@ import {
 } from "@/components/kds/kds-item-column";
 import { T_H1, T_LABEL, T_SMALL } from "@/components/kds/kds-type";
 import { QueryErrorNotice } from "@/components/ui/query-boundary";
-import { EmptyState } from "@/components/ui/empty-state";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import type { KdsTicket } from "@/lib/models/kds.model";
 import { cn } from "@/lib/utils";
@@ -573,12 +572,29 @@ export function StationBoard({ branchId, stationCode }: StationBoardProps) {
           data-testid="kds-station-unknown"
           className="flex min-h-screen flex-col items-center justify-center gap-4 bg-kds-surface p-6 text-center text-kds-text"
         >
-          <EmptyState
-            icon={SearchX}
-            title="No such station"
-            description={`This branch has no active station with the code "${stationCode}", or it is not one of yours. Check the code, or pick a board from all stations.`}
-            className="text-kds-text"
-          />
+          {/*
+            NOT the shared <EmptyState>. Its title is `text-foreground` and its icon disc is
+            `bg-surface-2` — both follow the office manager's light/dark preference, while this
+            surface is `data-surface="kds"` and therefore permanently dark (§3.7). Rendered
+            through EmptyState, this screen's own screenshot showed near-black text on a
+            near-black board: the state was present in the DOM and unreadable on the wall, which
+            is the same class of failure as not shipping it. Built on the kds tokens instead, so
+            the contrast is a property of the surface rather than of the viewer's theme.
+          */}
+          <div
+            aria-hidden="true"
+            className="flex size-20 items-center justify-center rounded-full bg-kds-card"
+          >
+            <SearchX className="size-9 text-kds-muted" aria-hidden="true" />
+          </div>
+          <div className="flex max-w-xl flex-col gap-1">
+            <p data-testid="kds-station-unknown-title" className={cn("font-bold text-kds-text", T_H1)}>
+              No such station
+            </p>
+            <p className={cn("text-kds-muted", T_SMALL)}>
+              {`This branch has no active station with the code "${stationCode}", or it is not one of yours. Check the code, or pick a board from all stations.`}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => router.push("/app/kitchen")}

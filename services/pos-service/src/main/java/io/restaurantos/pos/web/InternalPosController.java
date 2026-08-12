@@ -1,7 +1,9 @@
 package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.InternalOrderSummaryDto;
+import io.restaurantos.pos.dto.StationDto;
 import io.restaurantos.pos.repository.OrderRepository;
+import io.restaurantos.pos.repository.StationRepository;
 import io.restaurantos.pos.service.MenuService;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -23,12 +26,53 @@ public class InternalPosController {
     private final OrderRepository orderRepository;
     private final TenantContext tenantContext;
     private final MenuService menuService;
+    private final StationRepository stationRepository;
 
     public InternalPosController(OrderRepository orderRepository, TenantContext tenantContext,
-                                  MenuService menuService) {
+                                  MenuService menuService, StationRepository stationRepository) {
         this.orderRepository = orderRepository;
         this.tenantContext = tenantContext;
         this.menuService = menuService;
+        this.stationRepository = stationRepository;
+    }
+
+    /**
+     * The branch's station REGISTRY — pos-service owns {@code stations} (admin CRUD at
+     * {@code /app/stations}), and this is the seam kitchen-service reads it through so its
+     * {@code kds_stations} projection stops being built lazily out of ticket traffic.
+     *
+     * <p><b>Why this endpoint exists at all.</b> Before it, a station only became visible on the
+     * KDS when its FIRST TICKET arrived — {@code TicketRoutingService.upsertStation} was the only
+     * writer of {@code kds_stations}. So an admin could create PANTRY1, and the pantry screen and
+     * the pantry cook's station picker would both insist no such station existed until somebody
+     * happened to ring a pantry item. Measured live at branch F-7: pos held 5 stations, the KDS
+     * listed 3, and one of those 3 (DEFAULT) does not exist in pos at all.
+     *
+     * <p>ACTIVE AND INACTIVE rows are returned, deliberately. A deactivated station is not the
+     * same as a station that was never created, and the consumer needs the difference to retire
+     * its own projected row rather than leaving a dead board on the wall forever.
+     *
+     * <p>Tenant scoping is by the explicit {@code tenantId} predicate AND by RLS via the tenant
+     * context, exactly as the two order endpoints above. {@code branchId} is a plain parameter
+     * here — there is no JWT to check it against on an internal call, and the caller
+     * (kitchen-service) has already authorized the branch against the user's token before asking.
+     *
+     * @return bare list (NOT ApiResponse-wrapped) — mirrors this controller's existing contract
+     */
+    @GetMapping("/stations")
+    public ResponseEntity<List<StationDto>> listStations(
+            @RequestParam UUID branchId,
+            @RequestHeader(value = "X-Tenant-Id", required = false) UUID tenantId) {
+        if (tenantId != null && tenantContext.getTenantId().isEmpty()) {
+            tenantContext.set(tenantId, null, null, null);
+        }
+        UUID scopedTenantId = tenantContext.requireTenantId();
+        List<StationDto> stations = stationRepository
+                .findByTenantIdAndBranchId(scopedTenantId, branchId)
+                .stream()
+                .map(StationDto::from)
+                .toList();
+        return ResponseEntity.ok(stations);
     }
 
     /**
