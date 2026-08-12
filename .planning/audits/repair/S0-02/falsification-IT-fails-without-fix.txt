@@ -1,0 +1,56 @@
+2026-08-12T05:24:30.738+05:00  WARN 30842 --- [pos-service] [           main] i.r.pos.service.PrintDispatchService     : branch 35e8a054-d66e-402c-a187-5b637118a542 printer registry unreadable while dispatching: feign.FeignException$ServiceUnavailable: [503] during [GET] to [http://user-service/internal/users/branches/35e8a054-d66e-402c-a187-5b637118a542] [UserBranchClient#getBranch(UUID,UUID)]: [Load balancer does not contain an instance for the service user-service]
+2026-08-12T05:24:31.081+05:00  WARN 30842 --- [pos-service] [           main] o.s.c.l.core.RoundRobinLoadBalancer      : No servers available for service: user-service
+2026-08-12T05:24:31.082+05:00  WARN 30842 --- [pos-service] [           main] .s.c.o.l.FeignBlockingLoadBalancerClient : Load balancer does not contain an instance for the service user-service
+2026-08-12T05:24:31.082+05:00  WARN 30842 --- [pos-service] [           main] i.r.pos.service.PrintDispatchService     : branch 924bbe68-ae5e-4275-826d-73361337a1f4 printer registry unreadable while dispatching: feign.FeignException$ServiceUnavailable: [503] during [GET] to [http://user-service/internal/users/branches/924bbe68-ae5e-4275-826d-73361337a1f4] [UserBranchClient#getBranch(UUID,UUID)]: [Load balancer does not contain an instance for the service user-service]
+2026-08-12T05:24:31.221+05:00  WARN 30842 --- [pos-service] [           main] o.s.c.l.core.RoundRobinLoadBalancer      : No servers available for service: user-service
+2026-08-12T05:24:31.221+05:00  WARN 30842 --- [pos-service] [           main] .s.c.o.l.FeignBlockingLoadBalancerClient : Load balancer does not contain an instance for the service user-service
+2026-08-12T05:24:31.221+05:00  WARN 30842 --- [pos-service] [           main] i.r.pos.service.PrintDispatchService     : branch 865c8697-d01a-4072-8901-650986e5d0df printer registry unreadable while dispatching: feign.FeignException$ServiceUnavailable: [503] during [GET] to [http://user-service/internal/users/branches/865c8697-d01a-4072-8901-650986e5d0df] [UserBranchClient#getBranch(UUID,UUID)]: [Load balancer does not contain an instance for the service user-service]
+[ERROR] Tests run: 5, Failures: 3, Errors: 1, Skipped: 0, Time elapsed: 38.03 s <<< FAILURE! -- in io.restaurantos.pos.DailyTakingsUnclosedCashIT
+[ERROR] io.restaurantos.pos.DailyTakingsUnclosedCashIT.aPaymentIsDatedByWhenItWasTaken_notByWhenItsOrderClosed -- Time elapsed: 2.363 s <<< FAILURE!
+java.lang.AssertionError: 
+
+Expecting Optional to contain a value but it was empty.
+	at io.restaurantos.pos.DailyTakingsUnclosedCashIT.aPaymentIsDatedByWhenItWasTaken_notByWhenItsOrderClosed(DailyTakingsUnclosedCashIT.java:226)
+
+[ERROR] io.restaurantos.pos.DailyTakingsUnclosedCashIT.cashTakenOnAnOpenOrder_appearsOnTheCashTenderLine -- Time elapsed: 0.281 s <<< FAILURE!
+java.lang.AssertionError: 
+[Rs 77.00 taken in cash must reach the CASH tender line even though the order it was taken against is still open] 
+Expecting Optional to contain a value but it was empty.
+	at io.restaurantos.pos.DailyTakingsUnclosedCashIT.cashTakenOnAnOpenOrder_appearsOnTheCashTenderLine(DailyTakingsUnclosedCashIT.java:141)
+
+[ERROR] io.restaurantos.pos.DailyTakingsUnclosedCashIT.closingTheOrderLater_doesNotCountTheSameCashTwice -- Time elapsed: 0.261 s <<< ERROR!
+java.util.NoSuchElementException: No value present
+	at java.base/java.util.Optional.orElseThrow(Optional.java:377)
+	at io.restaurantos.pos.DailyTakingsUnclosedCashIT.closingTheOrderLater_doesNotCountTheSameCashTwice(DailyTakingsUnclosedCashIT.java:182)
+
+[ERROR] io.restaurantos.pos.DailyTakingsUnclosedCashIT.cashTakenOnAnOpenOrder_isStatedAsUnclosedHoldings -- Time elapsed: 0.099 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: 
+
+expected: 7700L
+ but was: 0L
+	at io.restaurantos.pos.DailyTakingsUnclosedCashIT.cashTakenOnAnOpenOrder_isStatedAsUnclosedHoldings(DailyTakingsUnclosedCashIT.java:157)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   DailyTakingsUnclosedCashIT.aPaymentIsDatedByWhenItWasTaken_notByWhenItsOrderClosed:226 
+Expecting Optional to contain a value but it was empty.
+[ERROR]   DailyTakingsUnclosedCashIT.cashTakenOnAnOpenOrder_appearsOnTheCashTenderLine:141 [Rs 77.00 taken in cash must reach the CASH tender line even though the order it was taken against is still open] 
+Expecting Optional to contain a value but it was empty.
+[ERROR]   DailyTakingsUnclosedCashIT.cashTakenOnAnOpenOrder_isStatedAsUnclosedHoldings:157 
+expected: 7700L
+ but was: 0L
+[ERROR] Errors: 
+[ERROR]   DailyTakingsUnclosedCashIT.closingTheOrderLater_doesNotCountTheSameCashTwice:182 » NoSuchElement No value present
+[INFO] 
+[ERROR] Tests run: 5, Failures: 3, Errors: 1, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- failsafe:3.5.6:verify (default) @ pos-service ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  43.322 s
+[INFO] Finished at: 2026-08-12T05:24:33+05:00
+[INFO] ------------------------------------------------------------------------

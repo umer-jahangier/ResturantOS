@@ -1,0 +1,40 @@
+signed in as manager@terrace.local
+  [console:takings] Failed to load resource: the server responded with a status of 403 (Forbidden)
+  [console:takings] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[1-before] {
+  "gross": null,
+  "net": null,
+  "ordersLine": "0 orders closed on this trading day",
+  "unclosed": null,
+  "tenders": {},
+  "bodyHasAlert": false
+}
+  shot: 1-before-takings.png
+till is OPEN
+rang up 4 x "Audit Item 52235Rs 499.00"
+send-to-kds -> 200 http://localhost:8080/api/v1/pos/orders/58721f5b-5380-4fca-9214-76cda1974b87/send-to-kds
+sent to kitchen
+  shot: pos-after-send.png
+charge page for order 58721f5b-5380-4fca-9214-76cda1974b87
+remaining balance (paisa): 199600
+POST /payments -> 200
+  shot: pos-after-charge.png
+order shows as CLOSED after payment? false (must be false — nothing was served)
+  [console:takings] Failed to load resource: the server responded with a status of 403 (Forbidden)
+  [console:takings] Failed to load resource: the server responded with a status of 403 (Forbidden)
+[2-after-open-order] {
+  "gross": null,
+  "net": null,
+  "ordersLine": "0 orders closed on this trading day",
+  "unclosed": null,
+  "tenders": {},
+  "bodyHasAlert": false
+}
+  shot: 2-after-open-order-takings.png
+
+════════ VERDICT ════════
+CASH before : - payments / -
+CASH after  : - payments / -
+unclosed panel before: null
+unclosed panel after : null
+order used: 58721f5b-5380-4fca-9214-76cda1974b87

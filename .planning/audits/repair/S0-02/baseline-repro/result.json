@@ -1,0 +1,21 @@
+{
+  "orderId": "58721f5b-5380-4fca-9214-76cda1974b87",
+  "amountPaisa": 7700,
+  "before": {
+    "gross": null,
+    "net": null,
+    "ordersLine": "0 orders closed on this trading day",
+    "unclosed": null,
+    "tenders": {},
+    "bodyHasAlert": false
+  },
+  "after": {
+    "gross": null,
+    "net": null,
+    "ordersLine": "0 orders closed on this trading day",
+    "unclosed": null,
+    "tenders": {},
+    "bodyHasAlert": false
+  },
+  "afterClose": null
+}

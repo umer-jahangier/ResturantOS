@@ -1,0 +1,16 @@
+2026-08-12T05:25:22.736+05:00  WARN 33881 --- [pos-service] [           main] .s.c.o.l.FeignBlockingLoadBalancerClient : Load balancer does not contain an instance for the service user-service
+2026-08-12T05:25:22.736+05:00  WARN 33881 --- [pos-service] [           main] i.r.pos.service.PrintDispatchService     : branch b6ee0458-b26e-4a19-aed3-719d8cc60dc8 printer registry unreadable while dispatching: feign.FeignException$ServiceUnavailable: [503] during [GET] to [http://user-service/internal/users/branches/b6ee0458-b26e-4a19-aed3-719d8cc60dc8] [UserBranchClient#getBranch(UUID,UUID)]: [Load balancer does not contain an instance for the service user-service]
+2026-08-12T05:25:22.767+05:00  WARN 33881 --- [pos-service] [           main] o.s.c.l.core.RoundRobinLoadBalancer      : No servers available for service: user-service
+2026-08-12T05:25:22.768+05:00  WARN 33881 --- [pos-service] [           main] .s.c.o.l.FeignBlockingLoadBalancerClient : Load balancer does not contain an instance for the service user-service
+2026-08-12T05:25:22.768+05:00  WARN 33881 --- [pos-service] [           main] i.r.pos.service.PrintDispatchService     : branch 98d7dcc0-a06f-4218-b4e6-0b216671d42e printer registry unreadable while dispatching: feign.FeignException$ServiceUnavailable: [503] during [GET] to [http://user-service/internal/users/branches/98d7dcc0-a06f-4218-b4e6-0b216671d42e] [UserBranchClient#getBranch(UUID,UUID)]: [Load balancer does not contain an instance for the service user-service]
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.95 s -- in io.restaurantos.pos.DailyTakingsUnclosedCashIT
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- failsafe:3.5.6:verify (default) @ pos-service ---
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------

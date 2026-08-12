@@ -1,0 +1,58 @@
+{
+  "orderId": "2e52387e-3388-4297-bf88-6f2335081b79",
+  "amountPaisa": 7700,
+  "before": {
+    "gross": "Gross salesRs 21,941.00Full menu price of everything sold, before any discount.",
+    "net": "Net salesRs 23,783.00What the bills actually came to. Stated by the server, not worked out here.",
+    "ordersLine": "13 orders closed on this trading day",
+    "unclosed": "Rs 8,068.20 of today's cash is against 10 orders that are not closed yet (Rs 8,111.00 across all tenders).This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross or net sales: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice.",
+    "tenders": {
+      "CARD": {
+        "count": "1",
+        "amount": "Rs 42.80"
+      },
+      "CASH": {
+        "count": "28",
+        "amount": "Rs 31,851.20"
+      }
+    },
+    "bodyHasAlert": false,
+    "readAt": "2026-08-12T00:41:29.539Z"
+  },
+  "after": {
+    "gross": "Gross salesRs 21,941.00Full menu price of everything sold, before any discount.",
+    "net": "Net salesRs 23,783.00What the bills actually came to. Stated by the server, not worked out here.",
+    "ordersLine": "13 orders closed on this trading day",
+    "unclosed": "Rs 8,145.20 of today's cash is against 11 orders that are not closed yet (Rs 8,188.00 across all tenders).This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross or net sales: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice.",
+    "tenders": {
+      "CARD": {
+        "count": "1",
+        "amount": "Rs 42.80"
+      },
+      "CASH": {
+        "count": "29",
+        "amount": "Rs 31,928.20"
+      }
+    },
+    "bodyHasAlert": false,
+    "readAt": "2026-08-12T00:41:45.907Z"
+  },
+  "afterClose": {
+    "gross": "Gross salesRs 23,937.00Full menu price of everything sold, before any discount.",
+    "net": "Net salesRs 25,779.00What the bills actually came to. Stated by the server, not worked out here.",
+    "ordersLine": "14 orders closed on this trading day",
+    "unclosed": "Rs 8,068.20 of today's cash is against 10 orders that are not closed yet (Rs 8,111.00 across all tenders).This money is part of the tender split above and is already in the drawer, so expect the count to include it. It is NOT in gross or net sales: a bill becomes a sale when it is closed, which may be tomorrow. Close those orders and the figures move — the cash does not get counted twice.",
+    "tenders": {
+      "CARD": {
+        "count": "1",
+        "amount": "Rs 42.80"
+      },
+      "CASH": {
+        "count": "30",
+        "amount": "Rs 33,847.20"
+      }
+    },
+    "bodyHasAlert": false,
+    "readAt": "2026-08-12T00:42:03.908Z"
+  }
+}
