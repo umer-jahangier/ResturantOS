@@ -1,0 +1,13 @@
+{
+  "server-has-drafts": 12,
+  "their-order-numbers": [
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "draft-chip-rows": 0,
+  "cancel-draft-controls": 0,
+  "empty-copy": "No active orders Orders opened from the floor or terminal appear here until they're closed."
+}

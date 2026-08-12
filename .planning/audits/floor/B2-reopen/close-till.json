@@ -1,0 +1,42 @@
+{
+  "steps": [
+    {
+      "k": "signed-in-as",
+      "v": "cashier@terrace.local"
+    },
+    {
+      "k": "till-strip",
+      "v": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale Till OPEN Float: Rs 5,000.00 Cash: Rs 52,242.81 Orders: 128 Close Till POS Terminal Floor View Order Management "
+    },
+    {
+      "k": "expected-cash-on-panel",
+      "v": "Rs 52,242.81"
+    },
+    {
+      "k": "variance-preview",
+      "v": "Balanced — your count matches the drawer"
+    },
+    {
+      "k": "close-network",
+      "v": [
+        {
+          "m": "POST",
+          "s": 200,
+          "u": "/api/v1/pos/tills/ae93ba15-bcc8-4c7a-b955-c30c5673b558/close"
+        }
+      ]
+    },
+    {
+      "k": "screen-after-close",
+      "v": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale No active till Open Till POS Terminal Floor View Order Management Live Your till is closed Open your till from the bar above — recording the counted sta"
+    },
+    {
+      "k": "screen-after-reload",
+      "v": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse App POS Floating Terrace HQ Search… ⌘K E Point of sale No active till Open Till POS Terminal Floor View Order Management Live Your till is closed Open your till from the bar above — recording the counted sta"
+    },
+    {
+      "k": "closed-tills-readback",
+      "v": []
+    }
+  ]
+}
