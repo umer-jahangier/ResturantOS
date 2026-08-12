@@ -1,0 +1,59 @@
+S4 — branch address: the jsonb column, and the rows it had already deformed
+==========================================================================
+All timestamps 2026-08-12, Asia/Karachi. Tenant "Floating Terrace", branch F-7
+(34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03), persona owner@terrace.local.
+
+1. BEFORE — the column, read straight from user_db
+--------------------------------------------------
+  $ psql -d user_db -c "select name, address, pg_typeof(address) from branches"
+
+    Floating Terrace HQ   | "12 Khayaban-e-Iqbal"                            | jsonb
+    Gap Audit Bistro Main | {"city": "Karachi", "line1": "12 Zamzama"}       | jsonb
+    Diag Bistro 953661 HQ | {"city": "Islamabad", "line1": "14 Jinnah Blvd"} | jsonb
+
+  Three different shapes in one column, none of them produced by any screen.
+
+2. BEFORE — what the API and the screen did with it
+---------------------------------------------------
+  GET  /api/v1/branches/34cd6f62-...  ->  "address": "\"12 Khayaban-e-Iqbal\""
+  PUT  {"address":"12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad"}
+       -> HTTP 409 {"error":{"code":"CONFLICT","message":"This conflicts with existing data"}}
+
+  Driven in Chromium as the owner (frontend/e2e/branch-address.mjs before):
+    address field on arrival: "\"12 Khayaban-e-Iqbal\""      <- quote marks, on screen
+    save #1 -> HTTP 409 · toast: This conflicts with existing data
+    save #2 -> HTTP 409 · toast: This conflicts with existing data
+    save #3 -> HTTP 409 · toast: This conflicts with existing data
+  Screenshots: before/01-settings-on-arrival.png .. before/05-final.png
+
+3. THE MIGRATION — user-service changeset 021-001, applied 10:53:01
+-------------------------------------------------------------------
+  $ psql -d user_db -c "select id, filename, dateexecuted from databasechangelog
+                         order by orderexecuted desc limit 1"
+    021-001 | db/changelog/v1.0.0/021-branch-address-plain-text.xml | 10:53:01.136525
+
+4. AFTER — the same rows, converted in place
+---------------------------------------------
+  $ psql -d user_db -c "select name, address from branches where address is not null"
+
+    Floating Terrace HQ   | 12 Khayaban-e-Iqbal          <- quote marks GONE
+    Gap Audit Bistro Main | 12 Zamzama, Karachi          <- object flattened, postal order
+    Diag Bistro 953661 HQ | 14 Jinnah Blvd, Islamabad    <- object flattened, postal order
+
+  $ psql -d user_db -c "select data_type from information_schema.columns
+                         where table_name='branches' and column_name='address'"
+    text
+
+  (The Floating Terrace HQ value above is the state immediately after the migration and
+   before anything wrote to it. Later lines in this file overwrite it deliberately.)
+
+5. AFTER — the API, on the restarted jar (check-stale-jars: checked=16 stale=0)
+-------------------------------------------------------------------------------
+  PUT {"address":"12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad"} -> HTTP 200
+       response address: 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad
+  PUT the IDENTICAL body again                                  -> HTTP 200
+       response address: 12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad
+
+6. AFTER — Chromium, owner@terrace.local, /app/settings
+-------------------------------------------------------
+  frontend/e2e/branch-address.mjs after  — see after/*.png and the run log below.

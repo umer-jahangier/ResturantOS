@@ -10,6 +10,7 @@
     <include file="db/changelog/v1.0.0/012-branch-name-unique-excludes-deleted.xml"/>
     <include file="db/changelog/v1.0.0/013-rls-policy-null-safe-guc.xml"/>
     <include file="db/changelog/v1.0.0/020-shared-infra-tables.xml"/>
+    <include file="db/changelog/v1.0.0/021-branch-address-plain-text.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-branches.xml"/>
 
 </databaseChangeLog>

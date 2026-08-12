@@ -32,8 +32,35 @@ public class BranchEntity extends TenantAuditableEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "address", columnDefinition = "jsonb")
+    /**
+     * The branch's postal address, as the one block of plain text a human types.
+     *
+     * <h3>Why this is text and was jsonb</h3>
+     *
+     * <p>It was declared {@code jsonb} and written straight from the request body
+     * ({@code branch.setAddress(req.address())}), so PostgreSQL rejected anything that was not
+     * valid JSON and the driver's error surfaced to the owner as
+     * <b>409 CONFLICT — "This conflicts with existing data"</b>. Measured live through the gateway
+     * on 2026-08-12: {@code {"address":"12 Khayaban-e-Iqbal, F-7 Markaz, Islamabad"}} → 409;
+     * {@code {"address":"Islamabad"}} → 409; {@code {"address":"\"12 Khayaban-e-Iqbal\""}} — with
+     * the quote marks typed by the user — → 200 and persisted, because a bare quoted string is
+     * valid JSON. The only input the field accepted was one no human would guess.
+     *
+     * <p><b>The column was the thing that was wrong, not the write.</b> Nothing in this product
+     * produces or consumes a structured address: the DTOs declare a bare {@code String} on the way
+     * in and out, {@code /app/settings} renders one plain text input labelled "Address", and
+     * pos-service's receipt header turns whatever it gets into lines of text. A jsonb column was a
+     * claim about a structure that no writer ever wrote and no reader ever relied on. Serialising a
+     * string into a JSON string on write would have kept that claim alive — and kept the next
+     * caller who writes this column through any other path one plain sentence away from the same
+     * 409. Changeset 021 converts the column and flattens the handful of object-shaped rows that
+     * were hand-written into it.
+     *
+     * <p>Deliberately NOT modelled as line1/city/postcode: that is a different product decision
+     * with a different screen, and inventing it here would leave a five-field form nobody asked
+     * for over a one-field API.
+     */
+    @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
     @Column(name = "fbr_strn", length = 50)
