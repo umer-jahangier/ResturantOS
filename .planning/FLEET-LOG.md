@@ -51,6 +51,37 @@ Each of these produced a confident, wrong answer:
 - **A clean `tsc --noEmit` can mean the exclude got too broad.** After excluding duplicate files,
   falsify it: `tsc --listFilesOnly` and diff against `git ls-files` — the set of tracked sources not
   compiled must be empty.
+- **`System.setProperty("TESTCONTAINERS_RYUK_DISABLED","true")` in a static block DOES NOTHING.**
+  I broadcast it as the fix. It is decorative, and so are the copies in `PosTestBase`,
+  `HrTestBase`, `KitchenTestBase`, `FinanceTestBase`, `AutoPostingITBase` and the audit ITs — those
+  modules are green because of their **pom**, not that line. Measured on one IT class, same commit:
+
+  | mechanism | Ryuk attempts | result |
+  |---|---|---|
+  | env var exported in the shell | 0 | pass |
+  | failsafe `<environmentVariables>` in the module pom | 0 | pass |
+  | `System.setProperty(…)` in a static block | 1 | ERROR |
+  | `mvn -Dryuk.disabled=true` | 1 | ERROR |
+  | `testcontainers.properties` on the test classpath | 1 | ERROR |
+
+  Testcontainers 1.21.4 resolves `ryuk.disabled` from the environment and `~/.testcontainers.properties`
+  only — and `~/.testcontainers.properties` here **already** says `ryuk.disabled=true` and is not
+  honoured by the failsafe fork. There is **no parent-pom entry**: five service poms each carry
+  their own, and auth-service and shared-lib never got one. That is the whole defect.
+- **`-Dtest=X` with `-am` fails the reactor before it reaches your module.** My earlier retraction
+  was itself incomplete. With `-am` the filter also applies to shared-lib, which then fails on
+  no-match *first*. `-Dsurefire.failIfNoSpecifiedTests=false` is required alongside — and it costs
+  you the no-match safety net, so read per-class counts out of `target/surefire-reports/*.txt`
+  rather than trusting the aggregate. Confirmed independently by two sessions. For ITs, surefire
+  excludes `**/*IT.java` entirely: use `mvn -pl <module> verify -Dit.test=…`.
+- **An absence assertion written as `waitFor(() => expect(queryByRole(…)).not.toBeInTheDocument())`
+  is vacuous.** It returns on the FIRST frame, where the element is absent for an unrelated reason
+  (a loading flag still true). A six-case test written this way passed with the guard deleted. Wait
+  **for** the element and fail if it arrives. There are more of these in the repo.
+- **A running Next dev server makes the frontend suite go red for no reason.** One dev server
+  alongside `vitest` produced **13 spurious 5s timeouts across 9 unrelated files**; with it stopped,
+  40/40 files passed in 10s. A session reading that red as a regression would chase nine phantom
+  bugs. Stop dev servers before you believe a frontend suite.
 - **`grep` in the service that consumes a shared-lib bean finds nothing.** Searching audit-service
   for `set_config`/`current_setting` returned zero hits and reads as "RLS not wired". The mechanism
   lives in shared-lib auto-configuration; the service consumes it as a bean, not as literal SQL. An
@@ -72,6 +103,59 @@ session that index held 48 files staged by other sessions.
   through that range. Not amended, because sixteen sessions may have rebased onto it.
 - **The check that works:** build from a clean worktree at the SHA you are about to push, not from
   your working tree. `git stash -k` or a fresh clone of the SHA.
+
+## 3a. Committing another session's uncommitted work
+
+Worth doing — uncommitted work in a shared tree is one bad command from gone. But two rules, both
+learned by getting them wrong:
+
+**Never assert in the message that it is complete or verified.** Say **"snapshot, unverified"**, or
+ask the owning session first. `01384466` claimed "complete and verified in the worktree"; it was
+neither — a mid-flight capture missing two imports, so the commit does not compile, and carrying
+only the Java third of a change whose rego policy and frontend were still unwritten. Putting a false
+claim in the permanent record is the exact failure this register exists to prevent.
+
+**Then verify the file count.** `git show --stat HEAD` against what you intended. The follow-up to
+that same commit had to recover **six** files, including the OPA clause that was the entire point of
+the change — so the branch tip carried a security fix that measured a boundary and never enforced
+it. A downstream agent then read that tip, grepped, concluded the clause "was never written on any
+branch", and recommended authoring a new security rule from scratch. It had been written all along.
+
+## 3b. Hand-assigned fixture IDs are a namespace with no allocator
+
+The sharpest finding of the day, and it has no warning attached anywhere.
+
+`save()` on an entity with a **hand-stamped id is a MERGE, not an insert**. A test that stamps
+`d0000007` and saves "if absent" does not create a row — it **silently rewrites** whichever seeded
+row already holds that id. In auth-service, `d0000007` belongs to the chef's KITCHEN_STAFF role at
+MAIN, so a block whose stated intent was "give the cashier a branch-2 role" turned the chef's row
+into "the cashier, at branch two". The chef then had zero active assignments and every login 500'd —
+six classes later, because the `isEmpty()` guard fires only on the class's first test, so the damage
+is invisible in the results of the class that caused it.
+
+`BranchSwitchIT` had the identical copy-pasted block stamping `d0000006`. It was dormant **only
+because the first bug satisfied its guard** — one bug suppressing another, so fixing the first would
+have armed the second and looked exactly like "the fix caused a new failure".
+
+Use `UUID.randomUUID()` wherever the id need not be stable, or a reserved test range above the seed.
+
+Three distinct flavours of test coupling, needing three different remedies:
+
+1. **Shared-fixture mutation** — own your rows. Cleanup in `@BeforeEach` protects you from your
+   predecessors and nobody from you.
+2. **Fixture-id collision** — the above.
+3. **Global DDL / global assertions** — `DuplicateActiveRoleRepairIT` drops `is_primary` and both
+   unique indexes, replays Liquibase, and the replay does not restore the column; every class after
+   it in the fork dies with `column ubre1_0.is_primary does not exist`. `@DirtiesContext` does not
+   help — it recycles the Spring context, not the database. Needs its own container or a guaranteed
+   restore. `RlsForcedInvariantIT#configurationTablesAreEmptyAfterMigration` is in this category too.
+
+## 3c. zsh does not word-split unquoted variables
+
+`for f in $FILES` and `git checkout -- $F` take the whole variable as ONE word. The command then
+does nothing, or errors, and a loop appears to run. Two sessions hit this independently today; one
+only noticed because a controlled-comparison result came out suspiciously identical. Use an array,
+`${=VAR}`, or write the paths out.
 
 ## 4. Merging branches cut at different times
 
