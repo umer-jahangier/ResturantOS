@@ -28,9 +28,32 @@ public class OrderDiscount extends TenantAuditableEntity {
     @Column(name = "scope", nullable = false, length = 10)
     private String scope;
 
+    /**
+     * HOW {@link #value} is to be read, and nothing else: {@code FLAT} means {@code value} is in
+     * RUPEES, {@code PERCENT} means it is a RATE. Constrained to those two in the schema since V1.
+     *
+     * <p>Provenance does not belong here — see {@link #source}. An automatic promotion is still
+     * priced as one of these two.
+     */
     @Column(name = "type", nullable = false, length = 10)
     private String type;
 
+    /**
+     * WHO decided this discount: {@code MANUAL} for a human, {@code PROMOTION} for a row the
+     * crm-service promotion engine applied on its own. NOT NULL since V30.
+     *
+     * <p>Orthogonal to {@link #type}, which is the pricing formula. This is the axis the
+     * replace-never-stack rules branch on, which is exactly why it is a closed set and not a
+     * substring of the free-text {@link #reason}.
+     */
+    @Column(name = "source", nullable = false, length = 16)
+    private String source = "MANUAL";
+
+    /**
+     * What was ASKED for, in the unit {@link #type} names — rupees for FLAT, a rate for PERCENT.
+     * {@link #amountPaisa} is what actually came off after capping; the two diverge whenever the
+     * discount was larger than what was left, and a reader shown only one cannot explain the other.
+     */
     @Column(name = "value", nullable = false, precision = 12, scale = 4)
     private BigDecimal value;
 

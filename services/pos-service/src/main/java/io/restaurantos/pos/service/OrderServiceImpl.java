@@ -68,11 +68,20 @@ public class OrderServiceImpl implements OrderService {
     private static final org.slf4j.Logger log =
             org.slf4j.LoggerFactory.getLogger(OrderServiceImpl.class);
     /**
-     * Marks an ORDER-scoped discount as machine-applied by the CRM promotion engine, so re-running
-     * the evaluation replaces it instead of stacking. {@code OrderDiscount} has no reason column;
-     * the type discriminator carries the provenance, alongside the manual FLAT/PERCENT values.
+     * Marks a discount row as machine-applied by the CRM promotion engine, so re-running the
+     * evaluation replaces it instead of stacking, and so the Discount Summary can separate what a
+     * branch gave away automatically from what its managers gave away by hand.
+     *
+     * <p>This lives in {@code order_discounts.source} (V30) and NOT in {@code type}. {@code type}
+     * is the unit discriminator for {@code value} — FLAT means rupees, PERCENT means a rate — and
+     * writing "PROMOTION" into it was a constraint violation on every single call: the column has
+     * carried {@code CHECK (type IN ('FLAT','PERCENT'))} since V1, so the promotion endpoint priced
+     * the offer, built the row and then 500'd at flush. See V30 for the full account.
      */
-    private static final String PROMOTION_DISCOUNT_TYPE = "PROMOTION";
+    private static final String PROMOTION_DISCOUNT_SOURCE = "PROMOTION";
+
+    /** A discount a person decided on: the till, or a manager override. See V30. */
+    private static final String MANUAL_DISCOUNT_SOURCE = "MANUAL";
 
     private final OrderRepository orderRepository;
     private final OrderSequenceRepository sequenceRepository;
@@ -525,17 +534,40 @@ public class OrderServiceImpl implements OrderService {
             return orderMapper.toDto(order);
         }
 
+        // An offer the check is too small to absorb takes nothing off, and a discount that takes
+        // nothing off must not be recorded. On a zero-subtotal check (every line cancelled, or
+        // nothing rung yet) the cap below is 0, and writing the row anyway would put a
+        // "Automatic promotion" line reading Rs 0.00 on the guest's bill and a zero-value row in
+        // the Discount Summary — a giveaway that never happened, stated as though it had. The
+        // engine's own `discountPaisa <= 0` case is already handled above; this is the same
+        // judgement applied after capping.
+        long capped = Math.min(result.discountPaisa(), order.getSubtotalPaisa());
+        if (capped <= 0) {
+            return orderMapper.toDto(order);
+        }
+
         // Replace, never stack: re-running the evaluation must be idempotent in effect.
-        order.getDiscounts().removeIf(d -> PROMOTION_DISCOUNT_TYPE.equals(d.getType()));
+        order.getDiscounts().removeIf(d -> PROMOTION_DISCOUNT_SOURCE.equals(d.getSource()));
 
         OrderDiscount discount = new OrderDiscount();
         discount.setTenantId(tenantId);
         discount.setOrder(order);
         discount.setScope("ORDER");
-        discount.setType(PROMOTION_DISCOUNT_TYPE);
-        long capped = Math.min(result.discountPaisa(), order.getSubtotalPaisa());
+        // An offer the engine has already resolved to "Rs X off this check" IS a flat discount of
+        // Rs X. The rule that produced it (tier offer, spend-and-save, BOGO) is crm-service's to
+        // own and is not representable here; pos-service records the money. That the machine chose
+        // it is a separate fact and goes in `source` — writing it into `type` violated the V1 CHECK
+        // and made every promotion a 500. See V30.
+        discount.setType("FLAT");
+        discount.setSource(PROMOTION_DISCOUNT_SOURCE);
         discount.setAmountPaisa(capped);
-        discount.setValue(BigDecimal.valueOf(capped));
+        // `value` is what was ASKED for in the unit `type` names — rupees for FLAT — while
+        // `amountPaisa` is what came OFF after capping at the subtotal. Carrying the UNCAPPED
+        // figure here is what lets a reader see that an offer was worth more than the check it
+        // landed on; the previous code wrote the capped PAISA amount into both, which was a third
+        // unit convention for `value` that no reader of FLAT/PERCENT could have interpreted.
+        discount.setValue(BigDecimal.valueOf(result.discountPaisa())
+                .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP));
         // B3: `reason` is NOT NULL since V22 and this is the one other path that writes a
         // discount row. The engine's reason is the engine itself — an automatic discount was
         // still a decision, and the Discount Summary must be able to tell it from a manager's.
@@ -639,10 +671,23 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // Replace, never stack — see the class comment on this method.
+        // Replace, never stack — see the class comment on this method. Scoped to MANUAL rows: a
+        // manager's discount replaces the previous manager's discount and leaves an automatic
+        // promotion standing, because the two were decided by different parties for different
+        // reasons. Keyed on `source` (V30) rather than on `type`, which is only ever the pricing
+        // formula.
+        //
+        // That the two COMPOUND rather than cancel was put to the product owner on 2026-08-12 and
+        // confirmed: a promotion is the guest's earned entitlement and a manager's discount is a
+        // separate service-recovery decision, so neither may silently withdraw the other. On a
+        // Rs 900.00 check a Rs 150.00 offer plus a Rs 80.00 manager discount leaves Rs 670.00.
+        // The alternative — one whole-check discount, full stop — was rejected because it would
+        // take back an offer the guest had earned with nothing on screen saying so. Pinned by
+        // aManagersDiscountReplacesTheManagersPreviousOneAndLeavesThePromotionAlone; do not
+        // "simplify" this predicate to drop the source test without re-opening that decision.
         if (orderScope) {
             order.getDiscounts().removeIf(d -> "ORDER".equals(d.getScope())
-                    && !PROMOTION_DISCOUNT_TYPE.equals(d.getType()));
+                    && !PROMOTION_DISCOUNT_SOURCE.equals(d.getSource()));
         } else {
             UUID itemId = request.orderItemId();
             order.getDiscounts().removeIf(d -> "LINE".equals(d.getScope())
@@ -656,6 +701,7 @@ public class OrderServiceImpl implements OrderService {
         discount.setOrder(order);
         discount.setScope(request.scope());
         discount.setType(request.type());
+        discount.setSource(MANUAL_DISCOUNT_SOURCE);
         discount.setValue(request.value());
         discount.setAmountPaisa(amountPaisa);
         discount.setOrderItemId(orderScope ? null : request.orderItemId());
@@ -1248,6 +1294,7 @@ public class OrderServiceImpl implements OrderService {
                         d.getOrderItemId(),
                         d.getOrderItemId() == null ? null : itemNamesById.get(d.getOrderItemId()),
                         d.getType(),
+                        d.getSource(),
                         d.getValue(),
                         d.getAmountPaisa(),
                         d.getReason(),

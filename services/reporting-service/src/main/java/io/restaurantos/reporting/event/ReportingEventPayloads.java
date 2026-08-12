@@ -91,6 +91,12 @@ public final class ReportingEventPayloads {
             UUID orderItemId,
             String itemName,
             String type,
+            /**
+             * MANUAL or PROMOTION (pos V30). Null on any ORDER_CLOSED published before pos-service
+             * carried the field — those are all manual, because the automatic path could not write
+             * a row at all until V30 (it violated the type CHECK on every call). Readers coalesce.
+             */
+            String source,
             java.math.BigDecimal value,
             long amountPaisa,
             String reason,

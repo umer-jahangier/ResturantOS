@@ -209,8 +209,14 @@ export interface OrderDiscount {
   orderItemId: string | null;
   /** The line's name, resolved server-side, so no screen has to hold an item lookup. */
   itemName: string | null;
-  /** FLAT or PERCENT — or PROMOTION for the automatic engine's own rows. */
+  /** FLAT or PERCENT — how to read `value`, and nothing else. */
   type: string;
+  /**
+   * Who decided it: MANUAL for a person, PROMOTION for the automatic engine. Orthogonal to
+   * `type` — an automatic discount is still priced as FLAT or PERCENT. Defaults to MANUAL for
+   * rows served by a pos-service older than V30.
+   */
+  source: string;
   value: number | null;
   amountPaisa: number;
   /** Why. Null only on rows written before a reason was required. */
