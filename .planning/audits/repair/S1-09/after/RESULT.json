@@ -1,0 +1,143 @@
+{
+  "sidebarEntryVisible": true,
+  "landedOn": "/app/settings/health",
+  "baselineWasHealthy": true,
+  "baselineFleet": [
+    {
+      "name": "audit-service",
+      "state": "UP"
+    },
+    {
+      "name": "auth-service",
+      "state": "UP"
+    },
+    {
+      "name": "authorization-service",
+      "state": "UP"
+    },
+    {
+      "name": "crm-service",
+      "state": "UP"
+    },
+    {
+      "name": "file-service",
+      "state": "UP"
+    },
+    {
+      "name": "finance-service",
+      "state": "UP"
+    },
+    {
+      "name": "hr-service",
+      "state": "UP"
+    },
+    {
+      "name": "inventory-service",
+      "state": "UP"
+    },
+    {
+      "name": "kitchen-service",
+      "state": "UP"
+    },
+    {
+      "name": "nlq-service",
+      "state": "UP"
+    },
+    {
+      "name": "platform-admin-service",
+      "state": "UP"
+    },
+    {
+      "name": "pos-service",
+      "state": "UP"
+    },
+    {
+      "name": "purchasing-service",
+      "state": "UP"
+    },
+    {
+      "name": "reporting-service",
+      "state": "UP"
+    },
+    {
+      "name": "user-service",
+      "state": "UP"
+    }
+  ],
+  "tillBeforeOutage": {
+    "alerts": [],
+    "outage": false,
+    "retry": false,
+    "healthLink": false,
+    "saysTillClosed": false,
+    "saysNoItems": false,
+    "menuGrid": true
+  },
+  "posDownRow": {
+    "state": "DOWN",
+    "lastReachable": "07:05:13 AM (just now)",
+    "pill": {
+      "word": "Down",
+      "color": "oklch(1 0 195)",
+      "background": "lab(39.0482 63.3495 48.4033)",
+      "legible": true
+    },
+    "text": "Till and orders pos-serviceNot answering — the process appears to be stopped.While it is down, no orders, no payments, no table plan and no till session.DownLast reachable07:05:13 AM (just now)Serves/api/v1/pos/** /api/v"
+  },
+  "healthNoticedDownWithoutReload": true,
+  "summaryWhileDown": "1 of 15 services is not answering: pos-service.Last checked 07:05:18 AM (just now). This page updates on its own — you do not need to reload it.",
+  "tillDuringOutage": {
+    "alerts": [
+      "The till is unavailable right now.The part of RestaurantOS that handles the till is not answering. This is not something you did, and nothing you have entered has been lost. Orders already sent to the kitchen are unaffected, and the kitchen display keeps working. Do not take cash against a check you cannot see here.Try again"
+    ],
+    "outage": true,
+    "retry": true,
+    "healthLink": false,
+    "saysTillClosed": false,
+    "saysNoItems": false,
+    "menuGrid": false
+  },
+  "posUpRow": {
+    "state": "UP",
+    "lastReachable": "07:05:44 AM (just now)",
+    "pill": {
+      "word": "Up",
+      "color": "oklch(1 0 195)",
+      "background": "lab(45.4963 -42.9888 29.3045)",
+      "legible": true
+    },
+    "text": "Till and orders pos-serviceAnswering normally.UpLast reachable07:05:44 AM (just now)Serves/api/v1/pos/** /api/v1/orders/**"
+  },
+  "healthRecoveredWithoutReload": true,
+  "reloadsSinceLoad": 1,
+  "tillAfterRetry": {
+    "alerts": [],
+    "outage": false,
+    "retry": false,
+    "healthLink": false,
+    "saysTillClosed": false,
+    "saysNoItems": false,
+    "menuGrid": true
+  },
+  "tillRecoveredOnRetry": true,
+  "retryPresses": 1,
+  "retrySecondsToRecover": 5,
+  "ownerTillOutage": {
+    "alerts": [
+      "The till is unavailable right now.The part of RestaurantOS that handles the till is not answering. This is not something you did, and nothing you have entered has been lost. Orders already sent to the kitchen are unaffected, and the kitchen display keeps working. Do not take cash against a check you cannot see here.Try againSee which services are down"
+    ],
+    "outage": true,
+    "retry": true,
+    "healthLink": true,
+    "saysTillClosed": false,
+    "saysNoItems": false,
+    "menuGrid": false
+  },
+  "managerOnHealth": {
+    "path": "/app/settings/health",
+    "main": "Access denied Service health is visible to an owner or a tenant administrator. If a screen is not working, tell one of them what you were trying to do. Back to dashboard",
+    "hasList": false,
+    "accessDenied": true
+  },
+  "managerSidebarHasHealth": false
+}

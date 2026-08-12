@@ -1,0 +1,53 @@
+  pos-service start: started pid 71050
+pos-service UP
+STEP 1 — sign in
+  manager: OK
+  owner: OK
+STEP 2 — the sidebar entry an owner reaches the screen through
+  sidebar has a link to /app/settings/health: true
+  shot 01-owner-sidebar.png
+  landed on /app/settings/health
+  services listed: 15
+  audit-service=UP auth-service=UP authorization-service=UP crm-service=UP file-service=UP finance-service=UP hr-service=UP inventory-service=UP kitchen-service=UP nlq-service=UP platform-admin-service=UP pos-service=UP purchasing-service=UP reporting-service=UP user-service=UP
+  shot 02-health-all-up.png
+  till baseline: menuGrid=true
+  shot 03-till-healthy.png
+STEP 3 — stop pos-service on purpose
+  pos-service stop: pos-service DOWN (8084 refuses)
+STEP 4 — the health screen must notice WITHOUT a reload
+  pos-service row (no reload): {"state":"DOWN","lastReachable":"07:05:13 AM (just now)","pill":{"word":"Down","color":"oklch(1 0 195)","background":"lab(39.0482 63.3495 48.4033)","legible":true},"text":"Till and orders pos-serviceNot answering — the process appears to be stopped.While it is down, no orders, no payments, no table plan and no till session.DownLast reachable07:05:13 AM (just now)Serves/api/v1/pos/** /api/v"}
+  summary: 1 of 15 services is not answering: pos-service.Last checked 07:05:18 AM (just now). This page updates on its own — you do not need to reload it.
+  shot 04-health-pos-down.png
+STEP 5 — the till, as the manager finds it
+  {
+ "alerts": [
+  "The till is unavailable right now.The part of RestaurantOS that handles the till is not answering. This is not something you did, and nothing you have entered has been lost. Orders already sent to the kitchen are unaffected, and the kitchen display keeps working. Do not take cash against a check you cannot see here.Try again"
+ ],
+ "outage": true,
+ "retry": true,
+ "healthLink": false,
+ "saysTillClosed": false,
+ "saysNoItems": false,
+ "menuGrid": false
+}
+  shot 05-till-outage.png
+STEP 6 — restart pos-service
+  pos-service start: started pid 72724
+pos-service UP
+STEP 7 — the health screen must recover WITHOUT a reload
+  pos-service row (still no reload): {"state":"UP","lastReachable":"07:05:44 AM (just now)","pill":{"word":"Up","color":"oklch(1 0 195)","background":"lab(45.4963 -42.9888 29.3045)","legible":true},"text":"Till and orders pos-serviceAnswering normally.UpLast reachable07:05:44 AM (just now)Serves/api/v1/pos/** /api/v1/orders/**"}
+  shot 06-health-pos-back-up.png
+STEP 8 — the till recovers on Try again, without a reload
+  presses=1 elapsed=5s
+  after retry: {"alerts":[],"outage":false,"retry":false,"healthLink":false,"saysTillClosed":false,"saysNoItems":false,"menuGrid":true}
+  shot 07-till-recovered.png
+STEP 8b — an OWNER hitting an outage is offered the health screen from the notice
+  pos-service stop: pos-service DOWN (8084 refuses)
+  owner till: outage=true healthLink=true
+  shot 09-owner-till-outage-with-link.png
+  pos-service start: started pid 73932
+pos-service UP
+STEP 9 — a persona WITHOUT ops.health.view must not get the screen
+  {"path":"/app/settings/health","main":"Access denied Service health is visible to an owner or a tenant administrator. If a screen is not working, tell one of them what you were trying to do. Back to dashboard","hasList":false,"accessDenied":true}
+  manager sidebar offers it: false
+  shot 08-manager-refused.png
