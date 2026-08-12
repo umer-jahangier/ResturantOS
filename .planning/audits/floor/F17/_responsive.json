@@ -1,0 +1,66 @@
+{
+  "replayedFrom": "the live DEFAULT stale response recorded in _proof.json",
+  "cleared390": {
+    "viewport": 390,
+    "rows": 38,
+    "count": "38 tickets",
+    "bodyScrollsX": false,
+    "background": "oklch(0.15 0.006 195)",
+    "color": "oklch(0.968 0.004 195)"
+  },
+  "cleared768": {
+    "viewport": 768,
+    "rows": 38,
+    "count": "38 tickets",
+    "bodyScrollsX": false,
+    "background": "oklch(0.15 0.006 195)",
+    "color": "oklch(0.968 0.004 195)"
+  },
+  "cleared1440": {
+    "viewport": 1440,
+    "rows": 38,
+    "count": "38 tickets",
+    "bodyScrollsX": false,
+    "background": "oklch(0.15 0.006 195)",
+    "color": "oklch(0.968 0.004 195)"
+  },
+  "dialog390": {
+    "viewport": 390,
+    "dialogWidth": 358,
+    "overflowsViewportX": false,
+    "bodyScrollsX": false,
+    "dialogScrollsY": false,
+    "buttonsOverlap": false,
+    "confirmHeight": 44,
+    "title": "Clear 38 tickets from DEFAULT?",
+    "boundary": "Today's service started Wed 12 Aug, 04:00 (Asia/Karachi). Nothing fired since then is touched.",
+    "background": "oklch(0.212 0.008 195)",
+    "color": "oklch(0.968 0.004 195)"
+  },
+  "dialog768": {
+    "viewport": 768,
+    "dialogWidth": 512,
+    "overflowsViewportX": false,
+    "bodyScrollsX": false,
+    "dialogScrollsY": false,
+    "buttonsOverlap": false,
+    "confirmHeight": 44,
+    "title": "Clear 38 tickets from DEFAULT?",
+    "boundary": "Today's service started Wed 12 Aug, 04:00 (Asia/Karachi). Nothing fired since then is touched.",
+    "background": "oklch(0.212 0.008 195)",
+    "color": "oklch(0.968 0.004 195)"
+  },
+  "dialog1440": {
+    "viewport": 1440,
+    "dialogWidth": 512,
+    "overflowsViewportX": false,
+    "bodyScrollsX": false,
+    "dialogScrollsY": false,
+    "buttonsOverlap": false,
+    "confirmHeight": 44,
+    "title": "Clear 38 tickets from DEFAULT?",
+    "boundary": "Today's service started Wed 12 Aug, 04:00 (Asia/Karachi). Nothing fired since then is touched.",
+    "background": "oklch(0.212 0.008 195)",
+    "color": "oklch(0.968 0.004 195)"
+  }
+}

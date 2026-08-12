@@ -1,0 +1,129 @@
+{
+  "station": "GRILL",
+  "triggerText": "Clear 1 old",
+  "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+  "boardBefore": {
+    "ticketCount": "6 tickets",
+    "itemCount": "7 items",
+    "pager": null,
+    "orderNumbersOnPage": [
+      "ORD-20260812-0262",
+      "ORD-20260812-0261",
+      "ORD-20260812-0246",
+      "ORD-20260812-0239",
+      "ORD-20260812-0219",
+      "ORD-20260812-0266"
+    ]
+  },
+  "dialog": {
+    "title": "Clear 1 ticket from Hot line?",
+    "description": "1 ticket · 0 items on this board were fired before today's service started. The oldest has been up for 5d 3h — ORD-20260807-0025, fired Fri 7 Aug, 07:21.",
+    "boundary": "Today's service started Wed 12 Aug, 04:00 (Asia/Karachi). Nothing fired since then is touched.",
+    "days": "2026-08-07 · 1 ticket",
+    "finished": "1 of these have no line left to cook — they were finished, but their order was never closed on the till, so the ticket never left.",
+    "listRows": 1,
+    "firstRow": "ORD-20260807-0025No table · 0 items\n5d 3h",
+    "confirm": "Clear 1 ticket",
+    "cancel": "Cancel",
+    "background": "oklch(0.212 0.008 195)",
+    "color": "oklch(0.968 0.004 195)",
+    "ariaModal": "true",
+    "role": "dialog"
+  },
+  "cancelLeavesBoardAlone": {
+    "dialogGone": true,
+    "triggerStillThere": true,
+    "triggerText": "Clear 1 old"
+  },
+  "success": {
+    "body": "1 ticket cleared\n\nHot line is back to today's work. 0 items went with them.\n\n1 ticket cleared from Hot line.\n\nThey were taken off the board, not deleted — every one is still on record with its order number and the time it was fired.\n\nView cleared tickets\nBack to the board\nClose",
+    "viewClearedHref": "/app/kitchen/GRILL/cleared"
+  },
+  "clearedScreen": {
+    "url": "http://localhost:3000/app/kitchen/GRILL/cleared",
+    "alerts": [],
+    "rows": 1,
+    "count": "1 ticket",
+    "firstRow": "ORD-20260807-0025No table · 1 item\nFired Fri 7 Aug, 07:21 · 5d 3h old · cleared Wed 12 Aug, 10:54",
+    "orderNumbers": [
+      "ORD-20260807-0025"
+    ]
+  },
+  "boardAfterReload": {
+    "url": "http://localhost:3000/app/kitchen/GRILL",
+    "alerts": [],
+    "ticketCount": "6 tickets",
+    "itemCount": "7 items",
+    "pager": null,
+    "stillOffersClear": false,
+    "orderNumbersOnPage": [
+      "ORD-20260812-0262",
+      "ORD-20260812-0261",
+      "ORD-20260812-0246",
+      "ORD-20260812-0239",
+      "ORD-20260812-0219",
+      "ORD-20260812-0266"
+    ]
+  },
+  "cook": {
+    "sub": "d608d82d-00bf-4d35-813a-ae7e07bbb386",
+    "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+    "permissions": [
+      "pos.kds.update",
+      "pos.kds.view"
+    ]
+  },
+  "crossRead": {
+    "branchTimezone": "Asia/Karachi",
+    "currentBusinessDayStartedAt": "2026-08-11T23:00:00Z",
+    "staleLeft": 0,
+    "activeTotal": 7,
+    "clearedTotal": 1,
+    "activeOlderThanCutoff": 0,
+    "activeFromToday": 7,
+    "clearedSample": [
+      {
+        "no": "ORD-20260807-0025",
+        "receivedAt": "2026-08-07T02:21:00.223035Z",
+        "clearedAt": "2026-08-12T05:54:17.751435Z",
+        "status": "CLEARED",
+        "items": 1
+      }
+    ],
+    "everyClearedIsBeforeCutoff": true
+  },
+  "audit": {
+    "status": 200,
+    "count": 2,
+    "rows": [
+      {
+        "id": 9835,
+        "occurredAt": "2026-08-12T05:54:17.752429Z",
+        "action": "KDS_STALE_TICKETS_CLEARED",
+        "resourceType": "KDS",
+        "resourceId": null,
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "userId": "d608d82d-00bf-4d35-813a-ae7e07bbb386",
+        "userName": "Terrace Kitchen",
+        "impersonatedBy": null,
+        "impersonatedByName": null,
+        "afterState": "{\"branchId\": \"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\", \"clearedAt\": \"2026-08-12T05:54:17.751435Z\", \"clearedBy\": \"d608d82d-00bf-4d35-813a-ae7e07bbb386\", \"itemCount\": 0, \"ticketIds\": [\"80256b1f-b3cd-459c-914a-17540afeba93\"], \"stationCode\": \"GRILL\", \"ticketCount\": 1, \"clearedBefore\": \"2026-08-11T23:00:00Z\", \"branchTimezone\": \"Asia/Karachi\", \"oldestReceivedAt\": \"2026-08-07T02:21:00.223035Z\", \"currentBusinessDate\": \"2026-08-12\"}",
+        "metadata": "{\"source\": \"kitchen-service\", \"eventId\": \"bdb20e10-5c5e-471e-8503-1d9f55f73738\", \"correlationId\": \"73a95786-e3e0-4676-8ce6-fcca2f3e7790\", \"schemaVersion\": 1}"
+      },
+      {
+        "id": 9817,
+        "occurredAt": "2026-08-12T05:47:18.392904Z",
+        "action": "KDS_STALE_TICKETS_CLEARED",
+        "resourceType": "KDS",
+        "resourceId": null,
+        "branchId": "34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03",
+        "userId": "d608d82d-00bf-4d35-813a-ae7e07bbb386",
+        "userName": "Terrace Kitchen",
+        "impersonatedBy": null,
+        "impersonatedByName": null,
+        "afterState": "{\"branchId\": \"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\", \"clearedAt\": \"2026-08-12T05:47:18.390042Z\", \"clearedBy\": \"d608d82d-00bf-4d35-813a-ae7e07bbb386\", \"itemCount\": 30, \"ticketIds\": [\"d2780078-50c4-4d22-8c13-a103296fe64f\", \"f3113534-5b72-4780-9ea2-9b83a06715e4\", \"a6f16394-2272-435b-a1a1-efbdf0a0b15c\", \"7b36c73c-9b0a-49a8-8b95-61424499ff0a\", \"d71edeb3-ce0e-4da6-9bcf-f2da3d79e557\", \"92843b44-9853-4af4-ba7e-b56b3e563265\", \"bf065da2-9a0a-4958-b3cc-f7af61789406\", \"4f9bca91-bcab-4606-a1d4-5dc4bf7a9da2\", \"016916cf-1eec-48e4-85a3-2b90bfcef2c5\", \"df0fe774-7a02-4ecf-b5cd-aac8ae6ac53c\", \"a2bfea56-689a-45c2-ae7a-04dd0a63cc3c\", \"e23ded60-0a5b-44a0-99e5-b7a8cfc59758\", \"3e06b0a4-cf72-4ebc-ba46-474b5d2df081\", \"6915416b-5c9b-441f-b93a-34275aa53a9c\", \"85b38a83-682b-462b-b609-b1512c6f5ecb\", \"10903ac8-06cc-420c-9ee8-b8f580a4e034\", \"241c3606-b2ed-4392-9e87-1d68220da220\", \"17e3a691-8015-406a-bb8c-379d2d5de493\", \"47702576-074d-4a57-995b-90eb4fb7058f\", \"a4730110-db99-4ad2-a521-680a7ae17e3c\", \"9d097870-7470-4986-954d-df65d168a6d4\", \"ec7c2c52-6bd8-43db-ad0f-027ec0bc346f\", \"24af2003-f23f-49ed-9fae-5935cc034f57\", \"788defd8-32b7-48e9-b04e-1e3e4d67497e\", \"5d78ab33-ea7e-49c9-9232-693f4016b44d\", \"7fa8b321-690c-4bd6-89d2-c31e7de1c225\", \"a9dd964b-b337-44e2-9f05-9fd13c3c60e9\", \"20490219-8b7f-4367-add7-fd1b36b7cd3d\", \"eb800df5-a1a6-4003-82c4-222d06e409e7\", \"4e52826b-fda9-44e1-a999-b975628e711c\", \"6dd366b7-1fde-40eb-a332-83dc0a46c912\", \"f6e95fbf-702e-4c62-aa7d-1606d5c2a018\", \"3fe097da-cda3-49c2-ae1f-f946d0304aba\", \"9d551d30-9ea9-4fb9-a0df-6d76b84bc3ef\", \"ae7ef838-d291-4ce6-8862-e0938f3f72f3\", \"66fc857c-c34a-4fa7-9a88-67e6cab464fc\", \"7711bd09-de51-47d7-98a2-981199dfc18c\", \"470c2c48-bc6a-4da5-8aad-5194e7bd020a\"], \"stationCode\": \"DEFAULT\", \"ticketCount\": 38, \"clearedBefore\": \"2026-08-11T23:00:00Z\", \"branchTimezone\": \"Asia/Karachi\", \"oldestReceivedAt\": \"2026-08-07T01:39:26.962125Z\", \"currentBusinessDate\": \"2026-08-12\"}",
+        "metadata": "{\"source\": \"kitchen-service\", \"eventId\": \"c0d73d64-9de1-4bd6-b9ac-3627350d40e0\", \"correlationId\": \"f5eaf7fe-0b03-4e04-a8ea-2bc36313f5cc\", \"schemaVersion\": 1}"
+      }
+    ]
+  }
+}
