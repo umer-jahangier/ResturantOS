@@ -56,6 +56,33 @@ export const PrintRepository = {
     return adaptIssued(raw.data.data);
   },
 
+  /**
+   * `POST /api/v1/pos/orders/{orderId}/kitchen-tickets/reprint` — the lost-KOT path (S1-06).
+   *
+   * <p>A kitchen ticket is a piece of paper on a spike in a hot room; it gets knocked off and it
+   * gets wet. Until this endpoint existed the product had no way to produce another one, because
+   * the only reprint path issues a CUSTOMER receipt and nothing ever addressed a kitchen printer
+   * twice.
+   *
+   * <p>One reprint per station, re-serving the bytes the kitchen was originally given so a ticket
+   * reprinted after the guest added a course still shows what the cooks were told. Deliberately NOT
+   * idempotency-keyed: asking twice is asking for two pieces of paper, which is exactly what a
+   * cook who lost the first one wants.
+   *
+   * @returns one entry per station reprinted. An EMPTY array is a real answer — nothing was ever
+   *   fired, or every station was unrouted when it was — and the caller must say so out loud
+   *   rather than showing a success it did not get.
+   */
+  async reprintKitchenTickets(orderId: string, branchId: string): Promise<IssuedPrintDocument[]> {
+    const raw = await apiClient.post<{ data: unknown }>(
+      `/api/v1/pos/orders/${orderId}/kitchen-tickets/reprint`,
+      undefined,
+      { params: { branchId } },
+    );
+    const list = raw.data.data;
+    return (Array.isArray(list) ? list : []).map(adaptIssued);
+  },
+
   /** `GET /api/v1/pos/print-jobs/{printJobId}` — re-serve a stored document. Allocates nothing. */
   async getPrintJob(printJobId: string): Promise<IssuedPrintDocument> {
     const raw = await get<unknown>(`/api/v1/pos/print-jobs/${printJobId}`);

@@ -1,0 +1,23 @@
+{
+  // The build that actually EMITS.
+  //
+  // `tsconfig.json` sets `noEmit: true` because it is the typecheck-and-test config: it includes
+  // `test/**` and `vitest.config.ts`, and neither belongs in a shipped artifact. The consequence
+  // nobody noticed is that `npm run build` pointed at that file, so it type-checked and produced
+  // NO OUTPUT — there was no `dist/`, no `main.js`, and therefore no way to start the agent on a
+  // restaurant's machine at all. Every part of the print path existed and the one thing a
+  // deployment needs did not.
+  //
+  // Node runs the output directly (`"type": "module"` in package.json, and every relative import
+  // in `src/` already carries its `.js` extension), so the emitted tree is runnable as-is with no
+  // bundler.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"]
+}

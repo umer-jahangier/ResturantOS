@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      S1-06. `pos.printers.admin` — the permission that decides which PRINTERS a branch has, and
+      which machines are trusted to drive them.
+
+      ══ Why a new code instead of the one that was there ══
+
+      26-02 and 26-11 gated the printer registry and print-agent enrolment on `branch.manage`,
+      whose catalogue description (055) is literally "Create, update and deactivate branches".
+      Those are not the same decision and they are not made by the same person. `branch.manage` is
+      held by OWNER and TENANT_ADMIN only, so the measured consequence is that
+      manager@terrace.local — the person who physically unboxes the printer, plugs it into the
+      kitchen switch and knows its IP — gets a 403 on `GET /api/v1/branches/{id}/receipt-config`
+      and on `GET /api/v1/pos/print-agents`. Verified live before this changeset was written.
+
+      The fix is NOT to grant a branch manager the right to deactivate branches. It is to name the
+      decision that is actually being made. Printers are branch equipment catalogue, exactly like
+      dining tables (083 `pos.tables.admin`) and till profiles (085 `pos.terminals.admin`).
+
+      ══ Who holds it ══
+
+      OWNER, TENANT_ADMIN, MANAGER — identical to `pos.tables.admin` and `pos.terminals.admin`,
+      and for the argument 085 already makes: a branch manager owns the menu, the floor plan and
+      the till profiles, so owning the printer list is the same kind of decision made by the same
+      person on the same day the branch opens.
+
+      CASHIER and WAITER hold neither this nor anything implying it. A cashier PRINTS; they do not
+      get to repoint the kitchen printer at another host. The registry body also carries the
+      branch's internal network topology (agent URLs, printer hosts and ports), which is a second
+      reason it is not a cashier read.
+
+      ══ Why the grant is explicit ══
+
+      Granted explicitly, never via a catalogue-wide SELECT from `permissions`: every blanket grant
+      in this changelog is point-in-time and retro-grants nothing added afterwards. 055, 059, 082,
+      083 and 085 all say this and all grant explicitly for the same reason. A permission that no
+      role holds produces a clean, confident 403 for every user including OWNER — indistinguishable
+      from a deliberate denial, and invisible in logs.
+    -->
+
+    <changeSet id="auth-1.0.0-088-pos-printers-admin" author="restaurantos-agent" runOnChange="false">
+        <comment>pos.printers.admin — branch printer registry and print-agent enrolment, held by the same roles as pos.tables.admin</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.printers.admin', 'pos', 'Configure a branch''s receipt and kitchen printers, and enrol or revoke the machines that drive them')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.printers.admin'),
+              ('TENANT_ADMIN', 'pos.printers.admin'),
+              ('MANAGER',      'pos.printers.admin')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'pos.printers.admin';
+                DELETE FROM permissions WHERE code = 'pos.printers.admin';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      Same RAISE posture as 056, 057, 082, 083 and 085: a permission nobody holds is invisible at
+      runtime — every user including OWNER simply gets a clean 403 on the Printers screen — so the
+      migration fails loudly rather than leaving that to be discovered in a kitchen.
+    -->
+    <changeSet id="auth-1.0.0-088-verify-pos-printers-admin" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if pos.printers.admin exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'pos.printers.admin';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'pos.printers.admin is defined but granted to no role. ReceiptConfigController and PrintAgentAdminController gate the printer registry and agent enrolment on it, so the Printers screen would 403 for every user on every tenant including OWNER - as a normal-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

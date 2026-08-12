@@ -2,6 +2,7 @@ package io.restaurantos.pos.service;
 
 import io.restaurantos.shared.print.PrintDocument;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -61,6 +62,29 @@ public interface PrintJobService {
      * printer never reaches here — {@code PrintDispatchService} enqueues nothing at all for it.
      */
     IssuedDocument enqueueReceipt(UUID orderId, UUID branchId, String idempotencyKey);
+
+    /**
+     * Re-enqueue an order's kitchen tickets for the agent — the lost-KOT path.
+     *
+     * <p>A kitchen ticket is a piece of paper on a spike in a hot room. It gets knocked off, it
+     * gets wet, and the cook needs another one; before this method existed there was no way to
+     * produce one from inside the product, because the only reprint path in 26-03 issues a CUSTOMER
+     * RECEIPT and nothing addressed a kitchen printer twice.
+     *
+     * <p><b>Re-serves stored bytes, exactly like the receipt reprint.</b> The first issue for each
+     * routing slot is the source; the assembler is not called. A ticket reprinted after the guest
+     * added a course must show what the kitchen was originally told, not a fresh interpretation of
+     * an order that has moved on.
+     *
+     * <p>The new row carries a NULL {@code revision_no} on purpose. {@code uq_print_jobs_revision}
+     * is the after-commit dispatch's idempotency key over (tenant, order, type, target, revision);
+     * a reprint that reused the original revision would be refused by that index as a duplicate
+     * dispatch, which is exactly what the index is for. A reprint is not a fire.
+     *
+     * @return one entry per station reprinted; EMPTY when the order has no kitchen ticket to
+     *         reprint, which the caller must be able to distinguish from a failure
+     */
+    List<IssuedDocument> reprintKitchenTickets(UUID orderId, UUID branchId);
 
     /**
      * @param printJobId the row this issue is recorded on

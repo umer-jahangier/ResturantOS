@@ -75,6 +75,37 @@ export interface ClaimedJob {
   document: string;
 }
 
+/**
+ * The branch's printer registry, as the claim response carries it.
+ *
+ * <p><b>Why the registry arrives here rather than sitting in a local file.</b> A job names a
+ * `targetPrinterId` and nothing else. Before this, the only place that id could be resolved to a
+ * host, a port or a queue name was `print-agent.config.json` on the till — so a manager who added a
+ * printer in the product changed nothing at all until somebody edited a JSON file on the machine
+ * and restarted the agent. That is the "configured in the product, inert in reality" failure this
+ * whole subsystem was found to have. The server owns the registry; the agent is told it on every
+ * poll and never has to be told twice.
+ *
+ * <p>Field names are the server's `PrinterEntry` field names verbatim. A rename here would be a
+ * silent routing change in somebody's kitchen.
+ */
+export interface RegistryPrinter {
+  id: string;
+  role: string | null;
+  stationCode: string | null;
+  transport: string | null;
+  host: string | null;
+  port: number | null;
+  systemPrinterName: string | null;
+  widthMm: number | null;
+  columns: number | null;
+  columnsMeasured: boolean;
+  codepage: string | null;
+  cut: string | null;
+  drawerPin: number | null;
+  drawerPulseMs: number | null;
+}
+
 export interface PollLoop {
   /** One poll. Exposed so tests drive it deterministically instead of waiting on a timer. */
   pollOnce(): Promise<number>;
@@ -93,6 +124,18 @@ export interface PollLoopDeps {
   setIntervalImpl?: typeof setInterval;
   clearIntervalImpl?: typeof clearInterval;
   log?: (message: string) => void;
+  /**
+   * Called on every SUCCESSFUL poll with the branch's printer registry.
+   *
+   * <p>Called on empty polls too, and with an empty array when the branch has configured nothing —
+   * a registry applied only when it was non-empty could never REMOVE a printer, and a decommissioned
+   * printer that keeps accepting jobs is a stack of paper in a room nobody is standing in.
+   *
+   * <p>NOT called on a failed poll. A cloud outage must leave the agent printing with the registry
+   * it already has; treating "the WAN blipped" as "you have no printers" would take the loopback
+   * path down with the WAN, which is the one thing `poll.ts` is not allowed to do.
+   */
+  onRegistry?: (printers: RegistryPrinter[]) => void;
 }
 
 export function createPollLoop(deps: PollLoopDeps): PollLoop {
@@ -169,7 +212,9 @@ export function createPollLoop(deps: PollLoopDeps): PollLoop {
         return 0;
       }
 
-      const payload = (await response.json()) as { data?: { jobs?: ClaimedJob[] } };
+      const payload = (await response.json()) as {
+        data?: { jobs?: ClaimedJob[]; printers?: RegistryPrinter[] };
+      };
       // An explicitly empty list is a SUCCESSFUL poll, not a failure. The server draws that
       // distinction on purpose (its forced-RLS zero-rows trap makes "nothing queued" and "wired
       // wrong" otherwise identical), so this loop must not collapse it back into one.
@@ -177,6 +222,17 @@ export function createPollLoop(deps: PollLoopDeps): PollLoop {
 
       state = "POLLING";
       lastPollAt = now();
+
+      // The registry, before the jobs. A job claimed in this same response may name a printer that
+      // was only just configured, and applying the jobs first would fail that one delivery for no
+      // reason other than ordering.
+      //
+      // `undefined` — an older server that does not send the field — is left alone rather than
+      // treated as "no printers". Downgrading an agent's whole registry because the server is a
+      // version behind would take a restaurant's printing out on a deploy.
+      if (deps.onRegistry !== undefined && payload.data?.printers !== undefined) {
+        deps.onRegistry(payload.data.printers);
+      }
 
       for (const job of jobs) {
         // ENQUEUE. Not deliver — see the header. The drain loop that already exists takes it from

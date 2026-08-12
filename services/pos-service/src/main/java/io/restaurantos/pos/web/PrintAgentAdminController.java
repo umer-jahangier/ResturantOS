@@ -25,11 +25,17 @@ import java.util.UUID;
  *
  * <h2>Gated on branch management, deliberately</h2>
  *
- * <p>{@code branch.manage} is the same permission 26-02 put on the printer registry, and for the
- * same reason: enrolling an agent decides what may print on a branch's printers, which is a branch
- * administration decision and not a cashier's. This is NOT the D-2 problem — D-2 was about a
- * CASHIER needing to read the agent's base URL during a settlement, and its resolution is that the
- * agent authenticates as a DEVICE. Nothing on this controller is on a settlement path.
+ * <p>{@code pos.printers.admin} is the same permission 26-02's printer registry now carries, and
+ * for the same reason: enrolling an agent decides what may print on a branch's printers, which is
+ * branch equipment catalogue and not a cashier's business. This is NOT the D-2 problem — D-2 was
+ * about a CASHIER needing to read the agent's base URL during a settlement, and its resolution is
+ * that the agent authenticates as a DEVICE. Nothing on this controller is on a settlement path.
+ *
+ * <p>It shipped gated on {@code branch.manage} alone, whose catalogue description is "Create,
+ * update and deactivate branches" and which OWNER and TENANT_ADMIN hold exclusively. Measured live:
+ * a branch MANAGER — the person who installs the agent on the till — got a 403 listing their own
+ * branch's agents. {@code branch.manage} is retained in the expression so an owner is not locked
+ * out on a stack whose auth migration has not run; the correct code is the specific one.
  *
  * <p>Separate from {@link PrintAgentController} on purpose. That one is reached by a device
  * credential and by no user; this one is reached by a user and by no device. Two audiences, two
@@ -54,7 +60,7 @@ public class PrintAgentAdminController {
      * re-enrols rather than recovering it, and the UI says so before they close the dialog.
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('branch.manage')")
+    @PreAuthorize("hasAnyAuthority('branch.manage', 'pos.printers.admin')")
     public ResponseEntity<ApiResponse<PrintAgentEnrolmentService.Enrolled>> enrol(
             @Valid @RequestBody EnrolRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(
@@ -62,14 +68,14 @@ public class PrintAgentAdminController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('branch.manage')")
+    @PreAuthorize("hasAnyAuthority('branch.manage', 'pos.printers.admin')")
     public ResponseEntity<ApiResponse<List<PrintAgentEnrolmentService.AgentView>>> list(
             @RequestParam UUID branchId) {
         return ResponseEntity.ok(ApiResponse.ok(enrolmentService.list(branchId)));
     }
 
     @DeleteMapping("/{agentId}")
-    @PreAuthorize("hasAuthority('branch.manage')")
+    @PreAuthorize("hasAnyAuthority('branch.manage', 'pos.printers.admin')")
     public ResponseEntity<ApiResponse<PrintAgentEnrolmentService.AgentView>> revoke(
             @PathVariable UUID agentId) {
         return ResponseEntity.ok(ApiResponse.ok(enrolmentService.revoke(agentId)));

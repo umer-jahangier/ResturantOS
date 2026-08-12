@@ -2,6 +2,7 @@ package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.config.PrintAgentCredentialFilter;
 import io.restaurantos.pos.domain.model.PrintAgent;
+import io.restaurantos.pos.service.BranchPrinterRegistryService;
 import io.restaurantos.pos.service.PrintAgentEnrolmentService;
 import io.restaurantos.pos.service.PrintJobClaimService;
 import io.restaurantos.shared.api.ApiResponse;
@@ -42,14 +43,40 @@ public class PrintAgentController {
 
     private final PrintJobClaimService claimService;
     private final PrintAgentEnrolmentService enrolmentService;
+    private final BranchPrinterRegistryService registryService;
 
     public PrintAgentController(PrintJobClaimService claimService,
-                                PrintAgentEnrolmentService enrolmentService) {
+                                PrintAgentEnrolmentService enrolmentService,
+                                BranchPrinterRegistryService registryService) {
         this.claimService = claimService;
         this.enrolmentService = enrolmentService;
+        this.registryService = registryService;
     }
 
     public record ClaimRequest(Integer max) {}
+
+    /**
+     * The claim response: this agent's work, and the printers it is allowed to drive.
+     *
+     * <p>The registry rides on the claim rather than on an endpoint of its own because adding a
+     * third agent path would mean widening {@code JwtGlobalFilter.AGENT_PATHS} — a security
+     * boundary with a test pinning its exact contents, and one this repair has no reason to touch.
+     * The poll already runs every few seconds and is already scoped to the branch on the agent's
+     * ROW, so the registry it carries is fresh within one poll interval and cannot address another
+     * branch's hardware.
+     *
+     * <p><b>Sent on every poll, including an empty one.</b> A registry that arrived only alongside
+     * work would leave an agent that has printed nothing yet unable to answer "which printers do
+     * you have" — and would make a manager's first Test Print depend on a job having been queued
+     * first, which is backwards.
+     *
+     * @param printers may be empty. Empty means "this branch has configured no printers", which the
+     *                 agent must be able to tell from "the registry did not arrive" — so the field
+     *                 is always present and is never null.
+     */
+    public record AgentWork(java.util.List<PrintJobClaimService.ClaimedJob> jobs,
+                            java.time.Instant leaseExpiresAt,
+                            java.util.List<BranchPrinterRegistryService.AgentPrinter> printers) {}
 
     public record AckRequest(@NotNull UUID printJobId,
                              @NotNull PrintJobClaimService.AckResult result,
@@ -57,7 +84,7 @@ public class PrintAgentController {
 
     @PostMapping(PrintAgentCredentialFilter.CLAIM_PATH)
     @PreAuthorize("hasAuthority('" + PrintAgentCredentialFilter.AGENT_AUTHORITY + "')")
-    public ResponseEntity<ApiResponse<PrintJobClaimService.ClaimResult>> claim(
+    public ResponseEntity<ApiResponse<AgentWork>> claim(
             HttpServletRequest request,
             @RequestBody(required = false) ClaimRequest body) {
         PrintAgent agent = agentOf(request);
@@ -66,7 +93,13 @@ public class PrintAgentController {
         // An empty list, with a 200. NOT a 204 and NOT an error: the agent has to be able to tell
         // "nothing queued" from "wired wrong", and under forced RLS those two look identical unless
         // the shape of the answer distinguishes them.
-        return ResponseEntity.ok(ApiResponse.ok(claimService.claim(agent, max)));
+        PrintJobClaimService.ClaimResult claimed = claimService.claim(agent, max);
+        // The branch comes from the agent ROW, never from anything the client sent — the same rule
+        // the claim itself obeys.
+        return ResponseEntity.ok(ApiResponse.ok(new AgentWork(
+                claimed.jobs(),
+                claimed.leaseExpiresAt(),
+                registryService.forBranch(agent.getBranchId()))));
     }
 
     @PostMapping(PrintAgentCredentialFilter.ACK_PATH)

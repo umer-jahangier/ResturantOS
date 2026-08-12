@@ -1,9 +1,12 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { VoidRefundDialog } from "@/components/pos/void-refund-dialog";
+import { useReprintKitchenTickets } from "@/lib/hooks/pos/use-print-document";
+import { formatUserFacingError } from "@/lib/errors";
 import type { Order } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -27,11 +30,43 @@ const SETTLED_STATUSES: ReadonlySet<Order["status"]> = new Set(["CLOSED", "VOIDE
  * whole cluster in one all-or-nothing guard, which would incorrectly hide Void from a
  * user who holds void but not close permission.
  */
+/**
+ * An order that has never been fired has no kitchen ticket to reprint. DRAFT is the only status
+ * that means that; everything else — sent, partially served, served, closed — has been to the
+ * kitchen at least once, and a cook can lose a ticket at any of them.
+ */
+const NEVER_FIRED_STATUSES: ReadonlySet<Order["status"]> = new Set(["DRAFT"]);
+
 export function SettlementActions({ order, className }: SettlementActionsProps) {
   const router = useRouter();
+  const reprintKot = useReprintKitchenTickets();
 
   const isSettled = SETTLED_STATUSES.has(order.status);
   const canCharge = !isSettled && order.totalPaisa > 0;
+  const wasFired = !NEVER_FIRED_STATUSES.has(order.status);
+
+  async function handleReprintKot() {
+    try {
+      const reprinted = await reprintKot.mutateAsync(order.id);
+      if (reprinted.length === 0) {
+        // A real answer, said out loud. Reporting "reprinted" here would be the product claiming
+        // paper that is not coming — which is the failure mode this whole repair exists to end.
+        toast.warning(
+          "Nothing to reprint: this order has no kitchen ticket. Either it was never fired, or " +
+            "no station had a printer configured when it was — check Settings → Printers.",
+        );
+        return;
+      }
+      const stations = reprinted.map((r) => r.targetPrinterId).join(", ");
+      toast.success(
+        reprinted.length === 1
+          ? `Kitchen ticket queued for ${stations}.`
+          : `Kitchen tickets queued for ${stations}.`,
+      );
+    } catch (error) {
+      toast.error(`Could not reprint the kitchen ticket — ${formatUserFacingError(error)}`);
+    }
+  }
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -63,6 +98,30 @@ export function SettlementActions({ order, className }: SettlementActionsProps) 
 
         <VoidRefundDialog order={order} />
       </div>
+
+      {/*
+        Reprint kitchen ticket (S1-06). Sited in the SHARED settlement surface rather than on one
+        screen, because the person who needs it is whoever is nearest when the cook says the ticket
+        is gone — and this component is rendered in both the order panel footer and the order/table
+        drawer.
+
+        Gated on `pos.order.send_to_kds`, the same permission the endpoint carries, because paper on
+        the pass is an instruction to cook. A control that 403s is worse than no control.
+      */}
+      {wasFired && (
+        <PermissionGuard require="pos.order.send_to_kds">
+          <button
+            type="button"
+            data-testid="reprint-kot-button"
+            onClick={() => void handleReprintKot()}
+            disabled={reprintKot.isPending}
+            className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ReceiptText className="size-4" aria-hidden="true" />
+            {reprintKot.isPending ? "Sending…" : "Reprint kitchen ticket"}
+          </button>
+        </PermissionGuard>
+      )}
     </div>
   );
 }

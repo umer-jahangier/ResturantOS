@@ -3,15 +3,8 @@ import { PrintQueue, type PrintJobRecord } from "./queue/queue.js";
 import { loadConfig } from "./config.js";
 import { AGENT_VERSION, createAgentServer } from "./server.js";
 import { createPollLoop, loadCloudConfig } from "./cloud/poll.js";
+import { applyRegistry } from "./cloud/registry.js";
 
-/**
- * The entry point.
- *
- * <p>`loadConfig` throws — and this does NOT catch it — on the two configurations that must never
- * run: a non-loopback bind with no shared secret, and a wildcard CORS origin. Refusing to start is
- * the point. An agent that logs a warning and carries on is an open print endpoint on a restaurant
- * LAN, and nobody reads a warning on a till.
- */
 async function main(): Promise<void> {
   const config = loadConfig(process.env.PRINT_AGENT_CONFIG ?? "./print-agent.config.json");
   const queue = new PrintQueue(new Journal<PrintJobRecord>(config.journalPath), {
@@ -25,7 +18,34 @@ async function main(): Promise<void> {
   // through it; `loadCloudConfig` returns nulls when nothing is configured, which disables the
   // loop entirely and leaves the agent behaving exactly as it did in 26-06.
   const cloud = loadCloudConfig();
-  const poll = createPollLoop({ queue, config: cloud });
+
+  // Job ids, printer ids, outcomes. Never a document.
+  const log = (event: Record<string, unknown>): void => console.log(JSON.stringify(event));
+
+  const poll = createPollLoop({
+    queue,
+    config: cloud,
+    /**
+     * The server's registry REPLACES the local one, in place, on the live config object the HTTP
+     * server and the drain loop both read. Replacing rather than merging is the point: the branch
+     * record is the single source of truth for what this branch prints on, and a local leftover
+     * that survived a deletion would be a printer nobody can see and nobody can stop.
+     *
+     * <p>A locally-configured agent with no cloud credential never reaches here — `poll.ts`
+     * disables itself — so a single-till shop running from a JSON file is unaffected.
+     */
+    onRegistry: (printers) => {
+      const applied = applyRegistry(config.printers, printers);
+      config.printers = applied.adopted;
+      if (applied.changed || applied.rejected.length > 0) {
+        log({
+          event: "registry_applied",
+          printers: applied.adopted.map((p) => p.id),
+          rejected: applied.rejected,
+        });
+      }
+    },
+  });
 
   const agent = createAgentServer({
     config,
@@ -37,9 +57,6 @@ async function main(): Promise<void> {
       void poll.acknowledge(job.printJobId, delivered, error);
     },
   });
-
-  // Job ids, printer ids, outcomes. Never a document.
-  const log = (event: Record<string, unknown>): void => console.log(JSON.stringify(event));
 
   log({
     event: "starting",

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -58,6 +59,28 @@ public class PrintJobController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(printJobService.issue(orderId, branchId, idempotencyKey)));
+    }
+
+    /**
+     * Re-enqueue this order's kitchen tickets — the lost-KOT control.
+     *
+     * <p>Carries {@code pos.order.send_to_kds} rather than {@code pos.order.view}, and the
+     * difference is deliberate. A receipt reprint hands a customer a copy of what they already
+     * have; a kitchen reprint puts paper on the pass, and paper on the pass is an instruction to
+     * cook. That is the same class of action as firing, so it takes the firing permission — which
+     * a cashier, a waiter and a manager all hold, and a read-only viewer does not.
+     *
+     * <p>Returns the list of stations reprinted. An EMPTY list with a 200 means the order has no
+     * kitchen ticket to reprint (nothing was ever fired, or every station was unrouted when it
+     * was): a real answer the UI must be able to say out loud, not an error and not a silence.
+     */
+    @PreAuthorize("hasAuthority('pos.order.send_to_kds')")
+    @PostMapping("/orders/{orderId}/kitchen-tickets/reprint")
+    public ResponseEntity<ApiResponse<List<PrintJobService.IssuedDocument>>> reprintKitchenTickets(
+            @PathVariable UUID orderId,
+            @RequestParam UUID branchId) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(printJobService.reprintKitchenTickets(orderId, branchId)));
     }
 
     /** Re-serve a stored document verbatim. Allocates nothing. */

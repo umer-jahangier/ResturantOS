@@ -80,7 +80,13 @@ describe("ReceiptView", () => {
     expect(screen.queryByTestId("query-error")).toBeNull();
   });
 
-  it("issues exactly ONCE per mount and opens the print dialog exactly once", async () => {
+  /**
+   * S1-06. This pair replaces a single test that asserted the dialog ALWAYS opened — while the
+   * fixture it used names a real printer (`receipt-1`). That is the register's "window.print()
+   * count 2, agent calls 0" pinned as correct: a branch that had bought, wired and configured a
+   * thermal printer still got a Ctrl-P dialog on every bill, and a green test said so.
+   */
+  it("does NOT open the browser dialog when the bill is routed to a real printer", async () => {
     vi.mocked(PrintRepository.issueReceipt).mockResolvedValue(ISSUED);
 
     renderView();
@@ -89,7 +95,28 @@ describe("ReceiptView", () => {
     // Issuing WRITES a print_jobs row and allocates a sequence. A second call per mount would put
     // a phantom reprint in a customer's history.
     expect(PrintRepository.issueReceipt).toHaveBeenCalledTimes(1);
+    // The job is queued for the agent; the paper comes off the thermal printer. A dialog here is
+    // the product asking the cashier to do by hand the thing it was just configured to do.
+    expect(window.print).not.toHaveBeenCalled();
+    expect(screen.getByTestId("thermal-print-notice")).toHaveAttribute(
+      "data-target-printer",
+      "receipt-1",
+    );
+  });
+
+  it("DOES open the browser dialog when the branch has no printer configured", async () => {
+    // `"unassigned"` is pos-service's sentinel for a branch with no receipt printer — a supported
+    // branch, not an error (D-26-01). There the browser bill is the honest and only path.
+    vi.mocked(PrintRepository.issueReceipt).mockResolvedValue({
+      ...ISSUED,
+      targetPrinterId: "unassigned",
+    });
+
+    renderView();
+    await waitFor(() => expect(screen.getByTestId("receipt-root")).toBeInTheDocument());
+
     expect(window.print).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("thermal-print-notice")).toBeNull();
   });
 
   it("sends a stable idempotency key, so a retry cannot inflate the reprint count", async () => {

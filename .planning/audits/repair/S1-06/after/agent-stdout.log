@@ -1,0 +1,8 @@
+{"event":"starting","version":"0.1.0","bind":"127.0.0.1:7654","printers":0,"journal":"/private/tmp/claude-501/-Users-muhammadumer-Documents-Projects-ResturantOS/b8e6f92e-7d80-4d4f-b270-4f05a9458825/scratchpad/s1-06-agent-queue.jsonl","recoveredCorruptBytes":0,"depth":{"QUEUED":0,"CLAIMED":0,"SENT":83,"FAILED":0,"DEAD_LETTERED":51}}
+{"event":"cloud_channel","state":"POLLING","pollIntervalMs":2000}
+{"event":"listening","bind":"127.0.0.1:7654"}
+{"event":"registry_applied","printers":["front-counter-receipt","kitchen-default","kitchen-unassigned","kitchen-bar","kitchen-grill","kitchen-dgb28334","kitchen-dgs43431","kitchen-dgs20334","kitchen-pantry1","kitchen-expo7"],"rejected":[]}
+{"event":"sent","jobId":"00769559-7387-4159-834b-79d941c3e2a2","printerId":"front-counter-receipt","ms":3}
+{"event":"sent","jobId":"ac42da84-1109-4424-a0c2-b9608832ae12","printerId":"kitchen-pantry1","ms":8}
+{"event":"sent","jobId":"d0f17900-6036-4dec-aa60-d7f24779abc9","printerId":"kitchen-pantry1","ms":1}
+{"event":"sent","jobId":"8ec2f555-19ab-447d-8551-f6e80a1c80c5","printerId":"front-counter-receipt","ms":8}

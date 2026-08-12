@@ -120,5 +120,19 @@
          086 ran after it and created user_station_assignments' policy in the very form 053 exists
          to remove. Must stay after 086, which creates the policy this re-creates. -->
     <include file="db/changelog/v1.0.0/087-rls-policy-null-safe-guc.xml"/>
+    <!-- S1-06: pos.printers.admin — the branch printer registry and print-agent enrolment were
+         gated on `branch.manage` ("create, update and deactivate branches"), which OWNER and
+         TENANT_ADMIN hold and a branch MANAGER does not. Measured live: the manager who plugs the
+         printer in got a 403 on their own branch's receipt-config. Printers are branch equipment
+         catalogue, like tables (083) and till profiles (085), so they get the same holder set and
+         the same explicit, verified grant rather than a widening of `branch.manage`. -->
+    <include file="db/changelog/v1.0.0/088-pos-printers-admin-permission.xml"/>
+    <!-- S1-09: ops.health.view — the operator service-health screen. The register found a manager
+         getting 503 SERVICE_UNAVAILABLE on the till, the KDS, the customer file and payroll at
+         once, with no screen anywhere in the product that could say which service was down or when
+         it was last reachable. Held by OWNER and TENANT_ADMIN, the same two personas /app/settings
+         already admits; the cashier learns what they need from the till's own outage banner rather
+         than from a fleet inventory. Explicit and verified for the reason 085 and 088 give. -->
+    <include file="db/changelog/v1.0.0/089-ops-health-view-permission.xml"/>
 
 </databaseChangeLog>

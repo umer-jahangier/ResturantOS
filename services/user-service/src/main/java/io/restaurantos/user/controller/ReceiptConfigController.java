@@ -29,12 +29,27 @@ import java.util.UUID;
  *
  * <h2>Authority</h2>
  *
- * <p>Both the read and the write carry {@code hasAnyAuthority('rbac.manage', 'branch.manage')} —
- * byte-for-byte the expression {@code BranchController}'s write endpoints use. A user who may not
- * edit a branch may not decide where its receipts print. Note that this is STRICTER than
- * {@code BranchController}'s read, which is open to any authenticated user: this body carries the
- * branch's internal network topology (agent URLs, printer hosts and ports), which a cashier has no
- * reason to enumerate.
+ * <p>Both the read and the write carry {@code pos.printers.admin} in addition to the two branch
+ * administration authorities they shipped with.
+ *
+ * <p><b>Why the extra code, measured rather than argued.</b> The original expression was
+ * byte-for-byte {@code BranchController}'s write gate, {@code hasAnyAuthority('rbac.manage',
+ * 'branch.manage')}. {@code branch.manage}'s catalogue description is "Create, update and
+ * deactivate branches", and it is held by OWNER and TENANT_ADMIN only. So the person who unboxes
+ * the printer, plugs it into the kitchen switch and knows its address — the branch MANAGER — got a
+ * 403 on their own branch's registry. Driven live against the running stack before this line was
+ * changed. The answer is not to let a branch manager deactivate branches; it is to name the
+ * decision that is actually being made. Printers are branch equipment catalogue, exactly like
+ * dining tables ({@code pos.tables.admin}) and till profiles ({@code pos.terminals.admin}), and
+ * {@code pos.printers.admin} is granted to the same three roles those two are — auth-service
+ * changelog 088.
+ *
+ * <p>The two original authorities stay in the expression so that a stack whose auth migration has
+ * not yet run does not lock an owner out of a screen they could already reach.
+ *
+ * <p>Note that this is STRICTER than {@code BranchController}'s read, which is open to any
+ * authenticated user: this body carries the branch's internal network topology (agent URLs,
+ * printer hosts and ports), which a cashier has no reason to enumerate.
  *
  * <h2>Not found vs forbidden</h2>
  *
@@ -56,7 +71,7 @@ public class ReceiptConfigController {
      * The stored registry, or an explicitly empty one. Never a 404 for "not configured yet" — the
      * caller must be able to tell an absence from a failure.
      */
-    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage')")
+    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage', 'pos.printers.admin')")
     @GetMapping
     public ResponseEntity<ApiResponse<ReceiptConfigResponse>> read(@PathVariable UUID branchId) {
         return ResponseEntity.ok(ApiResponse.ok(receiptConfigService.read(branchId)));
@@ -67,7 +82,7 @@ public class ReceiptConfigController {
      * kitchen station that no printer routes — saving an incomplete configuration is allowed,
      * saving one silently is not.
      */
-    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage')")
+    @PreAuthorize("hasAnyAuthority('rbac.manage', 'branch.manage', 'pos.printers.admin')")
     @PutMapping
     public ResponseEntity<ApiResponse<ReceiptConfigResponse>> write(
             @PathVariable UUID branchId,

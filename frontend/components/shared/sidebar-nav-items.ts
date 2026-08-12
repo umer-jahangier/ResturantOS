@@ -14,6 +14,7 @@ import {
   MonitorSmartphone,
   MonitorSpeaker,
   Palette,
+  Printer,
   Receipt,
   Route,
   Settings,
@@ -280,6 +281,25 @@ export const navGroups: NavGroup[] = [
         href: "/app/terminals",
         icon: MonitorSmartphone,
         permission: "pos.terminals.admin",
+        feature: "FEATURE_POS",
+      },
+      {
+        // S1-06: which PRINTERS this branch has, and which machine drives them. Phase 26 built the
+        // renderer, the agent, the queue, the credential, the dispatch and all four frontend layers
+        // of the registry and never built the page — so /app/settings/printers was a 404 for all
+        // four personas, no nav entry mentioned printing, and every bill was a browser print
+        // dialog.
+        //
+        // Sits beside Stations and POS Terminals because it is the same kind of decision: what
+        // equipment this branch has. Gated on `pos.printers.admin` (auth changelog 088), the same
+        // holder set as `pos.tables.admin` and `pos.terminals.admin` — a nav entry to a screen
+        // whose every control 403s is worse than no entry, which is why the endpoints behind it
+        // accept that code too rather than only `branch.manage`.
+        label: "Printers",
+        href: "/app/settings/printers",
+        icon: Printer,
+        permission: ["pos.printers.admin", "branch.manage"],
+        permissionMode: "any",
         feature: "FEATURE_POS",
       },
     ],

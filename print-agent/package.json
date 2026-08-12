@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Per-branch print agent: the ONLY component in this system permitted to emit printer bytes.",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "node dist/main.js"
   },
   "dependencies": {
     "@point-of-sale/receipt-printer-encoder": "3.0.3"

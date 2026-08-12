@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { PrintRepository } from "@/lib/repositories/print.repository";
@@ -65,5 +65,25 @@ export function usePrintJob(printJobId: string | null) {
     queryFn: () => PrintRepository.getPrintJob(printJobId as string),
     enabled: isAuthenticated && Boolean(printJobId),
     staleTime: Infinity,
+  });
+}
+
+/**
+ * Re-enqueue an order's kitchen tickets for the branch print agent.
+ *
+ * <p>A MUTATION, not a query, and not idempotency-keyed: every press is a deliberate request for
+ * another piece of paper. That is the difference between this and the receipt issue above, where a
+ * retried POST must return the same issue rather than inflating the reprint count — here the cook
+ * pressing it twice wants two tickets.
+ *
+ * <p>The result is the list of stations reprinted. It can legitimately be EMPTY (nothing was ever
+ * fired, or no station had a printer when it was), and the caller must say that rather than
+ * reporting a success it did not get.
+ */
+export function useReprintKitchenTickets() {
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: (orderId: string) =>
+      PrintRepository.reprintKitchenTickets(orderId, branchId as string),
   });
 }

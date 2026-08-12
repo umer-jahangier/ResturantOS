@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,6 +100,24 @@ public class PrintJobServiceImpl implements PrintJobService {
 
         PrintDocument stamped = restamp(body, nextSeq, nextSeq > 1, issuedAt, originalIssuedAt);
 
+        /*
+         * A ROUTED issue is QUEUED, even when the caller asked for ISSUED.
+         *
+         * `issue` is the "Print bill" button. It shipped writing an ISSUED row, and the agent's
+         * work query selects `status = 'QUEUED'` — so pressing Print bill on a branch WITH a
+         * receipt printer wrote a row the agent would never claim, and the only paper that could
+         * ever appear was the browser's own print dialog. That is the whole of the register's
+         * "window.print() count 2, agent calls 0" observation, from the other end.
+         *
+         * ISSUED survives for the one case it is true of: a branch with no receipt printer, where
+         * `targetPrinterId` is the UNASSIGNED sentinel. There the document exists, the row records
+         * that it was handed over, and the browser bill is the honest and only path (D-26-01).
+         */
+        PrintJobStatus effectiveStatus =
+                status == PrintJobStatus.ISSUED && !PrintJob.UNASSIGNED_TARGET.equals(targetPrinterId)
+                        ? PrintJobStatus.QUEUED
+                        : status;
+
         PrintJob job = new PrintJob();
         job.setTenantId(tenantId);
         job.setBranchId(branchId);
@@ -106,7 +125,7 @@ public class PrintJobServiceImpl implements PrintJobService {
         job.setDocumentType(type);
         job.setTargetPrinterId(targetPrinterId);
         job.setIssueSeq(nextSeq);
-        job.setStatus(status);
+        job.setStatus(effectiveStatus);
         // The body stored on a reprint row is the reprint's own document — stamped, so a later
         // re-serve of THIS row shows the reprint metadata it was printed with. The ORIGINAL bytes
         // remain on the sequence-1 row and are what every future reprint copies.
@@ -153,6 +172,59 @@ public class PrintJobServiceImpl implements PrintJobService {
         // speak NOW, inside this transaction, rather than at an implicit flush the caller cannot
         // see. It is the after-commit dispatch's only idempotency guard.
         return printJobRepository.saveAndFlush(job).getId();
+    }
+
+    @Override
+    @Transactional
+    public List<IssuedDocument> reprintKitchenTickets(UUID orderId, UUID branchId) {
+        UUID tenantId = tenantContext.requireTenantId();
+        PrintDocument.DocumentType type = PrintDocument.DocumentType.KITCHEN_TICKET;
+
+        // One reprint per ROUTING SLOT, not per row. A two-station order that has been fired three
+        // times has six rows and two printers; the cook who lost the hot-pass ticket wants one
+        // ticket per station, not six.
+        List<String> targets = printJobRepository.findHistoryForOrder(tenantId, orderId).stream()
+                .filter(j -> j.getDocumentType() == type)
+                .map(PrintJob::getTargetPrinterId)
+                // A station that had no printer when it fired wrote a FAILED row against the
+                // sentinel target. Reprinting to nowhere would write a second row that also goes
+                // nowhere; the manager needs the Printers screen, not more paper.
+                .filter(t -> t != null && !PrintJob.UNASSIGNED_TARGET.equals(t))
+                .distinct()
+                .toList();
+
+        List<IssuedDocument> reprinted = new ArrayList<>();
+        for (String target : targets) {
+            PrintJob first = printJobRepository.findFirstIssue(tenantId, orderId, type, target)
+                    .orElse(null);
+            if (first == null) {
+                continue;
+            }
+            int nextSeq = nextSequence(tenantId, orderId, type, target);
+            Instant issuedAt = Instant.now();
+            // THE SAME BYTES the kitchen was originally given, restamped as a reprint so the
+            // renderer bands it and a cook does not cook the order twice.
+            PrintDocument stamped = restamp(first.getDocument(), nextSeq, true, issuedAt,
+                    first.getIssuedAt());
+
+            PrintJob job = new PrintJob();
+            job.setTenantId(tenantId);
+            job.setBranchId(branchId);
+            job.setOrderId(orderId);
+            job.setDocumentType(type);
+            job.setTargetPrinterId(target);
+            job.setIssueSeq(nextSeq);
+            // NULL, not the original revision — see the interface note on uq_print_jobs_revision.
+            job.setRevisionNo(null);
+            job.setStatus(PrintJobStatus.QUEUED);
+            job.setDocument(serialise(stamped));
+            job.setIssuedAt(issuedAt);
+            job.setOriginalIssuedAt(first.getIssuedAt());
+
+            PrintJob saved = printJobRepository.saveAndFlush(job);
+            reprinted.add(new IssuedDocument(saved.getId(), target, stamped));
+        }
+        return reprinted;
     }
 
     private Instant firstIssuedAt(UUID tenantId, UUID orderId, PrintDocument.DocumentType type,
