@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      Make every tenant_isolation policy in hr_db answer, rather than throw, on a connection that
+      carries no tenant.
+
+      011, 013 and 014 each wrote their policies as a raw cast of the GUC:
+
+          tenant_id = current_setting('app.current_tenant_id', true)::uuid
+
+      The `true` second argument handles an UNSET GUC — current_setting returns NULL and the
+      comparison is NULL, i.e. not true, so the row is excluded. It does NOT handle an EMPTY
+      STRING, and the empty string is precisely what this runtime writes. shared-lib's
+      TenantAwareDataSource.configureTenant() writes set_config('app.current_tenant_id', '', false)
+      on EVERY checkout where TenantContext holds no tenant, and ResetGucsOnClose writes '' again
+      when the connection goes back to the pool. ''::uuid raises
+
+          ERROR: invalid input syntax for type uuid: ""
+
+      so a legitimately tenantless read failed with a cast error instead of returning nothing.
+      Tenantless checkouts are ordinary here, not exotic: LeaveAccrualScheduler before it binds a
+      tenant, RabbitMQ consumers before TenantAwareMessageProcessor sets context, actuator probes,
+      and the ADMS device endpoints that resolve their tenant inside the controller
+      (DeviceAuthResolver / DeviceRefusalRecorder both set the GUC by hand for exactly this reason).
+
+      NULLIF(..., '') turns the empty string into NULL, and `tenant_id = NULL` is NULL, which is not
+      true, so the row is excluded. Same fail-closed outcome, expressed as an answer rather than an
+      exception. A non-empty GUC passes through NULLIF untouched, so tenant-scoped behaviour is
+      byte-for-byte what it was.
+
+      Written as a NEW changeset rather than an edit to 011/013/014: all three are recorded in
+      hr_db's databasechangelog, and editing them would change their checksums and stop the service
+      booting. They stay as the historical record of what was created; this is the record of the
+      correction. Same shape as crm-service 012, user-service 013, finance-service V4 and
+      auth-service 053.
+
+      Every one of the 19 policies is recreated with its original shape — PERMISSIVE, FOR ALL,
+      TO public, no WITH CHECK — verified against pg_policies before this file was written. RLS
+      stays ENABLEd and FORCEd exactly as 011/014/035 left it; this changeset touches the USING
+      predicate and nothing else.
+    -->
+    <changeSet id="hr-1.0.0-036-rls-policy-null-safe-guc" author="restaurantos-agent">
+        <sql splitStatements="true" endDelimiter=";">
+            DROP POLICY IF EXISTS tenant_isolation ON attendance_devices;
+            CREATE POLICY tenant_isolation ON attendance_devices
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON attendance_policies;
+            CREATE POLICY tenant_isolation ON attendance_policies
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON attendance_punches;
+            CREATE POLICY tenant_isolation ON attendance_punches
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON attendance_quarantine;
+            CREATE POLICY tenant_isolation ON attendance_quarantine
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON biometric_templates;
+            CREATE POLICY tenant_isolation ON biometric_templates
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON departments;
+            CREATE POLICY tenant_isolation ON departments
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON designations;
+            CREATE POLICY tenant_isolation ON designations
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON employee_salary_components;
+            CREATE POLICY tenant_isolation ON employee_salary_components
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON employees;
+            CREATE POLICY tenant_isolation ON employees
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON leave_accrual_log;
+            CREATE POLICY tenant_isolation ON leave_accrual_log
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON leave_balances;
+            CREATE POLICY tenant_isolation ON leave_balances
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON leave_requests;
+            CREATE POLICY tenant_isolation ON leave_requests
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON leave_types;
+            CREATE POLICY tenant_isolation ON leave_types
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON payroll_runs;
+            CREATE POLICY tenant_isolation ON payroll_runs
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON payslips;
+            CREATE POLICY tenant_isolation ON payslips
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON salary_components;
+            CREATE POLICY tenant_isolation ON salary_components
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON shift_assignments;
+            CREATE POLICY tenant_isolation ON shift_assignments
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON shifts;
+            CREATE POLICY tenant_isolation ON shifts
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+
+            DROP POLICY IF EXISTS tenant_isolation ON tax_config;
+            CREATE POLICY tenant_isolation ON tax_config
+                USING (tenant_id = NULLIF(current_setting('app.current_tenant_id', true), '')::uuid);
+        </sql>
+        <rollback>
+            <!-- The raw cast below is deliberate and correct: a rollback restores exactly what
+                 011/013/014 created, cast error and all. A rollback that "fixed" things would not
+                 be a rollback. -->
+            <sql splitStatements="true" endDelimiter=";">
+                DROP POLICY IF EXISTS tenant_isolation ON attendance_devices;
+                CREATE POLICY tenant_isolation ON attendance_devices
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON attendance_policies;
+                CREATE POLICY tenant_isolation ON attendance_policies
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON attendance_punches;
+                CREATE POLICY tenant_isolation ON attendance_punches
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON attendance_quarantine;
+                CREATE POLICY tenant_isolation ON attendance_quarantine
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON biometric_templates;
+                CREATE POLICY tenant_isolation ON biometric_templates
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON departments;
+                CREATE POLICY tenant_isolation ON departments
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON designations;
+                CREATE POLICY tenant_isolation ON designations
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON employee_salary_components;
+                CREATE POLICY tenant_isolation ON employee_salary_components
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON employees;
+                CREATE POLICY tenant_isolation ON employees
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON leave_accrual_log;
+                CREATE POLICY tenant_isolation ON leave_accrual_log
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON leave_balances;
+                CREATE POLICY tenant_isolation ON leave_balances
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON leave_requests;
+                CREATE POLICY tenant_isolation ON leave_requests
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON leave_types;
+                CREATE POLICY tenant_isolation ON leave_types
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON payroll_runs;
+                CREATE POLICY tenant_isolation ON payroll_runs
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON payslips;
+                CREATE POLICY tenant_isolation ON payslips
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON salary_components;
+                CREATE POLICY tenant_isolation ON salary_components
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON shift_assignments;
+                CREATE POLICY tenant_isolation ON shift_assignments
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON shifts;
+                CREATE POLICY tenant_isolation ON shifts
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+
+                DROP POLICY IF EXISTS tenant_isolation ON tax_config;
+                CREATE POLICY tenant_isolation ON tax_config
+                    USING (tenant_id = current_setting('app.current_tenant_id', true)::uuid);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

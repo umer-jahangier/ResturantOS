@@ -27,6 +27,10 @@
     <include file="db/changelog/v1.0.0/034-attendance-quarantine-reasons.xml"/>
     <include file="db/changelog/v1.0.0/035-restore-force-rls-attendance-quarantine.xml"/>
     <include file="db/changelog/v1.0.0/035-device-command-queue.xml"/>
+    <!-- Recreates all 19 tenant_isolation policies on the null-safe GUC form. Must run BEFORE the
+         900 seeds: those insert into RLS-forced tables on a Liquibase connection that carries no
+         tenant, which is the empty-string case this changeset makes survivable. -->
+    <include file="db/changelog/v1.0.0/036-rls-policy-null-safe-guc.xml"/>
     <include file="db/changelog/v1.0.0/900-seed-tax-config.xml"/>
 
 </databaseChangeLog>

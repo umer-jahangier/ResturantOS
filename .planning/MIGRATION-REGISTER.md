@@ -88,10 +88,11 @@ No contention observed yet. The same rule applies — claim here first.
 | kitchen-service | Flyway | — | |
 | finance-service | Flyway | — | |
 | inventory-service | Flyway | — | |
-| purchasing-service | Flyway | — | |
+| **purchasing-service** | Flyway | **V8** | `V8__rls_policy_null_safe_guc.sql` claimed 2026-08-12 (worktree `wf_edcb68df-63a-2`, RLS NULLIF sweep). Live `purchasing_db` has V1–V7 applied, so V8 is above the applied maximum. **NOT yet applied — needs a quiet window.** |
+| **reporting-service** | Flyway | **V2** | `V2__rls_policy_null_safe_guc.sql` claimed 2026-08-12 (worktree `wf_edcb68df-63a-2`, RLS NULLIF sweep). Live `reporting_db` has only V1 applied. **NOT yet applied — needs a quiet window.** |
 | auth-service | Liquibase | **095** | **094 WAS DOUBLE-CLAIMED — see below.** `094-user-menu-category-assignments.xml` (per-user POS menu scope) and `095-nlq-ai-settings-permission.xml` (per-tenant AI settings permission, renumbered from 094). Highest on disk before both: `093-pos-service-charge-manage-permission.xml` — the old "090+" entry here was stale, which is part of how the collision happened. Neither is applied: the shared auth_db is at 093, verified in `databasechangelog`. Both are additive (a table + its RLS policy; a permission row), so both run on the next auth-service start with no quiet window. |
 | user-service | Liquibase | 013 | |
-| hr-service | Liquibase | 035 | |
+| hr-service | Liquibase | **036** | `036-rls-policy-null-safe-guc.xml` claimed 2026-08-12 (worktree `wf_edcb68df-63a-2`, RLS NULLIF sweep). Note 035 is used TWICE on disk (`035-restore-force-rls-attendance-quarantine.xml`, applied; `035-device-command-queue.xml`, **not** applied) — Liquibase tolerates it because identity is `id`+`author`+`filename`, but do not add a third. |
 | audit-service | Liquibase | **030** | `030-audit-events-rls.xml` applied. Partitioned: policy must be per-partition AND applied at creation — a parent-only policy leaks and its test stays green. |
 | crm-service | Liquibase | — | |
 | platform-admin-service | Liquibase | **040** | `040-platform-db-rls-posture.xml` claimed 2026-08-12 (`main`, platform_db RLS posture). Existing: 010, 020, 030, seeds 900/901/910. RLS is DELIBERATELY ABSENT here — read that file's header before adding any policy; a `tenant_isolation` policy makes the console read 0 rows. |
