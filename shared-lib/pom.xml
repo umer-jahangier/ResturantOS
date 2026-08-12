@@ -209,6 +209,20 @@
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>
+                    <!-- Same colima/Ryuk defect and the same single working mechanism documented at
+                         length in services/auth-service/pom.xml — read that one for the measurements.
+
+                         It matters more here than anywhere else. shared-lib is every service's
+                         dependency, so the `mvn -pl services/<x> -am verify` build that services must
+                         use (one shared ~/.m2 slot for shared-lib means a concurrent `install` from
+                         another session can swap the jar mid-build) runs THESE tests first. Without
+                         this entry that command dies in shared-lib before the service under test even
+                         compiles, which reads as "my service is broken" and is not. Measured: 19
+                         errors across four shared-lib ITs, every one an ExceptionInInitializerError
+                         or NoClassDefFoundError originating in BaseIntegrationTest's <clinit>. -->
+                    <environmentVariables>
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                    </environmentVariables>
                 </configuration>
             </plugin>
             <plugin>

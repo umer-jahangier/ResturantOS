@@ -37,7 +37,19 @@ class BranchSwitchIT extends BaseIntegrationTest {
         if (userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(
                 TestFixtures.cashierUserId(), TestFixtures.branch2Id()).isEmpty()) {
             UserBranchRoleEntity assignment = new UserBranchRoleEntity();
-            assignment.setId(UUID.fromString("d0000006-0000-4000-8000-000000000006"));
+            // A row id this class OWNS. It used to be d0000006, which is not free: the seed gives
+            // that id to c0000004's FINANCE_VIEWER role at the MAIN branch (changeset
+            // 903-seed-auth-dev-data). save() on a hand-stamped id is a MERGE, not an insert, so
+            // this block quietly rewrote that seeded row into "the cashier, at branch two" and left
+            // the accountant with no role at the main branch.
+            //
+            // It has been dormant, and only by luck: StationAssignmentClaimIT ran earlier and
+            // created the cashier's branch-two role (by committing the same crime against
+            // d0000007, the chef's role — that one was NOT dormant and caused five of the six
+            // order-dependent failures). With that satisfied, the isEmpty() guard above skipped
+            // this branch. Giving StationAssignmentClaimIT its own user removes that accident and
+            // would have armed this one on the very next run.
+            assignment.setId(UUID.fromString("d0000053-0000-4000-8000-000000000053"));
             assignment.setTenantId(TestFixtures.demoTenantId());
             assignment.setUserId(TestFixtures.cashierUserId());
             assignment.setBranchId(TestFixtures.branch2Id());
