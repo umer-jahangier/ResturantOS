@@ -58,10 +58,16 @@ public class AuthExceptionHandler {
             .body(ApiError.of("TOTP_ALREADY_ENROLLED", ex.getMessage(), traceId()));
     }
 
+    /**
+     * The code now comes off the exception rather than being hard-coded here, so a throw site can
+     * distinguish "not yours" from "deactivated" without a second handler. Sites that pass no code
+     * still produce {@code BRANCH_ACCESS_DENIED} — see
+     * {@link BranchSwitchDeniedException#DEFAULT_CODE}.
+     */
     @ExceptionHandler(BranchSwitchDeniedException.class)
     public ResponseEntity<ApiError> handleBranchSwitch(BranchSwitchDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body(ApiError.of("BRANCH_ACCESS_DENIED", ex.getMessage(), traceId()));
+            .body(ApiError.of(ex.getCode(), ex.getMessage(), traceId()));
     }
 
     /**

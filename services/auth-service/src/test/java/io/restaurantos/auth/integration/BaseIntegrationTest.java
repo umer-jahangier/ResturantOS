@@ -125,6 +125,37 @@ public abstract class BaseIntegrationTest {
         r.add("logging.level.org.apache.tomcat.util.net", () -> "DEBUG");
     }
 
+    /**
+     * user-service's answer to "is this branch still active?", mocked for the whole hierarchy.
+     *
+     * <p>{@code BranchSwitchService} now refuses to switch to a branch that is not live and active,
+     * and {@link io.restaurantos.auth.client.BranchLivenessClient} is fail-CLOSED — an unverifiable
+     * branch is a refused branch. Left real, it would dial {@code localhost:8082}, which in CI is
+     * nothing and on a developer's box is the dev stack's user-service holding a database that has
+     * never heard of these fixtures' branch ids. Either way it answers "no" and every switch test
+     * in this module goes red for a reason that has nothing to do with what it tests.
+     *
+     * <p><b>The blind spot this creates is real and is stated rather than hidden:</b> with the
+     * client mocked in every IT, nothing here proves auth-service can actually reach user-service,
+     * that {@code restaurantos.user-service.uri} points anywhere, or that the internal secret is
+     * accepted. That half is proved against the running fleet, not in this module.
+     */
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    protected io.restaurantos.auth.client.BranchLivenessClient branchLivenessClient;
+
+    /**
+     * "Every branch is open" — the ambient truth for every test that is not about a closed one.
+     *
+     * <p>JUnit 5 runs superclass {@code @BeforeEach} first, so a subclass that wants a DEACTIVATED
+     * branch simply re-stubs this.
+     */
+    @BeforeEach
+    void everyBranchIsActiveUnlessTheTestSaysOtherwise() {
+        org.mockito.Mockito.when(branchLivenessClient.isLiveAndActive(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+            .thenReturn(true);
+    }
+
     @LocalServerPort protected int port;
     @Autowired protected TenantContext tenantContext;
     @Autowired protected OutboxRepository outboxRepository;

@@ -1,5 +1,6 @@
 package io.restaurantos.auth.service;
 
+import io.restaurantos.auth.client.BranchLivenessClient;
 import io.restaurantos.auth.dto.response.TokenResponse;
 import io.restaurantos.auth.exception.BranchSwitchDeniedException;
 import io.restaurantos.auth.repository.UserBranchRoleRepository;
@@ -28,6 +29,7 @@ public class BranchSwitchService {
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
     private final RefreshSessionService refreshSessionService;
+    private final BranchLivenessClient branchLivenessClient;
 
     public BranchSwitchService(UserBranchRoleRepository userBranchRoleRepository,
                                PermissionResolver permissionResolver,
@@ -35,7 +37,8 @@ public class BranchSwitchService {
                                AuthJwtProperties jwtProperties,
                                TenantContext tenantContext,
                                EntityManager entityManager,
-                               RefreshSessionService refreshSessionService) {
+                               RefreshSessionService refreshSessionService,
+                               BranchLivenessClient branchLivenessClient) {
         this.userBranchRoleRepository = userBranchRoleRepository;
         this.permissionResolver = permissionResolver;
         this.jwtSigningService = jwtSigningService;
@@ -43,6 +46,7 @@ public class BranchSwitchService {
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
         this.refreshSessionService = refreshSessionService;
+        this.branchLivenessClient = branchLivenessClient;
     }
 
     /**
@@ -79,6 +83,31 @@ public class BranchSwitchService {
         // only two honest answers are a token or a 403.
         if (userBranchRoleRepository.findByUserIdAndBranchIdAndActiveTrue(userId, targetBranchId).isEmpty()) {
             throw new BranchSwitchDeniedException("Branch not assigned to user");
+        }
+
+        // THE ROLE ROW BEING ACTIVE IS NOT THE BRANCH BEING ACTIVE, and until now this method read
+        // the first and believed it had checked the second. `user_branch_roles.is_active` says the
+        // ASSIGNMENT is live; `branches.is_active` says the PLACE is. Deactivating a branch from
+        // the Branches screen sets the second and never touches the first — by design, so that
+        // reactivating a branch restores everyone's roles rather than requiring them to be granted
+        // again — with the result that every assignment to a retired branch stayed switchable.
+        //
+        // Measured against the live stack before this check existed: create a branch, deactivate
+        // it, POST /api/v1/auth/switch-branch with its id -> 200, and the minted JWT carried the
+        // dead branch. The user then stood on a branch that appears in no switcher and on no
+        // report, holding a token that says otherwise.
+        //
+        // A branch that is not active is not somewhere you may go. That is the whole rule, and it
+        // belongs here rather than only on the work paths: this is the one endpoint whose entire
+        // job is to answer "may I go there". pos-service refuses the WORK as well, because a
+        // session that was already standing on the branch when it was retired holds a valid token
+        // for the remaining life of its access TTL and never comes back through here.
+        if (!branchLivenessClient.isLiveAndActive(tenantId, targetBranchId)) {
+            log.info("Refusing branch switch for user {} to branch {}: not a live active branch",
+                userId, targetBranchId);
+            throw new BranchSwitchDeniedException(
+                BranchSwitchDeniedException.BRANCH_DEACTIVATED,
+                "That branch has been deactivated. Reactivate it from Branches to work there again.");
         }
 
         ResolvedBranchAuth resolved = permissionResolver.resolve(userId, targetBranchId);

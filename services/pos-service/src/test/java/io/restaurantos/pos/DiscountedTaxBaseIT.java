@@ -111,7 +111,7 @@ class DiscountedTaxBaseIT extends PosTestBase {
     @Autowired MenuCategoryRepository menuCategoryRepository;
     @Autowired TenantContext tenantContext;
 
-    @MockitoBean UserBranchClient userBranchClient;
+    // userBranchClient is @MockitoBean on PosTestBase (ActiveBranchGuard made it universal).
 
     MockMvc mockMvc;
 

@@ -67,8 +67,7 @@ class OrderBusinessDayIT extends PosTestBase {
     @Autowired TenantContext tenantContext;
     @Autowired BranchBusinessDay branchBusinessDay;
 
-    /** The branch record pos already reads for the receipt header — and now for its timezone. */
-    @MockitoBean UserBranchClient userBranchClient;
+    // userBranchClient is @MockitoBean on PosTestBase (ActiveBranchGuard made it universal).
 
     private final ObjectMapper mapper = new ObjectMapper();
 

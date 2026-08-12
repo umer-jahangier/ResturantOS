@@ -39,6 +39,40 @@ public interface UserBranchClient {
                            @RequestHeader("X-Tenant-Id") UUID tenantId);
 
     /**
+     * The same row as {@link #getBranch}, read for one question: is this branch still somewhere
+     * work may happen?
+     *
+     * <p><b>A second method on the same URL, not two fields added to {@link BranchDetail}.</b> The
+     * two reads have opposite failure policies and it must be impossible to acquire one by editing
+     * the other. {@code getBranch} is documented fail-SOFT — a lookup outage degrades a receipt and
+     * never blocks a cashier holding a customer's money. {@link BranchStatus} is consumed
+     * fail-CLOSED by {@code ActiveBranchGuard}: an unverifiable branch takes no orders. Widening
+     * {@code BranchDetail} would have put both policies behind one record and left the next person
+     * to change the receipt path one keystroke from reopening this hole.
+     *
+     * <p>(It also keeps {@code BranchDetail}'s constructor arity, which seven integration tests
+     * construct positionally — but that is a convenience, not the reason.)
+     */
+    @GetMapping("/internal/users/branches/{branchId}")
+    BranchStatus getBranchStatus(@PathVariable("branchId") UUID branchId,
+                                 @RequestHeader("X-Tenant-Id") UUID tenantId);
+
+    /**
+     * Whether a branch is live and open for business.
+     *
+     * <p>The field names are Jackson's for user-service's Lombok getters on {@code BranchEntity} —
+     * {@code isActive()} and {@code isDeleted()} serialise as {@code "active"} and {@code "deleted"},
+     * NOT as the field spellings {@code isActive}/{@code deletedAt}. Verified against the running
+     * service rather than inferred:
+     * {@code GET /internal/users/branches/{id}} → {@code {"active": false, "deleted": false, ...}}.
+     * A boxed {@link Boolean} rather than a primitive so that a response missing the key reads as
+     * {@code null} — absent authority — instead of silently defaulting to {@code false} and
+     * refusing every order, or (worse, on a rename in the other direction) to {@code true}.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record BranchStatus(UUID id, Boolean active, Boolean deleted) {}
+
+    /**
      * A deliberate SUBSET of user-service's {@code BranchEntity} response.
      *
      * <p>{@code ignoreUnknown} because that response is an entity, not a DTO: it carries auditing

@@ -80,13 +80,13 @@ import static org.mockito.Mockito.when;
  */
 class ServiceChargeAndTipIT extends PosTestBase {
 
-    /**
-     * The receipt assembler reads branch identity over feign. Mocked so the document's header is
+    /*
+     * The receipt assembler reads branch identity over feign, mocked so the document's header is
      * deterministic and this file stays about the money — the fail-soft behaviour of that call is
-     * {@code ReceiptDocumentAssemblerIT}'s subject, not this one's.
+     * ReceiptDocumentAssemblerIT's subject, not this one's. The @MockitoBean now lives on
+     * PosTestBase, because ActiveBranchGuard made the same client load-bearing on createOrder for
+     * every suite in the module; this class binds to the inherited field.
      */
-    @org.springframework.test.context.bean.override.mockito.MockitoBean
-    UserBranchClient userBranchClient;
 
     @Autowired OrderService orderService;
     @Autowired PaymentService paymentService;

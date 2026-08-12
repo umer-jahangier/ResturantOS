@@ -78,7 +78,7 @@ class ReceiptAtTenderIT extends PosTestBase {
     @Autowired MenuCategoryRepository menuCategoryRepository;
     @Autowired TenantContext tenantContext;
 
-    @MockitoBean UserBranchClient userBranchClient;
+    // userBranchClient is @MockitoBean on PosTestBase (ActiveBranchGuard made it universal).
     /** A SPY, not a mock: every test but {@link #aPrintFailureAtTenderDoesNotFailThePayment} needs
      *  the real issuance machinery, and that one needs a genuine throw from inside it. */
     @MockitoSpyBean PrintJobService printJobService;

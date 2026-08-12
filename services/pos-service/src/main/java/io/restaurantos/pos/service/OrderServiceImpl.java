@@ -24,6 +24,7 @@ import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
 import io.restaurantos.shared.idempotency.IdempotencyService;
 import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.pos.support.ActiveBranchGuard;
 import io.restaurantos.pos.support.BranchBusinessDay;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -125,6 +126,12 @@ public class OrderServiceImpl implements OrderService {
      * fail or return "unknown": a tenant with no row is NET.
      */
     private final TaxPolicyService taxPolicyService;
+    /**
+     * Refuses work on a branch the business has retired. Used on {@code createOrder} only: that is
+     * the moment a check comes into existence at a branch, and every later operation is reached
+     * through an order that had to pass this gate to exist. Fail-closed — see the class.
+     */
+    private final ActiveBranchGuard activeBranchGuard;
 
     public OrderServiceImpl(OrderRepository orderRepository,
                             OrderSequenceRepository sequenceRepository,
@@ -166,7 +173,9 @@ public class OrderServiceImpl implements OrderService {
                             BranchBusinessDay branchBusinessDay,
                             StaffNameDirectory staffNameDirectory,
                             ServiceChargeService serviceChargeService,
-                            TaxPolicyService taxPolicyService) {
+                            TaxPolicyService taxPolicyService,
+                            ActiveBranchGuard activeBranchGuard) {
+        this.activeBranchGuard = activeBranchGuard;
         this.serviceChargeService = serviceChargeService;
         this.taxPolicyService = taxPolicyService;
         this.orderRepository = orderRepository;
@@ -211,6 +220,17 @@ public class OrderServiceImpl implements OrderService {
         // block it). Validated before the idempotency lookup so a cross-branch attempt is
         // rejected outright rather than replaying an existing order.
         requireOwnBranch(request.branchId());
+
+        // ...and being YOUR branch is not the same as being an OPEN branch. requireOwnBranch above
+        // compares the request against the JWT branch claim; nothing asked whether the branch is
+        // still active. Measured before this line existed: deactivate the branch you are standing
+        // on, POST /api/v1/pos/orders -> 201, and the check exists at a branch that appears on no
+        // report and in no switcher.
+        //
+        // Placed before the idempotency lookup for the same reason requireOwnBranch is: a refused
+        // request must be refused outright rather than replaying an order created while the branch
+        // was still open, which would answer 200 and look like success.
+        activeBranchGuard.requireActive(request.branchId());
 
         // Resolved before the idempotency lookup because that lookup is tenant-scoped.
         UUID tenantId = tenantContext.requireTenantId();

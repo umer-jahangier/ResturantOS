@@ -59,7 +59,7 @@ class PrintJobIssuanceIT extends PosTestBase {
     @Autowired TenantContext tenantContext;
     @Autowired ObjectMapper objectMapper;
 
-    @MockitoBean UserBranchClient userBranchClient;
+    // userBranchClient is @MockitoBean on PosTestBase (ActiveBranchGuard made it universal).
 
     UUID tenantId;
     UUID branchId;

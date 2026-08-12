@@ -17,6 +17,7 @@ import io.restaurantos.pos.repository.OrderRefundRepository;
 import io.restaurantos.pos.repository.OrderRepository;
 import io.restaurantos.pos.repository.TillSessionRepository;
 import io.restaurantos.shared.event.EventPublisher;
+import io.restaurantos.pos.support.ActiveBranchGuard;
 import io.restaurantos.shared.exception.PermissionDeniedException;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.springframework.data.domain.Page;
@@ -82,6 +83,7 @@ public class TillServiceImpl implements TillService {
     private final TenantContext tenantContext;
     private final PosAuthorizationService posAuthorizationService;
     private final TillCashierDirectory tillCashierDirectory;
+    private final ActiveBranchGuard activeBranchGuard;
 
     public TillServiceImpl(TillSessionRepository tillSessionRepository,
                            OrderRepository orderRepository,
@@ -90,7 +92,8 @@ public class TillServiceImpl implements TillService {
                            EventPublisher eventPublisher,
                            TenantContext tenantContext,
                            PosAuthorizationService posAuthorizationService,
-                           TillCashierDirectory tillCashierDirectory) {
+                           TillCashierDirectory tillCashierDirectory,
+                           ActiveBranchGuard activeBranchGuard) {
         this.tillSessionRepository = tillSessionRepository;
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
@@ -99,6 +102,7 @@ public class TillServiceImpl implements TillService {
         this.tenantContext = tenantContext;
         this.posAuthorizationService = posAuthorizationService;
         this.tillCashierDirectory = tillCashierDirectory;
+        this.activeBranchGuard = activeBranchGuard;
     }
 
     /**
@@ -160,6 +164,20 @@ public class TillServiceImpl implements TillService {
         // caller's verified JWT branch — otherwise a cashier could open a till in another branch
         // (RLS is tenant-only and would not block the cross-branch write).
         requireOwnBranch(request.branchId());
+
+        // ...and "is it MY branch" is not "is it OPEN". requireOwnBranch compares the request
+        // against the JWT branch claim and stops. A cashier standing on a branch at the moment it
+        // was deactivated still holds a token naming it, so this call was measured returning 201
+        // for a retired branch — against a dialog that promises "nobody can ... start a till there".
+        // See ActiveBranchGuard for why this refuses rather than degrades.
+        //
+        // OPEN only. closeTill is deliberately NOT guarded, and that asymmetry is the point: a
+        // drawer that was already open when the branch was retired has real cash in it, and the
+        // cashier must still be able to count it, declare it and have the variance recorded.
+        // Guarding the close would strand money in a session nobody can finish — turning a
+        // deactivation into an accounting hole, which is the opposite of what this guard is for.
+        // The same reasoning covers settling checks that were already taken; this refuses NEW work.
+        activeBranchGuard.requireActive(request.branchId());
 
         UUID tenantId = tenantContext.requireTenantId();
         UUID callerId = tenantContext.getUserId()

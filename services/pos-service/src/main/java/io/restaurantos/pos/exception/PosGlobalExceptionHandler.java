@@ -16,10 +16,21 @@ import java.net.URI;
 @RestControllerAdvice
 public class PosGlobalExceptionHandler {
 
+    /**
+     * The title now carries {@code ex.getCode()} rather than a hard-coded {@code "STATE_INVALID"}.
+     *
+     * <p>{@link StateInvalidException} has had a two-argument constructor since D-35-03 precisely so
+     * that two refusals which are both 409 can be told apart by a client — and this handler threw
+     * that code away, so the feature was unreachable through pos-service. Adding a coded throw site
+     * without this line would have shipped a distinction no caller could observe.
+     *
+     * <p>Behaviour for the existing throw sites is unchanged: the one-argument constructor sets the
+     * code to {@code "STATE_INVALID"}, which is the literal this line replaced.
+     */
     @ExceptionHandler(StateInvalidException.class)
     public ResponseEntity<ProblemDetail> handleStateInvalid(StateInvalidException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        pd.setTitle("STATE_INVALID");
+        pd.setTitle(ex.getCode() != null ? ex.getCode() : "STATE_INVALID");
         pd.setType(URI.create("urn:restaurantos:pos:state-invalid"));
         return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }

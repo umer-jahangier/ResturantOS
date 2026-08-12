@@ -54,6 +54,17 @@ restaurantos:
   # PLATFORM_ADMIN_SERVICE_URI in any deployment where that is not where it lives.
   platform-admin-service:
     uri: ${PLATFORM_ADMIN_SERVICE_URI:http://localhost:8096}
+  # Where BranchLivenessClient asks "is this branch still active?" before minting a token for it.
+  #
+  # A direct origin for the same reason as platform-admin-service above: auth-service has no
+  # @LoadBalanced RestClient.Builder. The default is the dev stack's user-service port; set
+  # USER_SERVICE_URI in any deployment where that is not where it lives.
+  #
+  # If this points somewhere wrong, every branch switch is REFUSED rather than silently allowed —
+  # BranchLivenessClient fails closed on purpose. That is the loud failure, and it is the one to
+  # want: the alternative is a misconfiguration that looks like a working guard.
+  user-service:
+    uri: ${USER_SERVICE_URI:http://localhost:8082}
   auth:
     step-up-enabled: ${AUTH_STEP_UP_ENABLED:true}
     # Control-plane token lifetime (PlatformTokenService). Deliberately NOT jwt.access-ttl-seconds:

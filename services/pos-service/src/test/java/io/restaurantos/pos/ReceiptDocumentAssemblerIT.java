@@ -61,8 +61,8 @@ class ReceiptDocumentAssemblerIT extends PosTestBase {
     @Autowired OrderRepository orderRepository;
     @Autowired TenantContext tenantContext;
 
-    /** Mocked so this suite controls the printer registry rather than dialing a service. */
-    @MockitoBean UserBranchClient userBranchClient;
+    // Mocked on PosTestBase so this suite controls the printer registry rather than dialing a
+    // service; declared there rather than here since ActiveBranchGuard made it universal.
 
     UUID tenantId;
     UUID branchId;

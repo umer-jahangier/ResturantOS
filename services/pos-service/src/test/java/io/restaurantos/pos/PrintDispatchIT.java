@@ -73,7 +73,7 @@ class PrintDispatchIT extends PosTestBase {
     @Autowired TenantContext tenantContext;
     @Autowired TransactionTemplate transactionTemplate;
 
-    @MockitoBean UserBranchClient userBranchClient;
+    // userBranchClient is @MockitoBean on PosTestBase (ActiveBranchGuard made it universal).
     @MockitoSpyBean EventPublisher eventPublisher;
     @MockitoSpyBean PrintJobService printJobService;
 

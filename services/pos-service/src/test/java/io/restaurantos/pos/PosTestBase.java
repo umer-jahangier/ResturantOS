@@ -6,12 +6,16 @@ import io.restaurantos.pos.dto.OpenTillRequest;
 import io.restaurantos.pos.dto.OrderDto;
 import io.restaurantos.pos.dto.TillSessionDto;
 import io.restaurantos.pos.feign.FinancePeriodClient;
+import io.restaurantos.pos.feign.UserBranchClient;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.PaymentService;
 import io.restaurantos.pos.service.TillService;
 import io.restaurantos.shared.authz.OpaClient;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -101,6 +105,39 @@ public abstract class PosTestBase {
     // Mock OpaClient — prevents real OPA connections; configure in each test for OPA-protected operations
     @MockitoBean
     protected OpaClient opaClient;
+
+    /**
+     * user-service, mocked once for the whole hierarchy.
+     *
+     * <p>It was declared separately by the seven suites that stub {@code getBranch} for a receipt
+     * header. It is declared HERE now because {@code ActiveBranchGuard} made this client
+     * load-bearing on {@code openTill} and {@code createOrder} — the two calls almost every suite in
+     * this module makes — and that guard is fail-CLOSED. Left unmocked, the real Feign client cannot
+     * resolve {@code user-service} (Eureka is off in these tests), the guard reads that as "cannot
+     * verify", and every order in the suite is refused. A duplicate {@code @MockitoBean} for the
+     * same bean in a subclass is rejected by Spring, so the seven declarations were removed rather
+     * than added to; their {@code when(userBranchClient...)} lines bind to this inherited field.
+     */
+    @MockitoBean
+    protected UserBranchClient userBranchClient;
+
+    /**
+     * "The branch is open" — the ambient truth for every test that is not about a closed branch.
+     *
+     * <p>Runs before any subclass {@code @BeforeEach} (JUnit 5 walks the hierarchy top-down), so a
+     * suite that wants a DEACTIVATED branch simply re-stubs it. Without this, the unstubbed mock
+     * returns null and {@code ActiveBranchGuard} — correctly — refuses everything.
+     *
+     * <p>Note what this default costs, because it is the harness's blind spot and not a small one:
+     * with the client mocked in every IT, nothing in this module proves that pos-service can
+     * actually reach user-service, that the URL is right or that the internal secret is accepted.
+     * That half is proved against the running fleet, not here.
+     */
+    @BeforeEach
+    void branchIsActiveUnlessTheTestSaysOtherwise() {
+        Mockito.when(userBranchClient.getBranchStatus(ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(new UserBranchClient.BranchStatus(null, true, false));
+    }
 
     @Autowired
     protected TillService tillService;
