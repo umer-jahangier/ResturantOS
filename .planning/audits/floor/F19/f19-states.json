@@ -1,0 +1,60 @@
+{
+  "at": "2026-08-12T06:09:45.071Z",
+  "loading": [
+    {
+      "w": 390,
+      "theme": "light",
+      "heading": "Signing you in",
+      "panel": 1,
+      "seen": "Taking you into the app…",
+      "prompts": 0
+    },
+    {
+      "w": 768,
+      "theme": "light",
+      "heading": "Signing you in",
+      "panel": 1,
+      "seen": "Taking you into the app…",
+      "prompts": 0
+    },
+    {
+      "w": 1440,
+      "theme": "light",
+      "heading": "Signing you in",
+      "panel": 1,
+      "seen": "Taking you into the app…",
+      "prompts": 0
+    },
+    {
+      "w": 390,
+      "theme": "dark",
+      "heading": "Signing you in",
+      "panel": 1,
+      "seen": "Taking you into the app…",
+      "prompts": 0
+    },
+    {
+      "w": 768,
+      "theme": "dark",
+      "heading": "Signing you in",
+      "panel": 1,
+      "seen": "Taking you into the app…",
+      "prompts": 0
+    },
+    {
+      "w": 1440,
+      "theme": "dark",
+      "heading": "Signing you in",
+      "panel": 1,
+      "seen": "Taking you into the app…",
+      "prompts": 0
+    }
+  ],
+  "error": {
+    "status": "Your new password is saved.",
+    "alert": "Sign-in failedYour password was changed, but we could not sign you in just now. Press Sign in to try again.",
+    "passwordKept": 16
+  },
+  "recovered": "http://localhost:3000/app/dashboard",
+  "fails": []
+}

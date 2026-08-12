@@ -1,0 +1,70 @@
+{
+  "email": "f19.prove.094463@terrace.local",
+  "at": "2026-08-12T05:54:54.594Z",
+  "steps": [
+    {
+      "label": "forced-change-panel",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "passwordPrompts": 3,
+      "hasSignInButton": false,
+      "status": "",
+      "alert": null,
+      "heading": "Choose a new password",
+      "changePanel": 1,
+      "snippet": "Choose a new password f19.prove.094463@terrace.local must set its own password before signing in. Current password New password Confirm new password Change password Back to sign in",
+      "refreshStatus": 401,
+      "hasAccessToken": false
+    },
+    {
+      "label": "after-change",
+      "href": "http://localhost:3000/app/dashboard",
+      "search": "",
+      "passwordPrompts": 0,
+      "hasSignInButton": false,
+      "status": "",
+      "alert": null,
+      "heading": "Where is my till, and what is still open?",
+      "changePanel": 0,
+      "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K 7 Where is my till, and what is still open? This shift MY TILL — You have no open till. Open one from ",
+      "refreshStatus": 200,
+      "hasAccessToken": true
+    },
+    {
+      "label": "after-reload",
+      "href": "http://localhost:3000/app/dashboard",
+      "search": "",
+      "passwordPrompts": 0,
+      "hasSignInButton": false,
+      "status": "",
+      "alert": null,
+      "heading": "Where is my till, and what is still open?",
+      "changePanel": 0,
+      "snippet": "Floating Terrace OVERVIEW Dashboard ORDERS POS PEOPLE Customers Collapse App Dashboard Floating Terrace HQ Search… ⌘K 7 Where is my till, and what is still open? This shift MY TILL — You have no open till. Open one from ",
+      "refreshStatus": 200,
+      "hasAccessToken": true
+    }
+  ],
+  "myBranches": {
+    "status": 200,
+    "count": 1
+  },
+  "credentials": {
+    "withOtp": {
+      "status": 401,
+      "code": "UNAUTHENTICATED"
+    },
+    "withChosen": {
+      "status": 200,
+      "code": null
+    }
+  },
+  "urls": [
+    "http://localhost:3000/login",
+    "http://localhost:3000/login",
+    "http://localhost:3000/app/dashboard",
+    "http://localhost:3000/app/dashboard",
+    "http://localhost:3000/app/dashboard"
+  ],
+  "fails": []
+}

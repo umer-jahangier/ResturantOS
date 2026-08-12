@@ -1,0 +1,43 @@
+{
+  "email": "f19.hire.438806@terrace.local",
+  "steps": [
+    {
+      "label": "forced-change-panel",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "passwordPrompts": 3,
+      "hasSignInButton": false,
+      "status": "",
+      "alert": null,
+      "heading": "Choose a new password",
+      "changePanel": 1,
+      "snippet": "Choose a new password f19.hire.438806@terrace.local must set its own password before signing in. Current password New password Confirm new password Change password Back to sign in",
+      "refreshStatus": 401,
+      "hasAccessToken": false
+    },
+    {
+      "label": "after-change",
+      "href": "http://localhost:3000/login",
+      "search": "",
+      "passwordPrompts": 1,
+      "hasSignInButton": true,
+      "status": "Password changed. Sign in with your new password.",
+      "alert": null,
+      "heading": "Sign in to RestaurantOS",
+      "changePanel": 0,
+      "snippet": "Sign in to RestaurantOS Enter your email and password to continue Password changed. Sign in with your new password. Email Password Use a restaurant identifier instead Sign in",
+      "refreshStatus": 401,
+      "hasAccessToken": false
+    }
+  ],
+  "urls": [
+    "http://localhost:3000/login",
+    "http://localhost:3000/login"
+  ],
+  "fails": [
+    "no password is asked for again after the change",
+    "no second Sign in button",
+    "the browser holds a session after the change",
+    "the hire has landed in the application"
+  ]
+}
