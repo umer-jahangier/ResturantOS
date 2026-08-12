@@ -16,6 +16,14 @@ import java.time.ZoneId;
  * offset is configurable via {@code restaurantos.business-day.offset-hours}
  * ({@code BUSINESS_DAY_OFFSET_HOURS}, default 4, scoped to pos/finance/reporting in
  * Docs/agent-specs/05-environment-variables.md:47) — never hardcoded.
+ *
+ * <p>The arithmetic itself is NOT repeated here: it delegates to
+ * {@link io.restaurantos.shared.time.BusinessDay}, the one implementation the whole fleet shares.
+ * This class is the Spring-injectable, property-configured face of it — reporting needs a bean it
+ * can wire and an offset an operator can turn, pos-service needs the same rule from a plain static.
+ * Two copies of one date formula is precisely how the trading day came to be cut three different
+ * ways; the copy that lived here was correct and the copies elsewhere were not, and nothing in
+ * either file said which was which.
  */
 @Component
 public class BusinessDay {
@@ -33,6 +41,6 @@ public class BusinessDay {
 
     /** Pure, stateless overload — takes the offset explicitly for table-driven unit testing. */
     public LocalDate businessDate(Instant occurredAt, ZoneId branchZone, int offsetHours) {
-        return occurredAt.atZone(branchZone).minusHours(offsetHours).toLocalDate();
+        return io.restaurantos.shared.time.BusinessDay.of(occurredAt, branchZone, offsetHours);
     }
 }

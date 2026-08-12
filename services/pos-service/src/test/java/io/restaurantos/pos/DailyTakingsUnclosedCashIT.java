@@ -113,7 +113,7 @@ class DailyTakingsUnclosedCashIT extends PosTestBase {
 
     /** Reads the takings for the business day the payments were just recorded on. */
     private DailyTakingsDto takingsForToday() {
-        return takingsService.forDate(DailyTakingsService.currentBusinessDate(), branchId);
+        return takingsService.forDate(takingsService.currentBusinessDate(branchId), branchId);
     }
 
     private Optional<TenderLine> cashLine(DailyTakingsDto takings) {
@@ -211,7 +211,7 @@ class DailyTakingsUnclosedCashIT extends PosTestBase {
     void aPaymentIsDatedByWhenItWasTaken_notByWhenItsOrderClosed() {
         OrderDto order = sentButUnservedOrder();
         paymentService.recordPayment(order.id(), PaymentMethod.CASH, CASH_PAISA, null);
-        LocalDate takenOn = DailyTakingsService.currentBusinessDate();
+        LocalDate takenOn = takingsService.currentBusinessDate(branchId);
 
         // Move the ORDER's close into the future without touching the payment — the multi-day
         // settlement the naive "just drop the closed_at filter" fix would have double-counted.
@@ -236,17 +236,56 @@ class DailyTakingsUnclosedCashIT extends PosTestBase {
 
     // ── 5. The trading day a cash-up defaults to ─────────────────────────────────────────────
 
+    /**
+     * S0-C. This test used to assert the UTC rule as if it were correct:
+     * {@code businessDateOf(2026-08-12T02:00:00Z) == 2026-08-11}, with the comment "the kitchen is
+     * still working last night's service". For an {@code Asia/Karachi} branch that instant is
+     * <b>07:00 in the morning</b> — the kitchen is doing breakfast, and the trading day rolled over
+     * three hours ago. The assertion was green, precise, and wrong, and it is the reason the defect
+     * outlived a code review: the boundary it pinned was the boundary of a clock in Greenwich.
+     *
+     * <p>The boundaries below are the branch's, and every case is a time a restaurant actually
+     * trades at. {@code branchId} is seeded {@code Asia/Karachi} by
+     * {@link io.restaurantos.pos.support.BranchTimeZoneResolver}'s fallback, which is what an
+     * unreachable user-service also yields — so this asserts the shipped default, not a fixture.
+     */
     @Test
-    void theDefaultDay_isTheTradingDay_notTheCalendarDay() {
-        // 02:00 UTC: the kitchen is still working last night's service.
-        assertThat(DailyTakingsService.businessDateOf(Instant.parse("2026-08-12T02:00:00Z")))
-                .isEqualTo(LocalDate.parse("2026-08-11"));
-        // 05:00 UTC, past the 04:00 roll: a new trading day.
-        assertThat(DailyTakingsService.businessDateOf(Instant.parse("2026-08-12T05:00:00Z")))
+    void theDefaultDay_isTheTradingDay_onTheBranchsClock_notUtc() {
+        // 02:00 UTC = 07:00 Asia/Karachi. Breakfast service, three hours into a NEW trading day.
+        // The old UTC rule called this 2026-08-11 and hid the whole morning's takings.
+        assertThat(takingsService.businessDateOf(Instant.parse("2026-08-12T02:00:00Z"), branchId))
                 .isEqualTo(LocalDate.parse("2026-08-12"));
-        // Exactly on the boundary, the new day has started.
-        assertThat(DailyTakingsService.businessDateOf(Instant.parse("2026-08-12T04:00:00Z")))
+
+        // 22:00 UTC = 03:00 Asia/Karachi. A late night: still yesterday's service, an hour to go.
+        assertThat(takingsService.businessDateOf(Instant.parse("2026-08-12T22:00:00Z"), branchId))
                 .isEqualTo(LocalDate.parse("2026-08-12"));
+
+        // 23:00 UTC = 04:00 Asia/Karachi exactly — the boundary. The new day has started.
+        assertThat(takingsService.businessDateOf(Instant.parse("2026-08-12T23:00:00Z"), branchId))
+                .isEqualTo(LocalDate.parse("2026-08-13"));
+
+        // One second before it, the old day is still running.
+        assertThat(takingsService.businessDateOf(Instant.parse("2026-08-12T22:59:59Z"), branchId))
+                .isEqualTo(LocalDate.parse("2026-08-12"));
+    }
+
+    /**
+     * The screen's DEFAULT date and the date its queries aggregate on must be one rule. They were
+     * two — a static {@code currentBusinessDate()} and five SQL predicates — and both were UTC.
+     */
+    @Test
+    void theDefaultDate_agreesWithTheDayTheQueriesAggregateOn() {
+        OrderDto order = sentButUnservedOrder();
+        paymentService.recordPayment(order.id(), PaymentMethod.CASH, CASH_PAISA, null);
+
+        LocalDate defaulted = takingsService.currentBusinessDate(branchId);
+        assertThat(cashLine(takingsService.forDate(defaulted, branchId)))
+                .as("cash taken NOW must appear on the day the screen defaults to NOW")
+                .hasValueSatisfying(l -> assertThat(l.amountPaisa()).isEqualTo(CASH_PAISA));
+
+        assertThat(cashLine(takingsService.forDate(defaulted.minusDays(1), branchId)))
+                .as("and must NOT also appear on the day before it")
+                .isEmpty();
     }
 
 }

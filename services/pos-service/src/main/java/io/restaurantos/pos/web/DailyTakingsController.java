@@ -34,12 +34,14 @@ public class DailyTakingsController {
     public ResponseEntity<ApiResponse<DailyTakingsDto>> daily(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) UUID branchId) {
-        // Defaulting to the CALENDAR date was wrong: the trading day runs (t − 4h), so between
-        // midnight and 04:00 UTC the restaurant is still working last night's day and a cash-up
-        // screen that defaulted to today showed an empty page to the person holding the drawer.
-        // The rule lives in DailyTakingsService, next to the queries that apply it, so the default
-        // and the aggregation cannot drift apart.
-        LocalDate businessDate = date != null ? date : DailyTakingsService.currentBusinessDate();
+        // Defaulting to the CALENDAR date was wrong: the trading day runs (t − 4h) ON THE BRANCH'S
+        // OWN CLOCK, so a cash-up screen that defaulted to today showed an empty page to the person
+        // holding the drawer. The rule lives in DailyTakingsService, next to the queries that apply
+        // it, so the default and the aggregation cannot drift apart — and it is no longer static,
+        // because "which day is it" has no answer until you say which restaurant is asking. S0-C:
+        // this default was computed in UTC and, for Asia/Karachi, named yesterday until 09:00 local
+        // every morning.
+        LocalDate businessDate = date != null ? date : service.currentBusinessDate(branchId);
         return ResponseEntity.ok(ApiResponse.ok(service.forDate(businessDate, branchId)));
     }
 }

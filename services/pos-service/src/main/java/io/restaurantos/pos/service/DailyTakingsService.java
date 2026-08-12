@@ -5,6 +5,9 @@ import io.restaurantos.pos.dto.DailyTakingsDto.TenderLine;
 import io.restaurantos.pos.dto.DailyTakingsDto.TillReconciliation;
 import io.restaurantos.pos.dto.DailyTakingsDto.UnclosedTakings;
 import io.restaurantos.pos.dto.DailyTakingsDto.UnknownFigure;
+import io.restaurantos.pos.support.BranchBusinessDay;
+import io.restaurantos.shared.tenant.TenantContext;
+import io.restaurantos.shared.time.BusinessDay;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,7 @@ import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,11 +39,26 @@ import java.util.UUID;
  * wrong. 37-06's payment facts remain worth building for historical trend reporting; they are the
  * wrong source for tonight's cash-up.
  *
- * <h2>The business day</h2>
+ * <h2>The business day — and the S0-C defect</h2>
  *
- * <p>{@code (t − 4h)} in UTC — byte-identical to {@code BusinessDay.of(Instant)} in shared-lib,
- * which is what pos stamps on ORDER_CLOSED and what finance dates the journal entry from. 37-03 is
- * the record of what happens when a consumer re-derives this differently.
+ * <p>{@code (t − 4h)} on the BRANCH's wall clock, bound into every predicate below as
+ * {@code AT TIME ZONE :zone} — the same rule {@code OrderServiceImpl.performClose} stamps on
+ * ORDER_CLOSED and finance dates the journal entry from, because all three now go through
+ * {@link io.restaurantos.pos.support.BranchBusinessDay}.
+ *
+ * <p>This comment used to read "{@code (t − 4h)} in UTC — byte-identical to
+ * {@code BusinessDay.of(Instant)} in shared-lib", and it was telling the truth. That is worth
+ * dwelling on, because it is why the defect survived a code review and a full walkthrough: the
+ * claim of agreement was correct, and both sides of the agreement were wrong. shared-lib shipped a
+ * UTC {@code BusinessDay} overload "for services that do not hold branch timezone data
+ * (pos-service)", this class matched it faithfully, and for {@code Asia/Karachi} the pair of them
+ * moved the trading-day boundary from 04:00 local to 09:00 — filing every sale taken between those
+ * hours to the previous day. A shift that ran 07:50–08:16 local vanished from this screen
+ * completely: {@code ?date=} today answered "0 orders closed on this trading day" while the till
+ * listed under YESTERDAY carried timestamps reading today. There is no UTC overload any more.
+ *
+ * <p>37-03 is the record of what happens when a consumer re-derives this differently; S0-C is the
+ * record of what happens when two implementations agree on the wrong answer.
  *
  * <h2>Which {@code t} — and the S0-02 defect</h2>
  *
@@ -62,13 +81,16 @@ import java.util.UUID;
 public class DailyTakingsService {
 
     private final EntityManager em;
+    private final BranchBusinessDay branchBusinessDay;
+    private final TenantContext tenantContext;
 
-    public DailyTakingsService(EntityManager em) {
+    public DailyTakingsService(EntityManager em,
+                               BranchBusinessDay branchBusinessDay,
+                               TenantContext tenantContext) {
         this.em = em;
+        this.branchBusinessDay = branchBusinessDay;
+        this.tenantContext = tenantContext;
     }
-
-    /** Matches shared-lib BusinessDay.DEFAULT_OFFSET_HOURS. */
-    private static final int BUSINESS_DAY_OFFSET_HOURS = 4;
 
     /**
      * Every payment-basis query below shares this predicate, so the tender split and the unclosed
@@ -77,15 +99,40 @@ public class DailyTakingsService {
      * <p>{@code recorded_at} is nullable on the table (only {@code PaymentServiceImpl} guarantees
      * it), so it falls back to {@code created_at}, which is {@code NOT NULL DEFAULT now()}. Dating
      * a payment by its order's {@code closed_at} is exactly the bug; there is no fallback to it.
+     *
+     * <p>{@code AT TIME ZONE :zone} — the BRANCH's zone, bound per request, not the literal
+     * {@code 'UTC'} that stood here. See {@link #zoneFor}.
      */
     private static final String PAYMENTS_ON_DAY = """
               FROM order_payments p
               JOIN orders o ON o.id = p.order_id
              WHERE p.deleted_at IS NULL AND o.deleted_at IS NULL AND o.voided_at IS NULL
-               AND date((COALESCE(p.recorded_at, p.created_at) AT TIME ZONE 'UTC')
+               AND date((COALESCE(p.recorded_at, p.created_at) AT TIME ZONE CAST(:zone AS text))
                         - make_interval(hours => :offset)) = :date
                AND (CAST(:branchId AS uuid) IS NULL OR o.branch_id = CAST(:branchId AS uuid))
             """;
+
+    /**
+     * The zone this screen's trading day is cut on.
+     *
+     * <p>Five SQL predicates in this class used to carry the literal {@code AT TIME ZONE 'UTC'},
+     * under a class comment claiming byte-identity with shared-lib's {@code BusinessDay.of(Instant)}.
+     * The comment was TRUE — and that was the defect, because the shared method it matched was
+     * itself a UTC approximation shipped "for services that do not hold branch timezone data". For
+     * {@code Asia/Karachi} (UTC+5) UTC−4h puts the trading-day boundary at 09:00 local rather than
+     * 04:00, so five hours of every day — the whole of breakfast — were filed to yesterday. The
+     * walkthrough caught it on a shift whose entire takings vanished: money recorded 07:59 local
+     * appeared under 2026-08-11 while the till that took it was stamped 2026-08-12.
+     *
+     * <p>A day's takings are a per-branch fact, so the zone follows the branch: the one asked for,
+     * else the caller's own — the branch whose drawer they are cashing up, which is what the screen
+     * shows when it sends no {@code branchId} at all. A tenant-wide read from a principal with no
+     * branch falls back to the configured default rather than failing the cash-up.
+     */
+    private ZoneId zoneFor(UUID branchId) {
+        UUID effective = branchId != null ? branchId : tenantContext.getBranchId().orElse(null);
+        return effective != null ? branchBusinessDay.zoneOf(effective) : branchBusinessDay.zoneOf(null);
+    }
 
     /**
      * The trading day a restaurant is in RIGHT NOW.
@@ -94,22 +141,30 @@ public class DailyTakingsService {
      * and a cash-up screen that defaults to the calendar date shows an empty day to the person
      * holding the drawer. The controller and the screen both take their default from here so the
      * default can only ever be the same rule the queries use.
+     *
+     * <p>No longer {@code static}, and that is the point: a date rule that needs no collaborators
+     * is a date rule that cannot know which restaurant it is answering for.
      */
-    public static LocalDate currentBusinessDate() {
-        return businessDateOf(Instant.now());
+    public LocalDate currentBusinessDate(UUID branchId) {
+        return businessDateOf(Instant.now(), branchId);
     }
 
     /** The clock is a parameter so the rule can be asserted at 02:00 without waiting until 02:00. */
-    public static LocalDate businessDateOf(Instant t) {
-        return LocalDate.ofInstant(
-                t.minusSeconds(BUSINESS_DAY_OFFSET_HOURS * 3600L), java.time.ZoneOffset.UTC);
+    public LocalDate businessDateOf(Instant t, UUID branchId) {
+        return BusinessDay.of(t, zoneFor(branchId), branchBusinessDay.offsetHours());
     }
 
     @Transactional(readOnly = true)
     public DailyTakingsDto forDate(LocalDate businessDate, UUID branchId) {
         List<UnknownFigure> unknowns = new ArrayList<>();
 
-        Object[] header = headerTotals(businessDate, branchId);
+        // Resolved ONCE per request and threaded through every query below. Resolving it inside
+        // each would make five lookups of a value that cannot change mid-request, and — worse —
+        // would let a mid-request cache expiry date the tender split on one zone and the till list
+        // on another.
+        String zone = zoneFor(branchId).getId();
+
+        Object[] header = headerTotals(businessDate, branchId, zone);
         long gross = toLong(header[0]);
         long discounts = toLong(header[1]);
         long tax = toLong(header[2]);
@@ -128,9 +183,9 @@ public class DailyTakingsService {
         // on this path and none may be introduced — a rate never touches these numbers.
         long net = gross - discounts;
 
-        List<TenderLine> byTender = tenderSplit(businessDate, branchId);
-        UnclosedTakings unclosed = unclosedTakings(businessDate, branchId);
-        List<TillReconciliation> tills = tillReconciliations(businessDate, branchId);
+        List<TenderLine> byTender = tenderSplit(businessDate, branchId, zone);
+        UnclosedTakings unclosed = unclosedTakings(businessDate, branchId, zone);
+        List<TillReconciliation> tills = tillReconciliations(businessDate, branchId, zone);
 
         // D-37-05, stated rather than papered over. Comps are not separable from discounts in this
         // schema: `orders.discount_paisa` is a single column and a 100% comp is recorded as a
@@ -177,7 +232,7 @@ public class DailyTakingsService {
      * orders that have not reached here yet is reported separately and explicitly — see
      * {@code unclosedTakings}.
      */
-    private Object[] headerTotals(LocalDate date, UUID branchId) {
+    private Object[] headerTotals(LocalDate date, UUID branchId, String zone) {
         Query q = em.createNativeQuery("""
                 SELECT COALESCE(SUM(o.subtotal_paisa), 0),
                        COALESCE(SUM(o.discount_paisa), 0),
@@ -189,10 +244,12 @@ public class DailyTakingsService {
                  WHERE o.deleted_at IS NULL
                    AND o.closed_at IS NOT NULL
                    AND o.voided_at IS NULL
-                   AND date((o.closed_at AT TIME ZONE 'UTC') - make_interval(hours => :offset)) = :date
+                   AND date((o.closed_at AT TIME ZONE CAST(:zone AS text))
+                            - make_interval(hours => :offset)) = :date
                    AND (CAST(:branchId AS uuid) IS NULL OR o.branch_id = CAST(:branchId AS uuid))
                 """);
-        q.setParameter("offset", BUSINESS_DAY_OFFSET_HOURS);
+        q.setParameter("offset", branchBusinessDay.offsetHours());
+        q.setParameter("zone", zone);
         q.setParameter("date", date);
         q.setParameter("branchId", branchId == null ? null : branchId.toString());
         return (Object[]) q.getSingleResult();
@@ -205,7 +262,7 @@ public class DailyTakingsService {
      * closed. That is reported as a SUBSET of the line, never as a separate line: two rows would
      * invite a reader to add them, and the sum would be twice the cash that exists.
      */
-    private List<TenderLine> tenderSplit(LocalDate date, UUID branchId) {
+    private List<TenderLine> tenderSplit(LocalDate date, UUID branchId, String zone) {
         Query q = em.createNativeQuery("""
                 SELECT p.method,
                        COALESCE(SUM(p.amount_paisa), 0),
@@ -216,7 +273,8 @@ public class DailyTakingsService {
                  GROUP BY p.method
                  ORDER BY p.method
                 """);
-        q.setParameter("offset", BUSINESS_DAY_OFFSET_HOURS);
+        q.setParameter("offset", branchBusinessDay.offsetHours());
+        q.setParameter("zone", zone);
         q.setParameter("date", date);
         q.setParameter("branchId", branchId == null ? null : branchId.toString());
         @SuppressWarnings("unchecked")
@@ -237,7 +295,7 @@ public class DailyTakingsService {
      * <p>Runs over {@link #PAYMENTS_ON_DAY}, the same predicate {@link #tenderSplit} uses, so the
      * summary and the per-line subsets are answers to one question rather than two.
      */
-    private UnclosedTakings unclosedTakings(LocalDate date, UUID branchId) {
+    private UnclosedTakings unclosedTakings(LocalDate date, UUID branchId, String zone) {
         Query q = em.createNativeQuery("""
                 SELECT COALESCE(SUM(p.amount_paisa) FILTER (WHERE p.method = 'CASH'), 0),
                        COALESCE(SUM(p.amount_paisa), 0),
@@ -246,14 +304,15 @@ public class DailyTakingsService {
                 """ + PAYMENTS_ON_DAY + """
                    AND o.closed_at IS NULL
                 """);
-        q.setParameter("offset", BUSINESS_DAY_OFFSET_HOURS);
+        q.setParameter("offset", branchBusinessDay.offsetHours());
+        q.setParameter("zone", zone);
         q.setParameter("date", date);
         q.setParameter("branchId", branchId == null ? null : branchId.toString());
         Object[] r = (Object[]) q.getSingleResult();
         return new UnclosedTakings(toLong(r[0]), toLong(r[1]), (int) toLong(r[2]), (int) toLong(r[3]));
     }
 
-    private List<TillReconciliation> tillReconciliations(LocalDate date, UUID branchId) {
+    private List<TillReconciliation> tillReconciliations(LocalDate date, UUID branchId, String zone) {
         // A till is attributed to the trading day it was OPENED on: a shift that opens at 18:00 and
         // closes at 02:00 belongs to the evening it started, which is the same convention the
         // business-day offset encodes for sales.
@@ -263,11 +322,13 @@ public class DailyTakingsService {
                        t.opened_at, t.closed_at
                   FROM till_sessions t
                  WHERE t.deleted_at IS NULL
-                   AND date((t.opened_at AT TIME ZONE 'UTC') - make_interval(hours => :offset)) = :date
+                   AND date((t.opened_at AT TIME ZONE CAST(:zone AS text))
+                            - make_interval(hours => :offset)) = :date
                    AND (CAST(:branchId AS uuid) IS NULL OR t.branch_id = CAST(:branchId AS uuid))
                  ORDER BY t.opened_at
                 """);
-        q.setParameter("offset", BUSINESS_DAY_OFFSET_HOURS);
+        q.setParameter("offset", branchBusinessDay.offsetHours());
+        q.setParameter("zone", zone);
         q.setParameter("date", date);
         q.setParameter("branchId", branchId == null ? null : branchId.toString());
         @SuppressWarnings("unchecked")

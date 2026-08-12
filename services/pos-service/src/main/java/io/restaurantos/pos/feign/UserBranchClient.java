@@ -50,6 +50,12 @@ public interface UserBranchClient {
      * @param receiptConfig the {@code receipt_config} jsonb column: the printer registry written by
      *                      user-service's {@code ReceiptConfigService} (plan 26-02). Null for a
      *                      branch nobody has configured, which is a normal branch.
+     * @param timezone      the branch's IANA zone — the one {@code /app/settings} describes as the
+     *                      field "Business dates and reports are cut on". It was already on this
+     *                      response and this record simply did not read it, which is why pos-service
+     *                      spent its whole life believing it "does not hold branch timezone data"
+     *                      and cutting the trading day in UTC. Nullable: an unconfigured branch
+     *                      falls back to {@code restaurantos.business-day.default-timezone}.
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record BranchDetail(
@@ -59,6 +65,7 @@ public interface UserBranchClient {
             String phone,
             String ntn,
             String fbrStrn,
-            String receiptConfig
+            String receiptConfig,
+            String timezone
     ) {}
 }
