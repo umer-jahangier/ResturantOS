@@ -1,0 +1,72 @@
+{
+  "at": "2026-08-12T11:30:55.830Z",
+  "stamp": "msq0b14l",
+  "results": [
+    {
+      "ok": true,
+      "what": "E: the un-enrolled step-up hire reaches the enrolment panel",
+      "detail": null
+    },
+    {
+      "ok": true,
+      "what": "E: the account is genuinely enrolled and signs in with a code",
+      "detail": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "ok": true,
+      "what": "E: the owner issued a new one-time password",
+      "detail": 16
+    },
+    {
+      "ok": true,
+      "what": "E: the enrolled hire is asked for a CODE, not for a password",
+      "detail": {
+        "totpField": 1,
+        "heading": "Sign in to RestaurantOS"
+      }
+    },
+    {
+      "ok": true,
+      "what": "E: the password they just chose is still in the box (nothing to retype)",
+      "detail": 16
+    },
+    {
+      "ok": true,
+      "what": "E: the user is told the change itself succeeded",
+      "detail": "Your new password is saved."
+    },
+    {
+      "ok": true,
+      "what": "E: no error alert on the challenge",
+      "detail": null
+    },
+    {
+      "ok": true,
+      "what": "E: typing only the code finishes the sign-in",
+      "detail": {
+        "href": "http://localhost:3000/app/dashboard",
+        "refresh": 200
+      }
+    },
+    {
+      "ok": true,
+      "what": "F: the other tenant's hire lands in the app too",
+      "detail": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "ok": true,
+      "what": "F: no second password prompt in the other tenant",
+      "detail": 0
+    },
+    {
+      "ok": true,
+      "what": "F: the hire's own token sees only its own tenant's branches",
+      "detail": {
+        "status": 200,
+        "names": [
+          "Control Bistro (isolation test tenant) HQ"
+        ]
+      }
+    }
+  ]
+}

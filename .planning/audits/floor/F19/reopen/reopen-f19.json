@@ -1,0 +1,142 @@
+{
+  "at": "2026-08-12T11:25:50.725Z",
+  "stamp": "msq04ru4",
+  "results": [
+    {
+      "ok": true,
+      "what": "A: change panel renders on /login (F12)",
+      "detail": "http://localhost:3000/login"
+    },
+    {
+      "ok": true,
+      "what": "A: the forced-change panel is on screen",
+      "detail": 1
+    },
+    {
+      "ok": true,
+      "what": "A: lands in the app, not /login",
+      "detail": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "ok": true,
+      "what": "A: no second password prompt",
+      "detail": 0
+    },
+    {
+      "ok": true,
+      "what": "A: no Sign in button",
+      "detail": false
+    },
+    {
+      "ok": true,
+      "what": "A: no error alert",
+      "detail": null
+    },
+    {
+      "ok": true,
+      "what": "A: a real session exists (refresh 200 + token)",
+      "detail": {
+        "refresh": 200,
+        "token": true
+      }
+    },
+    {
+      "ok": true,
+      "what": "A: the client signed in for the user",
+      "detail": [
+        "POST 200 /api/v1/auth/change-password/forced",
+        "POST 200 /api/v1/auth/login",
+        "GET 200 /api/v1/auth/tenants/d108c2e6-a70d-49c8-acdc-37531fd752d8",
+        "POST 200 /api/v1/auth/refresh"
+      ]
+    },
+    {
+      "ok": true,
+      "what": "A: session survives a reload",
+      "detail": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "ok": true,
+      "what": "A: still no password prompt after reload",
+      "detail": 0
+    },
+    {
+      "ok": true,
+      "what": "A: refresh still 200 after reload",
+      "detail": 200
+    },
+    {
+      "ok": true,
+      "what": "D: the one-time password is dead",
+      "detail": 401
+    },
+    {
+      "ok": true,
+      "what": "D: the chosen password signs in",
+      "detail": 200
+    },
+    {
+      "ok": true,
+      "what": "D: no URL ever carried token=/email=/password= (F12 intact)",
+      "detail": [
+        "http://localhost:3000/login",
+        "http://localhost:3000/login",
+        "http://localhost:3000/app/dashboard",
+        "http://localhost:3000/app/dashboard",
+        "http://localhost:3000/app/dashboard",
+        "http://localhost:3000/login",
+        "http://localhost:3000/login",
+        "http://localhost:3000/login",
+        "http://localhost:3000/login"
+      ]
+    },
+    {
+      "ok": true,
+      "what": "B: the step-up hire is either signed in or challenged — not stranded",
+      "detail": {
+        "href": "http://localhost:3000/login",
+        "totpField": 0,
+        "heading": "Sign in to RestaurantOS",
+        "status": "Your new password is saved.",
+        "alert": null
+      }
+    },
+    {
+      "ok": true,
+      "what": "B: the step-up hire is NOT handed a bare password box again",
+      "detail": {
+        "passwordInputs": 0,
+        "signInButton": false
+      }
+    },
+    {
+      "ok": true,
+      "what": "B: not stuck on the interstitial",
+      "detail": "Sign in to RestaurantOS"
+    },
+    {
+      "ok": true,
+      "what": "C: cancel returns a usable credentials form",
+      "detail": {
+        "pw": 1,
+        "btn": true
+      }
+    },
+    {
+      "ok": true,
+      "what": "C: cancel does not enter the interstitial",
+      "detail": "Sign in to RestaurantOS"
+    }
+  ],
+  "urlsSeen": [
+    "http://localhost:3000/login",
+    "http://localhost:3000/login",
+    "http://localhost:3000/app/dashboard",
+    "http://localhost:3000/app/dashboard",
+    "http://localhost:3000/app/dashboard",
+    "http://localhost:3000/login",
+    "http://localhost:3000/login",
+    "http://localhost:3000/login",
+    "http://localhost:3000/login"
+  ]
+}
