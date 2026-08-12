@@ -9,6 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -58,6 +60,26 @@ public class PrintAgent extends TenantAuditableEntity {
     /** Last successful claim poll. An agent that has never polled must not look like a working one. */
     @Column(name = "last_seen_at")
     private Instant lastSeenAt;
+
+    /**
+     * The print queues this agent last saw on its own machine, as a JSON array (S8).
+     *
+     * <p>Held as JSON text rather than as a mapped collection because it is replaced wholesale on
+     * every poll and read by exactly one screen. See {@code V26__print_agent_devices.sql}.
+     *
+     * <p>NULL means the agent has never reported. An empty array means it looked and the machine
+     * has no print queues — a different sentence, and the settings screen says both.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "devices", columnDefinition = "jsonb")
+    private String devices;
+
+    /** Why no list could be produced. Never set alongside a non-empty {@link #devices}. */
+    @Column(name = "devices_unavailable")
+    private String devicesUnavailable;
+
+    @Column(name = "devices_reported_at")
+    private Instant devicesReportedAt;
 
     public boolean isRevoked() {
         return revokedAt != null;

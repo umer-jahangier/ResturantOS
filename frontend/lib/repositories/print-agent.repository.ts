@@ -1,15 +1,21 @@
 import { del, get, post } from "@/lib/api-client/request";
 import {
+  apiBranchPrintHealthSchema,
   apiEnrolledPrintAgentSchema,
   apiPrintAgentSchema,
   enrolPrintAgentInputSchema,
   type EnrolPrintAgentInput,
 } from "@/lib/api-client/schemas/print-agent.schema";
 import {
+  adaptBranchPrintHealth,
   adaptEnrolledPrintAgent,
   adaptPrintAgent,
 } from "@/lib/adapters/print-agent.adapter";
-import type { EnrolledPrintAgent, PrintAgent } from "@/lib/models/print-agent.model";
+import type {
+  BranchPrintHealth,
+  EnrolledPrintAgent,
+  PrintAgent,
+} from "@/lib/models/print-agent.model";
 
 /**
  * The machines allowed to drive a branch's printers (26-11's administrator half).
@@ -42,5 +48,17 @@ export const PrintAgentRepository = {
   async revoke(agentId: string): Promise<PrintAgent> {
     const raw = await del<unknown>(`/api/v1/pos/print-agents/${agentId}`);
     return adaptPrintAgent(apiPrintAgentSchema.parse(raw));
+  },
+
+  /**
+   * `GET /api/v1/pos/printers/health?branchId=` — pos.printers.admin | branch.manage (S8).
+   *
+   * <p>What each printer has actually done with the jobs it was given. Deliberately a separate call
+   * from {@link list}: agent liveness answers "is the machine awake", this answers "is the printer
+   * printing", and the whole point of the pair is that they can disagree.
+   */
+  async health(branchId: string): Promise<BranchPrintHealth> {
+    const raw = await get<unknown>("/api/v1/pos/printers/health", { branchId });
+    return adaptBranchPrintHealth(apiBranchPrintHealthSchema.parse(raw));
   },
 };

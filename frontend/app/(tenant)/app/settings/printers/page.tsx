@@ -46,8 +46,8 @@ function PrintersPage() {
      */
     <ZoneProvider zone="expressive" className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Printers</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-h1 font-semibold">Printers</h1>
+        <p className="text-small text-muted-foreground">
           The receipt printer at the till and the ticket printers in the kitchen, and the machine
           that drives them.
         </p>

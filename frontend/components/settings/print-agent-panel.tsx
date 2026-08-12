@@ -32,12 +32,12 @@ const LIVENESS_COPY: Record<
 > = {
   CONNECTED: {
     label: "Connected",
-    tone: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    tone: "border-success/40 bg-success/10 text-success dark:text-success",
     detail: "Polling for work now.",
   },
   STALE: {
     label: "Not responding",
-    tone: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    tone: "border-warning/40 bg-warning/10 text-warning dark:text-warning",
     detail: "It has polled before but not recently. The machine may be off or off the network.",
   },
   NEVER_STARTED: {
@@ -158,12 +158,12 @@ export function PrintAgentPanel({ branchId }: { branchId: string | null }) {
                   data-agent-liveness={liveness}
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{agent.label}</p>
-                    <p className="text-xs text-muted-foreground">{copy.detail}</p>
+                    <p className="truncate text-small font-medium">{agent.label}</p>
+                    <p className="text-label text-muted-foreground">{copy.detail}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${copy.tone}`}
+                      className={`rounded-full border px-2 py-0.5 text-label font-medium ${copy.tone}`}
                     >
                       {copy.label}
                     </span>
@@ -233,7 +233,7 @@ export function PrintAgentPanel({ branchId }: { branchId: string | null }) {
           <DialogContent showCloseButton={false} data-testid="agent-secret-dialog">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="size-4 text-amber-500" aria-hidden="true" />
+                <AlertTriangle className="size-4 text-warning" aria-hidden="true" />
                 Copy this credential now — it is shown once
               </DialogTitle>
               <DialogDescription>
@@ -252,7 +252,7 @@ export function PrintAgentPanel({ branchId }: { branchId: string | null }) {
                     readOnly
                     value={dialog.issued.secret}
                     data-testid="agent-secret-value"
-                    className="font-mono text-xs"
+                    className="font-mono text-label"
                   />
                   <Button
                     variant="outline"
@@ -268,19 +268,19 @@ export function PrintAgentPanel({ branchId }: { branchId: string | null }) {
               </div>
 
               <div className="rounded-lg border bg-muted/40 p-3">
-                <p className="text-xs font-medium">Start the agent on that machine with:</p>
+                <p className="text-label font-medium">Start the agent on that machine with:</p>
                 <pre className="mt-1 overflow-x-auto text-[11px] leading-relaxed text-muted-foreground">
                   {`PRINT_AGENT_CLOUD_URL=<gateway url> \\
 PRINT_AGENT_CREDENTIAL=<the credential above> \\
 node print-agent/dist/main.js`}
                 </pre>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 text-label text-muted-foreground">
                   It will appear above as <strong>Connected</strong> within a few seconds, and it
                   learns which printers to drive from this page — you do not configure them twice.
                 </p>
               </div>
 
-              <label className="flex items-start gap-2 text-sm">
+              <label className="flex items-start gap-2 text-small">
                 <input
                   type="checkbox"
                   className="mt-0.5"

@@ -53,7 +53,21 @@ public class PrintAgentController {
         this.registryService = registryService;
     }
 
-    public record ClaimRequest(Integer max) {}
+    /**
+     * The poll body.
+     *
+     * <p>{@code devices} rides UP on the same request the registry rides DOWN on (S8), for the same
+     * reason the registry does: a third agent path would mean widening
+     * {@code JwtGlobalFilter.AGENT_PATHS}, which is a security boundary with a test pinning its
+     * exact contents.
+     *
+     * <p>Both device fields are OPTIONAL and null-means-silent. An older agent that sends
+     * {@code {"max":5}} is not saying "this machine has no printers"; it is saying nothing, and the
+     * stored list is left exactly as it was.
+     */
+    public record ClaimRequest(Integer max,
+                               java.util.List<PrintAgentEnrolmentService.ReportedDevice> devices,
+                               String devicesUnavailable) {}
 
     /**
      * The claim response: this agent's work, and the printers it is allowed to drive.
@@ -88,7 +102,9 @@ public class PrintAgentController {
             HttpServletRequest request,
             @RequestBody(required = false) ClaimRequest body) {
         PrintAgent agent = agentOf(request);
-        enrolmentService.recordSeen(agent.getId());
+        enrolmentService.recordSeen(agent.getId(),
+                body == null ? null : body.devices(),
+                body == null ? null : body.devicesUnavailable());
         int max = body == null || body.max() == null ? 5 : body.max();
         // An empty list, with a 200. NOT a 204 and NOT an error: the agent has to be able to tell
         // "nothing queued" from "wired wrong", and under forced RLS those two look identical unless

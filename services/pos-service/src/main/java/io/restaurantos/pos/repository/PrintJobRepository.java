@@ -163,6 +163,79 @@ public interface PrintJobRepository extends JpaRepository<PrintJob, UUID> {
            """, nativeQuery = true)
     int reclaimExpiredLeases(@Param("now") java.time.Instant now);
 
+    /**
+     * What each of a branch's printers has actually DONE lately (S8).
+     *
+     * <h2>Why this query exists</h2>
+     *
+     * <p>The printers screen could describe a printer in complete detail and had no way to say
+     * whether anything had ever come out of it. When the GRILL printer was switched off, the
+     * kitchen jobs failed, the rows went FAILED with the transport's own error on them, and every
+     * surface in the product carried on exactly as before — the registry still read like a working
+     * configuration and the alert about unrouted stations still said GRILL was fine, because GRILL
+     * HAD a printer. "Configured, and silently not printing" is the state a restaurant discovers
+     * during service.
+     *
+     * <p>{@code ISSUED} is excluded on purpose. That status means the document was produced and
+     * handed to nobody — an unrouted branch printing an HTML bill in a browser — so counting it as
+     * "waiting" would report a queue that no agent will ever drain.
+     *
+     * <p><b>A job whose last attempt failed is usually QUEUED, not FAILED.</b> Measured here rather
+     * than assumed: {@code PrintJobClaimService.acknowledge} answers a failed delivery by
+     * incrementing {@code attempts}, storing the transport's error and putting the row back to
+     * QUEUED with a backoff — {@code DEAD_LETTERED} arrives only after five attempts, which with
+     * that backoff is several minutes. Counting only FAILED and DEAD_LETTERED would leave a screen
+     * silent for the whole window in which a kitchen notices, which is the window that matters.
+     *
+     * @return one row per target printer:
+     *         {@code [target_printer_id, waiting, printed, failed, last_printed_at]}
+     */
+    @Query(value = """
+           SELECT target_printer_id,
+                  COUNT(*) FILTER (WHERE status IN ('QUEUED', 'CLAIMED')),
+                  COUNT(*) FILTER (WHERE status = 'PRINTED'),
+                  COUNT(*) FILTER (WHERE status IN ('FAILED', 'DEAD_LETTERED')
+                                      OR (status IN ('QUEUED', 'CLAIMED') AND attempts > 0)),
+                  MAX(updated_at) FILTER (WHERE status = 'PRINTED')
+           FROM print_jobs
+           WHERE tenant_id = :tenantId
+             AND branch_id = :branchId
+             AND deleted_at IS NULL
+             AND created_at >= :since
+             AND status <> 'ISSUED'
+           GROUP BY target_printer_id
+           """, nativeQuery = true)
+    List<Object[]> summariseDeliveryByPrinter(@Param("tenantId") UUID tenantId,
+                                              @Param("branchId") UUID branchId,
+                                              @Param("since") java.time.Instant since);
+
+    /**
+     * The MOST RECENT thing each printer did, which is what decides the sentence on screen.
+     *
+     * <p>Counts alone cannot: a printer with nine failures and a success a second ago is working,
+     * and one with nine successes and a failure a second ago is not. The screen has to report the
+     * latter as unable to print even though it is nine-tenths healthy, because the next ticket is
+     * the one the kitchen is waiting for.
+     *
+     * @return {@code [target_printer_id, status, last_error, updated_at, attempts]}, newest per
+     *         printer. {@code attempts} is here because a retrying job reads QUEUED — see the
+     *         summary query above for why that distinction decides the sentence on screen.
+     */
+    @Query(value = """
+           SELECT DISTINCT ON (target_printer_id)
+                  target_printer_id, status, last_error, updated_at, attempts
+           FROM print_jobs
+           WHERE tenant_id = :tenantId
+             AND branch_id = :branchId
+             AND deleted_at IS NULL
+             AND created_at >= :since
+             AND status <> 'ISSUED'
+           ORDER BY target_printer_id, updated_at DESC
+           """, nativeQuery = true)
+    List<Object[]> latestDeliveryByPrinter(@Param("tenantId") UUID tenantId,
+                                           @Param("branchId") UUID branchId,
+                                           @Param("since") java.time.Instant since);
+
     /** Every issue of every document for one order — the reprint history (26-08). */
     @Query("""
            SELECT j FROM PrintJob j

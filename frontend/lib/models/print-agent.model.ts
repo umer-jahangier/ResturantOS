@@ -10,6 +10,23 @@
  */
 export type PrintAgentLiveness = "CONNECTED" | "STALE" | "NEVER_STARTED" | "REVOKED";
 
+/** The state of one print queue, as the machine's own spooler reports it. */
+export type AgentDeviceState = "IDLE" | "PRINTING" | "STOPPED" | "UNKNOWN";
+
+/**
+ * One print queue the agent found on its own machine (S8).
+ *
+ * <p>`name` is what goes into `PrinterEntry.systemPrinterName` and what the spooler is asked for.
+ * `description` is prose for a human and must never be stored in its place — that is the mistake
+ * that produces a configuration which reads correctly on screen and fails at the printer.
+ */
+export interface AgentDevice {
+  name: string;
+  description: string | null;
+  state: AgentDeviceState;
+  isDefault: boolean;
+}
+
 export interface PrintAgent {
   agentId: string;
   branchId: string;
@@ -17,6 +34,82 @@ export interface PrintAgent {
   createdAt: string;
   revokedAt: string | null;
   lastSeenAt: string | null;
+  /**
+   * NULL when this agent has never reported. An EMPTY ARRAY when it reported and found nothing.
+   * Collapsing the two would let the settings screen tell a manager "this machine has no printers"
+   * about an agent that has never been started.
+   */
+  devices: AgentDevice[] | null;
+  devicesUnavailable: string | null;
+  devicesReportedAt: string | null;
+}
+
+/** A device offered on the settings screen, carrying which machine saw it. */
+export interface DiscoveredDevice extends AgentDevice {
+  agentId: string;
+  agentLabel: string;
+  /** False when the reporting agent has stopped answering — still offered, but said out loud. */
+  agentConnected: boolean;
+}
+
+/**
+ * Every distinct queue name across a branch's agents, newest report first.
+ *
+ * <h2>Why not just the connected agent's list</h2>
+ *
+ * <p>A branch with two tills has two agents, and the manager configuring the printers may be
+ * sitting at neither of them. Hiding the queues of an agent that is currently off would mean the
+ * printer bolted to the till in the other room becomes unconfigurable while that till is asleep —
+ * so the entries are all offered, and the ones from an agent that is not answering are LABELLED as
+ * such rather than silently dropped.
+ *
+ * <p>De-duplicated by name, because two agents on the same machine — which is how every re-enrolled
+ * till ends up — would otherwise show every queue twice.
+ */
+export function discoveredDevices(
+  agents: PrintAgent[],
+  now: number = Date.now(),
+): DiscoveredDevice[] {
+  const seen = new Map<string, DiscoveredDevice>();
+  const ordered = [...agents]
+    .filter((a) => a.revokedAt === null)
+    .sort((a, b) => Date.parse(b.devicesReportedAt ?? "0") - Date.parse(a.devicesReportedAt ?? "0"));
+  for (const agent of ordered) {
+    for (const device of agent.devices ?? []) {
+      if (seen.has(device.name)) continue;
+      seen.set(device.name, {
+        ...device,
+        agentId: agent.agentId,
+        agentLabel: agent.label,
+        agentConnected: printAgentLiveness(agent, now) === "CONNECTED",
+      });
+    }
+  }
+  return [...seen.values()];
+}
+
+/**
+ * Why there is nothing to choose from, in words a manager can act on — or null when there is.
+ *
+ * <p>Four different situations produce an empty dropdown and they need four different sentences.
+ * An "unavailable" reason reported by an agent (a Windows host, no CUPS) is the most specific and
+ * wins; then "no agent enrolled"; then "enrolled but never reported"; then the genuine "this
+ * machine has no print queues at all".
+ */
+export function noDeviceReason(agents: PrintAgent[]): string | null {
+  const live = agents.filter((a) => a.revokedAt === null);
+  if (live.length === 0) {
+    return "No print agent is enrolled on this branch, so nothing has been able to look for printers. Enrol one above, then run it on the machine the USB printer is plugged into.";
+  }
+  const reported = live.filter((a) => a.devicesReportedAt !== null);
+  if (reported.length === 0) {
+    return "No agent has reported its printers yet. Start an agent on the machine the printer is attached to — it sends the list within a few seconds of starting.";
+  }
+  const unavailable = reported.find((a) => a.devicesUnavailable !== null);
+  if (unavailable) {
+    return `${unavailable.label}: ${unavailable.devicesUnavailable}`;
+  }
+  return "The agents on this branch looked and found no print queues on their machines. Attach the printer and install its driver on the machine running the agent, then wait a minute for the next scan.";
 }
 
 /** The one-time credential. Held in memory, shown once, never re-fetchable. */
@@ -118,6 +211,90 @@ export function agentIsAnswering(agent: PrintAgentPresence, now: number = Date.n
   const seen = Date.parse(agent.lastSeenAt);
   if (Number.isNaN(seen)) return false;
   return now - seen <= AGENT_CONNECTED_WINDOW_MS;
+}
+
+/**
+ * What a printer has DONE with the jobs it was given (S8), as distinct from what it is configured
+ * to be and from whether the machine driving it is awake.
+ */
+export type PrinterDeliveryState = "NEVER_USED" | "PRINTING" | "WAITING" | "FAILING";
+
+export interface PrinterDelivery {
+  printerId: string;
+  state: PrinterDeliveryState;
+  waiting: number;
+  printed: number;
+  failed: number;
+  lastAttemptAt: string | null;
+  lastPrintedAt: string | null;
+  lastError: string | null;
+}
+
+export interface BranchPrintHealth {
+  windowHours: number;
+  printers: PrinterDelivery[];
+}
+
+/**
+ * The sentence for one printer's row.
+ *
+ * <p>Never claims paper. "Delivered" is the strongest word available, because neither a TCP socket
+ * nor a spooler tells anyone that ink reached paper — the agent's own transports say so in their
+ * headers, and a UI that upgrades their claim is the comforting lie in a new costume.
+ */
+export function describeDelivery(
+  delivery: PrinterDelivery | undefined,
+  now: number = Date.now(),
+): { tone: "ok" | "warn" | "bad" | "muted"; label: string; detail: string } {
+  if (delivery === undefined || delivery.state === "NEVER_USED") {
+    return {
+      tone: "muted",
+      label: "Not used today",
+      detail: "No bill or ticket has been sent to this printer in the last 24 hours.",
+    };
+  }
+  if (delivery.state === "FAILING") {
+    // The transport writes its own sentences and most of them end in a full stop. Appending ours
+    // to it produced "…on this address.. 1 job is still waiting." on a live screen.
+    const error = delivery.lastError === null ? null : delivery.lastError.replace(/[.\s]+$/, "");
+    return {
+      tone: "bad",
+      label: "Cannot print",
+      detail:
+        `The last job sent to this printer failed ${describeAgo(delivery.lastAttemptAt, now)}` +
+        (error ? ` — ${error}` : "") +
+        (delivery.waiting > 0
+          ? `. ${delivery.waiting} job${delivery.waiting === 1 ? " is" : "s are"} still waiting.`
+          : "."),
+    };
+  }
+  if (delivery.state === "WAITING") {
+    return {
+      tone: "warn",
+      label: "Waiting",
+      detail: `${delivery.waiting} job${delivery.waiting === 1 ? "" : "s"} queued and not yet delivered. An agent collects them on its next poll.`,
+    };
+  }
+  return {
+    tone: "ok",
+    label: "Delivered",
+    detail: `${delivery.printed} job${delivery.printed === 1 ? "" : "s"} delivered in the last 24 hours, the most recent ${describeAgo(delivery.lastPrintedAt, now)}.`,
+  };
+}
+
+/** "4 minutes ago" for any timestamp, or "at an unknown time" rather than a fabricated one. */
+export function describeAgo(at: string | null, now: number = Date.now()): string {
+  if (at === null) return "at an unknown time";
+  const when = Date.parse(at);
+  if (Number.isNaN(when)) return "at an unknown time";
+  const seconds = Math.max(0, Math.round((now - when) / 1000));
+  if (seconds < 45) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
 /**

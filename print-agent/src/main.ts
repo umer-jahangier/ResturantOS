@@ -4,6 +4,7 @@ import { loadConfig } from "./config.js";
 import { AGENT_VERSION, createAgentServer } from "./server.js";
 import { createPollLoop, loadCloudConfig } from "./cloud/poll.js";
 import { applyRegistry } from "./cloud/registry.js";
+import { scanSystemPrinters, type DeviceScan } from "./devices/system-devices.js";
 
 async function main(): Promise<void> {
   const config = loadConfig(process.env.PRINT_AGENT_CONFIG ?? "./print-agent.config.json");
@@ -22,9 +23,39 @@ async function main(): Promise<void> {
   // Job ids, printer ids, outcomes. Never a document.
   const log = (event: Record<string, unknown>): void => console.log(JSON.stringify(event));
 
+  /**
+   * The machine's print queues, rescanned on a slow timer (S8).
+   *
+   * <p>Not scanned inside the poll: `lpstat` spawns a process, the poll runs every three seconds,
+   * and a subprocess per three seconds on a till is a cost nobody asked for. Not scanned once at
+   * startup either — a USB printer is plugged in by a human, usually after the agent was started,
+   * and a list captured at boot would be a list of what was attached at breakfast.
+   */
+  let deviceScan: DeviceScan | null = null;
+  const rescanDevices = async (): Promise<void> => {
+    try {
+      const scan = await scanSystemPrinters();
+      deviceScan = scan;
+      log({
+        event: "devices_scanned",
+        count: scan.devices.length,
+        unavailable: scan.unavailable,
+        names: scan.devices.map((d) => d.name),
+      });
+    } catch (error) {
+      // A scan that throws must not take the agent down. It reports as "not scanned", which the
+      // settings screen says out loud rather than showing an empty list.
+      deviceScan = null;
+      log({ event: "devices_scan_failed", error: error instanceof Error ? error.message : String(error) });
+    }
+  };
+  await rescanDevices();
+  const deviceTimer = setInterval(() => void rescanDevices(), 60_000);
+
   const poll = createPollLoop({
     queue,
     config: cloud,
+    deviceScan: () => deviceScan,
     /**
      * The server's registry REPLACES the local one, in place, on the live config object the HTTP
      * server and the drain loop both read. Replacing rather than merging is the point: the branch
@@ -104,6 +135,7 @@ async function main(): Promise<void> {
     stopping = true;
     log({ event: "stopping", signal, depth: queue.depth() });
     clearInterval(timer);
+    clearInterval(deviceTimer);
     poll.stop();
     void (async () => {
       const deadline = Date.now() + 5_000;

@@ -1,5 +1,8 @@
 package io.restaurantos.pos.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restaurantos.pos.domain.model.PrintAgent;
 import io.restaurantos.pos.repository.PrintAgentRepository;
 import io.restaurantos.shared.exception.ResourceNotFoundException;
@@ -71,13 +74,16 @@ public class PrintAgentEnrolmentService {
     private final PrintAgentRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final TenantContext tenantContext;
+    private final ObjectMapper objectMapper;
 
     public PrintAgentEnrolmentService(PrintAgentRepository repository,
                                       PasswordEncoder passwordEncoder,
-                                      TenantContext tenantContext) {
+                                      TenantContext tenantContext,
+                                      ObjectMapper objectMapper) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
         this.tenantContext = tenantContext;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -86,9 +92,28 @@ public class PrintAgentEnrolmentService {
      */
     public record Enrolled(UUID agentId, String label, Instant createdAt, String secret) {}
 
-    /** Metadata only. There is deliberately no field here that could hold a secret or a hash. */
+    /**
+     * One print queue on the machine an agent runs on (S8).
+     *
+     * <p>{@code name} is the destination {@code lp -d} takes, NOT a display label — the settings
+     * screen may show the description, but the value it stores has to be this one or the spooler
+     * will not find the printer.
+     */
+    public record ReportedDevice(String name, String description, String state, boolean isDefault) {}
+
+    /**
+     * Metadata only. There is deliberately no field here that could hold a secret or a hash.
+     *
+     * @param devices             what the agent last enumerated. NULL — not an empty list — when it
+     *                            has never reported, so the screen can tell "no printers attached"
+     *                            from "this machine has never said".
+     * @param devicesUnavailable  why there is no list, when there is none. Never non-null alongside
+     *                            a non-empty {@code devices}.
+     */
     public record AgentView(UUID agentId, UUID branchId, String label, Instant createdAt,
-                            Instant revokedAt, Instant lastSeenAt) {
+                            Instant revokedAt, Instant lastSeenAt,
+                            List<ReportedDevice> devices, String devicesUnavailable,
+                            Instant devicesReportedAt) {
         public boolean revoked() {
             return revokedAt != null;
         }
@@ -242,8 +267,70 @@ public class PrintAgentEnrolmentService {
 
     @Transactional
     public void recordSeen(UUID agentId) {
+        recordSeen(agentId, null, null);
+    }
+
+    /**
+     * Stamp the poll, and store what the agent says its machine can print on (S8).
+     *
+     * <h2>Why the caps are applied HERE and not only in the agent</h2>
+     *
+     * <p>The agent caps the list at 50 and each name at 128 characters before it sends. That cap is
+     * a courtesy, not a control: the agent is software on a machine in a restaurant, and this
+     * endpoint is reached with a credential that machine holds. A cap enforced only by the client
+     * is not a cap, and this column is rendered on a settings screen and stored in a tenant's row.
+     *
+     * <h2>Why an absent report is left alone</h2>
+     *
+     * <p>{@code devices == null} means the agent said nothing — an older agent, or one whose scan
+     * has not completed yet. The stored list is NOT cleared: it is still the last true answer, its
+     * timestamp says how old it is, and wiping it would make every deploy of an older agent look
+     * like a machine that lost its printers.
+     *
+     * @param devices            what the agent enumerated, or null if it did not say
+     * @param devicesUnavailable why it could not enumerate, or null
+     */
+    @Transactional
+    public void recordSeen(UUID agentId, List<ReportedDevice> devices, String devicesUnavailable) {
         UUID tenantId = tenantContext.requireTenantId();
-        repository.findScoped(tenantId, agentId).ifPresent(a -> a.setLastSeenAt(Instant.now()));
+        repository.findScoped(tenantId, agentId).ifPresent(agent -> {
+            agent.setLastSeenAt(Instant.now());
+            if (devices == null && devicesUnavailable == null) {
+                return;
+            }
+            List<ReportedDevice> capped = (devices == null ? List.<ReportedDevice>of() : devices).stream()
+                    .filter(d -> d != null && d.name() != null && !d.name().isBlank())
+                    .limit(MAX_REPORTED_DEVICES)
+                    .map(d -> new ReportedDevice(
+                            truncate(d.name().trim(), MAX_DEVICE_NAME),
+                            d.description() == null || d.description().isBlank()
+                                    ? null : truncate(d.description().trim(), MAX_DEVICE_DESCRIPTION),
+                            d.state() == null ? "UNKNOWN" : truncate(d.state().trim(), 20),
+                            d.isDefault()))
+                    .toList();
+            try {
+                agent.setDevices(objectMapper.writeValueAsString(capped));
+            } catch (JsonProcessingException e) {
+                // Serialising a list of four-string records cannot realistically fail, and if it
+                // does the poll must still succeed: a device list is a convenience and printing is
+                // not. Loud in the log, invisible to the kitchen.
+                log.warn("could not store the device list reported by print agent {}: {}", agentId, e.getMessage());
+                return;
+            }
+            agent.setDevicesUnavailable(
+                    devicesUnavailable == null || devicesUnavailable.isBlank()
+                            ? null : truncate(devicesUnavailable.trim(), MAX_UNAVAILABLE_REASON));
+            agent.setDevicesReportedAt(Instant.now());
+        });
+    }
+
+    private static final int MAX_REPORTED_DEVICES = 50;
+    private static final int MAX_DEVICE_NAME = 128;
+    private static final int MAX_DEVICE_DESCRIPTION = 160;
+    private static final int MAX_UNAVAILABLE_REASON = 500;
+
+    private static String truncate(String value, int max) {
+        return value.length() <= max ? value : value.substring(0, max);
     }
 
     @Transactional
@@ -261,12 +348,32 @@ public class PrintAgentEnrolmentService {
     @Transactional(readOnly = true)
     public List<AgentView> list(UUID branchId) {
         UUID tenantId = tenantContext.requireTenantId();
-        return repository.findForBranch(tenantId, branchId).stream().map(PrintAgentEnrolmentService::view).toList();
+        return repository.findForBranch(tenantId, branchId).stream().map(this::view).toList();
     }
 
-    private static AgentView view(PrintAgent a) {
+    private AgentView view(PrintAgent a) {
         return new AgentView(a.getId(), a.getBranchId(), a.getLabel(), a.getCreatedAt(),
-                a.getRevokedAt(), a.getLastSeenAt());
+                a.getRevokedAt(), a.getLastSeenAt(),
+                readDevices(a), a.getDevicesUnavailable(), a.getDevicesReportedAt());
+    }
+
+    /**
+     * @return null when nothing has ever been reported. A corrupt stored value also reads as null
+     *         and is logged: a settings screen that cannot parse a device list must say "nothing
+     *         reported" rather than fail the whole agent list, because the list is also how a
+     *         manager finds out an agent is offline.
+     */
+    private List<ReportedDevice> readDevices(PrintAgent agent) {
+        String raw = agent.getDevices();
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(raw, new TypeReference<List<ReportedDevice>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("print agent {} has an unreadable stored device list: {}", agent.getId(), e.getMessage());
+            return null;
+        }
     }
 
     // ── The credential string ────────────────────────────────────────────────────────────────

@@ -9,7 +9,28 @@ import type { EnrolPrintAgentInput } from "@/lib/api-client/schemas/print-agent.
 export const printAgentKeys = {
   all: () => ["print-agents"] as const,
   branch: (branchId: string) => ["print-agents", "branch", branchId] as const,
+  health: (branchId: string) => ["print-agents", "health", branchId] as const,
 };
+
+/**
+ * What each of this branch's printers has done with the jobs it was given (S8).
+ *
+ * <p>Polled on the same interval as the agent list, because the two answers are read side by side
+ * and a screen where one half is fresh and the other is a minute old shows a printer as failing
+ * next to an agent that reconnected forty seconds ago.
+ *
+ * <p><b>A failed read is not an empty health list.</b> The caller gets `isError` and must say so:
+ * "no printer has failed" and "we could not find out" are the two sentences this whole item exists
+ * to keep apart.
+ */
+export function usePrinterHealth(branchId: string | null) {
+  return useQuery({
+    queryKey: printAgentKeys.health(branchId ?? ""),
+    queryFn: () => PrintAgentRepository.health(branchId as string),
+    enabled: Boolean(branchId),
+    refetchInterval: AGENT_CONNECTED_WINDOW_MS,
+  });
+}
 
 /**
  * The branch's print agents, re-read on a timer.

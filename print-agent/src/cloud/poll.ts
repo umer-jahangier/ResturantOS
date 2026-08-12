@@ -1,4 +1,5 @@
 import type { PrintQueue, PrintJobRecord } from "../queue/queue.js";
+import type { DeviceScan } from "../devices/system-devices.js";
 
 /**
  * The outbound poll loop — the thing that makes a cloud-hosted RestaurantOS able to print at all.
@@ -136,6 +137,22 @@ export interface PollLoopDeps {
    * path down with the WAN, which is the one thing `poll.ts` is not allowed to do.
    */
   onRegistry?: (printers: RegistryPrinter[]) => void;
+  /**
+   * The print queues this machine has, reported UP on every poll (S8).
+   *
+   * <p>The registry travels one way and this travels the other, on the same request, for the same
+   * reason: adding a third agent path would mean widening `JwtGlobalFilter.AGENT_PATHS`, which is a
+   * security boundary with a test pinning its exact contents.
+   *
+   * <p>Reported on every poll rather than once at startup because a USB printer is plugged in and
+   * unplugged by a human, usually after the agent was started. A list captured at boot would be a
+   * list of what was attached at breakfast.
+   *
+   * <p>Returning `null` sends nothing at all, which an older server and a newer one both treat as
+   * "this agent has not said" — distinct from an empty list, which means "this machine genuinely
+   * has no print queues".
+   */
+  deviceScan?: () => DeviceScan | null;
 }
 
 export function createPollLoop(deps: PollLoopDeps): PollLoop {
@@ -186,7 +203,22 @@ export function createPollLoop(deps: PollLoopDeps): PollLoop {
     if (inFlight) return 0;
     inFlight = true;
     try {
-      const response = await post("/api/v1/pos/print-agent/claim", { max: config.batchSize });
+      const scan = deps.deviceScan?.() ?? null;
+      const response = await post("/api/v1/pos/print-agent/claim", {
+        max: config.batchSize,
+        // Names, states and descriptions of print queues. NOT a document, not a credential, and
+        // nothing about what has been printed on them.
+        devices:
+          scan === null
+            ? undefined
+            : scan.devices.map((d) => ({
+                name: d.name,
+                description: d.description,
+                state: d.state,
+                isDefault: d.isDefault,
+              })),
+        devicesUnavailable: scan === null ? undefined : scan.unavailable,
+      });
 
       if (response.status === 401 || response.status === 403) {
         // Revoked, or the credential was rotated. STOP — do not retry in a tight loop against an
