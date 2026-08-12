@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, RefreshCw, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/ui/money-display";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { PermissionGuard } from "@/components/shared/permission-guard";
+import { formatPaisa, parseRupeesToPaisa } from "@/lib/adapters/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import { QueryBoundary, QueryErrorNotice } from "@/components/ui/query-boundary";
 import { Button } from "@/components/ui/button";
@@ -29,6 +34,8 @@ import {
   useApproveTill,
   useFlagTill,
   useAddTillNote,
+  useEligibleCashiers,
+  useOpenTillForCashier,
 } from "@/lib/hooks/pos/use-till";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import type { TillSession, TillReviewStatus } from "@/lib/models/pos.model";
@@ -67,17 +74,24 @@ export function TillReview() {
 
   return (
     <div className="flex h-full flex-col gap-3 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold">Till Review</h1>
-        <button
-          type="button"
-          onClick={() => void refetch()}
-          disabled={isFetching}
-          className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-60"
-        >
-          <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} aria-hidden="true" />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {/* F11. Only for the people who may actually hand a drawer over — the same permission
+              pos-service gates the endpoint on, so the button never appears where it would 403. */}
+          <PermissionGuard require="pos.till.open.other">
+            <OpenDrawerForCashier branchId={branchId} />
+          </PermissionGuard>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-60"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} aria-hidden="true" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* GA-001: "No till sessions yet" was the early return for BOTH an empty branch and a
@@ -153,6 +167,234 @@ export function TillReview() {
         </div>
       </QueryBoundary>
     </div>
+  );
+}
+
+/**
+ * The duty manager counts a float and hands the drawer over (F11).
+ *
+ * <h2>What this replaces</h2>
+ *
+ * <p>Nothing — there was no way to do it. `openTill` bound the session to whoever pressed the
+ * button, so the manager who counted a Rs 5,000.00 float opened THEIR OWN drawer and the cashier's
+ * terminal still read "No active till" (walkthrough §0). Every cashier had to count their own
+ * float, which is not how cash custody works in a restaurant.
+ *
+ * <h2>Why it lives on Till Review and not on the POS strip</h2>
+ *
+ * <p>The POS strip is session-scoped: it shows the CALLER's drawer and only offers "Open Till"
+ * when the caller has none. A duty manager who already has their own drawer open would therefore
+ * never see the affordance at the moment they need it, and a manager who does not use a terminal
+ * would never see it at all. Till Review is the branch-wide, supervisor-scoped screen and is
+ * already where somebody else's drawer is dealt with.
+ */
+function OpenDrawerForCashier({ branchId }: { branchId: string }) {
+  const [open, setOpen] = useState(false);
+  const [cashierId, setCashierId] = useState("");
+  const [float, setFloat] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const cashiersQuery = useEligibleCashiers(branchId, open);
+  const openTill = useOpenTillForCashier();
+
+  const cashiers = cashiersQuery.data ?? [];
+  const selected = cashiers.find((c) => c.userId === cashierId) ?? null;
+
+  // Validation as the manager types (§22), and the money boundary crossed exactly once.
+  //
+  // `parseRupeesToPaisa` is the app's single rupee→paisa site: BigInt digit arithmetic, HALF_UP,
+  // never a binary float near money. It also refuses a negative outright, which is why there is no
+  // separate `< 0` branch here. A hand-rolled `Math.round(parseFloat(x) * 100)` would be a second
+  // rounding rule AND the float this codebase forbids near money.
+  const floatTrimmed = float.trim();
+  const floatPaisa = floatTrimmed === "" ? null : parseRupeesToPaisa(floatTrimmed);
+  const floatError =
+    floatTrimmed !== "" && floatPaisa === null
+      ? "Opening float must be an amount in rupees, for example 5000.00 — no negatives"
+      : null;
+  const cashierError =
+    cashierId !== "" && selected?.hasOpenTill
+      ? `${selected.name} already has an open till. Cash that drawer up before opening another one for them.`
+      : null;
+
+  const canSubmit =
+    cashierId !== "" && floatPaisa !== null && floatError === null && cashierError === null;
+
+  const reset = () => {
+    setCashierId("");
+    setFloat("");
+    setSubmitError(null);
+  };
+
+  const submit = () => {
+    if (!canSubmit || floatPaisa === null) return;
+    setSubmitError(null);
+    openTill.mutate(
+      { branchId, openingFloatPaisa: floatPaisa, cashierId },
+      {
+        onSuccess: () => {
+          toast.success(
+            `Till opened for ${selected?.name ?? "the cashier"} with a ${formatPaisa(floatPaisa)} float.`,
+          );
+          setOpen(false);
+          reset();
+        },
+        // The server's own message is the useful one here — "Shift Cashier already has an open
+        // till", "…their role here does not allow running a cash drawer" — so it is shown rather
+        // than replaced with a generic failure (§27).
+        onError: (e) =>
+          setSubmitError(
+            e.message ?? "The till could not be opened. Check the details and try again.",
+          ),
+      },
+    );
+  };
+
+  return (
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        data-testid="open-drawer-for-cashier-button"
+        onClick={() => setOpen(true)}
+      >
+        <Wallet className="size-3.5" aria-hidden="true" />
+        Open a drawer
+      </Button>
+
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) reset();
+        }}
+      >
+        <DialogContent data-testid="open-drawer-panel">
+          <DialogHeader>
+            <DialogTitle>Open a drawer for a cashier</DialogTitle>
+            <DialogDescription>
+              Count the float into the drawer, then hand it over. The till belongs to the cashier
+              you name — they settle against it and they cash it up.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="open-drawer-cashier">Cashier</Label>
+              <Select
+                id="open-drawer-cashier"
+                data-testid="open-drawer-cashier-select"
+                placeholder="Choose who the drawer is for"
+                options={cashiers.map((c) => ({
+                  value: c.userId,
+                  label: c.hasOpenTill
+                    ? `${c.name} — ${c.roleCode.toLowerCase()} (already has a drawer)`
+                    : `${c.name} — ${c.roleCode.toLowerCase()}`,
+                }))}
+                value={cashierId}
+                onValueChange={(v) => setCashierId(v)}
+                isLoading={cashiersQuery.isPending}
+                error={cashiersQuery.isError}
+                onRetry={() => void cashiersQuery.refetch()}
+                aria-invalid={cashierError !== null}
+                aria-describedby={cashierError ? "open-drawer-cashier-error" : undefined}
+              />
+              {/* An empty roster is NOT an error and must not read as one (§26). */}
+              {!cashiersQuery.isPending && !cashiersQuery.isError && cashiers.length === 0 && (
+                <p
+                  data-testid="open-drawer-no-cashiers"
+                  className="text-xs text-muted-foreground"
+                >
+                  Nobody at this branch can run a cash drawer yet. Give someone a cashier role in
+                  Users first, then open their drawer here.
+                </p>
+              )}
+              {cashierError && (
+                <p
+                  id="open-drawer-cashier-error"
+                  data-testid="open-drawer-cashier-error"
+                  className="text-xs text-destructive"
+                >
+                  {cashierError}
+                </p>
+              )}
+              {selected && !selected.hasOpenTill && (
+                <p className="text-xs text-muted-foreground">{selected.email}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="open-drawer-float">Opening float (PKR)</Label>
+              <Input
+                id="open-drawer-float"
+                data-testid="open-drawer-float-input"
+                /*
+                 * TEXT, not `type="number"` — deliberately, and for the reason recorded on
+                 * `parseRupeesToPaisa`: a number input blanks its own `.value` on the intermediate
+                 * "5000." keystroke, so the digits that follow land against an emptied field. That
+                 * is how the Charge screen once turned a Rs 3,456.80 tender into Rs 345.60.
+                 */
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="e.g. 5000.00"
+                value={float}
+                onChange={(e) => setFloat(e.target.value)}
+                aria-invalid={floatError !== null}
+                aria-describedby={floatError ? "open-drawer-float-error" : undefined}
+              />
+              {floatError && (
+                <p
+                  id="open-drawer-float-error"
+                  data-testid="open-drawer-float-error"
+                  className="text-xs text-destructive"
+                >
+                  {floatError}
+                </p>
+              )}
+            </div>
+
+            {/* The sentence the manager is signing off, written out before they press anything. */}
+            {canSubmit && floatPaisa !== null && selected && (
+              <p
+                data-testid="open-drawer-summary"
+                role="status"
+                aria-live="polite"
+                className="rounded-lg bg-muted/50 px-3 py-2 text-sm"
+              >
+                Counting <MoneyDisplay paisa={floatPaisa} className="font-medium" /> into{" "}
+                <span className="font-medium">{selected.name}</span>&apos;s drawer.
+              </p>
+            )}
+
+            {submitError && (
+              <p
+                data-testid="open-drawer-error"
+                role="alert"
+                className="text-xs text-destructive"
+              >
+                {submitError}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              data-testid="open-drawer-confirm-button"
+              disabled={!canSubmit || openTill.isPending}
+              onClick={submit}
+            >
+              {openTill.isPending ? "Opening…" : "Open drawer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

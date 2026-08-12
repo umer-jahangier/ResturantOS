@@ -73,6 +73,12 @@ import type {
   RecordPaymentPayload,
   Station,
 } from "@/lib/models/pos.model";
+import { apiEligibleCashierSchema } from "@/lib/api-client/schemas/till-cashier.schema";
+import { adaptEligibleCashier } from "@/lib/adapters/till-cashier.adapter";
+import type {
+  EligibleCashier,
+  OpenTillForCashierPayload,
+} from "@/lib/models/till-cashier.model";
 
 // Layer-2 POS repository. Calls Layer-1 request helpers, parses via Zod,
 // adapts to domain models. Never exposes raw API types to Layer-3 or above.
@@ -567,6 +573,24 @@ export const PosRepository = {
   async openTill(payload: OpenTillPayload): Promise<TillSession> {
     const resp = await apiClient.post<{ data: unknown }>("/api/v1/pos/tills", payload);
     return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
+  },
+
+  /**
+   * Open a drawer FOR a named cashier (F11) — the duty manager counting the float and handing it
+   * over. Same endpoint as `openTill`; the `cashierId` is what makes it a different act, and
+   * pos-service refuses it without `pos.till.open.other`.
+   */
+  async openTillForCashier(payload: OpenTillForCashierPayload): Promise<TillSession> {
+    const resp = await apiClient.post<{ data: unknown }>("/api/v1/pos/tills", payload);
+    return adaptTillSession(apiTillSessionSchema.parse(resp.data.data));
+  },
+
+  /** Who at this branch may be handed a drawer, and who is already holding one. */
+  async listEligibleCashiers(branchId: string): Promise<EligibleCashier[]> {
+    const raw = await get<unknown[]>("/api/v1/pos/tills/cashiers", { branchId });
+    return (Array.isArray(raw) ? raw : []).map((r) =>
+      adaptEligibleCashier(apiEligibleCashierSchema.parse(r)),
+    );
   },
 
   async closeTill(

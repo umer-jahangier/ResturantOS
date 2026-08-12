@@ -72,6 +72,33 @@ public class PosGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
 
+    /**
+     * F11. 403, not 409: the caller is not allowed to do this at all, whatever the drawer's state.
+     * Its own title so the browser can print the named refusal instead of a generic "forbidden".
+     */
+    @ExceptionHandler(PosExceptions.TillOpenForOtherDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleTillOpenForOtherDenied(
+            PosExceptions.TillOpenForOtherDeniedException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setTitle("TILL_OPEN_FOR_OTHER_DENIED");
+        pd.setType(URI.create("urn:restaurantos:pos:till-open-for-other-denied"));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
+    }
+
+    /**
+     * F11. 422: the request is well-formed and the CALLER is entitled to make it — the named
+     * target is the problem (not rostered here, or holds no role that may run a drawer, or the
+     * directory that knows could not be reached).
+     */
+    @ExceptionHandler(PosExceptions.CashierNotEligibleForTillException.class)
+    public ResponseEntity<ProblemDetail> handleCashierNotEligible(
+            PosExceptions.CashierNotEligibleForTillException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        pd.setTitle("CASHIER_NOT_ELIGIBLE_FOR_TILL");
+        pd.setType(URI.create("urn:restaurantos:pos:cashier-not-eligible-for-till"));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(pd);
+    }
+
     @ExceptionHandler(PosExceptions.TillHasOpenOrdersException.class)
     public ResponseEntity<ProblemDetail> handleTillHasOpenOrders(PosExceptions.TillHasOpenOrdersException ex) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());

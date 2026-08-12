@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+      F11. `pos.till.open.other` — opening a cash drawer for SOMEBODY ELSE.
+
+      ══ The gap ══
+
+      `TillServiceImpl.openTill` derived the cashier from the caller's own subject and bound the
+      session with `findByCashierIdAndStatus(callerId, OPEN)`. The drawer therefore belonged to
+      whoever pressed the button, and there was no way to say who it was for. Measured live on
+      2026-08-12 through the gateway: manager@terrace.local POSTed
+      {"branchId":…, "openingFloatPaisa":500000, "cashierId":"<the cashier>"} and the field was
+      silently dropped — the 409 that came back read "Cashier already has an open till session:
+      fefd7187-…", which is the MANAGER's own id, not the cashier's. Walkthrough §0 recorded the
+      user-visible half: the manager counted a Rs 5,000.00 float and the cashier's terminal still
+      read "No active till".
+
+      Every cashier therefore had to count their own float, and "the duty manager counts the float
+      and hands over the drawer" — the way cash custody actually works in a restaurant — was not
+      expressible in the product at all.
+
+      ══ Why a NEW code, and not a widening of pos.till.open ══
+
+      `pos.till.open` is held by CASHIER (041), and it must stay that way: a cashier opening their
+      OWN drawer is normal work. But opening a drawer under another person's name is a different
+      act with a different consequence — the resulting variance is signed for by the named cashier,
+      not by whoever opened it — and a cashier must not be able to do it. Extending `pos.till.open`
+      to cover both would hand every cashier that power in the same edit, which is precisely the
+      "never widen a permission to make a screen work" failure.
+
+      The split mirrors the one POS already makes between `pos.order.void.own` and the unqualified
+      void: same verb, narrower object, separate code.
+
+      ══ Who holds it ══
+
+      OWNER, TENANT_ADMIN, MANAGER — the three roles that already hold `pos.till.reconcile.override`
+      (041) and `pos.till.review` (046), i.e. the people the product already trusts with somebody
+      else's drawer AFTER the shift. Being trusted to sign off a variance and not to hand over the
+      float it will be measured against would be an odd place to draw the line.
+
+      CASHIER and WAITER hold neither this nor anything implying it.
+
+      ══ Why the grant is explicit ══
+
+      Granted explicitly, never through a catalogue-wide SELECT from `permissions`. Every blanket
+      grant in this changelog (041's OWNER/TENANT_ADMIN backfill included) is point-in-time and
+      retro-grants nothing added afterwards, which is why 055, 082, 083, 085 and 088 all name their
+      holders. A permission no role holds yields a clean, confident 403 for every user including
+      OWNER — indistinguishable from a deliberate denial.
+    -->
+
+    <changeSet id="auth-1.0.0-090-pos-till-open-other" author="restaurantos-agent" runOnChange="false">
+        <comment>pos.till.open.other — open a till session for a NAMED cashier, held by the roles that already review tills</comment>
+        <sql splitStatements="true" endDelimiter=";">
+            INSERT INTO permissions (code, module, description) VALUES
+              ('pos.till.open.other', 'pos', 'Open a till session on behalf of another cashier, counting the float into their drawer')
+            ON CONFLICT (code) DO NOTHING;
+
+            INSERT INTO role_permissions (role_code, permission_code) VALUES
+              ('OWNER',        'pos.till.open.other'),
+              ('TENANT_ADMIN', 'pos.till.open.other'),
+              ('MANAGER',      'pos.till.open.other')
+            ON CONFLICT DO NOTHING;
+        </sql>
+
+        <rollback>
+            <sql splitStatements="true" endDelimiter=";">
+                DELETE FROM role_permissions WHERE permission_code = 'pos.till.open.other';
+                DELETE FROM permissions WHERE code = 'pos.till.open.other';
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!--
+      Same RAISE posture as 056, 057, 082, 083, 085 and 088. A permission nobody holds is invisible
+      at runtime: the "Open a drawer" panel simply never renders and the endpoint answers 403 for
+      every user on every tenant, which reads as a deliberate denial rather than a broken migration.
+    -->
+    <changeSet id="auth-1.0.0-090-verify-pos-till-open-other" author="restaurantos-agent" runOnChange="false">
+        <comment>Fail the migration if pos.till.open.other exists but no role holds it</comment>
+        <sql splitStatements="false">
+            DO $$
+            DECLARE holder_count INT;
+            BEGIN
+                SELECT count(*) INTO holder_count
+                  FROM role_permissions
+                 WHERE permission_code = 'pos.till.open.other';
+                IF holder_count = 0 THEN
+                    RAISE EXCEPTION
+                      'pos.till.open.other is defined but granted to no role. TillController gates GET /api/v1/pos/tills/cashiers on it and TillServiceImpl.openTill requires it to name a target cashier, so no manager on any tenant could open a drawer for a cashier - as a normal-looking permission denial, not an error anyone would trace back to this migration.';
+                END IF;
+            END $$;
+        </sql>
+        <rollback/>
+    </changeSet>
+
+</databaseChangeLog>

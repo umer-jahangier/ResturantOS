@@ -3,8 +3,10 @@ package io.restaurantos.pos.service;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.pos.domain.enums.TillStatus;
+import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.domain.model.TillSession;
 import io.restaurantos.pos.dto.CloseTillRequest;
+import io.restaurantos.pos.dto.EligibleCashierDto;
 import io.restaurantos.pos.dto.OpenTillRequest;
 import io.restaurantos.pos.dto.TillReconciliationDto;
 import io.restaurantos.pos.dto.TillSessionDto;
@@ -62,25 +64,41 @@ public class TillServiceImpl implements TillService {
      */
     private static final Set<OrderStatus> DOES_NOT_BLOCK_CASH_UP = EnumSet.of(OrderStatus.DRAFT);
 
+    /**
+     * The permission that lets a caller name somebody OTHER than themselves on an open.
+     *
+     * <p>Separate from {@code pos.till.open}, which CASHIER holds and must keep holding: opening
+     * your own drawer is normal work, opening one under another person's name is a supervisory act
+     * whose variance that person signs for. Seeded by auth changelog 090 to OWNER, TENANT_ADMIN
+     * and MANAGER — the three roles that already review other people's tills.
+     */
+    private static final String OPEN_FOR_ANOTHER_CASHIER = "pos.till.open.other";
+
     private final TillSessionRepository tillSessionRepository;
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
     private final OrderRefundRepository refundRepository;
     private final EventPublisher eventPublisher;
     private final TenantContext tenantContext;
+    private final PosAuthorizationService posAuthorizationService;
+    private final TillCashierDirectory tillCashierDirectory;
 
     public TillServiceImpl(TillSessionRepository tillSessionRepository,
                            OrderRepository orderRepository,
                            OrderPaymentRepository paymentRepository,
                            OrderRefundRepository refundRepository,
                            EventPublisher eventPublisher,
-                           TenantContext tenantContext) {
+                           TenantContext tenantContext,
+                           PosAuthorizationService posAuthorizationService,
+                           TillCashierDirectory tillCashierDirectory) {
         this.tillSessionRepository = tillSessionRepository;
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.refundRepository = refundRepository;
         this.eventPublisher = eventPublisher;
         this.tenantContext = tenantContext;
+        this.posAuthorizationService = posAuthorizationService;
+        this.tillCashierDirectory = tillCashierDirectory;
     }
 
     /**
@@ -105,6 +123,37 @@ public class TillServiceImpl implements TillService {
                 .sum();
     }
 
+    /**
+     * Open a drawer — for the caller, or (F11) for a NAMED cashier.
+     *
+     * <h2>What was wrong</h2>
+     *
+     * <p>The cashier was derived from the caller's own subject and there was no way to say who the
+     * drawer was for, so "the duty manager counts the float and hands over the drawer" — how cash
+     * custody works in every restaurant — could not be expressed. Walkthrough §0: the manager
+     * opened a Rs 5,000.00 float and the cashier's terminal still read {@code No active till}.
+     * Measured live through the gateway on 2026-08-12, a POST carrying
+     * {@code "cashierId":"<the cashier>"} had the field silently dropped and came back
+     * {@code 409 TILL_ALREADY_OPEN — "Cashier already has an open till session: fefd7187-…"},
+     * which is the MANAGER's own id.
+     *
+     * <h2>The three gates on naming somebody else</h2>
+     *
+     * <ol>
+     *   <li><b>The caller must hold {@code pos.till.open.other}.</b> Not a widening of
+     *       {@code pos.till.open} — CASHIER holds that, and must keep holding it, to open their own
+     *       drawer. Refused by name, so the cashier learns whose drawer they tried to open and that
+     *       it is a manager's job.</li>
+     *   <li><b>The target must be rostered at THIS branch with {@code pos.till.open}.</b> A drawer
+     *       opened for someone who cannot settle against it can never be cashed up. Fail-closed,
+     *       including when the directory is unreachable — see {@link TillCashierDirectory}.</li>
+     *   <li><b>One open till per cashier still holds, keyed on the TARGET.</b> The conflict now
+     *       names the target rather than the caller, which is the fact the manager needs.</li>
+     * </ol>
+     *
+     * <p>The branch guard runs first and is unchanged: the target is checked at the caller's own
+     * JWT branch, so this cannot become a way to open a drawer in another branch.
+     */
     @Override
     public TillSessionDto openTill(OpenTillRequest request) {
         // SECURITY (branch isolation): reject a request-supplied branchId that differs from the
@@ -113,12 +162,28 @@ public class TillServiceImpl implements TillService {
         requireOwnBranch(request.branchId());
 
         UUID tenantId = tenantContext.requireTenantId();
-        UUID cashierId = tenantContext.getUserId()
+        UUID callerId = tenantContext.getUserId()
                 .orElseThrow(() -> new IllegalStateException("No authenticated cashier"));
+
+        // Null cashierId means "my own drawer" — every cashier's start of shift, and the only
+        // shape this request had before F11. An explicit self-id is the same thing said out loud.
+        UUID cashierId = request.cashierId() != null ? request.cashierId() : callerId;
+        boolean forSomeoneElse = !cashierId.equals(callerId);
+
+        if (forSomeoneElse) {
+            String targetName = tillCashierDirectory.nameOf(tenantId, cashierId);
+            if (!posAuthorizationService.hasPermission(OPEN_FOR_ANOTHER_CASHIER)) {
+                throw new PosExceptions.TillOpenForOtherDeniedException(targetName);
+            }
+            tillCashierDirectory.requireCanRunADrawer(tenantId, request.branchId(), cashierId, targetName);
+        }
 
         tillSessionRepository.findByCashierIdAndStatus(cashierId, TillStatus.OPEN)
                 .ifPresent(existing -> {
-                    throw new PosExceptions.TillAlreadyOpenException(cashierId.toString());
+                    throw forSomeoneElse
+                            ? PosExceptions.TillAlreadyOpenException.forCashier(
+                                    tillCashierDirectory.nameOf(tenantId, cashierId))
+                            : new PosExceptions.TillAlreadyOpenException(cashierId.toString());
                 });
 
         TillSession session = new TillSession();
@@ -134,9 +199,27 @@ public class TillServiceImpl implements TillService {
                 request.branchId(),
                 Map.of("tillSessionId", session.getId().toString(),
                        "openingFloatPaisa", session.getOpeningFloatPaisa(),
-                       "cashierId", cashierId.toString()));
+                       // WHOSE drawer it is …
+                       "cashierId", cashierId.toString(),
+                       // … and WHO counted the float into it. Equal on a self-open; different when
+                       // a duty manager hands the drawer over, which is exactly the pair an audit
+                       // of a variance needs and which no consumer could reconstruct afterwards.
+                       "openedByUserId", callerId.toString()));
 
         return toDto(session);
+    }
+
+    /**
+     * Every cashier who may be handed a drawer at {@code branchId}, for the manager's picker.
+     *
+     * <p>Gated at the controller on {@code pos.till.open.other} — the same permission that lets the
+     * manager act on the answer. A list of who holds the cash is not a list a cashier needs.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<EligibleCashierDto> listEligibleCashiers(UUID branchId) {
+        requireOwnBranch(branchId);
+        return tillCashierDirectory.listEligible(tenantContext.requireTenantId(), branchId);
     }
 
     @Override

@@ -6,6 +6,10 @@ import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import type { OpenTillPayload, CloseTillPayload, TillSession } from "@/lib/models/pos.model";
+import type {
+  EligibleCashier,
+  OpenTillForCashierPayload,
+} from "@/lib/models/till-cashier.model";
 import type { ApiError } from "@/lib/api-client/errors";
 
 const OFFLINE_ERROR =
@@ -162,5 +166,57 @@ export function useAddTillNote() {
   return useMutation<TillSession, ApiError, { tillId: string; branchId: string; note: string }>({
     mutationFn: ({ tillId, note }) => PosRepository.addTillNote(tillId, { note }),
     onSuccess: (_data, { tillId, branchId }) => invalidate(tillId, branchId),
+  });
+}
+
+// ── Handing a drawer over (F11) ──────────────────────────────────────────────
+
+/**
+ * Keys for the "open a drawer for…" pair.
+ *
+ * <p>Declared here rather than in `query-keys.ts` — the same choice `use-order-bill.ts` makes for
+ * `orderBillQueryKeys`. The list key is prefixed `["pos", "tills", …]` on purpose so the existing
+ * `invalidateQueries({ queryKey: ["pos", "tills"] })` in `useOpenTill`/`useCloseTill` clears it
+ * too: whether a cashier is holding a drawer is exactly what those mutations change.
+ */
+export const tillCashierQueryKeys = {
+  eligible: (branchId: string) => ["pos", "tills", "eligible-cashiers", branchId] as const,
+};
+
+/**
+ * Who at this branch may be handed a cash drawer, and who already holds one.
+ *
+ * <p>Gated server-side on `pos.till.open.other`, so a cashier calling this gets 403 — the caller
+ * is expected to render it only for someone who holds that permission. `enabled` on `branchId`
+ * because a query fired with an empty branch would ask pos-service about nothing and come back 422.
+ */
+export function useEligibleCashiers(branchId: string | null | undefined, enabled = true) {
+  return useQuery<EligibleCashier[], ApiError>({
+    queryKey: tillCashierQueryKeys.eligible(branchId ?? ""),
+    queryFn: () => PosRepository.listEligibleCashiers(branchId!),
+    enabled: enabled && Boolean(branchId),
+  });
+}
+
+/**
+ * The duty manager counting a float into a NAMED cashier's drawer.
+ *
+ * <p>Separate hook from `useOpenTill` (which opens the CALLER's own drawer) because they are two
+ * different acts with different permissions and different failure modes — merging them would put
+ * an `if (cashierId)` inside a mutation and make the error copy have to guess which one happened.
+ *
+ * <p>Keeps React Query's default `networkMode`, unlike `useOpenTill`: this is a back-office screen
+ * on a manager's machine, not the offline-capable POS terminal.
+ */
+export function useOpenTillForCashier() {
+  const queryClient = useQueryClient();
+  return useMutation<TillSession, ApiError, OpenTillForCashierPayload>({
+    mutationFn: (payload: OpenTillForCashierPayload) =>
+      PosRepository.openTillForCashier(payload),
+    onSuccess: (_data, payload) => {
+      // The branch till table gains a row, and the picker's `hasOpenTill` flags change.
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.branchTillsAll(payload.branchId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", "tills"] });
+    },
   });
 }

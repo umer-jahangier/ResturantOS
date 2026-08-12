@@ -4,6 +4,7 @@ import io.restaurantos.auth.dto.request.BranchRoleAssignRequest;
 import io.restaurantos.auth.dto.request.StationAssignmentRequest;
 import io.restaurantos.auth.dto.response.BranchRoleAssignWriteResponse;
 import io.restaurantos.auth.dto.response.BranchRoleAssignmentResponse;
+import io.restaurantos.auth.dto.response.BranchStaffResponse;
 import io.restaurantos.auth.dto.response.StationAssignmentResponse;
 import io.restaurantos.auth.exception.ActingUserRequiredException;
 import io.restaurantos.auth.service.BranchAssignmentService;
@@ -100,6 +101,30 @@ public class AuthInternalController {
             @RequestParam String roleCode) {
         branchRoleAdminService.revoke(tenantId, userId, branchId, roleCode);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Everyone rostered at one branch whose role there grants {@code permission}.
+     *
+     * <p>Added for F11: a duty manager opening a cash drawer for a named cashier needs a picker of
+     * the people who may run one, and pos-service cannot build that list — it holds no user rows,
+     * and the public {@code GET /api/v1/users} is gated on the tenant user-administration
+     * permission a branch MANAGER deliberately does not hold (measured: 403 for
+     * {@code manager@terrace.local}). The authorization of the HUMAN happens at pos-service's own
+     * endpoint, on {@code pos.till.open.other}; what this seam contributes is the join to
+     * {@code role_permissions}, which only this database can do.
+     *
+     * <p>{@code permission} is required. An unfiltered branch roster is a staff directory, and this
+     * path is reachable by any service holding the internal secret; making the caller name the
+     * capability keeps the response scoped to the question.
+     */
+    @GetMapping("/branches/{branchId}/staff")
+    public ResponseEntity<List<BranchStaffResponse>> branchStaff(
+            @PathVariable UUID branchId,
+            @RequestHeader("X-Tenant-Id") UUID tenantId,
+            @RequestParam String permission) {
+        return ResponseEntity.ok(
+            branchAssignmentService.listBranchStaffWithPermission(tenantId, branchId, permission));
     }
 
     /** List active branch-role assignments for a user (branch-switcher / mine branches). */

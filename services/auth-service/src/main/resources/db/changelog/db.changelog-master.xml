@@ -134,5 +134,13 @@
          already admits; the cashier learns what they need from the till's own outage banner rather
          than from a fleet inventory. Explicit and verified for the reason 085 and 088 give. -->
     <include file="db/changelog/v1.0.0/089-ops-health-view-permission.xml"/>
+    <!-- F11: pos.till.open.other — a duty manager counting the float into a NAMED cashier's
+         drawer. openTill derived the cashier from the caller's own subject, so the drawer belonged
+         to whoever pressed the button and a supplied cashierId was silently dropped (measured: the
+         409 named the manager's own id). `pos.till.open` stays with CASHIER — opening your own
+         drawer is normal work — and the supervisory act gets its own code, held by the three roles
+         that already review somebody else's till. Explicit and verified for the reason 085, 088 and
+         089 give. -->
+    <include file="db/changelog/v1.0.0/090-pos-till-open-other-permission.xml"/>
 
 </databaseChangeLog>

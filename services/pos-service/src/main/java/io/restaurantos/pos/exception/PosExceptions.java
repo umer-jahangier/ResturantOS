@@ -23,6 +23,57 @@ public class PosExceptions {
         public TillAlreadyOpenException(String cashierId) {
             super("Cashier already has an open till session: " + cashierId);
         }
+
+        private TillAlreadyOpenException(String message, Void namedForm) {
+            super(message);
+        }
+
+        /**
+         * The same conflict, said to a manager who named somebody else (F11).
+         *
+         * <p>"Cashier already has an open till session: &lt;uuid&gt;" is unreadable when the uuid is
+         * not yours — and before F11 it was actively misleading, because the id it printed was the
+         * CALLER's: the supplied cashierId was dropped and the manager was told about their own
+         * drawer. Naming the person is the whole point of the message.
+         */
+        public static TillAlreadyOpenException forCashier(String cashierName) {
+            return new TillAlreadyOpenException(
+                    cashierName + " already has an open till. Cash up that drawer before opening "
+                            + "another one for them.", null);
+        }
+    }
+
+    /**
+     * A cashier tried to open a drawer under somebody else's name (F11).
+     *
+     * <p>Deliberately distinct from a bare {@link io.restaurantos.shared.exception.PermissionDeniedException}
+     * so the message can name BOTH the person and the missing authority: the cashier needs to know
+     * this is a manager's job, not that "something" was forbidden.
+     */
+    public static class TillOpenForOtherDeniedException extends RuntimeException {
+        public TillOpenForOtherDeniedException(String targetName) {
+            super("You cannot open a till for " + targetName
+                    + ". Counting a float into another employee's drawer requires the "
+                    + "pos.till.open.other permission — ask a manager to open it for them.");
+        }
+    }
+
+    /**
+     * The named target cannot be handed a drawer at this branch (F11).
+     *
+     * <p>Raised when the person is not rostered here, or holds no role here that grants
+     * {@code pos.till.open}. Opening a drawer for someone who cannot settle against it would
+     * produce a till nobody can cash up — the shape of the seeded drawer walkthrough §0 found with
+     * 133 orders and no route out.
+     *
+     * <p>Also raised when the directory could not be reached at all. That is deliberate and is the
+     * one place in POS where an auth-service outage is fatal rather than cosmetic: this is a
+     * money-custody decision, and "the service that knows is down" is not evidence of entitlement.
+     */
+    public static class CashierNotEligibleForTillException extends RuntimeException {
+        public CashierNotEligibleForTillException(String detail) {
+            super(detail);
+        }
     }
 
     public static class TillHasOpenOrdersException extends RuntimeException {

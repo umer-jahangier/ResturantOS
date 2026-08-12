@@ -1,6 +1,7 @@
 package io.restaurantos.pos.web;
 
 import io.restaurantos.pos.dto.CloseTillRequest;
+import io.restaurantos.pos.dto.EligibleCashierDto;
 import io.restaurantos.pos.dto.OpenTillRequest;
 import io.restaurantos.pos.dto.ReviewTillFlagRequest;
 import io.restaurantos.pos.dto.ReviewTillNoteRequest;
@@ -79,6 +80,24 @@ public class TillController {
                     page.getTotalElements())));
         }
         return ResponseEntity.ok(ApiResponse.ok(tillService.listTills(cashierId, status)));
+    }
+
+    /**
+     * The people a duty manager may open a drawer for at this branch (F11).
+     *
+     * <p>Gated on {@code pos.till.open.other} — the same permission that lets the caller act on the
+     * answer, not on the weaker {@code pos.till.open} the rest of this controller uses. Who is on
+     * the roster and who is already holding cash is a supervisor's view of the branch, and a
+     * cashier has no use for it.
+     *
+     * <p>Mapped before {@code /{id}} would ever be considered, and on a literal path segment, so
+     * "cashiers" is never parsed as a till id.
+     */
+    @PreAuthorize("hasAuthority('pos.till.open.other')")
+    @GetMapping("/cashiers")
+    public ResponseEntity<ApiResponse<List<EligibleCashierDto>>> listEligibleCashiers(
+            @RequestParam UUID branchId) {
+        return ResponseEntity.ok(ApiResponse.ok(tillService.listEligibleCashiers(branchId)));
     }
 
     /** Admin till-review: the session + every order within it + cash/non-cash collected. */

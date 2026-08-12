@@ -12,10 +12,14 @@ import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.TillService;
 import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.event.OutboxRepository;
+import io.restaurantos.shared.security.JwtClaims;
 import io.restaurantos.shared.tenant.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -23,6 +27,7 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -49,6 +54,27 @@ class TillReconciliationIT extends PosTestBase {
         branchId = UUID.randomUUID();
         cashierId = UUID.randomUUID();
         tenantContext.set(tenantId, branchId, cashierId, null);
+        /*
+         * BOTH halves of "who is asking", because production sets both — and because this class
+         * used to set only the TenantContext.
+         *
+         * `closeTill_withOrderCreatedViaOrderService_linksTillSessionAndCashier` voids an order,
+         * which reaches `AuthorizationService.authorize`, which dereferences
+         * `SecurityContextHolder.getContext().getAuthentication().getPrincipal()` with no null
+         * guard. This class never populated it: the test passed ONLY because some earlier class in
+         * the shared JVM left a principal behind. Proven on 2026-08-12 — running this class in a
+         * subset where nothing ran before it produced
+         * `NullPointerException ... AuthorizationService.java:25`, and a new IT that cleared the
+         * context in @AfterEach produced the same. A green test that depends on class ordering is
+         * not a gate.
+         */
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        new JwtClaims(cashierId, tenantId, branchId,
+                                List.of("CASHIER"),
+                                List.of("pos.till.open", "pos.till.close", "pos.order.void.own"),
+                                Map.of(), null),
+                        null, List.of()));
 
         MenuCategory cat = new MenuCategory();
         cat.setTenantId(tenantId);
@@ -207,5 +233,11 @@ class TillReconciliationIT extends PosTestBase {
                 UUID.randomUUID().toString());
         TillSessionDto closed = tillService.closeTill(till.id(), new CloseTillRequest(50000L, null));
         assertThat(closed.status().name()).isEqualTo("CLOSED");
+    }
+
+    /** Leave the shared JVM's static security context as this class found it. */
+    @AfterEach
+    void clearAuth() {
+        SecurityContextHolder.clearContext();
     }
 }

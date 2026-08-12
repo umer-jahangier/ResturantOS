@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -142,4 +143,61 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
         """)
     Optional<UserEntity> findLiveByTenantAndLowercasedEmail(@Param("tenantId") UUID tenantId,
                                                             @Param("email") String email);
+
+    /**
+     * The people who can do a named thing at one branch — "who works this branch and may run a
+     * drawer", asked once rather than as a list plus a permission call per person.
+     *
+     * <h2>Why it lives here and not in the caller</h2>
+     *
+     * <p>pos-service needs a picker of cashiers so a duty manager can open a drawer for a named
+     * person (walkthrough §0). It cannot build that list itself: it holds no user rows, and the
+     * public {@code GET /api/v1/users} is gated on the tenant user-administration permission that a
+     * branch MANAGER deliberately does not hold. The alternative — list every user, then ask
+     * {@code /permissions} once per user — is an N+1 across a service boundary on a screen a
+     * manager opens at the start of every shift. {@code role_permissions} lives in this database,
+     * so the join belongs in this query.
+     *
+     * <h2>The tenant predicate is carried, not assumed</h2>
+     *
+     * <p>Same reasoning as {@link #findPageForTenant}: RLS on {@code users} is inert under
+     * Testcontainers' superuser, and {@code /internal/**} carries no JWT for the Hibernate filter,
+     * so the only control a test can actually exercise is the one written here.
+     *
+     * <p>Live, active users with an ACTIVE assignment at that branch only. A deactivated account
+     * or a revoked assignment must not appear in a picker that hands somebody the cash drawer.
+     *
+     * @param permissionCode the capability the role must grant, e.g. {@code pos.till.open}
+     */
+    @Query("""
+        SELECT u.id AS id,
+               u.email AS email,
+               u.fullName AS fullName,
+               ubr.roleCode AS roleCode
+          FROM UserEntity u
+          JOIN UserBranchRoleEntity ubr ON ubr.userId = u.id AND ubr.tenantId = u.tenantId
+         WHERE u.tenantId = :tenantId
+           AND u.deletedAt IS NULL
+           AND u.active = true
+           AND ubr.branchId = :branchId
+           AND ubr.active = true
+           AND EXISTS (SELECT 1 FROM RolePermissionEntity rp
+                        WHERE rp.roleCode = ubr.roleCode
+                          AND rp.permissionCode = :permissionCode)
+         ORDER BY COALESCE(u.fullName, u.email) ASC, u.id ASC
+        """)
+    List<BranchStaffRow> findBranchStaffWithPermission(@Param("tenantId") UUID tenantId,
+                                                       @Param("branchId") UUID branchId,
+                                                       @Param("permissionCode") String permissionCode);
+
+    /** Projection for {@link #findBranchStaffWithPermission}. */
+    interface BranchStaffRow {
+        UUID getId();
+
+        String getEmail();
+
+        String getFullName();
+
+        String getRoleCode();
+    }
 }
