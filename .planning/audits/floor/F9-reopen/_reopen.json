@@ -1,0 +1,174 @@
+{
+  "persona": "accountant@terrace.local",
+  "openPeriodCount": 22,
+  "augustPeriod": {
+    "id": "d5a01de9-ee35-46f4-9545-ba0c72f14741",
+    "startDate": "2026-08-01",
+    "endDate": "2026-08-31",
+    "status": "OPEN"
+  },
+  "glBefore": {
+    "dr": {
+      "accountCode": "1010",
+      "accountName": "Cash in Hand",
+      "debitTotal": 12384630,
+      "creditTotal": 23388480,
+      "netBalance": -11003850
+    },
+    "cr": {
+      "accountCode": "3100",
+      "accountName": "Owner's Capital",
+      "debitTotal": 0,
+      "creditTotal": 250100,
+      "netBalance": -250100
+    }
+  },
+  "openTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/journal-entries/new"
+  },
+  "onOpen": {
+    "mentionsPaisa": false,
+    "hasDebitRs": true,
+    "hasCreditRs": true,
+    "calendarMonth": "August 2026",
+    "selectedLine": "Selected: 12 Aug 2026",
+    "notice": null,
+    "pressedDays": [
+      "12"
+    ],
+    "moneyInputs": [
+      {
+        "type": "text",
+        "inputMode": "decimal",
+        "label": "Line 1 debit (Rs)",
+        "placeholder": "0.00"
+      },
+      {
+        "type": "text",
+        "inputMode": "decimal",
+        "label": "Line 1 credit (Rs)",
+        "placeholder": "0.00"
+      },
+      {
+        "type": "text",
+        "inputMode": "decimal",
+        "label": "Line 2 debit (Rs)",
+        "placeholder": "0.00"
+      },
+      {
+        "type": "text",
+        "inputMode": "decimal",
+        "label": "Line 2 credit (Rs)",
+        "placeholder": "0.00"
+      }
+    ],
+    "blocked": "Choose an account on every line."
+  },
+  "afterTyping": {
+    "totals": "Total DR: Rs 1,250.50 Total CR: Rs 1,250.50",
+    "balanced": true,
+    "blocked": null,
+    "saveDisabled": false
+  },
+  "postBody": "{\"entryDate\":\"2026-08-12\",\"description\":\"F9 REOPEN — accountant types rupees by hand\",\"branchId\":\"34cd6f62-6b8f-4ebf-8e16-d0d57b5e4a03\",\"lines\":[{\"accountCode\":\"1010\",\"description\":\"\",\"debitPaisa\":125050,\"creditPaisa\":0},{\"accountCode\":\"3100\",\"description\":\"\",\"debitPaisa\":0,\"creditPaisa\":125050}]}",
+  "urlAfterSave": "http://localhost:3000/app/finance/journal-entries/8ab8e783-b3a4-4a2e-ad80-57807aa35e18",
+  "jeId": "8ab8e783-b3a4-4a2e-ad80-57807aa35e18",
+  "draftScreen": "Floating Terrace OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 9 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide Draft Entry 2026-08-12 · F9 REOPEN — accountant types rupees by hand Post STATUS DRAFT TOTAL DEBIT Rs 1,250.50 TOTAL CREDIT Rs 1,250.50 Account Description Debit Credit 1010 Rs 1,250.50 — 3100 — Rs 1,250.50",
+  "postButtonVisible": true,
+  "afterPost": {
+    "status": "POSTED",
+    "entryNo": "JE-2027-000293",
+    "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 9 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide JE-2027-000293 2026-08-12 · F9 REOPEN — accountant types rupees by hand Reverse STATUS POSTED TOTAL DEBIT Rs 1,250.50 TOTAL CREDIT Rs 1,250.50 Account Description Debit Credit 1010 Rs 1,250.50 — 3100 — Rs 1,250.50",
+    "alerts": []
+  },
+  "afterReload": {
+    "status": "POSTED",
+    "hasAmount": true,
+    "dateShown": [
+      "2026-08-12"
+    ],
+    "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS FINANCE Guide Takings Accounts Journal Entries General Ledger Periods Expenses AP Aging PURCHASING Purchasing PEOPLE Customers REPORTING Reports Realtime Dashboard Ask (NLQ) Collapse Finance Journal Entries Journal Entry Floating Terrace HQ Search… ⌘K 9 Takings Transactions Accounts Journal Entries General Ledger Periods Expenses AP Aging House Accounts AR Aging Guide JE-2027-000293 2026-08-12 · F9 REOPEN — accountant types rupees by hand Reverse STATUS POSTED TOTAL DEBIT Rs 1,250.50 TOTAL CREDIT Rs 1,250.50 Account Description Debit Credit 1010 Rs 1,250.50 — 3100 — Rs 1,250.50"
+  },
+  "persisted": {
+    "status": "POSTED",
+    "entryDate": "2026-08-12",
+    "totalDebitPaisa": 125050,
+    "totalCreditPaisa": 125050,
+    "lines": [
+      {
+        "a": "1010",
+        "dr": 125050,
+        "cr": 0
+      },
+      {
+        "a": "3100",
+        "dr": 0,
+        "cr": 125050
+      }
+    ]
+  },
+  "glAfter": {
+    "dr": {
+      "accountCode": "1010",
+      "accountName": "Cash in Hand",
+      "debitTotal": 12509680,
+      "creditTotal": 23388480,
+      "netBalance": -10878800
+    },
+    "cr": {
+      "accountCode": "3100",
+      "accountName": "Owner's Capital",
+      "debitTotal": 0,
+      "creditTotal": 375150,
+      "netBalance": -375150
+    }
+  },
+  "glDelta": {
+    "debitAccountDebit": 0,
+    "creditAccountCredit": 0
+  },
+  "glTrouble": {
+    "bad": [],
+    "alerts": [],
+    "url": "http://localhost:3000/app/finance/gl"
+  },
+  "glPeriodOptions": [
+    "P1: 2026-07-01 – 2026-07-31 (LOCKED)",
+    "P2: 2026-08-01 – 2026-08-31 (OPEN)",
+    "P3: 2026-09-01 – 2026-09-30 (OPEN)",
+    "P4: 2026-10-01 – 2026-10-31 (OPEN)",
+    "P5: 2026-11-01 – 2026-11-30 (OPEN)",
+    "P6: 2026-12-01 – 2026-12-31 (OPEN)",
+    "P7: 2027-01-01 – 2027-01-31 (OPEN)",
+    "P8: 2027-02-01 – 2027-02-28 (OPEN)",
+    "P9: 2027-03-01 – 2027-03-31 (OPEN)",
+    "P10: 2027-04-01 – 2027-04-30 (OPEN)",
+    "P11: 2027-05-01 – 2027-05-31 (OPEN)",
+    "P12: 2027-06-01 – 2027-06-30 (OPEN)"
+  ],
+  "glScreen": {
+    "has1010": [
+      "1010 Cash in Hand Rs 125,096.80 Rs 233,884.80 Rs 108,788.00 Cr"
+    ],
+    "has3100": [
+      "3100 Owner's Capital Rs 0.00 Rs 3,751.50 Rs 3,751.50 Cr"
+    ],
+    "mentions125050": false
+  },
+  "listScreen": [
+    "JE-2027-000293 2026-08-12 F9 REOPEN — accountant types rupees by hand POSTED Rs 1,250.50 Rs 1,250.50",
+    "JE-2027-000276 2026-08-12 F9 rupee-entry proof POSTED Rs 1,250.50 Rs 1,250.50",
+    "JE-2027-000256 2026-08-12 F9 rupee-entry proof POSTED Rs 1,250.50 Rs 1,250.50"
+  ],
+  "roundingEdge": {
+    "totals": "Total DR: Rs 10.01 Total CR: Rs 10.01 Balanced ✓ Save as D",
+    "balanced": true
+  },
+  "junkInput": {
+    "lineError": "Line 1 debit: enter the amount in rupees, like 1250.50.",
+    "blocked": "One of the amounts is not a rupee figure — see the message on that line.",
+    "saveDisabled": true
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "cashier": {
+    "trouble": {
+      "bad": [
+        "access-denied"
+      ],
+      "alerts": [],
+      "url": "http://localhost:3000/app/finance/journal-entries/new"
+    },
+    "text": "Floating Terrace OVERVIEW Dashboard ORDERS POS MENU Service Charge PEOPLE Customers Collapse Finance Journal Entries New Floating Terrace HQ Search… ⌘K E Access denied You do not have permission to view this page. Back to dashboard",
+    "hasMoneyInputs": 0,
+    "api": 403,
+    "postJe": 400
+  },
+  "control": {
+    "trouble": {
+      "bad": [],
+      "alerts": [],
+      "url": "http://localhost:3000/app/finance/journal-entries"
+    },
+    "seesTerraceEntry": false,
+    "rows": [
+      "Entry No Date Description Status Debit Credit",
+      "JE-2027-000008 2026-08-11 Stock receipt 97767df7-906c-4d09-9acc-7a5f7c7d3e59 POSTED Rs 12,400.00 Rs 12,400.00",
+      "JE-2027-000007 2026-08-11 Vendor invoice SEED-CONTROL-5AE760DE-1 POSTED Rs 12,415.00 Rs 12,415.00",
+      "JE-2027-000006 2026-08-11 Stock receipt 70d1cb7d-7111-49e1-845d-d7fc0aa6d3e6 POSTED Rs 12,400.00 Rs 12,400.00"
+    ],
+    "openPeriods": 12,
+    "directRead": 404
+  },
+  "nav": {
+    "start": "August 2026",
+    "afterPrev": "July 2026",
+    "julyDisabled": {
+      "total": 32,
+      "disabled": 31
+    },
+    "afterTwoNext": "September 2026",
+    "sep3Present": true,
+    "afterPickingSep3": {
+      "month": "September 2026",
+      "selected": "Selected: 3 Sep 2026"
+    }
+  },
+  "fallback": {
+    "notice": "Today, 12 Aug 2026, is past every open accounting period. Open periods run 1 Aug 2025 to 30 Jun 2026. This entry is dated 30 Jun 2026 — the latest date you can post to. Change it below, or open a period covering today. Open Periods",
+    "month": "June 2026",
+    "selected": "Selected: 30 Jun 2026",
+    "pressed": [
+      "30"
+    ]
+  },
+  "empty": {
+    "notice": null,
+    "saysNoPeriod": false,
+    "saysSeedCoa": false,
+    "blocked": null,
+    "saveDisabled": true
+  },
+  "outage": {
+    "alerts": [
+      "The open accounting periods is unavailable right now.The part of RestaurantOS that handles the open accounting periods is not answering. This is not something y"
+    ],
+    "saysSeedCoa": false,
+    "saysNoPeriod": false,
+    "notice": null
+  }
+}
