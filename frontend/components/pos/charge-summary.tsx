@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { MoneyDisplay } from "@/components/ui/money-display";
 import { PaymentStatusBadge } from "@/components/pos/payment-status-badge";
-import { useOrder, useTables, useSendToKds } from "@/lib/hooks/pos/use-orders";
+import { useOrder, useTables, useSendToKds, useServeAllItems } from "@/lib/hooks/pos/use-orders";
 import { useOrderPayments, useRecordPayment } from "@/lib/hooks/pos/use-payments";
 import {
   getOrderDisplayStatus,
@@ -105,12 +105,41 @@ function getRecordPaymentErrorMessage(
 }
 
 /**
+ * Copy for the close CTA's refusals. The server answers with a 409 whose message names the
+ * cause; the cashier needs the ACTION, not the cause, so each refusal is mapped to the thing
+ * they should do next. Anything unrecognised keeps its server message — a wrong-but-specific
+ * sentence beats a right-but-useless one when someone is standing at a till.
+ */
+function getCloseErrorMessage(
+  error: { status?: number; message?: string } | null | undefined,
+): string {
+  if (!error) return "Couldn't close the order. Please try again.";
+  if (error.status === 423) {
+    return "This branch's accounting period is locked, so the order can't be closed. Contact your manager.";
+  }
+  if (typeof error.message === "string" && error.message.includes("not been fired")) {
+    return "Some items were never sent to the kitchen. Send them first, then close the order.";
+  }
+  return error.message ?? "Couldn't close the order. Please try again.";
+}
+
+/**
  * Dedicated full-page Charge surface (POS-22/25/23). Shows the full order + payment
  * analytics + history, and records payments through the decoupled `recordPayment` seam
  * (07.3-01): a payment updates amount-paid/remaining/the payment chip WITHOUT closing
  * the order — the order only transitions to CLOSED server-side once it is BOTH fully
  * Paid AND fully Served (backend `maybeCloseOrder`), which this page picks up via query
- * invalidation. This page never calls a close endpoint directly.
+ * invalidation.
+ *
+ * <h3>S0-06 — why this page carries a close control</h3>
+ *
+ * The Paid-AND-Served rule is right; what was missing was any way for the person settling the
+ * check to supply the Served half. `Mark Served` existed only per line, on the terminal's order
+ * panel and the order drawer — two screens a cashier is not on once they have pressed CHARGE
+ * NOW. So the ordinary end state of a settled order was `SENT_TO_KDS / PAID`: open indefinitely,
+ * still offering Void, and refused by Refund. This page finishes the transaction, so this page
+ * is where "the food is with the guest, close it" belongs. It still does not call a close
+ * endpoint — there is none — it serves the lines and the server closes as a consequence.
  */
 export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const router = useRouter();
@@ -119,9 +148,11 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   const { data: tables = [] } = useTables();
   const recordPayment = useRecordPayment(orderId);
   const sendToKds = useSendToKds(orderId);
+  const serveAll = useServeAllItems(orderId);
 
   const [rows, setRows] = useState<TenderRow[]>([newTenderRow()]);
   const [recordError, setRecordError] = useState<string | null>(null);
+  const [closeError, setCloseError] = useState<string | null>(null);
 
   const amountPaidPaisa = useMemo(
     () => payments.reduce((acc, p) => acc + p.amountPaisa, 0),
@@ -138,8 +169,20 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
   // terminal orders (07.3-01 PaymentServiceImpl.recordPayment), this is defense in depth.
   const blocksNewTenders = paymentStatus === "PAID" || paymentStatus === "REFUNDED";
   const displayStatus = order ? getOrderDisplayStatus(order) : null;
-  const isServed = order?.derivedStatus === "SERVED";
   const isClosed = order?.status === "CLOSED";
+
+  // S0-06 close CTA. Offered when the bill is settled and the order is not yet terminal —
+  // the exact state a cashier is left in after CHARGE NOW, and the state the register found
+  // orders sitting in "for over an hour".
+  const activeItems = useMemo(
+    () => (order?.items ?? []).filter((i) => i.itemStatus !== "CANCELLED"),
+    [order],
+  );
+  const unfiredItems = activeItems.filter((i) => i.itemStatus === "PENDING");
+  const isTerminal =
+    order?.status === "CLOSED" || order?.status === "VOIDED" || order?.status === "REFUNDED";
+  const showCloseCta = !!order && !isTerminal && paymentStatus === "PAID";
+  const canClose = showCloseCta && activeItems.length > 0 && unfiredItems.length === 0;
 
   const tenderTotalPaisa = rows.reduce((acc, r) => acc + r.amountPaisa, 0);
   const hasValidTenders = rows.some((r) => r.amountPaisa > 0);
@@ -196,6 +239,16 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
     } catch (err) {
       const shaped = err as { status?: number; message?: string } | undefined;
       setRecordError(getRecordPaymentErrorMessage(shaped));
+    }
+  };
+
+  const handleCloseOrder = async () => {
+    setCloseError(null);
+    try {
+      await serveAll.mutateAsync();
+      toast.success("Order closed");
+    } catch (err) {
+      setCloseError(getCloseErrorMessage(err as { status?: number; message?: string } | undefined));
     }
   };
 
@@ -256,11 +309,13 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           </div>
         </div>
 
-        {!isClosed && isServed && paymentStatus === "PAID" && (
-          <p className="text-xs text-muted-foreground">
-            This order is fully paid and served — it will show as Closed shortly.
-          </p>
-        )}
+        {/*
+          S0-06: this used to read "fully paid and served — it will show as Closed shortly."
+          It never did. The order was paid and NOT served (nothing on a cashier's path serves a
+          line), so the sentence rendered only in a state the server would already have closed —
+          i.e. almost never — and promised an automatic transition that had no trigger. The
+          promise is replaced by the button in Take Payment that actually performs it.
+        */}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -384,10 +439,48 @@ export function ChargeSummary({ orderId }: ChargeSummaryProps) {
           <h2 className="text-sm font-semibold">Take Payment</h2>
 
           {blocksNewTenders ? (
-            <p data-testid="payment-blocked-message" className="text-sm text-muted-foreground">
-              This order is {paymentStatus === "REFUNDED" ? "refunded" : "fully paid"} — no further
-              tenders can be recorded.
-            </p>
+            <>
+              <p data-testid="payment-blocked-message" className="text-sm text-muted-foreground">
+                This order is {paymentStatus === "REFUNDED" ? "refunded" : "fully paid"} — no
+                further tenders can be recorded.
+              </p>
+
+              {/*
+                S0-06 — the end of the transaction, sited where the cashier's hand already is
+                (directly under the tender they just took), not on a screen they would have to
+                navigate to. Primary weight, full width, same 48px target as Record Payment:
+                this is now the last step of taking money, so it gets the last step's emphasis.
+              */}
+              {showCloseCta && (
+                <div className="flex flex-col gap-2 border-t pt-3">
+                  <button
+                    type="button"
+                    data-testid="close-order-button"
+                    onClick={() => void handleCloseOrder()}
+                    disabled={!canClose || serveAll.isPending}
+                    className={cn(
+                      "h-12 w-full rounded-xl text-sm font-semibold transition-all",
+                      "disabled:cursor-not-allowed disabled:opacity-40",
+                      "bg-success text-success-foreground enabled:hover:bg-success/90 enabled:active:scale-[0.98]",
+                    )}
+                  >
+                    {serveAll.isPending ? "Closing…" : "Mark served & close order"}
+                  </button>
+                  <p className="text-xs text-muted-foreground">
+                    {canClose
+                      ? "Confirms the food reached the guest and closes the check. After this the order can be refunded, not voided."
+                      : unfiredItems.length > 0
+                        ? `${unfiredItems.length} item(s) were never sent to the kitchen — send them before closing.`
+                        : "This order has no active items to serve."}
+                  </p>
+                  {closeError && (
+                    <p data-testid="close-order-error" className="text-xs text-destructive" role="alert">
+                      {closeError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           ) : isClosed ? (
             <p className="text-sm text-muted-foreground">This order is closed.</p>
           ) : (
