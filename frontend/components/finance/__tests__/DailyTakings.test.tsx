@@ -77,6 +77,45 @@ const LIVE_2026_08_08_CASH_VARIANCE_UNKNOWN = {
   ],
 };
 
+/**
+ * S0-02, captured live from `GET /api/v1/pos/takings/daily` after ringing Rs 77.00 CASH on an
+ * order that was sent to the kitchen and never served.
+ *
+ * Every sales figure is zero — nothing has been SOLD, because nothing has been closed — while
+ * Rs 77.00 is in the drawer. That combination is the ordinary evening state of a busy restaurant
+ * (POS-23 closes an order only when it is paid AND served), and the screen used to render it as
+ * "No trading recorded on this date".
+ */
+const LIVE_OPEN_ORDER_CASH = {
+  businessDate: "2026-08-11",
+  branchId: null,
+  grossSalesPaisa: 0,
+  discountsPaisa: 0,
+  taxPaisa: 0,
+  serviceChargePaisa: 0,
+  netSalesPaisa: 0,
+  orderCount: 0,
+  byTender: [
+    {
+      method: "CARD",
+      amountPaisa: 50000,
+      paymentCount: 1,
+      unclosedAmountPaisa: 0,
+      unclosedPaymentCount: 0,
+    },
+    {
+      method: "CASH",
+      amountPaisa: 7700,
+      paymentCount: 1,
+      unclosedAmountPaisa: 7700,
+      unclosedPaymentCount: 1,
+    },
+  ],
+  tills: [],
+  unclosed: { cashPaisa: 7700, totalPaisa: 7700, orderCount: 1, paymentCount: 1 },
+  unknowns: [],
+};
+
 // GUIDE-CLAIM: FIN-GUIDE-0009
 // GUIDE-CLAIM: FIN-GUIDE-0011
 describe("takings adapter — the union assembled from the live wire shape", () => {
@@ -208,6 +247,22 @@ describe("TenderSplit — observed methods only", () => {
   it("says no payments were taken rather than drawing a zero row", () => {
     render(<TenderSplit lines={[]} />);
     expect(screen.getByTestId("tender-split-empty")).toBeInTheDocument();
+  });
+
+  // S0-02. The unclosed portion is a SUBSET of the line's own amount, so it is a column on that
+  // line. A reader who adds the two columns must get a number that is wrong, not a number that
+  // looks plausible — hence the amount column keeps the full figure.
+  it("shows the unclosed portion as part of the line, not as extra money", () => {
+    render(
+      <TenderSplit
+        lines={adaptDailyTakings(LIVE_OPEN_ORDER_CASH).byTender}
+      />,
+    );
+    expect(screen.getByTestId("tender-amount-CASH")).toHaveAttribute("data-paisa", "7700");
+    expect(screen.getByTestId("tender-unclosed-CASH")).toHaveAttribute("data-paisa", "7700");
+    // CARD took money on bills that were finalised, so nothing of it is outstanding — an em dash,
+    // never "Rs 0.00", which reads as a computed figure rather than as "none".
+    expect(screen.getByTestId("tender-unclosed-CARD")).toHaveTextContent("—");
   });
 });
 
@@ -410,5 +465,57 @@ describe("DailyTakings — a failed request is never a day with no sales", () =>
     expect(screen.getByTestId("tender-row-CASH")).toBeInTheDocument();
     expect(screen.getAllByTestId(/^till-row-/)).toHaveLength(2);
     expect(screen.getByTestId("takings-date")).toHaveValue("2026-08-06");
+  });
+});
+
+/**
+ * S0-02 — the money is on the screen, and the screen says where it is sitting.
+ *
+ * The backend fix alone does not close this gap. With the cash restored to the tender split, a day
+ * whose orders are all still open has zero closed orders and zero tills, and the old emptiness
+ * test (`orderCount === 0 && tills.length === 0`) still painted "No trading recorded on this date"
+ * straight over the figures. That is this repo's signature failure — structurally present,
+ * behaviourally absent — reproduced one layer up, so it is asserted one layer up.
+ */
+describe("DailyTakings — cash on an open order (S0-02)", () => {
+  async function renderOpenOrderDay() {
+    const { DailyTakings } = await import("@/components/finance/DailyTakings");
+    takingsQuery.current = {
+      isError: false,
+      isPending: false,
+      refetch: vi.fn(),
+      data: adaptDailyTakings(LIVE_OPEN_ORDER_CASH),
+    };
+    render(<DailyTakings />);
+  }
+
+  it("does not call a day with money in the drawer an empty day", async () => {
+    await renderOpenOrderDay();
+    expect(screen.queryByText(/No trading recorded on this date/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId("tender-row-CASH")).toHaveTextContent("Rs 77.00");
+  });
+
+  it("states on-screen how much of the day's cash is against orders not yet closed", async () => {
+    await renderOpenOrderDay();
+    const panel = screen.getByTestId("unclosed-tender-panel");
+    expect(panel).toHaveAttribute("data-unclosed-cash-paisa", "7700");
+    expect(panel).toHaveTextContent("Rs 77.00");
+    expect(panel).toHaveTextContent(/1 order that is not closed yet/i);
+    // It must also say the money is NOT in gross/net, or the two bases look like a contradiction.
+    expect(panel).toHaveTextContent(/not in gross or net sales/i);
+  });
+
+  it("says so plainly when nothing is being held against an open bill", async () => {
+    const { DailyTakings } = await import("@/components/finance/DailyTakings");
+    takingsQuery.current = {
+      isError: false,
+      isPending: false,
+      refetch: vi.fn(),
+      data: adaptDailyTakings(LIVE_2026_08_06),
+    };
+    render(<DailyTakings />);
+    // Always present, never conditional: "all of today's money is on closed bills" is the answer
+    // a manager needs before accepting a drawer variance as real.
+    expect(screen.getByTestId("unclosed-none")).toBeInTheDocument();
   });
 });

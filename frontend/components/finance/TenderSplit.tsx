@@ -27,6 +27,13 @@ function label(method: string): string {
  * The tender lines are shown against net sales, which they should sum to. This component does NOT
  * perform that sum: the server states both, and a client-side check that silently disagreed would
  * leave the owner with two numbers and no way to know which to believe.
+ *
+ * <h3>"Of which not closed" is a SUBSET column, not another row</h3>
+ *
+ * Every amount here is money that arrived today, whether or not its bill has been finalised
+ * (S0-02: it used to be neither shown nor mentioned). The right-hand column says how much of the
+ * SAME figure is sitting against an order still open. A second row would read as more money and
+ * invite an addition that double-counts it, so it is a column on the line it qualifies.
  */
 export function TenderSplit({ lines }: { lines: TenderLine[] }) {
   if (lines.length === 0) {
@@ -44,6 +51,12 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
           <th className="pb-2 font-medium">Tender</th>
           <th className="pb-2 text-right font-medium">Payments</th>
           <th className="pb-2 text-right font-medium">Amount</th>
+          <th
+            className="pb-2 text-right font-medium"
+            title="Part of the same amount, taken against orders that have not been closed yet. Not extra money — do not add it on."
+          >
+            Of which on open orders
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -57,8 +70,30 @@ export function TenderSplit({ lines }: { lines: TenderLine[] }) {
             <td className="py-2 text-right tabular-nums text-muted-foreground">
               {line.paymentCount}
             </td>
-            <td className="py-2 text-right font-mono tabular-nums">
+            <td
+              className="py-2 text-right font-mono tabular-nums"
+              data-paisa={line.amountPaisa}
+              data-testid={`tender-amount-${line.method}`}
+            >
               {formatPaisa(line.amountPaisa)}
+            </td>
+            {/* An em dash, not "Rs 0.00": nothing outstanding is the ordinary state of a settled
+                line, and a zero in a money column reads as a figure somebody computed. */}
+            <td
+              className="py-2 text-right font-mono tabular-nums text-muted-foreground"
+              data-paisa={line.unclosedAmountPaisa}
+              data-testid={`tender-unclosed-${line.method}`}
+            >
+              {line.unclosedAmountPaisa > 0 ? (
+                <>
+                  {formatPaisa(line.unclosedAmountPaisa)}
+                  <span className="ml-1 text-label">
+                    ({line.unclosedPaymentCount})
+                  </span>
+                </>
+              ) : (
+                <span aria-label="none">—</span>
+              )}
             </td>
           </tr>
         ))}

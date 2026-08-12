@@ -12,9 +12,17 @@ import type { DailyTakings } from "@/lib/models/takings.model";
  * also means the figures here are unaffected by DEFECT-37-03-B's corrupted fact timestamps.
  */
 export const TakingsRepository = {
-  async daily(date: string, branchId?: string): Promise<DailyTakings> {
+  /**
+   * Omit `date` to ask for the trading day the restaurant is in RIGHT NOW.
+   *
+   * That day is `(now − 4h)`, not the calendar date, so between midnight and 04:00 UTC the two
+   * differ — and a screen that defaulted to `new Date()` sent the person holding the drawer to a
+   * blank page. The rule is the server's (`DailyTakingsService.currentBusinessDate`); asking for
+   * "today" without naming it is what keeps a second copy of it from existing here.
+   */
+  async daily(date?: string | null, branchId?: string): Promise<DailyTakings> {
     const params = new URLSearchParams();
-    params.set("date", date);
+    if (date) params.set("date", date);
     if (branchId) params.set("branchId", branchId);
     const raw = await get(`/api/v1/pos/takings/daily?${params.toString()}`);
     return adaptDailyTakings(raw);

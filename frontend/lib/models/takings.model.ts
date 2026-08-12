@@ -52,7 +52,32 @@ export type TillReconciliationState =
 export interface TenderLine {
   /** CASH, CARD, WALLET … as the server observed it. A method with no rows is ABSENT, not zero. */
   method: string;
+  /** Everything taken on this method today, dated by when it was TAKEN — open orders included. */
   amountPaisa: number;
+  paymentCount: number;
+  /**
+   * The part of `amountPaisa` sitting against an order that is not closed yet.
+   *
+   * A SUBSET, never an addition. Rendering it as a second row invites the reader to add the two,
+   * and the sum would be twice the money that exists.
+   */
+  unclosedAmountPaisa: number;
+  unclosedPaymentCount: number;
+}
+
+/**
+ * Money taken today that has not become a closed sale yet — why the drawer can legitimately hold
+ * more than the day's net sales.
+ *
+ * These are plain numbers rather than `MoneyFigure`s on purpose: the server always computes them
+ * (they are a `SUM … FILTER` over rows it already has), so there is no "could not work it out"
+ * case to represent and a union would invent a state that cannot occur.
+ */
+export interface UnclosedTakings {
+  cashPaisa: number;
+  totalPaisa: number;
+  /** How many distinct orders those payments sit against. */
+  orderCount: number;
   paymentCount: number;
 }
 
@@ -83,7 +108,12 @@ export interface DailyTakings {
   businessDate: string;
   branchId: string | null;
 
-  /** Full menu price of everything sold, BEFORE any discount — gross, not gross-less-discount. */
+  /**
+   * Full menu price of everything sold, BEFORE any discount — gross, not gross-less-discount.
+   *
+   * Dated by when each bill was FINALISED, which is not the same instant the money arrived. See
+   * `unclosed` — the screen must say so rather than let a reader assume one basis for both.
+   */
   gross: MoneyFigure;
   discounts: MoneyFigure;
   comps: MoneyFigure;
@@ -91,10 +121,22 @@ export interface DailyTakings {
   serviceCharge: MoneyFigure;
   /** What the bills came to. Stated by the server; NEVER re-derived here (T-32-12-E). */
   net: MoneyFigure;
+  /** Orders CLOSED on this trading day — NOT the number of orders that took money. */
   orderCount: number;
 
+  /** How the money arrived, dated by when it arrived rather than by when its order closed. */
   byTender: TenderLine[];
   tills: TillReconciliation[];
+
+  /**
+   * The bridge between the two bases above: money already taken today that is still sitting
+   * against orders which have not closed.
+   *
+   * This is the figure whose absence was DEFECT S0-02 — cash rung against an unserved order
+   * reached the drawer, the till's expected closing counted it, and this screen showed nothing at
+   * all: not in gross, not in net, not on the CASH line.
+   */
+  unclosed: UnclosedTakings;
 
   /**
    * A DAY-level statement that the cash variance is not computable at all — cash was taken and no

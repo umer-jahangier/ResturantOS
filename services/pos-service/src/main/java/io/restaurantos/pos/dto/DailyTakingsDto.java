@@ -13,25 +13,56 @@ import java.util.UUID;
  * silently absorbed</b> — that is the whole point of the screen, and absorbing it is how a short
  * drawer becomes invisible.
  *
- * <p>The trading day is {@code (closed_at − 4h)} in UTC, the SAME rule pos-service applies when it
- * checks the accounting period and stamps the ORDER_CLOSED event, so this screen and the general
- * ledger bucket a sale identically. See 37-03 for what happened when a consumer re-derived it.
+ * <p>The trading day is {@code (t − 4h)} in UTC, the SAME rule pos-service applies when it checks
+ * the accounting period and stamps the ORDER_CLOSED event, so this screen and the general ledger
+ * bucket a sale identically. See 37-03 for what happened when a consumer re-derived it.
+ *
+ * <h2>TWO BASES, ON PURPOSE — and the screen says which is which</h2>
+ *
+ * <p>{@code t} is not the same column for every figure here, and collapsing them onto one was the
+ * S0-02 defect:
+ *
+ * <ul>
+ *   <li><b>The sales figures</b> ({@code grossSalesPaisa} … {@code orderCount}) are dated by
+ *       {@code orders.closed_at}. A sale is <i>made</i> when the bill is finalised, which is the
+ *       instant finance recognises the revenue.</li>
+ *   <li><b>{@code byTender}</b> is dated by {@code order_payments.recorded_at} — <i>when the money
+ *       physically arrived</i>. This is the drawer basis, and it is the same basis
+ *       {@code TillServiceImpl.closeTill} already uses when it computes a till's expected closing
+ *       (it sums every CASH payment on that till's orders, closed or not).</li>
+ * </ul>
+ *
+ * <p>Dating the tender split by {@code closed_at} made the two disagree: an order that is paid but
+ * not yet served stays OPEN (POS-23 closes only on paid AND served), so its cash was in the drawer,
+ * counted by the till, and absent from this screen's CASH line, its gross and its net
+ * simultaneously. A manager reconciling the drawer had no number to reconcile against.
+ *
+ * <p>{@link #unclosed} is the bridge between the two bases, and it exists so the difference is
+ * <b>stated rather than left to be discovered</b>: it is the money already taken today that sits
+ * against orders which have not closed. Nothing is counted twice — a payment is dated once, by
+ * {@code recorded_at}; closing its order later moves the SALE into that later day's gross and net
+ * and leaves the PAYMENT exactly where it was.
  */
 public record DailyTakingsDto(
         LocalDate businessDate,
         UUID branchId,
 
-        /** The full menu price of everything sold, before any discount. */
+        /** The full menu price of everything sold, before any discount. Dated by {@code closed_at}. */
         long grossSalesPaisa,
         long discountsPaisa,
         long taxPaisa,
         long serviceChargePaisa,
         /** What the bills actually came to: gross − discounts + tax + service charge. */
         long netSalesPaisa,
+        /** Orders CLOSED on this trading day. Not the number of orders that took money. */
         int orderCount,
 
+        /** How the money arrived, dated by when it arrived — NOT by when its order closed. */
         List<TenderLine> byTender,
         List<TillReconciliation> tills,
+
+        /** Of the money in {@link #byTender}, how much is sitting against orders still open. */
+        UnclosedTakings unclosed,
 
         /**
          * Figures this screen could NOT compute, each with the reason (D-37-05). Never a plausible
@@ -39,8 +70,26 @@ public record DailyTakingsDto(
          */
         List<UnknownFigure> unknowns
 ) {
-    /** One tender method's contribution to the day. */
-    public record TenderLine(String method, long amountPaisa, int paymentCount) {}
+    /**
+     * One tender method's contribution to the day, dated by {@code order_payments.recorded_at}.
+     *
+     * @param amountPaisa          everything taken on this method today, open orders included
+     * @param unclosedAmountPaisa  the part of {@code amountPaisa} whose order is NOT yet closed.
+     *                             A SUBSET, never an addition — adding the two double-counts.
+     */
+    public record TenderLine(String method, long amountPaisa, int paymentCount,
+                             long unclosedAmountPaisa, int unclosedPaymentCount) {}
+
+    /**
+     * Money taken today that has not yet become a closed sale.
+     *
+     * <p>This is why the drawer can hold more than the day's net sales, and it is a figure the
+     * cash-up needs BEFORE anyone counts: without it a manager finds the surplus by hand and has
+     * no way to tell an unclosed order from a genuine overage.
+     *
+     * @param orderCount how many distinct orders those payments sit against
+     */
+    public record UnclosedTakings(long cashPaisa, long totalPaisa, int orderCount, int paymentCount) {}
 
     /**
      * One till, and whether it matched.

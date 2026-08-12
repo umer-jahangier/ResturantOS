@@ -20,12 +20,20 @@ import { TakingsRepository } from "@/lib/repositories/takings.repository";
  * `staleTime` is a minute so tabbing between Takings and Transactions does not re-run the
  * aggregate, while a deliberate revisit still gets fresh figures.
  */
-export function useDailyTakings(date: string, branchId?: string) {
+/**
+ * Pass `null` (or nothing) for `date` to get the CURRENT TRADING DAY as the server reckons it.
+ *
+ * The screen used to seed itself with `new Date().toISOString().slice(0,10)`. The trading day is
+ * `(now − 4h)`, so from midnight until 04:00 UTC that lands on a day the restaurant has not
+ * started yet, and the cash-up screen opened on an empty page while the drawer was full. The date
+ * is now a server fact — `data.businessDate` — and the input is seeded from it.
+ */
+export function useDailyTakings(date: string | null, branchId?: string) {
   const { branchId: currentBranchId, isAuthenticated } = useCurrentUser();
   return useQuery({
-    queryKey: queryKeys.takings.daily(currentBranchId, `${date}:${branchId ?? "all"}`),
+    queryKey: queryKeys.takings.daily(currentBranchId, `${date ?? "current"}:${branchId ?? "all"}`),
     queryFn: () => TakingsRepository.daily(date, branchId),
-    enabled: isAuthenticated && !!currentBranchId && !!date,
+    enabled: isAuthenticated && !!currentBranchId,
     staleTime: 60_000,
   });
 }

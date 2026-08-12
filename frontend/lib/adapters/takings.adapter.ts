@@ -4,6 +4,7 @@ import type {
   TenderLine,
   TillReconciliation,
   TillReconciliationState,
+  UnclosedTakings,
   UnknownFigure,
 } from "@/lib/models/takings.model";
 
@@ -104,6 +105,20 @@ export function adaptTenderLine(raw: any): TenderLine {
     method: raw.method,
     amountPaisa: Number(raw.amountPaisa ?? 0),
     paymentCount: Number(raw.paymentCount ?? 0),
+    // A server too old to send these omits them, and 0 is the only honest reading of "this build
+    // does not report an unclosed portion" — it is a SUBSET of a number that is already stated,
+    // not a figure of its own, so a zero here understates nothing and invents nothing.
+    unclosedAmountPaisa: Number(raw.unclosedAmountPaisa ?? 0),
+    unclosedPaymentCount: Number(raw.unclosedPaymentCount ?? 0),
+  };
+}
+
+export function adaptUnclosedTakings(raw: any): UnclosedTakings {
+  return {
+    cashPaisa: Number(raw?.cashPaisa ?? 0),
+    totalPaisa: Number(raw?.totalPaisa ?? 0),
+    orderCount: Number(raw?.orderCount ?? 0),
+    paymentCount: Number(raw?.paymentCount ?? 0),
   };
 }
 
@@ -151,6 +166,7 @@ export function adaptDailyTakings(raw: any): DailyTakings {
     orderCount: Number(raw.orderCount ?? 0),
     byTender: (raw.byTender ?? []).map(adaptTenderLine),
     tills: (raw.tills ?? []).map(adaptTillReconciliation),
+    unclosed: adaptUnclosedTakings(raw.unclosed),
     dayCashVariance: cashVarianceUnknown
       ? unknown(cashVarianceUnknown.figure, cashVarianceUnknown.reason)
       : null,

@@ -3,6 +3,7 @@ package io.restaurantos.pos.service;
 import io.restaurantos.pos.dto.DailyTakingsDto;
 import io.restaurantos.pos.dto.DailyTakingsDto.TenderLine;
 import io.restaurantos.pos.dto.DailyTakingsDto.TillReconciliation;
+import io.restaurantos.pos.dto.DailyTakingsDto.UnclosedTakings;
 import io.restaurantos.pos.dto.DailyTakingsDto.UnknownFigure;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -36,9 +37,26 @@ import java.util.UUID;
  *
  * <h2>The business day</h2>
  *
- * <p>{@code (closed_at − 4h)} in UTC — byte-identical to {@code BusinessDay.of(Instant)} in
- * shared-lib, which is what pos stamps on ORDER_CLOSED and what finance dates the journal entry
- * from. 37-03 is the record of what happens when a consumer re-derives this differently.
+ * <p>{@code (t − 4h)} in UTC — byte-identical to {@code BusinessDay.of(Instant)} in shared-lib,
+ * which is what pos stamps on ORDER_CLOSED and what finance dates the journal entry from. 37-03 is
+ * the record of what happens when a consumer re-derives this differently.
+ *
+ * <h2>Which {@code t} — and the S0-02 defect</h2>
+ *
+ * <p>Sales are dated by {@code orders.closed_at}. <b>Money is dated by
+ * {@code order_payments.recorded_at}</b>, and it did not used to be: every query here keyed off
+ * {@code closed_at}, so a payment against an order that was paid but not yet served — which POS-23
+ * makes the NORMAL case, not an edge case, because an order closes only when it is paid AND served
+ * — had a null {@code closed_at} and was excluded from the header totals and the tender split at
+ * once. Cash physically in the drawer appeared in neither gross, nor net, nor the CASH line. The
+ * till already knew about it: {@code TillServiceImpl.closeTill} sums CASH payments on a till's
+ * orders regardless of close, so the expected drawer and this screen disagreed by exactly the
+ * unclosed takings, and the screen was the one that was wrong.
+ *
+ * <p>Merely dropping the {@code closed_at IS NOT NULL} filter would have been worse than the bug:
+ * an order opened on Monday and closed on Tuesday would then land in BOTH days. The date basis is
+ * changed rather than the filter dropped, and each payment is dated exactly once — by the moment it
+ * was taken, which is also the moment it entered a drawer somebody has to count.
  */
 @Service
 public class DailyTakingsService {
@@ -51,6 +69,41 @@ public class DailyTakingsService {
 
     /** Matches shared-lib BusinessDay.DEFAULT_OFFSET_HOURS. */
     private static final int BUSINESS_DAY_OFFSET_HOURS = 4;
+
+    /**
+     * Every payment-basis query below shares this predicate, so the tender split and the unclosed
+     * summary can never come to disagree about which payments belong to the day.
+     *
+     * <p>{@code recorded_at} is nullable on the table (only {@code PaymentServiceImpl} guarantees
+     * it), so it falls back to {@code created_at}, which is {@code NOT NULL DEFAULT now()}. Dating
+     * a payment by its order's {@code closed_at} is exactly the bug; there is no fallback to it.
+     */
+    private static final String PAYMENTS_ON_DAY = """
+              FROM order_payments p
+              JOIN orders o ON o.id = p.order_id
+             WHERE p.deleted_at IS NULL AND o.deleted_at IS NULL AND o.voided_at IS NULL
+               AND date((COALESCE(p.recorded_at, p.created_at) AT TIME ZONE 'UTC')
+                        - make_interval(hours => :offset)) = :date
+               AND (CAST(:branchId AS uuid) IS NULL OR o.branch_id = CAST(:branchId AS uuid))
+            """;
+
+    /**
+     * The trading day a restaurant is in RIGHT NOW.
+     *
+     * <p>Not {@code LocalDate.now()}: at 02:00 the restaurant is still working last night's day,
+     * and a cash-up screen that defaults to the calendar date shows an empty day to the person
+     * holding the drawer. The controller and the screen both take their default from here so the
+     * default can only ever be the same rule the queries use.
+     */
+    public static LocalDate currentBusinessDate() {
+        return businessDateOf(Instant.now());
+    }
+
+    /** The clock is a parameter so the rule can be asserted at 02:00 without waiting until 02:00. */
+    public static LocalDate businessDateOf(Instant t) {
+        return LocalDate.ofInstant(
+                t.minusSeconds(BUSINESS_DAY_OFFSET_HOURS * 3600L), java.time.ZoneOffset.UTC);
+    }
 
     @Transactional(readOnly = true)
     public DailyTakingsDto forDate(LocalDate businessDate, UUID branchId) {
@@ -65,6 +118,7 @@ public class DailyTakingsService {
         int orderCount = (int) toLong(header[5]);
 
         List<TenderLine> byTender = tenderSplit(businessDate, branchId);
+        UnclosedTakings unclosed = unclosedTakings(businessDate, branchId);
         List<TillReconciliation> tills = tillReconciliations(businessDate, branchId);
 
         // D-37-05, stated rather than papered over. Comps are not separable from discounts in this
@@ -91,7 +145,7 @@ public class DailyTakingsService {
         }
 
         return new DailyTakingsDto(businessDate, branchId, gross, discounts, tax, service, net,
-                orderCount, byTender, tills, unknowns);
+                orderCount, byTender, tills, unclosed, unknowns);
     }
 
     /**
@@ -99,6 +153,13 @@ public class DailyTakingsService {
      * when it credits revenue gross and debits the discount to contra-revenue (4920): netting here
      * makes "what did we give away this month?" unanswerable, because the discount has already
      * vanished into a smaller sales number.
+     *
+     * <p>These figures stay on {@code closed_at} and MUST. They are the sales the general ledger
+     * recognised on this day, and finance dates its revenue journal entry from the ORDER_CLOSED
+     * event; moving them onto payment time would make the takings screen and the ledger disagree,
+     * and would double-count any order settled across two trading days. The money taken against
+     * orders that have not reached here yet is reported separately and explicitly — see
+     * {@code unclosedTakings}.
      */
     private Object[] headerTotals(LocalDate date, UUID branchId) {
         Query q = em.createNativeQuery("""
@@ -121,14 +182,21 @@ public class DailyTakingsService {
         return (Object[]) q.getSingleResult();
     }
 
+    /**
+     * How the money arrived, dated by WHEN IT ARRIVED.
+     *
+     * <p>Every line also carries the part of itself that is sitting against an order which has not
+     * closed. That is reported as a SUBSET of the line, never as a separate line: two rows would
+     * invite a reader to add them, and the sum would be twice the cash that exists.
+     */
     private List<TenderLine> tenderSplit(LocalDate date, UUID branchId) {
         Query q = em.createNativeQuery("""
-                SELECT p.method, COALESCE(SUM(p.amount_paisa), 0), COUNT(*)
-                  FROM order_payments p
-                  JOIN orders o ON o.id = p.order_id
-                 WHERE p.deleted_at IS NULL AND o.deleted_at IS NULL AND o.voided_at IS NULL
-                   AND date((o.closed_at AT TIME ZONE 'UTC') - make_interval(hours => :offset)) = :date
-                   AND (CAST(:branchId AS uuid) IS NULL OR o.branch_id = CAST(:branchId AS uuid))
+                SELECT p.method,
+                       COALESCE(SUM(p.amount_paisa), 0),
+                       COUNT(*),
+                       COALESCE(SUM(p.amount_paisa) FILTER (WHERE o.closed_at IS NULL), 0),
+                       COUNT(*) FILTER (WHERE o.closed_at IS NULL)
+                """ + PAYMENTS_ON_DAY + """
                  GROUP BY p.method
                  ORDER BY p.method
                 """);
@@ -139,9 +207,34 @@ public class DailyTakingsService {
         List<Object[]> rows = q.getResultList();
         List<TenderLine> out = new ArrayList<>();
         for (Object[] r : rows) {
-            out.add(new TenderLine((String) r[0], toLong(r[1]), (int) toLong(r[2])));
+            out.add(new TenderLine((String) r[0], toLong(r[1]), (int) toLong(r[2]),
+                    toLong(r[3]), (int) toLong(r[4])));
         }
         return out;
+    }
+
+    /**
+     * The money taken today that has not become a closed sale yet — the reconciliation bridge
+     * between the drawer (which holds it) and gross/net (which will not report it until the order
+     * closes, possibly on another trading day).
+     *
+     * <p>Runs over {@link #PAYMENTS_ON_DAY}, the same predicate {@link #tenderSplit} uses, so the
+     * summary and the per-line subsets are answers to one question rather than two.
+     */
+    private UnclosedTakings unclosedTakings(LocalDate date, UUID branchId) {
+        Query q = em.createNativeQuery("""
+                SELECT COALESCE(SUM(p.amount_paisa) FILTER (WHERE p.method = 'CASH'), 0),
+                       COALESCE(SUM(p.amount_paisa), 0),
+                       COUNT(DISTINCT o.id),
+                       COUNT(*)
+                """ + PAYMENTS_ON_DAY + """
+                   AND o.closed_at IS NULL
+                """);
+        q.setParameter("offset", BUSINESS_DAY_OFFSET_HOURS);
+        q.setParameter("date", date);
+        q.setParameter("branchId", branchId == null ? null : branchId.toString());
+        Object[] r = (Object[]) q.getSingleResult();
+        return new UnclosedTakings(toLong(r[0]), toLong(r[1]), (int) toLong(r[2]), (int) toLong(r[3]));
     }
 
     private List<TillReconciliation> tillReconciliations(LocalDate date, UUID branchId) {

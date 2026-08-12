@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,7 +10,12 @@ import { TenderSplit } from "@/components/finance/TenderSplit";
 import { TillVariancePanel } from "@/components/finance/TillVariancePanel";
 import { useDailyTakings } from "@/lib/hooks/finance/use-daily-takings";
 import { useUsers } from "@/lib/hooks/use-users";
-import type { DailyTakings as DailyTakingsModel, MoneyFigure } from "@/lib/models/takings.model";
+import { formatPaisa } from "@/lib/adapters/shared";
+import type {
+  DailyTakings as DailyTakingsModel,
+  MoneyFigure,
+  UnclosedTakings,
+} from "@/lib/models/takings.model";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,9 +41,12 @@ export function DailyTakings() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // No client-side "today". The trading day is (now − 4h), so between midnight and 04:00 UTC the
+  // calendar date names a day the restaurant has not started — and this screen opened on a blank
+  // page while the drawer was full. With no `?date=` the server is asked for the day it is
+  // currently in, and the input below is seeded from the `businessDate` it answers with, so the
+  // rule exists in exactly one place (DailyTakingsService.currentBusinessDate).
   const urlDate = searchParams.get("date");
-  const [fallbackDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const date = urlDate ?? fallbackDate;
 
   const setDate = useCallback(
     (next: string) => {
@@ -49,7 +57,7 @@ export function DailyTakings() {
     [pathname, router, searchParams],
   );
 
-  const query = useDailyTakings(date);
+  const query = useDailyTakings(urlDate);
 
   // Decoration, and structurally unable to break the screen: it is NOT passed to the boundary, so
   // a 403 from `users.view` (which a manager cashing up may well get) leaves the takings intact and
@@ -63,9 +71,23 @@ export function DailyTakings() {
   }, [roster.data]);
 
   const takings = query.data;
+  // The date the screen is ACTUALLY showing, which is a server fact whenever the URL does not
+  // pin one. Empty until the first response lands; the input is disabled for that moment rather
+  // than pre-filled with a guess that could then jump.
+  const shownDate = urlDate ?? takings?.businessDate ?? "";
+
   // "Nothing happened on this date" is a real answer and is NOT the same as "the request failed".
   // The QueryBoundary checks error first and only consults this once the query resolved cleanly.
-  const isEmpty = !!takings && takings.orderCount === 0 && takings.tills.length === 0;
+  //
+  // MONEY TAKEN COUNTS AS TRADING. Leaving `byTender` out of this test is how the S0-02 defect
+  // survived the query fix in rehearsal: with the cash restored to the tender split, a day whose
+  // orders were all still open STILL rendered "No trading recorded on this date" — an empty state
+  // sitting on top of a screen that had the figures in hand.
+  const isEmpty =
+    !!takings &&
+    takings.orderCount === 0 &&
+    takings.tills.length === 0 &&
+    takings.byTender.length === 0;
 
   return (
     <div className="space-y-6">
@@ -74,10 +96,11 @@ export function DailyTakings() {
           <span className="mb-1 block text-muted-foreground">Business date</span>
           <input
             type="date"
-            value={date}
+            value={shownDate}
+            disabled={!shownDate}
             data-testid="takings-date"
             onChange={(e) => setDate(e.target.value)}
-            className="rounded border bg-background px-2 py-1"
+            className="rounded border bg-background px-2 py-1 disabled:opacity-50"
           />
         </label>
         {takings && (
@@ -96,7 +119,7 @@ export function DailyTakings() {
         empty={
           <EmptyState
             title="No trading recorded on this date"
-            description="No order was closed and no till was opened. This is what the system holds — it is not a loading or permission problem."
+            description="No order was closed, no payment was taken and no till was opened. This is what the system holds — it is not a loading or permission problem."
           />
         }
       >
@@ -147,10 +170,17 @@ function TakingsBody({
       </section>
 
       <section aria-labelledby="tender-heading" className="space-y-3">
-        <h2 id="tender-heading" className="text-sm font-semibold text-muted-foreground">
-          How it came in
-        </h2>
+        <div>
+          <h2 id="tender-heading" className="text-sm font-semibold text-muted-foreground">
+            How it came in
+          </h2>
+          <p className="text-label text-muted-foreground">
+            Dated by when the money arrived, not by when its bill was finalised — so this is what
+            the drawers and the card terminals took today, whether or not those orders are closed.
+          </p>
+        </div>
         <TenderSplit lines={takings.byTender} />
+        <UnclosedTakingsNote unclosed={takings.unclosed} />
       </section>
 
       <section aria-labelledby="till-heading" className="space-y-3">
@@ -184,6 +214,75 @@ function TakingsBody({
             ))}
           </ul>
         </section>
+      )}
+    </div>
+  );
+}
+
+/**
+ * How much of today's money is sitting against orders nobody has closed yet (S0-02).
+ *
+ * <h3>Why it is stated even when it is zero</h3>
+ *
+ * Silence is the failure this replaces. The old screen was silent about unclosed takings because
+ * it did not know about them at all, and a manager counting a drawer that held Rs 77.00 more than
+ * the screen admitted had nothing to read. So the panel is always present: "all of today's money
+ * is on closed bills" is itself the answer somebody needs before they accept a variance as real.
+ * A figure that appears only when it is inconvenient teaches people not to look for it.
+ *
+ * The amount is NOT added to anything. It is a part of the tender split already shown above, which
+ * is why it is phrased as "of the money above" and never as its own total.
+ */
+function UnclosedTakingsNote({ unclosed }: { unclosed: UnclosedTakings }) {
+  const has = unclosed.totalPaisa > 0;
+  return (
+    <div
+      data-testid="unclosed-tender-panel"
+      data-unclosed-cash-paisa={unclosed.cashPaisa}
+      data-unclosed-total-paisa={unclosed.totalPaisa}
+      data-unclosed-order-count={unclosed.orderCount}
+      // The caution surface is the design system's `warning` token, not a raw amber ramp: the
+      // token already carries its own light/dark values, so this reads correctly in both without
+      // a `dark:` pair per property. Foreground stays `text-foreground` — measured in 38-01,
+      // `text-warning-foreground` on a `bg-warning/10` surface does not hold contrast.
+      className={cn(
+        "rounded-lg border p-3 text-small",
+        has ? "border-warning/40 bg-warning/10 text-foreground" : "text-muted-foreground",
+      )}
+    >
+      {has ? (
+        <>
+          <p className="font-medium">
+            <span className="font-mono tabular-nums" data-testid="unclosed-cash-amount">
+              {formatPaisa(unclosed.cashPaisa)}
+            </span>{" "}
+            of today&apos;s cash is against{" "}
+            {unclosed.orderCount === 1 ? "1 order" : `${unclosed.orderCount} orders`} that
+            {unclosed.orderCount === 1 ? " is" : " are"} not closed yet
+            {unclosed.totalPaisa !== unclosed.cashPaisa && (
+              <>
+                {" "}
+                (
+                <span className="font-mono tabular-nums" data-testid="unclosed-total-amount">
+                  {formatPaisa(unclosed.totalPaisa)}
+                </span>{" "}
+                across all tenders)
+              </>
+            )}
+            .
+          </p>
+          <p className="mt-1 text-label">
+            This money is part of the tender split above and is already in the drawer, so expect
+            the count to include it. It is NOT in gross or net sales: a bill becomes a sale when it
+            is closed, which may be tomorrow. Close those orders and the figures move — the cash
+            does not get counted twice.
+          </p>
+        </>
+      ) : (
+        <p data-testid="unclosed-none">
+          Every payment taken today is against an order that has been closed. Nothing is being held
+          against an open bill.
+        </p>
       )}
     </div>
   );
