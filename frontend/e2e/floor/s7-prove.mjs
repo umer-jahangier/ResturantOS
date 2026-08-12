@@ -431,17 +431,18 @@ for (const [w, h, label] of [
      * touchable height, the theme's own surface colour is in force, and the page does not
      * scroll sideways.
      *
-     * It does NOT say the till is usable at 390 or 768. It is not, and that is NOT this change:
-     * `/app/pos` is a fixed two-column layout with no breakpoint, so the menu column measures
-     * 37px at 390 and 159px at 768 — measured identically with photographs ON and OFF, which is
-     * how we know the squeeze predates them. Recorded as a separate finding rather than smuggled
-     * into a green tick here.
+     * It does NOT say the till is comfortable at 390 or 768 — how much room the menu column gets
+     * is the POS terminal's layout, not this change's. Measured here at 11:33 on 2026-08-12, that
+     * column was 37px wide at 390 and 159px at 768, IDENTICALLY with photographs ON and OFF,
+     * which is how we know the squeeze was never about images; by 11:52 a sibling change had
+     * widened it to 358px and 480px. Either way the number is REPORTED rather than asserted, so
+     * this tick can never silently start meaning "the POS is responsive".
      */
     claim(
       `${label}px ${scheme}: the photograph renders, the tile stays touchable, no sideways scroll`,
       !!shot?.img && shot.img.naturalWidth > 0 && shot.tile.h >= 100 && !page_.overflowsX,
       `tile ${shot?.tile.w}×${shot?.tile.h}, img ${shot?.img.w}×${shot?.img.h}, ` +
-        `menu column ${page_.gridW}px (pre-existing narrow below 1024), ` +
+        `menu column ${page_.gridW}px (the POS layout's own width, not this change's), ` +
         `body bg ${page_.bodyBg}, overflow-x=${page_.overflowsX}`,
     );
     await ctx.close();

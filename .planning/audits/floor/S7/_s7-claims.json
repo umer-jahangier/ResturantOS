@@ -2,12 +2,12 @@
   {
     "name": "manager upload persists and the API derives the menu route",
     "ok": true,
-    "detail": "imageUrl=/api/v1/pos/menu/images/30947187-408a-49d8-8b73-ae97ff19367c"
+    "detail": "imageUrl=/api/v1/pos/menu/images/422d82f5-0f2a-44c4-b514-91c42374fed7"
   },
   {
     "name": "the manager's own list paints the photograph after a full reload",
     "ok": true,
-    "detail": "{\"alt\":\"Butter Naan\",\"nw\":240,\"nh\":180}"
+    "detail": "{\"alt\":\"F16 Biryani 166428\",\"nw\":240,\"nh\":180}"
   },
   {
     "name": "the cashier's own bearer fetches the picture (was 403 PERMISSION_DENIED)",
@@ -22,7 +22,7 @@
   {
     "name": "the till grid renders the photograph on that dish's tile",
     "ok": true,
-    "detail": "Butter Naan: {\"alt\":\"Butter Naan\",\"naturalWidth\":240,\"naturalHeight\":180,\"w\":191,\"h\":143,\"objectFit\":\"cover\",\"display\":\"flex\",\"visibility\":\"visible\",\"opacity\":\"1\"}"
+    "detail": "F16 Biryani 166428: {\"alt\":\"F16 Biryani 166428\",\"naturalWidth\":240,\"naturalHeight\":180,\"w\":191,\"h\":143,\"objectFit\":\"cover\",\"display\":\"flex\",\"visibility\":\"visible\",\"opacity\":\"1\"}"
   },
   {
     "name": "the photograph is a thumb-sized target inside a thumb-sized tile",
@@ -37,12 +37,12 @@
   {
     "name": "the name and price stay legible BESIDE the photograph, never over it",
     "ok": true,
-    "detail": "overlaps=false font=14px colour=oklch(0.168 0.006 195) text=\"Butter Naan · Rs 80.00\""
+    "detail": "overlaps=false font=14px colour=oklch(0.168 0.006 195) text=\"F16 Biryani 166428 · Rs 850.00\""
   },
   {
     "name": "a dish with no picture renders cleanly in the same grid",
     "ok": true,
-    "detail": "Chicken Samosa: placeholder=true error=false img=false"
+    "detail": "F16 Karahi 166428: placeholder=true error=false img=false"
   },
   {
     "name": "no tile is a broken image",
@@ -67,22 +67,22 @@
   {
     "name": "390px light: the photograph renders, the tile stays touchable, no sideways scroll",
     "ok": true,
-    "detail": "tile 100×158, img 98×74, menu column 37px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
+    "detail": "tile 169×189, img 167×125, menu column 358px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
   },
   {
     "name": "390px dark: the photograph renders, the tile stays touchable, no sideways scroll",
     "ok": true,
-    "detail": "tile 100×158, img 98×74, menu column 37px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
+    "detail": "tile 169×189, img 167×125, menu column 358px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
   },
   {
     "name": "768px light: the photograph renders, the tile stays touchable, no sideways scroll",
     "ok": true,
-    "detail": "tile 100×158, img 98×74, menu column 159px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
+    "detail": "tile 149×174, img 147×110, menu column 480px (pre-existing narrow below 1024), body bg oklch(1 0 195), overflow-x=false"
   },
   {
     "name": "768px dark: the photograph renders, the tile stays touchable, no sideways scroll",
     "ok": true,
-    "detail": "tile 100×158, img 98×74, menu column 159px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
+    "detail": "tile 149×174, img 147×110, menu column 480px (pre-existing narrow below 1024), body bg oklch(0.132 0.006 195), overflow-x=false"
   },
   {
     "name": "1440px light: the photograph renders, the tile stays touchable, no sideways scroll",
