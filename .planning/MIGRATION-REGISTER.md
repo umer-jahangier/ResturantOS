@@ -67,6 +67,7 @@ No contention observed yet. The same rule applies — claim here first.
 | audit-service | Liquibase | **030** | `030-audit-events-rls.xml` applied. Partitioned: policy must be per-partition AND applied at creation — a parent-only policy leaks and its test stays green. |
 | crm-service | Liquibase | — | |
 | platform-admin, file | Liquibase | — | |
+| **ClickHouse** | `deploy/clickhouse/` | **V005** | `V005__discount_source.sql` held by `eloquent-napier-4baf6b`. A shared resource with the identical inference trap — claim here. |
 
 ## Renumbering is not finished until someone rebuilds with `clean`
 
@@ -83,6 +84,11 @@ target/classes/db/migration/  ->  V27__order_discount_source.sql  (stale, rename
                                   V28__order_discount_source.sql  (new)
 jar contained BOTH
 ```
+
+**A word-boundary grep does NOT find the filename you are renaming.** `_` is a word character, so
+there is no boundary between the `8` and the `_` in `V28__order_discount_source.sql` — `\bV28\b`
+matches every prose mention and silently skips the file itself. Sweep for **both** `\bV28\b` and
+`V28__`. Caught on the third rename of the same file, in a decision document, after two clean sweeps.
 
 **After any rename, rebuild with `clean` and verify the jar's contents**, e.g.
 `unzip -l <jar> | grep -oE 'V[0-9]+__[a-z_]+\.sql' | sort -V`. Confirm the old name is absent, not
