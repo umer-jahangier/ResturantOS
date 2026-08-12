@@ -1,6 +1,31 @@
 // Offline-first types: outbox operations, IndexedDB schema shapes.
 
-export type OutboxOpType = "CREATE_ORDER" | "APPEND_ITEMS" | "UPDATE_INSTRUCTIONS";
+export type OutboxOpType =
+  | "CREATE_ORDER"
+  | "APPEND_ITEMS"
+  | "UPDATE_INSTRUCTIONS"
+  /**
+   * Fire the order's PENDING lines as a kitchen revision — the outbox twin of
+   * `POST /pos/orders/{id}/send-to-kds`.
+   *
+   * Its ABSENCE was S0-07: the outbox could create an order offline and add its lines,
+   * but the fire the cashier actually pressed had no wire representation at all, so it
+   * was simply dropped. The order replayed on reconnect as a DRAFT that the kitchen
+   * never saw, while the till had said "Sent to kitchen".
+   */
+  | "SEND_TO_KDS";
+
+/**
+ * Payload of a {@link OutboxOpType} `SEND_TO_KDS` op.
+ *
+ * `clientFireId` is minted once, at ENQUEUE time, and replayed verbatim as the
+ * Idempotency-Key header. Minting it at REPLAY time instead would hand the server a
+ * fresh key on every retry, so a fire that actually succeeded but whose response was
+ * lost would fire a SECOND revision — the kitchen cooking the same ticket twice.
+ */
+export interface SendToKdsOpPayload {
+  clientFireId: string;
+}
 // DEAD = retries exhausted (attempts reached MAX_ATTEMPTS). A terminal state: the op is
 // no longer auto-retried and is EXCLUDED from the "queued" badge count so a permanently
 // failing op can't inflate the pill forever. It stays in the outbox for operator review

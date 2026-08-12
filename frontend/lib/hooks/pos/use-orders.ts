@@ -1,13 +1,18 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { PosRepository } from "@/lib/repositories/pos.repository";
 import { queryKeys } from "@/lib/hooks/query-keys";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import { useOnlineStatus } from "@/lib/offline/use-online-status";
 import { enqueue } from "@/lib/offline/outbox";
+import { resolveSyncedOrderId, subscribeResolvedOrderIds } from "@/lib/offline/sync-engine";
+import type { SendToKdsOpPayload } from "@/lib/offline/types";
 import type {
+  MenuItem,
   Order,
+  OrderItem,
   AddItemPayload,
   ApplyDiscountPayload,
   CreateOrderPayload,
@@ -23,12 +28,29 @@ import type {
  * hook for an explicit terminal-`statuses` request (e.g. the Order Management Closed
  * filter) without it fetching until that filter is actually selected — additive,
  * defaults to `true` so every existing call site is unaffected.
+ *
+ * `options.q` (S0-05): a SERVER-side search term. The search box used to filter the rows
+ * this hook had already returned, which meant it could only ever find an order that was both
+ * on the current page and inside the current status chip — a voided check was invisible to a
+ * search for its own number. With `q` set the server matches order number, table name and the
+ * attached customer's phone/name across every status, so the search reaches rows the page
+ * never fetched. `options.size` widens the page for those results.
  */
-export function useOrderSummaries(statuses?: string[], options?: { enabled?: boolean }) {
+export function useOrderSummaries(
+  statuses?: string[],
+  options?: { enabled?: boolean; q?: string; size?: number },
+) {
   const { branchId, isAuthenticated } = useCurrentUser();
+  const q = options?.q?.trim() || undefined;
   return useQuery({
-    queryKey: queryKeys.pos.orderSummaries(branchId, statuses),
-    queryFn: () => PosRepository.listOrderSummaries({ branchId, status: statuses }),
+    queryKey: queryKeys.pos.orderSummaries(branchId, statuses, q),
+    queryFn: () =>
+      PosRepository.listOrderSummaries({
+        branchId,
+        status: statuses,
+        ...(q ? { q } : {}),
+        ...(options?.size ? { size: options.size } : {}),
+      }),
     enabled: isAuthenticated && !!branchId && (options?.enabled ?? true),
     // Order Management is an operational list that must show accurate data the moment
     // it opens. The global default (staleTime 30s, refetchOnMount honours staleness)
@@ -59,10 +81,25 @@ const ORDER_REFETCH_INTERVAL_MS = 15000;
 
 export function useOrder(orderId: string) {
   const { branchId, isAuthenticated } = useCurrentUser();
+  /**
+   * Follow an offline-created order to the id the server gave it (S0-07).
+   *
+   * A terminal that rang an order while the line was down holds a LOCAL stub id. Once the
+   * outbox replays, the server issues its own id and the stub resolves to nothing — the
+   * panel used to keep rendering a "New Order / Draft" ghost with no order number and a
+   * live Send to Kitchen button, while the real ORD-…-0053 existed in Order Management.
+   * `useSyncExternalStore` re-reads on every remap and bails out when the string is
+   * unchanged, so the far more common case (an id that was always real) costs nothing.
+   */
+  const resolvedId = useSyncExternalStore(
+    subscribeResolvedOrderIds,
+    () => resolveSyncedOrderId(orderId),
+    () => orderId,
+  );
   return useQuery({
-    queryKey: queryKeys.pos.order(branchId, orderId),
-    queryFn: () => PosRepository.getOrder(orderId, branchId),
-    enabled: isAuthenticated && !!branchId && !!orderId,
+    queryKey: queryKeys.pos.order(branchId, resolvedId),
+    queryFn: () => PosRepository.getOrder(resolvedId, branchId),
+    enabled: isAuthenticated && !!branchId && !!resolvedId,
     refetchInterval: ORDER_REFETCH_INTERVAL_MS,
   });
 }
@@ -150,8 +187,15 @@ export function useAddItem() {
         // clientOrderId for APPEND_ITEMS is the server orderId (or local id when
         // the order was also created offline in this session).
         await enqueue({ type: "APPEND_ITEMS", clientOrderId: orderId, payload });
-        // Return a minimal stub so the mutation resolves without an error.
-        return buildOfflineOrderStub(orderId, branchId, { branchId, clientOrderId: orderId });
+        // S0-07: this used to return a FRESH zero-money stub, which onSuccess then wrote
+        // over the cache — so the panel showed "Subtotal Rs 0.00 / Total Rs 0.00" for a
+        // real Rs 499 order. Accumulate onto whatever the cache already holds instead,
+        // pricing the line from the cached menu the cashier just tapped.
+        const key = queryKeys.pos.order(branchId, orderId);
+        const base =
+          queryClient.getQueryData<Order>(key) ??
+          buildOfflineOrderStub(orderId, branchId, { branchId, clientOrderId: orderId });
+        return appendOfflineItem(base, payload, findCachedMenuItem(queryClient, branchId, payload));
       }
 
       return PosRepository.addItem(orderId, payload);
@@ -202,11 +246,26 @@ export function useApplyDiscount(orderId: string) {
  * mutateAsync/isPending.
  */
 export function useSendToKds(orderId: string) {
+  const { isOnline } = useOnlineStatus();
   const queryClient = useQueryClient();
   const { branchId } = useCurrentUser();
   return useMutation({
-    mutationFn: () => PosRepository.sendToKds(orderId, crypto.randomUUID()),
-    onSuccess: () => {
+    // See the networkMode note on useCreateOrder — without it React Query PAUSES the
+    // mutation while offline and the caller's await never settles, which is how the
+    // offline fire went missing in the first place (S0-07).
+    networkMode: "always",
+    /** Resolves to the fired order, or `null` when the fire was QUEUED for reconnect. */
+    mutationFn: async (): Promise<Order | null> => {
+      if (!isOnline) {
+        const payload: SendToKdsOpPayload = { clientFireId: crypto.randomUUID() };
+        await enqueue({ type: "SEND_TO_KDS", clientOrderId: orderId, payload });
+        return null;
+      }
+      return PosRepository.sendToKds(orderId, crypto.randomUUID());
+    },
+    onSuccess: (fired) => {
+      // Offline there is nothing to re-read; the panel's "Queued" strip reads the outbox.
+      if (!fired) return;
       queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
       queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
       // `queryKeys.pos.orderSummaries` lives under a DIFFERENT key segment
@@ -273,6 +332,29 @@ export function useUpdateInstructions(orderId: string) {
 }
 
 /**
+ * S0-06 — "Mark served & close order", the settlement screen's terminal step.
+ *
+ * <p>Deliberately NOT offline-capable and deliberately not optimistic: closing an order is the
+ * event finance posts revenue from, and the server decides whether it happens (it closes only
+ * when the check is also fully paid). The screen must show the server's answer, not a hopeful
+ * one. Invalidates the same keys as `useMarkServed` plus the order LIST, because a close moves
+ * the row out of every active filter and into Closed.
+ */
+export function useServeAllItems(orderId: string) {
+  const queryClient = useQueryClient();
+  const { branchId } = useCurrentUser();
+  return useMutation({
+    mutationFn: () => PosRepository.serveAllItems(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.order(branchId, orderId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.tables(branchId) });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["pos", branchId, "order-summaries"] });
+    },
+  });
+}
+
+/**
  * Marks a single line SERVED (cashier/server-side action, never from the KDS — the
  * kitchen has no visibility once food leaves the pass). Server-authoritative, not
  * offline-critical per UI-SPEC — no outbox path.
@@ -314,6 +396,80 @@ export function useCancelItem(orderId: string) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * The menu row backing an offline line, read out of the SAME TanStack cache the menu grid
+ * rendered from. The cashier could only have tapped a tile that is in that cache, so this
+ * is the price they were looking at when they tapped — not a second source of truth.
+ */
+function findCachedMenuItem(
+  queryClient: QueryClient,
+  branchId: string,
+  payload: AddItemPayload,
+): MenuItem | undefined {
+  // Prefix match: the key is ["pos", branchId, "menu-items", categoryId?], and the grid
+  // may hold one entry per category filter.
+  const entries = queryClient.getQueriesData({ queryKey: ["pos", branchId, "menu-items"] });
+  for (const [, data] of entries) {
+    if (!Array.isArray(data)) continue;
+    const hit = (data as MenuItem[]).find((item) => item?.id === payload.menuItemId);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/**
+ * Append one queued line to an offline order and re-total it.
+ *
+ * Mirrors pos-service's `OrderPricingCalculator` exactly, because the number on this
+ * screen is the number the guest is told:
+ *   lineSubtotal = unitPrice * qty · lineTax = HALF_UP(lineSubtotal * pct/100)
+ *   lineTotal    = lineSubtotal + lineTax          (tax-INCLUSIVE, per `lineTotal()`)
+ *   order.subtotal = Σ lineSubtotal · order.total = subtotal + tax
+ * All integer paisa — `Math.round` on a positive value IS HALF_UP, and it is the same
+ * expression `cartTaxPaisa` already uses for the pre-send estimate, so the cart total and
+ * the queued-order total agree to the paisa.
+ *
+ * The server recomputes authoritatively when the outbox replays; until then this is the
+ * cashier's honest best estimate rather than a zero.
+ */
+function appendOfflineItem(
+  order: Order,
+  payload: AddItemPayload,
+  menuItem: MenuItem | undefined,
+): Order {
+  const unitPricePaisa = menuItem?.basePricePaisa ?? 0;
+  const lineSubtotal = unitPricePaisa * payload.quantity;
+  const lineTax = Math.round((lineSubtotal * (menuItem?.taxRatePct ?? 0)) / 100);
+
+  const item: OrderItem = {
+    id: `offline:${crypto.randomUUID()}`,
+    menuItemId: payload.menuItemId,
+    itemNameSnapshot: menuItem?.name ?? "Queued item",
+    unitPriceSnapshot: unitPricePaisa,
+    quantity: payload.quantity,
+    kdsStation: menuItem?.kdsStation ?? null,
+    itemStatus: "PENDING",
+    revisionNo: 0,
+    firedAt: null,
+    discountPaisa: 0,
+    taxPaisa: lineTax,
+    lineTotalPaisa: lineSubtotal + lineTax,
+    notes: payload.notes ?? null,
+    modifiers: [],
+  };
+
+  const items = [...order.items, item];
+  const subtotalPaisa = order.subtotalPaisa + lineSubtotal;
+  const taxPaisa = order.taxPaisa + lineTax;
+  return {
+    ...order,
+    items,
+    subtotalPaisa,
+    taxPaisa,
+    totalPaisa: subtotalPaisa - order.discountPaisa + taxPaisa + order.serviceChargePaisa,
+  };
+}
 
 function buildOfflineOrderStub(
   clientOrderId: string,

@@ -18,6 +18,7 @@ import type {
   AddItemPayload,
   UpdateInstructionsPayload,
 } from "@/lib/models/pos.model";
+import type { SendToKdsOpPayload } from "./types";
 import {
   count,
   markFailed,
@@ -33,6 +34,43 @@ let isReplaying = false;
 export interface ReplayResult {
   synced: number;
   failed: number;
+}
+
+// ── Stub id → server id, for the surfaces still holding the stub ──────────────
+
+/**
+ * Local stub order id → the id the server actually assigned, for every order this tab
+ * created while offline.
+ *
+ * `repointQueuedOps` already fixes up the OUTBOX, but the terminal that rang the order is
+ * still holding the stub id in React state and asking `useOrder` for it. Once the create
+ * replays, that id resolves to nothing: the panel kept rendering a "New Order / Draft"
+ * ghost with no order number and a live Send to Kitchen button, while the real
+ * ORD-…-0053 sat in Order Management (measured 2026-08-12, S0-07 reconnect probe). This
+ * map is how `useOrder` follows the order to its real id.
+ *
+ * In-memory on purpose: a stub id only exists inside the session that minted it, and a
+ * reload drops the component state holding it too.
+ */
+const resolvedOrderIds = new Map<string, string>();
+const resolvedListeners = new Set<() => void>();
+
+/** The server id for a local stub id, or the id itself when it is already the real one. */
+export function resolveSyncedOrderId(orderId: string): string {
+  return resolvedOrderIds.get(orderId) ?? orderId;
+}
+
+/** Subscribe to remaps (useSyncExternalStore-shaped). Returns an unsubscribe fn. */
+export function subscribeResolvedOrderIds(cb: () => void): () => void {
+  resolvedListeners.add(cb);
+  return () => {
+    resolvedListeners.delete(cb);
+  };
+}
+
+/** Test seam: forget every remap (a fresh session has none). */
+export function resetResolvedOrderIds(): void {
+  resolvedOrderIds.clear();
 }
 
 /**
@@ -77,6 +115,9 @@ export async function replay(): Promise<ReplayResult> {
           });
           if (created.id !== op.clientOrderId) {
             idRemap.set(op.clientOrderId, created.id);
+            // Tell the UI too, not just the outbox — see resolvedOrderIds above.
+            resolvedOrderIds.set(op.clientOrderId, created.id);
+            resolvedListeners.forEach((cb) => cb());
             await repointQueuedOps(op.clientOrderId, created.id);
           }
         } else if (op.type === "APPEND_ITEMS") {
@@ -92,6 +133,18 @@ export async function replay(): Promise<ReplayResult> {
             targetOrderId,
             op.payload as UpdateInstructionsPayload,
           );
+        } else if (op.type === "SEND_TO_KDS") {
+          // The fire the cashier actually pressed while the line was down (S0-07).
+          // Ordering is guaranteed by the FIFO drain plus outbox.enqueue's monotonic
+          // createdAt: the CREATE_ORDER and every APPEND_ITEMS for this order were
+          // enqueued first, so by the time this op replays the order exists and its
+          // lines are on it — which is what makes the revision non-empty.
+          //
+          // clientFireId travels IN THE PAYLOAD, minted at enqueue time, so a retry of
+          // a fire whose response was lost is deduped server-side instead of firing a
+          // second revision.
+          const { clientFireId } = op.payload as SendToKdsOpPayload;
+          await PosRepository.sendToKds(targetOrderId, clientFireId);
         }
 
         await markSynced(op.id);

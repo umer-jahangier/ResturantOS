@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — RestaurantOS till</title>
+    <!--
+      The POS offline shell (S0-07).
+
+      Reloading the till while the line is down used to produce
+      net::ERR_INTERNET_DISCONNECTED and a blank white page: the cashier had no way to
+      tell a dead app from a dead network, and no way to see that their queued tickets
+      were still safe. The service worker serves this document for any navigation it
+      cannot fetch.
+
+      It is deliberately self-contained — no bundler, no fonts, no network of any kind,
+      because by definition there is none. The colours are the design system's own tokens
+      copied verbatim from app/globals.css (brand hue 195), not a second palette, and
+      there is no transform/filter/backdrop-filter anywhere: those break the receipt
+      print path and this page is inside the same POS surface.
+    -->
+    <style>
+      :root {
+        --brand-h: 195;
+        --background: oklch(1 0 var(--brand-h));
+        --foreground: oklch(0.168 0.006 var(--brand-h));
+        --card: oklch(1 0 var(--brand-h));
+        --border: oklch(0.928 0.006 var(--brand-h));
+        --muted-foreground: oklch(0.508 0.01 var(--brand-h));
+        --primary: oklch(0.512 0.0873 var(--brand-h));
+        --primary-foreground: oklch(1 0 var(--brand-h));
+        --warning: oklch(0.74 0.1305 86);
+        --radius: 0.5rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: oklch(0.132 0.006 var(--brand-h));
+          --foreground: oklch(0.985 0.002 var(--brand-h));
+          --card: oklch(0.168 0.006 var(--brand-h));
+          --border: oklch(0.302 0.008 var(--brand-h));
+          --muted-foreground: oklch(0.74 0.01 var(--brand-h));
+          --primary: oklch(0.775 0.104 var(--brand-h));
+          --primary-foreground: oklch(0.132 0.006 var(--brand-h));
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: var(--background);
+        color: var(--foreground);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      main {
+        width: 100%;
+        max-width: 30rem;
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) * 1.8);
+        background: var(--card);
+        padding: 1.75rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid color-mix(in oklch, var(--warning) 30%, transparent);
+        background: color-mix(in oklch, var(--warning) 12%, transparent);
+        border-radius: 999px;
+        padding: 0.25rem 0.7rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      .dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: var(--warning);
+      }
+
+      h1 {
+        margin: 1rem 0 0.5rem;
+        font-size: 1.35rem;
+        line-height: 1.25;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0 0 0.75rem;
+        color: var(--muted-foreground);
+      }
+
+      #queued {
+        margin: 1.25rem 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #queued strong {
+        color: var(--foreground);
+        font-size: 1.15rem;
+      }
+
+      button {
+        width: 100%;
+        min-height: 2.75rem;
+        border: 0;
+        border-radius: calc(var(--radius) * 1.4);
+        background: var(--primary);
+        color: var(--primary-foreground);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:active {
+        opacity: 0.9;
+      }
+
+      .foot {
+        margin: 0.9rem 0 0;
+        font-size: 0.78rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main role="main">
+      <span class="pill"><span class="dot"></span>Offline</span>
+      <h1>The till is offline</h1>
+      <p>
+        This device cannot reach the restaurant's server right now. Nothing has been lost —
+        anything you rang while offline is stored on this device.
+      </p>
+
+      <div id="queued" role="status" aria-live="polite" data-testid="offline-shell-queued">
+        <strong id="queued-count">…</strong>
+        <span id="queued-label">checking queued tickets</span>
+      </div>
+
+      <button type="button" id="retry" data-testid="offline-shell-retry">Try again</button>
+      <p class="foot">
+        The till reopens by itself the moment the connection returns, and every queued
+        ticket is sent to the kitchen then.
+      </p>
+    </main>
+
+    <script>
+      // Read the SAME IndexedDB outbox the app writes to (lib/offline/db.ts), so the
+      // count on this page is the real queue and not a reassuring guess.
+      (function () {
+        var countEl = document.getElementById("queued-count");
+        var labelEl = document.getElementById("queued-label");
+
+        function render(n) {
+          countEl.textContent = String(n);
+          labelEl.textContent =
+            n === 1
+              ? "queued action waiting to reach the server"
+              : "queued actions waiting to reach the server";
+        }
+
+        try {
+          var req = indexedDB.open("restaurantos-pos");
+          req.onerror = function () {
+            render(0);
+          };
+          req.onsuccess = function () {
+            var db = req.result;
+            if (!db.objectStoreNames.contains("outbox")) return render(0);
+            var all = db.transaction("outbox", "readonly").objectStore("outbox").getAll();
+            all.onsuccess = function () {
+              render(
+                all.result.filter(function (op) {
+                  return op.status !== "SYNCED";
+                }).length,
+              );
+            };
+            all.onerror = function () {
+              render(0);
+            };
+          };
+        } catch (e) {
+          render(0);
+        }
+
+        document.getElementById("retry").addEventListener("click", function () {
+          window.location.replace("/app/pos");
+        });
+
+        // Come back automatically the instant the browser sees a connection again.
+        window.addEventListener("online", function () {
+          window.location.replace("/app/pos");
+        });
+      })();
+    </script>
+  </body>
+</html>

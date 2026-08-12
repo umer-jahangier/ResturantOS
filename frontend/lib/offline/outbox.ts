@@ -3,6 +3,24 @@ import type { OutboxOp, OutboxOpType, OutboxStatus } from "./types";
 
 // ── Enqueue ───────────────────────────────────────────────────────────────────
 
+/**
+ * Last `createdAt` handed out by {@link nextCreatedAt}, so replay order is STRICT even
+ * when several ops are enqueued inside the same millisecond.
+ *
+ * `peekPending()` sorts on `createdAt`; `getAllFromIndex` returns rows in primary-key
+ * (random uuid) order, so two ops sharing a timestamp fall back to an arbitrary order.
+ * That is fine for two APPEND_ITEMS, and fatal for CREATE_ORDER → APPEND_ITEMS →
+ * SEND_TO_KDS: firing before the order exists 404s, and firing before its lines land
+ * fires an empty revision. A monotonic counter costs nothing and removes the race.
+ */
+let lastCreatedAt = 0;
+
+function nextCreatedAt(): number {
+  const now = Date.now();
+  lastCreatedAt = now > lastCreatedAt ? now : lastCreatedAt + 1;
+  return lastCreatedAt;
+}
+
 /** Write a new PENDING operation to the outbox. */
 export async function enqueue(
   op: Omit<OutboxOp, "id" | "status" | "attempts" | "createdAt">,
@@ -13,7 +31,7 @@ export async function enqueue(
     id: crypto.randomUUID(),
     status: "PENDING",
     attempts: 0,
-    createdAt: Date.now(),
+    createdAt: nextCreatedAt(),
   };
   await db.add("outbox", record);
 
@@ -108,6 +126,36 @@ export async function dismissDead(): Promise<void> {
 export async function count(status: OutboxStatus): Promise<number> {
   const db = await getDb();
   return db.countFromIndex("outbox", "by-status", status);
+}
+
+/** What is still owed to the server for ONE order — the truth behind the "Queued" strip. */
+export interface QueuedForOrder {
+  /** Ops still in the auto-retry pipeline (PENDING + IN_FLIGHT + FAILED). */
+  queued: number;
+  /** True while a SEND_TO_KDS op for this order has not reached the kitchen yet. */
+  fireQueued: boolean;
+  /** Ops that exhausted their retries and need an operator Retry/Dismiss. */
+  dead: number;
+}
+
+/**
+ * Ops still owed for a single order id.
+ *
+ * The order panel must be able to say "the kitchen has NOT seen this yet" without
+ * inventing a status the domain does not have: the outbox is the only place that knows,
+ * so the UI reads it here rather than trusting an optimistic stub.
+ */
+export async function queuedForOrder(orderId: string): Promise<QueuedForOrder> {
+  const db = await getDb();
+  const ops = (await db.getAll("outbox")).filter((op) => op.clientOrderId === orderId);
+  const live = ops.filter(
+    (op) => op.status === "PENDING" || op.status === "IN_FLIGHT" || op.status === "FAILED",
+  );
+  return {
+    queued: live.length,
+    fireQueued: live.some((op) => op.type === "SEND_TO_KDS"),
+    dead: ops.filter((op) => op.status === "DEAD").length,
+  };
 }
 
 // ── Internal helpers (exported for sync-engine) ───────────────────────────────

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, Minus, Plus, X } from "lucide-react";
+import { CloudOff, MessageSquare, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MoneyDisplay } from "@/components/ui/money-display";
@@ -27,6 +27,7 @@ import {
   useUpdateInstructions,
   useSendToKds,
 } from "@/lib/hooks/pos/use-orders";
+import { useQueuedOps } from "@/lib/hooks/pos/use-queued-ops";
 import { getOrderDisplayStatus, type Order, type OrderType } from "@/lib/models/pos.model";
 import { cn } from "@/lib/utils";
 
@@ -315,6 +316,9 @@ interface SentOrderProps {
 function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
   const sendToKds = useSendToKds(order.id);
   const updateInstructions = useUpdateInstructions(order.id);
+  // What this order still owes the server (S0-07). Read from the outbox, not guessed
+  // from the optimistic stub — see useQueuedOps.
+  const queued = useQueuedOps(order.id);
 
   const isSettled = SETTLED_STATUSES.has(order.status);
   const pendingItems = order.items.filter((i) => i.itemStatus === "PENDING");
@@ -331,6 +335,14 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
     const firingCount = pendingItems.length;
     try {
       const updated = await sendToKds.mutateAsync();
+      if (!updated) {
+        // Queued, not fired. Saying "sent to kitchen" here is precisely the lie that
+        // made a cashier stop watching an order the kitchen never received (S0-07).
+        toast.info(
+          `Queued — ${firingCount} item(s) reach the kitchen as soon as the connection returns.`,
+        );
+        return;
+      }
       const newRevisionNo = Math.max(0, ...updated.items.map((i) => i.revisionNo));
       toast.success(`Rev ${newRevisionNo} sent to kitchen — ${firingCount} item(s)`);
     } catch {
@@ -343,14 +355,26 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
       {/* Order header */}
       <div className="shrink-0 px-4 py-3 border-b space-y-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-semibold text-sm">{order.orderNo ?? "New Order"}</span>
-          <StatusBadge status={displayStatus} />
+          <span className="font-semibold text-sm">
+            {order.orderNo ?? (queued.queued > 0 ? "Queued order" : "New Order")}
+          </span>
+          <StatusBadge
+            status={displayStatus}
+            {...(queued.fireQueued
+              ? {
+                  label: "Queued to fire",
+                  className: "bg-warning/15 text-warning border-warning/30",
+                }
+              : {})}
+          />
         </div>
         {order.coverCount > 0 && (
           <p className="text-xs text-muted-foreground">{order.coverCount} cover(s)</p>
         )}
         {revisions.length > 0 && <RevisionCountChip revisions={revisions} />}
       </div>
+
+      {queued.queued > 0 && <QueuedStrip queued={queued} />}
 
       {/* Special instructions (order-level, POS-13) */}
       <SpecialInstructionsField
@@ -429,6 +453,36 @@ function SentOrder({ order, onClearNewOrder }: SentOrderProps) {
           Clear / New Order
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The one sentence that stops a cashier walking away from an order the kitchen has not
+ * received (S0-07). It is a `role="status"` that STAYS on screen for as long as the
+ * outbox owes this order anything — a toast is gone in four seconds, and the toast was
+ * exactly what a cashier missed while looking at the queue.
+ *
+ * DESIGN-BRIEF §27: says what happened and what happens next, never a technical error.
+ */
+function QueuedStrip({ queued }: { queued: ReturnType<typeof useQueuedOps> }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="order-queued-strip"
+      className="shrink-0 flex items-start gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2.5 text-small text-foreground"
+    >
+      <CloudOff className="size-4 shrink-0 text-warning" aria-hidden="true" />
+      <p>
+        <span className="font-semibold">
+          {queued.fireQueued
+            ? "Queued — the kitchen has not seen this yet."
+            : "Queued — not saved to the server yet."}
+        </span>{" "}
+        {queued.queued} change{queued.queued === 1 ? "" : "s"} will send the moment the
+        connection returns. Keep this order open, or find it in Order Management afterwards.
+      </p>
     </div>
   );
 }

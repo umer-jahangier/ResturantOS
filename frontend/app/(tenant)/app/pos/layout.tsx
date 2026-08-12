@@ -6,8 +6,14 @@ import { replay, emitProgress } from "@/lib/offline/sync-engine";
 import { OfflineIndicator } from "@/components/pos/offline-indicator";
 import { SyncStatusBadge } from "@/components/pos/sync-status-badge";
 import { ZoneProvider } from "@/components/providers/zone-provider";
+import { useOutboxDrainRefresh } from "@/lib/hooks/pos/use-outbox-drain-refresh";
 
 export default function PosLayout({ children }: { children: React.ReactNode }) {
+  // Everything this tab has cached about POS is stale the moment a replay pass rewrites
+  // it server-side — and the replay runs outside the mutation hooks that would normally
+  // invalidate (S0-07).
+  useOutboxDrainRefresh();
+
   useEffect(() => {
     // Register service worker so the POS shell is cached for offline use.
     void registerSW();
