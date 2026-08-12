@@ -1,0 +1,115 @@
+{
+  "when": "2026-08-12T11:15:24.112Z",
+  "hire": "f12ro.hire.187272@terrace.local",
+  "victim": "f12ro.reset.187272@terrace.local",
+  "reloadDropsPanel": true,
+  "urlsSeen": [
+    "http://localhost:3000/login",
+    "http://localhost:3000/app/dashboard"
+  ],
+  "results": [
+    {
+      "ok": true,
+      "what": "forced-change panel renders in place",
+      "detail": "count=1"
+    },
+    {
+      "ok": true,
+      "what": "address bar is exactly /login",
+      "detail": "http://localhost:3000/login"
+    },
+    {
+      "ok": true,
+      "what": "location.search empty at the change step",
+      "detail": "\"\""
+    },
+    {
+      "ok": true,
+      "what": "document.referrer carries no token/email",
+      "detail": "(empty)"
+    },
+    {
+      "ok": true,
+      "what": "reload does not resurrect a token/email in the URL",
+      "detail": "http://localhost:3000/login"
+    },
+    {
+      "ok": true,
+      "what": "reload lands on a usable screen (panel or sign-in), not a dead end",
+      "detail": "panel=0 loginForm=1"
+    },
+    {
+      "ok": true,
+      "what": "a wrong current password is NOT reported as an expired session",
+      "detail": "http://localhost:3000/login"
+    },
+    {
+      "ok": true,
+      "what": "the panel renders its own refusal message",
+      "detail": "Could not change passwordThat link has expired or the current password is wrong. Sign in again to get a new link."
+    },
+    {
+      "ok": true,
+      "what": "address bar still /login after the refusal",
+      "detail": "http://localhost:3000/login"
+    },
+    {
+      "ok": true,
+      "what": "panel reachable again after a failed attempt",
+      "detail": null
+    },
+    {
+      "ok": false,
+      "what": "the change reports success",
+      "detail": "Your shift is unavailable right now.The part of RestaurantOS that handles your shift is not answering. This is not something you did, and nothing you have entered has been lost.Try again"
+    },
+    {
+      "ok": true,
+      "what": "search still empty after the change",
+      "detail": "\"\""
+    },
+    {
+      "ok": true,
+      "what": "the new password signs in and leaves /login",
+      "detail": "http://localhost:3000/app/dashboard"
+    },
+    {
+      "ok": true,
+      "what": "no URL in the whole flow carried token= or email=",
+      "detail": "leaks=0"
+    },
+    {
+      "ok": true,
+      "what": "the change token is single-use — replay refused",
+      "detail": "HTTP 401"
+    },
+    {
+      "ok": true,
+      "what": "a change token cannot be redeemed against another account",
+      "detail": "HTTP 401"
+    },
+    {
+      "ok": true,
+      "what": "a stale link lands on a clean /login",
+      "detail": "http://localhost:3000/login"
+    },
+    {
+      "ok": true,
+      "what": "the stale query string is NOT forwarded",
+      "detail": "\"\""
+    },
+    {
+      "ok": null,
+      "what": "admin reset adjacent path",
+      "detail": "reset control not reachable in UI"
+    },
+    {
+      "ok": true,
+      "what": "a cashier cannot mint one-time passwords",
+      "detail": "denied=true addBtns=0"
+    }
+  ],
+  "failures": [
+    "the change reports success"
+  ]
+}
