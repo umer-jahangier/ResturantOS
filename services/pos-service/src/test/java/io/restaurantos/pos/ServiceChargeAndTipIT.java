@@ -456,11 +456,20 @@ class ServiceChargeAndTipIT extends PosTestBase {
         assertThat(serviceChargeService.get(branchId).canManage()).isTrue();
     }
 
-    /** An unconfigured branch answers with a policy, never a 404 — see the DTO's javadoc. */
+    /**
+     * An unconfigured branch answers with a policy, never a 404 — see the DTO's javadoc.
+     *
+     * <p>This used to read {@code get(UUID.randomUUID())}, which passed only because the read
+     * accepted any UUID on earth. That made the test a statement about two different things at
+     * once — "a branch of mine with no row" and "a branch that is not mine" — and it was the
+     * second one that was the defect. It now asks the question it was always meant to ask, about
+     * the caller's OWN branch, which no test in this class has configured. The other half moved to
+     * {@code ServiceChargeBranchIsolationIT}, where a foreign branch is required to 404.
+     */
     @Test
     void anUnconfiguredBranchReadsAsNoServiceChargeRatherThanAnAbsence() {
         asOwner();
-        ServiceChargePolicyDto policy = serviceChargeService.get(UUID.randomUUID());
+        ServiceChargePolicyDto policy = serviceChargeService.get(branchId);
         assertThat(policy.enabled()).isFalse();
         assertThat(policy.ratePct()).isEqualByComparingTo("0");
         assertThat(policy.label()).isEqualTo("Service charge");

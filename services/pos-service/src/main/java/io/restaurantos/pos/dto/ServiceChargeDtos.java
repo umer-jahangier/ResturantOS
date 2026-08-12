@@ -15,10 +15,15 @@ public class ServiceChargeDtos {
     /**
      * A branch's policy, as read.
      *
-     * <p>Always answered, never 404: a branch nobody has configured has a policy, and that policy
-     * is "no service charge". Returning "not found" would make the screen guess whether it is
-     * looking at an unconfigured branch or a broken read — the fold-a-failure-into-an-empty-state
-     * shape this codebase has already been bitten by.
+     * <p>Always answered for a branch the caller holds, never 404: a branch nobody has configured
+     * has a policy, and that policy is "no service charge". Returning "not found" would make the
+     * screen guess whether it is looking at an unconfigured branch or a broken read — the
+     * fold-a-failure-into-an-empty-state shape this codebase has already been bitten by.
+     *
+     * <p>A branch the caller does NOT hold is the one case that 404s, and it is not an exception
+     * to the above — it is the house rule that a foreign tenant's resource reads as absent. Before
+     * that check existed this record was synthesised for any UUID at all, which made "unconfigured"
+     * indistinguishable from "not yours". See {@code ServiceChargeServiceImpl.requireOwnBranch}.
      *
      * @param canManage whether the caller may change it. On the wire because the screen renders
      *                  read-only for a MANAGER rather than refusing them the page: a manager asked
