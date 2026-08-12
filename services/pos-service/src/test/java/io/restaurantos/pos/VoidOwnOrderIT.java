@@ -1,9 +1,13 @@
 package io.restaurantos.pos;
 
+import io.restaurantos.pos.consumer.KitchenItemStatusConsumer;
+import io.restaurantos.pos.domain.enums.DerivedOrderStatus;
+import io.restaurantos.pos.domain.enums.OrderItemStatus;
 import io.restaurantos.pos.domain.enums.OrderStatus;
 import io.restaurantos.pos.domain.enums.PaymentMethod;
 import io.restaurantos.pos.domain.model.MenuCategory;
 import io.restaurantos.pos.domain.model.MenuItem;
+import io.restaurantos.pos.domain.model.Order;
 import io.restaurantos.pos.authz.PosAuthorizationService;
 import io.restaurantos.pos.dto.*;
 import io.restaurantos.pos.exception.PosExceptions;
@@ -166,6 +170,8 @@ class VoidOwnOrderIT extends PosTestBase {
     @Autowired OrderPaymentRepository orderPaymentRepository;
     @Autowired OrderRepository orderRepository;
     @Autowired TenantContext tenantContext;
+    /** The bean the {@code kitchen.item.status} RabbitMQ listener delegates to — the real seam. */
+    @Autowired KitchenItemStatusConsumer kitchenItemStatusConsumer;
 
     UUID tenantId;
     UUID branchId;
@@ -350,19 +356,121 @@ class VoidOwnOrderIT extends PosTestBase {
     // ── (3) the boundary on the other side: once food is plated it is a manager's call ────
 
     /**
-     * The widening stops at the pass. From {@code PARTIAL_READY} onward the kitchen has plated
-     * something, and writing off food that was cooked is {@code void.any}'s business. If this ever
-     * starts passing, {@code void.own} has been loosened past the decision that was made.
+     * The widening stops at the pass: once the kitchen has plated something, writing it off is
+     * {@code void.any}'s business.
+     *
+     * <h3>Why this test was rewritten (B2 re-open)</h3>
+     *
+     * <p>The previous version called {@code authorizeVoid} directly with the hand-written strings
+     * {@code "PARTIAL_READY", "READY", "SERVED", "CLOSED"} and asserted each was refused. It passed
+     * green for three weeks while the boundary it claimed to guard did not exist, because
+     * <b>{@code order.status} never holds any of those first three values</b>. Six
+     * {@code setStatus(OrderStatus.…)} call sites exist in {@code pos-service} and they write
+     * DRAFT, OPEN, SENT_TO_KDS, CLOSED, VOIDED and REFUNDED — nothing else.
+     * {@code setStatus(SERVED)} and {@code setStatus(PARTIAL_READY)} have never existed in this
+     * repository's history; {@code setStatus(READY)} lived eleven days and was deleted on purpose
+     * in {@code fc6f389f} ("no more order-level hand-set"), which moved kitchen progress to
+     * per-item statuses and the computed {@code derivedStatus}.
+     *
+     * <p>So the old test fed the policy four statuses, three of which production cannot produce,
+     * and read the resulting denials as proof of a live control. Its own docblock claimed "if this
+     * ever starts passing, void.own has been loosened" — but it could not fail for the reason that
+     * mattered, which was that the branch was unreachable and a cashier could in fact void a
+     * cooked, served, unpaid check. Measured live on 2026-08-12: {@code ORD-20260812-0340},
+     * serve-all returned 200 with {@code derivedStatus: "SERVED"} and {@code status} still
+     * {@code SENT_TO_KDS}, and the cashier's own void then returned 200.
+     *
+     * <p>A test that asserts a denial the system can never be asked for is not a guard. This drives
+     * a REAL order to the pass through the seam a cook's bump actually lands on
+     * ({@link KitchenItemStatusConsumer#applyItemStatus}, which is what the
+     * {@code kitchen.item.status} listener calls after deserialising) and then asks the real
+     * service to void it.
+     *
+     * <p><b>Falsification.</b> Revert the {@code any_line_plated} clause in {@code pos.rego}'s
+     * {@code void.own} and this fails on the {@code voidOrder} call — the void SUCCEEDS and no
+     * exception is thrown. Verified by running it against the unfixed policy before the fix landed.
      */
     @Test
     void cashierCannotVoidTheirOwnCheckOnceTheKitchenHasPlatedIt() {
-        UUID orderId = UUID.randomUUID();
-        for (String status : List.of("PARTIAL_READY", "READY", "SERVED", "CLOSED")) {
-            assertThatThrownBy(() -> posAuthorizationService.authorizeVoid(
-                    orderId, tenantId, branchId, cashierId, status, 0L))
-                    .as("void.own must not reach %s", status)
-                    .isInstanceOf(PermissionDeniedException.class);
-        }
+        OrderDto fired = createFiredOrderInBranch(branchId);
+        UUID lineId = fired.items().get(0).id();
+
+        // The cook bumps the ticket to Ready. This is the production seam, not a repository poke.
+        kitchenItemStatusConsumer.applyItemStatus(fired.id(), lineId, "READY");
+
+        // Pin the thing the old test assumed away: the persisted status does NOT move. If someone
+        // later re-introduces an order-level hand-set, this fails and points at fc6f389f's
+        // decision rather than letting two writers race on one column.
+        // Line status via the DTO, not the entity: Order.items is lazy and this assertion runs
+        // outside any session.
+        assertThat(orderService.getOrder(fired.id(), branchId).items().get(0).kdsStatus())
+                .as("the cook's bump must reach the line")
+                .isEqualTo(OrderItemStatus.READY);
+
+        Order plated = orderRepository.findById(fired.id()).orElseThrow();
+        assertThat(plated.getStatus())
+                .as("order.status records only 'has been fired', never kitchen progress")
+                .isEqualTo(OrderStatus.SENT_TO_KDS);
+        assertThat(plated.getDerivedStatus())
+                .as("derive() collapses READY into IN_PROGRESS — which is exactly why the policy "
+                        + "cannot find the pass from derivedStatus alone")
+                .isEqualTo(DerivedOrderStatus.IN_PROGRESS);
+
+        // Food exists in the world. The cashier who rang it may no longer write it off alone.
+        assertThatThrownBy(() -> orderService.voidOrder(
+                fired.id(), new VoidOrderRequest("Guest walked out"), UUID.randomUUID().toString()))
+                .as("void.own must not reach a check with a plated line")
+                .isInstanceOf(PermissionDeniedException.class);
+
+        assertThat(orderRepository.findById(fired.id()).orElseThrow().getStatus())
+                .isNotEqualTo(OrderStatus.VOIDED);
+        assertThat(outboxRepository.findAll().stream()
+                .filter(e -> "ORDER_VOIDED".equals(e.getEventType()))
+                .count()).isZero();
+    }
+
+    /**
+     * The same boundary at the far end of the service: every line served, nothing paid. This is
+     * the exact state {@code ORD-20260812-0340} was in when the cashier's own void returned 200 —
+     * {@code serve-all} had answered 200 with {@code derivedStatus: "SERVED"} while {@code status}
+     * sat at {@code SENT_TO_KDS}.
+     */
+    @Test
+    void cashierCannotVoidTheirOwnCheckOnceItHasBeenServed() {
+        OrderDto fired = createFiredOrderInBranch(branchId);
+        orderService.markAllItemsServed(fired.id());
+
+        Order served = orderRepository.findById(fired.id()).orElseThrow();
+        assertThat(served.getDerivedStatus()).isEqualTo(DerivedOrderStatus.SERVED);
+        assertThat(served.getStatus())
+                .as("serve-all moves derivedStatus, never status — the defect's whole mechanism")
+                .isEqualTo(OrderStatus.SENT_TO_KDS);
+
+        assertThatThrownBy(() -> orderService.voidOrder(
+                fired.id(), new VoidOrderRequest("Guest walked out"), UUID.randomUUID().toString()))
+                .as("void.own must not reach a served check")
+                .isInstanceOf(PermissionDeniedException.class);
+
+        assertThat(orderRepository.findById(fired.id()).orElseThrow().getStatus())
+                .isNotEqualTo(OrderStatus.VOIDED);
+    }
+
+    /**
+     * ...and a manager still can, in the same state. Without this, the two refusals above would be
+     * satisfied by a policy that simply denied every void, and the widening B2 exists to deliver
+     * would be silently undone.
+     */
+    @Test
+    void managerCanStillVoidAPlatedCheckViaVoidAny() {
+        OrderDto fired = createFiredOrderInBranch(branchId);
+        kitchenItemStatusConsumer.applyItemStatus(fired.id(), fired.items().get(0).id(), "READY");
+
+        setSecurityContext(cashierId, branchId, List.of("pos.order.void.any"), Map.of());
+
+        OrderDto voided = orderService.voidOrder(
+                fired.id(), new VoidOrderRequest("Comped — kitchen error"),
+                UUID.randomUUID().toString());
+        assertThat(voided.status()).isEqualTo(OrderStatus.VOIDED);
     }
 
     // ── (4) the never-fired states still work ────────────────────────────────────────────

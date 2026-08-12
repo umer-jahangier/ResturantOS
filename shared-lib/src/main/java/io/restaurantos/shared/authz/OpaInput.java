@@ -25,14 +25,36 @@ public record OpaInput(User user, Resource resource, String action, Environment 
      * void writes no reversing entry. Overloading the one field across the two meanings is how a
      * rule comes to read a number that means something else.
      *
-     * <p>Null on either field is not zero. Rego denies on a comparison against an undefined value,
-     * so a caller that omits {@code amountPaidPaisa} is refused rather than waved through — the
-     * same fail-closed reading {@code approval_gated_actions_test.rego} pins for
-     * {@code approval_limit_paisa}.
+     * <p>{@code anyLinePlated} is the KITCHEN question, and it is here because no other field on
+     * this record can answer it. {@code status} is the order's settlement lifecycle
+     * (DRAFT/OPEN/SENT_TO_KDS/CLOSED/VOIDED/REFUNDED) and stopped carrying kitchen progress when
+     * pos-service retired that meaning; the POS's own {@code derivedStatus} is a SERVING
+     * aggregate that collapses "being cooked" and "plated on the pass" into one value. Voiding
+     * asks whether cooked food exists, so pos-service derives it from the line statuses at
+     * decision time and sends it. Absent for every non-void action, none of which read it.
+     *
+     * <p>Null on any of these is not zero and not false. Rego denies on a comparison against an
+     * undefined value, so a caller that omits {@code amount_paid_paisa} or
+     * {@code any_line_plated} is refused rather than waved through — the same fail-closed reading
+     * {@code approval_gated_actions_test.rego} pins for {@code approval_limit_paisa}. That is
+     * load-bearing for {@code authorization-service}, which rebuilds this record from an untrusted
+     * HTTP body and cannot know the line statuses: its {@code void.own} attempts deny, and only
+     * pos-service's own call can allow.
      */
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Resource(String type, UUID id, UUID tenantId, UUID branchId,
-                           UUID createdBy, String status, Long amountPaisa, Long amountPaidPaisa) {
+                           UUID createdBy, String status, Long amountPaisa, Long amountPaidPaisa,
+                           Boolean anyLinePlated) {
+
+        /**
+         * The void shape before the kitchen boundary existed. Retained for callers that decide
+         * on money alone; {@code anyLinePlated} is null, which {@code pos.rego}'s
+         * {@code void.own} reads as deny (see below).
+         */
+        public Resource(String type, UUID id, UUID tenantId, UUID branchId,
+                        UUID createdBy, String status, Long amountPaisa, Long amountPaidPaisa) {
+            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, amountPaidPaisa, null);
+        }
 
         /**
          * The shape every call site outside the void path uses — no money has been recorded
@@ -42,7 +64,7 @@ public record OpaInput(User user, Resource resource, String action, Environment 
          */
         public Resource(String type, UUID id, UUID tenantId, UUID branchId,
                         UUID createdBy, String status, Long amountPaisa) {
-            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, null);
+            this(type, id, tenantId, branchId, createdBy, status, amountPaisa, null, null);
         }
     }
 
