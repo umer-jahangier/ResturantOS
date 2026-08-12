@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, Pencil, ShieldPlus, UserMinus, UserRoundCheck } from "lucide-react";
+import { KeyRound, Pencil, ShieldMinus, ShieldPlus, UserMinus, UserRoundCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { QueryBoundary, QueryErrorNotice } from "@/components/ui/query-boundary";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AdminResetDialog } from "@/components/users/admin-reset-dialog";
@@ -15,6 +16,7 @@ import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
 import {
   useDeactivateUser,
   useReactivateUser,
+  useRevokeBranchRole,
   useUserDetail,
   useUserStations,
 } from "@/lib/hooks/use-users";
@@ -48,6 +50,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
  *
  * An account with no branch role cannot sign in at all. That is said in words, with the action that
  * fixes it next to it — an empty region under a "Roles" heading reads as a rendering gap.
+ *
+ * <h3>Revoke lives on the row, not in a dialog of its own (S2)</h3>
+ *
+ * A grant used to be permanent from this screen: the endpoint has worked since 13-02 and no control
+ * anywhere called it, so a promoted, demoted or transferred employee kept their old branch access
+ * for good. The control is per-ROW because the thing being taken away is one row — a person can
+ * hold a different role at every branch they work, and a single "Revoke" button at the bottom of
+ * the panel would have to ask which one, re-deriving in a form what the list already shows.
  */
 export function UserDetailPanel({ userId }: { userId: string | null }) {
   const detail = useUserDetail(userId);
@@ -56,11 +66,16 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
   const stations = useStations();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
+  const revoke = useRevokeBranchRole();
   const { permissions, userId: currentUserId } = useCurrentUser();
 
   const [editOpen, setEditOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [pendingRevoke, setPendingRevoke] = useState<{
+    branchId: string;
+    roleCode: string;
+  } | null>(null);
 
   const canAdministerUsers =
     permissions.includes("rbac.manage") || permissions.includes("rbac.user.manage");
@@ -125,12 +140,34 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                   </p>
                 ) : (
                   <ul className="divide-y rounded-md border">
+                    {/*
+                      The branch name gets a line of its own AT EVERY WIDTH, and the row below it
+                      wraps.
+
+                      Adding the Revoke control put four things on one line and the geometry was
+                      measured rather than eyeballed (`e2e/s2-revoke-responsive.mjs`, results in
+                      `_responsive.json`). At 390 the row overflowed its card outright — the branch
+                      name squeezed to "F..", the button clipped mid-word to "Revok". Breaking the
+                      name onto its own line below `sm` fixed 390 and 768 and left 1440 still
+                      truncating "Floating Terrace — Rooftop" to an ellipsis, because the thing that
+                      is short of room is the CARD, not the viewport, and this panel sits in a
+                      two-column page at every desktop width. A viewport breakpoint cannot express
+                      that. Rather than reach for a container query on a layout ancestor, the row is
+                      simply always two lines: it costs a few pixels of height on a list that is
+                      rarely more than three rows, and the branch name — which is the row's identity
+                      and the thing the Revoke button's accessible name quotes — is never hidden.
+
+                      `break-words`, not `truncate`: an ellipsis on the identifying field is the
+                      defect this is fixing, so a pathological name wraps instead of disappearing.
+                    */}
                     {assignments.map((a) => (
                       <li
                         key={`${a.branchId}-${a.roleCode}`}
-                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                        className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2 text-sm"
                       >
-                        <span className="min-w-0 flex-1 truncate">{branchName(a.branchId)}</span>
+                        <span className="min-w-0 basis-full font-medium break-words">
+                          {branchName(a.branchId)}
+                        </span>
                         {/*
                           The approval limit in force, in words rather than an empty cell. An
                           absent limit denies every amount-gated action at any amount, so rendering
@@ -146,11 +183,37 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                             ? "No approval authority"
                             : `Approves up to ${formatPaisa(a.approvalLimitPaisa)}`}
                         </span>
-                        <span className="flex shrink-0 items-center gap-2">
+                        <span className="ml-auto flex shrink-0 items-center gap-2">
                           {a.primary && (
                             <span className="text-xs text-muted-foreground">primary</span>
                           )}
                           <StatusBadge status="active" label={a.roleCode} />
+                          {/*
+                            Gated on the ROLE authority, not the user one — the same split the
+                            Assign button reads, because revoking is the other half of the same
+                            write and the server gates both on `rbac.role.manage`.
+
+                            The accessible name carries the role AND the branch. An icon-only
+                            button labelled "Revoke" appears four times identically on a user who
+                            works four branches, and the row it belongs to is a visual fact only.
+                          */}
+                          {canAssignRoles && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              aria-label={`Revoke ${a.roleCode} at ${branchName(a.branchId)}`}
+                              data-testid={`revoke-role-${a.branchId}-${a.roleCode}`}
+                              disabled={revoke.isPending}
+                              onClick={() =>
+                                setPendingRevoke({ branchId: a.branchId, roleCode: a.roleCode })
+                              }
+                            >
+                              <ShieldMinus className="size-3.5" aria-hidden="true" />
+                              Revoke
+                            </Button>
+                          )}
                         </span>
                       </li>
                     ))}
@@ -290,6 +353,72 @@ export function UserDetailPanel({ userId }: { userId: string | null }) {
                 onOpenChange={setAssignOpen}
                 defaultBranchId={assignments[0]?.branchId ?? null}
               />
+
+              {/*
+                The confirmation NAMES the role and the branch in its title, because that is the
+                pair being destroyed and the panel may show several rows that differ only in one of
+                them. The body states the consequence rather than asking "are you sure": what the
+                person loses, when it takes effect, and — when this is their last active assignment
+                — that the account stops being able to sign in at all, which is the one outcome an
+                administrator would not predict from the word "revoke".
+              */}
+              {pendingRevoke && (
+                <ConfirmDialog
+                  open
+                  onOpenChange={(next) => {
+                    if (!next) {
+                      setPendingRevoke(null);
+                      revoke.reset();
+                    }
+                  }}
+                  title={`Revoke ${pendingRevoke.roleCode} at ${branchName(pendingRevoke.branchId)}?`}
+                  body={
+                    <>
+                      {user.fullName ?? user.email} loses every permission that role carries at{" "}
+                      {branchName(pendingRevoke.branchId)}, including access to that branch&apos;s
+                      orders, tills and reports.{" "}
+                      {assignments.length === 1 ? (
+                        <strong>
+                          It is their only role, so the account will no longer be able to sign in
+                          until another role is assigned.
+                        </strong>
+                      ) : (
+                        <>Their roles at other branches are untouched.</>
+                      )}{" "}
+                      If they are signed in right now, it applies the next time their session
+                      refreshes.
+                    </>
+                  }
+                  confirmLabel="Revoke role"
+                  pendingLabel="Revoking…"
+                  isPending={revoke.isPending}
+                  error={revoke.isError ? formatUserFacingError(revoke.error) : undefined}
+                  onConfirm={() => {
+                    const target = pendingRevoke;
+                    revoke.mutate(
+                      {
+                        userId: user.id,
+                        branchId: target.branchId,
+                        roleCode: target.roleCode,
+                      },
+                      {
+                        onSuccess: () => {
+                          setPendingRevoke(null);
+                          revoke.reset();
+                          toast.success(
+                            `${target.roleCode} revoked at ${branchName(target.branchId)} for ${user.email}.`,
+                          );
+                        },
+                        // Deliberately NOT a toast, and the dialog deliberately stays open. The
+                        // refusal this most often meets is 403 ROLE_CEILING_EXCEEDED — you may only
+                        // take back a role you could have granted — and a toast over a closed
+                        // dialog leaves an administrator looking at an unchanged list with no
+                        // explanation of why.
+                      },
+                    );
+                  }}
+                />
+              )}
             </>
           )}
         </QueryBoundary>

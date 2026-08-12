@@ -151,6 +151,40 @@ export function useAssignBranchRole() {
 }
 
 /**
+ * Take one branch-role back (S2).
+ *
+ * <p>The counterpart to {@link useAssignBranchRole}, and until now the missing half of the pair:
+ * the endpoint has worked since 13-02 and no screen ever called it, so a grant was permanent and a
+ * promoted, demoted or transferred employee kept their old branch access for good.
+ *
+ * <p>It invalidates the whole `["users"]` prefix for the same reason every other write here does,
+ * and that matters more on this one than most: revoking a user's LAST active assignment leaves an
+ * account that cannot sign in at all, which the detail panel renders as a named state rather than
+ * an empty list. Patching the cache by hand is how the panel would end up showing a roster the
+ * server never had.
+ *
+ * <p><b>The revoked user's own session does not end here.</b> Their permissions are carried in an
+ * access token they already hold; the change lands when that token is next refreshed. Any screen
+ * calling this has to say so, exactly as the approval-limit form does — the difference between an
+ * owner who waits and an owner who concludes the button does nothing.
+ */
+export function useRevokeBranchRole() {
+  const invalidate = useInvalidateUsers();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      branchId,
+      roleCode,
+    }: {
+      userId: string;
+      branchId: string;
+      roleCode: string;
+    }) => UserRepository.removeBranchRole(userId, { branchId, roleCode }),
+    onSuccess: invalidate,
+  });
+}
+
+/**
  * A user's station scope (28-11).
  *
  * <p>`enabled` is driven by the userId alone rather than by a permission check: the read is gated

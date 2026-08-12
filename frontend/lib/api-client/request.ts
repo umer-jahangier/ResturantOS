@@ -38,7 +38,19 @@ export async function patch<TBody = unknown, T = unknown>(url: string, body?: TB
   return response.data.data;
 }
 
-export async function del<T = unknown>(url: string): Promise<T> {
-  const response = await apiClient.delete<ApiResponse<T>>(url);
+/**
+ * `params` exists because some DELETEs identify the row by more than the path.
+ *
+ * <p>`DELETE /api/v1/users/{id}/branch-roles` is the live example: the row is
+ * `(user, branch, role)` and the controller declares `branchId` and `roleCode` as REQUIRED request
+ * parameters. Without a way to send them, the repository method that called this helper sent bare
+ * and was answered `400 Required request parameter 'branchId' is missing` — which is how a revoke
+ * call could sit in the codebase with no caller and no possibility of ever working.
+ */
+export async function del<T = unknown>(
+  url: string,
+  params?: Record<string, unknown>,
+): Promise<T> {
+  const response = await apiClient.delete<ApiResponse<T>>(url, { params });
   return response.data.data;
 }

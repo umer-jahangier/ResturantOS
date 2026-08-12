@@ -175,8 +175,38 @@ export const UserRepository = {
     return adaptBranchRoleWriteResult(apiBranchRoleWriteResultSchema.parse(raw));
   },
 
-  async removeBranchRole(userId: string): Promise<void> {
-    await del(`/api/v1/users/${userId}/branch-roles`);
+  /**
+   * `DELETE /api/v1/users/{id}/branch-roles?branchId=&roleCode=` — take a role back.
+   *
+   * <h3>This method existed and could never have worked</h3>
+   *
+   * It sent no query parameters at all, and the controller declares both as REQUIRED. Driven live
+   * as the owner it answered
+   * `400 {"code":"BAD_REQUEST","message":"Required request parameter 'branchId' is missing"}`,
+   * while the same call WITH the parameters answered `204` and the assignment genuinely
+   * disappeared (`.planning/audits/floor/S2/_repro.json`). It also had zero callers, which is why
+   * nobody had ever seen the 400 — the register scored revoke as MISSING on the evidence of a UI
+   * probe, and the API half was there the whole time with a broken client in front of it.
+   *
+   * <h3>Both parameters, always</h3>
+   *
+   * The row is `(user, branch, role)`, not `(user, branch)`. Sending the branch alone would ask the
+   * server to guess which of the user's roles to remove, and a user can hold a different role at
+   * every branch they work. Naming the role is also what lets the confirmation say which authority
+   * is being taken away.
+   *
+   * <p>A revoke the caller may not perform is refused server-side with 403 `ROLE_CEILING_EXCEEDED`
+   * — you may only take back a role you could have granted — and writes nothing. Answers 204 with
+   * no body on success, so there is nothing to parse.
+   */
+  async removeBranchRole(
+    userId: string,
+    params: { branchId: string; roleCode: string },
+  ): Promise<void> {
+    await del(`/api/v1/users/${userId}/branch-roles`, {
+      branchId: params.branchId,
+      roleCode: params.roleCode,
+    });
   },
 
   /**

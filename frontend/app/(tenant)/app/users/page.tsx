@@ -40,7 +40,19 @@ function UsersPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+      {/*
+        `grid-cols-[minmax(0,1fr)]` on the BASE, not only at `lg`.
+
+        A grid item defaults to `min-width: auto`, which means it refuses to shrink below its
+        content. The `lg:` track already says `minmax(0,1fr)` and the single-column track below it
+        said nothing, so at 390 this page ran 110px wider than the viewport with NOTHING selected —
+        the search field, the "Active only" checkbox and "Add user" were all cut off at the right
+        edge, and so was anything in the detail panel. Measured with
+        `e2e/s2-overflow-blame.mjs`, which walks every element and reports the shallowest ones whose
+        right edge is outside the viewport: the offender is this grid's own child, on the empty page,
+        and `/app/dashboard` under the same probe has none.
+      */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <UserList selectedId={selected?.id ?? null} onSelect={setSelected} />
         <UserDetailPanel userId={selected?.id ?? null} />
       </div>

@@ -77,6 +77,9 @@ function DialogContent({
         // audit read `aria-modal` off the DOM and found nothing — so it is set explicitly rather
         // than assumed, and the e2e gate reads it back from the browser for the same reason.
         aria-modal="true"
+        // Read by DialogTitle, which reserves room for the close button only when there IS one.
+        // See the note there.
+        data-has-close={showCloseButton ? "true" : "false"}
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className,
@@ -130,11 +133,29 @@ function DialogFooter({
   );
 }
 
+/**
+ * The title reserves room for the close button — but only when there is one.
+ *
+ * <p>The close button is `absolute top-2 right-2` at `icon-sm`, so it floats over whatever the
+ * header put there, and the title had no right padding at all. Any title long enough to reach the
+ * corner therefore ran UNDERNEATH the ✕. Caught on S2's revoke confirmation, whose title has to
+ * name both the role and the branch — "Revoke OWNER at Floating Terrace — Rooftop?" collided with
+ * the button and the last character was unreadable
+ * (`.planning/audits/floor/S2/p08-admin-refused-in-dialog.png`, first run). Every dialog in the app
+ * shares this; short titles simply never reached far enough to show it.
+ *
+ * <p>Keyed off `data-has-close` on the content rather than applied unconditionally, so a dialog
+ * built with `showCloseButton={false}` does not get a gutter reserved for a button it does not
+ * render. `in-*` is the same variant `button.tsx` already uses to read a slot off an ancestor.
+ */
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-heading text-base leading-none font-medium", className)}
+      className={cn(
+        "font-heading text-base leading-none font-medium in-data-[has-close=true]:pr-8",
+        className,
+      )}
       {...props}
     />
   );
