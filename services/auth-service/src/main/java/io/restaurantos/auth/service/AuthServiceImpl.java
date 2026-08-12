@@ -439,7 +439,7 @@ public class AuthServiceImpl implements AuthService {
             setTenantGuc(session.getTenantId());
             tenantContext.set(session.getTenantId(), session.getBranchId(), session.getUserId(), null);
 
-            ResolvedBranchAuth resolved = permissionResolver.resolve(session.getUserId(), session.getBranchId());
+            ResolvedBranchAuth resolved = resolveForSession(session);
             // totp_verified is deliberately NOT carried across refresh (the 7-arg constructor mints
             // it false). A refresh token lives 30 days; an access token lives 1 hour. Re-minting the
             // step-up marker here would bind an hour-grade proof of possession to a month-long
@@ -456,6 +456,46 @@ public class AuthServiceImpl implements AuthService {
                 new TokenResponse(accessToken, jwtProperties.getAccessTtlSeconds()), null, 0);
         } finally {
             tenantContext.clear();
+        }
+    }
+
+    /**
+     * Resolve the session's active branch, refusing rather than exploding when that branch is no
+     * longer the user's to work on.
+     *
+     * <h3>Why this is not just the {@code permissionResolver.resolve} call it replaced</h3>
+     *
+     * <p>{@code PermissionResolver.resolveAtBranch} throws {@link IllegalStateException} when a user
+     * has no active assignment at the branch it is asked about — correct for its other callers,
+     * where being asked about a branch the user cannot work on is a programming error. On THIS path
+     * it is an ordinary event: a session stores a branch, and an administrator may revoke that
+     * assignment at any time afterwards. The result was a bare {@code 500 INTERNAL_ERROR} on
+     * {@code POST /auth/refresh}, i.e. on every page load, measured against the live stack:
+     * grant a second branch, switch to it, revoke it, reload → 500.
+     *
+     * <p>The honest answer is 401. The session's stored branch is a fact about the past; the
+     * assignment is the authority, and once it is gone this credential no longer entitles the
+     * holder to anything at that branch. {@code AuthenticationFailedException} is what the SPA and
+     * every other client already handle — the bootstrap clears the session and sends the user to
+     * sign in, and they come back on whatever branch they still hold.
+     *
+     * <p>Deliberately NOT a silent fallback to the user's default branch. Quietly re-pointing a
+     * session at a different branch than the one it was on is the exact failure S1-16 exists to
+     * remove; doing it here in the name of robustness would reintroduce it through the back door.
+     *
+     * <p>The exception is caught by type rather than pre-checked with a second query so that this
+     * cannot drift out of agreement with the resolver's own rule about what "assigned" means. The
+     * cause is logged rather than wrapped because {@code AuthenticationFailedException} carries no
+     * cause constructor — and the reason a user was signed out must not be inferable only from a
+     * stack trace nobody keeps.
+     */
+    private ResolvedBranchAuth resolveForSession(RefreshSessionEntity session) {
+        try {
+            return permissionResolver.resolve(session.getUserId(), session.getBranchId());
+        } catch (IllegalStateException e) {
+            log.warn("Refusing refresh for user {}: session branch {} is no longer assigned ({})",
+                session.getUserId(), session.getBranchId(), e.getMessage());
+            throw new AuthenticationFailedException("Session branch is no longer assigned to this user");
         }
     }
 

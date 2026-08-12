@@ -56,4 +56,47 @@ public interface RefreshSessionRepository extends JpaRepository<RefreshSessionEn
     int revokeAllLiveByUserAndScope(@Param("userId") UUID userId,
                                     @Param("scope") String scope,
                                     @Param("now") Instant now);
+
+    /**
+     * Move a live tenant session's ACTIVE BRANCH — what {@code AuthServiceImpl.refresh} re-derives
+     * every access token from (S1-16).
+     *
+     * <h3>Why this statement has to exist</h3>
+     *
+     * <p>{@code branch_id} was written once, at login, and never again. A branch switch minted an
+     * access token on the new branch and left the row alone, so the next full page load — which is
+     * a refresh, because the access token is memory-only — resolved permissions against the LOGIN
+     * branch and silently put the user back on it. The switch survived exactly as long as one
+     * access token.
+     *
+     * <h3>Why every clause in the WHERE is load-bearing</h3>
+     *
+     * <ul>
+     *   <li>{@code tokenHash} — the active branch belongs to ONE session, i.e. one browser. A
+     *       manager who switches on the floor tablet must not move the office desktop's branch.</li>
+     *   <li>{@code userId} — the caller's id comes from a signature-verified access token, not from
+     *       the cookie. A cookie that is not this user's cannot be repointed even if it is presented.</li>
+     *   <li>{@code scope = TENANT} — a control-plane session has no branch and must never acquire
+     *       one; that is the first half of an accidental tenant session
+     *       ({@code RefreshSessionService.issuePlatform}).</li>
+     *   <li>{@code revokedAt IS NULL AND expiresAt &gt; now} — a dead session cannot mint anything,
+     *       so repointing it would write a fact nothing will ever read.</li>
+     * </ul>
+     *
+     * <p>RLS is the outer boundary and is not restated here: {@code refresh_sessions} is FORCE RLS
+     * with a policy whose {@code USING} clause also serves as its {@code WITH CHECK}, so this
+     * statement can only touch rows of the tenant in {@code app.current_tenant_id} — which
+     * {@code BranchSwitchService} sets from the caller's own claims.
+     *
+     * @return 1 if a live session was repointed, 0 if there was nothing to repoint
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE RefreshSessionEntity s SET s.branchId = :branchId "
+        + "WHERE s.tokenHash = :tokenHash AND s.userId = :userId AND s.scope = :scope "
+        + "AND s.revokedAt IS NULL AND s.expiresAt > :now")
+    int updateActiveBranch(@Param("tokenHash") String tokenHash,
+                           @Param("userId") UUID userId,
+                           @Param("branchId") UUID branchId,
+                           @Param("scope") String scope,
+                           @Param("now") Instant now);
 }

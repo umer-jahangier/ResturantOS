@@ -142,6 +142,41 @@ public class RefreshSessionService {
         return refreshSessionRepository.revokeAllLiveByUserAndScope(userId, scope, Instant.now());
     }
 
+    /**
+     * Record the branch this session is now working on, so it survives the next page load (S1-16).
+     *
+     * <h3>What "active branch" means and where it lives</h3>
+     *
+     * <p>The access token is held in the browser's memory only, so a full reload always re-derives
+     * it from the refresh cookie. {@code AuthServiceImpl.refresh} resolves permissions against
+     * {@code session.getBranchId()} — therefore <b>that column IS the active branch</b>, and a
+     * branch switch that does not write it has not switched anything past the current access token.
+     * This method is the write that was missing.
+     *
+     * <h3>Deliberately keyed on the raw refresh token, not on the user</h3>
+     *
+     * <p>The active branch is per-session, not per-account. Moving every session a user holds would
+     * mean the manager's tablet dragging the back-office desktop onto the rooftop's takings mid-shift.
+     * Keying on this token moves exactly the browser that asked.
+     *
+     * <p>The GUC is <b>not</b> bootstrapped from the token here, unlike {@link #validate} and
+     * {@link #findForRedemption}. The caller (a signature-verified access token) has already set it
+     * from its own claims, so RLS confines this statement to the caller's tenant — a cookie from
+     * another tenant matches nothing rather than being followed to its own namespace.
+     *
+     * @param rawToken the refresh cookie presented alongside the switch; may be {@code null} when the
+     *                 caller holds no refresh session (a pure API client), in which case there is no
+     *                 session to move and nothing to do
+     * @return true if a live session was repointed
+     */
+    public boolean updateActiveBranch(String rawToken, UUID userId, UUID branchId) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return false;
+        }
+        return refreshSessionRepository.updateActiveBranch(
+            hashToken(rawToken), userId, branchId, RefreshScope.TENANT, Instant.now()) == 1;
+    }
+
     private void setTenantGuc(UUID tenantId) {
         entityManager.createNativeQuery("SELECT set_config('app.current_tenant_id', :tid, true)")
             .setParameter("tid", tenantId.toString())
