@@ -1,0 +1,123 @@
+[
+  {
+    "route": "/app/reports",
+    "url": "http://localhost:3000/app/reports",
+    "h1": [
+      "Reports"
+    ],
+    "dateInputs": 0,
+    "alerts": [],
+    "backLinks": [
+      "Reports -> /app/reports",
+      "FBR Tax Summary → -> /app/reports/fbr",
+      "Sales by Day6 columns -> /app/reports/sales-by-day",
+      "Sales by Item6 columns -> /app/reports/sales-by-item",
+      "Sales by Hour (Peak Hours)3 columns -> /app/reports/sales-by-hour",
+      "Sales by Order Type3 columns -> /app/reports/sales-by-order-type",
+      "Discount Summary10 columns -> /app/reports/discount-summary",
+      "Till Sessions7 columns -> /app/reports/till-sessions",
+      "Purchases by Purchase Order5 columns -> /app/reports/purchases-by-po"
+    ],
+    "tableHeaders": [],
+    "tableRows": 0,
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nAudit log\nService health\nCollapse\nApp\nReports\nFloating Terrace HQ\nSearch…\n⌘K\n6\nReports\n\nNamed reports backed by real sales, cash and purchasing data.\n\nFBR Tax Summary →\nSALES\nSales by Day\n6 columns\nSales by Item\n6 columns\nSales by Hour (Peak Hours)\n3 columns\nSales by Order Type\n3 columns\nDiscount Summary\n10 columns\nCASH\nTill Sessions\n7 columns\nPURCHASING\nPurchases by Purchase Order\n5 columns",
+    "api": [
+      "GET 200 http://localhost:8080/api/v1/reporting/reports"
+    ]
+  },
+  {
+    "route": "/app/reports/definitely-not-a-report",
+    "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+    "h1": [
+      "definitely-not-a-report"
+    ],
+    "dateInputs": 2,
+    "alerts": [],
+    "backLinks": [
+      "Reports -> /app/reports",
+      "← All reports -> /app/reports"
+    ],
+    "tableHeaders": [],
+    "tableRows": 0,
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nAudit log\nService health\nCollapse\nApp\nReports\nDefinitely Not A Report\nFloating Terrace HQ\nSearch…\n⌘K\n6\n← All reports\ndefinitely-not-a-report\nFrom\nTo",
+    "api": [
+      "GET 200 http://localhost:8080/api/v1/reporting/reports",
+      "POST 404 http://localhost:8080/api/v1/reporting/reports/definitely-not-a-report/run",
+      "POST 404 http://localhost:8080/api/v1/reporting/reports/definitely-not-a-report/run"
+    ]
+  },
+  {
+    "route": "/app/reports/audit",
+    "url": "http://localhost:3000/app/reports/audit",
+    "h1": [
+      "audit"
+    ],
+    "dateInputs": 2,
+    "alerts": [],
+    "backLinks": [
+      "Reports -> /app/reports",
+      "← All reports -> /app/reports"
+    ],
+    "tableHeaders": [],
+    "tableRows": 0,
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nAudit log\nService health\nCollapse\nApp\nReports\nAudit\nFloating Terrace HQ\nSearch…\n⌘K\n6\n← All reports\naudit\nFrom\nTo",
+    "api": [
+      "GET 200 http://localhost:8080/api/v1/reporting/reports",
+      "POST 404 http://localhost:8080/api/v1/reporting/reports/audit/run",
+      "POST 404 http://localhost:8080/api/v1/reporting/reports/audit/run"
+    ]
+  },
+  {
+    "route": "/app/reports/purchases-by-po",
+    "url": "http://localhost:3000/app/reports/purchases-by-po",
+    "h1": [
+      "Purchases by Purchase Order"
+    ],
+    "dateInputs": 2,
+    "alerts": [],
+    "backLinks": [
+      "Reports -> /app/reports",
+      "← All reports -> /app/reports"
+    ],
+    "tableHeaders": [
+      "Purchase Order Id",
+      "Business Date",
+      "Invoice Count",
+      "Spend Paisa",
+      "Input Tax Paisa"
+    ],
+    "tableRows": 25,
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nAudit log\nService health\nCollapse\nApp\nReports\nPurchases By Po\nFloating Terrace HQ\nSearch…\n⌘K\n6\n← All reports\nPurchases by Purchase Order\nFrom\nTo\nPurchase Order Id\tBusiness Date\tInvoice Count\tSpend Paisa\tInput Tax Paisa\ndac39c59-8322-46cb-a233-5c26290ee9c8\t2026-08-10T19:00:00.000Z\t1\tRs 35,000.00\tRs 90.00\nda1e1b6a-67f0-490f-b8fa-0081f7ac08c6\t2026-08-10T19:00:00.000Z\t1\tRs 12,400.00\tRs 0.00\n029ccd64-1c5f-43d6-bc99-6cf",
+    "api": [
+      "GET 200 http://localhost:8080/api/v1/reporting/reports",
+      "POST 200 http://localhost:8080/api/v1/reporting/reports/purchases-by-po/run"
+    ]
+  },
+  {
+    "route": "/app/reports/sales-by-day",
+    "url": "http://localhost:3000/app/reports/sales-by-day",
+    "h1": [
+      "Sales by Day"
+    ],
+    "dateInputs": 2,
+    "alerts": [],
+    "backLinks": [
+      "Reports -> /app/reports",
+      "← All reports -> /app/reports"
+    ],
+    "tableHeaders": [
+      "Business Date",
+      "Order Count",
+      "Subtotal Paisa",
+      "Discount Paisa",
+      "Tax Paisa",
+      "Total Paisa"
+    ],
+    "tableRows": 3,
+    "text": "Floating Terrace\n\nOVERVIEW\n\nDashboard\n\nORDERS\n\nPOS\nKitchen Display\nTill Review\n\nMENU\n\nInventory\nMenu Items\nTables\nStations\nStation Routing\nPOS Terminals\nPrinters\n\nFINANCE\n\nGuide\nTakings\nAccounts\nJournal Entries\nGeneral Ledger\nPeriods\nExpenses\nAP Aging\n\nPURCHASING\n\nPurchasing\n\nPEOPLE\n\nHR\nCustomers\n\nREPORTING\n\nReports\nRealtime Dashboard\nAsk (NLQ)\n\nSETTINGS\n\nGeneral\nAppearance\nUsers\nAudit log\nService health\nCollapse\nApp\nReports\nSales By Day\nFloating Terrace HQ\nSearch…\n⌘K\n6\n← All reports\nSales by Day\nFrom\nTo\nBusiness Date\tOrder Count\tSubtotal Paisa\tDiscount Paisa\tTax Paisa\tTotal Paisa\n2026-08-07T19:00:00.000Z\t5\tRs 9,603.00\tRs 0.00\tRs 911.60\tRs 10,514.60\n2026-08-10T19:00:00.000Z\t34\tRs 43,849.00\tRs 950.00\tRs 3,566.40\tRs 46,465.40\n2026-08-11T19:00:00.000Z\t22\tRs 32,397.00\tRs 230.50\tRs 3,939.60\tRs ",
+    "api": [
+      "GET 200 http://localhost:8080/api/v1/reporting/reports",
+      "POST 200 http://localhost:8080/api/v1/reporting/reports/sales-by-day/run"
+    ]
+  }
+]

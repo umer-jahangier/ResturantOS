@@ -1,0 +1,131 @@
+{
+  "bogus": {
+    "route": "/app/reports/definitely-not-a-report",
+    "url": "http://localhost:3000/app/reports/definitely-not-a-report",
+    "h1": [
+      "Report not found"
+    ],
+    "dateInputs": 0,
+    "notFoundPanel": true,
+    "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"definitely-not-a-report\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+    "backLink": "/app/reports",
+    "alerts": [],
+    "tableHeaders": [],
+    "tableRows": 0,
+    "runPosts": []
+  },
+  "landed": {
+    "url": "http://localhost:3000/app/reports",
+    "reports": 8
+  },
+  "audit": {
+    "route": "/app/reports/audit",
+    "url": "http://localhost:3000/app/reports/audit",
+    "h1": [
+      "Report not found"
+    ],
+    "dateInputs": 0,
+    "notFoundPanel": true,
+    "notFoundText": "This report doesn't exist\n\nNo report is registered under the code \"audit\". The link may be out of date, or the code mistyped — nothing has gone wrong with your data.\n\nBack to all reports",
+    "backLink": "/app/reports",
+    "alerts": [],
+    "tableHeaders": [],
+    "tableRows": 0,
+    "runPosts": []
+  },
+  "purchases-by-po": {
+    "route": "/app/reports/purchases-by-po",
+    "url": "http://localhost:3000/app/reports/purchases-by-po",
+    "h1": [
+      "Purchases by Purchase Order"
+    ],
+    "dateInputs": 2,
+    "notFoundPanel": false,
+    "notFoundText": "",
+    "backLink": null,
+    "alerts": [],
+    "tableHeaders": [
+      "Purchase Order Id",
+      "Business Date",
+      "Invoice Count",
+      "Spend Paisa",
+      "Input Tax Paisa"
+    ],
+    "tableRows": 25,
+    "runPosts": [
+      "200 http://localhost:8080/api/v1/reporting/reports/purchases-by-po/run"
+    ]
+  },
+  "sales-by-day": {
+    "route": "/app/reports/sales-by-day",
+    "url": "http://localhost:3000/app/reports/sales-by-day",
+    "h1": [
+      "Sales by Day"
+    ],
+    "dateInputs": 2,
+    "notFoundPanel": false,
+    "notFoundText": "",
+    "backLink": null,
+    "alerts": [],
+    "tableHeaders": [
+      "Business Date",
+      "Order Count",
+      "Subtotal Paisa",
+      "Discount Paisa",
+      "Tax Paisa",
+      "Total Paisa"
+    ],
+    "tableRows": 3,
+    "runPosts": [
+      "200 http://localhost:8080/api/v1/reporting/reports/sales-by-day/run"
+    ]
+  },
+  "viewport-390-light": {
+    "present": true,
+    "dark": false,
+    "overflowsX": false,
+    "width": 310,
+    "color": "oklch(0.168 0.006 195)",
+    "bodyBg": "oklch(1 0 195)"
+  },
+  "viewport-768-light": {
+    "present": true,
+    "dark": false,
+    "overflowsX": false,
+    "width": 432,
+    "color": "oklch(0.168 0.006 195)",
+    "bodyBg": "oklch(1 0 195)"
+  },
+  "viewport-1440-light": {
+    "present": true,
+    "dark": false,
+    "overflowsX": false,
+    "width": 1088,
+    "color": "oklch(0.168 0.006 195)",
+    "bodyBg": "oklch(1 0 195)"
+  },
+  "viewport-390-dark": {
+    "present": true,
+    "dark": true,
+    "overflowsX": false,
+    "width": 310,
+    "color": "oklch(0.985 0.002 195)",
+    "bodyBg": "oklch(0.132 0.006 195)"
+  },
+  "viewport-768-dark": {
+    "present": true,
+    "dark": true,
+    "overflowsX": false,
+    "width": 432,
+    "color": "oklch(0.985 0.002 195)",
+    "bodyBg": "oklch(0.132 0.006 195)"
+  },
+  "viewport-1440-dark": {
+    "present": true,
+    "dark": true,
+    "overflowsX": false,
+    "width": 1088,
+    "color": "oklch(0.985 0.002 195)",
+    "bodyBg": "oklch(0.132 0.006 195)"
+  }
+}
