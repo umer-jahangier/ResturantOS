@@ -26,15 +26,24 @@ public class PosAuthorizationService {
     /**
      * Authorize a void operation.
      *
-     * @param orderId   target order
-     * @param tenantId  order's tenant
-     * @param branchId  order's branch
-     * @param createdBy original cashier who created the order
-     * @param status    current order status
+     * <p>{@code pos.rego}'s {@code void.own} rule reads BOTH {@code status} and
+     * {@code amount_paid_paisa}: a cashier may write off their own check while it is DRAFT, OPEN
+     * or SENT_TO_KDS and carries no tender. Both are therefore sent, and
+     * {@code amountPaidPaisa} must be the real figure — passing a hard-coded 0 would turn the
+     * policy's money clause into a decoration. {@code void.any} reads neither.
+     *
+     * @param orderId         target order
+     * @param tenantId        order's tenant
+     * @param branchId        order's branch
+     * @param createdBy       original cashier who created the order
+     * @param status          current order status
+     * @param amountPaidPaisa money already recorded against the order, summed over its payment
+     *                        rows (refunds are negative rows, so a fully reversed order nets to 0)
      */
-    public void authorizeVoid(UUID orderId, UUID tenantId, UUID branchId, UUID createdBy, String status) {
+    public void authorizeVoid(UUID orderId, UUID tenantId, UUID branchId, UUID createdBy,
+                              String status, long amountPaidPaisa) {
         OpaInput.Resource resource = new OpaInput.Resource(
-                "order", orderId, tenantId, branchId, createdBy, status, null);
+                "order", orderId, tenantId, branchId, createdBy, status, null, amountPaidPaisa);
         authorizationService.authorize("pos", "void", resource);
     }
 

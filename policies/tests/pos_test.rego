@@ -25,11 +25,16 @@ base_user_with_attrs(permissions, attrs) := {
     "attributes": attrs,
 }
 
+# `amount_paid_paisa` is part of the baseline because the void.own rule reads it and Rego denies
+# on an undefined field. An order with no tender recorded against it carries 0, which is what
+# PosAuthorizationService.authorizeVoid sends; see test_void_own_absent_amount_paid_deny for the
+# fail-closed behaviour when a caller omits it entirely.
 base_resource(extra) := object.union({
     "tenant_id": tenant,
     "branch_id": branch,
     "created_by": user_id,
     "status": "OPEN",
+    "amount_paid_paisa": 0,
 }, extra)
 
 # ── void.any tests ────────────────────────────────────────────────────────────
@@ -115,6 +120,104 @@ test_void_own_wrong_status_deny if {
     not pos.allow with input as {
         "user": base_user(["pos.order.void.own"]),
         "resource": base_resource({"status": "CLOSED"}),
+        "action": "void",
+    }
+}
+
+# ── void.own across the STATUS boundary (B2) ──────────────────────────────────
+#
+# The whole of B2 lives in these eight cases. The rule used to read `status == "OPEN"`, so the
+# first of them failed while every other test in this file passed — a cashier could void a check
+# they had not fired and nothing else. `test_void_own_allow` above did not catch it because OPEN
+# is precisely the one status that worked.
+
+test_void_own_after_firing_allow if {
+    pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "SENT_TO_KDS"}),
+        "action": "void",
+    }
+}
+
+# A draft row's Cancel control posts to the same void endpoint (order-management.tsx,
+# CancelDraftAction). A cashier is the only persona that creates drafts.
+test_void_own_draft_allow if {
+    pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "DRAFT"}),
+        "action": "void",
+    }
+}
+
+# ...and the boundary holds on the other side. Once the kitchen has plated anything, writing the
+# check off is void.any's business, not the cashier's.
+test_void_own_partial_ready_deny if {
+    not pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "PARTIAL_READY"}),
+        "action": "void",
+    }
+}
+
+test_void_own_ready_deny if {
+    not pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "READY"}),
+        "action": "void",
+    }
+}
+
+test_void_own_served_deny if {
+    not pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "SERVED"}),
+        "action": "void",
+    }
+}
+
+# ── void.own and MONEY (B2) ───────────────────────────────────────────────────
+#
+# A void writes no reversing entry. Once a tender exists the corrective action is a refund, and
+# the policy says so itself rather than trusting the service layer to check first.
+
+test_void_own_with_payment_deny if {
+    not pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "SENT_TO_KDS", "amount_paid_paisa": 168260}),
+        "action": "void",
+    }
+}
+
+# A single paisa is money. There is no "small enough to ignore" tender.
+test_void_own_with_one_paisa_deny if {
+    not pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": base_resource({"status": "OPEN", "amount_paid_paisa": 1}),
+        "action": "void",
+    }
+}
+
+# Fail-closed on an absent field: a caller that never sends amount_paid_paisa is denied, not
+# waved through. Same reading as approval_limit_paisa in approval_gated_actions_test.rego.
+test_void_own_absent_amount_paid_deny if {
+    not pos.allow with input as {
+        "user": base_user(["pos.order.void.own"]),
+        "resource": {
+            "tenant_id": tenant,
+            "branch_id": branch,
+            "created_by": user_id,
+            "status": "OPEN",
+        },
+        "action": "void",
+    }
+}
+
+# void.any is untouched by B2: a manager still voids at any status, and the service layer's
+# ORDER_HAS_PAYMENTS 409 is what stops them stranding a tender.
+test_void_any_after_firing_still_allow if {
+    pos.allow with input as {
+        "user": base_user(["pos.order.void.any"]),
+        "resource": base_resource({"status": "SERVED", "created_by": other_user}),
         "action": "void",
     }
 }

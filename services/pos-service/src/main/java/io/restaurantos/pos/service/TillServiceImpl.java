@@ -42,6 +42,26 @@ public class TillServiceImpl implements TillService {
     private static final Set<OrderStatus> TERMINAL_STATUSES = EnumSet.of(
             OrderStatus.CLOSED, OrderStatus.VOIDED, OrderStatus.REFUNDED);
 
+    /**
+     * Statuses that do NOT stop a cash-up, beyond the terminal three.
+     *
+     * <p>A {@code DRAFT} order is {@code createOrder} before the first {@code addItem} — the very
+     * next line added flips it to OPEN ({@code OrderServiceImpl.addItem}), which is why every
+     * DRAFT row in this database has no order number, no lines, no total and no payment (measured
+     * 2026-08-12: 24 of 24). It is a shell, not a check.
+     *
+     * <p>Counting them made the close refusal say something untrue and unactionable. "This till
+     * still has open orders. Settle, serve, or void them before closing" named three operations
+     * that cannot be performed on a row with no lines, no money and no number — and Order
+     * Management's default listing excludes DRAFT, so the cashier could not reach them to try.
+     * Five such shells on the seeded drawer held it open with no remedy available to any persona,
+     * manager included. That is not a guard; it is a dead end.
+     *
+     * <p>The guard's real question is "does this drawer still owe food or money?", and a DRAFT
+     * answers no to both by construction. The other non-terminal statuses still block, unchanged.
+     */
+    private static final Set<OrderStatus> DOES_NOT_BLOCK_CASH_UP = EnumSet.of(OrderStatus.DRAFT);
+
     private final TillSessionRepository tillSessionRepository;
     private final OrderRepository orderRepository;
     private final OrderPaymentRepository paymentRepository;
@@ -128,7 +148,8 @@ public class TillServiceImpl implements TillService {
                 .orElseThrow(() -> new PosExceptions.TillNotFoundException(tillId.toString()));
 
         boolean hasOpenOrders = orderRepository.findByTillSessionId(tillId).stream()
-                .anyMatch(order -> !TERMINAL_STATUSES.contains(order.getStatus()));
+                .anyMatch(order -> !TERMINAL_STATUSES.contains(order.getStatus())
+                        && !DOES_NOT_BLOCK_CASH_UP.contains(order.getStatus()));
 
         if (hasOpenOrders) {
             throw new PosExceptions.TillHasOpenOrdersException(tillId.toString());

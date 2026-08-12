@@ -10,11 +10,15 @@ import io.restaurantos.pos.exception.PosExceptions;
 import io.restaurantos.pos.repository.*;
 import io.restaurantos.pos.service.OrderService;
 import io.restaurantos.pos.service.TillService;
+import io.restaurantos.shared.authz.OpaDecision;
 import io.restaurantos.shared.event.OutboxRepository;
 import io.restaurantos.shared.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -158,8 +162,25 @@ class TillReconciliationIT extends PosTestBase {
         assertThat(persisted.getCashierId()).isEqualTo(cashierId);
     }
 
+    /**
+     * {@code createOrder} binds the caller's OPEN till and cashier to the row — that is this
+     * test's subject and it is unchanged.
+     *
+     * <p>What changed is the second half. This used to end
+     * {@code …_blocksClose} and assert that the bare {@code createOrder} above — a DRAFT shell
+     * with no order number, no lines, no total and no payment — held the drawer open. B2 measured
+     * what that meant in service: five such shells on the seeded cashier's till, invisible to
+     * Order Management (its default listing excludes DRAFT and the "Draft" chip filters that same
+     * listing), refusing every cash-up with "Settle, serve, or void them before closing" —
+     * three operations none of which can be performed on a row with no lines and no number, by
+     * any persona, manager included.
+     *
+     * <p>So the assertion is corrected rather than deleted, and it now pins BOTH directions: the
+     * shell does not block, and the same order blocks the moment a line lands on it. See
+     * {@code TillCloseDraftShellIT} for the fuller treatment.
+     */
     @Test
-    void closeTill_withOrderCreatedViaOrderService_linksTillSessionAndCashier_blocksClose() {
+    void closeTill_withOrderCreatedViaOrderService_linksTillSessionAndCashier() {
         TillSessionDto till = tillService.openTill(new OpenTillRequest(branchId, 50000L));
 
         OrderDto created = orderService.createOrder(
@@ -168,8 +189,23 @@ class TillReconciliationIT extends PosTestBase {
         Order persisted = orderRepository.findById(created.id()).orElseThrow();
         assertThat(persisted.getTillSessionId()).isEqualTo(till.id());
         assertThat(persisted.getCashierId()).isEqualTo(cashierId);
+        assertThat(persisted.getStatus()).isEqualTo(OrderStatus.DRAFT);
+        assertThat(persisted.getOrderNo()).isNull();
 
+        // A line lands: now it is a check, and it holds the drawer open.
+        orderService.addItem(created.id(), new AddOrderItemRequest(menuItemId, branchId, 1, null, null));
+        assertThat(orderRepository.findById(created.id()).orElseThrow().getStatus())
+                .isEqualTo(OrderStatus.OPEN);
         assertThatThrownBy(() -> tillService.closeTill(till.id(), new CloseTillRequest(50000L, null)))
                 .isInstanceOf(PosExceptions.TillHasOpenOrdersException.class);
+
+        // ...and once it is voided, the drawer closes. (The void's own authorization is decided by
+        // the REAL pos.rego in VoidOwnOrderIT; here it is stubbed because the subject is the till
+        // guard, not the policy.)
+        when(opaClient.evaluate(any(), any())).thenReturn(new OpaDecision(true));
+        orderService.voidOrder(created.id(), new VoidOrderRequest("Guest left"),
+                UUID.randomUUID().toString());
+        TillSessionDto closed = tillService.closeTill(till.id(), new CloseTillRequest(50000L, null));
+        assertThat(closed.status().name()).isEqualTo("CLOSED");
     }
 }

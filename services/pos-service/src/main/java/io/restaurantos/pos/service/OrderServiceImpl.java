@@ -866,10 +866,15 @@ public class OrderServiceImpl implements OrderService {
             return orderMapper.toDto(order);
         }
 
-        // OPA authorization: void.own if creator+OPEN, void.any otherwise
+        // OPA authorization: void.own for the cashier's own un-tendered check (DRAFT/OPEN/
+        // SENT_TO_KDS), void.any for manager level. `amountPaidPaisa` is always 0 by the time
+        // control reaches here — the guard above returned otherwise — and it is still passed as
+        // the measured value rather than a literal, because pos.rego's money clause guards every
+        // caller of this method, not only voidOrder. authorization-service exposes the same
+        // (module, action) pair over HTTP to anyone.
         posAuthorizationService.authorizeVoid(
                 orderId, tenantId, order.getBranchId(),
-                order.getCashierId(), order.getStatus().name());
+                order.getCashierId(), order.getStatus().name(), amountPaidPaisa);
 
         stateMachine.assertTransition(order.getStatus(), OrderStatus.VOIDED);
         order.setStatus(OrderStatus.VOIDED);
