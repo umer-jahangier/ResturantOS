@@ -47,7 +47,8 @@ sold the meal at full price and accepted 500 points as payment for Rs 100 of it 
 already issued, already owed, and already (or should have already) recognised as a liability. It
 is the same shape as a gift card, and nobody would book a gift card as a discount.
 
-Book it as a discount and four things go wrong at once:
+Book it as a discount and **five** things go wrong at once — the fifth confirmed after this
+document was first written, and it is the worst of them:
 
 1. **Gross sales are understated.** The revenue line loses Rs 100 that was genuinely earned.
 2. **Giveaway is overstated.** The Discount Summary reports Rs 100 of margin sacrificed that was
@@ -58,8 +59,19 @@ Book it as a discount and four things go wrong at once:
 4. **The owner draws the wrong conclusion.** They open the Discount Summary, see the loyalty
    programme as a column of pure cost with no offsetting drawdown anywhere in the product, and
    conclude it is losing them money. **This is how a working loyalty programme gets cancelled.**
+5. **Output tax is under-collected.** Since `455237b5` ("tax is charged on the line net of its
+   share of every discount") an ORDER-scope discount is pro-rata allocated across the lines and
+   **reduces the tax base** — `OrderServiceImpl.recomputeOrderTotals` via
+   `pricingCalculator.allocateProRata`. A redemption booked as a discount therefore does not
+   merely misstate revenue: it reduces the tax charged on a sale that genuinely happened at full
+   price. A tender does not change the value of supply; a discount does. This turns an accounting
+   presentation error into a **filing** error, and it is the one that is expensive to discover
+   late.
 
-Only (4) is visible from the UI, which is what makes this dangerous: the first three are silent.
+Only (4) is visible from the UI. (1), (2), (3) and (5) are all silent, which is what makes this
+dangerous — and (5) did not exist when the first four were written. It arrived from an unrelated
+session two hours later, which is precisely the argument for settling the distinction now rather
+than after seven models are built: the cost of getting it wrong is still growing.
 
 ---
 
@@ -147,12 +159,36 @@ top of the current shape.
 - The redemption warning is embedded in V30's header for the author who never reads this file.
 - `PromotionDiscountPersistsIT` asserts that a promotion is always ORDER scope, which keeps it
   clear of the LINE-scope tax defect (a comped line still charging tax) owned by the tax session.
+- A zero-amount promotion is refused outright: an offer against a zero-subtotal check would
+  otherwise write "Automatic promotion — Rs 0.00" onto the bill. Worth noting because that row
+  satisfies **every** constraint on the table — a CHECK cannot express "this row states something
+  untrue", so the guard is the only place it can be caught.
+
+## Interaction with `D-TAX-DISCOUNT` (resolved, and it raises the stakes)
+
+`455237b5` settled the gross-vs-net question as **net**: tax is charged on the line net of its
+share of every discount, with ORDER-scope discounts pro-rata allocated across lines
+(`allocateProRata`). Two consequences for this document:
+
+- A **promotion** now correctly reduces tax as well as the total, with no further work — it is
+  ORDER scope, so it is allocated automatically. This interaction is currently **untested**:
+  `PromotionDiscountPersistsIT` prices at 0% tax so every figure stays checkable by hand, which
+  means it does not cover it. Worth a case when someone next touches either side.
+- A **redemption** booked as a discount would now under-collect output tax — see failure (5)
+  above. Before `455237b5` this shortcut produced a presentation error; it now produces a filing
+  error. The window in which it was merely untidy has closed.
 
 ## Open questions for whoever owns the rebuild
 
 1. Does finance-service post issuance and redemption to the GL today? (Believed: no.)
 2. Should points be valued at issue time or redeem time? This determines whether the liability is
    fixed or floating and is an accounting decision, not an engineering one.
-3. Do redeemed points participate in the tax base? A tender does not change tax; a discount does.
-   This is a further reason the distinction has to be settled before the models are built, and it
-   interacts with `D-TAX-DISCOUNT`.
+3. ~~Do redeemed points participate in the tax base?~~ **Answered by implication, and it is the
+   strongest argument in this document.** Discounts now move the tax base (`455237b5`), so the
+   question is no longer academic: if a redemption is modelled as a discount it will reduce tax on
+   a full-price sale. It must be a tender, which does not touch the value of supply. Take this to
+   the product owner beside `D-TAX-DISCOUNT.md`.
+4. Does a redemption compound with a discount, or settle what remains after one? A manual discount
+   compounding with a promotion was confirmed as intended on 2026-08-12 (both are price
+   reductions, decided by different parties). A tender is not a price reduction — it settles the
+   balance — so the same reasoning does not carry over and the answer is probably different.
