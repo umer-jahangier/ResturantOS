@@ -43,14 +43,21 @@ function writeRealPng(file: string): string {
     const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
     const len = Buffer.alloc(4);
     len.writeUInt32BE(data.length);
-    const crcTable: number[] = [];
+    // Uint32Array (fixed-width, densely allocated) rather than a sparse number[].
+    const crcTable = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {
       let c = n;
       for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
       crcTable[n] = c >>> 0;
     }
     let crc = 0xffffffff;
-    for (const b of body) crc = crcTable[(crc ^ b) & 0xff] ^ (crc >>> 8);
+    // The `!` states a fact the checker cannot derive: `& 0xff` masks the index to
+    // 0..255 and crcTable is a densely-allocated Uint32Array(256), so the read can
+    // never be undefined. noUncheckedIndexedAccess applies to TypedArrays too, so
+    // the type is `number | undefined` regardless of the mask. `?? 0` was rejected
+    // deliberately — it would silently substitute a WRONG CRC byte if the
+    // invariant ever broke, turning a crash into corrupt output.
+    for (const b of body) crc = crcTable[(crc ^ b) & 0xff]! ^ (crc >>> 8);
     const crcBuf = Buffer.alloc(4);
     crcBuf.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
     return Buffer.concat([len, body, crcBuf]);
