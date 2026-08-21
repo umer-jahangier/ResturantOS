@@ -71,6 +71,34 @@ Or generate a code from the terminal without an app:
 python3 scripts/generate_totp.py owner@terrace.local
 ```
 
+### Recovery codes — the way back from a lost phone
+
+Until 096 a lost authenticator was a **permanent lockout**, and no amount of administrator
+access repaired it: there is no endpoint at any tier that resets another user's second factor.
+That rule has not changed and should not — an admin who can re-point your TOTP is an admin who
+can become you. What changed is that the *user* can now recover their own account.
+
+Enrolment now ends by issuing **ten single-use codes**, shown once and stored only as SHA-256
+digests. Nobody can read them back, including the platform.
+
+| Where | What it does |
+|---|---|
+| Login form, code field | A recovery code is accepted **in place of** the six-digit code. Shape decides which check runs: 6 chars = TOTP, 10 = recovery. |
+| Settings → Two-factor | Shows how many remain; re-issues the set (needs a **live** authenticator code, never a recovery code). |
+| Settings → Turn off | Accepts a recovery code, so "lost phone → sign in → disable → re-enrol on the new phone" is a path a user can walk unaided. |
+
+Redeeming a recovery code satisfies step-up exactly as a TOTP code does. That is deliberate: the
+three permissions behind the gate are the only reason these accounts hold a second factor at all,
+so a code that admitted you to the product but not to payroll would leave the approver exactly
+where they started.
+
+Format is `XXXXX-XXXXX` from a 32-symbol alphabet with `I`, `O`, `0` and `1` removed — the
+characters people mis-transcribe, read back at precisely the moment they are already locked out.
+Case, spacing and the hyphen are all normalised away, so any spelling of the same code works.
+
+**The seeded personas above have no recovery codes.** They were enrolled by the seeder before
+096 existed. To get a set, sign in and use Settings → Two-factor → *Generate new recovery codes*.
+
 ---
 
 ## Control Bistro — isolation control (small, deliberate)

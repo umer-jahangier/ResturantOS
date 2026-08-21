@@ -6,6 +6,7 @@ import { ArrowRight, Palette, Users } from "lucide-react";
 import { AccessDenied } from "@/components/shared/access-denied";
 import { PermissionGuard } from "@/components/shared/permission-guard";
 import { BranchSettingsForm } from "@/components/settings/branch-settings-form";
+import { TwoFactorPanel } from "@/components/settings/two-factor-panel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ZoneProvider } from "@/components/providers/zone-provider";
 import { useCurrentUser } from "@/lib/hooks/auth/use-current-user";
@@ -57,6 +58,12 @@ function SettingsPage() {
       </div>
 
       <BranchSettingsForm branchId={branchId || null} />
+
+      {/* Per-USER, not per-branch, and the only control on this page that is. It sits here because
+          this is where people look for it and because profile-panel already reports the same state
+          read-only — a status with no action beside it sends the user hunting for a screen that,
+          until now, did not exist. */}
+      <TwoFactorPanel />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {canManageUsers && (

@@ -1,14 +1,18 @@
-import { post } from "@/lib/api-client/request";
+import { get, post } from "@/lib/api-client/request";
 import {
   apiLoginSchema,
   apiTokenSchema,
+  apiRecoveryCodesSchema,
   apiTotpSetupSchema,
+  apiTwoFactorStatusSchema,
 } from "@/lib/api-client/schemas/auth.schema";
 import { adaptSession, adaptTokenSession } from "@/lib/adapters/auth.adapter";
 import type {
   ForcedPasswordChangeBody,
   LoginBody,
+  RecoveryCodes,
   Session,
+  TwoFactorStatus,
   TotpBootstrapBody,
   TotpSetup,
 } from "@/lib/models/auth.model";
@@ -56,14 +60,50 @@ export const SessionRepository = {
 
   /**
    * Activate the secret issued by {@link totpBootstrap} by proving the user's authenticator
-   * produces the right code.
+   * produces the right code, and receive the account's recovery codes.
    *
-   * No response is parsed because there is none: the endpoint returns `{data: null}` and issues no
-   * credential. The user goes back to the login form and signs in normally — enrolment and
-   * authentication stay separate, so completing enrolment never doubles as a login.
+   * Still issues no credential: the user goes back to the login form and signs in normally, so
+   * enrolment and authentication stay two events with two audit records. What changed is that the
+   * response is no longer empty — it carries the recovery codes, the only time they are ever sent —
+   * so the caller MUST surface them rather than discarding the resolved value.
    */
-  async totpBootstrapVerify(body: TotpBootstrapBody): Promise<void> {
-    await post<TotpBootstrapBody>("/api/v1/auth/2fa/bootstrap/verify", body);
+  async totpBootstrapVerify(body: TotpBootstrapBody): Promise<RecoveryCodes> {
+    const raw = await post<TotpBootstrapBody>("/api/v1/auth/2fa/bootstrap/verify", body);
+    return apiRecoveryCodesSchema.parse(raw);
+  },
+
+  // ---- Managing a second factor from Settings, with a session already in hand. --------------
+  // These are the authenticated counterparts of the bootstrap pair above. Bootstrap exists only to
+  // break the no-token-without-a-code deadlock and refuses once a secret exists; everything a
+  // signed-in user does to their own second factor goes through here.
+
+  async totpStatus(): Promise<TwoFactorStatus> {
+    return apiTwoFactorStatusSchema.parse(await get("/api/v1/auth/2fa/status"));
+  },
+
+  /** Issues a secret but does not activate it — nothing changes until {@link totpVerify}. */
+  async totpSetup(): Promise<TotpSetup> {
+    return apiTotpSetupSchema.parse(await post("/api/v1/auth/2fa/setup"));
+  },
+
+  /** Activates the secret and returns the recovery codes. Shown once; see {@link RecoveryCodes}. */
+  async totpVerify(code: string): Promise<RecoveryCodes> {
+    return apiRecoveryCodesSchema.parse(await post("/api/v1/auth/2fa/verify", { code }));
+  },
+
+  /**
+   * Replaces the recovery-code set, invalidating every previous code.
+   *
+   * Takes a LIVE authenticator code, never a recovery code — the server enforces that asymmetry so
+   * that someone holding a stolen printed list cannot replace it with one only they hold.
+   */
+  async totpRegenerateRecoveryCodes(code: string): Promise<RecoveryCodes> {
+    return apiRecoveryCodesSchema.parse(await post("/api/v1/auth/2fa/recovery-codes", { code }));
+  },
+
+  /** Accepts an authenticator code OR a recovery code — the lost-phone repair path. */
+  async totpDisable(code: string): Promise<void> {
+    await post("/api/v1/auth/2fa/disable", { code });
   },
 
   async switchBranch(branchId: string): Promise<Session> {

@@ -1,6 +1,7 @@
 package io.restaurantos.auth.service;
 
 import io.restaurantos.auth.dto.response.TotpSetupResponse;
+import io.restaurantos.auth.dto.response.TwoFactorStatusResponse;
 import io.restaurantos.auth.entity.UserEntity;
 import io.restaurantos.auth.exception.AuthenticationFailedException;
 import io.restaurantos.auth.exception.TotpAlreadyEnrolledException;
@@ -13,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,15 +24,18 @@ public class TwoFactorService {
     private final TotpService totpService;
     private final TenantContext tenantContext;
     private final EntityManager entityManager;
+    private final RecoveryCodeService recoveryCodeService;
 
     public TwoFactorService(UserRepository userRepository,
                             TotpService totpService,
                             TenantContext tenantContext,
-                            EntityManager entityManager) {
+                            EntityManager entityManager,
+                            RecoveryCodeService recoveryCodeService) {
         this.userRepository = userRepository;
         this.totpService = totpService;
         this.tenantContext = tenantContext;
         this.entityManager = entityManager;
+        this.recoveryCodeService = recoveryCodeService;
     }
 
     @Transactional
@@ -43,14 +48,23 @@ public class TwoFactorService {
         return new TotpSetupResponse(totpService.otpauthUri(secret, user.getEmail()));
     }
 
+    /**
+     * Activates a secret issued by {@link #setup()} and hands back a fresh set of recovery codes.
+     *
+     * <p>The codes are issued HERE rather than at {@code setup()} because activation is the first
+     * moment the user can actually be locked out. Issuing them alongside the secret would print a
+     * list of codes for an enrolment that may never complete, and the user would file them away
+     * believing they were covered.
+     */
     @Transactional
-    public void verify(String code) {
+    public List<String> verify(String code) {
         UserEntity user = loadCurrentUser();
         if (user.getTotpSecret() == null || !totpService.verify(user.getTotpSecret(), code)) {
             throw new AuthenticationFailedException("Invalid TOTP code");
         }
         user.setTotpEnabled(true);
         userRepository.save(user);
+        return recoveryCodeService.regenerate(user.getId(), tenantContext.requireTenantId());
     }
 
     /**
@@ -80,25 +94,85 @@ public class TwoFactorService {
         return new TotpSetupResponse(totpService.otpauthUri(secret, user.getEmail()));
     }
 
-    /** Activates a secret issued by {@link #bootstrap}, again on the strength of the password. */
+    /**
+     * Activates a secret issued by {@link #bootstrap}, again on the strength of the password, and
+     * returns the recovery codes for it.
+     *
+     * <p>This path matters more than {@link #verify} does. Bootstrap exists for the owner of a
+     * freshly provisioned tenant — the only account there is — so a lost phone afterwards would
+     * leave a restaurant with no way into its own product and nobody able to help. These codes are
+     * that restaurant's way back.
+     */
     @Transactional
-    public void bootstrapVerify(UserEntity user, String code) {
+    public List<String> bootstrapVerify(UserEntity user, String code) {
         if (user.getTotpSecret() == null || !totpService.verify(user.getTotpSecret(), code)) {
             throw new AuthenticationFailedException("Invalid TOTP code");
         }
         user.setTotpEnabled(true);
         userRepository.save(user);
+        return recoveryCodeService.regenerate(user.getId(), tenantContext.requireTenantId());
     }
 
+    /**
+     * Turns the second factor off, accepting either a live TOTP code or a recovery code.
+     *
+     * <p>Accepting a recovery code here is what makes "lost my phone" recoverable rather than
+     * merely survivable: sign in with a code, disable, then re-enrol against the new device. Without
+     * it a user could get INTO the product with a recovery code and still be unable to repair the
+     * account, because every remaining route demanded the authenticator they no longer had.
+     *
+     * <p>The codes are revoked with the secret. They authorise nothing once there is no second
+     * factor, and leaving ten live credentials behind on an account that no longer has 2FA is a
+     * quiet way to end up worse off than before enrolling.
+     */
     @Transactional
     public void disable(String code) {
         UserEntity user = loadCurrentUser();
-        if (user.getTotpSecret() == null || !totpService.verify(user.getTotpSecret(), code)) {
+        if (user.getTotpSecret() == null || !proveSecondFactor(user, code)) {
             throw new AuthenticationFailedException("Invalid TOTP code");
         }
         user.setTotpSecret(null);
         user.setTotpEnabled(false);
         userRepository.save(user);
+        recoveryCodeService.revokeAll(user.getId());
+    }
+
+    /**
+     * Re-issues the whole set, invalidating every previous code.
+     *
+     * <p>Requires a LIVE authenticator code, not a recovery code. Regeneration is the action that
+     * decides what the account's fallbacks will be for the next year, and permitting it on the
+     * strength of a recovery code would let anyone holding one printed list quietly replace it with
+     * a list only they hold — locking out the legitimate user with their own feature.
+     */
+    @Transactional
+    public List<String> regenerateRecoveryCodes(String totpCode) {
+        UserEntity user = loadCurrentUser();
+        if (!user.isTotpEnabled()
+            || user.getTotpSecret() == null
+            || !totpService.verify(user.getTotpSecret(), totpCode)) {
+            throw new AuthenticationFailedException("Invalid TOTP code");
+        }
+        return recoveryCodeService.regenerate(user.getId(), tenantContext.requireTenantId());
+    }
+
+    @Transactional(readOnly = true)
+    public TwoFactorStatusResponse status() {
+        UserEntity user = loadCurrentUser();
+        return new TwoFactorStatusResponse(
+            user.isTotpEnabled(),
+            user.isTotpEnabled() ? recoveryCodeService.remaining(user.getId()) : 0L);
+    }
+
+    /**
+     * True if {@code code} is either a valid TOTP code or an unused recovery code. A recovery code
+     * is SPENT by this call when it matches, so it must not be called speculatively.
+     */
+    private boolean proveSecondFactor(UserEntity user, String code) {
+        if (RecoveryCodeService.looksLikeRecoveryCode(code)) {
+            return recoveryCodeService.redeem(user.getId(), code);
+        }
+        return totpService.verify(user.getTotpSecret(), code);
     }
 
     private UserEntity loadCurrentUser() {

@@ -62,3 +62,107 @@ describe("SessionRepository (Zod parse-before-adapt contract)", () => {
     await expect(SessionRepository.login(validBody)).rejects.toThrowError();
   });
 });
+
+/**
+ * The 2FA management surface added with the recovery-code module.
+ *
+ * These assert the parse-before-return contract on each new method, and in particular that
+ * `totpBootstrapVerify` — which used to resolve with nothing — now surfaces the recovery codes.
+ * That method is the one place in the product where a discarded response destroys a credential the
+ * server cannot reissue, so "did it come back at all" is worth pinning in a test.
+ */
+describe("SessionRepository — two-factor management", () => {
+  const CODES = ["ABCDE-FGHJK", "LMNPQ-RSTUV", "WXYZ2-34567"];
+
+  function okCodes() {
+    return HttpResponse.json({ data: { recoveryCodes: CODES }, meta: null, warnings: [] });
+  }
+
+  it("totpBootstrapVerify() returns the recovery codes rather than discarding them", async () => {
+    server.use(http.post("*/api/v1/auth/2fa/bootstrap/verify", okCodes));
+
+    const result = await SessionRepository.totpBootstrapVerify({
+      email: "owner@demo.test",
+      password: "correct-horse",
+      tenantSlug: "demo",
+      code: "123456",
+    });
+
+    expect(result.recoveryCodes).toEqual(CODES);
+  });
+
+  it("totpVerify() returns the recovery codes issued on activation", async () => {
+    server.use(http.post("*/api/v1/auth/2fa/verify", okCodes));
+    await expect(SessionRepository.totpVerify("123456")).resolves.toEqual({
+      recoveryCodes: CODES,
+    });
+  });
+
+  it("totpRegenerateRecoveryCodes() returns the replacement set", async () => {
+    server.use(http.post("*/api/v1/auth/2fa/recovery-codes", okCodes));
+    await expect(SessionRepository.totpRegenerateRecoveryCodes("123456")).resolves.toEqual({
+      recoveryCodes: CODES,
+    });
+  });
+
+  it("totpSetup() returns the provisioning URI the QR is drawn from", async () => {
+    server.use(
+      http.post("*/api/v1/auth/2fa/setup", () =>
+        HttpResponse.json({
+          data: { otpauthUri: "otpauth://totp/RestaurantOS:a@b.test?secret=ABC&issuer=RestaurantOS" },
+          meta: null,
+          warnings: [],
+        }),
+      ),
+    );
+
+    const setup = await SessionRepository.totpSetup();
+    expect(setup.otpauthUri).toContain("otpauth://totp/");
+    expect(new URL(setup.otpauthUri).searchParams.get("secret")).toBe("ABC");
+  });
+
+  it("totpStatus() reports enrolment and the remaining recovery-code count", async () => {
+    server.use(
+      http.get("*/api/v1/auth/2fa/status", () =>
+        HttpResponse.json({
+          data: { enabled: true, recoveryCodesRemaining: 7 },
+          meta: null,
+          warnings: [],
+        }),
+      ),
+    );
+
+    await expect(SessionRepository.totpStatus()).resolves.toEqual({
+      enabled: true,
+      recoveryCodesRemaining: 7,
+    });
+  });
+
+  it("totpDisable() resolves for an authenticator code and for a recovery code alike", async () => {
+    const seen: string[] = [];
+    server.use(
+      http.post("*/api/v1/auth/2fa/disable", async ({ request }) => {
+        seen.push(((await request.json()) as { code: string }).code);
+        return HttpResponse.json({ data: null, meta: null, warnings: [] });
+      }),
+    );
+
+    await SessionRepository.totpDisable("123456");
+    await SessionRepository.totpDisable("ABCDE-FGHJK");
+
+    // Both shapes are forwarded untouched — the server decides which check to run, and a client
+    // that stripped or reformatted either would break the lost-phone path it exists to serve.
+    expect(seen).toEqual(["123456", "ABCDE-FGHJK"]);
+  });
+
+  it("an empty recoveryCodes array is a contract break, not an empty state", async () => {
+    server.use(
+      http.post("*/api/v1/auth/2fa/verify", () =>
+        HttpResponse.json({ data: { recoveryCodes: [] }, meta: null, warnings: [] }),
+      ),
+    );
+
+    // .min(1) — a panel rendering "save these codes" above nothing is worse than a hard failure.
+    await expect(SessionRepository.totpVerify("123456")).rejects.toThrow();
+  });
+});
