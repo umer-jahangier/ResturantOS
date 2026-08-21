@@ -34,9 +34,9 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * empty-state screen — passing for the wrong reason. A waiter reaches the terminal without a
  * till, which is why the pos-waiter-to-kitchen journey uses the same persona.
  */
-const WAITER = persona("zaitoon", "waiter");
-const KITCHEN = persona("zaitoon", "kitchen");
-const MANAGER = persona("zaitoon", "manager");
+const WAITER = persona("terrace", "waiter");
+const KITCHEN = persona("terrace", "kitchen");
+const MANAGER = persona("terrace", "manager");
 
 /** A filter is "absent" if the resolved value is `none` or empty. Anything else is a repaint. */
 interface Offender {

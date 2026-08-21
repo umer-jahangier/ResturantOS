@@ -26,7 +26,7 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * in one confusing place.
  */
 
-const CASHIER = persona("zaitoon", "cashier");
+const CASHIER = persona("terrace", "cashier");
 
 /** Matches the rendered amounts `ReceiptMoneyFormatter` produces: `Rs 1,234.56`, `-Rs 100.00`. */
 const CURRENCY_TOKEN = /-?Rs\s[\d,]+\.\d{2}/g;

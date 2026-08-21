@@ -149,7 +149,7 @@ test.describe("SuperAdmin tenant lifecycle", () => {
 
     // Marina is ENTERPRISE with the full tier default, so FEATURE_CRM starts ON and the
     // "Customers" nav item is present for its MANAGER (which holds crm.customer.view).
-    const marinaManager = persona("marina", "manager");
+    const marinaManager = persona("terrace", "manager");
 
     // Resolve marina's id from the live platform API — never hard-coded.
     const list = await gateway.get("/api/v1/platform/tenants?page=0&size=200", { headers: auth });
@@ -254,7 +254,7 @@ test.describe("SuperAdmin tenant lifecycle", () => {
     // Pins E2E-D3. The nav offers this route; nothing implements it. Asserted from a TENANT
     // session because E2E-D2 means any authenticated user can reach the platform routes at
     // all — the two defects compound, and this records that they do.
-    const page = await as(persona("saffron", "owner"));
+    const page = await as(persona("terrace", "owner"));
     const res = await page.goto("/platform/tenants", { waitUntil: "domcontentloaded" });
 
     expect(

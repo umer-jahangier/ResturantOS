@@ -22,7 +22,20 @@ import { readFileSync } from "node:fs";
 
 export type PersonaLocal = "owner" | "manager" | "cashier" | "waiter" | "kitchen" | "accountant";
 
-export type TenantKey = "saffron" | "zaitoon" | "marina";
+/**
+ * RETARGETED 2026-08-21 from saffron/zaitoon/marina to the tenants the seeder
+ * actually creates.
+ *
+ * seed_restaurantos.py dropped the other three deliberately — its own comment
+ * says "the user asked for the other tenants to be dropped" — but these fixtures
+ * were never updated, so auth.setup.ts failed every run with "seeded tenants are
+ * absent from the platform API" and the whole journeys suite was unrunnable.
+ * The seeder is the source of truth; these follow it.
+ *
+ * Everything else derives from the key (email `${local}@${key}.local`, password
+ * `${Key}#${Local}1`), so this rename is the whole change.
+ */
+export type TenantKey = "terrace";
 
 export interface TenantSpec {
   key: TenantKey;
@@ -38,32 +51,23 @@ export interface TenantSpec {
 }
 
 export const TENANTS: Record<TenantKey, TenantSpec> = {
-  saffron: {
-    key: "saffron",
-    brand: "Saffron Grill",
-    tier: "STARTER",
-    // FEATURE_NLQ is GROWTH+ by TierFeatureDefaults — a STARTER tenant holding it can only
-    // have got it from tenant_features.is_override.
-    expectFeatures: {
-      on: ["FEATURE_POS", "FEATURE_CRM", "FEATURE_NLQ"],
-      off: ["FEATURE_ANALYTICS", "FEATURE_MULTI_BRANCH", "FEATURE_REPORTING_ADVANCED"],
-    },
-  },
-  zaitoon: {
-    key: "zaitoon",
-    brand: "Zaitoon Kitchen",
-    tier: "GROWTH",
-    // FEATURE_CRM is ON in every tier by default — OFF here is an explicit override.
-    expectFeatures: {
-      on: ["FEATURE_POS", "FEATURE_REPORTING_ADVANCED", "FEATURE_MULTI_BRANCH"],
-      off: ["FEATURE_CRM"],
-    },
-  },
-  marina: {
-    key: "marina",
-    brand: "Marina Bay Dining",
+  terrace: {
+    key: "terrace",
+    brand: "Floating Terrace",
     tier: "ENTERPRISE",
-    expectFeatures: { on: ["FEATURE_POS", "FEATURE_CRM", "FEATURE_ANALYTICS"], off: [] },
+    // Measured live 2026-08-21 from the seeder's own output: ENTERPRISE enables
+    // 20 features on this tenant.
+    expectFeatures: {
+      on: [
+        "FEATURE_POS",
+        "FEATURE_CRM",
+        "FEATURE_ANALYTICS",
+        "FEATURE_NLQ",
+        "FEATURE_MULTI_BRANCH",
+        "FEATURE_REPORTING_ADVANCED",
+      ],
+      off: [],
+    },
   },
 };
 
@@ -126,7 +130,11 @@ export const PERSONA_LOCALS: PersonaLocal[] = [
   "accountant",
 ];
 
-export const TENANT_KEYS: TenantKey[] = ["saffron", "zaitoon", "marina"];
+// ONE tenant. The product owner confirmed 2026-08-21 that Floating Terrace alone
+// is the demo. The old three-tenant fixture (saffron/zaitoon/marina) had already
+// diverged from the seeder, which dropped them; keeping a second tenant here only
+// re-created that drift, and Control Bistro's owner is not provisioned.
+export const TENANT_KEYS: TenantKey[] = ["terrace"];
 
 /** All 18 tenant personas, in a deterministic order. */
 export const ALL_PERSONAS: Persona[] = TENANT_KEYS.flatMap((t) =>

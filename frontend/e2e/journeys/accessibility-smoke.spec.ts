@@ -93,7 +93,7 @@ test.describe("accessibility smoke", () => {
         tolerate(obs, DEFECTS.POS_ORDERS_WEBSOCKET_REJECTED_AT_GATEWAY);
       }
 
-      const page = await as(persona("saffron", screen.personaLocal));
+      const page = await as(persona("terrace", screen.personaLocal));
       await page.goto(screen.route, { waitUntil: "domcontentloaded" });
       await screen.settled(page);
 

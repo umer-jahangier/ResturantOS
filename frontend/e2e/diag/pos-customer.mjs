@@ -1,0 +1,48 @@
+import { chromium } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
+const OUT = "/Users/muhammadumer/Documents/Projects/ResturantOS/.planning/audits/diagnosis/pos-core";
+const BASE = "http://localhost:3000"; mkdirSync(OUT, { recursive: true });
+const log = []; const say = (...a) => { const s = a.join(" "); console.log(s); log.push(s); };
+async function main() {
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1600, height: 1000 } });
+  const p = await ctx.newPage();
+  p.on("response", r => { if (r.url().includes("/api/")) log.push(`NET ${r.status()} ${r.request().method()} ${r.url().replace('http://localhost:8080','')}`); });
+  await p.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" }); await p.waitForTimeout(6000);
+  const sf = p.locator('input[name="tenantSlug"], input#tenantSlug');
+  if (await sf.count()) await sf.first().fill("floating-terrace");
+  await p.locator('input#email, input[name="email"]').first().fill("cashier@terrace.local");
+  await p.locator('input#password, input[name="password"]').first().fill("Terrace#Cashier1");
+  await p.locator('button[type="submit"]').first().click(); await p.waitForTimeout(6000);
+  await p.goto(`${BASE}/app/pos`, { waitUntil: "domcontentloaded" }); await p.waitForTimeout(20000);
+  say("POS BUTTONS:", JSON.stringify(await p.evaluate(() => Array.from(document.querySelectorAll("button")).map(b => (b.innerText || "").trim()).filter(Boolean).slice(0, 40))));
+  await p.locator("button", { hasText: /Add customer/ }).first().click({ timeout: 60000 }); await p.waitForTimeout(2500);
+  await p.screenshot({ path: `${OUT}/90-customer-picker-open.png` });
+  const pnl = () => p.evaluate(() => {
+    const b = Array.from(document.querySelectorAll("button")).find(x => /Send to Kitchen|New Order/i.test(x.innerText));
+    const r = b ? b.closest("div.w-80") : null;
+    return r ? { text: r.innerText.slice(0, 900), inputs: Array.from(r.querySelectorAll("input")).map(i => i.placeholder || i.getAttribute("aria-label")) } : null;
+  });
+  say("AFTER CLICK — inline panel:", JSON.stringify(await pnl()));
+  const si = p.locator('div.w-80 input').first();
+  if (await si.count()) {
+    await si.fill("03"); await p.waitForTimeout(3000);
+    await p.screenshot({ path: `${OUT}/91-customer-search.png` });
+    say("SEARCH RESULTS:", JSON.stringify(await p.evaluate(() => {
+      const b = Array.from(document.querySelectorAll("button")).find(x => /Send to Kitchen|New Order/i.test(x.innerText));
+      const r = b ? b.closest("div.w-80") : null; return r ? r.innerText.slice(0, 1200) : null; })));
+    const opt = p.locator('div.w-80 button').filter({ hasNotText: /Send to Kitchen|Save as Draft|Charge Now|Dine-in|Takeaway|Pickup|No table|Cancel|Enrol|Add customer/ }).first();
+    if (await opt.count()) {
+      const t = await opt.innerText(); await opt.click(); await p.waitForTimeout(2000);
+      say("PICKED:", t.replace(/\n/g, " | "));
+      await p.screenshot({ path: `${OUT}/92-customer-attached.png` });
+      say("PANEL NOW:", (await p.evaluate(() => { const bb=Array.from(document.querySelectorAll("button")).find(x=>/Send to Kitchen/i.test(x.innerText)); const r=bb?bb.closest("div.w-80"):null; return r?r.innerText:"(none)"; })).replace(/\n/g," | ").slice(0,400));
+      // now send and confirm customerId persisted
+      await p.locator('[data-testid="menu-grid"] button', { hasText: "Fresh Lime" }).first().click(); await p.waitForTimeout(600);
+      await p.locator("button", { hasText: /^Send to Kitchen$/ }).first().click(); await p.waitForTimeout(9000);
+      await p.screenshot({ path: `${OUT}/93-order-with-customer.png` });
+      say("AFTER SEND:", (await p.evaluate(() => { const bb=Array.from(document.querySelectorAll("button")).find(x=>/New Order/i.test(x.innerText)); const r=bb?bb.closest("div.w-80"):null; return r?r.innerText:"(none)"; })).replace(/\n/g," | ").slice(0,600));
+    } else say("!! no selectable customer option");
+  } else say("!! no search input in customer picker");
+  writeFileSync(`${OUT}/run-8.log`, log.join("\n")); await b.close();
+}
+main().catch(e => { console.error(e); writeFileSync(`${OUT}/run-8.log`, log.join("\n") + "\nFATAL " + e.stack); });

@@ -53,9 +53,9 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  */
 test.describe.configure({ mode: "serial" });
 
-const MANAGER = persona("zaitoon", "manager");
-const WAITER = persona("zaitoon", "waiter");
-const KITCHEN = persona("zaitoon", "kitchen");
+const MANAGER = persona("terrace", "manager");
+const WAITER = persona("terrace", "waiter");
+const KITCHEN = persona("terrace", "kitchen");
 
 /** Count differing bytes between two PNG buffers of the same viewport. */
 function differs(a: Buffer, b: Buffer): boolean {

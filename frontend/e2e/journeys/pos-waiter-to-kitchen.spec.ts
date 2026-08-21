@@ -22,8 +22,8 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * failure here from cascading into those, and exercises a second tenant's menu.
  */
 
-const WAITER = persona("zaitoon", "waiter");
-const KITCHEN = persona("zaitoon", "kitchen");
+const WAITER = persona("terrace", "waiter");
+const KITCHEN = persona("terrace", "kitchen");
 
 test.describe.configure({ mode: "serial" });
 

@@ -1,0 +1,38 @@
+import { chromium } from "@playwright/test";
+import { PERSONAS, login, shot, save, visit } from "./fin-lib.mjs";
+const log=[]; const say=(s)=>{console.log(s);log.push(String(s));};
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport:{width:1500,height:1100} });
+const page = await ctx.newPage();
+const net=[]; page.on("response",(r)=>{ if(r.url().includes("/api/")) net.push(`${r.status()} ${r.request().method()} ${r.url().replace("http://localhost:8080","")}`); });
+await login(page, PERSONAS.accountant);
+await visit(page,"/app/finance/expenses",{settle:5000});
+await page.locator("button",{hasText:/new expense/i}).first().click();
+await page.waitForTimeout(3000);
+const dlg=page.locator('[role="dialog"]').first();
+await dlg.locator('select[name="expenseAccountCode"]').selectOption({index:3});
+await dlg.locator('input[name="expenseDate"]').fill("2026-08-11");
+await dlg.locator('input[name="amountRupees"]').fill("1");
+await dlg.locator('input[name="description"]').fill("DIAG probe expense - finance audit");
+await shot(page,"expense-filled");
+net.length=0;
+await dlg.locator('button[type="submit"]').first().click();
+await page.waitForTimeout(6000);
+say(`CREATE API: ${net.filter(x=>/expense/i.test(x)).join(" | ")||"none"}`);
+say(`alerts: ${JSON.stringify(await page.locator('[role="alert"]').allInnerTexts())}`);
+await visit(page,"/app/finance/expenses",{settle:5000});
+const body=await page.locator("body").innerText();
+say(`--- expenses list ---\n${body.split("\n").filter(l=>l.trim()&&!/^(Dashboard|POS|Guide|Takings|Accounts|Journal Entries|General Ledger|Periods|Expenses|AP Aging|House Accounts|AR Aging|Transactions|Purchasing|Customers|Reports|Realtime Dashboard|Ask \(NLQ\)|Collapse|App|Finance|Floating Terrace.*|Search…|⌘K|OVERVIEW|ORDERS|FINANCE|PURCHASING|PEOPLE|REPORTING|\d+)$/.test(l.trim())).join("\n").slice(0,1200)}`);
+await shot(page,"expense-created");
+const appr=page.locator("button",{hasText:/^approve$/i}).first();
+say(`Approve button: ${await appr.count()}`);
+if(await appr.count()){
+  net.length=0; await appr.click(); await page.waitForTimeout(6000);
+  say(`APPROVE API: ${net.filter(x=>/expense/i.test(x)).join(" | ")||"none"}`);
+  say(`alerts: ${JSON.stringify(await page.locator('[role="alert"]').allInnerTexts())}`);
+  await shot(page,"expense-approved");
+  const b2=await page.locator("body").innerText();
+  say(`list now: ${b2.includes("APPROVED")||b2.includes("Approved") ? "shows APPROVED":"no approved marker"}`);
+}
+save("expense.txt",log.join("\n"));
+await browser.close();

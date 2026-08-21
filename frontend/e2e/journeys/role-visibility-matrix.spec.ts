@@ -22,7 +22,7 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * though its nav item is correctly hidden. This suite has already found exactly that.
  */
 
-const TENANT = "saffron";
+const TENANT = "terrace";
 
 test.describe("role visibility matrix", () => {
   for (const local of PERSONA_LOCALS) {

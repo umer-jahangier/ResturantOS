@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 
 test.describe.configure({ mode: "serial" });
 
-const OWNER = persona("saffron", "owner");
+const OWNER = persona("terrace", "owner");
 const NEW_USER_ROLE = "WAITER";
 
 interface Created {

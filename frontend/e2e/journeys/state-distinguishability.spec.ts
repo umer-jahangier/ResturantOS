@@ -51,7 +51,7 @@ import { persona } from "../fixtures/personas";
  * it.
  */
 
-const MANAGER = persona("saffron", "manager");
+const MANAGER = persona("terrace", "manager");
 
 /** The canonical GA-001 screen, and the API path its list is built from. */
 const VENDORS_ROUTE = "/app/purchasing/vendors";

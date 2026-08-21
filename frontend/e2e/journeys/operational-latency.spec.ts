@@ -27,8 +27,8 @@ import { DEFECTS, tolerate } from "../fixtures/known-defects";
  * till-closed empty state, which is what every earlier attempt in this phase measured.
  */
 
-const CASHIER = persona("zaitoon", "cashier");
-const KITCHEN = persona("zaitoon", "kitchen");
+const CASHIER = persona("terrace", "cashier");
+const KITCHEN = persona("terrace", "kitchen");
 
 test.describe.configure({ mode: "serial" });
 

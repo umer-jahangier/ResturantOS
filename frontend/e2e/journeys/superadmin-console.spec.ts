@@ -106,7 +106,7 @@ test.describe("SuperAdmin platform console", () => {
 
   test("B · a tenant persona is REFUSED at /platform/**", async ({ as, obs }) => {
     // KITCHEN_STAFF: the exact persona the audit reported rendering the SuperAdmin shell.
-    const kitchen = await as(persona("saffron", "kitchen"));
+    const kitchen = await as(persona("terrace", "kitchen"));
 
     // Any /api/v1/platform call this page makes is expected to be refused. Declared so the
     // console guard reports it rather than failing the test for the thing being asserted.
@@ -163,7 +163,7 @@ test.describe("SuperAdmin platform console", () => {
     gateway,
     token,
   }) => {
-    const zaitoonManager = persona("zaitoon", "manager");
+    const zaitoonManager = persona("terrace", "manager");
     const zaitoonId = await tenantIdBySlug(gateway, page, "zaitoon-kitchen");
 
     // BEFORE: the gateway refuses CRM for this tenant's user. Establishing this first means a

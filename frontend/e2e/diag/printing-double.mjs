@@ -1,0 +1,23 @@
+// Does the receipt page still force a browser dialog when a RECEIPT printer is configured?
+import { chromium } from "@playwright/test";
+const BASE="http://localhost:3000", OUT="../.planning/audits/diagnosis/printing";
+const sleep=(m)=>new Promise(r=>setTimeout(r,m));
+const SPY=()=>{window.__printCalls=[];const r=window.print.bind(window);window.print=function(){window.__printCalls.push(Date.now());try{r()}catch(e){}}};
+const b=await chromium.launch({headless:true});
+const c=await b.newContext({viewport:{width:1440,height:900}});
+await c.addInitScript(SPY);
+const p=await c.newPage();
+const net=[];p.on("request",r=>{if(/print/i.test(r.url()))net.push(`${r.method()} ${r.url()}`)});
+await p.goto(`${BASE}/login`,{waitUntil:"domcontentloaded"});await sleep(2000);
+const sl=p.locator('input[name="tenantSlug"], input#tenantSlug'); if (await sl.count()) await sl.first().fill("floating-terrace");
+await p.locator('input[name="email"], input#email').first().fill("cashier@terrace.local");
+await p.locator('input[name="password"], input#password').first().fill("Terrace#Cashier1");
+await p.locator('button[type="submit"]').first().click();await sleep(6000);
+const ORDER="43857ea9-c11d-4642-9fea-ad732957a2d1";
+await p.goto(`${BASE}/app/pos/orders/${ORDER}/receipt`,{waitUntil:"domcontentloaded"});await sleep(9000);
+const body=await p.locator("body").innerText().catch(()=> "");
+console.log("receipt page:",body.replace(/\s+/g," ").slice(0,420));
+console.log(">>> window.print() calls =",await p.evaluate(()=>(window.__printCalls||[]).length));
+console.log("print requests:");[...new Set(net)].forEach(r=>console.log("   ",r));
+await p.screenshot({path:`${OUT}/e-receipt-with-printer-configured.png`,fullPage:true});
+await b.close();

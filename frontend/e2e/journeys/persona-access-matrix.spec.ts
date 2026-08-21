@@ -87,14 +87,14 @@ test.describe("persona access matrix", () => {
    * same intent in prose).
    */
   test("nav is role-scoped: manager sees Till Review, cashier does not", async ({ as }) => {
-    const managerPage = await as(persona("saffron", "manager"));
+    const managerPage = await as(persona("terrace", "manager"));
     await managerPage.goto("/app/dashboard");
     const managerNav = managerPage.getByRole("navigation", { name: "Primary" });
     await expect(managerNav.getByRole("link", { name: "Till Review" })).toBeVisible({
       timeout: 20_000,
     });
 
-    const cashierPage = await as(persona("saffron", "cashier"));
+    const cashierPage = await as(persona("terrace", "cashier"));
     await cashierPage.goto("/app/dashboard");
     const cashierNav = cashierPage.getByRole("navigation", { name: "Primary" });
     // Anchor on an item the cashier DOES have first, so "absent" means "gated out" and not

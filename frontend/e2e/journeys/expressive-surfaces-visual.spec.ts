@@ -40,7 +40,7 @@ import { persona } from "../fixtures/personas";
  * </ol>
  */
 
-const OWNER = persona("saffron", "owner");
+const OWNER = persona("terrace", "owner");
 
 const BLOCKING = new Set(["critical", "serious"]);
 

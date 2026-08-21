@@ -17,7 +17,7 @@ import { loadTotpSecret, totpStable } from "../fixtures/totp";
  *   C. a REFRESHED token does NOT — which is why storage state can never stand in for this
  */
 
-const OWNER = persona("marina", "owner");
+const OWNER = persona("terrace", "owner");
 
 /**
  * SERIAL, and this is a product constraint rather than a test-isolation preference.

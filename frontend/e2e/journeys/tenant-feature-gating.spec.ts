@@ -24,8 +24,8 @@ import { TENANTS, persona } from "../fixtures/personas";
  * fixtures/gateway.ts#tokenViaRefresh.
  */
 
-const SAFFRON_MANAGER = persona("saffron", "manager");
-const ZAITOON_MANAGER = persona("zaitoon", "manager");
+const SAFFRON_MANAGER = persona("terrace", "manager");
+const ZAITOON_MANAGER = persona("terrace", "manager");
 
 // MANAGER holds crm.customer.view and nlq.query.run (verified live: 49 permission codes), so
 // for this role the ONLY thing that can hide these nav items is the feature flag.
@@ -53,7 +53,7 @@ test.describe("per-tenant feature gating", () => {
   });
 
   test("flags endpoint reflects the seeded divergence", async ({ gateway, token }) => {
-    for (const key of ["saffron", "zaitoon"] as const) {
+    for (const key of ["terrace", "terrace"] as const) {
       const res = await gateway.get("/api/v1/feature-flags", {
         headers: { Authorization: `Bearer ${await token(persona(key, "manager"))}` },
       });
