@@ -32,7 +32,13 @@
       "whenYouUseIt": "Every evening, when the last table has gone and the cashier is counting the drawer. It is the first screen Finance opens on, because it is the one question you ask every single day.",
       "typicalEntry": "A Thursday: 26 bills, Rs 33,390 of food at menu price, Rs 5,342.40 of tax, Rs 38,732.40 taken in total — Rs 10,068.80 of it on card across 8 payments and Rs 28,663.60 in cash across 18. One till counted Rs 43,567 against an expected Rs 6,836.05, so it shows as Over by Rs 36,730.95, on that till and nowhere else. A second till was still open at the time, so it shows as still open rather than as an empty drawer.",
       "affectsDownstream": "Nothing on this screen is typed in — every figure is the sum of orders that were closed in POS, so it changes when a bill is settled, refunded or voided. Each of those individual events is listed on Transactions, and the entries they wrote in your books are on Journal Entries and General Ledger. If a figure here looks wrong, Transactions is where you go to find out which bill caused it.",
-      "claims": ["FIN-GUIDE-0009", "FIN-GUIDE-0010", "FIN-GUIDE-0011", "FIN-GUIDE-0001", "FIN-GUIDE-0003"]
+      "claims": [
+        "FIN-GUIDE-0009",
+        "FIN-GUIDE-0010",
+        "FIN-GUIDE-0011",
+        "FIN-GUIDE-0001",
+        "FIN-GUIDE-0003"
+      ]
     },
     {
       "href": "/app/finance/transactions",

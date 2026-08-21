@@ -43,14 +43,21 @@ function writeRealPng(file: string): string {
     const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
     const len = Buffer.alloc(4);
     len.writeUInt32BE(data.length);
-    const crcTable: number[] = [];
+    // Uint32Array (fixed-width, densely allocated) rather than a sparse number[].
+    const crcTable = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {
       let c = n;
       for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
       crcTable[n] = c >>> 0;
     }
     let crc = 0xffffffff;
-    for (const b of body) crc = crcTable[(crc ^ b) & 0xff] ^ (crc >>> 8);
+    // The `!` states a fact the checker cannot derive: `& 0xff` masks the index to
+    // 0..255 and crcTable is a densely-allocated Uint32Array(256), so the read can
+    // never be undefined. noUncheckedIndexedAccess applies to TypedArrays too, so
+    // the type is `number | undefined` regardless of the mask. `?? 0` was rejected
+    // deliberately — it would silently substitute a WRONG CRC byte if the
+    // invariant ever broke, turning a crash into corrupt output.
+    for (const b of body) crc = crcTable[(crc ^ b) & 0xff]! ^ (crc >>> 8);
     const crcBuf = Buffer.alloc(4);
     crcBuf.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
     return Buffer.concat([len, body, crcBuf]);
@@ -76,7 +83,10 @@ function writeRealPng(file: string): string {
 function writeDisguisedExecutable(file: string): string {
   mkdirSync(TMP, { recursive: true });
   const p = path.join(TMP, file);
-  writeFileSync(p, Buffer.from("MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00 not an image", "binary"));
+  writeFileSync(
+    p,
+    Buffer.from("MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00 not an image", "binary"),
+  );
   return p;
 }
 
@@ -225,9 +235,9 @@ test.describe("19b — menu item pictures", () => {
     // ── the forged upload: named .png, offered as image/png, not an image ──────
     // Every client-side check passes it. Only file-service's magic-byte read can refuse it,
     // which is the entire reason that check reads bytes instead of the Content-Type header.
-    await dialog.getByTestId("menu-item-image-input").setInputFiles(
-      writeDisguisedExecutable("disguised.png"),
-    );
+    await dialog
+      .getByTestId("menu-item-image-input")
+      .setInputFiles(writeDisguisedExecutable("disguised.png"));
     const uploadError = dialog.getByTestId("menu-item-image-error-message");
     await expect(uploadError).toBeVisible({ timeout: 30_000 });
     await expect(uploadError).toContainText(/not a JPEG, PNG or WebP/i);
@@ -244,7 +254,10 @@ test.describe("19b — menu item pictures", () => {
 
     // The saved item's thumbnail is fetched through the authenticated client and rendered from
     // an object URL — a plain <img src> at the gated download route would 401 here.
-    const row = page.locator("div").filter({ hasText: new RegExp(`^${itemName}`) }).last();
+    const row = page
+      .locator("div")
+      .filter({ hasText: new RegExp(`^${itemName}`) })
+      .last();
     await expect(page.getByText(itemName, { exact: true })).toBeVisible({ timeout: 30_000 });
     const thumb = page.getByTestId("menu-item-image").first();
     await expect(thumb).toBeVisible({ timeout: 30_000 });

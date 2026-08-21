@@ -48,6 +48,48 @@ Each of these produced a confident, wrong answer:
   non-matching pattern fails loudly rather than passing vacuously. This was broadcast fleet-wide as
   a hazard, challenged by an agent, verified, and found **wrong on both counts**. Retracted.
 - **A compile check against the working tree proves nothing about a path-scoped commit.** See §3.
+- **`grep` over a multi-line assertion reports the LAST file, not all of them.** A session filtered
+  vitest output through `grep` to list off-contract files and reported **five**. There were
+  **twenty-nine**: each of the five names was merely the alphabetically-last entry of a multi-line
+  assertion, and the grep saw only that line. The suite had run correctly and produced the truth.
+  **This is a fifth variant of the green-suite trap, and the usual countermeasure does not catch
+  it** — the run was real, a positive test count was present and honest, and the *reading* was the
+  lie. Demanding `Tests run: N` proves the suite executed; it says nothing about whether the summary
+  someone extracted from it is complete. Read the raw assertion, or count what you claim to have
+  counted.
+- **A file-scoped grep answers a file-scoped question, not the table-scoped one you asked.**
+  `grep -oE '^\s+[a-z_]+ ' V001__analytics_facts.sql | sort -u` returns the union of column names
+  across FOUR table definitions. I read that union as one table's columns and told a peer that
+  `sales_item_facts` carries `tax_paisa`, so the tax-inclusive-revenue defect was "a one-line query
+  fix". It does not: `tax_paisa`/`discount_paisa` are on `sales_order_facts` (ORDER grain),
+  `input_tax_paisa` is on `purchase_tax_facts`. The strings were real, in the right file, attached
+  to the wrong entity — and the wrong answer was the *convenient* one, which is why it went
+  unquestioned until the peer re-read the whole definition. **When a question is scoped to one
+  entity, scope the extraction to that entity** — parse per `CREATE TABLE`, not per file. The peer
+  was independently bitten by the mirror image the same hour: a `sed -n '66,88p'` line window that
+  stopped before the table did, giving a right answer for a wrong reason.
+- **A zero-coverage guard is not a partial-coverage guard, and the bias has a direction.**
+  `ReportCatalog` guards food-cost with `if(countIf(cogs_paisa IS NOT NULL) = 0, NULL, sum(...))`.
+  That correctly refuses to answer when NOTHING is costed. It says nothing when SOME rows are
+  costed: a menu item with no recipe produces no DEPLETION movement, so its COGS is *unknown*, and
+  summing over all sales silently treats unknown as zero. The resulting food-cost percentage is
+  biased **LOW** — the direction that makes a struggling kitchen look healthy, which is the
+  direction nobody questions. **An aggregate over a nullable column must carry its coverage**, and
+  a guard on the empty case is the easiest possible version of that check to write and the least
+  useful. Ask what the number does when the data is half there, not when it is absent.
+- **A CSS selector list falls through to its last alternative and measures the wrong element.**
+  `verify-38-wave3.mjs` selected `'[data-testid="pos-cart"], [data-testid="order-panel"], aside'`.
+  Neither testid existed anywhere in the product, so every run matched `aside` — the app sidebar —
+  and the committed `cartWidth: 256` is the sidebar's width, in the BEFORE and the AFTER capture
+  alike. A plan's central measurement had never once observed the thing it was measuring, and it
+  looked stable precisely because it was measuring something that never changed. **A selector
+  fallback chain is a silent default.** If a probe must find a specific element, assert the match
+  is non-empty for the SPECIFIC selector before measuring it, or the fallback becomes the answer.
+- **A contrast gate that only measures one surface passes on the others.** The theme gate asserted
+  every pairing against the PAGE background and never against a Card, so `--border-interactive` sat
+  at **2.95:1** on cards in dark mode — under SC 1.4.11's 3:1 floor — from the day dark surfaces were
+  introduced. Re-measured against the pre-existing cyan tokens at **2.94:1**, so it long predated the
+  palette work that found it. A gate is only evidence for the combinations it actually enumerates.
 - **A clean `tsc --noEmit` can mean the exclude got too broad.** After excluding duplicate files,
   falsify it: `tsc --listFilesOnly` and diff against `git ls-files` — the set of tracked sources not
   compiled must be empty.

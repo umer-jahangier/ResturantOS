@@ -99,7 +99,10 @@ test.describe("The Guide explains the module, and its rules hold", () => {
     await page.goto("/app/finance/guide#periods");
     await expect(page.locator("#periods")).toBeVisible();
 
-    const shot = await page.screenshot({ fullPage: true, path: `${SHOTS}/37-13-finance-guide.png` });
+    const shot = await page.screenshot({
+      fullPage: true,
+      path: `${SHOTS}/37-13-finance-guide.png`,
+    });
     await testInfo.attach("finance-guide.png", { body: shot, contentType: "image/png" });
   });
 

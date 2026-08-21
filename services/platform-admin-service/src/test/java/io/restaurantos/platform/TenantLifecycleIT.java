@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import io.restaurantos.shared.exception.StateInvalidException;
 
 /**
  * Lifecycle state machine tests (PLATFORM-02/03).
@@ -59,24 +60,31 @@ class TenantLifecycleIT extends BasePlatformIT {
     }
 
     @Test
-    void invalidTransition_reactivateCancelled_throwsIllegalState() {
+    void invalidTransition_reactivateCancelled_is409NotAServerError() {
         UUID tenantId = provisionTenantDirect("Lifecycle Brand Invalid");
 
         lifecycleService.cancel(tenantId, "test");
 
+        // StateInvalidException, not IllegalStateException. These assertions were
+        // written when requireStatus threw IllegalStateException, which no handler
+        // claimed, so every ordering mistake came back as 500 INTERNAL_ERROR — the
+        // caller could not tell "you called these in the wrong order" from "the server
+        // is broken" (defect E2E-D5). It now throws StateInvalidException, which maps
+        // to 409 STATE_INVALID. The test names changed with it: they assert a CONTRACT
+        // (a well-formed request in the wrong state is a conflict), not a Java type.
         assertThatThrownBy(() -> lifecycleService.reactivate(tenantId))
-            .isInstanceOf(IllegalStateException.class)
+            .isInstanceOf(StateInvalidException.class)
             .hasMessageContaining("CANCELLED");
     }
 
     @Test
-    void invalidTransition_suspendSuspended_throwsIllegalState() {
+    void invalidTransition_suspendSuspended_is409NotAServerError() {
         UUID tenantId = provisionTenantDirect("Lifecycle Brand Suspend2");
 
         lifecycleService.suspend(tenantId, "first");
 
         assertThatThrownBy(() -> lifecycleService.suspend(tenantId, "second"))
-            .isInstanceOf(IllegalStateException.class);
+            .isInstanceOf(StateInvalidException.class);
     }
 
     @Test

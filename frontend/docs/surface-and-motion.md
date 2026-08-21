@@ -11,11 +11,11 @@ import { useZone } from "@/components/providers/zone-provider";
 const zone = useZone(); // "expressive" | "restrained" | "operational"
 ```
 
-| Zone | Where | What you get |
-|---|---|---|
-| `expressive` | dashboards, reports, SuperAdmin console, login, settings | glass, depth, entrance + hover motion |
-| `restrained` | admin CRUD, lists, forms, menu management | subtle elevation, fast transitions, no decorative motion |
-| `operational` | POS order screen, KDS/BDS board | depth cues only — no blur, no entrance, no parallax |
+| Zone          | Where                                                    | What you get                                             |
+| ------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| `expressive`  | dashboards, reports, SuperAdmin console, login, settings | glass, depth, entrance + hover motion                    |
+| `restrained`  | admin CRUD, lists, forms, menu management                | subtle elevation, fast transitions, no decorative motion |
+| `operational` | POS order screen, KDS/BDS board                          | depth cues only — no blur, no entrance, no parallax      |
 
 You rarely set this. It is declared once per zone root (a layout, or a page that owns a screen).
 If you are adding a new top-level screen, declare it there — **never derive it from the URL
@@ -33,7 +33,9 @@ import { GlassPanel } from "@/components/ui/surface/glass-panel";
 Or, on the existing `Card`:
 
 ```tsx
-<Card depth={2} interactive>…</Card>   // depth is OPT-IN; omit it and Card is unchanged
+<Card depth={2} interactive>
+  …
+</Card> // depth is OPT-IN; omit it and Card is unchanged
 ```
 
 **Rules that are enforced, not advisory:**
@@ -69,12 +71,25 @@ keyframe's opening frame, never on the class.
 
 ```css
 /* WRONG — this renders a blank screen for a reduced-motion user */
-.thing        { opacity: 0 }
-@keyframes in { to { opacity: 1 } }
+.thing {
+  opacity: 0;
+}
+@keyframes in {
+  to {
+    opacity: 1;
+  }
+}
 
 /* RIGHT — delete the animation and the element is still correct */
-.thing        { animation: in 420ms both }
-@keyframes in { from { opacity: 0; transform: translate3d(0,10px,0) } }
+.thing {
+  animation: in 420ms both;
+}
+@keyframes in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
 ```
 
 If you get this wrong, the content is simply gone for anyone with reduced motion, a backgrounded
@@ -100,7 +115,9 @@ A test fails any module that writes a transform from JavaScript without importin
 import { usePointerTilt } from "@/lib/hooks/ui/use-pointer-tilt";
 
 const { ref, handlers, active } = usePointerTilt({ maxDeg: 4, enabled: zone === "expressive" });
-<div ref={ref} {...handlers} className="vdl-tilt">…</div>
+<div ref={ref} {...handlers} className="vdl-tilt">
+  …
+</div>;
 ```
 
 It refuses to engage on a coarse pointer, under reduced motion, or when disabled. Do not
@@ -111,16 +128,16 @@ real page.
 
 ## Things that will fail the build
 
-| Doing this | Fails |
-|---|---|
-| `backdrop-blur-*` anywhere in `app/` or `components/` | `zone-containment.test.ts` |
-| a `backdrop-filter` rule not rooted at `[data-zone="expressive"]` | `zone-containment.test.ts` |
-| `opacity: 0` / `visibility: hidden` / a literal offset transform as a resting style | `motion-vocabulary.test.ts` |
-| a duration over 240 ms outside the expressive zone | `motion-vocabulary.test.ts` |
-| a new glass token without declared substrates | `glass-contrast.test.ts` |
-| adding any dependency, especially `three` / `gsap` / `@react-spring/web` | `dependency-budget.test.ts` |
-| importing `framer-motion` | `dependency-budget.test.ts` |
-| a transform / filter / `will-change` on a POS **layout ancestor** | `operational-zone-containment.spec.ts` |
+| Doing this                                                                          | Fails                                  |
+| ----------------------------------------------------------------------------------- | -------------------------------------- |
+| `backdrop-blur-*` anywhere in `app/` or `components/`                               | `zone-containment.test.ts`             |
+| a `backdrop-filter` rule not rooted at `[data-zone="expressive"]`                   | `zone-containment.test.ts`             |
+| `opacity: 0` / `visibility: hidden` / a literal offset transform as a resting style | `motion-vocabulary.test.ts`            |
+| a duration over 240 ms outside the expressive zone                                  | `motion-vocabulary.test.ts`            |
+| a new glass token without declared substrates                                       | `glass-contrast.test.ts`               |
+| adding any dependency, especially `three` / `gsap` / `@react-spring/web`            | `dependency-budget.test.ts`            |
+| importing `framer-motion`                                                           | `dependency-budget.test.ts`            |
+| a transform / filter / `will-change` on a POS **layout ancestor**                   | `operational-zone-containment.spec.ts` |
 
 That last one is not stylistic. Those properties make an element the containing block for
 `position: fixed` descendants — **including at print time** — and the receipt lifts itself out of
