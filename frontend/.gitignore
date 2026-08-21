@@ -49,3 +49,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ── e2e diagnostic probes ────────────────────────────────────────────────────
+# Sessions write one-off .mjs probes under e2e/ to interrogate a running stack.
+# They are never imported, never shipped, and are constantly created and deleted.
+# 456 of them were untracked AND unignored, so `git status` reported over 2,000
+# untracked files and became unreadable — which is exactly how a genuinely new
+# file goes unnoticed.
+#
+# This does NOT affect probes already tracked: .gitignore applies only to
+# untracked paths. A probe worth keeping can still be committed with `git add -f`,
+# or by giving it a .ts extension — which also brings it back under the prettier
+# and typecheck gates, where real test infrastructure belongs.
+e2e/**/*.mjs
