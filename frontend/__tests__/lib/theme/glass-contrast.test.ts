@@ -35,7 +35,7 @@ import {
  * alpha nudged by 0.02 fails loudly rather than quietly moving a ratio nobody re-checks.
  *
  * <p><b>Measured 2026-08-11.</b> The binding constraint across the whole table is
- * `--foreground-tertiary` on the light panel composited over `--surface-3`, at 5.34:1. That is
+ * `--foreground-tertiary` on the light panel composited over `--surface-3`, at 5.36:1. That is
  * the number to watch: it has the least headroom over the 4.5:1 floor, so it is what will
  * break first if a fill alpha drops or a surface step darkens.
  */
@@ -48,19 +48,26 @@ const CSS = readFileSync(resolve(FRONTEND_ROOT, "app/globals.css"), "utf8").repl
 /** [surfaceId, foreground, scope, fallbackRatio, worstCompositeRatio] */
 type GlassRow = readonly [string, string, Scope, number, number];
 
+// Re-recorded 2026-08-21 for the demo-calibrated identity (D-38-11 — measured once, recorded
+// once). Nine of the twenty figures moved. Every one moved UP: the cool blue-black neutral
+// ramp (--neutral-h 260, chroma 0.030-0.046) is marginally darker behind these translucent
+// surfaces than the old near-achromatic cyan ramp was, so foreground separation improved.
+// No row crossed a floor in either direction — this is drift, and D-34-04's binding
+// constraint (--foreground-tertiary on the light panel composited over --surface-3) still
+// holds at 5.36:1 against its 4.5 AA floor, with 0.86 of headroom.
 const ROWS: readonly GlassRow[] = [
   // ── light ────────────────────────────────────────────────────────────────────
   ["panel", "--foreground", "light", 18.01, 17.73],
-  ["panel", "--foreground-secondary", "light", 8.26, 8.13],
-  ["panel", "--foreground-tertiary", "light", 5.42, 5.34],
+  ["panel", "--foreground-secondary", "light", 8.26, 8.16],
+  ["panel", "--foreground-tertiary", "light", 5.44, 5.36],
   ["overlay", "--foreground", "light", 17.49, 18.17],
   ["overlay", "--foreground-secondary", "light", 8.02, 8.34],
   // ── dark ─────────────────────────────────────────────────────────────────────
-  ["panel", "--foreground", "dark", 15.64, 14.31],
-  ["panel", "--foreground-secondary", "dark", 11.12, 10.17],
+  ["panel", "--foreground", "dark", 15.68, 14.38],
+  ["panel", "--foreground-secondary", "dark", 11.12, 10.2],
   ["panel", "--foreground-tertiary", "dark", 7.11, 6.5],
-  ["overlay", "--foreground", "dark", 14.13, 14.35],
-  ["overlay", "--foreground-secondary", "dark", 10.04, 10.2],
+  ["overlay", "--foreground", "dark", 14.17, 14.45],
+  ["overlay", "--foreground-secondary", "dark", 10.04, 10.25],
 ];
 
 const surface = (id: string) => {

@@ -6,11 +6,23 @@
 /* ═════════════════════════════════════════════════════════════════════════════
    Phase 20 design tokens — UI-SPEC.md §3.
    ─────────────────────────────────────────────────────────────────────────────
-   Every colour in this file is authored as `oklch(L C var(--brand-h))` or with an
-   explicit semantic hue. There are no hex literals: D-UI-01 requires the whole
-   system to regenerate from ONE number, and it does — change `--brand-h` and the
-   primary ramp, the neutral ramp, the sequential ramp, `--chart-1`, the diverging
-   midpoint and every KDS surface all move with it.
+   Every colour in this file is authored as `oklch(L C var(--<axis>-h))` or with an
+   explicit semantic hue. There are no hex literals.
+
+   THE SYSTEM NOW REGENERATES FROM THREE NUMBERS, NOT ONE. D-UI-01 originally required
+   one (`--brand-h`), and this file used to say so. Phase 38's demo calibration retired
+   that claim DELIBERATELY — see `.planning/phases/38-erp-design-transformation/
+   38-DECISIONS-DEMO.md` D-38-12. The reason is measurable: the target identity stands a
+   WARM accent (gold, hue 69) on a COOL ground (blue-black, hue 260), and that opposition
+   is most of why it reads as expensive. A single hue cannot express it — tying the
+   neutrals to the brand hue turns the surfaces warm brown-grey.
+
+     --brand-h   69   gold  — primary ramp, sequential ramp, diverging midpoint, KDS
+     --accent-h  182  teal  — secondary ramp, --chart-1
+     --neutral-h 260  cool blue-black — neutral ramp, i.e. every surface, border, text tier
+
+   If you are here because you want to re-tie the neutrals to `--brand-h` and restore the
+   one-number property: that is a product decision, not a tidy-up. Read D-38-12 first.
 
    All L/C pairs below are gamut-mapped into sRGB (hold L and H, bisect C until in
    gamut) and were re-derived from the spec's formulae with the repo's own
@@ -23,9 +35,12 @@
   /* ── existing bridge — unchanged names, new values ─────────────────────── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sora);
+  --font-mono: var(--font-dm-mono);
+  /* Fraunces, NOT --font-sans (D-38-13). This is the one place the display serif enters the
+     system; `font-heading` has 8 call sites, which is the demo's restraint expressed as a
+     budget rather than as a note nobody reads. */
+  --font-heading: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -57,6 +72,8 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-solid: var(--primary-solid);
+  --color-primary-solid-foreground: var(--primary-solid-foreground);
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
@@ -88,6 +105,20 @@
   --color-primary-800: var(--primary-800);
   --color-primary-900: var(--primary-900);
   --color-primary-950: var(--primary-950);
+
+  /* The teal secondary (D-38-12). Namespace is `secondary-*`, never `teal-*`:
+     conformance-scan.ts:93-94 scores `bg-teal-\d{2,3}` as a raw-palette offender. */
+  --color-secondary-50: var(--secondary-50);
+  --color-secondary-100: var(--secondary-100);
+  --color-secondary-200: var(--secondary-200);
+  --color-secondary-300: var(--secondary-300);
+  --color-secondary-400: var(--secondary-400);
+  --color-secondary-500: var(--secondary-500);
+  --color-secondary-600: var(--secondary-600);
+  --color-secondary-700: var(--secondary-700);
+  --color-secondary-800: var(--secondary-800);
+  --color-secondary-900: var(--secondary-900);
+  --color-secondary-950: var(--secondary-950);
 
   /* Overrides Tailwind's stock `neutral` palette on purpose: ours carries the
      brand hue at imperceptible chroma so surfaces harmonise. Zero call sites use
@@ -309,38 +340,88 @@
      so they don't render light in dark mode. */
   color-scheme: light;
 
-  /* ── the single regeneration point (D-UI-01, UI-SPEC §2.3) ─────────────── */
-  --brand-h: 195;
+  /* ── the three regeneration points (D-38-12, superseding D-UI-01's single) ─ */
+  --brand-h: 69;    /* gold  — was 195 (cyan) until the demo calibration */
+  --accent-h: 182;  /* teal  — literal: a second brand hue cannot follow the first */
+  --neutral-h: 260; /* cool blue-black ground; deliberately NOT --brand-h */
 
-  /* ── primary ramp, hue 195 (§3.1) ──────────────────────────────────────── */
-  /* 600/700/800/900/950 carry a chroma clamped to the sRGB gamut boundary at
-     their lightness; the spec records the pre-clamp value in its Note column. */
-  --primary-50: oklch(0.976 0.014 var(--brand-h));
-  --primary-100: oklch(0.951 0.03 var(--brand-h));
-  --primary-200: oklch(0.906 0.055 var(--brand-h));
-  --primary-300: oklch(0.848 0.082 var(--brand-h));
-  --primary-400: oklch(0.775 0.104 var(--brand-h));
-  --primary-500: oklch(0.7 0.116 var(--brand-h));
-  --primary-600: oklch(0.606 0.1034 var(--brand-h));
-  --primary-700: oklch(0.512 0.0873 var(--brand-h));
-  --primary-800: oklch(0.428 0.073 var(--brand-h));
-  --primary-900: oklch(0.352 0.058 var(--brand-h));
-  --primary-950: oklch(0.262 0.042 var(--brand-h));
+  /* ── primary ramp, hue 69 — gold (§3.1, D-38-11) ───────────────────────── */
+  /* The L ladder is UNCHANGED from hue 195. Only chroma is re-derived, because a
+     hue move alone does not produce gold: the old chroma column was gamut-clamped
+     FOR hue 195, and at hue 69 those same values use 65-78% of the sRGB boundary
+     and render #e1aa6a — tan. Chroma is scaled x1.301 (anchoring --primary-400 on
+     the demo's #E8A045 = oklch(0.760 0.1353 69.3)) then capped at 98% of the
+     in-gamut maximum, bisected with the repo's own colorjs.io.
 
-  /* ── neutral ramp, same hue at C ≤ 0.010 (§3.2) ────────────────────────── */
-  --neutral-0: oklch(1 0 var(--brand-h));
-  --neutral-50: oklch(0.985 0.002 var(--brand-h));
-  --neutral-100: oklch(0.968 0.004 var(--brand-h));
-  --neutral-200: oklch(0.928 0.006 var(--brand-h));
-  --neutral-300: oklch(0.872 0.008 var(--brand-h));
-  --neutral-400: oklch(0.74 0.01 var(--brand-h));
-  --neutral-500: oklch(0.61 0.01 var(--brand-h));
-  --neutral-600: oklch(0.508 0.01 var(--brand-h));
-  --neutral-700: oklch(0.41 0.009 var(--brand-h));
-  --neutral-800: oklch(0.302 0.008 var(--brand-h));
-  --neutral-900: oklch(0.226 0.007 var(--brand-h));
-  --neutral-950: oklch(0.168 0.006 var(--brand-h));
-  --neutral-1000: oklch(0.132 0.006 var(--brand-h));
+     Hue and chroma moved in ONE commit on purpose (D-38-11): setting the hue,
+     seeing tan, and raising chroma afterwards re-records the drift gate twice —
+     the second time by someone who has learned to read those numbers as noise.
+
+     Measured: --primary-400 = #eda54b against the demo's #E8A045. */
+  --primary-50: oklch(0.976 0.0167 var(--brand-h));   /* clamped */
+  --primary-100: oklch(0.951 0.0345 var(--brand-h));  /* clamped */
+  --primary-200: oklch(0.906 0.0681 var(--brand-h));  /* clamped */
+  --primary-300: oklch(0.848 0.1067 var(--brand-h));
+  --primary-400: oklch(0.775 0.1353 var(--brand-h));  /* the demo's gold */
+  --primary-500: oklch(0.7 0.1496 var(--brand-h));    /* clamped */
+  --primary-600: oklch(0.606 0.1295 var(--brand-h));  /* clamped */
+  --primary-700: oklch(0.512 0.1094 var(--brand-h));  /* clamped */
+  --primary-800: oklch(0.428 0.0914 var(--brand-h));  /* clamped */
+  --primary-900: oklch(0.352 0.0752 var(--brand-h));  /* clamped */
+  --primary-950: oklch(0.262 0.0546 var(--brand-h));
+
+  /* ── secondary ramp, hue 182 — teal (D-38-12) ──────────────────────────── */
+  /* Authored against --accent-h with a LITERAL hue axis: a second brand hue cannot
+     be derived from the first. Same L ladder, chroma anchored on the demo's
+     #2DD4BF = oklch(0.785 0.1325 181.9); measured --secondary-400 = #27d1bc.
+
+     NOT named `teal` anywhere in a utility: conformance-scan.ts:93-94 counts
+     `bg-teal-\d{2,3}` as a raw-palette offender. The utility namespace is
+     `secondary-*`.
+
+     D-38-13 constraint: teal(182) sits DeltaE2000 18.68 from --success-600(149.6) —
+     the closest pair in the whole semantic set. This ramp MUST NOT carry state
+     meaning; success/warning/danger keep that job exclusively. */
+  --secondary-50: oklch(0.976 0.0178 var(--accent-h));
+  --secondary-100: oklch(0.951 0.0382 var(--accent-h));
+  --secondary-200: oklch(0.906 0.0701 var(--accent-h));
+  --secondary-300: oklch(0.848 0.1045 var(--accent-h));
+  --secondary-400: oklch(0.775 0.1325 var(--accent-h));  /* the demo's teal */
+  --secondary-500: oklch(0.7 0.1229 var(--accent-h));    /* clamped */
+  --secondary-600: oklch(0.606 0.1064 var(--accent-h));  /* clamped */
+  --secondary-700: oklch(0.512 0.0899 var(--accent-h));  /* clamped */
+  --secondary-800: oklch(0.428 0.0751 var(--accent-h));  /* clamped */
+  --secondary-900: oklch(0.352 0.0618 var(--accent-h));  /* clamped */
+  --secondary-950: oklch(0.262 0.046 var(--accent-h));   /* clamped */
+
+  /* ── neutral ramp, hue 260 at rising chroma (§3.2 as amended by D-38-12) ── */
+  /* This ramp used to be `var(--brand-h)` at C <= 0.010. It is now its own axis,
+     and the chroma RISES toward the dark end: the light theme keeps clean, almost
+     achromatic surfaces (C 0.002-0.009), while the dark theme gets the demo's
+     visibly blue steel (C 0.030-0.046). That asymmetry is intentional — a light
+     UI tinted this hard reads as a colour cast; a dark one reads as depth.
+
+     Demo reference    ours
+       bg      #080C12   --neutral-1000 #01071a
+       surface #141E2E   --neutral-900  #121c2d
+       border  #1F2E45   --neutral-800  #252f3e
+
+     The card hairline lands at 1.26:1 (--neutral-800 on --neutral-900) against the
+     demo's own 1.22:1 — the look is reproduced. Form controls do NOT use it; see
+     --border-interactive below and D-38-13. */
+  --neutral-0: oklch(1 0 var(--neutral-h));
+  --neutral-50: oklch(0.985 0.002 var(--neutral-h));
+  --neutral-100: oklch(0.968 0.004 var(--neutral-h));
+  --neutral-200: oklch(0.928 0.006 var(--neutral-h));
+  --neutral-300: oklch(0.872 0.009 var(--neutral-h));
+  --neutral-400: oklch(0.74 0.013 var(--neutral-h));
+  --neutral-500: oklch(0.61 0.016 var(--neutral-h));
+  --neutral-600: oklch(0.508 0.018 var(--neutral-h));
+  --neutral-700: oklch(0.41 0.022 var(--neutral-h));
+  --neutral-800: oklch(0.302 0.03 var(--neutral-h));
+  --neutral-900: oklch(0.226 0.036 var(--neutral-h));
+  --neutral-950: oklch(0.168 0.042 var(--neutral-h));
+  --neutral-1000: oklch(0.132 0.046 var(--neutral-h));
 
   /* ── semantic ramps (§3.3) — base hues preserved from the old palette ──── */
   /* L = [.972 .945 .895 .830 .740 base, base−.085, −.170, −.250, −.320, −.400]
@@ -394,7 +475,11 @@
   --info-950: oklch(0.15 0.033 237.3);
 
   /* ── chart series (§3.4) — CVD- and greyscale-verified, one hue per series ── */
-  --chart-1: oklch(0.62 0.1057 var(--brand-h));
+  /* Retargeted to --accent-h (D-38-12). On --brand-h at gold it collided with
+     --chart-2 (literal hue 35): pairwise DeltaE2000 fell 26.89 -> 20.20, making it the
+     worst-separated pair in the series. Series separation is not gated today — that
+     gap is recorded in the recalibration, not silently relied upon. */
+  --chart-1: oklch(0.62 0.1057 var(--accent-h));
   --chart-2: oklch(0.56 0.19 35);
   --chart-3: oklch(0.5 0.19 262);
   --chart-4: oklch(0.68 0.19 300);
@@ -429,8 +514,20 @@
   --card-foreground: var(--neutral-950);
   --popover: var(--neutral-0);
   --popover-foreground: var(--neutral-950);
+  /* --primary is the TEXT/LINK/BORDER role: 5.86:1 on white, so it must stay dark. At this
+     hue that reads bronze, which is correct for text and wrong for a button. */
   --primary: var(--primary-700);
   --primary-foreground: var(--neutral-0);
+
+  /* --primary-solid is the FILL role (D-38-18). Gold is a light-mode-hostile hue: no single
+     stop can be both a legible link on white AND look gold as a background. Measured at hue 69:
+       primary-400 #eda54b  ink 8.20:1 PASS | white 2.08:1 FAIL | as link 2.08:1 FAIL
+       primary-700 #8e5906  ink 2.91:1 FAIL | white 5.86:1 PASS | as link 5.86:1 PASS
+     So the two jobs are split. The fill is the SAME stop in both themes, which is the point:
+     the button is gold everywhere, and only the label flips. This is the demo's own pattern —
+     its .btn-primary is gold with a near-black label at 8.91:1. */
+  --primary-solid: var(--primary-400);
+  --primary-solid-foreground: var(--neutral-900);
   --secondary: var(--neutral-100);
   --secondary-foreground: var(--neutral-950);
   --muted: var(--neutral-100);
@@ -655,6 +752,11 @@
   --popover-foreground: var(--neutral-50);
   --primary: var(--primary-400);
   --primary-foreground: var(--neutral-1000);
+  /* In DARK the two roles happen to coincide — gold reads as both text and fill against a
+     near-black ground. Declared separately regardless, so a component never has to know which
+     theme it is in to pick the right token. The coincidence is luck, not a contract. */
+  --primary-solid: var(--primary-400);
+  --primary-solid-foreground: var(--neutral-1000);
   --secondary: var(--neutral-800);
   --secondary-foreground: var(--neutral-50);
   --muted: var(--neutral-800);
@@ -672,7 +774,13 @@
 
   --border: var(--neutral-800);
   --border-strong: var(--neutral-700);
-  --border-interactive: var(--neutral-600);
+  /* --neutral-500, not --neutral-600 (D-38-13). At --neutral-600 an input rendered on a
+     CARD (--neutral-900) measured 2.95:1, under SC 1.4.11's 3:1 floor — a latent defect the
+     gate missed because it only ever checked the page surface. Re-measured against the OLD
+     cyan tokens it was 2.94:1, so this predates the gold identity and is not its doing.
+     --neutral-500 clears every dark surface: 4.53:1 on card, 5.32:1 on page. Form controls
+     are meant to be stronger than the card hairline anyway — that is the whole D-38-13 split. */
+  --border-interactive: var(--neutral-500);
   --input: var(--border-interactive);
   --ring: var(--primary-400);
 
@@ -682,7 +790,7 @@
   --selected-foreground: var(--neutral-50);
   --selected-border: var(--primary-400);
 
-  --chart-1: oklch(0.7 0.1194 var(--brand-h));
+  --chart-1: oklch(0.7 0.1194 var(--accent-h)); /* see :root — retargeted, D-38-12 */
   --chart-2: oklch(0.64 0.19 35);
   --chart-3: oklch(0.58 0.19 262);
   --chart-4: oklch(0.88 0.0689 300);
